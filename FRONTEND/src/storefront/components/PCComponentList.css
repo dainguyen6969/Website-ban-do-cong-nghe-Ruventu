@@ -1,0 +1,119 @@
+.pc-component-list-wrapper {
+  background-color: #111;
+  color: #fff;
+  border: 1px solid #333;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.pc-component-list-header {
+  background-color: #ff0000;
+  color: white;
+  font-weight: 800;
+  font-size: 1.1rem;
+  padding: 15px 20px;
+  text-transform: uppercase;
+}
+
+.pc-component-list-content {
+  padding: 20px 0;
+  flex: 1;
+  overflow-y: auto;
+}
+
+.component-list-title {
+  display: flex;
+  align-items: center;
+  color: #aaa;
+  font-size: 0.9rem;
+  margin-bottom: 20px;
+  padding: 0 20px;
+}
+
+.vertical-line {
+  width: 3px;
+  height: 14px;
+  background-color: #ff0000;
+  margin-right: 10px;
+}
+
+.components-ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.component-item {
+  display: flex;
+  align-items: center;
+  padding: 15px 20px;
+  border-bottom: 1px solid #222;
+  transition: background-color 0.2s ease;
+}
+
+.component-item:hover {
+  background-color: #1a1a1a;
+}
+
+.comp-image {
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  margin-right: 15px;
+  background-color: #fff;
+  padding: 2px;
+  border-radius: 4px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.comp-image img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+.comp-info {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.comp-type {
+  font-size: 0.75rem;
+  color: #777;
+  text-transform: uppercase;
+  font-weight: bold;
+}
+
+.comp-name {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #ddd;
+}
+
+.comp-code {
+  font-size: 0.75rem;
+  color: #555;
+}
+
+/* Custom Scrollbar for component list if it overflows */
+.pc-component-list-content::-webkit-scrollbar {
+  width: 6px;
+}
+
+.pc-component-list-content::-webkit-scrollbar-track {
+  background: #111;
+}
+
+.pc-component-list-content::-webkit-scrollbar-thumb {
+  background: #333;
+  border-radius: 3px;
+}
+
+.pc-component-list-content::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}

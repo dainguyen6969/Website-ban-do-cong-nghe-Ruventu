@@ -1,0 +1,113 @@
+.product-detail-page {
+  background-color: #050505; /* Deep black for the page */
+  color: #fff;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.breadcrumb-container {
+  max-width: 1400px;
+  margin: 0 auto;
+  width: 100%;
+  padding: 15px 40px;
+  border-bottom: 1px solid #222;
+  background-color: transparent;
+}
+
+.breadcrumb {
+  font-size: 13px;
+  color: #888;
+}
+
+.breadcrumb a {
+  color: #888;
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.breadcrumb a:hover {
+  color: #ff0000;
+}
+
+.breadcrumb .separator {
+  margin: 0 10px;
+  font-size: 10px;
+}
+
+.breadcrumb .current {
+  color: #fff;
+  font-weight: 500;
+}
+
+.product-main-container {
+  max-width: 1400px;
+  margin: 0 auto;
+  background-color: transparent;
+  width: 100%;
+  display: grid;
+  grid-template-columns: 280px 1fr 380px;
+  gap: 30px;
+  padding: 30px 40px;
+  flex: 1;
+}
+
+.purchase-right-sidebar-column {
+  background-color: #fff;
+}
+
+.info-sidebar-column {
+  /* No specific styles needed yet, handled by child component */
+}
+
+.gallery-column {
+  /* Handled by ProductGallery component */
+}
+
+.purchase-right-sidebar-column {
+  /* Handled by ProductPurchaseRightSidebar component */
+}
+
+.tabs-container {
+  max-width: 1400px;
+  margin: 0 auto 50px;
+  width: 100%;
+  padding: 0 40px;
+}
+
+/* Responsive styles */
+@media (max-width: 1200px) {
+  .product-main-container {
+    grid-template-columns: 250px 1fr 350px;
+    gap: 20px;
+  }
+}
+
+@media (max-width: 992px) {
+  .product-main-container {
+    grid-template-columns: 1fr;
+    grid-template-areas: 
+      "gallery"
+      "purchase"
+      "info";
+  }
+  
+  .gallery-column {
+    grid-area: gallery;
+  }
+  
+  .purchase-right-sidebar-column {
+    grid-area: purchase;
+  }
+  
+  .info-sidebar-column {
+    grid-area: info;
+  }
+}
+
+@media (max-width: 768px) {
+  .product-main-container, .breadcrumb-container, .tabs-container {
+    padding-left: 20px;
+    padding-right: 20px;
+  }
+}
