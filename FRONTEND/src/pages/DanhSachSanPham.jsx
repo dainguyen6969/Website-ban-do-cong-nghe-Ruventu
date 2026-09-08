@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   HiOutlineUpload,
@@ -79,11 +79,8 @@ const PAGE_SIZE = 10;
 
 export default function DanhSachSanPham() {
   const navigate = useNavigate();
-  const [productsList, setProductsList] = useState(() => getMockProducts());
+  const [productsList] = useState(() => [...getMockProducts()]);
 
-  useEffect(() => {
-    setProductsList([...getMockProducts()]);
-  }, []);
   const [searchTerm, setSearchTerm] = useState('');
   const [isFilterPanelOpen, setIsFilterPanelOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState('Danh mục');
@@ -190,7 +187,7 @@ export default function DanhSachSanPham() {
 
       return true;
     });
-  }, [searchTerm, selectedCategory, selectedBrand, selectedProductType, selectedStatus]);
+  }, [productsList, searchTerm, selectedCategory, selectedBrand, selectedProductType, selectedStatus]);
 
   // Pagination calculations
   const totalFilteredCount = filteredAndSortedProducts.length;

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import Header from '../components/Header';
 import InfoBar from '../components/InfoBar';
@@ -13,13 +13,10 @@ import './ProductDetail.css';
 
 const ProductDetail = () => {
   const { id } = useParams();
-  const [product, setProduct] = useState(null);
+  const product = mockProducts[id] || mockProducts["RVT-MB-X670E-MSI-TOM"];
 
   useEffect(() => {
     window.scrollTo(0, 0);
-    // Fetch product data based on ID. Fallback to a default product if not found.
-    const foundProduct = mockProducts[id] || mockProducts["RVT-MB-X670E-MSI-TOM"];
-    setProduct(foundProduct);
   }, [id]);
 
   if (!product) return <div>Loading...</div>;
