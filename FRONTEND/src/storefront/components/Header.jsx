@@ -87,7 +87,7 @@ const Header = () => {
                   )}
                 </div>
               ) : (
-                <Link to="/login" className="action-item" style={{textDecoration: 'none', color: 'inherit'}}>
+                <Link to="/login" className="action-item">
                   <User size={24} />
                   <span>Tài khoản</span>
                 </Link>

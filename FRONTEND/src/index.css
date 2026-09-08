@@ -3,7 +3,7 @@
    ======================================== */
 
 /* CSS Custom Properties / Design Tokens */
-:root {
+.admin-app {
   /* Brand Colors */
   --color-brand-red: #E31E24;
   --color-brand-red-hover: #c9181d;
@@ -85,13 +85,29 @@
   box-sizing: border-box;
 }
 
-html {
+html:has(.admin-app) {
   font-size: 14px;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-body {
+html:has(.storefront-app) {
+  font-size: 16px;
+}
+
+:where(.admin-app),
+:where(.admin-app *),
+:where(.admin-app *::before),
+:where(.admin-app *::after) {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+.admin-app {
+  font-size: 14px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
   font-family: var(--font-family);
   color: var(--color-text-primary);
   background-color: var(--color-content-bg);
@@ -99,17 +115,17 @@ body {
   overflow-x: hidden;
 }
 
-#root {
-  width: 100vw;
+.admin-app {
+  width: 100%;
   min-height: 100vh;
 }
 
-a {
+:where(.admin-app) a {
   text-decoration: none;
   color: inherit;
 }
 
-button {
+:where(.admin-app) button {
   font-family: inherit;
   cursor: pointer;
   border: none;
@@ -117,42 +133,43 @@ button {
   outline: none;
 }
 
-input,
-select {
+:where(.admin-app) input,
+:where(.admin-app) select {
   font-family: inherit;
   outline: none;
   border: none;
 }
 
-ul, ol {
+:where(.admin-app) ul,
+:where(.admin-app) ol {
   list-style: none;
 }
 
-img {
+:where(.admin-app) img {
   max-width: 100%;
   display: block;
 }
 
 /* Scrollbar styling */
-::-webkit-scrollbar {
+:where(.admin-app) ::-webkit-scrollbar {
   width: 5px;
 }
 
-::-webkit-scrollbar-track {
+:where(.admin-app) ::-webkit-scrollbar-track {
   background: transparent;
 }
 
-::-webkit-scrollbar-thumb {
+:where(.admin-app) ::-webkit-scrollbar-thumb {
   background: rgba(255, 255, 255, 0.15);
   border-radius: var(--radius-full);
 }
 
-::-webkit-scrollbar-thumb:hover {
+:where(.admin-app) ::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.25);
 }
 
 /* Utility classes */
-.sr-only {
+:where(.admin-app) .sr-only {
   position: absolute;
   width: 1px;
   height: 1px;
