@@ -3,7 +3,7 @@
    ======================================== */
 
 /* CSS Custom Properties / Design Tokens */
-:root {
+.admin-app {
   /* Brand Colors */
   --color-brand-red: #E31E24;
   --color-brand-red-hover: #c9181d;
@@ -77,21 +77,19 @@
 }
 
 /* Global Reset */
-*,
-*::before,
-*::after {
+.admin-app,
+.admin-app *,
+.admin-app *::before,
+.admin-app *::after {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
 }
 
-html {
+.admin-app {
   font-size: 14px;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-}
-
-body {
   font-family: var(--font-family);
   color: var(--color-text-primary);
   background-color: var(--color-content-bg);
@@ -99,17 +97,17 @@ body {
   overflow-x: hidden;
 }
 
-#root {
-  width: 100vw;
+.admin-app {
+  width: 100%;
   min-height: 100vh;
 }
 
-a {
+.admin-app a {
   text-decoration: none;
   color: inherit;
 }
 
-button {
+.admin-app button {
   font-family: inherit;
   cursor: pointer;
   border: none;
@@ -117,42 +115,43 @@ button {
   outline: none;
 }
 
-input,
-select {
+.admin-app input,
+.admin-app select {
   font-family: inherit;
   outline: none;
   border: none;
 }
 
-ul, ol {
+.admin-app ul,
+.admin-app ol {
   list-style: none;
 }
 
-img {
+.admin-app img {
   max-width: 100%;
   display: block;
 }
 
 /* Scrollbar styling */
-::-webkit-scrollbar {
+.admin-app ::-webkit-scrollbar {
   width: 5px;
 }
 
-::-webkit-scrollbar-track {
+.admin-app ::-webkit-scrollbar-track {
   background: transparent;
 }
 
-::-webkit-scrollbar-thumb {
+.admin-app ::-webkit-scrollbar-thumb {
   background: rgba(255, 255, 255, 0.15);
   border-radius: var(--radius-full);
 }
 
-::-webkit-scrollbar-thumb:hover {
+.admin-app ::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.25);
 }
 
 /* Utility classes */
-.sr-only {
+.admin-app .sr-only {
   position: absolute;
   width: 1px;
   height: 1px;

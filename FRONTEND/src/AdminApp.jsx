@@ -21,7 +21,7 @@ export default function AdminApp() {
   const toggleSidebar = () => setSidebarCollapsed((prev) => !prev);
 
   return (
-    <div className="app-layout">
+    <div className="app-layout admin-app">
       <Sidebar collapsed={sidebarCollapsed} onToggle={toggleSidebar} />
       <div className="app-layout__main">
         <Header />
