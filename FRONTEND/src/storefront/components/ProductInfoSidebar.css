@@ -1,0 +1,76 @@
+.product-info-sidebar {
+  display: flex;
+  flex-direction: column;
+  background-color: transparent;
+  color: #fff;
+}
+
+.info-sidebar-header {
+  background-color: #ff0000;
+  color: white;
+  font-weight: 800;
+  font-size: 14px;
+  padding: 12px 15px;
+  text-transform: uppercase;
+}
+
+.info-sidebar-thumbnail-box {
+  padding: 15px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.thumbnail-placeholder {
+  width: 100%;
+  aspect-ratio: 16/9;
+  border: 1px solid #ff0000;
+  background-color: #1a1a1a;
+  background-size: cover;
+  background-position: center;
+}
+
+.category-text {
+  font-size: 13px;
+  color: #aaa;
+  border: 1px solid #333;
+  padding: 6px 15px;
+  align-self: flex-start;
+  font-weight: 500;
+}
+
+.info-sidebar-specs-section {
+  display: flex;
+  flex-direction: column;
+  margin-top: 15px;
+}
+
+.specs-title-bar {
+  border-left: 3px solid #ff0000;
+  padding-left: 10px;
+  font-size: 14px;
+  font-weight: 700;
+  margin-bottom: 15px;
+  color: #fff;
+}
+
+.info-specs-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.info-specs-table td {
+  padding: 12px 10px;
+  font-size: 13px;
+  border-bottom: 1px solid #333;
+}
+
+.info-specs-table tr td:first-child {
+  color: #888;
+  width: 40%;
+}
+
+.info-specs-table tr td:last-child {
+  color: #fff;
+  font-weight: 500;
+}
