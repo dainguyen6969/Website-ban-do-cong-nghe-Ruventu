@@ -11,6 +11,7 @@ import DanhSachSanPham from './pages/DanhSachSanPham';
 import ThemSanPham from './pages/ThemSanPham';
 import ChiTietSanPham from './pages/ChiTietSanPham';
 import TaoKhuyenMai from './pages/TaoKhuyenMai';
+import BanHang from './pages/BanHang';
 import PlaceholderPage from './pages/PlaceholderPage';
 import './index.css';
 import './App.css';
@@ -21,7 +22,7 @@ export default function AdminApp() {
   const toggleSidebar = () => setSidebarCollapsed((prev) => !prev);
 
   return (
-    <div className="app-layout">
+    <div className="app-layout admin-app">
       <Sidebar collapsed={sidebarCollapsed} onToggle={toggleSidebar} />
       <div className="app-layout__main">
         <Header />
@@ -31,7 +32,7 @@ export default function AdminApp() {
 
           {/* Non-expandable top-level pages */}
           <Route path="/admin/tong-quat" element={<PlaceholderPage title="Tổng quát" />} />
-          <Route path="/admin/ban-hang" element={<PlaceholderPage title="Bán hàng" />} />
+          <Route path="/admin/ban-hang" element={<BanHang />} />
 
           {/* Sản phẩm section */}
           <Route path="/admin/san-pham" element={<Navigate to="/admin/san-pham/danh-sach-san-pham" replace />} />

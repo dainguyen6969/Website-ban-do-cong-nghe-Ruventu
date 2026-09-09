@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import { User, Edit, Lock, Check } from 'lucide-react';
@@ -7,37 +7,34 @@ import './ProfilePage.css';
 
 const ProfilePage = () => {
   const navigate = useNavigate();
-  const location = useLocation();
-  const [user, setUser] = useState(null);
-  const [activeTab, setActiveTab] = useState('profile');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tabParam = searchParams.get('tab');
+  const activeTab = ['orders', 'warranty', 'profile'].includes(tabParam) ? tabParam : 'profile';
+  const setActiveTab = (tab) => setSearchParams((current) => {
+    const next = new URLSearchParams(current);
+    next.set('tab', tab);
+    return next;
+  });
+  const [user, setUser] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem('user'));
+    } catch {
+      return null;
+    }
+  });
   const [isEditing, setIsEditing] = useState(false);
   
   // Local form state for edit simulation
   const [formData, setFormData] = useState({
-    name: '',
+    name: user?.name || '',
     city: 'Hà Nội',
     ward: 'Cầu Giấy',
     address: '12 Đường Xuân Thủy, KĐT Dịch Vọng'
   });
 
   useEffect(() => {
-    const storedUser = localStorage.getItem('user');
-    if (storedUser) {
-      const parsedUser = JSON.parse(storedUser);
-      setUser(parsedUser);
-      setFormData(prev => ({ ...prev, name: parsedUser.name }));
-    } else {
-      navigate('/login');
-    }
-  }, [navigate]);
-
-  useEffect(() => {
-    const searchParams = new URLSearchParams(location.search);
-    const tabParam = searchParams.get('tab');
-    if (tabParam === 'orders' || tabParam === 'warranty' || tabParam === 'profile') {
-      setActiveTab(tabParam);
-    }
-  }, [location.search]);
+    if (!user) navigate('/login', { replace: true });
+  }, [navigate, user]);
 
   if (!user) return null;
 

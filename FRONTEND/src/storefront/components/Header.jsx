@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Search, User, ShoppingBag } from 'lucide-react';
 import './Header.css';
@@ -7,15 +7,15 @@ import CartDrawer from './CartDrawer';
 
 const Header = () => {
   const [isCartOpen, setIsCartOpen] = useState(false);
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem('user'));
+    } catch {
+      return null;
+    }
+  });
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
-  useEffect(() => {
-    const storedUser = localStorage.getItem('user');
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
-    }
-  }, []);
 
   const handleLogout = () => {
     localStorage.removeItem('user');
@@ -87,7 +87,7 @@ const Header = () => {
                   )}
                 </div>
               ) : (
-                <Link to="/login" className="action-item" style={{textDecoration: 'none', color: 'inherit'}}>
+                <Link to="/login" className="action-item">
                   <User size={24} />
                   <span>Tài khoản</span>
                 </Link>

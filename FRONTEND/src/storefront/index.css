@@ -15,7 +15,8 @@
   --font-main: 'Roboto', sans-serif;
 }
 
-* {
+:where(.storefront-app),
+:where(.storefront-app *) {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
@@ -29,29 +30,29 @@
   overflow-x: hidden;
 }
 
-.storefront-app a {
+:where(.storefront-app) a {
   text-decoration: none;
   color: inherit;
   transition: color 0.2s ease;
 }
 
-.storefront-app button {
+:where(.storefront-app) button {
   cursor: pointer;
   border: none;
   font-family: inherit;
   transition: all 0.2s ease;
 }
 
-.storefront-app ul {
+:where(.storefront-app) ul {
   list-style: none;
 }
 
-.storefront-app img {
+:where(.storefront-app) img {
   max-width: 100%;
   display: block;
 }
 
-.storefront-app .container {
+:where(.storefront-app) .container {
   max-width: 1440px; /* Screenshots show a wide layout */
   margin: 0 auto;
   padding: 0 20px;
