@@ -119,10 +119,10 @@ const menuItems = [
     expandable: true,
     subItems: [
       { id: 'danh-sach-san-pham', label: 'Danh sách sản phẩm', path: '/admin/san-pham/danh-sach-san-pham' },
-      { id: 'quan-ly-kho', label: 'Quản lý kho', path: '/admin/san-pham/quan-ly-kho', expandable: true, children: [
-        { id: 'toan-bo-phien-ban', label: 'Quản lý phiên bản', path: '/admin/san-pham/toan-bo-phien-ban' },
-        { id: 'danh-sach-serial', label: 'Danh sách Serial', path: '/admin/san-pham/danh-sach-serial' },
-        { id: 'combo-san-pham', label: 'Combo sản phẩm', path: '/admin/san-pham/combo-san-pham' },
+      { id: 'quan-ly-kho', label: 'Quản lý kho', expandable: true, children: [
+        { id: 'toan-bo-phien-ban', label: 'Quản lý phiên bản', path: '/kho-hang/quan-ly-phien-ban' },
+        { id: 'danh-sach-serial', label: 'Danh sách Serial', path: '/kho-hang/danh-sach-serial' },
+        { id: 'combo-san-pham', label: 'Combo sản phẩm', path: '/kho-hang/combo-san-pham' },
         { id: 'nhap-hang', label: 'Nhập hàng', path: '/admin/san-pham/nhap-hang' },
         { id: 'kiem-hang', label: 'Kiểm hàng', path: '/admin/san-pham/kiem-hang' },
       ] },
@@ -213,7 +213,7 @@ const shouldShowBadge = (badge) => {
 };
 
 const hasActivePath = (item, pathname) =>
-  pathname.startsWith(item.path) || item.children?.some((child) => hasActivePath(child, pathname));
+  (item.path ? pathname.startsWith(item.path) : false) || item.children?.some((child) => hasActivePath(child, pathname));
 
 export default function Sidebar({ collapsed, onToggle }) {
   const location = useLocation();
@@ -346,7 +346,6 @@ export default function Sidebar({ collapsed, onToggle }) {
                               onClick={() => {
                                 if (sub.children) {
                                   toggleMenu(sub.id);
-                                  navigate(sub.path);
                                 } else {
                                   handleSubClick(sub.path);
                                 }
