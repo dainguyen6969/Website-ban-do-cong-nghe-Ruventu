@@ -16,8 +16,9 @@ public class SecurityConfig {
     }
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http)
-            throws Exception {
+    public SecurityFilterChain securityFilterChain(
+            HttpSecurity http
+    ) throws Exception {
 
         http
                 .csrf(csrf -> csrf.disable())
@@ -25,9 +26,14 @@ public class SecurityConfig {
                         .requestMatchers(
                                 "/api/v1/auth/register",
                                 "/api/v1/auth/otp/resend",
-                                "/api/v1/auth/verify-otp"
-                        ).permitAll()
-                        .anyRequest().authenticated()
+                                "/api/v1/auth/verify-otp",
+                                "/api/v1/auth/login",
+                                "/api/v1/auth/refresh",
+                                "/api/v1/auth/logout"
+                        )
+                        .permitAll()
+                        .anyRequest()
+                        .authenticated()
                 );
 
         return http.build();

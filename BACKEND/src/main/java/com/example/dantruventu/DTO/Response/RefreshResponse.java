@@ -1,0 +1,19 @@
+package com.example.dantruventu.DTO.Response;
+
+import com.fasterxml.jackson.annotation.JsonProperty;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+public class RefreshResponse {
+
+    @JsonProperty("access_token")
+    private String accessToken;
+}
