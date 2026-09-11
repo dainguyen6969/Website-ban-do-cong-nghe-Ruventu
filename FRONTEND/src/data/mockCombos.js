@@ -1,0 +1,39 @@
+import workstationImage from '../assets/hero.png';
+
+let combos = [
+  { id: 'combo-1', code: 'PC-001', name: 'PC Gaming ABC', image: workstationImage, sellable: 5, stock: 5, price: 25000000, status: 'Đang kinh doanh', components: [
+    { name: 'Intel Core i7-14700K Box', variant: 'Default', sku: 'CPU-I7-14700K', qty: 1 },
+    { name: 'MSI RTX 4070 SUPER Ventus', variant: 'Default', sku: 'VGA-4070S', qty: 1 },
+    { name: 'Corsair Vengeance DDR5 32GB', variant: '6000MHz', sku: 'RAM-D5-32', qty: 2 },
+    { name: 'Samsung 990 PRO 1TB', variant: '1TB', sku: 'SSD-990P-1T', qty: 1 },
+  ] },
+  { id: 'combo-2', code: 'CB-WC-360', name: 'Combo Tản Nhiệt Custom 360', image: workstationImage, sellable: 5, stock: 5, price: 8900000, status: 'Đang kinh doanh', components: [
+    { name: 'Block CPU AM5 Copper', variant: 'Nickel Plated', sku: 'BLOCK-AM5-NP', qty: 1 },
+    { name: 'Pump D5 PRO', variant: 'Standard', sku: 'PUMP-D5-PRO', qty: 1 },
+    { name: 'Radiator 360mm', variant: 'Black', sku: 'RAD-360-BLK', qty: 1 },
+    { name: 'Ống dẫn PETG', variant: 'Clear', sku: 'PETG-CLEAR', qty: 4 },
+  ] },
+  { id: 'combo-3', code: 'CB-STREAM-01', name: 'Combo Streamer Starter', image: workstationImage, sellable: 12, stock: 12, price: 6200000, status: 'Đang kinh doanh', components: [
+    { name: 'Micro Blue Yeti', variant: 'USB Black', sku: 'YETI-USB-BLK', qty: 1 },
+    { name: 'Webcam Logitech C920', variant: 'Full HD', sku: 'C920-FHD', qty: 1 },
+    { name: 'Đèn livestream', variant: 'Ring 12 inch', sku: 'RING-12', qty: 1 },
+  ] },
+  { id: 'combo-4', code: 'CB-NAS-HOME', name: 'Combo NAS Gia Đình 2-Bay', image: workstationImage, sellable: 0, stock: 0, price: 14500000, status: 'Ngưng kinh doanh', components: [
+    { name: 'Synology DS223', variant: '2-Bay', sku: 'DS223-2BAY', qty: 1 },
+    { name: 'HDD WD Red 4TB', variant: 'SATA 5400RPM', sku: 'WD-RED-4TB-SATA', qty: 2 },
+  ] },
+  { id: 'combo-5', code: 'CB-OFFICE-01', name: 'Combo Văn Phòng Cơ Bản', image: workstationImage, sellable: 35, stock: 35, price: 890000, status: 'Đang kinh doanh', components: [
+    { name: 'Chuột Logitech M185', variant: 'Wireless Black', sku: 'M185-WL-BLK', qty: 1 },
+    { name: 'Bàn phím Logitech K120', variant: 'USB Black', sku: 'K120-USB-BLK', qty: 1 },
+    { name: 'Lót chuột Ruventu', variant: 'Standard', sku: 'PAD-STD', qty: 1 },
+  ] },
+  { id: 'combo-6', code: 'CB-CREATOR-01', name: 'Combo Creator Pro', image: workstationImage, sellable: 3, stock: 3, price: 32800000, status: 'Đang kinh doanh', components: [
+    { name: 'Intel Core i9-14900K Box', variant: 'Default', sku: 'SP-CPU-14900K', qty: 1 },
+    { name: 'VGA MSI RTX 4080 Super', variant: 'Gaming X Trio', sku: 'SP-VGA-4080S', qty: 1 },
+  ] },
+];
+
+export function getMockCombos() { return combos.map((combo) => ({ ...combo, components: combo.components.map((item) => ({ ...item })) })); }
+export function getMockComboById(id) { const combo = combos.find((item) => item.id === id || item.code === id); return combo ? { ...combo, components: combo.components.map((item) => ({ ...item })) } : null; }
+export function addMockCombo(combo) { combos = [{ ...combo }, ...combos]; return getMockCombos(); }
+export function setMockComboStatus(id, status) { combos = combos.map((combo) => combo.id === id ? { ...combo, status } : combo); return getMockCombos(); }

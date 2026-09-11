@@ -4,7 +4,9 @@ import StorefrontApp from './storefront/App';
 
 export default function App() {
   const { pathname } = useLocation();
-  const isAdminRoute = pathname === '/admin' || pathname.startsWith('/admin/');
+  const isAdminRoute = pathname === '/admin'
+    || pathname.startsWith('/admin/')
+    || pathname.startsWith('/kho-hang/');
 
   return isAdminRoute ? <AdminApp /> : <StorefrontApp />;
 }

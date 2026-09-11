@@ -21,6 +21,11 @@ export default function Header({ notificationCount = 0 }) {
   
   // Find current top-level route title
   const currentPath = location.pathname;
+  const isInventoryDetail = currentPath.startsWith('/kho-hang/quan-ly-phien-ban/chi-tiet/');
+  const isVersionManagement = currentPath === '/kho-hang/quan-ly-phien-ban';
+  const isSerialDetail = currentPath.startsWith('/kho-hang/danh-sach-serial/');
+  const isSerialList = currentPath === '/kho-hang/danh-sach-serial';
+  const isComboPage = currentPath.startsWith('/kho-hang/combo-san-pham');
   let currentPageName = 'ĐƠN HÀNG';
   const isCreatePromotion = currentPath === '/admin/khuyen-mai/tao-khuyen-mai';
   
@@ -39,9 +44,41 @@ export default function Header({ notificationCount = 0 }) {
             ADMIN
           </span>
           <span className="header__breadcrumb-sep" aria-hidden="true">›</span>
-          <span className="header__breadcrumb-item header__breadcrumb-item--active">
-            {currentPageName}
-          </span>
+          {isComboPage ? (
+            <>
+              <span className="header__breadcrumb-item header__breadcrumb-item--muted">KHO HÀNG</span>
+              <span className="header__breadcrumb-sep" aria-hidden="true">›</span>
+              <span className="header__breadcrumb-item header__breadcrumb-item--active">COMBO SẢN PHẨM</span>
+            </>
+          ) : isSerialDetail ? (
+            <>
+              <span className="header__breadcrumb-item header__breadcrumb-item--muted">DANH SÁCH SERIAL</span>
+              <span className="header__breadcrumb-sep" aria-hidden="true">›</span>
+              <span className="header__breadcrumb-item header__breadcrumb-item--active">CHI TIẾT SERIAL</span>
+            </>
+          ) : isSerialList ? (
+            <>
+              <span className="header__breadcrumb-item header__breadcrumb-item--muted">KHO HÀNG</span>
+              <span className="header__breadcrumb-sep" aria-hidden="true">›</span>
+              <span className="header__breadcrumb-item header__breadcrumb-item--active">DANH SÁCH SERIAL</span>
+            </>
+          ) : isInventoryDetail ? (
+            <>
+              <span className="header__breadcrumb-item header__breadcrumb-item--muted">QUẢN LÝ PHIÊN BẢN</span>
+              <span className="header__breadcrumb-sep" aria-hidden="true">›</span>
+              <span className="header__breadcrumb-item header__breadcrumb-item--active">CHI TIẾT TỒN KHO</span>
+            </>
+          ) : isVersionManagement ? (
+            <>
+              <span className="header__breadcrumb-item header__breadcrumb-item--muted">KHO HÀNG</span>
+              <span className="header__breadcrumb-sep" aria-hidden="true">›</span>
+              <span className="header__breadcrumb-item header__breadcrumb-item--active">QUẢN LÝ PHIÊN BẢN</span>
+            </>
+          ) : (
+            <span className="header__breadcrumb-item header__breadcrumb-item--active">
+              {currentPageName}
+            </span>
+          )}
           {isCreatePromotion && (
             <>
               <span className="header__breadcrumb-sep" aria-hidden="true">›</span>

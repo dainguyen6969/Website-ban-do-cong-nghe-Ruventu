@@ -13,6 +13,13 @@ import ChiTietSanPham from './pages/ChiTietSanPham';
 import TaoKhuyenMai from './pages/TaoKhuyenMai';
 import BanHang from './pages/BanHang';
 import PlaceholderPage from './pages/PlaceholderPage';
+import QuanLyPhienBan from './pages/QuanLyPhienBan';
+import ChiTietTonKho from './pages/ChiTietTonKho';
+import DanhSachSerial from './pages/DanhSachSerial';
+import ChiTietSerial from './pages/ChiTietSerial';
+import ComboSanPham from './pages/ComboSanPham';
+import ThemComboSanPham from './pages/ThemComboSanPham';
+import ChiTietCombo from './pages/ChiTietCombo';
 import './index.css';
 import './App.css';
 
@@ -40,10 +47,16 @@ export default function AdminApp() {
           <Route path="/admin/san-pham/them-san-pham" element={<ThemSanPham />} />
           <Route path="/admin/san-pham/them-san-pham/:productId" element={<ThemSanPham />} />
           <Route path="/admin/san-pham/chi-tiet-san-pham/:productId" element={<ChiTietSanPham />} />
-          <Route path="/admin/san-pham/quan-ly-kho" element={<PlaceholderPage title="Quản lý kho" />} />
-          <Route path="/admin/san-pham/toan-bo-phien-ban" element={<PlaceholderPage title="Toàn bộ phiên bản" />} />
-          <Route path="/admin/san-pham/danh-sach-serial" element={<PlaceholderPage title="Danh sách Serial" />} />
-          <Route path="/admin/san-pham/combo-san-pham" element={<PlaceholderPage title="Combo sản phẩm" />} />
+          <Route path="/kho-hang/quan-ly-phien-ban" element={<QuanLyPhienBan />} />
+          <Route path="/kho-hang/quan-ly-phien-ban/chi-tiet/:id" element={<ChiTietTonKho />} />
+          <Route path="/kho-hang/danh-sach-serial" element={<DanhSachSerial />} />
+          <Route path="/kho-hang/danh-sach-serial/:serialId" element={<ChiTietSerial />} />
+          <Route path="/kho-hang/combo-san-pham" element={<ComboSanPham />} />
+          <Route path="/kho-hang/combo-san-pham/them-moi" element={<ThemComboSanPham />} />
+          <Route path="/kho-hang/combo-san-pham/chi-tiet/:id" element={<ChiTietCombo />} />
+          <Route path="/admin/san-pham/toan-bo-phien-ban" element={<Navigate to="/kho-hang/quan-ly-phien-ban" replace />} />
+          <Route path="/admin/san-pham/danh-sach-serial" element={<Navigate to="/kho-hang/danh-sach-serial" replace />} />
+          <Route path="/admin/san-pham/combo-san-pham" element={<Navigate to="/kho-hang/combo-san-pham" replace />} />
           <Route path="/admin/san-pham/nhap-hang" element={<PlaceholderPage title="Nhập hàng" />} />
           <Route path="/admin/san-pham/kiem-hang" element={<PlaceholderPage title="Kiểm hàng" />} />
           <Route path="/admin/khach-hang-doi-tac" element={<PlaceholderPage title="Khách hàng & Đối tác" />} />

@@ -10,6 +10,7 @@ import {
   HiOutlineTrash,
 } from 'react-icons/hi';
 import FilterDropdown from '../components/FilterDropdown';
+import TablePagination from '../components/TablePagination';
 import { getMockProducts } from '../data/mockProducts';
 import './DanhSachSanPham.css';
 
@@ -193,9 +194,6 @@ export default function DanhSachSanPham() {
   const totalFilteredCount = filteredAndSortedProducts.length;
   const totalPages = Math.max(1, Math.ceil(totalFilteredCount / PAGE_SIZE));
   const safeCurrentPage = Math.min(currentPage, totalPages);
-
-  const startIndex = totalFilteredCount === 0 ? 0 : (safeCurrentPage - 1) * PAGE_SIZE + 1;
-  const endIndex = Math.min(safeCurrentPage * PAGE_SIZE, totalFilteredCount);
 
   const currentProducts = useMemo(() => {
     const start = (safeCurrentPage - 1) * PAGE_SIZE;
@@ -530,54 +528,13 @@ export default function DanhSachSanPham() {
         </table>
       </div>
 
-      {/* Pagination Bar */}
-      <div className="product-pagination-bar">
-        {/* Bottom-left: dynamic results-range label */}
-        <div className="product-pagination-range">
-          <span className="product-pagination-range__text">Hiển thị </span>
-          <strong className="product-pagination-range__number">
-            {totalFilteredCount === 0 ? '0' : `${startIndex}-${endIndex}`}
-          </strong>
-          <span className="product-pagination-range__text">
-            {' '}trên tổng số {totalFilteredCount} kết quả
-          </span>
-        </div>
-
-        {/* Bottom-right: pagination controls */}
-        <div className="product-pagination-controls">
-          <button
-            type="button"
-            className="product-pagination-btn product-pagination-btn--nav"
-            disabled={safeCurrentPage === 1}
-            onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-            aria-label="Trang trước"
-            id="btn-pagination-prev"
-          >
-            ‹
-          </button>
-          {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => (
-            <button
-              key={pageNum}
-              type="button"
-              className={`product-pagination-btn ${pageNum === safeCurrentPage ? 'product-pagination-btn--active' : ''}`}
-              onClick={() => setCurrentPage(pageNum)}
-              id={`btn-pagination-page-${pageNum}`}
-            >
-              {pageNum}
-            </button>
-          ))}
-          <button
-            type="button"
-            className="product-pagination-btn product-pagination-btn--nav"
-            disabled={safeCurrentPage === totalPages || totalFilteredCount === 0}
-            onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-            aria-label="Trang sau"
-            id="btn-pagination-next"
-          >
-            ›
-          </button>
-        </div>
-      </div>
+      <TablePagination
+        totalItems={totalFilteredCount}
+        pageSize={PAGE_SIZE}
+        currentPage={safeCurrentPage}
+        onPageChange={setCurrentPage}
+        idPrefix="products"
+      />
     </main>
   );
 }
