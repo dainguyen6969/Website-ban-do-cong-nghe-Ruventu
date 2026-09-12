@@ -20,6 +20,9 @@ import ChiTietSerial from './pages/ChiTietSerial';
 import ComboSanPham from './pages/ComboSanPham';
 import ThemComboSanPham from './pages/ThemComboSanPham';
 import ChiTietCombo from './pages/ChiTietCombo';
+import DanhSachNhapHang from './pages/DanhSachNhapHang';
+import TaoDonNhapHang from './pages/TaoDonNhapHang';
+import ChiTietNhapHang from './pages/ChiTietNhapHang';
 import './index.css';
 import './App.css';
 
@@ -54,10 +57,13 @@ export default function AdminApp() {
           <Route path="/kho-hang/combo-san-pham" element={<ComboSanPham />} />
           <Route path="/kho-hang/combo-san-pham/them-moi" element={<ThemComboSanPham />} />
           <Route path="/kho-hang/combo-san-pham/chi-tiet/:id" element={<ChiTietCombo />} />
+          <Route path="/kho-hang/nhap-hang" element={<DanhSachNhapHang />} />
+          <Route path="/kho-hang/nhap-hang/tao-moi" element={<TaoDonNhapHang />} />
+          <Route path="/kho-hang/nhap-hang/:id" element={<ChiTietNhapHang />} />
           <Route path="/admin/san-pham/toan-bo-phien-ban" element={<Navigate to="/kho-hang/quan-ly-phien-ban" replace />} />
           <Route path="/admin/san-pham/danh-sach-serial" element={<Navigate to="/kho-hang/danh-sach-serial" replace />} />
           <Route path="/admin/san-pham/combo-san-pham" element={<Navigate to="/kho-hang/combo-san-pham" replace />} />
-          <Route path="/admin/san-pham/nhap-hang" element={<PlaceholderPage title="Nhập hàng" />} />
+          <Route path="/admin/san-pham/nhap-hang" element={<Navigate to="/kho-hang/nhap-hang" replace />} />
           <Route path="/admin/san-pham/kiem-hang" element={<PlaceholderPage title="Kiểm hàng" />} />
           <Route path="/admin/khach-hang-doi-tac" element={<PlaceholderPage title="Khách hàng & Đối tác" />} />
           <Route path="/admin/nhan-vien" element={<PlaceholderPage title="Nhân viên" />} />

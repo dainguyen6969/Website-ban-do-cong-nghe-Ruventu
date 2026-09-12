@@ -4,9 +4,11 @@ import Header from '../components/Header';
 import Footer from '../components/Footer';
 import { User, Edit, Lock, Check } from 'lucide-react';
 import './ProfilePage.css';
+import useMockAuth from '../../auth/useMockAuth';
 
 const ProfilePage = () => {
   const navigate = useNavigate();
+  const { currentAccount, updateCurrentAccount } = useMockAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const tabParam = searchParams.get('tab');
   const activeTab = ['orders', 'warranty', 'profile'].includes(tabParam) ? tabParam : 'profile';
@@ -15,13 +17,7 @@ const ProfilePage = () => {
     next.set('tab', tab);
     return next;
   });
-  const [user, setUser] = useState(() => {
-    try {
-      return JSON.parse(localStorage.getItem('user'));
-    } catch {
-      return null;
-    }
-  });
+  const user = currentAccount;
   const [isEditing, setIsEditing] = useState(false);
   
   // Local form state for edit simulation
@@ -51,9 +47,7 @@ const ProfilePage = () => {
   const handleSaveEdit = () => {
     setIsEditing(false);
     // In simulation, update the local user state to persist UI
-    const updatedUser = { ...user, name: formData.name };
-    setUser(updatedUser);
-    localStorage.setItem('user', JSON.stringify(updatedUser));
+    updateCurrentAccount({ name: formData.name });
   };
 
   const handleChange = (e) => {
