@@ -27,6 +27,7 @@ export default function Header({ notificationCount = 0 }) {
   const isSerialList = currentPath === '/kho-hang/danh-sach-serial';
   const isComboPage = currentPath.startsWith('/kho-hang/combo-san-pham');
   const isPurchasePage = currentPath.startsWith('/kho-hang/nhap-hang');
+  const isStockCheckPage = currentPath.startsWith('/kho-hang/kiem-hang');
   let currentPageName = 'ĐƠN HÀNG';
   const isCreatePromotion = currentPath === '/admin/khuyen-mai/tao-khuyen-mai';
   
@@ -45,7 +46,13 @@ export default function Header({ notificationCount = 0 }) {
             ADMIN
           </span>
           <span className="header__breadcrumb-sep" aria-hidden="true">›</span>
-          {isPurchasePage ? (
+          {isStockCheckPage ? (
+            <>
+              <span className="header__breadcrumb-item header__breadcrumb-item--muted">KHO HÀNG</span>
+              <span className="header__breadcrumb-sep" aria-hidden="true">›</span>
+              <span className="header__breadcrumb-item header__breadcrumb-item--active">KIỂM HÀNG</span>
+            </>
+          ) : isPurchasePage ? (
             <>
               <span className="header__breadcrumb-item header__breadcrumb-item--muted">KHO HÀNG</span>
               <span className="header__breadcrumb-sep" aria-hidden="true">›</span>

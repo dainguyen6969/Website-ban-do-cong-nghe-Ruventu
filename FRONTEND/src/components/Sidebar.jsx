@@ -125,7 +125,7 @@ const menuItems = [
         { id: 'danh-sach-serial', label: 'Danh sách Serial', path: '/kho-hang/danh-sach-serial' },
         { id: 'combo-san-pham', label: 'Combo sản phẩm', path: '/kho-hang/combo-san-pham' },
         { id: 'nhap-hang', label: 'Nhập hàng', path: '/kho-hang/nhap-hang' },
-        { id: 'kiem-hang', label: 'Kiểm hàng', path: '/admin/san-pham/kiem-hang' },
+        { id: 'kiem-hang', label: 'Kiểm hàng', path: '/kho-hang/kiem-hang' },
       ] },
     ],
   },
