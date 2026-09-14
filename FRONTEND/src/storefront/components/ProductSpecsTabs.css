@@ -1,0 +1,87 @@
+.product-specs-tabs-container {
+  width: 100%;
+  background-color: transparent;
+}
+
+.tabs-header {
+  display: flex;
+  background-color: #fff;
+}
+
+.tab-btn {
+  background-color: #fff;
+  color: #000;
+  border: none;
+  padding: 15px 30px;
+  font-size: 1rem;
+  font-weight: 800;
+  cursor: pointer;
+  text-transform: uppercase;
+  transition: all 0.3s;
+}
+
+.tab-btn:hover {
+  background-color: #f0f0f0;
+}
+
+.tab-btn.active {
+  background-color: #000;
+  color: #fff;
+}
+
+.tab-content {
+  padding: 40px 0;
+  background-color: #0a0a0a;
+}
+
+.specs-content, .desc-content {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+.specs-section-title {
+  background-color: #ff0000;
+  color: white;
+  padding: 15px 20px;
+  font-size: 1.1rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  margin-bottom: 0;
+  display: inline-block;
+  min-width: 300px;
+}
+
+.full-specs-table {
+  width: 100%;
+  max-width: 800px;
+  border-collapse: collapse;
+}
+
+.full-specs-table td {
+  padding: 20px;
+  border-bottom: 1px solid #222;
+  font-size: 1rem;
+  background-color: #1a1a1a;
+}
+
+.full-specs-table tr:nth-child(even) td {
+  background-color: #151515;
+}
+
+.full-specs-table td:first-child {
+  color: #999;
+  width: 30%;
+  font-weight: 600;
+  border-right: 1px solid #222;
+}
+
+.full-specs-table td:last-child {
+  color: #ddd;
+}
+
+/* Ensure red bar extends across screen for tabs bottom edge as shown in screenshot */
+.product-specs-tabs-container {
+  border-bottom: 3px solid #ff0000;
+  margin-bottom: 40px;
+}
