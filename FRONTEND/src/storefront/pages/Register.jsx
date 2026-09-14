@@ -2,10 +2,12 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, AlertCircle, Check, X } from 'lucide-react';
 import AuthLayout from '../components/AuthLayout';
+import useMockAuth from '../../auth/useMockAuth';
 import './Auth.css';
 
 const Register = () => {
   const navigate = useNavigate();
+  const { register } = useMockAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
@@ -90,7 +92,11 @@ const Register = () => {
       setErrors(newErrors);
       return;
     }
-    console.log('Register successful', formData);
+    const result = register(formData);
+    if (result.error) {
+      setErrors({ email: result.error });
+      return;
+    }
     navigate('/login');
   };
 
