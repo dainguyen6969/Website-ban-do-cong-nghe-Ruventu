@@ -1,0 +1,72 @@
+import React, { useEffect, useState } from 'react';
+import { Link, useParams } from 'react-router-dom';
+import Header from '../components/Header';
+import Footer from '../components/Footer';
+import ProductGallery from '../components/ProductGallery';
+import ProductInfoSidebar from '../components/ProductInfoSidebar';
+import ProductPurchaseRightSidebar from '../components/ProductPurchaseRightSidebar';
+import ProductSpecsTabs from '../components/ProductSpecsTabs';
+import { mockProducts } from '../data/mockProducts';
+import './ProductDetail.css';
+
+const ProductDetail = () => {
+  const { id } = useParams();
+  const [product, setProduct] = useState(null);
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+    // Fetch product data based on ID. Fallback to a default product if not found.
+    const foundProduct = mockProducts[id] || mockProducts["RVT-MB-X670E-MSI-TOM"];
+    setProduct(foundProduct);
+  }, [id]);
+
+  if (!product) return <div>Loading...</div>;
+
+  return (
+    <div className="product-detail-page">
+      <Header />
+      
+      {/* Breadcrumbs */}
+      <div className="breadcrumb-container">
+        <div className="breadcrumb">
+          <Link to="/">Trang chủ</Link>
+          <span className="separator">&gt;</span>
+          <Link to={`/category/${product.category.toLowerCase()}`}>{product.category}</Link>
+          <span className="separator">&gt;</span>
+          <span className="current">{product.name}</span>
+        </div>
+      </div>
+
+      {/* Main Content Area */}
+      <div className="product-main-container">
+        {/* Left Sidebar - Specs summary and thumbnail */}
+        <div className="info-sidebar-column">
+          <ProductInfoSidebar product={product} />
+        </div>
+
+        {/* Center - Gallery */}
+        <div className="gallery-column">
+          <ProductGallery 
+            images={product.images || []} 
+            discountPercent={product.discountPercent} 
+            isFullBuild={false} 
+          />
+        </div>
+
+        {/* Right Sidebar - Purchase Info */}
+        <div className="purchase-right-sidebar-column">
+          <ProductPurchaseRightSidebar product={product} />
+        </div>
+      </div>
+
+      {/* Bottom Tabs Area */}
+      <div className="tabs-container">
+        <ProductSpecsTabs product={product} />
+      </div>
+
+      <Footer />
+    </div>
+  );
+};
+
+export default ProductDetail;
