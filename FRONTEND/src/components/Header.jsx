@@ -28,6 +28,9 @@ export default function Header({ notificationCount = 0 }) {
   const isComboPage = currentPath.startsWith('/kho-hang/combo-san-pham');
   const isPurchasePage = currentPath.startsWith('/kho-hang/nhap-hang');
   const isStockCheckPage = currentPath.startsWith('/kho-hang/kiem-hang');
+  const isStockCheckCreate = currentPath === '/kho-hang/kiem-hang/tao-moi' || currentPath.endsWith('/chinh-sua');
+  const isStockCheckDetail = isStockCheckPage && currentPath !== '/kho-hang/kiem-hang' && !isStockCheckCreate;
+  const isCustomerDetail = /^\/admin\/khach-hang-doi-tac\/khach-hang\/[^/]+$/.test(currentPath);
   let currentPageName = 'ĐƠN HÀNG';
   const isCreatePromotion = currentPath === '/admin/khuyen-mai/tao-khuyen-mai';
   
@@ -46,11 +49,21 @@ export default function Header({ notificationCount = 0 }) {
             ADMIN
           </span>
           <span className="header__breadcrumb-sep" aria-hidden="true">›</span>
-          {isStockCheckPage ? (
+          {isCustomerDetail ? (
+            <>
+              <span className="header__breadcrumb-item header__breadcrumb-item--muted">KHÁCH HÀNG &amp; ĐỐI TÁC</span>
+              <span className="header__breadcrumb-sep" aria-hidden="true">›</span>
+              <span className="header__breadcrumb-item header__breadcrumb-item--active">CHI TIẾT KHÁCH HÀNG</span>
+            </>
+          ) : isStockCheckPage ? (
             <>
               <span className="header__breadcrumb-item header__breadcrumb-item--muted">KHO HÀNG</span>
               <span className="header__breadcrumb-sep" aria-hidden="true">›</span>
-              <span className="header__breadcrumb-item header__breadcrumb-item--active">KIỂM HÀNG</span>
+              <span className={`header__breadcrumb-item ${isStockCheckCreate || isStockCheckDetail ? 'header__breadcrumb-item--muted' : 'header__breadcrumb-item--active'}`}>KIỂM HÀNG</span>
+              {(isStockCheckCreate || isStockCheckDetail) && <>
+                <span className="header__breadcrumb-sep" aria-hidden="true">›</span>
+                <span className="header__breadcrumb-item header__breadcrumb-item--active">{isStockCheckCreate ? 'TẠO PHIẾU KIỂM HÀNG' : 'CHI TIẾT PHIẾU KIỂM HÀNG'}</span>
+              </>}
             </>
           ) : isPurchasePage ? (
             <>

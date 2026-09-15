@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { HiOutlineChevronDown, HiOutlineChevronUp, HiOutlinePlus, HiOutlineSearch } from 'react-icons/hi';
 import TablePagination from '../components/TablePagination';
-import mockStockChecks from '../data/mockStockChecks';
+import { getStockChecks } from '../data/mockStockChecks';
 import './KiemHang.css';
 
 const PAGE_SIZE = 10;
@@ -17,6 +17,7 @@ const formatDate = (value, withTime = false) => {
 export default function KiemHang() {
   const navigate = useNavigate();
   const [showMoreFilters, setShowMoreFilters] = useState(false);
+  const [stockChecks] = useState(() => getStockChecks());
   const [draftFilters, setDraftFilters] = useState(initialFilters);
   const [appliedFilters, setAppliedFilters] = useState(initialFilters);
   const [page, setPage] = useState(1);
@@ -26,7 +27,7 @@ export default function KiemHang() {
 
   const filteredChecks = useMemo(() => {
     const query = appliedFilters.query.trim().toLocaleLowerCase('vi');
-    return mockStockChecks.filter((item) => {
+    return stockChecks.filter((item) => {
       const searchableFields = [item.id, item.productName, item.variant, item.sku, item.barcode];
       const matchesQuery = !query || searchableFields.some((value) => value.toLocaleLowerCase('vi').includes(query));
       const matchesWarehouse = !appliedFilters.warehouse || item.warehouse === appliedFilters.warehouse;
@@ -36,7 +37,7 @@ export default function KiemHang() {
       const matchesTo = !appliedFilters.toDate || checkDate <= appliedFilters.toDate;
       return matchesQuery && matchesWarehouse && matchesStatus && matchesFrom && matchesTo;
     });
-  }, [appliedFilters]);
+  }, [appliedFilters, stockChecks]);
 
   const totalPages = Math.max(1, Math.ceil(filteredChecks.length / PAGE_SIZE));
   const safePage = Math.min(page, totalPages);

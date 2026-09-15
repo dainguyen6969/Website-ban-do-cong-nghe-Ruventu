@@ -149,7 +149,11 @@ const menuItems = [
     icon: IconKhachHangDoiTac,
     path: '/admin/khach-hang-doi-tac',
     expandable: true,
-    subItems: [],
+    subItems: [
+      { id: 'khach-hang', label: 'Khách hàng', path: '/admin/khach-hang-doi-tac/khach-hang' },
+      { id: 'nha-cung-cap', label: 'Nhà cung cấp', path: '/admin/khach-hang-doi-tac/nha-cung-cap' },
+      { id: 'doi-tac-van-chuyen', label: 'Đối tác vận chuyển', path: '/admin/khach-hang-doi-tac/doi-tac-van-chuyen' },
+    ],
   },
   {
     id: 'nhan-vien',

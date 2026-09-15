@@ -1,93 +1,90 @@
+import { useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { HiOutlineSearch } from 'react-icons/hi';
 import FilterDropdown from '../components/FilterDropdown';
+import { formatMoney, mockOrders, orderStatuses } from '../data/mockOrders';
+import './DanhSachDonHang.css';
 
-const statBadges = [
-  { count: '0', label: 'TỔNG', variant: 'default' },
-  { count: '0', label: 'CHỜ DUYỆT', variant: 'yellow' },
-  { count: '0', label: 'ĐANG GIAO', variant: 'blue' },
-  { count: '0', label: 'ĐÃ HỦY', variant: 'red' },
+const BATCH_SIZE = 20;
+const allOrderStatuses = ['Tất cả', ...orderStatuses];
+const paymentOptions = ['Tất cả', 'Đã thanh toán', 'Chưa thanh toán'];
+const timeOptions = ['Tất cả', 'Hôm nay', '7 ngày qua', '30 ngày qua', 'Tháng này'];
+const referenceDate = new Date('2026-09-15T12:00:00');
+
+const statusCounts = (orders) => [
+  { count: orders.length, label: 'TỔNG', variant: 'default' },
+  { count: orders.filter((order) => order.status === 'Chờ duyệt').length, label: 'CHỜ DUYỆT', variant: 'yellow' },
+  { count: orders.filter((order) => order.status === 'Đang giao hàng').length, label: 'ĐANG GIAO', variant: 'blue' },
+  { count: orders.filter((order) => order.status === 'Đã hủy').length, label: 'ĐÃ HỦY', variant: 'red' },
 ];
 
-const tableColumns = [
-  { id: 'checkbox', label: '', isCheckbox: true },
-  { id: 'ma-don-hang', label: 'MÃ ĐƠN HÀNG' },
-  { id: 'khach-hang', label: 'KHÁCH HÀNG' },
-  { id: 'ngay-dat', label: 'NGÀY ĐẶT' },
-  { id: 'thanh-toan', label: 'THANH TOÁN' },
-  { id: 'trang-thai-don', label: 'TRẠNG THÁI ĐƠN HÀNG' },
-  { id: 'trang-thai-kho', label: 'TRẠNG THÁI KHO/GIAO' },
-  { id: 'tong-tien', label: 'TỔNG TIỀN' },
-  { id: 'thao-tac', label: 'THAO TÁC' },
-];
+const normalize = (value) => value
+  .normalize('NFD')
+  .replace(/[\u0300-\u036f]/g, '')
+  .replace(/đ/g, 'd')
+  .replace(/Đ/g, 'D')
+  .toLowerCase();
 
-const filterOptionsOrderState = [
-  'Tất cả',
-  'Chờ duyệt',
-  'Đang xử lý',
-  'Đang giao',
-  'Hoàn thành',
-  'Đã hủy',
-];
-
-const filterOptionsPaymentState = [
-  'Tất cả',
-  'Đã thanh toán',
-  'Chưa thanh toán',
-];
-
-const filterOptionsTime = [
-  'Tất cả',
-  'Hôm nay',
-  '7 ngày qua',
-  '30 ngày qua',
-  'Tháng này',
-];
+function matchesTimeFilter(orderDate, filter) {
+  if (filter === 'Tất cả') return true;
+  const date = new Date(`${orderDate}T12:00:00`);
+  const diffDays = Math.floor((referenceDate - date) / 86400000);
+  if (filter === 'Hôm nay') return diffDays === 0;
+  if (filter === '7 ngày qua') return diffDays >= 0 && diffDays < 7;
+  if (filter === '30 ngày qua') return diffDays >= 0 && diffDays < 30;
+  return date.getMonth() === referenceDate.getMonth() && date.getFullYear() === referenceDate.getFullYear();
+}
 
 export default function DanhSachDonHang() {
+  const navigate = useNavigate();
+  const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState('Tất cả');
+  const [paymentFilter, setPaymentFilter] = useState('Tất cả');
+  const [timeFilter, setTimeFilter] = useState('Tất cả');
+  const [visibleCount, setVisibleCount] = useState(BATCH_SIZE);
+
+  const filteredOrders = useMemo(() => mockOrders.filter((order) => {
+    const query = normalize(search.trim());
+    const searchTarget = normalize(`${order.id} ${order.customerName} ${order.customerPhone}`);
+    return (!query || searchTarget.includes(query))
+      && (statusFilter === 'Tất cả' || order.status === statusFilter)
+      && (paymentFilter === 'Tất cả' || order.payment === paymentFilter)
+      && matchesTimeFilter(order.createdIso, timeFilter);
+  }), [search, statusFilter, paymentFilter, timeFilter]);
+
+  const visibleOrders = filteredOrders.slice(0, visibleCount);
+  const stats = statusCounts(filteredOrders);
+  const hasMore = visibleOrders.length < filteredOrders.length;
+
+  const handleScroll = (event) => {
+    const { scrollTop, clientHeight, scrollHeight } = event.currentTarget;
+    if (hasMore && scrollHeight - scrollTop - clientHeight < 160) {
+      setVisibleCount((count) => Math.min(count + BATCH_SIZE, filteredOrders.length));
+    }
+  };
+
   return (
     <>
-      {/* Filter row */}
-      <div className="content__filter-row">
+      <div className="content__filter-row order-filter-row">
         <div className="content__filter-left">
-          {/* Search input */}
-          <div className="filter__search">
+          <label className="filter__search" htmlFor="search-orders">
             <HiOutlineSearch size={16} className="filter__search-icon" />
             <input
-              type="text"
+              type="search"
               className="filter__search-input"
               placeholder="Tìm kiếm mã đơn hàng, khách hàng, SĐT..."
               id="search-orders"
+              value={search}
+              onChange={(event) => { setSearch(event.target.value); setVisibleCount(BATCH_SIZE); }}
             />
-          </div>
-
-          {/* Dropdown 1: Trạng thái đơn hàng */}
-          <FilterDropdown
-            id="filter-trang-thai-don"
-            label="Trạng thái đơn hàng"
-            options={filterOptionsOrderState}
-            defaultValue="Tất cả"
-          />
-
-          {/* Dropdown 2: Trạng thái thanh toán */}
-          <FilterDropdown
-            id="filter-thanh-toan"
-            label="Trạng thái thanh toán"
-            options={filterOptionsPaymentState}
-            defaultValue="Tất cả"
-          />
-
-          {/* Dropdown 3: Thời gian */}
-          <FilterDropdown
-            id="filter-thoi-gian"
-            label="Thời gian"
-            options={filterOptionsTime}
-            defaultValue="Tất cả"
-          />
+          </label>
+          <FilterDropdown id="filter-trang-thai-don" label="Trạng thái đơn hàng" options={allOrderStatuses} value={statusFilter} onSelect={(value) => { setStatusFilter(value); setVisibleCount(BATCH_SIZE); }} />
+          <FilterDropdown id="filter-thanh-toan" label="Trạng thái thanh toán" options={paymentOptions} value={paymentFilter} onSelect={(value) => { setPaymentFilter(value); setVisibleCount(BATCH_SIZE); }} />
+          <FilterDropdown id="filter-thoi-gian" label="Thời gian" options={timeOptions} value={timeFilter} onSelect={(value) => { setTimeFilter(value); setVisibleCount(BATCH_SIZE); }} />
         </div>
 
-        {/* Stat badges */}
         <div className="content__stats">
-          {statBadges.map((stat) => (
+          {stats.map((stat) => (
             <div key={stat.label} className={`stat-badge stat-badge--${stat.variant}`}>
               <span className="stat-badge__count">{stat.count}</span>
               <span className="stat-badge__label">{stat.label}</span>
@@ -96,52 +93,49 @@ export default function DanhSachDonHang() {
         </div>
       </div>
 
-      {/* Table */}
-      <div className="content__table-wrapper">
-        <table className="data-table" id="orders-table">
-          <thead className="data-table__head">
+      <div className="order-table-scroll" onScroll={handleScroll} aria-label="Danh sách đơn hàng cuộn vô hạn">
+        <table className="order-list-table" id="orders-table">
+          <thead>
             <tr>
-              {tableColumns.map((col) => (
-                <th key={col.id} className="data-table__th">
-                  {col.isCheckbox ? (
-                    <input
-                      type="checkbox"
-                      className="data-table__checkbox"
-                      aria-label="Chọn tất cả"
-                      id="select-all-orders"
-                    />
-                  ) : (
-                    col.label
-                  )}
-                </th>
-              ))}
+              <th>#</th><th>ẢNH</th><th>ĐƠN HÀNG</th><th>NGÀY TẠO</th><th>KHÁCH HÀNG</th><th>TRẠNG THÁI ĐƠN</th><th>THANH TOÁN</th><th>ĐÓNG GÓI</th><th>XUẤT KHO</th><th>TỔNG TIỀN</th><th>THAO TÁC</th>
             </tr>
           </thead>
-          <tbody className="data-table__body">
-            {/* Placeholder empty state */}
-            <tr className="data-table__empty-row">
-              <td colSpan={tableColumns.length} className="data-table__empty-cell">
-                <div className="data-table__empty-state">
-                  <div className="data-table__empty-icon">
-                    <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
-                      <rect x="4" y="8" width="40" height="32" rx="4" stroke="#d1d5db" strokeWidth="2" fill="none" />
-                      <line x1="4" y1="18" x2="44" y2="18" stroke="#d1d5db" strokeWidth="2" />
-                      <line x1="16" y1="8" x2="16" y2="40" stroke="#e5e7eb" strokeWidth="1" />
-                      <line x1="32" y1="8" x2="32" y2="40" stroke="#e5e7eb" strokeWidth="1" />
-                      <circle cx="24" cy="30" r="4" stroke="#d1d5db" strokeWidth="1.5" fill="none" />
-                      <line x1="27" y1="33" x2="30" y2="36" stroke="#d1d5db" strokeWidth="1.5" />
-                    </svg>
-                  </div>
-                  <span className="data-table__empty-text">Chưa có dữ liệu</span>
-                  <span className="data-table__empty-subtext">
-                    Dữ liệu đơn hàng sẽ được hiển thị tại đây
-                  </span>
-                </div>
-              </td>
-            </tr>
+          <tbody>
+            {visibleOrders.map((order, index) => (
+              <tr key={order.id} className={order.status === 'Đã hủy' ? 'order-row--cancelled' : ''}>
+                <td className="order-row-number">{index + 1}</td>
+                <td><img className="order-thumbnail" src={order.image} alt="" /></td>
+                <td><strong className="order-primary">{order.id}</strong><OrderStateBadge value={order.type} /></td>
+                <td><strong>{order.createdDate}</strong><small>{order.createdTime}</small></td>
+                <td><strong>{order.customerName}</strong><small>{order.customerPhone || '—'}</small></td>
+                <td><OrderStateBadge value={order.status} /></td>
+                <td><OrderStateBadge value={order.payment} /></td>
+                <td><OrderStateBadge value={order.packing} /></td>
+                <td><OrderStateBadge value={order.warehouse} /></td>
+                <td><strong className="order-total">{formatMoney(order.total)}</strong></td>
+                <td><button className="order-detail-button" type="button" onClick={() => navigate(`/admin/don-hang/danh-sach-don-hang/${order.id}`)}>XEM CHI TIẾT</button></td>
+              </tr>
+            ))}
+            {!visibleOrders.length && <tr className="order-empty-row"><td colSpan="11">Không tìm thấy đơn hàng phù hợp.</td></tr>}
+            {visibleOrders.length > 0 && (
+              <tr className="order-load-row">
+                <td colSpan="11">{hasMore ? `Cuộn xuống để xem thêm · ${visibleOrders.length}/${filteredOrders.length}` : `Đã hiển thị ${filteredOrders.length} đơn hàng`}</td>
+              </tr>
+            )}
           </tbody>
         </table>
       </div>
     </>
   );
+}
+
+export function OrderStateBadge({ value }) {
+  const variant = value === 'Online' ? 'blue'
+    : value === 'Tại quầy' ? 'neutral'
+      : value === 'Đã hủy' || value === 'Hủy đóng gói' ? 'red'
+        : value === 'Chưa thanh toán' || value === 'Chờ duyệt' || value === 'Chờ đóng gói' || value === 'Chờ lấy hàng' ? 'amber'
+          : value === 'Đang giao hàng' ? 'green'
+            : value === 'Đang đóng gói' ? 'orange'
+              : value.startsWith('Đã') || value === 'Hoàn thành' ? 'green' : 'neutral';
+  return <span className={`order-state-badge order-state-badge--${variant}`}>{value.toUpperCase()}</span>;
 }

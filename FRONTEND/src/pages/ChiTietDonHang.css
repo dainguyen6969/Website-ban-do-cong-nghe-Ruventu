@@ -1,0 +1,15 @@
+.admin-order-detail { padding: 4px 0 24px; }
+.admin-order-detail > header { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 12px 0 18px; }
+.admin-order-detail > header span { color: #8b929c; font-size: 10px; font-weight: 800; }
+.admin-order-detail > header h2 { margin-top: 4px; font-size: 22px; font-weight: 900; }
+.admin-order-detail > header button { min-height: 36px; padding: 0 14px; display: inline-flex; align-items: center; gap: 7px; border: 2px solid #111; background: #fff; font-size: 10px; font-weight: 900; }
+.admin-order-detail__grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+.admin-order-detail article { border: 2px solid #111; background: #fff; }
+.admin-order-detail h3 { min-height: 42px; padding: 0 14px; display: flex; align-items: center; color: #fff; background: #111; font-size: 11px; }
+.admin-order-detail dl { padding: 4px 14px 12px; }
+.admin-order-detail dl > div { min-height: 46px; display: grid; grid-template-columns: 145px 1fr; align-items: center; gap: 12px; border-bottom: 1px solid #e1e1e1; }
+.admin-order-detail dl > div:last-child { border-bottom: 0; }
+.admin-order-detail dt { color: #8b929c; font-size: 11px; font-weight: 700; }
+.admin-order-detail dd { color: #111; font-size: 12px; font-weight: 600; }
+.admin-order-detail__total { font-size: 15px !important; font-weight: 900 !important; }
+@media (max-width: 760px) { .admin-order-detail__grid { grid-template-columns: 1fr; } .admin-order-detail > header { align-items: flex-start; flex-direction: column; } }
