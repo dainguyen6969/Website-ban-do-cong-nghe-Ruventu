@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { CheckCircle, X } from 'lucide-react';
+import { Check, X } from 'lucide-react';
 import './ToastContainer.css';
 
 const ToastContainer = () => {
@@ -29,13 +29,13 @@ const ToastContainer = () => {
       {toasts.map(toast => (
         <div key={toast.id} className="toast-item">
           <div className="toast-icon">
-            <CheckCircle size={20} color="#fff" />
+            <Check size={24} color="#fff" strokeWidth={3} />
           </div>
           <div className="toast-content">
             {toast.message}
           </div>
           <button className="toast-close" onClick={() => removeToast(toast.id)}>
-            <X size={16} />
+            <X size={20} strokeWidth={2.5} />
           </button>
         </div>
       ))}
