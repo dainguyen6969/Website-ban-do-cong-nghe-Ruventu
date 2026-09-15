@@ -33,7 +33,24 @@ let combos = [
   ] },
 ];
 
-export function getMockCombos() { return combos.map((combo) => ({ ...combo, components: combo.components.map((item) => ({ ...item })) })); }
-export function getMockComboById(id) { const combo = combos.find((item) => item.id === id || item.code === id); return combo ? { ...combo, components: combo.components.map((item) => ({ ...item })) } : null; }
-export function addMockCombo(combo) { combos = [{ ...combo }, ...combos]; return getMockCombos(); }
+function cloneCombo(combo) {
+  return {
+    ...combo,
+    images: combo.images ? [...combo.images] : undefined,
+    tags: combo.tags ? [...combo.tags] : undefined,
+    specs: combo.specs ? combo.specs.map((item) => ({ ...item })) : undefined,
+    variant: combo.variant ? { ...combo.variant } : undefined,
+    components: (combo.components || []).map((item) => ({ ...item })),
+  };
+}
+
+export function getMockCombos() { return combos.map(cloneCombo); }
+export function getMockComboById(id) { const combo = combos.find((item) => item.id === id || item.code === id); return combo ? cloneCombo(combo) : null; }
+export function addMockCombo(combo) { combos = [cloneCombo(combo), ...combos]; return getMockCombos(); }
+export function updateMockCombo(id, nextCombo) {
+  const index = combos.findIndex((combo) => combo.id === id || combo.code === id);
+  if (index < 0) return null;
+  combos = combos.map((combo, comboIndex) => comboIndex === index ? cloneCombo({ ...combo, ...nextCombo, id: combo.id }) : combo);
+  return cloneCombo(combos[index]);
+}
 export function setMockComboStatus(id, status) { combos = combos.map((combo) => combo.id === id ? { ...combo, status } : combo); return getMockCombos(); }

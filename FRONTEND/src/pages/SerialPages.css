@@ -191,21 +191,25 @@
 
 .serial-status-modal { position: fixed; inset: 0; z-index: 1000; padding: 20px; display: grid; place-items: center; background: rgba(0, 0, 0, .58); }
 .serial-status-modal > section { width: min(480px, 100%); border: 1px solid #111; background: #fff; box-shadow: 0 22px 60px rgba(0,0,0,.22); }
-.serial-status-modal header { min-height: 67px; padding: 0 17px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #dedede; }
-.serial-status-modal header > div { display: flex; align-items: center; gap: 11px; }
-.serial-status-modal header > div > span { width: 5px; height: 36px; background: var(--color-brand-red); }
-.serial-status-modal header h2 { font-size: 14px; letter-spacing: .04em; }
-.serial-status-modal header p { margin-top: 2px; color: #91949a; font-family: ui-monospace, Consolas, monospace; font-size: 10px; }
-.serial-status-modal header button { width: 34px; height: 34px; display: grid; place-items: center; }
-.serial-status-modal__body { min-height: 153px; padding: 22px 20px; }
-.serial-status-modal__body label { display: block; margin-bottom: 7px; font-size: 11px; font-weight: 750; }
+.serial-status-modal header { min-height: 48px; padding: 0 20px; display: flex; align-items: center; gap: 10px; background: #090909; color: #fff; }
+.serial-status-modal header > span { width: 4px; height: 22px; flex: 0 0 4px; background: var(--color-brand-red); }
+.serial-status-modal header h2 { font-size: 12px; letter-spacing: .045em; }
+.serial-status-modal__body { padding: 20px; }
+.serial-status-recap { margin-bottom: 20px; padding: 16px 14px 13px; display: grid; grid-template-columns: 1fr 1fr; gap: 16px 25px; border: 1px solid #d8d8d8; background: #f7f7f7; }
+.serial-status-recap > div { min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 6px; }
+.serial-status-recap span, .serial-status-modal__body label { color: #85888e; font-size: 9px; font-weight: 800; letter-spacing: .04em; }
+.serial-status-recap strong { font-size: 11px; line-height: 1.5; }
+.serial-status-recap__current { grid-column: 1 / -1; }
+.serial-status-recap__current .serial-status { min-height: 25px; padding: 3px 8px; font-size: 9px; }
+.serial-status-modal__body label { display: block; margin-bottom: 7px; color: #1a1a1a; font-size: 10px; }
+.serial-status-modal__body label i { color: var(--color-brand-red); font-style: normal; }
 .serial-status-modal__body select { width: 100%; height: 44px; padding: 0 12px; border: 1px solid; border-radius: 0; background: #fff; font-size: 13px; font-weight: 750; }
 .serial-modal-select--sold { border-color: #52a878 !important; color: #157c45; background: #eaf8f0 !important; }
 .serial-modal-select--stock { border-color: #b9bbc0 !important; color: #181818; }
 .serial-modal-select--warranty { border-color: #e9ad4c !important; color: #c46b08; background: #fff6dc !important; }
 .serial-modal-select--error { border-color: #e13b5b !important; color: #d51f2e; background: #ffedf1 !important; }
 .serial-transition-error { margin-top: 9px; color: #d51f2e; font-size: 11px; line-height: 1.5; }
-.serial-status-modal footer { min-height: 65px; padding: 12px 20px; display: flex; justify-content: flex-end; gap: 8px; border-top: 1px solid #dedede; background: #fafafa; }
+.serial-status-modal footer { min-height: 65px; padding: 12px 20px; display: flex; justify-content: flex-end; gap: 10px; border-top: 1px solid #dedede; background: #fff; }
 .serial-modal-cancel, .serial-modal-save { height: 39px; padding: 0 15px; font-size: 10px; font-weight: 850; }
 .serial-modal-cancel { border: 1px solid #151515 !important; background: #fff !important; }
 .serial-modal-save { background: var(--color-brand-red) !important; color: #fff; }
