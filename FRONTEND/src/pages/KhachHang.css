@@ -314,6 +314,24 @@
 .customer-modal footer { min-height: 62px; display: flex; align-items: center; justify-content: flex-end; gap: 10px; padding: 11px 18px; border-top: 1px solid #dedede; }
 .customer-modal footer .customer-btn { min-height: 37px; }
 
+.customer-add-modal { width: min(560px, 100%); border: 2px solid #111; background: #fff; box-shadow: 0 18px 70px rgba(0, 0, 0, 0.28); }
+.customer-add-modal > header { min-height: 58px; padding: 0 20px; display: flex; align-items: center; justify-content: space-between; color: #fff; background: #090909; }
+.customer-add-modal > header h2 { display: flex; align-items: center; gap: 9px; font-size: 15px; font-weight: 900; }
+.customer-add-modal > header h2 span { width: 3px; height: 18px; background: #f00d14; }
+.customer-add-modal > header button { width: 30px; height: 30px; display: grid; place-items: center; color: #fff; }
+.customer-add-modal form { padding: 20px 20px 0; }
+.customer-add-modal fieldset { min-width: 0; margin: 0 0 18px; padding: 12px 0 0; display: grid; gap: 11px; border: 0; border-top: 2px solid #171717; }
+.customer-add-modal legend { padding-right: 10px; color: #111; font-size: 10px; font-weight: 900; }
+.customer-add-modal legend span { color: #767e88; font-weight: 600; }
+.customer-add-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.customer-form-field { min-width: 0; display: grid; gap: 6px; color: #282828; font-size: 9px; font-weight: 800; }
+.customer-form-field input { width: 100%; height: 42px; padding: 0 12px; border: 2px solid #dedede; color: #151515; background: #fff; font-size: 12px; }
+.customer-form-field input:focus { border-color: #777; }
+.customer-form-field input::placeholder { color: #a0a5ac; }
+.customer-form-field small { margin-top: -3px; color: #d71920; font-size: 9px; font-weight: 700; }
+.customer-form-field--error input { border-color: #e31e24; }
+.customer-add-modal footer { min-height: 67px; margin: 4px -20px 0; padding: 13px 20px; display: flex; align-items: center; justify-content: flex-end; gap: 10px; border-top: 1px solid #dedede; }
+
 .customer-not-found { padding: 36px; }
 .customer-not-found .customer-btn { margin-top: 20px; }
 
@@ -333,4 +351,5 @@
   .customer-order-history { width: 100%; }
   .customer-order-history > header { align-items: stretch; flex-direction: column; padding: 12px 14px; }
   .customer-order-search { width: 100%; }
+  .customer-add-grid { grid-template-columns: 1fr; }
 }

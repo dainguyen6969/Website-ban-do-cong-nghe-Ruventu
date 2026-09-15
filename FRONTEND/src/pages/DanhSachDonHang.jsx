@@ -1,139 +1,112 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { HiOutlineSearch } from 'react-icons/hi';
+import { HiOutlineAdjustments, HiOutlineSearch } from 'react-icons/hi';
 import FilterDropdown from '../components/FilterDropdown';
-import { formatMoney, mockOrders, orderStatuses } from '../data/mockOrders';
+import useOrders from '../context/useOrders';
+import {
+  formatMoney, orderStatuses, orderTypeOptions, packingOptions, paymentOptions, warehouseOptions,
+} from '../data/mockOrders';
 import './DanhSachDonHang.css';
 
 const BATCH_SIZE = 20;
-const allOrderStatuses = ['Tất cả', ...orderStatuses];
-const paymentOptions = ['Tất cả', 'Đã thanh toán', 'Chưa thanh toán'];
-const timeOptions = ['Tất cả', 'Hôm nay', '7 ngày qua', '30 ngày qua', 'Tháng này'];
-const referenceDate = new Date('2026-09-15T12:00:00');
+const statusOptions = ['Tất cả', ...orderStatuses];
+const emptyFilters = {
+  search: '', type: 'Tất cả', status: 'Tất cả', payment: 'Tất cả', packing: 'Tất cả', warehouse: 'Tất cả', fromDate: '', toDate: '',
+};
 
-const statusCounts = (orders) => [
-  { count: orders.length, label: 'TỔNG', variant: 'default' },
-  { count: orders.filter((order) => order.status === 'Chờ duyệt').length, label: 'CHỜ DUYỆT', variant: 'yellow' },
-  { count: orders.filter((order) => order.status === 'Đang giao hàng').length, label: 'ĐANG GIAO', variant: 'blue' },
-  { count: orders.filter((order) => order.status === 'Đã hủy').length, label: 'ĐÃ HỦY', variant: 'red' },
-];
-
-const normalize = (value) => value
-  .normalize('NFD')
-  .replace(/[\u0300-\u036f]/g, '')
-  .replace(/đ/g, 'd')
-  .replace(/Đ/g, 'D')
-  .toLowerCase();
-
-function matchesTimeFilter(orderDate, filter) {
-  if (filter === 'Tất cả') return true;
-  const date = new Date(`${orderDate}T12:00:00`);
-  const diffDays = Math.floor((referenceDate - date) / 86400000);
-  if (filter === 'Hôm nay') return diffDays === 0;
-  if (filter === '7 ngày qua') return diffDays >= 0 && diffDays < 7;
-  if (filter === '30 ngày qua') return diffDays >= 0 && diffDays < 30;
-  return date.getMonth() === referenceDate.getMonth() && date.getFullYear() === referenceDate.getFullYear();
-}
+const normalize = (value) => value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D').toLowerCase();
 
 export default function DanhSachDonHang() {
   const navigate = useNavigate();
-  const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState('Tất cả');
-  const [paymentFilter, setPaymentFilter] = useState('Tất cả');
-  const [timeFilter, setTimeFilter] = useState('Tất cả');
+  const { orders } = useOrders();
+  const [showAdvanced, setShowAdvanced] = useState(false);
+  const [draft, setDraft] = useState(emptyFilters);
+  const [applied, setApplied] = useState(emptyFilters);
   const [visibleCount, setVisibleCount] = useState(BATCH_SIZE);
 
-  const filteredOrders = useMemo(() => mockOrders.filter((order) => {
-    const query = normalize(search.trim());
-    const searchTarget = normalize(`${order.id} ${order.customerName} ${order.customerPhone}`);
-    return (!query || searchTarget.includes(query))
-      && (statusFilter === 'Tất cả' || order.status === statusFilter)
-      && (paymentFilter === 'Tất cả' || order.payment === paymentFilter)
-      && matchesTimeFilter(order.createdIso, timeFilter);
-  }), [search, statusFilter, paymentFilter, timeFilter]);
+  const setBasicFilter = (field, value) => {
+    setDraft((current) => ({ ...current, [field]: value }));
+    setApplied((current) => ({ ...current, [field]: value }));
+    setVisibleCount(BATCH_SIZE);
+  };
+  const setAdvancedFilter = (field, value) => setDraft((current) => ({ ...current, [field]: value }));
+  const applyFilters = () => { setApplied({ ...draft }); setVisibleCount(BATCH_SIZE); };
+  const clearFilters = () => { setDraft(emptyFilters); setApplied(emptyFilters); setVisibleCount(BATCH_SIZE); };
+
+  const filteredOrders = useMemo(() => orders.filter((order) => {
+    const query = normalize(applied.search.trim());
+    const target = normalize(`${order.id} ${order.customerName} ${order.customerPhone}`);
+    return (!query || target.includes(query))
+      && (applied.type === 'Tất cả' || order.type === applied.type)
+      && (applied.status === 'Tất cả' || order.status === applied.status)
+      && (applied.payment === 'Tất cả' || order.payment === applied.payment)
+      && (applied.packing === 'Tất cả' || order.packing === applied.packing)
+      && (applied.warehouse === 'Tất cả' || order.warehouse === applied.warehouse)
+      && (!applied.fromDate || order.createdIso >= applied.fromDate)
+      && (!applied.toDate || order.createdIso <= applied.toDate);
+  }), [applied, orders]);
 
   const visibleOrders = filteredOrders.slice(0, visibleCount);
-  const stats = statusCounts(filteredOrders);
   const hasMore = visibleOrders.length < filteredOrders.length;
-
   const handleScroll = (event) => {
     const { scrollTop, clientHeight, scrollHeight } = event.currentTarget;
-    if (hasMore && scrollHeight - scrollTop - clientHeight < 160) {
-      setVisibleCount((count) => Math.min(count + BATCH_SIZE, filteredOrders.length));
-    }
+    if (hasMore && scrollHeight - scrollTop - clientHeight < 160) setVisibleCount((count) => Math.min(count + BATCH_SIZE, filteredOrders.length));
   };
 
   return (
     <>
-      <div className="content__filter-row order-filter-row">
-        <div className="content__filter-left">
-          <label className="filter__search" htmlFor="search-orders">
-            <HiOutlineSearch size={16} className="filter__search-icon" />
-            <input
-              type="search"
-              className="filter__search-input"
-              placeholder="Tìm kiếm mã đơn hàng, khách hàng, SĐT..."
-              id="search-orders"
-              value={search}
-              onChange={(event) => { setSearch(event.target.value); setVisibleCount(BATCH_SIZE); }}
-            />
-          </label>
-          <FilterDropdown id="filter-trang-thai-don" label="Trạng thái đơn hàng" options={allOrderStatuses} value={statusFilter} onSelect={(value) => { setStatusFilter(value); setVisibleCount(BATCH_SIZE); }} />
-          <FilterDropdown id="filter-thanh-toan" label="Trạng thái thanh toán" options={paymentOptions} value={paymentFilter} onSelect={(value) => { setPaymentFilter(value); setVisibleCount(BATCH_SIZE); }} />
-          <FilterDropdown id="filter-thoi-gian" label="Thời gian" options={timeOptions} value={timeFilter} onSelect={(value) => { setTimeFilter(value); setVisibleCount(BATCH_SIZE); }} />
+      <section className="order-toolbar" aria-label="Bộ lọc đơn hàng">
+        <div className="order-toolbar__primary">
+          <label className="order-search" htmlFor="search-orders"><HiOutlineSearch size={17} /><input id="search-orders" value={draft.search} onChange={(event) => setBasicFilter('search', event.target.value)} placeholder="TÌM MÃ ĐƠN HÀNG / TÊN KHÁCH HÀNG / SỐ ĐIỆN THOẠI..." /></label>
+          <FilterDropdown id="order-type-filter" label="LOẠI ĐƠN" options={orderTypeOptions} value={draft.type} onSelect={(value) => setBasicFilter('type', value)} />
+          <FilterDropdown id="order-status-filter" label="TRẠNG THÁI ĐƠN" options={statusOptions} value={draft.status} onSelect={(value) => setBasicFilter('status', value)} />
+          <button type="button" className={`order-advanced-toggle ${showAdvanced ? 'order-advanced-toggle--active' : ''}`} onClick={() => setShowAdvanced((current) => !current)} aria-expanded={showAdvanced}><HiOutlineAdjustments size={16} /> BỘ LỌC NÂNG CAO</button>
         </div>
+        {showAdvanced && (
+          <div className="order-toolbar__advanced">
+            <AdvancedFilter label="TRẠNG THÁI THANH TOÁN"><FilterDropdown options={paymentOptions} value={draft.payment} onSelect={(value) => setAdvancedFilter('payment', value)} /></AdvancedFilter>
+            <AdvancedFilter label="TRẠNG THÁI ĐÓNG GÓI"><FilterDropdown options={packingOptions} value={draft.packing} onSelect={(value) => setAdvancedFilter('packing', value)} /></AdvancedFilter>
+            <AdvancedFilter label="TRẠNG THÁI XUẤT KHO"><FilterDropdown options={warehouseOptions} value={draft.warehouse} onSelect={(value) => setAdvancedFilter('warehouse', value)} /></AdvancedFilter>
+            <AdvancedFilter label="TỪ NGÀY"><input className="order-date-input" type="date" value={draft.fromDate} onChange={(event) => setAdvancedFilter('fromDate', event.target.value)} /></AdvancedFilter>
+            <AdvancedFilter label="ĐẾN NGÀY"><input className="order-date-input" type="date" value={draft.toDate} onChange={(event) => setAdvancedFilter('toDate', event.target.value)} /></AdvancedFilter>
+            <div className="order-filter-actions"><button type="button" className="order-filter-clear" onClick={clearFilters}>XÓA</button><button type="button" className="order-filter-apply" onClick={applyFilters}>ÁP DỤNG</button></div>
+          </div>
+        )}
+      </section>
 
-        <div className="content__stats">
-          {stats.map((stat) => (
-            <div key={stat.label} className={`stat-badge stat-badge--${stat.variant}`}>
-              <span className="stat-badge__count">{stat.count}</span>
-              <span className="stat-badge__label">{stat.label}</span>
-            </div>
-          ))}
+      <section className="order-list-content">
+        <div className="order-table-scroll" onScroll={handleScroll} aria-label="Danh sách đơn hàng cuộn vô hạn">
+          <table className="order-list-table" id="orders-table">
+            <thead><tr><th>#</th><th>ẢNH</th><th>ĐƠN HÀNG</th><th>NGÀY TẠO</th><th>KHÁCH HÀNG</th><th>TRẠNG THÁI ĐƠN</th><th>THANH TOÁN</th><th>ĐÓNG GÓI</th><th>XUẤT KHO</th><th>TỔNG TIỀN</th><th>THAO TÁC</th></tr></thead>
+            <tbody>
+              {visibleOrders.map((order, index) => (
+                <tr key={order.id} className={order.status === 'Đã hủy' ? 'order-row--cancelled' : ''}>
+                  <td className="order-row-number">{index + 1}</td><td><img className="order-thumbnail" src={order.image} alt="" /></td>
+                  <td><strong className="order-primary">{order.id}</strong><OrderStateBadge value={order.type} /></td>
+                  <td><strong>{order.createdDate}</strong><small>{order.createdTime}</small></td><td><strong>{order.customerName}</strong><small>{order.customerPhone || '—'}</small></td>
+                  <td><OrderStateBadge value={order.status} /></td><td><OrderStateBadge value={order.payment} /></td><td><OrderStateBadge value={order.packing} /></td><td><OrderStateBadge value={order.warehouse} /></td>
+                  <td><strong className="order-total">{formatMoney(order.total)}</strong></td><td><button className="order-detail-button" type="button" onClick={() => navigate(`/admin/don-hang/danh-sach-don-hang/${order.id}`)}>XEM CHI TIẾT</button></td>
+                </tr>
+              ))}
+              {!visibleOrders.length && <tr className="order-empty-row"><td colSpan="11">Không tìm thấy đơn hàng phù hợp.</td></tr>}
+              {visibleOrders.length > 0 && <tr className="order-load-row"><td colSpan="11">{hasMore ? `Cuộn xuống để xem thêm · ${visibleOrders.length}/${filteredOrders.length}` : `Đã hiển thị ${filteredOrders.length} đơn hàng`}</td></tr>}
+            </tbody>
+          </table>
         </div>
-      </div>
-
-      <div className="order-table-scroll" onScroll={handleScroll} aria-label="Danh sách đơn hàng cuộn vô hạn">
-        <table className="order-list-table" id="orders-table">
-          <thead>
-            <tr>
-              <th>#</th><th>ẢNH</th><th>ĐƠN HÀNG</th><th>NGÀY TẠO</th><th>KHÁCH HÀNG</th><th>TRẠNG THÁI ĐƠN</th><th>THANH TOÁN</th><th>ĐÓNG GÓI</th><th>XUẤT KHO</th><th>TỔNG TIỀN</th><th>THAO TÁC</th>
-            </tr>
-          </thead>
-          <tbody>
-            {visibleOrders.map((order, index) => (
-              <tr key={order.id} className={order.status === 'Đã hủy' ? 'order-row--cancelled' : ''}>
-                <td className="order-row-number">{index + 1}</td>
-                <td><img className="order-thumbnail" src={order.image} alt="" /></td>
-                <td><strong className="order-primary">{order.id}</strong><OrderStateBadge value={order.type} /></td>
-                <td><strong>{order.createdDate}</strong><small>{order.createdTime}</small></td>
-                <td><strong>{order.customerName}</strong><small>{order.customerPhone || '—'}</small></td>
-                <td><OrderStateBadge value={order.status} /></td>
-                <td><OrderStateBadge value={order.payment} /></td>
-                <td><OrderStateBadge value={order.packing} /></td>
-                <td><OrderStateBadge value={order.warehouse} /></td>
-                <td><strong className="order-total">{formatMoney(order.total)}</strong></td>
-                <td><button className="order-detail-button" type="button" onClick={() => navigate(`/admin/don-hang/danh-sach-don-hang/${order.id}`)}>XEM CHI TIẾT</button></td>
-              </tr>
-            ))}
-            {!visibleOrders.length && <tr className="order-empty-row"><td colSpan="11">Không tìm thấy đơn hàng phù hợp.</td></tr>}
-            {visibleOrders.length > 0 && (
-              <tr className="order-load-row">
-                <td colSpan="11">{hasMore ? `Cuộn xuống để xem thêm · ${visibleOrders.length}/${filteredOrders.length}` : `Đã hiển thị ${filteredOrders.length} đơn hàng`}</td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+      </section>
     </>
   );
+}
+
+function AdvancedFilter({ label, children }) {
+  return <label className="order-advanced-field"><span>{label}</span>{children}</label>;
 }
 
 export function OrderStateBadge({ value }) {
   const variant = value === 'Online' ? 'blue'
     : value === 'Tại quầy' ? 'neutral'
       : value === 'Đã hủy' || value === 'Hủy đóng gói' ? 'red'
-        : value === 'Chưa thanh toán' || value === 'Chờ duyệt' || value === 'Chờ đóng gói' || value === 'Chờ lấy hàng' ? 'amber'
+        : value === 'Chưa thanh toán' || value === 'Chờ duyệt' || value === 'Chờ thanh toán' || value === 'Chờ đóng gói' || value === 'Chờ lấy hàng' ? 'amber'
           : value === 'Đang giao hàng' ? 'green'
             : value === 'Đang đóng gói' ? 'orange'
               : value.startsWith('Đã') || value === 'Hoàn thành' ? 'green' : 'neutral';

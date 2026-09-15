@@ -31,6 +31,7 @@ export default function Header({ notificationCount = 0 }) {
   const isStockCheckCreate = currentPath === '/kho-hang/kiem-hang/tao-moi' || currentPath.endsWith('/chinh-sua');
   const isStockCheckDetail = isStockCheckPage && currentPath !== '/kho-hang/kiem-hang' && !isStockCheckCreate;
   const isCustomerDetail = /^\/admin\/khach-hang-doi-tac\/khach-hang\/[^/]+$/.test(currentPath);
+  const isOrderDetail = /^\/admin\/don-hang\/danh-sach-don-hang\/[^/]+$/.test(currentPath);
   let currentPageName = 'ĐƠN HÀNG';
   const isCreatePromotion = currentPath === '/admin/khuyen-mai/tao-khuyen-mai';
   
@@ -49,7 +50,13 @@ export default function Header({ notificationCount = 0 }) {
             ADMIN
           </span>
           <span className="header__breadcrumb-sep" aria-hidden="true">›</span>
-          {isCustomerDetail ? (
+          {isOrderDetail ? (
+            <>
+              <span className="header__breadcrumb-item header__breadcrumb-item--muted">ĐƠN HÀNG</span>
+              <span className="header__breadcrumb-sep" aria-hidden="true">›</span>
+              <span className="header__breadcrumb-item header__breadcrumb-item--active">CHI TIẾT ĐƠN HÀNG</span>
+            </>
+          ) : isCustomerDetail ? (
             <>
               <span className="header__breadcrumb-item header__breadcrumb-item--muted">KHÁCH HÀNG &amp; ĐỐI TÁC</span>
               <span className="header__breadcrumb-sep" aria-hidden="true">›</span>

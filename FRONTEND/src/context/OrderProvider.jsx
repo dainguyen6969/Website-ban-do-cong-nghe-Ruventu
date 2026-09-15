@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import OrderContext from './orderContext';
 import { formatOrderTimestamp, mockOrders } from '../data/mockOrders';
 
@@ -54,13 +54,13 @@ export default function OrderProvider({ children }) {
     tone: 'red',
   });
 
-  const value = useMemo(() => ({
+  const value = {
     orders,
     cancelOrder,
     confirmPayment,
     completePacking,
     cancelPacking,
-  }), [orders]);
+  };
 
   return <OrderContext.Provider value={value}>{children}</OrderContext.Provider>;
 }

@@ -2,7 +2,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { HiOutlineArrowLeft, HiOutlineSearch } from 'react-icons/hi';
 import useCustomers from '../context/useCustomers';
-import { formatMoney, getOrdersForCustomer } from '../data/mockOrders';
+import { formatMoney } from '../data/mockOrders';
+import useOrders from '../context/useOrders';
 import { StatusBadge } from './DanhSachKhachHang';
 import './KhachHang.css';
 
@@ -10,10 +11,11 @@ export default function ChiTietKhachHang() {
   const navigate = useNavigate();
   const { customerId } = useParams();
   const { customers, setCustomerStatus } = useCustomers();
+  const { orders: allOrders } = useOrders();
   const [orderSearch, setOrderSearch] = useState('');
   const [modalMode, setModalMode] = useState(null);
   const customer = customers.find((item) => item.id === customerId);
-  const orders = useMemo(() => getOrdersForCustomer(customerId), [customerId]);
+  const orders = useMemo(() => allOrders.filter((order) => order.customerId === customerId), [allOrders, customerId]);
   const filteredOrders = orders.filter((order) => order.id.toLowerCase().includes(orderSearch.trim().toLowerCase()));
 
   useEffect(() => {

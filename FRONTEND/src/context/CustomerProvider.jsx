@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import CustomerContext from './customerContext';
 import { formatUpdatedAt, seedCustomers } from '../data/mockCustomers';
 
@@ -33,6 +33,6 @@ export default function CustomerProvider({ children }) {
     )));
   };
 
-  const value = useMemo(() => ({ customers, addCustomer, setCustomerStatus }), [customers]);
+  const value = { customers, addCustomer, setCustomerStatus };
   return <CustomerContext.Provider value={value}>{children}</CustomerContext.Provider>;
 }
