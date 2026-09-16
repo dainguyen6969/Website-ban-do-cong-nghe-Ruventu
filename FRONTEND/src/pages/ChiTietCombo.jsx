@@ -1,8 +1,9 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Navigate, useNavigate, useParams } from 'react-router-dom';
 import FormCard from '../components/FormCard';
 import StopComboModal from '../components/StopComboModal';
 import { getMockComboById, setMockComboStatus } from '../data/mockCombos';
+import { subscribeToAdminSlice } from '../sync/adminSync';
 import { getMockProducts } from '../data/mockProducts';
 import fallbackImage from '../assets/hero.png';
 import './ChiTietCombo.css';
@@ -16,6 +17,7 @@ export default function ChiTietCombo() {
   const [combo, setCombo] = useState(() => getMockComboById(id));
   const [selectedImage, setSelectedImage] = useState(0);
   const [showStopModal, setShowStopModal] = useState(false);
+  useEffect(() => subscribeToAdminSlice('combos', () => setCombo(getMockComboById(id))), [id]);
   const products = useMemo(() => getMockProducts(), []);
 
   const detail = useMemo(() => {

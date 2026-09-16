@@ -57,17 +57,20 @@ export function getPurchaseOrders() {
   return seedOrders;
 }
 
-export function savePurchaseOrders(orders) { localStorage.setItem(STORAGE_KEY, JSON.stringify(orders)); }
+export function savePurchaseOrders(orders, action = 'updated', entityId = null) {
+  writeSharedState(STORAGE_KEY, orders, { slice: 'purchase-orders', action, entityId });
+}
 export function getPurchaseOrder(id) { return getPurchaseOrders().find((order) => order.id === id); }
 export function updatePurchaseOrder(id, updater) {
   const orders = getPurchaseOrders();
   const next = orders.map((order) => order.id === id ? updater(order) : order);
-  savePurchaseOrders(next); return next.find((order) => order.id === id);
+  savePurchaseOrders(next, 'updated', id); return next.find((order) => order.id === id);
 }
 
 export function createPurchaseOrder(data) {
   const orders = getPurchaseOrders();
   const max = orders.reduce((value, order) => Math.max(value, Number(order.id.split('-').pop()) || 0), 0);
   const order = { ...data, id: `PN-2026-${String(max + 1).padStart(3, '0')}`, createdAt: new Date().toLocaleDateString('vi-VN'), status: 'Đặt hàng', paymentStatus: 'Chưa trả', paid: 0 };
-  savePurchaseOrders([order, ...orders]); return order;
+  savePurchaseOrders([order, ...orders], 'created', order.id); return order;
 }
+import { writeSharedState } from '../sync/adminSync';

@@ -20,7 +20,7 @@ export const SERIAL_STATUS_META = {
 };
 
 // 15 serials: Trong kho 6 / Đã bán 5 / Đang bảo hành 1 / Lỗi 3.
-export const mockSerials = [
+const seedSerials = [
   { id: 'G4080S-VN4521', serial: 'G4080S-VN4521', version: 'MSI GeForce RTX 4080 Super Gaming X Trio', sku: 'VGA-4080S-XT', barcode: '8931234500159', status: 'Đã bán', activatedAt: '15/08/2024', warrantyUntil: '15/08/2027', warehouse: 'Kho HCM', importedAt: '02/08/2024' },
   { id: 'RZ00-7900X-VN001', serial: 'RZ00-7900X-VN001', version: 'AMD Ryzen 9 7950X – Tray', sku: 'CPU-R9-7950X', barcode: '8931234500067', status: 'Đã bán', activatedAt: '21/08/2024', warrantyUntil: '21/08/2027', warehouse: 'Kho Hà Nội', importedAt: '18/07/2024' },
   { id: 'MZV9P2T0BAH-000', serial: 'MZV9P2T0BAH-000', version: 'Samsung 990 Pro NVMe – 2TB', sku: 'SSD-990P-2TB', barcode: '8931234500081', status: 'Đang bảo hành', activatedAt: '04/04/2024', warrantyUntil: '04/04/2029', warehouse: 'Kho Đà Nẵng', importedAt: '12/03/2024' },
@@ -38,13 +38,24 @@ export const mockSerials = [
   { id: 'Q1P-SLV-ERR-09', serial: 'Q1P-SLV-ERR-09', version: 'Keychron Q1 Pro – Bản Bạc', sku: 'K-Q1P-SLV', barcode: '8931234500098', status: 'Lỗi', activatedAt: '-', warrantyUntil: '-', warehouse: 'Kho Hà Nội', importedAt: '20/08/2024' },
 ];
 
+export let mockSerials = readSharedState(STORAGE_KEY, seedSerials);
+
+export function getMockSerials() {
+  mockSerials = readSharedState(STORAGE_KEY, seedSerials);
+  return mockSerials.map((serial) => ({ ...serial }));
+}
+
 export function getSerialById(id) {
+  mockSerials = readSharedState(STORAGE_KEY, seedSerials);
   return mockSerials.find((item) => item.id === id);
 }
 
 export function updateSerialStatus(id, status) {
   const serial = getSerialById(id);
   if (serial) serial.status = status;
+  writeSharedState(STORAGE_KEY, mockSerials, { slice: 'serials', action: 'status-updated', entityId: id });
   return serial;
 }
+import { readSharedState, writeSharedState } from '../sync/adminSync';
 
+const STORAGE_KEY = 'ruventu_serials_v1';

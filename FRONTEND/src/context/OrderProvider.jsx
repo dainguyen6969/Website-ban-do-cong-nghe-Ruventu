@@ -1,12 +1,22 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import OrderContext from './orderContext';
 import { formatOrderTimestamp, mockOrders } from '../data/mockOrders';
+import { readSharedState, subscribeToAdminSlice, writeSharedState } from '../sync/adminSync';
+
+const STORAGE_KEY = 'ruventu_orders_v1';
 
 export default function OrderProvider({ children }) {
-  const [orders, setOrders] = useState(mockOrders);
+  const [orders, setOrders] = useState(() => readSharedState(STORAGE_KEY, mockOrders));
+  const ordersRef = useRef(orders);
+
+  useEffect(() => subscribeToAdminSlice('orders', () => {
+    const next = readSharedState(STORAGE_KEY, mockOrders);
+    ordersRef.current = next;
+    setOrders(next);
+  }), []);
 
   const patchOrder = (orderId, patch, history) => {
-    setOrders((current) => current.map((order) => {
+    const next = ordersRef.current.map((order) => {
       if (order.id !== orderId) return order;
       return {
         ...order,
@@ -15,7 +25,10 @@ export default function OrderProvider({ children }) {
           ? [...order.history, { timestamp: formatOrderTimestamp(), ...history }]
           : order.history,
       };
-    }));
+    });
+    ordersRef.current = next;
+    setOrders(next);
+    writeSharedState(STORAGE_KEY, next, { slice: 'orders', action: history?.title || 'updated', entityId: orderId });
   };
 
   const cancelOrder = (orderId, reason) => patchOrder(orderId, {

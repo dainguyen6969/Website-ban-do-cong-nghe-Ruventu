@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { getStockCheck, updateStockCheck, updateVersionStock } from '../data/mockStockChecks';
+import { subscribeToAdminSlice } from '../sync/adminSync';
 import './StockCheckFlow.css';
 
 const formatDate = (value, withTime = false) => {
@@ -22,6 +23,8 @@ export default function ChiTietPhieuKiemHang() {
   const [cancelError, setCancelError] = useState(false);
   const [balanceError, setBalanceError] = useState(false);
   const [balanceSuccess, setBalanceSuccess] = useState(null);
+
+  useEffect(() => subscribeToAdminSlice('stock-checks', () => setCheck(getStockCheck(id))), [id]);
 
   if (!check) return <main className="stock-flow-page"><div className="stock-flow-not-found">Không tìm thấy phiếu kiểm hàng.</div></main>;
 

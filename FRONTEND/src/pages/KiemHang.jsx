@@ -1,8 +1,9 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { HiOutlineChevronDown, HiOutlineChevronUp, HiOutlinePlus, HiOutlineSearch } from 'react-icons/hi';
 import TablePagination from '../components/TablePagination';
 import { getStockChecks } from '../data/mockStockChecks';
+import { subscribeToAdminSlice } from '../sync/adminSync';
 import './KiemHang.css';
 
 const PAGE_SIZE = 10;
@@ -17,10 +18,12 @@ const formatDate = (value, withTime = false) => {
 export default function KiemHang() {
   const navigate = useNavigate();
   const [showMoreFilters, setShowMoreFilters] = useState(false);
-  const [stockChecks] = useState(() => getStockChecks());
+  const [stockChecks, setStockChecks] = useState(() => getStockChecks());
   const [draftFilters, setDraftFilters] = useState(initialFilters);
   const [appliedFilters, setAppliedFilters] = useState(initialFilters);
   const [page, setPage] = useState(1);
+
+  useEffect(() => subscribeToAdminSlice('stock-checks', () => setStockChecks(getStockChecks())), []);
 
   const updateDraft = (field) => (event) => setDraftFilters((current) => ({ ...current, [field]: event.target.value }));
   const applyFilters = () => { setAppliedFilters({ ...draftFilters }); setPage(1); };

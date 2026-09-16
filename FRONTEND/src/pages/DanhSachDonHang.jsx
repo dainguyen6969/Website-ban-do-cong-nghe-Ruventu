@@ -2,13 +2,14 @@ import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { HiOutlineAdjustments, HiOutlineSearch } from 'react-icons/hi';
 import FilterDropdown from '../components/FilterDropdown';
+import TablePagination from '../components/TablePagination';
 import useOrders from '../context/useOrders';
 import {
   formatMoney, orderStatuses, orderTypeOptions, packingOptions, paymentOptions, warehouseOptions,
 } from '../data/mockOrders';
 import './DanhSachDonHang.css';
 
-const BATCH_SIZE = 20;
+const PAGE_SIZE = 10;
 const statusOptions = ['Tất cả', ...orderStatuses];
 const emptyFilters = {
   search: '', type: 'Tất cả', status: 'Tất cả', payment: 'Tất cả', packing: 'Tất cả', warehouse: 'Tất cả', fromDate: '', toDate: '',
@@ -22,16 +23,16 @@ export default function DanhSachDonHang() {
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [draft, setDraft] = useState(emptyFilters);
   const [applied, setApplied] = useState(emptyFilters);
-  const [visibleCount, setVisibleCount] = useState(BATCH_SIZE);
+  const [currentPage, setCurrentPage] = useState(1);
 
   const setBasicFilter = (field, value) => {
     setDraft((current) => ({ ...current, [field]: value }));
     setApplied((current) => ({ ...current, [field]: value }));
-    setVisibleCount(BATCH_SIZE);
+    setCurrentPage(1);
   };
   const setAdvancedFilter = (field, value) => setDraft((current) => ({ ...current, [field]: value }));
-  const applyFilters = () => { setApplied({ ...draft }); setVisibleCount(BATCH_SIZE); };
-  const clearFilters = () => { setDraft(emptyFilters); setApplied(emptyFilters); setVisibleCount(BATCH_SIZE); };
+  const applyFilters = () => { setApplied({ ...draft }); setCurrentPage(1); };
+  const clearFilters = () => { setDraft(emptyFilters); setApplied(emptyFilters); setCurrentPage(1); };
 
   const filteredOrders = useMemo(() => orders.filter((order) => {
     const query = normalize(applied.search.trim());
@@ -46,12 +47,10 @@ export default function DanhSachDonHang() {
       && (!applied.toDate || order.createdIso <= applied.toDate);
   }), [applied, orders]);
 
-  const visibleOrders = filteredOrders.slice(0, visibleCount);
-  const hasMore = visibleOrders.length < filteredOrders.length;
-  const handleScroll = (event) => {
-    const { scrollTop, clientHeight, scrollHeight } = event.currentTarget;
-    if (hasMore && scrollHeight - scrollTop - clientHeight < 160) setVisibleCount((count) => Math.min(count + BATCH_SIZE, filteredOrders.length));
-  };
+  const totalPages = Math.max(1, Math.ceil(filteredOrders.length / PAGE_SIZE));
+  const safePage = Math.min(currentPage, totalPages);
+  const startIndex = (safePage - 1) * PAGE_SIZE;
+  const visibleOrders = filteredOrders.slice(startIndex, startIndex + PAGE_SIZE);
 
   return (
     <>
@@ -75,23 +74,32 @@ export default function DanhSachDonHang() {
       </section>
 
       <section className="order-list-content">
-        <div className="order-table-scroll" onScroll={handleScroll} aria-label="Danh sách đơn hàng cuộn vô hạn">
+        <div className="order-table-scroll" aria-label="Danh sách đơn hàng">
           <table className="order-list-table" id="orders-table">
-            <thead><tr><th>#</th><th>ẢNH</th><th>ĐƠN HÀNG</th><th>NGÀY TẠO</th><th>KHÁCH HÀNG</th><th>TRẠNG THÁI ĐƠN</th><th>THANH TOÁN</th><th>ĐÓNG GÓI</th><th>XUẤT KHO</th><th>TỔNG TIỀN</th><th>THAO TÁC</th></tr></thead>
+            <thead><tr><th>ẢNH</th><th>ĐƠN HÀNG</th><th>NGÀY TẠO</th><th>KHÁCH HÀNG</th><th>TRẠNG THÁI ĐƠN</th><th>THANH TOÁN</th><th>ĐÓNG GÓI</th><th>XUẤT KHO</th><th>TỔNG TIỀN</th><th>THAO TÁC</th></tr></thead>
             <tbody>
-              {visibleOrders.map((order, index) => (
+              {visibleOrders.map((order) => (
                 <tr key={order.id} className={order.status === 'Đã hủy' ? 'order-row--cancelled' : ''}>
-                  <td className="order-row-number">{index + 1}</td><td><img className="order-thumbnail" src={order.image} alt="" /></td>
+                  <td><img className="order-thumbnail" src={order.image} alt="" /></td>
                   <td><strong className="order-primary">{order.id}</strong><OrderStateBadge value={order.type} /></td>
                   <td><strong>{order.createdDate}</strong><small>{order.createdTime}</small></td><td><strong>{order.customerName}</strong><small>{order.customerPhone || '—'}</small></td>
                   <td><OrderStateBadge value={order.status} /></td><td><OrderStateBadge value={order.payment} /></td><td><OrderStateBadge value={order.packing} /></td><td><OrderStateBadge value={order.warehouse} /></td>
                   <td><strong className="order-total">{formatMoney(order.total)}</strong></td><td><button className="order-detail-button" type="button" onClick={() => navigate(`/admin/don-hang/danh-sach-don-hang/${order.id}`)}>XEM CHI TIẾT</button></td>
                 </tr>
               ))}
-              {!visibleOrders.length && <tr className="order-empty-row"><td colSpan="11">Không tìm thấy đơn hàng phù hợp.</td></tr>}
-              {visibleOrders.length > 0 && <tr className="order-load-row"><td colSpan="11">{hasMore ? `Cuộn xuống để xem thêm · ${visibleOrders.length}/${filteredOrders.length}` : `Đã hiển thị ${filteredOrders.length} đơn hàng`}</td></tr>}
+              {!visibleOrders.length && <tr className="order-empty-row"><td colSpan="10">Không tìm thấy đơn hàng phù hợp.</td></tr>}
             </tbody>
           </table>
+        </div>
+        <div className="order-list-footer">
+          <p>HIỂN THỊ {filteredOrders.length ? startIndex + 1 : 0}-{Math.min(startIndex + PAGE_SIZE, filteredOrders.length)} TRÊN TỔNG SỐ {filteredOrders.length} ĐƠN HÀNG</p>
+          <TablePagination
+            currentPage={safePage}
+            pageSize={PAGE_SIZE}
+            totalItems={filteredOrders.length}
+            onPageChange={setCurrentPage}
+            idPrefix="orders"
+          />
         </div>
       </section>
     </>
