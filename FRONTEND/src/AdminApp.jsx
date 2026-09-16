@@ -29,6 +29,8 @@ import ChiTietPhieuKiemHang from './pages/ChiTietPhieuKiemHang';
 import DanhSachKhachHang from './pages/DanhSachKhachHang';
 import ChiTietKhachHang from './pages/ChiTietKhachHang';
 import ChiTietDonHang from './pages/ChiTietDonHang';
+import NhaCungCap from './pages/NhaCungCap';
+import DoiTacVanChuyen from './pages/DoiTacVanChuyen';
 import CustomerProvider from './context/CustomerProvider';
 import OrderProvider from './context/OrderProvider';
 import './index.css';
@@ -83,8 +85,8 @@ export default function AdminApp() {
           <Route path="/admin/khach-hang-doi-tac" element={<Navigate to="/admin/khach-hang-doi-tac/khach-hang" replace />} />
           <Route path="/admin/khach-hang-doi-tac/khach-hang" element={<DanhSachKhachHang />} />
           <Route path="/admin/khach-hang-doi-tac/khach-hang/:customerId" element={<ChiTietKhachHang />} />
-          <Route path="/admin/khach-hang-doi-tac/nha-cung-cap" element={<PlaceholderPage title="Nhà cung cấp" />} />
-          <Route path="/admin/khach-hang-doi-tac/doi-tac-van-chuyen" element={<PlaceholderPage title="Đối tác vận chuyển" />} />
+          <Route path="/admin/khach-hang-doi-tac/nha-cung-cap" element={<NhaCungCap />} />
+          <Route path="/admin/khach-hang-doi-tac/doi-tac-van-chuyen" element={<DoiTacVanChuyen />} />
           <Route path="/admin/nhan-vien" element={<PlaceholderPage title="Nhân viên" />} />
           <Route path="/admin/khuyen-mai" element={<Navigate to="/admin/khuyen-mai/danh-sach-khuyen-mai" replace />} />
           <Route path="/admin/khuyen-mai/danh-sach-khuyen-mai" element={<PlaceholderPage title="Danh sách khuyến mại" />} />

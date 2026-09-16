@@ -31,6 +31,8 @@ export default function Header({ notificationCount = 0 }) {
   const isStockCheckCreate = currentPath === '/kho-hang/kiem-hang/tao-moi' || currentPath.endsWith('/chinh-sua');
   const isStockCheckDetail = isStockCheckPage && currentPath !== '/kho-hang/kiem-hang' && !isStockCheckCreate;
   const isCustomerDetail = /^\/admin\/khach-hang-doi-tac\/khach-hang\/[^/]+$/.test(currentPath);
+  const isSupplierPage = currentPath === '/admin/khach-hang-doi-tac/nha-cung-cap';
+  const isShippingPartnerPage = currentPath === '/admin/khach-hang-doi-tac/doi-tac-van-chuyen';
   const isOrderDetail = /^\/admin\/don-hang\/danh-sach-don-hang\/[^/]+$/.test(currentPath);
   let currentPageName = 'ĐƠN HÀNG';
   const isCreatePromotion = currentPath === '/admin/khuyen-mai/tao-khuyen-mai';
@@ -55,6 +57,20 @@ export default function Header({ notificationCount = 0 }) {
               <span className="header__breadcrumb-item header__breadcrumb-item--muted">ĐƠN HÀNG</span>
               <span className="header__breadcrumb-sep" aria-hidden="true">›</span>
               <span className="header__breadcrumb-item header__breadcrumb-item--active">CHI TIẾT ĐƠN HÀNG</span>
+            </>
+          ) : isShippingPartnerPage ? (
+            <>
+              <span className="header__breadcrumb-item header__breadcrumb-item--muted">KHÁCH HÀNG &amp; ĐỐI TÁC</span>
+              <span className="header__breadcrumb-sep" aria-hidden="true">›</span>
+              {location.state?.partnerId && <><span className="header__breadcrumb-item header__breadcrumb-item--muted">ĐỐI TÁC VẬN CHUYỂN</span><span className="header__breadcrumb-sep" aria-hidden="true">›</span></>}
+              <span className="header__breadcrumb-item header__breadcrumb-item--active">{location.state?.partnerId ? 'CHI TIẾT ĐỐI TÁC VẬN CHUYỂN' : 'ĐỐI TÁC VẬN CHUYỂN'}</span>
+            </>
+          ) : isSupplierPage ? (
+            <>
+              <span className="header__breadcrumb-item header__breadcrumb-item--muted">KHÁCH HÀNG &amp; ĐỐI TÁC</span>
+              <span className="header__breadcrumb-sep" aria-hidden="true">›</span>
+              {location.state?.supplierId && <><span className="header__breadcrumb-item header__breadcrumb-item--muted">NHÀ CUNG CẤP</span><span className="header__breadcrumb-sep" aria-hidden="true">›</span></>}
+              <span className="header__breadcrumb-item header__breadcrumb-item--active">{location.state?.supplierId ? 'CHI TIẾT NHÀ CUNG CẤP' : 'NHÀ CUNG CẤP'}</span>
             </>
           ) : isCustomerDetail ? (
             <>
