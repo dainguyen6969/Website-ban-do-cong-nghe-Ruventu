@@ -1,3 +1,7 @@
+import { readSharedState, writeSharedState } from '../sync/adminSync';
+
+const STORAGE_KEY = 'ruventu_serials_v1';
+
 export const SERIAL_STATUSES = ['Đã bán', 'Trong kho', 'Đang bảo hành', 'Lỗi'];
 
 export const SERIAL_STATUS_META = {
@@ -56,6 +60,3 @@ export function updateSerialStatus(id, status) {
   writeSharedState(STORAGE_KEY, mockSerials, { slice: 'serials', action: 'status-updated', entityId: id });
   return serial;
 }
-import { readSharedState, writeSharedState } from '../sync/adminSync';
-
-const STORAGE_KEY = 'ruventu_serials_v1';
