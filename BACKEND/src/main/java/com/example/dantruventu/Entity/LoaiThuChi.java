@@ -16,26 +16,26 @@ import org.hibernate.type.SqlTypes;
 @Builder
 public class LoaiThuChi {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+  @Id
+  @GeneratedValue(strategy = GenerationType.IDENTITY)
+  private Long id;
 
-    @Column(name = "ma_loai", nullable = false, unique = true, length = 50)
-    private String maLoai;
+  @Column(name = "ma_loai", nullable = false, unique = true, length = 50)
+  private String maLoai;
 
-    @Column(name = "ten_loai", nullable = false, length = 150)
-    private String tenLoai;
+  @Column(name = "ten_loai", nullable = false, length = 150)
+  private String tenLoai;
 
-    @Enumerated(EnumType.STRING)
-    @JdbcTypeCode(SqlTypes.VARCHAR)
-    @Column(name = "loai_phieu", nullable = false, length = 20)
-    private LoaiPhieuThuChi loaiPhieu;
+  @Enumerated(EnumType.STRING)
+  @JdbcTypeCode(SqlTypes.VARCHAR)
+  @Column(name = "loai_phieu", nullable = false, length = 20)
+  private LoaiPhieuThuChi loaiPhieu;
 
-    @Column(name = "ghi_chu", columnDefinition = "TEXT")
-    private String ghiChu;
+  @Column(name = "ghi_chu", columnDefinition = "TEXT")
+  private String ghiChu;
 
-    @Enumerated(EnumType.STRING)
-    @JdbcTypeCode(SqlTypes.VARCHAR)
-    @Column(name = "trang_thai", nullable = false, length = 30)
-    private TrangThaiCoBanEnum trangThai;
+  @Enumerated(EnumType.STRING)
+  @JdbcTypeCode(SqlTypes.VARCHAR)
+  @Column(name = "trang_thai", nullable = false, length = 30)
+  private TrangThaiCoBanEnum trangThai;
 }

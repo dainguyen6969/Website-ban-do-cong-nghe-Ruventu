@@ -13,25 +13,25 @@ import lombok.*;
 @Builder
 public class RegisterRequest {
 
-    @JsonProperty("ho_ten")
-    @NotBlank(message = "Họ tên không được để trống")
-    private String hoTen;
+  @JsonProperty("ho_ten")
+  @NotBlank(message = "Họ tên không được để trống")
+  private String hoTen;
 
-    @JsonProperty("email")
-    @NotBlank(message = "Email không được để trống")
-    @Email(message = "Email không hợp lệ")
-    private String email;
+  @JsonProperty("email")
+  @NotBlank(message = "Email không được để trống")
+  @Email(message = "Email không hợp lệ")
+  private String email;
 
-    @JsonProperty("so_dien_thoai")
-    @NotBlank(message = "Số điện thoại không được để trống")
-    private String soDienThoai;
+  @JsonProperty("so_dien_thoai")
+  @NotBlank(message = "Số điện thoại không được để trống")
+  private String soDienThoai;
 
-    @JsonProperty("mat_khau")
-    @NotBlank(message = "Mật khẩu không được để trống")
-    @Size(min = 8, message = "Mật khẩu phải có ít nhất 8 ký tự")
-    private String matKhau;
+  @JsonProperty("mat_khau")
+  @NotBlank(message = "Mật khẩu không được để trống")
+  @Size(min = 8, message = "Mật khẩu phải có ít nhất 8 ký tự")
+  private String matKhau;
 
-    @JsonProperty("xac_nhan_mat_khau")
-    @NotBlank(message = "Xác nhận mật khẩu không được để trống")
-    private String xacNhanMatKhau;
+  @JsonProperty("xac_nhan_mat_khau")
+  @NotBlank(message = "Xác nhận mật khẩu không được để trống")
+  private String xacNhanMatKhau;
 }
