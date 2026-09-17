@@ -1,7 +1,8 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { HiOutlineSearch } from 'react-icons/hi';
 import { createStockCheck, findOpenCheck, getStockCheck, getStockVersions, updateStockCheck } from '../data/mockStockChecks';
+import { subscribeToAdminSlice } from '../sync/adminSync';
 import './StockCheckFlow.css';
 
 const reasons = ['Hư hỏng', 'Thất lạc', 'Lệch mã', 'Kiểm đếm lại', 'Khác', 'Nhập tay...'];
@@ -15,7 +16,7 @@ export default function TaoPhieuKiemHang() {
   const { id: editId } = useParams();
   const existing = editId ? getStockCheck(editId) : null;
   const editing = Boolean(existing);
-  const versions = useMemo(() => getStockVersions(), []);
+  const [versions, setVersions] = useState(getStockVersions);
   const initialVersion = existing ? versions.find((item) => item.id === existing.versionId) || {
     id: existing.versionId, sku: existing.sku, displayCode: existing.sku, displayName: existing.productName,
     barcode: existing.barcode, actual: existing.systemStock,
@@ -28,6 +29,12 @@ export default function TaoPhieuKiemHang() {
   const [checkedAt, setCheckedAt] = useState(existing?.checkedAt || localDateTime());
   const [duplicate, setDuplicate] = useState(null);
   const [success, setSuccess] = useState(false);
+
+  useEffect(() => subscribeToAdminSlice('stock-levels', () => {
+    const nextVersions = getStockVersions();
+    setVersions(nextVersions);
+    setSelected((current) => current ? nextVersions.find((item) => item.id === current.id) || current : current);
+  }), []);
 
   const results = useMemo(() => {
     const needle = query.trim().toLocaleLowerCase('vi');

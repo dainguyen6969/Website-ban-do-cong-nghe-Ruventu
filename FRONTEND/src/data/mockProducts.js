@@ -1,6 +1,8 @@
 import workstationImage from '../assets/hero.png';
+import { readSharedState, writeSharedState } from '../sync/adminSync';
 
-let mockProducts = [
+const STORAGE_KEY = 'ruventu_products_v1';
+const seedProducts = [
   {
     id: 'SP-KEY-Q1P',
     maSanPham: 'SP-KEY-Q1P',
@@ -147,6 +149,13 @@ let mockProducts = [
   },
 ];
 
+const mockProducts = readSharedState(STORAGE_KEY, seedProducts);
+
+function refreshProducts() {
+  const stored = readSharedState(STORAGE_KEY, seedProducts);
+  mockProducts.splice(0, mockProducts.length, ...stored);
+}
+
 const workstationComponents = [
   ['SP-CPU-14900K', 'CPU Intel Core i9-14900K Box', 13990000],
   ['SP-VGA-4090', 'VGA ASUS ROG Strix RTX 4090 OC 24GB', 24890000],
@@ -199,20 +208,24 @@ function hydrateProduct(product) {
 }
 
 export function getMockProducts() {
+  refreshProducts();
   return mockProducts.map(hydrateProduct);
 }
 
 export function getMockProductById(id) {
+  refreshProducts();
   return hydrateProduct(mockProducts.find((product) => product.id === id || product.maSanPham === id));
 }
 
 export function addMockProduct(product) {
+  refreshProducts();
   const existingIndex = mockProducts.findIndex((p) => p.id === product.id);
   if (existingIndex >= 0) {
     mockProducts[existingIndex] = { ...mockProducts[existingIndex], ...product };
   } else {
     mockProducts.unshift(product);
   }
+  writeSharedState(STORAGE_KEY, mockProducts, { slice: 'products', action: existingIndex >= 0 ? 'updated' : 'created', entityId: product.id });
   return getMockProducts();
 }
 

@@ -89,6 +89,7 @@ export const mockOrders = Array.from({ length: 100 }, (_, index) => {
     packing: config.packing,
     warehouse: config.warehouse,
     delivery: config.delivery,
+    shippingPartnerId: sequence % 4 === 0 ? null : `DTVC${String(((sequence - 1) % 6) + 1).padStart(6, '0')}`,
     shippingProvider: sequence % 4 === 0 ? '—' : 'GHN',
     trackingCode: config.warehouse === 'Đã xuất kho' ? `GHN${String(202600000 + sequence)}` : '',
     shippingFee,

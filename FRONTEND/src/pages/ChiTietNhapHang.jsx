@@ -1,7 +1,8 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Navigate, useNavigate, useParams } from 'react-router-dom';
 import PriceInput from '../components/PriceInput';
 import { getPurchaseOrder, getSupplier, getWarehouse, totalGoods, totalOrder, updatePurchaseOrder } from '../data/purchaseOrders';
+import { subscribeToAdminSlice } from '../sync/adminSync';
 import { money, Modal, PageCrumb, PurchaseCard, StatusBadge } from './PurchaseShared';
 import './NhapHang.css';
 
@@ -17,6 +18,7 @@ export default function ChiTietNhapHang() {
   const [refundMethod, setRefundMethod] = useState('Chuyển khoản');
   const [returnStep, setReturnStep] = useState(1);
   const [returnError, setReturnError] = useState('');
+  useEffect(() => subscribeToAdminSlice('purchase-orders', () => setOrder(getPurchaseOrder(id))), [id]);
   const supplier = getSupplier(order?.supplierId); const warehouse = getWarehouse(order?.warehouseId);
   const totals = useMemo(() => { if (!order) return {}; const goods = totalGoods(order); const total = totalOrder(order); const ordered = order.items.reduce((sum, row) => sum + row.qty, 0); const received = order.items.reduce((sum, row) => sum + row.received, 0); const returned = order.items.reduce((sum, row) => sum + row.returned, 0); return { goods, vat: total - goods, total, debt: Math.max(0, total - order.paid), ordered, received, returned, waiting: Math.max(0, ordered - received), progress: ordered ? Math.round(received / ordered * 100) : 0 }; }, [order]);
   if (!order) return <Navigate to="/kho-hang/nhap-hang" replace />;

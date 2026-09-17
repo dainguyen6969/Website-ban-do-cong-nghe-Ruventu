@@ -1,9 +1,10 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { HiOutlinePlus, HiOutlineSearch } from 'react-icons/hi';
 import TablePagination from '../components/TablePagination';
 import StopComboModal from '../components/StopComboModal';
 import { getMockCombos, setMockComboStatus } from '../data/mockCombos';
+import { subscribeToAdminSlice } from '../sync/adminSync';
 import './ComboSanPham.css';
 
 const PAGE_SIZE = 5;
@@ -17,6 +18,7 @@ export default function ComboSanPham() {
   const [status, setStatus] = useState('Tất cả trạng thái');
   const [page, setPage] = useState(1);
   const [comboToStop, setComboToStop] = useState(null);
+  useEffect(() => subscribeToAdminSlice('combos', () => setCombos(getMockCombos())), []);
   const filtered = useMemo(() => combos.filter((combo) => {
     const query = search.trim().toLocaleLowerCase('vi');
     return (!query || combo.name.toLocaleLowerCase('vi').includes(query) || combo.code.toLocaleLowerCase('vi').includes(query)) &&

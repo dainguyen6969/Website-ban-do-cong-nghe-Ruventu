@@ -1,7 +1,9 @@
+import { useEffect, useState } from 'react';
 import { Navigate, useNavigate, useParams } from 'react-router-dom';
 import { HiOutlineArrowLeft, HiOutlinePencilAlt, HiOutlineOfficeBuilding } from 'react-icons/hi';
 import FormCard from '../components/FormCard';
 import { getMockProductById } from '../data/mockProducts';
+import { subscribeToAdminSlice } from '../sync/adminSync';
 import './ChiTietSanPham.css';
 
 const money = (value) => `${Number(value || 0).toLocaleString('vi-VN')}đ`;
@@ -27,7 +29,9 @@ function Badge({ children }) { return <span className="detail-badge">{children}<
 export default function ChiTietSanPham() {
   const { productId } = useParams();
   const navigate = useNavigate();
-  const product = getMockProductById(decodeURIComponent(productId || ''));
+  const decodedProductId = decodeURIComponent(productId || '');
+  const [product, setProduct] = useState(() => getMockProductById(decodedProductId));
+  useEffect(() => subscribeToAdminSlice('products', () => setProduct(getMockProductById(decodedProductId))), [decodedProductId]);
   if (!product) return <Navigate to="/admin/san-pham/danh-sach-san-pham" replace />;
 
   const isCombo = product.phanLoai === 'Theo bộ (Combo)';

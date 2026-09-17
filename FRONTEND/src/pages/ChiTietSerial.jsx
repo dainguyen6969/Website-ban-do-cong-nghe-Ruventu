@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { HiOutlineArrowLeft, HiOutlinePencilAlt } from 'react-icons/hi';
 import { getSerialById, SERIAL_STATUSES, SERIAL_STATUS_META, updateSerialStatus } from '../data/mockSerials';
+import { subscribeToAdminSlice } from '../sync/adminSync';
 import './SerialPages.css';
 
 function StatusBadge({ status }) {
@@ -17,6 +18,8 @@ export default function ChiTietSerial() {
   const [modalOpen, setModalOpen] = useState(false);
   const [nextStatus, setNextStatus] = useState(serial?.status || SERIAL_STATUSES[0]);
   const invalidTransition = status === 'Trong kho' && nextStatus === 'Đang bảo hành';
+
+  useEffect(() => subscribeToAdminSlice('serials', () => setStatus(getSerialById(serialId)?.status)), [serialId]);
 
   useEffect(() => {
     if (!modalOpen) return undefined;

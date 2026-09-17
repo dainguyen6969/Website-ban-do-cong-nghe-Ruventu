@@ -1,4 +1,5 @@
 import mockVersions from './mockVersions';
+import { writeSharedState } from '../sync/adminSync';
 
 const STORAGE_KEY = 'ruventu_stock_checks_v1';
 const STOCK_KEY = 'ruventu_stock_adjustments_v1';
@@ -23,7 +24,9 @@ export function getStockChecks() {
   return seedStockChecks;
 }
 
-export function saveStockChecks(checks) { localStorage.setItem(STORAGE_KEY, JSON.stringify(checks)); }
+export function saveStockChecks(checks, action = 'updated', entityId = null) {
+  writeSharedState(STORAGE_KEY, checks, { slice: 'stock-checks', action, entityId });
+}
 export function getStockCheck(id) { return getStockChecks().find((check) => check.id === id); }
 
 export function createStockCheck(data) {
@@ -32,13 +35,13 @@ export function createStockCheck(data) {
   const now = new Date();
   const localDate = new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
   const check = { ...data, id: `PKKH-${now.getFullYear()}-${String(maxId + 1).padStart(3, '0')}`, status: 'Đang kiểm', createdAt: localDate };
-  saveStockChecks([check, ...checks]);
+  saveStockChecks([check, ...checks], 'created', check.id);
   return check;
 }
 
 export function updateStockCheck(id, changes) {
   const next = getStockChecks().map((check) => check.id === id ? { ...check, ...changes } : check);
-  saveStockChecks(next);
+  saveStockChecks(next, 'updated', id);
   return next.find((check) => check.id === id);
 }
 
@@ -54,7 +57,7 @@ export function getStockVersions() {
 export function updateVersionStock(versionId, actual) {
   const version = mockVersions.find((item) => item.id === versionId);
   if (version) version.actual = actual;
-  localStorage.setItem(STOCK_KEY, JSON.stringify({ ...getStockOverrides(), [versionId]: actual }));
+  writeSharedState(STOCK_KEY, { ...getStockOverrides(), [versionId]: actual }, { slice: 'stock-levels', action: 'adjusted', entityId: versionId });
 }
 
 export function findOpenCheck(versionId, excludedId = '') {

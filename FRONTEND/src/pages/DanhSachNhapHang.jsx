@@ -1,19 +1,21 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { HiOutlinePlus, HiOutlineSearch } from 'react-icons/hi';
 import TablePagination from '../components/TablePagination';
 import { getPurchaseOrders, getSupplier, suppliers, totalOrder } from '../data/purchaseOrders';
+import { subscribeToAdminSlice } from '../sync/adminSync';
 import { money, PageCrumb, StatusBadge } from './PurchaseShared';
 import './NhapHang.css';
 
 export default function DanhSachNhapHang() {
   const navigate = useNavigate();
-  const [orders] = useState(() => getPurchaseOrders());
+  const [orders, setOrders] = useState(() => getPurchaseOrders());
   const [query, setQuery] = useState('');
   const [supplier, setSupplier] = useState('');
   const [status, setStatus] = useState('');
   const [payment, setPayment] = useState('');
   const [page, setPage] = useState(1);
+  useEffect(() => subscribeToAdminSlice('purchase-orders', () => setOrders(getPurchaseOrders())), []);
   const filtered = useMemo(() => orders.filter((order) => {
     const supplierInfo = getSupplier(order.supplierId);
     const text = `${order.id} ${supplierInfo?.name || ''}`.toLocaleLowerCase('vi');

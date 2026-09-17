@@ -1,6 +1,8 @@
 import workstationImage from '../assets/hero.png';
+import { readSharedState, writeSharedState } from '../sync/adminSync';
 
-let combos = [
+const STORAGE_KEY = 'ruventu_combos_v1';
+const seedCombos = [
   { id: 'combo-1', code: 'PC-001', name: 'PC Gaming ABC', image: workstationImage, sellable: 5, stock: 5, price: 25000000, status: 'Đang kinh doanh', components: [
     { name: 'Intel Core i7-14700K Box', variant: 'Default', sku: 'CPU-I7-14700K', qty: 1 },
     { name: 'MSI RTX 4070 SUPER Ventus', variant: 'Default', sku: 'VGA-4070S', qty: 1 },
@@ -33,6 +35,8 @@ let combos = [
   ] },
 ];
 
+let combos = readSharedState(STORAGE_KEY, seedCombos);
+
 function cloneCombo(combo) {
   return {
     ...combo,
@@ -44,13 +48,18 @@ function cloneCombo(combo) {
   };
 }
 
-export function getMockCombos() { return combos.map(cloneCombo); }
-export function getMockComboById(id) { const combo = combos.find((item) => item.id === id || item.code === id); return combo ? cloneCombo(combo) : null; }
-export function addMockCombo(combo) { combos = [cloneCombo(combo), ...combos]; return getMockCombos(); }
+function refreshCombos() { combos = readSharedState(STORAGE_KEY, seedCombos); }
+function saveCombos(action, entityId) { writeSharedState(STORAGE_KEY, combos, { slice: 'combos', action, entityId }); }
+
+export function getMockCombos() { refreshCombos(); return combos.map(cloneCombo); }
+export function getMockComboById(id) { refreshCombos(); const combo = combos.find((item) => item.id === id || item.code === id); return combo ? cloneCombo(combo) : null; }
+export function addMockCombo(combo) { refreshCombos(); combos = [cloneCombo(combo), ...combos]; saveCombos('created', combo.id); return getMockCombos(); }
 export function updateMockCombo(id, nextCombo) {
+  refreshCombos();
   const index = combos.findIndex((combo) => combo.id === id || combo.code === id);
   if (index < 0) return null;
   combos = combos.map((combo, comboIndex) => comboIndex === index ? cloneCombo({ ...combo, ...nextCombo, id: combo.id }) : combo);
+  saveCombos('updated', id);
   return cloneCombo(combos[index]);
 }
-export function setMockComboStatus(id, status) { combos = combos.map((combo) => combo.id === id ? { ...combo, status } : combo); return getMockCombos(); }
+export function setMockComboStatus(id, status) { refreshCombos(); combos = combos.map((combo) => combo.id === id ? { ...combo, status } : combo); saveCombos('status-updated', id); return getMockCombos(); }
