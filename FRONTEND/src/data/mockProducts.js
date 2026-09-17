@@ -2,6 +2,19 @@ import workstationImage from '../assets/hero.png';
 import { readSharedState, writeSharedState } from '../sync/adminSync';
 
 const STORAGE_KEY = 'ruventu_products_v1';
+const MOCK_PRICE_STOCK = {
+  'SP-KEY-Q1P': { prices: [3290000, 3500000, 3790000], stocks: [42, 40, 38] },
+  'SP-VGA-4090': { prices: [24890000], stocks: [15] },
+  'SP-CPU-14900K': { prices: [14490000, 15290000], stocks: [108, 102] },
+  'SP-CPU-7950X': { prices: [14990000, 15690000], stocks: [48, 47] },
+  'SP-MB-Z790H': { prices: [13990000], stocks: [60] },
+  'SP-RAM-D5-64': { prices: [1590000, 1690000, 1840000, 1990000], stocks: [82, 80, 80, 78] },
+  'SP-VGA-4080S': { prices: [19990000, 21490000], stocks: [45, 43] },
+  'SP-PSU-1000G6': { prices: [4890000], stocks: [155] },
+  'SP-CASE-011D': { prices: [3890000, 4190000], stocks: [58, 54] },
+  'SP-SSD-990P2T': { prices: [3990000, 4490000, 4890000], stocks: [140, 136, 134] },
+  'SP-MON-27GR95': { prices: [19990000], stocks: [45] },
+};
 const seedProducts = [
   {
     id: 'SP-KEY-Q1P',
@@ -149,10 +162,44 @@ const seedProducts = [
   },
 ];
 
-const mockProducts = readSharedState(STORAGE_KEY, seedProducts);
+function applyMockPriceStock(product) {
+  const defaults = MOCK_PRICE_STOCK[product.id];
+  if (!defaults) return product;
+  const variantCount = Math.max(product.variants?.length || 0, Number(product.soPhienBan || 1));
+  const variants = Array.from({ length: variantCount }, (_, index) => {
+    const current = product.variants?.[index] || {};
+    return {
+      ...current,
+      name: current.name || (variantCount === 1 ? 'Mặc định' : `Phiên bản ${index + 1}`),
+      sku: current.sku || (variantCount === 1 ? product.maSanPham : `${product.maSanPham}-${index + 1}`),
+      giaBanLe: Number(current.giaBanLe) > 0 ? current.giaBanLe : defaults.prices[index] ?? defaults.prices.at(-1),
+      giaNhap: current.giaNhap || '',
+      khoiLuong: current.khoiLuong || '',
+      tonDauKy: Number(current.tonDauKy) > 0 ? current.tonDauKy : defaults.stocks[index] ?? defaults.stocks.at(-1),
+      serials: current.serials || [],
+    };
+  });
+  return {
+    ...product,
+    giaBanLe: Number(product.giaBanLe) > 0 ? product.giaBanLe : defaults.prices[0],
+    tonKho: Number(product.tonKho) > 0 ? product.tonKho : defaults.stocks.reduce((sum, stock) => sum + stock, 0),
+    variants,
+  };
+}
+
+function readPricedProducts() {
+  const stored = readSharedState(STORAGE_KEY, seedProducts);
+  const priced = stored.map(applyMockPriceStock);
+  if (JSON.stringify(priced) !== JSON.stringify(stored)) {
+    writeSharedState(STORAGE_KEY, priced, { slice: 'products', action: 'mock-prices-updated' });
+  }
+  return priced;
+}
+
+const mockProducts = readPricedProducts();
 
 function refreshProducts() {
-  const stored = readSharedState(STORAGE_KEY, seedProducts);
+  const stored = readPricedProducts();
   mockProducts.splice(0, mockProducts.length, ...stored);
 }
 
