@@ -5,6 +5,8 @@
 
 .category-container {
   height: 40px;
+  max-width: none !important;
+  padding: 0 !important;
 }
 
 .category-tabs {
@@ -13,7 +15,7 @@
 }
 
 .tab {
-  padding: 0 24px;
+  padding: 0 18px;
   display: flex;
   align-items: center;
   font-size: 13px;
@@ -31,6 +33,7 @@
   background-color: var(--bg-dark);
   color: var(--text-light);
   border-color: var(--bg-dark);
+  padding-inline: 13px;
 }
 
 .brands-bar {
@@ -40,11 +43,13 @@
 
 .brands-container {
   display: flex;
-  height: 40px;
+  height: 46px;
+  max-width: none !important;
+  padding: 0 !important;
 }
 
 .brand-label {
-  padding: 0 24px;
+  padding: 0 18px;
   display: flex;
   align-items: center;
   font-size: 11px;
@@ -59,7 +64,7 @@
 }
 
 .brand-item {
-  padding: 0 24px;
+  padding: 0 18px;
   font-size: 13px;
   font-weight: 700;
   color: var(--text-dark);

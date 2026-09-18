@@ -7,6 +7,7 @@ export default function TablePagination({
   currentPage,
   onPageChange,
   idPrefix = 'table',
+  showSummary = true,
 }) {
   const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
   const safePage = Math.min(Math.max(1, currentPage), totalPages);
@@ -35,13 +36,13 @@ export default function TablePagination({
 
   return (
     <div className="product-pagination-bar">
-      <div className="product-pagination-range">
+      {showSummary && <div className="product-pagination-range">
         <span className="product-pagination-range__text">Hiển thị </span>
         <strong className="product-pagination-range__number">
           {totalItems === 0 ? '0' : `${startIndex}-${endIndex}`}
         </strong>
         <span className="product-pagination-range__text"> trên tổng số {totalItems} kết quả</span>
-      </div>
+      </div>}
 
       <div className="product-pagination-controls">
         {safePage > 1 && <button

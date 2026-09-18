@@ -161,7 +161,10 @@ const menuItems = [
     icon: IconNhanVien,
     path: '/admin/nhan-vien',
     expandable: true,
-    subItems: [],
+    subItems: [
+      { id: 'danh-sach-nhan-vien', label: 'Danh sách nhân viên', path: '/admin/nhan-vien/danh-sach' },
+      { id: 'vai-tro-nhan-vien', label: 'Vai trò', path: '/admin/nhan-vien/vai-tro' },
+    ],
   },
   {
     id: 'khuyen-mai',
