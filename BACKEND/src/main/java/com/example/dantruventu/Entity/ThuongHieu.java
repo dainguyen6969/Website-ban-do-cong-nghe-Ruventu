@@ -6,7 +6,11 @@ import java.util.List;
 import lombok.*;
 
 @Entity
-@Table(name = "thuong_hieu")
+@Table(
+    name = "thuong_hieu",
+    uniqueConstraints = {
+      @UniqueConstraint(name = "uk_thuong_hieu_ten", columnNames = "ten_thuong_hieu")
+    })
 @Getter
 @Setter
 @NoArgsConstructor
@@ -18,13 +22,13 @@ public class ThuongHieu {
   @GeneratedValue(strategy = GenerationType.IDENTITY)
   private Long id;
 
-  @Column(name = "ten_thuong_hieu", nullable = false)
+  @Column(name = "ten_thuong_hieu", nullable = false, length = 100)
   private String tenThuongHieu;
 
-  @Column(name = "duong_dan_url", nullable = false, unique = true)
+  @Column(name = "duong_dan_url", nullable = false, unique = true, length = 50)
   private String duongDanUrl;
 
-  @Column(name = "logo")
+  @Column(name = "logo", length = 255)
   private String logo;
 
   @Builder.Default
