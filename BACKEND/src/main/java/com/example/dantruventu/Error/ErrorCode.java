@@ -21,6 +21,8 @@ public enum ErrorCode {
 
   METHOD_NOT_ALLOWED(HttpStatus.METHOD_NOT_ALLOWED, "Phương thức không được phép"),
 
+  UNPROCESSABLE_ENTITY(HttpStatus.valueOf(422), "Dữ liệu không thể xử lý"),
+
   INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "Đã xảy ra lỗi hệ thống");
 
   private final HttpStatus status;

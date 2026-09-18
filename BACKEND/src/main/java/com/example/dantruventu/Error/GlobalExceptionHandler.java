@@ -15,7 +15,7 @@ public class GlobalExceptionHandler {
     ErrorCode errorCode = exception.getErrorCode();
 
     ErrorResponse response =
-        new ErrorResponse(errorCode.getStatus().value(), errorCode.getMessage());
+        new ErrorResponse(errorCode.getStatus().value(), exception.getMessage());
 
     return ResponseEntity.status(errorCode.getStatus()).body(response);
   }
@@ -56,5 +56,16 @@ public class GlobalExceptionHandler {
             ErrorCode.INTERNAL_SERVER_ERROR.getMessage());
 
     return ResponseEntity.status(ErrorCode.INTERNAL_SERVER_ERROR.getStatus()).body(response);
+  }
+
+  @ExceptionHandler(org.springframework.dao.DataIntegrityViolationException.class)
+  public ResponseEntity<ErrorResponse> handleDataIntegrityException(
+      org.springframework.dao.DataIntegrityViolationException exception) {
+
+    ErrorResponse response =
+        new ErrorResponse(
+            ErrorCode.CONFLICT.getStatus().value(), "Dữ liệu đã tồn tại hoặc vi phạm ràng buộc");
+
+    return ResponseEntity.status(ErrorCode.CONFLICT.getStatus()).body(response);
   }
 }
