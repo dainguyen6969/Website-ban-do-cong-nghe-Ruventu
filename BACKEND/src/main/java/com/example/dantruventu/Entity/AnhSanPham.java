@@ -12,22 +12,22 @@ import lombok.*;
 @Builder
 public class AnhSanPham {
 
-  @Id
-  @GeneratedValue(strategy = GenerationType.IDENTITY)
-  private Long id;
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
 
-  @ManyToOne(fetch = FetchType.LAZY)
-  @JoinColumn(name = "san_pham_id", nullable = false)
-  private SanPham sanPham;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "san_pham_id", nullable = false)
+    private SanPham sanPham;
 
-  @Column(name = "duong_dan_anh", nullable = false)
-  private String duongDanAnh;
+    @Column(name = "duong_dan_anh", nullable = false)
+    private String duongDanAnh;
 
-  @Builder.Default
-  @Column(name = "la_anh_chinh")
-  private Boolean laAnhChinh = false;
+    @Builder.Default
+    @Column(name = "la_anh_chinh")
+    private Boolean laAnhChinh = false;
 
-  @Builder.Default
-  @Column(name = "thu_tu_hien_thi")
-  private Integer thuTuHienThi = 0;
+    @Builder.Default
+    @Column(name = "thu_tu_hien_thi")
+    private Integer thuTuHienThi = 0;
 }

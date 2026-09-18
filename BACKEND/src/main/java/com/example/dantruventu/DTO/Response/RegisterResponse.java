@@ -10,6 +10,6 @@ import lombok.*;
 @Builder
 public class RegisterResponse {
 
-  @JsonProperty("thoi_han_otp")
-  private Integer thoiHanOtp;
+    @JsonProperty("thoi_han_otp")
+    private Integer thoiHanOtp;
 }

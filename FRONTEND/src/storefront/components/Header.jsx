@@ -4,16 +4,22 @@ import { Search, User, ShoppingBag } from 'lucide-react';
 import './Header.css';
 import logo from '../assets/reventu.png';
 import CartDrawer from './CartDrawer';
-import useMockAuth from '../../auth/useMockAuth';
 
 const Header = () => {
   const [isCartOpen, setIsCartOpen] = useState(false);
-  const { currentAccount: user, logout } = useMockAuth();
+  const [user, setUser] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem('user'));
+    } catch {
+      return null;
+    }
+  });
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
 
   const handleLogout = () => {
-    logout();
+    localStorage.removeItem('user');
+    setUser(null);
     setIsDropdownOpen(false);
   };
 

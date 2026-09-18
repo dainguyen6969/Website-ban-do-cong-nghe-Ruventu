@@ -8,24 +8,40 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class AuthTokenService {
 
-  private final JwtService jwtService;
-  private final RefreshTokenSessionService refreshTokenSessionService;
+    private final JwtService jwtService;
+    private final RefreshTokenSessionService refreshTokenSessionService;
 
-  public TokenPair generateTokenPair(NguoiDung nguoiDung, boolean ghiNhoDangNhap) {
+    public TokenPair generateTokenPair(
+            NguoiDung nguoiDung,
+            boolean ghiNhoDangNhap
+    ) {
 
-    String accessToken = jwtService.generateAccessToken(nguoiDung);
+        String accessToken =
+                jwtService.generateAccessToken(nguoiDung);
 
-    String refreshToken = jwtService.generateRefreshToken(nguoiDung, ghiNhoDangNhap);
+        String refreshToken =
+                jwtService.generateRefreshToken(
+                        nguoiDung,
+                        ghiNhoDangNhap
+                );
 
-    refreshTokenSessionService.saveRefreshToken(refreshToken);
+        refreshTokenSessionService
+                .saveRefreshToken(refreshToken);
 
-    return new TokenPair(accessToken, refreshToken);
-  }
+        return new TokenPair(
+                accessToken,
+                refreshToken
+        );
+    }
 
-  public String generateAccessToken(NguoiDung nguoiDung) {
+    public String generateAccessToken(NguoiDung nguoiDung) {
 
-    return jwtService.generateAccessToken(nguoiDung);
-  }
+        return jwtService.generateAccessToken(nguoiDung);
+    }
 
-  public record TokenPair(String accessToken, String refreshToken) {}
+    public record TokenPair(
+            String accessToken,
+            String refreshToken
+    ) {
+    }
 }

@@ -2,11 +2,8 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import './Footer.css';
 import logoTransparent from '../assets/reventu_transparent.png';
-import useMockAuth from '../../auth/useMockAuth';
 
 const Footer = () => {
-  const { currentAccount } = useMockAuth();
-
   return (
     <footer className="footer">
       <div className="footer-links-section">
@@ -64,9 +61,7 @@ const Footer = () => {
             <a href="#">Chính sách bảo mật</a>
             <a href="#">Điều khoản</a>
             <a href="#">Sitemap</a>
-            {currentAccount?.role === 'admin' && (
-              <Link to="/admin" className="admin-link">Admin</Link>
-            )}
+            <Link to="/admin" className="admin-link">admin</Link>
           </div>
         </div>
       </div>

@@ -221,11 +221,4 @@ export const mockVersions = [
   },
 ];
 
-try {
-  const stockOverrides = JSON.parse(localStorage.getItem('ruventu_stock_adjustments_v1')) || {};
-  mockVersions.forEach((version) => {
-    if (stockOverrides[version.id] !== undefined) version.actual = stockOverrides[version.id];
-  });
-} catch { /* keep seeded stock values */ }
-
 export default mockVersions;

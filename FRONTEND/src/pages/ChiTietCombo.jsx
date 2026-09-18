@@ -1,9 +1,8 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Navigate, useNavigate, useParams } from 'react-router-dom';
 import FormCard from '../components/FormCard';
 import StopComboModal from '../components/StopComboModal';
 import { getMockComboById, setMockComboStatus } from '../data/mockCombos';
-import { subscribeToAdminSlice } from '../sync/adminSync';
 import { getMockProducts } from '../data/mockProducts';
 import fallbackImage from '../assets/hero.png';
 import './ChiTietCombo.css';
@@ -17,7 +16,6 @@ export default function ChiTietCombo() {
   const [combo, setCombo] = useState(() => getMockComboById(id));
   const [selectedImage, setSelectedImage] = useState(0);
   const [showStopModal, setShowStopModal] = useState(false);
-  useEffect(() => subscribeToAdminSlice('combos', () => setCombo(getMockComboById(id))), [id]);
   const products = useMemo(() => getMockProducts(), []);
 
   const detail = useMemo(() => {
@@ -51,7 +49,7 @@ export default function ChiTietCombo() {
   };
 
   return <main className="combo-detail-page">
-    <div className="combo-page-heading"><div><div className="combo-secondary-breadcrumb"><span>Sản phẩm</span><b>›</b><span>Quản lý kho</span><b>›</b><span>Combo sản phẩm</span><b>›</b><strong>Chi tiết</strong></div><h1>CHI TIẾT COMBO</h1></div><div className="heading-actions"><button className="combo-detail-edit" onClick={() => navigate(`/kho-hang/combo-san-pham/sua/${combo.id}`)}>SỬA COMBO</button>{!stopped(combo.status) && <button className="combo-detail-stop" onClick={() => setShowStopModal(true)}>NGƯNG KINH DOANH</button>}</div></div>
+    <div className="combo-page-heading"><div><div className="combo-secondary-breadcrumb"><span>Sản phẩm</span><b>›</b><span>Quản lý kho</span><b>›</b><span>Combo sản phẩm</span><b>›</b><strong>Chi tiết</strong></div><h1>CHI TIẾT COMBO</h1></div><div className="heading-actions"><button className="combo-detail-edit">SỬA COMBO</button>{!stopped(combo.status) && <button className="combo-detail-stop" onClick={() => setShowStopModal(true)}>NGƯNG KINH DOANH</button>}</div></div>
     <div className="combo-detail-content">
       <FormCard title="Thông tin tổng quan"><div className="combo-overview"><div className="combo-identity"><img src={combo.image || fallbackImage} alt={combo.name} /><div><h2>{combo.name}</h2><div className="overview-badges"><code>{combo.code}</code><span>BỘ PC / COMBO</span><b className={stopped(combo.status) ? 'status-stopped' : 'status-selling'}>{combo.status.toUpperCase()}</b></div></div></div><div className="overview-stats"><div><strong>{detail.sellable}</strong><small>CÓ THỂ BÁN</small></div><div><strong>{money(combo.price)}</strong><small>GIÁ BÁN LẺ</small></div><div><strong>{variant.weight || 0} kg</strong><small>KHỐI LƯỢNG</small></div></div></div></FormCard>
       <FormCard title="Hình ảnh combo"><div className="combo-gallery"><div className="gallery-preview"><img src={images[selectedImage]} alt={`${combo.name} - ảnh ${selectedImage + 1}`} /></div><div className="gallery-order"><label>THỨ TỰ ẢNH</label>{images.map((image, index) => <button key={`${image}-${index}`} className={selectedImage === index ? 'selected' : ''} onClick={() => setSelectedImage(index)}><img src={image} alt="" /><span className={index === 0 ? 'main-image-label' : ''}>{index === 0 ? '★ Ảnh chính' : `Ảnh ${index + 1}`}</span></button>)}</div></div></FormCard>
