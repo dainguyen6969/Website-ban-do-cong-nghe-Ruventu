@@ -126,8 +126,8 @@
 .serial-product-name { display: block; max-width: 360px; line-height: 1.35; font-size: 13px; }
 .serial-view { margin-top: 7px; height: 24px; padding: 0 8px; border: 1px solid #1a1a1a !important; background: #fff !important; font-size: 8.5px; font-weight: 850; letter-spacing: .04em; }
 .serial-view:hover { background: #111 !important; color: #fff; }
-.serial-barcode { font-family: ui-monospace, Consolas, monospace; font-weight: 700; }
-.serial-code { font-family: ui-monospace, Consolas, monospace; font-size: 12px; letter-spacing: .01em; }
+.serial-barcode { font-weight: 700; }
+.serial-code { font-size: 12px; letter-spacing: .01em; }
 .serial-empty { height: 190px !important; text-align: center; color: #858585; cursor: default; }
 
 .serial-status {
@@ -148,7 +148,7 @@
 .serial-status--warranty { border-color: #e9ad4c; background: #fff6dc; color: #c46b08; }
 .serial-status--error { border-color: #e13b5b; background: #ffedf1; color: #d51f2e; }
 
-.serial-id-box { display: inline-flex; margin-top: 10px; padding: 5px 10px; border: 1px solid #bfc1c4; background: #fff; font-family: ui-monospace, Consolas, monospace; font-size: 12px; font-weight: 750; }
+.serial-id-box { display: inline-flex; margin-top: 10px; padding: 5px 10px; border: 1px solid #bfc1c4; background: #fff; font-size: 12px; font-weight: 750; }
 .serial-detail-actions { display: flex; gap: 9px; }
 .serial-back, .serial-edit { height: 40px; padding: 0 15px; display: inline-flex; align-items: center; gap: 7px; font-size: 10px; font-weight: 850; letter-spacing: .035em; }
 .serial-back { border: 1px solid #171717 !important; background: #fff !important; color: #171717; }

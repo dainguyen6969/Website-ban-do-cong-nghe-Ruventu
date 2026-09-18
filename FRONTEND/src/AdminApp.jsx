@@ -104,6 +104,8 @@ export default function AdminApp() {
             <Route path="dat-hang-online" element={<DatHangOnline />} />
             <Route path="quan-ly-giao-hang" element={<QuanLyGiaoHang />} />
             <Route path="khach-tra-hang" element={<KhachTraHang />} />
+            <Route path="khach-tra-hang/tao/:orderId" element={<KhachTraHang />} />
+            <Route path="khach-tra-hang/:returnId" element={<KhachTraHang />} />
           </Route>
 
           {/* Catch-all fallback */}
