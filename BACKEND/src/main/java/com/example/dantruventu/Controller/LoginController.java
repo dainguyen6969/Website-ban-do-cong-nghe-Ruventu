@@ -19,25 +19,37 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class LoginController {
 
-  private final LoginService loginService;
-  private final RefreshTokenCookieService refreshTokenCookieService;
+    private final LoginService loginService;
+    private final RefreshTokenCookieService refreshTokenCookieService;
 
-  @PostMapping("/login")
-  public ResponseEntity<LoginResponse> login(@Valid @RequestBody LoginRequest request) {
+    @PostMapping("/login")
+    public ResponseEntity<LoginResponse> login(
+            @Valid @RequestBody LoginRequest request
+    ) {
 
-    LoginService.LoginResult result = loginService.login(request);
+        LoginService.LoginResult result =
+                loginService.login(request);
 
-    LoginResponse response = result.response();
+        LoginResponse response = result.response();
 
-    if (result.refreshToken() == null) {
-      return ResponseEntity.status(response.getStatus()).body(response);
+        if (result.refreshToken() == null) {
+            return ResponseEntity
+                    .status(response.getStatus())
+                    .body(response);
+        }
+
+        ResponseCookie refreshTokenCookie =
+                refreshTokenCookieService
+                        .createRefreshTokenCookie(
+                                result.refreshToken()
+                        );
+
+        return ResponseEntity
+                .status(response.getStatus())
+                .header(
+                        HttpHeaders.SET_COOKIE,
+                        refreshTokenCookie.toString()
+                )
+                .body(response);
     }
-
-    ResponseCookie refreshTokenCookie =
-        refreshTokenCookieService.createRefreshTokenCookie(result.refreshToken());
-
-    return ResponseEntity.status(response.getStatus())
-        .header(HttpHeaders.SET_COOKIE, refreshTokenCookie.toString())
-        .body(response);
-  }
 }

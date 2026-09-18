@@ -2,8 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { HiOutlineDownload, HiOutlineSearch } from 'react-icons/hi';
 import TablePagination from '../components/TablePagination';
-import { getStockVersions } from '../data/mockStockChecks';
-import { subscribeToAdminSlice } from '../sync/adminSync';
+import mockVersions from '../data/mockVersions';
 import './QuanLyPhienBan.css';
 
 const warehouseOptions = ['Tất cả kho', 'Kho Hà Nội', 'Kho HCM', 'Kho Đà Nẵng'];
@@ -16,26 +15,24 @@ function escapeCsv(value) {
 
 export default function QuanLyPhienBan() {
   const navigate = useNavigate();
-  const [versions, setVersions] = useState(getStockVersions);
   const [searchTerm, setSearchTerm] = useState('');
   const [warehouse, setWarehouse] = useState('Tất cả kho');
   const [type, setType] = useState('Tất cả');
   const [selectedIds, setSelectedIds] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
   const selectAllRef = useRef(null);
-  useEffect(() => subscribeToAdminSlice('stock-levels', () => setVersions(getStockVersions())), []);
 
   const filteredVersions = useMemo(() => {
     const query = searchTerm.trim().toLocaleLowerCase('vi');
 
-    return versions.filter((item) => {
+    return mockVersions.filter((item) => {
       const matchesSearch = !query || [item.barcode, item.sku, item.displayCode, item.displayName]
         .some((value) => value.toLocaleLowerCase('vi').includes(query));
       const matchesWarehouse = warehouse === 'Tất cả kho' || item.warehouse === warehouse;
       const matchesType = type === 'Tất cả' || item.type === type;
       return matchesSearch && matchesWarehouse && matchesType;
     });
-  }, [searchTerm, type, versions, warehouse]);
+  }, [searchTerm, warehouse, type]);
 
   const totalPages = Math.max(1, Math.ceil(filteredVersions.length / PAGE_SIZE));
   const safePage = Math.min(currentPage, totalPages);
@@ -69,7 +66,7 @@ export default function QuanLyPhienBan() {
 
   const exportExcel = (selectedOnly = false) => {
     const rows = selectedOnly
-      ? versions.filter((item) => selectedIds.includes(item.id))
+      ? mockVersions.filter((item) => selectedIds.includes(item.id))
       : filteredVersions;
     const headers = ['Mã vạch', 'SKU', 'Tên hiển thị', 'Phân loại', 'Có thể bán', 'Tồn thực tế', 'Kho', 'Vị trí lưu kho'];
     const csvRows = rows.map((item) => [

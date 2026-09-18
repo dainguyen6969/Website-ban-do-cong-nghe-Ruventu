@@ -12,26 +12,6 @@ const tabs = [
 export default function OrderLayout() {
   const location = useLocation();
   const navigate = useNavigate();
-  const isOrderList = location.pathname === '/admin/don-hang/danh-sach-don-hang';
-  const isOrderDetail = /^\/admin\/don-hang\/danh-sach-don-hang\/[^/]+$/.test(location.pathname);
-
-  if (isOrderDetail) return <main className="order-detail-shell" role="main"><Outlet /></main>;
-
-  if (isOrderList) {
-    return (
-      <main className="order-list-shell" role="main">
-        <section className="order-list-hero">
-          <div>
-            <nav className="content__breadcrumb" aria-label="Breadcrumb nội dung"><span className="content__breadcrumb-item">Đơn hàng</span><span className="content__breadcrumb-sep">›</span><span className="content__breadcrumb-item content__breadcrumb-item--current">Danh sách đơn hàng</span></nav>
-            <h1>DANH SÁCH ĐƠN HÀNG</h1>
-            <p>QUẢN LÝ TOÀN BỘ ĐƠN ONLINE VÀ TẠI QUẦY</p>
-          </div>
-          <button className="order-create-button" type="button" onClick={() => navigate('/admin/don-hang/dat-hang-online')}><HiOutlinePlus size={16} /> TẠO ĐƠN HÀNG</button>
-        </section>
-        <Outlet />
-      </main>
-    );
-  }
 
   return (
     <main className="main-content" role="main">

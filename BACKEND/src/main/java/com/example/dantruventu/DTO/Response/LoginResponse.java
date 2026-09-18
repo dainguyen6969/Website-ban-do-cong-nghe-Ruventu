@@ -16,46 +16,46 @@ import lombok.Setter;
 @JsonInclude(JsonInclude.Include.ALWAYS)
 public class LoginResponse {
 
-  @JsonProperty("status")
-  private int status;
+    @JsonProperty("status")
+    private int status;
 
-  @JsonProperty("message")
-  private String message;
+    @JsonProperty("message")
+    private String message;
 
-  @JsonProperty("data")
-  private LoginData data;
+    @JsonProperty("data")
+    private LoginData data;
 
-  @Getter
-  @Setter
-  @NoArgsConstructor
-  @AllArgsConstructor
-  @Builder
-  public static class LoginData {
+    @Getter
+    @Setter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Builder
+    public static class LoginData {
 
-    @JsonProperty("access_token")
-    private String accessToken;
+        @JsonProperty("access_token")
+        private String accessToken;
 
-    @JsonProperty("user")
-    private UserData user;
-  }
+        @JsonProperty("user")
+        private UserData user;
+    }
 
-  @Getter
-  @Setter
-  @NoArgsConstructor
-  @AllArgsConstructor
-  @Builder
-  public static class UserData {
+    @Getter
+    @Setter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Builder
+    public static class UserData {
 
-    @JsonProperty("id")
-    private Long id;
+        @JsonProperty("id")
+        private Long id;
 
-    @JsonProperty("ho_ten")
-    private String hoTen;
+        @JsonProperty("ho_ten")
+        private String hoTen;
 
-    @JsonProperty("anh_dai_dien")
-    private String anhDaiDien;
+        @JsonProperty("anh_dai_dien")
+        private String anhDaiDien;
 
-    @JsonProperty("vai_tro_id")
-    private Long vaiTroId;
-  }
+        @JsonProperty("vai_tro_id")
+        private Long vaiTroId;
+    }
 }
