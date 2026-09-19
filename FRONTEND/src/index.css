@@ -2,6 +2,11 @@
    RUVENTU Admin Dashboard — Global Styles
    ======================================== */
 
+/* Global Typography */
+:root {
+  --font-family-base: 'Oswald', Arial, sans-serif;
+}
+
 /* CSS Custom Properties / Design Tokens */
 .admin-app {
   /* Brand Colors */
@@ -72,8 +77,6 @@
   --transition-base: 250ms cubic-bezier(0.4, 0, 0.2, 1);
   --transition-slow: 350ms cubic-bezier(0.4, 0, 0.2, 1);
 
-  /* Font */
-  --font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
 /* Global Reset */
@@ -83,6 +86,16 @@
   margin: 0;
   padding: 0;
   box-sizing: border-box;
+}
+
+html,
+body,
+#root,
+button,
+input,
+select,
+textarea {
+  font-family: var(--font-family-base);
 }
 
 html:has(.admin-app) {
@@ -117,7 +130,6 @@ html:has(.storefront-app) {
   font-size: 14px;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  font-family: var(--font-family);
   color: var(--color-text-primary);
   background-color: var(--color-content-bg);
   line-height: 1.5;
@@ -136,7 +148,6 @@ html:has(.storefront-app) {
 }
 
 :where(.admin-app) button {
-  font-family: inherit;
   cursor: pointer;
   border: none;
   background: none;
@@ -145,7 +156,6 @@ html:has(.storefront-app) {
 
 :where(.admin-app) input,
 :where(.admin-app) select {
-  font-family: inherit;
   outline: none;
   border: none;
 }

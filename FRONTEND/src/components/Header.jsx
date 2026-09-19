@@ -31,6 +31,7 @@ export default function Header({ notificationCount = 0 }) {
   const isStockCheckCreate = currentPath === '/kho-hang/kiem-hang/tao-moi' || currentPath.endsWith('/chinh-sua');
   const isStockCheckDetail = isStockCheckPage && currentPath !== '/kho-hang/kiem-hang' && !isStockCheckCreate;
   const isCustomerDetail = /^\/admin\/khach-hang-doi-tac\/khach-hang\/[^/]+$/.test(currentPath);
+  const isEmployeeDetail = /^\/admin\/nhan-vien\/[^/]+$/.test(currentPath) && !currentPath.endsWith('/danh-sach') && !currentPath.endsWith('/vai-tro');
   const isSupplierPage = currentPath === '/admin/khach-hang-doi-tac/nha-cung-cap';
   const isShippingPartnerPage = currentPath === '/admin/khach-hang-doi-tac/doi-tac-van-chuyen';
   const isOrderDetail = /^\/admin\/don-hang\/danh-sach-don-hang\/[^/]+$/.test(currentPath);
@@ -71,6 +72,12 @@ export default function Header({ notificationCount = 0 }) {
               <span className="header__breadcrumb-sep" aria-hidden="true">›</span>
               {location.state?.supplierId && <><span className="header__breadcrumb-item header__breadcrumb-item--muted">NHÀ CUNG CẤP</span><span className="header__breadcrumb-sep" aria-hidden="true">›</span></>}
               <span className="header__breadcrumb-item header__breadcrumb-item--active">{location.state?.supplierId ? 'CHI TIẾT NHÀ CUNG CẤP' : 'NHÀ CUNG CẤP'}</span>
+            </>
+          ) : isEmployeeDetail ? (
+            <>
+              <span className="header__breadcrumb-item header__breadcrumb-item--muted">NHÂN VIÊN</span>
+              <span className="header__breadcrumb-sep" aria-hidden="true">›</span>
+              <span className="header__breadcrumb-item header__breadcrumb-item--active">CHI TIẾT NHÂN VIÊN</span>
             </>
           ) : isCustomerDetail ? (
             <>
