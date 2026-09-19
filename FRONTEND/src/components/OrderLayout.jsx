@@ -15,9 +15,13 @@ export default function OrderLayout() {
   const isOrderList = location.pathname === '/admin/don-hang/danh-sach-don-hang';
   const isOrderDetail = /^\/admin\/don-hang\/danh-sach-don-hang\/[^/]+$/.test(location.pathname);
   const isCustomerReturns = location.pathname.startsWith('/admin/don-hang/khach-tra-hang');
+  const isDeliveryDetail = /^\/admin\/don-hang\/quan-ly-giao-hang\/[^/]+$/.test(location.pathname);
+  const isDeliveryList = location.pathname === '/admin/don-hang/quan-ly-giao-hang';
 
   if (isOrderDetail) return <main className="order-detail-shell" role="main"><Outlet /></main>;
   if (isCustomerReturns) return <main className="return-shell" role="main"><Outlet /></main>;
+  if (isDeliveryDetail) return <main className="delivery-detail-shell" role="main"><Outlet /></main>;
+  if (isDeliveryList) return <main className="delivery-detail-shell" role="main"><Outlet /></main>;
 
   if (isOrderList) {
     return (

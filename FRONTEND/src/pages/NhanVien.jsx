@@ -12,7 +12,6 @@ import FilterDropdown from '../components/FilterDropdown';
 import TablePagination from '../components/TablePagination';
 import useMockAuth from '../auth/useMockAuth';
 import {
-  EMPLOYEE_ROLES,
   employeeRoleLabel,
   employeeStatusLabel,
   isStaffAccount,
@@ -25,7 +24,6 @@ const PAGE_SIZE = 8;
 const STATUS_ALL = 'Tất cả trạng thái';
 const ROLE_ALL = 'Tất cả vai trò';
 const statusOptions = [STATUS_ALL, 'Hoạt động', 'Ngừng hoạt động'];
-const roleOptions = [ROLE_ALL, ...EMPLOYEE_ROLES.map((role) => role.label)];
 const normalize = (value = '') => value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D').toLowerCase();
 const formatPhone = (phone = '') => phone.replace(/(\d{4})(\d{3})(\d{3})/, '$1 $2 $3');
 const formatDate = (value) => value ? new Intl.DateTimeFormat('vi-VN', { dateStyle: 'short', timeStyle: 'short', hour12: false }).format(new Date(value)) : '—';
@@ -51,21 +49,22 @@ function SuccessBanner({ message }) {
 
 export function DanhSachNhanVien() {
   const navigate = useNavigate();
-  const { accounts, createEmployee } = useMockAuth();
+  const { accounts, roles, createEmployee } = useMockAuth();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState(STATUS_ALL);
   const [roleFilter, setRoleFilter] = useState(ROLE_ALL);
   const [page, setPage] = useState(1);
   const [showCreate, setShowCreate] = useState(false);
   const [success, setSuccess] = useSuccessBanner();
+  const roleOptions = useMemo(() => [ROLE_ALL, ...roles.map((role) => role.label)], [roles]);
   const employees = useMemo(() => accounts.filter(isStaffAccount).map(toEmployee).sort((a, b) => Number(a.id.match(/\d+/)?.[0]) - Number(b.id.match(/\d+/)?.[0])), [accounts]);
   const filtered = useMemo(() => employees.filter((employee) => {
     const query = normalize(search.trim());
     const matchesSearch = !query || [employee.id, employee.hoTen, employee.soDienThoai, employee.email].some((value) => normalize(value).includes(query));
     const matchesStatus = statusFilter === STATUS_ALL || (statusFilter === 'Hoạt động' ? employee.trangThai === 'hoat_dong' : employee.trangThai === 'ngung_hoat_dong');
-    const matchesRole = roleFilter === ROLE_ALL || employeeRoleLabel(employee.vaiTro) === roleFilter;
+    const matchesRole = roleFilter === ROLE_ALL || employeeRoleLabel(employee.vaiTro, roles) === roleFilter;
     return matchesSearch && matchesStatus && matchesRole;
-  }), [employees, roleFilter, search, statusFilter]);
+  }), [employees, roleFilter, roles, search, statusFilter]);
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const safePage = Math.min(page, totalPages);
   const start = (safePage - 1) * PAGE_SIZE;
@@ -94,21 +93,21 @@ export function DanhSachNhanVien() {
     <section className="employee-list-content">
       <div className="employee-table-wrap"><table className="employee-table"><thead><tr><th>MÃ NV</th><th>TÊN NHÂN VIÊN</th><th>SỐ ĐIỆN THOẠI</th><th>EMAIL</th><th>VAI TRÒ</th><th>TRẠNG THÁI</th><th>THAO TÁC</th></tr></thead><tbody>
         {visible.map((employee) => <tr key={employee.accountId}>
-          <td className="employee-code">{employee.id}</td><td className="employee-name">{employee.hoTen}</td><td>{formatPhone(employee.soDienThoai)}</td><td>{employee.email}</td><td>{employeeRoleLabel(employee.vaiTro)}</td><td><EmployeeStatus value={employee.trangThai} /></td>
+          <td className="employee-code">{employee.id}</td><td className="employee-name">{employee.hoTen}</td><td>{formatPhone(employee.soDienThoai)}</td><td>{employee.email}</td><td>{employeeRoleLabel(employee.vaiTro, roles)}</td><td><EmployeeStatus value={employee.trangThai} /></td>
           <td><button className="employee-row-action" onClick={() => navigate(`/admin/nhan-vien/${employee.accountId}`)}>XEM CHI TIẾT</button></td>
         </tr>)}
         {!visible.length && <tr><td className="employee-empty" colSpan="7">KHÔNG TÌM THẤY NHÂN VIÊN PHÙ HỢP.</td></tr>}
       </tbody></table></div>
       <div className="employee-list-footer"><p>HIỂN THỊ {filtered.length ? start + 1 : 0}-{Math.min(start + PAGE_SIZE, filtered.length)} TRÊN TỔNG SỐ {filtered.length} NHÂN VIÊN</p><TablePagination totalItems={filtered.length} pageSize={PAGE_SIZE} currentPage={safePage} onPageChange={setPage} idPrefix="employee" showSummary={false} /></div>
     </section>
-    {showCreate && <EmployeeFormModal mode="create" accounts={accounts} onClose={() => setShowCreate(false)} onSubmit={handleCreate} />}
+    {showCreate && <EmployeeFormModal mode="create" accounts={accounts} roles={roles} onClose={() => setShowCreate(false)} onSubmit={handleCreate} />}
   </main>;
 }
 
 export function ChiTietNhanVien() {
   const navigate = useNavigate();
   const { accountId } = useParams();
-  const { accounts, updateEmployee, setEmployeeStatus } = useMockAuth();
+  const { accounts, roles, updateEmployee, setEmployeeStatus } = useMockAuth();
   const account = accounts.find((item) => item.id === accountId && isStaffAccount(item));
   const employee = account ? toEmployee(account) : null;
   const [modal, setModal] = useState('');
@@ -135,10 +134,10 @@ export function ChiTietNhanVien() {
     </section>
     <div className="employee-detail-body"><SuccessBanner message={success} />
       <section className="employee-info-card"><header><span />THÔNG TIN NHÂN VIÊN</header><dl>
-        <Info label="MÃ NHÂN VIÊN" value={employee.id} /><Info label="TÊN NHÂN VIÊN" value={employee.hoTen} /><Info label="SỐ ĐIỆN THOẠI" value={formatPhone(employee.soDienThoai)} /><Info label="EMAIL" value={employee.email} /><Info label="VAI TRÒ" value={employeeRoleLabel(employee.vaiTro)} /><Info label="TRẠNG THÁI" value={employeeStatusLabel(employee.trangThai)} /><Info label="NGÀY TẠO" value={formatDate(employee.createdAt)} /><Info label="CẬP NHẬT CUỐI" value={formatDate(employee.updatedAt)} />
+        <Info label="MÃ NHÂN VIÊN" value={employee.id} /><Info label="TÊN NHÂN VIÊN" value={employee.hoTen} /><Info label="SỐ ĐIỆN THOẠI" value={formatPhone(employee.soDienThoai)} /><Info label="EMAIL" value={employee.email} /><Info label="VAI TRÒ" value={employeeRoleLabel(employee.vaiTro, roles)} /><Info label="TRẠNG THÁI" value={employeeStatusLabel(employee.trangThai)} /><Info label="NGÀY TẠO" value={formatDate(employee.createdAt)} /><Info label="CẬP NHẬT CUỐI" value={formatDate(employee.updatedAt)} />
       </dl></section>
     </div>
-    {modal === 'edit' && <EmployeeFormModal mode="edit" accounts={accounts} employee={employee} onClose={() => setModal('')} onSubmit={saveEdit} />}
+    {modal === 'edit' && <EmployeeFormModal mode="edit" accounts={accounts} roles={roles} employee={employee} onClose={() => setModal('')} onSubmit={saveEdit} />}
     {(modal === 'suspend' || modal === 'restore') && <StatusConfirmModal mode={modal} employee={employee} onClose={() => setModal('')} onConfirm={confirmStatus} />}
   </main>;
 }
@@ -177,7 +176,7 @@ function validateForm(form, mode, resetPassword, accounts, employee) {
   return errors;
 }
 
-function EmployeeFormModal({ mode, accounts, employee, onClose, onSubmit }) {
+function EmployeeFormModal({ mode, accounts, roles, employee, onClose, onSubmit }) {
   const creating = mode === 'create';
   const [form, setForm] = useState(() => creating ? blankForm : { ...blankForm, ...employee });
   const [errors, setErrors] = useState({});
@@ -188,7 +187,7 @@ function EmployeeFormModal({ mode, accounts, employee, onClose, onSubmit }) {
   const change = (key, value) => { setForm((current) => ({ ...current, [key]: value })); setErrors((current) => ({ ...current, [key]: '', form: '' })); };
   const generatePassword = () => {
     if (!form.vaiTro) { setErrors((current) => ({ ...current, vaiTro: 'Vui lòng chọn vai trò trước khi tạo mật khẩu.' })); return; }
-    const password = makeGeneratedPassword(form.vaiTro, accounts);
+    const password = makeGeneratedPassword(form.vaiTro, accounts, roles);
     setForm((current) => ({ ...current, password, confirmPassword: password }));
     setErrors((current) => ({ ...current, password: '', confirmPassword: '' }));
   };
@@ -212,7 +211,7 @@ function EmployeeFormModal({ mode, accounts, employee, onClose, onSubmit }) {
       <fieldset><legend>THÔNG TIN NHÂN VIÊN</legend>
         <FormField label="HỌ VÀ TÊN *" error={errors.hoTen}><input autoFocus value={form.hoTen} onChange={(event) => change('hoTen', event.target.value)} placeholder="Nguyễn Văn An" /></FormField>
         <div className="employee-form-grid"><FormField label="SỐ ĐIỆN THOẠI *" error={errors.soDienThoai}><input value={form.soDienThoai} onChange={(event) => change('soDienThoai', event.target.value)} placeholder="0901 234 567" inputMode="tel" /></FormField><FormField label={creating ? 'EMAIL *' : 'EMAIL (KHÔNG ĐỔI ĐƯỢC)'} error={errors.email}><input type="email" value={form.email} onChange={(event) => creating && change('email', event.target.value)} placeholder="nhanvien@ruventu.vn" disabled={!creating} /></FormField></div>
-        <div className="employee-form-grid"><FormField label="VAI TRÒ *" error={errors.vaiTro}><select value={form.vaiTro} onChange={(event) => change('vaiTro', event.target.value)}><option value="">— Chọn vai trò —</option>{EMPLOYEE_ROLES.map((role) => <option value={role.value} key={role.value}>{role.label}</option>)}</select></FormField>{!creating && <FormField label="TRẠNG THÁI"><select value={form.trangThai} onChange={(event) => change('trangThai', event.target.value)}><option value="hoat_dong">Hoạt động</option><option value="ngung_hoat_dong">Ngừng hoạt động</option></select></FormField>}</div>
+        <div className="employee-form-grid"><FormField label="VAI TRÒ *" error={errors.vaiTro}><select value={form.vaiTro} onChange={(event) => change('vaiTro', event.target.value)}><option value="">— Chọn vai trò —</option>{roles.map((role) => <option value={role.id} key={role.id}>{role.label}</option>)}</select></FormField>{!creating && <FormField label="TRẠNG THÁI"><select value={form.trangThai} onChange={(event) => change('trangThai', event.target.value)}><option value="hoat_dong">Hoạt động</option><option value="ngung_hoat_dong">Ngừng hoạt động</option></select></FormField>}</div>
       </fieldset>
       {creating && <fieldset><legend>MẬT KHẨU</legend><PasswordSection form={form} errors={errors} change={change} showPassword={showPassword} setShowPassword={setShowPassword} showConfirm={showConfirm} setShowConfirm={setShowConfirm} onGenerate={generatePassword} /></fieldset>}
       {!creating && <div className="employee-reset"><button type="button" className={`employee-reset-toggle ${resetPassword ? 'employee-reset-toggle--on' : ''}`} onClick={toggleReset}>{resetPassword ? '×' : '+'} CẤP LẠI MẬT KHẨU</button>{resetPassword && <div className="employee-reset-fields"><PasswordSection form={form} errors={errors} change={change} showPassword={showPassword} setShowPassword={setShowPassword} showConfirm={showConfirm} setShowConfirm={setShowConfirm} onGenerate={generatePassword} /></div>}</div>}

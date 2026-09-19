@@ -1,27 +1,17 @@
 export const ACCOUNTS_STORAGE_KEY = 'ruventu.mock.accounts';
 export const SESSION_STORAGE_KEY = 'ruventu.mock.session';
 
-export const EMPLOYEE_ROLES = Object.freeze([
-  { value: 'admin_toan_quyen', label: 'Admin toàn quyền', abbreviation: 'admin' },
-  { value: 'nv_ban_hang', label: 'Nhân viên bán hàng', abbreviation: 'nvgh' },
-  { value: 'quan_ly_kho', label: 'Quản lý kho', abbreviation: 'qlk' },
-  { value: 'ke_toan', label: 'Kế toán', abbreviation: 'kt' },
-  { value: 'nv_bao_hanh', label: 'Nhân viên bảo hành', abbreviation: 'nvbh' },
-]);
-
-export const EMPLOYEE_ROLE_VALUES = new Set(EMPLOYEE_ROLES.map((role) => role.value));
-
 export const isStaffAccount = (account) => Boolean(
-  account && (account.role === 'admin' || EMPLOYEE_ROLE_VALUES.has(account.role) || EMPLOYEE_ROLE_VALUES.has(account.vaiTro)),
+  account && (account.role === 'admin' || account.employeeId),
 );
 
-export const employeeRoleLabel = (value) => EMPLOYEE_ROLES.find((role) => role.value === value)?.label ?? value;
+export const employeeRoleLabel = (value, roles = []) => roles.find((role) => role.id === value)?.label ?? value;
 
 export const employeeStatusLabel = (value) => value === 'ngung_hoat_dong' ? 'NGỪNG HOẠT ĐỘNG' : 'HOẠT ĐỘNG';
 
-export const makeGeneratedPassword = (role, accounts) => {
+export const makeGeneratedPassword = (role, accounts, roles = []) => {
   if (role === 'admin_toan_quyen') return 'Admin@123';
-  const roleInfo = EMPLOYEE_ROLES.find((item) => item.value === role);
+  const roleInfo = roles.find((item) => item.id === role);
   if (!roleInfo) return '';
   const sameRoleCount = accounts.filter((account) => isStaffAccount(account) && account.vaiTro === role).length;
   return `${roleInfo.abbreviation}Ruventu@${sameRoleCount + 1}`;
@@ -75,7 +65,7 @@ const SEEDED_ACCOUNTS = Object.freeze([
     employeeId: 'NV #1',
     name: 'Admin Tổng',
     hoTen: 'Nguyễn Văn Admin',
-    email: 'admin@ruventu.com',
+    email: 'admin@ruventu.vn',
     phone: '0901000001',
     soDienThoai: '0901000001',
     password: 'Admin@123',
@@ -111,6 +101,18 @@ const SEEDED_ACCOUNTS = Object.freeze([
     createdAt: '2026-09-18T08:00:00.000Z',
     updatedAt: '2026-09-18T08:00:00.000Z',
   },
+  {
+    id: 'employee-3', employeeId: 'NV #3', name: 'Lê Minh Khoa', hoTen: 'Lê Minh Khoa',
+    email: 'khoa.le@ruventu.vn', phone: '0923456789', soDienThoai: '0923456789',
+    password: 'qlkRuventu@1', passwordHash: 'qlkRuventu@1', role: 'quan_ly_kho', vaiTro: 'quan_ly_kho',
+    trangThai: 'hoat_dong', createdAt: '2026-09-18T08:10:00.000Z', updatedAt: '2026-09-18T08:10:00.000Z',
+  },
+  {
+    id: 'employee-4', employeeId: 'NV #4', name: 'Phạm Thị Lan', hoTen: 'Phạm Thị Lan',
+    email: 'lan.pham@ruventu.vn', phone: '0934567890', soDienThoai: '0934567890',
+    password: 'ktRuventu@1', passwordHash: 'ktRuventu@1', role: 'ke_toan', vaiTro: 'ke_toan',
+    trangThai: 'hoat_dong', createdAt: '2026-09-18T08:20:00.000Z', updatedAt: '2026-09-18T08:20:00.000Z',
+  },
 ]);
 
 export const cloneSeededAccounts = () => SEEDED_ACCOUNTS.map((account) => ({ ...account }));
@@ -124,6 +126,7 @@ export const upgradeAccounts = (storedAccounts) => {
       return {
         ...seededAdmin,
         ...account,
+        email: account.email === 'admin@ruventu.com' ? seededAdmin.email : account.email,
         vaiTro: account.vaiTro ?? 'admin_toan_quyen',
         trangThai: account.trangThai ?? 'hoat_dong',
         hoTen: account.hoTen ?? 'Nguyễn Văn Admin',
@@ -140,8 +143,8 @@ export const upgradeAccounts = (storedAccounts) => {
     };
   });
 
-  if (!upgraded.some((account) => account.id === 'employee-2')) {
-    upgraded.push({ ...SEEDED_ACCOUNTS[4] });
-  }
+  SEEDED_ACCOUNTS.slice(4).forEach((seed) => {
+    if (!upgraded.some((account) => account.id === seed.id)) upgraded.push({ ...seed });
+  });
   return upgraded;
 };

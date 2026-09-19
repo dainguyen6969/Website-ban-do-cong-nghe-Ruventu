@@ -77,6 +77,7 @@ export default function OrderProvider({ children }) {
 
   const value = {
     orders,
+    patchOrder,
     addOrder,
     cancelOrder,
     confirmPayment,

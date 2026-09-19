@@ -4,6 +4,7 @@ import { Eye, EyeOff, AlertCircle, Check } from 'lucide-react';
 import AuthLayout from '../components/AuthLayout';
 import useMockAuth from '../../auth/useMockAuth';
 import './Auth.css';
+import { isStaffAccount } from '../../auth/accountModel';
 
 const Login = () => {
   const navigate = useNavigate();
@@ -44,7 +45,7 @@ const Login = () => {
       return;
     }
 
-    if (account.role === 'admin') {
+    if (isStaffAccount(account)) {
       navigate('/admin', { replace: true });
       return;
     }
@@ -84,7 +85,7 @@ const Login = () => {
         <div className="account-info-title">Tài khoản kiểm thử</div>
         <div className="account-info-row">
           <span className="account-info-label">Admin</span>
-          <span className="account-info-value">admin@ruventu.com / Admin@123</span>
+          <span className="account-info-value">admin@ruventu.vn / Admin@123</span>
         </div>
         <div className="account-info-row">
           <span className="account-info-label">User</span>

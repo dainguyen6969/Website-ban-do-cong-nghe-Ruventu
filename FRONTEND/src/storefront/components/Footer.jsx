@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import './Footer.css';
 import logoTransparent from '../assets/reventu_transparent.png';
 import useMockAuth from '../../auth/useMockAuth';
+import { isStaffAccount } from '../../auth/accountModel';
 
 const Footer = () => {
   const { currentAccount } = useMockAuth();
@@ -64,7 +65,7 @@ const Footer = () => {
             <a href="#">Chính sách bảo mật</a>
             <a href="#">Điều khoản</a>
             <a href="#">Sitemap</a>
-            {currentAccount?.role === 'admin' && (
+            {isStaffAccount(currentAccount) && (
               <Link to="/admin" className="admin-link">Admin</Link>
             )}
           </div>
