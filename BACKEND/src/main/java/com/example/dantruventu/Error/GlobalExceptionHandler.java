@@ -68,4 +68,22 @@ public class GlobalExceptionHandler {
 
     return ResponseEntity.status(ErrorCode.CONFLICT.getStatus()).body(response);
   }
+
+  @ExceptionHandler(org.springframework.security.access.AccessDeniedException.class)
+  public ResponseEntity<ErrorResponse> handleAccessDenied(
+      org.springframework.security.access.AccessDeniedException exception) {
+
+    return ResponseEntity.status(403)
+        .body(new ErrorResponse(403, "Bạn không có quyền thực hiện thao tác này"));
+  }
+
+  @ExceptionHandler({
+    org.springframework.http.converter.HttpMessageNotReadableException.class,
+    org.springframework.web.method.annotation.MethodArgumentTypeMismatchException.class
+  })
+  public ResponseEntity<ErrorResponse> handleInvalidRequest(Exception exception) {
+
+    return ResponseEntity.badRequest()
+        .body(new ErrorResponse(400, "Dữ liệu không hợp lệ hoặc sai kiểu dữ liệu"));
+  }
 }

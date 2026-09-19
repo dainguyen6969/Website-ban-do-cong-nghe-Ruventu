@@ -16,7 +16,7 @@ import com.example.dantruventu.Repository.ThuongHieuRepository;
 import com.example.dantruventu.Repository.product.AnhSanPhamRepository;
 import com.example.dantruventu.Repository.product.PhienBanSanPhamRepository;
 import com.example.dantruventu.Repository.product.SanPhamRepository;
-import com.example.dantruventu.Repository.product.TonKhoRepository;
+import com.example.dantruventu.Repository.warehouse.TonKhoRepository;
 import com.example.dantruventu.Specification.SanPhamSpecification;
 import java.util.*;
 import java.util.stream.Collectors;

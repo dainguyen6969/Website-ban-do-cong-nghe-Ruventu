@@ -1,4 +1,4 @@
-package com.example.dantruventu.Repository.product;
+package com.example.dantruventu.Repository.warehouse;
 
 import com.example.dantruventu.Entity.TonKho;
 import java.util.Collection;
