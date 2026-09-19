@@ -35,4 +35,11 @@ public class TonKho {
   @Builder.Default
   @Column(name = "hang_loi")
   private Integer hangLoi = 0;
+
+  @Column(name = "vi_tri_luu_kho", length = 255)
+  private String viTriLuuKho;
+
+  @Builder.Default
+  @Column(name = "muc_ton_toi_thieu", nullable = false)
+  private Integer mucTonToiThieu = 0;
 }
