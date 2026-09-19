@@ -8,21 +8,9 @@ import lombok.*;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class AdminWarehouseResponse {
+public class AdminComboStatusResponse {
 
   private Long id;
-
-  @JsonProperty("ma_kho")
-  private String maKho;
-
-  @JsonProperty("ten_kho")
-  private String tenKho;
-
-  @JsonProperty("dia_chi")
-  private String diaChi;
-
-  @JsonProperty("quan_ly_id")
-  private Long quanLyId;
 
   @JsonProperty("trang_thai")
   private Short trangThai;

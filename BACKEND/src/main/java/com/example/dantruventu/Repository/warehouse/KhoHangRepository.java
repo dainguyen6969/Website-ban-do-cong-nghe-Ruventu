@@ -9,12 +9,9 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
 public interface KhoHangRepository
-        extends JpaRepository<KhoHang, Long>,
-        JpaSpecificationExecutor<KhoHang> {
+    extends JpaRepository<KhoHang, Long>, JpaSpecificationExecutor<KhoHang> {
 
-    @Override
-    @EntityGraph(attributePaths = "quanLy")
-    Page<KhoHang> findAll(
-            Specification<KhoHang> specification,
-            Pageable pageable);
+  @Override
+  @EntityGraph(attributePaths = "quanLy")
+  Page<KhoHang> findAll(Specification<KhoHang> specification, Pageable pageable);
 }
