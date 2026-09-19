@@ -32,6 +32,8 @@ import ChiTietDonHang from './pages/ChiTietDonHang';
 import NhaCungCap from './pages/NhaCungCap';
 import DoiTacVanChuyen from './pages/DoiTacVanChuyen';
 import { DanhSachNhanVien, ChiTietNhanVien } from './pages/NhanVien';
+import VaiTro from './pages/VaiTro';
+import PermissionGate from './components/PermissionGate';
 import CustomerProvider from './context/CustomerProvider';
 import OrderProvider from './context/OrderProvider';
 import './index.css';
@@ -49,7 +51,7 @@ export default function AdminApp() {
         <Sidebar collapsed={sidebarCollapsed} onToggle={toggleSidebar} />
         <div className="app-layout__main">
           <Header />
-          <Routes>
+          <PermissionGate><Routes>
           {/* Default redirect */}
           <Route path="/" element={<Navigate to="/admin/don-hang/danh-sach-don-hang" replace />} />
 
@@ -90,7 +92,7 @@ export default function AdminApp() {
           <Route path="/admin/khach-hang-doi-tac/doi-tac-van-chuyen" element={<DoiTacVanChuyen />} />
           <Route path="/admin/nhan-vien" element={<Navigate to="/admin/nhan-vien/danh-sach" replace />} />
           <Route path="/admin/nhan-vien/danh-sach" element={<DanhSachNhanVien />} />
-          <Route path="/admin/nhan-vien/vai-tro" element={<PlaceholderPage title="Vai trò" />} />
+          <Route path="/admin/nhan-vien/vai-tro" element={<VaiTro />} />
           <Route path="/admin/nhan-vien/:accountId" element={<ChiTietNhanVien />} />
           <Route path="/admin/khuyen-mai" element={<Navigate to="/admin/khuyen-mai/danh-sach-khuyen-mai" replace />} />
           <Route path="/admin/khuyen-mai/danh-sach-khuyen-mai" element={<PlaceholderPage title="Danh sách khuyến mại" />} />
@@ -107,6 +109,7 @@ export default function AdminApp() {
             <Route path="danh-sach-don-hang/:orderId" element={<ChiTietDonHang />} />
             <Route path="dat-hang-online" element={<DatHangOnline />} />
             <Route path="quan-ly-giao-hang" element={<QuanLyGiaoHang />} />
+            <Route path="quan-ly-giao-hang/:deliveryId" element={<QuanLyGiaoHang />} />
             <Route path="khach-tra-hang" element={<KhachTraHang />} />
             <Route path="khach-tra-hang/tao/:orderId" element={<KhachTraHang />} />
             <Route path="khach-tra-hang/:returnId" element={<KhachTraHang />} />
@@ -114,7 +117,7 @@ export default function AdminApp() {
 
           {/* Catch-all fallback */}
           <Route path="*" element={<Navigate to="/admin/don-hang/danh-sach-don-hang" replace />} />
-          </Routes>
+          </Routes></PermissionGate>
         </div>
         </div>
       </OrderProvider>
