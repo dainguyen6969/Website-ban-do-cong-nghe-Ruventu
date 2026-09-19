@@ -1,9 +1,8 @@
 package com.example.dantruventu.DTO.Response.warehouse;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import lombok.*;
-
 import java.time.OffsetDateTime;
+import lombok.*;
 
 @Getter
 @Setter
@@ -12,29 +11,29 @@ import java.time.OffsetDateTime;
 @Builder
 public class AdminInventoryLedgerResponse {
 
-    private Long id;
+  private Long id;
 
-    @JsonProperty("phien_ban_id")
-    private Long phienBanId;
+  @JsonProperty("phien_ban_id")
+  private Long phienBanId;
 
-    @JsonProperty("kho_hang_id")
-    private Long khoHangId;
+  @JsonProperty("kho_hang_id")
+  private Long khoHangId;
 
-    @JsonProperty("loai_giao_dich")
-    private String loaiGiaoDich;
+  @JsonProperty("loai_giao_dich")
+  private String loaiGiaoDich;
 
-    @JsonProperty("ma_chung_tu_goc")
-    private Long maChungTuGoc;
+  @JsonProperty("ma_chung_tu_goc")
+  private Long maChungTuGoc;
 
-    @JsonProperty("so_luong_thay_doi")
-    private Integer soLuongThayDoi;
+  @JsonProperty("so_luong_thay_doi")
+  private Integer soLuongThayDoi;
 
-    @JsonProperty("ton_cuoi")
-    private Integer tonCuoi;
+  @JsonProperty("ton_cuoi")
+  private Integer tonCuoi;
 
-    @JsonProperty("ghi_chu")
-    private String ghiChu;
+  @JsonProperty("ghi_chu")
+  private String ghiChu;
 
-    @JsonProperty("ngay_tao")
-    private OffsetDateTime ngayTao;
+  @JsonProperty("ngay_tao")
+  private OffsetDateTime ngayTao;
 }

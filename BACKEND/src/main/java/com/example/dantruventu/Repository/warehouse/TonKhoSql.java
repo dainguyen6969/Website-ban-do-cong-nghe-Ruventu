@@ -1,10 +1,10 @@
 package com.example.dantruventu.Repository.warehouse;
 
 public final class TonKhoSql {
-    private TonKhoSql() {}
+  private TonKhoSql() {}
 
-    public static final String BASE =
-            """
+  public static final String BASE =
+      """
             WITH wh AS (
                 SELECT id, ten_kho
                 FROM kho_hang
@@ -91,9 +91,9 @@ public final class TonKhoSql {
             )
             """;
 
-    private static final String ITEMS =
-            BASE
-                    + """
+  private static final String ITEMS =
+      BASE
+          + """
           ,
           variant_total AS (
               SELECT
@@ -188,20 +188,19 @@ public final class TonKhoSql {
           )
           """;
 
-    private static final String FILTER =
-            """
+  private static final String FILTER =
+      """
              FROM items
              WHERE (:loaiDoiTuong = 'ALL' OR loai_doi_tuong = :loaiDoiTuong)
                AND LOWER(search_text) LIKE :keyword ESCAPE '!'
                AND (:chiCanhBao = FALSE OR canh_bao = 1)
             """;
 
-    public static final String COUNT_ITEMS =
-            ITEMS + " SELECT COUNT(*) " + FILTER;
+  public static final String COUNT_ITEMS = ITEMS + " SELECT COUNT(*) " + FILTER;
 
-    public static final String FIND_ITEMS =
-            ITEMS
-                    + """
+  public static final String FIND_ITEMS =
+      ITEMS
+          + """
            SELECT
                loai_doi_tuong AS loaiDoiTuong,
                doi_tuong_id AS doiTuongId,
@@ -214,8 +213,8 @@ public final class TonKhoSql {
                canh_bao AS canhBao,
                co_ton_am AS coTonAm
           """
-                    + FILTER
-                    + """
+          + FILTER
+          + """
            ORDER BY
                CASE WHEN :sortField = 'doi_tuong_id' AND :sortDir = 'asc'
                    THEN doi_tuong_id END ASC,
@@ -240,9 +239,9 @@ public final class TonKhoSql {
                loai_doi_tuong ASC, doi_tuong_id ASC
           """;
 
-    public static final String VARIANT_STOCKS =
-            BASE
-                    + """
+  public static final String VARIANT_STOCKS =
+      BASE
+          + """
            SELECT
                w.id AS khoHangId,
                w.ten_kho AS tenKho,
@@ -263,9 +262,9 @@ public final class TonKhoSql {
            ORDER BY w.id
           """;
 
-    public static final String COMBO_STOCKS =
-            BASE
-                    + """
+  public static final String COMBO_STOCKS =
+      BASE
+          + """
            SELECT
                w.id AS khoHangId,
                w.ten_kho AS tenKho,
@@ -281,9 +280,9 @@ public final class TonKhoSql {
            ORDER BY w.id
           """;
 
-    public static final String COMPONENTS =
-            BASE
-                    + """
+  public static final String COMPONENTS =
+      BASE
+          + """
            SELECT
                c.phien_ban_id AS phienBanId,
                v.ten_phien_ban AS tenPhienBan,
@@ -296,9 +295,9 @@ public final class TonKhoSql {
            ORDER BY c.phien_ban_id
           """;
 
-    public static final String COMPONENT_STOCKS =
-            BASE
-                    + """
+  public static final String COMPONENT_STOCKS =
+      BASE
+          + """
            SELECT
                c.phien_ban_id AS phienBanId,
                w.id AS khoHangId,

@@ -9,9 +9,9 @@ import lombok.*;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class AdminWarehouseListResponse {
+public class AdminComboListResponse {
 
-  private List<AdminWarehouseResponse> items;
+  private List<AdminComboListItemResponse> items;
 
   private PaginationResponse pagination;
 }

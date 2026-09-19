@@ -16,25 +16,19 @@ import org.springframework.web.bind.annotation.RestController;
 @PreAuthorize("hasRole('ADMIN')")
 public class AdminWarehouseController {
 
-    private final AdminWarehouseService adminWarehouseService;
+  private final AdminWarehouseService adminWarehouseService;
 
-    @GetMapping
-    public ApiResponse<AdminWarehouseListResponse> getWarehouses(
-            @RequestParam(name = "keyword", required = false)
-            String keyword,
-            @RequestParam(name = "trang_thai", required = false)
-            Short trangThai,
-            @RequestParam(name = "page", defaultValue = "0")
-            int page,
-            @RequestParam(name = "limit", defaultValue = "20")
-            int limit) {
+  @GetMapping
+  public ApiResponse<AdminWarehouseListResponse> getWarehouses(
+      @RequestParam(name = "keyword", required = false) String keyword,
+      @RequestParam(name = "trang_thai", required = false) Short trangThai,
+      @RequestParam(name = "page", defaultValue = "0") int page,
+      @RequestParam(name = "limit", defaultValue = "20") int limit) {
 
-        return ApiResponse.<AdminWarehouseListResponse>builder()
-                .status(200)
-                .message("Lấy danh sách kho thành công")
-                .data(
-                        adminWarehouseService.getWarehouses(
-                                keyword, trangThai, page, limit))
-                .build();
-    }
+    return ApiResponse.<AdminWarehouseListResponse>builder()
+        .status(200)
+        .message("Lấy danh sách kho thành công")
+        .data(adminWarehouseService.getWarehouses(keyword, trangThai, page, limit))
+        .build();
+  }
 }
