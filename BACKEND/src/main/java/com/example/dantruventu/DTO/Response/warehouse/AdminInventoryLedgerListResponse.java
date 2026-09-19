@@ -1,10 +1,8 @@
 package com.example.dantruventu.DTO.Response.warehouse;
 
-
 import com.example.dantruventu.DTO.Response.PaginationResponse;
-import lombok.*;
-
 import java.util.List;
+import lombok.*;
 
 @Getter
 @Setter
@@ -13,7 +11,7 @@ import java.util.List;
 @Builder
 public class AdminInventoryLedgerListResponse {
 
-    private List<AdminInventoryLedgerResponse> items;
+  private List<AdminInventoryLedgerResponse> items;
 
-    private PaginationResponse pagination;
+  private PaginationResponse pagination;
 }
