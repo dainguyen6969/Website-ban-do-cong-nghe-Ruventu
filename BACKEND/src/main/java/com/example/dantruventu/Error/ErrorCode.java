@@ -13,9 +13,19 @@ public enum ErrorCode {
             "Dữ liệu không hợp lệ"
     ),
 
+    INVALID_CART_QUANTITY(
+            HttpStatus.BAD_REQUEST,
+            "Số lượng phải lớn hơn 0 và không được vượt quá 99"
+    ),
+
     UNAUTHORIZED(
             HttpStatus.UNAUTHORIZED,
             "Chưa đăng nhập hoặc thông tin xác thực không hợp lệ"
+    ),
+
+    INVALID_OR_EXPIRED_ACCESS_TOKEN(
+            HttpStatus.UNAUTHORIZED,
+            "Token không hợp lệ/hết hạn"
     ),
 
     FORBIDDEN(
@@ -28,9 +38,19 @@ public enum ErrorCode {
             "Dữ liệu không tồn tại"
     ),
 
+    PRODUCT_VARIANT_NOT_FOUND(
+            HttpStatus.NOT_FOUND,
+            "Phiên bản sản phẩm không tồn tại"
+    ),
+
     CONFLICT(
             HttpStatus.CONFLICT,
             "Dữ liệu bị xung đột"
+    ),
+
+    INSUFFICIENT_STOCK(
+            HttpStatus.CONFLICT,
+            "Tồn kho không đủ"
     ),
 
     TOO_MANY_REQUESTS(

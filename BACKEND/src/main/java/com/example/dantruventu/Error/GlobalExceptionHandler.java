@@ -1,16 +1,19 @@
 package com.example.dantruventu.Error;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
-import org.springframework.web.HttpRequestMethodNotSupportedException;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
     @ExceptionHandler(AppException.class)
-    public ResponseEntity<ErrorResponse> handleAppException(AppException exception) {
+    public ResponseEntity<ErrorResponse> handleAppException(
+            AppException exception
+    ) {
 
         ErrorCode errorCode = exception.getErrorCode();
 
@@ -26,7 +29,8 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ErrorResponse> handleValidationException(
-            MethodArgumentNotValidException exception) {
+            MethodArgumentNotValidException exception
+    ) {
 
         String message = exception.getBindingResult()
                 .getFieldErrors()
@@ -45,9 +49,25 @@ public class GlobalExceptionHandler {
                 .body(response);
     }
 
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<ErrorResponse> handleMessageNotReadable(
+            HttpMessageNotReadableException exception
+    ) {
+
+        ErrorResponse response = new ErrorResponse(
+                ErrorCode.INVALID_DATA.getStatus().value(),
+                ErrorCode.INVALID_DATA.getMessage()
+        );
+
+        return ResponseEntity
+                .status(ErrorCode.INVALID_DATA.getStatus())
+                .body(response);
+    }
+
     @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
     public ResponseEntity<ErrorResponse> handleMethodNotAllowed(
-            HttpRequestMethodNotSupportedException exception) {
+            HttpRequestMethodNotSupportedException exception
+    ) {
 
         ErrorResponse response = new ErrorResponse(
                 ErrorCode.METHOD_NOT_ALLOWED.getStatus().value(),
@@ -60,7 +80,9 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<ErrorResponse> handleException(Exception exception) {
+    public ResponseEntity<ErrorResponse> handleException(
+            Exception exception
+    ) {
 
         ErrorResponse response = new ErrorResponse(
                 ErrorCode.INTERNAL_SERVER_ERROR.getStatus().value(),
