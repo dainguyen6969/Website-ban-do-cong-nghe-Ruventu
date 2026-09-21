@@ -31,4 +31,10 @@ public interface SoSerialSanPhamRepository
   @Lock(LockModeType.PESSIMISTIC_WRITE)
   @Query("SELECT s FROM SoSerialSanPham s WHERE s.id = :id")
   Optional<SoSerialSanPham> findByIdForUpdate(@Param("id") Long id);
+
+  boolean existsBySoSerial(String soSerial);
+
+  boolean existsBySoSerialIn(java.util.Collection<String> soSerials);
+
+  long countByPhienBanId(Long phienBanId);
 }

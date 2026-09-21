@@ -64,6 +64,7 @@ public class SoQuyThuChi {
   @CreationTimestamp
   @Column(
       name = "ngay_ghi_nhan",
+      nullable = false,
       updatable = false,
       columnDefinition = "TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
   private LocalDateTime ngayGhiNhan;
@@ -96,4 +97,12 @@ public class SoQuyThuChi {
       nullable = false,
       columnDefinition = "TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
   private LocalDateTime updatedAt;
+
+  @PrePersist
+  public void prePersist() {
+
+    if (ngayGhiNhan == null) {
+      ngayGhiNhan = LocalDateTime.now();
+    }
+  }
 }
