@@ -14,6 +14,6 @@ import lombok.Setter;
 @Builder
 public class RefreshResponse {
 
-  @JsonProperty("access_token")
-  private String accessToken;
+    @JsonProperty("access_token")
+    private String accessToken;
 }

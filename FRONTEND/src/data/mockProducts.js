@@ -1,5 +1,4 @@
 import workstationImage from '../assets/hero.png';
-import { readSharedState, writeSharedState } from '../sync/adminSync';
 
 const STORAGE_KEY = 'ruventu_products_v1';
 const MOCK_PRICE_STOCK = {
@@ -255,24 +254,20 @@ function hydrateProduct(product) {
 }
 
 export function getMockProducts() {
-  refreshProducts();
   return mockProducts.map(hydrateProduct);
 }
 
 export function getMockProductById(id) {
-  refreshProducts();
   return hydrateProduct(mockProducts.find((product) => product.id === id || product.maSanPham === id));
 }
 
 export function addMockProduct(product) {
-  refreshProducts();
   const existingIndex = mockProducts.findIndex((p) => p.id === product.id);
   if (existingIndex >= 0) {
     mockProducts[existingIndex] = { ...mockProducts[existingIndex], ...product };
   } else {
     mockProducts.unshift(product);
   }
-  writeSharedState(STORAGE_KEY, mockProducts, { slice: 'products', action: existingIndex >= 0 ? 'updated' : 'created', entityId: product.id });
   return getMockProducts();
 }
 

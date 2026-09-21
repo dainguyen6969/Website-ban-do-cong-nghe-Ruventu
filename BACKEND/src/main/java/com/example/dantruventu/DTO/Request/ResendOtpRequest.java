@@ -11,7 +11,7 @@ import lombok.*;
 @Builder
 public class ResendOtpRequest {
 
-  @JsonProperty("tai_khoan")
-  @NotBlank(message = "Tài khoản không được để trống")
-  private String taiKhoan;
+    @JsonProperty("tai_khoan")
+    @NotBlank(message = "Tài khoản không được để trống")
+    private String taiKhoan;
 }

@@ -1,122 +1,147 @@
-import { useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { HiOutlineAdjustments, HiOutlineSearch } from 'react-icons/hi';
+import { HiOutlineSearch } from 'react-icons/hi';
 import FilterDropdown from '../components/FilterDropdown';
-import TablePagination from '../components/TablePagination';
-import useOrders from '../context/useOrders';
-import {
-  formatMoney, orderStatuses, orderTypeOptions, packingOptions, paymentOptions, warehouseOptions,
-} from '../data/mockOrders';
-import './DanhSachDonHang.css';
 
-const PAGE_SIZE = 10;
-const statusOptions = ['Tất cả', ...orderStatuses];
-const emptyFilters = {
-  search: '', type: 'Tất cả', status: 'Tất cả', payment: 'Tất cả', packing: 'Tất cả', warehouse: 'Tất cả', fromDate: '', toDate: '',
-};
+const statBadges = [
+  { count: '0', label: 'TỔNG', variant: 'default' },
+  { count: '0', label: 'CHỜ DUYỆT', variant: 'yellow' },
+  { count: '0', label: 'ĐANG GIAO', variant: 'blue' },
+  { count: '0', label: 'ĐÃ HỦY', variant: 'red' },
+];
 
-const normalize = (value) => value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D').toLowerCase();
+const tableColumns = [
+  { id: 'checkbox', label: '', isCheckbox: true },
+  { id: 'ma-don-hang', label: 'MÃ ĐƠN HÀNG' },
+  { id: 'khach-hang', label: 'KHÁCH HÀNG' },
+  { id: 'ngay-dat', label: 'NGÀY ĐẶT' },
+  { id: 'thanh-toan', label: 'THANH TOÁN' },
+  { id: 'trang-thai-don', label: 'TRẠNG THÁI ĐƠN HÀNG' },
+  { id: 'trang-thai-kho', label: 'TRẠNG THÁI KHO/GIAO' },
+  { id: 'tong-tien', label: 'TỔNG TIỀN' },
+  { id: 'thao-tac', label: 'THAO TÁC' },
+];
+
+const filterOptionsOrderState = [
+  'Tất cả',
+  'Chờ duyệt',
+  'Đang xử lý',
+  'Đang giao',
+  'Hoàn thành',
+  'Đã hủy',
+];
+
+const filterOptionsPaymentState = [
+  'Tất cả',
+  'Đã thanh toán',
+  'Chưa thanh toán',
+];
+
+const filterOptionsTime = [
+  'Tất cả',
+  'Hôm nay',
+  '7 ngày qua',
+  '30 ngày qua',
+  'Tháng này',
+];
 
 export default function DanhSachDonHang() {
-  const navigate = useNavigate();
-  const { orders } = useOrders();
-  const [showAdvanced, setShowAdvanced] = useState(false);
-  const [draft, setDraft] = useState(emptyFilters);
-  const [applied, setApplied] = useState(emptyFilters);
-  const [currentPage, setCurrentPage] = useState(1);
-
-  const setBasicFilter = (field, value) => {
-    setDraft((current) => ({ ...current, [field]: value }));
-    setApplied((current) => ({ ...current, [field]: value }));
-    setCurrentPage(1);
-  };
-  const setAdvancedFilter = (field, value) => setDraft((current) => ({ ...current, [field]: value }));
-  const applyFilters = () => { setApplied({ ...draft }); setCurrentPage(1); };
-  const clearFilters = () => { setDraft(emptyFilters); setApplied(emptyFilters); setCurrentPage(1); };
-
-  const filteredOrders = useMemo(() => orders.filter((order) => {
-    const query = normalize(applied.search.trim());
-    const target = normalize(`${order.id} ${order.customerName} ${order.customerPhone}`);
-    return (!query || target.includes(query))
-      && (applied.type === 'Tất cả' || order.type === applied.type)
-      && (applied.status === 'Tất cả' || order.status === applied.status)
-      && (applied.payment === 'Tất cả' || order.payment === applied.payment)
-      && (applied.packing === 'Tất cả' || order.packing === applied.packing)
-      && (applied.warehouse === 'Tất cả' || order.warehouse === applied.warehouse)
-      && (!applied.fromDate || order.createdIso >= applied.fromDate)
-      && (!applied.toDate || order.createdIso <= applied.toDate);
-  }), [applied, orders]);
-
-  const totalPages = Math.max(1, Math.ceil(filteredOrders.length / PAGE_SIZE));
-  const safePage = Math.min(currentPage, totalPages);
-  const startIndex = (safePage - 1) * PAGE_SIZE;
-  const visibleOrders = filteredOrders.slice(startIndex, startIndex + PAGE_SIZE);
-
   return (
     <>
-      <section className="order-toolbar" aria-label="Bộ lọc đơn hàng">
-        <div className="order-toolbar__primary">
-          <label className="order-search" htmlFor="search-orders"><HiOutlineSearch size={17} /><input id="search-orders" value={draft.search} onChange={(event) => setBasicFilter('search', event.target.value)} placeholder="TÌM MÃ ĐƠN HÀNG / TÊN KHÁCH HÀNG / SỐ ĐIỆN THOẠI..." /></label>
-          <FilterDropdown id="order-type-filter" label="LOẠI ĐƠN" options={orderTypeOptions} value={draft.type} onSelect={(value) => setBasicFilter('type', value)} />
-          <FilterDropdown id="order-status-filter" label="TRẠNG THÁI ĐƠN" options={statusOptions} value={draft.status} onSelect={(value) => setBasicFilter('status', value)} />
-          <button type="button" className={`order-advanced-toggle ${showAdvanced ? 'order-advanced-toggle--active' : ''}`} onClick={() => setShowAdvanced((current) => !current)} aria-expanded={showAdvanced}><HiOutlineAdjustments size={16} /> BỘ LỌC NÂNG CAO</button>
-        </div>
-        {showAdvanced && (
-          <div className="order-toolbar__advanced">
-            <AdvancedFilter label="TRẠNG THÁI THANH TOÁN"><FilterDropdown options={paymentOptions} value={draft.payment} onSelect={(value) => setAdvancedFilter('payment', value)} /></AdvancedFilter>
-            <AdvancedFilter label="TRẠNG THÁI ĐÓNG GÓI"><FilterDropdown options={packingOptions} value={draft.packing} onSelect={(value) => setAdvancedFilter('packing', value)} /></AdvancedFilter>
-            <AdvancedFilter label="TRẠNG THÁI XUẤT KHO"><FilterDropdown options={warehouseOptions} value={draft.warehouse} onSelect={(value) => setAdvancedFilter('warehouse', value)} /></AdvancedFilter>
-            <AdvancedFilter label="TỪ NGÀY"><input className="order-date-input" type="date" value={draft.fromDate} onChange={(event) => setAdvancedFilter('fromDate', event.target.value)} /></AdvancedFilter>
-            <AdvancedFilter label="ĐẾN NGÀY"><input className="order-date-input" type="date" value={draft.toDate} onChange={(event) => setAdvancedFilter('toDate', event.target.value)} /></AdvancedFilter>
-            <div className="order-filter-actions"><button type="button" className="order-filter-clear" onClick={clearFilters}>XÓA</button><button type="button" className="order-filter-apply" onClick={applyFilters}>ÁP DỤNG</button></div>
+      {/* Filter row */}
+      <div className="content__filter-row">
+        <div className="content__filter-left">
+          {/* Search input */}
+          <div className="filter__search">
+            <HiOutlineSearch size={16} className="filter__search-icon" />
+            <input
+              type="text"
+              className="filter__search-input"
+              placeholder="Tìm kiếm mã đơn hàng, khách hàng, SĐT..."
+              id="search-orders"
+            />
           </div>
-        )}
-      </section>
 
-      <section className="order-list-content">
-        <div className="order-table-scroll" aria-label="Danh sách đơn hàng">
-          <table className="order-list-table" id="orders-table">
-            <thead><tr><th>ẢNH</th><th>ĐƠN HÀNG</th><th>NGÀY TẠO</th><th>KHÁCH HÀNG</th><th>TRẠNG THÁI ĐƠN</th><th>THANH TOÁN</th><th>ĐÓNG GÓI</th><th>XUẤT KHO</th><th>TỔNG TIỀN</th><th>THAO TÁC</th></tr></thead>
-            <tbody>
-              {visibleOrders.map((order) => (
-                <tr key={order.id} className={order.status === 'Đã hủy' ? 'order-row--cancelled' : ''}>
-                  <td><img className="order-thumbnail" src={order.image} alt="" /></td>
-                  <td><strong className="order-primary">{order.id}</strong><OrderStateBadge value={order.type} /></td>
-                  <td><strong>{order.createdDate}</strong><small>{order.createdTime}</small></td><td><strong>{order.customerName}</strong><small>{order.customerPhone || '—'}</small></td>
-                  <td><OrderStateBadge value={order.status} /></td><td><OrderStateBadge value={order.payment} /></td><td><OrderStateBadge value={order.packing} /></td><td><OrderStateBadge value={order.warehouse} /></td>
-                  <td><strong className="order-total">{formatMoney(order.total)}</strong></td><td><button className="order-detail-button" type="button" onClick={() => navigate(`/admin/don-hang/danh-sach-don-hang/${order.id}`)}>XEM CHI TIẾT</button></td>
-                </tr>
-              ))}
-              {!visibleOrders.length && <tr className="order-empty-row"><td colSpan="10">Không tìm thấy đơn hàng phù hợp.</td></tr>}
-            </tbody>
-          </table>
-        </div>
-        <div className="order-list-footer">
-          <p>HIỂN THỊ {filteredOrders.length ? startIndex + 1 : 0}-{Math.min(startIndex + PAGE_SIZE, filteredOrders.length)} TRÊN TỔNG SỐ {filteredOrders.length} ĐƠN HÀNG</p>
-          <TablePagination
-            currentPage={safePage}
-            pageSize={PAGE_SIZE}
-            totalItems={filteredOrders.length}
-            onPageChange={setCurrentPage}
-            idPrefix="orders"
+          {/* Dropdown 1: Trạng thái đơn hàng */}
+          <FilterDropdown
+            id="filter-trang-thai-don"
+            label="Trạng thái đơn hàng"
+            options={filterOptionsOrderState}
+            defaultValue="Tất cả"
+          />
+
+          {/* Dropdown 2: Trạng thái thanh toán */}
+          <FilterDropdown
+            id="filter-thanh-toan"
+            label="Trạng thái thanh toán"
+            options={filterOptionsPaymentState}
+            defaultValue="Tất cả"
+          />
+
+          {/* Dropdown 3: Thời gian */}
+          <FilterDropdown
+            id="filter-thoi-gian"
+            label="Thời gian"
+            options={filterOptionsTime}
+            defaultValue="Tất cả"
           />
         </div>
-      </section>
+
+        {/* Stat badges */}
+        <div className="content__stats">
+          {statBadges.map((stat) => (
+            <div key={stat.label} className={`stat-badge stat-badge--${stat.variant}`}>
+              <span className="stat-badge__count">{stat.count}</span>
+              <span className="stat-badge__label">{stat.label}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Table */}
+      <div className="content__table-wrapper">
+        <table className="data-table" id="orders-table">
+          <thead className="data-table__head">
+            <tr>
+              {tableColumns.map((col) => (
+                <th key={col.id} className="data-table__th">
+                  {col.isCheckbox ? (
+                    <input
+                      type="checkbox"
+                      className="data-table__checkbox"
+                      aria-label="Chọn tất cả"
+                      id="select-all-orders"
+                    />
+                  ) : (
+                    col.label
+                  )}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody className="data-table__body">
+            {/* Placeholder empty state */}
+            <tr className="data-table__empty-row">
+              <td colSpan={tableColumns.length} className="data-table__empty-cell">
+                <div className="data-table__empty-state">
+                  <div className="data-table__empty-icon">
+                    <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+                      <rect x="4" y="8" width="40" height="32" rx="4" stroke="#d1d5db" strokeWidth="2" fill="none" />
+                      <line x1="4" y1="18" x2="44" y2="18" stroke="#d1d5db" strokeWidth="2" />
+                      <line x1="16" y1="8" x2="16" y2="40" stroke="#e5e7eb" strokeWidth="1" />
+                      <line x1="32" y1="8" x2="32" y2="40" stroke="#e5e7eb" strokeWidth="1" />
+                      <circle cx="24" cy="30" r="4" stroke="#d1d5db" strokeWidth="1.5" fill="none" />
+                      <line x1="27" y1="33" x2="30" y2="36" stroke="#d1d5db" strokeWidth="1.5" />
+                    </svg>
+                  </div>
+                  <span className="data-table__empty-text">Chưa có dữ liệu</span>
+                  <span className="data-table__empty-subtext">
+                    Dữ liệu đơn hàng sẽ được hiển thị tại đây
+                  </span>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </>
   );
-}
-
-function AdvancedFilter({ label, children }) {
-  return <label className="order-advanced-field"><span>{label}</span>{children}</label>;
-}
-
-export function OrderStateBadge({ value }) {
-  const variant = value === 'Online' ? 'blue'
-    : value === 'Tại quầy' ? 'neutral'
-      : value === 'Đã hủy' || value === 'Hủy đóng gói' ? 'red'
-        : value === 'Chưa thanh toán' || value === 'Chờ duyệt' || value === 'Chờ thanh toán' || value === 'Chờ đóng gói' || value === 'Chờ lấy hàng' ? 'amber'
-          : value === 'Đang giao hàng' ? 'green'
-            : value === 'Đang đóng gói' ? 'orange'
-              : value.startsWith('Đã') || value === 'Hoàn thành' ? 'green' : 'neutral';
-  return <span className={`order-state-badge order-state-badge--${variant}`}>{value.toUpperCase()}</span>;
 }

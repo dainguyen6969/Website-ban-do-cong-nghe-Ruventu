@@ -5,111 +5,132 @@ import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
-import java.nio.charset.StandardCharsets;
-import java.util.Date;
-import javax.crypto.SecretKey;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+
+import javax.crypto.SecretKey;
+import java.nio.charset.StandardCharsets;
+import java.util.Date;
 
 @Service
 public class JwtService {
 
-  private static final String TOKEN_TYPE_CLAIM = "token_type";
-  private static final String ACCESS_TOKEN_TYPE = "ACCESS";
-  private static final String REFRESH_TOKEN_TYPE = "REFRESH";
+    private static final String TOKEN_TYPE_CLAIM = "token_type";
+    private static final String ACCESS_TOKEN_TYPE = "ACCESS";
+    private static final String REFRESH_TOKEN_TYPE = "REFRESH";
 
-  @Value("${jwt.secret}")
-  private String jwtSecret;
+    @Value("${jwt.secret}")
+    private String jwtSecret;
 
-  @Value("${jwt.access-token-expiration}")
-  private long accessTokenExpiration;
+    @Value("${jwt.access-token-expiration}")
+    private long accessTokenExpiration;
 
-  @Value("${jwt.refresh-token-expiration}")
-  private long refreshTokenExpiration;
+    @Value("${jwt.refresh-token-expiration}")
+    private long refreshTokenExpiration;
 
-  @Value("${jwt.refresh-token-remember-expiration}")
-  private long refreshTokenRememberExpiration;
+    @Value("${jwt.refresh-token-remember-expiration}")
+    private long refreshTokenRememberExpiration;
 
-  public String generateAccessToken(NguoiDung nguoiDung) {
+    public String generateAccessToken(NguoiDung nguoiDung) {
 
-    Date now = new Date();
-    Date expiration = new Date(now.getTime() + accessTokenExpiration);
+        Date now = new Date();
+        Date expiration =
+                new Date(now.getTime() + accessTokenExpiration);
 
-    return Jwts.builder()
-        .subject(String.valueOf(nguoiDung.getId()))
-        .claim("email", nguoiDung.getEmail())
-        .claim("vai_tro", nguoiDung.getVaiTro().getTenVaiTro())
-        .claim(TOKEN_TYPE_CLAIM, ACCESS_TOKEN_TYPE)
-        .issuedAt(now)
-        .expiration(expiration)
-        .signWith(getSigningKey())
-        .compact();
-  }
-
-  public String generateRefreshToken(NguoiDung nguoiDung, boolean ghiNhoDangNhap) {
-
-    Date now = new Date();
-
-    long expirationTime = ghiNhoDangNhap ? refreshTokenRememberExpiration : refreshTokenExpiration;
-
-    Date expiration = new Date(now.getTime() + expirationTime);
-
-    return Jwts.builder()
-        .subject(String.valueOf(nguoiDung.getId()))
-        .claim(TOKEN_TYPE_CLAIM, REFRESH_TOKEN_TYPE)
-        .issuedAt(now)
-        .expiration(expiration)
-        .signWith(getSigningKey())
-        .compact();
-  }
-
-  public boolean isAccessTokenValid(String token) {
-
-    try {
-
-      Claims claims = extractClaims(token);
-
-      return ACCESS_TOKEN_TYPE.equals(claims.get(TOKEN_TYPE_CLAIM, String.class));
-
-    } catch (JwtException | IllegalArgumentException exception) {
-      return false;
+        return Jwts.builder()
+                .subject(String.valueOf(nguoiDung.getId()))
+                .claim("email", nguoiDung.getEmail())
+                .claim(
+                        "vai_tro",
+                        nguoiDung.getVaiTro().getTenVaiTro()
+                )
+                .claim(TOKEN_TYPE_CLAIM, ACCESS_TOKEN_TYPE)
+                .issuedAt(now)
+                .expiration(expiration)
+                .signWith(getSigningKey())
+                .compact();
     }
-  }
 
-  public boolean isRefreshTokenValid(String token) {
+    public String generateRefreshToken(
+            NguoiDung nguoiDung,
+            boolean ghiNhoDangNhap
+    ) {
 
-    try {
+        Date now = new Date();
 
-      Claims claims = extractClaims(token);
+        long expirationTime = ghiNhoDangNhap
+                ? refreshTokenRememberExpiration
+                : refreshTokenExpiration;
 
-      return REFRESH_TOKEN_TYPE.equals(claims.get(TOKEN_TYPE_CLAIM, String.class));
+        Date expiration =
+                new Date(now.getTime() + expirationTime);
 
-    } catch (JwtException | IllegalArgumentException exception) {
-      return false;
+        return Jwts.builder()
+                .subject(String.valueOf(nguoiDung.getId()))
+                .claim(TOKEN_TYPE_CLAIM, REFRESH_TOKEN_TYPE)
+                .issuedAt(now)
+                .expiration(expiration)
+                .signWith(getSigningKey())
+                .compact();
     }
-  }
 
-  public Long getUserIdFromToken(String token) {
+    public boolean isAccessTokenValid(String token) {
 
-    Claims claims = extractClaims(token);
+        try {
 
-    return Long.valueOf(claims.getSubject());
-  }
+            Claims claims = extractClaims(token);
 
-  public Date getExpirationFromToken(String token) {
+            return ACCESS_TOKEN_TYPE.equals(
+                    claims.get(TOKEN_TYPE_CLAIM, String.class)
+            );
 
-    Claims claims = extractClaims(token);
+        } catch (JwtException | IllegalArgumentException exception) {
+            return false;
+        }
+    }
 
-    return claims.getExpiration();
-  }
+    public boolean isRefreshTokenValid(String token) {
 
-  private Claims extractClaims(String token) {
+        try {
 
-    return Jwts.parser().verifyWith(getSigningKey()).build().parseSignedClaims(token).getPayload();
-  }
+            Claims claims = extractClaims(token);
 
-  private SecretKey getSigningKey() {
+            return REFRESH_TOKEN_TYPE.equals(
+                    claims.get(TOKEN_TYPE_CLAIM, String.class)
+            );
 
-    return Keys.hmacShaKeyFor(jwtSecret.getBytes(StandardCharsets.UTF_8));
-  }
+        } catch (JwtException | IllegalArgumentException exception) {
+            return false;
+        }
+    }
+
+    public Long getUserIdFromToken(String token) {
+
+        Claims claims = extractClaims(token);
+
+        return Long.valueOf(claims.getSubject());
+    }
+
+    public Date getExpirationFromToken(String token) {
+
+        Claims claims = extractClaims(token);
+
+        return claims.getExpiration();
+    }
+
+    private Claims extractClaims(String token) {
+
+        return Jwts.parser()
+                .verifyWith(getSigningKey())
+                .build()
+                .parseSignedClaims(token)
+                .getPayload();
+    }
+
+    private SecretKey getSigningKey() {
+
+        return Keys.hmacShaKeyFor(
+                jwtSecret.getBytes(StandardCharsets.UTF_8)
+        );
+    }
 }

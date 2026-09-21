@@ -71,15 +71,7 @@ export default function AdminApp() {
           <Route path="/kho-hang/danh-sach-serial/:serialId" element={<ChiTietSerial />} />
           <Route path="/kho-hang/combo-san-pham" element={<ComboSanPham />} />
           <Route path="/kho-hang/combo-san-pham/them-moi" element={<ThemComboSanPham />} />
-          <Route path="/kho-hang/combo-san-pham/sua/:id" element={<ThemComboSanPham />} />
           <Route path="/kho-hang/combo-san-pham/chi-tiet/:id" element={<ChiTietCombo />} />
-          <Route path="/kho-hang/nhap-hang" element={<DanhSachNhapHang />} />
-          <Route path="/kho-hang/nhap-hang/tao-moi" element={<TaoDonNhapHang />} />
-          <Route path="/kho-hang/nhap-hang/:id" element={<ChiTietNhapHang />} />
-          <Route path="/kho-hang/kiem-hang" element={<KiemHang />} />
-          <Route path="/kho-hang/kiem-hang/tao-moi" element={<TaoPhieuKiemHang />} />
-          <Route path="/kho-hang/kiem-hang/:id/chinh-sua" element={<TaoPhieuKiemHang />} />
-          <Route path="/kho-hang/kiem-hang/:id" element={<ChiTietPhieuKiemHang />} />
           <Route path="/admin/san-pham/toan-bo-phien-ban" element={<Navigate to="/kho-hang/quan-ly-phien-ban" replace />} />
           <Route path="/admin/san-pham/danh-sach-serial" element={<Navigate to="/kho-hang/danh-sach-serial" replace />} />
           <Route path="/admin/san-pham/combo-san-pham" element={<Navigate to="/kho-hang/combo-san-pham" replace />} />
@@ -106,7 +98,6 @@ export default function AdminApp() {
           <Route path="/admin/don-hang" element={<OrderLayout />}>
             <Route index element={<Navigate to="danh-sach-don-hang" replace />} />
             <Route path="danh-sach-don-hang" element={<DanhSachDonHang />} />
-            <Route path="danh-sach-don-hang/:orderId" element={<ChiTietDonHang />} />
             <Route path="dat-hang-online" element={<DatHangOnline />} />
             <Route path="quan-ly-giao-hang" element={<QuanLyGiaoHang />} />
             <Route path="quan-ly-giao-hang/:deliveryId" element={<QuanLyGiaoHang />} />

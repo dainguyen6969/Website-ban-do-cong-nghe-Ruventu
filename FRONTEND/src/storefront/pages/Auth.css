@@ -185,18 +185,6 @@
   background-color: #d11212;
 }
 
-.login-submit-row {
-  display: flex;
-  justify-content: center;
-  width: 100%;
-}
-
-.auth-form .login-submit-button {
-  display: block;
-  width: 100%;
-  margin: 0 auto;
-}
-
 .btn-secondary {
   background-color: white;
   color: #111;

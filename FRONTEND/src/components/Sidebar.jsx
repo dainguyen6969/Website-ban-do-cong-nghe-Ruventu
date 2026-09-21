@@ -8,7 +8,6 @@ import {
   HiOutlineUser,
 } from 'react-icons/hi';
 import './Sidebar.css';
-import useMockAuth from '../auth/useMockAuth';
 
 const IconTongQuat = ({ size }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="square" strokeLinejoin="miter">
@@ -124,8 +123,8 @@ const menuItems = [
         { id: 'toan-bo-phien-ban', label: 'Quản lý phiên bản', path: '/kho-hang/quan-ly-phien-ban' },
         { id: 'danh-sach-serial', label: 'Danh sách Serial', path: '/kho-hang/danh-sach-serial' },
         { id: 'combo-san-pham', label: 'Combo sản phẩm', path: '/kho-hang/combo-san-pham' },
-        { id: 'nhap-hang', label: 'Nhập hàng', path: '/kho-hang/nhap-hang' },
-        { id: 'kiem-hang', label: 'Kiểm hàng', path: '/kho-hang/kiem-hang' },
+        { id: 'nhap-hang', label: 'Nhập hàng', path: '/admin/san-pham/nhap-hang' },
+        { id: 'kiem-hang', label: 'Kiểm hàng', path: '/admin/san-pham/kiem-hang' },
       ] },
     ],
   },
@@ -149,11 +148,7 @@ const menuItems = [
     icon: IconKhachHangDoiTac,
     path: '/admin/khach-hang-doi-tac',
     expandable: true,
-    subItems: [
-      { id: 'khach-hang', label: 'Khách hàng', path: '/admin/khach-hang-doi-tac/khach-hang' },
-      { id: 'nha-cung-cap', label: 'Nhà cung cấp', path: '/admin/khach-hang-doi-tac/nha-cung-cap' },
-      { id: 'doi-tac-van-chuyen', label: 'Đối tác vận chuyển', path: '/admin/khach-hang-doi-tac/doi-tac-van-chuyen' },
-    ],
+    subItems: [],
   },
   {
     id: 'nhan-vien',
@@ -226,7 +221,6 @@ const hasActivePath = (item, pathname) =>
 export default function Sidebar({ collapsed, onToggle }) {
   const location = useLocation();
   const navigate = useNavigate();
-  const { currentAccount } = useMockAuth();
   const [expandedMenus, setExpandedMenus] = useState(['don-hang']);
 
   // Auto-expand menu if current route matches sub-item or section
@@ -394,12 +388,12 @@ export default function Sidebar({ collapsed, onToggle }) {
           </div>
           {!collapsed && (
             <div className="sidebar__user-info">
-              <span className="sidebar__user-name">{currentAccount?.name ?? 'Quản trị viên'}</span>
-              <span className="sidebar__user-email">{currentAccount?.email}</span>
+              <span className="sidebar__user-name">Admin Tổng</span>
+              <span className="sidebar__user-email">admin@reventu.com</span>
             </div>
           )}
         </div>
-        <button className="sidebar__exit-btn" id="exit-to-portal" title="Về cổng khách hàng" onClick={() => navigate('/')}>
+        <button className="sidebar__exit-btn" id="exit-to-portal" title="Về cổng khách hàng">
           <HiOutlineLogout size={18} />
           {!collapsed && <span>Về cổng khách hàng</span>}
         </button>

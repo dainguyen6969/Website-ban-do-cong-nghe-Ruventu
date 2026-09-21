@@ -1,8 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { HiOutlineArrowLeft, HiOutlinePencilAlt } from 'react-icons/hi';
+import { HiOutlineArrowLeft, HiOutlinePencilAlt, HiX } from 'react-icons/hi';
 import { getSerialById, SERIAL_STATUSES, SERIAL_STATUS_META, updateSerialStatus } from '../data/mockSerials';
-import { subscribeToAdminSlice } from '../sync/adminSync';
 import './SerialPages.css';
 
 function StatusBadge({ status }) {
@@ -19,8 +18,6 @@ export default function ChiTietSerial() {
   const [nextStatus, setNextStatus] = useState(serial?.status || SERIAL_STATUSES[0]);
   const invalidTransition = status === 'Trong kho' && nextStatus === 'Đang bảo hành';
 
-  useEffect(() => subscribeToAdminSlice('serials', () => setStatus(getSerialById(serialId)?.status)), [serialId]);
-
   useEffect(() => {
     if (!modalOpen) return undefined;
     const closeOnEscape = (event) => { if (event.key === 'Escape') setModalOpen(false); };
@@ -35,7 +32,7 @@ export default function ChiTietSerial() {
   const meta = SERIAL_STATUS_META[status];
   const openModal = () => { setNextStatus(status); setModalOpen(true); };
   const saveStatus = () => {
-    if (invalidTransition) return;
+    if (invalidTransition || nextStatus === status) return;
     updateSerialStatus(serial.id, nextStatus);
     setStatus(nextStatus);
     setModalOpen(false);
@@ -81,23 +78,19 @@ export default function ChiTietSerial() {
       {modalOpen && (
         <div className="serial-status-modal" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setModalOpen(false); }}>
           <section role="dialog" aria-modal="true" aria-labelledby="status-modal-title">
-            <header><span aria-hidden="true" /><h2 id="status-modal-title">CẬP NHẬT TRẠNG THÁI SERIAL</h2></header>
+            <header><div><span aria-hidden="true" /><div><h2 id="status-modal-title">SỬA TRẠNG THÁI</h2><p>{serial.serial}</p></div></div><button type="button" onClick={() => setModalOpen(false)} aria-label="Đóng"><HiX size={21} /></button></header>
             <div className="serial-status-modal__body">
-              <div className="serial-status-recap">
-                <div><span>SỐ SERIAL</span><strong className="serial-code">{serial.serial}</strong></div>
-                <div><span>PHIÊN BẢN</span><strong>{serial.version}</strong></div>
-                <div className="serial-status-recap__current"><span>TRẠNG THÁI HIỆN TẠI</span><StatusBadge status={status} /></div>
-              </div>
-              <label htmlFor="new-serial-status">TRẠNG THÁI MỚI <i>*</i></label>
+              <label htmlFor="new-serial-status">Trạng thái mới</label>
               <select id="new-serial-status" value={nextStatus} onChange={(event) => setNextStatus(event.target.value)} className={`serial-modal-select--${SERIAL_STATUS_META[nextStatus].key}`}>
                 {SERIAL_STATUSES.map((option) => <option key={option}>{option}</option>)}
               </select>
               {invalidTransition && <p className="serial-transition-error" role="alert">Sản phẩm chưa được xuất bán, không thể chuyển sang trạng thái đang bảo hành.</p>}
             </div>
-            <footer><button type="button" className="serial-modal-cancel" onClick={() => setModalOpen(false)}>HỦY</button><button type="button" className="serial-modal-save" disabled={invalidTransition} onClick={saveStatus}>CẬP NHẬT</button></footer>
+            <footer><button type="button" className="serial-modal-cancel" onClick={() => setModalOpen(false)}>HỦY</button><button type="button" className="serial-modal-save" disabled={invalidTransition || nextStatus === status} onClick={saveStatus}>LƯU TRẠNG THÁI</button></footer>
           </section>
         </div>
       )}
     </main>
   );
 }
+

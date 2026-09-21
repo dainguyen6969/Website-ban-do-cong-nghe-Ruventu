@@ -10,9 +10,9 @@ import lombok.*;
 @Builder
 public class ResendOtpResponse {
 
-  @JsonProperty("tai_khoan")
-  private String taiKhoan;
+    @JsonProperty("tai_khoan")
+    private String taiKhoan;
 
-  @JsonProperty("thoi_han_otp_giay")
-  private Integer thoiHanOtpGiay;
+    @JsonProperty("thoi_han_otp_giay")
+    private Integer thoiHanOtpGiay;
 }

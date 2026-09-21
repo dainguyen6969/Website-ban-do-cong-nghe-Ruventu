@@ -17,30 +17,43 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class LogoutController {
 
-  private final LogoutService logoutService;
-  private final RefreshTokenCookieService refreshTokenCookieService;
+    private final LogoutService logoutService;
+    private final RefreshTokenCookieService refreshTokenCookieService;
 
-  @PostMapping("/logout")
-  public ResponseEntity<ApiResponse<Void>> logout(
-      @CookieValue(name = "refresh_token", required = false) String refreshToken) {
+    @PostMapping("/logout")
+    public ResponseEntity<ApiResponse<Void>> logout(
+            @CookieValue(
+                    name = "refresh_token",
+                    required = false
+            ) String refreshToken
+    ) {
 
-    LogoutService.LogoutResult result = logoutService.logout(refreshToken);
+        LogoutService.LogoutResult result =
+                logoutService.logout(refreshToken);
 
-    ApiResponse<Void> response =
-        ApiResponse.<Void>builder()
-            .status(result.status())
-            .message(result.message())
-            .data(null)
-            .build();
+        ApiResponse<Void> response =
+                ApiResponse.<Void>builder()
+                        .status(result.status())
+                        .message(result.message())
+                        .data(null)
+                        .build();
 
-    if (result.status() != 200) {
-      return ResponseEntity.status(result.status()).body(response);
+        if (result.status() != 200) {
+            return ResponseEntity
+                    .status(result.status())
+                    .body(response);
+        }
+
+        ResponseCookie clearCookie =
+                refreshTokenCookieService
+                        .clearRefreshTokenCookie();
+
+        return ResponseEntity
+                .ok()
+                .header(
+                        HttpHeaders.SET_COOKIE,
+                        clearCookie.toString()
+                )
+                .body(response);
     }
-
-    ResponseCookie clearCookie = refreshTokenCookieService.clearRefreshTokenCookie();
-
-    return ResponseEntity.ok()
-        .header(HttpHeaders.SET_COOKIE, clearCookie.toString())
-        .body(response);
-  }
 }

@@ -11,9 +11,9 @@ import lombok.*;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class ApiResponse<T> {
 
-  private int status;
+    private int status;
 
-  private String message;
+    private String message;
 
-  private T data;
+    private T data;
 }
