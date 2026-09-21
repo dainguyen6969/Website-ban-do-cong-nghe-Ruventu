@@ -1,6 +1,7 @@
 package com.example.dantruventu.Config;
 
 import com.example.dantruventu.Entity.NguoiDung;
+import com.example.dantruventu.Enum.TrangThaiCoBanEnum;
 import com.example.dantruventu.Repository.NguoiDungRepository;
 import com.example.dantruventu.Services.JwtService;
 import jakarta.servlet.FilterChain;
@@ -8,10 +9,12 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import java.util.Collections;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
@@ -27,42 +30,48 @@ public class JwtAuthFilter extends OncePerRequestFilter {
       HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
       throws ServletException, IOException {
 
-    String authorizationHeader = request.getHeader("Authorization");
+    String authorization = request.getHeader("Authorization");
 
-    if (authorizationHeader == null || !authorizationHeader.startsWith("Bearer ")) {
-
-      filterChain.doFilter(request, response);
-      return;
-    }
-
-    String accessToken = authorizationHeader.substring(7);
-
-    if (!jwtService.isAccessTokenValid(accessToken)) {
+    if (authorization == null || !authorization.startsWith("Bearer ")) {
 
       filterChain.doFilter(request, response);
       return;
     }
 
-    try {
+    String token = authorization.substring(7);
 
-      Long userId = jwtService.getUserIdFromToken(accessToken);
+    if (!jwtService.isAccessTokenValid(token)) {
 
-      if (SecurityContextHolder.getContext().getAuthentication() == null) {
-
-        NguoiDung nguoiDung = nguoiDungRepository.findById(userId).orElse(null);
-
-        if (nguoiDung != null) {
-
-          UsernamePasswordAuthenticationToken authentication =
-              new UsernamePasswordAuthenticationToken(nguoiDung, null, Collections.emptyList());
-
-          SecurityContextHolder.getContext().setAuthentication(authentication);
-        }
-      }
-
-    } catch (Exception exception) {
-
-      filterChain.doFilter(request, response);
+      response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+      return;
     }
+
+    Long userId = jwtService.getUserIdFromToken(token);
+
+    NguoiDung user = nguoiDungRepository.findByIdWithVaiTro(userId).orElse(null);
+
+    if (user == null) {
+
+      response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+      return;
+    }
+
+    if (user.getTrangThai() != TrangThaiCoBanEnum.HOAT_DONG) {
+
+      response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+      return;
+    }
+
+    String role = user.getVaiTro().getTenVaiTro();
+
+    UsernamePasswordAuthenticationToken authentication =
+        new UsernamePasswordAuthenticationToken(
+            user.getId(), null, List.of(new SimpleGrantedAuthority("ROLE_" + role)));
+
+    authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+
+    SecurityContextHolder.getContext().setAuthentication(authentication);
+
+    filterChain.doFilter(request, response);
   }
 }

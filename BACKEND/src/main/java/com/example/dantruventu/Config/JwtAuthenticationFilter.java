@@ -56,7 +56,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     try {
       if (!jwtService.isAccessTokenValid(jwt)) {
         handlerExceptionResolver.resolveException(
-            request, response, null, new AppException(ErrorCode.INVALID_TOKEN));
+            request, response, null, new AppException(ErrorCode.INVALID_DATA));
         return;
       }
 
@@ -73,13 +73,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
           SecurityContextHolder.getContext().setAuthentication(authToken);
         } else {
           handlerExceptionResolver.resolveException(
-              request, response, null, new AppException(ErrorCode.INVALID_TOKEN));
+              request, response, null, new AppException(ErrorCode.INVALID_DATA));
           return;
         }
       }
     } catch (Exception ex) {
       handlerExceptionResolver.resolveException(
-          request, response, null, new AppException(ErrorCode.INVALID_TOKEN));
+          request, response, null, new AppException(ErrorCode.INVALID_DATA));
       return;
     }
 
