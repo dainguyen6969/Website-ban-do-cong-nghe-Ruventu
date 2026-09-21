@@ -14,6 +14,9 @@ import com.example.dantruventu.Mapper.partner.NhaCungCapMapper;
 import com.example.dantruventu.Repository.partner.NhaCungCapRepository;
 import com.example.dantruventu.Repository.warehouse.DonNhapHangRepository;
 import com.example.dantruventu.Specification.NhaCungCapSpecification;
+import java.time.ZoneId;
+import java.util.Locale;
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
@@ -23,312 +26,252 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.ZoneId;
-import java.util.Locale;
-import java.util.UUID;
-
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class AdminSupplierService {
 
-    private final NhaCungCapRepository nhaCungCapRepository;
-    private final DonNhapHangRepository donNhapHangRepository;
-    private final NhaCungCapMapper nhaCungCapMapper;
+  private final NhaCungCapRepository nhaCungCapRepository;
+  private final DonNhapHangRepository donNhapHangRepository;
+  private final NhaCungCapMapper nhaCungCapMapper;
 
-    @Value("${ruventu.purchase.time-zone:Asia/Ho_Chi_Minh}")
-    private String purchaseTimeZone;
+  @Value("${ruventu.purchase.time-zone:Asia/Ho_Chi_Minh}")
+  private String purchaseTimeZone;
 
-    public AdminSupplierListResponse getSuppliers(
-            String keyword,
-            Short trangThai,
-            int page,
-            int limit) {
+  public AdminSupplierListResponse getSuppliers(
+      String keyword, Short trangThai, int page, int limit) {
 
-        validatePagination(page, limit);
+    validatePagination(page, limit);
 
-        if (keyword != null && keyword.length() > 100) {
-            throw invalid("Từ khóa tìm kiếm tối đa 100 ký tự");
-        }
-
-        TrangThaiCoBanEnum status =
-                trangThai == null ? null : parseStatus(trangThai);
-
-        var pageable =
-                PageRequest.of(
-                        page,
-                        limit,
-                        Sort.by("tenNhaCungCap").ascending()
-                                .and(Sort.by("id").ascending()));
-
-        var supplierPage =
-                nhaCungCapRepository.findAll(
-                        NhaCungCapSpecification.build(keyword, status),
-                        pageable);
-
-        return AdminSupplierListResponse.builder()
-                .items(
-                        supplierPage.getContent().stream()
-                                .map(nhaCungCapMapper::toListItem)
-                                .toList())
-                .pagination(toPagination(supplierPage))
-                .build();
+    if (keyword != null && keyword.length() > 100) {
+      throw invalid("Từ khóa tìm kiếm tối đa 100 ký tự");
     }
 
-    public AdminSupplierDetailResponse getDetail(
-            Long id,
-            int page,
-            int limit) {
+    TrangThaiCoBanEnum status = trangThai == null ? null : parseStatus(trangThai);
 
-        validatePagination(page, limit);
+    var pageable =
+        PageRequest.of(
+            page, limit, Sort.by("tenNhaCungCap").ascending().and(Sort.by("id").ascending()));
 
-        NhaCungCap supplier = requireSupplier(id);
+    var supplierPage =
+        nhaCungCapRepository.findAll(NhaCungCapSpecification.build(keyword, status), pageable);
 
-        var pageable =
-                PageRequest.of(
-                        page,
-                        limit,
-                        Sort.by("ngayTao").descending()
-                                .and(Sort.by("id").descending()));
+    return AdminSupplierListResponse.builder()
+        .items(supplierPage.getContent().stream().map(nhaCungCapMapper::toListItem).toList())
+        .pagination(toPagination(supplierPage))
+        .build();
+  }
 
-        var historyPage =
-                donNhapHangRepository.findByNhaCungCap_Id(id, pageable);
+  public AdminSupplierDetailResponse getDetail(Long id, int page, int limit) {
 
-        ZoneId timeZone = ZoneId.of(purchaseTimeZone);
+    validatePagination(page, limit);
 
-        var response = nhaCungCapMapper.toDetail(supplier);
+    NhaCungCap supplier = requireSupplier(id);
 
-        response.setLichSuDonNhap(
-                historyPage.getContent().stream()
-                        .map(
-                                order ->
-                                        nhaCungCapMapper.toPurchaseHistory(
-                                                order,
-                                                timeZone))
-                        .toList());
+    var pageable =
+        PageRequest.of(
+            page, limit, Sort.by("ngayTao").descending().and(Sort.by("id").descending()));
 
-        response.setPagination(toPagination(historyPage));
+    var historyPage = donNhapHangRepository.findByNhaCungCap_Id(id, pageable);
 
-        return response;
+    ZoneId timeZone = ZoneId.of(purchaseTimeZone);
+
+    var response = nhaCungCapMapper.toDetail(supplier);
+
+    response.setLichSuDonNhap(
+        historyPage.getContent().stream()
+            .map(order -> nhaCungCapMapper.toPurchaseHistory(order, timeZone))
+            .toList());
+
+    response.setPagination(toPagination(historyPage));
+
+    return response;
+  }
+
+  @Transactional
+  public AdminSupplierResponse create(AdminSupplierCreateRequest request) {
+
+    TrangThaiCoBanEnum status = parseStatus(request.getTrangThai());
+
+    NhaCungCap supplier = nhaCungCapMapper.toEntity(request);
+
+    normalizeContact(supplier);
+    supplier.setTrangThai(status);
+
+    String code = normalizeOptional(request.getMaNhaCungCap());
+
+    if (code == null) {
+      code = generateCode();
+    } else {
+      code = code.toUpperCase(Locale.ROOT);
+
+      if (nhaCungCapRepository.existsByMaNhaCungCapIgnoreCase(code)) {
+        throw conflict("Mã nhà cung cấp đã được sử dụng");
+      }
     }
 
-    @Transactional
-    public AdminSupplierResponse create(
-            AdminSupplierCreateRequest request) {
+    supplier.setMaNhaCungCap(code);
 
-        TrangThaiCoBanEnum status =
-                parseStatus(request.getTrangThai());
+    validateUniqueContact(supplier, null);
 
-        NhaCungCap supplier =
-                nhaCungCapMapper.toEntity(request);
+    supplier = nhaCungCapRepository.saveAndFlush(supplier);
 
-        normalizeContact(supplier);
-        supplier.setTrangThai(status);
+    return nhaCungCapMapper.toResponse(supplier);
+  }
 
-        String code = normalizeOptional(request.getMaNhaCungCap());
+  @Transactional
+  public AdminSupplierResponse update(Long id, AdminSupplierUpdateRequest request) {
 
-        if (code == null) {
-            code = generateCode();
-        } else {
-            code = code.toUpperCase(Locale.ROOT);
+    validateId(id);
 
-            if (nhaCungCapRepository.existsByMaNhaCungCapIgnoreCase(code)) {
-                throw conflict("Mã nhà cung cấp đã được sử dụng");
-            }
-        }
+    NhaCungCap supplier = nhaCungCapRepository.findByIdForUpdate(id).orElseThrow(this::notFound);
 
-        supplier.setMaNhaCungCap(code);
+    TrangThaiCoBanEnum status = parseStatus(request.getTrangThai());
 
-        validateUniqueContact(supplier, null);
+    nhaCungCapMapper.updateEntity(request, supplier);
 
-        supplier = nhaCungCapRepository.saveAndFlush(supplier);
+    normalizeContact(supplier);
+    supplier.setTrangThai(status);
 
-        return nhaCungCapMapper.toResponse(supplier);
+    validateUniqueContact(supplier, id);
+
+    supplier = nhaCungCapRepository.saveAndFlush(supplier);
+
+    return nhaCungCapMapper.toResponse(supplier);
+  }
+
+  /*
+   * Dành cho service tạo đơn nhập hàng sau này.
+   * Phải được gọi bên trong transaction tạo đơn nhập.
+   */
+  @Transactional(propagation = Propagation.MANDATORY)
+  public NhaCungCap requireActiveForPurchase(Long id) {
+    validateId(id);
+
+    NhaCungCap supplier = nhaCungCapRepository.findByIdForShare(id).orElseThrow(this::notFound);
+
+    if (supplier.getTrangThai() != TrangThaiCoBanEnum.HOAT_DONG) {
+      throw invalid("Nhà cung cấp đã ngừng hợp tác, không thể tạo đơn nhập mới");
     }
 
-    @Transactional
-    public AdminSupplierResponse update(
-            Long id,
-            AdminSupplierUpdateRequest request) {
+    return supplier;
+  }
 
-        validateId(id);
+  private NhaCungCap requireSupplier(Long id) {
+    validateId(id);
 
-        NhaCungCap supplier =
-                nhaCungCapRepository.findByIdForUpdate(id)
-                        .orElseThrow(this::notFound);
+    return nhaCungCapRepository.findById(id).orElseThrow(this::notFound);
+  }
 
-        TrangThaiCoBanEnum status =
-                parseStatus(request.getTrangThai());
+  private void normalizeContact(NhaCungCap supplier) {
+    String name = normalizeOptional(supplier.getTenNhaCungCap());
 
-        nhaCungCapMapper.updateEntity(request, supplier);
-
-        normalizeContact(supplier);
-        supplier.setTrangThai(status);
-
-        validateUniqueContact(supplier, id);
-
-        supplier = nhaCungCapRepository.saveAndFlush(supplier);
-
-        return nhaCungCapMapper.toResponse(supplier);
+    if (name == null) {
+      throw invalid("Tên nhà cung cấp không được để trống");
     }
 
-    /*
-     * Dành cho service tạo đơn nhập hàng sau này.
-     * Phải được gọi bên trong transaction tạo đơn nhập.
-     */
-    @Transactional(propagation = Propagation.MANDATORY)
-    public NhaCungCap requireActiveForPurchase(Long id) {
-        validateId(id);
+    supplier.setTenNhaCungCap(name.replaceAll("\\s+", " "));
 
-        NhaCungCap supplier =
-                nhaCungCapRepository.findByIdForShare(id)
-                        .orElseThrow(this::notFound);
+    String phone = normalizeOptional(supplier.getSoDienThoai());
 
-        if (supplier.getTrangThai() != TrangThaiCoBanEnum.HOAT_DONG) {
-            throw invalid(
-                    "Nhà cung cấp đã ngừng hợp tác, không thể tạo đơn nhập mới");
-        }
-
-        return supplier;
+    if (phone == null || !phone.matches("\\+?[0-9]{9,15}")) {
+      throw invalid("Số điện thoại gồm 9–15 chữ số, có thể bắt đầu bằng dấu +");
     }
 
-    private NhaCungCap requireSupplier(Long id) {
-        validateId(id);
-
-        return nhaCungCapRepository.findById(id)
-                .orElseThrow(this::notFound);
+    // Chuẩn hóa cùng một số Việt Nam về cùng cách lưu.
+    if (phone.startsWith("+84")) {
+      phone = "0" + phone.substring(3);
     }
 
-    private void normalizeContact(NhaCungCap supplier) {
-        String name = normalizeOptional(supplier.getTenNhaCungCap());
+    supplier.setSoDienThoai(phone);
 
-        if (name == null) {
-            throw invalid("Tên nhà cung cấp không được để trống");
-        }
+    String email = normalizeOptional(supplier.getEmail());
 
-        supplier.setTenNhaCungCap(name.replaceAll("\\s+", " "));
+    supplier.setEmail(email == null ? null : email.toLowerCase(Locale.ROOT));
 
-        String phone = normalizeOptional(supplier.getSoDienThoai());
+    supplier.setDiaChi(normalizeOptional(supplier.getDiaChi()));
+  }
 
-        if (phone == null || !phone.matches("\\+?[0-9]{9,15}")) {
-            throw invalid(
-                    "Số điện thoại gồm 9–15 chữ số, có thể bắt đầu bằng dấu +");
-        }
+  private void validateUniqueContact(NhaCungCap supplier, Long currentId) {
 
-        // Chuẩn hóa cùng một số Việt Nam về cùng cách lưu.
-        if (phone.startsWith("+84")) {
-            phone = "0" + phone.substring(3);
-        }
+    boolean phoneExists =
+        currentId == null
+            ? nhaCungCapRepository.existsBySoDienThoai(supplier.getSoDienThoai())
+            : nhaCungCapRepository.existsBySoDienThoaiAndIdNot(
+                supplier.getSoDienThoai(), currentId);
 
-        supplier.setSoDienThoai(phone);
-
-        String email = normalizeOptional(supplier.getEmail());
-
-        supplier.setEmail(
-                email == null ? null : email.toLowerCase(Locale.ROOT));
-
-        supplier.setDiaChi(normalizeOptional(supplier.getDiaChi()));
+    if (phoneExists) {
+      throw conflict("Số điện thoại nhà cung cấp đã được sử dụng");
     }
 
-    private void validateUniqueContact(
-            NhaCungCap supplier,
-            Long currentId) {
+    if (supplier.getEmail() != null) {
+      boolean emailExists =
+          currentId == null
+              ? nhaCungCapRepository.existsByEmailIgnoreCase(supplier.getEmail())
+              : nhaCungCapRepository.existsByEmailIgnoreCaseAndIdNot(
+                  supplier.getEmail(), currentId);
 
-        boolean phoneExists =
-                currentId == null
-                        ? nhaCungCapRepository.existsBySoDienThoai(
-                        supplier.getSoDienThoai())
-                        : nhaCungCapRepository.existsBySoDienThoaiAndIdNot(
-                        supplier.getSoDienThoai(),
-                        currentId);
+      if (emailExists) {
+        throw conflict("Email nhà cung cấp đã được sử dụng");
+      }
+    }
+  }
 
-        if (phoneExists) {
-            throw conflict("Số điện thoại nhà cung cấp đã được sử dụng");
-        }
+  private String generateCode() {
+    for (int attempt = 0; attempt < 5; attempt++) {
+      String code = "NCC-" + UUID.randomUUID().toString().replace("-", "").toUpperCase(Locale.ROOT);
 
-        if (supplier.getEmail() != null) {
-            boolean emailExists =
-                    currentId == null
-                            ? nhaCungCapRepository.existsByEmailIgnoreCase(
-                            supplier.getEmail())
-                            : nhaCungCapRepository.existsByEmailIgnoreCaseAndIdNot(
-                            supplier.getEmail(),
-                            currentId);
-
-            if (emailExists) {
-                throw conflict("Email nhà cung cấp đã được sử dụng");
-            }
-        }
+      if (!nhaCungCapRepository.existsByMaNhaCungCapIgnoreCase(code)) {
+        return code;
+      }
     }
 
-    private String generateCode() {
-        for (int attempt = 0; attempt < 5; attempt++) {
-            String code =
-                    "NCC-"
-                            + UUID.randomUUID()
-                            .toString()
-                            .replace("-", "")
-                            .toUpperCase(Locale.ROOT);
+    throw conflict("Không thể sinh mã nhà cung cấp, vui lòng thử lại");
+  }
 
-            if (!nhaCungCapRepository.existsByMaNhaCungCapIgnoreCase(code)) {
-                return code;
-            }
-        }
-
-        throw conflict("Không thể sinh mã nhà cung cấp, vui lòng thử lại");
+  private TrangThaiCoBanEnum parseStatus(Short value) {
+    if (value == null || (value != 0 && value != 1)) {
+      throw invalid("Trạng thái chỉ nhận 0 hoặc 1");
     }
 
-    private TrangThaiCoBanEnum parseStatus(Short value) {
-        if (value == null || (value != 0 && value != 1)) {
-            throw invalid("Trạng thái chỉ nhận 0 hoặc 1");
-        }
+    return TrangThaiCoBanEnum.fromValue(value);
+  }
 
-        return TrangThaiCoBanEnum.fromValue(value);
+  private void validateId(Long id) {
+    if (id == null || id <= 0) {
+      throw invalid("ID nhà cung cấp phải là số nguyên dương");
     }
+  }
 
-    private void validateId(Long id) {
-        if (id == null || id <= 0) {
-            throw invalid("ID nhà cung cấp phải là số nguyên dương");
-        }
+  private void validatePagination(int page, int limit) {
+    if (page < 0 || limit < 1 || limit > 100 || (long) page * limit > Integer.MAX_VALUE) {
+
+      throw invalid("Phân trang không hợp lệ: page từ 0, limit từ 1 đến 100");
     }
+  }
 
-    private void validatePagination(int page, int limit) {
-        if (page < 0
-                || limit < 1
-                || limit > 100
-                || (long) page * limit > Integer.MAX_VALUE) {
+  private PaginationResponse toPagination(Page<?> result) {
+    return PaginationResponse.builder()
+        .page(result.getNumber())
+        .limit(result.getSize())
+        .totalElements(result.getTotalElements())
+        .totalPages(result.getTotalPages())
+        .build();
+  }
 
-            throw invalid(
-                    "Phân trang không hợp lệ: page từ 0, limit từ 1 đến 100");
-        }
-    }
+  private String normalizeOptional(String value) {
+    return value == null || value.isBlank() ? null : value.strip();
+  }
 
-    private PaginationResponse toPagination(Page<?> result) {
-        return PaginationResponse.builder()
-                .page(result.getNumber())
-                .limit(result.getSize())
-                .totalElements(result.getTotalElements())
-                .totalPages(result.getTotalPages())
-                .build();
-    }
+  private AppException invalid(String message) {
+    return new AppException(ErrorCode.INVALID_DATA, message);
+  }
 
-    private String normalizeOptional(String value) {
-        return value == null || value.isBlank()
-                ? null
-                : value.strip();
-    }
+  private AppException conflict(String message) {
+    return new AppException(ErrorCode.CONFLICT, message);
+  }
 
-    private AppException invalid(String message) {
-        return new AppException(ErrorCode.INVALID_DATA, message);
-    }
-
-    private AppException conflict(String message) {
-        return new AppException(ErrorCode.CONFLICT, message);
-    }
-
-    private AppException notFound() {
-        return new AppException(
-                ErrorCode.NOT_FOUND,
-                "Không tìm thấy nhà cung cấp");
-    }
+  private AppException notFound() {
+    return new AppException(ErrorCode.NOT_FOUND, "Không tìm thấy nhà cung cấp");
+  }
 }

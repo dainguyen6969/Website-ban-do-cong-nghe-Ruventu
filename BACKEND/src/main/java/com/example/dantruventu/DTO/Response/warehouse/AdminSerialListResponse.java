@@ -1,4 +1,4 @@
-package com.example.dantruventu.DTO.Response.partner;
+package com.example.dantruventu.DTO.Response.warehouse;
 
 import com.example.dantruventu.DTO.Response.PaginationResponse;
 import java.util.List;
@@ -9,9 +9,9 @@ import lombok.*;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class AdminSupplierListResponse {
+public class AdminSerialListResponse {
 
-  private List<AdminSupplierListItemResponse> items;
+  private List<AdminSerialListItemResponse> items;
 
   private PaginationResponse pagination;
 }

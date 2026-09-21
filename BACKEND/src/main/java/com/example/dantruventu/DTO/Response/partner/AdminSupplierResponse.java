@@ -10,22 +10,22 @@ import lombok.*;
 @Builder
 public class AdminSupplierResponse {
 
-    private Long id;
+  private Long id;
 
-    @JsonProperty("ma_nha_cung_cap")
-    private String maNhaCungCap;
+  @JsonProperty("ma_nha_cung_cap")
+  private String maNhaCungCap;
 
-    @JsonProperty("ten_nha_cung_cap")
-    private String tenNhaCungCap;
+  @JsonProperty("ten_nha_cung_cap")
+  private String tenNhaCungCap;
 
-    @JsonProperty("so_dien_thoai")
-    private String soDienThoai;
+  @JsonProperty("so_dien_thoai")
+  private String soDienThoai;
 
-    private String email;
+  private String email;
 
-    @JsonProperty("dia_chi")
-    private String diaChi;
+  @JsonProperty("dia_chi")
+  private String diaChi;
 
-    @JsonProperty("trang_thai")
-    private Short trangThai;
+  @JsonProperty("trang_thai")
+  private Short trangThai;
 }
