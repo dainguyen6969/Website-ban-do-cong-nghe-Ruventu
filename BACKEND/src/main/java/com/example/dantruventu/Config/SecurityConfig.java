@@ -11,50 +11,47 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 @Configuration
 public class SecurityConfig {
 
-    @Bean
-    public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
-    }
+  private final JwtAuthFilter jwtAuthFilter;
 
-    @Bean
-    public SecurityFilterChain securityFilterChain(
-            HttpSecurity http,
-            JwtAuthFilter jwtAuthFilter,
-            JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint,
-            JwtAccessDeniedHandler jwtAccessDeniedHandler
-    ) throws Exception {
+  @Bean
+  public PasswordEncoder passwordEncoder() {
+    return new BCryptPasswordEncoder();
+  }
 
-        http
-                .csrf(csrf -> csrf.disable())
+  @Bean
+  public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
 
-                .authorizeHttpRequests(auth -> auth
-                        .requestMatchers(
-                                "/api/v1/auth/register",
-                                "/api/v1/auth/otp/resend",
-                                "/api/v1/auth/verify-otp",
-                                "/api/v1/auth/login",
-                                "/api/v1/auth/refresh",
-                                "/api/v1/auth/logout"
-                        )
-                        .permitAll()
-                        .anyRequest()
-                        .authenticated()
-                )
+    http.csrf(csrf -> csrf.disable())
+        .sessionManagement(
+            session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+        .authorizeHttpRequests(
+            auth ->
+                auth.requestMatchers(
+                        "/api/v1/auth/register",
+                        "/api/v1/auth/otp/resend",
+                        "/api/v1/auth/verify-otp",
+                        "/api/v1/auth/login",
+                        "/api/v1/auth/refresh",
+                        "/api/v1/auth/logout")
+                    .permitAll()
+                    .anyRequest()
+                    .authenticated())
+        .exceptionHandling(
+            exceptions ->
+                exceptions.authenticationEntryPoint(
+                    (request, response, exception) -> {
+                      response.setStatus(401);
+                      response.setContentType("application/json");
+                      response.setCharacterEncoding("UTF-8");
+                      response
+                          .getWriter()
+                          .write(
+                              "{\"status\":401,"
+                                  + "\"message\":\"Chưa đăng nhập\","
+                                  + "\"data\":null}");
+                    }))
+        .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
-                .exceptionHandling(exception -> exception
-                        .authenticationEntryPoint(
-                                jwtAuthenticationEntryPoint
-                        )
-                        .accessDeniedHandler(
-                                jwtAccessDeniedHandler
-                        )
-                )
-
-                .addFilterBefore(
-                        jwtAuthFilter,
-                        UsernamePasswordAuthenticationFilter.class
-                );
-
-        return http.build();
-    }
+    return http.build();
+  }
 }
