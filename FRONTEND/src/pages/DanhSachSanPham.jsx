@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   HiOutlineUpload,
@@ -12,7 +12,6 @@ import {
 import FilterDropdown from '../components/FilterDropdown';
 import TablePagination from '../components/TablePagination';
 import { getMockProducts } from '../data/mockProducts';
-import { subscribeToAdminSlice } from '../sync/adminSync';
 import './DanhSachSanPham.css';
 
 // Exact category options in order specified
@@ -81,7 +80,7 @@ const PAGE_SIZE = 10;
 
 export default function DanhSachSanPham() {
   const navigate = useNavigate();
-  const [productsList, setProductsList] = useState(() => [...getMockProducts()]);
+  const [productsList] = useState(() => [...getMockProducts()]);
 
   const [searchTerm, setSearchTerm] = useState('');
   const [isFilterPanelOpen, setIsFilterPanelOpen] = useState(false);
@@ -91,7 +90,6 @@ export default function DanhSachSanPham() {
   const [selectedStatus, setSelectedStatus] = useState('Trạng thái bán');
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedIds, setSelectedIds] = useState([]);
-  useEffect(() => subscribeToAdminSlice('products', () => setProductsList(getMockProducts())), []);
 
   // Check active filters against defaults
   const isCategoryActive = selectedCategory !== 'Danh mục';

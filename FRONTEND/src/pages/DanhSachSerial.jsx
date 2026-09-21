@@ -1,9 +1,8 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { HiOutlineSearch, HiOutlineUpload } from 'react-icons/hi';
 import TablePagination from '../components/TablePagination';
-import { getMockSerials, SERIAL_STATUS_META } from '../data/mockSerials';
-import { subscribeToAdminSlice } from '../sync/adminSync';
+import { mockSerials, SERIAL_STATUS_META } from '../data/mockSerials';
 import './SerialPages.css';
 
 const PAGE_SIZE = 10;
@@ -20,22 +19,20 @@ function StatusBadge({ status }) {
 
 export default function DanhSachSerial() {
   const navigate = useNavigate();
-  const [serials, setSerials] = useState(getMockSerials);
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState(statusOptions[0]);
   const [version, setVersion] = useState('Tất cả phiên bản');
   const [currentPage, setCurrentPage] = useState(1);
-  useEffect(() => subscribeToAdminSlice('serials', () => setSerials(getMockSerials())), []);
 
-  const versions = useMemo(() => ['Tất cả phiên bản', ...new Set(serials.map((item) => item.version))], [serials]);
-  const counts = useMemo(() => Object.fromEntries(['Trong kho', 'Đã bán', 'Đang bảo hành', 'Lỗi'].map((name) => [name, serials.filter((item) => item.status === name).length])), [serials]);
+  const versions = useMemo(() => ['Tất cả phiên bản', ...new Set(mockSerials.map((item) => item.version))], []);
+  const counts = useMemo(() => Object.fromEntries(['Trong kho', 'Đã bán', 'Đang bảo hành', 'Lỗi'].map((name) => [name, mockSerials.filter((item) => item.status === name).length])), []);
   const filtered = useMemo(() => {
     const query = search.trim().toLocaleLowerCase('vi');
-    return serials.filter((item) => {
+    return mockSerials.filter((item) => {
       const matchesSearch = !query || [item.serial, item.barcode, item.sku, item.version].some((value) => value.toLocaleLowerCase('vi').includes(query));
       return matchesSearch && (status === statusOptions[0] || item.status === status) && (version === 'Tất cả phiên bản' || item.version === version);
     });
-  }, [search, serials, status, version]);
+  }, [search, status, version]);
   const safePage = Math.min(currentPage, Math.max(1, Math.ceil(filtered.length / PAGE_SIZE)));
   const rows = filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
 
@@ -108,3 +105,4 @@ export default function DanhSachSerial() {
     </main>
   );
 }
+

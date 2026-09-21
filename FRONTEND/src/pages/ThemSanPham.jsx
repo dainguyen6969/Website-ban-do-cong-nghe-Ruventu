@@ -11,7 +11,7 @@ import ImageUploader from '../components/ImageUploader';
 import FilterDropdown from '../components/FilterDropdown';
 import PriceInput from '../components/PriceInput';
 import SerialModal from '../components/SerialModal';
-import { addMockProduct, getMockProductById, getMockProducts } from '../data/mockProducts';
+import mockProducts, { addMockProduct, getMockProductById } from '../data/mockProducts';
 import './ThemSanPham.css';
 
 // ── Dropdown options ──
@@ -151,7 +151,7 @@ export default function ThemSanPham() {
   // - Clicking search input shows ALL "single" (Sản phẩm đơn) products (no Combos).
   // - Ranking: "starts-with" matches first, then "contains" matches.
   const comboSearchResults = useMemo(() => {
-    const singleProducts = getMockProducts().filter((p) => p.phanLoai === 'Sản phẩm đơn');
+    const singleProducts = mockProducts.filter((p) => p.phanLoai === 'Sản phẩm đơn');
 
     const q = comboSearch.trim().toLowerCase();
     if (!q) {

@@ -10,6 +10,6 @@ import lombok.*;
 @Builder
 public class VerifyOtpResponse {
 
-  @JsonProperty("user_id")
-  private Long userId;
+    @JsonProperty("user_id")
+    private Long userId;
 }

@@ -5,23 +5,24 @@ import jakarta.persistence.AttributeConverter;
 import jakarta.persistence.Converter;
 
 @Converter(autoApply = true)
-public class TrangThaiCoBanConverter implements AttributeConverter<TrangThaiCoBanEnum, Short> {
+public class TrangThaiCoBanConverter
+        implements AttributeConverter<TrangThaiCoBanEnum, Short> {
 
-  @Override
-  public Short convertToDatabaseColumn(TrangThaiCoBanEnum attribute) {
-    if (attribute == null) {
-      return null;
+    @Override
+    public Short convertToDatabaseColumn(TrangThaiCoBanEnum attribute) {
+        if (attribute == null) {
+            return null;
+        }
+
+        return attribute.getValue();
     }
 
-    return attribute.getValue();
-  }
+    @Override
+    public TrangThaiCoBanEnum convertToEntityAttribute(Short dbData) {
+        if (dbData == null) {
+            return null;
+        }
 
-  @Override
-  public TrangThaiCoBanEnum convertToEntityAttribute(Short dbData) {
-    if (dbData == null) {
-      return null;
+        return TrangThaiCoBanEnum.fromValue(dbData);
     }
-
-    return TrangThaiCoBanEnum.fromValue(dbData);
-  }
 }

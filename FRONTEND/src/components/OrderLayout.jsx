@@ -12,6 +12,7 @@ const tabs = [
 export default function OrderLayout() {
   const location = useLocation();
   const navigate = useNavigate();
+
   const isOrderList = location.pathname === '/admin/don-hang/danh-sach-don-hang';
   const isOrderDetail = /^\/admin\/don-hang\/danh-sach-don-hang\/[^/]+$/.test(location.pathname);
   const isCustomerReturns = location.pathname.startsWith('/admin/don-hang/khach-tra-hang');

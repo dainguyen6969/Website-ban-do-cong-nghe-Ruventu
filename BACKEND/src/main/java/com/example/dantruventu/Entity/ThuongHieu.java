@@ -2,8 +2,9 @@ package com.example.dantruventu.Entity;
 
 import com.example.dantruventu.Enum.TrangThaiCoBanEnum;
 import jakarta.persistence.*;
-import java.util.List;
 import lombok.*;
+
+import java.util.List;
 
 @Entity
 @Table(
@@ -18,9 +19,9 @@ import lombok.*;
 @Builder
 public class ThuongHieu {
 
-  @Id
-  @GeneratedValue(strategy = GenerationType.IDENTITY)
-  private Long id;
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
 
   @Column(name = "ten_thuong_hieu", nullable = false, length = 100)
   private String tenThuongHieu;
@@ -31,10 +32,10 @@ public class ThuongHieu {
   @Column(name = "logo", length = 255)
   private String logo;
 
-  @Builder.Default
-  @Column(name = "trang_thai", nullable = false)
-  private TrangThaiCoBanEnum trangThai = TrangThaiCoBanEnum.HOAT_DONG;
+    @Builder.Default
+    @Column(name = "trang_thai", nullable = false)
+    private TrangThaiCoBanEnum trangThai = TrangThaiCoBanEnum.HOAT_DONG;
 
-  @OneToMany(mappedBy = "thuongHieu", fetch = FetchType.LAZY)
-  private List<SanPham> danhSachSanPham;
+    @OneToMany(mappedBy = "thuongHieu", fetch = FetchType.LAZY)
+    private List<SanPham> danhSachSanPham;
 }

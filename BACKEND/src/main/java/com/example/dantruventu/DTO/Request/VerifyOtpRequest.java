@@ -11,11 +11,11 @@ import lombok.*;
 @Builder
 public class VerifyOtpRequest {
 
-  @JsonProperty("tai_khoan")
-  @NotBlank(message = "Tài khoản không được để trống")
-  private String taiKhoan;
+    @JsonProperty("tai_khoan")
+    @NotBlank(message = "Tài khoản không được để trống")
+    private String taiKhoan;
 
-  @JsonProperty("otp_code")
-  @NotBlank(message = "Mã OTP không được để trống")
-  private String otpCode;
+    @JsonProperty("otp_code")
+    @NotBlank(message = "Mã OTP không được để trống")
+    private String otpCode;
 }

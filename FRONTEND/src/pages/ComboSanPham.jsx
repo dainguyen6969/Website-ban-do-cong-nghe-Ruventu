@@ -1,10 +1,9 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { HiOutlinePlus, HiOutlineSearch } from 'react-icons/hi';
 import TablePagination from '../components/TablePagination';
 import StopComboModal from '../components/StopComboModal';
 import { getMockCombos, setMockComboStatus } from '../data/mockCombos';
-import { subscribeToAdminSlice } from '../sync/adminSync';
 import './ComboSanPham.css';
 
 const PAGE_SIZE = 5;
@@ -18,7 +17,6 @@ export default function ComboSanPham() {
   const [status, setStatus] = useState('Tất cả trạng thái');
   const [page, setPage] = useState(1);
   const [comboToStop, setComboToStop] = useState(null);
-  useEffect(() => subscribeToAdminSlice('combos', () => setCombos(getMockCombos())), []);
   const filtered = useMemo(() => combos.filter((combo) => {
     const query = search.trim().toLocaleLowerCase('vi');
     return (!query || combo.name.toLocaleLowerCase('vi').includes(query) || combo.code.toLocaleLowerCase('vi').includes(query)) &&
@@ -54,7 +52,7 @@ export default function ComboSanPham() {
         <td><div className="component-preview">{combo.components.slice(0, 2).map((item) => <div key={`${item.sku}-${item.name}`}><b>{item.name} <em>×{item.qty}</em></b><small>{item.variant} · {item.sku}</small></div>)}{combo.components.length > 2 && <span>+{combo.components.length - 2} thành phần khác</span>}</div></td>
         <td className={combo.sellable === 0 ? 'number-red' : 'number-strong'}>{combo.sellable}</td><td>{combo.stock}</td><td className="number-strong">{money(combo.price)}</td>
         <td><span className={`combo-status ${isStopped(combo) ? 'inactive' : 'active'}`}>{combo.status.toUpperCase()}</span></td>
-        <td><div className="combo-actions"><button onClick={() => navigate(`/kho-hang/combo-san-pham/chi-tiet/${combo.id}`)}>XEM CHI TIẾT</button><button onClick={() => navigate(`/kho-hang/combo-san-pham/sua/${combo.id}`)}>SỬA</button>{!isStopped(combo) && <button className="danger" onClick={() => setComboToStop(combo)}>NGƯNG KD</button>}</div></td>
+        <td><div className="combo-actions"><button onClick={() => navigate(`/kho-hang/combo-san-pham/chi-tiet/${combo.id}`)}>XEM CHI TIẾT</button><button>SỬA</button>{!isStopped(combo) && <button className="danger" onClick={() => setComboToStop(combo)}>NGƯNG KD</button>}</div></td>
       </tr>) : <tr><td colSpan="9" className="combo-empty">Không tìm thấy combo phù hợp.</td></tr>}
     </tbody></table></div>
     <TablePagination totalItems={filtered.length} pageSize={PAGE_SIZE} currentPage={safePage} onPageChange={setPage} idPrefix="combo" />
