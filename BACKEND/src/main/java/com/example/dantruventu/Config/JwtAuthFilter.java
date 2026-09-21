@@ -80,6 +80,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
         } catch (Exception exception) {
 
-    filterChain.doFilter(request, response);
-  }
+            filterChain.doFilter(request, response);
+        }
+    }
 }
