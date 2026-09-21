@@ -15,59 +15,52 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class UserProfileService {
 
-    private final SoDiaChiRepository soDiaChiRepository;
-    private final NguoiDungRepository nguoiDungRepository;
+  private final SoDiaChiRepository soDiaChiRepository;
+  private final NguoiDungRepository nguoiDungRepository;
 
-    public UserMeResponse getMyProfile(NguoiDung nguoiDung) {
+  public UserMeResponse getMyProfile(NguoiDung nguoiDung) {
 
-        SoDiaChi diaChiMacDinh =
-                soDiaChiRepository
-                        .findFirstByNguoiDungIdAndLaMacDinhTrue(
-                                nguoiDung.getId()
-                        )
-                        .orElse(null);
+    SoDiaChi diaChiMacDinh =
+        soDiaChiRepository.findFirstByNguoiDungIdAndLaMacDinhTrue(nguoiDung.getId()).orElse(null);
 
-        UserMeResponse.DiaChiMacDinhResponse diaChiResponse = null;
+    UserMeResponse.DiaChiMacDinhResponse diaChiResponse = null;
 
-        if (diaChiMacDinh != null) {
-            diaChiResponse =
-                    UserMeResponse.DiaChiMacDinhResponse.builder()
-                            .id(diaChiMacDinh.getId())
-                            .tenNguoiNhan(diaChiMacDinh.getTenNguoiNhan())
-                            .soDienThoai(diaChiMacDinh.getSoDienThoai())
-                            .diaChiChiTiet(diaChiMacDinh.getDiaChiChiTiet())
-                            .phuongXa(diaChiMacDinh.getPhuongXa())
-                            .tinhThanh(diaChiMacDinh.getTinhThanh())
-                            .build();
-        }
-
-        return UserMeResponse.builder()
-                .id(nguoiDung.getId())
-                .hoTen(nguoiDung.getHoTen())
-                .email(nguoiDung.getEmail())
-                .soDienThoai(nguoiDung.getSoDienThoai())
-                .anhDaiDien(nguoiDung.getAnhDaiDien())
-                .trangThai(nguoiDung.getTrangThai().name())
-                .diaChiMacDinh(diaChiResponse)
-                .build();
+    if (diaChiMacDinh != null) {
+      diaChiResponse =
+          UserMeResponse.DiaChiMacDinhResponse.builder()
+              .id(diaChiMacDinh.getId())
+              .tenNguoiNhan(diaChiMacDinh.getTenNguoiNhan())
+              .soDienThoai(diaChiMacDinh.getSoDienThoai())
+              .diaChiChiTiet(diaChiMacDinh.getDiaChiChiTiet())
+              .phuongXa(diaChiMacDinh.getPhuongXa())
+              .tinhThanh(diaChiMacDinh.getTinhThanh())
+              .build();
     }
 
-    @Transactional
-    public UpdateUserProfileResponse updateMyProfile(
-            NguoiDung nguoiDung,
-            UpdateUserProfileRequest request
-    ) {
+    return UserMeResponse.builder()
+        .id(nguoiDung.getId())
+        .hoTen(nguoiDung.getHoTen())
+        .email(nguoiDung.getEmail())
+        .soDienThoai(nguoiDung.getSoDienThoai())
+        .anhDaiDien(nguoiDung.getAnhDaiDien())
+        .trangThai(nguoiDung.getTrangThai().name())
+        .diaChiMacDinh(diaChiResponse)
+        .build();
+  }
 
-        nguoiDung.setHoTen(request.getHoTen());
-        nguoiDung.setAnhDaiDien(request.getAnhDaiDien());
+  @Transactional
+  public UpdateUserProfileResponse updateMyProfile(
+      NguoiDung nguoiDung, UpdateUserProfileRequest request) {
 
-        NguoiDung updatedNguoiDung =
-                nguoiDungRepository.save(nguoiDung);
+    nguoiDung.setHoTen(request.getHoTen());
+    nguoiDung.setAnhDaiDien(request.getAnhDaiDien());
 
-        return UpdateUserProfileResponse.builder()
-                .id(updatedNguoiDung.getId())
-                .hoTen(updatedNguoiDung.getHoTen())
-                .anhDaiDien(updatedNguoiDung.getAnhDaiDien())
-                .build();
-    }
+    NguoiDung updatedNguoiDung = nguoiDungRepository.save(nguoiDung);
+
+    return UpdateUserProfileResponse.builder()
+        .id(updatedNguoiDung.getId())
+        .hoTen(updatedNguoiDung.getHoTen())
+        .anhDaiDien(updatedNguoiDung.getAnhDaiDien())
+        .build();
+  }
 }

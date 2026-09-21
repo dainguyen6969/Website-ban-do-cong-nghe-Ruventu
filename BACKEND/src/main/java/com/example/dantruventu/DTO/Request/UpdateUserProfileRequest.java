@@ -15,10 +15,10 @@ import lombok.Setter;
 @Builder
 public class UpdateUserProfileRequest {
 
-    @JsonProperty("ho_ten")
-    @NotBlank(message = "Họ tên không được để trống")
-    private String hoTen;
+  @JsonProperty("ho_ten")
+  @NotBlank(message = "Họ tên không được để trống")
+  private String hoTen;
 
-    @JsonProperty("anh_dai_dien")
-    private String anhDaiDien;
+  @JsonProperty("anh_dai_dien")
+  private String anhDaiDien;
 }

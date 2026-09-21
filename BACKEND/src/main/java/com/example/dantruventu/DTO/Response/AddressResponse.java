@@ -9,24 +9,24 @@ import lombok.*;
 @AllArgsConstructor
 @Builder
 public class AddressResponse {
-    @JsonProperty("id")
-    private Long id;
+  @JsonProperty("id")
+  private Long id;
 
-    @JsonProperty("ten_nguoi_nhan")
-    private String tenNguoiNhan;
+  @JsonProperty("ten_nguoi_nhan")
+  private String tenNguoiNhan;
 
-    @JsonProperty("so_dien_thoai")
-    private String soDienThoai;
+  @JsonProperty("so_dien_thoai")
+  private String soDienThoai;
 
-    @JsonProperty("dia_chi_chi_tiet")
-    private String diaChiChiTiet;
+  @JsonProperty("dia_chi_chi_tiet")
+  private String diaChiChiTiet;
 
-    @JsonProperty("phuong_xa")
-    private String phuongXa;
+  @JsonProperty("phuong_xa")
+  private String phuongXa;
 
-    @JsonProperty("tinh_thanh")
-    private String tinhThanh;
+  @JsonProperty("tinh_thanh")
+  private String tinhThanh;
 
-    @JsonProperty("la_mac_dinh")
-    private Boolean laMacDinh;
+  @JsonProperty("la_mac_dinh")
+  private Boolean laMacDinh;
 }

@@ -15,26 +15,21 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class RefreshController {
 
-    private final RefreshService refreshService;
+  private final RefreshService refreshService;
 
-    @PostMapping("/refresh")
-    public ResponseEntity<ApiResponse<RefreshResponse>> refresh(
-            @CookieValue(
-                    name = "refresh_token",
-                    required = false
-            ) String refreshToken
-    ) {
+  @PostMapping("/refresh")
+  public ResponseEntity<ApiResponse<RefreshResponse>> refresh(
+      @CookieValue(name = "refresh_token", required = false) String refreshToken) {
 
-        RefreshResponse data =
-                refreshService.refresh(refreshToken);
+    RefreshResponse data = refreshService.refresh(refreshToken);
 
-        ApiResponse<RefreshResponse> response =
-                ApiResponse.<RefreshResponse>builder()
-                        .status(200)
-                        .message("Cấp lại Access Token thành công")
-                        .data(data)
-                        .build();
+    ApiResponse<RefreshResponse> response =
+        ApiResponse.<RefreshResponse>builder()
+            .status(200)
+            .message("Cấp lại Access Token thành công")
+            .data(data)
+            .build();
 
-        return ResponseEntity.ok(response);
-    }
+    return ResponseEntity.ok(response);
+  }
 }

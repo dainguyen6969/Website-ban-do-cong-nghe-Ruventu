@@ -14,51 +14,47 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class DataInitializer implements CommandLineRunner {
 
-    private final VaiTroRepository vaiTroRepository;
-    private final NguoiDungRepository nguoiDungRepository;
-    private final PasswordEncoder passwordEncoder;
+  private final VaiTroRepository vaiTroRepository;
+  private final NguoiDungRepository nguoiDungRepository;
+  private final PasswordEncoder passwordEncoder;
 
-    @Override
-    public void run(String... args) {
+  @Override
+  public void run(String... args) {
 
-        VaiTro adminRole = vaiTroRepository
-                .findByTenVaiTro("ADMIN")
-                .orElseGet(() -> {
-
-                    VaiTro vaiTro = VaiTro.builder()
-                            .tenVaiTro("ADMIN")
-                            .moTa("Quản trị viên")
-                            .build();
-
-                    return vaiTroRepository.save(vaiTro);
-                });
-
+    VaiTro adminRole =
         vaiTroRepository
-                .findByTenVaiTro("USER")
-                .orElseGet(() -> {
+            .findByTenVaiTro("ADMIN")
+            .orElseGet(
+                () -> {
+                  VaiTro vaiTro = VaiTro.builder().tenVaiTro("ADMIN").moTa("Quản trị viên").build();
 
-                    VaiTro vaiTro = VaiTro.builder()
-                            .tenVaiTro("USER")
-                            .moTa("Khách hàng")
-                            .build();
-
-                    return vaiTroRepository.save(vaiTro);
+                  return vaiTroRepository.save(vaiTro);
                 });
 
-        nguoiDungRepository
-                .findByEmail("admin@gmail.com")
-                .orElseGet(() -> {
+    vaiTroRepository
+        .findByTenVaiTro("USER")
+        .orElseGet(
+            () -> {
+              VaiTro vaiTro = VaiTro.builder().tenVaiTro("USER").moTa("Khách hàng").build();
 
-                    NguoiDung admin = NguoiDung.builder()
-                            .vaiTro(adminRole)
-                            .hoTen("Administrator")
-                            .email("admin@gmail.com")
-                            .soDienThoai("0900000000")
-                            .matKhau(passwordEncoder.encode("Admin@123"))
-                            .trangThai(TrangThaiCoBanEnum.HOAT_DONG)
-                            .build();
+              return vaiTroRepository.save(vaiTro);
+            });
 
-                    return nguoiDungRepository.save(admin);
-                });
-    }
+    nguoiDungRepository
+        .findByEmail("admin@gmail.com")
+        .orElseGet(
+            () -> {
+              NguoiDung admin =
+                  NguoiDung.builder()
+                      .vaiTro(adminRole)
+                      .hoTen("Administrator")
+                      .email("admin@gmail.com")
+                      .soDienThoai("0900000000")
+                      .matKhau(passwordEncoder.encode("Admin@123"))
+                      .trangThai(TrangThaiCoBanEnum.HOAT_DONG)
+                      .build();
+
+              return nguoiDungRepository.save(admin);
+            });
+  }
 }

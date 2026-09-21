@@ -13,7 +13,7 @@ import lombok.Setter;
 @Builder
 public class UpdateUserProfileResponse {
 
-    private Long id;
-    private String hoTen;
-    private String anhDaiDien;
+  private Long id;
+  private String hoTen;
+  private String anhDaiDien;
 }

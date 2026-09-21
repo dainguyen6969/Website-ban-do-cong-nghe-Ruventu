@@ -15,14 +15,14 @@ import lombok.Setter;
 @Builder
 public class LoginRequest {
 
-    @NotBlank(message = "Tài khoản không được để trống")
-    @JsonProperty("tai_khoan")
-    private String taiKhoan;
+  @NotBlank(message = "Tài khoản không được để trống")
+  @JsonProperty("tai_khoan")
+  private String taiKhoan;
 
-    @NotBlank(message = "Mật khẩu không được để trống")
-    @JsonProperty("mat_khau")
-    private String matKhau;
+  @NotBlank(message = "Mật khẩu không được để trống")
+  @JsonProperty("mat_khau")
+  private String matKhau;
 
-    @JsonProperty("ghi_nho_dang_nhap")
-    private Boolean ghiNhoDangNhap;
+  @JsonProperty("ghi_nho_dang_nhap")
+  private Boolean ghiNhoDangNhap;
 }
