@@ -46,6 +46,18 @@ public class AdminPurchaseOrderReceiveResponse {
     @JsonProperty("ton_thuc_te_sau_nhap")
     private Integer tonThucTeSauNhap;
 
+    @JsonProperty("so_luong_dat")
+    private Integer soLuongDat;
+
+    @JsonProperty("so_luong_da_nhap_kho")
+    private Integer soLuongDaNhapKho;
+
+    @JsonProperty("con_theo_don")
+    private Integer conTheoDon;
+
+    @JsonProperty("chenh_lech")
+    private Integer chenhLech;
+
     private List<SerialData> serials;
   }
 

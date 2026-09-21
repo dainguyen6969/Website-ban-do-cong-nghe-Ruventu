@@ -23,6 +23,10 @@ public class AdminPurchaseOrderReceiveRequest {
   @NotEmpty(message = "Danh sách nhập kho không được trống")
   private List<Item> items;
 
+  @JsonProperty("xac_nhan_nhap_thua")
+  @Builder.Default
+  private Boolean xacNhanNhapThua = false;
+
   @Getter
   @Setter
   @NoArgsConstructor

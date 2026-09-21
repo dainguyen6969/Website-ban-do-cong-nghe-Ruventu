@@ -396,9 +396,12 @@ public class AdminPurchaseOrderService {
 
     DonNhapHang order = requireOrderForUpdate(id);
 
-    if (order.getTrangThaiNhap() != TrangThaiNhapHang.DA_DUYET) {
+    boolean allowedReceiveStatus =
+        order.getTrangThaiNhap() == TrangThaiNhapHang.DA_DUYET
+            || order.getTrangThaiNhap() == TrangThaiNhapHang.NHAP_MOT_PHAN;
 
-      throw new AppException(ErrorCode.CONFLICT, "Chỉ đơn đã duyệt mới được nhập kho");
+    if (!allowedReceiveStatus) {
+      throw new AppException(ErrorCode.CONFLICT, "Đơn nhập không ở trạng thái cho phép nhập kho");
     }
 
     KhoHang warehouse = requireDefaultWarehouse(request.getKhoHangId());
@@ -408,7 +411,17 @@ public class AdminPurchaseOrderService {
     Map<Long, ChiTietDonNhap> detailMap =
         details.stream().collect(Collectors.toMap(ChiTietDonNhap::getId, Function.identity()));
 
-    validateReceiveRequest(request, details, detailMap);
+    /*
+     * Cho phép:
+     * - chỉ nhập một phần các dòng của đơn,
+     * - nhập thiếu,
+     * - nhập đúng,
+     * - nhập thừa.
+     *
+     * Nếu có dòng bị nhập thừa thì FE phải xác nhận
+     * xac_nhan_nhap_thua = true.
+     */
+    validateReceiveRequest(id, request, detailMap);
 
     Set<String> allSerials = collectAndValidateSerials(request, detailMap);
 
@@ -432,8 +445,11 @@ public class AdminPurchaseOrderService {
 
         throw new AppException(
             ErrorCode.CONFLICT,
-            "Không được thay đổi chế độ " + "quản lý Serial của phiên bản " + variant.getId());
+            "Không được thay đổi chế độ quản lý Serial của phiên bản " + variant.getId());
       }
+
+      int alreadyReceived =
+          Math.max(0, sumMovement(id, variant.getId(), LoaiGiaoDichKho.NHAP_HANG));
 
       TonKho inventory = lockOrCreateInventory(warehouse, variant);
 
@@ -486,11 +502,21 @@ public class AdminPurchaseOrderService {
                 .toList();
       }
 
+      int totalReceivedAfter = alreadyReceived + item.getSoLuongNhapKho();
+
+      int remainingAccordingToOrder = Math.max(detail.getSoLuong() - totalReceivedAfter, 0);
+
+      int difference = totalReceivedAfter - detail.getSoLuong();
+
       responseItems.add(
           AdminPurchaseOrderReceiveResponse.Item.builder()
               .chiTietDonNhapId(detail.getId())
               .phienBanId(variant.getId())
               .soLuongNhapKho(item.getSoLuongNhapKho())
+              .soLuongDat(detail.getSoLuong())
+              .soLuongDaNhapKho(totalReceivedAfter)
+              .conTheoDon(remainingAccordingToOrder)
+              .chenhLech(difference)
               .quanLySerial(item.getQuanLySerial())
               .cheDoSerialDaXacLap(true)
               .tonThucTeSauNhap(inventory.getTonThucTe())
@@ -498,7 +524,28 @@ public class AdminPurchaseOrderService {
               .build());
     }
 
-    order.setTrangThaiNhap(TrangThaiNhapHang.DA_NHAP_KHO);
+    /*
+     * sumMovement() query lại bảng the_kho,
+     * nên flush trước khi tính trạng thái đơn.
+     */
+    theKhoRepository.flush();
+
+    boolean allOrderedQuantitiesReceived =
+        details.stream()
+            .allMatch(
+                detail -> {
+                  int imported =
+                      Math.max(
+                          0,
+                          sumMovement(id, detail.getPhienBan().getId(), LoaiGiaoDichKho.NHAP_HANG));
+
+                  return imported >= detail.getSoLuong();
+                });
+
+    order.setTrangThaiNhap(
+        allOrderedQuantitiesReceived
+            ? TrangThaiNhapHang.DA_NHAP_KHO
+            : TrangThaiNhapHang.NHAP_MOT_PHAN);
 
     donNhapHangRepository.save(order);
 
@@ -1079,18 +1126,41 @@ public class AdminPurchaseOrderService {
 
   private BigDecimal calculateReturnedValue(DonNhapHang order, List<ChiTietDonNhap> details) {
 
-    BigDecimal goodsReturned = BigDecimal.ZERO;
+    BigDecimal financiallyReturnedGoods = BigDecimal.ZERO;
 
     for (ChiTietDonNhap detail : details) {
 
-      int qty =
-          Math.abs(
-              sumMovement(order.getId(), detail.getPhienBan().getId(), LoaiGiaoDichKho.TRA_NCC));
+      Long variantId = detail.getPhienBan().getId();
 
-      goodsReturned = goodsReturned.add(detail.getGiaNhap().multiply(BigDecimal.valueOf(qty)));
+      int ordered = detail.getSoLuong();
+
+      int imported = Math.max(0, sumMovement(order.getId(), variantId, LoaiGiaoDichKho.NHAP_HANG));
+
+      int returned = Math.abs(sumMovement(order.getId(), variantId, LoaiGiaoDichKho.TRA_NCC));
+
+      /*
+       * Nếu NCC giao thừa thì phần trả hàng trước tiên
+       * được xem là trả lại lượng giao thừa.
+       *
+       * Ví dụ:
+       * đặt 2, nhập 8, trả 6
+       * => không giảm công nợ của 2 sản phẩm đã đặt.
+       *
+       * Chỉ phần trả vượt quá lượng giao thừa mới
+       * làm giảm giá trị đơn/công nợ.
+       */
+      int excessReceived = Math.max(imported - ordered, 0);
+
+      int financiallyReturnedQuantity = Math.max(returned - excessReceived, 0);
+
+      financiallyReturnedQuantity = Math.min(financiallyReturnedQuantity, ordered);
+
+      financiallyReturnedGoods =
+          financiallyReturnedGoods.add(
+              detail.getGiaNhap().multiply(BigDecimal.valueOf(financiallyReturnedQuantity)));
     }
 
-    return applyTax(goodsReturned, order.getApDungThue());
+    return applyTax(financiallyReturnedGoods, order.getApDungThue());
   }
 
   private int sumMovement(Long orderId, Long variantId, LoaiGiaoDichKho type) {
@@ -1117,17 +1187,11 @@ public class AdminPurchaseOrderService {
   }
 
   private void validateReceiveRequest(
-      AdminPurchaseOrderReceiveRequest request,
-      List<ChiTietDonNhap> details,
-      Map<Long, ChiTietDonNhap> detailMap) {
-
-    if (request.getItems().size() != details.size()) {
-
-      throw new AppException(
-          ErrorCode.INVALID_DATA, "MVP yêu cầu nhập đủ toàn bộ đơn " + "trong một lần");
-    }
+      Long orderId, AdminPurchaseOrderReceiveRequest request, Map<Long, ChiTietDonNhap> detailMap) {
 
     Set<Long> seen = new HashSet<>();
+
+    boolean hasExcessReceipt = false;
 
     for (AdminPurchaseOrderReceiveRequest.Item item : request.getItems()) {
 
@@ -1139,35 +1203,30 @@ public class AdminPurchaseOrderService {
       ChiTietDonNhap detail = detailMap.get(item.getChiTietDonNhapId());
 
       if (detail == null) {
-
         throw new AppException(ErrorCode.NOT_FOUND, "Chi tiết đơn nhập không tồn tại");
       }
 
-      int orderedQuantity = detail.getSoLuong();
+      Long variantId = detail.getPhienBan().getId();
 
-      int receivedQuantity = item.getSoLuongNhapKho();
+      int alreadyReceived = Math.max(0, sumMovement(orderId, variantId, LoaiGiaoDichKho.NHAP_HANG));
 
-      if (receivedQuantity < orderedQuantity) {
+      int totalReceivedAfter = alreadyReceived + item.getSoLuongNhapKho();
 
-        throw new AppException(
-            ErrorCode.CONFLICT,
-            "Số lượng nhập kho bị thiếu. "
-                + "Đã đặt "
-                + orderedQuantity
-                + ", nhưng request chỉ nhập "
-                + receivedQuantity);
+      if (totalReceivedAfter > detail.getSoLuong()) {
+
+        hasExcessReceipt = true;
       }
+    }
 
-      if (receivedQuantity > orderedQuantity) {
+    /*
+     * Nhập thừa vẫn được phép, nhưng phải có
+     * xác nhận rõ ràng từ người dùng ở UI.
+     */
+    if (hasExcessReceipt && !Boolean.TRUE.equals(request.getXacNhanNhapThua())) {
 
-        throw new AppException(
-            ErrorCode.UNPROCESSABLE_ENTITY,
-            "Số lượng nhập kho vượt số lượng đã đặt. "
-                + "Đã đặt "
-                + orderedQuantity
-                + ", nhưng request nhập "
-                + receivedQuantity);
-      }
+      throw new AppException(
+          ErrorCode.UNPROCESSABLE_ENTITY,
+          "Có số lượng thực nhận vượt quá số lượng đặt. " + "Vui lòng xác nhận nhập hàng thừa");
     }
   }
 
