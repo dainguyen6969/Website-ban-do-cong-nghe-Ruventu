@@ -1,4 +1,4 @@
-.delivery-page { flex: 1; min-height: 0; overflow: auto; color: #111; background: #fff; }
+.delivery-page { flex: 1; min-width: 0; min-height: 0; overflow: auto; color: #111; background: #fff; }
 .delivery-page, .delivery-page * { border-radius: 0 !important; }
 .delivery-page-head { min-height: 88px; padding: 16px 20px; display: flex; align-items: center; border-bottom: 2px solid #111; }
 .delivery-page-head nav, .delivery-detail-head nav { color: #9a9fa6; font-size: 9px; font-weight: 800; }
@@ -10,7 +10,7 @@
 .delivery-search input { width: 100%; color: #111; background: transparent; font-size: 10px; }
 .delivery-filter .filter__dropdown { height: 38px; padding: 0 10px; border: 1px solid #cfcfcf; font-size: 9px; }
 .delivery-count { font-size: 9px; white-space: nowrap; }
-.delivery-table-scroll { width: 100%; overflow: auto; }
+.delivery-table-scroll { width: 100%; max-width: 100%; min-width: 0; overflow-x: auto; overflow-y: hidden; }
 .delivery-table { width: 100%; min-width: 1650px; border-collapse: collapse; }
 .delivery-table thead { color: #fff; background: #080808; }
 .delivery-table th { height: 34px; padding: 0 9px; text-align: left; font-size: 8px; font-weight: 900; white-space: nowrap; border-right: 1px solid #292929; }
@@ -45,7 +45,7 @@
 .delivery-status-counts b { margin-left: 3px; color: #111; font-size: 10px; }
 .delivery-list-footer .product-pagination-bar { width: auto; padding: 0; border: 0; }
 
-.delivery-detail-shell { flex: 1; min-height: 0; display: flex; overflow: hidden; }
+.delivery-detail-shell { flex: 1; min-width: 0; min-height: 0; display: flex; overflow: hidden; }
 .delivery-detail-head { min-height: 58px; padding: 0 20px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #111; }
 .delivery-back, .delivery-small-btn { min-height: 30px; padding: 0 11px; display: inline-flex; align-items: center; gap: 6px; border: 1px solid #111 !important; background: #fff !important; font-size: 8px; font-weight: 900; }
 .delivery-detail-inner { width: min(1040px, calc(100% - 36px)); margin: 24px auto; }

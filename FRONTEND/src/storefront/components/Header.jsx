@@ -4,6 +4,8 @@ import { Search, User, ShoppingBag } from 'lucide-react';
 import './Header.css';
 import logo from '../assets/reventu.png';
 import CartDrawer from './CartDrawer';
+import FontSwitcher from '../../components/FontSwitcher';
+import useMockAuth from '../../auth/useMockAuth';
 
 const Header = () => {
   const [isCartOpen, setIsCartOpen] = useState(false);
@@ -54,6 +56,7 @@ const Header = () => {
 
             {/* Actions */}
             <div className="header-actions">
+              <FontSwitcher variant="homepage" />
               {user ? (
                 <div 
                   className="user-profile-menu"

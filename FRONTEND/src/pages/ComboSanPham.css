@@ -6,3 +6,4 @@
 
 @media(max-width:1100px){.combo-create-grid{grid-template-columns:1fr}.combo-create-side{position:static;grid-row:1}.variant-fields{grid-template-columns:1fr 1fr}}@media(max-width:700px){.combo-page-heading{align-items:flex-start;flex-direction:column}.combo-stats{grid-template-columns:1fr}.combo-stats>div{border-right:0;border-bottom:1px solid #ddd}.combo-toolbar,.combo-two-cols,.variant-fields{grid-template-columns:1fr}.combo-create-grid{padding:14px}.combo-list-page>.product-pagination-bar,.combo-table-wrap,.combo-toolbar,.combo-stats{margin-left:14px;margin-right:14px}}
 
+.combo-list-page,.combo-create-page{min-width:0}.combo-table-wrap{min-width:0;overflow-x:auto}

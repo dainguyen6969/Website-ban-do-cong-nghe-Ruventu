@@ -6,6 +6,8 @@ import useMockAuth from '../../auth/useMockAuth';
 import { isStaffAccount } from '../../auth/accountModel';
 
 const Footer = () => {
+  const { currentAccount } = useMockAuth();
+
   return (
     <footer className="footer">
       <div className="footer-links-section">

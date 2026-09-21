@@ -4,6 +4,7 @@
 
 .product-page {
   flex: 1;
+  min-width: 0;
   overflow-y: auto;
   overflow-x: hidden;
   background: #ffffff;
@@ -305,12 +306,15 @@
 /* 6. Product Table (edge-to-edge) */
 .product-table-wrapper {
   width: 100%;
+  max-width: 100%;
+  min-width: 0;
   overflow-x: auto;
   background: #ffffff;
 }
 
 .product-table {
   width: 100%;
+  min-width: 1100px;
   border-collapse: collapse;
   text-align: left;
 }

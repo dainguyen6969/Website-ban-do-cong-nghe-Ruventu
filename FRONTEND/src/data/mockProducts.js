@@ -1,4 +1,5 @@
 import workstationImage from '../assets/hero.png';
+import { readSharedState, writeSharedState } from '../sync/adminSync';
 
 const STORAGE_KEY = 'ruventu_products_v1';
 const MOCK_PRICE_STOCK = {

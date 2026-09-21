@@ -1,12 +1,13 @@
 .serial-page {
   flex: 1;
+  min-width: 0;
   min-height: 0;
   overflow: auto;
   background: #f7f7f7;
   color: #151515;
 }
 
-.serial-page__inner { width: 100%; padding: 0 22px 36px; }
+.serial-page__inner { width: 100%; min-width: 0; padding: 0 22px 36px; }
 
 .serial-secondary-breadcrumb {
   min-height: 43px;
@@ -108,7 +109,7 @@
 }
 .serial-export:hover { background: #292929 !important; }
 
-.serial-table-shell { width: 100%; overflow-x: auto; border: 1px solid #dedede; border-top: 0; background: #fff; }
+.serial-table-shell { width: 100%; max-width: 100%; min-width: 0; overflow-x: auto; border: 1px solid #dedede; border-top: 0; background: #fff; }
 .serial-table { width: 100%; min-width: 1050px; border-collapse: collapse; }
 .serial-table thead { height: 44px; background: #090909; color: #fff; }
 .serial-table th { padding: 0 15px; text-align: left; font-size: 10px; font-weight: 750; letter-spacing: .065em; white-space: nowrap; }

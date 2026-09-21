@@ -1,5 +1,5 @@
 .return-shell { flex: 1; min-width: 0; min-height: 0; overflow: hidden; background: #f5f5f5; }
-.returns-page { height: 100%; overflow: auto; color: #111; background: #f4f4f4; }
+.returns-page { width: 100%; min-width: 0; height: 100%; overflow: auto; color: #111; background: #f4f4f4; }
 .returns-page button, .returns-page input, .returns-page select, .returns-page textarea { border-radius: 0 !important; }
 .returns-hero { min-height: 112px; padding: 17px 28px; display: flex; align-items: center; justify-content: space-between; gap: 20px; border-bottom: 2px solid #111; background: #fff; }
 .returns-hero nav { margin-bottom: 10px; color: #9298a0; font-size: 11px; font-weight: 800; }
@@ -20,7 +20,7 @@
 .returns-search input, .returns-modal-search input { min-width: 0; flex: 1; color: #111; background: transparent; font-size: 12px; }
 .returns-toolbar select { width: 190px; height: 40px; padding: 0 11px; border: 2px solid #111; color: #111; background: #fff; font-size: 11px; font-weight: 800; text-transform: uppercase; }
 .returns-list-card { padding: 16px 28px 0; }
-.returns-table-scroll { overflow: auto; }
+.returns-table-scroll { width: 100%; max-width: 100%; min-width: 0; overflow-x: auto; }
 .returns-list-card > .returns-table-scroll { border: 2px solid #111; background: #fff; }
 .returns-table { width: 100%; min-width: 760px; border-collapse: collapse; background: #fff; }
 .returns-table--list { min-width: 1430px; }
@@ -90,7 +90,7 @@
 .return-modal > header h2 { font-size: 16px; font-weight: 900; }
 .return-modal > header button { width: 34px; height: 34px; display: grid; place-items: center; color: #fff; font-size: 22px; }
 .returns-modal-search { margin: 16px 18px; padding: 0 12px; }
-.returns-modal-table-wrap { max-height: min(540px, 64vh); overflow: auto; }
+.returns-modal-table-wrap { width: 100%; max-width: 100%; min-width: 0; max-height: min(540px, 64vh); overflow: auto; }
 .returns-modal-table-wrap .returns-table { min-width: 900px; }
 .return-modal-footer { padding: 16px 18px; display: flex; justify-content: flex-end; gap: 10px; border-top: 1px solid #d9d9d9; }
 .refund-modal-body { padding: 18px; display: grid; gap: 14px; }
