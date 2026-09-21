@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, AlertCircle, Check } from 'lucide-react';
 import AuthLayout from '../components/AuthLayout';
 import './Auth.css';
+import { isStaffAccount } from '../../auth/accountModel';
 
 const Login = () => {
   const navigate = useNavigate();
@@ -36,8 +37,17 @@ const Login = () => {
       setLoginFailed(true);
       return;
     }
-    // Simulate login logic
-    localStorage.setItem('user', JSON.stringify({ name: 'Nguyễn Văn An', email: 'demo@ruventu.com' }));
+    const account = login(formData.account, formData.password);
+    if (!account) {
+      setLoginFailed(true);
+      return;
+    }
+
+    if (isStaffAccount(account)) {
+      navigate('/admin', { replace: true });
+      return;
+    }
+
     setIsLoginSuccess(true);
   };
 
@@ -69,7 +79,17 @@ const Login = () => {
       <p className="auth-left-desc">
         Đăng nhập để theo dõi đơn hàng, nhận ưu đãi thành viên và truy cập lịch sử mua sắm.
       </p>
-      <div style={{ marginTop: 'auto' }}></div>
+      <div className="login-account-info">
+        <div className="account-info-title">Tài khoản kiểm thử</div>
+        <div className="account-info-row">
+          <span className="account-info-label">Admin</span>
+          <span className="account-info-value">admin@ruventu.vn / Admin@123</span>
+        </div>
+        <div className="account-info-row">
+          <span className="account-info-label">User</span>
+          <span className="account-info-value">user1@ruventu.com / User@123</span>
+        </div>
+      </div>
     </>
   );
 

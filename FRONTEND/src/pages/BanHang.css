@@ -1,5 +1,5 @@
 .pos-page { flex:1; min-height:0; display:flex; flex-direction:column; overflow:auto; background:#fff; color:#111; }
-.pos-page button,.pos-page input,.pos-page select { border-radius:0; font-family:inherit; }
+.pos-page button,.pos-page input,.pos-page select { border-radius:0; }
 .pos-page button { cursor:pointer; }
 .pos-page button:focus-visible,.pos-page input:focus-visible,.pos-page select:focus-visible { outline:2px solid var(--color-brand-red); outline-offset:2px; }
 .pos-toolbar { min-height:64px; display:flex; justify-content:flex-end; align-items:center; padding:10px 16px; border-bottom:2px solid #111; background:#fafafa; }

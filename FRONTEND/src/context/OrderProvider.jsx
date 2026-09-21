@@ -31,6 +31,14 @@ export default function OrderProvider({ children }) {
     writeSharedState(STORAGE_KEY, next, { slice: 'orders', action: history?.title || 'updated', entityId: orderId });
   };
 
+  const addOrder = (order) => {
+    const next = [order, ...ordersRef.current];
+    ordersRef.current = next;
+    setOrders(next);
+    writeSharedState(STORAGE_KEY, next, { slice: 'orders', action: 'created', entityId: order.id });
+    return order;
+  };
+
   const cancelOrder = (orderId, reason) => patchOrder(orderId, {
     status: 'Đã hủy',
     packing: 'Hủy đóng gói',
@@ -69,6 +77,8 @@ export default function OrderProvider({ children }) {
 
   const value = {
     orders,
+    patchOrder,
+    addOrder,
     cancelOrder,
     confirmPayment,
     completePacking,

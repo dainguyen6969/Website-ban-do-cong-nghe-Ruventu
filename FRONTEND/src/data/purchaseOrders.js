@@ -41,6 +41,21 @@ const seedOrders = [
   ['PN-2026-008', 2, 'Hoàn trả một phần', 'Trả một phần', '01/08/2026', [item('pv-i7-14700k', 16, 8617500, 16, 2)], 70000000],
   ['PN-2026-009', 3, 'Đặt hàng', 'Chưa trả', '06/09/2026', [item('pv-990pro-2tb', 15, 9306666)], 0],
   ['PN-2026-010', 1, 'Hoàn trả toàn bộ', 'Đã trả', '29/07/2026', [item('pv-4070ti-tuf', 4, 12980000, 4, 4)], 57112000],
+  ['PN-2026-011', 6, 'Đặt hàng', 'Chưa trả', '16/09/2026', [item('pv-4070s-gxs', 12, 11750000)], 0],
+  ['PN-2026-012', 7, 'Đã duyệt', 'Chưa trả', '15/09/2026', [item('pv-ddr5-64', 18, 8450000)], 0],
+  ['PN-2026-013', 0, 'Đã nhập kho', 'Đã trả', '14/09/2026', [item('pv-4090-tuf', 5, 22950000, 5)], 126225000],
+  ['PN-2026-014', 1, 'Đã hủy', 'Chưa trả', '13/09/2026', [item('pv-4080s-gxs', 10, 12850000)], 0],
+  ['PN-2026-015', 2, 'Hoàn trả một phần', 'Trả một phần', '12/09/2026', [item('pv-i7-14700k', 20, 8720000, 20, 3)], 96000000],
+  ['PN-2026-016', 3, 'Đã nhập kho', 'Đã trả', '11/09/2026', [item('pv-990pro-2tb', 24, 9250000, 24)], 244200000],
+  ['PN-2026-017', 4, 'Đã duyệt', 'Trả một phần', '10/09/2026', [item('pv-ddr5-64', 14, 8520000)], 60000000],
+  ['PN-2026-018', 5, 'Đặt hàng', 'Chưa trả', '09/09/2026', [item('pv-4070ti-tuf', 9, 12790000)], 0],
+  ['PN-2026-019', 6, 'Hoàn trả toàn bộ', 'Đã trả', '08/09/2026', [item('pv-4090-strix', 2, 24750000, 2, 2)], 54450000],
+  ['PN-2026-020', 7, 'Đã nhập kho', 'Trả một phần', '04/09/2026', [item('pv-4070s-gxs', 16, 11680000, 16)], 120000000],
+  ['PN-2026-021', 0, 'Đã duyệt', 'Chưa trả', '31/08/2026', [item('pv-4090-tuf', 6, 22800000)], 0],
+  ['PN-2026-022', 1, 'Hoàn trả một phần', 'Đã trả', '28/08/2026', [item('pv-4080s-gxs', 8, 12690000, 8, 1)], 111672000],
+  ['PN-2026-023', 2, 'Đã hủy', 'Chưa trả', '24/08/2026', [item('pv-i7-14700k', 11, 8850000)], 0],
+  ['PN-2026-024', 3, 'Đã nhập kho', 'Đã trả', '21/08/2026', [item('pv-990pro-2tb', 20, 9180000, 20)], 201960000],
+  ['PN-2026-025', 4, 'Đặt hàng', 'Chưa trả', '17/08/2026', [item('pv-ddr5-64', 22, 8380000)], 0],
 ].map(([id, supplierIndex, status, paymentStatus, createdAt, items, paid]) => ({
   id, supplierId: suppliers[supplierIndex].id, warehouseId: supplierIndex === 1 ? 'KHO-HCM' : 'KHO-HN', status, paymentStatus, createdAt, items, vat: true, paid,
 }));
@@ -52,7 +67,17 @@ export const getSupplier = (id) => suppliers.find((supplier) => supplier.id === 
 export const getWarehouse = (id) => warehouses.find((warehouse) => warehouse.id === id);
 
 export function getPurchaseOrders() {
-  try { const saved = JSON.parse(localStorage.getItem(STORAGE_KEY)); if (Array.isArray(saved)) return saved; } catch { /* use seed */ }
+  try {
+    const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
+    if (Array.isArray(saved)) {
+      const savedIds = new Set(saved.map((order) => order.id));
+      const missingSeedOrders = seedOrders.filter((order) => !savedIds.has(order.id));
+      if (!missingSeedOrders.length) return saved;
+      const merged = [...saved, ...missingSeedOrders];
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
+      return merged;
+    }
+  } catch { /* use seed */ }
   localStorage.setItem(STORAGE_KEY, JSON.stringify(seedOrders));
   return seedOrders;
 }

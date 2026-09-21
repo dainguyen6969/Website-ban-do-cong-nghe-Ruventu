@@ -20,6 +20,22 @@ import ChiTietSerial from './pages/ChiTietSerial';
 import ComboSanPham from './pages/ComboSanPham';
 import ThemComboSanPham from './pages/ThemComboSanPham';
 import ChiTietCombo from './pages/ChiTietCombo';
+import DanhSachNhapHang from './pages/DanhSachNhapHang';
+import TaoDonNhapHang from './pages/TaoDonNhapHang';
+import ChiTietNhapHang from './pages/ChiTietNhapHang';
+import KiemHang from './pages/KiemHang';
+import TaoPhieuKiemHang from './pages/TaoPhieuKiemHang';
+import ChiTietPhieuKiemHang from './pages/ChiTietPhieuKiemHang';
+import DanhSachKhachHang from './pages/DanhSachKhachHang';
+import ChiTietKhachHang from './pages/ChiTietKhachHang';
+import ChiTietDonHang from './pages/ChiTietDonHang';
+import NhaCungCap from './pages/NhaCungCap';
+import DoiTacVanChuyen from './pages/DoiTacVanChuyen';
+import { DanhSachNhanVien, ChiTietNhanVien } from './pages/NhanVien';
+import VaiTro from './pages/VaiTro';
+import PermissionGate from './components/PermissionGate';
+import CustomerProvider from './context/CustomerProvider';
+import OrderProvider from './context/OrderProvider';
 import './index.css';
 import './App.css';
 
@@ -29,11 +45,13 @@ export default function AdminApp() {
   const toggleSidebar = () => setSidebarCollapsed((prev) => !prev);
 
   return (
-    <div className="app-layout admin-app">
-      <Sidebar collapsed={sidebarCollapsed} onToggle={toggleSidebar} />
-      <div className="app-layout__main">
-        <Header />
-        <Routes>
+    <CustomerProvider>
+      <OrderProvider>
+        <div className="app-layout admin-app">
+        <Sidebar collapsed={sidebarCollapsed} onToggle={toggleSidebar} />
+        <div className="app-layout__main">
+          <Header />
+          <PermissionGate><Routes>
           {/* Default redirect */}
           <Route path="/" element={<Navigate to="/admin/don-hang/danh-sach-don-hang" replace />} />
 
@@ -57,10 +75,17 @@ export default function AdminApp() {
           <Route path="/admin/san-pham/toan-bo-phien-ban" element={<Navigate to="/kho-hang/quan-ly-phien-ban" replace />} />
           <Route path="/admin/san-pham/danh-sach-serial" element={<Navigate to="/kho-hang/danh-sach-serial" replace />} />
           <Route path="/admin/san-pham/combo-san-pham" element={<Navigate to="/kho-hang/combo-san-pham" replace />} />
-          <Route path="/admin/san-pham/nhap-hang" element={<PlaceholderPage title="Nhập hàng" />} />
-          <Route path="/admin/san-pham/kiem-hang" element={<PlaceholderPage title="Kiểm hàng" />} />
-          <Route path="/admin/khach-hang-doi-tac" element={<PlaceholderPage title="Khách hàng & Đối tác" />} />
-          <Route path="/admin/nhan-vien" element={<PlaceholderPage title="Nhân viên" />} />
+          <Route path="/admin/san-pham/nhap-hang" element={<Navigate to="/kho-hang/nhap-hang" replace />} />
+          <Route path="/admin/san-pham/kiem-hang" element={<Navigate to="/kho-hang/kiem-hang" replace />} />
+          <Route path="/admin/khach-hang-doi-tac" element={<Navigate to="/admin/khach-hang-doi-tac/khach-hang" replace />} />
+          <Route path="/admin/khach-hang-doi-tac/khach-hang" element={<DanhSachKhachHang />} />
+          <Route path="/admin/khach-hang-doi-tac/khach-hang/:customerId" element={<ChiTietKhachHang />} />
+          <Route path="/admin/khach-hang-doi-tac/nha-cung-cap" element={<NhaCungCap />} />
+          <Route path="/admin/khach-hang-doi-tac/doi-tac-van-chuyen" element={<DoiTacVanChuyen />} />
+          <Route path="/admin/nhan-vien" element={<Navigate to="/admin/nhan-vien/danh-sach" replace />} />
+          <Route path="/admin/nhan-vien/danh-sach" element={<DanhSachNhanVien />} />
+          <Route path="/admin/nhan-vien/vai-tro" element={<VaiTro />} />
+          <Route path="/admin/nhan-vien/:accountId" element={<ChiTietNhanVien />} />
           <Route path="/admin/khuyen-mai" element={<Navigate to="/admin/khuyen-mai/danh-sach-khuyen-mai" replace />} />
           <Route path="/admin/khuyen-mai/danh-sach-khuyen-mai" element={<PlaceholderPage title="Danh sách khuyến mại" />} />
           <Route path="/admin/khuyen-mai/tao-khuyen-mai" element={<TaoKhuyenMai />} />
@@ -75,13 +100,18 @@ export default function AdminApp() {
             <Route path="danh-sach-don-hang" element={<DanhSachDonHang />} />
             <Route path="dat-hang-online" element={<DatHangOnline />} />
             <Route path="quan-ly-giao-hang" element={<QuanLyGiaoHang />} />
+            <Route path="quan-ly-giao-hang/:deliveryId" element={<QuanLyGiaoHang />} />
             <Route path="khach-tra-hang" element={<KhachTraHang />} />
+            <Route path="khach-tra-hang/tao/:orderId" element={<KhachTraHang />} />
+            <Route path="khach-tra-hang/:returnId" element={<KhachTraHang />} />
           </Route>
 
           {/* Catch-all fallback */}
           <Route path="*" element={<Navigate to="/admin/don-hang/danh-sach-don-hang" replace />} />
-        </Routes>
-      </div>
-    </div>
+          </Routes></PermissionGate>
+        </div>
+        </div>
+      </OrderProvider>
+    </CustomerProvider>
   );
 }

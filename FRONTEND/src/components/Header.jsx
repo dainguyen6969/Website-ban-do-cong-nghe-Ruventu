@@ -26,6 +26,16 @@ export default function Header({ notificationCount = 0 }) {
   const isSerialDetail = currentPath.startsWith('/kho-hang/danh-sach-serial/');
   const isSerialList = currentPath === '/kho-hang/danh-sach-serial';
   const isComboPage = currentPath.startsWith('/kho-hang/combo-san-pham');
+  const isPurchasePage = currentPath.startsWith('/kho-hang/nhap-hang');
+  const isStockCheckPage = currentPath.startsWith('/kho-hang/kiem-hang');
+  const isStockCheckCreate = currentPath === '/kho-hang/kiem-hang/tao-moi' || currentPath.endsWith('/chinh-sua');
+  const isStockCheckDetail = isStockCheckPage && currentPath !== '/kho-hang/kiem-hang' && !isStockCheckCreate;
+  const isCustomerDetail = /^\/admin\/khach-hang-doi-tac\/khach-hang\/[^/]+$/.test(currentPath);
+  const isEmployeeDetail = /^\/admin\/nhan-vien\/[^/]+$/.test(currentPath) && !currentPath.endsWith('/danh-sach') && !currentPath.endsWith('/vai-tro');
+  const isRolePage = currentPath === '/admin/nhan-vien/vai-tro';
+  const isSupplierPage = currentPath === '/admin/khach-hang-doi-tac/nha-cung-cap';
+  const isShippingPartnerPage = currentPath === '/admin/khach-hang-doi-tac/doi-tac-van-chuyen';
+  const isOrderDetail = /^\/admin\/don-hang\/danh-sach-don-hang\/[^/]+$/.test(currentPath);
   let currentPageName = 'ĐƠN HÀNG';
   const isCreatePromotion = currentPath === '/admin/khuyen-mai/tao-khuyen-mai';
   
@@ -44,7 +54,57 @@ export default function Header({ notificationCount = 0 }) {
             ADMIN
           </span>
           <span className="header__breadcrumb-sep" aria-hidden="true">›</span>
-          {isComboPage ? (
+          {isOrderDetail ? (
+            <>
+              <span className="header__breadcrumb-item header__breadcrumb-item--muted">ĐƠN HÀNG</span>
+              <span className="header__breadcrumb-sep" aria-hidden="true">›</span>
+              <span className="header__breadcrumb-item header__breadcrumb-item--active">CHI TIẾT ĐƠN HÀNG</span>
+            </>
+          ) : isShippingPartnerPage ? (
+            <>
+              <span className="header__breadcrumb-item header__breadcrumb-item--muted">KHÁCH HÀNG &amp; ĐỐI TÁC</span>
+              <span className="header__breadcrumb-sep" aria-hidden="true">›</span>
+              {location.state?.partnerId && <><span className="header__breadcrumb-item header__breadcrumb-item--muted">ĐỐI TÁC VẬN CHUYỂN</span><span className="header__breadcrumb-sep" aria-hidden="true">›</span></>}
+              <span className="header__breadcrumb-item header__breadcrumb-item--active">{location.state?.partnerId ? 'CHI TIẾT ĐỐI TÁC VẬN CHUYỂN' : 'ĐỐI TÁC VẬN CHUYỂN'}</span>
+            </>
+          ) : isSupplierPage ? (
+            <>
+              <span className="header__breadcrumb-item header__breadcrumb-item--muted">KHÁCH HÀNG &amp; ĐỐI TÁC</span>
+              <span className="header__breadcrumb-sep" aria-hidden="true">›</span>
+              {location.state?.supplierId && <><span className="header__breadcrumb-item header__breadcrumb-item--muted">NHÀ CUNG CẤP</span><span className="header__breadcrumb-sep" aria-hidden="true">›</span></>}
+              <span className="header__breadcrumb-item header__breadcrumb-item--active">{location.state?.supplierId ? 'CHI TIẾT NHÀ CUNG CẤP' : 'NHÀ CUNG CẤP'}</span>
+            </>
+          ) : isRolePage ? (
+            <span className="header__breadcrumb-item header__breadcrumb-item--active">VAI TRÒ</span>
+          ) : isEmployeeDetail ? (
+            <>
+              <span className="header__breadcrumb-item header__breadcrumb-item--muted">NHÂN VIÊN</span>
+              <span className="header__breadcrumb-sep" aria-hidden="true">›</span>
+              <span className="header__breadcrumb-item header__breadcrumb-item--active">CHI TIẾT NHÂN VIÊN</span>
+            </>
+          ) : isCustomerDetail ? (
+            <>
+              <span className="header__breadcrumb-item header__breadcrumb-item--muted">KHÁCH HÀNG &amp; ĐỐI TÁC</span>
+              <span className="header__breadcrumb-sep" aria-hidden="true">›</span>
+              <span className="header__breadcrumb-item header__breadcrumb-item--active">CHI TIẾT KHÁCH HÀNG</span>
+            </>
+          ) : isStockCheckPage ? (
+            <>
+              <span className="header__breadcrumb-item header__breadcrumb-item--muted">KHO HÀNG</span>
+              <span className="header__breadcrumb-sep" aria-hidden="true">›</span>
+              <span className={`header__breadcrumb-item ${isStockCheckCreate || isStockCheckDetail ? 'header__breadcrumb-item--muted' : 'header__breadcrumb-item--active'}`}>KIỂM HÀNG</span>
+              {(isStockCheckCreate || isStockCheckDetail) && <>
+                <span className="header__breadcrumb-sep" aria-hidden="true">›</span>
+                <span className="header__breadcrumb-item header__breadcrumb-item--active">{isStockCheckCreate ? 'TẠO PHIẾU KIỂM HÀNG' : 'CHI TIẾT PHIẾU KIỂM HÀNG'}</span>
+              </>}
+            </>
+          ) : isPurchasePage ? (
+            <>
+              <span className="header__breadcrumb-item header__breadcrumb-item--muted">KHO HÀNG</span>
+              <span className="header__breadcrumb-sep" aria-hidden="true">›</span>
+              <span className="header__breadcrumb-item header__breadcrumb-item--active">{currentPath.includes('/tao-moi') ? 'TẠO / CHỈNH SỬA ĐƠN NHẬP HÀNG' : currentPath === '/kho-hang/nhap-hang' ? 'NHẬP HÀNG' : 'CHI TIẾT ĐƠN NHẬP HÀNG'}</span>
+            </>
+          ) : isComboPage ? (
             <>
               <span className="header__breadcrumb-item header__breadcrumb-item--muted">KHO HÀNG</span>
               <span className="header__breadcrumb-sep" aria-hidden="true">›</span>

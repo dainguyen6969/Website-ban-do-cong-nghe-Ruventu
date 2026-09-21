@@ -16,7 +16,8 @@ import com.example.dantruventu.Repository.ThuongHieuRepository;
 import com.example.dantruventu.Repository.product.AnhSanPhamRepository;
 import com.example.dantruventu.Repository.product.PhienBanSanPhamRepository;
 import com.example.dantruventu.Repository.product.SanPhamRepository;
-import com.example.dantruventu.Repository.product.TonKhoRepository;
+import com.example.dantruventu.Repository.warehouse.AdminTonKhoRepository;
+import com.example.dantruventu.Repository.warehouse.TonKhoRepository;
 import com.example.dantruventu.Specification.SanPhamSpecification;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -51,6 +52,7 @@ public class AdminProductService {
   private final ThuongHieuRepository thuongHieuRepository;
 
   private final SanPhamMapper sanPhamMapper;
+  private final AdminTonKhoRepository adminTonKhoRepository;
 
   public AdminProductListResponse getProducts(
       String keyword,
@@ -87,7 +89,7 @@ public class AdminProductService {
 
   public AdminProductDetailResponse getProductDetail(Long id) {
 
-    SanPham product = requireProduct(id);
+    SanPham product = requireStandaloneForWrite(id);
 
     AdminProductDetailResponse response = sanPhamMapper.toDetailResponse(product);
 
@@ -107,7 +109,22 @@ public class AdminProductService {
 
     List<Long> variantIds = variants.stream().map(PhienBanSanPham::getId).toList();
 
-    Map<Long, Long> stockMap = getStockMap(variantIds);
+    final Map<Long, Long> stockMap;
+
+    if (product.getLoaiSanPham() == LoaiSanPham.BO_PC) {
+      if (variants.size() != 1) {
+        throw new AppException(ErrorCode.CONFLICT, "Combo phải có đúng một phiên bản bán");
+      }
+
+      long comboStock =
+          adminTonKhoRepository.findComboStocks(product.getId(), null).stream()
+              .mapToLong(row -> row.getTonCoTheBan())
+              .sum();
+
+      stockMap = Map.of(variants.getFirst().getId(), comboStock);
+    } else {
+      stockMap = getStockMap(variantIds);
+    }
 
     List<AdminProductDetailResponse.PhienBanData> variantResponses =
         variants.stream()
@@ -129,6 +146,11 @@ public class AdminProductService {
 
   @Transactional
   public AdminProductCreateResponse createProduct(AdminProductCreateRequest request) {
+
+    if (request.getLoaiSanPham() == LoaiSanPham.BO_PC) {
+      throw new AppException(
+          ErrorCode.INVALID_DATA, "Vui lòng dùng /api/v1/admin/combos để tạo combo");
+    }
 
     String maSanPham = request.getMaSanPham().trim();
 
@@ -185,7 +207,7 @@ public class AdminProductService {
   @Transactional
   public AdminProductUpdateResponse updateProduct(Long id, AdminProductUpdateRequest request) {
 
-    SanPham product = requireProduct(id);
+    SanPham product = requireStandaloneForWrite(id);
 
     String maSanPham = request.getMaSanPham().trim();
 
@@ -215,7 +237,7 @@ public class AdminProductService {
   public AdminProductVariantResponse addVariant(
       Long productId, ProductVariantCreateRequest request) {
 
-    SanPham product = requireProduct(productId);
+    SanPham product = requireStandaloneForWrite(productId);
 
     String maVach = request.getMaVach().trim();
 
@@ -237,7 +259,7 @@ public class AdminProductService {
   @Transactional
   public AdminProductStatusResponse softDelete(Long id) {
 
-    SanPham product = requireProduct(id);
+    SanPham product = requireStandaloneForWrite(id);
 
     if (product.getTrangThai() == TrangThaiCoBanEnum.NGUNG_HOAT_DONG) {
 
@@ -249,13 +271,6 @@ public class AdminProductService {
     product = sanPhamRepository.save(product);
 
     return sanPhamMapper.toStatusResponse(product);
-  }
-
-  private SanPham requireProduct(Long id) {
-
-    return sanPhamRepository
-        .findById(id)
-        .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "Không tìm thấy sản phẩm"));
   }
 
   private DanhMuc requireDanhMuc(Long id) {
@@ -340,5 +355,23 @@ public class AdminProductService {
     }
 
     return PageRequest.of(page, limit, Sort.by(direction, sortField));
+  }
+
+  private SanPham requireStandaloneForWrite(Long id) {
+    if (id == null || id <= 0) {
+      throw new AppException(ErrorCode.INVALID_DATA, "ID sản phẩm phải lớn hơn 0");
+    }
+
+    SanPham product =
+        sanPhamRepository
+            .findByIdForUpdate(id)
+            .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "Không tìm thấy sản phẩm"));
+
+    if (product.getLoaiSanPham() == LoaiSanPham.BO_PC) {
+      throw new AppException(
+          ErrorCode.CONFLICT, "Vui lòng dùng /api/v1/admin/combos để thao tác với combo");
+    }
+
+    return product;
   }
 }

@@ -28,6 +28,8 @@ const Header = () => {
       <header className="header">
         {/* Top Banner */}
         <div className="top-banner">
+          <button className="banner-control banner-control-prev" type="button" aria-label="Khuyến mãi trước">◀</button>
+          <button className="banner-control banner-control-next" type="button" aria-label="Khuyến mãi tiếp theo">▶</button>
           <p>MIỄN PHÍ VẬN CHUYỂN ĐƠN HÀNG TRÊN 5.000.000Đ - BẢO HÀNH CHÍNH HÃNG 36 THÁNG - HỖ TRỢ KỸ THUẬT 24/7</p>
         </div>
 
