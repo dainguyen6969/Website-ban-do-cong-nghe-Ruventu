@@ -1,5 +1,6 @@
 import { useLocation } from 'react-router-dom';
-import { HiOutlineBell, HiOutlineUser } from 'react-icons/hi';
+import { HiOutlineBell, HiOutlineMenu, HiOutlineUser } from 'react-icons/hi';
+import FontSwitcher from './FontSwitcher';
 import './Header.css';
 
 const routeTitleMap = {
@@ -16,7 +17,7 @@ const routeTitleMap = {
   '/admin/danh-muc': 'DANH MỤC',
 };
 
-export default function Header({ notificationCount = 0 }) {
+export default function Header({ notificationCount = 0, onMenuToggle, isMenuOpen = false }) {
   const location = useLocation();
   
   // Find current top-level route title
@@ -36,6 +37,8 @@ export default function Header({ notificationCount = 0 }) {
   const isSupplierPage = currentPath === '/admin/khach-hang-doi-tac/nha-cung-cap';
   const isShippingPartnerPage = currentPath === '/admin/khach-hang-doi-tac/doi-tac-van-chuyen';
   const isOrderDetail = /^\/admin\/don-hang\/danh-sach-don-hang\/[^/]+$/.test(currentPath);
+  const isCategoryDetail = /^\/admin\/danh-muc\/danh-muc-san-pham\/[^/]+$/.test(currentPath);
+  const isCategoryList = currentPath === '/admin/danh-muc/danh-muc-san-pham';
   let currentPageName = 'ĐƠN HÀNG';
   const isCreatePromotion = currentPath === '/admin/khuyen-mai/tao-khuyen-mai';
   
@@ -49,12 +52,30 @@ export default function Header({ notificationCount = 0 }) {
   return (
     <header className="header" role="banner">
       <div className="header__left">
+        <button
+          type="button"
+          className="header__mobile-menu"
+          onClick={onMenuToggle}
+          aria-label={isMenuOpen ? 'Đóng menu điều hướng' : 'Mở menu điều hướng'}
+          aria-expanded={isMenuOpen}
+          aria-controls="admin-sidebar"
+        >
+          <HiOutlineMenu size={22} />
+        </button>
         <nav className="header__breadcrumb" aria-label="Breadcrumb">
           <span className="header__breadcrumb-item header__breadcrumb-item--muted">
             ADMIN
           </span>
           <span className="header__breadcrumb-sep" aria-hidden="true">›</span>
-          {isOrderDetail ? (
+          {isCategoryDetail ? (
+            <>
+              <span className="header__breadcrumb-item header__breadcrumb-item--muted">DANH MỤC SẢN PHẨM</span>
+              <span className="header__breadcrumb-sep" aria-hidden="true">›</span>
+              <span className="header__breadcrumb-item header__breadcrumb-item--active">CHI TIẾT DANH MỤC</span>
+            </>
+          ) : isCategoryList ? (
+            <span className="header__breadcrumb-item header__breadcrumb-item--active">DANH MỤC SẢN PHẨM</span>
+          ) : isOrderDetail ? (
             <>
               <span className="header__breadcrumb-item header__breadcrumb-item--muted">ĐƠN HÀNG</span>
               <span className="header__breadcrumb-sep" aria-hidden="true">›</span>
@@ -156,8 +177,9 @@ export default function Header({ notificationCount = 0 }) {
 
         <div className="header__divider" aria-hidden="true" />
 
-        {/* Notification bell */}
-        <div className="header__group">
+        {/* Font switcher and notification bell */}
+        <div className="header__group header__utilities">
+          <FontSwitcher variant="admin" />
           <button
             className="header__icon-btn"
             id="notification-bell"

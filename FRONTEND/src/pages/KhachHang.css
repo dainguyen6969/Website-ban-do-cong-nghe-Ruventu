@@ -130,6 +130,8 @@
 
 .customer-table-wrap {
   width: 100%;
+  max-width: 100%;
+  min-width: 0;
   overflow-x: auto;
   border: 2px solid #090909;
 }
@@ -265,7 +267,7 @@
 .customer-order-history > header { min-height: 52px; justify-content: space-between; gap: 16px; }
 .customer-order-search { width: min(230px, 42%); height: 31px; border: 1px solid #484848; color: #8d949d; background: #0b0b0b; }
 .customer-order-search input { color: #fff; font-size: 10px; }
-.customer-history-table-wrap { overflow-x: auto; }
+.customer-history-table-wrap { width: 100%; max-width: 100%; min-width: 0; overflow-x: auto; }
 .customer-history-table { min-width: 980px; }
 .customer-history-table thead { background: #f4f4f4; }
 .customer-history-table th { color: #747b84; border-bottom: 1px solid #d7d7d7; }

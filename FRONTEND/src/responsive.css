@@ -1,0 +1,171 @@
+/* Shared responsive safety net for every admin route. Page styles keep their
+   visual identity; these rules only protect the viewport and common patterns. */
+.admin-app,
+.admin-app .app-layout__main,
+.admin-app main,
+.admin-app section,
+.admin-app form,
+.admin-app [class$="-page"],
+.admin-app [class$="-content"],
+.admin-app [class$="-grid"] {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.admin-app img,
+.admin-app video,
+.admin-app canvas,
+.admin-app svg {
+  max-width: 100%;
+}
+
+.admin-app :is(input, select, textarea) {
+  max-width: 100%;
+}
+
+.admin-app :is(
+  [class*="table-wrap"],
+  [class*="table-scroll"],
+  [class*="table-shell"],
+  .content__table-wrapper,
+  .selected-components,
+  .detail-components,
+  .line-table-wrap
+) {
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+@media (max-width: 1024px) {
+  .admin-app .main-content {
+    padding: 18px 20px 24px;
+  }
+
+  .admin-app :is(.purchase-fixed-footer, .stock-flow-footer) {
+    left: 0;
+  }
+
+  .admin-app :is(
+    .purchase-create-grid,
+    .purchase-detail-grid,
+    .stock-create-grid,
+    .stock-detail-grid,
+    .online-order-grid,
+    .combo-create-grid
+  ) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .admin-app .main-content {
+    padding: 14px;
+  }
+
+  .admin-app :is(.content__tabs, [class*="-tabs"]) {
+    max-width: 100%;
+    overflow-x: auto;
+    scrollbar-width: thin;
+  }
+
+  .admin-app :is(.content__tabs-divider, .content__filter-divider) {
+    width: calc(100% + 28px);
+    margin-left: -14px;
+  }
+
+  .admin-app .content__filter-row {
+    width: calc(100% + 28px);
+    margin-left: -14px;
+    padding-inline: 14px;
+  }
+
+  .admin-app :is(.content__actions, .heading-actions) {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+
+  .admin-app :is(
+    .supplier-modal,
+    .partner-modal,
+    .stock-modal,
+    .serial-modal,
+    [role="dialog"]
+  ) {
+    width: min(100%, calc(100vw - 20px));
+    max-width: calc(100vw - 20px);
+    max-height: calc(100dvh - 20px);
+    overflow: auto;
+  }
+
+  .admin-app :is(
+    .supplier-modal-backdrop,
+    .partner-modal-backdrop,
+    .stock-modal-backdrop,
+    .serial-modal-backdrop
+  ) {
+    padding: 10px;
+  }
+
+  .admin-app :is(
+    .supplier-form-grid,
+    .recipient-grid,
+    .combo-two-cols,
+    .variant-fields,
+    .detail-grid,
+    .promotion-layout
+  ) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .admin-app :is(.supplier-info, .partner-info) > div {
+    grid-template-columns: minmax(105px, 34%) minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 480px) {
+  .admin-app .main-content {
+    padding: 10px;
+  }
+
+  .admin-app :is(.content__tabs-divider, .content__filter-divider) {
+    width: calc(100% + 20px);
+    margin-left: -10px;
+  }
+
+  .admin-app .content__filter-row {
+    width: calc(100% + 20px);
+    margin-left: -10px;
+    padding-inline: 10px;
+  }
+
+  .admin-app :is(.content__actions, .heading-actions) > button,
+  .admin-app :is(.content__actions, .heading-actions) > a {
+    flex: 1 1 100%;
+    justify-content: center;
+  }
+
+  .admin-app :is(.purchase-fixed-footer, .stock-flow-footer) {
+    min-height: 70px;
+    height: auto;
+    padding: 10px;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .admin-app :is(.purchase-submit-area, .stock-submit-area) {
+    width: 100%;
+    max-width: none;
+    flex-wrap: wrap;
+  }
+
+  .admin-app :is(.modal-footer, .supplier-modal-footer, .partner-modal-footer, .stock-modal-body footer) {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .admin-app :is(.modal-footer, .supplier-modal-footer, .partner-modal-footer, .stock-modal-body footer) button {
+    width: 100%;
+  }
+}

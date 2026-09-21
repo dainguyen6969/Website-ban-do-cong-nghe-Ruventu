@@ -1,4 +1,6 @@
 .storefront-app {
+  --font-family-homepage: var(--font-family-base);
+
   --primary-red: #e60000;
   --primary-red-hover: #cc0000;
   --bg-dark: #111111;
@@ -23,6 +25,14 @@
   color: var(--text-dark);
   line-height: 1.5;
   overflow-x: hidden;
+  font-family: var(--font-family-homepage);
+}
+
+:where(.storefront-app) button,
+:where(.storefront-app) input,
+:where(.storefront-app) select,
+:where(.storefront-app) textarea {
+  font-family: var(--font-family-homepage);
 }
 
 :where(.storefront-app) a {
