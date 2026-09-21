@@ -24,7 +24,7 @@ public class SoSerialSanPham {
     @JoinColumn(name = "phien_ban_id", nullable = false)
     private PhienBanSanPham phienBan;
 
-  @Column(name = "so_serial", nullable = false, unique = true, length = 100)
+  @Column(name = "so_serial", nullable = false, unique = true)
   private String soSerial;
 
     @Enumerated(EnumType.STRING)

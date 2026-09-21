@@ -8,11 +8,15 @@ import java.util.List;
 
 @Entity
 @Table(
-    name = "nha_cung_cap",
-    uniqueConstraints = {
-      @UniqueConstraint(name = "uk_ncc_so_dien_thoai", columnNames = "so_dien_thoai"),
-      @UniqueConstraint(name = "uk_ncc_email", columnNames = "email")
-    })
+        name = "nha_cung_cap",
+        uniqueConstraints = {
+                @UniqueConstraint(
+                        name = "uk_ncc_so_dien_thoai",
+                        columnNames = "so_dien_thoai"),
+                @UniqueConstraint(
+                        name = "uk_ncc_email",
+                        columnNames = "email")
+        })
 @Getter
 @Setter
 @NoArgsConstructor

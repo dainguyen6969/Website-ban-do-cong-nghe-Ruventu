@@ -36,20 +36,6 @@ public class SecurityConfig {
                     .permitAll()
                     .anyRequest()
                     .authenticated())
-        .exceptionHandling(
-            exceptions ->
-                exceptions.authenticationEntryPoint(
-                    (request, response, exception) -> {
-                      response.setStatus(401);
-                      response.setContentType("application/json");
-                      response.setCharacterEncoding("UTF-8");
-                      response
-                          .getWriter()
-                          .write(
-                              "{\"status\":401,"
-                                  + "\"message\":\"Chưa đăng nhập\","
-                                  + "\"data\":null}");
-                    }))
         .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
     return http.build();

@@ -1,8 +1,9 @@
 package com.example.dantruventu.DTO.Response.partner;
 
 import com.example.dantruventu.DTO.Response.PaginationResponse;
-import java.util.List;
 import lombok.*;
+
+import java.util.List;
 
 @Getter
 @Setter
@@ -11,7 +12,7 @@ import lombok.*;
 @Builder
 public class AdminSupplierListResponse {
 
-  private List<AdminSupplierListItemResponse> items;
+    private List<AdminSupplierListItemResponse> items;
 
-  private PaginationResponse pagination;
+    private PaginationResponse pagination;
 }
