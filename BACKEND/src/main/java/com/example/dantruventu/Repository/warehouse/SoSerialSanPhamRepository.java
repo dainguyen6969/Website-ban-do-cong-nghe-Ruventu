@@ -37,4 +37,14 @@ public interface SoSerialSanPhamRepository
   boolean existsBySoSerialIn(java.util.Collection<String> soSerials);
 
   long countByPhienBanId(Long phienBanId);
+
+  @Lock(LockModeType.PESSIMISTIC_WRITE)
+  @Query(
+      """
+    SELECT s
+    FROM SoSerialSanPham s
+    WHERE s.donHang.id = :orderId
+    ORDER BY s.id
+    """)
+  java.util.List<SoSerialSanPham> findByOrderForUpdate(@Param("orderId") Long orderId);
 }

@@ -34,4 +34,8 @@ public interface TheKhoRepository
       @Param("donNhapId") Long donNhapId,
       @Param("phienBanId") Long phienBanId,
       @Param("loai") LoaiGiaoDichKho loai);
+
+  java.util.List<com.example.dantruventu.Entity.TheKho>
+      findByMaChungTuGocAndLoaiGiaoDichOrderByIdAsc(
+          Long maChungTuGoc, LoaiGiaoDichKho loaiGiaoDich);
 }
