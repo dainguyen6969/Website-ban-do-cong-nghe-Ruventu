@@ -1,6 +1,7 @@
 .customer-page {
   flex: 1;
   min-width: 0;
+  min-height: 0;
   overflow: auto;
   background: #fff;
   color: #0b0b0b;

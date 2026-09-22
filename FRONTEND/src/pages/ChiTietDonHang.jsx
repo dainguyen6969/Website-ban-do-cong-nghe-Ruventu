@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { HiOutlineArrowLeft } from 'react-icons/hi';
+import DetailTablePagination from '../components/DetailTablePagination';
+import useDetailTablePagination from '../hooks/useDetailTablePagination';
 import useOrders from '../context/useOrders';
 import { formatMoney } from '../data/mockOrders';
 import { OrderStateBadge } from './DanhSachDonHang';
@@ -13,6 +15,7 @@ export default function ChiTietDonHang() {
   const [isCancelOpen, setIsCancelOpen] = useState(false);
   const [cancelReason, setCancelReason] = useState('');
   const order = orders.find((item) => item.id === orderId);
+  const productPagination = useDetailTablePagination(order?.products);
 
   useEffect(() => {
     if (!isCancelOpen) return undefined;
@@ -51,8 +54,9 @@ export default function ChiTietDonHang() {
           <DetailPanel title="SẢN PHẨM TRONG ĐƠN" className="order-products-panel">
             <div className="order-products-table-wrap"><table className="order-products-table">
               <thead><tr><th>ẢNH</th><th>SẢN PHẨM / PHIÊN BẢN</th><th>MÃ VẠCH</th><th>ĐƠN GIÁ</th><th>SL</th><th>THÀNH TIỀN</th></tr></thead>
-              <tbody>{order.products.map((product) => <tr key={product.barcode}><td><img src={product.image} alt="" /></td><td><strong>{product.name}</strong><span>{product.variant}</span></td><td>{product.barcode}</td><td className="align-right">{formatMoney(product.unitPrice)}</td><td className="align-center">{product.quantity}</td><td className="align-right"><strong>{formatMoney(product.subtotal)}</strong></td></tr>)}</tbody>
+              <tbody>{productPagination.visibleItems.map((product) => <tr key={product.barcode}><td><img src={product.image} alt="" /></td><td><strong>{product.name}</strong><span>{product.variant}</span></td><td>{product.barcode}</td><td className="align-right">{formatMoney(product.unitPrice)}</td><td className="align-center">{product.quantity}</td><td className="align-right"><strong>{formatMoney(product.subtotal)}</strong></td></tr>)}</tbody>
             </table></div>
+            <DetailTablePagination totalItems={order.products.length} currentPage={productPagination.currentPage} onPageChange={productPagination.onPageChange} idPrefix="order-products" />
           </DetailPanel>
 
           <DetailPanel title="THANH TOÁN">

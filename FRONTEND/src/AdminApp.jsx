@@ -34,6 +34,7 @@ import DoiTacVanChuyen from './pages/DoiTacVanChuyen';
 import { DanhSachNhanVien, ChiTietNhanVien } from './pages/NhanVien';
 import VaiTro from './pages/VaiTro';
 import DanhMucSanPham, { ChiTietDanhMuc } from './pages/DanhMucSanPham';
+import ThuongHieu, { ChiTietThuongHieu } from './pages/ThuongHieu';
 import PermissionGate from './components/PermissionGate';
 import CustomerProvider from './context/CustomerProvider';
 import OrderProvider from './context/OrderProvider';
@@ -118,7 +119,8 @@ export default function AdminApp() {
           <Route path="/admin/danh-muc/tags" element={<PlaceholderPage title="Tags" />} />
           <Route path="/admin/danh-muc/danh-muc-san-pham" element={<DanhMucSanPham />} />
           <Route path="/admin/danh-muc/danh-muc-san-pham/:categoryId" element={<ChiTietDanhMuc />} />
-          <Route path="/admin/danh-muc/thuong-hieu" element={<PlaceholderPage title="Thương hiệu" />} />
+          <Route path="/admin/danh-muc/thuong-hieu" element={<ThuongHieu />} />
+          <Route path="/admin/danh-muc/thuong-hieu/:brandId" element={<ChiTietThuongHieu />} />
 
           {/* Đơn hàng section — shared layout with 4 tabs */}
           <Route path="/admin/don-hang" element={<OrderLayout />}>
