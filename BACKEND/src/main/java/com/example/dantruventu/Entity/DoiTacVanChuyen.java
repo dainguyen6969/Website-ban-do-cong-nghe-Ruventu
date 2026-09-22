@@ -1,7 +1,7 @@
 package com.example.dantruventu.Entity;
 
 import com.example.dantruventu.Enum.LoaiDoiTacVanChuyenEnum;
-import com.example.dantruventu.Enum.TrangThaiDoiTacVanChuyenEnum;
+import com.example.dantruventu.Enum.TrangThaiCoBanEnum;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 import lombok.*;
@@ -43,10 +43,8 @@ public class DoiTacVanChuyen {
   private LoaiDoiTacVanChuyenEnum loaiDoiTac;
 
   @Builder.Default
-  @Enumerated(EnumType.STRING)
-  @JdbcTypeCode(SqlTypes.VARCHAR)
-  @Column(name = "trang_thai", nullable = false, length = 30)
-  private TrangThaiDoiTacVanChuyenEnum trangThai = TrangThaiDoiTacVanChuyenEnum.DANG_HOAT_DONG;
+  @Column(name = "trang_thai", nullable = false)
+  private TrangThaiCoBanEnum trangThai = TrangThaiCoBanEnum.HOAT_DONG;
 
   @Column(name = "ghi_chu", columnDefinition = "TEXT")
   private String ghiChu;

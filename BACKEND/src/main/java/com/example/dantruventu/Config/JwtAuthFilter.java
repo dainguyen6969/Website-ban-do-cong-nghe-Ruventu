@@ -41,8 +41,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     String token = authorization.substring(7);
 
     if (!jwtService.isAccessTokenValid(token)) {
-
-      response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+      writeError(response, 401, "Token không hợp lệ hoặc đã hết hạn");
       return;
     }
 
@@ -51,14 +50,12 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     NguoiDung user = nguoiDungRepository.findByIdWithVaiTro(userId).orElse(null);
 
     if (user == null) {
-
-      response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+      writeError(response, 401, "Tài khoản không tồn tại");
       return;
     }
 
     if (user.getTrangThai() != TrangThaiCoBanEnum.HOAT_DONG) {
-
-      response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+      writeError(response, 403, "Tài khoản đã bị khóa");
       return;
     }
 
@@ -73,5 +70,20 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     SecurityContextHolder.getContext().setAuthentication(authentication);
 
     filterChain.doFilter(request, response);
+  }
+
+  private void writeError(HttpServletResponse response, int status, String message)
+      throws IOException {
+
+    SecurityContextHolder.clearContext();
+
+    response.setStatus(status);
+    response.setContentType("application/json");
+    response.setCharacterEncoding("UTF-8");
+
+    // Các message gọi vào đây là chuỗi cố định của ứng dụng.
+    response
+        .getWriter()
+        .write("{\"status\":" + status + ",\"message\":\"" + message + "\",\"data\":null}");
   }
 }
