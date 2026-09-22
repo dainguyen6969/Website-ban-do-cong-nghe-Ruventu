@@ -1,12 +1,15 @@
 package com.example.dantruventu.Error;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
+@Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
@@ -49,6 +52,21 @@ public class GlobalExceptionHandler {
                 .body(response);
     }
 
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<ErrorResponse> handleTypeMismatch(
+            MethodArgumentTypeMismatchException exception
+    ) {
+
+        ErrorResponse response = new ErrorResponse(
+                ErrorCode.INVALID_DATA.getStatus().value(),
+                ErrorCode.INVALID_DATA.getMessage()
+        );
+
+        return ResponseEntity
+                .status(ErrorCode.INVALID_DATA.getStatus())
+                .body(response);
+    }
+
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<ErrorResponse> handleMessageNotReadable(
             HttpMessageNotReadableException exception
@@ -83,6 +101,11 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleException(
             Exception exception
     ) {
+
+        log.error(
+                "Đã xảy ra lỗi hệ thống chưa được xử lý",
+                exception
+        );
 
         ErrorResponse response = new ErrorResponse(
                 ErrorCode.INTERNAL_SERVER_ERROR.getStatus().value(),

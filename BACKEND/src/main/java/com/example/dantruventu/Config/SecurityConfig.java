@@ -35,7 +35,9 @@ public class SecurityConfig {
                                 "/api/v1/auth/login",
                                 "/api/v1/auth/refresh",
                                 "/api/v1/auth/logout",
-                                "/api/v1/cart/**"
+                                "/api/v1/cart/**",
+                                "/api/v1/products",
+                                "/api/v1/products/**"
                         )
                         .permitAll()
                         .anyRequest()
