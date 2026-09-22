@@ -1,6 +1,7 @@
 .category-page {
   flex: 1;
   min-width: 0;
+  min-height: 0;
   overflow: auto;
   padding: 28px 32px 40px;
   background: #fff;

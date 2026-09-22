@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { HiOutlineArrowLeft, HiOutlineSearch } from 'react-icons/hi';
+import DetailTablePagination from '../components/DetailTablePagination';
+import useDetailTablePagination from '../hooks/useDetailTablePagination';
 import useCustomers from '../context/useCustomers';
 import { formatMoney } from '../data/mockOrders';
 import useOrders from '../context/useOrders';
@@ -17,6 +19,7 @@ export default function ChiTietKhachHang() {
   const customer = customers.find((item) => item.id === customerId);
   const orders = useMemo(() => allOrders.filter((order) => order.customerId === customerId), [allOrders, customerId]);
   const filteredOrders = orders.filter((order) => order.id.toLowerCase().includes(orderSearch.trim().toLowerCase()));
+  const orderPagination = useDetailTablePagination(filteredOrders);
 
   useEffect(() => {
     if (!modalMode) return undefined;
@@ -110,7 +113,7 @@ export default function ChiTietKhachHang() {
                 </tr>
               </thead>
               <tbody>
-                {filteredOrders.map((order) => (
+                {orderPagination.visibleItems.map((order) => (
                   <tr key={order.id}>
                     <td className="customer-order-code">{order.id}</td>
                     <td><OrderBadge type={order.type}>{order.type.toUpperCase()}</OrderBadge></td>
@@ -126,6 +129,7 @@ export default function ChiTietKhachHang() {
               </tbody>
             </table>
           </div>
+          <DetailTablePagination totalItems={filteredOrders.length} currentPage={orderPagination.currentPage} onPageChange={orderPagination.onPageChange} idPrefix="customer-orders" />
         </section>
       </section>
 

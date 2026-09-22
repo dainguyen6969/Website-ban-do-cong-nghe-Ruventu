@@ -3,6 +3,8 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { HiOutlineArrowLeft, HiOutlinePlus, HiOutlineSearch, HiOutlineX } from 'react-icons/hi';
 import FilterDropdown from '../components/FilterDropdown';
 import TablePagination from '../components/TablePagination';
+import DetailTablePagination from '../components/DetailTablePagination';
+import useDetailTablePagination from '../hooks/useDetailTablePagination';
 import { getPurchaseOrders, getWarehouse, totalOrder } from '../data/purchaseOrders';
 import {
   formatSupplierStatus,
@@ -175,12 +177,13 @@ function Breadcrumb({ detail = false }) {
 function SupplierDetail({ supplier, onBack, onEdit, showToast }) {
   const navigate = useNavigate();
   const orders = getPurchaseOrders().filter((order) => order.supplierId === supplier.id);
+  const orderPagination = useDetailTablePagination(orders);
   return <>
     <section className="supplier-hero supplier-detail-hero"><div><Breadcrumb detail /><div className="supplier-detail-meta"><span>{supplier.id}</span><SupplierStatus status={supplier.trangThai} /></div><h1>{supplier.tenNhaCungCap}</h1></div><div className="supplier-detail-actions"><button className="supplier-btn supplier-btn--outline" onClick={onBack}><HiOutlineArrowLeft /> QUAY LẠI</button><button className="supplier-btn supplier-btn--black" onClick={onEdit}>CHỈNH SỬA</button></div></section>
     <section className="supplier-detail-content">
       {showToast && <SuccessToast message="Cập nhật nhà cung cấp thành công" />}
       <SupplierPanel title="THÔNG TIN NHÀ CUNG CẤP"><dl className="supplier-info"><Info label="TRẠNG THÁI">{formatSupplierStatus(supplier.trangThai)}</Info><Info label="MÃ NHÀ CUNG CẤP">{supplier.id}</Info><Info label="TÊN NHÀ CUNG CẤP">{supplier.tenNhaCungCap}</Info><Info label="SỐ ĐIỆN THOẠI">{supplier.soDienThoai}</Info><Info label="EMAIL">{supplier.email || '—'}</Info><Info label="ĐỊA CHỈ">{supplier.diaChi || '—'}</Info></dl></SupplierPanel>
-      <SupplierPanel title="LỊCH SỬ NHẬP HÀNG"><div className="supplier-history-wrap"><table className="supplier-history"><thead><tr><th>MÃ ĐƠN NHẬP</th><th>TRẠNG THÁI ĐƠN</th><th>NHẬN HÀNG</th><th>GIÁ TRỊ</th><th>CHI NHÁNH / KHO</th><th>NGÀY TẠO</th></tr></thead><tbody>{orders.map((order) => <tr key={order.id}><td><button type="button" className="partner-order-link" onClick={() => navigate(`/kho-hang/nhap-hang/${order.id}`)}>{order.id}</button></td><td>{order.status.toUpperCase()}</td><td>{order.items.some((item) => item.received > 0) ? 'ĐÃ NHẬN' : 'CHƯA NHẬN'}</td><td>{money(totalOrder(order))}</td><td>{getWarehouse(order.warehouseId)?.name || '—'}</td><td>{order.createdAt}</td></tr>)}{!orders.length && <tr className="supplier-empty"><td colSpan="6">Chưa có lịch sử nhập hàng</td></tr>}</tbody></table></div></SupplierPanel>
+      <SupplierPanel title="LỊCH SỬ NHẬP HÀNG"><div className="supplier-history-wrap"><table className="supplier-history"><thead><tr><th>MÃ ĐƠN NHẬP</th><th>TRẠNG THÁI ĐƠN</th><th>NHẬN HÀNG</th><th>GIÁ TRỊ</th><th>CHI NHÁNH / KHO</th><th>NGÀY TẠO</th></tr></thead><tbody>{orderPagination.visibleItems.map((order) => <tr key={order.id}><td><button type="button" className="partner-order-link" onClick={() => navigate(`/kho-hang/nhap-hang/${order.id}`)}>{order.id}</button></td><td>{order.status.toUpperCase()}</td><td>{order.items.some((item) => item.received > 0) ? 'ĐÃ NHẬN' : 'CHƯA NHẬN'}</td><td>{money(totalOrder(order))}</td><td>{getWarehouse(order.warehouseId)?.name || '—'}</td><td>{order.createdAt}</td></tr>)}{!orders.length && <tr className="supplier-empty"><td colSpan="6">Chưa có lịch sử nhập hàng</td></tr>}</tbody></table></div><DetailTablePagination totalItems={orders.length} currentPage={orderPagination.currentPage} onPageChange={orderPagination.onPageChange} idPrefix="supplier-orders" /></SupplierPanel>
     </section>
   </>;
 }

@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { HiOutlineChevronDown, HiOutlineChevronRight, HiOutlineUpload, HiOutlineX } from 'react-icons/hi';
+import DetailTablePagination from '../components/DetailTablePagination';
+import useDetailTablePagination from '../hooks/useDetailTablePagination';
 import {
   createCategory,
   deactivateCategory,
@@ -236,13 +238,16 @@ export function ChiTietDanhMuc() {
   // oxlint-disable-next-line react/set-state-in-effect
   useEffect(() => { loadDetail(); }, [loadDetail]);
   const retry = () => { reload(); loadDetail(); };
+  const childCategories = categories.filter((item) => item.parentId === Number(categoryId));
+  const childPagination = useDetailTablePagination(childCategories);
+  const productPagination = useDetailTablePagination(detail?.products);
   if (listLoading || detailLoading) return <main className="category-page"><LoadingState /></main>;
   if (listError || detailError) return <main className="category-page"><ErrorState message={listError || detailError} onRetry={retry} /></main>;
   const listCategory = categories.find((item) => item.id === Number(categoryId));
   if (!detail || !listCategory) return <main className="category-page"><div className="category-not-found"><h1>KHÔNG TÌM THẤY DANH MỤC</h1><button onClick={() => navigate('/admin/danh-muc/danh-muc-san-pham')}>QUAY LẠI DANH SÁCH</button></div></main>;
   const category = { ...listCategory, ...detail, productCount: detail.products.length };
   const parent = categories.find((item) => item.id === category.parentId);
-  const children = categories.filter((item) => item.parentId === category.id);
+  const children = childCategories;
   const products = detail.products;
   const restore = async () => {
     setRestoring(true); setActionError('');
@@ -257,8 +262,8 @@ export function ChiTietDanhMuc() {
     <section className="category-detail-hero"><div className="category-detail-identity"><CategoryImage category={category} large /><div><h1>{category.name}</h1><p><StructureBadge isRoot={category.parentId == null} /> <code>/{category.slug}</code></p></div></div><div className="category-detail-actions"><StatusBadge status={category.status} /><div><button onClick={() => setModal({ type: 'form', id: category.id })}>CHỈNH SỬA</button>{category.status === 'active' ? <button className="is-danger" onClick={() => setModal({ type: 'deactivate', id: category.id })}>NGỪNG HOẠT ĐỘNG</button> : <button className="is-success" disabled={restoring} onClick={restore}>{restoring ? 'ĐANG KHÔI PHỤC...' : 'KHÔI PHỤC'}</button>}</div></div></section>
     <section className="category-detail-stats"><div><strong>#{category.id}</strong><span>MÃ DANH MỤC</span></div><div><strong>{parent?.name || 'GỐC'}</strong><span>DANH MỤC CHA</span></div><div><strong>{products.length}</strong><span>SỐ SẢN PHẨM</span></div><div><strong>{category.status === 'active' ? 'HOẠT ĐỘNG' : 'NGỪNG HOẠT ĐỘNG'}</strong><span>TRẠNG THÁI</span></div></section>
     <section className="category-detail-card"><SectionHeader>THÔNG TIN DANH MỤC</SectionHeader><div className="category-information"><dl><dt>TÊN DANH MỤC</dt><dd>{category.name}</dd><dt>DANH MỤC CHA</dt><dd>{parent?.name || 'DANH MỤC GỐC'}</dd><dt>ĐƯỜNG DẪN</dt><dd>/{category.slug}</dd><dt>TRẠNG THÁI</dt><dd>{category.status === 'active' ? 'HOẠT ĐỘNG' : 'NGỪNG HOẠT ĐỘNG'}</dd></dl><div className="category-information-image"><span>ẢNH ĐẠI DIỆN</span><CategoryImage category={category} large /></div></div></section>
-    {category.parentId == null && children.length > 0 && <section className="category-detail-card"><SectionHeader meta={`${children.length} MỤC`}>DANH MỤC CON</SectionHeader><div className="category-detail-table-wrap"><table><thead><tr><th>MÃ</th><th>DANH MỤC</th><th>SỐ SP</th><th>TRẠNG THÁI</th></tr></thead><tbody>{children.map((child) => <tr key={child.id}><td>#{child.id}</td><td><button onClick={() => navigate(`/admin/danh-muc/danh-muc-san-pham/${child.id}`)}>{child.name}</button></td><td>{child.productCount}</td><td><StatusBadge status={child.status} /></td></tr>)}</tbody></table></div></section>}
-    <section className="category-detail-card"><SectionHeader meta={`${products.length} SẢN PHẨM`}>SẢN PHẨM THUỘC DANH MỤC</SectionHeader>{products.length ? <div className="category-detail-table-wrap"><table><thead><tr><th>MÃ SẢN PHẨM</th><th>TÊN SẢN PHẨM</th><th>THƯƠNG HIỆU</th><th>TRẠNG THÁI</th></tr></thead><tbody>{products.map((product) => <tr key={product.id}><td>{product.maSanPham}</td><td>{product.tenSanPham}</td><td>—</td><td><StatusBadge status={product.trangThai} /></td></tr>)}</tbody></table></div> : <div className="category-products-empty"><strong>Chưa có sản phẩm thuộc danh mục này.</strong><span>Backend chưa trả về sản phẩm nào được gán trực tiếp cho danh mục.</span></div>}</section>
+    {category.parentId == null && children.length > 0 && <section className="category-detail-card"><SectionHeader meta={`${children.length} MỤC`}>DANH MỤC CON</SectionHeader><div className="category-detail-table-wrap"><table><thead><tr><th>MÃ</th><th>DANH MỤC</th><th>SỐ SP</th><th>TRẠNG THÁI</th></tr></thead><tbody>{childPagination.visibleItems.map((child) => <tr key={child.id}><td>#{child.id}</td><td><button onClick={() => navigate(`/admin/danh-muc/danh-muc-san-pham/${child.id}`)}>{child.name}</button></td><td>{child.productCount}</td><td><StatusBadge status={child.status} /></td></tr>)}</tbody></table></div><DetailTablePagination totalItems={children.length} currentPage={childPagination.currentPage} onPageChange={childPagination.onPageChange} idPrefix="category-children" /></section>}
+    <section className="category-detail-card"><SectionHeader meta={`${products.length} SẢN PHẨM`}>SẢN PHẨM THUỘC DANH MỤC</SectionHeader>{products.length ? <><div className="category-detail-table-wrap"><table><thead><tr><th>MÃ SẢN PHẨM</th><th>TÊN SẢN PHẨM</th><th>THƯƠNG HIỆU</th><th>TRẠNG THÁI</th></tr></thead><tbody>{productPagination.visibleItems.map((product) => <tr key={product.id}><td>{product.maSanPham}</td><td>{product.tenSanPham}</td><td>—</td><td><StatusBadge status={product.trangThai} /></td></tr>)}</tbody></table></div><DetailTablePagination totalItems={products.length} currentPage={productPagination.currentPage} onPageChange={productPagination.onPageChange} idPrefix="category-products" /></> : <div className="category-products-empty"><strong>Chưa có sản phẩm thuộc danh mục này.</strong><span>Backend chưa trả về sản phẩm nào được gán trực tiếp cho danh mục.</span></div>}</section>
     <CategoryModals key={`${modal?.type || 'none'}-${modal?.id || 'new'}`} modal={modal} setModal={setModal} categories={categories} reload={reloadAll} />
   </main>;
 }

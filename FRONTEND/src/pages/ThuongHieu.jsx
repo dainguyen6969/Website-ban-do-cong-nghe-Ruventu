@@ -4,6 +4,8 @@ import { HiOutlineX } from 'react-icons/hi';
 import FilterDropdown from '../components/FilterDropdown';
 import ImageUploader from '../components/ImageUploader';
 import TablePagination from '../components/TablePagination';
+import DetailTablePagination from '../components/DetailTablePagination';
+import useDetailTablePagination from '../hooks/useDetailTablePagination';
 import {
   createBrand,
   deactivateBrand,
@@ -26,9 +28,10 @@ function initials(name = '') {
 }
 
 function BrandLogo({ brand, large = false }) {
-  const [broken, setBroken] = useState(false);
+  const [failedLogo, setFailedLogo] = useState('');
+  const showLogo = Boolean(brand.logo) && failedLogo !== brand.logo;
   return <div className={`brand-logo ${large ? 'brand-logo--large' : ''}`}>
-    {brand.logo && !broken ? <img src={brand.logo} alt={`Logo ${brand.name}`} onError={() => setBroken(true)} /> : <span>{initials(brand.name)}</span>}
+    {showLogo ? <img src={brand.logo} alt={`Logo ${brand.name}`} onError={() => setFailedLogo(brand.logo)} /> : <span>{initials(brand.name)}</span>}
   </div>;
 }
 
@@ -189,6 +192,7 @@ export function ChiTietThuongHieu() {
   const [modal, setModal] = useState(null);
   const [actionError, setActionError] = useState('');
   const [restoring, setRestoring] = useState(false);
+  const productPagination = useDetailTablePagination(detail?.products);
   const loadDetail = useCallback(async () => { setLoading(true); setError(''); try { setDetail(await getBrandDetail(brandId)); } catch (requestError) { setError(messageOf(requestError)); } finally { setLoading(false); } }, [brandId]);
   // The effect loads the route-specific backend record when the id changes.
   // oxlint-disable-next-line react/set-state-in-effect
@@ -204,7 +208,7 @@ export function ChiTietThuongHieu() {
     <section className="brand-detail-hero"><BrandLogo brand={detail} large /><div className="brand-detail-title"><h1>{detail.name}</h1><code>/{detail.slug}</code><small>MÃ #{detail.id}</small></div><div className="brand-detail-actions"><StatusBadge status={detail.status} /><div><button type="button" onClick={() => setModal({ type: 'form', id: detail.id })}>CHỈNH SỬA</button>{detail.status === 'active' ? <button type="button" className="is-danger" onClick={() => setModal({ type: 'deactivate', id: detail.id, brand: current })}>NGỪNG HOẠT ĐỘNG</button> : <button type="button" className="is-success" disabled={restoring} onClick={restore}>{restoring ? 'ĐANG KHÔI PHỤC...' : 'KHÔI PHỤC'}</button>}</div></div></section>
     <section className="brand-detail-stats"><div><strong>#{detail.id}</strong><span>MÃ THƯƠNG HIỆU</span></div><div><strong>{detail.products.length}</strong><span>SỐ SẢN PHẨM</span></div><div><strong>{detail.status === 'active' ? 'HOẠT ĐỘNG' : 'NGỪNG HOẠT ĐỘNG'}</strong><span>TRẠNG THÁI</span></div><div><strong>/{detail.slug}</strong><span>ĐƯỜNG DẪN</span></div></section>
     <section className="brand-section"><header>THÔNG TIN THƯƠNG HIỆU</header><div className="brand-info-grid"><dl><dt>TÊN THƯƠNG HIỆU</dt><dd>{detail.name}</dd><dt>ĐƯỜNG DẪN</dt><dd>/{detail.slug}</dd><dt>TRẠNG THÁI</dt><dd>{detail.status === 'active' ? 'HOẠT ĐỘNG' : 'NGỪNG HOẠT ĐỘNG'}</dd></dl><div><span>LOGO THƯƠNG HIỆU</span><BrandLogo brand={detail} large /></div></div></section>
-    <section className="brand-section brand-products"><header><span>SẢN PHẨM THUỘC THƯƠNG HIỆU</span><span>{detail.products.length} SẢN PHẨM</span></header><div className="brand-table-wrap"><table className="brand-table"><thead><tr><th>MÃ SP</th><th>SẢN PHẨM</th><th>DANH MỤC</th><th>GIÁ BÁN</th><th>TỒN KHO</th><th>TRẠNG THÁI</th></tr></thead><tbody>{detail.products.map((product) => <tr key={product.id}><td>{product.code}</td><td><strong>{product.name}</strong></td><td>{product.category}</td><td><strong>{price(product.price)}</strong></td><td>{product.stock}</td><td><StatusBadge status={product.status} /></td></tr>)}{!detail.products.length && <tr><td colSpan="6" className="brand-empty">Thương hiệu chưa có sản phẩm liên kết.</td></tr>}</tbody></table></div></section>
+    <section className="brand-section brand-products"><header><span>SẢN PHẨM THUỘC THƯƠNG HIỆU</span><span>{detail.products.length} SẢN PHẨM</span></header><div className="brand-table-wrap"><table className="brand-table"><thead><tr><th>MÃ SP</th><th>SẢN PHẨM</th><th>DANH MỤC</th><th>GIÁ BÁN</th><th>TỒN KHO</th><th>TRẠNG THÁI</th></tr></thead><tbody>{productPagination.visibleItems.map((product) => <tr key={product.id}><td>{product.code}</td><td><strong>{product.name}</strong></td><td>{product.category}</td><td><strong>{price(product.price)}</strong></td><td>{product.stock}</td><td><StatusBadge status={product.status} /></td></tr>)}{!detail.products.length && <tr><td colSpan="6" className="brand-empty">Thương hiệu chưa có sản phẩm liên kết.</td></tr>}</tbody></table></div><DetailTablePagination totalItems={detail.products.length} currentPage={productPagination.currentPage} onPageChange={productPagination.onPageChange} idPrefix="brand-products" /></section>
     <BrandModals key={`${modal?.type || 'none'}-${modal?.id || 'new'}`} modal={modal} setModal={setModal} brands={brands} reload={reload} onChanged={loadDetail} />
   </main>;
 }
