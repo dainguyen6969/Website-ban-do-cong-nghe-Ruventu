@@ -1,6 +1,7 @@
 .category-page {
   flex: 1;
   min-width: 0;
+  min-height: 0;
   overflow: auto;
   padding: 28px 32px 40px;
   background: #fff;
@@ -190,6 +191,8 @@
 .category-upload img { width: 88px; height: 70px; object-fit: cover; }
 .category-upload span { font-size: 11px; font-weight: 900; }
 .category-upload small { color: #999; font-size: 9px; }
+.category-mode-tabs button:disabled { cursor: not-allowed; opacity: .45; }
+.category-upload-note { display: block; margin-top: 8px; color: #a05b00; font-size: 10px; font-weight: 800; }
 .category-remove-image { flex: 0 0 auto; color: #d60000; font-size: 10px; font-weight: 900; }
 .category-url-input { margin-top: 10px; }
 .category-modal__footer { display: grid; grid-template-columns: 165px 1fr; gap: 8px; padding: 16px 22px; border-top: 1px solid #ddd; }
@@ -234,6 +237,15 @@
 .category-products-empty span { font-size: 9px; text-transform: uppercase; }
 .category-not-found { min-height: 50vh; display: grid; place-content: center; gap: 20px; text-align: center; }
 .category-not-found button { padding: 12px 18px; background: #080808 !important; color: #fff; font-weight: 900; }
+.category-network-state { min-height: 330px; border: 1px solid #dedede; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; color: #666; font-size: 12px; font-weight: 800; text-align: center; }
+.category-network-state--error { color: #b00000; }
+.category-network-state--error strong { color: #111; font-size: 15px; text-transform: uppercase; }
+.category-network-state button { min-height: 38px; padding: 0 20px; background: #080808 !important; color: #fff; font-weight: 900; }
+.category-spinner { width: 28px; height: 28px; border: 3px solid #ddd; border-top-color: #d60000; border-radius: 50%; animation: category-spin .7s linear infinite; }
+.category-inline-error { padding: 11px 13px; border: 1px solid #efb3b3; background: #fff2f2; color: #b00000; font-size: 10px; font-weight: 800; }
+.category-page-error { margin-bottom: 14px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.category-page-error button { color: #b00000; font-size: 20px; line-height: 1; }
+@keyframes category-spin { to { transform: rotate(360deg); } }
 
 @media (max-width: 1100px) {
   .category-page { padding: 22px 20px 32px; }

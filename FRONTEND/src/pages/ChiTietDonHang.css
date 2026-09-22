@@ -1,4 +1,4 @@
-.order-detail-shell { flex: 1; min-width: 0; overflow: auto; background: #f1f1f1; }
+.order-detail-shell { flex: 1; min-width: 0; min-height: 0; overflow: auto; background: #f1f1f1; }
 .admin-order-detail { min-width: 0; color: #0b0b0b; }
 .order-detail-hero { min-height: 142px; padding: 15px 24px 16px; display: flex; align-items: center; justify-content: space-between; gap: 24px; border-bottom: 2px solid #0a0a0a; background: #fff; }
 .order-detail-hero nav { display: flex; align-items: center; gap: 7px; margin-bottom: 12px; color: #979ca3; font-size: 9px; font-weight: 700; }
