@@ -1,0 +1,238 @@
+.tpc-page {
+  padding: 0;
+  background-color: #f4f4f4;
+  height: calc(100vh - 60px);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.tpc-header {
+  padding: 16px 32px;
+  background: #fff;
+  border-bottom: 1px solid #eee;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.tpc-breadcrumb {
+  font-size: 11px;
+  color: #888;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.tpc-breadcrumb strong {
+  color: #111;
+  font-weight: 700;
+}
+
+.tpc-title-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.tpc-title {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.tpc-label {
+  border: 1px solid #111;
+  padding: 4px 8px;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  color: #111;
+}
+
+.tpc-title h1 {
+  font-size: 20px;
+  font-weight: 900;
+  margin: 0;
+  color: #111;
+}
+
+.tpc-btn-submit-top {
+  background: #dc2626;
+  color: #fff;
+  border: 1px solid #dc2626;
+  padding: 10px 24px;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  cursor: pointer;
+  border-radius: 0;
+}
+.tpc-btn-submit-top:hover {
+  background: #b91c1c;
+}
+
+.tpc-body {
+  padding: 32px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.tpc-error-banner {
+  background: #fef2f2;
+  color: #dc2626;
+  padding: 12px 16px;
+  border: 1px solid #f87171;
+  border-radius: 0;
+  margin-bottom: 24px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.tpc-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2px; /* Gap creates the border effect if we use gray background */
+}
+
+.tpc-section {
+  background: #fff;
+  padding: 24px 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.tpc-section h2 {
+  font-size: 11px;
+  font-weight: 800;
+  color: #888;
+  margin: 0 0 8px 0;
+  text-transform: uppercase;
+}
+
+.tpc-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.tpc-form-group label {
+  font-size: 10px;
+  font-weight: 700;
+  color: #aaa;
+  text-transform: uppercase;
+}
+
+.tpc-form-group input,
+.tpc-form-group select,
+.tpc-form-group textarea {
+  padding: 12px 16px;
+  border: 1px solid #111;
+  border-radius: 0;
+  font-size: 13px;
+  font-family: inherit;
+  font-weight: 600;
+  outline: none;
+}
+.tpc-form-group input:focus,
+.tpc-form-group select:focus,
+.tpc-form-group textarea:focus {
+  border-color: #3b82f6;
+}
+.tpc-form-group input:disabled {
+  background: #f9f9f9;
+  color: #888;
+  border-color: #ccc;
+}
+
+.tpc-input-with-btn {
+  display: flex;
+  gap: 8px;
+}
+
+.tpc-input-with-btn select {
+  flex: 1;
+}
+
+.tpc-btn-add-type {
+  background: #fff;
+  border: 1px solid #111;
+  color: #111;
+  padding: 0 16px;
+  font-size: 10px;
+  font-weight: 800;
+  border-radius: 0;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.tpc-btn-add-type:hover {
+  background: #f1f1f1;
+}
+
+.tpc-footer-sticky {
+  position: sticky;
+  bottom: 0;
+  background: #fff;
+  border-top: 1px solid #eee;
+  padding: 16px 32px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: 0 -4px 12px rgba(0,0,0,0.05);
+}
+
+.tpc-preview-info {
+  display: flex;
+  gap: 48px;
+}
+
+.tpc-preview-col {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.tpc-preview-label {
+  font-size: 10px;
+  font-weight: 700;
+  color: #888;
+  text-transform: uppercase;
+}
+
+.tpc-preview-val {
+  font-size: 14px;
+  font-weight: 800;
+  color: #111;
+}
+
+.tpc-amount-red {
+  color: #dc2626;
+}
+
+.tpc-btn-submit-bottom {
+  background: #dc2626;
+  color: #fff;
+  border: 1px solid #dc2626;
+  padding: 12px 32px;
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+  cursor: pointer;
+  border-radius: 0;
+}
+.tpc-btn-submit-bottom:hover {
+  background: #c90000;
+}
+
+.tpc-error {
+  color: #ff0000;
+  font-size: 11px;
+  margin-top: 4px;
+  display: block;
+  font-weight: 600;
+}
+
+.tpc-input-error {
+  border-color: #ff0000 !important;
+}

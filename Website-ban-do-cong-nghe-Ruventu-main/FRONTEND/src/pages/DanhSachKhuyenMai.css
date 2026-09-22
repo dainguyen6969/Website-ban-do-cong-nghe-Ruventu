@@ -1,0 +1,268 @@
+.promo-list-page {
+  padding: 24px 32px;
+  background-color: #f8f9fa;
+  height: calc(100vh - 60px);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.promo-list-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  border-bottom: 2px solid #111;
+  padding-bottom: 16px;
+}
+
+.promo-list-header-left {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.promo-breadcrumb {
+  font-size: 11px;
+  font-weight: 600;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.promo-list-header h1 {
+  font-size: 24px;
+  font-weight: 900;
+  margin: 0;
+  color: #111;
+  text-transform: uppercase;
+}
+
+.promo-list-header p {
+  margin: 0;
+  font-size: 12px;
+  color: #666;
+  text-transform: uppercase;
+}
+
+.promo-add-button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background-color: #000;
+  color: #fff;
+  border: none;
+  padding: 10px 16px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  border-radius: 0;
+  text-transform: uppercase;
+}
+.promo-add-button:hover {
+  background-color: #333;
+}
+
+.promo-list-toolbar {
+  display: flex;
+  gap: 12px;
+  background: #fff;
+  padding: 16px;
+  border: 1px solid #ddd;
+  border-radius: 0;
+}
+
+.promo-search-wrapper {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid #ddd;
+  padding: 0 12px;
+  border-radius: 0;
+  color: #666;
+}
+
+.promo-search-wrapper input {
+  border: none;
+  outline: none;
+  width: 100%;
+  padding: 10px 0;
+  font-size: 13px;
+}
+
+.promo-filter-select {
+  border: 1px solid #ddd;
+  padding: 0 12px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #333;
+  border-radius: 0;
+  outline: none;
+  cursor: pointer;
+  background-color: #fff;
+  min-width: 180px;
+}
+
+.promo-table-container {
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 0;
+  overflow-x: auto;
+  overflow-y: visible;
+  flex-shrink: 0;
+}
+
+.promo-list-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  text-align: left;
+}
+
+.promo-list-table th {
+  background-color: #111;
+  color: #888;
+  padding: 12px 16px;
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.promo-list-table td {
+  padding: 16px;
+  border-bottom: 1px solid #eee;
+  vertical-align: middle;
+  color: #444;
+}
+
+.promo-list-table tr:hover td {
+  background-color: #f9f9f9;
+}
+
+.promo-list-table td strong {
+  color: #111;
+  font-weight: 700;
+}
+
+.promo-id-tag {
+  display: inline-block;
+  border: 1px solid #ddd;
+  background: #f9f9f9;
+  padding: 4px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #555;
+  border-radius: 0;
+}
+
+.promo-detail-btn {
+  background: #fff;
+  border: 1px solid #ddd;
+  padding: 8px 12px;
+  font-size: 10px;
+  font-weight: 800;
+  cursor: pointer;
+  color: #111;
+  text-transform: uppercase;
+  width: 100%;
+}
+.promo-detail-btn:hover {
+  border-color: #111;
+}
+
+.text-red { color: #dc2626 !important; }
+.text-green { color: #16a34a !important; }
+
+.promo-status-badge {
+  display: inline-block;
+  padding: 6px 12px;
+  font-size: 10px;
+  font-weight: 800;
+  border: 1px solid transparent;
+  background: transparent;
+  text-transform: uppercase;
+}
+
+.promo-status-badge--green {
+  color: #16a34a;
+  border-color: #16a34a;
+}
+
+.promo-status-badge--red {
+  color: #dc2626;
+  border-color: #dc2626;
+}
+
+.promo-status-badge--blue {
+  color: #2563eb;
+  border-color: #2563eb;
+}
+
+.promo-status-badge--yellow {
+  color: #d97706;
+  border-color: #d97706;
+}
+
+.promo-status-badge--neutral {
+  color: #4b5563;
+  border-color: #9ca3af;
+}
+
+.promo-pagination-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+}
+
+.promo-pagination-info {
+  font-size: 11px;
+  font-weight: 600;
+  color: #666;
+  text-transform: uppercase;
+}
+
+.promo-pagination-controls {
+  display: flex;
+  gap: 4px;
+}
+
+.promo-pagination-controls button {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 0;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.promo-pagination-controls button.active {
+  background: #000;
+  color: #fff;
+  border-color: #000;
+}
+
+.promo-pagination-controls button:disabled {
+  background: #f9f9f9;
+  color: #ccc;
+  cursor: not-allowed;
+}
+
+.promo-btn-pause {
+  background: #fffbeb;
+  border-color: #f59e0b;
+  color: #d97706;
+}
+
+.promo-btn-resume {
+  background: #f0fdf4;
+  border-color: #16a34a;
+  color: #16a34a;
+}

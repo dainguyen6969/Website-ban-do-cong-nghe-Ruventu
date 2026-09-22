@@ -1,0 +1,324 @@
+.loai-chi-page {
+  padding: 0;
+  background-color: #fff;
+  height: calc(100vh - 60px);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.loai-chi-header {
+  padding: 16px 32px;
+  background: #fff;
+  border-bottom: 1px solid #eee;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.loai-chi-breadcrumb {
+  font-size: 11px;
+  color: #888;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.loai-chi-breadcrumb strong {
+  color: #111;
+  font-weight: 700;
+}
+
+.loai-chi-title-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.loai-chi-title h1 {
+  font-size: 24px;
+  font-weight: 900;
+  margin: 0;
+  color: #111;
+  text-transform: uppercase;
+}
+
+.loai-chi-title p {
+  margin: 4px 0 0 0;
+  font-size: 12px;
+  color: #888;
+  text-transform: uppercase;
+}
+
+.loai-chi-btn-create {
+  background: #111;
+  color: #fff;
+  border: 1px solid #111;
+  padding: 10px 24px;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  cursor: pointer;
+  border-radius: 0;
+}
+.loai-chi-btn-create:hover {
+  background: #333;
+}
+
+.loai-chi-filters {
+  display: flex;
+  padding: 16px 32px;
+  gap: 16px;
+  align-items: center;
+}
+
+.loai-chi-search {
+  flex: 0 0 300px;
+  padding: 10px 16px;
+  border: 1px solid #111;
+  border-radius: 0;
+  font-size: 12px;
+  font-weight: 600;
+  outline: none;
+}
+
+.loai-chi-table-container {
+  padding: 0 32px;
+  flex: 1;
+}
+
+.loai-chi-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.loai-chi-table th {
+  background: #111;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  padding: 12px 16px;
+  text-align: left;
+}
+
+.loai-chi-table td {
+  padding: 16px;
+  border-bottom: 1px solid #eee;
+  font-size: 12px;
+  color: #333;
+  vertical-align: middle;
+}
+
+.lc-uppercase {
+  text-transform: uppercase;
+  font-size: 11px;
+  font-weight: 600;
+  color: #666;
+}
+
+.lc-note {
+  color: #888;
+}
+
+.lc-badge {
+  display: inline-block;
+  padding: 4px 8px;
+  font-size: 10px;
+  font-weight: 800;
+  border-radius: 0;
+  border: 1px solid;
+}
+
+.lc-badge-success {
+  color: #16a34a;
+  border-color: #16a34a;
+  background: #f0fdf4;
+}
+
+.lc-badge-inactive {
+  color: #9ca3af;
+  border-color: #9ca3af;
+  background: #f3f4f6;
+}
+
+.lc-btn-detail {
+  background: #fff;
+  border: 1px solid #111;
+  color: #111;
+  padding: 6px 12px;
+  font-size: 10px;
+  font-weight: 800;
+  border-radius: 0;
+  cursor: pointer;
+  text-transform: uppercase;
+}
+.lc-btn-detail:hover {
+  background: #f1f1f1;
+}
+
+.loai-chi-footer {
+  padding: 16px 32px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-top: 1px solid #eee;
+}
+
+.lc-footer-text {
+  font-size: 11px;
+  font-weight: 700;
+  color: #888;
+  text-transform: uppercase;
+}
+
+.lc-empty {
+  text-align: center;
+  padding: 48px !important;
+  color: #888;
+  font-weight: 700;
+}
+
+/* Modal styles */
+.lc-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.lc-modal {
+  background: #fff;
+  width: 500px;
+  border-radius: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+}
+
+.lc-modal-header {
+  background: #111;
+  color: #fff;
+  padding: 16px 24px;
+}
+
+.lc-modal-header h2 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.lc-modal-body {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.lc-modal-error {
+  background: #fef2f2;
+  color: #dc2626;
+  padding: 10px;
+  border-radius: 0;
+  font-size: 12px;
+  font-weight: 600;
+  border: 1px solid #f87171;
+}
+
+.lc-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.lc-form-group label {
+  font-size: 10px;
+  font-weight: 700;
+  color: #888;
+  text-transform: uppercase;
+}
+
+.lc-form-group input,
+.lc-form-group textarea {
+  padding: 10px 12px;
+  border: 1px solid #111;
+  border-radius: 0;
+  font-size: 13px;
+  font-family: inherit;
+  outline: none;
+}
+.lc-form-group input:focus,
+.lc-form-group textarea:focus {
+  border-color: #3b82f6;
+}
+
+.lc-modal-preview {
+  display: flex;
+  gap: 32px;
+  margin-top: 8px;
+  padding: 16px;
+  background: #fafafa;
+  border-radius: 0;
+}
+
+.lc-preview-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.lc-preview-item span {
+  font-size: 10px;
+  font-weight: 700;
+  color: #888;
+  text-transform: uppercase;
+}
+
+.lc-preview-item strong {
+  font-size: 12px;
+  color: #111;
+}
+
+.lc-text-success {
+  color: #16a34a !important;
+}
+
+.lc-modal-footer {
+  padding: 16px 24px;
+  border-top: 1px solid #eee;
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.lc-btn-cancel {
+  background: #fff;
+  border: 1px solid #111;
+  color: #111;
+  padding: 10px 24px;
+  font-size: 11px;
+  font-weight: 800;
+  border-radius: 0;
+  cursor: pointer;
+}
+
+.lc-btn-submit {
+  background: #111;
+  border: 1px solid #111;
+  color: #fff;
+  padding: 10px 24px;
+  font-size: 11px;
+  font-weight: 800;
+  border-radius: 0;
+  cursor: pointer;
+}
+.lc-btn-submit:hover {
+  background: #333;
+}

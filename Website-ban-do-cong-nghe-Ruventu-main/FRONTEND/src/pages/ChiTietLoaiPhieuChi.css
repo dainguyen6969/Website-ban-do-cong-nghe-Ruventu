@@ -1,0 +1,201 @@
+.ct-loaichi-page {
+  padding: 0;
+  background-color: #fff;
+  height: calc(100vh - 60px);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.ct-loaichi-header {
+  padding: 16px 32px;
+  background: #fff;
+  border-bottom: 1px solid #eee;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.ct-loaichi-breadcrumb {
+  font-size: 11px;
+  color: #888;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.ct-loaichi-breadcrumb strong {
+  color: #111;
+  font-weight: 700;
+}
+
+.ct-loaichi-title-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.ct-loaichi-title {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.ct-loaichi-label {
+  border: 1px solid #111;
+  padding: 4px 8px;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  color: #111;
+}
+
+.ct-loaichi-title h1 {
+  font-size: 20px;
+  font-weight: 900;
+  margin: 0;
+  color: #111;
+}
+
+.ct-loaichi-badge {
+  display: inline-block;
+  padding: 4px 8px;
+  font-size: 10px;
+  font-weight: 800;
+  border-radius: 0;
+  border: 1px solid;
+}
+
+.ct-loaichi-badge-success {
+  color: #16a34a;
+  border-color: #16a34a;
+  background: #f0fdf4;
+}
+
+.ct-loaichi-badge-inactive {
+  color: #9ca3af;
+  border-color: #9ca3af;
+  background: #f3f4f6;
+}
+
+.ct-loaichi-btn-deactivate {
+  background: #fff;
+  color: #c2410c;
+  border: 1px solid #c2410c;
+  padding: 10px 24px;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  cursor: pointer;
+  border-radius: 0;
+}
+.ct-loaichi-btn-deactivate:hover {
+  background: #fff7ed;
+}
+
+.ct-loaichi-body {
+  padding: 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.ct-loaichi-info-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ct-loaichi-info-group label {
+  font-size: 10px;
+  font-weight: 700;
+  color: #888;
+  text-transform: uppercase;
+}
+
+.ct-loaichi-value {
+  font-size: 14px;
+  font-weight: 700;
+  color: #111;
+}
+
+.ct-loaichi-value-status {
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.ct-status-active {
+  color: #16a34a;
+}
+.ct-status-inactive {
+  color: #9ca3af;
+}
+
+.ct-loaichi-loading {
+  padding: 32px;
+  font-weight: 700;
+  color: #888;
+}
+
+/* Confirm Modal */
+.ct-confirm-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.ct-confirm-modal {
+  background: #fff;
+  width: 400px;
+  padding: 32px;
+  border-radius: 0;
+  text-align: center;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+}
+
+.ct-confirm-modal p {
+  margin: 0 0 24px 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: #111;
+  line-height: 1.5;
+}
+
+.ct-confirm-actions {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+}
+
+.ct-btn-confirm-cancel {
+  background: #fff;
+  border: 1px solid #111;
+  color: #111;
+  padding: 10px 24px;
+  font-size: 11px;
+  font-weight: 800;
+  border-radius: 0;
+  cursor: pointer;
+  text-transform: uppercase;
+}
+
+.ct-btn-confirm-ok {
+  background: #c2410c;
+  border: 1px solid #c2410c;
+  color: #fff;
+  padding: 10px 24px;
+  font-size: 11px;
+  font-weight: 800;
+  border-radius: 0;
+  cursor: pointer;
+  text-transform: uppercase;
+}
+.ct-btn-confirm-ok:hover {
+  background: #9a3412;
+}

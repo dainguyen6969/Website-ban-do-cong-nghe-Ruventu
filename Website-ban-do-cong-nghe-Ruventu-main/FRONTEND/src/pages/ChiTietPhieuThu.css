@@ -1,0 +1,248 @@
+.ct-phieu-loading {
+  padding: 48px;
+  text-align: center;
+  font-weight: 700;
+  color: #666;
+}
+
+.ct-phieu-page {
+  padding: 0;
+  background-color: #fff;
+  height: calc(100vh - 60px);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.ct-phieu-header {
+  padding: 24px 32px;
+  background: #fff;
+  border-bottom: 2px solid #111;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.ct-phieu-breadcrumb {
+  font-size: 11px;
+  color: #888;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.ct-phieu-breadcrumb strong {
+  color: #111;
+  font-weight: 700;
+}
+
+.ct-phieu-title-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.ct-phieu-title-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.ct-phieu-label {
+  border: 1px solid #111;
+  padding: 4px 8px;
+  font-size: 10px;
+  font-weight: 900;
+  color: #111;
+}
+
+.ct-phieu-title-left h1 {
+  font-size: 24px;
+  font-weight: 900;
+  margin: 0;
+  color: #111;
+}
+
+.ct-phieu-badge {
+  display: inline-block;
+  padding: 4px 8px;
+  font-size: 10px;
+  font-weight: 800;
+  border-radius: 0;
+  border: 1px solid;
+}
+.ct-phieu-badge.success {
+  color: #16a34a;
+  border-color: #16a34a;
+  background: #f0fdf4;
+}
+.ct-phieu-badge.danger {
+  color: #dc2626;
+  border-color: #dc2626;
+  background: #fef2f2;
+}
+
+.ct-phieu-btn-cancel {
+  background: #fff;
+  color: #dc2626;
+  border: 1px solid #dc2626;
+  padding: 10px 24px;
+  font-size: 11px;
+  font-weight: 800;
+  cursor: pointer;
+  border-radius: 0;
+}
+.ct-phieu-btn-cancel:hover {
+  background: #fef2f2;
+}
+
+.ct-phieu-amount-huge {
+  font-size: 32px;
+  font-weight: 900;
+  color: #111;
+  margin-top: 8px;
+}
+
+.ct-phieu-layout {
+  display: flex;
+  flex: 1;
+}
+
+.ct-phieu-main {
+  flex: 1;
+  padding: 0;
+}
+
+.ct-phieu-sidebar {
+  width: 300px;
+  border-left: 1px solid #eee;
+  padding: 32px;
+}
+
+.ct-phieu-section {
+  padding: 32px;
+  border-bottom: 1px solid #eee;
+}
+.ct-phieu-section-last {
+  border-bottom: none;
+}
+
+.ct-phieu-section h2 {
+  font-size: 11px;
+  font-weight: 900;
+  color: #888;
+  margin: 0 0 24px 0;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.ct-phieu-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px 48px;
+}
+
+.ct-phieu-field label {
+  display: block;
+  font-size: 10px;
+  font-weight: 800;
+  color: #888;
+  margin-bottom: 8px;
+  text-transform: uppercase;
+}
+
+.ct-phieu-field div {
+  font-size: 14px;
+  color: #111;
+  font-weight: 600;
+}
+.ct-phieu-field strong {
+  font-weight: 800;
+}
+
+.ct-phieu-amount {
+  font-size: 18px !important;
+  font-weight: 900 !important;
+}
+
+.ct-phieu-separator {
+  height: 1px;
+  background: #eee;
+  margin: 24px 0;
+}
+
+.ct-phieu-subfield {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 13px !important;
+  color: #111 !important;
+}
+.ct-phieu-subfield span {
+  font-size: 10px;
+  color: #888;
+  font-weight: 700;
+}
+.mt-2 { margin-top: 16px; }
+
+/* Confirm modal overlay reuse from previous styling */
+.ct-confirm-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.ct-confirm-modal {
+  background: #fff;
+  width: 400px;
+  padding: 32px;
+  border-radius: 0;
+  text-align: center;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+}
+
+.ct-confirm-modal p {
+  margin: 0 0 24px 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: #111;
+  line-height: 1.5;
+}
+
+.ct-confirm-actions {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+}
+
+.ct-btn-confirm-cancel {
+  background: #fff;
+  border: 1px solid #111;
+  color: #111;
+  padding: 10px 24px;
+  font-size: 11px;
+  font-weight: 800;
+  border-radius: 0;
+  cursor: pointer;
+  text-transform: uppercase;
+}
+
+.ct-btn-confirm-ok {
+  background: #dc2626;
+  border: 1px solid #dc2626;
+  color: #fff;
+  padding: 10px 24px;
+  font-size: 11px;
+  font-weight: 800;
+  border-radius: 0;
+  cursor: pointer;
+  text-transform: uppercase;
+}
+.ct-btn-confirm-ok:hover {
+  background: #b91c1c;
+}

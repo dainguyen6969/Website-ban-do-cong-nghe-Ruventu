@@ -1,0 +1,259 @@
+.so-quy-page {
+  padding: 0;
+  background-color: #fff;
+  height: calc(100vh - 56px);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.so-quy-header {
+  padding: 15px 30px;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  border-bottom: 2px solid #000;
+}
+
+.sq-breadcrumb {
+  font-size: 13px;
+  color: #888;
+  text-transform: uppercase;
+}
+
+.sq-breadcrumb strong {
+  color: #000;
+  font-weight: 800;
+}
+
+.sq-btn-create {
+  background-color: #e31e24;
+  color: #fff;
+  padding: 10px 20px;
+  font-weight: 800;
+  border: none;
+  border-radius: 0;
+  cursor: pointer;
+}
+
+.sq-filters {
+  padding: 20px 30px;
+  display: flex;
+  gap: 15px;
+  align-items: flex-end;
+  border-bottom: 2px solid #000;
+}
+
+.sq-filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.sq-filter-group label {
+  font-size: 10px;
+  font-weight: 800;
+  color: #888;
+  text-transform: uppercase;
+}
+
+.sq-filter-group input,
+.sq-filter-group select {
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 0;
+  font-size: 12px;
+  font-weight: 600;
+  outline: none;
+}
+
+.sq-filter-actions {
+  display: flex;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.sq-btn-report {
+  background-color: #fff;
+  color: #111;
+  border: 1px solid #ddd;
+  padding: 8px 16px;
+  font-size: 11px;
+  font-weight: 800;
+  border-radius: 0;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.sq-btn-export {
+  background-color: #111;
+  color: #fff;
+  border: none;
+  padding: 8px 16px;
+  font-size: 11px;
+  font-weight: 800;
+  border-radius: 0;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.sq-summary {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  border-bottom: 1px solid #eee;
+}
+
+.sq-card {
+  padding: 24px;
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  border-right: 1px solid #ddd;
+}
+
+.sq-card:last-child {
+  border-right: none;
+}
+
+.sq-card.bg-black {
+  background-color: #111;
+}
+
+.sq-card-icon {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #ddd;
+  font-weight: 900;
+  font-size: 18px;
+}
+
+.sq-card-icon.green-icon {
+  color: #16a34a;
+  border-color: #16a34a;
+}
+
+.sq-card-icon.red-icon {
+  color: #e31e24;
+  border-color: #e31e24;
+}
+
+.sq-card-icon.black-red-icon {
+  border-color: #e31e24;
+  color: #e31e24;
+}
+
+.sq-card-content {
+  display: flex;
+  flex-direction: column;
+}
+
+.sq-card-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: #888;
+}
+
+.sq-card-value {
+  font-size: 20px;
+  font-weight: 900;
+}
+
+.text-black { color: #000; }
+.text-green { color: #16a34a; }
+.text-red { color: #e31e24; }
+.text-white { color: #fff; }
+.text-right { text-align: right; }
+.text-left { text-align: left; }
+
+.sq-note {
+  padding: 10px 30px;
+  font-size: 12px;
+  color: #888;
+}
+
+.sq-table-container {
+  padding: 0;
+  flex: 1;
+}
+
+.sq-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.sq-table th {
+  background-color: #000;
+  color: #fff;
+  padding: 15px 20px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  text-align: left;
+}
+
+.sq-table td {
+  padding: 15px 20px;
+  font-size: 13px;
+  border-bottom: 1px solid #eee;
+  color: #333;
+}
+
+.sq-table tr:hover {
+  background-color: #f9f9f9;
+}
+
+.sq-table tfoot td {
+  border-top: 2px solid #000;
+  border-bottom: 2px solid #000;
+  padding: 15px 20px;
+  background-color: #fff;
+}
+
+.sq-type-badge {
+  padding: 4px 10px;
+  border-radius: 0;
+  font-size: 11px;
+  font-weight: 800;
+  border: 1px solid;
+}
+.sq-type-badge.bg-green {
+  color: #16a34a;
+  border-color: #16a34a;
+  background-color: #f0fdf4;
+}
+.sq-type-badge.bg-red {
+  color: #e31e24;
+  border-color: #e31e24;
+  background-color: #fef2f2;
+}
+
+.sq-method-badge {
+  padding: 4px 10px;
+  border-radius: 0;
+  font-size: 11px;
+  font-weight: 700;
+  background-color: #f3f4f6;
+  border: 1px solid #e5e7eb;
+}
+.method-cash {
+  color: #d97706;
+  background-color: #fffbeb;
+  border-color: #fde68a;
+}
+.method-transfer {
+  color: #2563eb;
+  background-color: #eff6ff;
+  border-color: #bfdbfe;
+}
+.method-card {
+  color: #9333ea;
+  background-color: #faf5ff;
+  border-color: #e9d5ff;
+}

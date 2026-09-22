@@ -1,0 +1,262 @@
+.promo-detail-page {
+  padding: 0;
+  background-color: #f8f9fa;
+  height: calc(100vh - 60px);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.promo-detail-header {
+  padding: 16px 32px;
+  background: #fff;
+  border-bottom: 2px solid #111;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.promo-breadcrumb {
+  font-size: 11px;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.promo-breadcrumb strong {
+  color: #111;
+  font-weight: 700;
+}
+
+.promo-detail-title-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.promo-detail-title-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.promo-back-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: transparent;
+  border: 1px solid #ddd;
+  padding: 8px 12px;
+  font-size: 11px;
+  font-weight: 700;
+  border-radius: 0;
+  cursor: pointer;
+  color: #333;
+}
+.promo-back-btn:hover { background: #f1f1f1; }
+
+.promo-page-label {
+  font-size: 13px;
+  font-weight: 700;
+  color: #999;
+  text-transform: uppercase;
+}
+
+.promo-detail-title-right {
+  display: flex;
+  gap: 12px;
+}
+
+.promo-action-btn {
+  padding: 10px 16px;
+  font-size: 12px;
+  font-weight: 700;
+  border-radius: 0;
+  cursor: pointer;
+  text-transform: uppercase;
+}
+
+.promo-action-edit {
+  background: #fff;
+  border: 1px solid #111;
+  color: #111;
+}
+
+.promo-action-pause {
+  background: #fffbeb;
+  border: 1px solid #f59e0b;
+  color: #d97706;
+}
+
+.promo-detail-subtitle {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.promo-code {
+  font-size: 24px;
+  font-weight: 900;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.promo-status-badge {
+  display: inline-block;
+  padding: 4px 8px;
+  border-radius: 0;
+  font-size: 11px;
+  font-weight: 700;
+  border: 1px solid transparent;
+}
+.promo-status-badge--green {
+  background-color: #f0fdf4;
+  color: #16a34a;
+  border-color: #bbf7d0;
+}
+
+.promo-name-desc {
+  margin: 0;
+  font-size: 13px;
+  color: #555;
+}
+
+.promo-detail-content {
+  display: flex;
+  padding: 24px 32px;
+  gap: 24px;
+  align-items: flex-start;
+}
+
+.promo-main-column {
+  flex: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.promo-side-column {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.promo-card {
+  background: #fff;
+  border: 1px solid #ddd;
+  padding: 24px;
+  border-radius: 0;
+}
+
+.promo-section-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: #888;
+  text-transform: uppercase;
+  margin: 0 0 20px 0;
+  border-bottom: 1px solid #eee;
+  padding-bottom: 12px;
+}
+
+.promo-info-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  margin-bottom: 24px;
+}
+
+.promo-info-item label, .promo-info-row label {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  color: #888;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+
+.promo-info-item p, .promo-info-row p {
+  margin: 0;
+  font-size: 13px;
+  color: #111;
+}
+
+.promo-info-row {
+  margin-bottom: 16px;
+}
+.promo-info-row:last-child {
+  margin-bottom: 0;
+}
+
+.mt-2 { margin-top: 12px; }
+.mt-4 { margin-top: 24px; }
+
+.text-green { color: #16a34a; }
+
+.promo-discount-value {
+  font-size: 28px !important;
+  font-weight: 900;
+  color: #dc2626 !important;
+}
+
+.promo-usage-stats {
+  display: flex;
+  justify-content: space-between;
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.usage-stat label {
+  font-size: 10px;
+  color: #888;
+}
+.usage-stat p {
+  font-size: 16px;
+  margin: 4px 0 0 0;
+}
+
+.promo-progress-bar {
+  height: 6px;
+  background: #eee;
+  border-radius: 0;
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+.promo-progress-fill {
+  height: 100%;
+  background: #111;
+}
+
+.promo-progress-text {
+  font-size: 10px;
+  color: #888;
+  text-align: right;
+  margin-bottom: 20px;
+}
+
+.promo-warning-box {
+  background: #f9f9f9;
+  border: 1px solid #eee;
+  padding: 16px;
+  border-radius: 0;
+}
+.warning-title {
+  margin: 0 0 4px 0;
+  font-size: 11px;
+  font-weight: 700;
+  color: #666;
+}
+.warning-desc {
+  margin: 0;
+  font-size: 11px;
+  color: #888;
+}
+
+.promo-action-resume {
+  background: #f0fdf4;
+  border: 1px solid #16a34a;
+  color: #16a34a;
+}

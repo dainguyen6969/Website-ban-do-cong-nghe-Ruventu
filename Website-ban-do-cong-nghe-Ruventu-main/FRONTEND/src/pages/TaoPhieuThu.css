@@ -1,0 +1,301 @@
+.tao-phieu-page {
+  padding: 0;
+  background-color: #f9f9f9;
+  height: calc(100vh - 60px);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.tao-phieu-header {
+  padding: 24px 32px;
+  background: #fff;
+  border-bottom: 2px solid #111;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.tao-phieu-breadcrumb {
+  font-size: 11px;
+  color: #888;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.tao-phieu-breadcrumb strong {
+  color: #111;
+  font-weight: 700;
+}
+
+.tao-phieu-title-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.tao-phieu-title-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.tao-phieu-label {
+  border: 1px solid #111;
+  padding: 4px 8px;
+  font-size: 10px;
+  font-weight: 900;
+  color: #111;
+}
+
+.tao-phieu-title-left h1 {
+  font-size: 24px;
+  font-weight: 900;
+  margin: 0;
+  color: #111;
+}
+
+.tao-phieu-btn-create-top {
+  background: #ff0000;
+  color: #fff;
+  border: none;
+  padding: 10px 24px;
+  font-size: 11px;
+  font-weight: 900;
+  cursor: pointer;
+  border-radius: 0;
+}
+.tao-phieu-btn-create-top:hover {
+  background: #cc0000;
+}
+
+.tao-phieu-layout {
+  display: flex;
+  flex: 1;
+  background: #fff;
+}
+
+.tao-phieu-col {
+  flex: 1;
+  border-right: 1px solid #eee;
+}
+.tao-phieu-col:last-child {
+  border-right: none;
+}
+
+.tao-phieu-section {
+  padding: 32px;
+}
+
+.tao-phieu-section h2 {
+  font-size: 11px;
+  font-weight: 900;
+  color: #888;
+  margin: 0 0 24px 0;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.tao-phieu-field {
+  margin-bottom: 24px;
+}
+
+.tao-phieu-field label {
+  display: block;
+  font-size: 10px;
+  font-weight: 800;
+  color: #888;
+  margin-bottom: 8px;
+  text-transform: uppercase;
+}
+.tao-phieu-field label span {
+  color: #ff0000;
+}
+
+.tao-phieu-field input[type="text"],
+.tao-phieu-field input[type="number"],
+.tao-phieu-field input[type="datetime-local"],
+.tao-phieu-field select,
+.tao-phieu-field textarea {
+  width: 100%;
+  padding: 12px 16px;
+  border: 1px solid #ddd;
+  border-radius: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: #333;
+  outline: none;
+  font-family: inherit;
+}
+.tao-phieu-field input:focus,
+.tao-phieu-field select:focus,
+.tao-phieu-field textarea:focus {
+  border-color: #111;
+}
+.readonly-input {
+  background: #f9f9f9;
+  cursor: not-allowed;
+}
+
+.tao-phieu-input-group {
+  display: flex;
+  gap: 8px;
+}
+.tao-phieu-input-group select,
+.tao-phieu-input-group input {
+  flex: 1;
+}
+
+.tao-phieu-btn-add-loai {
+  background: #fff;
+  border: 1px solid #111;
+  color: #111;
+  padding: 0 16px;
+  font-size: 10px;
+  font-weight: 800;
+  border-radius: 0;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.tao-phieu-btn-add-loai:hover {
+  background: #f1f1f1;
+}
+
+.tao-phieu-btn-tag-add {
+  background: #fff;
+  border: 1px solid #ddd;
+  width: 40px;
+  font-size: 16px;
+  cursor: pointer;
+  border-radius: 0;
+}
+
+.tao-phieu-footer-preview {
+  position: sticky;
+  bottom: 0;
+  background: #f9f9f9;
+  border-top: 1px solid #ddd;
+  padding: 16px 32px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.tao-phieu-preview-items {
+  display: flex;
+  gap: 48px;
+}
+
+.tao-phieu-preview-item label {
+  font-size: 10px;
+  font-weight: 800;
+  color: #888;
+  margin-bottom: 4px;
+  display: block;
+}
+
+.tao-phieu-preview-item div {
+  font-size: 13px;
+  color: #111;
+}
+
+.text-red { color: #ff0000; }
+.text-green { color: #16a34a; }
+
+.tao-phieu-btn-create-bottom {
+  background: #ff0000;
+  color: #fff;
+  border: none;
+  padding: 12px 32px;
+  font-size: 12px;
+  font-weight: 900;
+  cursor: pointer;
+  border-radius: 0;
+}
+
+/* Modal styles */
+.ct-modal-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.ct-modal-content {
+  background: #fff;
+  width: 500px;
+  border-radius: 0;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+}
+
+.ct-modal-header {
+  background: #111;
+  padding: 16px 24px;
+  color: #fff;
+}
+.ct-modal-header h2 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.ct-modal-body {
+  padding: 24px;
+}
+
+.ct-modal-status-preview {
+  display: flex;
+  gap: 48px;
+  background: #f9f9f9;
+  padding: 16px;
+  border: 1px solid #eee;
+  margin-top: 24px;
+}
+
+.ct-modal-status-col label {
+  display: block;
+  font-size: 9px;
+  color: #888;
+  margin-bottom: 4px;
+  font-weight: 800;
+}
+
+.ct-modal-footer {
+  padding: 16px 24px;
+  border-top: 1px solid #eee;
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.ct-modal-btn-cancel {
+  background: #fff;
+  border: 1px solid #ddd;
+  padding: 10px 24px;
+  font-size: 11px;
+  font-weight: 800;
+  cursor: pointer;
+}
+.ct-modal-btn-save {
+  background: #111;
+  color: #fff;
+  border: none;
+  padding: 10px 24px;
+  font-size: 11px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.tao-phieu-error {
+  color: #ff0000;
+  font-size: 11px;
+  margin-top: 4px;
+  display: block;
+  font-weight: 600;
+}
+
+.tao-phieu-input-error {
+  border-color: #ff0000 !important;
+}
