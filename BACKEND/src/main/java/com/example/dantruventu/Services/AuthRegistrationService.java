@@ -179,23 +179,12 @@ public class AuthRegistrationService {
     }
 
     private void sendOtp(String email, String otp) {
-
         try {
-
             SimpleMailMessage message = new SimpleMailMessage();
-
             message.setTo(email);
             message.setSubject("Mã OTP đăng ký Ruventu");
-            message.setText(
-                    "Mã OTP đăng ký tài khoản của bạn là: "
-                            + otp
-                            + "\nMã có hiệu lực trong "
-                            + OTP_EXPIRE_SECONDS
-                            + " giây."
-            );
-
+            message.setText("Mã OTP đăng ký tài khoản của bạn là: " + otp + "\nMã có hiệu lực trong " + OTP_EXPIRE_SECONDS + " giây.");
             mailSender.send(message);
-
         } catch (MailException exception) {
             throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR);
         }

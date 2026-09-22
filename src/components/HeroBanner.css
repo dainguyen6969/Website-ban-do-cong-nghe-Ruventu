@@ -38,7 +38,7 @@
   transition: transform 0.5s ease;
 }
 
-.main-banner:hover .banner-img, 
+.main-banner:hover .banner-img,
 .side-banner:hover .banner-img {
   transform: scale(1.05);
 }
@@ -49,12 +49,12 @@
   left: 0;
   width: 100%;
   height: 100%;
-  background: linear-gradient(to right, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0.2) 100%);
+  background: linear-gradient(to right, rgba(0, 0, 0, 0.8) 0%, rgba(0, 0, 0, 0.2) 100%);
   z-index: 2;
 }
 
 .side-banner .banner-overlay {
-  background: linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.1) 100%);
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.9) 0%, rgba(0, 0, 0, 0.1) 100%);
 }
 
 .banner-content {
@@ -101,7 +101,7 @@
 
 .date-badge {
   background-color: transparent;
-  border: 1px solid rgba(255,255,255,0.3);
+  border: 1px solid rgba(255, 255, 255, 0.3);
   color: #ccc;
   font-weight: 500;
 }
@@ -143,7 +143,7 @@
   background-color: var(--primary-red-hover);
 }
 
-.hero-section .btn-outline {
+.btn-outline {
   background-color: transparent;
   color: white;
   border: 1px solid white;
@@ -152,17 +152,16 @@
   font-size: 14px;
 }
 
-.hero-section .btn-outline:hover {
+.btn-outline:hover {
   background-color: white;
   color: black;
 }
 
-.small-label-badge {
-  background-color: var(--primary-red);
-  color: white;
-  padding: 2px 6px;
-  font-size: 10px;
-  font-weight: 800;
+.small-label {
+  color: var(--primary-red);
+  font-size: 12px;
+  font-weight: 700;
+  margin-bottom: 8px;
   letter-spacing: 1px;
 }
 

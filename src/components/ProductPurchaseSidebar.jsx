@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { ShoppingCart, ShieldCheck, Truck, Tag, ChevronRight, ArrowLeft } from 'lucide-react';
 import './ProductPurchaseSidebar.css';
 
 const ProductPurchaseSidebar = ({ selectedComponent, onClearSelection }) => {
   const [quantity, setQuantity] = useState(1);
+  const navigate = useNavigate();
 
   const increaseQuantity = () => setQuantity(prev => prev + 1);
   const decreaseQuantity = () => setQuantity(prev => (prev > 1 ? prev - 1 : 1));
@@ -45,6 +47,33 @@ const ProductPurchaseSidebar = ({ selectedComponent, onClearSelection }) => {
     
     localStorage.setItem('ruventu_cart', JSON.stringify(existingCart));
     window.dispatchEvent(new CustomEvent('cartUpdated', { detail: { quantity } }));
+  };
+
+  const handleBuyNow = () => {
+    let item;
+    if (selectedComponent) {
+      item = { 
+        id: selectedComponent.code, 
+        title: selectedComponent.name,
+        image: selectedComponent.img,
+        price: selectedComponent.price,
+        originalPrice: selectedComponent.originalPrice,
+        quantity: quantity, 
+        variant: 'Mặc định' 
+      };
+    } else {
+      item = { 
+        id: 'RVT-BUILD-502', 
+        title: 'REVENTU WARLORD PRO — HIGH-END GAMING',
+        image: '', 
+        price: '54.900.000đ',
+        originalPrice: '62.000.000đ',
+        quantity: quantity, 
+        variant: 'Mặc định' 
+      };
+    }
+    
+    navigate('/checkout', { state: { buyNowItem: item } });
   };
 
   const parsePrice = (priceStr) => {
@@ -108,7 +137,7 @@ const ProductPurchaseSidebar = ({ selectedComponent, onClearSelection }) => {
       </div>
 
       <div className="action-buttons">
-        <button className="sidebar-btn-buy-now">
+        <button className="sidebar-btn-buy-now" onClick={handleBuyNow}>
           <ChevronRight size={20} className="btn-icon" />
           MUA NGAY
         </button>

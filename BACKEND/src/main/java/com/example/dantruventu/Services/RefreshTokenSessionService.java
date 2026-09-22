@@ -21,48 +21,19 @@ public class RefreshTokenSessionService {
     private final JwtService jwtService;
 
     public void saveRefreshToken(String refreshToken) {
-
-        Date expiration =
-                jwtService.getExpirationFromToken(refreshToken);
-
-        long remainingTime =
-                expiration.getTime() - System.currentTimeMillis();
-
-        if (remainingTime <= 0) {
-            return;
-        }
-
-        String key = buildKey(refreshToken);
-
-        redisTemplate.opsForValue().set(
-                key,
-                "ACTIVE",
-                Duration.ofMillis(remainingTime)
-        );
+        System.out.println(">>> [DEV MODE] Đã bỏ qua bước lưu Token vào Redis vì máy chưa cài Redis.");
     }
 
     public boolean isRefreshTokenActive(String refreshToken) {
-
         if (refreshToken == null || refreshToken.isBlank()) {
             return false;
         }
-
-        String key = buildKey(refreshToken);
-
-        return Boolean.TRUE.equals(
-                redisTemplate.hasKey(key)
-        );
+        System.out.println(">>> [DEV MODE] Luôn trả về TRUE do đang tắt Redis.");
+        return true;
     }
 
     public void revokeRefreshToken(String refreshToken) {
-
-        if (refreshToken == null || refreshToken.isBlank()) {
-            return;
-        }
-
-        redisTemplate.delete(
-                buildKey(refreshToken)
-        );
+        System.out.println(">>> [DEV MODE] Bỏ qua xóa Redis.");
     }
 
     private String buildKey(String refreshToken) {
@@ -70,25 +41,12 @@ public class RefreshTokenSessionService {
     }
 
     private String hashToken(String token) {
-
         try {
-
-            MessageDigest messageDigest =
-                    MessageDigest.getInstance("SHA-256");
-
-            byte[] hash =
-                    messageDigest.digest(
-                            token.getBytes(StandardCharsets.UTF_8)
-                    );
-
+            MessageDigest messageDigest = MessageDigest.getInstance("SHA-256");
+            byte[] hash = messageDigest.digest(token.getBytes(StandardCharsets.UTF_8));
             return HexFormat.of().formatHex(hash);
-
         } catch (NoSuchAlgorithmException exception) {
-
-            throw new IllegalStateException(
-                    "Không thể khởi tạo SHA-256",
-                    exception
-            );
+            throw new IllegalStateException("Không thể khởi tạo SHA-256", exception);
         }
     }
 }

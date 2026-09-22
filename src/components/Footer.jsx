@@ -24,7 +24,7 @@ const Footer = () => {
               <li><a href="#">Hướng dẫn mua hàng</a></li>
               <li><a href="#">Kiểm tra đơn hàng</a></li>
               <li><a href="#">Đổi trả & hoàn tiền</a></li>
-              <li><a href="#">Bảo hành sản phẩm</a></li>
+              <li><Link to="/warranty-lookup">Tra cứu bảo hành</Link></li>
               <li><a href="#">Liên hệ CSKH</a></li>
             </ul>
           </div>

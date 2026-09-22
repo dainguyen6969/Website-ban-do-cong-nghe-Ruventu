@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Search, ArrowLeft } from 'lucide-react';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
@@ -9,6 +9,8 @@ import './NotFoundPage.css';
 
 const NotFoundPage = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const isAccountNotFound = location.state?.type === 'account';
   
   // Use a subset of products for "SẢN PHẨM NỔI BẬT" section
   const suggestedProducts = useMemo(() => {
@@ -37,14 +39,15 @@ const NotFoundPage = () => {
             </div>
             
             <h1 className="error-title">
-              SẢN PHẨM KHÔNG TỒN TẠI<br />
-              <span className="text-red">HOẶC ĐÃ NGỪNG KINH DOANH</span>
+              {isAccountNotFound ? 'TÀI KHOẢN KHÔNG TỒN TẠI' : 'SẢN PHẨM KHÔNG TỒN TẠI'}<br />
+              {!isAccountNotFound && <span className="text-red">HOẶC ĐÃ NGỪNG KINH DOANH</span>}
             </h1>
             
             <p className="error-description">
-              Sản phẩm bạn đang tìm kiếm có thể đã bị xóa, ẩn khỏi danh mục, hoặc liên 
-              kết không còn hợp lệ. Vui lòng kiểm tra lại hoặc tìm sản phẩm thay thế bên 
-              dưới.
+              {isAccountNotFound
+                ? 'Tài khoản của bạn đã bị khóa hoặc không còn tồn tại trên hệ thống. Vui lòng liên hệ quản trị viên để biết thêm chi tiết.'
+                : 'Sản phẩm bạn đang tìm kiếm có thể đã bị xóa, ẩn khỏi danh mục, hoặc liên kết không còn hợp lệ. Vui lòng kiểm tra lại hoặc tìm sản phẩm thay thế bên dưới.'
+              }
             </p>
             
             <div className="error-actions">
@@ -74,11 +77,11 @@ const NotFoundPage = () => {
         <div className="container details-grid">
           <div className="detail-item">
             <span className="detail-label">MÃ LỖI</span>
-            <span className="detail-value">HTTP 404</span>
+            <span className="detail-value">{isAccountNotFound ? 'HTTP 403' : 'HTTP 404'}</span>
           </div>
           <div className="detail-item">
             <span className="detail-label">NGUYÊN NHÂN</span>
-            <span className="detail-value">Sản phẩm không tồn tại</span>
+            <span className="detail-value">{isAccountNotFound ? 'Tài khoản không hoạt động' : 'Sản phẩm không tồn tại'}</span>
           </div>
           <div className="detail-item">
             <span className="detail-label">TRẠNG THÁI</span>

@@ -8,6 +8,7 @@ import CheckoutPage from './pages/CheckoutPage';
 import SuccessPage from './pages/SuccessPage';
 import ProfilePage from './pages/ProfilePage';
 import WarrantyLookupPage from './pages/WarrantyLookupPage';
+import OrderLookupPage from './pages/OrderLookupPage';
 import OrderDetailPage from './pages/OrderDetailPage';
 import BuildPCDetail from './pages/BuildPCDetail';
 import ProductDetail from './pages/ProductDetail';
@@ -34,6 +35,7 @@ function App() {
           <Route path="/success" element={<SuccessPage />} />
           <Route path="/profile" element={<ProfilePage />} />
           <Route path="/warranty-lookup" element={<WarrantyLookupPage />} />
+          <Route path="/order-lookup" element={<OrderLookupPage />} />
           <Route path="/order/:id" element={<OrderDetailPage />} />
           <Route path="/build-pc/:id" element={<BuildPCDetail />} />
           <Route path="/product/:id" element={<ProductDetail />} />

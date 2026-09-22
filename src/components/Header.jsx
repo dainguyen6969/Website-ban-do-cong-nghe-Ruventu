@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Search, User, ShoppingBag, Settings } from 'lucide-react';
+import { Search, User, ShoppingBag, Settings, ClipboardList } from 'lucide-react';
+import axios from 'axios';
 import './Header.css';
 import logo from '../assets/reventu.png';
 import CartDrawer from './CartDrawer';
@@ -33,10 +34,19 @@ const Header = () => {
     }
   }, []);
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try {
+      await axios.post('http://localhost:8080/api/v1/auth/logout', {}, {
+        withCredentials: true
+      });
+    } catch (error) {
+      console.error('Lỗi đăng xuất:', error);
+    }
     localStorage.removeItem('user');
+    localStorage.removeItem('accessToken');
     setUser(null);
     setIsDropdownOpen(false);
+    navigate('/login');
   };
 
   const handleSearchSubmit = (e) => {
@@ -82,6 +92,10 @@ const Header = () => {
 
             {/* Actions */}
             <div className="header-actions">
+              <Link to="/order-lookup" className="action-item" style={{textDecoration: 'none', color: 'inherit'}}>
+                <ClipboardList size={24} />
+                <span>Đơn hàng</span>
+              </Link>
               {user ? (
                 <div 
                   className="user-profile-menu"
@@ -295,6 +309,7 @@ const Header = () => {
               </li>
 
               <li><Link to="/promotions" className="highlight">Khuyến Mãi</Link></li>
+              <li><Link to="/warranty-lookup">Tra Cứu Bảo Hành</Link></li>
             </ul>
             <div className="hotline">
               Hotline: <span>1900 9999</span>

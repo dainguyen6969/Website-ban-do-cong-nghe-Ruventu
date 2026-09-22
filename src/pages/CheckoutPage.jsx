@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { ArrowLeft, ShieldCheck, Truck } from 'lucide-react';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
@@ -10,17 +10,33 @@ const CheckoutPage = () => {
   const [deliveryMethod, setDeliveryMethod] = useState('shipping');
   const [paymentMethod, setPaymentMethod] = useState('cod');
   const [checkoutItems, setCheckoutItems] = useState([]);
+  const [formData, setFormData] = useState({
+    name: '',
+    phone: '',
+    email: '',
+    province: 'Hà Nội',
+    ward: 'Cầu Giấy',
+    address: '',
+    note: ''
+  });
+  const [errors, setErrors] = useState({});
+
+  const location = useLocation();
 
   useEffect(() => {
-    const items = JSON.parse(localStorage.getItem('ruventu_cart') || '[]');
-    const selectedItems = items.filter(item => item.selected !== false);
-    
-    if (selectedItems.length === 0) {
-      navigate('/cart');
+    if (location.state?.buyNowItem) {
+      setCheckoutItems([location.state.buyNowItem]);
     } else {
-      setCheckoutItems(selectedItems);
+      const items = JSON.parse(localStorage.getItem('ruventu_cart') || '[]');
+      const selectedItems = items.filter(item => item.selected !== false);
+      
+      if (selectedItems.length === 0) {
+        navigate('/cart');
+      } else {
+        setCheckoutItems(selectedItems);
+      }
     }
-  }, [navigate]);
+  }, [navigate, location.state]);
 
   const parsePrice = (priceStr) => {
     if (!priceStr) return 0;
@@ -31,11 +47,45 @@ const CheckoutPage = () => {
   const shippingFee = deliveryMethod === 'shipping' ? (totalPrice > 5000000 ? 0 : 30000) : 0;
   const finalTotal = totalPrice + shippingFee;
 
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+    if (errors[name]) {
+      setErrors(prev => ({ ...prev, [name]: null }));
+    }
+  };
+
   const handlePlaceOrder = () => {
-    const items = JSON.parse(localStorage.getItem('ruventu_cart') || '[]');
-    const remainingItems = items.filter(item => item.selected === false);
-    localStorage.setItem('ruventu_cart', JSON.stringify(remainingItems));
-    window.dispatchEvent(new CustomEvent('cartUpdated'));
+    const newErrors = {};
+    if (!formData.name.trim()) newErrors.name = 'Vui lòng nhập họ và tên';
+    if (!formData.phone.trim()) {
+      newErrors.phone = 'Vui lòng nhập số điện thoại';
+    } else if (!/^[0-9]{10,11}$/.test(formData.phone.trim().replace(/\s/g, ''))) {
+      newErrors.phone = 'Số điện thoại không hợp lệ';
+    }
+    
+    if (!formData.email.trim()) {
+      newErrors.email = 'Vui lòng nhập email';
+    } else if (!/^\S+@\S+\.\S+$/.test(formData.email)) {
+      newErrors.email = 'Email không hợp lệ';
+    }
+
+    if (deliveryMethod === 'shipping') {
+      if (!formData.address.trim()) newErrors.address = 'Vui lòng nhập địa chỉ cụ thể';
+    }
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+
+    if (!location.state?.buyNowItem) {
+      const items = JSON.parse(localStorage.getItem('ruventu_cart') || '[]');
+      const remainingItems = items.filter(item => item.selected === false);
+      localStorage.setItem('ruventu_cart', JSON.stringify(remainingItems));
+      window.dispatchEvent(new CustomEvent('cartUpdated'));
+    }
     navigate('/success');
   };
 
@@ -69,16 +119,40 @@ const CheckoutPage = () => {
             <h3 className="section-title">THÔNG TIN LIÊN HỆ</h3>
             <div className="form-group">
               <label className="form-label">HỌ VÀ TÊN</label>
-              <input type="text" className="form-input" placeholder="Nhập họ và tên..." />
+              <input 
+                type="text" 
+                name="name"
+                value={formData.name}
+                onChange={handleInputChange}
+                className={`form-input ${errors.name ? 'input-error' : ''}`} 
+                placeholder="Nhập họ và tên..." 
+              />
+              {errors.name && <span className="error-text">{errors.name}</span>}
             </div>
             <div className="form-row">
               <div className="form-group">
                 <label className="form-label">SỐ ĐIỆN THOẠI</label>
-                <input type="tel" className="form-input" placeholder="09xx xxx xxx" />
+                <input 
+                  type="tel" 
+                  name="phone"
+                  value={formData.phone}
+                  onChange={handleInputChange}
+                  className={`form-input ${errors.phone ? 'input-error' : ''}`} 
+                  placeholder="09xx xxx xxx" 
+                />
+                {errors.phone && <span className="error-text">{errors.phone}</span>}
               </div>
               <div className="form-group">
                 <label className="form-label">EMAIL</label>
-                <input type="email" className="form-input" placeholder="ten@email.com" />
+                <input 
+                  type="email" 
+                  name="email"
+                  value={formData.email}
+                  onChange={handleInputChange}
+                  className={`form-input ${errors.email ? 'input-error' : ''}`} 
+                  placeholder="ten@email.com" 
+                />
+                {errors.email && <span className="error-text">{errors.email}</span>}
               </div>
             </div>
           </div>
@@ -116,14 +190,24 @@ const CheckoutPage = () => {
                 <div className="form-row">
                   <div className="form-group">
                     <label className="form-label">TỈNH / THÀNH PHỐ</label>
-                    <select className="form-input">
+                    <select 
+                      name="province"
+                      value={formData.province}
+                      onChange={handleInputChange}
+                      className="form-input"
+                    >
                       <option>Hà Nội</option>
                       <option>TP. Hồ Chí Minh</option>
                     </select>
                   </div>
                   <div className="form-group">
                     <label className="form-label">PHƯỜNG / XÃ</label>
-                    <select className="form-input">
+                    <select 
+                      name="ward"
+                      value={formData.ward}
+                      onChange={handleInputChange}
+                      className="form-input"
+                    >
                       <option>Cầu Giấy</option>
                       <option>Đống Đa</option>
                     </select>
@@ -131,7 +215,15 @@ const CheckoutPage = () => {
                 </div>
                 <div className="form-group">
                   <label className="form-label">ĐỊA CHỈ CỤ THỂ</label>
-                  <input type="text" className="form-input" placeholder="Số nhà, tên đường, khu dân cư..." />
+                  <input 
+                    type="text" 
+                    name="address"
+                    value={formData.address}
+                    onChange={handleInputChange}
+                    className={`form-input ${errors.address ? 'input-error' : ''}`} 
+                    placeholder="Số nhà, tên đường, khu dân cư..." 
+                  />
+                  {errors.address && <span className="error-text">{errors.address}</span>}
                 </div>
               </>
             )}
@@ -171,6 +263,9 @@ const CheckoutPage = () => {
             <h3 className="section-title">GHI CHÚ ĐƠN HÀNG</h3>
             <div className="form-group" style={{marginBottom: 0}}>
               <textarea 
+                name="note"
+                value={formData.note}
+                onChange={handleInputChange}
                 className="form-input" 
                 rows="3" 
                 placeholder="Ghi chú thêm cho đơn hàng (ví dụ: giao ngoài giờ hành chính, gọi trước khi giao...)"

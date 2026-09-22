@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { ShoppingCart, ShieldCheck, Truck, Tag, ChevronRight } from 'lucide-react';
 import './ProductPurchaseRightSidebar.css';
 
 const ProductPurchaseRightSidebar = ({ product }) => {
   const [quantity, setQuantity] = useState(1);
+  const navigate = useNavigate();
 
   if (!product) return null;
 
@@ -34,6 +36,22 @@ const ProductPurchaseRightSidebar = ({ product }) => {
     localStorage.setItem('ruventu_cart', JSON.stringify(existingCart));
 
     window.dispatchEvent(new CustomEvent('cartUpdated', { detail: { quantity } }));
+  };
+
+  const handleBuyNow = () => {
+    if (product.stock <= 0) return;
+    
+    const item = { 
+      id: product.id, 
+      title: product.name,
+      image: product.images?.[0] || '', // Fallback for image
+      price: product.currentPrice.toLocaleString('vi-VN') + 'đ',
+      originalPrice: product.originalPrice.toLocaleString('vi-VN') + 'đ',
+      quantity: quantity, 
+      variant: 'Mặc định' 
+    };
+    
+    navigate('/checkout', { state: { buyNowItem: item } });
   };
 
   // Map icons from strings
@@ -102,7 +120,11 @@ const ProductPurchaseRightSidebar = ({ product }) => {
       </div>
 
       <div className="action-buttons">
-        <button className="sidebar-btn-buy-now" disabled={product.stock <= 0}>
+        <button 
+          className="sidebar-btn-buy-now" 
+          disabled={product.stock <= 0}
+          onClick={handleBuyNow}
+        >
           <ChevronRight size={20} className="btn-icon" />
           {product.stock > 0 ? 'MUA NGAY' : 'HẾT HÀNG'}
         </button>

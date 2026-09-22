@@ -151,4 +151,5 @@ export function MockAuthProvider({ children }) {
   }), [accounts, currentAccount, login, logout, register, updateCurrentAccount]);
 
   return <MockAuthContext.Provider value={value}>{children}</MockAuthContext.Provider>;
+
 }
