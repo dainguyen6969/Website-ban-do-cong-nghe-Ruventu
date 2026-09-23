@@ -41,7 +41,8 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     String token = authorization.substring(7);
 
     if (!jwtService.isAccessTokenValid(token)) {
-      writeError(response, 401, "Token không hợp lệ hoặc đã hết hạn");
+      writeError(
+          response, HttpServletResponse.SC_UNAUTHORIZED, "Token không hợp lệ hoặc đã hết hạn");
       return;
     }
 
@@ -50,24 +51,28 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     NguoiDung user = nguoiDungRepository.findByIdWithVaiTro(userId).orElse(null);
 
     if (user == null) {
-      writeError(response, 401, "Tài khoản không tồn tại");
+      writeError(response, HttpServletResponse.SC_UNAUTHORIZED, "Tài khoản không tồn tại");
       return;
     }
 
     if (user.getTrangThai() != TrangThaiCoBanEnum.HOAT_DONG) {
-      writeError(response, 403, "Tài khoản đã bị khóa");
+
+      writeError(response, HttpServletResponse.SC_FORBIDDEN, "Tài khoản đã bị khóa");
       return;
     }
 
-    String role = user.getVaiTro().getTenVaiTro();
+    if (SecurityContextHolder.getContext().getAuthentication() == null) {
 
-    UsernamePasswordAuthenticationToken authentication =
-        new UsernamePasswordAuthenticationToken(
-            user.getId(), null, List.of(new SimpleGrantedAuthority("ROLE_" + role)));
+      String role = user.getVaiTro().getTenVaiTro();
 
-    authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+      UsernamePasswordAuthenticationToken authentication =
+          new UsernamePasswordAuthenticationToken(
+              user, null, List.of(new SimpleGrantedAuthority("ROLE_" + role)));
 
-    SecurityContextHolder.getContext().setAuthentication(authentication);
+      authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+
+      SecurityContextHolder.getContext().setAuthentication(authentication);
+    }
 
     filterChain.doFilter(request, response);
   }
@@ -81,7 +86,6 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     response.setContentType("application/json");
     response.setCharacterEncoding("UTF-8");
 
-    // Các message gọi vào đây là chuỗi cố định của ứng dụng.
     response
         .getWriter()
         .write("{\"status\":" + status + ",\"message\":\"" + message + "\",\"data\":null}");

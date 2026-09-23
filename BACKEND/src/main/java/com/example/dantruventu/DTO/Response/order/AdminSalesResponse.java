@@ -224,6 +224,12 @@ public final class AdminSalesResponse {
 
     @JsonProperty("phieu_giao_hang")
     private List<Delivery> phieuGiaoHang;
+
+    @JsonProperty("so_dien_thoai_khach_hang")
+    private String soDienThoaiKhachHang;
+
+    @JsonProperty("ma_giao_dich_thanh_toan")
+    private String maGiaoDichThanhToan;
   }
 
   @Getter

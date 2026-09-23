@@ -17,6 +17,8 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 public class SecurityConfig {
 
   private final JwtAuthFilter jwtAuthFilter;
+  private final JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
+  private final JwtAccessDeniedHandler jwtAccessDeniedHandler;
 
   @Bean
   public PasswordEncoder passwordEncoder() {
@@ -37,24 +39,18 @@ public class SecurityConfig {
                         "/api/v1/auth/verify-otp",
                         "/api/v1/auth/login",
                         "/api/v1/auth/refresh",
-                        "/api/v1/auth/logout")
+                        "/api/v1/auth/logout",
+                        "/api/v1/cart/**",
+                        "/api/v1/products",
+                        "/api/v1/products/**")
                     .permitAll()
                     .anyRequest()
                     .authenticated())
         .exceptionHandling(
-            exceptions ->
-                exceptions.authenticationEntryPoint(
-                    (request, response, exception) -> {
-                      response.setStatus(401);
-                      response.setContentType("application/json");
-                      response.setCharacterEncoding("UTF-8");
-                      response
-                          .getWriter()
-                          .write(
-                              "{\"status\":401,"
-                                  + "\"message\":\"Chưa đăng nhập\","
-                                  + "\"data\":null}");
-                    }))
+            exception ->
+                exception
+                    .authenticationEntryPoint(jwtAuthenticationEntryPoint)
+                    .accessDeniedHandler(jwtAccessDeniedHandler))
         .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
     return http.build();

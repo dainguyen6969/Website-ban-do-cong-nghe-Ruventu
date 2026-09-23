@@ -21,6 +21,7 @@ public interface ComboMapper {
   @Mapping(target = "danhMuc", ignore = true)
   @Mapping(target = "thuongHieu", ignore = true)
   @Mapping(target = "loaiSanPham", constant = "BO_PC")
+  @Mapping(target = "ngayTao", ignore = true)
   @Mapping(target = "danhSachAnhSanPham", ignore = true)
   @Mapping(target = "danhSachPhienBan", ignore = true)
   @Mapping(target = "danhSachThanhPhanCombo", ignore = true)

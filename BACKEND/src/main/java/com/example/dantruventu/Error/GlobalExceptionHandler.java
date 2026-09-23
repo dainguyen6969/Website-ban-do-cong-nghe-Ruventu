@@ -1,13 +1,19 @@
 package com.example.dantruventu.Error;
 
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.PessimisticLockingFailureException;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
+@Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
@@ -37,6 +43,31 @@ public class GlobalExceptionHandler {
     return ResponseEntity.status(ErrorCode.INVALID_DATA.getStatus()).body(response);
   }
 
+  @ExceptionHandler({
+    HttpMessageNotReadableException.class,
+    MethodArgumentTypeMismatchException.class
+  })
+  public ResponseEntity<ErrorResponse> handleInvalidRequest(Exception exception) {
+
+    ErrorResponse response =
+        new ErrorResponse(
+            ErrorCode.INVALID_DATA.getStatus().value(), ErrorCode.INVALID_DATA.getMessage());
+
+    return ResponseEntity.status(ErrorCode.INVALID_DATA.getStatus()).body(response);
+  }
+
+  @ExceptionHandler(MissingServletRequestParameterException.class)
+  public ResponseEntity<ErrorResponse> handleMissingParameter(
+      MissingServletRequestParameterException exception) {
+
+    ErrorResponse response =
+        new ErrorResponse(
+            ErrorCode.INVALID_DATA.getStatus().value(),
+            "Thiếu tham số: " + exception.getParameterName());
+
+    return ResponseEntity.status(ErrorCode.INVALID_DATA.getStatus()).body(response);
+  }
+
   @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
   public ResponseEntity<ErrorResponse> handleMethodNotAllowed(
       HttpRequestMethodNotSupportedException exception) {
@@ -49,20 +80,9 @@ public class GlobalExceptionHandler {
     return ResponseEntity.status(ErrorCode.METHOD_NOT_ALLOWED.getStatus()).body(response);
   }
 
-  @ExceptionHandler(Exception.class)
-  public ResponseEntity<ErrorResponse> handleException(Exception exception) {
-
-    ErrorResponse response =
-        new ErrorResponse(
-            ErrorCode.INTERNAL_SERVER_ERROR.getStatus().value(),
-            ErrorCode.INTERNAL_SERVER_ERROR.getMessage());
-
-    return ResponseEntity.status(ErrorCode.INTERNAL_SERVER_ERROR.getStatus()).body(response);
-  }
-
-  @ExceptionHandler(org.springframework.dao.DataIntegrityViolationException.class)
+  @ExceptionHandler(DataIntegrityViolationException.class)
   public ResponseEntity<ErrorResponse> handleDataIntegrityException(
-      org.springframework.dao.DataIntegrityViolationException exception) {
+      DataIntegrityViolationException exception) {
 
     ErrorResponse response =
         new ErrorResponse(
@@ -71,40 +91,38 @@ public class GlobalExceptionHandler {
     return ResponseEntity.status(ErrorCode.CONFLICT.getStatus()).body(response);
   }
 
-  @ExceptionHandler(org.springframework.security.access.AccessDeniedException.class)
-  public ResponseEntity<ErrorResponse> handleAccessDenied(
-      org.springframework.security.access.AccessDeniedException exception) {
-
-    return ResponseEntity.status(403)
-        .body(new ErrorResponse(403, "Bạn không có quyền thực hiện thao tác này"));
-  }
-
-  @ExceptionHandler({
-    org.springframework.http.converter.HttpMessageNotReadableException.class,
-    org.springframework.web.method.annotation.MethodArgumentTypeMismatchException.class
-  })
-  public ResponseEntity<ErrorResponse> handleInvalidRequest(Exception exception) {
-
-    return ResponseEntity.badRequest()
-        .body(new ErrorResponse(400, "Dữ liệu không hợp lệ hoặc sai kiểu dữ liệu"));
-  }
-
-  @ExceptionHandler(MissingServletRequestParameterException.class)
-  public ResponseEntity<ErrorResponse> handleMissingParameter(
-      org.springframework.web.bind.MissingServletRequestParameterException exception) {
-
-    return ResponseEntity.badRequest()
-        .body(new ErrorResponse(400, "Thiếu tham số: " + exception.getParameterName()));
-  }
-
   @ExceptionHandler(PessimisticLockingFailureException.class)
   public ResponseEntity<ErrorResponse> handleConcurrentSale(
-      org.springframework.dao.PessimisticLockingFailureException exception) {
+      PessimisticLockingFailureException exception) {
 
     return ResponseEntity.status(409)
         .body(
             new ErrorResponse(
                 409,
-                "Dữ liệu đang được xử lý đồng thời. " + "Vui lòng gửi lại cùng Idempotency-Key"));
+                "Dữ liệu đang được xử lý đồng thời. Vui lòng tải lại trạng thái; "
+                    + "với yêu cầu tạo đơn/POS, giữ nguyên Idempotency-Key khi gửi lại."));
+  }
+
+  @ExceptionHandler(AccessDeniedException.class)
+  public ResponseEntity<ErrorResponse> handleAccessDenied(AccessDeniedException exception) {
+
+    ErrorResponse response =
+        new ErrorResponse(
+            ErrorCode.FORBIDDEN.getStatus().value(), ErrorCode.FORBIDDEN.getMessage());
+
+    return ResponseEntity.status(ErrorCode.FORBIDDEN.getStatus()).body(response);
+  }
+
+  @ExceptionHandler(Exception.class)
+  public ResponseEntity<ErrorResponse> handleException(Exception exception) {
+
+    log.error("Đã xảy ra lỗi hệ thống chưa được xử lý", exception);
+
+    ErrorResponse response =
+        new ErrorResponse(
+            ErrorCode.INTERNAL_SERVER_ERROR.getStatus().value(),
+            ErrorCode.INTERNAL_SERVER_ERROR.getMessage());
+
+    return ResponseEntity.status(ErrorCode.INTERNAL_SERVER_ERROR.getStatus()).body(response);
   }
 }
