@@ -95,12 +95,12 @@ public class GlobalExceptionHandler {
   public ResponseEntity<ErrorResponse> handleConcurrentSale(
       PessimisticLockingFailureException exception) {
 
-    ErrorResponse response =
-        new ErrorResponse(
-            ErrorCode.CONFLICT.getStatus().value(),
-            "Dữ liệu đang được xử lý đồng thời. " + "Vui lòng gửi lại cùng Idempotency-Key");
-
-    return ResponseEntity.status(ErrorCode.CONFLICT.getStatus()).body(response);
+    return ResponseEntity.status(409)
+        .body(
+            new ErrorResponse(
+                409,
+                "Dữ liệu đang được xử lý đồng thời. Vui lòng tải lại trạng thái; "
+                    + "với yêu cầu tạo đơn/POS, giữ nguyên Idempotency-Key khi gửi lại."));
   }
 
   @ExceptionHandler(AccessDeniedException.class)
