@@ -1,8 +1,10 @@
 package com.example.dantruventu.Error;
 
+import org.springframework.dao.PessimisticLockingFailureException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
@@ -85,5 +87,24 @@ public class GlobalExceptionHandler {
 
     return ResponseEntity.badRequest()
         .body(new ErrorResponse(400, "Dữ liệu không hợp lệ hoặc sai kiểu dữ liệu"));
+  }
+
+  @ExceptionHandler(MissingServletRequestParameterException.class)
+  public ResponseEntity<ErrorResponse> handleMissingParameter(
+      org.springframework.web.bind.MissingServletRequestParameterException exception) {
+
+    return ResponseEntity.badRequest()
+        .body(new ErrorResponse(400, "Thiếu tham số: " + exception.getParameterName()));
+  }
+
+  @ExceptionHandler(PessimisticLockingFailureException.class)
+  public ResponseEntity<ErrorResponse> handleConcurrentSale(
+      org.springframework.dao.PessimisticLockingFailureException exception) {
+
+    return ResponseEntity.status(409)
+        .body(
+            new ErrorResponse(
+                409,
+                "Dữ liệu đang được xử lý đồng thời. " + "Vui lòng gửi lại cùng Idempotency-Key"));
   }
 }

@@ -40,4 +40,6 @@ public interface TonKhoRepository extends JpaRepository<TonKho, Long> {
       @Param("khoHangId") Long khoHangId, @Param("phienBanId") Long phienBanId);
 
   boolean existsByPhienBanId(Long phienBanId);
+
+  List<TonKho> findByKhoHang_IdAndPhienBan_IdOrderByIdAsc(Long khoHangId, Long phienBanId);
 }
