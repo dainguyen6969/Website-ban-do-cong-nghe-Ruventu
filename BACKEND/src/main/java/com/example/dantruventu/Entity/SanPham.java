@@ -51,15 +51,13 @@ public class SanPham {
 
   @Builder.Default
   @Column(name = "trang_thai", nullable = false)
-  private TrangThaiCoBanEnum trangThai =
-          TrangThaiCoBanEnum.HOAT_DONG;
+  private TrangThaiCoBanEnum trangThai = TrangThaiCoBanEnum.HOAT_DONG;
 
   @CreationTimestamp
   @Column(
-          name = "ngay_tao",
-          updatable = false,
-          columnDefinition = "TIMESTAMP DEFAULT CURRENT_TIMESTAMP"
-  )
+      name = "ngay_tao",
+      updatable = false,
+      columnDefinition = "TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
   private LocalDateTime ngayTao;
 
   @OneToMany(mappedBy = "sanPham", fetch = FetchType.LAZY)

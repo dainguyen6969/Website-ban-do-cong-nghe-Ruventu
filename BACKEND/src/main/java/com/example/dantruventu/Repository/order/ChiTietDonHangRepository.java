@@ -51,4 +51,20 @@ public interface ChiTietDonHangRepository extends JpaRepository<ChiTietDonHang, 
           """,
       nativeQuery = true)
   Long sumReservedQuantity(@Param("variantId") Long variantId);
+
+  @Query(
+      """
+    SELECT c
+    FROM ChiTietDonHang c
+    JOIN FETCH c.phienBan v
+    JOIN FETCH v.sanPham
+    WHERE c.id IN (
+        SELECT MIN(x.id)
+        FROM ChiTietDonHang x
+        WHERE x.donHang.id IN :orderIds
+        GROUP BY x.donHang.id
+    )
+    """)
+  List<ChiTietDonHang> findFirstLinesForOrders(
+      @Param("orderIds") java.util.Collection<Long> orderIds);
 }

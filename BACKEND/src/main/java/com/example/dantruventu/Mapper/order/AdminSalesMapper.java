@@ -26,11 +26,13 @@ public interface AdminSalesMapper {
 
   @Mapping(target = "khachHangId", source = "khachHang.id")
   @Mapping(target = "tenKhachHang", source = "khachHang.hoTen")
+  @Mapping(target = "soDienThoaiKhachHang", source = "khachHang.soDienThoai")
   @Mapping(target = "nhanVienId", source = "nhanVien.id")
   AdminSalesResponse.Order toOrder(DonHang entity, @Context ZoneId zone);
 
   @Mapping(target = "khachHangId", source = "khachHang.id")
   @Mapping(target = "tenKhachHang", source = "khachHang.hoTen")
+  @Mapping(target = "soDienThoaiKhachHang", source = "khachHang.soDienThoai")
   @Mapping(target = "nhanVienId", source = "nhanVien.id")
   AdminSalesResponse.Checkout toCheckout(DonHang entity, @Context ZoneId zone);
 

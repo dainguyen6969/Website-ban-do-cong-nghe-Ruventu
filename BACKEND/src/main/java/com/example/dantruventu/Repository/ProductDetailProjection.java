@@ -4,72 +4,72 @@ import java.math.BigDecimal;
 
 public interface ProductDetailProjection {
 
+  Long getId();
+
+  String getMaSanPham();
+
+  String getTenSanPham();
+
+  Long getDanhMucId();
+
+  String getTenDanhMuc();
+
+  Long getThuongHieuId();
+
+  String getTenThuongHieu();
+
+  String getLoaiSanPham();
+
+  String getMoTa();
+
+  String getThongSoKyThuat();
+
+  Short getTrangThai();
+
+  interface ProductImageProjection {
+
     Long getId();
 
-    String getMaSanPham();
+    String getDuongDanAnh();
 
-    String getTenSanPham();
+    Boolean getLaAnhChinh();
 
-    Long getDanhMucId();
+    Integer getThuTuHienThi();
+  }
 
-    String getTenDanhMuc();
+  interface ProductVariantProjection {
 
-    Long getThuongHieuId();
+    Long getId();
 
-    String getTenThuongHieu();
+    String getTenPhienBan();
 
-    String getLoaiSanPham();
+    String getMaVach();
 
-    String getMoTa();
+    BigDecimal getGiaBanLe();
 
-    String getThongSoKyThuat();
+    BigDecimal getKhoiLuong();
+
+    Long getTonCoTheBan();
+  }
+
+  interface ProductVariantDetailProjection {
+
+    Long getId();
+
+    Long getSanPhamId();
+
+    String getTenPhienBan();
+
+    String getMaVach();
+
+    BigDecimal getGiaBanLe();
+
+    BigDecimal getKhoiLuong();
 
     Short getTrangThai();
 
-    interface ProductImageProjection {
+    Long getTonThucTe();
 
-        Long getId();
-
-        String getDuongDanAnh();
-
-        Boolean getLaAnhChinh();
-
-        Integer getThuTuHienThi();
-    }
-
-    interface ProductVariantProjection {
-
-        Long getId();
-
-        String getTenPhienBan();
-
-        String getMaVach();
-
-        BigDecimal getGiaBanLe();
-
-        BigDecimal getKhoiLuong();
-
-        Long getTonCoTheBan();
-    }
-
-    interface ProductVariantDetailProjection {
-
-        Long getId();
-
-        Long getSanPhamId();
-
-        String getTenPhienBan();
-
-        String getMaVach();
-
-        BigDecimal getGiaBanLe();
-
-        BigDecimal getKhoiLuong();
-
-        Short getTrangThai();
-
-        Long getTonThucTe();
-
-        Long getTonCoTheBan();
-    }
+    Long getTonCoTheBan();
+  }
 }

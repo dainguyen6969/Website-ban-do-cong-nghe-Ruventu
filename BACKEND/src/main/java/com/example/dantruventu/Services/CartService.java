@@ -12,13 +12,7 @@ import com.example.dantruventu.Enum.TrangThaiCoBanEnum;
 import com.example.dantruventu.Error.AppException;
 import com.example.dantruventu.Error.ErrorCode;
 import com.example.dantruventu.Repository.GioHangRepository;
-import com.example.dantruventu.Repository.PhienBanSanPhamRepository;
-import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.data.redis.core.StringRedisTemplate;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
+import com.example.dantruventu.Repository.product.PhienBanSanPhamRepository;
 import java.math.BigDecimal;
 import java.time.Duration;
 import java.util.ArrayList;
@@ -26,578 +20,362 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
 public class CartService {
 
-    private static final String GUEST_CART_KEY_PREFIX =
-            "cart:guest:";
+  private static final String GUEST_CART_KEY_PREFIX = "cart:guest:";
 
-    private final GioHangRepository gioHangRepository;
-    private final PhienBanSanPhamRepository phienBanSanPhamRepository;
-    private final StringRedisTemplate redisTemplate;
+  private final GioHangRepository gioHangRepository;
+  private final PhienBanSanPhamRepository phienBanSanPhamRepository;
+  private final StringRedisTemplate redisTemplate;
 
-    @Value("${cart.guest-expiration}")
-    private long guestCartExpiration;
+  @Value("${cart.guest-expiration}")
+  private long guestCartExpiration;
 
-    @Transactional(readOnly = true)
-    public CartResponse getCurrentCart(
-            NguoiDung nguoiDung,
-            String guestCartId
-    ) {
+  @Transactional(readOnly = true)
+  public CartResponse getCurrentCart(NguoiDung nguoiDung, String guestCartId) {
 
-        if (nguoiDung != null) {
-            return getUserCart(nguoiDung.getId());
+    if (nguoiDung != null) {
+      return getUserCart(nguoiDung.getId());
+    }
+
+    return getGuestCart(guestCartId);
+  }
+
+  @Transactional
+  public CartItemMutationResponse addItem(
+      NguoiDung nguoiDung, String guestCartId, AddCartItemRequest request) {
+
+    PhienBanSanPham phienBan =
+        phienBanSanPhamRepository
+            .findById(request.getPhienBanId())
+            .filter(this::isActiveVariant)
+            .orElseThrow(() -> new AppException(ErrorCode.PRODUCT_VARIANT_NOT_FOUND));
+
+    int tonKhoKhaDung = calculateAvailableStock(phienBan);
+
+    if (nguoiDung != null) {
+      return addUserItem(nguoiDung, phienBan, request.getSoLuong(), tonKhoKhaDung);
+    }
+
+    if (!isValidGuestCartId(guestCartId)) {
+      throw new AppException(ErrorCode.INVALID_DATA);
+    }
+
+    return addGuestItem(guestCartId, phienBan, request.getSoLuong(), tonKhoKhaDung);
+  }
+
+  @Transactional
+  public boolean mergeGuestCart(NguoiDung nguoiDung, String guestCartId) {
+
+    if (nguoiDung == null || guestCartId == null || guestCartId.isBlank()) {
+
+      return false;
+    }
+
+    if (!isValidGuestCartId(guestCartId)) {
+      return true;
+    }
+
+    String redisKey = buildGuestCartKey(guestCartId);
+
+    Map<Object, Object> redisItems = redisTemplate.opsForHash().entries(redisKey);
+
+    for (Map.Entry<Object, Object> entry : redisItems.entrySet()) {
+
+      try {
+
+        Long phienBanId = Long.valueOf(entry.getKey().toString());
+
+        int guestQuantity = Integer.parseInt(entry.getValue().toString());
+
+        if (guestQuantity <= 0) {
+          continue;
         }
 
-        return getGuestCart(guestCartId);
+        phienBanSanPhamRepository
+            .findById(phienBanId)
+            .ifPresent(phienBan -> mergeGuestItemIntoUserCart(nguoiDung, phienBan, guestQuantity));
+
+      } catch (NumberFormatException exception) {
+        // Bỏ qua item Redis không đúng định dạng.
+      }
     }
 
-    @Transactional
-    public CartItemMutationResponse addItem(
-            NguoiDung nguoiDung,
-            String guestCartId,
-            AddCartItemRequest request
-    ) {
+    gioHangRepository.flush();
+    redisTemplate.delete(redisKey);
 
-        PhienBanSanPham phienBan =
-                phienBanSanPhamRepository
-                        .findById(request.getPhienBanId())
-                        .filter(this::isActiveVariant)
-                        .orElseThrow(() ->
-                                new AppException(
-                                        ErrorCode.PRODUCT_VARIANT_NOT_FOUND
-                                )
-                        );
+    return true;
+  }
 
-        int tonKhoKhaDung =
-                calculateAvailableStock(phienBan);
+  public String getOrCreateGuestCartId(String guestCartId) {
 
-        if (nguoiDung != null) {
-            return addUserItem(
-                    nguoiDung,
-                    phienBan,
-                    request.getSoLuong(),
-                    tonKhoKhaDung
-            );
-        }
-
-        if (!isValidGuestCartId(guestCartId)) {
-            throw new AppException(ErrorCode.INVALID_DATA);
-        }
-
-        return addGuestItem(
-                guestCartId,
-                phienBan,
-                request.getSoLuong(),
-                tonKhoKhaDung
-        );
+    if (isValidGuestCartId(guestCartId)) {
+      return guestCartId;
     }
 
-    @Transactional
-    public boolean mergeGuestCart(
-            NguoiDung nguoiDung,
-            String guestCartId
-    ) {
+    return UUID.randomUUID().toString();
+  }
 
-        if (nguoiDung == null
-                || guestCartId == null
-                || guestCartId.isBlank()) {
+  private void mergeGuestItemIntoUserCart(
+      NguoiDung nguoiDung, PhienBanSanPham phienBan, int guestQuantity) {
 
-            return false;
-        }
+    GioHang gioHang =
+        gioHangRepository
+            .findByNguoiDungIdAndPhienBanId(nguoiDung.getId(), phienBan.getId())
+            .orElseGet(
+                () -> GioHang.builder().nguoiDung(nguoiDung).phienBan(phienBan).soLuong(0).build());
 
-        if (!isValidGuestCartId(guestCartId)) {
-            return true;
-        }
+    int mergedQuantity = Math.min(99, gioHang.getSoLuong() + guestQuantity);
 
-        String redisKey =
-                buildGuestCartKey(guestCartId);
+    gioHang.setSoLuong(mergedQuantity);
+    gioHangRepository.save(gioHang);
+  }
 
-        Map<Object, Object> redisItems =
-                redisTemplate.opsForHash().entries(redisKey);
+  private CartItemMutationResponse addUserItem(
+      NguoiDung nguoiDung, PhienBanSanPham phienBan, Integer addedQuantity, int tonKhoKhaDung) {
 
-        for (Map.Entry<Object, Object> entry
-                : redisItems.entrySet()) {
+    GioHang gioHang =
+        gioHangRepository
+            .findByNguoiDungIdAndPhienBanId(nguoiDung.getId(), phienBan.getId())
+            .orElseGet(
+                () -> GioHang.builder().nguoiDung(nguoiDung).phienBan(phienBan).soLuong(0).build());
 
-            try {
+    int newQuantity = gioHang.getSoLuong() + addedQuantity;
 
-                Long phienBanId =
-                        Long.valueOf(
-                                entry.getKey().toString()
-                        );
+    validateQuantity(newQuantity, tonKhoKhaDung);
 
-                int guestQuantity =
-                        Integer.parseInt(
-                                entry.getValue().toString()
-                        );
+    gioHang.setSoLuong(newQuantity);
 
-                if (guestQuantity <= 0) {
-                    continue;
-                }
+    GioHang savedItem = gioHangRepository.save(gioHang);
 
-                phienBanSanPhamRepository
-                        .findById(phienBanId)
-                        .ifPresent(phienBan ->
-                                mergeGuestItemIntoUserCart(
-                                        nguoiDung,
-                                        phienBan,
-                                        guestQuantity
-                                )
-                        );
+    CartResponse cartResponse = getUserCart(nguoiDung.getId());
 
-            } catch (NumberFormatException exception) {
-                // Bỏ qua item Redis không đúng định dạng.
-            }
-        }
+    return buildMutationResponse(savedItem.getId(), phienBan, newQuantity, cartResponse);
+  }
 
-        gioHangRepository.flush();
-        redisTemplate.delete(redisKey);
+  private CartItemMutationResponse addGuestItem(
+      String guestCartId, PhienBanSanPham phienBan, Integer addedQuantity, int tonKhoKhaDung) {
 
-        return true;
+    String redisKey = buildGuestCartKey(guestCartId);
+
+    String redisField = String.valueOf(phienBan.getId());
+
+    Object currentValue = redisTemplate.opsForHash().get(redisKey, redisField);
+
+    int currentQuantity = currentValue == null ? 0 : Integer.parseInt(currentValue.toString());
+
+    int newQuantity = currentQuantity + addedQuantity;
+
+    validateQuantity(newQuantity, tonKhoKhaDung);
+
+    redisTemplate.opsForHash().put(redisKey, redisField, String.valueOf(newQuantity));
+
+    redisTemplate.expire(redisKey, Duration.ofMillis(guestCartExpiration));
+
+    CartResponse cartResponse = getGuestCart(guestCartId);
+
+    return buildMutationResponse(phienBan.getId(), phienBan, newQuantity, cartResponse);
+  }
+
+  private void validateQuantity(int quantity, int tonKhoKhaDung) {
+
+    if (quantity <= 0 || quantity > 99) {
+      throw new AppException(ErrorCode.INVALID_CART_QUANTITY);
     }
 
-    public String getOrCreateGuestCartId(
-            String guestCartId
-    ) {
+    if (quantity > tonKhoKhaDung) {
+      throw new AppException(ErrorCode.INSUFFICIENT_STOCK);
+    }
+  }
 
-        if (isValidGuestCartId(guestCartId)) {
-            return guestCartId;
-        }
+  private CartItemMutationResponse buildMutationResponse(
+      Long cartItemId, PhienBanSanPham phienBan, Integer soLuong, CartResponse cartResponse) {
 
-        return UUID.randomUUID().toString();
+    BigDecimal donGia = phienBan.getGiaBanLe();
+
+    BigDecimal thanhTien = donGia.multiply(BigDecimal.valueOf(soLuong));
+
+    CartItemMutationResponse.CartItemData data =
+        CartItemMutationResponse.CartItemData.builder()
+            .cartItemId(cartItemId)
+            .phienBanId(phienBan.getId())
+            .soLuong(soLuong)
+            .donGia(donGia)
+            .thanhTien(thanhTien)
+            .build();
+
+    CartItemMutationResponse.CartSummary cartSummary =
+        CartItemMutationResponse.CartSummary.builder()
+            .tongSoLuong(cartResponse.getTongSoLuong())
+            .tamTinh(cartResponse.getTamTinh())
+            .giamGia(cartResponse.getGiamGia())
+            .tongTien(cartResponse.getTongTien())
+            .build();
+
+    return CartItemMutationResponse.builder()
+        .status(200)
+        .message("Thêm sản phẩm vào giỏ thành công")
+        .data(data)
+        .cartSummary(cartSummary)
+        .build();
+  }
+
+  private CartResponse getUserCart(Long nguoiDungId) {
+
+    List<GioHang> gioHangItems =
+        gioHangRepository.findByNguoiDungIdOrderByNgayCapNhatDesc(nguoiDungId);
+
+    List<CartResponse.CartItemResponse> items =
+        gioHangItems.stream().map(this::mapUserCartItem).toList();
+
+    return buildCartResponse(items);
+  }
+
+  private CartResponse getGuestCart(String guestCartId) {
+
+    if (!isValidGuestCartId(guestCartId)) {
+      return buildCartResponse(List.of());
     }
 
-    private void mergeGuestItemIntoUserCart(
-            NguoiDung nguoiDung,
-            PhienBanSanPham phienBan,
-            int guestQuantity
-    ) {
+    Map<Object, Object> redisItems =
+        redisTemplate.opsForHash().entries(buildGuestCartKey(guestCartId));
 
-        GioHang gioHang =
-                gioHangRepository
-                        .findByNguoiDungIdAndPhienBanId(
-                                nguoiDung.getId(),
-                                phienBan.getId()
-                        )
-                        .orElseGet(() ->
-                                GioHang.builder()
-                                        .nguoiDung(nguoiDung)
-                                        .phienBan(phienBan)
-                                        .soLuong(0)
-                                        .build()
-                        );
+    List<CartResponse.CartItemResponse> items = new ArrayList<>();
 
-        int mergedQuantity =
-                Math.min(
-                        99,
-                        gioHang.getSoLuong()
-                                + guestQuantity
-                );
+    for (Map.Entry<Object, Object> entry : redisItems.entrySet()) {
 
-        gioHang.setSoLuong(mergedQuantity);
-        gioHangRepository.save(gioHang);
+      try {
+
+        Long phienBanId = Long.valueOf(entry.getKey().toString());
+
+        Integer soLuong = Integer.valueOf(entry.getValue().toString());
+
+        phienBanSanPhamRepository
+            .findById(phienBanId)
+            .ifPresent(phienBan -> items.add(mapCartItem(phienBanId, phienBan, soLuong)));
+
+      } catch (NumberFormatException exception) {
+        // Bỏ qua item Redis không đúng định dạng.
+      }
     }
 
-    private CartItemMutationResponse addUserItem(
-            NguoiDung nguoiDung,
-            PhienBanSanPham phienBan,
-            Integer addedQuantity,
-            int tonKhoKhaDung
-    ) {
+    return buildCartResponse(items);
+  }
 
-        GioHang gioHang =
-                gioHangRepository
-                        .findByNguoiDungIdAndPhienBanId(
-                                nguoiDung.getId(),
-                                phienBan.getId()
-                        )
-                        .orElseGet(() ->
-                                GioHang.builder()
-                                        .nguoiDung(nguoiDung)
-                                        .phienBan(phienBan)
-                                        .soLuong(0)
-                                        .build()
-                        );
+  private CartResponse.CartItemResponse mapUserCartItem(GioHang gioHang) {
 
-        int newQuantity =
-                gioHang.getSoLuong() + addedQuantity;
+    return mapCartItem(gioHang.getId(), gioHang.getPhienBan(), gioHang.getSoLuong());
+  }
 
-        validateQuantity(
-                newQuantity,
-                tonKhoKhaDung
-        );
+  private CartResponse.CartItemResponse mapCartItem(
+      Long cartItemId, PhienBanSanPham phienBan, Integer soLuong) {
 
-        gioHang.setSoLuong(newQuantity);
+    SanPham sanPham = phienBan.getSanPham();
 
-        GioHang savedItem =
-                gioHangRepository.save(gioHang);
+    int tonKhoKhaDung = calculateAvailableStock(phienBan);
 
-        CartResponse cartResponse =
-                getUserCart(nguoiDung.getId());
+    boolean conHang = isActiveVariant(phienBan) && tonKhoKhaDung >= soLuong;
 
-        return buildMutationResponse(
-                savedItem.getId(),
-                phienBan,
-                newQuantity,
-                cartResponse
-        );
+    BigDecimal donGia = phienBan.getGiaBanLe();
+
+    BigDecimal thanhTien = donGia.multiply(BigDecimal.valueOf(soLuong));
+
+    return CartResponse.CartItemResponse.builder()
+        .cartItemId(cartItemId)
+        .phienBanId(phienBan.getId())
+        .tenSanPham(sanPham.getTenSanPham())
+        .tenPhienBan(phienBan.getTenPhienBan())
+        .anh(getMainImage(sanPham))
+        .donGia(donGia)
+        .soLuong(soLuong)
+        .thanhTien(thanhTien)
+        .tonKhoKhaDung(tonKhoKhaDung)
+        .conHang(conHang)
+        .build();
+  }
+
+  private int calculateAvailableStock(PhienBanSanPham phienBan) {
+
+    if (phienBan.getDanhSachTonKho() == null) {
+      return 0;
     }
 
-    private CartItemMutationResponse addGuestItem(
-            String guestCartId,
-            PhienBanSanPham phienBan,
-            Integer addedQuantity,
-            int tonKhoKhaDung
-    ) {
+    return phienBan.getDanhSachTonKho().stream()
+        .mapToInt(tonKho -> tonKho.getTonCoTheBan() == null ? 0 : tonKho.getTonCoTheBan())
+        .sum();
+  }
 
-        String redisKey =
-                buildGuestCartKey(guestCartId);
+  private boolean isActiveVariant(PhienBanSanPham phienBan) {
 
-        String redisField =
-                String.valueOf(phienBan.getId());
+    return TrangThaiCoBanEnum.HOAT_DONG.equals(phienBan.getTrangThai())
+        && TrangThaiCoBanEnum.HOAT_DONG.equals(phienBan.getSanPham().getTrangThai());
+  }
 
-        Object currentValue =
-                redisTemplate.opsForHash().get(
-                        redisKey,
-                        redisField
-                );
+  private String getMainImage(SanPham sanPham) {
 
-        int currentQuantity =
-                currentValue == null
-                        ? 0
-                        : Integer.parseInt(
-                        currentValue.toString()
-                );
-
-        int newQuantity =
-                currentQuantity + addedQuantity;
-
-        validateQuantity(
-                newQuantity,
-                tonKhoKhaDung
-        );
-
-        redisTemplate.opsForHash().put(
-                redisKey,
-                redisField,
-                String.valueOf(newQuantity)
-        );
-
-        redisTemplate.expire(
-                redisKey,
-                Duration.ofMillis(guestCartExpiration)
-        );
-
-        CartResponse cartResponse =
-                getGuestCart(guestCartId);
-
-        return buildMutationResponse(
-                phienBan.getId(),
-                phienBan,
-                newQuantity,
-                cartResponse
-        );
+    if (sanPham.getDanhSachAnhSanPham() == null) {
+      return null;
     }
 
-    private void validateQuantity(
-            int quantity,
-            int tonKhoKhaDung
-    ) {
+    return sanPham.getDanhSachAnhSanPham().stream()
+        .filter(anh -> Boolean.TRUE.equals(anh.getLaAnhChinh()))
+        .min(
+            Comparator.comparing(
+                AnhSanPham::getThuTuHienThi, Comparator.nullsLast(Integer::compareTo)))
+        .map(AnhSanPham::getDuongDanAnh)
+        .orElse(null);
+  }
 
-        if (quantity <= 0 || quantity > 99) {
-            throw new AppException(
-                    ErrorCode.INVALID_CART_QUANTITY
-            );
-        }
+  private CartResponse buildCartResponse(List<CartResponse.CartItemResponse> items) {
 
-        if (quantity > tonKhoKhaDung) {
-            throw new AppException(
-                    ErrorCode.INSUFFICIENT_STOCK
-            );
-        }
+    int tongSoLuong = items.stream().mapToInt(CartResponse.CartItemResponse::getSoLuong).sum();
+
+    BigDecimal tamTinh =
+        items.stream()
+            .map(CartResponse.CartItemResponse::getThanhTien)
+            .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+    BigDecimal giamGia = BigDecimal.ZERO;
+
+    BigDecimal tongTien = tamTinh.subtract(giamGia);
+
+    return CartResponse.builder()
+        .items(items)
+        .tongSoLuong(tongSoLuong)
+        .tamTinh(tamTinh)
+        .giamGia(giamGia)
+        .tongTien(tongTien)
+        .build();
+  }
+
+  private boolean isValidGuestCartId(String guestCartId) {
+
+    if (guestCartId == null || guestCartId.isBlank()) {
+
+      return false;
     }
 
-    private CartItemMutationResponse buildMutationResponse(
-            Long cartItemId,
-            PhienBanSanPham phienBan,
-            Integer soLuong,
-            CartResponse cartResponse
-    ) {
+    try {
 
-        BigDecimal donGia =
-                phienBan.getGiaBanLe();
+      UUID.fromString(guestCartId);
+      return true;
 
-        BigDecimal thanhTien =
-                donGia.multiply(
-                        BigDecimal.valueOf(soLuong)
-                );
+    } catch (IllegalArgumentException exception) {
 
-        CartItemMutationResponse.CartItemData data =
-                CartItemMutationResponse.CartItemData.builder()
-                        .cartItemId(cartItemId)
-                        .phienBanId(phienBan.getId())
-                        .soLuong(soLuong)
-                        .donGia(donGia)
-                        .thanhTien(thanhTien)
-                        .build();
-
-        CartItemMutationResponse.CartSummary cartSummary =
-                CartItemMutationResponse.CartSummary.builder()
-                        .tongSoLuong(
-                                cartResponse.getTongSoLuong()
-                        )
-                        .tamTinh(
-                                cartResponse.getTamTinh()
-                        )
-                        .giamGia(
-                                cartResponse.getGiamGia()
-                        )
-                        .tongTien(
-                                cartResponse.getTongTien()
-                        )
-                        .build();
-
-        return CartItemMutationResponse.builder()
-                .status(200)
-                .message("Thêm sản phẩm vào giỏ thành công")
-                .data(data)
-                .cartSummary(cartSummary)
-                .build();
+      return false;
     }
+  }
 
-    private CartResponse getUserCart(Long nguoiDungId) {
+  private String buildGuestCartKey(String guestCartId) {
 
-        List<GioHang> gioHangItems =
-                gioHangRepository
-                        .findByNguoiDungIdOrderByNgayCapNhatDesc(
-                                nguoiDungId
-                        );
-
-        List<CartResponse.CartItemResponse> items =
-                gioHangItems.stream()
-                        .map(this::mapUserCartItem)
-                        .toList();
-
-        return buildCartResponse(items);
-    }
-
-    private CartResponse getGuestCart(String guestCartId) {
-
-        if (!isValidGuestCartId(guestCartId)) {
-            return buildCartResponse(List.of());
-        }
-
-        Map<Object, Object> redisItems =
-                redisTemplate.opsForHash().entries(
-                        buildGuestCartKey(guestCartId)
-                );
-
-        List<CartResponse.CartItemResponse> items =
-                new ArrayList<>();
-
-        for (Map.Entry<Object, Object> entry
-                : redisItems.entrySet()) {
-
-            try {
-
-                Long phienBanId =
-                        Long.valueOf(
-                                entry.getKey().toString()
-                        );
-
-                Integer soLuong =
-                        Integer.valueOf(
-                                entry.getValue().toString()
-                        );
-
-                phienBanSanPhamRepository
-                        .findById(phienBanId)
-                        .ifPresent(phienBan ->
-                                items.add(
-                                        mapCartItem(
-                                                phienBanId,
-                                                phienBan,
-                                                soLuong
-                                        )
-                                )
-                        );
-
-            } catch (NumberFormatException exception) {
-                // Bỏ qua item Redis không đúng định dạng.
-            }
-        }
-
-        return buildCartResponse(items);
-    }
-
-    private CartResponse.CartItemResponse mapUserCartItem(
-            GioHang gioHang
-    ) {
-
-        return mapCartItem(
-                gioHang.getId(),
-                gioHang.getPhienBan(),
-                gioHang.getSoLuong()
-        );
-    }
-
-    private CartResponse.CartItemResponse mapCartItem(
-            Long cartItemId,
-            PhienBanSanPham phienBan,
-            Integer soLuong
-    ) {
-
-        SanPham sanPham =
-                phienBan.getSanPham();
-
-        int tonKhoKhaDung =
-                calculateAvailableStock(phienBan);
-
-        boolean conHang =
-                isActiveVariant(phienBan)
-                        && tonKhoKhaDung >= soLuong;
-
-        BigDecimal donGia =
-                phienBan.getGiaBanLe();
-
-        BigDecimal thanhTien =
-                donGia.multiply(
-                        BigDecimal.valueOf(soLuong)
-                );
-
-        return CartResponse.CartItemResponse.builder()
-                .cartItemId(cartItemId)
-                .phienBanId(phienBan.getId())
-                .tenSanPham(sanPham.getTenSanPham())
-                .tenPhienBan(phienBan.getTenPhienBan())
-                .anh(getMainImage(sanPham))
-                .donGia(donGia)
-                .soLuong(soLuong)
-                .thanhTien(thanhTien)
-                .tonKhoKhaDung(tonKhoKhaDung)
-                .conHang(conHang)
-                .build();
-    }
-
-    private int calculateAvailableStock(
-            PhienBanSanPham phienBan
-    ) {
-
-        if (phienBan.getDanhSachTonKho() == null) {
-            return 0;
-        }
-
-        return phienBan.getDanhSachTonKho()
-                .stream()
-                .mapToInt(tonKho ->
-                        tonKho.getTonCoTheBan() == null
-                                ? 0
-                                : tonKho.getTonCoTheBan()
-                )
-                .sum();
-    }
-
-    private boolean isActiveVariant(
-            PhienBanSanPham phienBan
-    ) {
-
-        return TrangThaiCoBanEnum.HOAT_DONG.equals(
-                phienBan.getTrangThai()
-        )
-                && TrangThaiCoBanEnum.HOAT_DONG.equals(
-                phienBan.getSanPham().getTrangThai()
-        );
-    }
-
-    private String getMainImage(
-            SanPham sanPham
-    ) {
-
-        if (sanPham.getDanhSachAnhSanPham() == null) {
-            return null;
-        }
-
-        return sanPham.getDanhSachAnhSanPham()
-                .stream()
-                .filter(anh ->
-                        Boolean.TRUE.equals(
-                                anh.getLaAnhChinh()
-                        )
-                )
-                .min(Comparator.comparing(
-                        AnhSanPham::getThuTuHienThi,
-                        Comparator.nullsLast(
-                                Integer::compareTo
-                        )
-                ))
-                .map(AnhSanPham::getDuongDanAnh)
-                .orElse(null);
-    }
-
-    private CartResponse buildCartResponse(
-            List<CartResponse.CartItemResponse> items
-    ) {
-
-        int tongSoLuong =
-                items.stream()
-                        .mapToInt(
-                                CartResponse.CartItemResponse::getSoLuong
-                        )
-                        .sum();
-
-        BigDecimal tamTinh =
-                items.stream()
-                        .map(
-                                CartResponse.CartItemResponse::getThanhTien
-                        )
-                        .reduce(
-                                BigDecimal.ZERO,
-                                BigDecimal::add
-                        );
-
-        BigDecimal giamGia =
-                BigDecimal.ZERO;
-
-        BigDecimal tongTien =
-                tamTinh.subtract(giamGia);
-
-        return CartResponse.builder()
-                .items(items)
-                .tongSoLuong(tongSoLuong)
-                .tamTinh(tamTinh)
-                .giamGia(giamGia)
-                .tongTien(tongTien)
-                .build();
-    }
-
-    private boolean isValidGuestCartId(
-            String guestCartId
-    ) {
-
-        if (guestCartId == null
-                || guestCartId.isBlank()) {
-
-            return false;
-        }
-
-        try {
-
-            UUID.fromString(guestCartId);
-            return true;
-
-        } catch (IllegalArgumentException exception) {
-
-            return false;
-        }
-    }
-
-    private String buildGuestCartKey(
-            String guestCartId
-    ) {
-
-        return GUEST_CART_KEY_PREFIX
-                + guestCartId;
-    }
+    return GUEST_CART_KEY_PREFIX + guestCartId;
+  }
 }

@@ -1,14 +1,13 @@
 package com.example.dantruventu.DTO.Response;
 
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-
-import java.math.BigDecimal;
-import java.time.LocalDateTime;
-import java.util.List;
 
 @Getter
 @Setter
@@ -17,49 +16,49 @@ import java.util.List;
 @Builder
 public class ProductListResponse {
 
-    private List<ProductItemResponse> danhSachSanPham;
+  private List<ProductItemResponse> danhSachSanPham;
 
-    private Integer trang;
+  private Integer trang;
 
-    private Integer gioiHan;
+  private Integer gioiHan;
 
-    private Long tongSoSanPham;
+  private Long tongSoSanPham;
 
-    private Integer tongSoTrang;
+  private Integer tongSoTrang;
 
-    @Getter
-    @Setter
-    @NoArgsConstructor
-    @AllArgsConstructor
-    @Builder
-    public static class ProductItemResponse {
+  @Getter
+  @Setter
+  @NoArgsConstructor
+  @AllArgsConstructor
+  @Builder
+  public static class ProductItemResponse {
 
-        private Long id;
+    private Long id;
 
-        private String tenSanPham;
+    private String tenSanPham;
 
-        private String maSanPham;
+    private String maSanPham;
 
-        private String loaiSanPham;
+    private String loaiSanPham;
 
-        private Long danhMucId;
+    private Long danhMucId;
 
-        private String tenDanhMuc;
+    private String tenDanhMuc;
 
-        private Long thuongHieuId;
+    private Long thuongHieuId;
 
-        private String tenThuongHieu;
+    private String tenThuongHieu;
 
-        private String anhChinh;
+    private String anhChinh;
 
-        private BigDecimal giaThapNhat;
+    private BigDecimal giaThapNhat;
 
-        private BigDecimal giaCaoNhat;
+    private BigDecimal giaCaoNhat;
 
-        private Long tonKhoKhaDung;
+    private Long tonKhoKhaDung;
 
-        private Boolean conHang;
+    private Boolean conHang;
 
-        private LocalDateTime ngayTao;
-    }
+    private LocalDateTime ngayTao;
+  }
 }

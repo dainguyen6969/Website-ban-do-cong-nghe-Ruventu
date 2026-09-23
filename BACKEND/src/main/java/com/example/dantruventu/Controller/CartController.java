@@ -7,6 +7,7 @@ import com.example.dantruventu.DTO.Response.CartResponse;
 import com.example.dantruventu.Entity.NguoiDung;
 import com.example.dantruventu.Services.CartService;
 import jakarta.validation.Valid;
+import java.time.Duration;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
@@ -21,184 +22,111 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.time.Duration;
-
 @RestController
 @RequestMapping("/api/v1/cart")
 @RequiredArgsConstructor
 public class CartController {
 
-    private static final String GUEST_CART_COOKIE_NAME =
-            "guest_cart_id";
+  private static final String GUEST_CART_COOKIE_NAME = "guest_cart_id";
 
-    private final CartService cartService;
+  private final CartService cartService;
 
-    @Value("${cart.guest-expiration}")
-    private long guestCartExpiration;
+  @Value("${cart.guest-expiration}")
+  private long guestCartExpiration;
 
-    @Value("${cart.cookie.secure}")
-    private boolean cartCookieSecure;
+  @Value("${cart.cookie.secure}")
+  private boolean cartCookieSecure;
 
-    @GetMapping
-    public ResponseEntity<ApiResponse<CartResponse>> getCurrentCart(
-            Authentication authentication,
-            @CookieValue(
-                    value = GUEST_CART_COOKIE_NAME,
-                    required = false
-            )
-            String guestCartId
-    ) {
+  @GetMapping
+  public ResponseEntity<ApiResponse<CartResponse>> getCurrentCart(
+      Authentication authentication,
+      @CookieValue(value = GUEST_CART_COOKIE_NAME, required = false) String guestCartId) {
 
-        NguoiDung nguoiDung =
-                getAuthenticatedUser(authentication);
+    NguoiDung nguoiDung = getAuthenticatedUser(authentication);
 
-        HttpHeaders headers =
-                new HttpHeaders();
+    HttpHeaders headers = new HttpHeaders();
 
-        boolean guestCartHandled =
-                cartService.mergeGuestCart(
-                        nguoiDung,
-                        guestCartId
-                );
+    boolean guestCartHandled = cartService.mergeGuestCart(nguoiDung, guestCartId);
 
-        if (guestCartHandled) {
-            headers.add(
-                    HttpHeaders.SET_COOKIE,
-                    createExpiredGuestCartCookie().toString()
-            );
-        }
-
-        CartResponse data =
-                cartService.getCurrentCart(
-                        nguoiDung,
-                        guestCartId
-                );
-
-        ApiResponse<CartResponse> response =
-                ApiResponse.<CartResponse>builder()
-                        .status(HttpStatus.OK.value())
-                        .message("Lấy giỏ hàng thành công")
-                        .data(data)
-                        .build();
-
-        return new ResponseEntity<>(
-                response,
-                headers,
-                HttpStatus.OK
-        );
+    if (guestCartHandled) {
+      headers.add(HttpHeaders.SET_COOKIE, createExpiredGuestCartCookie().toString());
     }
 
-    @PostMapping("/items")
-    public ResponseEntity<CartItemMutationResponse> addItem(
-            Authentication authentication,
-            @CookieValue(
-                    value = GUEST_CART_COOKIE_NAME,
-                    required = false
-            )
-            String guestCartId,
-            @Valid @RequestBody AddCartItemRequest request
-    ) {
+    CartResponse data = cartService.getCurrentCart(nguoiDung, guestCartId);
 
-        NguoiDung nguoiDung =
-                getAuthenticatedUser(authentication);
+    ApiResponse<CartResponse> response =
+        ApiResponse.<CartResponse>builder()
+            .status(HttpStatus.OK.value())
+            .message("Lấy giỏ hàng thành công")
+            .data(data)
+            .build();
 
-        HttpHeaders headers =
-                new HttpHeaders();
+    return new ResponseEntity<>(response, headers, HttpStatus.OK);
+  }
 
-        String effectiveGuestCartId =
-                guestCartId;
+  @PostMapping("/items")
+  public ResponseEntity<CartItemMutationResponse> addItem(
+      Authentication authentication,
+      @CookieValue(value = GUEST_CART_COOKIE_NAME, required = false) String guestCartId,
+      @Valid @RequestBody AddCartItemRequest request) {
 
-        if (nguoiDung != null) {
+    NguoiDung nguoiDung = getAuthenticatedUser(authentication);
 
-            boolean guestCartHandled =
-                    cartService.mergeGuestCart(
-                            nguoiDung,
-                            guestCartId
-                    );
+    HttpHeaders headers = new HttpHeaders();
 
-            if (guestCartHandled) {
-                headers.add(
-                        HttpHeaders.SET_COOKIE,
-                        createExpiredGuestCartCookie().toString()
-                );
-            }
+    String effectiveGuestCartId = guestCartId;
 
-        } else {
+    if (nguoiDung != null) {
 
-            effectiveGuestCartId =
-                    cartService.getOrCreateGuestCartId(
-                            guestCartId
-                    );
+      boolean guestCartHandled = cartService.mergeGuestCart(nguoiDung, guestCartId);
 
-            headers.add(
-                    HttpHeaders.SET_COOKIE,
-                    createGuestCartCookie(
-                            effectiveGuestCartId
-                    ).toString()
-            );
-        }
+      if (guestCartHandled) {
+        headers.add(HttpHeaders.SET_COOKIE, createExpiredGuestCartCookie().toString());
+      }
 
-        CartItemMutationResponse response =
-                cartService.addItem(
-                        nguoiDung,
-                        effectiveGuestCartId,
-                        request
-                );
+    } else {
 
-        return new ResponseEntity<>(
-                response,
-                headers,
-                HttpStatus.OK
-        );
+      effectiveGuestCartId = cartService.getOrCreateGuestCartId(guestCartId);
+
+      headers.add(HttpHeaders.SET_COOKIE, createGuestCartCookie(effectiveGuestCartId).toString());
     }
 
-    private NguoiDung getAuthenticatedUser(
-            Authentication authentication
-    ) {
+    CartItemMutationResponse response =
+        cartService.addItem(nguoiDung, effectiveGuestCartId, request);
 
-        if (authentication != null
-                && authentication.getPrincipal()
-                instanceof NguoiDung authenticatedUser) {
+    return new ResponseEntity<>(response, headers, HttpStatus.OK);
+  }
 
-            return authenticatedUser;
-        }
+  private NguoiDung getAuthenticatedUser(Authentication authentication) {
 
-        return null;
+    if (authentication != null
+        && authentication.getPrincipal() instanceof NguoiDung authenticatedUser) {
+
+      return authenticatedUser;
     }
 
-    private ResponseCookie createGuestCartCookie(
-            String guestCartId
-    ) {
+    return null;
+  }
 
-        return ResponseCookie
-                .from(
-                        GUEST_CART_COOKIE_NAME,
-                        guestCartId
-                )
-                .httpOnly(true)
-                .secure(cartCookieSecure)
-                .sameSite("Lax")
-                .path("/")
-                .maxAge(
-                        Duration.ofMillis(
-                                guestCartExpiration
-                        )
-                )
-                .build();
-    }
+  private ResponseCookie createGuestCartCookie(String guestCartId) {
 
-    private ResponseCookie createExpiredGuestCartCookie() {
+    return ResponseCookie.from(GUEST_CART_COOKIE_NAME, guestCartId)
+        .httpOnly(true)
+        .secure(cartCookieSecure)
+        .sameSite("Lax")
+        .path("/")
+        .maxAge(Duration.ofMillis(guestCartExpiration))
+        .build();
+  }
 
-        return ResponseCookie
-                .from(
-                        GUEST_CART_COOKIE_NAME,
-                        ""
-                )
-                .httpOnly(true)
-                .secure(cartCookieSecure)
-                .sameSite("Lax")
-                .path("/")
-                .maxAge(Duration.ZERO)
-                .build();
-    }
+  private ResponseCookie createExpiredGuestCartCookie() {
+
+    return ResponseCookie.from(GUEST_CART_COOKIE_NAME, "")
+        .httpOnly(true)
+        .secure(cartCookieSecure)
+        .sameSite("Lax")
+        .path("/")
+        .maxAge(Duration.ZERO)
+        .build();
+  }
 }
