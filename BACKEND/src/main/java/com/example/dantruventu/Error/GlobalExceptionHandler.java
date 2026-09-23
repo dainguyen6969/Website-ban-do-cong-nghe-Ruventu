@@ -2,11 +2,13 @@ package com.example.dantruventu.Error;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.dao.PessimisticLockingFailureException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
@@ -76,6 +78,22 @@ public class GlobalExceptionHandler {
                 .body(response);
     }
 
+    @ExceptionHandler(MissingServletRequestParameterException.class)
+    public ResponseEntity<ErrorResponse> handleMissingParameter(
+            MissingServletRequestParameterException exception
+    ) {
+
+        ErrorResponse response =
+                new ErrorResponse(
+                        ErrorCode.INVALID_DATA.getStatus().value(),
+                        "Thiếu tham số: " + exception.getParameterName()
+                );
+
+        return ResponseEntity
+                .status(ErrorCode.INVALID_DATA.getStatus())
+                .body(response);
+    }
+
     @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
     public ResponseEntity<ErrorResponse> handleMethodNotAllowed(
             HttpRequestMethodNotSupportedException exception
@@ -101,6 +119,23 @@ public class GlobalExceptionHandler {
                 new ErrorResponse(
                         ErrorCode.CONFLICT.getStatus().value(),
                         "Dữ liệu đã tồn tại hoặc vi phạm ràng buộc"
+                );
+
+        return ResponseEntity
+                .status(ErrorCode.CONFLICT.getStatus())
+                .body(response);
+    }
+
+    @ExceptionHandler(PessimisticLockingFailureException.class)
+    public ResponseEntity<ErrorResponse> handleConcurrentSale(
+            PessimisticLockingFailureException exception
+    ) {
+
+        ErrorResponse response =
+                new ErrorResponse(
+                        ErrorCode.CONFLICT.getStatus().value(),
+                        "Dữ liệu đang được xử lý đồng thời. "
+                                + "Vui lòng gửi lại cùng Idempotency-Key"
                 );
 
         return ResponseEntity
