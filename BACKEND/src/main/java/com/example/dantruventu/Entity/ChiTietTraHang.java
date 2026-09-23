@@ -9,11 +9,8 @@ import lombok.*;
     name = "chi_tiet_tra_hang",
     uniqueConstraints = {
       @UniqueConstraint(
-          name = "uk_chi_tiet_tra_hang_phieu_tra_hang",
-          columnNames = "phieu_tra_hang_id"),
-      @UniqueConstraint(
-          name = "uk_chi_tiet_tra_hang_chi_tiet_don_hang",
-          columnNames = "chi_tiet_don_hang_id")
+          name = "uk_ctth_phieu_dong",
+          columnNames = {"phieu_tra_hang_id", "chi_tiet_don_hang_id"})
     })
 @Getter
 @Setter

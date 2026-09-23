@@ -3,10 +3,12 @@ package com.example.dantruventu.Repository;
 import com.example.dantruventu.Entity.NguoiDung;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
-public interface NguoiDungRepository extends JpaRepository<NguoiDung, Long> {
+public interface NguoiDungRepository
+    extends JpaRepository<NguoiDung, Long>, JpaSpecificationExecutor<NguoiDung> {
 
   Optional<NguoiDung> findByEmail(String email);
 

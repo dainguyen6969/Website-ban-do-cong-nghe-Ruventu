@@ -1,0 +1,34 @@
+package com.example.dantruventu.Controller.order;
+
+import com.example.dantruventu.DTO.Request.order.AdminSalesRequest;
+import com.example.dantruventu.DTO.Response.ApiResponse;
+import com.example.dantruventu.DTO.Response.order.AdminSalesResponse;
+import com.example.dantruventu.Services.order.sales.AdminSalesService;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.*;
+
+@RestController
+@RequestMapping("/api/v1/admin/pos")
+@RequiredArgsConstructor
+@PreAuthorize("hasRole('ADMIN')")
+public class AdminPosController {
+
+  private final AdminSalesService service;
+
+  @PostMapping("/checkout")
+  public ResponseEntity<ApiResponse<AdminSalesResponse.Checkout>> checkout(
+      @RequestHeader(name = "Idempotency-Key", required = false) String key,
+      @Valid @RequestBody AdminSalesRequest.Pos request) {
+
+    return ResponseEntity.status(201)
+        .body(
+            ApiResponse.<AdminSalesResponse.Checkout>builder()
+                .status(201)
+                .message("Thanh toán đơn hàng tại quầy thành công")
+                .data(service.checkout(key, request))
+                .build());
+  }
+}

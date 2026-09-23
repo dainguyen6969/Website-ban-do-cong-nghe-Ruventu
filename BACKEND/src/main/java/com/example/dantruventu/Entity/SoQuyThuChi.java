@@ -61,7 +61,6 @@ public class SoQuyThuChi {
   @Column(name = "tags", length = 255)
   private String tags;
 
-  @CreationTimestamp
   @Column(
       name = "ngay_ghi_nhan",
       nullable = false,
