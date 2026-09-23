@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { HiOutlineArrowLeft, HiOutlineHome } from 'react-icons/hi';
+import DetailTablePagination from '../components/DetailTablePagination';
+import useDetailTablePagination from '../hooks/useDetailTablePagination';
 import { getInventoryDetail } from '../data/mockInventoryDetails';
 import './ChiTietTonKho.css';
 
@@ -42,6 +44,9 @@ export default function ChiTietTonKho() {
     if (warehouse !== 'Tất cả kho' && entry.warehouse !== warehouse) return false;
     return true;
   });
+  const versionPagination = useDetailTablePagination(detail.versions);
+  const allocationPagination = useDetailTablePagination(selectedVersion.allocations);
+  const historyPagination = useDetailTablePagination(filteredHistory);
 
   const allocationTotals = selectedVersion.allocations.reduce((totals, row) => ({
     actual: totals.actual + row.actual,
@@ -108,7 +113,7 @@ export default function ChiTietTonKho() {
             <table className="inventory-table inventory-version-table">
               <thead><tr><th>TÊN PHIÊN BẢN</th><th>SKU</th><th>TỒN THỰC TẾ</th><th>TỒN KHẢ DỤNG</th><th>TRẠNG THÁI</th></tr></thead>
               <tbody>
-                {detail.versions.map((version) => {
+                {versionPagination.visibleItems.map((version) => {
                   const active = version.id === selectedVersion.id;
                   const inStock = version.available > 0;
                   return (
@@ -124,6 +129,7 @@ export default function ChiTietTonKho() {
               </tbody>
             </table>
           </div>
+          <DetailTablePagination totalItems={detail.versions.length} currentPage={versionPagination.currentPage} onPageChange={versionPagination.onPageChange} idPrefix="inventory-versions" />
         </section>
 
         <section className="inventory-card">
@@ -132,7 +138,7 @@ export default function ChiTietTonKho() {
             <table className="inventory-table inventory-allocation-table">
               <thead><tr><th>KHO HÀNG</th><th>VỊ TRÍ LƯU KHO</th><th>TỒN THỰC TẾ</th><th>TỒN KHẢ DỤNG</th><th>TRẠNG THÁI</th></tr></thead>
               <tbody>
-                {selectedVersion.allocations.length > 0 ? selectedVersion.allocations.map((row) => (
+                {selectedVersion.allocations.length > 0 ? allocationPagination.visibleItems.map((row) => (
                   <tr key={row.code}>
                     <td><span className="inventory-warehouse"><HiOutlineHome size={15} aria-hidden="true" /><strong>{row.name} ({row.code})</strong></span></td>
                     <td><span className="inventory-location-badge">{row.location}</span></td>
@@ -145,6 +151,7 @@ export default function ChiTietTonKho() {
               <tfoot><tr><td colSpan="2">TỔNG CỘNG</td><td>{allocationTotals.actual}</td><td className="inventory-number--green">{allocationTotals.available}</td><td /></tr></tfoot>
             </table>
           </div>
+          <DetailTablePagination totalItems={selectedVersion.allocations.length} currentPage={allocationPagination.currentPage} onPageChange={allocationPagination.onPageChange} idPrefix="inventory-allocations" />
         </section>
 
         <section className="inventory-card">
@@ -164,7 +171,7 @@ export default function ChiTietTonKho() {
             <table className="inventory-table inventory-history-table">
               <thead><tr><th>THỜI GIAN</th><th>LOẠI GIAO DỊCH</th><th>MÃ CHỨNG TỪ</th><th>NGƯỜI THỰC HIỆN</th><th>SỐ LƯỢNG THAY ĐỔI</th><th>TỒN CUỐI</th><th>GHI CHÚ</th></tr></thead>
               <tbody>
-                {filteredHistory.length > 0 ? filteredHistory.map((entry) => (
+                {filteredHistory.length > 0 ? historyPagination.visibleItems.map((entry) => (
                   <tr key={entry.id}>
                     <td>{formatDateTime(entry.date)}</td>
                     <td><span className={`inventory-transaction-badge ${transactionClass(entry.transactionType)}`}>{entry.transactionType.toLocaleUpperCase('vi')}</span></td>
@@ -178,6 +185,7 @@ export default function ChiTietTonKho() {
               </tbody>
             </table>
           </div>
+          <DetailTablePagination totalItems={filteredHistory.length} currentPage={historyPagination.currentPage} onPageChange={historyPagination.onPageChange} idPrefix="inventory-history" />
         </section>
       </div>
     </main>

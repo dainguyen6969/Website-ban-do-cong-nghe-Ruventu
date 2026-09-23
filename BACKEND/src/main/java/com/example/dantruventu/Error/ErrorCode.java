@@ -7,47 +7,33 @@ import org.springframework.http.HttpStatus;
 @Getter
 @RequiredArgsConstructor
 public enum ErrorCode {
+  INVALID_DATA(HttpStatus.BAD_REQUEST, "Dữ liệu không hợp lệ"),
 
-    INVALID_DATA(
-            HttpStatus.BAD_REQUEST,
-            "Dữ liệu không hợp lệ"
-    ),
+  INVALID_CART_QUANTITY(
+      HttpStatus.BAD_REQUEST, "Số lượng phải lớn hơn 0 và không được vượt quá 99"),
 
-    UNAUTHORIZED(
-            HttpStatus.UNAUTHORIZED,
-            "Chưa đăng nhập hoặc thông tin xác thực không hợp lệ"
-    ),
+  UNAUTHORIZED(HttpStatus.UNAUTHORIZED, "Chưa đăng nhập hoặc thông tin xác thực không hợp lệ"),
 
-    FORBIDDEN(
-            HttpStatus.FORBIDDEN,
-            "Bạn không có quyền thực hiện thao tác này"
-    ),
+  INVALID_OR_EXPIRED_ACCESS_TOKEN(HttpStatus.UNAUTHORIZED, "Token không hợp lệ hoặc đã hết hạn"),
 
-    NOT_FOUND(
-            HttpStatus.NOT_FOUND,
-            "Dữ liệu không tồn tại"
-    ),
+  FORBIDDEN(HttpStatus.FORBIDDEN, "Bạn không có quyền thực hiện thao tác này"),
 
-    CONFLICT(
-            HttpStatus.CONFLICT,
-            "Dữ liệu bị xung đột"
-    ),
+  NOT_FOUND(HttpStatus.NOT_FOUND, "Dữ liệu không tồn tại"),
 
-    TOO_MANY_REQUESTS(
-            HttpStatus.TOO_MANY_REQUESTS,
-            "Yêu cầu quá nhiều, vui lòng thử lại sau"
-    ),
+  PRODUCT_VARIANT_NOT_FOUND(HttpStatus.NOT_FOUND, "Phiên bản sản phẩm không tồn tại"),
 
-    METHOD_NOT_ALLOWED(
-            HttpStatus.METHOD_NOT_ALLOWED,
-            "Phương thức không được phép"
-    ),
+  CONFLICT(HttpStatus.CONFLICT, "Dữ liệu bị xung đột"),
 
-    INTERNAL_SERVER_ERROR(
-            HttpStatus.INTERNAL_SERVER_ERROR,
-            "Đã xảy ra lỗi hệ thống"
-    );
+  INSUFFICIENT_STOCK(HttpStatus.CONFLICT, "Tồn kho không đủ"),
 
-    private final HttpStatus status;
-    private final String message;
+  TOO_MANY_REQUESTS(HttpStatus.TOO_MANY_REQUESTS, "Yêu cầu quá nhiều, vui lòng thử lại sau"),
+
+  METHOD_NOT_ALLOWED(HttpStatus.METHOD_NOT_ALLOWED, "Phương thức không được phép"),
+
+  UNPROCESSABLE_ENTITY(HttpStatus.valueOf(422), "Dữ liệu không thể xử lý"),
+
+  INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "Đã xảy ra lỗi hệ thống");
+
+  private final HttpStatus status;
+  private final String message;
 }

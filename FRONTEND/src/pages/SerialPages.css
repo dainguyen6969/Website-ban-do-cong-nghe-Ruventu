@@ -1,12 +1,13 @@
 .serial-page {
   flex: 1;
+  min-width: 0;
   min-height: 0;
   overflow: auto;
   background: #f7f7f7;
   color: #151515;
 }
 
-.serial-page__inner { width: 100%; padding: 0 22px 36px; }
+.serial-page__inner { width: 100%; min-width: 0; padding: 0 22px 36px; }
 
 .serial-secondary-breadcrumb {
   min-height: 43px;
@@ -108,7 +109,7 @@
 }
 .serial-export:hover { background: #292929 !important; }
 
-.serial-table-shell { width: 100%; overflow-x: auto; border: 1px solid #dedede; border-top: 0; background: #fff; }
+.serial-table-shell { width: 100%; max-width: 100%; min-width: 0; overflow-x: auto; border: 1px solid #dedede; border-top: 0; background: #fff; }
 .serial-table { width: 100%; min-width: 1050px; border-collapse: collapse; }
 .serial-table thead { height: 44px; background: #090909; color: #fff; }
 .serial-table th { padding: 0 15px; text-align: left; font-size: 10px; font-weight: 750; letter-spacing: .065em; white-space: nowrap; }
@@ -126,8 +127,8 @@
 .serial-product-name { display: block; max-width: 360px; line-height: 1.35; font-size: 13px; }
 .serial-view { margin-top: 7px; height: 24px; padding: 0 8px; border: 1px solid #1a1a1a !important; background: #fff !important; font-size: 8.5px; font-weight: 850; letter-spacing: .04em; }
 .serial-view:hover { background: #111 !important; color: #fff; }
-.serial-barcode { font-family: ui-monospace, Consolas, monospace; font-weight: 700; }
-.serial-code { font-family: ui-monospace, Consolas, monospace; font-size: 12px; letter-spacing: .01em; }
+.serial-barcode { font-weight: 700; }
+.serial-code { font-size: 12px; letter-spacing: .01em; }
 .serial-empty { height: 190px !important; text-align: center; color: #858585; cursor: default; }
 
 .serial-status {
@@ -148,7 +149,7 @@
 .serial-status--warranty { border-color: #e9ad4c; background: #fff6dc; color: #c46b08; }
 .serial-status--error { border-color: #e13b5b; background: #ffedf1; color: #d51f2e; }
 
-.serial-id-box { display: inline-flex; margin-top: 10px; padding: 5px 10px; border: 1px solid #bfc1c4; background: #fff; font-family: ui-monospace, Consolas, monospace; font-size: 12px; font-weight: 750; }
+.serial-id-box { display: inline-flex; margin-top: 10px; padding: 5px 10px; border: 1px solid #bfc1c4; background: #fff; font-size: 12px; font-weight: 750; }
 .serial-detail-actions { display: flex; gap: 9px; }
 .serial-back, .serial-edit { height: 40px; padding: 0 15px; display: inline-flex; align-items: center; gap: 7px; font-size: 10px; font-weight: 850; letter-spacing: .035em; }
 .serial-back { border: 1px solid #171717 !important; background: #fff !important; color: #171717; }
@@ -191,25 +192,21 @@
 
 .serial-status-modal { position: fixed; inset: 0; z-index: 1000; padding: 20px; display: grid; place-items: center; background: rgba(0, 0, 0, .58); }
 .serial-status-modal > section { width: min(480px, 100%); border: 1px solid #111; background: #fff; box-shadow: 0 22px 60px rgba(0,0,0,.22); }
-.serial-status-modal header { min-height: 48px; padding: 0 20px; display: flex; align-items: center; gap: 10px; background: #090909; color: #fff; }
-.serial-status-modal header > span { width: 4px; height: 22px; flex: 0 0 4px; background: var(--color-brand-red); }
-.serial-status-modal header h2 { font-size: 12px; letter-spacing: .045em; }
-.serial-status-modal__body { padding: 20px; }
-.serial-status-recap { margin-bottom: 20px; padding: 16px 14px 13px; display: grid; grid-template-columns: 1fr 1fr; gap: 16px 25px; border: 1px solid #d8d8d8; background: #f7f7f7; }
-.serial-status-recap > div { min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 6px; }
-.serial-status-recap span, .serial-status-modal__body label { color: #85888e; font-size: 9px; font-weight: 800; letter-spacing: .04em; }
-.serial-status-recap strong { font-size: 11px; line-height: 1.5; }
-.serial-status-recap__current { grid-column: 1 / -1; }
-.serial-status-recap__current .serial-status { min-height: 25px; padding: 3px 8px; font-size: 9px; }
-.serial-status-modal__body label { display: block; margin-bottom: 7px; color: #1a1a1a; font-size: 10px; }
-.serial-status-modal__body label i { color: var(--color-brand-red); font-style: normal; }
+.serial-status-modal header { min-height: 67px; padding: 0 17px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #dedede; }
+.serial-status-modal header > div { display: flex; align-items: center; gap: 11px; }
+.serial-status-modal header > div > span { width: 5px; height: 36px; background: var(--color-brand-red); }
+.serial-status-modal header h2 { font-size: 14px; letter-spacing: .04em; }
+.serial-status-modal header p { margin-top: 2px; color: #91949a; font-family: ui-monospace, Consolas, monospace; font-size: 10px; }
+.serial-status-modal header button { width: 34px; height: 34px; display: grid; place-items: center; }
+.serial-status-modal__body { min-height: 153px; padding: 22px 20px; }
+.serial-status-modal__body label { display: block; margin-bottom: 7px; font-size: 11px; font-weight: 750; }
 .serial-status-modal__body select { width: 100%; height: 44px; padding: 0 12px; border: 1px solid; border-radius: 0; background: #fff; font-size: 13px; font-weight: 750; }
 .serial-modal-select--sold { border-color: #52a878 !important; color: #157c45; background: #eaf8f0 !important; }
 .serial-modal-select--stock { border-color: #b9bbc0 !important; color: #181818; }
 .serial-modal-select--warranty { border-color: #e9ad4c !important; color: #c46b08; background: #fff6dc !important; }
 .serial-modal-select--error { border-color: #e13b5b !important; color: #d51f2e; background: #ffedf1 !important; }
 .serial-transition-error { margin-top: 9px; color: #d51f2e; font-size: 11px; line-height: 1.5; }
-.serial-status-modal footer { min-height: 65px; padding: 12px 20px; display: flex; justify-content: flex-end; gap: 10px; border-top: 1px solid #dedede; background: #fff; }
+.serial-status-modal footer { min-height: 65px; padding: 12px 20px; display: flex; justify-content: flex-end; gap: 8px; border-top: 1px solid #dedede; background: #fafafa; }
 .serial-modal-cancel, .serial-modal-save { height: 39px; padding: 0 15px; font-size: 10px; font-weight: 850; }
 .serial-modal-cancel { border: 1px solid #151515 !important; background: #fff !important; }
 .serial-modal-save { background: var(--color-brand-red) !important; color: #fff; }

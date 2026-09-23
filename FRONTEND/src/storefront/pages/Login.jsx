@@ -2,12 +2,11 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, AlertCircle, Check } from 'lucide-react';
 import AuthLayout from '../components/AuthLayout';
-import useMockAuth from '../../auth/useMockAuth';
 import './Auth.css';
+import { isStaffAccount } from '../../auth/accountModel';
 
 const Login = () => {
   const navigate = useNavigate();
-  const { login } = useMockAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({ account: '', password: '' });
   const [errors, setErrors] = useState({});
@@ -44,7 +43,7 @@ const Login = () => {
       return;
     }
 
-    if (account.role === 'admin') {
+    if (isStaffAccount(account)) {
       navigate('/admin', { replace: true });
       return;
     }
@@ -62,7 +61,7 @@ const Login = () => {
               <Check size={24} className="check-icon" />
             </div>
             <div className="success-title">CHÀO MỪNG TRỞ LẠI!</div>
-            <div className="success-desc">Phiên đăng nhập đã được lưu trên thiết bị này</div>
+            <div className="success-desc">Phiên đăng nhập đã được tạo cho phiên này</div>
             <button className="btn-home" onClick={() => navigate('/')}>VỀ TRANG CHỦ</button>
           </div>
         </div>
@@ -84,7 +83,7 @@ const Login = () => {
         <div className="account-info-title">Tài khoản kiểm thử</div>
         <div className="account-info-row">
           <span className="account-info-label">Admin</span>
-          <span className="account-info-value">admin@ruventu.com / Admin@123</span>
+          <span className="account-info-value">admin@ruventu.vn / Admin@123</span>
         </div>
         <div className="account-info-row">
           <span className="account-info-label">User</span>
@@ -146,13 +145,11 @@ const Login = () => {
           </div>
 
           <div className="checkbox-group">
-            <input type="checkbox" id="remember" checked readOnly />
-            <label htmlFor="remember">Duy trì đăng nhập <span>(trên thiết bị này)</span></label>
+            <input type="checkbox" id="remember" />
+            <label htmlFor="remember">Ghi nhớ đăng nhập <span>(phiên tạm thời)</span></label>
           </div>
 
-          <div className="login-submit-row">
-            <button type="submit" className="btn-primary login-submit-button">ĐĂNG NHẬP</button>
-          </div>
+          <button type="submit" className="btn-primary">ĐĂNG NHẬP</button>
           
           <div className="divider">HOẶC</div>
           

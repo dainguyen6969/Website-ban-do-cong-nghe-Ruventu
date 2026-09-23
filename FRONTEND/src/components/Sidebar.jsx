@@ -8,7 +8,6 @@ import {
   HiOutlineUser,
 } from 'react-icons/hi';
 import './Sidebar.css';
-import useMockAuth from '../auth/useMockAuth';
 
 const IconTongQuat = ({ size }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="square" strokeLinejoin="miter">
@@ -124,8 +123,8 @@ const menuItems = [
         { id: 'toan-bo-phien-ban', label: 'Quản lý phiên bản', path: '/kho-hang/quan-ly-phien-ban' },
         { id: 'danh-sach-serial', label: 'Danh sách Serial', path: '/kho-hang/danh-sach-serial' },
         { id: 'combo-san-pham', label: 'Combo sản phẩm', path: '/kho-hang/combo-san-pham' },
-        { id: 'nhap-hang', label: 'Nhập hàng', path: '/kho-hang/nhap-hang' },
-        { id: 'kiem-hang', label: 'Kiểm hàng', path: '/kho-hang/kiem-hang' },
+        { id: 'nhap-hang', label: 'Nhập hàng', path: '/admin/san-pham/nhap-hang' },
+        { id: 'kiem-hang', label: 'Kiểm hàng', path: '/admin/san-pham/kiem-hang' },
       ] },
     ],
   },
@@ -149,7 +148,11 @@ const menuItems = [
     icon: IconKhachHangDoiTac,
     path: '/admin/khach-hang-doi-tac',
     expandable: true,
-    subItems: [],
+    subItems: [
+      { id: 'khach-hang', label: 'Khách hàng', path: '/admin/khach-hang-doi-tac/khach-hang' },
+      { id: 'nha-cung-cap', label: 'Nhà cung cấp', path: '/admin/khach-hang-doi-tac/nha-cung-cap' },
+      { id: 'doi-tac-van-chuyen', label: 'Đối tác vận chuyển', path: '/admin/khach-hang-doi-tac/doi-tac-van-chuyen' },
+    ],
   },
   {
     id: 'nhan-vien',
@@ -157,7 +160,10 @@ const menuItems = [
     icon: IconNhanVien,
     path: '/admin/nhan-vien',
     expandable: true,
-    subItems: [],
+    subItems: [
+      { id: 'danh-sach-nhan-vien', label: 'Danh sách nhân viên', path: '/admin/nhan-vien/danh-sach' },
+      { id: 'vai-tro-nhan-vien', label: 'Vai trò', path: '/admin/nhan-vien/vai-tro' },
+    ],
   },
   {
     id: 'khuyen-mai',
@@ -175,24 +181,21 @@ const menuItems = [
     label: 'Sổ quỹ tiền mặt',
     icon: IconSoQuyTienMat,
     path: '/admin/so-quy-tien-mat',
-    expandable: true,
-    subItems: [],
+    expandable: false,
   },
   {
     id: 'bao-cao',
     label: 'Báo cáo',
     icon: IconBaoCao,
     path: '/admin/bao-cao',
-    expandable: true,
-    subItems: [],
+    expandable: false,
   },
   {
     id: 'bao-hanh',
     label: 'Bảo hành',
     icon: IconBaoHanh,
     path: '/admin/bao-hanh',
-    expandable: true,
-    subItems: [],
+    expandable: false,
   },
   {
     id: 'danh-muc',
@@ -200,7 +203,11 @@ const menuItems = [
     icon: IconDanhMuc,
     path: '/admin/danh-muc',
     expandable: true,
-    subItems: [],
+    subItems: [
+      { id: 'tags', label: 'Tags', path: '/admin/danh-muc/tags' },
+      { id: 'danh-muc-san-pham', label: 'Danh mục sản phẩm', path: '/admin/danh-muc/danh-muc-san-pham' },
+      { id: 'thuong-hieu', label: 'Thương hiệu', path: '/admin/danh-muc/thuong-hieu' },
+    ],
   },
 ];
 
@@ -216,11 +223,11 @@ const shouldShowBadge = (badge) => {
 const hasActivePath = (item, pathname) =>
   (item.path ? pathname.startsWith(item.path) : false) || item.children?.some((child) => hasActivePath(child, pathname));
 
-export default function Sidebar({ collapsed, onToggle }) {
+export default function Sidebar({ collapsed, mobileOpen = false, onToggle, onNavigate }) {
   const location = useLocation();
   const navigate = useNavigate();
-  const { currentAccount } = useMockAuth();
   const [expandedMenus, setExpandedMenus] = useState(['don-hang']);
+  const showDetails = !collapsed || mobileOpen;
 
   // Auto-expand menu if current route matches sub-item or section
   useEffect(() => {
@@ -255,18 +262,21 @@ export default function Sidebar({ collapsed, onToggle }) {
       // If it has subitems, don't navigate top-level. If it has no subitems, navigate to its path
       if (!item.subItems || item.subItems.length === 0) {
         navigate(item.path);
+        onNavigate?.();
       }
     } else {
       navigate(item.path);
+      onNavigate?.();
     }
   };
 
   const handleSubClick = (subPath) => {
     navigate(subPath);
+    onNavigate?.();
   };
 
   return (
-    <aside className={`sidebar ${collapsed ? 'sidebar--collapsed' : ''}`}>
+    <aside id="admin-sidebar" className={`sidebar ${collapsed ? 'sidebar--collapsed' : ''} ${mobileOpen ? 'sidebar--mobile-open' : ''}`}>
       {/* Sidebar Header */}
       <div className="sidebar__header">
         <button
@@ -277,7 +287,7 @@ export default function Sidebar({ collapsed, onToggle }) {
         >
           <HiOutlineMenu size={22} />
         </button>
-        {!collapsed && (
+        {showDetails && (
           <div className="sidebar__brand">
             <span className="sidebar__logo">RUVENTU</span>
             <span className="sidebar__admin-badge">ADMIN</span>
@@ -305,12 +315,13 @@ export default function Sidebar({ collapsed, onToggle }) {
                   className={`sidebar__menu-btn ${isActive ? 'sidebar__menu-btn--active' : ''} ${isMenuExpanded ? 'sidebar__menu-btn--expanded' : ''}`}
                   onClick={() => handleParentClick(item)}
                   id={`menu-${item.id}`}
-                  title={collapsed ? item.label : undefined}
+                  title={showDetails ? undefined : item.label}
+                  aria-expanded={item.expandable ? isMenuExpanded : undefined}
                 >
                   <span className="sidebar__menu-icon">
                     <Icon size={20} />
                   </span>
-                  {!collapsed && (
+                  {showDetails && (
                     <>
                       <span className="sidebar__menu-label">{item.label}</span>
                       {shouldShowBadge(item.badge) && (
@@ -336,7 +347,7 @@ export default function Sidebar({ collapsed, onToggle }) {
                   item.subItems &&
                   item.subItems.length > 0 &&
                   isMenuExpanded &&
-                  !collapsed && (
+                  showDetails && (
                     <ul className="sidebar__submenu">
                       {item.subItems.map((sub) => {
                         const isSubActive = hasActivePath(sub, location.pathname);
@@ -385,16 +396,16 @@ export default function Sidebar({ collapsed, onToggle }) {
           <div className="sidebar__avatar">
             <HiOutlineUser size={20} />
           </div>
-          {!collapsed && (
+          {showDetails && (
             <div className="sidebar__user-info">
-              <span className="sidebar__user-name">{currentAccount?.name ?? 'Quản trị viên'}</span>
-              <span className="sidebar__user-email">{currentAccount?.email}</span>
+              <span className="sidebar__user-name">Admin Tổng</span>
+              <span className="sidebar__user-email">admin@reventu.com</span>
             </div>
           )}
         </div>
-        <button className="sidebar__exit-btn" id="exit-to-portal" title="Về cổng khách hàng" onClick={() => navigate('/')}>
+        <button className="sidebar__exit-btn" id="exit-to-portal" title="Về cổng khách hàng">
           <HiOutlineLogout size={18} />
-          {!collapsed && <span>Về cổng khách hàng</span>}
+          {showDetails && <span>Về cổng khách hàng</span>}
         </button>
       </div>
     </aside>

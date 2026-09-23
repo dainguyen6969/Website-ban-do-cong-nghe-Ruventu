@@ -1,5 +1,6 @@
 import { useLocation } from 'react-router-dom';
-import { HiOutlineBell, HiOutlineUser } from 'react-icons/hi';
+import { HiOutlineBell, HiOutlineMenu, HiOutlineUser } from 'react-icons/hi';
+import FontSwitcher from './FontSwitcher';
 import './Header.css';
 
 const routeTitleMap = {
@@ -16,7 +17,7 @@ const routeTitleMap = {
   '/admin/danh-muc': 'DANH MỤC',
 };
 
-export default function Header({ notificationCount = 0 }) {
+export default function Header({ notificationCount = 0, onMenuToggle, isMenuOpen = false }) {
   const location = useLocation();
   
   // Find current top-level route title
@@ -28,6 +29,16 @@ export default function Header({ notificationCount = 0 }) {
   const isComboPage = currentPath.startsWith('/kho-hang/combo-san-pham');
   const isPurchasePage = currentPath.startsWith('/kho-hang/nhap-hang');
   const isStockCheckPage = currentPath.startsWith('/kho-hang/kiem-hang');
+  const isStockCheckCreate = currentPath === '/kho-hang/kiem-hang/tao-moi' || currentPath.endsWith('/chinh-sua');
+  const isStockCheckDetail = isStockCheckPage && currentPath !== '/kho-hang/kiem-hang' && !isStockCheckCreate;
+  const isCustomerDetail = /^\/admin\/khach-hang-doi-tac\/khach-hang\/[^/]+$/.test(currentPath);
+  const isEmployeeDetail = /^\/admin\/nhan-vien\/[^/]+$/.test(currentPath) && !currentPath.endsWith('/danh-sach') && !currentPath.endsWith('/vai-tro');
+  const isRolePage = currentPath === '/admin/nhan-vien/vai-tro';
+  const isSupplierPage = currentPath === '/admin/khach-hang-doi-tac/nha-cung-cap';
+  const isShippingPartnerPage = currentPath === '/admin/khach-hang-doi-tac/doi-tac-van-chuyen';
+  const isOrderDetail = /^\/admin\/don-hang\/danh-sach-don-hang\/[^/]+$/.test(currentPath);
+  const isCategoryDetail = /^\/admin\/danh-muc\/danh-muc-san-pham\/[^/]+$/.test(currentPath);
+  const isCategoryList = currentPath === '/admin/danh-muc/danh-muc-san-pham';
   let currentPageName = 'ĐƠN HÀNG';
   const isCreatePromotion = currentPath === '/admin/khuyen-mai/tao-khuyen-mai';
   
@@ -41,16 +52,72 @@ export default function Header({ notificationCount = 0 }) {
   return (
     <header className="header" role="banner">
       <div className="header__left">
+        <button
+          type="button"
+          className="header__mobile-menu"
+          onClick={onMenuToggle}
+          aria-label={isMenuOpen ? 'Đóng menu điều hướng' : 'Mở menu điều hướng'}
+          aria-expanded={isMenuOpen}
+          aria-controls="admin-sidebar"
+        >
+          <HiOutlineMenu size={22} />
+        </button>
         <nav className="header__breadcrumb" aria-label="Breadcrumb">
           <span className="header__breadcrumb-item header__breadcrumb-item--muted">
             ADMIN
           </span>
           <span className="header__breadcrumb-sep" aria-hidden="true">›</span>
-          {isStockCheckPage ? (
+          {isCategoryDetail ? (
+            <>
+              <span className="header__breadcrumb-item header__breadcrumb-item--muted">DANH MỤC SẢN PHẨM</span>
+              <span className="header__breadcrumb-sep" aria-hidden="true">›</span>
+              <span className="header__breadcrumb-item header__breadcrumb-item--active">CHI TIẾT DANH MỤC</span>
+            </>
+          ) : isCategoryList ? (
+            <span className="header__breadcrumb-item header__breadcrumb-item--active">DANH MỤC SẢN PHẨM</span>
+          ) : isOrderDetail ? (
+            <>
+              <span className="header__breadcrumb-item header__breadcrumb-item--muted">ĐƠN HÀNG</span>
+              <span className="header__breadcrumb-sep" aria-hidden="true">›</span>
+              <span className="header__breadcrumb-item header__breadcrumb-item--active">CHI TIẾT ĐƠN HÀNG</span>
+            </>
+          ) : isShippingPartnerPage ? (
+            <>
+              <span className="header__breadcrumb-item header__breadcrumb-item--muted">KHÁCH HÀNG &amp; ĐỐI TÁC</span>
+              <span className="header__breadcrumb-sep" aria-hidden="true">›</span>
+              {location.state?.partnerId && <><span className="header__breadcrumb-item header__breadcrumb-item--muted">ĐỐI TÁC VẬN CHUYỂN</span><span className="header__breadcrumb-sep" aria-hidden="true">›</span></>}
+              <span className="header__breadcrumb-item header__breadcrumb-item--active">{location.state?.partnerId ? 'CHI TIẾT ĐỐI TÁC VẬN CHUYỂN' : 'ĐỐI TÁC VẬN CHUYỂN'}</span>
+            </>
+          ) : isSupplierPage ? (
+            <>
+              <span className="header__breadcrumb-item header__breadcrumb-item--muted">KHÁCH HÀNG &amp; ĐỐI TÁC</span>
+              <span className="header__breadcrumb-sep" aria-hidden="true">›</span>
+              {location.state?.supplierId && <><span className="header__breadcrumb-item header__breadcrumb-item--muted">NHÀ CUNG CẤP</span><span className="header__breadcrumb-sep" aria-hidden="true">›</span></>}
+              <span className="header__breadcrumb-item header__breadcrumb-item--active">{location.state?.supplierId ? 'CHI TIẾT NHÀ CUNG CẤP' : 'NHÀ CUNG CẤP'}</span>
+            </>
+          ) : isRolePage ? (
+            <span className="header__breadcrumb-item header__breadcrumb-item--active">VAI TRÒ</span>
+          ) : isEmployeeDetail ? (
+            <>
+              <span className="header__breadcrumb-item header__breadcrumb-item--muted">NHÂN VIÊN</span>
+              <span className="header__breadcrumb-sep" aria-hidden="true">›</span>
+              <span className="header__breadcrumb-item header__breadcrumb-item--active">CHI TIẾT NHÂN VIÊN</span>
+            </>
+          ) : isCustomerDetail ? (
+            <>
+              <span className="header__breadcrumb-item header__breadcrumb-item--muted">KHÁCH HÀNG &amp; ĐỐI TÁC</span>
+              <span className="header__breadcrumb-sep" aria-hidden="true">›</span>
+              <span className="header__breadcrumb-item header__breadcrumb-item--active">CHI TIẾT KHÁCH HÀNG</span>
+            </>
+          ) : isStockCheckPage ? (
             <>
               <span className="header__breadcrumb-item header__breadcrumb-item--muted">KHO HÀNG</span>
               <span className="header__breadcrumb-sep" aria-hidden="true">›</span>
-              <span className="header__breadcrumb-item header__breadcrumb-item--active">KIỂM HÀNG</span>
+              <span className={`header__breadcrumb-item ${isStockCheckCreate || isStockCheckDetail ? 'header__breadcrumb-item--muted' : 'header__breadcrumb-item--active'}`}>KIỂM HÀNG</span>
+              {(isStockCheckCreate || isStockCheckDetail) && <>
+                <span className="header__breadcrumb-sep" aria-hidden="true">›</span>
+                <span className="header__breadcrumb-item header__breadcrumb-item--active">{isStockCheckCreate ? 'TẠO PHIẾU KIỂM HÀNG' : 'CHI TIẾT PHIẾU KIỂM HÀNG'}</span>
+              </>}
             </>
           ) : isPurchasePage ? (
             <>
@@ -110,8 +177,9 @@ export default function Header({ notificationCount = 0 }) {
 
         <div className="header__divider" aria-hidden="true" />
 
-        {/* Notification bell */}
-        <div className="header__group">
+        {/* Font switcher and notification bell */}
+        <div className="header__group header__utilities">
+          <FontSwitcher variant="admin" />
           <button
             className="header__icon-btn"
             id="notification-bell"

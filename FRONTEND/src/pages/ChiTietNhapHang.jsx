@@ -1,7 +1,10 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Navigate, useNavigate, useParams } from 'react-router-dom';
 import PriceInput from '../components/PriceInput';
+import DetailTablePagination from '../components/DetailTablePagination';
+import useDetailTablePagination from '../hooks/useDetailTablePagination';
 import { getPurchaseOrder, getSupplier, getWarehouse, totalGoods, totalOrder, updatePurchaseOrder } from '../data/purchaseOrders';
+import { subscribeToAdminSlice } from '../sync/adminSync';
 import { money, Modal, PageCrumb, PurchaseCard, StatusBadge } from './PurchaseShared';
 import './NhapHang.css';
 
@@ -17,6 +20,8 @@ export default function ChiTietNhapHang() {
   const [refundMethod, setRefundMethod] = useState('Chuyển khoản');
   const [returnStep, setReturnStep] = useState(1);
   const [returnError, setReturnError] = useState('');
+  const itemPagination = useDetailTablePagination(order?.items);
+  useEffect(() => subscribeToAdminSlice('purchase-orders', () => setOrder(getPurchaseOrder(id))), [id]);
   const supplier = getSupplier(order?.supplierId); const warehouse = getWarehouse(order?.warehouseId);
   const totals = useMemo(() => { if (!order) return {}; const goods = totalGoods(order); const total = totalOrder(order); const ordered = order.items.reduce((sum, row) => sum + row.qty, 0); const received = order.items.reduce((sum, row) => sum + row.received, 0); const returned = order.items.reduce((sum, row) => sum + row.returned, 0); return { goods, vat: total - goods, total, debt: Math.max(0, total - order.paid), ordered, received, returned, waiting: Math.max(0, ordered - received), progress: ordered ? Math.round(received / ordered * 100) : 0 }; }, [order]);
   if (!order) return <Navigate to="/kho-hang/nhap-hang" replace />;
@@ -47,7 +52,7 @@ export default function ChiTietNhapHang() {
       <button className="purchase-btn outline" onClick={() => navigate('/kho-hang/nhap-hang')}>‹ DANH SÁCH</button>
     </div></div>
     <div className="purchase-detail-grid"><div className="purchase-detail-main">
-      <PurchaseCard title="SẢN PHẨM TRONG ĐƠN NHẬP"><table className="purchase-detail-table"><thead><tr><th>SẢN PHẨM / PHIÊN BẢN</th><th>SL ĐẶT</th><th>ĐƠN GIÁ NHẬP</th><th>THÀNH TIỀN</th><th>ĐÃ NHẬP</th><th>ĐÃ TRẢ</th></tr></thead><tbody>{order.items.map((row) => <tr key={row.id}><td><strong>{row.name}</strong><small>{row.variant} · {row.sku}</small></td><td>{row.qty}</td><td>{money(row.unitPrice)}</td><td>{money(row.qty * row.unitPrice)}</td><td className="received">{row.received} <span>/ {row.qty}</span></td><td>{row.returned}</td></tr>)}</tbody></table></PurchaseCard>
+      <PurchaseCard title="SẢN PHẨM TRONG ĐƠN NHẬP"><table className="purchase-detail-table"><thead><tr><th>SẢN PHẨM / PHIÊN BẢN</th><th>SL ĐẶT</th><th>ĐƠN GIÁ NHẬP</th><th>THÀNH TIỀN</th><th>ĐÃ NHẬP</th><th>ĐÃ TRẢ</th></tr></thead><tbody>{itemPagination.visibleItems.map((row) => <tr key={row.id}><td><strong>{row.name}</strong><small>{row.variant} · {row.sku}</small></td><td>{row.qty}</td><td>{money(row.unitPrice)}</td><td>{money(row.qty * row.unitPrice)}</td><td className="received">{row.received} <span>/ {row.qty}</span></td><td>{row.returned}</td></tr>)}</tbody></table><DetailTablePagination totalItems={order.items.length} currentPage={itemPagination.currentPage} onPageChange={itemPagination.onPageChange} idPrefix="purchase-order-items" /></PurchaseCard>
       <PurchaseCard title="TIẾN ĐỘ NHẬP KHO"><div className="progress-line"><div style={{ width: `${totals.progress}%` }} /><span>{totals.progress}%</span></div><div className="progress-stats"><div><b>{totals.ordered}</b><span>TỔNG ĐẶT</span></div><div className="orange-text"><b>{totals.received}</b><span>ĐÃ NHẬP</span></div><div><b>{totals.returned}</b><span>ĐÃ TRẢ NCC</span></div><div><b>{totals.waiting}</b><span>CÒN CHỜ</span></div></div></PurchaseCard>
       <PurchaseCard title="THANH TOÁN NHÀ CUNG CẤP"><div className="detail-payment"><span>TIỀN HÀNG</span><b>{money(totals.goods)}</b><span>THUẾ VAT (10%)</span><b>{money(totals.vat)}</b><hr /><strong>TỔNG TIỀN</strong><strong>{money(totals.total)}</strong><span className="paid-label">ĐÃ THANH TOÁN</span><b className="paid-label">{money(order.paid)}</b><div className={`debt-bar ${totals.debt === 0 ? 'settled' : ''}`}><strong>CÒN NỢ NCC</strong><b>{money(totals.debt)}</b></div><StatusBadge>{order.paymentStatus}</StatusBadge></div></PurchaseCard>
     </div><aside className="purchase-detail-side">

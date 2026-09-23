@@ -38,7 +38,7 @@
 .inventory-version-table tbody tr:hover { background: #fafafa; }
 .inventory-version-table tbody tr.is-active { background: #fff0f0; box-shadow: inset 3px 0 0 var(--color-brand-red); }
 .inventory-viewing-badge { display: inline-flex; margin-left: 10px; padding: 2px 6px; border: 1px solid var(--color-brand-red); color: var(--color-brand-red); font-size: 9px; font-weight: 800; }
-.inventory-code-badge, .inventory-location-badge { display: inline-flex; padding: 3px 8px; border: 1px solid #d7d7d7; background: #f7f7f7; font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: 11px; }
+.inventory-code-badge, .inventory-location-badge { display: inline-flex; padding: 3px 8px; border: 1px solid #d7d7d7; background: #f7f7f7; font-size: 11px; }
 .inventory-number--green { color: #168314 !important; }
 .inventory-number--red { color: var(--color-brand-red) !important; }
 .inventory-number--gray { color: #909090 !important; }
@@ -57,8 +57,8 @@
 .inventory-reset { height: 38px; padding: 0 12px; border: 1px solid var(--color-brand-red) !important; color: var(--color-brand-red); font-size: 10px; font-weight: 800; }
 .inventory-reset:hover { background: var(--color-brand-red) !important; color: #fff; }
 .inventory-history-count { margin-left: auto; color: #aaa; font-size: 11px; white-space: nowrap; }
-.inventory-history-table td:first-child { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; white-space: nowrap; }
-.inventory-link { padding: 3px 8px !important; border: 1px solid #d7d7d7 !important; background: #f7f9fc !important; color: #0867d1; font-family: ui-monospace, SFMono-Regular, Consolas, monospace !important; font-size: 11px; }
+.inventory-history-table td:first-child { white-space: nowrap; }
+.inventory-link { padding: 3px 8px !important; border: 1px solid #d7d7d7 !important; background: #f7f9fc !important; color: #0867d1; font-size: 11px; }
 .inventory-note--link { color: #0867d1 !important; }
 .inventory-empty { height: 90px !important; text-align: center; color: #888 !important; }
 @media (max-width: 900px) {

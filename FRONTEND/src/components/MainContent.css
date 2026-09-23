@@ -325,6 +325,8 @@
   border: 2px solid var(--color-text-primary);
   box-shadow: var(--shadow-sm);
   width: 100%;
+  max-width: 100%;
+  min-width: 0;
 }
 
 .data-table {

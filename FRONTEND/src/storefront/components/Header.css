@@ -5,12 +5,35 @@
 .top-banner {
   background-color: var(--primary-red);
   color: var(--text-light);
-  text-align: center;
-  padding: 8px 0;
-  font-size: 12px;
-  font-weight: 500;
+  min-height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 5px 16px;
+  font-size: 11px;
+  font-weight: 700;
   letter-spacing: 0.5px;
 }
+
+.top-banner p {
+  order: 2;
+  margin: 0;
+  text-align: center;
+}
+
+.banner-control {
+  flex: 0 0 auto;
+  padding: 0;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 11px;
+  line-height: 1;
+}
+
+.banner-control-prev { order: 1; }
+.banner-control-next { order: 3; }
+.banner-control:hover { color: #fff; }
 
 .main-header {
   background-color: var(--bg-white);
@@ -20,36 +43,41 @@
 .header-container {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  height: 80px;
+  height: 58px;
+  max-width: none !important;
+  padding: 0 !important;
 }
 
 .logo-container {
-  width: 200px;
+  flex: 0 0 70px;
   display: flex;
   align-items: center;
+  justify-content: center;
+  height: 100%;
+  border-right: 1px solid var(--border-color);
 }
 
 .logo-image {
-  max-width: 100%;
-  max-height: 65px;
+  width: 32px;
+  height: 32px;
   object-fit: contain;
 }
 
 .search-bar {
   flex: 1;
-  max-width: 600px;
+  min-width: 0;
+  max-width: none;
   display: flex;
-  height: 40px;
-  margin: 0 40px;
+  height: 100%;
+  margin: 0;
 }
 
 .search-bar input {
   flex: 1;
-  border: 1px solid var(--border-color);
-  border-right: none;
-  padding: 0 16px;
-  font-size: 14px;
+  min-width: 0;
+  border: 0;
+  padding: 0 20px;
+  font-size: 13px;
   outline: none;
 }
 
@@ -60,12 +88,14 @@
 .search-btn {
   background-color: var(--primary-red);
   color: var(--text-light);
-  padding: 0 20px;
+  flex: 0 0 104px;
+  justify-content: center;
+  padding: 0 14px;
   display: flex;
   align-items: center;
   gap: 8px;
   font-weight: 700;
-  font-size: 14px;
+  font-size: 12px;
 }
 
 .search-btn:hover {
@@ -84,10 +114,10 @@
   align-items: center;
   justify-content: center;
   gap: 4px;
-  width: 80px;
-  height: 80px;
+  width: 74px;
+  height: 58px;
   color: var(--text-dark);
-  font-size: 12px;
+  font-size: 10px;
   font-weight: 500;
   cursor: pointer;
   border-left: 1px solid var(--border-color);
@@ -110,7 +140,9 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  height: 50px;
+  height: 40px;
+  max-width: none !important;
+  padding: 0 !important;
 }
 
 .nav-links {
@@ -127,8 +159,8 @@
   display: flex;
   align-items: center;
   height: 100%;
-  padding: 0 20px;
-  font-size: 14px;
+  padding: 0 19px;
+  font-size: 12px;
   font-weight: 700;
   text-transform: uppercase;
   border-right: 1px solid #333;
@@ -147,25 +179,26 @@
 }
 
 .hotline {
-  font-size: 13px;
+  padding-right: 20px;
+  font-size: 11px;
   font-weight: 500;
 }
 
 .hotline span {
   color: var(--primary-red);
   font-weight: 900;
-  font-size: 16px;
+  font-size: 12px;
   margin-left: 4px;
 }
 
 /* User Profile Dropdown */
 .user-profile-menu {
   position: relative;
-  height: 80px;
+  height: 58px;
   display: flex;
   align-items: center;
   border-left: 1px solid var(--border-color);
-  padding: 0 20px;
+  padding: 0 16px;
   cursor: pointer;
   background-color: #fff;
 }
@@ -211,7 +244,7 @@
 
 .user-dropdown {
   position: absolute;
-  top: 80px;
+  top: 58px;
   right: 0;
   width: 250px;
   background-color: #111;

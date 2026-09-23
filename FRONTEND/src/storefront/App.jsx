@@ -12,12 +12,18 @@ import OrderDetailPage from './pages/OrderDetailPage';
 import BuildPCDetail from './pages/BuildPCDetail';
 import ProductDetail from './pages/ProductDetail';
 import CategoryPage from './pages/CategoryPage';
+import { HOMEPAGE_FONT_STORAGE_KEY } from '../typography/fontOptions';
+import FontPreferenceContext from '../typography/FontPreferenceContext';
+import usePersistentFontPreference from '../typography/usePersistentFontPreference';
 import './App.css';
 import './index.css';
 
 function StorefrontApp() {
+  const fontPreference = usePersistentFontPreference(HOMEPAGE_FONT_STORAGE_KEY);
+
   return (
-      <div className="app storefront-app">
+    <FontPreferenceContext.Provider value={fontPreference}>
+      <div className="app storefront-app" style={{ '--font-family-homepage': fontPreference.font.family }}>
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/category/:slug" element={<CategoryPage />} />
@@ -35,6 +41,7 @@ function StorefrontApp() {
           <Route path="*" element={<Navigate to="/" />} />
         </Routes>
       </div>
+    </FontPreferenceContext.Provider>
   );
 }
 
