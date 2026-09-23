@@ -2,6 +2,8 @@ package com.example.dantruventu.Repository.warehouse;
 
 import com.example.dantruventu.Entity.SoSerialSanPham;
 import jakarta.persistence.LockModeType;
+import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -34,7 +36,7 @@ public interface SoSerialSanPhamRepository
 
   boolean existsBySoSerial(String soSerial);
 
-  boolean existsBySoSerialIn(java.util.Collection<String> soSerials);
+  boolean existsBySoSerialIn(Collection<String> soSerials);
 
   long countByPhienBanId(Long phienBanId);
 
@@ -46,5 +48,7 @@ public interface SoSerialSanPhamRepository
     WHERE s.donHang.id = :orderId
     ORDER BY s.id
     """)
-  java.util.List<SoSerialSanPham> findByOrderForUpdate(@Param("orderId") Long orderId);
+  List<SoSerialSanPham> findByOrderForUpdate(@Param("orderId") Long orderId);
+
+  List<SoSerialSanPham> findByDonHang_IdOrderByIdAsc(Long donHangId);
 }
