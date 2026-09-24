@@ -4,8 +4,10 @@ import com.example.dantruventu.Enum.LoaiSanPham;
 import com.example.dantruventu.Enum.TrangThaiCoBanEnum;
 import jakarta.persistence.*;
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
 import lombok.*;
+import org.hibernate.annotations.CreationTimestamp;
 
 @Entity
 @Table(name = "san_pham")
@@ -50,6 +52,13 @@ public class SanPham {
   @Builder.Default
   @Column(name = "trang_thai", nullable = false)
   private TrangThaiCoBanEnum trangThai = TrangThaiCoBanEnum.HOAT_DONG;
+
+  @CreationTimestamp
+  @Column(
+      name = "ngay_tao",
+      updatable = false,
+      columnDefinition = "TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
+  private LocalDateTime ngayTao;
 
   @OneToMany(mappedBy = "sanPham", fetch = FetchType.LAZY)
   private List<AnhSanPham> danhSachAnhSanPham;
