@@ -13,6 +13,8 @@ public interface PhienBanSanPhamRepository extends JpaRepository<PhienBanSanPham
 
   boolean existsByMaVach(String maVach);
 
+  boolean existsByMaVachAndIdNot(String maVach, Long id);
+
   boolean existsByMaVachIn(Collection<String> maVach);
 
   List<PhienBanSanPham> findBySanPhamIdInOrderByIdAsc(Collection<Long> sanPhamIds);

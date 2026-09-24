@@ -4,8 +4,7 @@ import { Search, User, ShoppingBag } from 'lucide-react';
 import './Header.css';
 import logo from '../assets/reventu.png';
 import CartDrawer from './CartDrawer';
-import FontSwitcher from '../../components/FontSwitcher';
-import useMockAuth from '../../auth/useMockAuth';
+import FontSwitcher from '../../shared/components/ui/FontSwitcher';
 
 const Header = () => {
   const [isCartOpen, setIsCartOpen] = useState(false);

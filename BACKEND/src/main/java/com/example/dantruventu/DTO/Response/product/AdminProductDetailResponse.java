@@ -40,6 +40,9 @@ public class AdminProductDetailResponse {
   @JsonProperty("trang_thai")
   private Short trangThai;
 
+  @JsonProperty("thue_vat")
+  private BigDecimal thueVat;
+
   @JsonProperty("anh_san_pham")
   private List<AnhSanPhamData> anhSanPham;
 
