@@ -59,6 +59,19 @@ public class AdminComboCreateRequest {
   @Digits(integer = 13, fraction = 2)
   private BigDecimal giaNhap;
 
+  @JsonProperty("ten_phien_ban")
+  @Size(max = 255)
+  private String tenPhienBan;
+
+  @JsonProperty("ma_vach")
+  @Size(max = 255)
+  private String maVach;
+
+  @JsonProperty("trang_thai_phien_ban")
+  @Min(0)
+  @Max(1)
+  private Short trangThaiPhienBan;
+
   @JsonProperty("thue_vat")
   @DecimalMin("0")
   @DecimalMax("100")

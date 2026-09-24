@@ -1,3 +1,4 @@
+// REST boundary for real admin product operations in the IntelliJ/Spring backend.
 package com.example.dantruventu.Controller;
 
 import com.example.dantruventu.DTO.Request.product.AdminProductCreateRequest;

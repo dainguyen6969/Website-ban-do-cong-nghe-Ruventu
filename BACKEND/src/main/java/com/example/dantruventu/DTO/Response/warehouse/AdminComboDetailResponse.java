@@ -53,6 +53,15 @@ public class AdminComboDetailResponse {
   @JsonProperty("gia_nhap")
   private BigDecimal giaNhap;
 
+  @JsonProperty("ten_phien_ban")
+  private String tenPhienBan;
+
+  @JsonProperty("ma_vach")
+  private String maVach;
+
+  @JsonProperty("trang_thai_phien_ban")
+  private Short trangThaiPhienBan;
+
   @JsonProperty("trang_thai")
   private Short trangThai;
 

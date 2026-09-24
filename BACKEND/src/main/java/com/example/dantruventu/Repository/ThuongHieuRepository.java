@@ -63,6 +63,8 @@ public interface ThuongHieuRepository
 
     String getTenSanPham();
 
+    String getTenDanhMuc();
+
     BigDecimal getGiaBan();
 
     Long getTonCoTheBan();
@@ -75,6 +77,7 @@ public interface ThuongHieuRepository
             SELECT s.id AS id,
                    s.maSanPham AS maSanPham,
                    s.tenSanPham AS tenSanPham,
+                   s.danhMuc.tenDanhMuc AS tenDanhMuc,
                    MIN(pb.giaBanLe) AS giaBan,
                    COALESCE(SUM(tk.tonCoTheBan), 0) AS tonCoTheBan,
                    s.trangThai AS trangThai
@@ -86,6 +89,7 @@ public interface ThuongHieuRepository
                 s.id,
                 s.maSanPham,
                 s.tenSanPham,
+                s.danhMuc.tenDanhMuc,
                 s.trangThai
             ORDER BY s.id DESC
             """)

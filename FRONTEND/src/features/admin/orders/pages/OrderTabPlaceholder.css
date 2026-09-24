@@ -1,0 +1,29 @@
+/* Shared styles for order-tab placeholder states. */
+.order-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 360px;
+  background: var(--color-content-surface);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-color);
+  padding: 40px 24px;
+  box-shadow: var(--shadow-sm);
+}
+
+.order-placeholder__card {
+  text-align: center;
+  max-width: 480px;
+}
+
+.order-placeholder__title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin-bottom: 8px;
+}
+
+.order-placeholder__desc {
+  font-size: 13px;
+  color: var(--color-text-muted);
+}

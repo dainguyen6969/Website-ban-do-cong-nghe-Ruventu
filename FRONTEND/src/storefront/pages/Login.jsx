@@ -3,10 +3,12 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, AlertCircle, Check } from 'lucide-react';
 import AuthLayout from '../components/AuthLayout';
 import './Auth.css';
-import { isStaffAccount } from '../../auth/accountModel';
+import useMockAuth from '../../auth/useMockAuth';
+import { canAccessAdmin } from '../../auth/accountModel';
 
 const Login = () => {
   const navigate = useNavigate();
+  const { login, roles } = useMockAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({ account: '', password: '' });
   const [errors, setErrors] = useState({});
@@ -43,7 +45,7 @@ const Login = () => {
       return;
     }
 
-    if (isStaffAccount(account)) {
+    if (canAccessAdmin(account, roles)) {
       navigate('/admin', { replace: true });
       return;
     }
