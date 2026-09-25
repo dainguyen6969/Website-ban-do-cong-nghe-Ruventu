@@ -1,3 +1,4 @@
+// Product application service for IntelliJ-backed admin list/detail/mutation endpoints.
 package com.example.dantruventu.Services;
 
 import com.example.dantruventu.DTO.Request.product.AdminProductCreateRequest;
@@ -73,8 +74,47 @@ public class AdminProductService {
 
     Page<SanPham> productPage = sanPhamRepository.findAll(specification, pageable);
 
+    List<SanPham> products = productPage.getContent();
+    List<Long> productIds = products.stream().map(SanPham::getId).toList();
+    List<PhienBanSanPham> variants =
+        productIds.isEmpty()
+            ? List.of()
+            : phienBanSanPhamRepository.findBySanPhamIdInOrderByIdAsc(productIds);
+    Map<Long, List<PhienBanSanPham>> variantsByProduct =
+        variants.stream().collect(Collectors.groupingBy(variant -> variant.getSanPham().getId()));
+    Map<Long, Long> stockByVariant =
+        getStockMap(variants.stream().map(PhienBanSanPham::getId).toList());
+    Map<Long, String> primaryImages = getPrimaryImages(productIds);
+
     List<AdminProductListItemResponse> items =
-        productPage.getContent().stream().map(sanPhamMapper::toListItem).toList();
+        products.stream()
+            .map(
+                product -> {
+                  List<PhienBanSanPham> productVariants =
+                      variantsByProduct.getOrDefault(product.getId(), List.of());
+                  AdminProductListItemResponse item = sanPhamMapper.toListItem(product);
+                  item.setAnhChinh(primaryImages.get(product.getId()));
+                  item.setSoPhienBan(productVariants.size());
+                  item.setGiaBanThapNhat(
+                      productVariants.stream()
+                          .map(PhienBanSanPham::getGiaBanLe)
+                          .filter(Objects::nonNull)
+                          .min(Comparator.naturalOrder())
+                          .orElse(null));
+                  long stock =
+                      productVariants.stream()
+                          .mapToLong(variant -> stockByVariant.getOrDefault(variant.getId(), 0L))
+                          .sum();
+                  if (product.getLoaiSanPham() == LoaiSanPham.BO_PC) {
+                    stock =
+                        adminTonKhoRepository.findComboStocks(product.getId(), null).stream()
+                            .mapToLong(row -> row.getTonCoTheBan())
+                            .sum();
+                  }
+                  item.setTonCoTheBan(stock);
+                  return item;
+                })
+            .toList();
 
     PaginationResponse pagination =
         PaginationResponse.builder()
@@ -89,7 +129,7 @@ public class AdminProductService {
 
   public AdminProductDetailResponse getProductDetail(Long id) {
 
-    SanPham product = requireStandaloneForWrite(id);
+    SanPham product = requireStandalone(id);
 
     AdminProductDetailResponse response = sanPhamMapper.toDetailResponse(product);
 
@@ -229,6 +269,16 @@ public class AdminProductService {
     product.setTenSanPham(request.getTenSanPham().trim());
 
     SanPham savedProduct = sanPhamRepository.save(product);
+
+    if (request.getAnhSanPham() != null) {
+      anhSanPhamRepository.deleteBySanPhamId(id);
+      List<AnhSanPham> images =
+          request.getAnhSanPham().stream()
+              .map(sanPhamMapper::toImageEntity)
+              .peek(image -> image.setSanPham(savedProduct))
+              .toList();
+      anhSanPhamRepository.saveAll(images);
+    }
 
     return sanPhamMapper.toUpdateResponse(savedProduct);
   }
@@ -372,6 +422,41 @@ public class AdminProductService {
           ErrorCode.CONFLICT, "Vui lòng dùng /api/v1/admin/combos để thao tác với combo");
     }
 
+    return product;
+  }
+
+  /** Selects one deterministic list thumbnail, preferring the image marked as primary. */
+  private Map<Long, String> getPrimaryImages(List<Long> productIds) {
+    if (productIds.isEmpty()) {
+      return Map.of();
+    }
+    Map<Long, List<AnhSanPham>> grouped =
+        anhSanPhamRepository.findBySanPhamIdInOrderByThuTuHienThiAscIdAsc(productIds).stream()
+            .collect(Collectors.groupingBy(image -> image.getSanPham().getId()));
+    Map<Long, String> result = new HashMap<>();
+    grouped.forEach(
+        (productId, images) ->
+            images.stream()
+                .filter(image -> Boolean.TRUE.equals(image.getLaAnhChinh()))
+                .findFirst()
+                .or(() -> images.stream().findFirst())
+                .map(AnhSanPham::getDuongDanAnh)
+                .ifPresent(url -> result.put(productId, url)));
+    return result;
+  }
+
+  private SanPham requireStandalone(Long id) {
+    if (id == null || id <= 0) {
+      throw new AppException(ErrorCode.INVALID_DATA, "ID sản phẩm phải lớn hơn 0");
+    }
+    SanPham product =
+        sanPhamRepository
+            .findById(id)
+            .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "Không tìm thấy sản phẩm"));
+    if (product.getLoaiSanPham() == LoaiSanPham.BO_PC) {
+      throw new AppException(
+          ErrorCode.CONFLICT, "Vui lòng dùng /api/v1/admin/combos để thao tác với combo");
+    }
     return product;
   }
 }

@@ -56,13 +56,23 @@ public class SalesContext {
 
     var authentication = SecurityContextHolder.getContext().getAuthentication();
 
-    if (authentication == null || !(authentication.getPrincipal() instanceof Number number)) {
+    if (authentication == null || !authentication.isAuthenticated()) {
+      throw new AppException(ErrorCode.UNAUTHORIZED);
+    }
+
+    if (!(authentication.getPrincipal() instanceof NguoiDung principal)) {
+      throw new AppException(ErrorCode.UNAUTHORIZED);
+    }
+
+    Long userId = principal.getId();
+
+    if (userId == null) {
       throw new AppException(ErrorCode.UNAUTHORIZED);
     }
 
     NguoiDung user =
         userRepository
-            .findByIdWithVaiTro(number.longValue())
+            .findByIdWithVaiTro(userId)
             .orElseThrow(() -> new AppException(ErrorCode.UNAUTHORIZED));
 
     if (user.getTrangThai() != TrangThaiCoBanEnum.HOAT_DONG) {
