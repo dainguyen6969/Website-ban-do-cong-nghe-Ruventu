@@ -314,5 +314,39 @@ export const mockProducts = {
       { title: "MIỄN PHÍ VC", desc: "Đơn từ 5tr", icon: "truck" },
       { title: "CAM KẾT GIÁ", desc: "Tốt nhất", icon: "tag" }
     ]
+  },
+  "ASUS-RX-7800XT": {
+    id: "ASUS-RX-7800XT",
+    category: "VGA",
+    brand: "ASUS",
+    name: "ASUS ROG STRIX RX 7800 XT OC 16GB",
+    originalPrice: 12900000,
+    discountAmount: 1410000,
+    currentPrice: 11490000,
+    stock: 0,
+    discountPercent: 11,
+    tags: ["VGA", "ASUS"],
+    images: [vga7900Img],
+    specsSummary: [
+      { label: "VRAM", value: "16GB GDDR6" },
+      { label: "TDP", value: "263W" },
+      { label: "Bus", value: "256-bit" },
+      { label: "Output", value: "2x DP 2.1 + 1x HDMI 2.1" },
+    ],
+    fullSpecs: [
+      { label: "Thương hiệu", value: "ASUS" },
+      { label: "Danh mục", value: "VGA" },
+      { label: "Mã sản phẩm", value: "ASUS-RX-7800XT" },
+      { label: "VRAM", value: "16GB GDDR6" },
+      { label: "TDP", value: "263W" },
+      { label: "Bus", value: "256-bit" },
+      { label: "Output", value: "2x DP 2.1 + 1x HDMI 2.1" },
+      { label: "Bảo hành", value: "36 tháng chính hãng" },
+    ],
+    policies: [
+      { title: "BH 36 THÁNG", desc: "Chính hãng", icon: "shield" },
+      { title: "MIỄN PHÍ VC", desc: "Đơn từ 5tr", icon: "truck" },
+      { title: "CAM KẾT GIÁ", desc: "Tốt nhất", icon: "tag" }
+    ]
   }
 };

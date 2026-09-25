@@ -244,6 +244,7 @@
   padding: 14px 16px;
   color: #666;
   font-size: 14px;
+  font-family: inherit;
   outline: none;
   width: 100%;
 }
@@ -291,6 +292,7 @@
   padding: 14px 16px;
   color: #111;
   font-size: 14px;
+  font-family: inherit;
   outline: none;
   width: 100%;
 }

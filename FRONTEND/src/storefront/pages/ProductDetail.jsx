@@ -1,8 +1,6 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import Header from '../components/Header';
-import InfoBar from '../components/InfoBar';
-import CategoryBar from '../components/CategoryBar';
 import Footer from '../components/Footer';
 import ProductGallery from '../components/ProductGallery';
 import ProductInfoSidebar from '../components/ProductInfoSidebar';
@@ -13,10 +11,13 @@ import './ProductDetail.css';
 
 const ProductDetail = () => {
   const { id } = useParams();
-  const product = mockProducts[id] || mockProducts["RVT-MB-X670E-MSI-TOM"];
+  const [product, setProduct] = useState(null);
 
   useEffect(() => {
     window.scrollTo(0, 0);
+    // Fetch product data based on ID. Fallback to a default product if not found.
+    const foundProduct = mockProducts[id] || mockProducts["RVT-MB-X670E-MSI-TOM"];
+    setProduct(foundProduct);
   }, [id]);
 
   if (!product) return <div>Loading...</div>;
@@ -24,8 +25,6 @@ const ProductDetail = () => {
   return (
     <div className="product-detail-page">
       <Header />
-      <InfoBar />
-      <CategoryBar />
       
       {/* Breadcrumbs */}
       <div className="breadcrumb-container">

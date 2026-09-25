@@ -1,7 +1,6 @@
 .pc-component-list-wrapper {
   background-color: #111;
   color: #fff;
-  border: 1px solid #333;
   display: flex;
   flex-direction: column;
   height: 100%;
@@ -14,6 +13,9 @@
   font-size: 1.1rem;
   padding: 15px 20px;
   text-transform: uppercase;
+  display: flex;
+  align-items: center;
+  border-right: 2px solid #0a0a0a;
 }
 
 .pc-component-list-content {
@@ -116,4 +118,14 @@
 
 .pc-component-list-content::-webkit-scrollbar-thumb:hover {
   background: #555;
+}
+
+.component-item.active {
+  background-color: #1a1a1a;
+  border-left: 3px solid #ff0000;
+}
+
+.component-item.active .comp-name {
+  color: #fff;
+  font-weight: 800;
 }

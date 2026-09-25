@@ -18,7 +18,7 @@ const PromotionsPage = () => {
   }, []);
 
   return (
-    <div className="category-page">
+    <div className="storefront-category-page">
       <Header />
       
       {/* Breadcrumb */}

@@ -107,12 +107,3 @@
 .bottom-links a:hover {
   color: var(--text-light);
 }
-
-.bottom-links .admin-link {
-  color: #171717;
-}
-
-.bottom-links .admin-link:hover,
-.bottom-links .admin-link:focus-visible {
-  color: var(--primary-red);
-}

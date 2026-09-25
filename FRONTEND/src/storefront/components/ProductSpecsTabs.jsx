@@ -81,7 +81,31 @@ const ProductSpecsTabs = ({ product }) => {
         
         {activeTab === 'desc' && (
           <div className="desc-content">
-            <p style={{ color: '#fff' }}>Đang cập nhật mô tả chi tiết cho sản phẩm này...</p>
+            <div className="desc-header">
+              <h2 className="desc-title">{product?.name?.toUpperCase() || 'SẢN PHẨM'}</h2>
+              <p className="desc-subtitle">{product?.brand || 'Reventu'} {product?.category || 'Sản phẩm'} chính hãng – phân phối và bảo hành bởi Reventu Tech.</p>
+            </div>
+
+            <div className="desc-section">
+              <h3 className="desc-section-title">CHẤT LƯỢNG CHÍNH HÃNG</h3>
+              <p className="desc-section-text">
+                Sản phẩm {product?.name || 'này'} được Reventu nhập khẩu trực tiếp từ nhà sản xuất {product?.brand || 'chính hãng'}. Toàn bộ hàng hóa đều qua kiểm tra chất lượng nghiêm ngặt trước khi đến tay khách hàng – đảm bảo nguyên seal, đầy đủ phụ kiện theo hộp.
+              </p>
+            </div>
+
+            <div className="desc-section">
+              <h3 className="desc-section-title">HIỆU NĂNG VƯỢT TRỘI</h3>
+              <p className="desc-section-text">
+                {product?.category || 'Sản phẩm'} {product?.brand || ''} được thiết kế để đáp ứng nhu cầu khắt khe nhất của người dùng chuyên nghiệp và game thủ. Từng chi tiết đều được tối ưu để mang lại trải nghiệm sử dụng tốt nhất trong phân khúc giá.
+              </p>
+            </div>
+
+            <div className="desc-section">
+              <h3 className="desc-section-title">BẢO HÀNH & CHÍNH SÁCH HẬU MÃI REVENTU</h3>
+              <p className="desc-section-text">
+                Sản phẩm được bảo hành {product?.fullSpecs?.find(s => s.label === 'Bảo hành' || s.label === 'Bảo Hành')?.value || '36 tháng chính hãng'} tại cửa hàng Reventu. Đổi trả trong 7 ngày nếu phát sinh lỗi kỹ thuật từ nhà sản xuất. Đội kỹ thuật Reventu hỗ trợ tư vấn cài đặt, tối ưu hệ thống và kiểm tra hiệu năng miễn phí.
+              </p>
+            </div>
           </div>
         )}
       </div>

@@ -403,7 +403,7 @@ export default function Sidebar({ collapsed, mobileOpen = false, onToggle, onNav
             </div>
           )}
         </div>
-        <button className="sidebar__exit-btn" id="exit-to-portal" title="Về cổng khách hàng">
+        <button className="sidebar__exit-btn" id="exit-to-portal" title="Về cổng khách hàng" onClick={() => navigate('/')}>
           <HiOutlineLogout size={18} />
           {showDetails && <span>Về cổng khách hàng</span>}
         </button>

@@ -11,9 +11,13 @@ import vga4080Img from '../assets/vga_4080.png';
 import vga7900Img from '../assets/vga_7900.png';
 import vga4070tiImg from '../assets/vga_4070ti.png';
 import kbKeychronImg from '../assets/kb_keychron.png';
-
+import cpuI9Img from '../assets/cpu_i9.png';
+import mainboardZ790Img from '../assets/mainboard_z790.png';
+import ramCorsairImg from '../assets/ram_corsair.png';
+import ssd990proImg from '../assets/ssd_990pro.png';
 export const mockPcBuildProducts = [
   {
+    id: 'rvt-build-titan',
     discount: '-10%',
     isHot: true,
     image: pcTitanImg,
@@ -30,6 +34,7 @@ export const mockPcBuildProducts = [
     price: '70.900.000đ',
   },
   {
+    id: 'rvt-build-warlord',
     image: pcWarlordImg,
     title: 'RUVENTU WARLORD PRO - High-End Gaming',
     category: 'PC Build Sẵn',
@@ -43,6 +48,7 @@ export const mockPcBuildProducts = [
     price: '54.900.000đ',
   },
   {
+    id: 'rvt-build-striker',
     image: pcStrikerImg,
     title: 'RUVENTU STRIKER - Mid-high Gaming',
     category: 'PC Build Sẵn',
@@ -56,6 +62,7 @@ export const mockPcBuildProducts = [
     price: '37.900.000đ',
   },
   {
+    id: 'rvt-build-phantom',
     image: pcPhantomImg,
     title: 'RUVENTU PHANTOM - Competitive Gaming',
     category: 'PC Build Sẵn',
@@ -69,6 +76,7 @@ export const mockPcBuildProducts = [
     price: '24.900.000đ',
   },
   {
+    id: 'rvt-build-viper',
     discount: '-5%',
     image: pcViperImg,
     title: 'RUVENTU VIPER - Budget Gaming',
@@ -84,6 +92,7 @@ export const mockPcBuildProducts = [
     price: '15.900.000đ',
   },
   {
+    id: 'rvt-build-blaze',
     discount: '-10%',
     image: pcBlazeImg,
     title: 'RUVENTU BLAZE - Streaming Beast',
@@ -99,6 +108,7 @@ export const mockPcBuildProducts = [
     price: '48.900.000đ',
   },
   {
+    id: 'rvt-build-spectre',
     discount: '-5%',
     isHot: true,
     image: pcSpectreImg,
@@ -114,6 +124,7 @@ export const mockPcBuildProducts = [
     price: '51.500.000đ',
   },
   {
+    id: 'rvt-build-storm',
     discount: '-15%',
     image: pcStormImg,
     title: 'RUVENTU STORM - Entry Performance',
@@ -131,6 +142,23 @@ export const mockPcBuildProducts = [
 ];
 
 export const mockLinhKien = [
+  {
+    id: 'ASUS-RX-7800XT',
+    discount: '-11%',
+    outOfStock: true,
+    soldCount: 89,
+    image: vga7900Img, // re-using an existing image for demonstration
+    title: 'ASUS ROG STRIX RX 7800 XT OC 16GB',
+    category: 'VGA',
+    specs: [
+      { label: 'VRAM', value: '16GB GDDR6' },
+      { label: 'TDP', value: '263W' },
+      { label: 'Bus', value: '256-bit' },
+      { label: 'Output', value: '2x DP 2.1 + 1x HDMI 2.1' },
+    ],
+    originalPrice: '12.900.000đ',
+    price: '11.490.000đ',
+  },
   {
     id: 'ASUS-ROG-4090',
     discount: '-12%',
@@ -191,6 +219,66 @@ export const mockLinhKien = [
     ],
     originalPrice: '24.990.000đ',
     price: '21.490.000đ',
+  },
+  {
+    id: 'INTEL-I9-14900K',
+    discount: '-8%',
+    isHot: true,
+    image: cpuI9Img,
+    title: 'Intel Core i9-14900K',
+    category: 'CPU',
+    specs: [
+      { label: 'Cores', value: '24 (8P+16E)' },
+      { label: 'Threads', value: '32' },
+      { label: 'Boost', value: '6.0 GHz' },
+      { label: 'TDP', value: '125W' },
+    ],
+    originalPrice: '16.500.000đ',
+    price: '15.290.000đ',
+  },
+  {
+    id: 'ASUS-ROG-Z790-E',
+    image: mainboardZ790Img,
+    title: 'ASUS ROG STRIX Z790-E Gaming WIFI',
+    category: 'Mainboard',
+    specs: [
+      { label: 'Socket', value: 'LGA 1700' },
+      { label: 'Chipset', value: 'Intel Z790' },
+      { label: 'RAM', value: 'DDR5 7800+ MT/s' },
+      { label: 'Form Factor', value: 'ATX' },
+    ],
+    originalPrice: '13.900.000đ',
+    price: '12.500.000đ',
+  },
+  {
+    id: 'CORSAIR-DOMINATOR-64GB',
+    discount: '-10%',
+    image: ramCorsairImg,
+    title: 'Corsair Dominator DDR5 64GB 6400MHz',
+    category: 'RAM',
+    specs: [
+      { label: 'Capacity', value: '64GB (2x32GB)' },
+      { label: 'Speed', value: '6400 MT/s' },
+      { label: 'CAS', value: 'CL32' },
+      { label: 'Voltage', value: '1.40V' },
+    ],
+    originalPrice: '7.500.000đ',
+    price: '6.900.000đ',
+  },
+  {
+    id: 'SAMSUNG-990-PRO-2TB',
+    isHot: true,
+    image: ssd990proImg,
+    title: 'Samsung 990 Pro NVMe 2TB PCIe 5.0',
+    category: 'SSD',
+    specs: [
+      { label: 'Capacity', value: '2TB' },
+      { label: 'Interface', value: 'PCIe 4.0 x4' },
+      { label: 'Read', value: '7450 MB/s' },
+      { label: 'Write', value: '6900 MB/s' },
+    ],
+    originalPrice: '5.200.000đ',
+    price: '4.800.000đ',
   }
 ];
 
