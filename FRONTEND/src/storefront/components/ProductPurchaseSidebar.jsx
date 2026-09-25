@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ShoppingCart, ShieldCheck, Truck, Tag, ChevronRight, ArrowLeft } from 'lucide-react';
+import pcWarlordImg from '../assets/pc_warlord.png';
 import './ProductPurchaseSidebar.css';
 
 const ProductPurchaseSidebar = ({ selectedComponent, onClearSelection }) => {
@@ -13,36 +14,19 @@ const ProductPurchaseSidebar = ({ selectedComponent, onClearSelection }) => {
   const handleAddToCart = () => {
     const existingCart = JSON.parse(localStorage.getItem('ruventu_cart') || '[]');
     
-    if (selectedComponent) {
-      const existingItemIndex = existingCart.findIndex(item => item.id === selectedComponent.code);
-      if (existingItemIndex >= 0) {
-        existingCart[existingItemIndex].quantity += quantity;
-      } else {
-        existingCart.push({ 
-          id: selectedComponent.code, 
-          title: selectedComponent.name,
-          image: selectedComponent.img,
-          price: selectedComponent.price,
-          originalPrice: selectedComponent.originalPrice,
-          quantity: quantity, 
-          variant: 'Mặc định' 
-        });
-      }
+    const existingItemIndex = existingCart.findIndex(item => item.id === 'RVT-BUILD-502');
+    if (existingItemIndex >= 0) {
+      existingCart[existingItemIndex].quantity += quantity;
     } else {
-      const existingItemIndex = existingCart.findIndex(item => item.id === 'RVT-BUILD-502');
-      if (existingItemIndex >= 0) {
-        existingCart[existingItemIndex].quantity += quantity;
-      } else {
-        existingCart.push({ 
-          id: 'RVT-BUILD-502', 
-          title: 'REVENTU WARLORD PRO — HIGH-END GAMING',
-          image: '', 
-          price: '54.900.000đ',
-          originalPrice: '62.000.000đ',
-          quantity: quantity, 
-          variant: 'Mặc định' 
-        });
-      }
+      existingCart.push({ 
+        id: 'RVT-BUILD-502', 
+        title: 'REVENTU WARLORD PRO — HIGH-END GAMING',
+        image: pcWarlordImg, 
+        price: '54.900.000đ',
+        originalPrice: '62.000.000đ',
+        quantity: quantity, 
+        variant: 'Mặc định' 
+      });
     }
     
     localStorage.setItem('ruventu_cart', JSON.stringify(existingCart));
@@ -50,28 +34,15 @@ const ProductPurchaseSidebar = ({ selectedComponent, onClearSelection }) => {
   };
 
   const handleBuyNow = () => {
-    let item;
-    if (selectedComponent) {
-      item = { 
-        id: selectedComponent.code, 
-        title: selectedComponent.name,
-        image: selectedComponent.img,
-        price: selectedComponent.price,
-        originalPrice: selectedComponent.originalPrice,
-        quantity: quantity, 
-        variant: 'Mặc định' 
-      };
-    } else {
-      item = { 
-        id: 'RVT-BUILD-502', 
-        title: 'REVENTU WARLORD PRO — HIGH-END GAMING',
-        image: '', 
-        price: '54.900.000đ',
-        originalPrice: '62.000.000đ',
-        quantity: quantity, 
-        variant: 'Mặc định' 
-      };
-    }
+    const item = { 
+      id: 'RVT-BUILD-502', 
+      title: 'REVENTU WARLORD PRO — HIGH-END GAMING',
+      image: pcWarlordImg, 
+      price: '54.900.000đ',
+      originalPrice: '62.000.000đ',
+      quantity: quantity, 
+      variant: 'Mặc định' 
+    };
     
     navigate('/checkout', { state: { buyNowItem: item } });
   };
