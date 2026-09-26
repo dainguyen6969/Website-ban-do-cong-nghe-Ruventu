@@ -1,5 +1,6 @@
 package com.example.dantruventu.Entity;
 
+import com.example.dantruventu.Config.TrangThaiCoBanConverter;
 import com.example.dantruventu.Enum.TrangThaiCoBanEnum;
 import jakarta.persistence.*;
 import java.util.List;
@@ -32,6 +33,7 @@ public class DanhMuc {
   private String anhDaiDien;
 
   @Builder.Default
+  @Convert(converter = TrangThaiCoBanConverter.class)
   @Column(name = "trang_thai", nullable = false)
   private TrangThaiCoBanEnum trangThai = TrangThaiCoBanEnum.HOAT_DONG;
 
