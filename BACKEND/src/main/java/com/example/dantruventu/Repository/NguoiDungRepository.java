@@ -18,6 +18,9 @@ public interface NguoiDungRepository
 
   boolean existsBySoDienThoai(String soDienThoai);
 
+  // NEW: PUT update employee with self-lock/self-demotion checks
+  boolean existsBySoDienThoaiAndIdNot(String soDienThoai, Long id);
+
   @Query(
       """
             SELECT n
@@ -26,4 +29,18 @@ public interface NguoiDungRepository
             WHERE n.id = :id
             """)
   Optional<NguoiDung> findByIdWithVaiTro(@Param("id") Long id);
+
+  // NEW: GET role list - count employees for a role
+  long countByVaiTroId(Long vaiTroId);
+
+  // NEW: GET role list - batch count employees grouped by role IDs
+  @Query(
+      """
+      SELECT n.vaiTro.id AS roleId, COUNT(n) AS userCount
+      FROM NguoiDung n
+      WHERE n.vaiTro.id IN :roleIds
+      GROUP BY n.vaiTro.id
+      """)
+  java.util.List<Object[]> countUsersGroupedByRoleIds(
+      @Param("roleIds") java.util.Collection<Long> roleIds);
 }

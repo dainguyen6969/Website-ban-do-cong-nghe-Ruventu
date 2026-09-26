@@ -2,6 +2,7 @@ package com.example.dantruventu.Services;
 
 import com.example.dantruventu.DTO.Request.AddressRequest;
 import com.example.dantruventu.DTO.Response.AddressResponse;
+import com.example.dantruventu.DTO.Response.SetDefaultAddressResponse;
 import com.example.dantruventu.Entity.NguoiDung;
 import com.example.dantruventu.Entity.SoDiaChi;
 import com.example.dantruventu.Error.AppException;
@@ -147,6 +148,33 @@ public class AddressService {
             .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND));
 
     soDiaChiRepository.delete(address);
+  }
+
+  // NEW: PATCH set default address (transactional)
+  @Transactional
+  public SetDefaultAddressResponse setDefaultAddress(Long id) {
+    NguoiDung currentUser = getCurrentAuthenticatedUser();
+
+    SoDiaChi targetAddress =
+        soDiaChiRepository
+            .findByIdAndNguoiDungId(id, currentUser.getId())
+            .orElseThrow(() -> new AppException(ErrorCode.ADDRESS_NOT_FOUND_OR_NOT_OWNED));
+
+    List<SoDiaChi> userAddresses = soDiaChiRepository.findByNguoiDungId(currentUser.getId());
+    for (SoDiaChi address : userAddresses) {
+      if (address.getId().equals(id)) {
+        address.setLaMacDinh(true);
+      } else if (Boolean.TRUE.equals(address.getLaMacDinh())) {
+        address.setLaMacDinh(false);
+      }
+    }
+
+    soDiaChiRepository.saveAll(userAddresses);
+
+    return SetDefaultAddressResponse.builder()
+        .id(targetAddress.getId())
+        .laMacDinh(true)
+        .build();
   }
 
   private AddressResponse mapToResponse(SoDiaChi entity) {
