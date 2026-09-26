@@ -1,5 +1,6 @@
 package com.example.dantruventu.DTO.Request.warehouse;
 
+import com.example.dantruventu.DTO.Request.product.ProductImageRequest;
 import com.fasterxml.jackson.annotation.JsonAnySetter;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.Valid;
@@ -16,6 +17,15 @@ import tools.jackson.databind.JsonNode;
 @Builder
 public class AdminComboUpdateRequest {
 
+  @JsonProperty("danh_muc_id")
+  @NotNull
+  @Positive
+  private Long danhMucId;
+
+  @JsonProperty("thuong_hieu_id")
+  @Positive
+  private Long thuongHieuId;
+
   @JsonProperty("ten_san_pham")
   @NotBlank(message = "Tên combo không được để trống")
   @Size(max = 255)
@@ -25,6 +35,12 @@ public class AdminComboUpdateRequest {
   @NotBlank(message = "Mã combo không được để trống")
   @Size(max = 50)
   private String maSanPham;
+
+  @JsonProperty("mo_ta")
+  private String moTa;
+
+  @JsonProperty("thong_so_ky_thuat")
+  private JsonNode thongSoKyThuat;
 
   @JsonProperty("khoi_luong")
   @NotNull
@@ -43,11 +59,34 @@ public class AdminComboUpdateRequest {
   @Digits(integer = 13, fraction = 2)
   private BigDecimal giaNhap;
 
+  @JsonProperty("ten_phien_ban")
+  @Size(max = 255)
+  private String tenPhienBan;
+
+  @JsonProperty("ma_vach")
+  @Size(max = 255)
+  private String maVach;
+
+  @JsonProperty("trang_thai_phien_ban")
+  @Min(0)
+  @Max(1)
+  private Short trangThaiPhienBan;
+
+  @JsonProperty("thue_vat")
+  @DecimalMin("0")
+  @DecimalMax("100")
+  @Digits(integer = 3, fraction = 2)
+  private BigDecimal thueVat;
+
   @JsonProperty("trang_thai")
   @NotNull
   @Min(0)
   @Max(1)
   private Short trangThai;
+
+  @JsonProperty("anh_san_pham")
+  @Size(max = 100)
+  private List<@NotNull @Valid ProductImageRequest> anhSanPham;
 
   @JsonProperty("thanh_phan")
   @NotEmpty(message = "Combo phải có ít nhất một thành phần")

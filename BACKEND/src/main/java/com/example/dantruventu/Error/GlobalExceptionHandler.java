@@ -17,168 +17,112 @@ import org.springframework.web.method.annotation.MethodArgumentTypeMismatchExcep
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
-    @ExceptionHandler(AppException.class)
-    public ResponseEntity<ErrorResponse> handleAppException(
-            AppException exception
-    ) {
+  @ExceptionHandler(AppException.class)
+  public ResponseEntity<ErrorResponse> handleAppException(AppException exception) {
 
-        ErrorCode errorCode = exception.getErrorCode();
+    ErrorCode errorCode = exception.getErrorCode();
 
-        ErrorResponse response =
-                new ErrorResponse(
-                        errorCode.getStatus().value(),
-                        exception.getMessage()
-                );
+    ErrorResponse response =
+        new ErrorResponse(errorCode.getStatus().value(), exception.getMessage());
 
-        return ResponseEntity
-                .status(errorCode.getStatus())
-                .body(response);
-    }
+    return ResponseEntity.status(errorCode.getStatus()).body(response);
+  }
 
-    @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<ErrorResponse> handleValidationException(
-            MethodArgumentNotValidException exception
-    ) {
+  @ExceptionHandler(MethodArgumentNotValidException.class)
+  public ResponseEntity<ErrorResponse> handleValidationException(
+      MethodArgumentNotValidException exception) {
 
-        String message =
-                exception.getBindingResult()
-                        .getFieldErrors()
-                        .stream()
-                        .findFirst()
-                        .map(error -> error.getDefaultMessage())
-                        .orElse(ErrorCode.INVALID_DATA.getMessage());
+    String message =
+        exception.getBindingResult().getFieldErrors().stream()
+            .findFirst()
+            .map(error -> error.getDefaultMessage())
+            .orElse(ErrorCode.INVALID_DATA.getMessage());
 
-        ErrorResponse response =
-                new ErrorResponse(
-                        ErrorCode.INVALID_DATA.getStatus().value(),
-                        message
-                );
+    ErrorResponse response = new ErrorResponse(ErrorCode.INVALID_DATA.getStatus().value(), message);
 
-        return ResponseEntity
-                .status(ErrorCode.INVALID_DATA.getStatus())
-                .body(response);
-    }
+    return ResponseEntity.status(ErrorCode.INVALID_DATA.getStatus()).body(response);
+  }
 
-    @ExceptionHandler({
-            HttpMessageNotReadableException.class,
-            MethodArgumentTypeMismatchException.class
-    })
-    public ResponseEntity<ErrorResponse> handleInvalidRequest(
-            Exception exception
-    ) {
+  @ExceptionHandler({
+    HttpMessageNotReadableException.class,
+    MethodArgumentTypeMismatchException.class
+  })
+  public ResponseEntity<ErrorResponse> handleInvalidRequest(Exception exception) {
 
-        ErrorResponse response =
-                new ErrorResponse(
-                        ErrorCode.INVALID_DATA.getStatus().value(),
-                        ErrorCode.INVALID_DATA.getMessage()
-                );
+    ErrorResponse response =
+        new ErrorResponse(
+            ErrorCode.INVALID_DATA.getStatus().value(), ErrorCode.INVALID_DATA.getMessage());
 
-        return ResponseEntity
-                .status(ErrorCode.INVALID_DATA.getStatus())
-                .body(response);
-    }
+    return ResponseEntity.status(ErrorCode.INVALID_DATA.getStatus()).body(response);
+  }
 
-    @ExceptionHandler(MissingServletRequestParameterException.class)
-    public ResponseEntity<ErrorResponse> handleMissingParameter(
-            MissingServletRequestParameterException exception
-    ) {
+  @ExceptionHandler(MissingServletRequestParameterException.class)
+  public ResponseEntity<ErrorResponse> handleMissingParameter(
+      MissingServletRequestParameterException exception) {
 
-        ErrorResponse response =
-                new ErrorResponse(
-                        ErrorCode.INVALID_DATA.getStatus().value(),
-                        "Thiếu tham số: " + exception.getParameterName()
-                );
+    ErrorResponse response =
+        new ErrorResponse(
+            ErrorCode.INVALID_DATA.getStatus().value(),
+            "Thiếu tham số: " + exception.getParameterName());
 
-        return ResponseEntity
-                .status(ErrorCode.INVALID_DATA.getStatus())
-                .body(response);
-    }
+    return ResponseEntity.status(ErrorCode.INVALID_DATA.getStatus()).body(response);
+  }
 
-    @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
-    public ResponseEntity<ErrorResponse> handleMethodNotAllowed(
-            HttpRequestMethodNotSupportedException exception
-    ) {
+  @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+  public ResponseEntity<ErrorResponse> handleMethodNotAllowed(
+      HttpRequestMethodNotSupportedException exception) {
 
-        ErrorResponse response =
-                new ErrorResponse(
-                        ErrorCode.METHOD_NOT_ALLOWED.getStatus().value(),
-                        ErrorCode.METHOD_NOT_ALLOWED.getMessage()
-                );
+    ErrorResponse response =
+        new ErrorResponse(
+            ErrorCode.METHOD_NOT_ALLOWED.getStatus().value(),
+            ErrorCode.METHOD_NOT_ALLOWED.getMessage());
 
-        return ResponseEntity
-                .status(ErrorCode.METHOD_NOT_ALLOWED.getStatus())
-                .body(response);
-    }
+    return ResponseEntity.status(ErrorCode.METHOD_NOT_ALLOWED.getStatus()).body(response);
+  }
 
-    @ExceptionHandler(DataIntegrityViolationException.class)
-    public ResponseEntity<ErrorResponse> handleDataIntegrityException(
-            DataIntegrityViolationException exception
-    ) {
+  @ExceptionHandler(DataIntegrityViolationException.class)
+  public ResponseEntity<ErrorResponse> handleDataIntegrityException(
+      DataIntegrityViolationException exception) {
 
-        ErrorResponse response =
-                new ErrorResponse(
-                        ErrorCode.CONFLICT.getStatus().value(),
-                        "Dữ liệu đã tồn tại hoặc vi phạm ràng buộc"
-                );
+    ErrorResponse response =
+        new ErrorResponse(
+            ErrorCode.CONFLICT.getStatus().value(), "Dữ liệu đã tồn tại hoặc vi phạm ràng buộc");
 
-        return ResponseEntity
-                .status(ErrorCode.CONFLICT.getStatus())
-                .body(response);
-    }
+    return ResponseEntity.status(ErrorCode.CONFLICT.getStatus()).body(response);
+  }
 
-    @ExceptionHandler(PessimisticLockingFailureException.class)
-    public ResponseEntity<ErrorResponse> handleConcurrentSale(
-            PessimisticLockingFailureException exception
-    ) {
+  @ExceptionHandler(PessimisticLockingFailureException.class)
+  public ResponseEntity<ErrorResponse> handleConcurrentSale(
+      PessimisticLockingFailureException exception) {
 
-        ErrorResponse response =
-                new ErrorResponse(
-                        ErrorCode.CONFLICT.getStatus().value(),
-                        "Dữ liệu đang được xử lý đồng thời. "
-                                + "Vui lòng gửi lại cùng Idempotency-Key"
-                );
+    return ResponseEntity.status(409)
+        .body(
+            new ErrorResponse(
+                409,
+                "Dữ liệu đang được xử lý đồng thời. Vui lòng tải lại trạng thái; "
+                    + "với yêu cầu tạo đơn/POS, giữ nguyên Idempotency-Key khi gửi lại."));
+  }
 
-        return ResponseEntity
-                .status(ErrorCode.CONFLICT.getStatus())
-                .body(response);
-    }
+  @ExceptionHandler(AccessDeniedException.class)
+  public ResponseEntity<ErrorResponse> handleAccessDenied(AccessDeniedException exception) {
 
-    @ExceptionHandler(AccessDeniedException.class)
-    public ResponseEntity<ErrorResponse> handleAccessDenied(
-            AccessDeniedException exception
-    ) {
+    ErrorResponse response =
+        new ErrorResponse(
+            ErrorCode.FORBIDDEN.getStatus().value(), ErrorCode.FORBIDDEN.getMessage());
 
-        ErrorResponse response =
-                new ErrorResponse(
-                        ErrorCode.FORBIDDEN.getStatus().value(),
-                        ErrorCode.FORBIDDEN.getMessage()
-                );
+    return ResponseEntity.status(ErrorCode.FORBIDDEN.getStatus()).body(response);
+  }
 
-        return ResponseEntity
-                .status(ErrorCode.FORBIDDEN.getStatus())
-                .body(response);
-    }
+  @ExceptionHandler(Exception.class)
+  public ResponseEntity<ErrorResponse> handleException(Exception exception) {
 
-    @ExceptionHandler(Exception.class)
-    public ResponseEntity<ErrorResponse> handleException(
-            Exception exception
-    ) {
+    log.error("Đã xảy ra lỗi hệ thống chưa được xử lý", exception);
 
-        log.error(
-                "Đã xảy ra lỗi hệ thống chưa được xử lý",
-                exception
-        );
+    ErrorResponse response =
+        new ErrorResponse(
+            ErrorCode.INTERNAL_SERVER_ERROR.getStatus().value(),
+            ErrorCode.INTERNAL_SERVER_ERROR.getMessage());
 
-        ErrorResponse response =
-                new ErrorResponse(
-                        ErrorCode.INTERNAL_SERVER_ERROR
-                                .getStatus()
-                                .value(),
-                        ErrorCode.INTERNAL_SERVER_ERROR.getMessage()
-                );
-
-        return ResponseEntity
-                .status(ErrorCode.INTERNAL_SERVER_ERROR.getStatus())
-                .body(response);
-    }
+    return ResponseEntity.status(ErrorCode.INTERNAL_SERVER_ERROR.getStatus()).body(response);
+  }
 }

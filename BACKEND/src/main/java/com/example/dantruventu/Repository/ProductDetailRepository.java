@@ -1,18 +1,17 @@
 package com.example.dantruventu.Repository;
 
 import com.example.dantruventu.Entity.SanPham;
+import java.util.List;
+import java.util.Optional;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.Repository;
 import org.springframework.data.repository.query.Param;
 
-import java.util.List;
-import java.util.Optional;
+public interface ProductDetailRepository extends Repository<SanPham, Long> {
 
-public interface ProductDetailRepository
-        extends Repository<SanPham, Long> {
-
-    @Query(
-            value = """
+  @Query(
+      value =
+          """
                     SELECT
                         sp.id AS id,
                         sp.ma_san_pham AS maSanPham,
@@ -38,14 +37,12 @@ public interface ProductDetailRepository
                             OR th.trang_thai = 1
                         )
                     """,
-            nativeQuery = true
-    )
-    Optional<ProductDetailProjection> findActiveProductDetail(
-            @Param("productId") Long productId
-    );
+      nativeQuery = true)
+  Optional<ProductDetailProjection> findActiveProductDetail(@Param("productId") Long productId);
 
-    @Query(
-            value = """
+  @Query(
+      value =
+          """
                     SELECT
                         asp.id AS id,
                         asp.duong_dan_anh AS duongDanAnh,
@@ -58,15 +55,13 @@ public interface ProductDetailRepository
                         asp.thu_tu_hien_thi ASC,
                         asp.id ASC
                     """,
-            nativeQuery = true
-    )
-    List<ProductDetailProjection.ProductImageProjection>
-    findProductImages(
-            @Param("productId") Long productId
-    );
+      nativeQuery = true)
+  List<ProductDetailProjection.ProductImageProjection> findProductImages(
+      @Param("productId") Long productId);
 
-    @Query(
-            value = """
+  @Query(
+      value =
+          """
                     SELECT
                         pbs.id AS id,
                         pbs.ten_phien_ban AS tenPhienBan,
@@ -93,15 +88,13 @@ public interface ProductDetailRepository
                         pbs.khoi_luong
                     ORDER BY pbs.id ASC
                     """,
-            nativeQuery = true
-    )
-    List<ProductDetailProjection.ProductVariantProjection>
-    findActiveProductVariants(
-            @Param("productId") Long productId
-    );
+      nativeQuery = true)
+  List<ProductDetailProjection.ProductVariantProjection> findActiveProductVariants(
+      @Param("productId") Long productId);
 
-    @Query(
-            value = """
+  @Query(
+      value =
+          """
                     SELECT
                         pbs.id AS id,
                         pbs.san_pham_id AS sanPhamId,
@@ -151,11 +144,7 @@ public interface ProductDetailRepository
                         pbs.khoi_luong,
                         pbs.trang_thai
                     """,
-            nativeQuery = true
-    )
-    Optional<ProductDetailProjection.ProductVariantDetailProjection>
-    findActiveProductVariantDetail(
-            @Param("productId") Long productId,
-            @Param("variantId") Long variantId
-    );
+      nativeQuery = true)
+  Optional<ProductDetailProjection.ProductVariantDetailProjection> findActiveProductVariantDetail(
+      @Param("productId") Long productId, @Param("variantId") Long variantId);
 }

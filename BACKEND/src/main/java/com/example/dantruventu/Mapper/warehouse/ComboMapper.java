@@ -12,10 +12,7 @@ import org.mapstruct.ReportingPolicy;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
-@Mapper(
-        componentModel = "spring",
-        unmappedTargetPolicy = ReportingPolicy.ERROR
-)
+@Mapper(componentModel = "spring", unmappedTargetPolicy = ReportingPolicy.ERROR)
 public interface ComboMapper {
 
   ObjectMapper JSON_MAPPER = new ObjectMapper();
@@ -43,6 +40,9 @@ public interface ComboMapper {
   @Mapping(target = "khoiLuong", ignore = true)
   @Mapping(target = "giaBanLe", ignore = true)
   @Mapping(target = "giaNhap", ignore = true)
+  @Mapping(target = "tenPhienBan", ignore = true)
+  @Mapping(target = "maVach", ignore = true)
+  @Mapping(target = "trangThaiPhienBan", ignore = true)
   @Mapping(target = "thanhPhan", ignore = true)
   @Mapping(target = "anhSanPham", ignore = true)
   @Mapping(target = "tonCoTheBan", ignore = true)
@@ -50,38 +50,15 @@ public interface ComboMapper {
   @Mapping(target = "cauHinhBiKhoa", ignore = true)
   AdminComboDetailResponse toDetail(SanPham sanPham);
 
-  @Mapping(
-          target = "phienBanId",
-          source = "phienBanThanhPhan.id"
-  )
-  @Mapping(
-          target = "maSanPham",
-          source = "phienBanThanhPhan.sanPham.maSanPham"
-  )
-  @Mapping(
-          target = "tenSanPham",
-          source = "phienBanThanhPhan.sanPham.tenSanPham"
-  )
-  @Mapping(
-          target = "maVach",
-          source = "phienBanThanhPhan.maVach"
-  )
-  @Mapping(
-          target = "tenPhienBan",
-          source = "phienBanThanhPhan.tenPhienBan"
-  )
-  @Mapping(
-          target = "giaBanLe",
-          source = "phienBanThanhPhan.giaBanLe"
-  )
-  @Mapping(
-          target = "giaNhap",
-          source = "phienBanThanhPhan.giaNhap"
-  )
+  @Mapping(target = "phienBanId", source = "phienBanThanhPhan.id")
+  @Mapping(target = "maSanPham", source = "phienBanThanhPhan.sanPham.maSanPham")
+  @Mapping(target = "tenSanPham", source = "phienBanThanhPhan.sanPham.tenSanPham")
+  @Mapping(target = "maVach", source = "phienBanThanhPhan.maVach")
+  @Mapping(target = "tenPhienBan", source = "phienBanThanhPhan.tenPhienBan")
+  @Mapping(target = "giaBanLe", source = "phienBanThanhPhan.giaBanLe")
+  @Mapping(target = "giaNhap", source = "phienBanThanhPhan.giaNhap")
   @Mapping(target = "tonCoTheBan", ignore = true)
-  ComboComponentResponse toComponent(
-          ThanhPhanCombo thanhPhan
-  );
+  ComboComponentResponse toComponent(ThanhPhanCombo thanhPhan);
 
   @Mapping(target = "phienBanId", ignore = true)
   @Mapping(target = "thanhPhan", ignore = true)
@@ -90,17 +67,14 @@ public interface ComboMapper {
   AdminComboStatusResponse toStatus(SanPham sanPham);
 
   AdminComboComponentOptionResponse toComponentOption(
-          ComboRepository.ComponentOptionProjection source
-  );
+      ComboRepository.ComponentOptionProjection source);
 
   default Short map(TrangThaiCoBanEnum value) {
     return value == null ? null : value.getValue();
   }
 
   default TrangThaiCoBanEnum map(Short value) {
-    return value == null
-            ? null
-            : TrangThaiCoBanEnum.fromValue(value);
+    return value == null ? null : TrangThaiCoBanEnum.fromValue(value);
   }
 
   default String jsonToString(JsonNode value) {
@@ -108,8 +82,6 @@ public interface ComboMapper {
   }
 
   default JsonNode stringToJson(String value) {
-    return value == null || value.isBlank()
-            ? null
-            : JSON_MAPPER.readTree(value);
+    return value == null || value.isBlank() ? null : JSON_MAPPER.readTree(value);
   }
 }

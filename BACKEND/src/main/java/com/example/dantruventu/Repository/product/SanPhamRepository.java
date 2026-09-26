@@ -68,8 +68,9 @@ public interface SanPhamRepository
   @Query("SELECT s FROM SanPham s WHERE s.id = :id")
   Optional<SanPham> findByIdForUpdate(@Param("id") Long id);
 
-    @Query(
-            value = """
+  @Query(
+      value =
+          """
                     SELECT
                         sp.id AS id,
                         sp.ten_san_pham AS tenSanPham,
@@ -235,7 +236,8 @@ public interface SanPhamRepository
                         END DESC,
                         sp.id DESC
                     """,
-            countQuery = """
+      countQuery =
+          """
                     SELECT COUNT(DISTINCT sp.id)
                     FROM san_pham sp
                     JOIN danh_muc dm
@@ -340,16 +342,14 @@ public interface SanPhamRepository
                             )
                         )
                     """,
-            nativeQuery = true
-    )
-    Page<ProductListProjection> findProducts(
-            @Param("keyword") String keyword,
-            @Param("giaMin") BigDecimal giaMin,
-            @Param("giaMax") BigDecimal giaMax,
-            @Param("thuongHieuId") Long thuongHieuId,
-            @Param("danhMucId") Long danhMucId,
-            @Param("tonKho") Boolean tonKho,
-            @Param("sort") String sort,
-            Pageable pageable
-    );
+      nativeQuery = true)
+  Page<ProductListProjection> findProducts(
+      @Param("keyword") String keyword,
+      @Param("giaMin") BigDecimal giaMin,
+      @Param("giaMax") BigDecimal giaMax,
+      @Param("thuongHieuId") Long thuongHieuId,
+      @Param("danhMucId") Long danhMucId,
+      @Param("tonKho") Boolean tonKho,
+      @Param("sort") String sort,
+      Pageable pageable);
 }

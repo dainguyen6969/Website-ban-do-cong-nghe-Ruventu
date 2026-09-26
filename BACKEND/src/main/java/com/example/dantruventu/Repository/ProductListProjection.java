@@ -5,29 +5,29 @@ import java.time.LocalDateTime;
 
 public interface ProductListProjection {
 
-    Long getId();
+  Long getId();
 
-    String getTenSanPham();
+  String getTenSanPham();
 
-    String getMaSanPham();
+  String getMaSanPham();
 
-    String getLoaiSanPham();
+  String getLoaiSanPham();
 
-    Long getDanhMucId();
+  Long getDanhMucId();
 
-    String getTenDanhMuc();
+  String getTenDanhMuc();
 
-    Long getThuongHieuId();
+  Long getThuongHieuId();
 
-    String getTenThuongHieu();
+  String getTenThuongHieu();
 
-    String getAnhChinh();
+  String getAnhChinh();
 
-    BigDecimal getGiaThapNhat();
+  BigDecimal getGiaThapNhat();
 
-    BigDecimal getGiaCaoNhat();
+  BigDecimal getGiaCaoNhat();
 
-    Long getTonKhoKhaDung();
+  Long getTonKhoKhaDung();
 
-    LocalDateTime getNgayTao();
+  LocalDateTime getNgayTao();
 }
