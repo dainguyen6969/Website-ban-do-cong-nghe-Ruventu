@@ -1,6 +1,7 @@
 package com.example.dantruventu.Services;
 
 import com.example.dantruventu.DTO.Request.AddCartItemRequest;
+import com.example.dantruventu.DTO.Request.UpdateCartItemRequest;
 import com.example.dantruventu.DTO.Response.CartItemMutationResponse;
 import com.example.dantruventu.DTO.Response.CartResponse;
 import com.example.dantruventu.Entity.AnhSanPham;
@@ -12,13 +13,7 @@ import com.example.dantruventu.Enum.TrangThaiCoBanEnum;
 import com.example.dantruventu.Error.AppException;
 import com.example.dantruventu.Error.ErrorCode;
 import com.example.dantruventu.Repository.GioHangRepository;
-import com.example.dantruventu.Repository.PhienBanSanPhamRepository;
-import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.data.redis.core.StringRedisTemplate;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
+import com.example.dantruventu.Repository.product.PhienBanSanPhamRepository;
 import java.math.BigDecimal;
 import java.time.Duration;
 import java.util.ArrayList;
@@ -26,6 +21,11 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
@@ -96,6 +96,65 @@ public class CartService {
     }
 
     @Transactional
+    public CartItemMutationResponse updateItem(
+            NguoiDung nguoiDung,
+            String guestCartId,
+            Long cartItemId,
+            UpdateCartItemRequest request
+    ) {
+
+        if (cartItemId == null || cartItemId <= 0) {
+            throw new AppException(ErrorCode.NOT_FOUND);
+        }
+
+        if (nguoiDung != null) {
+            return updateUserItem(
+                    nguoiDung,
+                    cartItemId,
+                    request.getSoLuong()
+            );
+        }
+
+        if (!isValidGuestCartId(guestCartId)) {
+            throw new AppException(ErrorCode.NOT_FOUND);
+        }
+
+        return updateGuestItem(
+                guestCartId,
+                cartItemId,
+                request.getSoLuong()
+        );
+    }
+
+    @Transactional
+    public CartItemMutationResponse deleteItem(
+            NguoiDung nguoiDung,
+            String guestCartId,
+            Long cartItemId
+    ) {
+
+        if (cartItemId == null || cartItemId <= 0) {
+            throw new AppException(ErrorCode.NOT_FOUND);
+        }
+
+        if (nguoiDung != null) {
+            return deleteUserItem(
+                    nguoiDung,
+                    cartItemId
+            );
+        }
+
+        if (!isValidGuestCartId(guestCartId)) {
+            throw new AppException(ErrorCode.NOT_FOUND);
+        }
+
+        return deleteGuestItem(
+                guestCartId,
+                cartItemId
+        );
+    }
+
+    @Transactional
     public boolean mergeGuestCart(
             NguoiDung nguoiDung,
             String guestCartId
@@ -148,7 +207,7 @@ public class CartService {
                         );
 
             } catch (NumberFormatException exception) {
-                // Bỏ qua item Redis không đúng định dạng.
+
             }
         }
 
@@ -241,7 +300,8 @@ public class CartService {
                 savedItem.getId(),
                 phienBan,
                 newQuantity,
-                cartResponse
+                cartResponse,
+                "Thêm sản phẩm vào giỏ thành công"
         );
     }
 
@@ -285,10 +345,7 @@ public class CartService {
                 String.valueOf(newQuantity)
         );
 
-        redisTemplate.expire(
-                redisKey,
-                Duration.ofMillis(guestCartExpiration)
-        );
+        refreshGuestCartExpiration(redisKey);
 
         CartResponse cartResponse =
                 getGuestCart(guestCartId);
@@ -297,7 +354,193 @@ public class CartService {
                 phienBan.getId(),
                 phienBan,
                 newQuantity,
-                cartResponse
+                cartResponse,
+                "Thêm sản phẩm vào giỏ thành công"
+        );
+    }
+
+    private CartItemMutationResponse updateUserItem(
+            NguoiDung nguoiDung,
+            Long cartItemId,
+            Integer newQuantity
+    ) {
+
+        GioHang gioHang =
+                gioHangRepository
+                        .findByIdAndNguoiDungId(
+                                cartItemId,
+                                nguoiDung.getId()
+                        )
+                        .orElseThrow(() ->
+                                new AppException(
+                                        ErrorCode.NOT_FOUND
+                                )
+                        );
+
+        PhienBanSanPham phienBan =
+                gioHang.getPhienBan();
+
+        if (!isActiveVariant(phienBan)) {
+            throw new AppException(
+                    ErrorCode.PRODUCT_VARIANT_NOT_FOUND
+            );
+        }
+
+        int tonKhoKhaDung =
+                calculateAvailableStock(phienBan);
+
+        validateQuantity(
+                newQuantity,
+                tonKhoKhaDung
+        );
+
+        gioHang.setSoLuong(newQuantity);
+
+        GioHang savedItem =
+                gioHangRepository.save(gioHang);
+
+        CartResponse cartResponse =
+                getUserCart(nguoiDung.getId());
+
+        return buildMutationResponse(
+                savedItem.getId(),
+                phienBan,
+                newQuantity,
+                cartResponse,
+                "Cập nhật giỏ hàng thành công"
+        );
+    }
+
+    private CartItemMutationResponse updateGuestItem(
+            String guestCartId,
+            Long cartItemId,
+            Integer newQuantity
+    ) {
+
+        String redisKey =
+                buildGuestCartKey(guestCartId);
+
+        String redisField =
+                String.valueOf(cartItemId);
+
+        boolean itemExists =
+                Boolean.TRUE.equals(
+                        redisTemplate
+                                .opsForHash()
+                                .hasKey(
+                                        redisKey,
+                                        redisField
+                                )
+                );
+
+        if (!itemExists) {
+            throw new AppException(ErrorCode.NOT_FOUND);
+        }
+
+        PhienBanSanPham phienBan =
+                phienBanSanPhamRepository
+                        .findById(cartItemId)
+                        .filter(this::isActiveVariant)
+                        .orElseThrow(() ->
+                                new AppException(
+                                        ErrorCode.PRODUCT_VARIANT_NOT_FOUND
+                                )
+                        );
+
+        int tonKhoKhaDung =
+                calculateAvailableStock(phienBan);
+
+        validateQuantity(
+                newQuantity,
+                tonKhoKhaDung
+        );
+
+        redisTemplate.opsForHash().put(
+                redisKey,
+                redisField,
+                String.valueOf(newQuantity)
+        );
+
+        refreshGuestCartExpiration(redisKey);
+
+        CartResponse cartResponse =
+                getGuestCart(guestCartId);
+
+        return buildMutationResponse(
+                cartItemId,
+                phienBan,
+                newQuantity,
+                cartResponse,
+                "Cập nhật giỏ hàng thành công"
+        );
+    }
+
+    private CartItemMutationResponse deleteUserItem(
+            NguoiDung nguoiDung,
+            Long cartItemId
+    ) {
+
+        GioHang gioHang =
+                gioHangRepository
+                        .findByIdAndNguoiDungId(
+                                cartItemId,
+                                nguoiDung.getId()
+                        )
+                        .orElseThrow(() ->
+                                new AppException(
+                                        ErrorCode.NOT_FOUND
+                                )
+                        );
+
+        gioHangRepository.delete(gioHang);
+        gioHangRepository.flush();
+
+        CartResponse cartResponse =
+                getUserCart(nguoiDung.getId());
+
+        return buildCartSummaryMutationResponse(
+                cartResponse,
+                "Xóa sản phẩm khỏi giỏ thành công"
+        );
+    }
+
+    private CartItemMutationResponse deleteGuestItem(
+            String guestCartId,
+            Long cartItemId
+    ) {
+
+        String redisKey =
+                buildGuestCartKey(guestCartId);
+
+        String redisField =
+                String.valueOf(cartItemId);
+
+        Long deletedCount =
+                redisTemplate
+                        .opsForHash()
+                        .delete(
+                                redisKey,
+                                redisField
+                        );
+
+        if (deletedCount == null
+                || deletedCount == 0) {
+
+            throw new AppException(ErrorCode.NOT_FOUND);
+        }
+
+        if (Boolean.TRUE.equals(
+                redisTemplate.hasKey(redisKey)
+        )) {
+            refreshGuestCartExpiration(redisKey);
+        }
+
+        CartResponse cartResponse =
+                getGuestCart(guestCartId);
+
+        return buildCartSummaryMutationResponse(
+                cartResponse,
+                "Xóa sản phẩm khỏi giỏ thành công"
         );
     }
 
@@ -323,7 +566,8 @@ public class CartService {
             Long cartItemId,
             PhienBanSanPham phienBan,
             Integer soLuong,
-            CartResponse cartResponse
+            CartResponse cartResponse,
+            String message
     ) {
 
         BigDecimal donGia =
@@ -361,13 +605,44 @@ public class CartService {
 
         return CartItemMutationResponse.builder()
                 .status(200)
-                .message("Thêm sản phẩm vào giỏ thành công")
+                .message(message)
                 .data(data)
                 .cartSummary(cartSummary)
                 .build();
     }
 
-    private CartResponse getUserCart(Long nguoiDungId) {
+    private CartItemMutationResponse
+    buildCartSummaryMutationResponse(
+            CartResponse cartResponse,
+            String message
+    ) {
+
+        CartItemMutationResponse.CartSummary cartSummary =
+                CartItemMutationResponse.CartSummary.builder()
+                        .tongSoLuong(
+                                cartResponse.getTongSoLuong()
+                        )
+                        .tamTinh(
+                                cartResponse.getTamTinh()
+                        )
+                        .giamGia(
+                                cartResponse.getGiamGia()
+                        )
+                        .tongTien(
+                                cartResponse.getTongTien()
+                        )
+                        .build();
+
+        return CartItemMutationResponse.builder()
+                .status(200)
+                .message(message)
+                .cartSummary(cartSummary)
+                .build();
+    }
+
+    private CartResponse getUserCart(
+            Long nguoiDungId
+    ) {
 
         List<GioHang> gioHangItems =
                 gioHangRepository
@@ -383,7 +658,9 @@ public class CartService {
         return buildCartResponse(items);
     }
 
-    private CartResponse getGuestCart(String guestCartId) {
+    private CartResponse getGuestCart(
+            String guestCartId
+    ) {
 
         if (!isValidGuestCartId(guestCartId)) {
             return buildCartResponse(List.of());
@@ -425,7 +702,7 @@ public class CartService {
                         );
 
             } catch (NumberFormatException exception) {
-                // Bỏ qua item Redis không đúng định dạng.
+
             }
         }
 
@@ -526,12 +803,14 @@ public class CartService {
                                 anh.getLaAnhChinh()
                         )
                 )
-                .min(Comparator.comparing(
-                        AnhSanPham::getThuTuHienThi,
-                        Comparator.nullsLast(
-                                Integer::compareTo
+                .min(
+                        Comparator.comparing(
+                                AnhSanPham::getThuTuHienThi,
+                                Comparator.nullsLast(
+                                        Integer::compareTo
+                                )
                         )
-                ))
+                )
                 .map(AnhSanPham::getDuongDanAnh)
                 .orElse(null);
     }
@@ -543,14 +822,18 @@ public class CartService {
         int tongSoLuong =
                 items.stream()
                         .mapToInt(
-                                CartResponse.CartItemResponse::getSoLuong
+                                CartResponse
+                                        .CartItemResponse
+                                        ::getSoLuong
                         )
                         .sum();
 
         BigDecimal tamTinh =
                 items.stream()
                         .map(
-                                CartResponse.CartItemResponse::getThanhTien
+                                CartResponse
+                                        .CartItemResponse
+                                        ::getThanhTien
                         )
                         .reduce(
                                 BigDecimal.ZERO,
@@ -570,6 +853,16 @@ public class CartService {
                 .giamGia(giamGia)
                 .tongTien(tongTien)
                 .build();
+    }
+
+    private void refreshGuestCartExpiration(
+            String redisKey
+    ) {
+
+        redisTemplate.expire(
+                redisKey,
+                Duration.ofMillis(guestCartExpiration)
+        );
     }
 
     private boolean isValidGuestCartId(

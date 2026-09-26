@@ -9,7 +9,7 @@ import com.example.dantruventu.Error.ErrorCode;
 import com.example.dantruventu.Repository.ProductDetailProjection;
 import com.example.dantruventu.Repository.ProductDetailRepository;
 import com.example.dantruventu.Repository.ProductListProjection;
-import com.example.dantruventu.Repository.SanPhamRepository;
+import com.example.dantruventu.Repository.product.SanPhamRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
