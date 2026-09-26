@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, ZoomIn } from 'lucide-react';
 import './ProductGallery.css';
 import productImg from '../assets/imgg.png'; // Mock image
@@ -7,6 +7,10 @@ const ProductGallery = ({ images = [], discountPercent, isFullBuild = false }) =
   // If no images are provided, use an array of mock images
   const galleryImages = images.length > 0 ? images : Array(6).fill(productImg);
   const [currentIndex, setCurrentIndex] = useState(0);
+
+  useEffect(() => {
+    setCurrentIndex(0);
+  }, [images]);
 
   const nextImage = () => {
     setCurrentIndex((prevIndex) => (prevIndex === galleryImages.length - 1 ? 0 : prevIndex + 1));

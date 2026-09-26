@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
@@ -39,12 +39,15 @@ const CategoryPage = () => {
   const { slug } = useParams();
   const categoryInfo = categoryMap[slug] || categoryMap['linh-kien']; // Fallback
   
-  const products = categoryInfo.data;
+  const [products, setProducts] = useState(categoryInfo.data);
   const [sortBy, setSortBy] = useState('newest');
 
+  useEffect(() => {
+    setProducts(categoryInfo.data);
+  }, [slug, categoryInfo.data]);
 
   return (
-    <div className="category-page">
+    <div className="storefront-category-page">
       <Header />
       
       {/* Breadcrumb */}

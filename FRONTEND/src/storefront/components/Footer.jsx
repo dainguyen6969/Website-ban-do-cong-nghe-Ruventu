@@ -2,12 +2,8 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import './Footer.css';
 import logoTransparent from '../assets/reventu_transparent.png';
-import useMockAuth from '../../auth/useMockAuth';
-import { canAccessAdmin } from '../../auth/accountModel';
 
 const Footer = () => {
-  const { currentAccount, roles } = useMockAuth();
-
   return (
     <footer className="footer">
       <div className="footer-links-section">
@@ -28,7 +24,7 @@ const Footer = () => {
               <li><a href="#">Hướng dẫn mua hàng</a></li>
               <li><a href="#">Kiểm tra đơn hàng</a></li>
               <li><a href="#">Đổi trả & hoàn tiền</a></li>
-              <li><a href="#">Bảo hành sản phẩm</a></li>
+              <li><Link to="/warranty-lookup">Tra cứu bảo hành</Link></li>
               <li><a href="#">Liên hệ CSKH</a></li>
             </ul>
           </div>
@@ -62,12 +58,10 @@ const Footer = () => {
             <p>&copy; 2024 Ruventu Technology. Tất cả quyền được bảo lưu.</p>
           </div>
           <div className="bottom-links">
+            <Link to="/404" className="quick-test-btn" style={{color: '#ff0000', fontWeight: 'bold', border: '1px solid #ff0000', padding: '2px 8px', borderRadius: '4px'}}>Test Trang 404</Link>
             <a href="#">Chính sách bảo mật</a>
             <a href="#">Điều khoản</a>
             <a href="#">Sitemap</a>
-            {canAccessAdmin(currentAccount, roles) && (
-              <Link to="/admin" className="admin-link">Admin</Link>
-            )}
           </div>
         </div>
       </div>

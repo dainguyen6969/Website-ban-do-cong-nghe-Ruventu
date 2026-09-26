@@ -33,14 +33,16 @@ const HeroBanner = () => {
             <img src="https://images.unsplash.com/photo-1587202372775-e229f172b9d7?auto=format&fit=crop&q=80&w=600&h=300" alt="RTX 4090" className="banner-img" />
             <div className="banner-overlay"></div>
             <div className="banner-content small-content">
-              <span className="small-label">VGA - FLAGSHIP</span>
+              <div style={{display: 'flex', marginBottom: '8px'}}>
+                <span className="small-label-badge">VGA - FLAGSHIP</span>
+              </div>
               <h3 className="side-title">RTX 4090<br/>ROG STRIX OC</h3>
-              <p className="side-price">24.900.000đ</p>
+              <p className="side-price">24.990.000đ</p>
               <span className="arrow-link">XEM &rarr;</span>
             </div>
           </div>
           <div className="side-banner">
-            <div className="banner-red-stripe">KHUYẾN MÃI THÁNG NÀY</div>
+            <div className="banner-red-stripe">⚡ KHUYẾN MÃI TUẦN NÀY</div>
             <img src="https://images.unsplash.com/photo-1593640408182-31c70c8268f5?auto=format&fit=crop&q=80&w=600&h=300" alt="PC Build Sẵn" className="banner-img" />
             <div className="banner-overlay"></div>
             <div className="banner-content small-content">

@@ -1,56 +1,71 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Trash2 } from 'lucide-react';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import './CartPage.css';
-import productImg from '../assets/imgg.png';
-
-const mockCartItems = [
-  {
-    id: 1,
-    image: productImg,
-    title: 'ASUS ROG STRIX GeForce RTX 4080 SUPER OC',
-    variant: 'OC Edition / 16GB GDDR6X',
-    price: '24.990.000đ',
-    originalPrice: '27.900.000đ',
-    quantity: 1,
-    selected: true
-  },
-  {
-    id: 2,
-    image: productImg,
-    title: 'AMD Ryzen 9 7950X Processor',
-    variant: 'Boxed / Without Cooler',
-    price: '15.290.000đ',
-    originalPrice: '17.500.000đ',
-    quantity: 1,
-    selected: true
-  },
-  {
-    id: 3,
-    image: productImg,
-    title: 'Corsair Vengeance DDR5 32GB (2x16GB) 6000MHz',
-    variant: '6000MHz CL36 / Black',
-    price: '6.980.000đ',
-    originalPrice: '8.990.000đ',
-    quantity: 2,
-    selected: true
-  },
-  {
-    id: 4,
-    image: productImg,
-    title: 'Samsung 990 Pro NVMe SSD 2TB',
-    variant: '2TB / PCIe 4.0',
-    price: '3.290.000đ',
-    originalPrice: '3.990.000đ',
-    quantity: 1,
-    selected: false,
-    outOfStock: true
-  }
-];
 
 const CartPage = () => {
+  const [cartItems, setCartItems] = useState([]);
+
+  const loadCart = () => {
+    const items = JSON.parse(localStorage.getItem('ruventu_cart') || '[]');
+    setCartItems(items.map(item => ({ ...item, selected: item.selected !== false })));
+  };
+
+  useEffect(() => {
+    loadCart();
+    window.addEventListener('cartUpdated', loadCart);
+    return () => window.removeEventListener('cartUpdated', loadCart);
+  }, []);
+
+  const saveCart = (newItems) => {
+    setCartItems(newItems);
+    localStorage.setItem('ruventu_cart', JSON.stringify(newItems));
+    window.dispatchEvent(new CustomEvent('cartUpdated'));
+  };
+
+  const handleQuantityChange = (id, change) => {
+    const newItems = cartItems.map(item => {
+      if (item.id === id) {
+        const newQty = Math.max(1, item.quantity + change);
+        return { ...item, quantity: newQty };
+      }
+      return item;
+    });
+    saveCart(newItems);
+  };
+
+  const handleDelete = (id) => {
+    const newItems = cartItems.filter(item => item.id !== id);
+    saveCart(newItems);
+  };
+
+  const handleToggleSelect = (id) => {
+    const newItems = cartItems.map(item => 
+      item.id === id ? { ...item, selected: !item.selected } : item
+    );
+    saveCart(newItems);
+  };
+
+  const handleToggleSelectAll = () => {
+    const allSelected = cartItems.length > 0 && cartItems.every(item => item.selected);
+    const newItems = cartItems.map(item => ({ ...item, selected: !allSelected }));
+    saveCart(newItems);
+  };
+
+  const parsePrice = (priceStr) => {
+    if (!priceStr) return 0;
+    return parseInt(priceStr.toString().replace(/\D/g, ''), 10) || 0;
+  };
+
+  const selectedItems = cartItems.filter(item => item.selected);
+  const selectedQuantity = selectedItems.reduce((sum, item) => sum + item.quantity, 0);
+  const totalPrice = selectedItems.reduce((sum, item) => sum + (parsePrice(item.price) * item.quantity), 0);
+  
+  const totalCartQuantity = cartItems.reduce((sum, item) => sum + item.quantity, 0);
+  const isAllSelected = cartItems.length > 0 && cartItems.every(item => item.selected);
+
   return (
     <div className="cart-page-wrapper">
       <Header />
@@ -60,7 +75,7 @@ const CartPage = () => {
         <div className="container">
           <div className="cart-page-title">
             <span><ShoppingBagIcon /> GIỎ HÀNG</span>
-            <span className="cart-count">4</span>
+            <span className="cart-count">{totalCartQuantity}</span>
           </div>
           <div className="cart-breadcrumb">
             <Link to="/">TRANG CHỦ</Link> <span>&gt;</span> <span className="current">GIỎ HÀNG</span>
@@ -72,52 +87,56 @@ const CartPage = () => {
         <div className="cart-main">
           <div className="cart-table-header">
             <div className="col-checkbox">
-              <input type="checkbox" defaultChecked />
-              <span>CHỌN TẤT CẢ (5 SẢN PHẨM)</span>
+              <input type="checkbox" checked={isAllSelected} onChange={handleToggleSelectAll} />
+              <span>CHỌN TẤT CẢ ({cartItems.length} SẢN PHẨM)</span>
             </div>
             <div className="col-quantity">SỐ LƯỢNG</div>
             <div className="col-price">THÀNH TIỀN</div>
           </div>
 
           <div className="cart-items-list">
-            {mockCartItems.map(item => (
-              <div key={item.id} className={`cart-page-item ${item.outOfStock ? 'out-of-stock' : ''}`}>
-                <div className="item-select">
-                  <input type="checkbox" defaultChecked={item.selected} disabled={item.outOfStock} />
-                </div>
-                <div className="item-info">
-                  <img src={item.image} alt={item.title} />
-                  <div className="item-details">
-                    <h4>{item.title}</h4>
-                    <p>{item.variant}</p>
-                    <div className="item-price-mobile">
-                      <span className="current">{item.price}</span>
-                      <span className="original">{item.originalPrice}</span>
+            {cartItems.length === 0 ? (
+              <div style={{ padding: '40px', textAlign: 'center', color: '#666' }}>
+                Giỏ hàng của bạn đang trống.
+              </div>
+            ) : (
+              cartItems.map(item => (
+                <div key={item.id} className="cart-page-item">
+                  <div className="item-select">
+                    <input type="checkbox" checked={item.selected} onChange={() => handleToggleSelect(item.id)} />
+                  </div>
+                  <div className="item-info">
+                    <img src={item.image} alt={item.title} />
+                    <div className="item-details">
+                      <h4>{item.title}</h4>
+                      <p>{item.variant || 'Tiêu chuẩn'}</p>
+                      <div className="item-price-mobile">
+                        <span className="current">{item.price}</span>
+                        {item.originalPrice && <span className="original">{item.originalPrice}</span>}
+                      </div>
                     </div>
                   </div>
-                </div>
-                <div className="item-quantity">
-                  {item.outOfStock ? (
-                    <span className="out-of-stock-badge">HẾT HÀNG</span>
-                  ) : (
+                  <div className="item-quantity">
                     <div className="quantity-selector">
-                      <button>-</button>
+                      <button onClick={() => handleQuantityChange(item.id, -1)}>-</button>
                       <input type="text" value={item.quantity} readOnly />
-                      <button>+</button>
+                      <button onClick={() => handleQuantityChange(item.id, 1)}>+</button>
                     </div>
-                  )}
+                  </div>
+                  <div className="item-total">
+                    <span className="total-price">{(parsePrice(item.price) * item.quantity).toLocaleString('vi-VN')}đ</span>
+                    <button className="delete-btn" onClick={() => handleDelete(item.id)}><Trash2 size={18} /></button>
+                  </div>
                 </div>
-                <div className="item-total">
-                  {item.outOfStock ? '-' : <span className="total-price">{item.price}</span>}
-                  <button className="delete-btn"><Trash2 size={18} /></button>
-                </div>
-              </div>
-            ))}
+              ))
+            )}
           </div>
           
-          <div className="cart-selection-info">
-            Đã chọn <strong>4</strong> sản phẩm
-          </div>
+          {cartItems.length > 0 && (
+            <div className="cart-selection-info">
+              Đã chọn <strong>{selectedQuantity}</strong> sản phẩm
+            </div>
+          )}
         </div>
 
         <div className="cart-sidebar">
@@ -137,19 +156,19 @@ const CartPage = () => {
           <div className="summary-box">
             <h3>TÓM TẮT ĐƠN HÀNG</h3>
             <div className="summary-row">
-              <span>Tạm tính (4 sản phẩm)</span>
-              <span>47.260.000đ</span>
+              <span>Tạm tính ({selectedQuantity} sản phẩm)</span>
+              <span>{totalPrice.toLocaleString('vi-VN')}đ</span>
             </div>
             <div className="summary-row">
               <span>Phí vận chuyển</span>
-              <span className="free-shipping">MIỄN PHÍ</span>
+              <span className="free-shipping">{totalPrice > 5000000 ? 'MIỄN PHÍ' : '30.000đ'}</span>
             </div>
             <div className="summary-total">
               <span>TỔNG TIỀN</span>
-              <span className="total-amount">47.260.000đ</span>
+              <span className="total-amount">{(totalPrice + (totalPrice > 0 && totalPrice <= 5000000 ? 30000 : 0)).toLocaleString('vi-VN')}đ</span>
             </div>
             <Link to="/checkout" style={{textDecoration: 'none'}}>
-              <button className="btn-checkout-full">TIẾN HÀNH ĐẶT HÀNG &rarr;</button>
+              <button className="btn-checkout-full" disabled={selectedQuantity === 0} style={{ opacity: selectedQuantity === 0 ? 0.5 : 1 }}>TIẾN HÀNH ĐẶT HÀNG &rarr;</button>
             </Link>
             <div className="trust-badges">
               <span><ShieldCheckIcon /> Bảo hành chính hãng</span>

@@ -82,6 +82,7 @@
   border: 1px solid #f11919;
   color: white;
   font-size: 14px;
+  font-family: inherit;
   outline: none;
 }
 

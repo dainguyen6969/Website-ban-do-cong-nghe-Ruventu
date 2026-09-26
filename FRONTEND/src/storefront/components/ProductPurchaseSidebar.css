@@ -1,10 +1,29 @@
 .purchase-sidebar-container {
-  padding: 20px;
   background-color: #fff;
   color: #000;
   display: flex;
   flex-direction: column;
   height: 100%;
+  padding: 30px;
+  border-left: 1px solid #ddd;
+}
+
+.btn-back-to-build {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: none;
+  border: none;
+  color: #ff0000;
+  font-size: 13px;
+  font-weight: 700;
+  margin-bottom: 20px;
+  cursor: pointer;
+  padding: 0;
+}
+
+.btn-back-to-build:hover {
+  text-decoration: underline;
 }
 
 .tags-wrapper {
