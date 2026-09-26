@@ -244,7 +244,6 @@ function mutationBody(combo) {
     ma_san_pham: combo.code.trim(),
     mo_ta: combo.description,
     thong_so_ky_thuat: specifications,
-    khoi_luong: Number(combo.weight),
     gia_ban_le: Number(combo.retail) * 1000,
     gia_nhap: Number(combo.cost) * 1000,
     thue_vat: combo.vat ? Number(combo.vatRate) : 0,

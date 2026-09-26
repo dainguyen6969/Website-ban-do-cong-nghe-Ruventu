@@ -175,6 +175,9 @@ public class AdminProductService {
                         .tenPhienBan(variant.getTenPhienBan())
                         .maVach(variant.getMaVach())
                         .giaBanLe(variant.getGiaBanLe())
+                        .giaNhap(variant.getGiaNhap())
+                        .khoiLuong(variant.getKhoiLuong())
+                        .trangThai(variant.getTrangThai().getValue())
                         .tonCoTheBan(stockMap.getOrDefault(variant.getId(), 0L))
                         .build())
             .toList();
@@ -304,6 +307,35 @@ public class AdminProductService {
     variant = phienBanSanPhamRepository.save(variant);
 
     return sanPhamMapper.toVariantResponse(variant);
+  }
+
+  @Transactional
+  public AdminProductVariantResponse updateVariant(
+      Long productId, Long variantId, ProductVariantCreateRequest request) {
+
+    SanPham product = requireStandaloneForWrite(productId);
+    PhienBanSanPham variant =
+        phienBanSanPhamRepository
+            .findByIdForSaleUpdate(variantId)
+            .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "Không tìm thấy phiên bản"));
+
+    if (!variant.getSanPham().getId().equals(product.getId())) {
+      throw new AppException(ErrorCode.NOT_FOUND, "Không tìm thấy phiên bản của sản phẩm");
+    }
+
+    String maVach = request.getMaVach().trim();
+    if (phienBanSanPhamRepository.existsByMaVachAndIdNot(maVach, variantId)) {
+      throw new AppException(ErrorCode.CONFLICT, "Mã vạch đã tồn tại");
+    }
+
+    variant.setTenPhienBan(request.getTenPhienBan().trim());
+    variant.setMaVach(maVach);
+    variant.setGiaBanLe(request.getGiaBanLe());
+    variant.setGiaNhap(request.getGiaNhap());
+    variant.setKhoiLuong(request.getKhoiLuong());
+    variant.setTrangThai(parseTrangThai(request.getTrangThai()));
+
+    return sanPhamMapper.toVariantResponse(phienBanSanPhamRepository.save(variant));
   }
 
   @Transactional

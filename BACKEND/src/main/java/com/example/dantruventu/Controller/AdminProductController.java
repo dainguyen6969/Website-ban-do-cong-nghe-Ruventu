@@ -96,6 +96,20 @@ public class AdminProductController {
     return ResponseEntity.status(HttpStatus.CREATED).body(response);
   }
 
+  @PutMapping("/{productId}/variants/{variantId}")
+  @PreAuthorize("hasRole('ADMIN')")
+  public ApiResponse<AdminProductVariantResponse> updateVariant(
+      @PathVariable Long productId,
+      @PathVariable Long variantId,
+      @Valid @RequestBody ProductVariantCreateRequest request) {
+
+    return ApiResponse.<AdminProductVariantResponse>builder()
+        .status(200)
+        .message("Cập nhật phiên bản thành công")
+        .data(adminProductService.updateVariant(productId, variantId, request))
+        .build();
+  }
+
   @DeleteMapping("/{id}")
   @PreAuthorize("hasRole('ADMIN')")
   public ApiResponse<AdminProductStatusResponse> softDelete(@PathVariable Long id) {

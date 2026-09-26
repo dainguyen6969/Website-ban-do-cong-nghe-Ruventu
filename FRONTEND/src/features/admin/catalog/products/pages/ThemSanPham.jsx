@@ -4,17 +4,15 @@ import { useNavigate, useParams } from 'react-router-dom';
 import {
   HiOutlineX,
   HiOutlineSearch,
-  HiOutlineChevronUp,
-  HiOutlineChevronDown,
 } from 'react-icons/hi';
 import FormCard from '../../../../../shared/components/ui/FormCard';
 import ImageUploader from '../../../../../shared/components/ui/ImageUploader';
 import FilterDropdown from '../../../../../shared/components/ui/FilterDropdown';
 import PriceInput from '../../../../../shared/components/ui/PriceInput';
-import SerialModal from '../../../inventory/components/SerialModal';
 import { getAllCategories } from '../../categories/api/categoryApi';
 import { getAllBrands } from '../../brands/api/brandApi';
 import { createProduct, getProductDetail, updateProduct } from '../api/productApi';
+import { getEditableVersions, updateVersion as saveVersion } from '../api/versionApi';
 import './ThemSanPham.css';
 
 // ── Dropdown options ──
@@ -23,7 +21,7 @@ const unitOptions = ['Cái', 'Chiếc', 'Bộ', 'Hộp', 'Cặp'];
 // ── Variant combo generator ──
 function generateVariants(attributes) {
   if (attributes.length === 0) {
-    return [{ name: 'Mặc định', sku: '', giaBanLe: '', giaNhap: '', khoiLuong: '', tonDauKy: 0, serials: [], showSerial: false }];
+    return [{ name: 'Mặc định', sku: '', giaBanLe: '', giaNhap: '', khoiLuong: '' }];
   }
   const valueSets = attributes.map((a) => a.values);
   const combos = valueSets.reduce(
@@ -44,9 +42,6 @@ function generateVariants(attributes) {
     giaBanLe: '',
     giaNhap: '',
     khoiLuong: '',
-    tonDauKy: 0,
-    serials: [],
-    showSerial: false,
   }));
 }
 
@@ -103,14 +98,6 @@ export default function ThemSanPham() {
   const categoryOptions = useMemo(() => ['Danh mục', ...catalog.categories.map((item) => item.name)], [catalog.categories]);
   const brandOptions = useMemo(() => ['Thương hiệu', ...catalog.brands.map((item) => item.name)], [catalog.brands]);
 
-  // ── Serial modal state ──
-  const [serialModalState, setSerialModalState] = useState({
-    isOpen: false,
-    variantName: '',
-    tonDauKy: 0,
-    initialSerials: [],
-  });
-
   // Combo creation is handled by the real combo form; these values only keep the legacy branch inert.
   const [comboSearch, setComboSearch] = useState('');
   const [comboItems, setComboItems] = useState([]);
@@ -132,22 +119,26 @@ export default function ThemSanPham() {
   const [variantData, setVariantData] = useState({});
 
   const getVariant = useCallback(
-    (name) => variantData[name] || { sku: '', giaBanLe: '', giaNhap: '', khoiLuong: '', tonDauKy: 0, serials: [], showSerial: false, serialConfirmed: false },
+    (name) => variantData[name] || { sku: '', giaBanLe: '', giaNhap: '', khoiLuong: '' },
     [variantData]
   );
 
   const updateVariant = useCallback((name, field, value) => {
     setVariantData((prev) => ({
       ...prev,
-      [name]: { ...prev[name], sku: '', giaBanLe: '', giaNhap: '', khoiLuong: '', tonDauKy: 0, serials: [], showSerial: false, serialConfirmed: false, ...prev[name], [field]: value },
+      [name]: { ...prev[name], sku: '', giaBanLe: '', giaNhap: '', khoiLuong: '', ...prev[name], [field]: value },
     }));
   }, []);
 
   useEffect(() => {
     if (!isEditing) return undefined;
     const controller = new AbortController();
-    getProductDetail(decodeURIComponent(productId), controller.signal)
-      .then((product) => {
+    Promise.all([
+      getProductDetail(decodeURIComponent(productId), controller.signal),
+      getEditableVersions(decodeURIComponent(productId), controller.signal),
+    ])
+      .then(([product, editableVersions]) => {
+        product.variants = editableVersions;
         setExistingProduct(product);
         setTenSanPham(product.tenSanPham);
         setMaSanPham(product.maSanPham);
@@ -189,12 +180,6 @@ export default function ThemSanPham() {
 
   // ── Summary computations ──
   const totalVariants = variants.length;
-  const totalTonDauKy = variants.reduce((sum, v) => sum + (getVariant(v.name).tonDauKy || 0), 0);
-  const totalSerialsDeclared = variants.reduce((sum, v) => {
-    const d = getVariant(v.name);
-    return sum + (d.serials ? d.serials.filter((s) => s && s.trim()).length : 0);
-  }, 0);
-  const totalSerialsRequired = totalTonDauKy;
   const comboSearchResults = [];
 
   // ── Handlers ──
@@ -231,28 +216,6 @@ export default function ThemSanPham() {
     ? { ...item, qty: Math.max(1, (item.qty || 1) + change) }
     : item));
   const handleRemoveComboItem = (id) => setComboItems((prev) => prev.filter((item) => item.id !== id));
-
-  // ── Serial Modal Handlers ──
-  const handleOpenSerialModal = (variantName, tonDauKy, currentSerials) => {
-    if (tonDauKy <= 0) return;
-    setSerialModalState({
-      isOpen: true,
-      variantName,
-      tonDauKy,
-      initialSerials: currentSerials || [],
-    });
-  };
-
-  const handleCloseSerialModal = () => {
-    setSerialModalState((prev) => ({ ...prev, isOpen: false }));
-  };
-
-  const handleConfirmSerials = (confirmedSerials) => {
-    const { variantName } = serialModalState;
-    updateVariant(variantName, 'serials', confirmedSerials);
-    updateVariant(variantName, 'serialConfirmed', true);
-    setSerialModalState((prev) => ({ ...prev, isOpen: false }));
-  };
 
   // ── Rich text commands ──
   const execCmd = (cmd, value) => {
@@ -311,21 +274,7 @@ export default function ThemSanPham() {
       return;
     }
 
-    if (productType === 'single') {
-      const unconfirmedVariant = variants.find((v) => {
-        const d = getVariant(v.name);
-        const ton = d.tonDauKy || 0;
-        if (ton <= 0) return false;
-        const validCount = d.serials ? d.serials.filter((s) => s && s.trim()).length : 0;
-        return validCount !== ton || !d.serialConfirmed;
-      });
-      if (unconfirmedVariant) {
-        alert(
-          `Phiên bản "${unconfirmedVariant.name}" có tồn đầu kỳ (${getVariant(unconfirmedVariant.name).tonDauKy}) nhưng chưa xác nhận đủ mã Serial! Vui lòng bấm "NHẬP SERIAL" để hoàn tất.`
-        );
-        return;
-      }
-    } else {
+    if (productType !== 'single') {
       if (comboItems.length === 0) {
         alert('Sản phẩm Combo cần có ít nhất 1 sản phẩm thành phần! Vui lòng chọn sản phẩm thành phần.');
         return;
@@ -337,20 +286,14 @@ export default function ThemSanPham() {
     const cleanBrand = selectedBrand === 'Thương hiệu' ? '' : selectedBrand;
     const code = maSanPham.trim().toUpperCase();
 
-    let tonKho = 0;
     let soPhienBan = null;
 
     if (!isCombo) {
-      tonKho = variants.reduce((sum, v) => sum + (getVariant(v.name).tonDauKy || 0), 0);
       if (attributes.length > 0 || variants.length > 1) {
         soPhienBan = variants.length;
       }
-    } else {
-      tonKho = existingProduct?.tonKho ?? (comboItems.length > 0 ? 5 : 0);
-      soPhienBan = null;
     }
 
-    const canhBao = tonKho > 0 && tonKho <= 10 ? 'Sắp hết' : null;
     const hinhAnh = images.length > 0 ? (images[0].url || images[0].preview) : null;
 
     const newProduct = {
@@ -361,9 +304,7 @@ export default function ThemSanPham() {
       thuongHieu: cleanBrand,
       danhMuc: cleanCategory,
       soPhienBan,
-      tonKho,
       trangThaiBan: trangThai,
-      canhBao,
       hinhAnh,
       donViTinh,
       vat,
@@ -418,6 +359,17 @@ export default function ThemSanPham() {
         };
         if (isEditing) {
           await updateProduct(existingProduct.id, payload);
+          await Promise.all(variants.map((variant) => {
+            const data = getVariant(variant.name);
+            return saveVersion(existingProduct.id, data.id, {
+              ten_phien_ban: variant.name,
+              ma_vach: data.sku,
+              gia_ban_le: Number(String(data.giaBanLe).replace(/[^0-9]/g, '')),
+              gia_nhap: Number(String(data.giaNhap).replace(/[^0-9]/g, '')),
+              khoi_luong: data.khoiLuong ? Number(data.khoiLuong) : 0,
+              trang_thai: data.trangThai ?? 1,
+            });
+          }));
         } else {
           await createProduct({
             ...payload,
@@ -644,8 +596,6 @@ export default function ThemSanPham() {
                         <th className="variant-table__th">GIÁ BÁN LẺ</th>
                         <th className="variant-table__th">GIÁ NHẬP</th>
                         <th className="variant-table__th">KHỐI LƯỢNG</th>
-                        <th className="variant-table__th">TỒN ĐẦU KỲ</th>
-                        <th className="variant-table__th variant-table__th--serial">SERIAL</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -688,81 +638,12 @@ export default function ThemSanPham() {
                                 <span className="price-unit">kg</span>
                               </div>
                             </td>
-                            <td className="variant-table__td">
-                              <div className="stepper-wrap">
-                                <button
-                                  type="button"
-                                  className="stepper-btn"
-                                  onClick={() => {
-                                    const nextVal = Math.max(0, (d.tonDauKy || 0) - 1);
-                                    updateVariant(v.name, 'tonDauKy', nextVal);
-                                    if (nextVal !== (d.serials ? d.serials.length : 0)) {
-                                      updateVariant(v.name, 'serialConfirmed', false);
-                                    }
-                                  }}
-                                  aria-label="Giảm"
-                                >
-                                  <HiOutlineChevronDown size={12} />
-                                </button>
-                                <input
-                                  type="text"
-                                  className="form-input form-input--xs stepper-input"
-                                  value={d.tonDauKy || 0}
-                                  onChange={(e) => {
-                                    const n = parseInt(e.target.value, 10);
-                                    const nextVal = Number.isNaN(n) ? 0 : Math.max(0, n);
-                                    updateVariant(v.name, 'tonDauKy', nextVal);
-                                    if (nextVal !== (d.serials ? d.serials.length : 0)) {
-                                      updateVariant(v.name, 'serialConfirmed', false);
-                                    }
-                                  }}
-                                />
-                                <button
-                                  type="button"
-                                  className="stepper-btn"
-                                  onClick={() => {
-                                    const nextVal = (d.tonDauKy || 0) + 1;
-                                    updateVariant(v.name, 'tonDauKy', nextVal);
-                                    if (nextVal !== (d.serials ? d.serials.length : 0)) {
-                                      updateVariant(v.name, 'serialConfirmed', false);
-                                    }
-                                  }}
-                                  aria-label="Tăng"
-                                >
-                                  <HiOutlineChevronUp size={12} />
-                                </button>
-                              </div>
-                            </td>
-                            <td className="variant-table__td variant-table__td--serial">
-                              {(() => {
-                                const validCount = d.serials ? d.serials.filter((s) => s && s.trim()).length : 0;
-                                const isConfirmed = Boolean(
-                                  d.serialConfirmed &&
-                                  validCount === (d.tonDauKy || 0) &&
-                                  (d.tonDauKy || 0) > 0
-                                );
-                                return (
-                                  <button
-                                    type="button"
-                                    className={`btn-serial-enable ${(d.tonDauKy || 0) === 0 ? 'btn-serial-enable--disabled' : ''} ${
-                                      isConfirmed ? 'btn-serial-enable--confirmed' : ''
-                                    }`}
-                                    disabled={(d.tonDauKy || 0) === 0}
-                                    onClick={() => handleOpenSerialModal(v.name, d.tonDauKy || 0, d.serials)}
-                                    id={`btn-serial-${v.name.replace(/\s+/g, '-')}`}
-                                  >
-                                    {isConfirmed ? `✓ ${validCount} đã nhập` : 'NHẬP SERIAL'}
-                                  </button>
-                                );
-                              })()}
-                            </td>
                           </tr>
                         );
                       })}
                     </tbody>
                   </table>
                 </div>
-                <p className="variant-serial-hint">Số lượng Serial phải khớp chính xác với tồn đầu kỳ. Hệ thống sẽ từ chối lưu nếu còn thiếu Serial.</p>
               </FormCard>
             </>
           ) : (
@@ -974,29 +855,12 @@ export default function ThemSanPham() {
                   <span className="summary-label">Số phiên bản:</span>
                   <span className="summary-value">{totalVariants}</span>
                 </div>
-                <div className="summary-row">
-                  <span className="summary-label">Tổng tồn đầu kỳ:</span>
-                  <span className="summary-value summary-value--red">{totalTonDauKy}</span>
-                </div>
-                <div className="summary-row">
-                  <span className="summary-label">Serial khai báo:</span>
-                  <span className="summary-value summary-value--green">{totalSerialsDeclared} / {totalSerialsRequired}</span>
-                </div>
               </div>
             </FormCard>
           )}
         </div>
       </div>
 
-      {/* Serial Entry Modal */}
-      <SerialModal
-        isOpen={serialModalState.isOpen}
-        onClose={handleCloseSerialModal}
-        variantName={serialModalState.variantName}
-        tonDauKy={serialModalState.tonDauKy}
-        initialSerials={serialModalState.initialSerials}
-        onConfirm={handleConfirmSerials}
-      />
     </main>
   );
 }
