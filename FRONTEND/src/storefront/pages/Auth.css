@@ -99,6 +99,7 @@
   font-size: 14px;
   outline: none;
   transition: border-color 0.2s;
+  font-family: inherit;
 }
 
 .form-input:focus {
@@ -491,4 +492,38 @@
 
 .btn-home:hover {
   background-color: #d11212;
+}
+
+/* OTP Styles */
+.btn-otp {
+  background-color: #111;
+  color: white;
+  border: none;
+  padding: 0 16px;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  cursor: pointer;
+  border-radius: 2px;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.btn-otp:hover:not(:disabled) {
+  background-color: #f11919;
+}
+
+.btn-otp:disabled {
+  background-color: #eee;
+  color: #aaa;
+  cursor: not-allowed;
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-5px); }
+  to { opacity: 1; transform: translateY(0); }
 }

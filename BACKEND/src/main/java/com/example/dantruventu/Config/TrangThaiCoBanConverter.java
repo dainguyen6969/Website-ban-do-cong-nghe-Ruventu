@@ -12,7 +12,6 @@ public class TrangThaiCoBanConverter implements AttributeConverter<TrangThaiCoBa
     if (attribute == null) {
       return null;
     }
-
     return attribute.getValue();
   }
 
@@ -22,6 +21,20 @@ public class TrangThaiCoBanConverter implements AttributeConverter<TrangThaiCoBa
       return null;
     }
 
-    return TrangThaiCoBanEnum.fromValue(dbData);
+    try {
+      return TrangThaiCoBanEnum.fromValue(dbData);
+    } catch (IllegalArgumentException e) {
+      // Proceed to fallbacks
+    }
+
+    if ("1".equals(dbData) || "DANG_HOAT_DONG".equals(dbData)) {
+      return TrangThaiCoBanEnum.HOAT_DONG;
+    }
+
+    if ("0".equals(dbData) || "NGUNG_HOAT_DONG".equals(dbData)) {
+      return TrangThaiCoBanEnum.NGUNG_HOAT_DONG;
+    }
+
+    return TrangThaiCoBanEnum.HOAT_DONG;
   }
 }
