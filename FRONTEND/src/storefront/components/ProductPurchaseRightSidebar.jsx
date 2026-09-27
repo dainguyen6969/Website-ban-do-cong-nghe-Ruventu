@@ -1,14 +1,58 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { ShoppingCart, ShieldCheck, Truck, Tag, ChevronRight } from 'lucide-react';
 import './ProductPurchaseRightSidebar.css';
 
 const ProductPurchaseRightSidebar = ({ product }) => {
   const [quantity, setQuantity] = useState(1);
+  const navigate = useNavigate();
 
   if (!product) return null;
 
   const increaseQuantity = () => setQuantity(prev => prev + 1);
   const decreaseQuantity = () => setQuantity(prev => (prev > 1 ? prev - 1 : 1));
+
+  const handleAddToCart = () => {
+    if (product.stock <= 0) return;
+    
+    // Save to localStorage
+    const existingCart = JSON.parse(localStorage.getItem('ruventu_cart') || '[]');
+    const existingItemIndex = existingCart.findIndex(item => item.id === product.id);
+    
+    if (existingItemIndex >= 0) {
+      existingCart[existingItemIndex].quantity += quantity;
+    } else {
+      existingCart.push({ 
+        id: product.id, 
+        title: product.name,
+        image: product.images?.[0] || '', // Fallback for image
+        price: product.currentPrice.toLocaleString('vi-VN') + 'đ',
+        originalPrice: product.originalPrice.toLocaleString('vi-VN') + 'đ',
+        quantity: quantity, 
+        variant: 'Mặc định' 
+      });
+    }
+    
+    localStorage.setItem('ruventu_cart', JSON.stringify(existingCart));
+
+    window.dispatchEvent(new CustomEvent('cartUpdated', { detail: { quantity } }));
+  };
+
+  const handleBuyNow = () => {
+    if (product.stock <= 0) return;
+    
+    const item = { 
+      id: product.id, 
+      title: product.name,
+      image: product.images?.[0] || '', // Fallback for image
+      price: product.currentPrice.toLocaleString('vi-VN') + 'đ',
+      originalPrice: product.originalPrice.toLocaleString('vi-VN') + 'đ',
+      quantity: quantity, 
+      variant: 'Mặc định' 
+    };
+    
+    navigate('/checkout', { state: { buyNowItem: item } });
+  };
 
   // Map icons from strings
   const renderIcon = (iconName) => {
@@ -48,18 +92,26 @@ const ProductPurchaseRightSidebar = ({ product }) => {
         </div>
       )}
 
-      {/* Stock status - matching Image 3 style which is black box with red dot */}
       <div className="stock-status-box">
-        <div className="stock-dot"></div>
-        CÒN HÀNG — {product.stock} SẢN PHẨM
+        {product.stock > 0 ? (
+          <>
+            <div className="stock-dot"></div>
+            CÒN HÀNG — {product.stock} SẢN PHẨM
+          </>
+        ) : (
+          <>
+            <div className="stock-dot" style={{ backgroundColor: '#666' }}></div>
+            HẾT HÀNG
+          </>
+        )}
       </div>
 
       <div className="quantity-section">
         <div className="qty-label">SỐ LƯỢNG</div>
         <div className="qty-controls">
-          <button className="qty-btn" onClick={decreaseQuantity}>-</button>
-          <input type="text" className="qty-input" value={quantity} readOnly />
-          <button className="qty-btn" onClick={increaseQuantity}>+</button>
+          <button className="qty-btn" onClick={decreaseQuantity} disabled={product.stock <= 0}>-</button>
+          <input type="text" className="qty-input" value={product.stock > 0 ? quantity : 0} readOnly disabled={product.stock <= 0} />
+          <button className="qty-btn" onClick={increaseQuantity} disabled={product.stock <= 0}>+</button>
         </div>
         <div className="total-calc">
           <span className="total-label">TỔNG CỘNG</span>
@@ -68,11 +120,19 @@ const ProductPurchaseRightSidebar = ({ product }) => {
       </div>
 
       <div className="action-buttons">
-        <button className="sidebar-btn-buy-now">
+        <button 
+          className="sidebar-btn-buy-now" 
+          disabled={product.stock <= 0}
+          onClick={handleBuyNow}
+        >
           <ChevronRight size={20} className="btn-icon" />
-          MUA NGAY
+          {product.stock > 0 ? 'MUA NGAY' : 'HẾT HÀNG'}
         </button>
-        <button className="sidebar-btn-add-cart">
+        <button 
+          className="sidebar-btn-add-cart" 
+          disabled={product.stock <= 0}
+          onClick={handleAddToCart}
+        >
           <ShoppingCart size={20} className="btn-icon" />
           THÊM VÀO GIỎ HÀNG
         </button>

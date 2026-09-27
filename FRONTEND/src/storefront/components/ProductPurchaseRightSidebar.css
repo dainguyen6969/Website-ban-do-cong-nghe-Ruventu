@@ -303,3 +303,21 @@
   color: #333;
   font-weight: 500;
 }
+
+/* Disabled States for Out of Stock */
+.sidebar-btn-buy-now:disabled, 
+.sidebar-btn-add-cart:disabled {
+  background-color: #555;
+  border-color: #555;
+  color: #999;
+  cursor: not-allowed;
+}
+
+.qty-btn:disabled {
+  color: #ccc;
+  cursor: not-allowed;
+}
+
+.qty-input:disabled {
+  color: #999;
+}

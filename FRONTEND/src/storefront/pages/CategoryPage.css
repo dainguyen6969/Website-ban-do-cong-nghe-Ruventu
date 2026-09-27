@@ -1,4 +1,4 @@
-.category-page {
+.storefront-category-page {
   background-color: #f5f5f5;
   color: #333;
   min-height: 100vh;
@@ -245,6 +245,7 @@
   border-radius: 4px;
   outline: none;
   cursor: pointer;
+  font-family: 'Roboto', sans-serif;
   min-width: 150px;
   transition: all 0.2s;
 }
