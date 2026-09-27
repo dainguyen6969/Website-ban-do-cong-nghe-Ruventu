@@ -3,10 +3,9 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { HiOutlineDownload, HiOutlineSearch } from 'react-icons/hi';
 import TablePagination from '../../../../../shared/components/ui/TablePagination';
-import mockVersions from '../../../../../data/mockVersions';
+import { getAllVersions } from '../api/versionApi';
 import './QuanLyPhienBan.css';
 
-const warehouseOptions = ['Tất cả kho', 'Kho Hà Nội', 'Kho HCM', 'Kho Đà Nẵng'];
 const typeOptions = ['Tất cả', 'Phiên bản', 'Combo'];
 const PAGE_SIZE = 10;
 
@@ -17,8 +16,13 @@ function escapeCsv(value) {
 export default function QuanLyPhienBan() {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
-  const [warehouse, setWarehouse] = useState('Tất cả kho');
+  const [warehouse, setWarehouse] = useState('');
   const [type, setType] = useState('Tất cả');
+  const [versions, setVersions] = useState([]);
+  const [warehouses, setWarehouses] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [reloadKey, setReloadKey] = useState(0);
   const [selectedIds, setSelectedIds] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
   const selectAllRef = useRef(null);
@@ -26,14 +30,28 @@ export default function QuanLyPhienBan() {
   const filteredVersions = useMemo(() => {
     const query = searchTerm.trim().toLocaleLowerCase('vi');
 
-    return mockVersions.filter((item) => {
+    return versions.filter((item) => {
       const matchesSearch = !query || [item.barcode, item.sku, item.displayCode, item.displayName]
         .some((value) => value.toLocaleLowerCase('vi').includes(query));
-      const matchesWarehouse = warehouse === 'Tất cả kho' || item.warehouse === warehouse;
       const matchesType = type === 'Tất cả' || item.type === type;
-      return matchesSearch && matchesWarehouse && matchesType;
+      return matchesSearch && matchesType;
     });
-  }, [searchTerm, warehouse, type]);
+  }, [searchTerm, type, versions]);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    setLoading(true);
+    setError('');
+    getAllVersions(warehouse, controller.signal)
+      .then(({ versions: rows, warehouses: options }) => {
+        setVersions(rows);
+        setWarehouses(options);
+        setSelectedIds((current) => current.filter((id) => rows.some((item) => item.id === id)));
+      })
+      .catch((cause) => { if (cause.name !== 'AbortError') setError(cause.message || 'Đã xảy ra lỗi hệ thống.'); })
+      .finally(() => { if (!controller.signal.aborted) setLoading(false); });
+    return () => controller.abort();
+  }, [warehouse, reloadKey]);
 
   const totalPages = Math.max(1, Math.ceil(filteredVersions.length / PAGE_SIZE));
   const safePage = Math.min(currentPage, totalPages);
@@ -67,7 +85,7 @@ export default function QuanLyPhienBan() {
 
   const exportExcel = (selectedOnly = false) => {
     const rows = selectedOnly
-      ? mockVersions.filter((item) => selectedIds.includes(item.id))
+      ? versions.filter((item) => selectedIds.includes(item.id))
       : filteredVersions;
     const headers = ['Mã vạch', 'SKU', 'Tên hiển thị', 'Phân loại', 'Có thể bán', 'Tồn thực tế', 'Kho', 'Vị trí lưu kho'];
     const csvRows = rows.map((item) => [
@@ -114,7 +132,8 @@ export default function QuanLyPhienBan() {
           <label className="version-select-wrap">
             <span className="sr-only">Lọc theo kho</span>
             <select id="warehouse-filter" value={warehouse} onChange={(event) => { setWarehouse(event.target.value); setCurrentPage(1); }}>
-              {warehouseOptions.map((option) => <option key={option}>{option}</option>)}
+              <option value="">Tất cả kho</option>
+              {warehouses.map((option) => <option key={option.id} value={option.id}>{option.name}</option>)}
             </select>
           </label>
 
@@ -172,7 +191,11 @@ export default function QuanLyPhienBan() {
               </tr>
             </thead>
             <tbody>
-              {pageVersions.length === 0 ? (
+              {loading ? (
+                <tr><td className="version-empty" colSpan="9">Đang tải dữ liệu...</td></tr>
+              ) : error ? (
+                <tr><td className="version-empty" colSpan="9">Đã xảy ra lỗi hệ thống. <button type="button" className="version-detail" onClick={() => setReloadKey((value) => value + 1)}>THỬ LẠI</button></td></tr>
+              ) : pageVersions.length === 0 ? (
                 <tr><td className="version-empty" colSpan="9">Không tìm thấy phiên bản phù hợp.</td></tr>
               ) : pageVersions.map((item) => {
                 const selected = selectedIds.includes(item.id);
@@ -218,9 +241,11 @@ export default function QuanLyPhienBan() {
                       <button
                         type="button"
                         className="version-detail"
-                        onClick={() => navigate(`/kho-hang/quan-ly-phien-ban/chi-tiet/${encodeURIComponent(item.id)}`)}
+                        onClick={() => navigate(item.type === 'Combo'
+                          ? `/kho-hang/combo-san-pham/chi-tiet/${item.comboId}`
+                          : `/kho-hang/quan-ly-phien-ban/chi-tiet/${encodeURIComponent(item.id)}`)}
                       >
-                        CHI TIẾT
+                        {item.type === 'Combo' ? 'THÀNH PHẦN' : 'CHI TIẾT'}
                       </button>
                     </td>
                   </tr>

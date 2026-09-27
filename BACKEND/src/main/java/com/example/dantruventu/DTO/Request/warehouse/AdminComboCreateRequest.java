@@ -42,12 +42,6 @@ public class AdminComboCreateRequest {
   @JsonProperty("thong_so_ky_thuat")
   private JsonNode thongSoKyThuat;
 
-  @JsonProperty("khoi_luong")
-  @NotNull(message = "Khối lượng không được để trống")
-  @DecimalMin("0")
-  @Digits(integer = 8, fraction = 2)
-  private BigDecimal khoiLuong;
-
   @JsonProperty("gia_ban_le")
   @NotNull(message = "Giá bán không được để trống")
   @DecimalMin("0")

@@ -1,15 +1,13 @@
 // Admin inventory screen: ChiTietTonKho.
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { HiOutlineArrowLeft, HiOutlineHome } from 'react-icons/hi';
 import DetailTablePagination from '../../../../shared/components/ui/DetailTablePagination';
 import useDetailTablePagination from '../../../../hooks/useDetailTablePagination';
-import { getInventoryDetail } from '../../../../data/mockInventoryDetails';
+import { getVersionDetail, getVersionLedger } from '../../catalog/products/api/versionApi';
 import './ChiTietTonKho.css';
 
 const transactionOptions = ['Tất cả', 'Nhập hàng', 'Xuất bán', 'Khách trả', 'Trả NCC', 'Kiểm kho'];
-const warehouseOptions = ['Tất cả kho', 'Kho Hà Nội', 'Kho HCM', 'Kho Đà Nẵng'];
-
 function formatDateTime(value) {
   const date = new Date(value);
   return new Intl.DateTimeFormat('vi-VN', {
@@ -27,25 +25,48 @@ function transactionClass(type) {
 export default function ChiTietTonKho() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const detail = getInventoryDetail(id);
-  const [selectedVersionId, setSelectedVersionId] = useState(detail.versions[0].id);
+  const [detail, setDetail] = useState(null);
+  const [selectedVersionId, setSelectedVersionId] = useState(null);
+  const [history, setHistory] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [reloadKey, setReloadKey] = useState(0);
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
   const [transactionType, setTransactionType] = useState('Tất cả');
-  const [warehouse, setWarehouse] = useState('Tất cả kho');
+  const [warehouse, setWarehouse] = useState('');
 
-  const selectedVersion = detail.versions.find((version) => version.id === selectedVersionId) || detail.versions[0];
-  const filtersChanged = Boolean(fromDate || toDate || transactionType !== 'Tất cả' || warehouse !== 'Tất cả kho');
+  useEffect(() => {
+    const controller = new AbortController();
+    setLoading(true);
+    setError('');
+    getVersionDetail(decodeURIComponent(id), controller.signal)
+      .then((value) => {
+        setDetail(value);
+        const routeVersion = value.versions.find((version) => version.id === Number(id));
+        setSelectedVersionId(routeVersion?.id || value.versions[0]?.id || null);
+      })
+      .catch((cause) => { if (cause.name !== 'AbortError') setError(cause.message || 'Đã xảy ra lỗi hệ thống.'); })
+      .finally(() => { if (!controller.signal.aborted) setLoading(false); });
+    return () => controller.abort();
+  }, [id, reloadKey]);
 
-  const filteredHistory = selectedVersion.history.filter((entry) => {
-    const entryDate = entry.date.slice(0, 10);
-    if (fromDate && entryDate < fromDate) return false;
-    if (toDate && entryDate > toDate) return false;
-    if (transactionType !== 'Tất cả' && entry.transactionType !== transactionType) return false;
-    if (warehouse !== 'Tất cả kho' && entry.warehouse !== warehouse) return false;
-    return true;
-  });
-  const versionPagination = useDetailTablePagination(detail.versions);
+  useEffect(() => {
+    if (!selectedVersionId) return undefined;
+    const controller = new AbortController();
+    getVersionLedger({ variantId: selectedVersionId, warehouseId: warehouse, transactionType, fromDate, toDate }, controller.signal)
+      .then(setHistory)
+      .catch((cause) => { if (cause.name !== 'AbortError') setError(cause.message || 'Đã xảy ra lỗi hệ thống.'); });
+    return () => controller.abort();
+  }, [selectedVersionId, warehouse, transactionType, fromDate, toDate]);
+
+  const selectedVersion = detail?.versions.find((version) => version.id === selectedVersionId)
+    || detail?.versions[0]
+    || { id: null, name: '—', allocations: [] };
+  const filtersChanged = Boolean(fromDate || toDate || transactionType !== 'Tất cả' || warehouse);
+
+  const filteredHistory = history;
+  const versionPagination = useDetailTablePagination(detail?.versions);
   const allocationPagination = useDetailTablePagination(selectedVersion.allocations);
   const historyPagination = useDetailTablePagination(filteredHistory);
 
@@ -58,8 +79,17 @@ export default function ChiTietTonKho() {
     setFromDate('');
     setToDate('');
     setTransactionType('Tất cả');
-    setWarehouse('Tất cả kho');
+    setWarehouse('');
   };
+
+  if (loading || error || !detail) {
+    return (
+      <main className="inventory-detail-page" role="main"><div className="inventory-detail__inner">
+        <div className="inventory-detail__title-row"><h1>CHI TIẾT TỒN KHO &amp; THẺ KHO</h1><button type="button" onClick={() => navigate('/kho-hang/quan-ly-phien-ban')}><HiOutlineArrowLeft size={16} aria-hidden="true" /> QUAY LẠI</button></div>
+        <section className="inventory-card"><div className="inventory-empty">{loading ? 'Đang tải dữ liệu...' : <>Đã xảy ra lỗi hệ thống. <button type="button" className="inventory-reset" onClick={() => setReloadKey((value) => value + 1)}>THỬ LẠI</button></>}</div></section>
+      </div></main>
+    );
+  }
 
   return (
     <main className="inventory-detail-page" role="main">
@@ -164,7 +194,7 @@ export default function ChiTietTonKho() {
             <span className="inventory-date-separator" aria-hidden="true">—</span>
             <label><span className="sr-only">Đến ngày</span><input type="date" value={toDate} onChange={(event) => setToDate(event.target.value)} /></label>
             <label><span className="sr-only">Loại giao dịch</span><select value={transactionType} onChange={(event) => setTransactionType(event.target.value)}>{transactionOptions.map((option) => <option key={option}>{option}</option>)}</select></label>
-            <label><span className="sr-only">Kho hàng</span><select value={warehouse} onChange={(event) => setWarehouse(event.target.value)}>{warehouseOptions.map((option) => <option key={option}>{option}</option>)}</select></label>
+            <label><span className="sr-only">Kho hàng</span><select value={warehouse} onChange={(event) => setWarehouse(event.target.value)}><option value="">Tất cả kho</option>{detail.warehouses.map((option) => <option key={option.id} value={option.id}>{option.name}</option>)}</select></label>
             {filtersChanged && <button type="button" className="inventory-reset" onClick={resetFilters}>ĐẶT LẠI</button>}
             <strong className="inventory-history-count">{filteredHistory.length} bản ghi</strong>
           </div>

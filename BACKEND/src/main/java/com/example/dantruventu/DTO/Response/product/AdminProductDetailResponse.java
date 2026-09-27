@@ -112,6 +112,15 @@ public class AdminProductDetailResponse {
     @JsonProperty("gia_ban_le")
     private BigDecimal giaBanLe;
 
+    @JsonProperty("gia_nhap")
+    private BigDecimal giaNhap;
+
+    @JsonProperty("khoi_luong")
+    private BigDecimal khoiLuong;
+
+    @JsonProperty("trang_thai")
+    private Short trangThai;
+
     @JsonProperty("ton_co_the_ban")
     private Long tonCoTheBan;
   }
