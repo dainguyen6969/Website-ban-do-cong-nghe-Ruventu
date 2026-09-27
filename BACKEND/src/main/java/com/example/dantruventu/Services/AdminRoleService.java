@@ -181,8 +181,7 @@ public class AdminRoleService {
 
     if (isProtectedAdminRole(role)) {
       throw new AppException(
-          ErrorCode.CANNOT_EDIT_PROTECTED_ROLE,
-          "Không thể chỉnh sửa vai trò hệ thống mặc định.");
+          ErrorCode.CANNOT_EDIT_PROTECTED_ROLE, "Không thể chỉnh sửa vai trò hệ thống mặc định.");
     }
 
     if (request.getTenVaiTro() == null || request.getTenVaiTro().trim().isBlank()) {
