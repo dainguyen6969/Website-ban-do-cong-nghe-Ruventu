@@ -4,6 +4,7 @@ import com.example.dantruventu.DTO.Request.AddressRequest;
 import com.example.dantruventu.DTO.Request.UpdateUserProfileRequest;
 import com.example.dantruventu.DTO.Response.AddressResponse;
 import com.example.dantruventu.DTO.Response.ApiResponse;
+import com.example.dantruventu.DTO.Response.SetDefaultAddressResponse;
 import com.example.dantruventu.DTO.Response.UpdateUserProfileResponse;
 import com.example.dantruventu.DTO.Response.UserMeResponse;
 import com.example.dantruventu.Entity.NguoiDung;
@@ -126,6 +127,21 @@ public class UserController {
         ApiResponse.<Void>builder()
             .status(HttpStatus.OK.value())
             .message("Xóa địa chỉ thành công")
+            .build();
+
+    return ResponseEntity.ok(response);
+  }
+
+  @PatchMapping("/addresses/{id}/default")
+  public ResponseEntity<ApiResponse<SetDefaultAddressResponse>> setDefaultAddress(
+      @PathVariable Long id) {
+    SetDefaultAddressResponse data = addressService.setDefaultAddress(id);
+
+    ApiResponse<SetDefaultAddressResponse> response =
+        ApiResponse.<SetDefaultAddressResponse>builder()
+            .status(HttpStatus.OK.value())
+            .message("Đặt địa chỉ mặc định thành công")
+            .data(data)
             .build();
 
     return ResponseEntity.ok(response);
