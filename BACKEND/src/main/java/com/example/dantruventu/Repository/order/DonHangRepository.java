@@ -74,8 +74,7 @@ public interface DonHangRepository
   Optional<DonHang> findCustomerOrderForUpdate(
       @Param("id") Long id, @Param("customerId") Long customerId);
 
-  Optional<DonHang> findByMaDonHangIgnoreCaseAndSdtNguoiNhan(
-      String maDonHang, String sdtNguoiNhan);
+  Optional<DonHang> findByMaDonHangIgnoreCaseAndSdtNguoiNhan(String maDonHang, String sdtNguoiNhan);
 
   @Lock(LockModeType.PESSIMISTIC_WRITE)
   @Query("SELECT d FROM DonHang d WHERE d.id = :id")

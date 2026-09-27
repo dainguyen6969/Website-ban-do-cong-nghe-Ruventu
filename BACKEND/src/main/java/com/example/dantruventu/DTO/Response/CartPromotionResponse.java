@@ -17,28 +17,28 @@ import lombok.Setter;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class CartPromotionResponse {
 
-    private int status;
-    private String message;
-    private PromotionData data;
+  private int status;
+  private String message;
+  private PromotionData data;
 
-    @Getter
-    @Setter
-    @NoArgsConstructor
-    @AllArgsConstructor
-    @Builder
-    @JsonInclude(JsonInclude.Include.NON_NULL)
-    public static class PromotionData {
+  @Getter
+  @Setter
+  @NoArgsConstructor
+  @AllArgsConstructor
+  @Builder
+  @JsonInclude(JsonInclude.Include.NON_NULL)
+  public static class PromotionData {
 
-        @JsonProperty("ma_chuong_trinh")
-        private String maChuongTrinh;
+    @JsonProperty("ma_chuong_trinh")
+    private String maChuongTrinh;
 
-        @JsonProperty("giam_gia")
-        private BigDecimal giamGia;
+    @JsonProperty("giam_gia")
+    private BigDecimal giamGia;
 
-        @JsonProperty("tam_tinh")
-        private BigDecimal tamTinh;
+    @JsonProperty("tam_tinh")
+    private BigDecimal tamTinh;
 
-        @JsonProperty("tong_tien_moi")
-        private BigDecimal tongTienMoi;
-    }
+    @JsonProperty("tong_tien_moi")
+    private BigDecimal tongTienMoi;
+  }
 }

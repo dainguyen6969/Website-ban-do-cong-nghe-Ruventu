@@ -88,8 +88,7 @@ public class AdminComboService {
                 combo -> {
                   var response = comboMapper.toListItem(combo);
                   long stock = comboStocks.getOrDefault(combo.getId(), 0L);
-                  var comboComponents =
-                      componentsByProduct.getOrDefault(combo.getId(), List.of());
+                  var comboComponents = componentsByProduct.getOrDefault(combo.getId(), List.of());
 
                   response.setGiaBan(componentTotal(comboComponents, false));
                   response.setTonCoTheBan(stock);

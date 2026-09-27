@@ -1,18 +1,18 @@
 package com.example.dantruventu.Services.order;
 
-import static com.example.dantruventu.Services.order.sales.SalesSupport.invalid;
+import static com.example.dantruventu.Services.order.sales.SalesSupport.conflict;
 import static com.example.dantruventu.Services.order.sales.SalesSupport.inputMoney;
+import static com.example.dantruventu.Services.order.sales.SalesSupport.invalid;
 import static com.example.dantruventu.Services.order.sales.SalesSupport.notFound;
 import static com.example.dantruventu.Services.order.sales.SalesSupport.quantity;
 import static com.example.dantruventu.Services.order.sales.SalesSupport.text;
-import static com.example.dantruventu.Services.order.sales.SalesSupport.conflict;
 
+import com.example.dantruventu.Config.SalesProperties;
 import com.example.dantruventu.DTO.Request.order.AdminSalesRequest;
 import com.example.dantruventu.DTO.Request.order.CustomerCheckoutRequest;
 import com.example.dantruventu.DTO.Request.order.CustomerOrderRequest;
 import com.example.dantruventu.DTO.Response.PaginationResponse;
 import com.example.dantruventu.DTO.Response.order.CustomerOrderResponse;
-import com.example.dantruventu.Config.SalesProperties;
 import com.example.dantruventu.Entity.ChiTietDonHang;
 import com.example.dantruventu.Entity.DonHang;
 import com.example.dantruventu.Entity.GioHang;
@@ -39,8 +39,8 @@ import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.time.Duration;
-import java.util.HexFormat;
 import java.util.ArrayList;
+import java.util.HexFormat;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -50,15 +50,15 @@ import java.util.TreeMap;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
-import org.springframework.transaction.annotation.Transactional;
 import tools.jackson.databind.ObjectMapper;
 
 @Service
@@ -181,8 +181,8 @@ public class CustomerOrderService {
     SalesCalculationService.Plan plan =
         calculationService.calculate(salesRequest, LoaiDonHang.ONLINE, true);
 
-    if (inputMoney(request.getTongThanhToanXacNhan())
-        .compareTo(plan.data().getTongThanhToan()) != 0) {
+    if (inputMoney(request.getTongThanhToanXacNhan()).compareTo(plan.data().getTongThanhToan())
+        != 0) {
       throw conflict("Tổng tiền đã thay đổi. Vui lòng gọi preview và xác nhận lại");
     }
 
@@ -380,13 +380,9 @@ public class CustomerOrderService {
 
     BigDecimal discount =
         order.getTienChietKhau() == null ? BigDecimal.ZERO : order.getTienChietKhau();
-    BigDecimal shipping =
-        order.getPhiGiaoHang() == null ? BigDecimal.ZERO : order.getPhiGiaoHang();
+    BigDecimal shipping = order.getPhiGiaoHang() == null ? BigDecimal.ZERO : order.getPhiGiaoHang();
     BigDecimal vat =
-        order.getTongThanhToan()
-            .subtract(order.getTongTienHang())
-            .add(discount)
-            .subtract(shipping);
+        order.getTongThanhToan().subtract(order.getTongTienHang()).add(discount).subtract(shipping);
 
     return CustomerOrderResponse.Detail.builder()
         .id(order.getId())
@@ -510,8 +506,7 @@ public class CustomerOrderService {
     return loadGuestCartLines(guestCartId, selectedIds);
   }
 
-  private List<CartLine> loadUserCartLines(
-      Long userId, List<Long> selectedIds, boolean lock) {
+  private List<CartLine> loadUserCartLines(Long userId, List<Long> selectedIds, boolean lock) {
 
     List<GioHang> cartItems =
         lock
@@ -597,7 +592,9 @@ public class CustomerOrderService {
     String recipientName =
         input != null
             ? text(input.getTenNguoiNhan())
-            : savedAddress != null ? savedAddress.getTenNguoiNhan() : user != null ? user.getHoTen() : null;
+            : savedAddress != null
+                ? savedAddress.getTenNguoiNhan()
+                : user != null ? user.getHoTen() : null;
 
     String recipientPhone =
         input != null
@@ -632,9 +629,7 @@ public class CustomerOrderService {
   }
 
   private AdminSalesRequest.Preview buildSalesRequest(
-      NguoiDung user,
-      CustomerCheckoutRequest.Preview request,
-      List<CartLine> cartLines) {
+      NguoiDung user, CustomerCheckoutRequest.Preview request, List<CartLine> cartLines) {
 
     AdminSalesRequest.Tax tax = new AdminSalesRequest.Tax();
     tax.setApDung(true);
@@ -659,9 +654,7 @@ public class CustomerOrderService {
     salesRequest.setMaChuongTrinh(text(request.getMaChuongTrinh()));
     salesRequest.setSanPham(products);
     salesRequest.setPhiGiaoHang(
-        "GIAO_HANG".equals(request.getHinhThucNhanHang())
-            ? deliveryFee
-            : BigDecimal.ZERO);
+        "GIAO_HANG".equals(request.getHinhThucNhanHang()) ? deliveryFee : BigDecimal.ZERO);
     salesRequest.setGhiChu(text(request.getGhiChu()));
     salesRequest.setLoaiDonHang(LoaiDonHang.ONLINE);
 
@@ -882,20 +875,15 @@ public class CustomerOrderService {
           throw conflict("Số lượng thành phần combo không hợp lệ");
         }
 
-        int componentQuantity =
-            quantity((long) line.getSoLuong() * component.getSoLuong());
+        int componentQuantity = quantity((long) line.getSoLuong() * component.getSoLuong());
 
         mergeQuantity(
-            physicalQuantities,
-            component.getPhienBanThanhPhan().getId(),
-            componentQuantity);
+            physicalQuantities, component.getPhienBanThanhPhan().getId(), componentQuantity);
       }
     }
 
     for (Map.Entry<Long, Integer> entry : physicalQuantities.entrySet()) {
-      var stock =
-          calculationService.stock(
-              salesContext.defaultWarehouseId(), entry.getKey(), true);
+      var stock = calculationService.stock(salesContext.defaultWarehouseId(), entry.getKey(), true);
 
       if (stock == null) {
         throw conflict("Không tìm thấy tồn kho của phiên bản " + entry.getKey());

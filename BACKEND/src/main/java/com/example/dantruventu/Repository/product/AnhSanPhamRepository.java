@@ -11,8 +11,7 @@ public interface AnhSanPhamRepository extends JpaRepository<AnhSanPham, Long> {
 
   void deleteBySanPhamId(Long sanPhamId);
 
-  List<AnhSanPham> findBySanPhamIdInOrderByThuTuHienThiAscIdAsc(
-      Collection<Long> sanPhamIds);
+  List<AnhSanPham> findBySanPhamIdInOrderByThuTuHienThiAscIdAsc(Collection<Long> sanPhamIds);
 
   Optional<AnhSanPham> findFirstBySanPham_IdOrderByLaAnhChinhDescThuTuHienThiAscIdAsc(
       Long sanPhamId);

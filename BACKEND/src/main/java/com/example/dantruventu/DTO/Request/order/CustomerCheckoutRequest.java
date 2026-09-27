@@ -27,9 +27,7 @@ public final class CustomerCheckoutRequest {
     private String tenNguoiNhan;
 
     @NotBlank(message = "Số điện thoại người nhận không được để trống")
-    @Pattern(
-        regexp = "^(?:\\+84|0)[0-9]{9,10}$",
-        message = "Số điện thoại không đúng định dạng")
+    @Pattern(regexp = "^(?:\\+84|0)[0-9]{9,10}$", message = "Số điện thoại không đúng định dạng")
     @JsonProperty("sdt_nguoi_nhan")
     private String sdtNguoiNhan;
 
@@ -48,9 +46,7 @@ public final class CustomerCheckoutRequest {
     private List<@NotNull @Positive Long> cartItemIds;
 
     @NotBlank(message = "Hình thức nhận hàng không được để trống")
-    @Pattern(
-        regexp = "GIAO_HANG|NHAN_TAI_CUA_HANG",
-        message = "Hình thức nhận hàng không hợp lệ")
+    @Pattern(regexp = "GIAO_HANG|NHAN_TAI_CUA_HANG", message = "Hình thức nhận hàng không hợp lệ")
     @JsonProperty("hinh_thuc_nhan_hang")
     private String hinhThucNhanHang;
 
@@ -63,9 +59,7 @@ public final class CustomerCheckoutRequest {
     private Recipient thongTinNguoiNhan;
 
     @NotBlank(message = "Phương thức thanh toán không được để trống")
-    @Pattern(
-        regexp = "TIEN_MAT|CHUYEN_KHOAN",
-        message = "Phương thức thanh toán không hợp lệ")
+    @Pattern(regexp = "TIEN_MAT|CHUYEN_KHOAN", message = "Phương thức thanh toán không hợp lệ")
     @JsonProperty("phuong_thuc_thanh_toan")
     private String phuongThucThanhToan;
 

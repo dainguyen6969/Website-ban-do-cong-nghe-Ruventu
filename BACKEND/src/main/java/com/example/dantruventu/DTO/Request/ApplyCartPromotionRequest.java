@@ -16,11 +16,8 @@ import lombok.Setter;
 @Builder
 public class ApplyCartPromotionRequest {
 
-    @JsonProperty("ma_chuong_trinh")
-    @NotBlank(message = "Mã chương trình không được để trống")
-    @Size(
-            max = 50,
-            message = "Mã chương trình không được vượt quá 50 ký tự"
-    )
-    private String maChuongTrinh;
+  @JsonProperty("ma_chuong_trinh")
+  @NotBlank(message = "Mã chương trình không được để trống")
+  @Size(max = 50, message = "Mã chương trình không được vượt quá 50 ký tự")
+  private String maChuongTrinh;
 }
