@@ -13,14 +13,10 @@ import axios from 'axios';
 import AuthLayout from '../components/AuthLayout';
 import './Auth.css';
 
-import useMockAuth from '../../auth/useMockAuth';
-import { canAccessAdmin } from '../../auth/accountModel';
+const API_BASE_URL = (import.meta.env.VITE_RUVENTU_API_URL || '').replace(/\/$/, '');
 
 const Login = () => {
     const navigate = useNavigate();
-
-    // Giữ hệ thống mock của main-test
-    const { login, roles } = useMockAuth();
 
     const [showPassword, setShowPassword] = useState(false);
 
@@ -108,106 +104,8 @@ const Login = () => {
         setLoginFailed(false);
 
         try {
-            /*
-             * ========================================
-             * 1. MOCK TÀI KHOẢN BỊ KHÓA
-             * ========================================
-             */
-            if (
-                formData.account === 'locked@ruventu.com' &&
-                formData.password === 'User@123'
-            ) {
-                navigate('/404', {
-                    state: {
-                        type: 'account',
-                    },
-                });
-
-                return;
-            }
-
-            /*
-             * ========================================
-             * 2. MOCK ADMIN CỦA FEATURE
-             * ========================================
-             *
-             * Giữ lại:
-             * admin / Admin@123
-             */
-            if (
-                formData.account === 'admin' &&
-                formData.password === 'Admin@123'
-            ) {
-                localStorage.setItem(
-                    'user',
-                    JSON.stringify({
-                        name: 'Admin',
-                        role: 'admin',
-                        email: 'admin@ruventu.com',
-                    })
-                );
-
-                setUserName('Admin');
-
-                navigate('/admin', {
-                    replace: true,
-                });
-
-                return;
-            }
-
-            /*
-             * ========================================
-             * 3. KIỂM TRA MOCK AUTH CỦA MAIN-TEST
-             * ========================================
-             *
-             * Ví dụ:
-             * admin@ruventu.vn / Admin@123
-             * user1@ruventu.com / User@123
-             */
-            const mockAccount = login(
-                formData.account,
-                formData.password
-            );
-
-            if (mockAccount) {
-                const mockDisplayName =
-                    getDisplayName(mockAccount);
-
-                /*
-                 * Nếu có quyền Admin thì đi thẳng
-                 * vào trang quản trị.
-                 */
-                if (
-                    canAccessAdmin(
-                        mockAccount,
-                        roles
-                    )
-                ) {
-                    navigate('/admin', {
-                        replace: true,
-                    });
-
-                    return;
-                }
-
-                /*
-                 * User mock bình thường.
-                 */
-                setUserName(mockDisplayName);
-                setIsLoginSuccess(true);
-
-                return;
-            }
-
-            /*
-             * ========================================
-             * 4. KHÔNG PHẢI MOCK
-             * => ĐĂNG NHẬP BACKEND THẬT
-             * ========================================
-             */
             const response = await axios.post(
-                'http://localhost:8080/api/v1/auth/login',
+                `${API_BASE_URL}/api/v1/auth/login`,
                 {
                     tai_khoan: formData.account,
                     mat_khau: formData.password,
@@ -412,36 +310,6 @@ const Login = () => {
                 nhận ưu đãi thành viên và truy cập
                 lịch sử mua sắm.
             </p>
-
-            {/*
-        Giữ tài khoản test của main-test
-        để tiện kiểm thử.
-      */}
-            <div className="login-account-info">
-                <div className="account-info-title">
-                    Tài khoản kiểm thử
-                </div>
-
-                <div className="account-info-row">
-          <span className="account-info-label">
-            Admin
-          </span>
-
-                    <span className="account-info-value">
-            admin@ruventu.vn / Admin@123
-          </span>
-                </div>
-
-                <div className="account-info-row">
-          <span className="account-info-label">
-            User
-          </span>
-
-                    <span className="account-info-value">
-            user1@ruventu.com / User@123
-          </span>
-                </div>
-            </div>
         </>
     );
 
