@@ -396,11 +396,7 @@ public class AdminPurchaseOrderService {
 
     DonNhapHang order = requireOrderForUpdate(id);
 
-    boolean allowedReceiveStatus =
-        order.getTrangThaiNhap() == TrangThaiNhapHang.DA_DUYET
-            || order.getTrangThaiNhap() == TrangThaiNhapHang.NHAP_MOT_PHAN;
-
-    if (!allowedReceiveStatus) {
+    if (order.getTrangThaiNhap() != TrangThaiNhapHang.DA_DUYET) {
       throw new AppException(ErrorCode.CONFLICT, "Đơn nhập không ở trạng thái cho phép nhập kho");
     }
 
@@ -411,17 +407,7 @@ public class AdminPurchaseOrderService {
     Map<Long, ChiTietDonNhap> detailMap =
         details.stream().collect(Collectors.toMap(ChiTietDonNhap::getId, Function.identity()));
 
-    /*
-     * Cho phép:
-     * - chỉ nhập một phần các dòng của đơn,
-     * - nhập thiếu,
-     * - nhập đúng,
-     * - nhập thừa.
-     *
-     * Nếu có dòng bị nhập thừa thì FE phải xác nhận
-     * xac_nhan_nhap_thua = true.
-     */
-    validateReceiveRequest(id, request, detailMap);
+    validateReceiveRequest(request, detailMap);
 
     Set<String> allSerials = collectAndValidateSerials(request, detailMap);
 
@@ -524,28 +510,8 @@ public class AdminPurchaseOrderService {
               .build());
     }
 
-    /*
-     * sumMovement() query lại bảng the_kho,
-     * nên flush trước khi tính trạng thái đơn.
-     */
     theKhoRepository.flush();
-
-    boolean allOrderedQuantitiesReceived =
-        details.stream()
-            .allMatch(
-                detail -> {
-                  int imported =
-                      Math.max(
-                          0,
-                          sumMovement(id, detail.getPhienBan().getId(), LoaiGiaoDichKho.NHAP_HANG));
-
-                  return imported >= detail.getSoLuong();
-                });
-
-    order.setTrangThaiNhap(
-        allOrderedQuantitiesReceived
-            ? TrangThaiNhapHang.DA_NHAP_KHO
-            : TrangThaiNhapHang.NHAP_MOT_PHAN);
+    order.setTrangThaiNhap(TrangThaiNhapHang.DA_NHAP_KHO);
 
     donNhapHangRepository.save(order);
 
@@ -566,11 +532,7 @@ public class AdminPurchaseOrderService {
 
     DonNhapHang order = requireOrderForUpdate(id);
 
-    boolean allowedReturnStatus =
-        order.getTrangThaiNhap() == TrangThaiNhapHang.DA_NHAP_KHO
-            || order.getTrangThaiNhap() == TrangThaiNhapHang.HOAN_TRA_MOT_PHAN;
-
-    if (!allowedReturnStatus) {
+    if (order.getTrangThaiNhap() != TrangThaiNhapHang.DA_NHAP_KHO) {
       throw new AppException(ErrorCode.CONFLICT, "Đơn nhập không ở trạng thái cho phép hoàn trả");
     }
 
@@ -1087,6 +1049,10 @@ public class AdminPurchaseOrderService {
 
     Object principal = authentication.getPrincipal();
 
+    if (principal instanceof NguoiDung user) {
+      return user;
+    }
+
     Long userId;
 
     if (principal instanceof Number number) {
@@ -1187,11 +1153,14 @@ public class AdminPurchaseOrderService {
   }
 
   private void validateReceiveRequest(
-      Long orderId, AdminPurchaseOrderReceiveRequest request, Map<Long, ChiTietDonNhap> detailMap) {
+      AdminPurchaseOrderReceiveRequest request, Map<Long, ChiTietDonNhap> detailMap) {
 
     Set<Long> seen = new HashSet<>();
 
-    boolean hasExcessReceipt = false;
+    if (request.getItems().size() != detailMap.size()) {
+      throw new AppException(
+          ErrorCode.INVALID_DATA, "Phải nhập đủ toàn bộ dòng của đơn trong một lần");
+    }
 
     for (AdminPurchaseOrderReceiveRequest.Item item : request.getItems()) {
 
@@ -1206,27 +1175,9 @@ public class AdminPurchaseOrderService {
         throw new AppException(ErrorCode.NOT_FOUND, "Chi tiết đơn nhập không tồn tại");
       }
 
-      Long variantId = detail.getPhienBan().getId();
-
-      int alreadyReceived = Math.max(0, sumMovement(orderId, variantId, LoaiGiaoDichKho.NHAP_HANG));
-
-      int totalReceivedAfter = alreadyReceived + item.getSoLuongNhapKho();
-
-      if (totalReceivedAfter > detail.getSoLuong()) {
-
-        hasExcessReceipt = true;
+      if (!Objects.equals(item.getSoLuongNhapKho(), detail.getSoLuong())) {
+        throw new AppException(ErrorCode.INVALID_DATA, "Số lượng nhập kho phải bằng số lượng đặt");
       }
-    }
-
-    /*
-     * Nhập thừa vẫn được phép, nhưng phải có
-     * xác nhận rõ ràng từ người dùng ở UI.
-     */
-    if (hasExcessReceipt && !Boolean.TRUE.equals(request.getXacNhanNhapThua())) {
-
-      throw new AppException(
-          ErrorCode.UNPROCESSABLE_ENTITY,
-          "Có số lượng thực nhận vượt quá số lượng đặt. " + "Vui lòng xác nhận nhập hàng thừa");
     }
   }
 
@@ -1319,9 +1270,20 @@ public class AdminPurchaseOrderService {
 
     LoaiThuChi type =
         loaiThuChiRepository
-            .findByMaLoaiAndTrangThai(code, TrangThaiCoBanEnum.HOAT_DONG)
-            .orElseThrow(
-                () -> new AppException(ErrorCode.NOT_FOUND, "Chưa cấu hình loại thu/chi " + code));
+            .findByMaLoai(code)
+            .orElseGet(
+                () ->
+                    loaiThuChiRepository.save(
+                        LoaiThuChi.builder()
+                            .maLoai(code)
+                            .tenLoai(code.equals("CHI_NHAP_HANG") ? "Chi nhập hàng" : "Thu hoàn nhà cung cấp")
+                            .loaiPhieu(voucherType)
+                            .trangThai(TrangThaiCoBanEnum.HOAT_DONG)
+                            .build()));
+
+    if (type.getTrangThai() != TrangThaiCoBanEnum.HOAT_DONG) {
+      throw new AppException(ErrorCode.NOT_FOUND, "Chưa cấu hình loại thu/chi " + code);
+    }
 
     if (type.getLoaiPhieu() != voucherType) {
 
