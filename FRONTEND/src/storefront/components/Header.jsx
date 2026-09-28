@@ -14,6 +14,8 @@ import logo from "../assets/reventu.png";
 import CartDrawer from "./CartDrawer";
 import FontSwitcher from "../../shared/components/ui/FontSwitcher";
 
+const API_BASE_URL = (import.meta.env.VITE_RUVENTU_API_URL || '').replace(/\/$/, '');
+
 const Header = () => {
   const navigate = useNavigate();
 
@@ -74,7 +76,7 @@ const Header = () => {
   const handleLogout = async () => {
     try {
       await axios.post(
-        "http://localhost:8080/api/v1/auth/logout",
+        `${API_BASE_URL}/api/v1/auth/logout`,
         {},
         {
           withCredentials: true,
@@ -88,6 +90,10 @@ const Header = () => {
        */
       localStorage.removeItem("user");
       localStorage.removeItem("accessToken");
+      
+      // Xóa giỏ hàng khi đăng xuất
+      localStorage.removeItem("ruventu_cart");
+      window.dispatchEvent(new CustomEvent("cartUpdated"));
 
       setUser(null);
       setIsDropdownOpen(false);
@@ -117,22 +123,6 @@ const Header = () => {
       <header className="header">
         {/* ================= TOP BANNER ================= */}
         <div className="top-banner">
-          <button
-            className="banner-control banner-control-prev"
-            type="button"
-            aria-label="Khuyến mãi trước"
-          >
-            ◀
-          </button>
-
-          <button
-            className="banner-control banner-control-next"
-            type="button"
-            aria-label="Khuyến mãi tiếp theo"
-          >
-            ▶
-          </button>
-
           <p>
             MIỄN PHÍ VẬN CHUYỂN ĐƠN HÀNG TRÊN 5.000.000Đ - BẢO HÀNH CHÍNH HÃNG
             36 THÁNG - HỖ TRỢ KỸ THUẬT 24/7

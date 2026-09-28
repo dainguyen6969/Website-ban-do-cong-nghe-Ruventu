@@ -173,7 +173,8 @@
 
 /* Suggested Section */
 .suggested-section {
-  padding: 50px 0 80px;
+  margin-top: 50px !important;
+  padding: 50px 20px 80px !important;
   flex: 1;
   background-color: #fff;
   border-top: 6px solid #ff0000;

@@ -5,6 +5,8 @@ import AuthLayout from '../components/AuthLayout';
 import './Auth.css';
 import axios from 'axios';
 
+const API_BASE_URL = (import.meta.env.VITE_RUVENTU_API_URL || '').replace(/\/$/, '');
+
 const Register = () => {
   const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
@@ -139,7 +141,7 @@ const Register = () => {
     setServerError('');
     
     try {
-      await axios.post('http://localhost:8080/api/v1/auth/register', {
+      await axios.post(`${API_BASE_URL}/api/v1/auth/register`, {
         ho_ten: formData.fullName,
         email: formData.email,
         so_dien_thoai: formData.phone,
@@ -172,7 +174,7 @@ const Register = () => {
     setServerError('');
     
     try {
-      await axios.post('http://localhost:8080/api/v1/auth/verify-otp', {
+      await axios.post(`${API_BASE_URL}/api/v1/auth/verify-otp`, {
         tai_khoan: formData.email,
         otp_code: formData.otp
       });
@@ -191,7 +193,7 @@ const Register = () => {
     setServerError('');
     
     try {
-      await axios.post('http://localhost:8080/api/v1/auth/otp/resend', {
+      await axios.post(`${API_BASE_URL}/api/v1/auth/otp/resend`, {
         tai_khoan: formData.email
       });
       setOtpTimer(60);
