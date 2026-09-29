@@ -84,6 +84,24 @@ public class GlobalExceptionHandler {
   public ResponseEntity<ErrorResponse> handleDataIntegrityException(
       DataIntegrityViolationException exception) {
 
+    Throwable rootCause = exception.getMostSpecificCause();
+    log.error("Data integrity violation root cause: {}", rootCause.getMessage(), exception);
+
+    String rootMsg = rootCause.getMessage();
+    if (rootMsg != null) {
+      String lowerMsg = rootMsg.toLowerCase();
+      if (lowerMsg.contains("so_dien_thoai")
+          || lowerMsg.contains("sodienthoai")
+          || lowerMsg.contains("email")
+          || lowerMsg.contains("phone")) {
+        ErrorResponse response =
+            new ErrorResponse(
+                ErrorCode.PHONE_OR_EMAIL_ALREADY_EXISTS.getStatus().value(),
+                ErrorCode.PHONE_OR_EMAIL_ALREADY_EXISTS.getMessage());
+        return ResponseEntity.status(ErrorCode.PHONE_OR_EMAIL_ALREADY_EXISTS.getStatus()).body(response);
+      }
+    }
+
     ErrorResponse response =
         new ErrorResponse(
             ErrorCode.CONFLICT.getStatus().value(), "Dữ liệu đã tồn tại hoặc vi phạm ràng buộc");

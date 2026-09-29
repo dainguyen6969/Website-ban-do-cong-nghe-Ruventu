@@ -218,6 +218,38 @@ public class AdminRoleService {
         .build();
   }
 
+  @Transactional
+  public void deleteRole(Long id) {
+
+    if (id == null || id <= 0) {
+      throw new AppException(ErrorCode.INVALID_ID, "ID không hợp lệ.");
+    }
+
+    VaiTro role =
+        vaiTroRepository
+            .findById(id)
+            .orElseThrow(
+                () ->
+                    new AppException(
+                        ErrorCode.ROLE_NOT_FOUND_OR_CUSTOMER,
+                        "Vai trò không tồn tại hoặc là vai trò Khách hàng ngoài phạm vi quản lý."));
+
+    if (isCustomerRole(role)) {
+      throw new AppException(
+          ErrorCode.ROLE_NOT_FOUND_OR_CUSTOMER,
+          "Vai trò không tồn tại hoặc là vai trò Khách hàng ngoài phạm vi quản lý.");
+    }
+
+    long soNhanVien = nguoiDungRepository.countByVaiTroId(id);
+
+    if (soNhanVien > 0) {
+      throw new AppException(
+          ErrorCode.ROLE_HAS_EMPLOYEES, "Vai trò đang có nhân viên, không thể xóa.");
+    }
+
+    vaiTroRepository.delete(role);
+  }
+
   private boolean isCustomerRole(VaiTro vaiTro) {
     if (vaiTro == null || vaiTro.getTenVaiTro() == null) {
       return false;
