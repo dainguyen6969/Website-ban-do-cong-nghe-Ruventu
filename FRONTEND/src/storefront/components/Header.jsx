@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Link, NavLink, useNavigate } from "react-router-dom";
+import useMockAuth from "../../auth/useMockAuth";
 import {
   Search,
   User,
@@ -14,10 +15,14 @@ import logo from "../assets/reventu.png";
 import CartDrawer from "./CartDrawer";
 import FontSwitcher from "../../shared/components/ui/FontSwitcher";
 
-const API_BASE_URL = (import.meta.env.VITE_RUVENTU_API_URL || '').replace(/\/$/, '');
+const API_BASE_URL = (import.meta.env.VITE_RUVENTU_API_URL || "").replace(
+  /\/$/,
+  "",
+);
 
 const Header = () => {
   const navigate = useNavigate();
+  const { logout } = useMockAuth();
 
   const [searchQuery, setSearchQuery] = useState("");
   const [isCartOpen, setIsCartOpen] = useState(false);
@@ -75,30 +80,17 @@ const Header = () => {
 
   const handleLogout = async () => {
     try {
-      await axios.post(
-        `${API_BASE_URL}/api/v1/auth/logout`,
-        {},
-        {
-          withCredentials: true,
-        },
-      );
+      await logout();
     } catch (error) {
-      console.error("Lỗi đăng xuất:", error);
+      console.error("Lỗi đăng xuất backend:", error);
     } finally {
-      /*
-       * Dù backend logout lỗi vẫn xóa session phía FE.
-       */
-      localStorage.removeItem("user");
-      localStorage.removeItem("accessToken");
-      
-      // Xóa giỏ hàng khi đăng xuất
       localStorage.removeItem("ruventu_cart");
       window.dispatchEvent(new CustomEvent("cartUpdated"));
 
       setUser(null);
       setIsDropdownOpen(false);
 
-      navigate("/login");
+      navigate("/login", { replace: true });
     }
   };
 
