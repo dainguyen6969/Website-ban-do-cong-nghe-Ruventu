@@ -1,4 +1,4 @@
-const API_BASE_URL = (import.meta.env.VITE_RUVENTU_API_URL || '').replace(/\/$/, '');
+const API_BASE_URL = (import.meta.env?.VITE_RUVENTU_API_URL || '').replace(/\/$/, '');
 const ACCESS_TOKEN_KEY = 'ruventu_backend_access_token';
 const TRANSACTION_LABELS = {
   NHAP_HANG: 'Nhập hàng', XUAT_BAN: 'Xuất bán', KHACH_TRA: 'Khách trả',
