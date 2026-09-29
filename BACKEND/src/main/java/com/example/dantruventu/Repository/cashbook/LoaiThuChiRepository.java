@@ -7,5 +7,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface LoaiThuChiRepository extends JpaRepository<LoaiThuChi, Long> {
 
+  Optional<LoaiThuChi> findByMaLoai(String maLoai);
+
   Optional<LoaiThuChi> findByMaLoaiAndTrangThai(String maLoai, TrangThaiCoBanEnum trangThai);
 }

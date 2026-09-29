@@ -34,6 +34,8 @@ public class LoaiThuChi {
   @Column(name = "ghi_chu", columnDefinition = "TEXT")
   private String ghiChu;
 
+  @Enumerated(EnumType.STRING)
+  @JdbcTypeCode(SqlTypes.VARCHAR)
   @Column(name = "trang_thai", nullable = false, length = 30)
   private TrangThaiCoBanEnum trangThai;
 }

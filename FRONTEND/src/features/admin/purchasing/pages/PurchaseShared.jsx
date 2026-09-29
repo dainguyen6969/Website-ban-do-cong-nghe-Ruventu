@@ -5,7 +5,7 @@ import FormCard from '../../../../shared/components/ui/FormCard';
 
 export const money = (value) => `${Math.round(Number(value) || 0).toLocaleString('vi-VN')}đ`;
 export const statusClass = (value) => ({
-  'Đặt hàng': 'neutral', 'Đã duyệt': 'blue', 'Đã nhập kho': 'green',
+  'Đặt hàng': 'neutral', 'Đã duyệt': 'blue', 'Nhập một phần': 'orange', 'Đã nhập kho': 'green',
   'Hoàn trả một phần': 'orange', 'Hoàn trả toàn bộ': 'orange', 'Đã hủy': 'red',
   'Chưa trả': 'red', 'Trả một phần': 'orange', 'Đã trả': 'green',
 }[value] || 'neutral');
