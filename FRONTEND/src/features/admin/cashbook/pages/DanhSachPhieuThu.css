@@ -1,0 +1,159 @@
+.pt-page {
+    flex: 1; min-width: 0; overflow: auto; display: flex; flex-direction: column; background: #fff;
+    min-height: calc(100vh - 60px);
+}
+
+.pt-header-top {
+    display: flex; justify-content: space-between; align-items: center; padding: 18px 28px 0;
+}
+
+.pt-breadcrumb {
+    color: #9298a0; font-size: 10px; font-weight: 700; text-transform: uppercase;
+}
+
+.pt-btn-create {
+    min-height: 41px; padding: 0 18px; display: inline-flex; align-items: center; gap: 7px; color: #fff; background: #111; font-size: 11px; font-weight: 900; white-space: nowrap; border: none; cursor: pointer; text-transform: uppercase;
+}
+
+.pt-btn-create:hover { background: #333; }
+
+.pt-header-main {
+    padding: 12px 28px 24px; border-bottom: 2px solid #111;
+}
+
+.pt-header-main h1 {
+    color: #090909; font-size: 23px; line-height: 1.1; font-weight: 900; margin: 0; text-transform: uppercase;
+}
+
+.pt-header-main p {
+    margin-top: 8px; color: #9298a0; font-size: 10px; font-weight: 700; text-transform: uppercase; margin-bottom: 0;
+}
+
+.pt-filter-bar {
+    display: flex; gap: 12px; padding: 16px 28px; border-bottom: 2px solid #111; align-items: center;
+}
+
+.pt-search-input {
+    width: 300px; height: 38px; padding: 0 12px; border: 2px solid #111; font-size: 10px; font-weight: 700; color: #111; outline: none; background: #fff;
+}
+
+.pt-filter-bar select {
+    height: 38px; padding: 0 12px; border: 2px solid #111; font-size: 10px; font-weight: 700; color: #111; outline: none; background: #fff; min-width: 150px; text-transform: uppercase;
+}
+
+.pt-date-filter {
+    display: flex; align-items: center; gap: 8px;
+}
+
+.pt-date-filter label {
+    font-size: 9px; font-weight: 800; color: #858c95; text-transform: uppercase;
+}
+
+.pt-date-filter input {
+    height: 38px; padding: 0 12px; border: 2px solid #111; font-size: 10px; font-weight: 700; color: #111; outline: none; background: #fff;
+}
+
+.pt-table-container {
+    flex: 1; min-height: 0; overflow: auto;
+}
+
+.pt-table td {
+    vertical-align: middle;
+}
+
+.person-col, .type-col {
+    display: flex; flex-direction: column; gap: 4px;
+}
+
+.person-col span, .type-code {
+    font-size: 9px; color: #9ca1a8; font-weight: 700; text-transform: uppercase;
+}
+
+.method-text {
+    font-size: 10px; font-weight: 800; color: #858c95; text-transform: uppercase;
+}
+
+.text-muted { color: #858c95 !important; font-size: 10px; text-transform: uppercase; font-weight: 700; }
+
+.status-outline {
+    padding: 4px 8px; font-size: 9px; font-weight: 900; text-transform: uppercase; border: 1px solid; display: inline-block; background: #fff;
+}
+
+.status-success { color: #0d8425; border-color: #0d8425; }
+.status-danger { color: #dc2626; border-color: #dc2626; }
+
+.pt-btn-detail {
+    min-height: 29px; padding: 0 10px; color: #111; border: 2px solid #111; background: #fff; font-size: 9px; font-weight: 900; white-space: nowrap; cursor: pointer; text-transform: uppercase;
+}
+
+.pt-btn-detail:hover {
+    color: #fff; background: #111;
+}
+
+.pt-empty-state {
+    padding: 60px 0; text-align: center;
+}
+
+.pt-empty-state p {
+    color: #9ca1a8; font-size: 11px; font-weight: 800; text-transform: uppercase; margin-bottom: 24px;
+}
+
+.pt-btn-dark {
+    min-height: 41px; padding: 0 24px; color: #fff; background: #111; border: none; font-size: 11px; font-weight: 900; cursor: pointer; text-transform: uppercase;
+}
+.pt-btn-dark:hover { background: #333; }
+
+.pt-pagination {
+    display: flex; justify-content: space-between; align-items: center; padding: 16px 28px; border-top: 2px solid #111;
+}
+
+.pt-pagination-info {
+    color: #858c95; font-size: 9px; font-weight: 800; text-transform: uppercase;
+}
+
+.pt-pagination-controls {
+    display: flex; gap: 8px;
+}
+
+.pt-pagination-controls button {
+    height: 38px; padding: 0 16px; border: 2px solid #dedede; background: #fff; color: #111; font-size: 9px; font-weight: 900; cursor: pointer; text-transform: uppercase;
+}
+
+.pt-pagination-controls button:disabled {
+    color: #9ca1a8; cursor: not-allowed;
+}
+
+.pt-toast {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    z-index: 100;
+    animation: slideUp 0.3s ease-out;
+}
+
+.pt-toast-content {
+    background: #0d8425;
+    color: white;
+    padding: 16px 24px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 900;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    text-transform: uppercase;
+    border: 2px solid #111;
+}
+
+.toast-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    background: white;
+    color: #0d8425;
+    border-radius: 50%;
+    font-size: 12px;
+}
