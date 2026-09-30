@@ -6,14 +6,18 @@ const ToastContainer = () => {
   const [toasts, setToasts] = useState([]);
 
   useEffect(() => {
-    const handleCartUpdate = () => {
-      const id = Date.now();
-      setToasts((prev) => [...prev, { id, message: 'Đã thêm sản phẩm vào giỏ hàng thành công!' }]);
-      
-      // Auto remove after 3 seconds
-      setTimeout(() => {
-        setToasts((prev) => prev.filter(toast => toast.id !== id));
-      }, 3000);
+    const handleCartUpdate = (event) => {
+      // Chỉ hiển thị toast khi sự kiện thực sự truyền detail (từ nút Thêm vào giỏ)
+      // Không hiển thị khi xóa giỏ hàng (logout) hoặc tăng giảm số lượng
+      if (event.detail) {
+        const id = Date.now();
+        setToasts((prev) => [...prev, { id, message: 'Đã thêm sản phẩm vào giỏ hàng thành công!' }]);
+        
+        // Auto remove after 3 seconds
+        setTimeout(() => {
+          setToasts((prev) => prev.filter(toast => toast.id !== id));
+        }, 3000);
+      }
     };
 
     window.addEventListener('cartUpdated', handleCartUpdate);

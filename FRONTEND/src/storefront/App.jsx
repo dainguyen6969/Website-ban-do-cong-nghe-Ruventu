@@ -17,33 +17,39 @@ import SearchPage from './pages/SearchPage';
 import NotFoundPage from './pages/NotFoundPage';
 import PromotionsPage from './pages/PromotionsPage';
 import ToastContainer from './components/ToastContainer';
+import FontPreferenceContext from '../typography/FontPreferenceContext';
+import usePersistentFontPreference from '../typography/usePersistentFontPreference';
 import './App.css';
 import './index.css';
 
 function StorefrontApp() {
+  const fontPreference = usePersistentFontPreference('storefront_font_preference');
+  
   return (
-    <div className="app storefront-app">
-      <ToastContainer />
-      <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/search" element={<SearchPage />} />
-        <Route path="/category/:slug" element={<CategoryPage />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
-        <Route path="/cart" element={<CartPage />} />
-        <Route path="/checkout" element={<CheckoutPage />} />
-        <Route path="/success" element={<SuccessPage />} />
-        <Route path="/profile" element={<ProfilePage />} />
-        <Route path="/warranty-lookup" element={<WarrantyLookupPage />} />
-        <Route path="/order-lookup" element={<OrderLookupPage />} />
-        <Route path="/order/:id" element={<OrderDetailPage />} />
-        <Route path="/build-pc/:id" element={<BuildPCDetail />} />
-        <Route path="/product/:id" element={<ProductDetail />} />
-        <Route path="/promotions" element={<PromotionsPage />} />
-        {/* Redirect unknown routes to 404 Not Found Page */}
-        <Route path="*" element={<NotFoundPage />} />
-      </Routes>
-    </div>
+    <FontPreferenceContext.Provider value={fontPreference}>
+      <div className="app storefront-app" style={{ fontFamily: fontPreference.font.family }}>
+        <ToastContainer />
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/search" element={<SearchPage />} />
+          <Route path="/category/:slug" element={<CategoryPage />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+          <Route path="/cart" element={<CartPage />} />
+          <Route path="/checkout" element={<CheckoutPage />} />
+          <Route path="/success" element={<SuccessPage />} />
+          <Route path="/profile" element={<ProfilePage />} />
+          <Route path="/warranty-lookup" element={<WarrantyLookupPage />} />
+          <Route path="/order-lookup" element={<OrderLookupPage />} />
+          <Route path="/order/:id" element={<OrderDetailPage />} />
+          <Route path="/build-pc/:id" element={<BuildPCDetail />} />
+          <Route path="/product/:id" element={<ProductDetail />} />
+          <Route path="/promotions" element={<PromotionsPage />} />
+          {/* Redirect unknown routes to 404 Not Found Page */}
+          <Route path="*" element={<NotFoundPage />} />
+        </Routes>
+      </div>
+    </FontPreferenceContext.Provider>
   );
 }
 

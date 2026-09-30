@@ -1276,7 +1276,10 @@ public class AdminPurchaseOrderService {
                     loaiThuChiRepository.save(
                         LoaiThuChi.builder()
                             .maLoai(code)
-                            .tenLoai(code.equals("CHI_NHAP_HANG") ? "Chi nhập hàng" : "Thu hoàn nhà cung cấp")
+                            .tenLoai(
+                                code.equals("CHI_NHAP_HANG")
+                                    ? "Chi nhập hàng"
+                                    : "Thu hoàn nhà cung cấp")
                             .loaiPhieu(voucherType)
                             .trangThai(TrangThaiCoBanEnum.HOAT_DONG)
                             .build()));
