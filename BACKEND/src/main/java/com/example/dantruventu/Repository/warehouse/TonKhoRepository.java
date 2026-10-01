@@ -39,6 +39,17 @@ public interface TonKhoRepository extends JpaRepository<TonKho, Long> {
   List<TonKho> findForSerialUpdate(
       @Param("khoHangId") Long khoHangId, @Param("phienBanId") Long phienBanId);
 
+  @Lock(LockModeType.PESSIMISTIC_WRITE)
+  @Query(
+      """
+            SELECT t
+            FROM TonKho t
+            WHERE t.phienBan.id = :phienBanId
+            ORDER BY t.id
+            """)
+  List<TonKho> findAllByPhienBanIdForInventoryCheckUpdate(
+      @Param("phienBanId") Long phienBanId);
+
   boolean existsByPhienBanId(Long phienBanId);
 
   List<TonKho> findByKhoHang_IdAndPhienBan_IdOrderByIdAsc(Long khoHangId, Long phienBanId);
