@@ -109,9 +109,9 @@ const Login = () => {
                 {
                     tai_khoan: formData.account,
                     mat_khau: formData.password,
-                    ghi_nho_dang_nhap:
-                    formData.remember,
-                }
+                    ghi_nho_dang_nhap: formData.remember,
+                },
+                { withCredentials: true }
             );
 
             const result = response.data;
