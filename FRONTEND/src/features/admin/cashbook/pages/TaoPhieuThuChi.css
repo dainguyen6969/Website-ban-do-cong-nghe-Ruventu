@@ -1,0 +1,606 @@
+.tpc-page {
+    flex: 1;
+    min-width: 0;
+    overflow: auto;
+    display: flex;
+    flex-direction: column;
+    background: #ffffff;
+    min-height: calc(100vh - 60px);
+}
+
+/* Header */
+.tpc-header {
+    padding: 20px 32px 12px 32px;
+    background: #ffffff;
+}
+
+.tpc-breadcrumb {
+    color: #94a3b8;
+    font-size: 10px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.tpc-breadcrumb span {
+    color: #cbd5e1;
+    margin: 0 4px;
+}
+
+.tpc-title-bar {
+    margin-top: 14px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.tpc-btn-back {
+    height: 38px;
+    padding: 0 18px;
+    border: 1.5px solid #111111;
+    background: #ffffff;
+    color: #111111;
+    font-size: 10px;
+    font-weight: 900;
+    cursor: pointer;
+    text-transform: uppercase;
+    transition: all 0.15s ease;
+}
+
+.tpc-btn-back:hover {
+    background: #f1f5f9;
+    transform: translateY(-1px);
+}
+
+.tpc-btn-back:active {
+    transform: translateY(0);
+}
+
+.tpc-title {
+    font-size: 20px;
+    font-weight: 900;
+    text-transform: uppercase;
+    color: #090909;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    letter-spacing: 0.5px;
+}
+
+.tpc-title-accent {
+    color: #f20b13;
+    font-weight: 900;
+}
+
+/* Tabs Switcher */
+.tpc-tabs-container {
+    margin: 20px 32px 0 32px;
+    display: flex;
+    gap: 0;
+}
+
+.tpc-tab-btn {
+    height: 42px;
+    padding: 0 28px;
+    border: 1.5px solid #111111;
+    border-bottom: none;
+    background: #ffffff;
+    color: #111111;
+    font-size: 11px;
+    font-weight: 900;
+    cursor: pointer;
+    text-transform: uppercase;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.15s ease;
+}
+
+.tpc-tab-btn:hover:not(.active) {
+    background: #f8fafc;
+}
+
+.tpc-tab-btn.tab-thu.active {
+    background: #f20b13 !important;
+    color: #ffffff !important;
+    border-color: #111111 !important;
+}
+
+.tpc-tab-btn.tab-chi.active {
+    background: #2563eb !important;
+    color: #ffffff !important;
+    border-color: #111111 !important;
+}
+
+/* Main Form Card Container */
+.tpc-form-card {
+    margin: 0 32px 24px 32px;
+    border: 1.5px solid #111111 !important;
+    background: #ffffff !important;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+}
+
+.tpc-form-grid {
+    display: flex;
+    gap: 36px;
+    padding: 28px;
+}
+
+.tpc-col {
+    flex: 1;
+    min-width: 0;
+}
+
+.tpc-section-title {
+    font-size: 11px;
+    font-weight: 900;
+    color: #111111;
+    text-transform: uppercase;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    letter-spacing: 0.5px;
+}
+
+.tpc-accent {
+    color: #f20b13;
+    font-weight: 900;
+}
+
+/* Form Groups & Inputs */
+.tpc-form-group {
+    margin-bottom: 18px;
+}
+
+.tpc-form-group label {
+    display: block;
+    font-size: 9px;
+    font-weight: 800;
+    color: #64748b;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+    letter-spacing: 0.5px;
+}
+
+.tpc-form-group input[type="text"],
+.tpc-form-group input[type="number"],
+.tpc-form-group input[type="date"],
+.tpc-form-group select,
+.tpc-form-group textarea {
+    width: 100%;
+    height: 40px;
+    padding: 0 12px;
+    border: 1.5px solid #111111;
+    font-size: 11px;
+    font-weight: 700;
+    color: #111111;
+    outline: none;
+    background: #ffffff;
+    box-sizing: border-box;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.tpc-form-group input[type="text"]:focus,
+.tpc-form-group input[type="number"]:focus,
+.tpc-form-group input[type="date"]:focus,
+.tpc-form-group select:focus,
+.tpc-form-group textarea:focus {
+    border-color: #f20b13 !important;
+}
+
+.tpc-form-group textarea {
+    height: auto;
+    padding: 10px 12px;
+    resize: vertical;
+    font-family: inherit;
+}
+
+/* Search Wrapper & Dropdown Popover */
+.tpc-input-search-wrapper {
+    position: relative !important;
+    width: 100% !important;
+    display: block !important;
+    box-sizing: border-box !important;
+}
+
+.tpc-input-search-wrapper input {
+    padding-right: 40px !important;
+    padding-left: 12px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+}
+
+.tpc-input-search-wrapper .tpc-search-icon-right {
+    position: absolute !important;
+    right: 12px !important;
+    left: auto !important;
+    top: 50% !important;
+    transform: translateY(-50%) !important;
+    pointer-events: none !important;
+    z-index: 10 !important;
+    width: 16px !important;
+    height: 16px !important;
+    stroke: #94a3b8 !important;
+    transition: stroke 0.15s ease;
+}
+
+.tpc-input-search-wrapper.is-focused input,
+.tpc-input-search-wrapper input:focus {
+    border-color: #f20b13 !important;
+}
+
+.tpc-input-search-wrapper.is-focused .tpc-search-icon-right,
+.tpc-input-search-wrapper input:focus + .tpc-search-icon-right {
+    stroke: #f20b13 !important;
+}
+
+.tpc-search-dropdown {
+    position: absolute !important;
+    top: calc(100% - 1.5px) !important;
+    left: 0 !important;
+    right: 0 !important;
+    background: #ffffff !important;
+    border: 1.5px solid #111111 !important;
+    z-index: 100 !important;
+    max-height: 280px !important;
+    overflow-y: auto !important;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12) !important;
+}
+
+.tpc-search-dropdown-item {
+    padding: 11px 16px;
+    font-size: 11px;
+    font-weight: 700;
+    color: #1e293b;
+    cursor: pointer;
+    border-bottom: 1px solid #f1f5f9;
+    transition: background 0.1s ease, color 0.1s ease;
+}
+
+.tpc-search-dropdown-item:last-child {
+    border-bottom: none;
+}
+
+.tpc-search-dropdown-item:hover {
+    background: #f8fafc;
+    color: #f20b13;
+    font-weight: 800;
+}
+
+/* Auto Code Input Group */
+.tpc-code-input-group {
+    display: flex;
+}
+
+.input-code-thu {
+    flex: 1;
+    background: #f8fafc !important;
+    color: #f20b13 !important;
+    font-size: 12px !important;
+    font-weight: 900 !important;
+    border-right: none !important;
+}
+
+.input-code-chi {
+    flex: 1;
+    background: #f8fafc !important;
+    color: #111111 !important;
+    font-size: 12px !important;
+    font-weight: 900 !important;
+    border-right: none !important;
+}
+
+.btn-auto-code {
+    height: 40px;
+    padding: 0 16px;
+    background: #e2e8f0;
+    color: #334155;
+    border: 1.5px solid #111111;
+    border-left: none;
+    font-size: 9px;
+    font-weight: 900;
+    cursor: pointer;
+    text-transform: uppercase;
+    transition: background 0.15s ease;
+}
+
+.btn-auto-code:hover {
+    background: #cbd5e1;
+}
+
+/* Select + Add Button */
+.tpc-select-add-wrapper {
+    display: flex;
+}
+
+.tpc-select-add-wrapper select {
+    flex: 1;
+    border-right: none;
+}
+
+.btn-add-type-icon {
+    width: 40px;
+    height: 40px;
+    background: #111111;
+    color: #ffffff;
+    border: 1.5px solid #111111;
+    font-size: 18px;
+    font-weight: 900;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.15s ease;
+}
+
+.btn-add-type-icon:hover {
+    background: #27272a;
+}
+
+.tpc-inline-add-row {
+    display: flex;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.tpc-inline-add-row input {
+    flex: 1;
+    height: 38px;
+    border: 1.5px solid #111111;
+    padding: 0 12px;
+    font-size: 11px;
+    font-weight: 700;
+}
+
+.btn-inline-add {
+    height: 38px;
+    padding: 0 18px;
+    background: #111111;
+    color: #ffffff;
+    border: none;
+    font-size: 9px;
+    font-weight: 900;
+    cursor: pointer;
+    text-transform: uppercase;
+}
+
+.btn-inline-add:hover {
+    background: #27272a;
+}
+
+/* Amount Field */
+.tpc-amount-wrapper {
+    position: relative;
+}
+
+.tpc-amount-input {
+    color: #f20b13 !important;
+    font-size: 14px !important;
+    font-weight: 900 !important;
+    padding-right: 28px !important;
+}
+
+.currency-unit {
+    position: absolute;
+    right: 12px;
+    top: 12px;
+    font-size: 11px;
+    font-weight: 800;
+    color: #94a3b8;
+}
+
+/* Tags Field */
+.tpc-tags-wrapper {
+    border: 1.5px solid #111111;
+    padding: 4px 8px;
+    min-height: 40px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    background: #ffffff;
+}
+
+.tpc-tag-pill {
+    background: #f1f5f9;
+    border: 1px solid #cbd5e1;
+    color: #1e293b;
+    padding: 2px 8px;
+    font-size: 10px;
+    font-weight: 700;
+    border-radius: 3px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.tpc-tag-pill button {
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    font-size: 12px;
+    color: #64748b;
+    transition: color 0.1s ease;
+}
+
+.tpc-tag-pill button:hover {
+    color: #f20b13;
+}
+
+.tpc-tags-wrapper input {
+    border: none !important;
+    height: 30px !important;
+    padding: 0 4px !important;
+    flex: 1;
+    min-width: 140px;
+}
+
+.tpc-subtext {
+    font-size: 9px;
+    color: #94a3b8;
+    font-weight: 600;
+    display: block;
+    margin-top: 4px;
+}
+
+.input-error {
+    border-color: #dc2626 !important;
+}
+
+.error-text {
+    font-size: 9px;
+    font-weight: 800;
+    color: #dc2626;
+    margin-top: 4px;
+    display: block;
+}
+
+/* Bottom Live Summary Bar (Inside Card) */
+.tpc-summary-bar {
+    background: #111111 !important;
+    color: #ffffff !important;
+    padding: 16px 28px !important;
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    gap: 36px !important;
+    border-top: 1.5px solid #111111 !important;
+    box-sizing: border-box !important;
+    width: 100% !important;
+}
+
+.bar-accent {
+    color: #f20b13 !important;
+    font-size: 16px !important;
+    font-weight: 900 !important;
+}
+
+.tpc-summary-col {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 2px !important;
+}
+
+.summary-label {
+    font-size: 8px !important;
+    font-weight: 800 !important;
+    color: #9ca3af !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.5px !important;
+}
+
+.summary-value {
+    font-size: 11px !important;
+    font-weight: 700 !important;
+    color: #ffffff !important;
+}
+
+.summary-value.bold {
+    font-weight: 900 !important;
+}
+
+.summary-value.text-red {
+    color: #f20b13 !important;
+}
+
+/* Sticky Action Footer */
+.tpc-action-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 32px 32px 32px;
+    background: #ffffff;
+}
+
+.tpc-footer-note {
+    font-size: 10px;
+    color: #64748b;
+    font-weight: 600;
+}
+
+.tpc-footer-buttons {
+    display: flex;
+    gap: 12px;
+}
+
+.tpc-btn-cancel {
+    height: 40px;
+    padding: 0 28px;
+    border: 1.5px solid #111111;
+    background: #ffffff;
+    color: #111111;
+    font-size: 10px;
+    font-weight: 900;
+    cursor: pointer;
+    text-transform: uppercase;
+    transition: all 0.15s ease;
+}
+
+.tpc-btn-cancel:hover {
+    background: #f1f5f9;
+    transform: translateY(-1px);
+}
+
+.tpc-btn-cancel:active {
+    transform: translateY(0);
+}
+
+.tpc-btn-submit {
+    height: 40px;
+    padding: 0 32px;
+    border: none;
+    color: #ffffff;
+    font-size: 10px;
+    font-weight: 900;
+    cursor: pointer;
+    text-transform: uppercase;
+    transition: all 0.15s ease;
+}
+
+.tpc-btn-submit.btn-thu {
+    background: #f20b13 !important;
+}
+
+.tpc-btn-submit.btn-thu:hover {
+    background: #d10810 !important;
+    box-shadow: 0 4px 12px rgba(242, 11, 19, 0.25);
+    transform: translateY(-1px);
+}
+
+.tpc-btn-submit.btn-thu:active {
+    transform: translateY(0);
+}
+
+.tpc-btn-submit.btn-chi {
+    background: #2563eb !important;
+}
+
+.tpc-btn-submit.btn-chi:hover {
+    background: #1d4ed8 !important;
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
+    transform: translateY(-1px);
+}
+
+.tpc-btn-submit.btn-chi:active {
+    transform: translateY(0);
+}
+
+@media (max-width: 900px) {
+    .tpc-form-grid {
+        flex-direction: column;
+        gap: 24px;
+    }
+    .tpc-summary-bar {
+        flex-wrap: wrap;
+        gap: 16px;
+    }
+    .tpc-action-footer {
+        flex-direction: column;
+        gap: 16px;
+        align-items: flex-start;
+    }
+}
+

@@ -90,6 +90,7 @@ const Header = () => {
        */
       localStorage.removeItem("user");
       localStorage.removeItem("accessToken");
+      localStorage.removeItem("ruventu.mock.session");
       
       // Xóa giỏ hàng khi đăng xuất
       localStorage.removeItem("ruventu_cart");

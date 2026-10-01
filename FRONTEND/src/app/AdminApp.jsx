@@ -11,8 +11,24 @@ import KhachTraHang from '../features/admin/customers/pages/KhachTraHang';
 import DanhSachSanPham from '../features/admin/catalog/products/pages/DanhSachSanPham';
 import ThemSanPham from '../features/admin/catalog/products/pages/ThemSanPham';
 import ChiTietSanPham from '../features/admin/catalog/products/pages/ChiTietSanPham';
+import DanhSachKhuyenMai from '../features/admin/promotions/pages/DanhSachKhuyenMai';
 import TaoKhuyenMai from '../features/admin/promotions/pages/TaoKhuyenMai';
+import ChiTietKhuyenMai from '../features/admin/promotions/pages/ChiTietKhuyenMai';
 import BanHang from '../features/admin/sales/pages/BanHang';
+import TongQuanQuy from '../features/admin/cashbook/pages/TongQuanQuy';
+import SoQuy from '../features/admin/cashbook/pages/SoQuy';
+import DanhSachPhieuThu from '../features/admin/cashbook/pages/DanhSachPhieuThu';
+import TaoPhieuThu from '../features/admin/cashbook/pages/TaoPhieuThu';
+import DanhSachLoaiPhieuThu from '../features/admin/cashbook/pages/DanhSachLoaiPhieuThu';
+import ChiTietLoaiPhieuThu from '../features/admin/cashbook/pages/ChiTietLoaiPhieuThu';
+import DanhSachPhieuChi from '../features/admin/cashbook/pages/DanhSachPhieuChi';
+import TaoPhieuChi from '../features/admin/cashbook/pages/TaoPhieuChi';
+import TaoPhieuThuChi from '../features/admin/cashbook/pages/TaoPhieuThuChi';
+import DanhSachLoaiPhieuChi from '../features/admin/cashbook/pages/DanhSachLoaiPhieuChi';
+
+import ChiTietLoaiPhieuChi from '../features/admin/cashbook/pages/ChiTietLoaiPhieuChi';
+import ChiTietPhieuThu from '../features/admin/cashbook/pages/ChiTietPhieuThu';
+import ChiTietPhieuChi from '../features/admin/cashbook/pages/ChiTietPhieuChi';
 import PlaceholderPage from '../features/admin/shared/pages/PlaceholderPage';
 import QuanLyPhienBan from '../features/admin/catalog/products/pages/QuanLyPhienBan';
 import ChiTietTonKho from '../features/admin/inventory/pages/ChiTietTonKho';
@@ -39,6 +55,7 @@ import ThuongHieu, { ChiTietThuongHieu } from '../features/admin/catalog/brands/
 import PermissionGate from '../shared/components/ui/PermissionGate';
 import CustomerProvider from '../context/CustomerProvider';
 import OrderProvider from '../context/OrderProvider';
+import { CashbookProvider } from '../features/admin/cashbook/context/CashbookContext';
 import { ADMIN_FONT_STORAGE_KEY } from '../typography/fontOptions';
 import FontPreferenceContext from '../typography/FontPreferenceContext';
 import usePersistentFontPreference from '../typography/usePersistentFontPreference';
@@ -63,9 +80,10 @@ export default function AdminApp() {
     <FontPreferenceContext.Provider value={fontPreference}>
       <CustomerProvider>
         <OrderProvider>
-        <div className="app-layout admin-app" style={{ '--font-family-admin': fontPreference.font.family }}>
-        <Sidebar collapsed={sidebarCollapsed} mobileOpen={mobileSidebarOpen} onToggle={toggleSidebar} onNavigate={() => setMobileSidebarOpen(false)} />
-        {mobileSidebarOpen && <button type="button" className="sidebar-backdrop" onClick={() => setMobileSidebarOpen(false)} aria-label="Đóng menu điều hướng" />}
+          <CashbookProvider>
+            <div className="app-layout admin-app" style={{ '--font-family-admin': fontPreference.font.family }}>
+            <Sidebar collapsed={sidebarCollapsed} mobileOpen={mobileSidebarOpen} onToggle={toggleSidebar} onNavigate={() => setMobileSidebarOpen(false)} />
+            {mobileSidebarOpen && <button type="button" className="sidebar-backdrop" onClick={() => setMobileSidebarOpen(false)} aria-label="Đóng menu điều hướng" />}
         <div className="app-layout__main">
           <Header onMenuToggle={toggleSidebar} isMenuOpen={mobileSidebarOpen} />
           <PermissionGate><Routes>
@@ -111,9 +129,27 @@ export default function AdminApp() {
           <Route path="/admin/nhan-vien/vai-tro" element={<VaiTro />} />
           <Route path="/admin/nhan-vien/:accountId" element={<ChiTietNhanVien />} />
           <Route path="/admin/khuyen-mai" element={<Navigate to="/admin/khuyen-mai/danh-sach-khuyen-mai" replace />} />
-          <Route path="/admin/khuyen-mai/danh-sach-khuyen-mai" element={<PlaceholderPage title="Danh sách khuyến mại" />} />
+          <Route path="/admin/khuyen-mai/danh-sach-khuyen-mai" element={<DanhSachKhuyenMai />} />
+          <Route path="/admin/khuyen-mai/chi-tiet-khuyen-mai/:id" element={<ChiTietKhuyenMai />} />
           <Route path="/admin/khuyen-mai/tao-khuyen-mai" element={<TaoKhuyenMai />} />
-          <Route path="/admin/so-quy-tien-mat" element={<PlaceholderPage title="Sổ quỹ tiền mặt" />} />
+          
+          <Route path="/admin/so-quy-tien-mat" element={<Navigate to="/admin/so-quy-tien-mat/tong-quan" replace />} />
+          <Route path="/admin/so-quy-tien-mat/tong-quan" element={<TongQuanQuy />} />
+          <Route path="/admin/so-quy-tien-mat/so-quy" element={<SoQuy />} />
+          <Route path="/admin/so-quy-tien-mat/tao-phieu-thu-chi" element={<TaoPhieuThuChi />} />
+          <Route path="/admin/so-quy-tien-mat/phieu-thu" element={<DanhSachPhieuThu />} />
+          <Route path="/admin/so-quy-tien-mat/phieu-thu/:id" element={<ChiTietPhieuThu />} />
+          <Route path="/admin/so-quy-tien-mat/tao-phieu-thu" element={<TaoPhieuThu />} />
+          <Route path="/admin/so-quy-tien-mat/loai-phieu-thu" element={<DanhSachLoaiPhieuThu />} />
+          <Route path="/admin/so-quy-tien-mat/loai-phieu-thu/:id" element={<ChiTietLoaiPhieuThu />} />
+          <Route path="/admin/so-quy-tien-mat/phieu-chi" element={<DanhSachPhieuChi />} />
+          <Route path="/admin/so-quy-tien-mat/phieu-chi/:id" element={<ChiTietPhieuChi />} />
+          <Route path="/admin/so-quy-tien-mat/tao-phieu-chi" element={<TaoPhieuChi />} />
+          <Route path="/admin/so-quy-tien-mat/loai-phieu-chi" element={<DanhSachLoaiPhieuChi />} />
+          <Route path="/admin/so-quy-tien-mat/loai-phieu-chi/:id" element={<ChiTietLoaiPhieuChi />} />
+
+          <Route path="/admin/so-quy-tien-mat/:placeholder" element={<PlaceholderPage title="Tính năng đang phát triển" />} />
+
           <Route path="/admin/bao-cao" element={<PlaceholderPage title="Báo cáo" />} />
           <Route path="/admin/bao-hanh" element={<PlaceholderPage title="Bảo hành" />} />
           <Route path="/admin/danh-muc" element={<Navigate to="/admin/danh-muc/danh-muc-san-pham" replace />} />
@@ -141,6 +177,7 @@ export default function AdminApp() {
           </Routes></PermissionGate>
         </div>
         </div>
+          </CashbookProvider>
         </OrderProvider>
       </CustomerProvider>
     </FontPreferenceContext.Provider>
