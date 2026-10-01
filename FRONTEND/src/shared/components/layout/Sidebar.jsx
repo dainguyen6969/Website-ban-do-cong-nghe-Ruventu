@@ -182,7 +182,15 @@ const menuItems = [
     label: 'Sổ quỹ tiền mặt',
     icon: IconSoQuyTienMat,
     path: '/admin/so-quy-tien-mat',
-    expandable: false,
+    expandable: true,
+    subItems: [
+      { id: 'tong-quan-quy', label: 'Tổng quan', path: '/admin/so-quy-tien-mat/tong-quan' },
+      { id: 'phieu-thu', label: 'Phiếu thu', path: '/admin/so-quy-tien-mat/phieu-thu' },
+      { id: 'loai-phieu-thu', label: 'Loại phiếu thu', path: '/admin/so-quy-tien-mat/loai-phieu-thu' },
+      { id: 'phieu-chi', label: 'Phiếu chi', path: '/admin/so-quy-tien-mat/phieu-chi' },
+      { id: 'loai-phieu-chi', label: 'Loại phiếu chi', path: '/admin/so-quy-tien-mat/loai-phieu-chi' },
+      { id: 'so-quy', label: 'Sổ quỹ', path: '/admin/so-quy-tien-mat/so-quy' },
+    ],
   },
   {
     id: 'bao-cao',

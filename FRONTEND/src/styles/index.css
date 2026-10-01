@@ -210,3 +210,30 @@ html:has(.storefront-app) {
   white-space: nowrap;
   border: 0;
 }
+
+/* Disable table row, header, and cell hover background color changes across all admin tables */
+.admin-app table tr:hover,
+.admin-app table tbody tr:hover,
+.admin-app table thead tr:hover,
+.admin-app table tfoot tr:hover,
+.admin-app .promo-table tr:hover,
+.admin-app .sq-table tr:hover {
+  background-color: unset !important;
+}
+
+.admin-app table th:hover,
+.admin-app table td:hover,
+.admin-app table thead th:hover {
+  background-color: inherit !important;
+}
+
+.admin-app table tbody tr:nth-child(odd):hover,
+.admin-app .promo-table tbody tr:nth-child(odd):hover {
+  background-color: #ffffff !important;
+}
+
+.admin-app table tbody tr:nth-child(even):hover,
+.admin-app .promo-table tbody tr:nth-child(even):hover {
+  background-color: #fafafa !important;
+}
+
