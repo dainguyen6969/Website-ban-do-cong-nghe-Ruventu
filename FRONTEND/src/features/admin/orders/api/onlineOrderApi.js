@@ -14,17 +14,30 @@ export const normalizeSalesProduct = (item = {}) => ({
   image: item.anh_dai_dien || '',
   type: item.loai_san_pham || 'DON',
   unitPrice: number(item.don_gia),
+  vatRate: number(item.thue_vat),
+  serialManaged: Boolean(item.quan_ly_serial),
   stock: Math.max(0, number(item.ton_co_the_ban)),
 });
 
 export const getSalesOptions = (signal) => adminRequest(`${SALES_PATH}/options`, { signal });
 
+export const normalizeSalesCustomer = (item = {}) => ({
+  id: number(item.id), name: item.ho_ten || '', phone: item.so_dien_thoai || '',
+  email: item.email?.endsWith('@ruventu.local') ? '' : item.email || '',
+});
+
+export async function createSalesCustomer(customer) {
+  const data = await adminRequest(`${SALES_PATH}/customers`, {
+    method: 'POST',
+    body: JSON.stringify({ ho_ten: customer.name.trim(), so_dien_thoai: customer.phone.trim() }),
+  });
+  return normalizeSalesCustomer(data);
+}
+
 export async function searchSalesCustomers(keyword, signal) {
   const query = new URLSearchParams({ keyword: keyword.trim(), page: '0', limit: '8' });
   const data = await adminRequest(`${SALES_PATH}/customers?${query}`, { signal });
-  return (data?.items || []).map((item) => ({
-    id: number(item.id), name: item.ho_ten || '', phone: item.so_dien_thoai || '', email: item.email || '',
-  }));
+  return (data?.items || []).map(normalizeSalesCustomer);
 }
 
 export async function searchSalesProducts(keyword, options, signal) {

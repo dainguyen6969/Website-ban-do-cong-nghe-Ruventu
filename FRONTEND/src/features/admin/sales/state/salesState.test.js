@@ -1,7 +1,7 @@
 // Tests for point-of-sale state helpers.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { addProduct, closeOrderTab, createOrder, finalizeOrder, orderTotals, resetOrder, updateOrder } from './salesState.js';
+import { addProduct, closeOrderTab, createOrder, finalizeOrder, findIncompleteSerialLine, orderTotals, resetOrder, updateOrder } from './salesState.js';
 import { mockEmployees } from '../../../../data/mockEmployees.js';
 
 const product = { id: 'VGA', vatRate: 10, prices: { retail: 24990000, dealer: 23000000, business: 22000000 } };
@@ -15,12 +15,23 @@ test('VAT and percentage discount use the tax-inclusive order amount', () => {
   assert.equal(exempt.paid, 22491000);
 });
 
+test('backend unit price and tax-included mode do not add VAT twice', () => {
+  const order = updateOrder(createOrder(1), { cart: addProduct([], { id: 42, unitPrice: 110000, vatRate: 10 }), taxMode: 'DA_BAO_GOM' });
+  assert.deepEqual(orderTotals(order), { subtotal: 110000, vat: 10000, discountAmount: 0, total: 110000 });
+});
+
 test('duplicate products increment one row and preserve the original cart', () => {
   const original = addProduct([], product);
   const cart = addProduct(original, product);
   assert.equal(cart.length, 1);
   assert.equal(cart[0].quantity, 2);
   assert.equal(original[0].quantity, 1);
+});
+
+test('serial-managed lines stay blocked until quantity and selected serials match', () => {
+  const line = { ...addProduct([], { ...product, serialManaged: true })[0], quantity: 2, serialAvailable: 1 };
+  assert.equal(findIncompleteSerialLine([line]), line);
+  assert.equal(findIncompleteSerialLine([{ ...line, serials: [{ id: 1 }, { id: 2 }] }]), null);
 });
 
 test('manual payment survives unrelated changes and recalculates with pricing or cart changes', () => {

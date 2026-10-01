@@ -31,6 +31,12 @@ public class AdminSalesController {
     return ok("Lấy khách hàng thành công", service.customers(keyword, page, limit));
   }
 
+  @PostMapping("/customers")
+  public ApiResponse<AdminSalesResponse.Customer> createCustomer(
+      @Valid @RequestBody AdminSalesRequest.Customer request) {
+    return ok("Tạo khách hàng thành công", service.createCustomer(request));
+  }
+
   @GetMapping("/products")
   public ApiResponse<AdminSalesResponse.PageData<AdminSalesResponse.Product>> products(
       @RequestParam(name = "keyword", required = false) String keyword,
