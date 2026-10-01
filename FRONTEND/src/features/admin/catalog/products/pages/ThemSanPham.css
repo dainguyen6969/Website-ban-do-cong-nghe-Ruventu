@@ -787,8 +787,25 @@
 
 .variant-table__td--name {
   font-weight: 600;
-  white-space: nowrap;
-  min-width: 100px;
+  min-width: 190px;
+}
+
+.variant-name-field {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.variant-name-field .form-input {
+  min-width: 160px;
+}
+
+.variant-name-field .attr-remove-btn {
+  flex: 0 0 auto;
+}
+
+.variant-add-btn {
+  margin-top: 12px;
 }
 
 /* Price input with unit label */

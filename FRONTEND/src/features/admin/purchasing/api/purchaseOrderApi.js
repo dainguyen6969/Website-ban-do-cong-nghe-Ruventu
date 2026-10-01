@@ -91,11 +91,3 @@ export const saveBody = ({ supplierId, warehouseId, applyTax, items }) => ({
   nha_cung_cap_id: number(supplierId), kho_hang_id: number(warehouseId), ap_dung_thue: Boolean(applyTax),
   items: items.map((item) => ({ phien_ban_id: number(item.versionId), so_luong: number(item.qty), gia_nhap: number(item.unitPrice) })),
 });
-
-export function generateSerialValues(items, modes, prefix) {
-  let next = 1;
-  return Object.fromEntries(items.filter((item) => modes[item.id] === 'true').map((item) => [
-    item.id,
-    Array.from({ length: item.qty }, () => `${prefix.trim()}${next++}`).join('\n'),
-  ]));
-}

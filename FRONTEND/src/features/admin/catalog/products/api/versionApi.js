@@ -53,7 +53,11 @@ async function request(path, options = {}, retry = true) {
     return request(path, options, false);
   }
   const payload = await parseResponse(response);
-  if (!response.ok) throw new Error(payload?.message || `Yêu cầu thất bại (${response.status}).`);
+  if (!response.ok) {
+    const error = new Error(payload?.message || `Yêu cầu thất bại (${response.status}).`);
+    error.status = response.status;
+    throw error;
+  }
   return payload?.data;
 }
 
