@@ -1,0 +1,214 @@
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { useCashbook } from '../context/CashbookContext';
+import './DanhSachLoaiPhieuThu.css'; // Reuse CSS
+
+const mockDataFallback = [
+    { id: 1, code: 'LPC001', name: 'Chi nhập hàng', type: 'CHI', note: 'Thanh toán tiền mua hàng hóa, nguyên vật liệu', status: 'HOẠT ĐỘNG' },
+    { id: 2, code: 'LPC002', name: 'Chi hoàn tiền khách hàng', type: 'CHI', note: 'Hoàn tiền cho khách đổi/trả hàng', status: 'HOẠT ĐỘNG' },
+    { id: 3, code: 'LPC003', name: 'Chi phí vận chuyển', type: 'CHI', note: 'Trả phí vận chuyển cho đối tác giao hàng', status: 'HOẠT ĐỘNG' },
+    { id: 4, code: 'LPC004', name: 'Chi lương nhân viên', type: 'CHI', note: '-', status: 'HOẠT ĐỘNG' },
+    { id: 5, code: 'LPC015', name: 'Chi tạm ứng nhân viên', type: 'CHI', note: 'Khoản tạm ứng để nhân viên mua vật tư', status: 'HOẠT ĐỘNG' },
+    { id: 6, code: 'LPC020', name: 'Chi phí thuê mặt bằng', type: 'CHI', note: '-', status: 'NGỪNG HOẠT ĐỘNG' }
+];
+
+export default function DanhSachLoaiPhieuChi() {
+    const navigate = useNavigate();
+    const location = useLocation();
+    const { loaiPhieuChiList, addLoaiPhieuChi } = useCashbook();
+
+    const dataToUse = loaiPhieuChiList && loaiPhieuChiList.length > 0 ? loaiPhieuChiList : mockDataFallback;
+
+    const [searchQuery, setSearchQuery] = useState('');
+    const [filterStatus, setFilterStatus] = useState('TẤT CẢ TRẠNG THÁI');
+    const [showModal, setShowModal] = useState(false);
+    
+    // Form state
+    const [newCode, setNewCode] = useState('');
+    const [newName, setNewName] = useState('');
+    const [newNote, setNewNote] = useState('');
+    const [errors, setErrors] = useState({});
+
+    const handleOpenModal = () => {
+        setNewCode('');
+        setNewName('');
+        setNewNote('');
+        setErrors({});
+        setShowModal(true);
+    };
+
+    const handleCreate = () => {
+        let newErrors = {};
+        if (!newCode.trim()) newErrors.code = 'Vui lòng nhập mã loại';
+        if (!newName.trim()) newErrors.name = 'Vui lòng nhập tên loại';
+        
+        if (Object.keys(newErrors).length > 0) {
+            setErrors(newErrors);
+            return;
+        }
+
+        if (addLoaiPhieuChi) {
+            addLoaiPhieuChi({
+                id: Date.now(),
+                code: newCode,
+                name: newName,
+                type: 'CHI',
+                note: newNote || '-',
+                status: 'HOẠT ĐỘNG'
+            });
+        }
+
+        setShowModal(false);
+    };
+
+    const filteredData = dataToUse.filter(item => {
+        if (searchQuery && !item.code.toLowerCase().includes(searchQuery.toLowerCase()) && !item.name.toLowerCase().includes(searchQuery.toLowerCase())) return false;
+        if (filterStatus !== 'TẤT CẢ TRẠNG THÁI' && item.status !== filterStatus) return false;
+        return true;
+    });
+
+
+    return (
+        <div className="lpt-page">
+            <div className="pt-header-top">
+
+                <div className="pt-breadcrumb">SỔ QUỸ TIỀN MẶT / LOẠI PHIẾU CHI</div>
+                <button className="pt-btn-create" onClick={handleOpenModal}>
+                    + THÊM LOẠI PHIẾU CHI
+                </button>
+            </div>
+            
+            <div className="pt-header-main">
+                <h1>LOẠI PHIẾU CHI</h1>
+                <p>QUẢN LÝ CÁC NHÓM MỤC ĐÍCH DÙNG ĐỂ PHÂN LOẠI KHOẢN TIỀN CHI</p>
+            </div>
+
+            <div className="pt-filter-bar">
+                <input 
+                    type="text" 
+                    placeholder="TÌM MÃ LOẠI / TÊN LOẠI..." 
+                    className="pt-search-input"
+                    value={searchQuery}
+                    onChange={e => setSearchQuery(e.target.value)}
+                />
+                <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)}>
+                    <option value="TẤT CẢ TRẠNG THÁI">TẤT CẢ TRẠNG THÁI</option>
+                    <option value="HOẠT ĐỘNG">HOẠT ĐỘNG</option>
+                    <option value="NGỪNG HOẠT ĐỘNG">NGỪNG HOẠT ĐỘNG</option>
+                </select>
+            </div>
+
+
+            <div className="pt-table-container">
+                <table className="promo-table pt-table">
+                    <thead>
+                        <tr>
+                            <th>MÃ LOẠI</th>
+                            <th>TÊN LOẠI</th>
+                            <th>LOẠI PHIẾU</th>
+                            <th>GHI CHÚ</th>
+                            <th>TRẠNG THÁI</th>
+                            <th>THAO TÁC</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {filteredData.length > 0 ? (
+                            filteredData.map(row => (
+                                <tr key={row.id}>
+                                    <td><strong>{row.code}</strong></td>
+                                    <td><strong>{row.name}</strong></td>
+                                    <td className="text-muted">{row.type}</td>
+                                    <td className="text-muted">{row.note}</td>
+                                    <td>
+                                        <span className={`status-outline ${row.status === 'NGỪNG HOẠT ĐỘNG' ? 'status-gray' : 'status-success'}`}>
+                                            {row.status}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <button className="pt-btn-detail" onClick={() => navigate(`/admin/so-quy-tien-mat/loai-phieu-chi/${row.code}`)}>XEM CHI TIẾT</button>
+                                    </td>
+                                </tr>
+                            ))
+                        ) : (
+                            <tr>
+                                <td colSpan="6">
+                                    <div className="pt-empty-state">
+                                        <p>KHÔNG TÌM THẤY LOẠI PHIẾU CHI PHÙ HỢP</p>
+                                    </div>
+                                </td>
+                            </tr>
+                        )}
+                    </tbody>
+                </table>
+            </div>
+
+            {filteredData.length > 0 && (
+                <div className="pt-pagination">
+                    <div className="pt-pagination-info">
+                        HIỂN THỊ 1-{filteredData.length} TRÊN {filteredData.length} LOẠI
+                    </div>
+                    <div className="pt-pagination-controls">
+                        <button disabled>TRƯỚC</button>
+                        <button disabled>SAU</button>
+                    </div>
+                </div>
+            )}
+
+            {showModal && (
+                <div className="lpt-modal-overlay">
+                    <div className="lpt-modal">
+                        <div className="lpt-modal-header">
+                            <h3>THÊM LOẠI PHIẾU CHI</h3>
+                        </div>
+                        <div className="lpt-modal-body">
+                            <div className="lpt-form-group">
+                                <label>MÃ LOẠI <span>*</span></label>
+                                <input 
+                                    type="text" 
+                                    placeholder="VD: LPC007" 
+                                    value={newCode}
+                                    onChange={e => {setNewCode(e.target.value); setErrors({...errors, code: null})}}
+                                    className={errors.code ? 'input-error' : ''}
+                                />
+                            </div>
+                            <div className="lpt-form-group">
+                                <label>TÊN LOẠI <span>*</span></label>
+                                <input 
+                                    type="text" 
+                                    placeholder="VD: Chi bồi thường" 
+                                    value={newName}
+                                    onChange={e => {setNewName(e.target.value); setErrors({...errors, name: null})}}
+                                    className={errors.name ? 'input-error' : ''}
+                                />
+                            </div>
+                            <div className="lpt-form-group">
+                                <label>GHI CHÚ</label>
+                                <textarea 
+                                    placeholder="Mô tả loại phiếu chi này..." 
+                                    rows="3"
+                                    value={newNote}
+                                    onChange={e => setNewNote(e.target.value)}
+                                ></textarea>
+                            </div>
+                            
+                            <div className="lpt-modal-status-row">
+                                <div className="status-col">
+                                    <label>LOẠI PHIẾU</label>
+                                    <strong>CHI</strong>
+                                </div>
+                                <div className="status-col">
+                                    <label>TRẠNG THÁI SAU KHI TẠO</label>
+                                    <strong className="text-green">HOẠT ĐỘNG</strong>
+                                </div>
+                            </div>
+                        </div>
+                        <div className="lpt-modal-footer">
+                            <button className="lpt-btn-outline" onClick={() => setShowModal(false)}>HỦY</button>
+                            <button className="lpt-btn-primary" onClick={handleCreate}>TẠO LOẠI PHIẾU CHI</button>
+                        </div>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+}

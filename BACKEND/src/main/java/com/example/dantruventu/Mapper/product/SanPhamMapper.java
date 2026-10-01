@@ -1,3 +1,4 @@
+// Maps product entities to the admin API contracts consumed by the frontend.
 package com.example.dantruventu.Mapper.product;
 
 import com.example.dantruventu.DTO.Request.product.AdminProductCreateRequest;
@@ -21,6 +22,14 @@ public interface SanPhamMapper {
 
   ObjectMapper JSON_MAPPER = new ObjectMapper();
 
+  @Mapping(source = "danhMuc.id", target = "danhMucId")
+  @Mapping(source = "danhMuc.tenDanhMuc", target = "tenDanhMuc")
+  @Mapping(source = "thuongHieu.id", target = "thuongHieuId")
+  @Mapping(source = "thuongHieu.tenThuongHieu", target = "tenThuongHieu")
+  @Mapping(target = "anhChinh", ignore = true)
+  @Mapping(target = "soPhienBan", ignore = true)
+  @Mapping(target = "giaBanThapNhat", ignore = true)
+  @Mapping(target = "tonCoTheBan", ignore = true)
   AdminProductListItemResponse toListItem(SanPham sanPham);
 
   @Mapping(source = "danhMuc.id", target = "danhMuc.id")

@@ -26,6 +26,21 @@ public final class AdminSalesRequest {
 
   @Getter
   @Setter
+  public static class Customer extends StrictRequest {
+
+    @NotBlank
+    @Size(max = 100)
+    @JsonProperty("ho_ten")
+    private String hoTen;
+
+    @NotBlank
+    @Pattern(regexp = "^(?:\\+84|0)[0-9]{9,10}$")
+    @JsonProperty("so_dien_thoai")
+    private String soDienThoai;
+  }
+
+  @Getter
+  @Setter
   public static class Tax extends StrictRequest {
 
     @NotNull

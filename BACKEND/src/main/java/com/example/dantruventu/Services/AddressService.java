@@ -171,10 +171,7 @@ public class AddressService {
 
     soDiaChiRepository.saveAll(userAddresses);
 
-    return SetDefaultAddressResponse.builder()
-        .id(targetAddress.getId())
-        .laMacDinh(true)
-        .build();
+    return SetDefaultAddressResponse.builder().id(targetAddress.getId()).laMacDinh(true).build();
   }
 
   private AddressResponse mapToResponse(SoDiaChi entity) {

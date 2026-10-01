@@ -1,0 +1,207 @@
+.inline-product-selector {
+    margin-top: 16px;
+    border: 1px solid #dedede;
+    padding: 16px;
+    background: #fff;
+}
+
+.ips-header {
+    margin-bottom: 12px;
+}
+
+.ips-header h3 {
+    font-size: 11px;
+    font-weight: 900;
+    color: #111;
+    margin: 0;
+    text-transform: uppercase;
+}
+
+.ips-selected-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+
+.ips-selected-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px;
+    border: 1px solid #dedede;
+    background: #fafafa;
+}
+
+.ips-item-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.ips-item-info strong {
+    font-size: 11px;
+    font-weight: 900;
+    color: #111;
+}
+
+.ips-item-info span {
+    font-size: 9px;
+    color: #858c95;
+    font-weight: 800;
+}
+
+.ips-item-actions {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.ips-quantity {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.ips-quantity label {
+    font-size: 9px;
+    color: #858c95;
+    font-weight: 800;
+}
+
+.ips-quantity input {
+    width: 60px;
+    height: 30px;
+    padding: 0 8px;
+    border: 2px solid #dedede;
+    font-size: 11px;
+    font-weight: 800;
+    color: #111;
+    text-align: center;
+    outline: none;
+}
+
+.ips-remove-btn {
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #fff;
+    border: 2px solid #dedede;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 900;
+    color: #111;
+}
+
+.ips-remove-btn:hover {
+    background: #f1f1f1;
+}
+
+.ips-add-btn {
+    min-height: 38px;
+    padding: 0 16px;
+    background: #fff;
+    border: 2px solid #dedede;
+    color: #111;
+    font-size: 9px;
+    font-weight: 900;
+    cursor: pointer;
+}
+
+.ips-add-btn:hover {
+    background: #f1f1f1;
+}
+
+.ips-picker-container {
+    margin-top: 16px;
+    border: 2px solid #111;
+    background: #fff;
+}
+
+.ips-search {
+    padding: 12px;
+    border-bottom: 2px solid #dedede;
+}
+
+.ips-search input {
+    width: 100%;
+    height: 38px;
+    padding: 0 12px;
+    border: 2px solid #dedede;
+    font-size: 10px;
+    font-weight: 800;
+    outline: none;
+}
+
+.ips-product-list {
+    max-height: 250px;
+    overflow-y: auto;
+}
+
+.ips-product-row {
+    display: flex;
+    align-items: center;
+    padding: 12px;
+    border-bottom: 1px solid #dedede;
+    cursor: pointer;
+}
+
+.ips-product-row:hover {
+    background: #fafafa;
+}
+
+.ips-product-row input[type="checkbox"] {
+    margin-right: 12px;
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+}
+
+.ips-product-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.ips-product-info strong {
+    font-size: 11px;
+    font-weight: 900;
+    color: #111;
+}
+
+.ips-product-info span {
+    font-size: 9px;
+    color: #858c95;
+    font-weight: 800;
+}
+
+.ips-product-price {
+    font-size: 11px;
+    font-weight: 900;
+    color: #111;
+}
+
+.ips-picker-footer {
+    padding: 12px;
+    border-top: 2px solid #dedede;
+    display: flex;
+    justify-content: flex-end;
+}
+
+.ips-done-btn {
+    min-height: 32px;
+    padding: 0 24px;
+    background: #111;
+    color: #fff;
+    border: none;
+    font-size: 9px;
+    font-weight: 900;
+    cursor: pointer;
+}
+
+.ips-done-btn:hover {
+    background: #333;
+}

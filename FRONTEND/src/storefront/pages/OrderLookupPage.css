@@ -1,0 +1,395 @@
+.order-lookup-page {
+  background-color: #f5f5f5;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.order-banner {
+  background-color: #111;
+  color: white;
+  padding: 40px 0;
+  border-bottom: 4px solid #f11919;
+}
+
+.order-banner .container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.order-banner .back-btn {
+  align-self: flex-start;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: none;
+  border: none;
+  color: #888;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  margin-bottom: 20px;
+  padding: 0;
+}
+
+.order-banner .back-btn:hover {
+  color: white;
+}
+
+.banner-title-container {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  margin-bottom: 15px;
+}
+
+.red-vertical-line {
+  width: 4px;
+  height: 32px;
+  background-color: #f11919;
+}
+
+.banner-title {
+  font-size: 28px;
+  font-weight: 900;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.banner-subtitle {
+  color: #aaa;
+  font-size: 14px;
+  max-width: 600px;
+  margin-bottom: 30px;
+}
+
+.search-form {
+  display: flex;
+  width: 100%;
+  max-width: 700px;
+  height: 56px;
+  margin-bottom: 15px;
+}
+
+.search-input-wrapper {
+  flex: 1;
+  background-color: white;
+  display: flex;
+  align-items: center;
+  padding: 0 20px;
+}
+
+.search-input-wrapper input {
+  width: 100%;
+  border: none;
+  outline: none;
+  font-size: 16px;
+  font-family: inherit;
+  color: #111;
+  background-color: transparent;
+}
+
+.search-submit-btn {
+  background-color: #f11919;
+  color: white;
+  border: none;
+  padding: 0 40px;
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.search-submit-btn:hover {
+  background-color: #d11111;
+}
+
+.search-hint {
+  font-size: 12px;
+  color: #666;
+  margin: 0;
+}
+
+/* Main Content Area */
+.order-main-container {
+  padding: 60px 15px;
+  flex: 1;
+}
+
+.order-content {
+  background-color: white;
+  border: 1px solid #ddd;
+  padding: 40px;
+  min-height: 400px;
+}
+
+/* Idle State */
+.order-content.idle {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.info-columns {
+  display: flex;
+  gap: 40px;
+  max-width: 800px;
+}
+
+.info-col {
+  flex: 1;
+  text-align: center;
+}
+
+.info-col h3 {
+  font-size: 14px;
+  font-weight: 800;
+  color: #111;
+  margin-bottom: 10px;
+  text-transform: uppercase;
+}
+
+.info-col p {
+  font-size: 13px;
+  color: #666;
+  line-height: 1.5;
+}
+
+/* Not Found State */
+.order-content.not-found {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.not-found-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  max-width: 400px;
+}
+
+.search-icon-large {
+  width: 80px;
+  height: 80px;
+  background-color: #f5f5f5;
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.not-found-box h2 {
+  font-size: 18px;
+  font-weight: 800;
+  color: #111;
+  margin-bottom: 15px;
+}
+
+.not-found-box p {
+  font-size: 14px;
+  color: #666;
+  line-height: 1.6;
+  margin-bottom: 30px;
+}
+
+.btn-outline {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background-color: transparent;
+  border: 1px solid #111;
+  color: #111;
+  padding: 12px 24px;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-transform: uppercase;
+}
+
+.btn-outline:hover {
+  background-color: #111;
+  color: white;
+}
+
+/* Found State - Lists (Orders) */
+.order-content.found {
+  padding: 40px;
+}
+
+.card-title {
+  font-size: 16px;
+  font-weight: 900;
+  color: #111;
+  text-transform: uppercase;
+  margin: 0;
+  display: flex;
+  align-items: center;
+}
+
+.card-title::before {
+  content: '';
+  display: inline-block;
+  width: 4px;
+  height: 16px;
+  background-color: #f11919;
+  margin-right: 10px;
+}
+
+.list-container {
+  display: flex;
+  flex-direction: column;
+  margin-top: 20px;
+}
+.list-item {
+  border-bottom: 1px solid #eee;
+  padding: 24px 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.list-item:last-child {
+  border-bottom: none;
+}
+.item-info {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex: 1;
+  align-items: flex-start;
+  text-align: left;
+  padding-right: 20px;
+}
+.item-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.item-id {
+  background-color: #111;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 800;
+  padding: 4px 8px;
+  border-radius: 2px;
+}
+.item-tag {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 4px 8px;
+  border-radius: 2px;
+  border: 1px solid transparent;
+  text-transform: uppercase;
+}
+.tag-orange {
+  color: #f97316;
+  border-color: #f97316;
+}
+.tag-green {
+  color: #22c55e;
+  border-color: #22c55e;
+}
+.tag-gray {
+  color: #666;
+  border-color: #ccc;
+  background-color: #f5f5f5;
+}
+.item-title {
+  font-size: 14px;
+  color: #666;
+}
+.item-meta {
+  font-size: 12px;
+  color: #888;
+  display: flex;
+  gap: 16px;
+}
+.item-action {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 10px;
+  flex-shrink: 0;
+  min-width: 140px;
+}
+.item-price {
+  color: #f11919;
+  font-weight: 900;
+  font-size: 18px;
+}
+
+.list-footer {
+  background-color: #fafafa;
+  border-top: 1px solid #ddd;
+  margin: 30px -40px -40px -40px;
+  padding: 20px 40px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.list-footer-text {
+  font-size: 13px;
+  color: #888;
+}
+
+/* Pagination */
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  margin-top: 30px;
+}
+.page-btn {
+  background-color: white;
+  border: 1px solid #ddd;
+  color: #111;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.page-btn:hover:not(:disabled) {
+  border-color: #111;
+}
+.page-btn.active {
+  background-color: #f11919;
+  color: white;
+  border-color: #f11919;
+}
+.page-btn:disabled {
+  background-color: #fafafa;
+  color: #ccc;
+  border-color: #eee;
+  cursor: not-allowed;
+}
+
+.floating-help {
+  position: fixed;
+  bottom: 30px;
+  right: 30px;
+  width: 50px;
+  height: 50px;
+  background-color: #111;
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+  transition: transform 0.2s;
+}
+
+.floating-help:hover {
+  transform: scale(1.1);
+}

@@ -198,11 +198,6 @@ function readPricedProducts() {
 
 const mockProducts = readPricedProducts();
 
-function refreshProducts() {
-  const stored = readPricedProducts();
-  mockProducts.splice(0, mockProducts.length, ...stored);
-}
-
 const workstationComponents = [
   ['SP-CPU-14900K', 'CPU Intel Core i9-14900K Box', 13990000],
   ['SP-VGA-4090', 'VGA ASUS ROG Strix RTX 4090 OC 24GB', 24890000],

@@ -12,6 +12,7 @@ import com.example.dantruventu.Error.ErrorCode;
 import com.example.dantruventu.Mapper.order.AdminDeliveryMapper;
 import com.example.dantruventu.Mapper.order.AdminSalesMapper;
 import com.example.dantruventu.Repository.NguoiDungRepository;
+import com.example.dantruventu.Repository.VaiTroRepository;
 import com.example.dantruventu.Repository.cashbook.LoaiThuChiRepository;
 import com.example.dantruventu.Repository.cashbook.SoQuyThuChiRepository;
 import com.example.dantruventu.Repository.order.ChiTietDonHangRepository;
@@ -29,6 +30,7 @@ import java.security.MessageDigest;
 import java.time.LocalDateTime;
 import java.util.*;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
@@ -46,6 +48,8 @@ public class AdminSalesService {
   private final AdminDeliveryMapper deliveryMapper;
 
   private final NguoiDungRepository userRepository;
+  private final VaiTroRepository roleRepository;
+  private final PasswordEncoder passwordEncoder;
   private final PhienBanSanPhamRepository variantRepository;
   private final AnhSanPhamRepository imageRepository;
 
@@ -87,6 +91,35 @@ public class AdminSalesService {
 
     return new AdminSalesResponse.PageData<>(
         result.getContent().stream().map(mapper::toCustomer).toList(), pagination(result));
+  }
+
+  @Transactional
+  public AdminSalesResponse.Customer createCustomer(AdminSalesRequest.Customer request) {
+    String rawPhone = request.getSoDienThoai().strip();
+    String phone = rawPhone.startsWith("+84") ? "0" + rawPhone.substring(3) : rawPhone;
+
+    if (userRepository.existsBySoDienThoai(phone) || userRepository.existsBySoDienThoai(rawPhone)) {
+      throw conflict("Số điện thoại đã được sử dụng");
+    }
+
+    VaiTro customerRole =
+        roleRepository
+            .findByTenVaiTro("USER")
+            .orElseThrow(() -> conflict("Chưa cấu hình vai trò khách hàng USER"));
+    String id = UUID.randomUUID().toString();
+
+    NguoiDung customer =
+        userRepository.saveAndFlush(
+            NguoiDung.builder()
+                .vaiTro(customerRole)
+                .hoTen(request.getHoTen().strip())
+                .email("pos-" + id + "@ruventu.local")
+                .soDienThoai(phone)
+                .matKhau(passwordEncoder.encode(id))
+                .trangThai(TrangThaiCoBanEnum.HOAT_DONG)
+                .build());
+
+    return mapper.toCustomer(customer);
   }
 
   public AdminSalesResponse.PageData<AdminSalesResponse.Product> products(

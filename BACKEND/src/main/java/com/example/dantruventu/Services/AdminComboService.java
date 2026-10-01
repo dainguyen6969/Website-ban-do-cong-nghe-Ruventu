@@ -74,10 +74,6 @@ public class AdminComboService {
           .build();
     }
 
-    var variantsByProduct =
-        phienBanSanPhamRepository.findBySanPhamIdInOrderByIdAsc(ids).stream()
-            .collect(Collectors.groupingBy(v -> v.getSanPham().getId()));
-
     var components = thanhPhanComboRepository.findByComboIds(ids);
 
     var componentsByProduct =
@@ -90,20 +86,14 @@ public class AdminComboService {
         result.getContent().stream()
             .map(
                 combo -> {
-                  var variant =
-                      singleSaleVariant(variantsByProduct.getOrDefault(combo.getId(), List.of()));
-
                   var response = comboMapper.toListItem(combo);
                   long stock = comboStocks.getOrDefault(combo.getId(), 0L);
+                  var comboComponents = componentsByProduct.getOrDefault(combo.getId(), List.of());
 
-                  response.setPhienBanId(variant.getId());
-                  response.setGiaBan(variant.getGiaBanLe());
+                  response.setGiaBan(componentTotal(comboComponents, false));
                   response.setTonCoTheBan(stock);
                   response.setTonThucTe(stock);
-                  response.setThanhPhan(
-                      componentResponses(
-                          componentsByProduct.getOrDefault(combo.getId(), List.of()),
-                          componentStocks));
+                  response.setThanhPhan(componentResponses(comboComponents, componentStocks));
 
                   return response;
                 })
@@ -115,18 +105,13 @@ public class AdminComboService {
   public AdminComboDetailResponse getDetail(Long id) {
     SanPham combo = requireCombo(id, false);
 
-    var variant =
-        singleSaleVariant(phienBanSanPhamRepository.findBySanPhamIdInOrderByIdAsc(List.of(id)));
-
     var components = thanhPhanComboRepository.findByComboIds(List.of(id));
 
     long stock = comboStockMap(List.of(id)).getOrDefault(id, 0L);
 
     var response = comboMapper.toDetail(combo);
-    response.setPhienBanId(variant.getId());
-    response.setGiaBanLe(variant.getGiaBanLe());
-    response.setGiaNhap(variant.getGiaNhap());
-    response.setKhoiLuong(variant.getKhoiLuong());
+    response.setGiaBanLe(componentTotal(components, false));
+    response.setGiaNhap(componentTotal(components, true));
     response.setTonCoTheBan(stock);
     response.setTonThucTe(stock);
     response.setCauHinhBiKhoa(comboRepository.countConfigurationReferences(id) > 0);
@@ -211,12 +196,14 @@ public class AdminComboService {
     var saleVariant =
         PhienBanSanPham.builder()
             .sanPham(combo)
-            .tenPhienBan("Mặc định")
-            .maVach(null)
+            .tenPhienBan(defaultVariantName(request.getTenPhienBan()))
+            .maVach(validBarcode(request.getMaVach(), null))
             .giaBanLe(request.getGiaBanLe())
             .giaNhap(cost)
-            .khoiLuong(request.getKhoiLuong())
-            .trangThai(status)
+            .trangThai(
+                request.getTrangThaiPhienBan() == null
+                    ? status
+                    : parseStatus(request.getTrangThaiPhienBan()))
             .build();
 
     saleVariant = phienBanSanPhamRepository.save(saleVariant);
@@ -252,11 +239,16 @@ public class AdminComboService {
     }
 
     var status = parseStatus(request.getTrangThai());
+    var variantStatus =
+        request.getTrangThaiPhienBan() == null
+            ? status
+            : parseStatus(request.getTrangThaiPhienBan());
 
     boolean reactivating =
-        status == TrangThaiCoBanEnum.HOAT_DONG
-            && (combo.getTrangThai() != TrangThaiCoBanEnum.HOAT_DONG
-                || saleVariant.getTrangThai() != TrangThaiCoBanEnum.HOAT_DONG);
+        (status == TrangThaiCoBanEnum.HOAT_DONG
+                && combo.getTrangThai() != TrangThaiCoBanEnum.HOAT_DONG)
+            || (variantStatus == TrangThaiCoBanEnum.HOAT_DONG
+                && saleVariant.getTrangThai() != TrangThaiCoBanEnum.HOAT_DONG);
 
     Map<Long, PhienBanSanPham> variants = Map.of();
 
@@ -267,13 +259,35 @@ public class AdminComboService {
     String code = request.getMaSanPham().trim();
     validateCode(code, id);
 
+    if (request.getThongSoKyThuat() != null && !request.getThongSoKyThuat().isObject()) {
+      throw invalid("thong_so_ky_thuat phải là một JSON object");
+    }
+
+    validateImages(request.getAnhSanPham());
+
     combo.setMaSanPham(code);
     combo.setTenSanPham(request.getTenSanPham().trim());
     combo.setTrangThai(status);
+    combo.setDanhMuc(
+        danhMucRepository
+            .findById(request.getDanhMucId())
+            .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "Không tìm thấy danh mục")));
+    combo.setThuongHieu(
+        request.getThuongHieuId() == null
+            ? null
+            : thuongHieuRepository
+                .findById(request.getThuongHieuId())
+                .orElseThrow(
+                    () -> new AppException(ErrorCode.NOT_FOUND, "Không tìm thấy thương hiệu")));
+    combo.setMoTa(request.getMoTa());
+    combo.setThongSoKyThuat(
+        request.getThongSoKyThuat() == null ? null : request.getThongSoKyThuat().toString());
+    combo.setThueVat(request.getThueVat() == null ? BigDecimal.ZERO : request.getThueVat());
 
     saleVariant.setGiaBanLe(request.getGiaBanLe());
-    saleVariant.setKhoiLuong(request.getKhoiLuong());
-    saleVariant.setTrangThai(status);
+    saleVariant.setTenPhienBan(defaultVariantName(request.getTenPhienBan()));
+    saleVariant.setMaVach(validBarcode(request.getMaVach(), saleVariant.getId()));
+    saleVariant.setTrangThai(variantStatus);
 
     if (request.getGiaNhap() != null) {
       saleVariant.setGiaNhap(request.getGiaNhap());
@@ -284,6 +298,11 @@ public class AdminComboService {
     if (configurationChanged) {
       thanhPhanComboRepository.deleteComponents(id);
       saveComponents(combo, requestedQuantities, variants);
+    }
+
+    if (request.getAnhSanPham() != null) {
+      anhSanPhamRepository.deleteBySanPhamId(id);
+      saveImages(combo, request.getAnhSanPham());
     }
 
     // Nếu thành phần không đổi thì không xóa/tạo lại các dòng cấu hình.
@@ -496,6 +515,28 @@ public class AdminComboService {
     }
   }
 
+  private String defaultVariantName(String value) {
+    return value == null || value.isBlank() ? "Mặc định" : value.trim();
+  }
+
+  private String validBarcode(String value, Long currentId) {
+    if (value == null || value.isBlank()) {
+      return null;
+    }
+
+    String barcode = value.trim();
+    boolean exists =
+        currentId == null
+            ? phienBanSanPhamRepository.existsByMaVach(barcode)
+            : phienBanSanPhamRepository.existsByMaVachAndIdNot(barcode, currentId);
+
+    if (exists) {
+      throw new AppException(ErrorCode.CONFLICT, "Mã vạch/SKU đã tồn tại");
+    }
+
+    return barcode;
+  }
+
   private void validateImages(List<ProductImageRequest> images) {
     if (images == null) {
       return;
@@ -592,6 +633,28 @@ public class AdminComboService {
             Collectors.toMap(
                 ComboRepository.ComboStockProjection::getComboId,
                 ComboRepository.ComboStockProjection::getTonCoTheBan));
+  }
+
+  private BigDecimal componentTotal(List<ThanhPhanCombo> components, boolean purchasePrice) {
+    BigDecimal total = BigDecimal.ZERO;
+
+    for (var component : components) {
+      var variant = component.getPhienBanThanhPhan();
+      var price = purchasePrice ? variant.getGiaNhap() : variant.getGiaBanLe();
+      var quantity = component.getSoLuong();
+
+      if (price == null || price.signum() < 0 || quantity == null || quantity <= 0) {
+        throw new AppException(ErrorCode.CONFLICT, "Cấu hình giá thành phần combo không hợp lệ");
+      }
+
+      total = total.add(price.multiply(BigDecimal.valueOf(quantity)));
+    }
+
+    if (total.compareTo(MAX_MONEY) > 0) {
+      throw new AppException(ErrorCode.CONFLICT, "Tổng giá thành phần combo vượt giới hạn");
+    }
+
+    return total;
   }
 
   private List<ComboComponentResponse> componentResponses(

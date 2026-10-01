@@ -155,16 +155,16 @@
   flex-direction: column;
 }
 
-.current-price {
+.cart-current-price {
   color: #f11919;
   font-weight: 700;
-  font-size: 14px;
+  font-size: 15px;
 }
 
-.original-price {
+.cart-original-price {
   color: #aaa;
   text-decoration: line-through;
-  font-size: 11px;
+  font-size: 12px;
 }
 
 .quantity-selector {

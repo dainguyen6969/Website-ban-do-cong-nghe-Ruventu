@@ -18,17 +18,14 @@ public final class RoleSpecification {
 
       Predicate notUser = cb.notEqual(cb.upper(root.get("tenVaiTro")), "USER");
       Predicate notKhachHang = cb.notEqual(cb.lower(root.get("tenVaiTro")), "khách hàng");
-      Predicate notKhachHangNoAccent =
-          cb.notEqual(cb.lower(root.get("tenVaiTro")), "khach hang");
+      Predicate notKhachHangNoAccent = cb.notEqual(cb.lower(root.get("tenVaiTro")), "khach hang");
       Predicate notKhachHangCode = cb.notEqual(cb.upper(root.get("tenVaiTro")), "KHACH_HANG");
       Predicate notKhachHangDesc =
           cb.or(
-              cb.isNull(root.get("moTa")),
-              cb.notLike(cb.lower(root.get("moTa")), "%khách hàng%"));
+              cb.isNull(root.get("moTa")), cb.notLike(cb.lower(root.get("moTa")), "%khách hàng%"));
       Predicate notKhachHangDescNoAccent =
           cb.or(
-              cb.isNull(root.get("moTa")),
-              cb.notLike(cb.lower(root.get("moTa")), "%khach hang%"));
+              cb.isNull(root.get("moTa")), cb.notLike(cb.lower(root.get("moTa")), "%khach hang%"));
 
       predicates.add(
           cb.and(

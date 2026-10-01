@@ -1,41 +1,93 @@
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { ArrowLeft, ShieldCheck, Truck } from 'lucide-react';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import './CheckoutPage.css';
-import productImg from '../assets/imgg.png';
-
-const mockCheckoutItems = [
-  {
-    id: 1,
-    image: productImg,
-    title: 'ASUS ROG STRIX GeForce RTX 4080 SUPER OC',
-    variant: 'OC Edition / 16GB GDDR6X',
-    price: '24.990.000đ',
-    quantity: 1,
-  },
-  {
-    id: 2,
-    image: productImg,
-    title: 'AMD Ryzen 9 7950X Processor',
-    variant: 'Boxed / Without Cooler',
-    price: '15.290.000đ',
-    quantity: 1,
-  },
-  {
-    id: 3,
-    image: productImg,
-    title: 'Corsair Vengeance DDR5 32GB (2x16GB) 6000MHz',
-    variant: '6000MHz CL36 / Black',
-    price: '6.980.000đ',
-    quantity: 2,
-  }
-];
 
 const CheckoutPage = () => {
+  const navigate = useNavigate();
   const [deliveryMethod, setDeliveryMethod] = useState('shipping');
   const [paymentMethod, setPaymentMethod] = useState('cod');
+  const [checkoutItems, setCheckoutItems] = useState([]);
+  const [formData, setFormData] = useState({
+    name: '',
+    phone: '',
+    email: '',
+    province: 'Hà Nội',
+    ward: 'Cầu Giấy',
+    address: '',
+    note: ''
+  });
+  const [errors, setErrors] = useState({});
+
+  const location = useLocation();
+
+  useEffect(() => {
+    if (location.state?.buyNowItem) {
+      setCheckoutItems([location.state.buyNowItem]);
+    } else {
+      const items = JSON.parse(localStorage.getItem('ruventu_cart') || '[]');
+      const selectedItems = items.filter(item => item.selected !== false);
+      
+      if (selectedItems.length === 0) {
+        navigate('/cart');
+      } else {
+        setCheckoutItems(selectedItems);
+      }
+    }
+  }, [navigate, location.state]);
+
+  const parsePrice = (priceStr) => {
+    if (!priceStr) return 0;
+    return parseInt(priceStr.toString().replace(/\D/g, ''), 10) || 0;
+  };
+
+  const totalPrice = checkoutItems.reduce((sum, item) => sum + (parsePrice(item.price) * item.quantity), 0);
+  const shippingFee = deliveryMethod === 'shipping' ? (totalPrice > 5000000 ? 0 : 30000) : 0;
+  const finalTotal = totalPrice + shippingFee;
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+    if (errors[name]) {
+      setErrors(prev => ({ ...prev, [name]: null }));
+    }
+  };
+
+  const handlePlaceOrder = () => {
+    const newErrors = {};
+    if (!formData.name.trim()) newErrors.name = 'Vui lòng nhập họ và tên';
+    if (!formData.phone.trim()) {
+      newErrors.phone = 'Vui lòng nhập số điện thoại';
+    } else if (!/^[0-9]{10,11}$/.test(formData.phone.trim().replace(/\s/g, ''))) {
+      newErrors.phone = 'Số điện thoại không hợp lệ';
+    }
+    
+    if (!formData.email.trim()) {
+      newErrors.email = 'Vui lòng nhập email';
+    } else if (!/^\S+@\S+\.\S+$/.test(formData.email)) {
+      newErrors.email = 'Email không hợp lệ';
+    }
+
+    if (deliveryMethod === 'shipping') {
+      if (!formData.address.trim()) newErrors.address = 'Vui lòng nhập địa chỉ cụ thể';
+    }
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+
+    if (!location.state?.buyNowItem) {
+      const items = JSON.parse(localStorage.getItem('ruventu_cart') || '[]');
+      const remainingItems = items.filter(item => item.selected === false);
+      localStorage.setItem('ruventu_cart', JSON.stringify(remainingItems));
+      window.dispatchEvent(new CustomEvent('cartUpdated'));
+    }
+    navigate('/success');
+  };
 
   return (
     <div className="checkout-page-wrapper">
@@ -45,7 +97,7 @@ const CheckoutPage = () => {
       <div className="checkout-page-header">
         <div className="container">
           <div className="checkout-page-title">
-            <Link to="/cart">
+            <Link to="/cart" style={{color: 'white', textDecoration: 'none', display: 'flex', alignItems: 'center'}}>
               <ArrowLeft size={18} style={{marginRight: '8px'}} /> THÔNG TIN THANH TOÁN
             </Link>
           </div>
@@ -67,16 +119,40 @@ const CheckoutPage = () => {
             <h3 className="section-title">THÔNG TIN LIÊN HỆ</h3>
             <div className="form-group">
               <label className="form-label">HỌ VÀ TÊN</label>
-              <input type="text" className="form-input" placeholder="Nguyễn Văn A" defaultValue="Nguyễn Văn A" />
+              <input 
+                type="text" 
+                name="name"
+                value={formData.name}
+                onChange={handleInputChange}
+                className={`form-input ${errors.name ? 'input-error' : ''}`} 
+                placeholder="Nhập họ và tên..." 
+              />
+              {errors.name && <span className="error-text">{errors.name}</span>}
             </div>
             <div className="form-row">
               <div className="form-group">
                 <label className="form-label">SỐ ĐIỆN THOẠI</label>
-                <input type="tel" className="form-input" placeholder="09xx xxx xxx" defaultValue="09xx xxx xxx" />
+                <input 
+                  type="tel" 
+                  name="phone"
+                  value={formData.phone}
+                  onChange={handleInputChange}
+                  className={`form-input ${errors.phone ? 'input-error' : ''}`} 
+                  placeholder="09xx xxx xxx" 
+                />
+                {errors.phone && <span className="error-text">{errors.phone}</span>}
               </div>
               <div className="form-group">
                 <label className="form-label">EMAIL</label>
-                <input type="email" className="form-input" placeholder="ten@email.com" defaultValue="ten@email.com" />
+                <input 
+                  type="email" 
+                  name="email"
+                  value={formData.email}
+                  onChange={handleInputChange}
+                  className={`form-input ${errors.email ? 'input-error' : ''}`} 
+                  placeholder="ten@email.com" 
+                />
+                {errors.email && <span className="error-text">{errors.email}</span>}
               </div>
             </div>
           </div>
@@ -93,7 +169,7 @@ const CheckoutPage = () => {
                 <div className="selection-content">
                   <h4>Giao hàng tận nơi</h4>
                   <p>Giao trong 1-3 ngày làm việc</p>
-                  <span className="badge-free">MIỄN PHÍ</span>
+                  <span className="badge-free">MIỄN PHÍ TỪ 5TR</span>
                 </div>
               </div>
               <div 
@@ -114,14 +190,24 @@ const CheckoutPage = () => {
                 <div className="form-row">
                   <div className="form-group">
                     <label className="form-label">TỈNH / THÀNH PHỐ</label>
-                    <select className="form-input">
+                    <select 
+                      name="province"
+                      value={formData.province}
+                      onChange={handleInputChange}
+                      className="form-input"
+                    >
                       <option>Hà Nội</option>
                       <option>TP. Hồ Chí Minh</option>
                     </select>
                   </div>
                   <div className="form-group">
                     <label className="form-label">PHƯỜNG / XÃ</label>
-                    <select className="form-input">
+                    <select 
+                      name="ward"
+                      value={formData.ward}
+                      onChange={handleInputChange}
+                      className="form-input"
+                    >
                       <option>Cầu Giấy</option>
                       <option>Đống Đa</option>
                     </select>
@@ -129,7 +215,15 @@ const CheckoutPage = () => {
                 </div>
                 <div className="form-group">
                   <label className="form-label">ĐỊA CHỈ CỤ THỂ</label>
-                  <input type="text" className="form-input" placeholder="Số nhà, tên đường, khu dân cư..." />
+                  <input 
+                    type="text" 
+                    name="address"
+                    value={formData.address}
+                    onChange={handleInputChange}
+                    className={`form-input ${errors.address ? 'input-error' : ''}`} 
+                    placeholder="Số nhà, tên đường, khu dân cư..." 
+                  />
+                  {errors.address && <span className="error-text">{errors.address}</span>}
                 </div>
               </>
             )}
@@ -169,6 +263,9 @@ const CheckoutPage = () => {
             <h3 className="section-title">GHI CHÚ ĐƠN HÀNG</h3>
             <div className="form-group" style={{marginBottom: 0}}>
               <textarea 
+                name="note"
+                value={formData.note}
+                onChange={handleInputChange}
                 className="form-input" 
                 rows="3" 
                 placeholder="Ghi chú thêm cho đơn hàng (ví dụ: giao ngoài giờ hành chính, gọi trước khi giao...)"
@@ -186,12 +283,12 @@ const CheckoutPage = () => {
           </div>
           
           <div className="sidebar-items">
-            {mockCheckoutItems.map(item => (
+            {checkoutItems.map(item => (
               <div key={item.id} className="sidebar-item">
                 <img src={item.image} alt={item.title} />
                 <div className="sidebar-item-details">
                   <h4>{item.title}</h4>
-                  <p>{item.variant}</p>
+                  <p>{item.variant || 'Tiêu chuẩn'}</p>
                   <div className="sidebar-item-price">
                     <span className="qty">x{item.quantity}</span>
                     <span className="price">{item.price}</span>
@@ -204,21 +301,23 @@ const CheckoutPage = () => {
           <div className="sidebar-summary">
             <div className="summary-row">
               <span>Tạm tính</span>
-              <span>47.260.000đ</span>
+              <span>{totalPrice.toLocaleString('vi-VN')}đ</span>
             </div>
             <div className="summary-row">
               <span>Phí vận chuyển</span>
-              <span style={{backgroundColor: '#111', color: 'white', padding: '2px 6px', fontSize: '10px', fontWeight: 'bold'}}>MIỄN PHÍ</span>
+              {shippingFee === 0 ? (
+                <span style={{backgroundColor: '#111', color: 'white', padding: '2px 6px', fontSize: '10px', fontWeight: 'bold'}}>MIỄN PHÍ</span>
+              ) : (
+                <span>{shippingFee.toLocaleString('vi-VN')}đ</span>
+              )}
             </div>
             <div className="summary-row total">
               <span>TỔNG TIỀN</span>
-              <span className="price">47.260.000đ</span>
+              <span className="price">{finalTotal.toLocaleString('vi-VN')}đ</span>
             </div>
-            <Link to="/success" style={{textDecoration: 'none'}}>
-              <button className="btn-confirm-order">
-                XÁC NHẬN ĐẶT HÀNG &rarr;
-              </button>
-            </Link>
+            <button className="btn-confirm-order" onClick={handlePlaceOrder}>
+              XÁC NHẬN ĐẶT HÀNG &rarr;
+            </button>
           </div>
           
           <div className="sidebar-trust">

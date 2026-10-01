@@ -17,11 +17,9 @@ public enum ErrorCode {
   CUSTOMER_NAME_OR_PHONE_REQUIRED(
       HttpStatus.BAD_REQUEST, "Vui lòng nhập Tên khách hàng và số điện thoại"),
 
-  INVALID_ROLE_SEARCH_PARAM(
-      HttpStatus.BAD_REQUEST, "Tham số tìm kiếm/phân trang không hợp lệ."),
+  INVALID_ROLE_SEARCH_PARAM(HttpStatus.BAD_REQUEST, "Tham số tìm kiếm/phân trang không hợp lệ."),
 
-  ROLE_NAME_REQUIRED(
-      HttpStatus.BAD_REQUEST, "Tên vai trò để trống hoặc dữ liệu không hợp lệ."),
+  ROLE_NAME_REQUIRED(HttpStatus.BAD_REQUEST, "Tên vai trò để trống hoặc dữ liệu không hợp lệ."),
 
   INVALID_ID(HttpStatus.BAD_REQUEST, "ID không hợp lệ."),
 
@@ -52,7 +50,8 @@ public enum ErrorCode {
   ROLE_NOT_FOUND(HttpStatus.NOT_FOUND, "Vai trò không tồn tại."),
 
   ROLE_NOT_FOUND_OR_CUSTOMER(
-      HttpStatus.NOT_FOUND, "Vai trò không tồn tại hoặc là vai trò Khách hàng ngoài phạm vi quản lý."),
+      HttpStatus.NOT_FOUND,
+      "Vai trò không tồn tại hoặc là vai trò Khách hàng ngoài phạm vi quản lý."),
 
   PRODUCT_VARIANT_NOT_FOUND(HttpStatus.NOT_FOUND, "Phiên bản sản phẩm không tồn tại"),
 
@@ -62,8 +61,7 @@ public enum ErrorCode {
 
   ROLE_HAS_EMPLOYEES(HttpStatus.CONFLICT, "Vai trò đang có nhân viên, không thể xóa."),
 
-  CANNOT_EDIT_PROTECTED_ROLE(
-      HttpStatus.CONFLICT, "Không thể chỉnh sửa vai trò hệ thống mặc định."),
+  CANNOT_EDIT_PROTECTED_ROLE(HttpStatus.CONFLICT, "Không thể chỉnh sửa vai trò hệ thống mặc định."),
 
   EMAIL_OR_PHONE_EXISTS(HttpStatus.CONFLICT, "Email hoặc SĐT đã tồn tại."),
 
