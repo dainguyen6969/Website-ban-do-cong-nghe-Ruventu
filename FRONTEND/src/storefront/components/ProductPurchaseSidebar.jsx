@@ -8,7 +8,7 @@ const ProductPurchaseSidebar = ({ selectedComponent, onClearSelection }) => {
   const [quantity, setQuantity] = useState(1);
   const navigate = useNavigate();
 
-  const increaseQuantity = () => setQuantity(prev => prev + 1);
+  const increaseQuantity = () => setQuantity(prev => (prev < 5 ? prev + 1 : prev));
   const decreaseQuantity = () => setQuantity(prev => (prev > 1 ? prev - 1 : 1));
 
   const handleAddToCart = () => {
@@ -97,9 +97,9 @@ const ProductPurchaseSidebar = ({ selectedComponent, onClearSelection }) => {
       <div className="quantity-section">
         <div className="qty-label">SỐ LƯỢNG</div>
         <div className="qty-controls">
-          <button className="qty-btn" onClick={decreaseQuantity}>-</button>
+          <button className="qty-btn" onClick={decreaseQuantity} disabled={quantity <= 1}>-</button>
           <input type="text" className="qty-input" value={quantity} readOnly />
-          <button className="qty-btn" onClick={increaseQuantity}>+</button>
+          <button className="qty-btn" onClick={increaseQuantity} disabled={quantity >= 5}>+</button>
         </div>
         <div className="total-calc">
           <span className="total-label">TỔNG CỘNG</span>

@@ -1,7 +1,7 @@
 .product-info-sidebar {
   display: flex;
   flex-direction: column;
-  background-color: #0a0a0a;
+  background-color: #111;
   color: #fff;
   height: 100%;
 }
@@ -10,16 +10,206 @@
   background-color: #ff0000;
   color: white;
   font-weight: 800;
-  font-size: 1.1rem;
+  font-size: 14px;
   padding: 15px 20px;
   text-transform: uppercase;
   display: flex;
+  justify-content: space-between;
   align-items: center;
+}
+
+.stock-badge {
+  font-size: 11px;
+  background-color: rgba(0,0,0,0.2);
+  padding: 4px 8px;
+  border-radius: 2px;
+}
+
+.info-sidebar-content {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 25px;
+}
+
+.info-section {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.section-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #ccc;
+  text-transform: uppercase;
+}
+
+.red-bar {
+  width: 3px;
+  height: 14px;
+  background-color: #ff0000;
+}
+
+.variant-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.variant-item {
+  display: flex;
+  align-items: center;
+  background-color: #000;
+  border: 1px solid #333;
+  padding: 12px 15px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.variant-item:hover:not(.disabled) {
+  border-color: #666;
+}
+
+.variant-item.selected {
+  border-color: #ff0000;
+}
+
+.variant-item.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.variant-checkbox {
+  width: 16px;
+  height: 16px;
+  border: 1px solid #555;
+  margin-right: 15px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.variant-item.selected .variant-checkbox {
+  border-color: #ff0000;
+}
+
+.checked-inner {
+  width: 10px;
+  height: 10px;
+  background-color: #ff0000;
+}
+
+.variant-details {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.variant-name {
+  font-size: 13px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.variant-sku {
+  font-size: 11px;
+  color: #666;
+}
+
+.variant-price-stock {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+}
+
+.v-price {
+  color: #ff0000;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.v-stock {
+  font-size: 11px;
+  color: #888;
+}
+
+.attribute-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.attr-btn {
+  background-color: #000;
+  border: 1px solid #333;
+  color: #ccc;
+  padding: 8px 15px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.attr-btn:hover {
+  border-color: #666;
+  color: #fff;
+}
+
+.attr-btn.selected {
+  border-color: #ff0000;
+  color: #ff0000;
+}
+
+.info-sidebar-specs-section {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.info-specs-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.info-specs-table td {
+  padding: 12px 0;
+  font-size: 13px;
+  border-bottom: 1px solid #222;
+}
+
+.info-specs-table tr:last-child td {
+  border-bottom: none;
+}
+
+.info-specs-table tr td:first-child {
+  color: #666;
+  width: 40%;
+  font-weight: 500;
+}
+
+.info-specs-table tr td:last-child {
+  color: #ddd;
+  font-weight: 500;
+}
+
+/* Old Layout for Single Variant Products */
+.old-layout {
+  background-color: #0a0a0a;
+}
+
+.old-header {
+  justify-content: flex-start;
   border-right: 2px solid #0a0a0a;
 }
 
 .info-sidebar-thumbnail-box {
-  padding: 15px 0;
+  padding: 15px 20px;
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -30,9 +220,6 @@
   aspect-ratio: 16/9;
   border: 1px solid #ff0000;
   background-color: #1a1a1a;
-  background-size: contain;
-  background-repeat: no-repeat;
-  background-position: center;
 }
 
 .category-text {
@@ -44,10 +231,8 @@
   font-weight: 500;
 }
 
-.info-sidebar-specs-section {
-  display: flex;
-  flex-direction: column;
-  margin-top: 15px;
+.old-specs-section {
+  padding: 0 20px 20px 20px;
 }
 
 .specs-title-bar {
@@ -59,26 +244,17 @@
   color: #fff;
 }
 
-.info-specs-table {
-  width: 100%;
-  border-collapse: collapse;
+.old-specs-table {
   border: 1px solid #222;
 }
 
-.info-specs-table td {
+.old-specs-table td {
   padding: 15px 12px;
-  font-size: 13px;
-  border: 1px solid #222;
   background-color: #111;
+  border: 1px solid #222;
 }
 
-.info-specs-table tr td:first-child {
+.old-specs-table tr td:first-child {
   color: #888;
   width: 35%;
-  font-weight: 500;
-}
-
-.info-specs-table tr td:last-child {
-  color: #ddd;
-  font-weight: 500;
 }

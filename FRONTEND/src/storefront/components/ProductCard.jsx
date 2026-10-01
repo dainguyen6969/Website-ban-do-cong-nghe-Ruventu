@@ -1,30 +1,59 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { cartService } from '../../shared/services/cartService';
+import { productService } from '../../shared/services/productService';
 import './ProductCard.css';
 
 const ProductCard = ({ product }) => {
   const navigate = useNavigate();
   const [isAdded, setIsAdded] = useState(false);
+  const [isAdding, setIsAdding] = useState(false);
+  const [showLimitMessage, setShowLimitMessage] = useState(false);
 
-  const handleAddToCart = (e) => {
+  const handleAddToCart = async (e) => {
     e.stopPropagation();
-    if (product.outOfStock) return;
+    if (product.outOfStock || isAdding || showLimitMessage) return;
     
-    // Save to localStorage
-    const existingCart = JSON.parse(localStorage.getItem('ruventu_cart') || '[]');
-    const existingItemIndex = existingCart.findIndex(item => item.id === product.id);
+    setIsAdding(true);
     
-    if (existingItemIndex >= 0) {
-      existingCart[existingItemIndex].quantity += 1;
-    } else {
-      existingCart.push({ ...product, quantity: 1, variant: 'Tiêu chuẩn' });
-    }
-    
-    localStorage.setItem('ruventu_cart', JSON.stringify(existingCart));
+    try {
+      const detailRes = await productService.getProductDetail(product.id);
+      const variants = detailRes?.data?.danhSachPhienBan;
+      
+      if (variants && variants.length > 0) {
+        const phienBan = variants[0];
+        const phienBanId = phienBan.id;
+        
+        // Validate trong FRONTEND
+        const cartRes = await cartService.getCurrentCart();
+        const cartItems = cartRes?.data?.data?.items || [];
+        const existingItem = cartItems.find(i => i.phienBanId === phienBanId);
+        const quantityInCart = existingItem ? existingItem.soLuong : 0;
+        
+        if (quantityInCart >= phienBan.tonCoTheBan) {
+          setShowLimitMessage(true);
+          setTimeout(() => setShowLimitMessage(false), 2000);
+          setIsAdding(false);
+          return;
+        }
 
-    // Dispatch global event for Header cart count
-    window.dispatchEvent(new CustomEvent('cartUpdated', { detail: { quantity: 1 } }));
-    
+        await cartService.addItem(phienBanId, 1);
+        window.dispatchEvent(new CustomEvent('cartUpdated', { detail: { quantity: 1 } }));
+      } else {
+        alert('Vui lòng vào trang chi tiết để thêm sản phẩm này.');
+        handleViewDetails();
+      }
+    } catch (err) {
+      console.error('Lỗi khi thêm vào giỏ hàng:', err);
+      if (err.response?.data?.message) {
+        alert(err.response.data.message);
+      } else {
+        alert('Có lỗi xảy ra hoặc vui lòng vào trang chi tiết để thêm sản phẩm.');
+        handleViewDetails();
+      }
+    } finally {
+      setIsAdding(false);
+    }
   };
 
   const handleViewDetails = () => {
@@ -81,8 +110,13 @@ const ProductCard = ({ product }) => {
 
       <div className="product-actions">
         <button className="btn-details" onClick={handleViewDetails}>XEM CHI TIẾT</button>
-        <button className="btn-add-cart" disabled={product.outOfStock} onClick={handleAddToCart}>
-          {product.outOfStock ? 'HẾT HÀNG' : 'THÊM VÀO GIỎ HÀNG'}
+        <button 
+          className="btn-add-cart" 
+          disabled={product.outOfStock || isAdding || showLimitMessage} 
+          onClick={handleAddToCart}
+          style={showLimitMessage ? { backgroundColor: '#555', cursor: 'not-allowed' } : {}}
+        >
+          {isAdding ? 'ĐANG THÊM...' : (showLimitMessage ? 'ĐÃ ĐẠT GIỚI HẠN' : (product.outOfStock ? 'HẾT HÀNG' : 'THÊM VÀO GIỎ HÀNG'))}
         </button>
       </div>
     </div>
