@@ -11,6 +11,12 @@ public enum ErrorCode {
 
   INVALID_PARAM(HttpStatus.BAD_REQUEST, "Tham số không hợp lệ."),
 
+  INVALID_CUSTOMER_SEARCH_PARAM(
+      HttpStatus.BAD_REQUEST, "Trạng thái hoặc phân trang không hợp lệ."),
+
+  CUSTOMER_NAME_OR_PHONE_REQUIRED(
+      HttpStatus.BAD_REQUEST, "Vui lòng nhập Tên khách hàng và số điện thoại"),
+
   INVALID_ROLE_SEARCH_PARAM(HttpStatus.BAD_REQUEST, "Tham số tìm kiếm/phân trang không hợp lệ."),
 
   ROLE_NAME_REQUIRED(HttpStatus.BAD_REQUEST, "Tên vai trò để trống hoặc dữ liệu không hợp lệ."),
@@ -38,6 +44,9 @@ public enum ErrorCode {
   EMPLOYEE_NOT_FOUND_OR_CUSTOMER(
       HttpStatus.NOT_FOUND, "Nhân viên không tồn tại hoặc ID thuộc khách hàng."),
 
+  CUSTOMER_NOT_FOUND_OR_EMPLOYEE(
+      HttpStatus.NOT_FOUND, "Khách hàng không tồn tại hoặc ID thuộc nhân viên."),
+
   ROLE_NOT_FOUND(HttpStatus.NOT_FOUND, "Vai trò không tồn tại."),
 
   ROLE_NOT_FOUND_OR_CUSTOMER(
@@ -50,9 +59,14 @@ public enum ErrorCode {
 
   ROLE_NAME_EXISTS(HttpStatus.CONFLICT, "Tên vai trò đã tồn tại."),
 
+  ROLE_HAS_EMPLOYEES(HttpStatus.CONFLICT, "Vai trò đang có nhân viên, không thể xóa."),
+
   CANNOT_EDIT_PROTECTED_ROLE(HttpStatus.CONFLICT, "Không thể chỉnh sửa vai trò hệ thống mặc định."),
 
   EMAIL_OR_PHONE_EXISTS(HttpStatus.CONFLICT, "Email hoặc SĐT đã tồn tại."),
+
+  PHONE_OR_EMAIL_ALREADY_EXISTS(
+      HttpStatus.CONFLICT, "Số điện thoại hoặc email này đã được đăng ký trên hệ thống"),
 
   PHONE_ALREADY_EXISTS(HttpStatus.CONFLICT, "SĐT đã được sử dụng bởi người dùng khác."),
 
@@ -68,6 +82,9 @@ public enum ErrorCode {
   METHOD_NOT_ALLOWED(HttpStatus.METHOD_NOT_ALLOWED, "Phương thức không được phép"),
 
   UNPROCESSABLE_ENTITY(HttpStatus.valueOf(422), "Dữ liệu không thể xử lý"),
+
+  CUSTOMER_ROLE_NOT_CONFIGURED(
+      HttpStatus.INTERNAL_SERVER_ERROR, "Thiếu cấu hình vai trò Khách hàng hoặc lỗi lưu dữ liệu."),
 
   INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "Đã xảy ra lỗi hệ thống");
 
