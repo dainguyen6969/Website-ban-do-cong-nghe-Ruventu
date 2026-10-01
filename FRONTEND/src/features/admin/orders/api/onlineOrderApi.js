@@ -1,0 +1,70 @@
+import { adminRequest } from '../../catalog/products/api/versionApi.js';
+
+const SALES_PATH = '/api/v1/admin/sales';
+
+const number = (value) => Number(value || 0);
+
+export const normalizeSalesProduct = (item = {}) => ({
+  id: number(item.phien_ban_id),
+  productId: number(item.san_pham_id),
+  name: item.ten_san_pham || '',
+  variant: item.ten_phien_ban || 'Mặc định',
+  code: item.ma_san_pham || '',
+  barcode: item.ma_vach || '',
+  image: item.anh_dai_dien || '',
+  type: item.loai_san_pham || 'DON',
+  unitPrice: number(item.don_gia),
+  stock: Math.max(0, number(item.ton_co_the_ban)),
+});
+
+export const getSalesOptions = (signal) => adminRequest(`${SALES_PATH}/options`, { signal });
+
+export async function searchSalesCustomers(keyword, signal) {
+  const query = new URLSearchParams({ keyword: keyword.trim(), page: '0', limit: '8' });
+  const data = await adminRequest(`${SALES_PATH}/customers?${query}`, { signal });
+  return (data?.items || []).map((item) => ({
+    id: number(item.id), name: item.ho_ten || '', phone: item.so_dien_thoai || '', email: item.email || '',
+  }));
+}
+
+export async function searchSalesProducts(keyword, options, signal) {
+  const query = new URLSearchParams({
+    keyword: keyword.trim(), kho_hang_id: String(options.kho_mac_dinh_id),
+    bang_gia: options.bang_gia[0], page: '0', limit: '8',
+  });
+  const data = await adminRequest(`${SALES_PATH}/products?${query}`, { signal });
+  return (data?.items || []).map(normalizeSalesProduct);
+}
+
+const lines = (items) => items.map((item) => ({
+  ma_dong: `d${item.id}`, phien_ban_id: item.id, so_luong: item.quantity,
+}));
+
+export function buildPreviewBody(form) {
+  return {
+    loai_don_hang: 'ONLINE', khach_hang_id: form.customerId || null,
+    kho_hang_id: form.options.kho_mac_dinh_id, bang_gia: form.options.bang_gia[0],
+    thue: { ap_dung: form.applyVat, che_do_gia: form.vatMode },
+    ma_chuong_trinh: form.promotion || null, phi_giao_hang: form.shippingFee,
+    san_pham: lines(form.items),
+  };
+}
+
+export const previewOnlineOrder = (body, signal) => adminRequest(`${SALES_PATH}/preview`, {
+  method: 'POST', body: JSON.stringify(body), signal,
+});
+
+export const createOnlineOrder = (form, confirmedTotal) => adminRequest('/api/v1/admin/orders', {
+  method: 'POST',
+  body: JSON.stringify({
+    ...buildPreviewBody(form), tong_thanh_toan_xac_nhan: confirmedTotal,
+    thong_tin_nguoi_nhan: {
+      ten_nguoi_nhan: form.recipient.name.trim(),
+      sdt_nguoi_nhan: form.recipient.phone.replace(/[\s.-]/g, ''),
+      dia_chi_giao_hang: form.delivery === 'GIAO_HANG' ? form.recipient.address.trim() : null,
+    },
+    phuong_thuc_thanh_toan: form.payment,
+    hinh_thuc_nhan_hang: form.delivery,
+    ghi_chu: form.note.trim() || null,
+  }),
+});
