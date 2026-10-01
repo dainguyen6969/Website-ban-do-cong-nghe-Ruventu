@@ -26,26 +26,19 @@ public final class PhieuKiemKhoSpecification {
     return (root, query, criteriaBuilder) -> {
       var predicates = new ArrayList<Predicate>();
 
-      Join<PhieuKiemKho, PhienBanSanPham> variant =
-          root.join("phienBan", JoinType.INNER);
-      Join<PhienBanSanPham, SanPham> product =
-          variant.join("sanPham", JoinType.INNER);
+      Join<PhieuKiemKho, PhienBanSanPham> variant = root.join("phienBan", JoinType.INNER);
+      Join<PhienBanSanPham, SanPham> product = variant.join("sanPham", JoinType.INNER);
 
       if (keyword != null) {
         String pattern = "%" + keyword.toLowerCase(Locale.ROOT) + "%";
 
         predicates.add(
             criteriaBuilder.or(
-                criteriaBuilder.like(
-                    criteriaBuilder.lower(root.get("maPhieu")), pattern),
-                criteriaBuilder.like(
-                    criteriaBuilder.lower(product.get("maSanPham")), pattern),
-                criteriaBuilder.like(
-                    criteriaBuilder.lower(product.get("tenSanPham")), pattern),
-                criteriaBuilder.like(
-                    criteriaBuilder.lower(variant.get("tenPhienBan")), pattern),
-                criteriaBuilder.like(
-                    criteriaBuilder.lower(variant.get("maVach")), pattern)));
+                criteriaBuilder.like(criteriaBuilder.lower(root.get("maPhieu")), pattern),
+                criteriaBuilder.like(criteriaBuilder.lower(product.get("maSanPham")), pattern),
+                criteriaBuilder.like(criteriaBuilder.lower(product.get("tenSanPham")), pattern),
+                criteriaBuilder.like(criteriaBuilder.lower(variant.get("tenPhienBan")), pattern),
+                criteriaBuilder.like(criteriaBuilder.lower(variant.get("maVach")), pattern)));
       }
 
       if (status != null) {
@@ -57,8 +50,7 @@ public final class PhieuKiemKhoSpecification {
       }
 
       if (fromDateTime != null) {
-        predicates.add(
-            criteriaBuilder.greaterThanOrEqualTo(root.get("ngayTao"), fromDateTime));
+        predicates.add(criteriaBuilder.greaterThanOrEqualTo(root.get("ngayTao"), fromDateTime));
       }
 
       if (toExclusiveDateTime != null) {

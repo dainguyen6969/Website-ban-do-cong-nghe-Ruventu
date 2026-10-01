@@ -1,11 +1,11 @@
 package com.example.dantruventu.Services;
 
-import com.example.dantruventu.DTO.Request.warehouse.AdminInventoryCheckCreateRequest;
 import com.example.dantruventu.DTO.Request.warehouse.AdminInventoryCheckCancelRequest;
+import com.example.dantruventu.DTO.Request.warehouse.AdminInventoryCheckCreateRequest;
 import com.example.dantruventu.DTO.Request.warehouse.AdminInventoryCheckUpdateRequest;
 import com.example.dantruventu.DTO.Response.PaginationResponse;
-import com.example.dantruventu.DTO.Response.warehouse.AdminInventoryCheckCancelResponse;
 import com.example.dantruventu.DTO.Response.warehouse.AdminInventoryCheckBalanceResponse;
+import com.example.dantruventu.DTO.Response.warehouse.AdminInventoryCheckCancelResponse;
 import com.example.dantruventu.DTO.Response.warehouse.AdminInventoryCheckCreateResponse;
 import com.example.dantruventu.DTO.Response.warehouse.AdminInventoryCheckDetailResponse;
 import com.example.dantruventu.DTO.Response.warehouse.AdminInventoryCheckListItemResponse;
@@ -16,8 +16,8 @@ import com.example.dantruventu.DTO.Response.warehouse.AdminInventoryCheckUpdateR
 import com.example.dantruventu.Entity.NguoiDung;
 import com.example.dantruventu.Entity.PhienBanSanPham;
 import com.example.dantruventu.Entity.PhieuKiemKho;
-import com.example.dantruventu.Entity.TonKho;
 import com.example.dantruventu.Entity.TheKho;
+import com.example.dantruventu.Entity.TonKho;
 import com.example.dantruventu.Enum.LoaiGiaoDichKho;
 import com.example.dantruventu.Enum.TrangThaiCoBanEnum;
 import com.example.dantruventu.Enum.TrangThaiPhieuKiemKho;
@@ -50,8 +50,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional(readOnly = true)
 public class AdminInventoryCheckService {
 
-  private static final DateTimeFormatter CODE_DATE_FORMAT =
-      DateTimeFormatter.ofPattern("yyyyMMdd");
+  private static final DateTimeFormatter CODE_DATE_FORMAT = DateTimeFormatter.ofPattern("yyyyMMdd");
 
   private final AdminInventoryCheckProductRepository productSearchRepository;
   private final PhienBanSanPhamRepository variantRepository;
@@ -77,9 +76,7 @@ public class AdminInventoryCheckService {
 
     var result =
         productSearchRepository.searchActiveProducts(
-            normalizedKeyword,
-            TrangThaiCoBanEnum.HOAT_DONG,
-            PageRequest.of(page, limit));
+            normalizedKeyword, TrangThaiCoBanEnum.HOAT_DONG, PageRequest.of(page, limit));
 
     return AdminInventoryCheckProductListResponse.builder()
         .items(
@@ -92,10 +89,7 @@ public class AdminInventoryCheckService {
                             .tenSanPham(item.getTenSanPham())
                             .tenPhienBan(item.getTenPhienBan())
                             .maVach(item.getMaVach())
-                            .tonHeThong(
-                                item.getTonHeThong() == null
-                                    ? 0L
-                                    : item.getTonHeThong())
+                            .tonHeThong(item.getTonHeThong() == null ? 0L : item.getTonHeThong())
                             .build())
                 .toList())
         .pagination(toPagination(result))
@@ -128,17 +122,12 @@ public class AdminInventoryCheckService {
     }
 
     LocalDateTime fromDateTime = fromDate == null ? null : fromDate.atStartOfDay();
-    LocalDateTime toExclusiveDateTime =
-        toDate == null ? null : toDate.plusDays(1).atStartOfDay();
+    LocalDateTime toExclusiveDateTime = toDate == null ? null : toDate.plusDays(1).atStartOfDay();
 
     var result =
         inventoryCheckRepository.findAll(
             PhieuKiemKhoSpecification.build(
-                normalizedKeyword,
-                status,
-                checkerId,
-                fromDateTime,
-                toExclusiveDateTime),
+                normalizedKeyword, status, checkerId, fromDateTime, toExclusiveDateTime),
             PageRequest.of(page, limit, parseSort(sort)));
 
     return AdminInventoryCheckListResponse.builder()
@@ -250,16 +239,14 @@ public class AdminInventoryCheckService {
     ensureBalanceable(inventoryCheck);
 
     Long variantId = inventoryCheck.getPhienBan().getId();
-    List<TonKho> stockRows =
-        stockRepository.findAllByPhienBanIdForInventoryCheckUpdate(variantId);
+    List<TonKho> stockRows = stockRepository.findAllByPhienBanIdForInventoryCheckUpdate(variantId);
 
     if (stockRows.isEmpty()) {
       throw conflict("Dữ liệu tồn kho của phiên bản không còn tồn tại");
     }
 
     if (stockRows.size() != 1) {
-      throw conflict(
-          "Phiên bản phải có đúng một bản ghi tồn kho để thực hiện cân bằng");
+      throw conflict("Phiên bản phải có đúng một bản ghi tồn kho để thực hiện cân bằng");
     }
 
     TonKho stock = stockRows.getFirst();
@@ -365,9 +352,7 @@ public class AdminInventoryCheckService {
         userRepository
             .findById(actorId)
             .orElseThrow(
-                () ->
-                    new AppException(
-                        ErrorCode.UNAUTHORIZED, "Không tìm thấy người thao tác"));
+                () -> new AppException(ErrorCode.UNAUTHORIZED, "Không tìm thấy người thao tác"));
 
     PhienBanSanPham variant =
         variantRepository
@@ -379,8 +364,7 @@ public class AdminInventoryCheckService {
       throw notFound("Phiên bản sản phẩm không tồn tại hoặc đã ngừng hoạt động");
     }
 
-    List<TonKho> stockRows =
-        stockRepository.findAllByPhienBanIdForInventoryCheckUpdate(variantId);
+    List<TonKho> stockRows = stockRepository.findAllByPhienBanIdForInventoryCheckUpdate(variantId);
 
     if (stockRows.isEmpty()) {
       throw notFound("Chưa có dữ liệu tồn kho của phiên bản sản phẩm");
@@ -601,8 +585,7 @@ public class AdminInventoryCheckService {
   }
 
   private String buildInventoryCheckCode(Long id) {
-    String date =
-        LocalDate.now(ZoneId.of(inventoryTimeZone)).format(CODE_DATE_FORMAT);
+    String date = LocalDate.now(ZoneId.of(inventoryTimeZone)).format(CODE_DATE_FORMAT);
     return "PKK-" + date + "-" + String.format("%03d", id);
   }
 
