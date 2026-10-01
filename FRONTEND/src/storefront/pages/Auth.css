@@ -61,6 +61,8 @@
   flex-direction: column;
   flex: 1;
   position: relative;
+  width: 100%;
+  align-items: stretch;
 }
 
 .form-group label {
@@ -100,6 +102,8 @@
   outline: none;
   transition: border-color 0.2s;
   font-family: inherit;
+  width: 100% !important;
+  box-sizing: border-box !important;
 }
 
 .form-input:focus {
@@ -114,6 +118,7 @@
   position: relative;
   display: flex;
   align-items: center;
+  width: 100%;
 }
 
 .password-input-wrapper .form-input {
@@ -330,10 +335,10 @@
 }
 
 .form-input.error {
-  border-color: #dc2626;
+  border-color: #dc2626 !important;
 }
 .form-input.error:focus {
-  border-color: #b91c1c;
+  border-color: #b91c1c !important;
 }
 
 /* Global Alert Banner */
