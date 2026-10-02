@@ -1,13 +1,14 @@
 // Admin order screen: DatHangOnline.
 import { useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { HiOutlineArrowLeft, HiOutlineSearch } from 'react-icons/hi';
 import PriceInput from '../../../../shared/components/ui/PriceInput';
 import {
-  buildPreviewBody, createOnlineOrder, getSalesOptions, previewOnlineOrder,
+  buildPreviewBody, createOnlineOrder, getSalesOptions, previewOnlineOrder, updateOnlineOrder,
   searchSalesCustomers, searchSalesProducts,
 } from '../api/onlineOrderApi';
 import './DatHangOnline.css';
+import { getOrder } from '../api/orderApi';
 
 const money = new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND', maximumFractionDigits: 0 });
 const formatMoney = (value) => money.format(Number(value || 0));
@@ -20,6 +21,7 @@ const labels = {
 
 export default function DatHangOnline() {
   const navigate = useNavigate();
+  const { orderId: editId } = useParams();
   const [options, setOptions] = useState(null);
   const [optionsError, setOptionsError] = useState('');
   const [customerQuery, setCustomerQuery] = useState('');
@@ -59,6 +61,18 @@ export default function DatHangOnline() {
     }).catch((error) => { if (error.name !== 'AbortError') setOptionsError(error.message); });
     return () => controller.abort();
   }, []);
+
+  useEffect(() => {
+    if (!editId || !options) return undefined;
+    const controller = new AbortController();
+    getOrder(editId, controller.signal).then((order) => {
+      setCustomer(order.khach_hang_id ? { id: order.khach_hang_id, name: order.ten_khach_hang, phone: order.so_dien_thoai_khach_hang || '' } : null);
+      setRecipient({ name: order.ten_nguoi_nhan || '', phone: order.sdt_nguoi_nhan || '', address: order.dia_chi_giao_hang || '' });
+      setItems((order.san_pham || []).map((item) => ({ id: Number(item.phien_ban_id), name: item.ten_san_pham, variant: item.ten_phien_ban, code: item.ma_san_pham || '', unitPrice: Number(item.don_gia || 0), quantity: Number(item.so_luong), stock: 100000 })));
+      setPayment(order.phuong_thuc_thanh_toan); setApplyVat(Number(order.tong_tien_vat) > 0); setDelivery(order.hinh_thuc_nhan_hang); setShippingInput(String(Number(order.phi_giao_hang || 0) / 1000)); setNote(order.ghi_chu || '');
+    }).catch((error) => { if (error.name !== 'AbortError') setOptionsError(error.message); });
+    return () => controller.abort();
+  }, [editId, options]);
 
   useEffect(() => {
     const query = customerQuery.trim();
@@ -138,8 +152,8 @@ export default function DatHangOnline() {
     if (!canSubmit) return;
     setSubmitting(true);
     try {
-      const order = await createOnlineOrder(form, data.tong_thanh_toan);
-      setSuccess(`Đã tạo đơn hàng ${order.ma_don_hang || `#${order.id}`} thành công.`);
+      const order = editId ? await updateOnlineOrder(editId, form, data.tong_thanh_toan) : await createOnlineOrder(form, data.tong_thanh_toan);
+      setSuccess(editId ? 'Đã cập nhật đơn hàng thành công.' : `Đã tạo đơn hàng ${order.ma_don_hang || `#${order.id}`} thành công.`);
       setItems([]); setPromotion(''); setPromotions([]); setSubmitted(false);
     } catch (error) {
       setPreviewError(error.message);
@@ -148,7 +162,7 @@ export default function DatHangOnline() {
   };
 
   return <div className="online-order-page">
-    <div className="online-order-hero"><div><nav>ĐƠN HÀNG <span>/</span> ĐẶT HÀNG ONLINE</nav><h1>TẠO ĐƠN HÀNG ONLINE</h1><p>LÊN ĐƠN THỦ CÔNG CHO KHÁCH HÀNG VÀ KIỂM TRA GIÁ / TỒN / KHUYẾN MẠI TRƯỚC KHI LƯU</p></div><button type="button" className="online-outline-btn" onClick={() => navigate('/admin/don-hang/danh-sach-don-hang')}><HiOutlineArrowLeft /> DANH SÁCH ĐƠN HÀNG</button></div>
+    <div className="online-order-hero"><div><nav>ĐƠN HÀNG <span>/</span> ĐẶT HÀNG ONLINE</nav><h1>{editId ? 'CHỈNH SỬA ĐƠN HÀNG ONLINE' : 'TẠO ĐƠN HÀNG ONLINE'}</h1><p>GIÁ VÀ TỒN KHO ĐƯỢC BACKEND KIỂM TRA LẠI TRƯỚC KHI LƯU</p></div><button type="button" className="online-outline-btn" onClick={() => navigate('/admin/don-hang/danh-sach-don-hang')}><HiOutlineArrowLeft /> DANH SÁCH ĐƠN HÀNG</button></div>
     {optionsError && <p className="online-banner online-banner--error">{optionsError}</p>}
     {success && <p className="online-banner online-banner--success">{success}</p>}
     <div className="online-order-grid"><div className="online-order-form">

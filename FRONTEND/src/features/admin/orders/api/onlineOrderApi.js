@@ -67,6 +67,17 @@ export const previewOnlineOrder = (body, signal) => adminRequest(`${SALES_PATH}/
   method: 'POST', body: JSON.stringify(body), signal,
 });
 
+export const previewPosOrder = (order, options) => adminRequest(`${SALES_PATH}/preview`, {
+  method: 'POST',
+  body: JSON.stringify({
+    loai_don_hang: 'TAI_QUAY', khach_hang_id: order.customer?.id || null,
+    kho_hang_id: options.kho_mac_dinh_id, bang_gia: options.bang_gia[0],
+    thue: { ap_dung: order.tax, che_do_gia: order.taxMode || 'CHUA_BAO_GOM' },
+    ma_chuong_trinh: null, phi_giao_hang: 0, ghi_chu: order.note || null,
+    san_pham: lines(order.cart.map((item) => ({ ...item.product, quantity: item.quantity }))),
+  }),
+});
+
 export const createOnlineOrder = (form, confirmedTotal) => adminRequest('/api/v1/admin/orders', {
   method: 'POST',
   body: JSON.stringify({
@@ -79,5 +90,14 @@ export const createOnlineOrder = (form, confirmedTotal) => adminRequest('/api/v1
     phuong_thuc_thanh_toan: form.payment,
     hinh_thuc_nhan_hang: form.delivery,
     ghi_chu: form.note.trim() || null,
+  }),
+});
+
+export const updateOnlineOrder = (id, form, confirmedTotal) => adminRequest(`/api/v1/admin/orders/${encodeURIComponent(id)}`, {
+  method: 'PUT',
+  body: JSON.stringify({
+    ...buildPreviewBody({ ...form, promotion: '' }), tong_thanh_toan_xac_nhan: confirmedTotal,
+    thong_tin_nguoi_nhan: { ten_nguoi_nhan: form.recipient.name.trim(), sdt_nguoi_nhan: form.recipient.phone.replace(/[\s.-]/g, ''), dia_chi_giao_hang: form.delivery === 'GIAO_HANG' ? form.recipient.address.trim() : null },
+    phuong_thuc_thanh_toan: form.payment, hinh_thuc_nhan_hang: form.delivery, ghi_chu: form.note.trim() || null,
   }),
 });

@@ -77,7 +77,8 @@
 .pos-stepper { display:flex; height:32px; border:2px solid #111; width:100px; }
 .pos-stepper button { border:0; background:white; width:28px; flex-shrink:0; font-size:14px; }
 .pos-stepper button:disabled { color:#aaa; cursor:default; }
-.pos-stepper span { display:grid; place-items:center; flex:1; border-inline:1px solid #111; font-size:12px; font-weight:700; }
+.pos-stepper input { width:42px; min-width:0; border:0; border-inline:1px solid #111; text-align:center; font-size:12px; font-weight:700; -moz-appearance:textfield; }
+.pos-stepper input::-webkit-inner-spin-button,.pos-stepper input::-webkit-outer-spin-button { margin:0; -webkit-appearance:none; }
 .pos-price,.pos-line-total { white-space:nowrap; font-weight:800; }
 .pos-line-total { color:var(--color-brand-red); }
 .pos-vat-badge { background:#fffae8; color:#e39924; border:1px solid #ffedcb; padding:3px 5px; font-size:9px; white-space:nowrap; }
@@ -150,6 +151,9 @@
 .pos-serial-body { padding:14px 20px 20px; }
 .pos-serial-body > p { margin-top:12px; }
 .pos-serial-list { display:flex; flex-direction:column; gap:7px; max-height:260px; overflow:auto; margin-top:16px; }
+.pos-serial-list { scrollbar-width:none; -ms-overflow-style:none; }
+.pos-serial-list::-webkit-scrollbar { display:none; }
+.pos-inline-error { color:#d71920 !important; font-weight:800; }
 .pos-serial-list button { display:flex; justify-content:space-between; padding:15px; border:2px solid #e2e5e9; background:white; text-align:left; font-size:10px; }
 .pos-serial-list button.is-selected { border-color:#090909; background:#090909; color:white; }
 .pos-serial-list span { font-size:9px; }

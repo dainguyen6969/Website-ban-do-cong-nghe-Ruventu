@@ -8,6 +8,7 @@ const TRANSACTION_CODES = Object.fromEntries(Object.entries(TRANSACTION_LABELS).
 
 let token = '';
 let loginPromise = null;
+let refreshPromise = null;
 
 function storeToken(value) {
   token = value;
@@ -36,6 +37,15 @@ async function login() {
   return accessToken;
 }
 
+async function refreshAccessToken() {
+  const response = await fetch(`${API_BASE_URL}/api/v1/auth/refresh`, { method: 'POST', credentials: 'include' });
+  const payload = await parseResponse(response);
+  const accessToken = payload?.data?.access_token;
+  if (!response.ok || !accessToken) throw new Error(payload?.message || 'Phiên đăng nhập đã hết hạn.');
+  storeToken(accessToken);
+  return accessToken;
+}
+
 async function request(path, options = {}, retry = true) {
   token ||= localStorage.getItem(ACCESS_TOKEN_KEY) || localStorage.getItem('access_token') || localStorage.getItem('accessToken') || '';
   const accessToken = token || await (loginPromise ||= login().finally(() => { loginPromise = null; }));
@@ -50,6 +60,14 @@ async function request(path, options = {}, retry = true) {
   });
   if (response.status === 401 && retry) {
     storeToken('');
+    try {
+      await (refreshPromise ||= refreshAccessToken().finally(() => { refreshPromise = null; }));
+    } catch (error) {
+      localStorage.removeItem('access_token');
+      localStorage.removeItem('accessToken');
+      if (typeof window !== 'undefined' && window.location.pathname !== '/login') window.location.replace('/login');
+      throw error;
+    }
     return request(path, options, false);
   }
   const payload = await parseResponse(response);

@@ -12,11 +12,13 @@ import axios from 'axios';
 
 import AuthLayout from '../components/AuthLayout';
 import './Auth.css';
+import useMockAuth from '../../auth/useMockAuth';
 
 const API_BASE_URL = (import.meta.env.VITE_RUVENTU_API_URL || '').replace(/\/$/, '');
 
 const Login = () => {
     const navigate = useNavigate();
+    const { syncBackendAdmin } = useMockAuth();
 
     const [showPassword, setShowPassword] = useState(false);
 
@@ -111,7 +113,8 @@ const Login = () => {
                     mat_khau: formData.password,
                     ghi_nho_dang_nhap:
                     formData.remember,
-                }
+                },
+                { withCredentials: true }
             );
 
             const result = response.data;
@@ -186,8 +189,7 @@ const Login = () => {
              * ========================================
              */
             if (isAdmin) {
-                // Sync session for the mock admin backend
-                localStorage.setItem('ruventu.mock.session', JSON.stringify({ accountId: 'admin-1' }));
+                syncBackendAdmin();
                 
                 navigate('/admin', {
                     replace: true,
