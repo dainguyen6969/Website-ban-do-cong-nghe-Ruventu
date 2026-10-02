@@ -98,7 +98,8 @@ public class GlobalExceptionHandler {
             new ErrorResponse(
                 ErrorCode.PHONE_OR_EMAIL_ALREADY_EXISTS.getStatus().value(),
                 ErrorCode.PHONE_OR_EMAIL_ALREADY_EXISTS.getMessage());
-        return ResponseEntity.status(ErrorCode.PHONE_OR_EMAIL_ALREADY_EXISTS.getStatus()).body(response);
+        return ResponseEntity.status(ErrorCode.PHONE_OR_EMAIL_ALREADY_EXISTS.getStatus())
+            .body(response);
       }
     }
 
