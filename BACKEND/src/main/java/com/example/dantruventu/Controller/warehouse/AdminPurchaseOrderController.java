@@ -110,13 +110,15 @@ public class AdminPurchaseOrderController {
 
   @PostMapping("/{id}/returns")
   public ResponseEntity<ApiResponse<AdminPurchaseOrderReturnResponse>> returnToSupplier(
-      @PathVariable Long id, @Valid @RequestBody AdminPurchaseOrderReturnRequest request) {
+      @PathVariable Long id,
+      @RequestHeader("Idempotency-Key") String idempotencyKey,
+      @Valid @RequestBody AdminPurchaseOrderReturnRequest request) {
 
     ApiResponse<AdminPurchaseOrderReturnResponse> response =
         ApiResponse.<AdminPurchaseOrderReturnResponse>builder()
             .status(201)
             .message("Ghi nhận trả nhà cung cấp thành công")
-            .data(service.returnToSupplier(id, request))
+            .data(service.returnToSupplier(id, idempotencyKey, request))
             .build();
 
     return ResponseEntity.status(HttpStatus.CREATED).body(response);

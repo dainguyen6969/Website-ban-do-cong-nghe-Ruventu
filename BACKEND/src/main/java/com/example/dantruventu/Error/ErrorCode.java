@@ -11,8 +11,7 @@ public enum ErrorCode {
 
   INVALID_PARAM(HttpStatus.BAD_REQUEST, "Tham số không hợp lệ."),
 
-  INVALID_CUSTOMER_SEARCH_PARAM(
-      HttpStatus.BAD_REQUEST, "Trạng thái hoặc phân trang không hợp lệ."),
+  INVALID_CUSTOMER_SEARCH_PARAM(HttpStatus.BAD_REQUEST, "Trạng thái hoặc phân trang không hợp lệ."),
 
   CUSTOMER_NAME_OR_PHONE_REQUIRED(
       HttpStatus.BAD_REQUEST, "Vui lòng nhập Tên khách hàng và số điện thoại"),

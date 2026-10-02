@@ -2,10 +2,7 @@ package com.example.dantruventu.DTO.Request.warehouse;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.Min;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotEmpty;
-import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.*;
 import java.time.OffsetDateTime;
 import java.util.List;
 import lombok.*;
@@ -33,6 +30,7 @@ public class AdminPurchaseOrderReturnRequest {
   private String phuongThucHoan;
 
   @JsonProperty("ngay_nhan_tien")
+  @PastOrPresent(message = "Ngày nhận tiền không được nằm trong tương lai")
   private OffsetDateTime ngayNhanTien;
 
   @JsonProperty("ma_giao_dich")

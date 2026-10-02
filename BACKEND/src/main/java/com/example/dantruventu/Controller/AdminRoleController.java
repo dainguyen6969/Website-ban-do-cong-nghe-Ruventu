@@ -103,9 +103,6 @@ public class AdminRoleController {
 
     adminRoleService.deleteRole(id);
 
-    return ApiResponse.<Void>builder()
-        .status(200)
-        .message("Xóa vai trò thành công")
-        .build();
+    return ApiResponse.<Void>builder().status(200).message("Xóa vai trò thành công").build();
   }
 }

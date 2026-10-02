@@ -20,6 +20,7 @@ import com.example.dantruventu.Repository.partner.DoiTacVanChuyenRepository;
 import com.example.dantruventu.Repository.product.AnhSanPhamRepository;
 import com.example.dantruventu.Repository.product.PhienBanSanPhamRepository;
 import com.example.dantruventu.Repository.warehouse.SoSerialSanPhamRepository;
+import com.example.dantruventu.Services.cashbook.CashbookService;
 import com.example.dantruventu.Services.order.sales.AdminSalesService;
 import com.example.dantruventu.Services.order.sales.SalesCalculationService;
 import com.example.dantruventu.Services.order.sales.SalesContext;
@@ -62,6 +63,7 @@ public class AdminOrderService {
   private final OrderInventoryService inventory;
   private final DeliveryInventoryService deliveryInventory;
   private final EntityManager entityManager;
+  private final CashbookService cashbookService;
 
   public AdminSalesResponse.PageData<AdminOrderResponse.ListItem> list(
       String keyword,
@@ -494,6 +496,8 @@ public class AdminOrderService {
     String payer;
     NhomNguoiNopNhanEnum group;
 
+    DoiTacVanChuyen cashPartner = null;
+
     if ("KHACH_HANG".equals(request.getNguonThu())) {
       if (request.getPhieuGiaoHangId() != null) {
         throw invalid("Thu khách hàng không gửi phieu_giao_hang_id");
@@ -553,6 +557,7 @@ public class AdminOrderService {
       }
 
       code = "THU-COD-" + delivery.getId();
+      cashPartner = delivery.getDoiTacVanChuyen();
       payer = delivery.getDoiTacVanChuyen().getTenDoiTac();
       group = NhomNguoiNopNhanEnum.DOI_TAC_GIAO_HANG;
 
@@ -567,6 +572,8 @@ public class AdminOrderService {
             LoaiPhieuThuChi.THU,
             "THU_BAN_HANG",
             group,
+            group == NhomNguoiNopNhanEnum.KHACH_HANG ? order.getKhachHang() : null,
+            cashPartner,
             payer,
             received,
             request.getPhuongThucThanhToan(),
@@ -679,6 +686,8 @@ public class AdminOrderService {
             LoaiPhieuThuChi.CHI,
             "CHI_HOAN_DON_HANG",
             NhomNguoiNopNhanEnum.KHACH_HANG,
+            order.getKhachHang(),
+            null,
             customerName(order),
             total,
             request.getPhuongThucHoan(),
@@ -698,6 +707,8 @@ public class AdminOrderService {
       LoaiPhieuThuChi type,
       String typeCode,
       NhomNguoiNopNhanEnum group,
+      NguoiDung counterpartyUser,
+      DoiTacVanChuyen counterpartyPartner,
       String payer,
       BigDecimal amount,
       String method,
@@ -705,36 +716,23 @@ public class AdminOrderService {
       String transactionCode,
       String description) {
 
-    if (cashRepository.findByMaPhieu(code).isPresent()) {
-      throw conflict("Khoản thu/chi này đã được ghi nhận");
-    }
-
-    LoaiThuChi cashType =
-        cashTypeRepository
-            .findByMaLoaiAndTrangThai(typeCode, TrangThaiCoBanEnum.HOAT_DONG)
-            .orElseThrow(() -> conflict("Chưa cấu hình loại thu/chi " + typeCode));
-
-    if (cashType.getLoaiPhieu() != type) {
-      throw conflict("Loại thu/chi không đúng THU hoặc CHI");
-    }
-
     String reference = text(transactionCode);
 
-    return cashRepository.saveAndFlush(
-        SoQuyThuChi.builder()
+    return cashbookService.createAutomatic(
+        CashbookService.AutomaticVoucher.builder()
             .maPhieu(code)
             .loaiPhieu(type)
-            .loaiThuChi(cashType)
+            .maLoaiThuChi(typeCode)
             .nhomNguoiNopNhan(group)
-            .tenNguoiNopNhan(payer)
+            .nguoiNopNhan(counterpartyUser)
+            .doiTacVanChuyen(counterpartyPartner)
+            .tenDoiTuongTuDo(counterpartyUser == null && counterpartyPartner == null ? payer : null)
             .maChungTuThamChieu(order.getMaDonHang())
             .soTien(amount)
             .phuongThucThanhToan(method)
+            .ngayGhiNhan(date)
             .moTa(description + (reference == null ? "" : "; Mã giao dịch: " + reference))
-            .ngayGhiNhan(date.atZoneSameInstant(properties.zone()).toLocalDateTime())
             .nguoiTao(actor)
-            .nguonTao(NguonTaoPhieuThuChi.TU_DONG)
-            .trangThai(TrangThaiPhieuThuChi.DA_GHI_NHAN)
             .build());
   }
 

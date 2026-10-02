@@ -43,8 +43,7 @@ public class CustomerService {
   private final VaiTroRepository vaiTroRepository;
   private final PasswordEncoder passwordEncoder;
 
-  public CustomerListResponse getCustomers(
-      String keyword, Integer trangThai, int page, int limit) {
+  public CustomerListResponse getCustomers(String keyword, Integer trangThai, int page, int limit) {
 
     if (page < 0 || limit < 1 || limit > 100 || (long) page * limit > Integer.MAX_VALUE) {
       throw new AppException(
@@ -136,9 +135,7 @@ public class CustomerService {
         .email(customer.getEmail())
         .soDienThoai(customer.getSoDienThoai())
         .trangThai(
-            customer.getTrangThai() != null
-                ? (int) customer.getTrangThai().getValue()
-                : null)
+            customer.getTrangThai() != null ? (int) customer.getTrangThai().getValue() : null)
         .ngayTao(ngayTao)
         .ngayCapNhat(ngayCapNhat)
         .diaChiMacDinh(addressResponse)
