@@ -165,6 +165,7 @@ export default function AdminApp() {
             <Route path="danh-sach-don-hang" element={<DanhSachDonHang />} />
             <Route path="danh-sach-don-hang/:orderId" element={<ChiTietDonHang />} />
             <Route path="dat-hang-online" element={<DatHangOnline />} />
+            <Route path="dat-hang-online/:orderId" element={<DatHangOnline />} />
             <Route path="quan-ly-giao-hang" element={<QuanLyGiaoHang />} />
             <Route path="quan-ly-giao-hang/:deliveryId" element={<QuanLyGiaoHang />} />
             <Route path="khach-tra-hang" element={<KhachTraHang />} />

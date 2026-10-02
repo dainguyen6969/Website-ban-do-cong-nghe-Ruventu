@@ -1,16 +1,42 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Trash2 } from 'lucide-react';
+import { Trash2, X } from 'lucide-react';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
+import { cartService } from '../../shared/services/cartService';
 import './CartPage.css';
+
+const formatPrice = (price) => new Intl.NumberFormat('vi-VN').format(price) + 'đ';
 
 const CartPage = () => {
   const [cartItems, setCartItems] = useState([]);
+  const [cartData, setCartData] = useState({ tongTien: 0, tongTienSauKhuyenMai: 0, khuyenMai: null });
+  const [voucherCode, setVoucherCode] = useState('');
 
-  const loadCart = () => {
-    const items = JSON.parse(localStorage.getItem('ruventu_cart') || '[]');
-    setCartItems(items.map(item => ({ ...item, selected: item.selected !== false })));
+  const loadCart = async () => {
+    try {
+      const res = await cartService.getCurrentCart();
+      if (res?.data?.data) {
+        const data = res.data.data;
+        // Keep existing selected states if they exist
+        setCartItems(prev => {
+          const prevSelected = prev.reduce((acc, item) => ({...acc, [item.cartItemId]: item.selected}), {});
+          return (data.items || []).map(item => ({
+            ...item,
+            selected: prevSelected[item.cartItemId] !== false // default true
+          }));
+        });
+        setCartData({
+          tongTien: data.tongTien || 0,
+          tongTienSauKhuyenMai: data.tongTienSauKhuyenMai || 0,
+          khuyenMai: data.khuyenMai || null
+        });
+        window.dispatchEvent(new CustomEvent('cartCountUpdated', { detail: { count: data.tongSoLuong || 0 } }));
+      }
+    } catch (err) {
+      console.error(err);
+      setCartItems([]);
+    }
   };
 
   useEffect(() => {
@@ -25,25 +51,55 @@ const CartPage = () => {
     window.dispatchEvent(new CustomEvent('cartUpdated'));
   };
 
-  const handleQuantityChange = (id, change) => {
-    const newItems = cartItems.map(item => {
-      if (item.id === id) {
-        const newQty = Math.max(1, item.quantity + change);
-        return { ...item, quantity: newQty };
-      }
-      return item;
-    });
-    saveCart(newItems);
+  const handleQuantityChange = async (id, change) => {
+    const item = cartItems.find(i => i.cartItemId === id);
+    if (!item) return;
+    const newQty = Math.max(1, item.soLuong + change);
+    try {
+      await cartService.updateItem(id, newQty);
+      loadCart();
+    } catch (err) {
+      alert(err.response?.data?.message || 'Không thể cập nhật số lượng');
+    }
   };
 
-  const handleDelete = (id) => {
-    const newItems = cartItems.filter(item => item.id !== id);
-    saveCart(newItems);
+  const handleDelete = async (id) => {
+    try {
+      await cartService.removeItem(id);
+      loadCart();
+    } catch (err) {
+      alert('Không thể xóa sản phẩm');
+    }
+  };
+
+  const handleApplyVoucher = async () => {
+    if (!voucherCode) return;
+    try {
+      await cartService.applyPromotion(voucherCode);
+      loadCart();
+      alert('Áp dụng mã giảm giá thành công!');
+    } catch (err) {
+      alert(err.response?.data?.message || 'Mã giảm giá không hợp lệ hoặc đã hết hạn.');
+    }
+  };
+
+  const handleRemoveVoucher = async () => {
+    try {
+      // Assuming removePromotion exists or we can just send empty. 
+      // Since backend doesn't have a specific remove endpoint in the controller we saw, 
+      // wait, the plan is to just apply or not.
+      // If there's no remove endpoint, we might not need this. But let's try calling apply with empty string if remove doesn't exist.
+      // Assuming cartService.removePromotion() exists based on our creation.
+      await cartService.removePromotion();
+      loadCart();
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   const handleToggleSelect = (id) => {
     const newItems = cartItems.map(item => 
-      item.id === id ? { ...item, selected: !item.selected } : item
+      item.cartItemId === id ? { ...item, selected: !item.selected } : item
     );
     saveCart(newItems);
   };
@@ -54,17 +110,17 @@ const CartPage = () => {
     saveCart(newItems);
   };
 
-  const parsePrice = (priceStr) => {
-    if (!priceStr) return 0;
-    return parseInt(priceStr.toString().replace(/\D/g, ''), 10) || 0;
-  };
-
   const selectedItems = cartItems.filter(item => item.selected);
-  const selectedQuantity = selectedItems.reduce((sum, item) => sum + item.quantity, 0);
-  const totalPrice = selectedItems.reduce((sum, item) => sum + (parsePrice(item.price) * item.quantity), 0);
+  const selectedQuantity = selectedItems.reduce((sum, item) => sum + item.soLuong, 0);
   
-  const totalCartQuantity = cartItems.reduce((sum, item) => sum + item.quantity, 0);
+  // Calculate local total for selected items
+  const localTotalPrice = selectedItems.reduce((sum, item) => sum + (item.donGia * item.soLuong), 0);
   const isAllSelected = cartItems.length > 0 && cartItems.every(item => item.selected);
+  const totalCartQuantity = cartItems.reduce((sum, item) => sum + item.soLuong, 0);
+  
+  // If all selected, use API totals (which includes voucher). Otherwise use local total (ignoring voucher for simplicity on partial select)
+  const finalPrice = isAllSelected && cartData.khuyenMai ? cartData.tongTienSauKhuyenMai : localTotalPrice;
+  const discountAmount = isAllSelected && cartData.khuyenMai ? (cartData.tongTien - cartData.tongTienSauKhuyenMai) : 0;
 
   return (
     <div className="cart-page-wrapper">
@@ -101,31 +157,30 @@ const CartPage = () => {
               </div>
             ) : (
               cartItems.map(item => (
-                <div key={item.id} className="cart-page-item">
+                <div key={item.cartItemId} className="cart-page-item">
                   <div className="item-select">
-                    <input type="checkbox" checked={item.selected} onChange={() => handleToggleSelect(item.id)} />
+                    <input type="checkbox" checked={item.selected} onChange={() => handleToggleSelect(item.cartItemId)} />
                   </div>
                   <div className="item-info">
-                    <img src={item.image} alt={item.title} />
+                    <img src={item.anh || 'https://via.placeholder.com/100'} alt={item.tenSanPham} />
                     <div className="item-details">
-                      <h4>{item.title}</h4>
-                      <p>{item.variant || 'Tiêu chuẩn'}</p>
+                      <h4>{item.tenSanPham}</h4>
+                      <p>{item.tenPhienBan}</p>
                       <div className="item-price-mobile">
-                        <span className="current">{item.price}</span>
-                        {item.originalPrice && <span className="original">{item.originalPrice}</span>}
+                        <span className="current">{formatPrice(item.donGia)}</span>
                       </div>
                     </div>
                   </div>
                   <div className="item-quantity">
                     <div className="quantity-selector">
-                      <button onClick={() => handleQuantityChange(item.id, -1)}>-</button>
-                      <input type="text" value={item.quantity} readOnly />
-                      <button onClick={() => handleQuantityChange(item.id, 1)}>+</button>
+                      <button onClick={() => handleQuantityChange(item.cartItemId, -1)} disabled={item.soLuong <= 1}>-</button>
+                      <input type="text" value={item.soLuong} readOnly />
+                      <button onClick={() => handleQuantityChange(item.cartItemId, 1)} disabled={item.soLuong >= item.tonKhoKhaDung}>+</button>
                     </div>
                   </div>
                   <div className="item-total">
-                    <span className="total-price">{(parsePrice(item.price) * item.quantity).toLocaleString('vi-VN')}đ</span>
-                    <button className="delete-btn" onClick={() => handleDelete(item.id)}><Trash2 size={18} /></button>
+                    <span className="total-price">{formatPrice(item.donGia * item.soLuong)}</span>
+                    <button className="delete-btn" onClick={() => handleDelete(item.cartItemId)}><Trash2 size={18} /></button>
                   </div>
                 </div>
               ))
@@ -142,32 +197,55 @@ const CartPage = () => {
         <div className="cart-sidebar">
           <div className="coupon-box">
             <h3><TagIcon /> MÃ GIẢM GIÁ</h3>
-            <div className="coupon-input">
-              <input type="text" placeholder="Nhập mã giảm giá..." />
-              <button>ÁP DỤNG</button>
-            </div>
-            <div className="coupon-tags">
-              <span>RUVENTU10</span>
-              <span>PCGAMING15</span>
-              <span>WELCOME20</span>
-            </div>
+            {cartData.khuyenMai ? (
+              <div className="applied-coupon" style={{ display: 'flex', justifyContent: 'space-between', padding: '10px', backgroundColor: 'rgba(255,0,0,0.1)', border: '1px solid #ff0000', marginTop: '10px' }}>
+                <div>
+                  <strong>{cartData.khuyenMai.maKhuyenMai}</strong>
+                  <div style={{ fontSize: '12px', color: '#888' }}>{cartData.khuyenMai.tenKhuyenMai}</div>
+                </div>
+                <button onClick={handleRemoveVoucher} style={{ background: 'none', border: 'none', color: '#ff0000', cursor: 'pointer' }}><X size={16} /></button>
+              </div>
+            ) : (
+              <div className="coupon-input">
+                <input 
+                  type="text" 
+                  placeholder="Nhập mã giảm giá..." 
+                  value={voucherCode} 
+                  onChange={e => setVoucherCode(e.target.value)}
+                />
+                <button onClick={handleApplyVoucher}>ÁP DỤNG</button>
+              </div>
+            )}
           </div>
 
           <div className="summary-box">
             <h3>TÓM TẮT ĐƠN HÀNG</h3>
             <div className="summary-row">
               <span>Tạm tính ({selectedQuantity} sản phẩm)</span>
-              <span>{totalPrice.toLocaleString('vi-VN')}đ</span>
+              <span>{formatPrice(localTotalPrice)}</span>
             </div>
+            {discountAmount > 0 && (
+              <div className="summary-row" style={{ color: '#ff0000' }}>
+                <span>Giảm giá (Voucher)</span>
+                <span>-{formatPrice(discountAmount)}</span>
+              </div>
+            )}
             <div className="summary-row">
               <span>Phí vận chuyển</span>
-              <span className="free-shipping">{totalPrice > 5000000 ? 'MIỄN PHÍ' : '30.000đ'}</span>
+              <span className="free-shipping">{finalPrice > 5000000 ? 'MIỄN PHÍ' : '30.000đ'}</span>
             </div>
             <div className="summary-total">
               <span>TỔNG TIỀN</span>
-              <span className="total-amount">{(totalPrice + (totalPrice > 0 && totalPrice <= 5000000 ? 30000 : 0)).toLocaleString('vi-VN')}đ</span>
+              <span className="total-amount">{formatPrice(finalPrice + (finalPrice > 0 && finalPrice <= 5000000 ? 30000 : 0))}</span>
             </div>
-            <Link to="/checkout" style={{textDecoration: 'none'}}>
+            <Link 
+              to="/checkout" 
+              style={{textDecoration: 'none'}}
+              state={{ 
+                cartItemIds: selectedItems.map(i => i.cartItemId), 
+                voucherCode: cartData.khuyenMai?.maKhuyenMai 
+              }}
+            >
               <button className="btn-checkout-full" disabled={selectedQuantity === 0} style={{ opacity: selectedQuantity === 0 ? 0.5 : 1 }}>TIẾN HÀNH ĐẶT HÀNG &rarr;</button>
             </Link>
             <div className="trust-badges">

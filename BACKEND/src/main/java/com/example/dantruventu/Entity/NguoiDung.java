@@ -28,7 +28,7 @@ public class NguoiDung {
   @Column(name = "ho_ten", nullable = false)
   private String hoTen;
 
-  @Column(nullable = false, unique = true)
+  @Column(nullable = true, unique = true)
   private String email;
 
   @Column(name = "so_dien_thoai", nullable = false, unique = true)

@@ -79,3 +79,5 @@
 
 @media (max-width: 1080px) { .order-detail-content { grid-template-columns: minmax(600px, 1fr); overflow-x: auto; } .order-detail-sidebar { grid-template-columns: repeat(2, minmax(280px, 1fr)); } }
 @media (max-width: 700px) { .order-detail-hero { align-items: flex-start; flex-direction: column; } .order-detail-hero__actions { width: 100%; flex-wrap: wrap; } .order-detail-content { display: block; padding: 14px; overflow: visible; } .order-detail-main, .order-detail-sidebar { margin-bottom: 14px; } .order-detail-sidebar { grid-template-columns: 1fr; } .order-fulfillment-grid { grid-template-columns: 1fr; } }
+.order-lifecycle-actions { display:flex; flex-wrap:wrap; gap:8px; padding:14px 28px; border-bottom:2px solid #111; background:#fff; }
+.order-busy { position:fixed; inset:0; z-index:100; display:grid; place-items:center; background:rgba(255,255,255,.75); font-size:14px; font-weight:900; }

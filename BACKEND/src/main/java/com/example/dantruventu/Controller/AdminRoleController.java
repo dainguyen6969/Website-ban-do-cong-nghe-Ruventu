@@ -97,4 +97,12 @@ public class AdminRoleController {
         .data(adminRoleService.updateRole(id, request, hasMoTa))
         .build();
   }
+
+  @DeleteMapping("/{id}")
+  public ApiResponse<Void> deleteRole(@PathVariable Long id) {
+
+    adminRoleService.deleteRole(id);
+
+    return ApiResponse.<Void>builder().status(200).message("Xóa vai trò thành công").build();
+  }
 }

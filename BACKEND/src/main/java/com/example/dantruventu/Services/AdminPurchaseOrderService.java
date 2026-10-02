@@ -12,11 +12,11 @@ import com.example.dantruventu.Error.AppException;
 import com.example.dantruventu.Error.ErrorCode;
 import com.example.dantruventu.Mapper.cashbook.AdminPurchaseOrderMapper;
 import com.example.dantruventu.Repository.NguoiDungRepository;
-import com.example.dantruventu.Repository.cashbook.LoaiThuChiRepository;
 import com.example.dantruventu.Repository.cashbook.SoQuyThuChiRepository;
 import com.example.dantruventu.Repository.partner.NhaCungCapRepository;
 import com.example.dantruventu.Repository.product.PhienBanSanPhamRepository;
 import com.example.dantruventu.Repository.warehouse.*;
+import com.example.dantruventu.Services.cashbook.CashbookService;
 import com.example.dantruventu.Specification.PurchaseOrderSpecification;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -62,11 +62,10 @@ public class AdminPurchaseOrderService {
 
   private final SoQuyThuChiRepository soQuyThuChiRepository;
 
-  private final LoaiThuChiRepository loaiThuChiRepository;
-
   private final NguoiDungRepository nguoiDungRepository;
 
   private final AdminPurchaseOrderMapper mapper;
+  private final CashbookService cashbookService;
 
   @Value("${ruventu.inventory.default-warehouse-id:1}")
   private Long defaultWarehouseId;
@@ -315,6 +314,10 @@ public class AdminPurchaseOrderService {
   public AdminPurchaseOrderPaymentResponse pay(
       Long id, String idempotencyKey, AdminPurchaseOrderPaymentRequest request) {
 
+    if (!Boolean.TRUE.equals(request.getXacNhanDaChiTien())) {
+      throw new AppException(ErrorCode.INVALID_DATA, "Phải xác nhận cửa hàng đã chi tiền");
+    }
+
     validateIdempotencyKey(idempotencyKey);
 
     DonNhapHang order = requireOrderForUpdate(id);
@@ -358,26 +361,21 @@ public class AdminPurchaseOrderService {
           "Số tiền thanh toán không được " + "vượt quá dư nợ thực tế");
     }
 
-    LoaiThuChi type = requireCashType("CHI_NHAP_HANG", LoaiPhieuThuChi.CHI);
-
     SoQuyThuChi voucher =
-        SoQuyThuChi.builder()
-            .maPhieu(voucherCode)
-            .loaiPhieu(LoaiPhieuThuChi.CHI)
-            .loaiThuChi(type)
-            .nhomNguoiNopNhan(NhomNguoiNopNhanEnum.NHA_CUNG_CAP)
-            .tenNguoiNopNhan(order.getNhaCungCap().getTenNhaCungCap())
-            .maChungTuThamChieu(order.getMaDonNhap())
-            .soTien(request.getSoTienThanhToan())
-            .phuongThucThanhToan(request.getPhuongThucThanhToan().trim())
-            .moTa(request.getGhiChu())
-            .ngayGhiNhan(request.getNgayThanhToan().toLocalDateTime())
-            .nguoiTao(currentUser())
-            .nguonTao(NguonTaoPhieuThuChi.TU_DONG)
-            .trangThai(TrangThaiPhieuThuChi.DA_GHI_NHAN)
-            .build();
-
-    voucher = soQuyThuChiRepository.save(voucher);
+        cashbookService.createAutomatic(
+            CashbookService.AutomaticVoucher.builder()
+                .maPhieu(voucherCode)
+                .loaiPhieu(LoaiPhieuThuChi.CHI)
+                .maLoaiThuChi("CHI_NHAP_HANG")
+                .nhomNguoiNopNhan(NhomNguoiNopNhanEnum.NHA_CUNG_CAP)
+                .nhaCungCap(order.getNhaCungCap())
+                .maChungTuThamChieu(order.getMaDonNhap())
+                .soTien(request.getSoTienThanhToan())
+                .phuongThucThanhToan(request.getPhuongThucThanhToan())
+                .ngayGhiNhan(request.getNgayThanhToan())
+                .moTa(request.getGhiChu())
+                .nguoiTao(currentUser())
+                .build());
 
     updatePaymentStatus(order);
 
@@ -526,9 +524,8 @@ public class AdminPurchaseOrderService {
   // RETURN TO SUPPLIER
   // =========================================================
 
-  @Transactional
-  public AdminPurchaseOrderReturnResponse returnToSupplier(
-      Long id, AdminPurchaseOrderReturnRequest request) {
+  private AdminPurchaseOrderReturnResponse doReturnToSupplier(
+      Long id, AdminPurchaseOrderReturnRequest request, NguoiDung actor, String refundVoucherCode) {
 
     DonNhapHang order = requireOrderForUpdate(id);
 
@@ -816,28 +813,25 @@ public class AdminPurchaseOrderService {
 
       validateRefundConfirmation(request);
 
-      LoaiThuChi type = requireCashType("THU_HOAN_NCC", LoaiPhieuThuChi.THU);
-
       SoQuyThuChi voucher =
-          SoQuyThuChi.builder()
-              .maPhieu("THU-NCC-" + UUID.randomUUID())
-              .loaiPhieu(LoaiPhieuThuChi.THU)
-              .loaiThuChi(type)
-              .nhomNguoiNopNhan(NhomNguoiNopNhanEnum.NHA_CUNG_CAP)
-              .tenNguoiNopNhan(order.getNhaCungCap().getTenNhaCungCap())
-              .maChungTuThamChieu(order.getMaDonNhap())
-              .soTien(refundDue)
-              .phuongThucThanhToan(request.getPhuongThucHoan())
-              .moTa(request.getGhiChu())
-              .tags(
-                  request.getMaGiaoDich() == null
-                      ? null
-                      : "MA_GIAO_DICH:" + request.getMaGiaoDich())
-              .ngayGhiNhan(request.getNgayNhanTien().toLocalDateTime())
-              .nguoiTao(currentUser())
-              .nguonTao(NguonTaoPhieuThuChi.TU_DONG)
-              .trangThai(TrangThaiPhieuThuChi.DA_GHI_NHAN)
-              .build();
+          cashbookService.createAutomatic(
+              CashbookService.AutomaticVoucher.builder()
+                  .maPhieu(refundVoucherCode)
+                  .loaiPhieu(LoaiPhieuThuChi.THU)
+                  .maLoaiThuChi("THU_HOAN_NCC")
+                  .nhomNguoiNopNhan(NhomNguoiNopNhanEnum.NHA_CUNG_CAP)
+                  .nhaCungCap(order.getNhaCungCap())
+                  .maChungTuThamChieu(order.getMaDonNhap())
+                  .soTien(refundDue)
+                  .phuongThucThanhToan(request.getPhuongThucHoan())
+                  .ngayGhiNhan(request.getNgayNhanTien())
+                  .moTa(request.getGhiChu())
+                  .tags(
+                      request.getMaGiaoDich() == null || request.getMaGiaoDich().isBlank()
+                          ? null
+                          : "MA_GIAO_DICH:" + request.getMaGiaoDich().strip())
+                  .nguoiTao(actor)
+                  .build());
 
       voucher = soQuyThuChiRepository.save(voucher);
 
@@ -872,6 +866,23 @@ public class AdminPurchaseOrderService {
         .soTienDaNhanHoan(received)
         .phieuThu(cashVoucher)
         .build();
+  }
+
+  @Transactional
+  public AdminPurchaseOrderReturnResponse returnToSupplier(
+      Long id, String idempotencyKey, AdminPurchaseOrderReturnRequest request) {
+
+    validateIdempotencyKey(idempotencyKey);
+
+    String normalizedKey = UUID.fromString(idempotencyKey).toString();
+    NguoiDung actor = currentUser();
+
+    return cashbookService.executeOnce(
+        "RETURN-NCC-" + normalizedKey,
+        actor,
+        List.of(id, request),
+        AdminPurchaseOrderReturnResponse.class,
+        () -> doReturnToSupplier(id, request, actor, "THU-NCC-" + normalizedKey));
   }
 
   // =========================================================
@@ -1264,36 +1275,6 @@ public class AdminPurchaseOrderService {
     }
 
     return rows.getFirst();
-  }
-
-  private LoaiThuChi requireCashType(String code, LoaiPhieuThuChi voucherType) {
-
-    LoaiThuChi type =
-        loaiThuChiRepository
-            .findByMaLoai(code)
-            .orElseGet(
-                () ->
-                    loaiThuChiRepository.save(
-                        LoaiThuChi.builder()
-                            .maLoai(code)
-                            .tenLoai(
-                                code.equals("CHI_NHAP_HANG")
-                                    ? "Chi nhập hàng"
-                                    : "Thu hoàn nhà cung cấp")
-                            .loaiPhieu(voucherType)
-                            .trangThai(TrangThaiCoBanEnum.HOAT_DONG)
-                            .build()));
-
-    if (type.getTrangThai() != TrangThaiCoBanEnum.HOAT_DONG) {
-      throw new AppException(ErrorCode.NOT_FOUND, "Chưa cấu hình loại thu/chi " + code);
-    }
-
-    if (type.getLoaiPhieu() != voucherType) {
-
-      throw new AppException(ErrorCode.CONFLICT, "Cấu hình loại thu/chi không hợp lệ");
-    }
-
-    return type;
   }
 
   private void updatePaymentStatus(DonNhapHang order) {

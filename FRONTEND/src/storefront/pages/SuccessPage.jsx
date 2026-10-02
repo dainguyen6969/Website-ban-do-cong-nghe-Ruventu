@@ -1,11 +1,14 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { Check } from 'lucide-react';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import './SuccessPage.css';
 
 const SuccessPage = () => {
+  const location = useLocation();
+  const orderCode = location.state?.orderCode || 'RV-XXXXXX';
+
   return (
     <div className="success-page-wrapper">
       <Header />
@@ -22,7 +25,7 @@ const SuccessPage = () => {
           <div className="success-body">
             <div className="order-code-box">
               <span className="label">Mã đơn hàng</span>
-              <span className="code">RV-33203029</span>
+              <span className="code">{orderCode}</span>
             </div>
             
             <p className="success-message">
@@ -31,17 +34,12 @@ const SuccessPage = () => {
             
             <div className="divider-line"></div>
             
-            <div className="total-payment">
-              <span className="label">TỔNG THANH TOÁN</span>
-              <span className="amount">47.260.000đ</span>
-            </div>
-            
-            <div className="success-actions">
+            <div className="success-actions" style={{marginTop: '20px'}}>
               <Link to="/" className="btn-home">
                 VỀ TRANG CHỦ
               </Link>
-              <Link to="/" className="btn-continue">
-                Tiếp tục mua
+              <Link to="/products" className="btn-continue">
+                Tiếp tục mua sắm
               </Link>
             </div>
           </div>

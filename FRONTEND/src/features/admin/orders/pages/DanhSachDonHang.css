@@ -86,3 +86,6 @@
   .order-summary-stats .stat-badge { min-width: 0; justify-content: center; }
   .order-list-footer > p { white-space: normal; line-height: 1.45; }
 }
+.order-api-message { margin:16px 0; padding:12px 16px; border:1px solid; font-size:12px; font-weight:700; }
+.order-api-message--error { color:#a80000; border-color:#e5a0a0; background:#fff1f1; }
+.order-api-message--success { color:#146c2e; border-color:#9fd4ae; background:#f0fff4; }
