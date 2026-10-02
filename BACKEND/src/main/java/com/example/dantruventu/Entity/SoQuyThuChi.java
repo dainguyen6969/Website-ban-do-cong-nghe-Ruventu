@@ -65,7 +65,7 @@ public class SoQuyThuChi {
       name = "ngay_ghi_nhan",
       nullable = false,
       updatable = false,
-      columnDefinition = "TIMESTAMP")
+      columnDefinition = "DATETIME")
   private LocalDateTime ngayGhiNhan;
 
   @ManyToOne(fetch = FetchType.LAZY)
