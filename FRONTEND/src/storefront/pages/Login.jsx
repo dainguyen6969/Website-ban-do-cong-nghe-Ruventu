@@ -186,6 +186,9 @@ const Login = () => {
              * ========================================
              */
             if (isAdmin) {
+                // Sync session for the mock admin backend
+                localStorage.setItem('ruventu.mock.session', JSON.stringify({ accountId: 'admin-1' }));
+                
                 navigate('/admin', {
                     replace: true,
                 });
@@ -370,18 +373,14 @@ const Login = () => {
                                 formData.account
                             }
                             onChange={handleChange}
-                            className={`form-input ${
-                                errors.account
-                                    ? 'error'
-                                    : ''
-                            }`}
+                            className={`form-input ${errors.account ? 'error' : ''}`}
                             placeholder="Email hoặc số điện thoại"
                         />
 
                         {errors.account && (
-                            <span className="form-error">
-                {errors.account}
-              </span>
+                            <span className="error-text">
+                                <AlertCircle size={14} /> {errors.account}
+                            </span>
                         )}
                     </div>
 
@@ -412,11 +411,7 @@ const Login = () => {
                                 onChange={
                                     handleChange
                                 }
-                                className={`form-input ${
-                                    errors.password
-                                        ? 'error'
-                                        : ''
-                                }`}
+                                className={`form-input ${errors.password ? 'error' : ''}`}
                                 placeholder="Nhập mật khẩu"
                             />
 
@@ -440,9 +435,9 @@ const Login = () => {
                         </div>
 
                         {errors.password && (
-                            <span className="form-error">
-                {errors.password}
-              </span>
+                            <span className="error-text">
+                                <AlertCircle size={14} /> {errors.password}
+                            </span>
                         )}
                     </div>
 
