@@ -79,4 +79,14 @@ public class AdminEmployeeController {
         .data(adminEmployeeService.updateEmployee(id, request, currentAdminId))
         .build();
   }
+
+  @DeleteMapping("/{id}")
+  public ApiResponse<EmployeeListItemResponse> deleteEmployee(@PathVariable Long id) {
+
+    return ApiResponse.<EmployeeListItemResponse>builder()
+        .status(200)
+        .message("Hủy nhân viên thành công")
+        .data(adminEmployeeService.deleteEmployee(id))
+        .build();
+  }
 }

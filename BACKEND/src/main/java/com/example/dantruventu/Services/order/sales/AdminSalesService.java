@@ -13,8 +13,6 @@ import com.example.dantruventu.Mapper.order.AdminDeliveryMapper;
 import com.example.dantruventu.Mapper.order.AdminSalesMapper;
 import com.example.dantruventu.Repository.NguoiDungRepository;
 import com.example.dantruventu.Repository.VaiTroRepository;
-import com.example.dantruventu.Repository.cashbook.LoaiThuChiRepository;
-import com.example.dantruventu.Repository.cashbook.SoQuyThuChiRepository;
 import com.example.dantruventu.Repository.order.ChiTietDonHangRepository;
 import com.example.dantruventu.Repository.order.DonHangRepository;
 import com.example.dantruventu.Repository.order.PhieuGiaoHangRepository;
@@ -23,6 +21,7 @@ import com.example.dantruventu.Repository.product.AnhSanPhamRepository;
 import com.example.dantruventu.Repository.product.PhienBanSanPhamRepository;
 import com.example.dantruventu.Repository.warehouse.SoSerialSanPhamRepository;
 import com.example.dantruventu.Repository.warehouse.TheKhoRepository;
+import com.example.dantruventu.Services.cashbook.CashbookService;
 import com.example.dantruventu.Specification.SalesSpecification;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
@@ -59,11 +58,11 @@ public class AdminSalesService {
   private final SoSerialSanPhamRepository serialRepository;
   private final TheKhoRepository ledgerRepository;
 
-  private final LoaiThuChiRepository cashTypeRepository;
-  private final SoQuyThuChiRepository cashRepository;
   private final SalesIdempotencyRepository idempotencyRepository;
 
   private final ObjectMapper objectMapper;
+
+  private final CashbookService cashbookService;
 
   public AdminSalesResponse.Options options() {
 
@@ -555,36 +554,24 @@ public class AdminSalesService {
       return null;
     }
 
-    LoaiThuChi cashType =
-        cashTypeRepository
-            .findByMaLoaiAndTrangThai("THU_BAN_HANG", TrangThaiCoBanEnum.HOAT_DONG)
-            .orElseThrow(() -> conflict("Chưa cấu hình loại thu THU_BAN_HANG"));
+    String transactionCode = text(payment.getMaGiaoDich());
 
-    if (cashType.getLoaiPhieu() != LoaiPhieuThuChi.THU) {
-      throw conflict("THU_BAN_HANG phải thuộc loại phiếu THU");
-    }
-
-    return cashRepository.saveAndFlush(
-        SoQuyThuChi.builder()
+    return cashbookService.createAutomatic(
+        CashbookService.AutomaticVoucher.builder()
             .maPhieu("THU-POS-" + order.getId())
             .loaiPhieu(LoaiPhieuThuChi.THU)
-            .loaiThuChi(cashType)
+            .maLoaiThuChi("THU_BAN_HANG")
             .nhomNguoiNopNhan(NhomNguoiNopNhanEnum.KHACH_HANG)
-            .tenNguoiNopNhan(
-                order.getKhachHang() == null ? "Khách lẻ" : order.getKhachHang().getHoTen())
+            .nguoiNopNhan(order.getKhachHang())
+            .tenDoiTuongTuDo(order.getKhachHang() == null ? "Khách lẻ" : null)
             .maChungTuThamChieu(order.getMaDonHang())
             .soTien(order.getTongThanhToan())
             .phuongThucThanhToan(payment.getPhuongThuc())
+            .ngayGhiNhan(payment.getNgayThanhToan())
             .moTa(
                 "Thu bán hàng tại quầy"
-                    + (text(payment.getMaGiaoDich()) == null
-                        ? ""
-                        : "; Mã giao dịch: " + payment.getMaGiaoDich().strip()))
-            .ngayGhiNhan(
-                payment.getNgayThanhToan().atZoneSameInstant(properties.zone()).toLocalDateTime())
+                    + (transactionCode == null ? "" : "; Mã giao dịch: " + transactionCode))
             .nguoiTao(actor)
-            .nguonTao(NguonTaoPhieuThuChi.TU_DONG)
-            .trangThai(TrangThaiPhieuThuChi.DA_GHI_NHAN)
             .build());
   }
 

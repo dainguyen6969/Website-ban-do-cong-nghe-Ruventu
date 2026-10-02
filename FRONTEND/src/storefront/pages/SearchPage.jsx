@@ -5,6 +5,7 @@ import Header from '../components/Header';
 import Footer from '../components/Footer';
 import ProductCard from '../components/ProductCard';
 import { mockPcBuildProducts, mockLinhKien, mockGamingGear } from '../data/categoryData';
+import { productService } from '../../shared/services/productService';
 import './SearchPage.css';
 
 const allProducts = [...mockPcBuildProducts, ...mockLinhKien, ...mockGamingGear];
@@ -15,8 +16,62 @@ const SearchPage = () => {
   const query = searchParams.get('q') || '';
   
   const [filteredProducts, setFilteredProducts] = useState([]);
+  const [totalProducts, setTotalProducts] = useState(0);
   const [sortBy, setSortBy] = useState('relevance');
   const [isSortDropdownOpen, setIsSortDropdownOpen] = useState(false);
+
+  // Filter states
+  const [minPrice, setMinPrice] = useState('');
+  const [maxPrice, setMaxPrice] = useState('');
+  const [stockStatus, setStockStatus] = useState('all'); // 'all', 'in-stock'
+  const [selectedBrands, setSelectedBrands] = useState([]);
+  const [selectedCategories, setSelectedCategories] = useState([]);
+
+  useEffect(() => {
+    const loadProducts = async () => {
+      try {
+        const params = { keyword: query };
+        
+        if (minPrice) params.gia_min = Number(minPrice);
+        if (maxPrice) params.gia_max = Number(maxPrice);
+        if (stockStatus === 'in-stock') params.ton_kho = true;
+        
+        if (sortBy === 'price-asc') params.sort = 'gia_thap_nhat';
+        else if (sortBy === 'price-desc') params.sort = 'gia_cao_nhat';
+        else if (sortBy === 'newest') params.sort = 'moi_nhat';
+
+        const response = await productService.getProducts(params);
+        if (response && response.data && response.data.danhSachSanPham) {
+          const mappedProducts = response.data.danhSachSanPham.map(p => ({
+            id: p.id,
+            title: p.tenSanPham,
+            name: p.tenSanPham,
+            image: p.anhChinh || 'https://via.placeholder.com/300',
+            price: new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(p.giaThapNhat),
+            category: p.tenDanhMuc,
+            outOfStock: !p.conHang
+          }));
+          
+          let results = mappedProducts;
+          if (selectedBrands.length > 0) {
+            results = results.filter(p => selectedBrands.some(brand => (p.title || p.name || '').toLowerCase().includes(brand.toLowerCase())));
+          }
+          if (selectedCategories.length > 0) {
+            results = results.filter(p => selectedCategories.some(cat => (p.category || '').toLowerCase().includes(cat.toLowerCase())));
+          }
+          
+          setFilteredProducts(results);
+          setTotalProducts(results.length);
+        } else {
+          setFilteredProducts([]);
+          setTotalProducts(0);
+        }
+      } catch (error) {
+        console.error("Lỗi fetch sản phẩm:", error);
+      }
+    };
+    loadProducts();
+  }, [query, sortBy, minPrice, maxPrice, stockStatus, selectedBrands, selectedCategories]);
   
   const sortOptions = [
     { value: 'relevance', label: 'Liên quan nhất' },
@@ -26,12 +81,7 @@ const SearchPage = () => {
     { value: 'bestseller', label: 'Bán chạy nhất' },
   ];
   
-  // Filter states
-  const [minPrice, setMinPrice] = useState('');
-  const [maxPrice, setMaxPrice] = useState('');
-  const [stockStatus, setStockStatus] = useState('all'); // 'all', 'in-stock'
-  const [selectedBrands, setSelectedBrands] = useState([]);
-  const [selectedCategories, setSelectedCategories] = useState([]);
+
 
   // Mock data for filters
   const brands = [
@@ -64,18 +114,7 @@ const SearchPage = () => {
 
   const suggestedKeywords = ['RTX 4090', 'Ryzen 9', 'Mainboard Z790', 'Chuột gaming', 'Bàn phím cơ'];
 
-  useEffect(() => {
-    let results = allProducts.filter(p => 
-      (p.title || p.name || '').toLowerCase().includes(query.toLowerCase())
-    );
-    
-    // Apply dummy filters for demonstration
-    if (selectedBrands.length > 0) {
-      results = results.filter(p => selectedBrands.some(brand => (p.title || p.name || '').toLowerCase().includes(brand.toLowerCase())));
-    }
 
-    setFilteredProducts(results);
-  }, [query, selectedBrands, selectedCategories, minPrice, maxPrice, stockStatus]);
 
   const handleBrandChange = (brandName) => {
     setSelectedBrands(prev => 
@@ -90,7 +129,10 @@ const SearchPage = () => {
   };
 
   const handlePricePreset = (preset) => {
-    // Just a UI demonstration
+    if (preset === '<5') { setMinPrice(''); setMaxPrice('5000000'); }
+    else if (preset === '5-15') { setMinPrice('5000000'); setMaxPrice('15000000'); }
+    else if (preset === '15-25') { setMinPrice('15000000'); setMaxPrice('25000000'); }
+    else if (preset === '>25') { setMinPrice('25000000'); setMaxPrice(''); }
   };
 
   const clearAllFilters = () => {
@@ -110,7 +152,7 @@ const SearchPage = () => {
   const hasActiveFilters = selectedBrands.length > 0 || selectedCategories.length > 0 || minPrice || maxPrice || stockStatus !== 'all';
 
   const suggestedProducts = useMemo(() => {
-    return allProducts.slice(0, 4); // Take 4 random products for "SẢN PHẨM NỔI BẬT"
+    return mockPcBuildProducts.slice(0, 4);
   }, []);
 
   const handleSuggestKeyword = (k) => {
@@ -224,8 +266,8 @@ const SearchPage = () => {
         <div className="search-content">
           <div className="search-toolbar">
             <div className="toolbar-left">
-              {filteredProducts.length > 0 ? (
-                <span><strong>{filteredProducts.length}</strong> sản phẩm tìm thấy</span>
+              {totalProducts > 0 ? (
+                <span><strong>{totalProducts}</strong> sản phẩm tìm thấy</span>
               ) : (
                 <span>Không có kết quả</span>
               )}
