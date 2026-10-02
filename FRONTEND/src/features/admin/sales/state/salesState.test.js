@@ -1,8 +1,7 @@
 // Tests for point-of-sale state helpers.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { addProduct, closeOrderTab, createOrder, finalizeOrder, findIncompleteSerialLine, orderTotals, resetOrder, updateOrder } from './salesState.js';
-import { mockEmployees } from '../../../../data/mockEmployees.js';
+import { addProduct, closeOrderTab, createOrder, finalizeOrder, findIncompleteSerialLine, findStockIssue, orderTotals, resetOrder, setProductQuantity, updateOrder } from './salesState.js';
 
 const product = { id: 'VGA', vatRate: 10, prices: { retail: 24990000, dealer: 23000000, business: 22000000 } };
 
@@ -45,7 +44,7 @@ test('manual payment survives unrelated changes and recalculates with pricing or
 test('new orders reset defaults without changing existing order data', () => {
   const first = updateOrder(createOrder(1), { cart: addProduct([], product), customer: { id: 'KH004' }, tax: false, priceList: 'dealer', discount: 5, employee: 'Vi Nhật Minh', paymentMethod: 'transfer' });
   const next = createOrder(2);
-  assert.deepEqual(next, { id: 2, code: 'DH-002', customer: null, cart: [], tax: true, priceList: 'retail', employee: mockEmployees[0], discount: 0, paymentMethod: 'cash', paid: 0 });
+  assert.deepEqual(next, { id: 2, code: 'DH-002', customer: null, cart: [], tax: true, priceList: 'retail', employee: null, discount: 0, paymentMethod: 'cash', paid: 0 });
   const changed = updateOrder(next, { cart: addProduct([], { ...product, id: 'CPU' }) });
   assert.equal(first.cart[0].product.id, 'VGA');
   assert.equal(first.customer.id, 'KH004');
@@ -63,11 +62,34 @@ test('closing active and inactive tabs preserves other orders and selects a neig
   assert.equal(closeOrderTab(orders, 1, 1, 4).activeId, 2);
 });
 
-test('closing the last tab creates a fresh sequential order with the first employee', () => {
-  const old = updateOrder(createOrder(5), { cart: addProduct([], product), employee: mockEmployees[3] });
+test('closing the last tab creates a fresh sequential order with the logged-in employee', () => {
+  const employee = { id: 9, ho_ten: 'Nhân viên thật' };
+  const old = updateOrder(createOrder(5, employee), { cart: addProduct([], product) });
   const next = closeOrderTab([old], 5, 5, 6);
-  assert.deepEqual(next, { orders: [createOrder(6)], activeId: 6 });
-  assert.equal(next.orders[0].employee, 'Nguyễn Huy Hoàng');
+  assert.deepEqual(next, { orders: [createOrder(6, employee)], activeId: 6 });
+  assert.equal(next.orders[0].employee, employee);
+});
+
+test('closed tab numbers are never reused in one session', () => {
+  let sequence = 2;
+  let orders = [createOrder(1), createOrder(sequence)];
+  orders = closeOrderTab(orders, 2, 2, sequence).orders;
+  orders.push(createOrder(++sequence));
+  assert.deepEqual(orders.map((order) => order.code), ['DH-001', 'DH-003']);
+});
+
+test('quantity above real available stock is reported', () => {
+  const line = { ...addProduct([], { ...product, stock: 3 })[0], quantity: 4 };
+  assert.equal(findStockIssue([line]), line);
+  assert.equal(findStockIssue([{ ...line, quantity: 3 }]), null);
+});
+
+test('quantity entry is clamped to real available stock and trims serials', () => {
+  const line = { ...addProduct([], { ...product, stock: 6 })[0], serials: Array.from({ length: 6 }, (_, id) => ({ id })) };
+  assert.equal(setProductQuantity([line], 'VGA', 99)[0].quantity, 6);
+  const reduced = setProductQuantity([line], 'VGA', 3)[0];
+  assert.equal(reduced.quantity, 3);
+  assert.equal(reduced.serials.length, 3);
 });
 
 test('receipt records exact, overpaid and underpaid change without mutating the order', () => {
@@ -80,10 +102,11 @@ test('receipt records exact, overpaid and underpaid change without mutating the 
 });
 
 test('payment reset retains the tab code, restores every default and preserves the receipt', () => {
-  const order = updateOrder(createOrder(7), { customer: { id: 'KH006' }, cart: addProduct([], product), tax: false, priceList: 'business', employee: mockEmployees[2], discount: 15, paymentMethod: 'transfer' });
+  const employee = { id: 3, ho_ten: 'Nhân viên đăng nhập' };
+  const order = updateOrder(createOrder(7, employee), { customer: { id: 'KH006' }, cart: addProduct([], product), tax: false, priceList: 'business', discount: 15, paymentMethod: 'transfer' });
   const receipt = finalizeOrder(order);
   const reset = resetOrder(order);
-  assert.deepEqual(reset, createOrder(7));
+  assert.deepEqual(reset, createOrder(7, employee));
   assert.equal(receipt.cart.length, 1);
   assert.ok(receipt.total > 0);
   assert.equal(receipt.code, reset.code);

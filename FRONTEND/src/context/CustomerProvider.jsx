@@ -4,13 +4,17 @@ import { formatUpdatedAt, seedCustomers } from '../data/mockCustomers';
 import { readSharedState, subscribeToAdminSlice, writeSharedState } from '../sync/adminSync';
 
 const STORAGE_KEY = 'ruventu_customers_v1';
+const readCustomers = () => {
+  const customers = readSharedState(STORAGE_KEY, seedCustomers);
+  return customers.length ? customers : seedCustomers;
+};
 
 export default function CustomerProvider({ children }) {
-  const [customers, setCustomers] = useState(() => readSharedState(STORAGE_KEY, seedCustomers));
+  const [customers, setCustomers] = useState(readCustomers);
   const customersRef = useRef(customers);
 
   useEffect(() => subscribeToAdminSlice('customers', () => {
-    const next = readSharedState(STORAGE_KEY, seedCustomers);
+    const next = readCustomers();
     customersRef.current = next;
     setCustomers(next);
   }), []);

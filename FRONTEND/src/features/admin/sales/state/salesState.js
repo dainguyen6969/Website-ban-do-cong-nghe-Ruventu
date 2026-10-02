@@ -1,20 +1,18 @@
 // State helpers for the admin point-of-sale workflow.
-import { mockEmployees } from '../../../../data/mockEmployees.js';
-
-export function createOrder(sequence) {
+export function createOrder(sequence, employee = null) {
   return { id: sequence, code: `DH-${String(sequence).padStart(3, '0')}`, customer: null, cart: [], tax: true,
-    priceList: 'retail', employee: mockEmployees[0], discount: 0, paymentMethod: 'cash', paid: 0 };
+    priceList: 'retail', employee, discount: 0, paymentMethod: 'cash', paid: 0 };
 }
 
 export function resetOrder(order) {
-  return { ...createOrder(order.id), code: order.code };
+  return { ...createOrder(order.id, order.employee), code: order.code };
 }
 
 export function closeOrderTab(orders, activeId, removedId, nextSequence) {
   const index = orders.findIndex((order) => order.id === removedId);
   const remaining = orders.filter((order) => order.id !== removedId);
   if (!remaining.length) {
-    const next = createOrder(nextSequence);
+    const next = createOrder(nextSequence, orders[0]?.employee);
     return { orders: [next], activeId: next.id };
   }
   return { orders: remaining, activeId: removedId === activeId ? remaining[Math.max(0, index - 1)].id : activeId };
@@ -47,10 +45,23 @@ export function updateOrder(order, patch) {
 
 export function addProduct(cart, product) {
   return cart.some((item) => item.product.id === product.id)
-    ? cart.map((item) => item.product.id === product.id ? { ...item, quantity: item.quantity + 1 } : item)
+    ? cart.map((item) => item.product.id === product.id ? { ...item, product, quantity: clampQuantity(product, item.quantity + 1) } : item)
     : [...cart, { product, quantity: 1, serials: [] }];
 }
+
+const clampQuantity = (product, value) => {
+  const stock = Number(product.stock);
+  return Math.min(Number.isFinite(stock) ? Math.max(1, Math.trunc(stock)) : Infinity, Math.max(1, Math.trunc(Number(value)) || 1));
+};
+
+export const setProductQuantity = (cart, id, value) => cart.map((item) => {
+  if (item.product.id !== id) return item;
+  const quantity = clampQuantity(item.product, value);
+  return { ...item, quantity, serials: (item.serials || []).slice(0, quantity) };
+});
 
 export const findIncompleteSerialLine = (cart) => cart.find(
   (item) => item.product.serialManaged && (item.serials?.length || 0) !== item.quantity,
 ) || null;
+
+export const findStockIssue = (cart) => cart.find((item) => item.quantity > item.product.stock) || null;
