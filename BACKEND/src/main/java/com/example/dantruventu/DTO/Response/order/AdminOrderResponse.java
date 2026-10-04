@@ -67,6 +67,16 @@ public final class AdminOrderResponse {
       @JsonProperty("trang_thai") TrangThaiPhieuThuChi trangThai,
       @JsonProperty("ngay_ghi_nhan") OffsetDateTime ngayGhiNhan) {}
 
+  public record History(
+      Long id,
+      @JsonProperty("hanh_dong") String hanhDong,
+      @JsonProperty("mo_ta") String moTa,
+      @JsonProperty("nguoi_thuc_hien") String nguoiThucHien,
+      @JsonProperty("ngay_thuc_hien") OffsetDateTime ngayThucHien,
+      @JsonProperty("trang_thai_don_hang") TrangThaiDonHang trangThaiDonHang,
+      @JsonProperty("trang_thai_dong_goi") TrangThaiDongGoi trangThaiDongGoi,
+      @JsonProperty("trang_thai_xuat_kho") TrangThaiXuatKho trangThaiXuatKho) {}
+
   @Getter
   @Setter
   public static class Action extends AdminSalesResponse.Order {

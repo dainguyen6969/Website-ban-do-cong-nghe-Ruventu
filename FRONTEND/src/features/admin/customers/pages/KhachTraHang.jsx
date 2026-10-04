@@ -21,8 +21,8 @@ const normalize = (value = '') => value.normalize('NFD').replace(/[\u0300-\u036f
 const money = (value) => `${new Intl.NumberFormat('vi-VN').format(Number(value || 0))}đ`;
 const dateOnly = (value) => new Intl.DateTimeFormat('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' }).format(new Date(value));
 const today = () => new Date().toISOString().slice(0, 10);
-const statusLabel = (status) => ({ cho_tiep_nhan: 'Chờ tiếp nhận', da_nhan_hang: 'Đã nhận hàng', da_hoan_tien: 'Đã hoàn tiền' }[status] || status);
-const statusFromLabel = (label) => ({ 'Chờ tiếp nhận': 'cho_tiep_nhan', 'Đã nhận hàng': 'da_nhan_hang', 'Đã hoàn tiền': 'da_hoan_tien' }[label]);
+const statusLabel = (status) => ({ CHO_TIEP_NHAN: 'Chờ tiếp nhận', DA_NHAN_HANG: 'Đã nhận hàng', DA_HOAN_TIEN: 'Đã hoàn tiền' }[status] || status);
+const statusFromLabel = (label) => ({ 'Chờ tiếp nhận': 'CHO_TIEP_NHAN', 'Đã nhận hàng': 'DA_NHAN_HANG', 'Đã hoàn tiền': 'DA_HOAN_TIEN' }[label]);
 const guestName = (name) => name || 'Khách lẻ';
 
 export default function KhachTraHang() {

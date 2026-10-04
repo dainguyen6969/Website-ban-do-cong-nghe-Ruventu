@@ -11,9 +11,9 @@ export const CUSTOMER_RETURNS_STORAGE_KEY = 'ruventu_customer_returns';
 export const CUSTOMER_RETURNS_SYNC_SLICE = 'customer-returns';
 
 export const RETURN_STATUS = {
-  WAITING: 'cho_tiep_nhan',
-  RECEIVED: 'da_nhan_hang',
-  REFUNDED: 'da_hoan_tien',
+  WAITING: 'CHO_TIEP_NHAN',
+  RECEIVED: 'DA_NHAN_HANG',
+  REFUNDED: 'DA_HOAN_TIEN',
 };
 
 const asGuest = (order) => !order?.customerId || /khách vãng lai|khách lẻ/i.test(order?.customerName || '');
@@ -31,7 +31,7 @@ export function orderLineRef(product, index) {
 }
 
 export function readCustomerReturns(orders = []) {
-  return readSharedState(CUSTOMER_RETURNS_STORAGE_KEY, seedCustomerReturns(orders));
+  return readSharedState(CUSTOMER_RETURNS_STORAGE_KEY, seedCustomerReturns(orders)).map((record) => ({ ...record, trangThai: record.trangThai?.toUpperCase() }));
 }
 
 export function saveCustomerReturns(records, action = 'updated', entityId = null) {
