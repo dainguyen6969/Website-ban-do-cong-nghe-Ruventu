@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { Link, NavLink, useNavigate } from "react-router-dom";
 import {
   Search,
@@ -13,6 +13,8 @@ import "./Header.css";
 import logo from "../assets/reventu.png";
 import CartDrawer from "./CartDrawer";
 import FontSwitcher from "../../shared/components/ui/FontSwitcher";
+import { productService } from "../../shared/services/productService";
+import { cartService } from "../../shared/services/cartService";
 
 const API_BASE_URL = (import.meta.env.VITE_RUVENTU_API_URL || '').replace(/\/$/, '');
 
@@ -21,6 +23,9 @@ const Header = () => {
 
   const [searchQuery, setSearchQuery] = useState("");
   const [isCartOpen, setIsCartOpen] = useState(false);
+  const [suggestions, setSuggestions] = useState([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const searchRef = useRef(null);
 
   const [user, setUser] = useState(() => {
     try {
@@ -33,45 +38,76 @@ const Header = () => {
 
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
-  const getCartCount = () => {
-    try {
-      const items = JSON.parse(localStorage.getItem("ruventu_cart") || "[]");
+  const [cartCount, setCartCount] = useState(0);
 
-      if (!Array.isArray(items)) {
-        return 0;
-      }
-
-      return items.reduce(
-        (total, item) => total + Number(item.quantity || 0),
-        0,
-      );
-    } catch {
-      return 0;
-    }
-  };
-
-  const [cartCount, setCartCount] = useState(getCartCount);
-
-  /*
-   * Theo dõi thay đổi giỏ hàng.
-   *
-   * Các component khác chỉ cần:
-   *
-   * window.dispatchEvent(new CustomEvent('cartUpdated'));
-   *
-   * Header sẽ tự đọc lại localStorage.
-   */
   useEffect(() => {
-    const handleCartUpdate = () => {
-      setCartCount(getCartCount());
+    // Initial fetch
+    const fetchCartCount = async () => {
+      try {
+        const res = await cartService.getCurrentCart();
+        if (res?.data?.data?.tongSoLuong) {
+          setCartCount(res.data.data.tongSoLuong);
+        }
+      } catch (err) {
+        setCartCount(0);
+      }
+    };
+    fetchCartCount();
+
+    const handleCartUpdate = (e) => {
+      if (e.detail !== undefined && e.detail.count !== undefined) {
+        setCartCount(e.detail.count);
+      } else {
+        // Fallback fetch if event didn't include count
+        fetchCartCount();
+      }
     };
 
-    window.addEventListener("cartUpdated", handleCartUpdate);
+    window.addEventListener("cartUpdated", fetchCartCount);
+    window.addEventListener("cartCountUpdated", handleCartUpdate);
 
     return () => {
-      window.removeEventListener("cartUpdated", handleCartUpdate);
+      window.removeEventListener("cartUpdated", fetchCartCount);
+      window.removeEventListener("cartCountUpdated", handleCartUpdate);
     };
   }, []);
+
+  // Đóng suggestions khi click ra ngoài
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (searchRef.current && !searchRef.current.contains(event.target)) {
+        setShowSuggestions(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  // Debounce gọi API tìm kiếm
+  useEffect(() => {
+    const fetchSuggestions = async () => {
+      if (searchQuery.trim().length >= 2) {
+        try {
+          const response = await productService.getProducts({ keyword: searchQuery.trim(), limit: 5 });
+          if (response && response.data && response.data.danhSachSanPham) {
+            setSuggestions(response.data.danhSachSanPham);
+            setShowSuggestions(true);
+          }
+        } catch (error) {
+          console.error("Lỗi fetch suggestions:", error);
+        }
+      } else {
+        setSuggestions([]);
+        setShowSuggestions(false);
+      }
+    };
+
+    const timer = setTimeout(() => {
+      fetchSuggestions();
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
 
   const handleLogout = async () => {
     try {
@@ -141,7 +177,7 @@ const Header = () => {
             </div>
 
             {/* Search */}
-            <div className="search-bar">
+            <div className="search-bar" ref={searchRef} style={{ position: "relative" }}>
               <form
                 onSubmit={handleSearchSubmit}
                 style={{
@@ -153,7 +189,13 @@ const Header = () => {
                   type="text"
                   placeholder="Tìm kiếm sản phẩm..."
                   value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onChange={(e) => {
+                    setSearchQuery(e.target.value);
+                    setShowSuggestions(true);
+                  }}
+                  onFocus={() => {
+                    if (suggestions.length > 0) setShowSuggestions(true);
+                  }}
                 />
 
                 <button type="submit" className="search-btn">
@@ -161,6 +203,30 @@ const Header = () => {
                   <span>TÌM KIẾM</span>
                 </button>
               </form>
+
+              {showSuggestions && suggestions.length > 0 && (
+                <div className="search-suggestions">
+                  {suggestions.map((p) => (
+                    <Link
+                      key={p.id}
+                      to={`/product/${p.id}`}
+                      className="suggestion-item"
+                      onClick={() => {
+                        setShowSuggestions(false);
+                        setSearchQuery("");
+                      }}
+                    >
+                      <img src={p.anhChinh || "https://via.placeholder.com/40"} alt={p.tenSanPham} className="suggestion-img" />
+                      <div className="suggestion-info">
+                        <span className="suggestion-name">{p.tenSanPham}</span>
+                        <span className="suggestion-price">
+                          {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(p.giaThapNhat)}
+                        </span>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Actions */}

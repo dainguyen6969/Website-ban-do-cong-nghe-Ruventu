@@ -111,8 +111,7 @@ const Login = () => {
                 {
                     tai_khoan: formData.account,
                     mat_khau: formData.password,
-                    ghi_nho_dang_nhap:
-                    formData.remember,
+                    ghi_nho_dang_nhap: formData.remember,
                 },
                 { withCredentials: true }
             );
@@ -190,6 +189,8 @@ const Login = () => {
              */
             if (isAdmin) {
                 syncBackendAdmin();
+                // Sync session for the mock admin backend
+                localStorage.setItem('ruventu.mock.session', JSON.stringify({ accountId: 'admin-1' }));
                 
                 navigate('/admin', {
                     replace: true,

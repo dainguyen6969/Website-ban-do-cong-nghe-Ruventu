@@ -3,13 +3,21 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { ArrowLeft, ShieldCheck, Truck } from 'lucide-react';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
+import { orderService } from '../../shared/services/orderService';
+import { cartService } from '../../shared/services/cartService';
 import './CheckoutPage.css';
+
+const formatPrice = (price) => new Intl.NumberFormat('vi-VN').format(price) + 'đ';
 
 const CheckoutPage = () => {
   const navigate = useNavigate();
-  const [deliveryMethod, setDeliveryMethod] = useState('shipping');
-  const [paymentMethod, setPaymentMethod] = useState('cod');
-  const [checkoutItems, setCheckoutItems] = useState([]);
+  const location = useLocation();
+  const [deliveryMethod, setDeliveryMethod] = useState('GIAO_HANG');
+  const [paymentMethod, setPaymentMethod] = useState('TIEN_MAT');
+  
+  const [cartItemIds, setCartItemIds] = useState([]);
+  const [cartItemsData, setCartItemsData] = useState([]);
+  const [previewData, setPreviewData] = useState(null);
   const [formData, setFormData] = useState({
     name: '',
     phone: '',
@@ -21,31 +29,72 @@ const CheckoutPage = () => {
   });
   const [errors, setErrors] = useState({});
 
-  const location = useLocation();
+  useEffect(() => {
+    // Check if user is logged in to prefill data
+    try {
+      const userStr = localStorage.getItem('user');
+      if (userStr) {
+        const user = JSON.parse(userStr);
+        setFormData(prev => ({
+          ...prev,
+          name: user.hoTen || prev.name,
+          phone: user.soDienThoai || prev.phone,
+          email: user.email || prev.email,
+          address: user.diaChi || prev.address
+        }));
+      }
+    } catch (e) {
+      console.error(e);
+    }
+
+    if (location.state?.cartItemIds && location.state.cartItemIds.length > 0) {
+      setCartItemIds(location.state.cartItemIds);
+      // Lấy thông tin giỏ hàng để hiển thị tên và ảnh sản phẩm
+      cartService.getCurrentCart().then(res => {
+        if (res?.data?.data?.items) {
+          setCartItemsData(res.data.data.items);
+        }
+      }).catch(err => console.error("Lỗi fetch giỏ hàng ở checkout:", err));
+    } else {
+      // If no item selected, return to cart
+      navigate('/cart');
+    }
+  }, [location.state, navigate]);
 
   useEffect(() => {
-    if (location.state?.buyNowItem) {
-      setCheckoutItems([location.state.buyNowItem]);
-    } else {
-      const items = JSON.parse(localStorage.getItem('ruventu_cart') || '[]');
-      const selectedItems = items.filter(item => item.selected !== false);
-      
-      if (selectedItems.length === 0) {
-        navigate('/cart');
-      } else {
-        setCheckoutItems(selectedItems);
+    if (cartItemIds.length === 0) return;
+    
+    // Call preview API whenever relevant fields change
+    const fetchPreview = async () => {
+      try {
+        const payload = {
+          cart_item_ids: cartItemIds,
+          hinh_thuc_nhan_hang: deliveryMethod,
+          phuong_thuc_thanh_toan: paymentMethod,
+          thong_tin_nguoi_nhan: {
+            ten_nguoi_nhan: formData.name || 'Nguyen Van A', // API might require not null
+            sdt_nguoi_nhan: formData.phone || '0901234567',
+            dia_chi_giao_hang: deliveryMethod === 'GIAO_HANG' ? `${formData.address}, ${formData.ward}, ${formData.province}` : ''
+          },
+          ma_chuong_trinh: location.state?.voucherCode || null,
+          ghi_chu: formData.note
+        };
+        const res = await orderService.previewCheckout(payload);
+        if (res.data?.data) {
+          setPreviewData(res.data.data);
+        }
+      } catch (err) {
+        console.error("Preview lỗi:", err);
       }
-    }
-  }, [navigate, location.state]);
-
-  const parsePrice = (priceStr) => {
-    if (!priceStr) return 0;
-    return parseInt(priceStr.toString().replace(/\D/g, ''), 10) || 0;
-  };
-
-  const totalPrice = checkoutItems.reduce((sum, item) => sum + (parsePrice(item.price) * item.quantity), 0);
-  const shippingFee = deliveryMethod === 'shipping' ? (totalPrice > 5000000 ? 0 : 30000) : 0;
-  const finalTotal = totalPrice + shippingFee;
+    };
+    
+    // Use timeout to debounce if typing
+    const timeoutId = setTimeout(() => {
+      fetchPreview();
+    }, 500);
+    
+    return () => clearTimeout(timeoutId);
+  }, [cartItemIds, deliveryMethod, paymentMethod, formData.address, formData.ward, formData.province, location.state?.voucherCode, formData.note]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -55,12 +104,12 @@ const CheckoutPage = () => {
     }
   };
 
-  const handlePlaceOrder = () => {
+  const handlePlaceOrder = async () => {
     const newErrors = {};
     if (!formData.name.trim()) newErrors.name = 'Vui lòng nhập họ và tên';
     if (!formData.phone.trim()) {
       newErrors.phone = 'Vui lòng nhập số điện thoại';
-    } else if (!/^[0-9]{10,11}$/.test(formData.phone.trim().replace(/\s/g, ''))) {
+    } else if (!/^(?:\+84|0)[0-9]{9,10}$/.test(formData.phone.trim().replace(/\s/g, ''))) {
       newErrors.phone = 'Số điện thoại không hợp lệ';
     }
     
@@ -70,7 +119,7 @@ const CheckoutPage = () => {
       newErrors.email = 'Email không hợp lệ';
     }
 
-    if (deliveryMethod === 'shipping') {
+    if (deliveryMethod === 'GIAO_HANG') {
       if (!formData.address.trim()) newErrors.address = 'Vui lòng nhập địa chỉ cụ thể';
     }
 
@@ -80,13 +129,32 @@ const CheckoutPage = () => {
       return;
     }
 
-    if (!location.state?.buyNowItem) {
-      const items = JSON.parse(localStorage.getItem('ruventu_cart') || '[]');
-      const remainingItems = items.filter(item => item.selected === false);
-      localStorage.setItem('ruventu_cart', JSON.stringify(remainingItems));
+    if (!previewData) return;
+
+    try {
+      const payload = {
+        cart_item_ids: cartItemIds,
+        hinh_thuc_nhan_hang: deliveryMethod,
+        phuong_thuc_thanh_toan: paymentMethod,
+        thong_tin_nguoi_nhan: {
+          ten_nguoi_nhan: formData.name,
+          sdt_nguoi_nhan: formData.phone,
+          dia_chi_giao_hang: deliveryMethod === 'GIAO_HANG' ? `${formData.address}, ${formData.ward}, ${formData.province}` : ''
+        },
+        ma_chuong_trinh: location.state?.voucherCode || null,
+        ghi_chu: formData.note,
+        tong_thanh_toan_xac_nhan: previewData.tong_thanh_toan
+      };
+      
+      const res = await orderService.submitCheckout(payload);
+      
+      // Notify header/cart drawer to reload cart
       window.dispatchEvent(new CustomEvent('cartUpdated'));
+      
+      navigate('/success', { state: { orderCode: res.data?.data?.maDonHang } });
+    } catch (err) {
+      alert(err.response?.data?.message || 'Có lỗi xảy ra khi tạo đơn hàng. Vui lòng thử lại.');
     }
-    navigate('/success');
   };
 
   return (
@@ -162,8 +230,8 @@ const CheckoutPage = () => {
             <h3 className="section-title">PHƯƠNG THỨC NHẬN HÀNG</h3>
             <div className="selection-boxes">
               <div 
-                className={`selection-box ${deliveryMethod === 'shipping' ? 'active' : ''}`}
-                onClick={() => setDeliveryMethod('shipping')}
+                className={`selection-box ${deliveryMethod === 'GIAO_HANG' ? 'active' : ''}`}
+                onClick={() => setDeliveryMethod('GIAO_HANG')}
               >
                 <div className="radio-custom"></div>
                 <div className="selection-content">
@@ -173,8 +241,8 @@ const CheckoutPage = () => {
                 </div>
               </div>
               <div 
-                className={`selection-box ${deliveryMethod === 'pickup' ? 'active' : ''}`}
-                onClick={() => setDeliveryMethod('pickup')}
+                className={`selection-box ${deliveryMethod === 'NHAN_TAI_CUA_HANG' ? 'active' : ''}`}
+                onClick={() => setDeliveryMethod('NHAN_TAI_CUA_HANG')}
               >
                 <div className="radio-custom"></div>
                 <div className="selection-content">
@@ -185,7 +253,7 @@ const CheckoutPage = () => {
               </div>
             </div>
 
-            {deliveryMethod === 'shipping' && (
+            {deliveryMethod === 'GIAO_HANG' && (
               <>
                 <div className="form-row">
                   <div className="form-group">
@@ -234,8 +302,8 @@ const CheckoutPage = () => {
             <h3 className="section-title">PHƯƠNG THỨC THANH TOÁN</h3>
             <div className="selection-boxes" style={{flexDirection: 'column', gap: '10px'}}>
               <div 
-                className={`selection-box ${paymentMethod === 'cod' ? 'active' : ''}`}
-                onClick={() => setPaymentMethod('cod')}
+                className={`selection-box ${paymentMethod === 'TIEN_MAT' ? 'active' : ''}`}
+                onClick={() => setPaymentMethod('TIEN_MAT')}
                 style={{padding: '15px 20px'}}
               >
                 <div className="radio-custom"></div>
@@ -245,8 +313,8 @@ const CheckoutPage = () => {
                 </div>
               </div>
               <div 
-                className={`selection-box ${paymentMethod === 'bank' ? 'active' : ''}`}
-                onClick={() => setPaymentMethod('bank')}
+                className={`selection-box ${paymentMethod === 'CHUYEN_KHOAN' ? 'active' : ''}`}
+                onClick={() => setPaymentMethod('CHUYEN_KHOAN')}
                 style={{padding: '15px 20px'}}
               >
                 <div className="radio-custom"></div>
@@ -283,39 +351,54 @@ const CheckoutPage = () => {
           </div>
           
           <div className="sidebar-items">
-            {checkoutItems.map(item => (
-              <div key={item.id} className="sidebar-item">
-                <img src={item.image} alt={item.title} />
+            {previewData && previewData.san_pham && previewData.san_pham.map(item => {
+              const cartInfo = cartItemsData.find(c => c.phienBanId === item.phien_ban_id) || {};
+              return (
+              <div key={item.phien_ban_id} className="sidebar-item">
+                <img src={cartInfo.anh || 'https://via.placeholder.com/60'} alt={cartInfo.tenSanPham || 'Sản phẩm'} />
                 <div className="sidebar-item-details">
-                  <h4>{item.title}</h4>
-                  <p>{item.variant || 'Tiêu chuẩn'}</p>
+                  <h4>{cartInfo.tenSanPham || 'Đang tải...'}</h4>
+                  <p>{cartInfo.tenPhienBan || 'Tiêu chuẩn'}</p>
                   <div className="sidebar-item-price">
-                    <span className="qty">x{item.quantity}</span>
-                    <span className="price">{item.price}</span>
+                    <span className="qty">x{item.so_luong}</span>
+                    <span className="price">{formatPrice(item.don_gia)}</span>
                   </div>
                 </div>
               </div>
-            ))}
+            )})}
           </div>
 
           <div className="sidebar-summary">
-            <div className="summary-row">
-              <span>Tạm tính</span>
-              <span>{totalPrice.toLocaleString('vi-VN')}đ</span>
-            </div>
-            <div className="summary-row">
-              <span>Phí vận chuyển</span>
-              {shippingFee === 0 ? (
-                <span style={{backgroundColor: '#111', color: 'white', padding: '2px 6px', fontSize: '10px', fontWeight: 'bold'}}>MIỄN PHÍ</span>
-              ) : (
-                <span>{shippingFee.toLocaleString('vi-VN')}đ</span>
-              )}
-            </div>
-            <div className="summary-row total">
-              <span>TỔNG TIỀN</span>
-              <span className="price">{finalTotal.toLocaleString('vi-VN')}đ</span>
-            </div>
-            <button className="btn-confirm-order" onClick={handlePlaceOrder}>
+            {previewData ? (
+              <>
+                <div className="summary-row">
+                  <span>Tạm tính</span>
+                  <span>{formatPrice(previewData.tong_tien_hang)}</span>
+                </div>
+                {previewData.tien_chiet_khau > 0 && (
+                  <div className="summary-row" style={{ color: '#ff0000' }}>
+                    <span>Khuyến mãi</span>
+                    <span>-{formatPrice(previewData.tien_chiet_khau)}</span>
+                  </div>
+                )}
+                <div className="summary-row">
+                  <span>Phí vận chuyển</span>
+                  {previewData.phi_giao_hang === 0 ? (
+                    <span style={{backgroundColor: '#111', color: 'white', padding: '2px 6px', fontSize: '10px', fontWeight: 'bold'}}>MIỄN PHÍ</span>
+                  ) : (
+                    <span>{formatPrice(previewData.phi_giao_hang)}</span>
+                  )}
+                </div>
+                <div className="summary-row total">
+                  <span>TỔNG TIỀN</span>
+                  <span className="price">{formatPrice(previewData.tong_thanh_toan)}</span>
+                </div>
+              </>
+            ) : (
+              <div style={{ textAlign: 'center', padding: '20px' }}>Đang tính toán...</div>
+            )}
+            
+            <button className="btn-confirm-order" onClick={handlePlaceOrder} disabled={!previewData}>
               XÁC NHẬN ĐẶT HÀNG &rarr;
             </button>
           </div>
