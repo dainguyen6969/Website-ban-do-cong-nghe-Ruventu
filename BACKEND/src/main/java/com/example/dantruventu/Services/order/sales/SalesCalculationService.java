@@ -539,10 +539,8 @@ public class SalesCalculationService {
       return result;
     }
 
-    if (promotion.getPhuongThucKhuyenMai() != PhuongThucKhuyenMai.CHIET_KHAU
-        || rule == null
-        || rule.getUnit() == null) {
-      throw conflict("Chưa cấu hình rõ kiểu giảm tiền/phần trăm cho chương trình");
+    if (promotion.getPhuongThucKhuyenMai() != PhuongThucKhuyenMai.CHIET_KHAU) {
+      throw conflict("Phương thức khuyến mại không hợp lệ");
     }
 
     BigDecimal value = promotion.getGiaTriKhuyenMai();
@@ -551,7 +549,16 @@ public class SalesCalculationService {
       throw conflict("Giá trị khuyến mại không hợp lệ");
     }
 
-    boolean percentage = rule.getUnit() == SalesProperties.DiscountUnit.PHAN_TRAM;
+    boolean supportedMoneyScope =
+        promotion.getDoiTuongKhuyenMai() == DoiTuongKhuyenMai.TONG_DON
+            || promotion.getDoiTuongKhuyenMai() == DoiTuongKhuyenMai.TUNG_SAN_PHAM;
+
+    if (!supportedMoneyScope && (rule == null || rule.getUnit() == null)) {
+      throw conflict("Chưa cấu hình rõ kiểu giảm tiền/phần trăm cho chương trình");
+    }
+
+    boolean percentage =
+        !supportedMoneyScope && rule.getUnit() == SalesProperties.DiscountUnit.PHAN_TRAM;
 
     if (percentage && value.compareTo(new BigDecimal("100")) > 0) {
       throw conflict("Phần trăm giảm phải trong khoảng trên 0 đến 100");
