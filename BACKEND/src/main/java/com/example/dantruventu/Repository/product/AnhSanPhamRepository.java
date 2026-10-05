@@ -16,4 +16,3 @@ public interface AnhSanPhamRepository extends JpaRepository<AnhSanPham, Long> {
   Optional<AnhSanPham> findFirstBySanPham_IdOrderByLaAnhChinhDescThuTuHienThiAscIdAsc(
       Long sanPhamId);
 }
-

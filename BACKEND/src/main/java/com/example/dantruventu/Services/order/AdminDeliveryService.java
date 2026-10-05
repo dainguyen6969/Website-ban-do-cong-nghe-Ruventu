@@ -499,7 +499,7 @@ public class AdminDeliveryService {
         throw conflict("Phải xác nhận shipper đã thu đủ COD từ khách");
       }
 
-      // Khách trả shipper chưa phải cửa hàng nhận COD; /payment/confirm ghi nhận khoản nộp.
+      order.setTrangThaiThanhToan(TrangThaiThanhToanDonHang.DA_THANH_TOAN);
       return;
     }
 

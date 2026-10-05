@@ -42,11 +42,16 @@ export const canEditOnlineOrder = (order) => order?.loai_don_hang === 'ONLINE'
   && order.trang_thai_dong_goi === 'CHUA_DONG_GOI';
 
 export function paymentSource(order) {
-  if (order?.loai_don_hang !== 'ONLINE' || ['CHO_DUYET', 'HUY_HANG'].includes(order.trang_thai_don_hang)
-      || order.trang_thai_thanh_toan !== 'CHUA_THANH_TOAN' || !(Number(order.tong_thanh_toan) > 0)) return null;
+  if (order?.loai_don_hang !== 'ONLINE' || !(Number(order.tong_thanh_toan) > 0)) return null;
   const active = (order.phieu_giao_hang || []).filter((item) => !['HUY_GIAO_HANG', 'DA_HOAN_HANG'].includes(item.trang_thai_giao_hang));
-  if (active.every((item) => item.trang_thai_giao_hang === 'CHO_GIAO')) return { nguon_thu: 'KHACH_HANG' };
-  if (active.length === 1 && active[0].trang_thai_giao_hang === 'GIAO_THANH_CONG'
+  if (order.trang_thai_thanh_toan === 'CHUA_THANH_TOAN'
+      && ['CHO_THANH_TOAN', 'CHO_DONG_GOI', 'CHO_LAY_HANG'].includes(order.trang_thai_don_hang)
+      && order.trang_thai_xuat_kho !== 'DA_HOAN_KHO'
+      && active.every((item) => item.trang_thai_giao_hang === 'CHO_GIAO')) return { nguon_thu: 'KHACH_HANG' };
+  if (order.trang_thai_don_hang === 'HOAN_THANH' && order.trang_thai_thanh_toan === 'DA_THANH_TOAN'
+      && order.trang_thai_xuat_kho === 'DA_XUAT_KHO'
+      && !order.da_ghi_nhan_thu_cod
+      && active.length === 1 && active[0].trang_thai_giao_hang === 'GIAO_THANH_CONG'
       && Number(active[0].tien_thu_ho_cod) === Number(order.tong_thanh_toan)) {
     return { nguon_thu: 'DOI_TAC_GIAO_HANG', phieu_giao_hang_id: active[0].id };
   }

@@ -1,7 +1,6 @@
-// IntelliJ/Spring adapter for admin brands; the unused VSCode backend is never addressed here.
-const API_BASE_URL = (import.meta.env.VITE_RUVENTU_API_URL || '').replace(/\/$/, '');
+import { apiRequest as request } from '../../../../../auth/backendAuth';
+
 const BRAND_PATH = '/api/v1/admin/brands';
-const ACCESS_TOKEN_KEY = 'ruventu_backend_access_token';
 
 let inMemoryToken = '';
 let loginPromise = null;
@@ -60,28 +59,6 @@ async function getToken(force = false) {
   if (!force && readToken()) return readToken();
   if (!loginPromise) loginPromise = login().finally(() => { loginPromise = null; });
   return loginPromise;
-}
-
-async function request(path, options = {}, retry = true) {
-  const token = await getToken();
-  const isForm = options.body instanceof FormData;
-  const response = await fetch(`${API_BASE_URL}${path}`, {
-    ...options,
-    headers: {
-      Accept: 'application/json',
-      ...(!isForm && options.body ? { 'Content-Type': 'application/json' } : {}),
-      ...options.headers,
-      Authorization: `Bearer ${token}`,
-    },
-  });
-  if (response.status === 401 && retry) {
-    storeToken('');
-    await getToken(true);
-    return request(path, options, false);
-  }
-  const payload = await parseResponse(response);
-  if (!response.ok) throw new BrandApiError(payload?.message || `Yêu cầu thất bại (${response.status}).`, response.status, payload);
-  return payload?.data;
 }
 
 const normalizeStatus = (value) => Number(value) === 1 ? 'active' : 'inactive';

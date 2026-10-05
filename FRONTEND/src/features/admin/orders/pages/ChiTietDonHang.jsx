@@ -39,7 +39,7 @@ export default function ChiTietDonHang() {
   const open = (type, title, fields = {}) => { setState((s) => ({ ...s, error: '' })); setDialog({ type, title, confirmed: false, ...fields }); };
   const approve = () => open('approve', 'DUYỆT ĐƠN');
   const fulfillment = () => run(() => startFulfillment(order.id));
-  const payment = () => open('payment', 'XÁC NHẬN THANH TOÁN', { source: paymentSource(order), method: order.phuong_thuc_thanh_toan || 'TIEN_MAT', amount: String(order.tong_thanh_toan), date: localNow(), transaction: '', key: crypto.randomUUID() });
+  const payment = () => open('payment', canPay.nguon_thu === 'DOI_TAC_GIAO_HANG' ? 'GHI NHẬN THU COD' : 'XÁC NHẬN THANH TOÁN', { source: canPay, method: order.phuong_thuc_thanh_toan === 'COD' ? 'TIEN_MAT' : order.phuong_thuc_thanh_toan || 'TIEN_MAT', amount: String(order.tong_thanh_toan), date: localNow(), transaction: '', key: crypto.randomUUID() });
   const cancel = () => run(async () => { await cancelOrder(order.id, cancelReason); setIsCancelOpen(false); setCancelReason(''); });
   const refund = () => open('refund', 'GHI NHẬN ĐÃ HOÀN TIỀN', { method: order.phuong_thuc_thanh_toan || 'TIEN_MAT', date: localNow(), transaction: '', key: crypto.randomUUID() });
   const warehouseExport = async () => {
@@ -102,7 +102,7 @@ export default function ChiTietDonHang() {
         </Panel>
         <Panel title="THANH TOÁN">
           <dl className="order-detail-kv"><Info text="PHƯƠNG THỨC">{label(order.phuong_thuc_thanh_toan)}</Info><Info text="TRẠNG THÁI"><OrderStateBadge value={order.trang_thai_thanh_toan} /></Info><Info text="MÃ GIAO DỊCH">{order.ma_giao_dich_thanh_toan || '—'}</Info></dl>
-          {canPay && <div className="order-panel-actions"><Action disabled={state.busy} click={payment}>XÁC NHẬN THANH TOÁN</Action></div>}
+          {canPay && <div className="order-panel-actions"><Action disabled={state.busy} click={payment}>{canPay.nguon_thu === 'DOI_TAC_GIAO_HANG' ? 'GHI NHẬN THU COD' : 'XÁC NHẬN THANH TOÁN'}</Action></div>}
         </Panel>
         <Panel title="ĐÓNG GÓI VÀ XUẤT KHO">
           <div className="order-fulfillment-grid"><div><span>ĐÓNG GÓI</span><OrderStateBadge value={order.trang_thai_dong_goi} /></div><div><span>XUẤT KHO</span><OrderStateBadge value={order.trang_thai_xuat_kho} /></div></div>

@@ -65,44 +65,6 @@ public final class AdminOrderRequest {
 
   @Getter
   @Setter
-  public static class Payment extends AdminSalesRequest.StrictRequest {
-    @NotBlank
-    @Pattern(regexp = "KHACH_HANG|DOI_TAC_GIAO_HANG")
-    @JsonProperty("nguon_thu")
-    private String nguonThu;
-
-    @Positive
-    @JsonProperty("phieu_giao_hang_id")
-    private Long phieuGiaoHangId;
-
-    @NotBlank
-    @Pattern(regexp = "TIEN_MAT|CHUYEN_KHOAN|THE")
-    @JsonProperty("phuong_thuc_thanh_toan")
-    private String phuongThucThanhToan;
-
-    @NotNull
-    @DecimalMin(value = "0", inclusive = false)
-    @Digits(integer = 13, fraction = 0)
-    @JsonProperty("so_tien_thanh_toan")
-    private BigDecimal soTienThanhToan;
-
-    @NotNull
-    @PastOrPresent
-    @JsonProperty("ngay_thanh_toan")
-    private OffsetDateTime ngayThanhToan;
-
-    @Size(max = 255)
-    @JsonProperty("ma_giao_dich_thanh_toan")
-    private String maGiaoDichThanhToan;
-
-    @NotNull
-    @AssertTrue(message = "Phải xác nhận cửa hàng đã nhận đủ tiền")
-    @JsonProperty("xac_nhan_da_nhan_tien")
-    private Boolean xacNhanDaNhanTien;
-  }
-
-  @Getter
-  @Setter
   public static class SerialGroup extends AdminSalesRequest.StrictRequest {
 
     @NotNull
@@ -144,6 +106,45 @@ public final class AdminOrderRequest {
     @Valid
     @Size(max = 1000)
     private List<@NotNull ExportItem> items;
+  }
+
+  @Getter
+  @Setter
+  public static class Payment extends AdminSalesRequest.StrictRequest {
+
+    @NotBlank
+    @Pattern(regexp = "KHACH_HANG|DOI_TAC_GIAO_HANG")
+    @JsonProperty("nguon_thu")
+    private String nguonThu;
+
+    @Positive
+    @JsonProperty("phieu_giao_hang_id")
+    private Long phieuGiaoHangId;
+
+    @NotBlank
+    @Pattern(regexp = "TIEN_MAT|CHUYEN_KHOAN|THE")
+    @JsonProperty("phuong_thuc_thanh_toan")
+    private String phuongThucThanhToan;
+
+    @NotNull
+    @DecimalMin(value = "0", inclusive = false)
+    @Digits(integer = 13, fraction = 0)
+    @JsonProperty("so_tien_thanh_toan")
+    private BigDecimal soTienThanhToan;
+
+    @NotNull
+    @PastOrPresent
+    @JsonProperty("ngay_thanh_toan")
+    private OffsetDateTime ngayThanhToan;
+
+    @Size(max = 255)
+    @JsonProperty("ma_giao_dich_thanh_toan")
+    private String maGiaoDichThanhToan;
+
+    @NotNull
+    @AssertTrue(message = "Phải xác nhận cửa hàng đã thực nhận tiền")
+    @JsonProperty("xac_nhan_da_nhan_tien")
+    private Boolean xacNhanDaNhanTien;
   }
 
   @Getter

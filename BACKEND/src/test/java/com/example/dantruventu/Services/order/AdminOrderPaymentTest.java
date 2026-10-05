@@ -32,6 +32,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class AdminOrderPaymentTest {
   @Mock DonHangRepository orderRepository;
+  @Mock ChiTietDonHangRepository lineRepository;
   @Mock PhieuGiaoHangRepository deliveryRepository;
   @Mock SoQuyThuChiRepository cashRepository;
   @Mock LichSuXuLyDonHangRepository historyRepository;
@@ -58,6 +59,7 @@ class AdminOrderPaymentTest {
             .trangThaiDongGoi(TrangThaiDongGoi.DANG_DONG_GOI)
             .trangThaiXuatKho(TrangThaiXuatKho.CHUA_XUAT_KHO)
             .phuongThucThanhToan("TIEN_MAT")
+            .tongTienHang(new BigDecimal("1000"))
             .tongThanhToan(new BigDecimal("1000"))
             .build();
     request = new AdminOrderRequest.Payment();
@@ -72,11 +74,21 @@ class AdminOrderPaymentTest {
     lenient()
         .when(
             cashbookService.executeOnce(
-                anyString(), any(), any(), eq(AdminOrderResponse.Action.class), any()))
+                anyString(),
+                any(NguoiDung.class),
+                any(),
+                eq(AdminOrderResponse.Action.class),
+                any()))
         .thenAnswer(call -> call.<Supplier<AdminOrderResponse.Action>>getArgument(4).get());
     lenient()
-        .when(cashRepository.sumByPurchaseOrder(any(), any(), any()))
-        .thenReturn(BigDecimal.ZERO);
+        .when(lineRepository.findByDonHang_IdOrderByIdAsc(1L))
+        .thenReturn(
+            List.of(
+                ChiTietDonHang.builder()
+                    .soLuong(1)
+                    .donGia(new BigDecimal("1000"))
+                    .thanhTien(new BigDecimal("1000"))
+                    .build()));
     lenient().when(mapper.toAction(any())).thenReturn(new AdminOrderResponse.Action());
     lenient()
         .when(cashbookService.createAutomatic(any()))
@@ -125,7 +137,7 @@ class AdminOrderPaymentTest {
     assertEquals("BANK-001", order.getMaGiaoDichThanhToan());
     var event = ArgumentCaptor.forClass(LichSuXuLyDonHang.class);
     verify(historyRepository).save(event.capture());
-    assertEquals("XAC_NHAN_THANH_TOAN", event.getValue().getHanhDong());
+    assertEquals("XAC_NHAN_THU_TIEN", event.getValue().getHanhDong());
     assertTrue(event.getValue().getMoTa().contains("THU-DH-1"));
   }
 
@@ -173,9 +185,15 @@ class AdminOrderPaymentTest {
     var delivery = delivery(TrangThaiGiaoHangEnum.DANG_GIAO);
     request.setNguonThu("DOI_TAC_GIAO_HANG");
     request.setPhieuGiaoHangId(3L);
+    order.setTrangThaiDonHang(TrangThaiDonHang.HOAN_THANH);
+    order.setTrangThaiThanhToan(TrangThaiThanhToanDonHang.DA_THANH_TOAN);
+    order.setTrangThaiXuatKho(TrangThaiXuatKho.DA_XUAT_KHO);
+    order.setMaGiaoDichThanhToan("CUSTOMER-TXN");
     assertThrows(AppException.class, this::pay);
     delivery.setTrangThaiGiaoHang(TrangThaiGiaoHangEnum.GIAO_THANH_CONG);
-    order.setTrangThaiDonHang(TrangThaiDonHang.HOAN_THANH);
+    order.setTrangThaiThanhToan(TrangThaiThanhToanDonHang.CHUA_THANH_TOAN);
+    assertThrows(AppException.class, this::pay);
+    order.setTrangThaiThanhToan(TrangThaiThanhToanDonHang.DA_THANH_TOAN);
     pay();
     var voucher = ArgumentCaptor.forClass(CashbookService.AutomaticVoucher.class);
     verify(cashbookService).createAutomatic(voucher.capture());
@@ -183,7 +201,37 @@ class AdminOrderPaymentTest {
     assertEquals(NhomNguoiNopNhanEnum.DOI_TAC_GIAO_HANG, voucher.getValue().nhomNguoiNopNhan());
     assertSame(delivery.getDoiTacVanChuyen(), voucher.getValue().doiTacVanChuyen());
     assertEquals("TIEN_MAT", order.getPhuongThucThanhToan());
+    assertEquals("CUSTOMER-TXN", order.getMaGiaoDichThanhToan());
+    assertEquals(new BigDecimal("1000"), delivery.getTienThuHoCod());
     assertEquals(TrangThaiThanhToanDonHang.DA_THANH_TOAN, order.getTrangThaiThanhToan());
+  }
+
+  @Test
+  void customerReceiptMovesWaitingPaymentOrderToPacking() {
+    order.setTrangThaiDonHang(TrangThaiDonHang.CHO_THANH_TOAN);
+    pay();
+    assertEquals(TrangThaiDonHang.CHO_DONG_GOI, order.getTrangThaiDonHang());
+    assertEquals(TrangThaiThanhToanDonHang.DA_THANH_TOAN, order.getTrangThaiThanhToan());
+    verify(historyRepository).save(any());
+  }
+
+  @Test
+  void zeroTotalDoesNotCreateReceiptOrMarkPaidThroughPaymentApi() {
+    order.setTongTienHang(BigDecimal.ZERO);
+    order.setTongThanhToan(BigDecimal.ZERO);
+    when(lineRepository.findByDonHang_IdOrderByIdAsc(1L)).thenReturn(List.of());
+    assertThrows(AppException.class, this::pay);
+    assertEquals(TrangThaiThanhToanDonHang.CHUA_THANH_TOAN, order.getTrangThaiThanhToan());
+    verify(cashbookService, never()).createAutomatic(any());
+    verifyNoInteractions(historyRepository);
+  }
+
+  @Test
+  void storedLineMismatchBlocksCollection() {
+    when(lineRepository.findByDonHang_IdOrderByIdAsc(1L)).thenReturn(List.of());
+    assertThrows(AppException.class, this::pay);
+    verify(cashbookService, never()).createAutomatic(any());
+    verifyNoInteractions(historyRepository);
   }
 
   @Test

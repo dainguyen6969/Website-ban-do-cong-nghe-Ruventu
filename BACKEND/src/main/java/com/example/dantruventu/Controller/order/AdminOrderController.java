@@ -153,11 +153,12 @@ public class AdminOrderController {
   @PostMapping("/{id}/payment/confirm")
   public ApiResponse<AdminOrderResponse.Action> payment(
       @PathVariable("id") Long id,
-      @RequestHeader("Idempotency-Key") String key,
+      @RequestHeader("Idempotency-Key") String idempotencyKey,
       @Valid @RequestBody AdminOrderRequest.Payment request) {
 
     return ok(
-        "Xác nhận thanh toán đơn hàng thành công", orderService.confirmPayment(id, key, request));
+        "Xác nhận thanh toán đơn hàng thành công",
+        orderService.confirmPayment(id, idempotencyKey, request));
   }
 
   @PostMapping("/{id}/cancel")
@@ -177,10 +178,11 @@ public class AdminOrderController {
   @PostMapping("/{id}/refund")
   public ApiResponse<AdminOrderResponse.Action> refund(
       @PathVariable("id") Long id,
-      @RequestHeader("Idempotency-Key") String key,
+      @RequestHeader("Idempotency-Key") String idempotencyKey,
       @Valid @RequestBody AdminOrderRequest.Refund request) {
 
-    return ok("Ghi nhận hoàn tiền thành công", orderService.refund(id, key, request));
+    return ok(
+        "Ghi nhận hoàn tiền đơn hàng thành công", orderService.refund(id, idempotencyKey, request));
   }
 
   private <T> ApiResponse<T> ok(String message, T data) {

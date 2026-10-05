@@ -1,15 +1,31 @@
 export const ACCOUNTS_STORAGE_KEY = 'ruventu.mock.accounts';
-export const SESSION_STORAGE_KEY = 'ruventu.mock.session';
 
 export const isStaffAccount = (account) => Boolean(
   account && (account.role === 'admin' || account.employeeId),
 );
 
 export const canAccessAdmin = (account, roles = []) => {
-  if (!isStaffAccount(account) || account.trangThai !== 'hoat_dong') return false;
-  const roleId = account.vaiTro ?? (account.role === 'admin' ? 'admin_toan_quyen' : account.role);
-  return roles.some((role) => role.id === roleId
-    && Object.values(role.permissions ?? {}).some((actions) => actions.includes('xem')));
+  if (!account || account.trangThai !== 'hoat_dong') {
+    return false;
+  }
+
+  if (account.role === 'admin') {
+    return true;
+  }
+
+  if (!isStaffAccount(account)) {
+    return false;
+  }
+
+  const roleId = account.vaiTro ?? account.role;
+
+  return roles.some(
+    (role) =>
+      role.id === roleId &&
+      Object.values(role.permissions ?? {}).some(
+        (actions) => actions.includes('xem')
+      )
+  );
 };
 
 export const employeeRoleLabel = (value, roles = []) => roles.find((role) => role.id === value)?.label ?? value;

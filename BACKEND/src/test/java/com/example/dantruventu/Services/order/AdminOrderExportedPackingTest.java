@@ -78,27 +78,21 @@ class AdminOrderExportedPackingTest {
                     .donGia(new BigDecimal("70000"))
                     .thanhTien(new BigDecimal("70000"))
                     .build()));
-    when(cashRepository.sumByPurchaseOrder(any(), any(), any())).thenReturn(BigDecimal.ZERO);
   }
 
   @Test
-  void approvesPrepaidOrderWithoutChangingPaymentOrExportingStock() {
+  void rejectsPrepaidApprovalUnderMainTestPaymentRules() {
     order.setTrangThaiThanhToan(TrangThaiThanhToanDonHang.DA_THANH_TOAN);
-    validStoredAmounts();
-    service.approve(1L);
-    assertEquals(TrangThaiDonHang.CHO_DONG_GOI, order.getTrangThaiDonHang());
+    assertThrows(AppException.class, () -> service.approve(1L));
+    assertEquals(TrangThaiDonHang.CHO_DUYET, order.getTrangThaiDonHang());
     assertEquals(TrangThaiThanhToanDonHang.DA_THANH_TOAN, order.getTrangThaiThanhToan());
     assertEquals(TrangThaiDongGoi.CHUA_DONG_GOI, order.getTrangThaiDongGoi());
     assertEquals(TrangThaiXuatKho.CHUA_XUAT_KHO, order.getTrangThaiXuatKho());
-    verify(inventory).checkAvailable(order);
-    verify(inventory, never()).reserve(any());
-    verify(inventory, never()).export(any(), any());
-    verify(historyRepository).save(any());
+    verifyNoInteractions(inventory, historyRepository);
   }
 
   @Test
-  void prepaidOrderStillCannotBeApprovedWithoutAvailableStock() {
-    order.setTrangThaiThanhToan(TrangThaiThanhToanDonHang.DA_THANH_TOAN);
+  void unpaidOrderCannotBeApprovedWithoutAvailableStock() {
     validStoredAmounts();
     var shortage =
         new AppException(
@@ -107,7 +101,7 @@ class AdminOrderExportedPackingTest {
     doThrow(shortage).when(inventory).checkAvailable(order);
     assertSame(shortage, assertThrows(AppException.class, () -> service.approve(1L)));
     assertEquals(TrangThaiDonHang.CHO_DUYET, order.getTrangThaiDonHang());
-    assertEquals(TrangThaiThanhToanDonHang.DA_THANH_TOAN, order.getTrangThaiThanhToan());
+    assertEquals(TrangThaiThanhToanDonHang.CHUA_THANH_TOAN, order.getTrangThaiThanhToan());
     verifyNoInteractions(historyRepository);
     verify(entityManager, never()).flush();
   }

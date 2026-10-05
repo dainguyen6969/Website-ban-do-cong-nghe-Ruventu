@@ -34,7 +34,7 @@ test('order lifecycle actions use the documented endpoints and request shapes', 
   ]);
 });
 
-test('BR4 locks edits and BR7 separates COD collection from store receipts', async () => {
+test('edits stay locked and store receipts follow the customer payment and COD states', async () => {
   const { canEditOnlineOrder, paymentSource } = await import('./orderApi.js');
   const draft = { loai_don_hang: 'ONLINE', trang_thai_don_hang: 'CHO_DUYET', trang_thai_thanh_toan: 'CHUA_THANH_TOAN', trang_thai_dong_goi: 'CHUA_DONG_GOI', trang_thai_xuat_kho: 'CHUA_XUAT_KHO', tong_thanh_toan: 5000 };
   assert.equal(canEditOnlineOrder(draft), true);
@@ -43,8 +43,13 @@ test('BR4 locks edits and BR7 separates COD collection from store receipts', asy
   const approved = { ...draft, trang_thai_don_hang: 'CHO_DONG_GOI' };
   assert.deepEqual(paymentSource(approved), { nguon_thu: 'KHACH_HANG' });
   for (const status of ['DA_NHAN_HANG', 'DANG_GIAO', 'CHO_HOAN_HANG']) assert.equal(paymentSource({ ...approved, phieu_giao_hang: [{ id: 12, trang_thai_giao_hang: status, tien_thu_ho_cod: 5000 }] }), null);
-  assert.deepEqual(paymentSource({ ...approved, trang_thai_don_hang: 'HOAN_THANH', phieu_giao_hang: [{ id: 12, trang_thai_giao_hang: 'GIAO_THANH_CONG', tien_thu_ho_cod: 5000 }] }), { nguon_thu: 'DOI_TAC_GIAO_HANG', phieu_giao_hang_id: 12 });
+  const completedCod = { ...approved, trang_thai_don_hang: 'HOAN_THANH', trang_thai_thanh_toan: 'DA_THANH_TOAN', trang_thai_xuat_kho: 'DA_XUAT_KHO', phieu_giao_hang: [{ id: 12, trang_thai_giao_hang: 'GIAO_THANH_CONG', tien_thu_ho_cod: 5000 }] };
+  assert.deepEqual(paymentSource(completedCod), { nguon_thu: 'DOI_TAC_GIAO_HANG', phieu_giao_hang_id: 12 });
+  assert.deepEqual(paymentSource({ ...completedCod, da_ghi_nhan_thu_cod: false }), { nguon_thu: 'DOI_TAC_GIAO_HANG', phieu_giao_hang_id: 12 });
+  assert.equal(paymentSource({ ...completedCod, da_ghi_nhan_thu_cod: true }), null);
+  for (const change of [{ trang_thai_don_hang: 'DANG_GIAO_HANG' }, { trang_thai_thanh_toan: 'CHUA_THANH_TOAN' }, { trang_thai_xuat_kho: 'CHUA_XUAT_KHO' }, { phieu_giao_hang: [{ id: 12, trang_thai_giao_hang: 'GIAO_THANH_CONG', tien_thu_ho_cod: 0 }] }, { phieu_giao_hang: [{ id: 12, trang_thai_giao_hang: 'GIAO_THANH_CONG', tien_thu_ho_cod: 4999 }] }]) assert.equal(paymentSource({ ...completedCod, ...change }), null);
   assert.equal(paymentSource({ ...approved, trang_thai_thanh_toan: 'DA_THANH_TOAN' }), null);
+  for (const change of [{ trang_thai_don_hang: 'HUY_HANG' }, { trang_thai_don_hang: 'HOAN_THANH' }, { trang_thai_xuat_kho: 'DA_HOAN_KHO' }]) assert.equal(paymentSource({ ...approved, ...change }), null);
   assert.equal(paymentSource({ ...approved, tong_thanh_toan: 0 }), null);
 });
 

@@ -631,6 +631,21 @@ public class AdminSalesService {
         deliveryRepository.findByDonHang_IdOrderByIdAsc(order.getId()).stream()
             .map(mapper::toDelivery)
             .toList());
+
+    response.setDaGhiNhanThuCod(
+        response.getPhieuGiaoHang().stream()
+            .anyMatch(
+                delivery ->
+                    cashRepository
+                        .findByMaPhieu("THU-COD-" + delivery.id())
+                        .filter(
+                            voucher ->
+                                voucher.getLoaiPhieu() == LoaiPhieuThuChi.THU
+                                    && voucher.getNguonTao() == NguonTaoPhieuThuChi.TU_DONG
+                                    && voucher.getTrangThai() == TrangThaiPhieuThuChi.DA_GHI_NHAN
+                                    && Objects.equals(
+                                        voucher.getMaChungTuThamChieu(), order.getMaDonHang()))
+                        .isPresent()));
   }
 
   private boolean usesComboSerial(PhienBanSanPham variant) {
