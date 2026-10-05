@@ -1,5 +1,6 @@
 package com.example.dantruventu.Entity;
 
+import com.example.dantruventu.Config.TrangThaiDoiTacVanChuyenConverter;
 import com.example.dantruventu.Enum.LoaiDoiTacVanChuyenEnum;
 import com.example.dantruventu.Enum.TrangThaiCoBanEnum;
 import jakarta.persistence.*;
@@ -43,7 +44,8 @@ public class DoiTacVanChuyen {
   private LoaiDoiTacVanChuyenEnum loaiDoiTac;
 
   @Builder.Default
-  @Column(name = "trang_thai", nullable = false)
+  @Convert(converter = TrangThaiDoiTacVanChuyenConverter.class)
+  @Column(name = "trang_thai", nullable = false, length = 30)
   private TrangThaiCoBanEnum trangThai = TrangThaiCoBanEnum.HOAT_DONG;
 
   @Column(name = "ghi_chu", columnDefinition = "TEXT")

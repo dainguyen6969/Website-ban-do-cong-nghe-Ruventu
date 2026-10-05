@@ -78,10 +78,16 @@ export const previewPosOrder = (order, options) => adminRequest(`${SALES_PATH}/p
   }),
 });
 
-export const createOnlineOrder = (form, confirmedTotal) => adminRequest('/api/v1/admin/orders', {
+const orderBody = (form) => {
+  const { loai_don_hang: _type, ...body } = buildPreviewBody(form);
+  return body;
+};
+
+export const createOnlineOrder = (form, confirmedTotal, idempotencyKey) => adminRequest('/api/v1/admin/orders', {
   method: 'POST',
+  ...(idempotencyKey ? { headers: { 'Idempotency-Key': idempotencyKey } } : {}),
   body: JSON.stringify({
-    ...buildPreviewBody(form), tong_thanh_toan_xac_nhan: confirmedTotal,
+    ...orderBody(form), tong_thanh_toan_xac_nhan: confirmedTotal,
     thong_tin_nguoi_nhan: {
       ten_nguoi_nhan: form.recipient.name.trim(),
       sdt_nguoi_nhan: form.recipient.phone.replace(/[\s.-]/g, ''),
@@ -96,7 +102,7 @@ export const createOnlineOrder = (form, confirmedTotal) => adminRequest('/api/v1
 export const updateOnlineOrder = (id, form, confirmedTotal) => adminRequest(`/api/v1/admin/orders/${encodeURIComponent(id)}`, {
   method: 'PUT',
   body: JSON.stringify({
-    ...buildPreviewBody({ ...form, promotion: '' }), tong_thanh_toan_xac_nhan: confirmedTotal,
+    ...orderBody({ ...form, promotion: '' }), tong_thanh_toan_xac_nhan: confirmedTotal,
     thong_tin_nguoi_nhan: { ten_nguoi_nhan: form.recipient.name.trim(), sdt_nguoi_nhan: form.recipient.phone.replace(/[\s.-]/g, ''), dia_chi_giao_hang: form.delivery === 'GIAO_HANG' ? form.recipient.address.trim() : null },
     phuong_thuc_thanh_toan: form.payment, hinh_thuc_nhan_hang: form.delivery, ghi_chu: form.note.trim() || null,
   }),

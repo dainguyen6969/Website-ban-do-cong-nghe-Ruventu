@@ -42,6 +42,7 @@ public interface AdminSalesMapper {
   AdminSalesResponse.CashReceipt toCashReceipt(SoQuyThuChi entity);
 
   @Mapping(target = "doiTacVanChuyenId", source = "doiTacVanChuyen.id")
+  @Mapping(target = "tenDoiTacVanChuyen", source = "doiTacVanChuyen.tenDoiTac")
   AdminSalesResponse.Delivery toDelivery(PhieuGiaoHang entity);
 
   default OffsetDateTime map(LocalDateTime value, @Context ZoneId zone) {

@@ -31,7 +31,7 @@ export function orderTotals(order) {
   const vat = order.tax ? order.cart.reduce((sum, item) => {
     const line = priceOf(item.product, order.priceList) * item.quantity;
     return sum + Math.round(included ? line - line / (1 + item.product.vatRate / 100) : line * item.product.vatRate / 100);
-  }, 0) : 0;
+  }, 0) : 0
   const gross = subtotal + (included ? 0 : vat);
   const discountAmount = Math.round(gross * order.discount / 100);
   return { subtotal, vat, discountAmount, total: gross - discountAmount };

@@ -39,9 +39,9 @@
 .returns-empty { height: 90px !important; color: #858b92 !important; text-align: center; font-weight: 700; }
 .returns-list-card > .product-pagination-bar { border: 0; background: transparent; }
 .return-status, .return-paid-badge, .return-complete-badge, .return-type { width: max-content; min-height: 22px; padding: 3px 8px; display: inline-flex; align-items: center; border: 1px solid; font-size: 9px; line-height: 1.35; font-weight: 900; white-space: nowrap; text-transform: uppercase; }
-.return-status--cho_tiep_nhan { color: #d65c00; border-color: #ff7b35; background: #fff5ef; }
-.return-status--da_nhan_hang { color: #075ee8; border-color: #2f78ff; background: #eff5ff; }
-.return-status--da_hoan_tien, .return-paid-badge, .return-complete-badge { color: #07852b; border-color: #20a34b; background: #f0fbf4; }
+.return-status--CHO_TIEP_NHAN { color: #d65c00; border-color: #ff7b35; background: #fff5ef; }
+.return-status--DA_NHAN_HANG { color: #075ee8; border-color: #2f78ff; background: #eff5ff; }
+.return-status--DA_HOAN_TIEN, .return-paid-badge, .return-complete-badge { color: #07852b; border-color: #20a34b; background: #f0fbf4; }
 .return-type { color: #154ca7; border-color: #9ab9eb; background: #f1f6ff; }
 
 .returns-create-meta { margin-top: -31px; padding: 0 28px 12px; display: flex; align-items: center; gap: 10px; position: relative; z-index: 2; background: transparent; }

@@ -1,7 +1,7 @@
 // Admin inventory screen: ChiTietPhieuKiemHang.
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { getStockCheck, updateStockCheck, updateVersionStock } from '../../../../data/mockStockChecks';
+import { getStockCheck, updateStockCheck, updateVersionStock, STOCK_CHECK_LABELS } from '../../../../data/mockStockChecks';
 import { subscribeToAdminSlice } from '../../../../sync/adminSync';
 import './StockCheckFlow.css';
 
@@ -12,7 +12,7 @@ const formatDate = (value, withTime = false) => {
   return `${day}/${month}/${year}${withTime && time ? ` ${time}` : ''}`;
 };
 
-const statusClass = (status) => status === 'Đang kiểm' ? 'checking' : status === 'Đã cân bằng' ? 'balanced' : 'cancelled';
+const statusClass = (status) => status === 'DANG_KIEM' ? 'checking' : status === 'DA_CAN_BANG' ? 'balanced' : 'cancelled';
 
 export default function ChiTietPhieuKiemHang() {
   const navigate = useNavigate();
@@ -31,7 +31,7 @@ export default function ChiTietPhieuKiemHang() {
 
   const difference = check.adjustedStock - check.systemStock;
   const displayReason = check.reason === 'Nhập tay...' ? check.customReason : check.reason;
-  const isOpen = check.status === 'Đang kiểm';
+  const isOpen = check.status === 'DANG_KIEM';
 
   const openBalance = () => {
     if (difference !== 0 && !displayReason?.trim()) { setBalanceError(true); return; }
@@ -44,7 +44,7 @@ export default function ChiTietPhieuKiemHang() {
     const nextStock = check.adjustedStock;
     updateVersionStock(check.versionId, nextStock);
     const updated = updateStockCheck(check.id, {
-      status: 'Đã cân bằng',
+      status: 'DA_CAN_BANG',
       systemStock: nextStock,
       adjustedStock: nextStock,
       reason: '',
@@ -58,7 +58,7 @@ export default function ChiTietPhieuKiemHang() {
 
   const confirmCancel = () => {
     if (!cancelReason.trim()) { setCancelError(true); return; }
-    const updated = updateStockCheck(check.id, { status: 'Đã hủy', cancelReason: cancelReason.trim() });
+    const updated = updateStockCheck(check.id, { status: 'DA_HUY', cancelReason: cancelReason.trim() });
     setCheck(updated);
     setCancelModal(false);
   };
@@ -67,26 +67,26 @@ export default function ChiTietPhieuKiemHang() {
     <header className="stock-detail-heading">
       <nav>KIỂM HÀNG <b>›</b> DANH SÁCH PHIẾU KIỂM HÀNG <b>›</b> <strong>{check.id}</strong></nav>
       <div className="stock-detail-title-row">
-        <div><button type="button" className="stock-action outline" onClick={() => navigate('/kho-hang/kiem-hang')}>‹ &nbsp; QUAY LẠI DANH SÁCH</button><h1>{check.id}</h1><span className={`stock-check-status stock-check-status--${statusClass(check.status)}`}>{check.status.toLocaleUpperCase('vi')}</span></div>
+        <div><button type="button" className="stock-action outline" onClick={() => navigate('/kho-hang/kiem-hang')}>‹ &nbsp; QUAY LẠI DANH SÁCH</button><h1>{check.id}</h1><span className={`stock-check-status stock-check-status--${statusClass(check.status)}`}>{STOCK_CHECK_LABELS[check.status].toLocaleUpperCase('vi')}</span></div>
         {isOpen && <div className="stock-detail-actions"><button type="button" className="stock-action outline" onClick={() => navigate(`/kho-hang/kiem-hang/${check.id}/chinh-sua`)}>CHỈNH SỬA</button><button type="button" className="stock-action outline red-text" onClick={() => setCancelModal(true)}>HỦY PHIẾU</button><button type="button" className="stock-action black" onClick={openBalance}>CÂN BẰNG KHO</button></div>}
       </div>
       {balanceError && <div className="stock-inline-banner error">Vui lòng cung cấp lý do chênh lệch trước khi cân bằng kho</div>}
-      {check.status === 'Đã hủy' && <div className="stock-inline-banner error">Phiếu kiểm đã hủy. Không phát sinh điều chỉnh tồn kho từ phiếu này.</div>}
-      {check.status === 'Đã cân bằng' && <div className="stock-inline-banner success">Phiếu kiểm đã được chốt và cập nhật tồn kho, không thay đổi.</div>}
+      {check.status === 'DA_HUY' && <div className="stock-inline-banner error">Phiếu kiểm đã hủy. Không phát sinh điều chỉnh tồn kho từ phiếu này.</div>}
+      {check.status === 'DA_CAN_BANG' && <div className="stock-inline-banner success">Phiếu kiểm đã được chốt và cập nhật tồn kho, không thay đổi.</div>}
       {balanceSuccess && <div className="stock-balance-success"><strong>ĐÃ CÂN BẰNG KHO THÀNH CÔNG</strong><div><span>Tồn trước: <b>{balanceSuccess.previousStock}</b></span><span>Tồn sau: <b>{balanceSuccess.nextStock}</b></span><span>Thay đổi: <b>{balanceSuccess.change > 0 ? `+${balanceSuccess.change}` : balanceSuccess.change}</b></span><span>Cập nhật: {balanceSuccess.date}</span></div></div>}
     </header>
 
     <div className="stock-detail-grid">
       <section className="stock-flow-card">
         <h2>SẢN PHẨM KIỂM</h2>
-        <div className="stock-form-table-wrap"><table className={`stock-form-table stock-detail-table ${check.status === 'Đã hủy' ? 'is-muted' : ''}`}>
+        <div className="stock-form-table-wrap"><table className={`stock-form-table stock-detail-table ${check.status === 'DA_HUY' ? 'is-muted' : ''}`}>
           <thead><tr><th>MÃ HÀNG</th><th>SẢN PHẨM / PHIÊN BẢN</th><th>MÃ VẠCH</th><th>TỒN HỆ THỐNG</th><th>SAU ĐIỀU CHỈNH</th><th>CHÊNH LỆCH</th><th>LÝ DO</th></tr></thead>
           <tbody><tr><td>{check.sku}</td><td><strong>{check.productName}</strong><small>{check.variant}</small></td><td>{check.barcode}</td><td className="stock-number">{check.systemStock}</td><td className="stock-number">{check.adjustedStock}</td><td><span className={`stock-difference ${difference !== 0 ? 'has-difference' : ''}`}>{difference > 0 ? `+${difference}` : difference}</span></td><td>{displayReason || '—'}</td></tr></tbody>
         </table></div>
         <div className="stock-form-summary"><div><span>SỐ LƯỢNG SAU ĐIỀU CHỈNH</span><strong>{check.adjustedStock}</strong></div><div><span>CHÊNH LỆCH TỒN KHO</span><strong className={difference !== 0 ? 'is-red' : ''}>{difference > 0 ? `+${difference}` : difference}</strong></div></div>
       </section>
 
-      <aside className="stock-detail-side"><section className="stock-flow-card stock-info-card"><h2>THÔNG TIN PHIẾU</h2><dl><dt>MÃ PHIẾU</dt><dd>{check.id}</dd><dt>TRẠNG THÁI</dt><dd><span className={`stock-check-status stock-check-status--${statusClass(check.status)}`}>{check.status.toLocaleUpperCase('vi')}</span></dd><dt>NGÀY TẠO</dt><dd>{formatDate(check.createdAt)}</dd><dt>NGÀY KIỂM HÀNG</dt><dd>{formatDate(check.checkedAt, true)}</dd><dt>KHO</dt><dd>{check.warehouse.toLocaleUpperCase('vi')}</dd></dl></section><p className="stock-lock-note">Sản phẩm và kho không thể thay đổi sau khi tạo phiếu.</p></aside>
+      <aside className="stock-detail-side"><section className="stock-flow-card stock-info-card"><h2>THÔNG TIN PHIẾU</h2><dl><dt>MÃ PHIẾU</dt><dd>{check.id}</dd><dt>TRẠNG THÁI</dt><dd><span className={`stock-check-status stock-check-status--${statusClass(check.status)}`}>{STOCK_CHECK_LABELS[check.status].toLocaleUpperCase('vi')}</span></dd><dt>NGÀY TẠO</dt><dd>{formatDate(check.createdAt)}</dd><dt>NGÀY KIỂM HÀNG</dt><dd>{formatDate(check.checkedAt, true)}</dd><dt>KHO</dt><dd>{check.warehouse.toLocaleUpperCase('vi')}</dd></dl></section><p className="stock-lock-note">Sản phẩm và kho không thể thay đổi sau khi tạo phiếu.</p></aside>
     </div>
 
     {balanceModal && <div className="stock-modal-backdrop" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && setBalanceModal(false)}><section className="stock-modal" role="dialog" aria-modal="true"><h2>XÁC NHẬN CÂN BẰNG KHO <button type="button" onClick={() => setBalanceModal(false)}>×</button></h2><div className="stock-modal-body"><dl><dt>PHIẾU KIỂM</dt><dd>{check.id}</dd><dt>KHO KIỂM HÀNG</dt><dd>{check.warehouse.toLocaleUpperCase('vi')}</dd><dt>SẢN PHẨM / PHIÊN BẢN</dt><dd>{check.productName}</dd><dt>TỒN HỆ THỐNG GHI NHẬN</dt><dd>{check.systemStock}</dd><dt>SỐ LƯỢNG THỰC TẾ ĐÃ KIỂM</dt><dd>{check.adjustedStock}</dd><dt>CHÊNH LỆCH</dt><dd>{difference > 0 ? `+${difference}` : difference}</dd><dt>LÝ DO</dt><dd>{displayReason || '—'}</dd></dl><p className="stock-modal-note">Cân bằng kho sẽ cập nhật tồn thực tế theo số lượng đã kiểm. Sau khi chốt, phiếu không thể sửa hoặc hủy.</p><footer><button type="button" className="stock-action outline" onClick={() => setBalanceModal(false)}>QUAY LẠI</button><button type="button" className="stock-action black" onClick={confirmBalance}>XÁC NHẬN CÂN BẰNG</button></footer></div></section></div>}
