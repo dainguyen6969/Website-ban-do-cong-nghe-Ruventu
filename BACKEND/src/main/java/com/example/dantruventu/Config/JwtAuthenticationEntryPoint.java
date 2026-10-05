@@ -25,7 +25,7 @@ public class JwtAuthenticationEntryPoint implements AuthenticationEntryPoint {
       AuthenticationException authException)
       throws IOException {
 
-    ErrorCode errorCode = ErrorCode.INVALID_OR_EXPIRED_ACCESS_TOKEN;
+    ErrorCode errorCode = ErrorCode.UNAUTHORIZED;
 
     ErrorResponse errorResponse =
         new ErrorResponse(errorCode.getStatus().value(), errorCode.getMessage());
