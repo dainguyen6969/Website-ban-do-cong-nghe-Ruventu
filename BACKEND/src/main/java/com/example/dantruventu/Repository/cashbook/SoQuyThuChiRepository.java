@@ -4,6 +4,7 @@ import com.example.dantruventu.Entity.SoQuyThuChi;
 import com.example.dantruventu.Enum.LoaiPhieuThuChi;
 import com.example.dantruventu.Enum.TrangThaiPhieuThuChi;
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -25,4 +26,6 @@ public interface SoQuyThuChiRepository extends JpaRepository<SoQuyThuChi, Long> 
       @Param("maDonNhap") String maDonNhap,
       @Param("loaiPhieu") LoaiPhieuThuChi loaiPhieu,
       @Param("trangThai") TrangThaiPhieuThuChi trangThai);
+
+  List<SoQuyThuChi> findByMaChungTuThamChieu(String maChungTuThamChieu);
 }

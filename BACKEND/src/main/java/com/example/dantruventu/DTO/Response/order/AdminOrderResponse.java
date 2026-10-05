@@ -1,6 +1,7 @@
 package com.example.dantruventu.DTO.Response.order;
 
 import com.example.dantruventu.DTO.Response.PaginationResponse;
+import com.example.dantruventu.DTO.Response.cashbook.CashVoucherResponse;
 import com.example.dantruventu.Enum.*;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -83,11 +84,11 @@ public final class AdminOrderResponse {
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
     @JsonProperty("phieu_thu")
-    private CashDocument phieuThu;
+    private CashVoucherResponse phieuThu;
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
     @JsonProperty("phieu_chi")
-    private CashDocument phieuChi;
+    private CashVoucherResponse phieuChi;
   }
 
   public record Requirement(

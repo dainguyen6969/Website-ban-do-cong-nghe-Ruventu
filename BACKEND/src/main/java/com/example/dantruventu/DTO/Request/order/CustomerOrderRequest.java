@@ -12,10 +12,10 @@ public final class CustomerOrderRequest {
 
   @Getter
   @Setter
-  public static class Cancel {
+  public static class Cancel extends AdminSalesRequest.StrictRequest {
 
     @NotBlank(message = "Lý do hủy không được để trống")
-    @Size(max = 500, message = "Lý do hủy không được vượt quá 500 ký tự")
+    @Size(max = 255, message = "Lý do hủy tối đa 255 ký tự")
     @JsonProperty("ly_do")
     private String lyDo;
   }
