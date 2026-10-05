@@ -13,6 +13,7 @@ import com.example.dantruventu.Mapper.order.AdminDeliveryMapper;
 import com.example.dantruventu.Mapper.order.AdminSalesMapper;
 import com.example.dantruventu.Repository.NguoiDungRepository;
 import com.example.dantruventu.Repository.VaiTroRepository;
+import com.example.dantruventu.Repository.cashbook.SoQuyThuChiRepository;
 import com.example.dantruventu.Repository.order.ChiTietDonHangRepository;
 import com.example.dantruventu.Repository.order.DonHangRepository;
 import com.example.dantruventu.Repository.order.PhieuGiaoHangRepository;
@@ -63,6 +64,7 @@ public class AdminSalesService {
   private final ObjectMapper objectMapper;
 
   private final CashbookService cashbookService;
+  private final SoQuyThuChiRepository cashRepository;
 
   public AdminSalesResponse.Options options() {
 
@@ -379,9 +381,19 @@ public class AdminSalesService {
     DonHang order =
         orderRepository.findById(id).orElseThrow(() -> notFound("Đơn hàng không tồn tại"));
 
-    var response = mapper.toOrder(order, properties.zone());
+    var response =
+        order.getLoaiDonHang() == LoaiDonHang.TAI_QUAY
+            ? mapper.toCheckout(order, properties.zone())
+            : mapper.toOrder(order, properties.zone());
 
     enrich(response, order);
+
+    if (response instanceof AdminSalesResponse.Checkout checkout) {
+      cashRepository
+          .findByMaPhieu("THU-POS-" + order.getId())
+          .map(mapper::toCashReceipt)
+          .ifPresent(checkout::setPhieuThu);
+    }
 
     return response;
   }

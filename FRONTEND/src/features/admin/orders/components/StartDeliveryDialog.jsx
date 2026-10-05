@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { searchDeliveryPartners } from '../api/orderApi';
 import OrderModal from './OrderModal';
 
-const partnerText = (partner) => `${partner.ten_doi_tac} · ${partner.so_dien_thoai}`;
+const partnerText = (partner) => [partner.ten_doi_tac, partner.so_dien_thoai].filter(Boolean).join(' · ');
 
 export default function StartDeliveryDialog({ order, busy, error, close, submit }) {
   const [query, setQuery] = useState('');
@@ -24,7 +24,7 @@ export default function StartDeliveryDialog({ order, busy, error, close, submit 
     }, 200);
     return () => { clearTimeout(timer); controller.abort(); };
   }, [query, selected]);
-  const valid = selected && fee.trim() !== '' && Number.isFinite(Number(fee)) && Number(fee) >= 0;
+  const valid = selected && fee.trim() !== '' && Number.isFinite(Number(fee)) && Number(fee) >= 0 && Number(fee) <= 9999999999999.99;
   return <OrderModal title="BẮT ĐẦU XỬ LÝ GIAO HÀNG" className="order-start-delivery" showClose cancelLabel="HỦY" confirmLabel="XÁC NHẬN BẮT ĐẦU XỬ LÝ" busy={busy} close={close} error={error || search.error} disabled={!valid} submit={() => submit(selected.id, Number(fee))}>
     <p className="order-start-delivery__intro">CHỌN NGƯỜI GIAO HÀNG TRƯỚC KHI BẮT ĐẦU XỬ LÝ ĐƠN</p>
     <dl className="order-start-delivery__summary">
@@ -32,6 +32,7 @@ export default function StartDeliveryDialog({ order, busy, error, close, submit 
       <div><dt>NGƯỜI NHẬN</dt><dd>{order.ten_nguoi_nhan || '—'}</dd></div>
       <div><dt>SỐ ĐIỆN THOẠI</dt><dd>{order.sdt_nguoi_nhan || '—'}</dd></div>
       <div><dt>ĐỊA CHỈ GIAO HÀNG</dt><dd>{order.dia_chi_giao_hang || '—'}</dd></div>
+      <div><dt>MÃ VẬN ĐƠN</dt><dd>{order.phieu_giao_hang?.find((delivery) => delivery.trang_thai_giao_hang === 'CHO_GIAO')?.ma_van_don || '—'}</dd></div>
     </dl>
     <div className="order-operation-field"><label htmlFor="delivery-person-search">NGƯỜI GIAO HÀNG *</label>
       <input id="delivery-person-search" required autoComplete="off" value={query} placeholder="Tìm theo tên hoặc số điện thoại..." onChange={(event) => {

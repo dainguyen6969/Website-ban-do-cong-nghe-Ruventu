@@ -106,7 +106,12 @@ export default function ThemSanPham() {
   const [comboSearchFocused, setComboSearchFocused] = useState(false);
 
   // ── Attributes (for single/variant) ──
-  const [attributes, setAttributes] = useState([]);
+  const [editAttributes, setAttributes] = useState([]);
+  const [attributeRows, setAttributeRows] = useState([{ id: 1, name: '', values: '' }]);
+  const attributeRowCounter = useRef(1);
+  const attributes = useMemo(() => isEditing ? editAttributes : attributeRows
+    .map((row) => ({ name: row.name.trim(), values: row.values.split(',').map((value) => value.trim()).filter(Boolean) }))
+    .filter((attribute) => attribute.name && attribute.values.length), [isEditing, editAttributes, attributeRows]);
   const [newAttrName, setNewAttrName] = useState('');
   const [newAttrValues, setNewAttrValues] = useState('');
 
@@ -212,6 +217,16 @@ export default function ThemSanPham() {
     setAttributes((prev) => [...prev, { name: newAttrName.trim(), values: vals }]);
     setNewAttrName('');
     setNewAttrValues('');
+  };
+
+  const updateAttributeRow = (id, field, value) => {
+    setAttributeRows((prev) => prev.map((row) => row.id === id ? { ...row, [field]: value } : row));
+  };
+
+  const addAttributeRow = () => {
+    attributeRowCounter.current += 1;
+    const id = attributeRowCounter.current;
+    setAttributeRows((prev) => [...prev, { id, name: '', values: '' }]);
   };
 
   const handleRemoveAttribute = (idx) => {
@@ -437,7 +452,7 @@ export default function ThemSanPham() {
   if (loading) return <main className="add-product-page"><p>Đang tải sản phẩm...</p></main>;
 
   return (
-    <main className="add-product-page" role="main">
+    <main className={`add-product-page${isEditing ? '' : ' add-product-page--create'}`} role="main">
       {/* ─── Top action bar ─── */}
       <div className="add-product-topbar">
         <div className="add-product-topbar__left">
@@ -585,38 +600,56 @@ export default function ThemSanPham() {
             <>
               {/* Thuộc tính sản phẩm */}
               <FormCard title="Thuộc tính sản phẩm" id="card-thuoc-tinh">
-                {attributes.length === 0 && (
-                  <p className="empty-hint">Chưa có thuộc tính — hệ thống sẽ tạo một phiên bản &lsquo;Mặc định&rsquo;.</p>
-                )}
+                {isEditing ? <>
+                  {attributes.length === 0 && <p className="empty-hint">Chưa có thuộc tính — hệ thống sẽ tạo một phiên bản &lsquo;Mặc định&rsquo;.</p>}
 
-                {attributes.length > 0 && (
-                  <div className="attr-list">
-                    {attributes.map((attr, idx) => (
-                      <div key={idx} className="attr-tag-row">
-                        <span className="attr-tag-name">{attr.name}:</span>
-                        <div className="attr-tag-values">
-                          {attr.values.map((v, vi) => (
-                            <span key={vi} className="attr-tag">{v}</span>
-                          ))}
+                  {attributes.length > 0 && (
+                    <div className="attr-list">
+                      {attributes.map((attr, idx) => (
+                        <div key={idx} className="attr-tag-row">
+                          <span className="attr-tag-name">{attr.name}:</span>
+                          <div className="attr-tag-values">
+                            {attr.values.map((v, vi) => (
+                              <span key={vi} className="attr-tag">{v}</span>
+                            ))}
+                          </div>
+                          <button type="button" className="attr-remove-btn" onClick={() => handleRemoveAttribute(idx)} aria-label="Xóa thuộc tính">
+                            <HiOutlineX size={14} />
+                          </button>
                         </div>
-                        <button type="button" className="attr-remove-btn" onClick={() => handleRemoveAttribute(idx)} aria-label="Xóa thuộc tính">
-                          <HiOutlineX size={14} />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
+                      ))}
+                    </div>
+                  )}
 
-                <div className="attr-add-row">
-                  <input type="text" className="form-input form-input--sm" placeholder="Tên thuộc tính" value={newAttrName} onChange={(e) => setNewAttrName(e.target.value)} id="input-attr-name" />
-                  <input type="text" className="form-input form-input--sm" placeholder="Giá trị (Cách nhau bởi dấu phẩy)" value={newAttrValues} onChange={(e) => setNewAttrValues(e.target.value)} id="input-attr-values" />
-                  <button type="button" className="btn-add-spec" onClick={handleAddAttribute} id="btn-add-attr">THÊM</button>
-                </div>
-                <p className="attr-helper">Hệ thống tự động sinh phiên bản từ tổ hợp các giá trị thuộc tính bên dưới.</p>
+                  <div className="attr-add-row">
+                    <input type="text" className="form-input form-input--sm" placeholder="Tên thuộc tính" value={newAttrName} onChange={(e) => setNewAttrName(e.target.value)} id="input-attr-name" />
+                    <input type="text" className="form-input form-input--sm" placeholder="Giá trị (Cách nhau bởi dấu phẩy)" value={newAttrValues} onChange={(e) => setNewAttrValues(e.target.value)} id="input-attr-values" />
+                    <button type="button" className="btn-add-spec" onClick={handleAddAttribute} id="btn-add-attr">THÊM</button>
+                  </div>
+                </> : <>
+                  <table className="product-attribute-table">
+                    <thead><tr><th>TÊN THUỘC TÍNH</th><th>GIÁ TRỊ</th><th aria-label="Thao tác" /></tr></thead>
+                    <tbody>
+                      {attributeRows.map((row, index) => <tr key={row.id}>
+                        <td><input type="text" className="form-input form-input--sm" placeholder="Nhập tên thuộc tính" aria-label={`Tên thuộc tính ${index + 1}`} value={row.name} onChange={(e) => updateAttributeRow(row.id, 'name', e.target.value)} /></td>
+                        <td><input type="text" className="form-input form-input--sm product-attribute-values" placeholder="Nhập giá trị..." aria-label={`Giá trị thuộc tính ${index + 1}`} title="Các giá trị cách nhau bởi dấu phẩy" value={row.values} onChange={(e) => updateAttributeRow(row.id, 'values', e.target.value)} /></td>
+                        <td><button type="button" className="product-attribute-delete" aria-label={`Xóa thuộc tính ${index + 1}`} onClick={() => setAttributeRows((prev) => prev.filter((item) => item.id !== row.id))}>XÓA</button></td>
+                      </tr>)}
+                    </tbody>
+                  </table>
+                  <button type="button" className="attr-open-btn" onClick={addAttributeRow}>⊕ THÊM THUỘC TÍNH KHÁC</button>
+                </>}
+                <p className="attr-helper">{isEditing ? 'Hệ thống tự động sinh phiên bản từ tổ hợp các giá trị thuộc tính bên dưới.' : 'Thuộc tính dùng để sinh phiên bản. Thông số kỹ thuật phía trên không sinh phiên bản.'}</p>
               </FormCard>
 
               {/* Chi tiết phiên bản & khởi tạo kho */}
-              <FormCard title={`Chi tiết phiên bản & khởi tạo kho (${totalVariants} phiên bản)`} id="card-phien-ban">
+              <FormCard title={`${isEditing ? 'Chi tiết phiên bản & khởi tạo kho' : 'Chi tiết phiên bản'} (${totalVariants} phiên bản)`} id="card-phien-ban">
+                {!isEditing && <div className="variant-generation-summary">
+                  <strong>SẼ TẠO</strong>
+                  {attributes.length ? attributes.map((attribute, index) => <span className="variant-generation-tag" key={index}>{attribute.name} · {attribute.values.length} giá trị</span>) :
+                    <span className="variant-generation-tag">{totalVariants === 1 ? 'Mặc định' : 'Thủ công'} · {totalVariants} giá trị</span>}
+                  <span>=</span><strong className="variant-generation-total">{totalVariants} PHIÊN BẢN</strong>
+                </div>}
                 <div className="variant-table-wrapper">
                   <table className="variant-table">
                     <thead>
@@ -881,11 +914,15 @@ export default function ThemSanPham() {
           {/* 5. Tóm tắt phiên bản (single/variant only) */}
           {productType === 'single' && (
             <FormCard title="Tóm tắt phiên bản" id="card-tom-tat">
-              <div className="summary-rows">
-                <div className="summary-row">
-                  <span className="summary-label">Số phiên bản:</span>
-                  <span className="summary-value">{totalVariants}</span>
+              <div className={isEditing ? 'summary-rows' : 'product-variant-summary'}>
+                <div className={isEditing ? 'summary-row' : 'product-variant-summary__row'}>
+                  <span className={isEditing ? 'summary-label' : 'product-variant-summary__label'}>Số phiên bản:</span>
+                  <span className={isEditing ? 'summary-value' : 'product-variant-summary__value'}>{totalVariants}</span>
                 </div>
+                {!isEditing && <>
+                  <div className="product-variant-summary__row"><span className="product-variant-summary__label">Tổng tồn đầu kỳ:</span><span className="product-variant-summary__value product-variant-summary__value--red">0</span></div>
+                  <div className="product-variant-summary__row"><span className="product-variant-summary__label">Serial khai báo:</span><span className="product-variant-summary__value product-variant-summary__value--green">0 / 0</span></div>
+                </>}
               </div>
             </FormCard>
           )}

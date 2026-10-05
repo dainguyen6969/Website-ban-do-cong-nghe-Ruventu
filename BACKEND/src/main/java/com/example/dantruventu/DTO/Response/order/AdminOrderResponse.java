@@ -58,8 +58,16 @@ public final class AdminOrderResponse {
   }
 
   public record CashDocument(
+      Long id,
       @JsonProperty("ma_phieu") String maPhieu,
       @JsonProperty("loai_phieu") LoaiPhieuThuChi loaiPhieu,
+      @JsonProperty("loai_thu_chi_id") Long loaiThuChiId,
+      @JsonProperty("nguoi_nop_nhan_id") Long nguoiNopNhanId,
+      @JsonProperty("nha_cung_cap_id") Long nhaCungCapId,
+      @JsonProperty("doi_tac_van_chuyen_id") Long doiTacVanChuyenId,
+      @JsonProperty("ten_nguoi_nop_nhan") String tenNguoiNopNhan,
+      @JsonProperty("phuong_thuc_thanh_toan") String phuongThucThanhToan,
+      @JsonProperty("nguoi_tao_id") Long nguoiTaoId,
       @JsonProperty("ma_chung_tu_tham_chieu") String maChungTuThamChieu,
       @JsonProperty("so_tien") BigDecimal soTien,
       @JsonProperty("nhom_nguoi_nop_nhan") NhomNguoiNopNhanEnum nhomNguoiNopNhan,

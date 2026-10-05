@@ -21,6 +21,11 @@ public interface AdminOrderMapper {
 
   AdminOrderResponse.Action toAction(AdminSalesResponse.Order source);
 
+  @Mapping(target = "loaiThuChiId", source = "loaiThuChi.id")
+  @Mapping(target = "nguoiNopNhanId", source = "nguoiNopNhan.id")
+  @Mapping(target = "nhaCungCapId", source = "nhaCungCap.id")
+  @Mapping(target = "doiTacVanChuyenId", source = "doiTacVanChuyen.id")
+  @Mapping(target = "nguoiTaoId", source = "nguoiTao.id")
   AdminOrderResponse.CashDocument toCashDocument(SoQuyThuChi entity, @Context ZoneId zone);
 
   default OffsetDateTime map(LocalDateTime value, @Context ZoneId zone) {

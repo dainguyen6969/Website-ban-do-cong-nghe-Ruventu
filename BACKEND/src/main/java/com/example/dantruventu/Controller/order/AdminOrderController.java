@@ -110,13 +110,9 @@ public class AdminOrderController {
   }
 
   @PostMapping("/{id}/delivery/start")
-  @ResponseStatus(org.springframework.http.HttpStatus.GONE)
-  public ApiResponse<Void> retiredStartDelivery() {
-    return ApiResponse.<Void>builder()
-        .status(410)
-        .message(
-            "Luồng bắt đầu giao hàng trên đơn đã ngừng hỗ trợ. Cập nhật phiếu giao hàng qua API deliveries.")
-        .build();
+  public ApiResponse<AdminOrderResponse.Action> startDelivery(
+      @PathVariable("id") Long id, @Valid @RequestBody AdminOrderRequest.DeliveryStart request) {
+    return ok("Bắt đầu giao hàng thành công", orderService.startDelivery(id, request));
   }
 
   @GetMapping("/{id}/history")
@@ -156,9 +152,12 @@ public class AdminOrderController {
 
   @PostMapping("/{id}/payment/confirm")
   public ApiResponse<AdminOrderResponse.Action> payment(
-      @PathVariable("id") Long id, @Valid @RequestBody AdminOrderRequest.Confirm request) {
+      @PathVariable("id") Long id,
+      @RequestHeader("Idempotency-Key") String key,
+      @Valid @RequestBody AdminOrderRequest.Payment request) {
 
-    return ok("Cập nhật trạng thái thanh toán thành công", orderService.confirmPayment(id));
+    return ok(
+        "Xác nhận thanh toán đơn hàng thành công", orderService.confirmPayment(id, key, request));
   }
 
   @PostMapping("/{id}/cancel")
@@ -177,9 +176,11 @@ public class AdminOrderController {
 
   @PostMapping("/{id}/refund")
   public ApiResponse<AdminOrderResponse.Action> refund(
-      @PathVariable("id") Long id, @Valid @RequestBody AdminOrderRequest.Refund request) {
+      @PathVariable("id") Long id,
+      @RequestHeader("Idempotency-Key") String key,
+      @Valid @RequestBody AdminOrderRequest.Refund request) {
 
-    return ok("Ghi nhận hoàn tiền thành công", orderService.refund(id, request));
+    return ok("Ghi nhận hoàn tiền thành công", orderService.refund(id, key, request));
   }
 
   private <T> ApiResponse<T> ok(String message, T data) {
