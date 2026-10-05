@@ -143,6 +143,7 @@ public final class AdminSalesResponse {
       Long id,
       @JsonProperty("ma_phieu_giao_hang") String maPhieuGiaoHang,
       @JsonProperty("doi_tac_van_chuyen_id") Long doiTacVanChuyenId,
+      @JsonProperty("ten_doi_tac_van_chuyen") String tenDoiTacVanChuyen,
       @JsonProperty("ma_van_don") String maVanDon,
       @JsonProperty("trang_thai_giao_hang") TrangThaiGiaoHangEnum trangThaiGiaoHang,
       @JsonProperty("tien_thu_ho_cod") BigDecimal tienThuHoCod,

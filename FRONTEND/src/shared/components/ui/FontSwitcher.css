@@ -1,0 +1,91 @@
+/* Styles for the reusable FontSwitcher primitive. */
+.font-switcher {
+  position: relative;
+  flex: 0 0 auto;
+}
+
+.font-switcher__trigger {
+  display: grid;
+  place-items: center;
+  color: inherit;
+  background: transparent;
+}
+
+.font-switcher--admin .font-switcher__trigger {
+  width: 36px;
+  height: 36px;
+  color: var(--color-text-secondary);
+  transition: color var(--transition-fast), background-color var(--transition-fast);
+}
+
+.font-switcher--admin .font-switcher__trigger:hover,
+.font-switcher--admin .font-switcher__trigger[aria-expanded='true'] {
+  color: var(--color-text-primary);
+  background: var(--color-content-bg);
+}
+
+.font-switcher--homepage .font-switcher__trigger {
+  width: 58px;
+  height: 58px;
+  border-left: 1px solid var(--border-color);
+  color: var(--text-dark);
+}
+
+.font-switcher--homepage .font-switcher__trigger:hover,
+.font-switcher--homepage .font-switcher__trigger[aria-expanded='true'] {
+  background: var(--bg-light);
+}
+
+.font-switcher__menu {
+  position: absolute;
+  z-index: 1200;
+  top: calc(100% + 6px);
+  right: 0;
+  width: 210px;
+  padding: 6px;
+  border: 2px solid #111;
+  background: #fff;
+  color: #111;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, .18);
+}
+
+.font-switcher--homepage .font-switcher__menu {
+  top: 58px;
+}
+
+.font-switcher__title {
+  padding: 7px 9px;
+  color: #8a8f96;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: .08em;
+}
+
+.font-switcher__option {
+  width: 100%;
+  min-height: 36px;
+  padding: 7px 9px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  color: #111;
+  background: #fff;
+  font-size: 13px;
+  text-align: left;
+}
+
+.font-switcher__option:hover,
+.font-switcher__option.is-active {
+  background: #f1f2f4;
+}
+
+.font-switcher__option.is-active {
+  font-weight: 700;
+}
+
+.font-switcher__trigger:focus-visible,
+.font-switcher__option:focus-visible {
+  outline: 2px solid #e31e24;
+  outline-offset: -2px;
+}

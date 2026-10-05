@@ -15,6 +15,8 @@ import org.springframework.data.repository.query.Param;
 public interface LoaiThuChiRepository
     extends JpaRepository<LoaiThuChi, Long>, JpaSpecificationExecutor<LoaiThuChi> {
 
+  Optional<LoaiThuChi> findByMaLoai(String maLoai);
+
   Optional<LoaiThuChi> findByMaLoaiAndTrangThai(String maLoai, TrangThaiCoBanEnum trangThai);
 
   boolean existsByMaLoaiIgnoreCase(String maLoai);
@@ -45,4 +47,8 @@ public interface LoaiThuChiRepository
   @Lock(LockModeType.PESSIMISTIC_READ)
   @Query("SELECT l FROM LoaiThuChi l WHERE l.id = :id")
   Optional<LoaiThuChi> findByIdForShare(@Param("id") Long id);
+    
+  @Lock(LockModeType.PESSIMISTIC_WRITE)
+  @Query("SELECT l FROM LoaiThuChi l WHERE l.maLoai = :maLoai")
+  Optional<LoaiThuChi> findByMaLoaiForUpdate(@Param("maLoai") String maLoai);
 }

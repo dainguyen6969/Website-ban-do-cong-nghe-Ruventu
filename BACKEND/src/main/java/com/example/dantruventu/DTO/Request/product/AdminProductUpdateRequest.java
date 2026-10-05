@@ -1,8 +1,10 @@
 package com.example.dantruventu.DTO.Request.product;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;
 import java.math.BigDecimal;
+import java.util.List;
 import lombok.*;
 import tools.jackson.databind.JsonNode;
 
@@ -44,4 +46,7 @@ public class AdminProductUpdateRequest {
   @Min(0)
   @Max(1)
   private Short trangThai;
+
+  @JsonProperty("anh_san_pham")
+  private List<@Valid ProductImageRequest> anhSanPham;
 }

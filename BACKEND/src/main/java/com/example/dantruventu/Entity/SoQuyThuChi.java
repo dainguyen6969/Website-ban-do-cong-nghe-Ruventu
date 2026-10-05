@@ -40,10 +40,10 @@ public class SoQuyThuChi {
 
   @Enumerated(EnumType.STRING)
   @JdbcTypeCode(SqlTypes.VARCHAR)
-  @Column(name = "nhom_nguoi_nop_nhan", nullable = false, length = 50)
+  @Column(name = "nhom_nguoi_nop_nhan", nullable = false, updatable = false, length = 50)
   private NhomNguoiNopNhanEnum nhomNguoiNopNhan;
 
-  @Column(name = "ten_nguoi_nop_nhan", nullable = false, length = 150)
+  @Column(name = "ten_nguoi_nop_nhan", nullable = false, updatable = false, length = 150)
   private String tenNguoiNopNhan;
 
   @Column(name = "ma_chung_tu_tham_chieu", length = 100)
@@ -97,10 +97,22 @@ public class SoQuyThuChi {
       columnDefinition = "TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
   private LocalDateTime updatedAt;
 
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "nguoi_nop_nhan_id", updatable = false)
+  private NguoiDung nguoiNopNhan;
+
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "nha_cung_cap_id", updatable = false)
+  private NhaCungCap nhaCungCap;
+
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "doi_tac_van_chuyen_id", updatable = false)
+  private DoiTacVanChuyen doiTacVanChuyen;
+
   @PrePersist
   public void prePersist() {
     if (ngayGhiNhan == null) {
-      ngayGhiNhan = LocalDateTime.now();
+      throw new IllegalStateException("Phải cung cấp ngày thực thu/chi trước khi lưu phiếu");
     }
   }
 }

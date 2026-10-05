@@ -40,6 +40,9 @@ public class AdminProductDetailResponse {
   @JsonProperty("trang_thai")
   private Short trangThai;
 
+  @JsonProperty("thue_vat")
+  private BigDecimal thueVat;
+
   @JsonProperty("anh_san_pham")
   private List<AnhSanPhamData> anhSanPham;
 
@@ -108,6 +111,15 @@ public class AdminProductDetailResponse {
 
     @JsonProperty("gia_ban_le")
     private BigDecimal giaBanLe;
+
+    @JsonProperty("gia_nhap")
+    private BigDecimal giaNhap;
+
+    @JsonProperty("khoi_luong")
+    private BigDecimal khoiLuong;
+
+    @JsonProperty("trang_thai")
+    private Short trangThai;
 
     @JsonProperty("ton_co_the_ban")
     private Long tonCoTheBan;

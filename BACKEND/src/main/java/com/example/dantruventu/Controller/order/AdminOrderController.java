@@ -109,6 +109,23 @@ public class AdminOrderController {
     return ok("Cập nhật đóng gói thành công", orderService.packing(id, request));
   }
 
+  @PostMapping("/{id}/delivery/start")
+  @ResponseStatus(org.springframework.http.HttpStatus.GONE)
+  public ApiResponse<Void> retiredStartDelivery() {
+    return ApiResponse.<Void>builder()
+        .status(410)
+        .message(
+            "Luồng bắt đầu giao hàng trên đơn đã ngừng hỗ trợ. Cập nhật phiếu giao hàng qua API deliveries.")
+        .build();
+  }
+
+  @GetMapping("/{id}/history")
+  @PreAuthorize("hasAnyRole('ADMIN','QUAN_LY','NHAN_VIEN_BAN_HANG')")
+  public ApiResponse<java.util.List<AdminOrderResponse.History>> history(
+      @PathVariable("id") Long id) {
+    return ok("Lấy lịch sử xử lý thành công", orderService.history(id));
+  }
+
   @GetMapping("/{id}/warehouse/serial-requirements")
   public ApiResponse<AdminOrderResponse.Requirements> requirements(@PathVariable("id") Long id) {
 
@@ -139,9 +156,9 @@ public class AdminOrderController {
 
   @PostMapping("/{id}/payment/confirm")
   public ApiResponse<AdminOrderResponse.Action> payment(
-      @PathVariable("id") Long id, @Valid @RequestBody AdminOrderRequest.Payment request) {
+      @PathVariable("id") Long id, @Valid @RequestBody AdminOrderRequest.Confirm request) {
 
-    return ok("Ghi nhận thanh toán thành công", orderService.confirmPayment(id, request));
+    return ok("Cập nhật trạng thái thanh toán thành công", orderService.confirmPayment(id));
   }
 
   @PostMapping("/{id}/cancel")

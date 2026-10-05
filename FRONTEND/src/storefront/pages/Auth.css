@@ -61,6 +61,8 @@
   flex-direction: column;
   flex: 1;
   position: relative;
+  width: 100%;
+  align-items: stretch;
 }
 
 .form-group label {
@@ -99,6 +101,9 @@
   font-size: 14px;
   outline: none;
   transition: border-color 0.2s;
+  font-family: inherit;
+  width: 100% !important;
+  box-sizing: border-box !important;
 }
 
 .form-input:focus {
@@ -113,6 +118,7 @@
   position: relative;
   display: flex;
   align-items: center;
+  width: 100%;
 }
 
 .password-input-wrapper .form-input {
@@ -329,10 +335,10 @@
 }
 
 .form-input.error {
-  border-color: #dc2626;
+  border-color: #dc2626 !important;
 }
 .form-input.error:focus {
-  border-color: #b91c1c;
+  border-color: #b91c1c !important;
 }
 
 /* Global Alert Banner */
@@ -491,4 +497,38 @@
 
 .btn-home:hover {
   background-color: #d11212;
+}
+
+/* OTP Styles */
+.btn-otp {
+  background-color: #111;
+  color: white;
+  border: none;
+  padding: 0 16px;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  cursor: pointer;
+  border-radius: 2px;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.btn-otp:hover:not(:disabled) {
+  background-color: #f11919;
+}
+
+.btn-otp:disabled {
+  background-color: #eee;
+  color: #aaa;
+  cursor: not-allowed;
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-5px); }
+  to { opacity: 1; transform: translateY(0); }
 }

@@ -91,6 +91,7 @@ export function MockAuthProvider({ children }) {
   }, [accounts]);
 
   const logout = useCallback(() => setSession(null), []);
+  const syncBackendAdmin = useCallback(() => setSession({ accountId: 'admin-1' }), []);
 
   const register = useCallback(({ fullName, email, phone, password }) => {
     const normalizedEmail = email.trim().toLowerCase();
@@ -168,9 +169,10 @@ export function MockAuthProvider({ children }) {
   }, [roles]);
 
   const value = useMemo(() => ({
-    accounts, roles, currentAccount, login, logout, register, updateCurrentAccount,
+    accounts, roles, currentAccount, login, logout, syncBackendAdmin, register, updateCurrentAccount,
     createEmployee, updateEmployee, setEmployeeStatus, saveRole,
-  }), [accounts, roles, currentAccount, login, logout, register, updateCurrentAccount, createEmployee, updateEmployee, setEmployeeStatus, saveRole]);
+  }), [accounts, roles, currentAccount, login, logout, syncBackendAdmin, register, updateCurrentAccount, createEmployee, updateEmployee, setEmployeeStatus, saveRole]);
 
   return <MockAuthContext.Provider value={value}>{children}</MockAuthContext.Provider>;
+
 }

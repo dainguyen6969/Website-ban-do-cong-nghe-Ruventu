@@ -1,41 +1,161 @@
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { ArrowLeft, ShieldCheck, Truck } from 'lucide-react';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
+import { orderService } from '../../shared/services/orderService';
+import { cartService } from '../../shared/services/cartService';
 import './CheckoutPage.css';
-import productImg from '../assets/imgg.png';
 
-const mockCheckoutItems = [
-  {
-    id: 1,
-    image: productImg,
-    title: 'ASUS ROG STRIX GeForce RTX 4080 SUPER OC',
-    variant: 'OC Edition / 16GB GDDR6X',
-    price: '24.990.000đ',
-    quantity: 1,
-  },
-  {
-    id: 2,
-    image: productImg,
-    title: 'AMD Ryzen 9 7950X Processor',
-    variant: 'Boxed / Without Cooler',
-    price: '15.290.000đ',
-    quantity: 1,
-  },
-  {
-    id: 3,
-    image: productImg,
-    title: 'Corsair Vengeance DDR5 32GB (2x16GB) 6000MHz',
-    variant: '6000MHz CL36 / Black',
-    price: '6.980.000đ',
-    quantity: 2,
-  }
-];
+const formatPrice = (price) => new Intl.NumberFormat('vi-VN').format(price) + 'đ';
 
 const CheckoutPage = () => {
-  const [deliveryMethod, setDeliveryMethod] = useState('shipping');
-  const [paymentMethod, setPaymentMethod] = useState('cod');
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [deliveryMethod, setDeliveryMethod] = useState('GIAO_HANG');
+  const [paymentMethod, setPaymentMethod] = useState('TIEN_MAT');
+  
+  const [cartItemIds, setCartItemIds] = useState([]);
+  const [cartItemsData, setCartItemsData] = useState([]);
+  const [previewData, setPreviewData] = useState(null);
+  const [formData, setFormData] = useState({
+    name: '',
+    phone: '',
+    email: '',
+    province: 'Hà Nội',
+    ward: 'Cầu Giấy',
+    address: '',
+    note: ''
+  });
+  const [errors, setErrors] = useState({});
+
+  useEffect(() => {
+    // Check if user is logged in to prefill data
+    try {
+      const userStr = localStorage.getItem('user');
+      if (userStr) {
+        const user = JSON.parse(userStr);
+        setFormData(prev => ({
+          ...prev,
+          name: user.hoTen || prev.name,
+          phone: user.soDienThoai || prev.phone,
+          email: user.email || prev.email,
+          address: user.diaChi || prev.address
+        }));
+      }
+    } catch (e) {
+      console.error(e);
+    }
+
+    if (location.state?.cartItemIds && location.state.cartItemIds.length > 0) {
+      setCartItemIds(location.state.cartItemIds);
+      // Lấy thông tin giỏ hàng để hiển thị tên và ảnh sản phẩm
+      cartService.getCurrentCart().then(res => {
+        if (res?.data?.data?.items) {
+          setCartItemsData(res.data.data.items);
+        }
+      }).catch(err => console.error("Lỗi fetch giỏ hàng ở checkout:", err));
+    } else {
+      // If no item selected, return to cart
+      navigate('/cart');
+    }
+  }, [location.state, navigate]);
+
+  useEffect(() => {
+    if (cartItemIds.length === 0) return;
+    
+    // Call preview API whenever relevant fields change
+    const fetchPreview = async () => {
+      try {
+        const payload = {
+          cart_item_ids: cartItemIds,
+          hinh_thuc_nhan_hang: deliveryMethod,
+          phuong_thuc_thanh_toan: paymentMethod,
+          thong_tin_nguoi_nhan: {
+            ten_nguoi_nhan: formData.name || 'Nguyen Van A', // API might require not null
+            sdt_nguoi_nhan: formData.phone || '0901234567',
+            dia_chi_giao_hang: deliveryMethod === 'GIAO_HANG' ? `${formData.address}, ${formData.ward}, ${formData.province}` : ''
+          },
+          ma_chuong_trinh: location.state?.voucherCode || null,
+          ghi_chu: formData.note
+        };
+        const res = await orderService.previewCheckout(payload);
+        if (res.data?.data) {
+          setPreviewData(res.data.data);
+        }
+      } catch (err) {
+        console.error("Preview lỗi:", err);
+      }
+    };
+    
+    // Use timeout to debounce if typing
+    const timeoutId = setTimeout(() => {
+      fetchPreview();
+    }, 500);
+    
+    return () => clearTimeout(timeoutId);
+  }, [cartItemIds, deliveryMethod, paymentMethod, formData.address, formData.ward, formData.province, location.state?.voucherCode, formData.note]);
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+    if (errors[name]) {
+      setErrors(prev => ({ ...prev, [name]: null }));
+    }
+  };
+
+  const handlePlaceOrder = async () => {
+    const newErrors = {};
+    if (!formData.name.trim()) newErrors.name = 'Vui lòng nhập họ và tên';
+    if (!formData.phone.trim()) {
+      newErrors.phone = 'Vui lòng nhập số điện thoại';
+    } else if (!/^(?:\+84|0)[0-9]{9,10}$/.test(formData.phone.trim().replace(/\s/g, ''))) {
+      newErrors.phone = 'Số điện thoại không hợp lệ';
+    }
+    
+    if (!formData.email.trim()) {
+      newErrors.email = 'Vui lòng nhập email';
+    } else if (!/^\S+@\S+\.\S+$/.test(formData.email)) {
+      newErrors.email = 'Email không hợp lệ';
+    }
+
+    if (deliveryMethod === 'GIAO_HANG') {
+      if (!formData.address.trim()) newErrors.address = 'Vui lòng nhập địa chỉ cụ thể';
+    }
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+
+    if (!previewData) return;
+
+    try {
+      const payload = {
+        cart_item_ids: cartItemIds,
+        hinh_thuc_nhan_hang: deliveryMethod,
+        phuong_thuc_thanh_toan: paymentMethod,
+        thong_tin_nguoi_nhan: {
+          ten_nguoi_nhan: formData.name,
+          sdt_nguoi_nhan: formData.phone,
+          dia_chi_giao_hang: deliveryMethod === 'GIAO_HANG' ? `${formData.address}, ${formData.ward}, ${formData.province}` : ''
+        },
+        ma_chuong_trinh: location.state?.voucherCode || null,
+        ghi_chu: formData.note,
+        tong_thanh_toan_xac_nhan: previewData.tong_thanh_toan
+      };
+      
+      const res = await orderService.submitCheckout(payload);
+      
+      // Notify header/cart drawer to reload cart
+      window.dispatchEvent(new CustomEvent('cartUpdated'));
+      
+      navigate('/success', { state: { orderCode: res.data?.data?.maDonHang } });
+    } catch (err) {
+      alert(err.response?.data?.message || 'Có lỗi xảy ra khi tạo đơn hàng. Vui lòng thử lại.');
+    }
+  };
 
   return (
     <div className="checkout-page-wrapper">
@@ -45,7 +165,7 @@ const CheckoutPage = () => {
       <div className="checkout-page-header">
         <div className="container">
           <div className="checkout-page-title">
-            <Link to="/cart">
+            <Link to="/cart" style={{color: 'white', textDecoration: 'none', display: 'flex', alignItems: 'center'}}>
               <ArrowLeft size={18} style={{marginRight: '8px'}} /> THÔNG TIN THANH TOÁN
             </Link>
           </div>
@@ -67,16 +187,40 @@ const CheckoutPage = () => {
             <h3 className="section-title">THÔNG TIN LIÊN HỆ</h3>
             <div className="form-group">
               <label className="form-label">HỌ VÀ TÊN</label>
-              <input type="text" className="form-input" placeholder="Nguyễn Văn A" defaultValue="Nguyễn Văn A" />
+              <input 
+                type="text" 
+                name="name"
+                value={formData.name}
+                onChange={handleInputChange}
+                className={`form-input ${errors.name ? 'input-error' : ''}`} 
+                placeholder="Nhập họ và tên..." 
+              />
+              {errors.name && <span className="error-text">{errors.name}</span>}
             </div>
             <div className="form-row">
               <div className="form-group">
                 <label className="form-label">SỐ ĐIỆN THOẠI</label>
-                <input type="tel" className="form-input" placeholder="09xx xxx xxx" defaultValue="09xx xxx xxx" />
+                <input 
+                  type="tel" 
+                  name="phone"
+                  value={formData.phone}
+                  onChange={handleInputChange}
+                  className={`form-input ${errors.phone ? 'input-error' : ''}`} 
+                  placeholder="09xx xxx xxx" 
+                />
+                {errors.phone && <span className="error-text">{errors.phone}</span>}
               </div>
               <div className="form-group">
                 <label className="form-label">EMAIL</label>
-                <input type="email" className="form-input" placeholder="ten@email.com" defaultValue="ten@email.com" />
+                <input 
+                  type="email" 
+                  name="email"
+                  value={formData.email}
+                  onChange={handleInputChange}
+                  className={`form-input ${errors.email ? 'input-error' : ''}`} 
+                  placeholder="ten@email.com" 
+                />
+                {errors.email && <span className="error-text">{errors.email}</span>}
               </div>
             </div>
           </div>
@@ -86,19 +230,19 @@ const CheckoutPage = () => {
             <h3 className="section-title">PHƯƠNG THỨC NHẬN HÀNG</h3>
             <div className="selection-boxes">
               <div 
-                className={`selection-box ${deliveryMethod === 'shipping' ? 'active' : ''}`}
-                onClick={() => setDeliveryMethod('shipping')}
+                className={`selection-box ${deliveryMethod === 'GIAO_HANG' ? 'active' : ''}`}
+                onClick={() => setDeliveryMethod('GIAO_HANG')}
               >
                 <div className="radio-custom"></div>
                 <div className="selection-content">
                   <h4>Giao hàng tận nơi</h4>
                   <p>Giao trong 1-3 ngày làm việc</p>
-                  <span className="badge-free">MIỄN PHÍ</span>
+                  <span className="badge-free">MIỄN PHÍ TỪ 5TR</span>
                 </div>
               </div>
               <div 
-                className={`selection-box ${deliveryMethod === 'pickup' ? 'active' : ''}`}
-                onClick={() => setDeliveryMethod('pickup')}
+                className={`selection-box ${deliveryMethod === 'NHAN_TAI_CUA_HANG' ? 'active' : ''}`}
+                onClick={() => setDeliveryMethod('NHAN_TAI_CUA_HANG')}
               >
                 <div className="radio-custom"></div>
                 <div className="selection-content">
@@ -109,19 +253,29 @@ const CheckoutPage = () => {
               </div>
             </div>
 
-            {deliveryMethod === 'shipping' && (
+            {deliveryMethod === 'GIAO_HANG' && (
               <>
                 <div className="form-row">
                   <div className="form-group">
                     <label className="form-label">TỈNH / THÀNH PHỐ</label>
-                    <select className="form-input">
+                    <select 
+                      name="province"
+                      value={formData.province}
+                      onChange={handleInputChange}
+                      className="form-input"
+                    >
                       <option>Hà Nội</option>
                       <option>TP. Hồ Chí Minh</option>
                     </select>
                   </div>
                   <div className="form-group">
                     <label className="form-label">PHƯỜNG / XÃ</label>
-                    <select className="form-input">
+                    <select 
+                      name="ward"
+                      value={formData.ward}
+                      onChange={handleInputChange}
+                      className="form-input"
+                    >
                       <option>Cầu Giấy</option>
                       <option>Đống Đa</option>
                     </select>
@@ -129,7 +283,15 @@ const CheckoutPage = () => {
                 </div>
                 <div className="form-group">
                   <label className="form-label">ĐỊA CHỈ CỤ THỂ</label>
-                  <input type="text" className="form-input" placeholder="Số nhà, tên đường, khu dân cư..." />
+                  <input 
+                    type="text" 
+                    name="address"
+                    value={formData.address}
+                    onChange={handleInputChange}
+                    className={`form-input ${errors.address ? 'input-error' : ''}`} 
+                    placeholder="Số nhà, tên đường, khu dân cư..." 
+                  />
+                  {errors.address && <span className="error-text">{errors.address}</span>}
                 </div>
               </>
             )}
@@ -140,8 +302,8 @@ const CheckoutPage = () => {
             <h3 className="section-title">PHƯƠNG THỨC THANH TOÁN</h3>
             <div className="selection-boxes" style={{flexDirection: 'column', gap: '10px'}}>
               <div 
-                className={`selection-box ${paymentMethod === 'cod' ? 'active' : ''}`}
-                onClick={() => setPaymentMethod('cod')}
+                className={`selection-box ${paymentMethod === 'TIEN_MAT' ? 'active' : ''}`}
+                onClick={() => setPaymentMethod('TIEN_MAT')}
                 style={{padding: '15px 20px'}}
               >
                 <div className="radio-custom"></div>
@@ -151,8 +313,8 @@ const CheckoutPage = () => {
                 </div>
               </div>
               <div 
-                className={`selection-box ${paymentMethod === 'bank' ? 'active' : ''}`}
-                onClick={() => setPaymentMethod('bank')}
+                className={`selection-box ${paymentMethod === 'CHUYEN_KHOAN' ? 'active' : ''}`}
+                onClick={() => setPaymentMethod('CHUYEN_KHOAN')}
                 style={{padding: '15px 20px'}}
               >
                 <div className="radio-custom"></div>
@@ -169,6 +331,9 @@ const CheckoutPage = () => {
             <h3 className="section-title">GHI CHÚ ĐƠN HÀNG</h3>
             <div className="form-group" style={{marginBottom: 0}}>
               <textarea 
+                name="note"
+                value={formData.note}
+                onChange={handleInputChange}
                 className="form-input" 
                 rows="3" 
                 placeholder="Ghi chú thêm cho đơn hàng (ví dụ: giao ngoài giờ hành chính, gọi trước khi giao...)"
@@ -186,39 +351,56 @@ const CheckoutPage = () => {
           </div>
           
           <div className="sidebar-items">
-            {mockCheckoutItems.map(item => (
-              <div key={item.id} className="sidebar-item">
-                <img src={item.image} alt={item.title} />
+            {previewData && previewData.san_pham && previewData.san_pham.map(item => {
+              const cartInfo = cartItemsData.find(c => c.phienBanId === item.phien_ban_id) || {};
+              return (
+              <div key={item.phien_ban_id} className="sidebar-item">
+                <img src={cartInfo.anh || 'https://via.placeholder.com/60'} alt={cartInfo.tenSanPham || 'Sản phẩm'} />
                 <div className="sidebar-item-details">
-                  <h4>{item.title}</h4>
-                  <p>{item.variant}</p>
+                  <h4>{cartInfo.tenSanPham || 'Đang tải...'}</h4>
+                  <p>{cartInfo.tenPhienBan || 'Tiêu chuẩn'}</p>
                   <div className="sidebar-item-price">
-                    <span className="qty">x{item.quantity}</span>
-                    <span className="price">{item.price}</span>
+                    <span className="qty">x{item.so_luong}</span>
+                    <span className="price">{formatPrice(item.don_gia)}</span>
                   </div>
                 </div>
               </div>
-            ))}
+            )})}
           </div>
 
           <div className="sidebar-summary">
-            <div className="summary-row">
-              <span>Tạm tính</span>
-              <span>47.260.000đ</span>
-            </div>
-            <div className="summary-row">
-              <span>Phí vận chuyển</span>
-              <span style={{backgroundColor: '#111', color: 'white', padding: '2px 6px', fontSize: '10px', fontWeight: 'bold'}}>MIỄN PHÍ</span>
-            </div>
-            <div className="summary-row total">
-              <span>TỔNG TIỀN</span>
-              <span className="price">47.260.000đ</span>
-            </div>
-            <Link to="/success" style={{textDecoration: 'none'}}>
-              <button className="btn-confirm-order">
-                XÁC NHẬN ĐẶT HÀNG &rarr;
-              </button>
-            </Link>
+            {previewData ? (
+              <>
+                <div className="summary-row">
+                  <span>Tạm tính</span>
+                  <span>{formatPrice(previewData.tong_tien_hang)}</span>
+                </div>
+                {previewData.tien_chiet_khau > 0 && (
+                  <div className="summary-row" style={{ color: '#ff0000' }}>
+                    <span>Khuyến mãi</span>
+                    <span>-{formatPrice(previewData.tien_chiet_khau)}</span>
+                  </div>
+                )}
+                <div className="summary-row">
+                  <span>Phí vận chuyển</span>
+                  {previewData.phi_giao_hang === 0 ? (
+                    <span style={{backgroundColor: '#111', color: 'white', padding: '2px 6px', fontSize: '10px', fontWeight: 'bold'}}>MIỄN PHÍ</span>
+                  ) : (
+                    <span>{formatPrice(previewData.phi_giao_hang)}</span>
+                  )}
+                </div>
+                <div className="summary-row total">
+                  <span>TỔNG TIỀN</span>
+                  <span className="price">{formatPrice(previewData.tong_thanh_toan)}</span>
+                </div>
+              </>
+            ) : (
+              <div style={{ textAlign: 'center', padding: '20px' }}>Đang tính toán...</div>
+            )}
+            
+            <button className="btn-confirm-order" onClick={handlePlaceOrder} disabled={!previewData}>
+              XÁC NHẬN ĐẶT HÀNG &rarr;
+            </button>
           </div>
           
           <div className="sidebar-trust">

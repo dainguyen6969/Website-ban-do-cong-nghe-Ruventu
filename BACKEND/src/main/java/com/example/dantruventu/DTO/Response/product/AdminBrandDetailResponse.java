@@ -43,6 +43,9 @@ public class AdminBrandDetailResponse {
     @JsonProperty("ten_san_pham")
     private String tenSanPham;
 
+    @JsonProperty("ten_danh_muc")
+    private String tenDanhMuc;
+
     @JsonProperty("gia_ban")
     private BigDecimal giaBan;
 

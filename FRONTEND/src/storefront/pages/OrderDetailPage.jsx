@@ -1,3 +1,4 @@
+import { label } from '../../features/admin/orders/api/orderApi.js';
 import React from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import Header from '../components/Header';
@@ -16,19 +17,19 @@ const OrderDetailPage = () => {
   // Mock data for orders
   const ordersData = {
     'RUV-98237': {
-      statusText: 'ĐANG GIAO HÀNG',
+      status: 'DANG_GIAO_HANG',
       isDelivered: false,
       date: '28/08/2026',
       total: '38,460,000đ'
     },
     'RV-20240801-001': {
-      statusText: 'ĐÃ GIAO',
+      status: 'HOAN_THANH',
       isDelivered: true,
       date: '01/08/2024',
       total: '34,990,000đ'
     },
     'RV-20240715-002': {
-      statusText: 'ĐÃ GIAO',
+      status: 'HOAN_THANH',
       isDelivered: true,
       date: '15/07/2024',
       total: '18,450,000đ'
@@ -56,7 +57,7 @@ const OrderDetailPage = () => {
                 <div className="red-vertical-line"></div>
                 <h1 className="order-title">CHI TIẾT ĐƠN HÀNG <span className="highlight">#{orderId}</span></h1>
                 <span className={`order-status-tag ${currentOrder.isDelivered ? 'success' : ''}`}>
-                  {currentOrder.statusText}
+                  {label(currentOrder.status).toLocaleUpperCase('vi')}
                 </span>
               </div>
               
@@ -78,7 +79,7 @@ const OrderDetailPage = () => {
 
                 <div className="timeline-node done">
                   <div className="node-icon"><Check size={14} color="#fff" /></div>
-                  <span className="node-text">CHỜ XÁC NHẬN</span>
+                  <span className="node-text">CHỜ DUYỆT</span>
                 </div>
 
                 <div className="timeline-node done">

@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import ProductCard from '../components/ProductCard';
 import { mockPcBuildProducts, mockLinhKien, mockGamingGear } from '../data/categoryData';
+import { productService } from '../../shared/services/productService';
 import './CategoryPage.css';
 
 const categoryMap = {
@@ -39,12 +40,40 @@ const CategoryPage = () => {
   const { slug } = useParams();
   const categoryInfo = categoryMap[slug] || categoryMap['linh-kien']; // Fallback
   
-  const products = categoryInfo.data;
+  const [products, setProducts] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [sortBy, setSortBy] = useState('newest');
 
+  useEffect(() => {
+    const fetchProducts = async () => {
+      setIsLoading(true);
+      try {
+        const response = await productService.getProducts({ ton_kho: true });
+        if (response && response.data && response.data.danhSachSanPham) {
+          const mappedProducts = response.data.danhSachSanPham.map(p => ({
+            id: p.id,
+            title: p.tenSanPham,
+            image: p.anhChinh || 'https://via.placeholder.com/300',
+            price: new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(p.giaThapNhat),
+            category: p.tenDanhMuc,
+            outOfStock: !p.conHang
+          }));
+          setProducts(mappedProducts);
+        } else {
+          setProducts(categoryInfo.data);
+        }
+      } catch (error) {
+        console.error("Failed to fetch products:", error);
+        setProducts(categoryInfo.data);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchProducts();
+  }, [slug, categoryInfo.data]);
 
   return (
-    <div className="category-page">
+    <div className="storefront-category-page">
       <Header />
       
       {/* Breadcrumb */}

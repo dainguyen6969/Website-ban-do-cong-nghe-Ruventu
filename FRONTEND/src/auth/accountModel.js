@@ -5,6 +5,13 @@ export const isStaffAccount = (account) => Boolean(
   account && (account.role === 'admin' || account.employeeId),
 );
 
+export const canAccessAdmin = (account, roles = []) => {
+  if (!isStaffAccount(account) || account.trangThai !== 'hoat_dong') return false;
+  const roleId = account.vaiTro ?? (account.role === 'admin' ? 'admin_toan_quyen' : account.role);
+  return roles.some((role) => role.id === roleId
+    && Object.values(role.permissions ?? {}).some((actions) => actions.includes('xem')));
+};
+
 export const employeeRoleLabel = (value, roles = []) => roles.find((role) => role.id === value)?.label ?? value;
 
 export const employeeStatusLabel = (value) => value === 'ngung_hoat_dong' ? 'NGỪNG HOẠT ĐỘNG' : 'HOẠT ĐỘNG';

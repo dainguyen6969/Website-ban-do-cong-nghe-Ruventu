@@ -8,8 +8,6 @@ import com.example.dantruventu.DTO.Response.role.RoleListItemResponse;
 import com.example.dantruventu.Error.AppException;
 import com.example.dantruventu.Error.ErrorCode;
 import com.example.dantruventu.Services.AdminRoleService;
-import tools.jackson.databind.JsonNode;
-import tools.jackson.databind.ObjectMapper;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Valid;
 import jakarta.validation.Validator;
@@ -19,6 +17,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
 
 @RestController
 @RequestMapping("/api/v1/admin/roles")
@@ -103,9 +103,6 @@ public class AdminRoleController {
 
     adminRoleService.deleteRole(id);
 
-    return ApiResponse.<Void>builder()
-        .status(200)
-        .message("Xóa vai trò thành công")
-        .build();
+    return ApiResponse.<Void>builder().status(200).message("Xóa vai trò thành công").build();
   }
 }

@@ -136,7 +136,8 @@ public class CustomerController {
     ZoneOffset vietnamOffset = ZoneOffset.ofHours(7);
 
     for (DonHang order : orders) {
-      List<PhieuGiaoHang> orderSlips = slipsMap.getOrDefault(order.getId(), Collections.emptyList());
+      List<PhieuGiaoHang> orderSlips =
+          slipsMap.getOrDefault(order.getId(), Collections.emptyList());
 
       List<Map<String, Object>> slipList =
           orderSlips.stream()
@@ -170,8 +171,7 @@ public class CustomerController {
       orderMap.put("id", order.getId());
       orderMap.put("ma_don_hang", order.getMaDonHang());
       orderMap.put(
-          "loai_don_hang",
-          order.getLoaiDonHang() != null ? order.getLoaiDonHang().name() : null);
+          "loai_don_hang", order.getLoaiDonHang() != null ? order.getLoaiDonHang().name() : null);
       orderMap.put(
           "trang_thai_don_hang",
           order.getTrangThaiDonHang() != null ? order.getTrangThaiDonHang().name() : null);

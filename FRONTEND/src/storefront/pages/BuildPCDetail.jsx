@@ -1,8 +1,6 @@
-import React, { useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useEffect, useState } from 'react';
+import { Link, useParams } from 'react-router-dom';
 import Header from '../components/Header';
-import InfoBar from '../components/InfoBar';
-import CategoryBar from '../components/CategoryBar';
 import Footer from '../components/Footer';
 import PCComponentList from '../components/PCComponentList';
 import ProductGallery from '../components/ProductGallery';
@@ -18,16 +16,20 @@ import pcStrikerImg from '../assets/pc_striker.png';
 import pcPhantomImg from '../assets/pc_phantom.png';
 
 const BuildPCDetail = () => {
+  const { id } = useParams();
+  const [selectedComponent, setSelectedComponent] = useState(null);
+
   // Scroll to top on load
   useEffect(() => {
     window.scrollTo(0, 0);
   }, []);
 
+  const defaultImages = [pcWarlordImg, vga4080Img, pcTitanImg, pcStrikerImg, pcPhantomImg];
+  const galleryImages = selectedComponent ? [selectedComponent.img] : defaultImages;
+
   return (
     <div className="build-pc-detail-page">
       <Header />
-      <InfoBar />
-      <CategoryBar />
       
       {/* Breadcrumbs */}
       <div className="breadcrumb-container">
@@ -44,17 +46,23 @@ const BuildPCDetail = () => {
       <div className="product-main-container">
         {/* Left Sidebar - Components */}
         <div className="components-sidebar-column">
-          <PCComponentList />
+          <PCComponentList 
+            selectedComponent={selectedComponent}
+            onSelectComponent={setSelectedComponent}
+          />
         </div>
 
         {/* Center - Gallery */}
         <div className="gallery-column">
-          <ProductGallery images={[pcWarlordImg, vga4080Img, pcTitanImg, pcStrikerImg, pcPhantomImg]} />
+          <ProductGallery images={galleryImages} />
         </div>
 
         {/* Right Sidebar - Purchase Info */}
         <div className="purchase-sidebar-column">
-          <ProductPurchaseSidebar />
+          <ProductPurchaseSidebar 
+            selectedComponent={selectedComponent}
+            onClearSelection={() => setSelectedComponent(null)}
+          />
         </div>
       </div>
 
