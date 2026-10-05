@@ -16,16 +16,16 @@
   padding-left: 16px;
 }
 
-.section-title {
+.product-section-title {
   font-size: 24px;
   font-weight: 900;
   text-transform: uppercase;
-  color: var(--text-dark);
+  color: var(--primary-red);
   line-height: 1;
 }
 
-.dark-theme .section-title {
-  color: var(--text-light);
+.dark-theme .product-section-title {
+  color: var(--primary-red);
 }
 
 .section-subtitle {

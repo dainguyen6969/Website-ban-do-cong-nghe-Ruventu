@@ -13,6 +13,7 @@ import { getAllCategories } from '../../categories/api/categoryApi';
 import { getAllBrands } from '../../brands/api/brandApi';
 import { createProduct, getProductDetail, updateProduct } from '../api/productApi';
 import { getEditableVersions, updateVersion as saveVersion } from '../api/versionApi';
+import { defaultVariantName } from './variantNames';
 import './ThemSanPham.css';
 
 // ── Dropdown options ──
@@ -110,11 +111,13 @@ export default function ThemSanPham() {
   const [newAttrValues, setNewAttrValues] = useState('');
 
   // ── Variants ──
+  const [manualVariants, setManualVariants] = useState([{ name: 'Mặc định' }]);
+  const manualVariantCounter = useRef(1);
   const variants = useMemo(
     () => isEditing && existingProduct
       ? existingProduct.variants.map((variant) => ({ name: variant.name }))
-      : generateVariants(attributes),
-    [attributes, existingProduct, isEditing]
+      : attributes.length > 0 ? generateVariants(attributes) : manualVariants,
+    [attributes, existingProduct, isEditing, manualVariants]
   );
   const [variantData, setVariantData] = useState({});
 
@@ -178,6 +181,13 @@ export default function ThemSanPham() {
       .catch(() => setCatalog({ categories: [], brands: [] }));
   }, []);
 
+  const versionName = useCallback((variant) => {
+    const customName = getVariant(variant.name).name;
+    return customName === undefined
+      ? defaultVariantName(tenSanPham, variant.name, isEditing ? 1 : variants.length)
+      : customName;
+  }, [getVariant, isEditing, tenSanPham, variants.length]);
+
   // ── Summary computations ──
   const totalVariants = variants.length;
   const comboSearchResults = [];
@@ -206,6 +216,20 @@ export default function ThemSanPham() {
 
   const handleRemoveAttribute = (idx) => {
     setAttributes((prev) => prev.filter((_, i) => i !== idx));
+  };
+
+  const handleAddManualVariant = () => {
+    manualVariantCounter.current += 1;
+    setManualVariants((prev) => [...prev, { name: `Phiên bản ${manualVariantCounter.current}` }]);
+  };
+
+  const handleRemoveManualVariant = (name) => {
+    setManualVariants((prev) => prev.filter((variant) => variant.name !== name));
+    setVariantData((prev) => {
+      const next = { ...prev };
+      delete next[name];
+      return next;
+    });
   };
 
   const handleAddComboItem = (product) => {
@@ -274,6 +298,12 @@ export default function ThemSanPham() {
       return;
     }
 
+    const versionNames = variants.map((variant) => versionName(variant).trim());
+    if (versionNames.some((name) => !name) || new Set(versionNames).size !== versionNames.length) {
+      alert('Tên phiên bản không được để trống hoặc trùng nhau.');
+      return;
+    }
+
     if (productType !== 'single') {
       if (comboItems.length === 0) {
         alert('Sản phẩm Combo cần có ít nhất 1 sản phẩm thành phần! Vui lòng chọn sản phẩm thành phần.');
@@ -329,7 +359,7 @@ export default function ThemSanPham() {
           }
         : {
             attributes,
-            variants: variants.map((v) => ({ name: v.name, ...getVariant(v.name) })),
+            variants: variants.map((v) => ({ name: versionName(v), ...getVariant(v.name) })),
           }),
     };
 
@@ -362,7 +392,7 @@ export default function ThemSanPham() {
           await Promise.all(variants.map((variant) => {
             const data = getVariant(variant.name);
             return saveVersion(existingProduct.id, data.id, {
-              ten_phien_ban: variant.name,
+              ten_phien_ban: versionName(variant).trim(),
               ma_vach: data.sku,
               gia_ban_le: Number(String(data.giaBanLe).replace(/[^0-9]/g, '')),
               gia_nhap: Number(String(data.giaNhap).replace(/[^0-9]/g, '')),
@@ -377,7 +407,7 @@ export default function ThemSanPham() {
             danh_sach_phien_ban: variants.map((variant) => {
             const data = getVariant(variant.name);
             return {
-              ten_phien_ban: variant.name,
+              ten_phien_ban: versionName(variant).trim(),
               ma_vach: data.sku,
               gia_ban_le: Number(String(data.giaBanLe).replace(/[^0-9]/g, '')),
               gia_nhap: Number(String(data.giaNhap).replace(/[^0-9]/g, '')),
@@ -603,7 +633,7 @@ export default function ThemSanPham() {
                         const d = getVariant(v.name);
                         return (
                           <tr key={v.name} className="variant-table__tr">
-                            <td className="variant-table__td variant-table__td--name">{v.name}</td>
+                            <td className="variant-table__td variant-table__td--name"><div className="variant-name-field"><input type="text" className="form-input form-input--xs" value={versionName(v)} onChange={(e) => updateVariant(v.name, 'name', e.target.value)} placeholder="Tên phiên bản" />{!isEditing && attributes.length === 0 && manualVariants.length > 1 && <button type="button" className="attr-remove-btn" onClick={() => handleRemoveManualVariant(v.name)} aria-label="Xóa phiên bản"><HiOutlineX size={14} /></button>}</div></td>
                             <td className="variant-table__td">
                               <input type="text" className="form-input form-input--xs" value={d.sku} onChange={(e) => updateVariant(v.name, 'sku', e.target.value)} placeholder="SKU" />
                             </td>
@@ -644,6 +674,7 @@ export default function ThemSanPham() {
                     </tbody>
                   </table>
                 </div>
+                {!isEditing && attributes.length === 0 && <button type="button" className="btn-add-spec variant-add-btn" onClick={handleAddManualVariant}>THÊM PHIÊN BẢN</button>}
               </FormCard>
             </>
           ) : (

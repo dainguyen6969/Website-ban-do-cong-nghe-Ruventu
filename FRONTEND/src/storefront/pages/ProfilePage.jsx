@@ -205,7 +205,7 @@ const ProfilePage = () => {
           <div className="item-info">
             <div className="item-header">
               <span className="item-id">RV-20240801-001</span>
-              <span className="item-tag tag-green">ĐÃ GIAO</span>
+              <span className="item-tag tag-green">HOÀN THÀNH</span>
             </div>
             <div className="item-title">RTX 4080 SUPER, 32GB DDR5</div>
             <div className="item-meta">Ngày đặt: 01/08/2024</div>
@@ -219,7 +219,7 @@ const ProfilePage = () => {
           <div className="item-info">
             <div className="item-header">
               <span className="item-id">RV-20240715-002</span>
-              <span className="item-tag tag-green">ĐÃ GIAO</span>
+              <span className="item-tag tag-green">HOÀN THÀNH</span>
             </div>
             <div className="item-title">RYZEN 9 7900X, B650 MAINBOARD</div>
             <div className="item-meta">Ngày đặt: 15/07/2024</div>

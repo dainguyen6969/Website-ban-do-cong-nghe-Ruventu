@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { HiOutlineChevronDown, HiOutlineChevronUp, HiOutlinePlus, HiOutlineSearch } from 'react-icons/hi';
 import TablePagination from '../../../../shared/components/ui/TablePagination';
-import { getStockChecks } from '../../../../data/mockStockChecks';
+import { getStockChecks, STOCK_CHECK_LABELS } from '../../../../data/mockStockChecks';
 import { subscribeToAdminSlice } from '../../../../sync/adminSync';
 import './KiemHang.css';
 
@@ -58,7 +58,7 @@ export default function KiemHang() {
         <div className="stock-check-toolbar">
           <label className="stock-check-search"><HiOutlineSearch aria-hidden="true" /><span className="sr-only">Tìm phiếu kiểm hàng</span><input type="search" value={draftFilters.query} onChange={updateDraft('query')} placeholder="Tìm mã phiếu/sản phẩm/phiên bản/mã vạch..." /></label>
           <select aria-label="Kho cửa hàng" value={draftFilters.warehouse} onChange={updateDraft('warehouse')}><option value="">KHO CỬA HÀNG</option><option>Kho Hà Nội</option><option>Kho HCM</option><option>Kho Đà Nẵng</option></select>
-          <select aria-label="Trạng thái" value={draftFilters.status} onChange={updateDraft('status')}><option value="">TRẠNG THÁI</option><option>Đang kiểm</option><option>Đã cân bằng</option><option>Đã hủy</option></select>
+          <select aria-label="Trạng thái" value={draftFilters.status} onChange={updateDraft('status')}><option value="">TRẠNG THÁI</option><option value="DANG_KIEM">Đang kiểm</option><option value="DA_CAN_BANG">Đã cân bằng</option><option value="DA_HUY">Đã hủy</option></select>
           <button type="button" className={`stock-check-button stock-check-filter-toggle ${showMoreFilters ? 'is-active' : ''}`} aria-expanded={showMoreFilters} aria-controls="stock-check-extra-filters" onClick={() => setShowMoreFilters((current) => !current)}>{showMoreFilters ? <>ÍT BỘ LỌC <HiOutlineChevronUp /></> : <>BỘ LỌC <HiOutlineChevronDown /></>}</button>
           <button type="button" className="stock-check-button stock-check-button--primary" onClick={applyFilters}>ÁP DỤNG</button>
         </div>
@@ -75,12 +75,12 @@ export default function KiemHang() {
           <thead><tr><th>MÃ PHIẾU</th><th>SẢN PHẨM / PHIÊN BẢN</th><th>TRẠNG THÁI</th><th>NGÀY TẠO</th><th>NGÀY KIỂM HÀNG</th><th>THAO TÁC</th></tr></thead>
           <tbody>
             {visibleChecks.map((item) => {
-              const cancelled = item.status === 'Đã hủy';
-              const statusClass = item.status === 'Đang kiểm' ? 'checking' : item.status === 'Đã cân bằng' ? 'balanced' : 'cancelled';
+              const cancelled = item.status === 'DA_HUY';
+              const statusClass = item.status === 'DANG_KIEM' ? 'checking' : item.status === 'DA_CAN_BANG' ? 'balanced' : 'cancelled';
               return <tr key={item.id} className={cancelled ? 'is-cancelled' : ''}>
                 <td className="stock-check-code">{item.id}</td>
                 <td><div className="stock-check-product"><strong>{item.productName}</strong><small>{item.sku}</small></div></td>
-                <td><span className={`stock-check-status stock-check-status--${statusClass}`}>{item.status.toLocaleUpperCase('vi')}</span></td>
+                <td><span className={`stock-check-status stock-check-status--${statusClass}`}>{STOCK_CHECK_LABELS[item.status].toLocaleUpperCase('vi')}</span></td>
                 <td>{formatDate(item.createdAt)}</td>
                 <td><button type="button" className="stock-check-date" onClick={() => navigate(`/kho-hang/kiem-hang/${item.id}`)}>{formatDate(item.checkedAt, true)}</button></td>
                 <td><button type="button" className="stock-check-detail" onClick={() => navigate(`/kho-hang/kiem-hang/${item.id}`)}>XEM CHI TIẾT</button></td>

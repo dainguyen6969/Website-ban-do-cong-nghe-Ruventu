@@ -1,0 +1,138 @@
+.sq-page {
+    flex: 1; min-width: 0; overflow: auto; display: flex; flex-direction: column; background: #fff;
+    min-height: calc(100vh - 60px);
+}
+
+.sq-header {
+    min-height: 60px; padding: 18px 28px; display: flex; align-items: center; justify-content: space-between; gap: 20px; border-bottom: 2px solid #111; background: #fff;
+}
+
+.sq-breadcrumb {
+    color: #111; font-size: 11px; font-weight: 900; text-transform: uppercase;
+}
+
+.sq-breadcrumb span {
+    color: #858c95; margin: 0 8px; font-weight: normal;
+}
+
+.bg-red {
+    background-color: #f20b13 !important;
+    border: none !important;
+    color: white !important;
+}
+
+.bg-red:hover {
+    background-color: #d10810 !important;
+}
+
+.cb-btn-dark {
+    min-height: 38px; padding: 0 15px; border: 2px solid #333; color: #fff; background: #444; font-size: 9px; font-weight: 900; cursor: pointer; text-transform: uppercase; display: inline-flex; align-items: center; justify-content: center;
+}
+.cb-btn-dark:hover { background: #222; }
+
+.icon-btn {
+    display: inline-flex; align-items: center; justify-content: center;
+}
+
+.sq-stats-row {
+    display: flex; border-bottom: 2px solid #111;
+}
+
+.sq-stat-box {
+    flex: 1; padding: 16px 28px; border-right: 2px solid #111; display: flex; align-items: center; gap: 16px;
+}
+
+.sq-stat-box:last-child {
+    border-right: none;
+}
+
+.sq-stat-box.bg-dark {
+    background: #111;
+}
+
+.sq-stat-box .icon {
+    width: 38px; height: 38px; display: flex; align-items: center; justify-content: center;
+    border: 1px solid #d1d5db; font-size: 16px; font-weight: bold; background: #fff; flex-shrink: 0; box-sizing: border-box;
+}
+
+.sq-stat-box.bg-dark .icon.icon-red-dollar {
+    border: 1.5px solid #dc2626; background: transparent; color: #dc2626; font-size: 16px; font-weight: 900;
+}
+
+.sq-stat-box .info {
+    display: flex; flex-direction: column; gap: 6px;
+}
+
+.sq-stat-box label {
+    font-size: 9px; font-weight: 800; color: #858c95; text-transform: uppercase;
+}
+
+.sq-stat-box .val {
+    font-size: 18px; font-weight: 900; color: #111;
+}
+
+.sq-stat-box.bg-dark label {
+    color: #fff;
+}
+
+.text-green { color: #0d8425 !important; }
+.text-red { color: #dc2626 !important; }
+.text-white { color: #fff !important; }
+.text-muted { color: #858c95 !important; }
+
+.sq-subtext-row {
+    padding: 12px 28px; font-size: 9px; font-weight: 700; color: #858c95; border-bottom: 2px solid #111; background: #fafafa;
+    display: flex; align-items: center; gap: 12px; text-transform: uppercase;
+}
+
+.count-badge {
+    background: #fef9c3;
+    color: #854d0e;
+    padding: 4px 8px;
+    font-weight: 800;
+    border: 1px solid #fde047;
+}
+
+.sq-table-container {
+    flex: 1; min-height: 0; overflow: auto;
+}
+
+.sq-table tfoot td {
+    background: #fafafa;
+    border-top: 2px solid #111;
+}
+
+.type-badge {
+    padding: 4px 8px; font-size: 9px; font-weight: 900; text-transform: uppercase; border: 1px solid transparent; display: inline-block;
+}
+.type-thu { background: #f0faf2; color: #0d8425; border-color: #89ce96; }
+.type-chi { background: #fff1f1; color: #df1720; border-color: #ff9297; }
+
+.method-badge {
+    padding: 4px 8px; font-size: 9px; font-weight: 900; text-transform: uppercase; border: 1px solid transparent; display: inline-block;
+}
+.method-cash { color: #d36b00; border-color: #ffba55; background: #fff9e9; }
+.method-transfer { color: #0067df; border-color: #70b8ff; background: #edf7ff; }
+.method-card { color: #7140c8; border-color: #bba0eb; background: #f6f1ff; }
+
+/* Active Filter Red Border & Clear Filter Button */
+.cb-filter-item input.active-filter,
+.cb-filter-item select.active-filter {
+    border: 1.5px solid #dc2626 !important;
+}
+
+.btn-clear-filter {
+    background-color: #ffffff !important;
+    border: 1px solid #d1d5db !important;
+    color: #475569 !important;
+    font-size: 9px !important;
+    font-weight: 800 !important;
+    transition: all 0.15s ease;
+}
+
+.btn-clear-filter:hover {
+    background-color: #f8fafc !important;
+    color: #0f172a !important;
+    border-color: #94a3b8 !important;
+}
+

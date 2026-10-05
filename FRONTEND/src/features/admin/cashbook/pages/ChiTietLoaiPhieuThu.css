@@ -1,0 +1,117 @@
+.ctlpt-page {
+    flex: 1; min-width: 0; overflow: auto; display: flex; flex-direction: column; background: #fff;
+    min-height: calc(100vh - 60px);
+}
+
+.ctlpt-header {
+    border-bottom: 2px solid #111;
+}
+
+.ctlpt-breadcrumb {
+    color: #9298a0; font-size: 10px; font-weight: 700; text-transform: uppercase; padding: 18px 28px 0; margin-bottom: 16px;
+}
+
+.ctlpt-header-main {
+    padding: 0 28px 24px; display: flex; justify-content: space-between; align-items: center;
+}
+
+.ctlpt-title-area {
+    display: flex; align-items: center; gap: 16px;
+}
+
+.ctlpt-badge {
+    background: #e5e7eb; color: #111; font-size: 10px; font-weight: 900; padding: 6px 12px; border: 2px solid #111;
+}
+
+.ctlpt-title-area h1 {
+    margin: 0; font-size: 20px; font-weight: 900; color: #111;
+}
+
+.ctlpt-title-area h1 span {
+    font-weight: 600; margin-left: 8px; color: #4b5563; font-size: 18px;
+}
+
+.ctlpt-btn-stop {
+    min-height: 41px; padding: 0 24px; color: #d97706; background: #fff; border: 2px solid #d97706; font-size: 11px; font-weight: 900; cursor: pointer; text-transform: uppercase;
+}
+
+.ctlpt-btn-stop:hover {
+    background: #fffbeb;
+}
+
+.ctlpt-content {
+    padding: 32px 28px; display: flex; flex-direction: column; gap: 32px; max-width: 800px;
+}
+
+.ctlpt-info-group {
+    display: flex; flex-direction: column; gap: 8px;
+}
+
+.ctlpt-info-group label {
+    font-size: 9px; font-weight: 800; color: #858c95; text-transform: uppercase;
+}
+
+.ctlpt-value {
+    font-size: 13px; color: #111;
+}
+
+.ctlpt-value strong {
+    font-weight: 900;
+}
+
+.text-gray { color: #6b7280 !important; }
+
+/* Modal overrides */
+.ctlpt-modal-box {
+    border: 1px solid #dedede; padding: 16px; display: flex; flex-direction: column; gap: 8px; background: #fafafa;
+}
+
+.ctlpt-modal-box strong {
+    font-size: 12px; font-weight: 900; color: #111;
+}
+
+.ctlpt-modal-box span {
+    font-size: 11px; color: #6b7280;
+}
+
+.ctlpt-modal-warning {
+    font-size: 10px; font-weight: 700; color: #858c95; line-height: 1.5; margin: 0; text-transform: uppercase;
+}
+
+.ctlpt-btn-confirm {
+    min-height: 41px; padding: 0 24px; background: #d97706; border: 2px solid #d97706; color: #fff; font-size: 11px; font-weight: 900; cursor: pointer; text-transform: uppercase;
+}
+
+.ctlpt-btn-confirm:hover {
+    background: #b45309; border-color: #b45309;
+}
+
+/* Reactivate Button & Success Banner Styles */
+.ctlpt-btn-reactivate {
+    min-height: 41px; padding: 0 24px; color: #0d8425; background: #fff; border: 2px solid #0d8425; font-size: 11px; font-weight: 900; cursor: pointer; text-transform: uppercase;
+}
+
+.ctlpt-btn-reactivate:hover {
+    background: #f0faf2;
+}
+
+.ctlpt-banner-success {
+    background: #f0faf2;
+    border-top: 1px solid #89ce96;
+    border-bottom: 1px solid #89ce96;
+    color: #0d8425;
+    padding: 12px 28px;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+}
+
+.btn-confirm-reactivate {
+    min-height: 41px; padding: 0 24px; background: #0d8425; border: 2px solid #0d8425; color: #fff; font-size: 11px; font-weight: 900; cursor: pointer; text-transform: uppercase;
+}
+
+.btn-confirm-reactivate:hover {
+    background: #0a6b1e; border-color: #0a6b1e;
+}
+

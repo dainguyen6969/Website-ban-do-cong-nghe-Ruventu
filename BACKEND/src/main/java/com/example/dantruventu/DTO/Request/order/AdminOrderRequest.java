@@ -111,7 +111,7 @@ public final class AdminOrderRequest {
     private String phuongThucThanhToan;
 
     @NotNull
-    @Positive
+    @DecimalMin(value = "0", inclusive = false)
     @Digits(integer = 13, fraction = 0)
     @JsonProperty("so_tien_thanh_toan")
     private BigDecimal soTienThanhToan;
@@ -126,7 +126,7 @@ public final class AdminOrderRequest {
     private String maGiaoDichThanhToan;
 
     @NotNull
-    @AssertTrue(message = "Phải xác nhận cửa hàng đã nhận tiền")
+    @AssertTrue(message = "Phải xác nhận cửa hàng đã thực nhận tiền")
     @JsonProperty("xac_nhan_da_nhan_tien")
     private Boolean xacNhanDaNhanTien;
   }

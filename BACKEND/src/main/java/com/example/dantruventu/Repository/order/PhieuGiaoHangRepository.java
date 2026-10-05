@@ -30,5 +30,7 @@ public interface PhieuGiaoHangRepository
 
   List<PhieuGiaoHang> findByDonHang_IdOrderByIdAsc(Long orderId);
 
+  List<PhieuGiaoHang> findByDonHang_IdInOrderByIdAsc(java.util.Collection<Long> donHangIds);
+
   boolean existsByMaVanDonIgnoreCaseAndIdNot(String maVanDon, Long id);
 }

@@ -9,10 +9,7 @@ public class TrangThaiCoBanConverter implements AttributeConverter<TrangThaiCoBa
 
   @Override
   public Short convertToDatabaseColumn(TrangThaiCoBanEnum attribute) {
-    if (attribute == null) {
-      return null;
-    }
-    return attribute.getValue();
+    return attribute == null ? null : attribute.getValue();
   }
 
   @Override

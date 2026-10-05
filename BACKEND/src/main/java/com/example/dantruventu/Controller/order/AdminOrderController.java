@@ -109,6 +109,23 @@ public class AdminOrderController {
     return ok("Cập nhật đóng gói thành công", orderService.packing(id, request));
   }
 
+  @PostMapping("/{id}/delivery/start")
+  @ResponseStatus(org.springframework.http.HttpStatus.GONE)
+  public ApiResponse<Void> retiredStartDelivery() {
+    return ApiResponse.<Void>builder()
+        .status(410)
+        .message(
+            "Luồng bắt đầu giao hàng trên đơn đã ngừng hỗ trợ. Cập nhật phiếu giao hàng qua API deliveries.")
+        .build();
+  }
+
+  @GetMapping("/{id}/history")
+  @PreAuthorize("hasAnyRole('ADMIN','QUAN_LY','NHAN_VIEN_BAN_HANG')")
+  public ApiResponse<java.util.List<AdminOrderResponse.History>> history(
+      @PathVariable("id") Long id) {
+    return ok("Lấy lịch sử xử lý thành công", orderService.history(id));
+  }
+
   @GetMapping("/{id}/warehouse/serial-requirements")
   public ApiResponse<AdminOrderResponse.Requirements> requirements(@PathVariable("id") Long id) {
 
@@ -139,9 +156,13 @@ public class AdminOrderController {
 
   @PostMapping("/{id}/payment/confirm")
   public ApiResponse<AdminOrderResponse.Action> payment(
-      @PathVariable("id") Long id, @Valid @RequestBody AdminOrderRequest.Payment request) {
+      @PathVariable("id") Long id,
+      @RequestHeader("Idempotency-Key") String idempotencyKey,
+      @Valid @RequestBody AdminOrderRequest.Payment request) {
 
-    return ok("Ghi nhận thanh toán thành công", orderService.confirmPayment(id, request));
+    return ok(
+        "Xác nhận thanh toán đơn hàng thành công",
+        orderService.confirmPayment(id, idempotencyKey, request));
   }
 
   @PostMapping("/{id}/cancel")
@@ -160,9 +181,12 @@ public class AdminOrderController {
 
   @PostMapping("/{id}/refund")
   public ApiResponse<AdminOrderResponse.Action> refund(
-      @PathVariable("id") Long id, @Valid @RequestBody AdminOrderRequest.Refund request) {
+      @PathVariable("id") Long id,
+      @RequestHeader("Idempotency-Key") String idempotencyKey,
+      @Valid @RequestBody AdminOrderRequest.Refund request) {
 
-    return ok("Ghi nhận hoàn tiền thành công", orderService.refund(id, request));
+    return ok(
+        "Ghi nhận hoàn tiền đơn hàng thành công", orderService.refund(id, idempotencyKey, request));
   }
 
   private <T> ApiResponse<T> ok(String message, T data) {

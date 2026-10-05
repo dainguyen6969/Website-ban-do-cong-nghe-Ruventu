@@ -19,7 +19,7 @@ const ProductSection = ({ title, subtitle, linkText, linkUrl, products, darkThem
       <div className="container">
         <div className="section-header">
           <div className="section-title-wrapper">
-            <h2 className="section-title">{title}</h2>
+            <h2 className="product-section-title">{title}</h2>
             {subtitle && <p className="section-subtitle">{subtitle}</p>}
           </div>
           {linkText && (

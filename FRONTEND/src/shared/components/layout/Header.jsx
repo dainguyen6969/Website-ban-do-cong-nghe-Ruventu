@@ -42,6 +42,7 @@ export default function Header({ notificationCount = 0, onMenuToggle, isMenuOpen
   const isCategoryList = currentPath === '/admin/danh-muc/danh-muc-san-pham';
   let currentPageName = 'ĐƠN HÀNG';
   const isCreatePromotion = currentPath === '/admin/khuyen-mai/tao-khuyen-mai';
+  const isPromoDetail = /^\/admin\/khuyen-mai\/chi-tiet-khuyen-mai\/[^/]+$/.test(currentPath);
   
   for (const [path, title] of Object.entries(routeTitleMap)) {
     if (currentPath.startsWith(path)) {
@@ -156,16 +157,22 @@ export default function Header({ notificationCount = 0, onMenuToggle, isMenuOpen
               <span className="header__breadcrumb-sep" aria-hidden="true">›</span>
               <span className="header__breadcrumb-item header__breadcrumb-item--active">QUẢN LÝ PHIÊN BẢN</span>
             </>
+          ) : isPromoDetail ? (
+            <>
+              <span className="header__breadcrumb-item header__breadcrumb-item--muted">KHUYẾN MẠI</span>
+              <span className="header__breadcrumb-sep" aria-hidden="true">›</span>
+              <span className="header__breadcrumb-item header__breadcrumb-item--active">CHI TIẾT KHUYẾN MẠI</span>
+            </>
+          ) : isCreatePromotion ? (
+            <>
+              <span className="header__breadcrumb-item header__breadcrumb-item--muted">KHUYẾN MẠI</span>
+              <span className="header__breadcrumb-sep" aria-hidden="true">›</span>
+              <span className="header__breadcrumb-item header__breadcrumb-item--active">TẠO KHUYẾN MẠI</span>
+            </>
           ) : (
             <span className="header__breadcrumb-item header__breadcrumb-item--active">
               {currentPageName}
             </span>
-          )}
-          {isCreatePromotion && (
-            <>
-              <span className="header__breadcrumb-sep" aria-hidden="true">›</span>
-              <span className="header__breadcrumb-item header__breadcrumb-item--active">TẠO KHUYẾN MẠI</span>
-            </>
           )}
         </nav>
       </div>

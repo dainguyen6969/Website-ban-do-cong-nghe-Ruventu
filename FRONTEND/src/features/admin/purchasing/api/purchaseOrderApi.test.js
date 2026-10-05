@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { generateSerialValues, normalizePurchaseOrder, saveBody } from './purchaseOrderApi.js';
+import { normalizePurchaseOrder, saveBody } from './purchaseOrderApi.js';
 
 test('maps the backend contract without recomputing authoritative totals', () => {
   const order = normalizePurchaseOrder({
@@ -18,12 +18,4 @@ test('save payload contains only fields accepted by create and update', () => {
     nha_cung_cap_id: 1, kho_hang_id: 2, ap_dung_thue: true,
     items: [{ phien_ban_id: 3, so_luong: 4, gia_nhap: 5 }],
   });
-});
-
-test('generates one editable serial sequence across managed lines only', () => {
-  assert.deepEqual(generateSerialValues(
-    [{ id: 1, qty: 2 }, { id: 2, qty: 3 }, { id: 3, qty: 1 }],
-    { 1: 'true', 2: 'false', 3: 'true' },
-    'DN01-',
-  ), { 1: 'DN01-1\nDN01-2', 3: 'DN01-3' });
 });

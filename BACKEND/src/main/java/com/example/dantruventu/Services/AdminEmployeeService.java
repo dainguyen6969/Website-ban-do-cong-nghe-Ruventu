@@ -237,6 +237,40 @@ public class AdminEmployeeService {
     return toListItemResponse(updatedEmployee);
   }
 
+  @Transactional
+  public EmployeeListItemResponse deleteEmployee(Long id) {
+
+    if (id == null || id <= 0) {
+      throw new AppException(ErrorCode.INVALID_ID, "ID không hợp lệ.");
+    }
+
+    NguoiDung employee =
+        nguoiDungRepository
+            .findByIdWithVaiTro(id)
+            .orElseThrow(
+                () ->
+                    new AppException(
+                        ErrorCode.EMPLOYEE_NOT_FOUND_OR_CUSTOMER,
+                        "Nhân viên không tồn tại hoặc ID thuộc khách hàng."));
+
+    if (isCustomerRole(employee.getVaiTro())) {
+      throw new AppException(
+          ErrorCode.EMPLOYEE_NOT_FOUND_OR_CUSTOMER,
+          "Nhân viên không tồn tại hoặc ID thuộc khách hàng.");
+    }
+
+    if (employee.getTrangThai() != TrangThaiCoBanEnum.HOAT_DONG) {
+      // Already inactive — return current state without writing to DB
+      return toListItemResponse(employee);
+    }
+
+    employee.setTrangThai(TrangThaiCoBanEnum.NGUNG_HOAT_DONG);
+    // ngay_cap_nhat is updated automatically by @UpdateTimestamp on save
+    NguoiDung saved = nguoiDungRepository.save(employee);
+
+    return toListItemResponse(saved);
+  }
+
   private boolean isCustomerRole(VaiTro vaiTro) {
     if (vaiTro == null) {
       return false;
