@@ -51,23 +51,23 @@ public class ImageUploadService {
       String url = String.valueOf(result.get("secure_url"));
       String publicId = String.valueOf(result.get("public_id"));
       if (url.isBlank() || "null".equals(url)) {
-        throw new AppException(ErrorCode.CONFLICT, "Cloudinary khong tra ve URL anh");
+        throw new AppException(ErrorCode.CONFLICT, "Cloudinary không trả về URL ảnh");
       }
       return ImageUploadResponse.builder().url(url).publicId(publicId).build();
     } catch (IOException | RuntimeException exception) {
       if (exception instanceof AppException appException) {
         throw appException;
       }
-      throw new AppException(ErrorCode.CONFLICT, "Khong the tai anh len Cloudinary");
+      throw new AppException(ErrorCode.CONFLICT, "Không thể tải ảnh lên Cloudinary");
     }
   }
 
   private void validate(MultipartFile file) {
     if (file == null || file.isEmpty() || !ALLOWED_TYPES.contains(file.getContentType())) {
-      throw new AppException(ErrorCode.INVALID_DATA, "Anh phai la tep JPG, PNG hoac WEBP");
+      throw new AppException(ErrorCode.INVALID_DATA, "Ảnh phải là tệp JPG, PNG hoac WEBP");
     }
     if (file.getSize() > MAX_FILE_SIZE) {
-      throw new AppException(ErrorCode.INVALID_DATA, "Anh khong duoc vuot qua 5 MB");
+      throw new AppException(ErrorCode.INVALID_DATA, "Ảnh không được vượt quá 5 MB");
     }
   }
 }
