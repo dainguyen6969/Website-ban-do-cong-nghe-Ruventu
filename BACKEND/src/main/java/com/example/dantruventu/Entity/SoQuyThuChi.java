@@ -65,7 +65,7 @@ public class SoQuyThuChi {
       name = "ngay_ghi_nhan",
       nullable = false,
       updatable = false,
-      columnDefinition = "TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
+      columnDefinition = "DATETIME")
   private LocalDateTime ngayGhiNhan;
 
   @ManyToOne(fetch = FetchType.LAZY)
@@ -99,7 +99,6 @@ public class SoQuyThuChi {
 
   @PrePersist
   public void prePersist() {
-
     if (ngayGhiNhan == null) {
       ngayGhiNhan = LocalDateTime.now();
     }
