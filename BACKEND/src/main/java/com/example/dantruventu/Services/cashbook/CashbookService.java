@@ -166,23 +166,44 @@ public class CashbookService {
       Class<T> responseType,
       Supplier<T> operation) {
 
-    requireWritableTransaction();
-
-    String key = requiredText(requestKey, "Khóa giao dịch", 100);
-
     if (actor == null) {
       throw new AppException(ErrorCode.UNAUTHORIZED);
     }
 
     requirePersistedId(actor.getId(), "Người thực hiện");
 
-    String requestHash = fingerprint(actor.getId(), payload);
+    return executeOnce(requestKey, actor.getId(), payload, responseType, operation);
+  }
+
+  /*
+   * actorId = 0 dành riêng cho checkout khách vãng lai.
+   *
+   * Payload của checkout guest phải chứa dấu vân tay
+   * gắn với guest_cart_id. Không nhận actorId từ HTTP request.
+   */
+  @Transactional(propagation = Propagation.MANDATORY)
+  public <T> T executeOnce(
+      String requestKey,
+      Long actorId,
+      Object payload,
+      Class<T> responseType,
+      Supplier<T> operation) {
+
+    requireWritableTransaction();
+
+    String key = requiredText(requestKey, "Khóa giao dịch", 50);
+
+    if (actorId == null || actorId < 0) {
+      throw new AppException(ErrorCode.UNAUTHORIZED);
+    }
+
+    String requestHash = fingerprint(actorId, payload);
 
     SalesIdempotencyRepository.Entry entry =
-        idempotencyRepository.acquire(key, actor.getId(), requestHash);
+        idempotencyRepository.acquire(key, actorId, requestHash);
 
     if (entry == null
-        || !Objects.equals(entry.actorId(), actor.getId())
+        || !Objects.equals(entry.actorId(), actorId)
         || !Objects.equals(entry.requestHash(), requestHash)) {
 
       throw conflict("Idempotency-Key đã được sử dụng cho một yêu cầu khác");
@@ -194,9 +215,7 @@ public class CashbookService {
 
     T result = operation.get();
 
-    String responseJson = serialize(result);
-
-    idempotencyRepository.complete(key, responseJson);
+    idempotencyRepository.complete(key, serialize(result));
 
     return result;
   }

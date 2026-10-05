@@ -8,6 +8,7 @@ import static com.example.dantruventu.Services.order.sales.SalesSupport.quantity
 import static com.example.dantruventu.Services.order.sales.SalesSupport.text;
 
 import com.example.dantruventu.Config.SalesProperties;
+import com.example.dantruventu.DTO.Request.order.AdminOrderRequest;
 import com.example.dantruventu.DTO.Request.order.AdminSalesRequest;
 import com.example.dantruventu.DTO.Request.order.CustomerCheckoutRequest;
 import com.example.dantruventu.DTO.Request.order.CustomerOrderRequest;
@@ -19,7 +20,6 @@ import com.example.dantruventu.Entity.GioHang;
 import com.example.dantruventu.Entity.NguoiDung;
 import com.example.dantruventu.Entity.SoDiaChi;
 import com.example.dantruventu.Enum.LoaiDonHang;
-import com.example.dantruventu.Enum.LoaiSanPham;
 import com.example.dantruventu.Enum.TrangThaiDonHang;
 import com.example.dantruventu.Enum.TrangThaiDongGoi;
 import com.example.dantruventu.Enum.TrangThaiThanhToanDonHang;
@@ -33,6 +33,7 @@ import com.example.dantruventu.Repository.order.DonHangRepository;
 import com.example.dantruventu.Repository.order.PhieuGiaoHangRepository;
 import com.example.dantruventu.Repository.warehouse.SoSerialSanPhamRepository;
 import com.example.dantruventu.Repository.warehouse.ThanhPhanComboRepository;
+import com.example.dantruventu.Services.cashbook.CashbookService;
 import com.example.dantruventu.Services.order.sales.SalesCalculationService;
 import com.example.dantruventu.Services.order.sales.SalesContext;
 import java.math.BigDecimal;
@@ -46,7 +47,6 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.TreeMap;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -84,6 +84,8 @@ public class CustomerOrderService {
   private final SalesContext salesContext;
   private final SalesProperties salesProperties;
   private final ObjectMapper objectMapper;
+  private final AdminOrderService adminOrderService;
+  private final CashbookService cashbookService;
 
   @Value("${ruventu.order.delivery-fee:30000}")
   private BigDecimal deliveryFee;
@@ -131,43 +133,55 @@ public class CustomerOrderService {
       String idempotencyKey,
       CustomerCheckoutRequest.Checkout request) {
 
-    String redisKey = checkoutIdempotencyKey(idempotencyKey);
-    String requestHash = checkoutRequestHash(user, guestCartId, request);
-    String pendingValue = requestHash + "\n";
+    if (idempotencyKey == null
+        || !idempotencyKey.matches(
+            "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-" + "[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$")) {
 
-    Boolean acquired =
-        redisTemplate.opsForValue().setIfAbsent(redisKey, pendingValue, IDEMPOTENCY_TTL);
+      throw invalid("Idempotency-Key phải là UUID hợp lệ");
+    }
 
-    if (!Boolean.TRUE.equals(acquired)) {
-      String existing = redisTemplate.opsForValue().get(redisKey);
+    String normalizedKey = UUID.fromString(idempotencyKey).toString();
 
-      if (existing == null || !existing.startsWith(requestHash + "\n")) {
+    /*
+     * Helper hiện có đã gắn dấu vân tay với:
+     * USER:<id> hoặc GUEST:<guest_cart_id>.
+     *
+     * Guest không có cookie hợp lệ sẽ bị từ chối tại đây.
+     */
+    String identityAndRequestHash = checkoutRequestHash(user, guestCartId, request);
+
+    /*
+     * Đọc kết quả Redis cũ để vẫn trả lại kết quả của
+     * các giao dịch đã hoàn tất trước khi đổi cơ chế.
+     *
+     * Không tạo thêm bản ghi Redis cho giao dịch mới.
+     */
+    String legacyValue = redisTemplate.opsForValue().get(checkoutIdempotencyKey(normalizedKey));
+
+    if (legacyValue != null) {
+      String expectedPrefix = identityAndRequestHash + "\n";
+
+      if (!legacyValue.startsWith(expectedPrefix)) {
         throw conflict("Idempotency-Key đã được sử dụng cho yêu cầu khác");
       }
 
-      String responseJson = existing.substring((requestHash + "\n").length());
+      String legacyResponse = legacyValue.substring(expectedPrefix.length());
 
-      if (responseJson.isBlank()) {
-        throw conflict("Yêu cầu đặt hàng đang được xử lý. Vui lòng thử lại sau");
+      if (legacyResponse.isBlank()) {
+        throw conflict("Yêu cầu checkout cũ đang chờ đối soát, " + "không tạo lại bằng khóa mới");
       }
 
-      return decodeCreatedResponse(responseJson);
+      return decodeCreatedResponse(legacyResponse);
     }
 
-    try {
-      CustomerOrderResponse.Created response = createOrder(user, guestCartId, request);
-      String completedValue = requestHash + "\n" + objectMapper.writeValueAsString(response);
+    Long actorId = user == null ? 0L : user.getId();
 
-      registerIdempotencyCompletion(redisKey, pendingValue, completedValue);
-      return response;
-
-    } catch (RuntimeException exception) {
-      deletePendingIdempotency(redisKey, pendingValue);
-      throw exception;
-    } catch (Exception exception) {
-      deletePendingIdempotency(redisKey, pendingValue);
-      throw new IllegalStateException("Không thể lưu kết quả đặt hàng", exception);
-    }
+    return cashbookService.executeOnce(
+        "CHECKOUT-" + normalizedKey,
+        actorId,
+        identityAndRequestHash,
+        CustomerOrderResponse.Created.class,
+        () -> createOrder(user, guestCartId, request));
   }
 
   private CustomerOrderResponse.Created createOrder(
@@ -223,11 +237,14 @@ public class CustomerOrderService {
                   .build()));
     }
 
-    // Đơn online chỉ giữ hàng: giảm tồn có thể bán, chưa giảm tồn thực tế.
-    for (Map.Entry<Long, Integer> requirement : plan.quantities().entrySet()) {
-      var stock = plan.stocks().get(requirement.getKey());
-      stock.setTonCoTheBan(stock.getTonCoTheBan() - requirement.getValue());
-    }
+    /*
+     * Checkout chỉ tạo đơn CHO_DUYET.
+     *
+     * Chưa giữ hàng, chưa xuất kho, chưa đổi serial
+     * và chưa tạo chứng từ thu/chi.
+     *
+     * Tồn kho được kiểm tra lại khi bắt đầu chuẩn bị hàng.
+     */
 
     if (plan.promotion() != null) {
       Integer used = plan.promotion().getSoLuongDaDung();
@@ -236,8 +253,12 @@ public class CustomerOrderService {
 
     orderRepository.flush();
 
-    removePurchasedCartItems(user, guestCartId, selectedIds);
-    clearStoredPromotion(user, guestCartId);
+    if (user != null) {
+      // Giỏ của tài khoản nằm trong MySQL, cùng transaction với đơn.
+      removePurchasedCartItems(user, guestCartId, selectedIds);
+    }
+
+    registerCartCleanupAfterCommit(user, guestCartId, cartLines);
 
     return CustomerOrderResponse.Created.builder()
         .id(order.getId())
@@ -427,31 +448,28 @@ public class CustomerOrderService {
       throw invalid("ID đơn hàng không hợp lệ");
     }
 
+    /*
+     * Khóa và xác minh quyền sở hữu trước khi gọi nghiệp vụ chung.
+     * Không nhận khach_hang_id từ request.
+     */
     DonHang order =
         orderRepository
             .findCustomerOrderForUpdate(orderId, customer.getId())
-            .orElseThrow(
-                () -> notFound("Đơn hàng không tồn tại hoặc không thuộc khách hàng hiện tại"));
+            .orElseThrow(() -> notFound("Đơn hàng không tồn tại hoặc không thuộc khách hàng"));
 
-    boolean cancellableState =
-        order.getTrangThaiDonHang() == TrangThaiDonHang.CHO_DUYET
-            || order.getTrangThaiDonHang() == TrangThaiDonHang.CHO_THANH_TOAN;
+    AdminOrderRequest.Cancel sharedRequest = new AdminOrderRequest.Cancel();
 
-    if (!cancellableState
-        || order.getTrangThaiXuatKho() != TrangThaiXuatKho.CHUA_XUAT_KHO
-        || order.getTrangThaiDongGoi() != TrangThaiDongGoi.CHUA_DONG_GOI) {
-      throw invalid("Không thể hủy đơn ở trạng thái hiện tại");
-    }
+    sharedRequest.setLyDo(request.getLyDo());
 
-    restoreReservedStock(order);
-
-    String cancelNote = "[Khách hủy] " + request.getLyDo().strip();
-    order.setGhiChu(
-        text(order.getGhiChu()) == null ? cancelNote : order.getGhiChu() + "\n" + cancelNote);
-    order.setTrangThaiDonHang(TrangThaiDonHang.HUY_HANG);
-    order.setTrangThaiDongGoi(TrangThaiDongGoi.HUY_DONG_GOI);
-
-    orderRepository.flush();
+    /*
+     * Dùng cùng quy tắc với Admin:
+     * - chỉ hủy trước xuất kho;
+     * - chỉ giải phóng lượng hàng đã giữ;
+     * - hủy phiếu giao đang CHO_GIAO;
+     * - giữ lịch sử thanh toán;
+     * - không tự hoàn tiền.
+     */
+    adminOrderService.cancel(orderId, sharedRequest);
 
     return CustomerOrderResponse.Cancelled.builder()
         .id(order.getId())
@@ -808,95 +826,11 @@ public class CustomerOrderService {
     }
   }
 
-  private void registerIdempotencyCompletion(
-      String redisKey, String pendingValue, String completedValue) {
-
-    TransactionSynchronizationManager.registerSynchronization(
-        new TransactionSynchronization() {
-          @Override
-          public void afterCommit() {
-            redisTemplate.opsForValue().set(redisKey, completedValue, IDEMPOTENCY_TTL);
-          }
-
-          @Override
-          public void afterCompletion(int status) {
-            if (status != TransactionSynchronization.STATUS_COMMITTED) {
-              deletePendingIdempotency(redisKey, pendingValue);
-            }
-          }
-        });
-  }
-
   private void deletePendingIdempotency(String redisKey, String pendingValue) {
     String current = redisTemplate.opsForValue().get(redisKey);
 
     if (pendingValue.equals(current)) {
       redisTemplate.delete(redisKey);
-    }
-  }
-
-  private void restoreReservedStock(DonHang order) {
-
-    List<ChiTietDonHang> orderLines =
-        orderLineRepository.findByDonHang_IdOrderByIdAsc(order.getId());
-
-    if (orderLines.isEmpty()) {
-      throw conflict("Đơn hàng không có chi tiết sản phẩm");
-    }
-
-    Map<Long, Integer> physicalQuantities = new TreeMap<>();
-
-    for (ChiTietDonHang line : orderLines) {
-      if (line.getSoLuong() == null || line.getSoLuong() <= 0) {
-        throw conflict("Số lượng trong chi tiết đơn hàng không hợp lệ");
-      }
-
-      var saleVariant = line.getPhienBan();
-      LoaiSanPham productType = saleVariant.getSanPham().getLoaiSanPham();
-
-      if (productType == LoaiSanPham.DON) {
-        mergeQuantity(physicalQuantities, saleVariant.getId(), line.getSoLuong());
-        continue;
-      }
-
-      if (productType != LoaiSanPham.BO_PC) {
-        throw conflict("Loại sản phẩm trong đơn hàng không được hỗ trợ");
-      }
-
-      var components =
-          comboComponentRepository.findByComboIds(List.of(saleVariant.getSanPham().getId()));
-
-      if (components.isEmpty()) {
-        throw conflict("Combo trong đơn hàng không có cấu hình thành phần");
-      }
-
-      for (var component : components) {
-        if (component.getSoLuong() == null || component.getSoLuong() <= 0) {
-          throw conflict("Số lượng thành phần combo không hợp lệ");
-        }
-
-        int componentQuantity = quantity((long) line.getSoLuong() * component.getSoLuong());
-
-        mergeQuantity(
-            physicalQuantities, component.getPhienBanThanhPhan().getId(), componentQuantity);
-      }
-    }
-
-    for (Map.Entry<Long, Integer> entry : physicalQuantities.entrySet()) {
-      var stock = calculationService.stock(salesContext.defaultWarehouseId(), entry.getKey(), true);
-
-      if (stock == null) {
-        throw conflict("Không tìm thấy tồn kho của phiên bản " + entry.getKey());
-      }
-
-      long restored = (long) stock.getTonCoTheBan() + entry.getValue();
-      long maximumAvailable = (long) stock.getTonThucTe() - stock.getHangLoi();
-
-      if (restored > maximumAvailable || restored > Integer.MAX_VALUE) {
-        throw conflict("Dữ liệu giữ hàng không nhất quán tại phiên bản " + entry.getKey());
-      }
-
-      stock.setTonCoTheBan((int) restored);
     }
   }
 
@@ -931,4 +865,61 @@ public class CustomerOrderService {
   }
 
   private record CartLine(Long variantId, Integer quantity) {}
+
+  private void registerCartCleanupAfterCommit(
+      NguoiDung user, String guestCartId, List<CartLine> purchasedLines) {
+
+    List<CartLine> snapshot = List.copyOf(purchasedLines);
+
+    TransactionSynchronizationManager.registerSynchronization(
+        new TransactionSynchronization() {
+          @Override
+          public void afterCommit() {
+            try {
+              if (user == null) {
+                String cartKey = GUEST_CART_KEY_PREFIX + guestCartId;
+
+                /*
+                 * Chỉ xóa dòng nếu số lượng chưa bị thay đổi.
+                 * Không xóa nhầm một dòng khách vừa cập nhật.
+                 */
+                String scriptText =
+                    """
+                                        for i = 1, #ARGV, 2 do
+                                          if redis.call('HGET', KEYS[1], ARGV[i]) == ARGV[i + 1] then
+                                            redis.call('HDEL', KEYS[1], ARGV[i])
+                                          end
+                                        end
+                                        return 1
+                                        """;
+
+                var script =
+                    new org.springframework.data.redis.core.script.DefaultRedisScript<>(
+                        scriptText, Long.class);
+
+                List<String> arguments = new ArrayList<>();
+
+                for (CartLine line : snapshot) {
+                  arguments.add(String.valueOf(line.variantId()));
+                  arguments.add(String.valueOf(line.quantity()));
+                }
+
+                redisTemplate.execute(script, List.of(cartKey), arguments.toArray());
+              }
+
+              clearStoredPromotion(user, guestCartId);
+
+            } catch (RuntimeException exception) {
+              /*
+               * MySQL đã commit: không báo checkout thất bại
+               * chỉ vì dọn giỏ Redis thất bại.
+               *
+               * Gửi lại cùng Idempotency-Key vẫn nhận đúng đơn cũ.
+               */
+              org.slf4j.LoggerFactory.getLogger(CustomerOrderService.class)
+                  .warn("Đơn đã tạo nhưng chưa dọn được giỏ/promotion Redis", exception);
+            }
+          }
+        });
+  }
 }

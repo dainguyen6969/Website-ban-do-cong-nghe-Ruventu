@@ -7,6 +7,7 @@ import com.example.dantruventu.Enum.NhomNguoiNopNhanEnum;
 import com.example.dantruventu.Enum.TrangThaiPhieuThuChi;
 import jakarta.persistence.LockModeType;
 import java.math.BigDecimal;
+
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -120,4 +121,6 @@ public interface SoQuyThuChiRepository
       @Param("maDonNhap") String maDonNhap,
       @Param("loaiPhieu") LoaiPhieuThuChi loaiPhieu,
       @Param("trangThai") TrangThaiPhieuThuChi trangThai);
+
+  List<SoQuyThuChi> findByMaChungTuThamChieu(String maChungTuThamChieu);
 }

@@ -3,6 +3,7 @@ package com.example.dantruventu.Services.order;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
+import com.example.dantruventu.DTO.Request.order.AdminOrderRequest;
 import com.example.dantruventu.Entity.DonHang;
 import com.example.dantruventu.Enum.*;
 import com.example.dantruventu.Error.AppException;
@@ -15,6 +16,7 @@ import com.example.dantruventu.Services.order.sales.SalesContext;
 import jakarta.persistence.EntityManager;
 import java.math.BigDecimal;
 import java.util.Optional;
+import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -35,6 +37,9 @@ class AdminOrderPaymentTest {
   @Mock EntityManager entityManager;
   @InjectMocks AdminOrderService service;
   private DonHang order;
+
+  String idempotencyKey = UUID.randomUUID().toString();
+  private AdminOrderRequest.Payment paymentRequest;
 
   @BeforeEach
   void setUp() {
@@ -57,7 +62,7 @@ class AdminOrderPaymentTest {
   @EnumSource(value = TrangThaiDonHang.class, names = "HUY_HANG", mode = EnumSource.Mode.EXCLUDE)
   void confirmationChangesOnlyPaymentStatus(TrangThaiDonHang status) {
     order.setTrangThaiDonHang(status);
-    service.confirmPayment(1L);
+    service.confirmPayment(1L, idempotencyKey, paymentRequest);
     assertEquals(TrangThaiThanhToanDonHang.DA_THANH_TOAN, order.getTrangThaiThanhToan());
     assertEquals(status, order.getTrangThaiDonHang());
     assertEquals(TrangThaiDongGoi.DANG_DONG_GOI, order.getTrangThaiDongGoi());
@@ -72,7 +77,8 @@ class AdminOrderPaymentTest {
   @Test
   void rejectsCancelledOrder() {
     order.setTrangThaiDonHang(TrangThaiDonHang.HUY_HANG);
-    assertThrows(AppException.class, () -> service.confirmPayment(1L));
+    assertThrows(
+        AppException.class, () -> service.confirmPayment(1L, idempotencyKey, paymentRequest));
     assertEquals(TrangThaiThanhToanDonHang.CHUA_THANH_TOAN, order.getTrangThaiThanhToan());
     verifyNoInteractions(cashRepository, deliveryRepository, salesService);
     verify(entityManager, never()).flush();
@@ -81,7 +87,8 @@ class AdminOrderPaymentTest {
   @Test
   void rejectsDuplicateConfirmation() {
     order.setTrangThaiThanhToan(TrangThaiThanhToanDonHang.DA_THANH_TOAN);
-    assertThrows(AppException.class, () -> service.confirmPayment(1L));
+    assertThrows(
+        AppException.class, () -> service.confirmPayment(1L, idempotencyKey, paymentRequest));
     verifyNoInteractions(cashRepository, deliveryRepository, salesService);
     verify(entityManager, never()).flush();
   }
