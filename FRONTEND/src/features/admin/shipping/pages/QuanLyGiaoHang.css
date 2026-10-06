@@ -151,3 +151,517 @@
 .delivery-return-row em { color: #d71920; font-size: 8px; font-style: normal; }
 @media (max-width: 950px) { .delivery-toolbar { grid-template-columns: 1fr 1fr; } .delivery-search { grid-column: 1 / -1; } .delivery-detail-grid { grid-template-columns: 1fr; } .delivery-detail-inner { width: calc(100% - 24px); } }
 @media (max-width: 620px) { .delivery-toolbar { grid-template-columns: 1fr; } .delivery-status-strip { align-items: flex-start; flex-direction: column; gap: 12px; } .delivery-info-grid { grid-template-columns: 1fr; } .delivery-info-grid > .wide { grid-column: auto; } .delivery-detail-head { padding: 10px 14px; align-items: flex-start; flex-direction: column; gap: 10px; } }
+
+/* Chi tiết phiếu giao hàng */
+.delivery-detail-page {
+  font-family: "Barlow", sans-serif;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.delivery-detail-page button {
+  cursor: pointer;
+}
+
+.delivery-detail-page button:disabled {
+  cursor: not-allowed;
+}
+
+.delivery-detail-page h2,
+.delivery-detail-page h3,
+.delivery-detail-page p,
+.delivery-detail-page dl,
+.delivery-detail-page dd {
+  margin: 0;
+}
+
+.delivery-detail-page .delivery-detail-head {
+  gap: 16px;
+  padding-top: 12px;
+  padding-bottom: 12px;
+}
+
+.delivery-detail-code {
+  margin-top: 5px !important;
+  font-family: "Barlow Condensed", sans-serif;
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.delivery-detail-page .delivery-detail-inner {
+  width: min(1040px, calc(100% - 40px));
+  margin: 24px auto 40px;
+}
+
+.delivery-detail-page .delivery-status-strip {
+  flex-wrap: wrap;
+  gap: 16px 28px;
+  padding: 16px 22px;
+}
+
+.delivery-detail-page .delivery-status-strip > div > span:first-child {
+  font-family: "Barlow Condensed", sans-serif;
+  font-size: 9px;
+  letter-spacing: 0.7px;
+}
+
+.delivery-detail-page .delivery-status-strip .order-state-badge,
+.delivery-detail-page .delivery-badge {
+  width: fit-content;
+  font-family: "Barlow Condensed", sans-serif;
+  font-size: 10px;
+  line-height: 1.3;
+}
+
+.delivery-detail-page .delivery-detail-grid {
+  grid-template-columns: minmax(0, 1fr) 310px;
+  gap: 20px;
+  margin-top: 20px;
+}
+
+.delivery-detail-page .delivery-panel > header {
+  min-height: 48px;
+  padding: 10px 16px;
+  flex-wrap: wrap;
+}
+
+.delivery-detail-page .delivery-panel h2,
+.delivery-detail-page .delivery-actions-panel > h2 {
+  font-family: "Barlow Condensed", sans-serif;
+  font-size: 12px;
+  letter-spacing: 0.6px;
+}
+
+.delivery-detail-page .delivery-small-btn,
+.delivery-detail-page .delivery-back {
+  font-family: "Barlow Condensed", sans-serif;
+  font-size: 10px;
+}
+
+.delivery-detail-page .delivery-lock-note {
+  font-family: "Barlow Condensed", sans-serif;
+  font-size: 9px;
+}
+
+.delivery-detail-page .delivery-info-grid {
+  gap: 20px 28px;
+  padding: 20px;
+}
+
+.delivery-detail-page .delivery-info-grid dt,
+.delivery-detail-page .delivery-side-info dt {
+  font-family: "Barlow Condensed", sans-serif;
+  font-size: 10px;
+  letter-spacing: 0.4px;
+}
+
+.delivery-detail-page .delivery-info-grid dd,
+.delivery-detail-page .delivery-side-info dd {
+  font-size: 12px;
+  overflow-wrap: anywhere;
+  white-space: pre-line;
+}
+
+.delivery-detail-page .delivery-link {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  text-align: left;
+}
+
+.delivery-detail-page .delivery-items {
+  min-width: 530px;
+}
+
+.delivery-detail-page .delivery-items th {
+  height: 35px;
+  font-family: "Barlow Condensed", sans-serif;
+  font-size: 10px;
+  letter-spacing: 0.3px;
+}
+
+.delivery-detail-page .delivery-items td {
+  padding: 14px 12px;
+  font-size: 11px;
+  vertical-align: top;
+}
+
+.delivery-detail-page .delivery-items tbody tr:nth-child(even) {
+  background: #fafafa;
+}
+
+.delivery-detail-page .delivery-items td strong,
+.delivery-detail-page .delivery-items td small {
+  display: block;
+}
+
+.delivery-detail-page .delivery-items td small {
+  margin-top: 4px;
+  color: #90969e;
+  font-size: 9px;
+}
+
+.delivery-detail-page .delivery-summary {
+  padding: 18px 20px;
+  background: #fafafa;
+}
+
+.delivery-detail-page .delivery-summary dt,
+.delivery-detail-page .delivery-summary dd {
+  font-size: 11px;
+}
+
+.delivery-detail-page .delivery-total {
+  margin-top: 6px;
+  padding-top: 15px;
+  border-top: 1px solid #d9d9d9;
+}
+
+.delivery-detail-page .delivery-total dt {
+  color: #111;
+  font-family: "Barlow Condensed", sans-serif;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.delivery-detail-page .delivery-total dd {
+  color: #f00;
+  font-family: "Barlow Condensed", sans-serif;
+  font-size: 22px;
+  font-weight: 900;
+}
+
+.delivery-detail-page .delivery-side-info {
+  gap: 20px;
+  padding: 20px;
+}
+
+.delivery-detail-page .delivery-action {
+  width: 100%;
+  min-height: 42px;
+  font-family: "Barlow Condensed", sans-serif;
+  font-size: 12px;
+  letter-spacing: 0.3px;
+}
+
+.delivery-detail-page .delivery-action:disabled {
+  opacity: 0.5;
+}
+
+.delivery-detail-page .delivery-action.waiting {
+  font-size: 10px;
+}
+
+.delivery-detail-page .delivery-terminal {
+  font-family: "Barlow Condensed", sans-serif;
+  font-size: 11px;
+}
+
+.delivery-feedback {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+  padding: 12px 14px;
+  border: 1px solid #ddd;
+  background: #fafafa;
+  font-size: 12px;
+}
+
+.delivery-feedback.is-success {
+  color: #237c32;
+  border-color: #a5d6a7;
+  background: #f0faf1;
+}
+
+.delivery-feedback.is-error {
+  color: #b71920;
+  border-color: #efb0b3;
+  background: #fff4f4;
+}
+
+.delivery-feedback button {
+  padding: 5px 10px;
+  border: 1px solid currentColor;
+  background: transparent;
+  color: inherit;
+  white-space: nowrap;
+}
+
+/* Modal giao hàng dùng OrderModal */
+.delivery-detail-page .order-modal-backdrop {
+  z-index: 6000;
+  padding: 16px;
+}
+
+.order-cancel-modal.delivery-operation-dialog {
+  width: min(540px, 100%);
+  max-height: calc(100dvh - 32px);
+  overflow: auto;
+  border: 1px solid #111;
+  border-radius: 0;
+  background: #fff;
+  box-shadow: none;
+  font-family: "Barlow", sans-serif;
+}
+
+.order-cancel-modal.delivery-return-dialog {
+  width: min(650px, 100%);
+}
+
+.delivery-operation-dialog > header {
+  height: auto;
+  min-height: 50px;
+  padding: 13px 18px;
+  justify-content: space-between;
+  gap: 12px;
+  background: #080808;
+}
+
+.delivery-operation-dialog > header h2 {
+  margin: 0;
+  font-family: "Barlow Condensed", sans-serif;
+  font-size: 14px;
+  font-weight: 900;
+  letter-spacing: 0.5px;
+}
+
+.delivery-operation-dialog > header button {
+  padding: 2px 5px;
+  border: 0;
+  background: transparent;
+  color: #bbb;
+  font-size: 25px;
+  line-height: 1;
+}
+
+.delivery-operation-dialog .order-operation-fields {
+  margin: 0;
+  padding: 20px;
+  gap: 18px;
+}
+
+.delivery-operation-dialog p {
+  margin: 0;
+}
+
+.delivery-operation-dialog .delivery-field {
+  font-family: "Barlow Condensed", sans-serif;
+  font-size: 11px;
+  letter-spacing: 0.3px;
+}
+
+.delivery-operation-dialog .delivery-field > span {
+  color: #858b93;
+}
+
+.delivery-operation-dialog .delivery-field input,
+.delivery-operation-dialog .delivery-field select,
+.delivery-operation-dialog .delivery-field textarea {
+  margin: 0;
+  min-height: 40px;
+  height: auto;
+  padding: 10px 12px;
+  border: 1px solid #d3d3d3;
+  border-radius: 0;
+  color: #111;
+  background: #fff;
+  font-family: "Barlow", sans-serif;
+  font-size: 12px;
+  font-weight: 400;
+  letter-spacing: 0;
+}
+
+.delivery-operation-dialog .delivery-field textarea {
+  min-height: 76px;
+}
+
+.delivery-operation-dialog .delivery-field small,
+.delivery-operation-dialog .delivery-return-serials p {
+  color: #858b93;
+  font-family: "Barlow", sans-serif;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.5;
+  letter-spacing: 0;
+}
+
+.delivery-operation-dialog .delivery-checkbox {
+  align-items: flex-start;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.delivery-operation-dialog .delivery-checkbox input {
+  flex-shrink: 0;
+  margin-top: 2px;
+  accent-color: #111;
+}
+
+.delivery-operation-dialog .delivery-warning {
+  padding: 12px;
+  color: #e66713;
+  border: 1px solid #ffd0ac;
+  background: #fff8f1;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.delivery-operation-dialog .delivery-cod {
+  padding: 16px;
+  background: #fafafa;
+}
+
+.delivery-operation-dialog .delivery-cod span {
+  font-family: "Barlow Condensed", sans-serif;
+  font-size: 11px;
+}
+
+.delivery-operation-dialog .delivery-cod strong {
+  font-family: "Barlow Condensed", sans-serif;
+  font-size: 22px;
+}
+
+.delivery-form-heading {
+  margin: 0;
+  color: #787e86;
+  font-family: "Barlow Condensed", sans-serif;
+  font-size: 12px;
+  letter-spacing: 0.5px;
+}
+
+.delivery-operation-dialog .delivery-return-row {
+  gap: 6px;
+  padding: 15px;
+}
+
+.delivery-operation-dialog .delivery-return-row > strong {
+  font-size: 13px;
+}
+
+.delivery-operation-dialog .delivery-return-row > small {
+  font-size: 11px;
+}
+
+.delivery-operation-dialog .delivery-return-row label {
+  font-family: "Barlow Condensed", sans-serif;
+  font-size: 10px;
+}
+
+.delivery-operation-dialog .delivery-return-row input,
+.delivery-operation-dialog .delivery-return-row select {
+  width: 100%;
+  min-height: 38px;
+  padding: 8px 10px;
+  border: 1px solid #d3d3d3;
+  background: #fff;
+  color: #111;
+  font-family: "Barlow", sans-serif;
+  font-size: 12px;
+  font-weight: 400;
+}
+
+.delivery-operation-dialog .delivery-return-row input[readonly] {
+  background: #f5f5f5;
+}
+
+.delivery-operation-dialog .delivery-return-row > .delivery-return-serials {
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+
+.delivery-operation-dialog .delivery-return-serials label {
+  grid-template-columns: minmax(0, 1fr) 145px;
+  align-items: center;
+  gap: 12px;
+  padding-top: 10px;
+  border-top: 1px solid #eee;
+}
+
+.delivery-operation-dialog .delivery-return-serials label > span {
+  overflow-wrap: anywhere;
+  font-family: monospace;
+  font-size: 11px;
+}
+
+.delivery-operation-dialog .delivery-return-row em {
+  margin-top: 5px;
+  font-family: "Barlow", sans-serif;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.delivery-operation-dialog > footer {
+  padding: 15px 20px;
+  gap: 10px;
+}
+
+.delivery-operation-dialog > footer .order-action {
+  min-height: 38px;
+  font-family: "Barlow Condensed", sans-serif;
+  font-size: 11px;
+}
+
+.delivery-operation-dialog.is-success > footer
+  .order-action--black:not(:disabled) {
+  border-color: #278534 !important;
+  background: #278534;
+}
+
+.delivery-operation-dialog.is-danger > footer
+  .order-action--black:not(:disabled) {
+  border-color: #bd1b20 !important;
+  background: #bd1b20;
+}
+
+.delivery-operation-dialog.is-return > footer
+  .order-action--black:not(:disabled) {
+  border-color: #ee6b13 !important;
+  background: #ee6b13;
+}
+
+.delivery-operation-dialog :is(input, select, textarea, button):focus-visible {
+  outline: 2px solid #111;
+  outline-offset: 2px;
+}
+
+@media (max-width: 950px) {
+  .delivery-detail-page .delivery-detail-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 620px) {
+  .delivery-detail-page .delivery-detail-inner {
+    width: calc(100% - 24px);
+    margin-top: 16px;
+  }
+
+  .delivery-detail-page .delivery-status-strip {
+    flex-direction: row;
+    gap: 16px;
+  }
+
+  .delivery-detail-page .delivery-status-strip > div {
+    min-width: 110px;
+  }
+
+  .delivery-detail-page .delivery-info-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+    padding: 16px;
+  }
+
+  .delivery-operation-dialog .order-operation-fields {
+    padding: 16px;
+  }
+
+  .delivery-operation-dialog .delivery-return-serials label {
+    grid-template-columns: 1fr;
+  }
+
+  .delivery-operation-dialog > footer {
+    flex-wrap: wrap;
+  }
+}

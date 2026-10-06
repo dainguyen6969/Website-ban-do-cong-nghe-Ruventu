@@ -296,4 +296,24 @@ public final class AdminDeliveryResponse {
     @JsonProperty("can_hoan_tien")
     private boolean canHoanTien;
   }
+
+    public record ReturnSerial(
+            @JsonProperty("so_serial_id") Long soSerialId,
+            @JsonProperty("so_serial") String soSerial) {}
+
+    public record ReturnRequirement(
+            @JsonProperty("chi_tiet_don_hang_id") Long chiTietDonHangId,
+            @JsonProperty("phien_ban_id") Long phienBanId,
+            @JsonProperty("ten_dong_don_hang") String tenDongDonHang,
+            @JsonProperty("ten_san_pham") String tenSanPham,
+            @JsonProperty("ten_phien_ban") String tenPhienBan,
+            @JsonProperty("so_luong_can_nhan") Integer soLuongCanNhan,
+            @JsonProperty("quan_ly_serial") boolean quanLySerial,
+            List<ReturnSerial> serials) {}
+
+    public record ReturnRequirements(
+            Long id,
+            @JsonProperty("kho_hang_id") Long khoHangId,
+            @JsonProperty("ten_kho") String tenKho,
+            List<ReturnRequirement> items) {}
 }

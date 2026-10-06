@@ -94,6 +94,36 @@ public class AdminDeliveryService {
         pagination);
   }
 
+    public ReturnRequirements getReturnRequirements(Long id) {
+        validateId(id);
+
+        PhieuGiaoHang delivery =
+                deliveryRepository
+                        .findById(id)
+                        .orElseThrow(() -> notFound("Phiếu giao hàng không tồn tại"));
+
+        DonHang order = delivery.getDonHang();
+
+        requireOpenOrder(order);
+        requireOnlyEffectiveDelivery(delivery);
+
+        if (delivery.getTrangThaiGiaoHang() != TrangThaiGiaoHangEnum.CHO_HOAN_HANG) {
+            throw conflict("Phiếu giao chưa ở trạng thái CHO_HOAN_HANG");
+        }
+
+        requireInTransitOrder(order);
+
+        if (order.getKhachHang() == null) {
+            throw conflict("Đơn chưa gắn khách hàng; cần gắn khách hàng trước khi lập phiếu trả");
+        }
+
+        if (returnRepository.existsByDonHang_Id(order.getId())) {
+            throw conflict("Đơn đã có phiếu trả khác, không thể hoàn toàn bộ lần nữa");
+        }
+
+        return inventoryService.getReturnRequirements(order);
+    }
+
   public Detail getDetail(Long id) {
     validateId(id);
 

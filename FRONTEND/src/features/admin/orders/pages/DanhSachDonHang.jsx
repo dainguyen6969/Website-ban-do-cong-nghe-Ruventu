@@ -339,18 +339,36 @@ export default function DanhSachDonHang() {
                       {money(order.tong_thanh_toan)}
                     </strong>
                   </td>
-                  <td>
-                    <button
-                      className="order-detail-button"
-                      type="button"
-                      onClick={() =>
-                        navigate(
-                          `/admin/don-hang/danh-sach-don-hang/${order.id}`,
-                        )
-                      }
-                    >
-                      XEM CHI TIẾT
-                    </button>
+                  <td className="order-actions-cell">
+                    <div className="order-row-actions">
+                      <button
+                        className="order-detail-button"
+                        type="button"
+                        disabled={state.loading}
+                        onClick={() =>
+                          navigate(
+                            `/admin/don-hang/danh-sach-don-hang/${order.id}`,
+                          )
+                        }
+                      >
+                        XEM CHI TIẾT
+                      </button>
+
+                      {Number(order.phieu_giao_hang_gan_nhat_id) > 0 && (
+                        <button
+                          className="order-detail-button order-shipment-button"
+                          type="button"
+                          disabled={state.loading}
+                          onClick={() =>
+                            navigate(
+                              `/admin/don-hang/quan-ly-giao-hang/${order.phieu_giao_hang_gan_nhat_id}`,
+                            )
+                          }
+                        >
+                          XEM PHIẾU GIAO
+                        </button>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}

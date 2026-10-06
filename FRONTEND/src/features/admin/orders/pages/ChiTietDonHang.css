@@ -161,3 +161,19 @@
 .order-serial-pages { display: flex; justify-content: space-between; gap: 12px; font-size: 12px; }
 .order-serial-pages button { padding: 4px 8px; border: 1px solid #ddd; }
 @media (max-width: 600px) { .order-export-product > header { flex-wrap: wrap; } .order-export-variant { align-items: start; } }
+
+.order-shipment-link {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #0068c9;
+  font: inherit;
+  font-weight: 700;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.order-delivery-description {
+  color: #555;
+  line-height: 1.5;
+}

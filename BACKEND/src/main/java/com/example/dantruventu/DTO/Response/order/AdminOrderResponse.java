@@ -56,6 +56,12 @@ public final class AdminOrderResponse {
 
     @JsonProperty("tong_thanh_toan")
     private BigDecimal tongThanhToan;
+
+      @JsonProperty("hinh_thuc_nhan_hang")
+      private String hinhThucNhanHang;
+
+      @JsonProperty("phieu_giao_hang_gan_nhat_id")
+      private Long phieuGiaoHangGanNhatId;
   }
 
   public record History(
