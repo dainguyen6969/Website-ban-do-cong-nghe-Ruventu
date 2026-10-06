@@ -40,6 +40,22 @@ public final class AdminOrderRequest {
 
   @Getter
   @Setter
+  public static class DeliveryStart extends Confirm {
+
+    @NotNull
+    @Positive
+    @JsonProperty("doi_tac_van_chuyen_id")
+    private Long doiTacVanChuyenId;
+
+    @NotNull
+    @DecimalMin("0")
+    @Digits(integer = 13, fraction = 2)
+    @JsonProperty("phi_tra_doi_tac")
+    private BigDecimal phiTraDoiTac;
+  }
+
+  @Getter
+  @Setter
   public static class Packing extends AdminSalesRequest.StrictRequest {
 
     @NotNull
@@ -111,7 +127,7 @@ public final class AdminOrderRequest {
     private String phuongThucThanhToan;
 
     @NotNull
-    @Positive
+    @DecimalMin(value = "0", inclusive = false)
     @Digits(integer = 13, fraction = 0)
     @JsonProperty("so_tien_thanh_toan")
     private BigDecimal soTienThanhToan;
@@ -126,7 +142,7 @@ public final class AdminOrderRequest {
     private String maGiaoDichThanhToan;
 
     @NotNull
-    @AssertTrue(message = "Phải xác nhận cửa hàng đã nhận tiền")
+    @AssertTrue(message = "Phải xác nhận cửa hàng đã thực nhận tiền")
     @JsonProperty("xac_nhan_da_nhan_tien")
     private Boolean xacNhanDaNhanTien;
   }

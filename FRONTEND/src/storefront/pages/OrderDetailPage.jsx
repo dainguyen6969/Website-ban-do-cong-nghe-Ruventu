@@ -1,265 +1,401 @@
-import React from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
-import Header from '../components/Header';
-import Footer from '../components/Footer';
-import { ArrowLeft, Check, HelpCircle } from 'lucide-react';
-import './OrderDetailPage.css';
+import React, { useCallback, useEffect, useRef, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 
-import productImg1 from '../assets/hero.png';
+import Header from "../components/Header";
+import Footer from "../components/Footer";
 
-const OrderDetailPage = () => {
-  const navigate = useNavigate();
+import OrderModal from "../../features/admin/orders/components/OrderModal";
+import { label, money } from "../../features/admin/orders/api/orderApi";
+
+import { orderService } from "../../shared/services/orderService";
+import {
+  errorMessage,
+  formatDateTimeVN,
+} from "../../shared/services/mutationUtils";
+
+import "./OrderDetailPage.css";
+
+const returnLabels = {
+  CHO_TIEP_NHAN: "Chờ tiếp nhận",
+  DA_NHAN_HANG: "Đã nhận hàng",
+  DA_HOAN_TIEN: "Đã hoàn tiền",
+};
+
+export default function OrderDetailPage() {
   const { id } = useParams();
-  
-  const orderId = id || 'RUV-98237';
+  const navigate = useNavigate();
 
-  // Mock data for orders
-  const ordersData = {
-    'RUV-98237': {
-      statusText: 'ĐANG GIAO HÀNG',
-      isDelivered: false,
-      date: '28/08/2026',
-      total: '38,460,000đ'
+  const [order, setOrder] = useState(null);
+  const [returns, setReturns] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [returnsError, setReturnsError] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [dialog, setDialog] = useState(null);
+
+  const busyRef = useRef(false);
+
+  const loadReturns = useCallback(
+    async (signal) => {
+      try {
+        const response = await orderService.getReturns(
+          {
+            don_hang_id: Number(id),
+            page: 0,
+            limit: 100,
+          },
+          signal,
+        );
+
+        if (signal?.aborted) return;
+
+        setReturns(response.data.data?.items || []);
+        setReturnsError("");
+      } catch (reason) {
+        if (!signal?.aborted) {
+          setReturnsError(errorMessage(reason));
+        }
+      }
     },
-    'RV-20240801-001': {
-      statusText: 'ĐÃ GIAO',
-      isDelivered: true,
-      date: '01/08/2024',
-      total: '34,990,000đ'
+    [id],
+  );
+
+  const load = useCallback(
+    async (signal) => {
+      try {
+        const response = await orderService.getOrder(id, signal);
+
+        if (signal?.aborted) return;
+
+        setOrder(response.data.data);
+        setError("");
+      } catch (reason) {
+        if (!signal?.aborted) {
+          setError(errorMessage(reason));
+        }
+      } finally {
+        if (!signal?.aborted) setLoading(false);
+      }
     },
-    'RV-20240715-002': {
-      statusText: 'ĐÃ GIAO',
-      isDelivered: true,
-      date: '15/07/2024',
-      total: '18,450,000đ'
+    [id],
+  );
+
+  useEffect(() => {
+    const controller = new AbortController();
+
+    setOrder(null);
+    setLoading(true);
+    setReturns([]);
+    setDialog(null);
+
+    load(controller.signal);
+    loadReturns(controller.signal);
+
+    return () => controller.abort();
+  }, [load, loadReturns]);
+
+  const run = async (request) => {
+    if (busyRef.current) return;
+
+    busyRef.current = true;
+    setBusy(true);
+    setError("");
+
+    try {
+      await request();
+      setDialog(null);
+
+      await Promise.all([load(), loadReturns()]);
+    } catch (reason) {
+      setError(errorMessage(reason));
+    } finally {
+      busyRef.current = false;
+      setBusy(false);
     }
   };
 
-  const currentOrder = ordersData[orderId] || ordersData['RUV-98237'];
+  const canCancel =
+    order?.loai_don_hang === "ONLINE" &&
+    order?.trang_thai_xuat_kho === "CHUA_XUAT_KHO" &&
+    ["CHO_DUYET", "CHO_THANH_TOAN", "CHO_DONG_GOI"].includes(
+      order?.trang_thai_don_hang,
+    );
+
+  const canReturn =
+    order?.trang_thai_don_hang === "HOAN_THANH" &&
+    order?.trang_thai_thanh_toan === "DA_THANH_TOAN" &&
+    order?.trang_thai_xuat_kho === "DA_XUAT_KHO";
+
+  const updateDialog = (key, value) =>
+    setDialog((current) => ({ ...current, [key]: value }));
+
+  const openReturn = () => {
+    setError("");
+
+    setDialog({
+      type: "return",
+      reason: "",
+      note: "",
+      method: "CHUYEN_KHOAN",
+      quantities: Object.fromEntries(
+        (order.san_pham || []).map((item) => [item.chi_tiet_don_hang_id, 0]),
+      ),
+    });
+  };
+
+  const submitDialog = () => {
+    if (dialog.type === "cancel") {
+      return run(() => orderService.cancelOrder(order.id, dialog.reason));
+    }
+
+    const lines = (order.san_pham || [])
+      .map((item) => ({
+        chi_tiet_don_hang_id: item.chi_tiet_don_hang_id,
+        so_luong: Number(dialog.quantities[item.chi_tiet_don_hang_id] || 0),
+      }))
+      .filter((item) => item.so_luong > 0);
+
+    if (!lines.length) return;
+
+    return run(() =>
+      orderService.requestReturn(order.id, {
+        ly_do_tra: dialog.reason.trim(),
+        hinh_thuc_hoan_tien: dialog.method,
+        ghi_chu: dialog.note.trim() || null,
+        chi_tiet_tra: lines,
+      }),
+    );
+  };
+
+  const returnQuantityValid =
+    dialog?.type !== "return" ||
+    ((order?.san_pham || []).some(
+      (item) => Number(dialog.quantities[item.chi_tiet_don_hang_id]) > 0,
+    ) &&
+      (order?.san_pham || []).every((item) => {
+        const quantity = Number(
+          dialog.quantities[item.chi_tiet_don_hang_id] || 0,
+        );
+
+        return (
+          Number.isInteger(quantity) &&
+          quantity >= 0 &&
+          quantity <= Number(item.so_luong)
+        );
+      }));
 
   return (
     <div className="order-detail-page">
       <Header />
-      
+
       <main className="order-main-content">
         <div className="container">
-          
-          {/* Top Card: Title and Timeline */}
-          <div className="order-card top-card">
-            
-            <div className="order-header-row">
-              <button className="back-btn-outline" onClick={() => navigate(-1)}>
-                <ArrowLeft size={14} /> QUAY LẠI
-              </button>
-              
-              <div className="order-title-wrapper">
-                <div className="red-vertical-line"></div>
-                <h1 className="order-title">CHI TIẾT ĐƠN HÀNG <span className="highlight">#{orderId}</span></h1>
-                <span className={`order-status-tag ${currentOrder.isDelivered ? 'success' : ''}`}>
-                  {currentOrder.statusText}
-                </span>
-              </div>
-              
-              <div className="order-date">
-                Ngày đặt: {currentOrder.date}
-              </div>
-            </div>
+          <button
+            type="button"
+            className="back-btn-outline"
+            onClick={() => navigate("/profile?tab=orders")}
+          >
+            QUAY LẠI
+          </button>
 
-            <div className="order-timeline-container">
-              <div className="horizontal-timeline">
-                
-                {/* Connecting Line Background */}
-                <div className="timeline-line"></div>
+          {loading && <p>Đang tải đơn hàng...</p>}
+          {error && <p role="alert">{error}</p>}
 
-                <div className="timeline-node done">
-                  <div className="node-icon"><Check size={14} color="#fff" /></div>
-                  <span className="node-text">ĐẶT HÀNG</span>
-                </div>
+          {!loading && !order && (
+            <button
+              type="button"
+              className="btn-outline"
+              onClick={() => navigate("/login")}
+            >
+              ĐĂNG NHẬP LẠI
+            </button>
+          )}
 
-                <div className="timeline-node done">
-                  <div className="node-icon"><Check size={14} color="#fff" /></div>
-                  <span className="node-text">CHỜ XÁC NHẬN</span>
-                </div>
+          {order && (
+            <>
+              <section className="order-card">
+                <h1>{order.ma_don_hang}</h1>
+                <p>{formatDateTimeVN(order.ngay_tao)}</p>
 
-                <div className="timeline-node done">
-                  <div className="node-icon"><Check size={14} color="#fff" /></div>
-                  <span className="node-text">ĐÓNG GÓI</span>
-                </div>
+                <p>Đơn hàng: {label(order.trang_thai_don_hang)}</p>
+                <p>Thanh toán: {label(order.trang_thai_thanh_toan)}</p>
+                <p>Đóng gói: {label(order.trang_thai_dong_goi)}</p>
+                <p>Xuất kho: {label(order.trang_thai_xuat_kho)}</p>
 
-                <div className={`timeline-node ${currentOrder.isDelivered ? 'done' : 'active'}`}>
-                  <div className="node-icon">{currentOrder.isDelivered && <Check size={14} color="#fff" />}</div>
-                  <span className={`node-text ${!currentOrder.isDelivered ? 'highlight' : ''}`}>ĐANG GIAO</span>
-                </div>
+                {canCancel && (
+                  <button
+                    type="button"
+                    className="btn-outline"
+                    disabled={busy}
+                    onClick={() => {
+                      setError("");
+                      setDialog({ type: "cancel", reason: "" });
+                    }}
+                  >
+                    HỦY ĐƠN
+                  </button>
+                )}
 
-                <div className={`timeline-node ${currentOrder.isDelivered ? 'done' : 'pending'}`}>
-                  <div className="node-icon">{currentOrder.isDelivered && <Check size={14} color="#fff" />}</div>
-                  <span className="node-text">HOÀN THÀNH</span>
-                </div>
+                {canReturn && (
+                  <button
+                    type="button"
+                    className="btn-outline"
+                    disabled={busy}
+                    onClick={openReturn}
+                  >
+                    YÊU CẦU TRẢ HÀNG
+                  </button>
+                )}
+              </section>
 
-              </div>
-            </div>
+              <section className="order-card">
+                <h2>SẢN PHẨM</h2>
 
-          </div>
-
-          {/* Bottom Grid: Products and Summaries */}
-          <div className="order-grid">
-            
-            {/* Left Column: Products */}
-            <div className="order-products-col">
-              <div className="order-card">
-                
-                <div className="card-header">
-                  <div className="red-vertical-line small"></div>
-                  <h2>SẢN PHẨM ĐẶT MUA</h2>
-                </div>
-
-                <table className="order-products-table">
+                <table style={{ width: "100%" }}>
                   <thead>
                     <tr>
-                      <th className="col-product">SẢN PHẨM</th>
-                      <th className="col-price">ĐƠN GIÁ</th>
-                      <th className="col-qty">SỐ LƯỢNG</th>
-                      <th className="col-total">THÀNH TIỀN</th>
+                      <th>Sản phẩm</th>
+                      <th>Phiên bản</th>
+                      <th>Số lượng</th>
+                      <th>Đơn giá</th>
+                      <th>Thành tiền</th>
                     </tr>
                   </thead>
                   <tbody>
-                    <tr>
-                      <td className="col-product">
-                        <div className="product-info-cell">
-                          <img src={productImg1} alt="ASUS ROG STRIX RTX 4090" className="product-img" />
-                          <div className="product-details">
-                            <h4 className="product-name">ASUS ROG STRIX RTX 4090 OC 24GB</h4>
-                            <p className="product-variant">Phiên bản: Overclock Edition</p>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="col-price">24,990,000đ</td>
-                      <td className="col-qty">1</td>
-                      <td className="col-total highlight">24,990,000đ</td>
-                    </tr>
-                    <tr>
-                      <td className="col-product">
-                        <div className="product-info-cell">
-                          <img src={productImg1} alt="Corsair Dominator" className="product-img" />
-                          <div className="product-details">
-                            <h4 className="product-name">Corsair Dominator Platinum DDR5 64GB 6400MHz</h4>
-                            <p className="product-variant">Màu sắc: Trắng / Kit: 2x32GB</p>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="col-price">6,490,000đ</td>
-                      <td className="col-qty">1</td>
-                      <td className="col-total highlight">6,490,000đ</td>
-                    </tr>
-                    <tr>
-                      <td className="col-product">
-                        <div className="product-info-cell">
-                          <img src={productImg1} alt="Samsung 990 Pro" className="product-img" />
-                          <div className="product-details">
-                            <h4 className="product-name">Samsung 990 Pro NVMe SSD PCIe 5.0</h4>
-                            <p className="product-variant">Dung lượng: 2TB</p>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="col-price">3,990,000đ</td>
-                      <td className="col-qty">2</td>
-                      <td className="col-total highlight">7,980,000đ</td>
-                    </tr>
+                    {(order.san_pham || []).map((item) => (
+                      <tr key={item.chi_tiet_don_hang_id}>
+                        <td>{item.ten_san_pham}</td>
+                        <td>{item.ten_phien_ban || "—"}</td>
+                        <td>{item.so_luong}</td>
+                        <td>{money(item.don_gia)}</td>
+                        <td>{money(item.thanh_tien)}</td>
+                      </tr>
+                    ))}
                   </tbody>
                 </table>
+              </section>
 
-                <div className="order-cancel-section">
-                  <p className="cancel-hint">Đơn hàng đang được vận chuyển — không thể hủy ở giai đoạn này.</p>
-                  <button className="btn-cancel disabled" disabled>HỦY ĐƠN HÀNG</button>
-                </div>
+              <section className="order-card">
+                <h2>NGƯỜI NHẬN</h2>
+                <p>{order.ten_nguoi_nhan}</p>
+                <p>{order.sdt_nguoi_nhan}</p>
+                <p>
+                  {order.hinh_thuc_nhan_hang === "NHAN_TAI_CUA_HANG"
+                    ? "Nhận tại cửa hàng"
+                    : order.dia_chi_giao_hang}
+                </p>
+              </section>
 
-              </div>
-            </div>
+              <section className="order-card">
+                <h2>TỔNG KẾT</h2>
+                <p>Tiền hàng: {money(order.tong_tien_hang)}</p>
+                <p>Chiết khấu: {money(order.tien_chiet_khau)}</p>
+                <p>VAT: {money(order.tong_tien_vat)}</p>
+                <p>Phí giao hàng: {money(order.phi_giao_hang)}</p>
+                <strong>Tổng thanh toán: {money(order.tong_thanh_toan)}</strong>
+              </section>
 
-            {/* Right Column: Summaries */}
-            <div className="order-summary-col">
-              
-              <div className="order-card summary-card">
-                <div className="card-header border-bottom">
-                  <h3>THÔNG TIN NGƯỜI NHẬN</h3>
-                </div>
-                <div className="summary-content">
-                  <div className="summary-row">
-                    <span className="summary-label">Họ tên</span>
-                    <span className="summary-value">Nguyễn Văn An</span>
-                  </div>
-                  <div className="summary-row">
-                    <span className="summary-label">Điện thoại</span>
-                    <span className="summary-value">0912 345 678</span>
-                  </div>
-                  <div className="summary-row">
-                    <span className="summary-label">Tỉnh/Thành phố</span>
-                    <span className="summary-value">Hà Nội</span>
-                  </div>
-                  <div className="summary-row">
-                    <span className="summary-label">Phường/Xã</span>
-                    <span className="summary-value">Cầu Giấy</span>
-                  </div>
-                  <div className="summary-row">
-                    <span className="summary-label">Địa chỉ</span>
-                    <span className="summary-value">12 Đường Xuân Thủy, KĐT Dịch Vọng</span>
-                  </div>
-                </div>
-              </div>
+              <section className="order-card">
+                <h2>YÊU CẦU TRẢ HÀNG</h2>
 
-              <div className="order-card summary-card">
-                <div className="card-header border-bottom">
-                  <h3>THANH TOÁN</h3>
-                </div>
-                <div className="summary-content">
-                  <div className="summary-row">
-                    <span className="summary-label">Phương thức</span>
-                    <span className="summary-value">Chuyển khoản QR</span>
-                  </div>
-                  <div className="summary-row">
-                    <span className="summary-label">Trạng thái</span>
-                    <span className="summary-value"><span className="status-tag-green">ĐÃ THANH TOÁN</span></span>
-                  </div>
-                </div>
-              </div>
+                {returnsError && <p role="alert">{returnsError}</p>}
 
-              <div className="order-card summary-card">
-                <div className="card-header border-bottom">
-                  <h3>CHI PHÍ ĐƠN HÀNG</h3>
-                </div>
-                <div className="summary-content">
-                  <div className="summary-row">
-                    <span className="summary-label">Tạm tính</span>
-                    <span className="summary-value">39,460,000đ</span>
-                  </div>
-                  <div className="summary-row">
-                    <span className="summary-label">Phí vận chuyển</span>
-                    <span className="summary-value">Miễn phí</span>
-                  </div>
-                  <div className="summary-row">
-                    <span className="summary-label">Giảm giá</span>
-                    <span className="summary-value highlight">-1,000,000đ</span>
-                  </div>
-                </div>
-                <div className="summary-footer">
-                  <span className="total-label">TỔNG TIỀN</span>
-                  <span className="total-value">{currentOrder.total}</span>
-                </div>
-              </div>
+                {returns.map((item) => (
+                  <p key={item.id}>
+                    {item.ma_tra_hang}
+                    {" · "}
+                    {returnLabels[item.trang_thai_tra_hang] ||
+                      item.trang_thai_tra_hang}
+                    {" · "}
+                    {money(item.tong_tien_hoan)}
+                  </p>
+                ))}
 
-            </div>
-          </div>
-
+                {!returnsError && returns.length === 0 && (
+                  <p>Chưa có yêu cầu trả hàng.</p>
+                )}
+              </section>
+            </>
+          )}
         </div>
       </main>
 
+      {dialog && (
+        <OrderModal
+          title={dialog.type === "cancel" ? "HỦY ĐƠN HÀNG" : "YÊU CẦU TRẢ HÀNG"}
+          busy={busy}
+          close={() => setDialog(null)}
+          submit={submitDialog}
+          error={error}
+          disabled={!dialog.reason.trim() || !returnQuantityValid}
+        >
+          {dialog.type === "return" && (
+            <>
+              {(order.san_pham || []).map((item) => (
+                <label
+                  className="order-operation-field"
+                  key={item.chi_tiet_don_hang_id}
+                >
+                  <span>
+                    {item.ten_san_pham} · {item.ten_phien_ban}
+                  </span>
+                  <input
+                    type="number"
+                    min="0"
+                    max={item.so_luong}
+                    step="1"
+                    value={dialog.quantities[item.chi_tiet_don_hang_id]}
+                    onChange={(event) =>
+                      updateDialog("quantities", {
+                        ...dialog.quantities,
+                        [item.chi_tiet_don_hang_id]: event.target.value,
+                      })
+                    }
+                  />
+                </label>
+              ))}
+
+              <label className="order-operation-field">
+                <span>HÌNH THỨC HOÀN TIỀN</span>
+                <select
+                  value={dialog.method}
+                  onChange={(event) =>
+                    updateDialog("method", event.target.value)
+                  }
+                >
+                  <option value="CHUYEN_KHOAN">Chuyển khoản</option>
+                  <option value="TIEN_MAT">Tiền mặt</option>
+                </select>
+              </label>
+
+              <label className="order-operation-field">
+                <span>GHI CHÚ</span>
+                <textarea
+                  value={dialog.note}
+                  onChange={(event) => updateDialog("note", event.target.value)}
+                />
+              </label>
+
+              <p>
+                Số lượng còn được trả và điều kiện trả hàng sẽ được kiểm tra khi
+                gửi yêu cầu.
+              </p>
+            </>
+          )}
+
+          <label className="order-operation-field">
+            <span>LÝ DO *</span>
+            <textarea
+              required
+              maxLength={255}
+              value={dialog.reason}
+              onChange={(event) => updateDialog("reason", event.target.value)}
+            />
+          </label>
+        </OrderModal>
+      )}
+
       <Footer />
-      
-      <div className="floating-help">
-        <HelpCircle size={24} color="#fff" />
-      </div>
     </div>
   );
-};
-
-export default OrderDetailPage;
+}

@@ -1,3 +1,4 @@
+import { label } from '../../features/admin/orders/api/orderApi.js';
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Header from '../components/Header';
@@ -6,14 +7,14 @@ import { Search, ArrowLeft, HelpCircle, ChevronLeft, ChevronRight } from 'lucide
 import './OrderLookupPage.css';
 
 const MOCK_ORDERS = [
-  { id: 'RUV-98237', status: 'ĐANG GIAO HÀNG', statusClass: 'tag-orange', name: 'RTX 4090 ROG STRIX OC, DDR5 64GB, SAMSUNG 990 PRO 2TB', date: '28/08/2026', price: '38.460.000đ', isCompleted: false },
-  { id: 'RV-20240901-003', status: 'CHỜ XÁC NHẬN', statusClass: 'tag-orange', name: 'Màn hình ASUS TUF Gaming 27 inch 165Hz', date: '01/09/2026', price: '6.590.000đ', isCompleted: false },
-  { id: 'RV-20240905-004', status: 'ĐANG XỬ LÝ', statusClass: 'tag-orange', name: 'Bàn phím cơ AKKO 3098N, Chuột Logitech G102', date: '05/09/2026', price: '2.150.000đ', isCompleted: false },
-  { id: 'RV-20240801-001', status: 'ĐÃ GIAO', statusClass: 'tag-green', name: 'RTX 4080 SUPER, 32GB DDR5', date: '01/08/2024', price: '34.990.000đ', isCompleted: true },
-  { id: 'RV-20240715-002', status: 'ĐÃ GIAO', statusClass: 'tag-green', name: 'RYZEN 9 7900X, B650 MAINBOARD', date: '15/07/2024', price: '18.450.000đ', isCompleted: true },
-  { id: 'RV-20240610-005', status: 'ĐÃ GIAO', statusClass: 'tag-green', name: 'Nguồn Corsair RM850e 850W 80 Plus Gold', date: '10/06/2024', price: '3.190.000đ', isCompleted: true },
-  { id: 'RV-20240520-006', status: 'ĐÃ HỦY', statusClass: 'tag-gray', name: 'Tản nhiệt nước AIO Deepcool LT720', date: '20/05/2024', price: '3.290.000đ', isCompleted: true },
-  { id: 'RV-20240411-007', status: 'ĐÃ GIAO', statusClass: 'tag-green', name: 'Vỏ Case NZXT H510 Flow Black', date: '11/04/2024', price: '1.990.000đ', isCompleted: true },
+  { id: 'RUV-98237', status: 'DANG_GIAO_HANG', statusClass: 'tag-orange', name: 'RTX 4090 ROG STRIX OC, DDR5 64GB, SAMSUNG 990 PRO 2TB', date: '28/08/2026', price: '38.460.000đ', isCompleted: false },
+  { id: 'RV-20240901-003', status: 'CHO_DUYET', statusClass: 'tag-orange', name: 'Màn hình ASUS TUF Gaming 27 inch 165Hz', date: '01/09/2026', price: '6.590.000đ', isCompleted: false },
+  { id: 'RV-20240905-004', status: 'CHO_DONG_GOI', statusClass: 'tag-orange', name: 'Bàn phím cơ AKKO 3098N, Chuột Logitech G102', date: '05/09/2026', price: '2.150.000đ', isCompleted: false },
+  { id: 'RV-20240801-001', status: 'HOAN_THANH', statusClass: 'tag-green', name: 'RTX 4080 SUPER, 32GB DDR5', date: '01/08/2024', price: '34.990.000đ', isCompleted: true },
+  { id: 'RV-20240715-002', status: 'HOAN_THANH', statusClass: 'tag-green', name: 'RYZEN 9 7900X, B650 MAINBOARD', date: '15/07/2024', price: '18.450.000đ', isCompleted: true },
+  { id: 'RV-20240610-005', status: 'HOAN_THANH', statusClass: 'tag-green', name: 'Nguồn Corsair RM850e 850W 80 Plus Gold', date: '10/06/2024', price: '3.190.000đ', isCompleted: true },
+  { id: 'RV-20240520-006', status: 'HUY_HANG', statusClass: 'tag-gray', name: 'Tản nhiệt nước AIO Deepcool LT720', date: '20/05/2024', price: '3.290.000đ', isCompleted: true },
+  { id: 'RV-20240411-007', status: 'HOAN_THANH', statusClass: 'tag-green', name: 'Vỏ Case NZXT H510 Flow Black', date: '11/04/2024', price: '1.990.000đ', isCompleted: true },
 ];
 
 const OrderLookupPage = () => {
@@ -115,7 +116,7 @@ const OrderLookupPage = () => {
             <div className="item-info">
               <div className="item-header">
                 <span className="item-id">{order.id}</span>
-                <span className={`item-tag ${order.statusClass}`}>{order.status}</span>
+                <span className={`item-tag ${order.statusClass}`}>{label(order.status).toLocaleUpperCase('vi')}</span>
               </div>
               <div className="item-title">{order.name}</div>
               <div className="item-meta">Ngày đặt: {order.date}</div>

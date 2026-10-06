@@ -67,21 +67,50 @@ export const previewOnlineOrder = (body, signal) => adminRequest(`${SALES_PATH}/
   method: 'POST', body: JSON.stringify(body), signal,
 });
 
-export const previewPosOrder = (order, options) => adminRequest(`${SALES_PATH}/preview`, {
-  method: 'POST',
-  body: JSON.stringify({
-    loai_don_hang: 'TAI_QUAY', khach_hang_id: order.customer?.id || null,
-    kho_hang_id: options.kho_mac_dinh_id, bang_gia: options.bang_gia[0],
-    thue: { ap_dung: order.tax, che_do_gia: order.taxMode || 'CHUA_BAO_GOM' },
-    ma_chuong_trinh: null, phi_giao_hang: 0, ghi_chu: order.note || null,
-    san_pham: lines(order.cart.map((item) => ({ ...item.product, quantity: item.quantity }))),
-  }),
+const posBody = (order, options) => ({
+  khach_hang_id: order.customer?.id || null,
+  kho_hang_id: options.kho_mac_dinh_id, bang_gia: options.bang_gia[0],
+  thue: { ap_dung: order.tax, che_do_gia: order.taxMode || 'CHUA_BAO_GOM' },
+  ma_chuong_trinh: null, phi_giao_hang: 0, ghi_chu: order.note || null,
+  san_pham: lines(order.cart.map((item) => ({ ...item.product, quantity: item.quantity }))),
 });
 
-export const createOnlineOrder = (form, confirmedTotal) => adminRequest('/api/v1/admin/orders', {
+export const previewPosOrder = (order, options) => adminRequest(`${SALES_PATH}/preview`, {
+  method: 'POST', body: JSON.stringify({ ...posBody(order, options), loai_don_hang: 'TAI_QUAY' }),
+});
+
+export function buildPosCheckoutBody(order, options, confirmedTotal, paymentDate = new Date().toISOString()) {
+  const cash = order.paymentMethod === 'cash';
+  return {
+    ...posBody(order, options), nhan_vien_id: order.employee?.id || null,
+    phan_bo_serial: order.cart.filter((line) => line.serials?.length).map((line) => ({
+      ma_dong: `d${line.product.id}`, phien_ban_id: line.product.id,
+      serial_ids: line.serials.map((serial) => serial.id),
+    })),
+    tong_thanh_toan_xac_nhan: confirmedTotal,
+    thanh_toan: {
+      phuong_thuc: { cash: 'TIEN_MAT', transfer: 'CHUYEN_KHOAN', card: 'THE' }[order.paymentMethod],
+      ...(cash ? { tien_khach_dua: order.paid } : { so_tien_da_nhan: order.paid }),
+      ngay_thanh_toan: paymentDate, ma_giao_dich: cash ? null : order.transactionCode?.trim() || null,
+      xac_nhan_da_nhan_tien: Boolean(order.paymentReceived),
+    },
+  };
+}
+
+export const checkoutPosOrder = (body, idempotencyKey) => adminRequest('/api/v1/admin/pos/checkout', {
+  method: 'POST', headers: { 'Idempotency-Key': idempotencyKey }, body: JSON.stringify(body),
+});
+
+const orderBody = (form) => {
+  const { loai_don_hang: _type, ...body } = buildPreviewBody(form);
+  return body;
+};
+
+export const createOnlineOrder = (form, confirmedTotal, idempotencyKey) => adminRequest('/api/v1/admin/orders', {
   method: 'POST',
+  ...(idempotencyKey ? { headers: { 'Idempotency-Key': idempotencyKey } } : {}),
   body: JSON.stringify({
-    ...buildPreviewBody(form), tong_thanh_toan_xac_nhan: confirmedTotal,
+    ...orderBody(form), tong_thanh_toan_xac_nhan: confirmedTotal,
     thong_tin_nguoi_nhan: {
       ten_nguoi_nhan: form.recipient.name.trim(),
       sdt_nguoi_nhan: form.recipient.phone.replace(/[\s.-]/g, ''),
@@ -96,7 +125,7 @@ export const createOnlineOrder = (form, confirmedTotal) => adminRequest('/api/v1
 export const updateOnlineOrder = (id, form, confirmedTotal) => adminRequest(`/api/v1/admin/orders/${encodeURIComponent(id)}`, {
   method: 'PUT',
   body: JSON.stringify({
-    ...buildPreviewBody({ ...form, promotion: '' }), tong_thanh_toan_xac_nhan: confirmedTotal,
+    ...orderBody({ ...form, promotion: '' }), tong_thanh_toan_xac_nhan: confirmedTotal,
     thong_tin_nguoi_nhan: { ten_nguoi_nhan: form.recipient.name.trim(), sdt_nguoi_nhan: form.recipient.phone.replace(/[\s.-]/g, ''), dia_chi_giao_hang: form.delivery === 'GIAO_HANG' ? form.recipient.address.trim() : null },
     phuong_thuc_thanh_toan: form.payment, hinh_thuc_nhan_hang: form.delivery, ghi_chu: form.note.trim() || null,
   }),

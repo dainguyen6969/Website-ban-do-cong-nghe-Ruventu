@@ -13,6 +13,15 @@ dist-ssr
 *.local
 .env
 
+# Local database backups and investigation artifacts
+/backups/
+/ORDER_DATA_PHASE1_REPORT.md
+/ORDER_DATA_REPAIR_REPORT.md
+/ORDER_ENUM_AUDIT.md
+/ORDER_WORKFLOW_BR_REPORT.md
+/POS_FIX_REPORT.md
+/PRODUCT_FORM_BOTTOM_REPORT.md
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

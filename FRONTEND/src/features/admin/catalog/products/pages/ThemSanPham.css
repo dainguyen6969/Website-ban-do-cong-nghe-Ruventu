@@ -14,6 +14,34 @@
   flex-direction: column;
 }
 
+/* The create form scrolls with the document, including its last variant row. */
+html:has(.admin-app .add-product-page--create),
+body:has(.admin-app .add-product-page--create),
+#root:has(.admin-app .add-product-page--create) {
+  height: auto;
+  overflow: visible;
+}
+
+.app-layout:has(.add-product-page--create) {
+  height: auto;
+  overflow: visible;
+}
+
+.app-layout__main:has(.add-product-page--create) {
+  overflow: visible;
+}
+
+.app-layout:has(.add-product-page--create) > .sidebar,
+.app-layout__main:has(.add-product-page--create) > .header {
+  position: sticky;
+  top: 0;
+}
+
+.add-product-page--create {
+  flex: none;
+  overflow: visible;
+}
+
 /* ── Top action bar ── */
 .add-product-topbar {
   display: flex;
@@ -616,6 +644,36 @@
 }
 
 /* ── Summary rows (Tóm tắt phiên bản) ── */
+.product-variant-summary {
+  display: grid;
+  gap: 12px;
+}
+
+.product-variant-summary__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 12px;
+}
+
+.product-variant-summary__label {
+  color: var(--color-text-muted);
+}
+
+.product-variant-summary__value {
+  color: var(--color-text-primary);
+  font-weight: 700;
+}
+
+.product-variant-summary__value--red {
+  color: var(--color-brand-red);
+}
+
+.product-variant-summary__value--green {
+  color: #10b981;
+}
+
 .summary-rows {
   display: flex;
   flex-direction: column;
@@ -648,6 +706,118 @@
 }
 
 /* ── Attribute tags ── */
+.add-product-page--create :is(#card-thuoc-tinh, #card-phien-ban, #card-tom-tat) {
+  font-family: var(--font-family-base);
+}
+
+.add-product-page--create :is(#card-thuoc-tinh, #card-phien-ban, #card-tom-tat) :is(input, button) {
+  font-family: inherit;
+}
+
+.add-product-page--create :is(#card-thuoc-tinh, #card-phien-ban) .form-card__accent {
+  width: 8px;
+  height: 8px;
+}
+
+.add-product-page--create :is(#card-thuoc-tinh, #card-phien-ban, #card-tom-tat) .form-card__header,
+.add-product-page--create .variant-table__th {
+  background: #0a0a0a;
+}
+
+.product-attribute-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  border: 1px solid #ddd;
+}
+
+.product-attribute-table th {
+  padding: 10px 12px;
+  background: #f5f5f5;
+  color: var(--color-text-muted);
+  font-size: 10px;
+  text-align: left;
+}
+
+.product-attribute-table th:first-child { width: 24%; }
+.product-attribute-table th:last-child { width: 72px; }
+
+.product-attribute-table td {
+  padding: 10px 12px;
+  border: 1px solid #eee;
+}
+
+.add-product-page--create .product-attribute-values {
+  border: 0;
+  border-bottom: 1px solid #ccc;
+  padding: 0 4px;
+}
+
+.product-attribute-delete {
+  padding: 6px 8px;
+  border: 1px solid #ccc;
+  border-radius: 0;
+  background: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.product-attribute-delete:hover {
+  color: var(--color-brand-red);
+  border-color: var(--color-brand-red);
+}
+
+.attr-open-btn {
+  margin-top: 12px;
+  padding: 8px 12px;
+  border: 2px solid var(--color-text-primary) !important;
+  border-radius: 0;
+  background: #fff;
+  color: var(--color-text-primary);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.add-product-page--create .attr-helper {
+  margin-top: 12px;
+  font-style: normal;
+  line-height: 1.5;
+}
+
+.variant-generation-summary {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+  padding: 12px;
+  border: 1px solid #ddd;
+  background: #f8f8f8;
+  font-size: 11px;
+}
+
+.variant-generation-tag {
+  color: var(--color-text-muted);
+}
+
+.variant-generation-total {
+  color: var(--color-brand-red);
+}
+
+.add-product-page--create .variant-table {
+  min-width: 680px;
+  table-layout: fixed;
+}
+
+.add-product-page--create .variant-table__th:first-child {
+  width: 26%;
+}
+
+.add-product-page--create .variant-name-field .form-input {
+  min-width: 0;
+}
+
 .attr-list {
   margin-bottom: 14px;
   display: flex;
@@ -1079,6 +1249,14 @@
 }
 
 /* ── Responsive ── */
+@media (min-width: 993px) {
+  .add-product-page--create #card-tom-tat {
+    position: sticky;
+    top: calc(var(--header-height) + 16px);
+    z-index: 1;
+  }
+}
+
 @media (max-width: 1200px) {
   .add-product-columns {
     grid-template-columns: minmax(0, 1fr) 380px;

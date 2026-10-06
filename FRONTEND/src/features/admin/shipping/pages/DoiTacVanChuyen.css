@@ -31,8 +31,8 @@
 .partner-code, .partner-name { font-weight: 900; }
 .partner-muted { color: #b6bac0; }
 .partner-type, .partner-status { min-height: 20px; padding: 2px 7px; display: inline-flex; align-items: center; border: 1px solid; font-size: 8px; font-weight: 900; white-space: nowrap; }
-.partner-type--ship_cua_hang { color: #0769ce; border-color: #78b8fb; background: #eff7ff; }
-.partner-type--ship_ca_nhan { color: #333; border-color: #c9cdd1; background: #fff; }
+.partner-type--SHIP_CUA_HANG { color: #0769ce; border-color: #78b8fb; background: #eff7ff; }
+.partner-type--SHIP_CA_NHAN { color: #333; border-color: #c9cdd1; background: #fff; }
 .partner-status--hoat_dong { color: #148029; border-color: #8bcd96; background: #effaf1; }
 .partner-status--ngung_hoat_dong { color: #d71b22; border-color: #ff969a; background: #fff1f1; }
 .partner-row-actions { display: flex; gap: 7px; }

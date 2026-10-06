@@ -31,12 +31,12 @@
 .delivery-detail-btn:hover { color: #fff; background: #111; }
 .delivery-empty { height: 100px !important; color: #999; text-align: center; }
 .delivery-badge, .delivery-readonly-badge { min-height: 20px; padding: 3px 7px; display: inline-flex; align-items: center; border: 1px solid; font-size: 7px; font-weight: 900; white-space: nowrap; }
-.delivery-badge--cho_giao { color: #696969; border-color: #999; background: #f5f5f5; }
-.delivery-badge--da_nhan_hang { color: #0866bf; border-color: #2685df; background: #eff7ff; }
-.delivery-badge--dang_giao { color: #2435b9; border-color: #374be2; background: #eff0ff; }
-.delivery-badge--giao_thanh_cong { color: #148025; border-color: #238b35; background: #eef9ef; }
-.delivery-badge--giao_that_bai_placeholder, .delivery-badge--huy_giao_hang { color: #dc151b; border-color: #ef3238; background: #fff0f0; }
-.delivery-badge--cho_hoan_hang, .delivery-badge--da_hoan_hang { color: #ef5c00; border-color: #ff7b25; background: #fff6ed; }
+.delivery-badge--CHO_GIAO { color: #696969; border-color: #999; background: #f5f5f5; }
+.delivery-badge--DA_NHAN_HANG { color: #0866bf; border-color: #2685df; background: #eff7ff; }
+.delivery-badge--DANG_GIAO { color: #2435b9; border-color: #374be2; background: #eff0ff; }
+.delivery-badge--GIAO_THANH_CONG { color: #148025; border-color: #238b35; background: #eef9ef; }
+.delivery-badge--GIAO_THAT_BAI, .delivery-badge--HUY_GIAO_HANG { color: #dc151b; border-color: #ef3238; background: #fff0f0; }
+.delivery-badge--CHO_HOAN_HANG, .delivery-badge--DA_HOAN_HANG { color: #ef5c00; border-color: #ff7b25; background: #fff6ed; }
 .delivery-readonly-badge.is-green { color: #177b26; border-color: #79ba83; background: #eff9f0; }
 .delivery-readonly-badge.is-orange { color: #eb7600; border-color: #f0a760; background: #fff8e8; }
 .delivery-readonly-badge.is-red { color: #d71920; border-color: #e3595e; background: #fff1f1; }

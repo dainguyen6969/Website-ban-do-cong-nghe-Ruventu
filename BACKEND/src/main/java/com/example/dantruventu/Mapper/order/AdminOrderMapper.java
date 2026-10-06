@@ -1,5 +1,6 @@
 package com.example.dantruventu.Mapper.order;
 
+import com.example.dantruventu.DTO.Response.cashbook.CashVoucherResponse;
 import com.example.dantruventu.DTO.Response.order.AdminOrderResponse;
 import com.example.dantruventu.DTO.Response.order.AdminSalesResponse;
 import com.example.dantruventu.Entity.DonHang;
@@ -21,7 +22,10 @@ public interface AdminOrderMapper {
 
   AdminOrderResponse.Action toAction(AdminSalesResponse.Order source);
 
-  AdminOrderResponse.CashDocument toCashDocument(SoQuyThuChi entity, @Context ZoneId zone);
+  default CashVoucherResponse toCashDocument(SoQuyThuChi entity, @Context ZoneId zone) {
+
+    return CashVoucherResponse.from(entity);
+  }
 
   default OffsetDateTime map(LocalDateTime value, @Context ZoneId zone) {
 

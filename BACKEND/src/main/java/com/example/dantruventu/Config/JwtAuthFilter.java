@@ -2,6 +2,7 @@ package com.example.dantruventu.Config;
 
 import com.example.dantruventu.Entity.NguoiDung;
 import com.example.dantruventu.Enum.TrangThaiCoBanEnum;
+import com.example.dantruventu.Error.ErrorCode;
 import com.example.dantruventu.Repository.NguoiDungRepository;
 import com.example.dantruventu.Services.JwtService;
 import jakarta.servlet.FilterChain;
@@ -42,7 +43,9 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
     if (!jwtService.isAccessTokenValid(token)) {
       writeError(
-          response, HttpServletResponse.SC_UNAUTHORIZED, "Token không hợp lệ hoặc đã hết hạn");
+          response,
+          ErrorCode.UNAUTHORIZED.getStatus().value(),
+          ErrorCode.UNAUTHORIZED.getMessage());
       return;
     }
 
@@ -51,13 +54,17 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     NguoiDung user = nguoiDungRepository.findByIdWithVaiTro(userId).orElse(null);
 
     if (user == null) {
-      writeError(response, HttpServletResponse.SC_UNAUTHORIZED, "Tài khoản không tồn tại");
+      writeError(
+          response,
+          ErrorCode.UNAUTHORIZED.getStatus().value(),
+          ErrorCode.UNAUTHORIZED.getMessage());
       return;
     }
 
     if (user.getTrangThai() != TrangThaiCoBanEnum.HOAT_DONG) {
 
-      writeError(response, HttpServletResponse.SC_FORBIDDEN, "Tài khoản đã bị khóa");
+      writeError(
+          response, ErrorCode.FORBIDDEN.getStatus().value(), ErrorCode.FORBIDDEN.getMessage());
       return;
     }
 

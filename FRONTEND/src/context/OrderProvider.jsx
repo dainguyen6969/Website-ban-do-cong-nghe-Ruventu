@@ -18,6 +18,10 @@ export default function OrderProvider({ children }) {
   const patchOrder = (orderId, patch, history) => {
     const next = ordersRef.current.map((order) => {
       if (order.id !== orderId) return order;
+      if (order.warehouse !== 'Chưa xuất kho'
+        && (patch.packing || ['Chờ đóng gói', 'Đã hủy'].includes(patch.status))) {
+        throw new Error('Đơn đã xuất hoặc hoàn kho, không thể thay đổi đóng gói hoặc hủy trực tiếp.');
+      }
       return {
         ...order,
         ...patch,
@@ -59,7 +63,7 @@ export default function OrderProvider({ children }) {
   });
 
   const completePacking = (orderId) => patchOrder(orderId, {
-    status: 'Chờ lấy hàng',
+    status: 'Chờ đóng gói',
     packing: 'Đã đóng gói',
   }, {
     title: 'HOÀN TẤT ĐÓNG GÓI',

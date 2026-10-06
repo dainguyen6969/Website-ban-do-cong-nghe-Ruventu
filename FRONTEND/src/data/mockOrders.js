@@ -9,7 +9,7 @@ export const orderStatuses = ['Chờ duyệt', 'Chờ thanh toán', 'Chờ đón
 export const orderTypeOptions = ['Tất cả', 'Online', 'Tại quầy'];
 export const paymentOptions = ['Tất cả', 'Chưa thanh toán', 'Đã thanh toán'];
 export const packingOptions = ['Tất cả', 'Chưa đóng gói', 'Đang đóng gói', 'Đã đóng gói', 'Hủy đóng gói'];
-export const warehouseOptions = ['Tất cả', 'Chưa xuất kho', 'Đã xuất kho'];
+export const warehouseOptions = ['Tất cả', 'Chưa xuất kho', 'Đã xuất kho', 'Đã hoàn kho'];
 
 const images = [pcTitan, pcViper, vga4090, keyboard, heroPc];
 const productNames = [
@@ -23,13 +23,13 @@ const totals = [25020000, 4980000, 22885000, 41020000, 66025000, 75990000, 13020
 const times = ['08:20', '09:00', '10:00', '11:32', '13:40', '14:20', '15:45', '16:00'];
 
 const statusConfig = {
-  'Chờ duyệt': { payment: 'Chưa thanh toán', packing: 'Chưa đóng gói', warehouse: 'Chưa xuất kho', delivery: 'Chưa giao' },
-  'Chờ thanh toán': { payment: 'Chưa thanh toán', packing: 'Chưa đóng gói', warehouse: 'Chưa xuất kho', delivery: 'Chưa giao' },
-  'Chờ đóng gói': { payment: 'Chưa thanh toán', packing: 'Đang đóng gói', warehouse: 'Chưa xuất kho', delivery: 'Chưa giao' },
-  'Chờ lấy hàng': { payment: 'Đã thanh toán', packing: 'Đã đóng gói', warehouse: 'Chưa xuất kho', delivery: 'Chờ lấy hàng' },
+  'Chờ duyệt': { payment: 'Chưa thanh toán', packing: 'Chưa đóng gói', warehouse: 'Chưa xuất kho', delivery: '—' },
+  'Chờ thanh toán': { payment: 'Chưa thanh toán', packing: 'Chưa đóng gói', warehouse: 'Chưa xuất kho', delivery: '—' },
+  'Chờ đóng gói': { payment: 'Chưa thanh toán', packing: 'Đang đóng gói', warehouse: 'Chưa xuất kho', delivery: '—' },
+  'Chờ lấy hàng': { payment: 'Đã thanh toán', packing: 'Đã đóng gói', warehouse: 'Đã xuất kho', delivery: 'Chờ giao' },
   'Đang giao hàng': { payment: 'Đã thanh toán', packing: 'Đã đóng gói', warehouse: 'Đã xuất kho', delivery: 'Đang giao' },
   'Đã hủy': { payment: 'Chưa thanh toán', packing: 'Hủy đóng gói', warehouse: 'Chưa xuất kho', delivery: '—' },
-  'Hoàn thành': { payment: 'Đã thanh toán', packing: 'Đã đóng gói', warehouse: 'Đã xuất kho', delivery: 'Đã giao' },
+  'Hoàn thành': { payment: 'Đã thanh toán', packing: 'Đã đóng gói', warehouse: 'Đã xuất kho', delivery: 'Giao thành công' },
 };
 
 function toDateParts(offset) {

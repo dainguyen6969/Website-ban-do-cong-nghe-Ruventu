@@ -1,6 +1,7 @@
 package com.example.dantruventu.DTO.Response.order;
 
 import com.example.dantruventu.DTO.Response.PaginationResponse;
+import com.example.dantruventu.DTO.Response.cashbook.CashVoucherResponse;
 import com.example.dantruventu.Enum.*;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -57,15 +58,15 @@ public final class AdminOrderResponse {
     private BigDecimal tongThanhToan;
   }
 
-  public record CashDocument(
-      @JsonProperty("ma_phieu") String maPhieu,
-      @JsonProperty("loai_phieu") LoaiPhieuThuChi loaiPhieu,
-      @JsonProperty("ma_chung_tu_tham_chieu") String maChungTuThamChieu,
-      @JsonProperty("so_tien") BigDecimal soTien,
-      @JsonProperty("nhom_nguoi_nop_nhan") NhomNguoiNopNhanEnum nhomNguoiNopNhan,
-      @JsonProperty("nguon_tao") NguonTaoPhieuThuChi nguonTao,
-      @JsonProperty("trang_thai") TrangThaiPhieuThuChi trangThai,
-      @JsonProperty("ngay_ghi_nhan") OffsetDateTime ngayGhiNhan) {}
+  public record History(
+      Long id,
+      @JsonProperty("hanh_dong") String hanhDong,
+      @JsonProperty("mo_ta") String moTa,
+      @JsonProperty("nguoi_thuc_hien") String nguoiThucHien,
+      @JsonProperty("ngay_thuc_hien") OffsetDateTime ngayThucHien,
+      @JsonProperty("trang_thai_don_hang") TrangThaiDonHang trangThaiDonHang,
+      @JsonProperty("trang_thai_dong_goi") TrangThaiDongGoi trangThaiDongGoi,
+      @JsonProperty("trang_thai_xuat_kho") TrangThaiXuatKho trangThaiXuatKho) {}
 
   @Getter
   @Setter
@@ -73,11 +74,11 @@ public final class AdminOrderResponse {
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
     @JsonProperty("phieu_thu")
-    private CashDocument phieuThu;
+    private CashVoucherResponse phieuThu;
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
     @JsonProperty("phieu_chi")
-    private CashDocument phieuChi;
+    private CashVoucherResponse phieuChi;
   }
 
   public record Requirement(
