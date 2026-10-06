@@ -53,6 +53,21 @@ public class AdminPurchaseOrderDetailResponse {
   @JsonProperty("so_tien_con_no")
   private BigDecimal soTienConNo;
 
+  @JsonProperty("gia_tri_hang_tra")
+  private BigDecimal giaTriHangTra;
+
+  @JsonProperty("gia_tri_sau_tra")
+  private BigDecimal giaTriSauTra;
+
+  @JsonProperty("so_tien_da_nhan_hoan")
+  private BigDecimal soTienDaNhanHoan;
+
+  @JsonProperty("so_tien_da_thanh_toan_thuan")
+  private BigDecimal soTienDaThanhToanThuan;
+
+  @JsonProperty("so_tien_ncc_con_phai_hoan")
+  private BigDecimal soTienNccConPhaiHoan;
+
   @JsonProperty("ngay_tao")
   private LocalDateTime ngayTao;
 

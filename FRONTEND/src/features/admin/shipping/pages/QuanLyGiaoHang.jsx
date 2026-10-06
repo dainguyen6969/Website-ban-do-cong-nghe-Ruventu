@@ -1,92 +1,1778 @@
-// Admin shipping screen: QuanLyGiaoHang.
-import { useEffect, useMemo, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
-import { HiOutlineArrowLeft, HiOutlineSearch, HiOutlineX } from 'react-icons/hi';
-import FilterDropdown from '../../../../shared/components/ui/FilterDropdown';
-import TablePagination from '../../../../shared/components/ui/TablePagination';
-import DetailTablePagination from '../../../../shared/components/ui/DetailTablePagination';
-import useDetailTablePagination from '../../../../hooks/useDetailTablePagination';
-import useOrders from '../../../../context/useOrders';
-import { formatMoney } from '../../../../data/mockOrders';
-import { getShippingPartners, SHIPPING_PARTNER_SYNC_SLICE } from '../../../../data/shippingPartners';
-import { DELIVERY_STATUSES, DELIVERY_SYNC_SLICE, deliveryStatusKey, deliveryStatusLabel, getDeliveries, receiveReturnedStock, updateDelivery } from '../../../../data/deliveries';
-import { subscribeToAdminSlice } from '../../../../sync/adminSync';
-import './QuanLyGiaoHang.css';
+import { useEffect, useRef, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import { HiOutlineRefresh, HiOutlineSearch } from "react-icons/hi";
 
-const LIST_ROUTE = '/admin/don-hang/quan-ly-giao-hang';
-const PARTNER_ROUTE = '/admin/khach-hang-doi-tac/doi-tac-van-chuyen';
-const PAGE_SIZE = 10;
-const STATUS_OPTIONS = ['Tất cả trạng thái', ...DELIVERY_STATUSES.map(([, label]) => label)];
-const normalize = (value = '') => value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D').toLowerCase();
-const formatDate = (value) => value ? new Intl.DateTimeFormat('vi-VN', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(value)) : '—';
-const moneyOrZero = (value) => Number(value) ? formatMoney(value) : '0đ';
+import { apiRequest } from "../../../../auth/backendAuth";
+import { dateTime, label, money } from "../../orders/api/orderApi";
+import OrderModal from "../../orders/components/OrderModal";
+import { OrderStateBadge } from "../../orders/pages/DanhSachDonHang";
+import TablePagination from "../../../../shared/components/ui/TablePagination";
+import DetailTablePagination from "../../../../shared/components/ui/DetailTablePagination";
+import useDetailTablePagination from "../../../../hooks/useDetailTablePagination";
+
+import "./QuanLyGiaoHang.css";
+
+const API = "/api/v1/admin/deliveries";
+const LIST = "/admin/don-hang/quan-ly-giao-hang";
+
+const STATUSES = [
+  "CHO_GIAO",
+  "DA_NHAN_HANG",
+  "DANG_GIAO",
+  "GIAO_THANH_CONG",
+  "GIAO_THAT_BAI",
+  "CHO_HOAN_HANG",
+  "DA_HOAN_HANG",
+  "HUY_GIAO_HANG",
+];
 
 export default function QuanLyGiaoHang() {
   const { deliveryId } = useParams();
+
+  return deliveryId ? (
+    <ShipmentDetail key={deliveryId} id={deliveryId} />
+  ) : (
+    <ShipmentList />
+  );
+}
+
+function ShipmentList() {
   const navigate = useNavigate();
-  const { orders, patchOrder } = useOrders();
-  const [deliveries, setDeliveries] = useState(() => getDeliveries());
-  const [partners, setPartners] = useState(() => getShippingPartners());
+  const PAGE_SIZE = 20;
 
-  useEffect(() => subscribeToAdminSlice(DELIVERY_SYNC_SLICE, () => setDeliveries(getDeliveries())), []);
-  useEffect(() => subscribeToAdminSlice(SHIPPING_PARTNER_SYNC_SLICE, () => setPartners(getShippingPartners())), []);
+  const [keyword, setKeyword] = useState("");
+  const [status, setStatus] = useState("");
+  const [partnerId, setPartnerId] = useState("");
+  const [page, setPage] = useState(1);
+  const [revision, setRevision] = useState(0);
 
-  const records = useMemo(() => deliveries.map((delivery) => ({ ...delivery, order: orders.find((order) => order.id === delivery.maDonHang), partner: partners.find((partner) => partner.id === delivery.doiTacId) })), [deliveries, orders, partners]);
-  const persist = (id, changes, action) => {
-    const updated = updateDelivery(id, changes, action);
-    setDeliveries(getDeliveries());
-    if (changes.trangThaiGiao) {
-      const source = records.find((item) => item.id === id);
-      patchOrder(source?.maDonHang, { delivery: deliveryStatusLabel(changes.trangThaiGiao) }, { title: 'CẬP NHẬT GIAO HÀNG', description: `Phiếu ${id}: ${deliveryStatusLabel(changes.trangThaiGiao)}`, tone: changes.trangThaiGiao === 'GIAO_THANH_CONG' ? 'green' : 'black' });
+  const [partners, setPartners] = useState({
+    loading: true,
+    error: "",
+    items: [],
+  });
+
+  const [state, setState] = useState({
+    loading: true,
+    error: "",
+    items: [],
+    pagination: null,
+    counts: null,
+  });
+
+  useEffect(() => {
+    const controller = new AbortController();
+
+    setPartners((current) => ({
+      ...current,
+      loading: true,
+      error: "",
+    }));
+
+    async function loadPartners() {
+      const items = [];
+      let nextPage = 0;
+      let totalPages = 1;
+
+      // Lấy cả đối tác ngừng hoạt động để lọc lịch sử giao hàng.
+      while (nextPage < totalPages) {
+        const data = await apiRequest(
+          `/api/v1/admin/shipping-partners?page=${nextPage}&limit=100`,
+          { signal: controller.signal },
+        );
+
+        if (controller.signal.aborted) return;
+
+        items.push(...(data?.items || []));
+
+        totalPages = Math.max(1, Number(data?.pagination?.total_pages) || 1);
+
+        nextPage += 1;
+      }
+
+      if (controller.signal.aborted) return;
+
+      setPartners({
+        loading: false,
+        error: "",
+        items,
+      });
     }
-    return updated;
+
+    loadPartners().catch((error) => {
+      if (controller.signal.aborted) return;
+
+      setPartners((current) => ({
+        ...current,
+        loading: false,
+        error: error.message || "Không tải được danh sách đối tác.",
+      }));
+    });
+
+    return () => controller.abort();
+  }, [revision]);
+
+  useEffect(() => {
+    const controller = new AbortController();
+
+    setState((current) => ({
+      ...current,
+      loading: true,
+      error: "",
+    }));
+
+    const timer = setTimeout(async () => {
+      const params = new URLSearchParams({
+        page: String(page - 1),
+        limit: String(PAGE_SIZE),
+      });
+
+      if (keyword.trim()) {
+        params.set("keyword", keyword.trim());
+      }
+
+      if (status) {
+        params.set("trang_thai_giao_hang", status);
+      }
+
+      if (partnerId) {
+        params.set("doi_tac_van_chuyen_id", partnerId);
+      }
+
+      try {
+        const data = await apiRequest(`${API}?${params}`, {
+          signal: controller.signal,
+        });
+
+        if (controller.signal.aborted) return;
+
+        const lastPage = Math.max(
+          1,
+          Number(data?.pagination?.total_pages) || 1,
+        );
+
+        if (page > lastPage) {
+          setPage(lastPage);
+          return;
+        }
+
+        setState({
+          loading: false,
+          error: "",
+          items: data?.items || [],
+          pagination: data?.pagination || null,
+          counts: data?.thong_ke_trang_thai || null,
+        });
+      } catch (error) {
+        if (controller.signal.aborted) return;
+
+        setState({
+          loading: false,
+          error: error.message || "Không tải được phiếu giao hàng.",
+          items: [],
+          pagination: null,
+          counts: null,
+        });
+      }
+    }, 250);
+
+    return () => {
+      clearTimeout(timer);
+      controller.abort();
+    };
+  }, [keyword, status, partnerId, page, revision]);
+
+  const total = Number(state.pagination?.total_elements) || 0;
+
+  const reload = () => {
+    setRevision((current) => current + 1);
   };
-  if (deliveryId) return <DeliveryDetail record={records.find((item) => item.id === deliveryId)} partners={partners} navigate={navigate} persist={persist} />;
-  return <DeliveryList records={records} navigate={navigate} />;
+
+  return (
+    <section
+      className="delivery-page delivery-list-page"
+      aria-label="Quản lý giao hàng"
+      aria-busy={state.loading}
+    >
+      <div className="delivery-toolbar">
+        <label className="delivery-search">
+          <HiOutlineSearch size={16} aria-hidden="true" />
+
+          <input
+            type="search"
+            maxLength={100}
+            aria-label="Tìm phiếu giao hàng"
+            placeholder="Tìm mã phiếu / mã vận đơn / mã đơn / tên hoặc SĐT người nhận..."
+            value={keyword}
+            onChange={(event) => {
+              setKeyword(event.target.value);
+              setPage(1);
+            }}
+          />
+        </label>
+
+        <select
+          className="delivery-list-select"
+          aria-label="Trạng thái giao hàng"
+          value={status}
+          onChange={(event) => {
+            setStatus(event.target.value);
+            setPage(1);
+          }}
+        >
+          <option value="">Tất cả trạng thái</option>
+
+          {STATUSES.map((value) => (
+            <option key={value} value={value}>
+              {label(value)}
+            </option>
+          ))}
+        </select>
+
+        <select
+          className="delivery-list-select"
+          aria-label="Đối tác vận chuyển"
+          value={partnerId}
+          disabled={partners.loading}
+          onChange={(event) => {
+            setPartnerId(event.target.value);
+            setPage(1);
+          }}
+        >
+          <option value="">
+            {partners.loading ? "Đang tải đối tác..." : "Tất cả đối tác"}
+          </option>
+
+          {partners.items.map((partner) => (
+            <option key={partner.id} value={String(partner.id)}>
+              {partner.ten_doi_tac}
+              {Number(partner.trang_thai) === 0 ? " (Ngừng hoạt động)" : ""}
+            </option>
+          ))}
+        </select>
+
+        <span className="delivery-count" aria-live="polite">
+          {state.loading || state.error ? "—" : total} PHIẾU
+        </span>
+
+        <button
+          type="button"
+          className="delivery-list-refresh"
+          aria-label="Tải lại danh sách giao hàng"
+          title="Tải lại"
+          disabled={state.loading || partners.loading}
+          onClick={reload}
+        >
+          <HiOutlineRefresh size={16} aria-hidden="true" />
+        </button>
+      </div>
+
+      {partners.error && (
+        <p className="delivery-list-error" role="alert">
+          Không tải được bộ lọc đối tác: {partners.error}
+        </p>
+      )}
+
+      {state.error && (
+        <p className="delivery-list-error" role="alert">
+          {state.error}
+        </p>
+      )}
+
+      <div className="delivery-table-scroll">
+        <table
+          className="delivery-table"
+          aria-label="Danh sách phiếu giao hàng"
+        >
+          <colgroup>
+            {Array.from({ length: 13 }, (_, index) => (
+              <col key={index} />
+            ))}
+          </colgroup>
+
+          <thead>
+            <tr>
+              <th>MÃ PHIẾU</th>
+              <th>MÃ VẬN ĐƠN</th>
+              <th>MÃ ĐƠN HÀNG</th>
+              <th>ĐÓNG GÓI</th>
+              <th>TRẠNG THÁI GIAO</th>
+              <th>ĐỐI TÁC</th>
+              <th>COD</th>
+              <th>PHÍ ĐỐI TÁC</th>
+              <th>NGƯỜI NHẬN</th>
+              <th>SĐT</th>
+              <th>ĐỊA CHỈ</th>
+              <th>CẬP NHẬT</th>
+              <th>THAO TÁC</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            {state.loading ? (
+              <tr>
+                <td colSpan={13} className="delivery-list-empty">
+                  Đang tải phiếu giao hàng...
+                </td>
+              </tr>
+            ) : state.error ? (
+              <tr>
+                <td colSpan={13} className="delivery-list-empty">
+                  Không thể tải danh sách. Nhấn nút tải lại để thử lại.
+                </td>
+              </tr>
+            ) : state.items.length === 0 ? (
+              <tr>
+                <td colSpan={13} className="delivery-list-empty">
+                  Không tìm thấy phiếu giao hàng phù hợp.
+                </td>
+              </tr>
+            ) : (
+              state.items.map((item) => {
+                const partner = item.doi_tac_van_chuyen;
+                const cod = Number(item.tien_thu_ho_cod) || 0;
+
+                return (
+                  <tr key={item.id}>
+                    <td>
+                      <strong
+                        className="delivery-list-code delivery-list-ellipsis"
+                        title={item.ma_phieu_giao_hang}
+                      >
+                        {item.ma_phieu_giao_hang}
+                      </strong>
+                    </td>
+
+                    <td>
+                      <span
+                        className="delivery-list-code delivery-list-ellipsis"
+                        title={item.ma_van_don || ""}
+                      >
+                        {item.ma_van_don || "—"}
+                      </span>
+                    </td>
+
+                    <td>
+                      <button
+                        type="button"
+                        className="delivery-link delivery-list-ellipsis"
+                        title={item.ma_don_hang}
+                        onClick={() =>
+                          navigate(
+                            `/admin/don-hang/danh-sach-don-hang/${item.don_hang_id}`,
+                          )
+                        }
+                      >
+                        {item.ma_don_hang}
+                      </button>
+                    </td>
+
+                    <td>
+                      <OrderStateBadge value={item.trang_thai_dong_goi} />
+                    </td>
+
+                    <td>
+                      <ShipmentBadge value={item.trang_thai_giao_hang} />
+                    </td>
+
+                    <td>
+                      {partner?.id ? (
+                        <button
+                          type="button"
+                          className="delivery-partner-link"
+                          title={partner.ten_doi_tac}
+                          onClick={() =>
+                            navigate(
+                              "/admin/khach-hang-doi-tac/doi-tac-van-chuyen",
+                              {
+                                state: {
+                                  partnerId: Number(partner.id),
+                                },
+                              },
+                            )
+                          }
+                        >
+                          <b className="delivery-list-ellipsis">
+                            {partner.ten_doi_tac}
+                          </b>
+                          <small>{partner.ma_doi_tac}</small>
+                        </button>
+                      ) : (
+                        <span className="delivery-muted">—</span>
+                      )}
+                    </td>
+
+                    <td>
+                      {cod > 0 ? (
+                        <strong className="delivery-money-red">
+                          {money(cod)}
+                        </strong>
+                      ) : (
+                        <span className="delivery-muted">Không thu</span>
+                      )}
+                    </td>
+
+                    <td>
+                      <strong className="delivery-money">
+                        {money(item.phi_tra_doi_tac ?? 0)}
+                      </strong>
+                    </td>
+
+                    <td>
+                      <span
+                        className="delivery-list-ellipsis"
+                        title={item.ten_nguoi_nhan || ""}
+                      >
+                        {item.ten_nguoi_nhan || "—"}
+                      </span>
+                    </td>
+
+                    <td className="delivery-list-phone">
+                      {item.sdt_nguoi_nhan || "—"}
+                    </td>
+
+                    <td>
+                      <span
+                        className="delivery-list-address delivery-list-ellipsis"
+                        title={item.dia_chi_giao_hang || ""}
+                      >
+                        {item.dia_chi_giao_hang || "—"}
+                      </span>
+                    </td>
+
+                    <td className="delivery-list-updated">
+                      {dateTime(item.ngay_cap_nhat || item.ngay_tao)}
+                    </td>
+
+                    <td>
+                      <button
+                        type="button"
+                        className="delivery-detail-btn"
+                        onClick={() =>
+                          navigate(`${LIST}/${encodeURIComponent(item.id)}`)
+                        }
+                      >
+                        XEM CHI TIẾT
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      <footer className="delivery-list-footer">
+        <div
+          className="delivery-status-counts"
+          role="group"
+          aria-label="Số lượng phiếu theo trạng thái"
+        >
+          {STATUSES.map((value) => (
+            <button
+              key={value}
+              type="button"
+              className={[
+                "delivery-status-count",
+                `delivery-status--${value}`,
+                status === value ? "is-selected" : "",
+              ]
+                .filter(Boolean)
+                .join(" ")}
+              aria-pressed={status === value}
+              disabled={state.loading}
+              onClick={() => {
+                setStatus((current) => (current === value ? "" : value));
+                setPage(1);
+              }}
+            >
+              <span>{label(value)}</span>
+
+              <strong>
+                {state.loading ? "—" : (state.counts?.[value] ?? "—")}
+              </strong>
+            </button>
+          ))}
+        </div>
+
+        <fieldset
+          className="delivery-list-pagination"
+          aria-label="Phân trang phiếu giao hàng"
+          disabled={state.loading || Boolean(state.error)}
+        >
+          <TablePagination
+            currentPage={page}
+            pageSize={PAGE_SIZE}
+            totalItems={total}
+            onPageChange={setPage}
+            idPrefix="deliveries"
+            showSummary={false}
+          />
+        </fieldset>
+      </footer>
+    </section>
+  );
 }
 
-function DeliveryList({ records, navigate }) {
-  const [query, setQuery] = useState(''); const [status, setStatus] = useState(STATUS_OPTIONS[0]); const [partnerName, setPartnerName] = useState('Tất cả đối tác'); const [page, setPage] = useState(1);
-  const partnerOptions = useMemo(() => ['Tất cả đối tác', ...Array.from(new Set(records.map((record) => record.partner?.tenDoiTac).filter(Boolean)))], [records]);
-  const filtered = useMemo(() => records.filter((record) => {
-    const term = normalize(query.trim()); const haystack = [record.id, record.maVanDon, record.maDonHang, record.order?.recipient?.name, record.order?.recipient?.phone];
-    return (!term || haystack.some((value) => normalize(value || '').includes(term))) && (status === STATUS_OPTIONS[0] || record.trangThaiGiao === deliveryStatusKey(status)) && (partnerName === 'Tất cả đối tác' || record.partner?.tenDoiTac === partnerName);
-  }), [records, query, status, partnerName]);
-  const safePage = Math.min(page, Math.max(1, Math.ceil(filtered.length / PAGE_SIZE)));
-  const visible = filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
-  const counts = DELIVERY_STATUSES.map(([key, label]) => [key, label, filtered.filter((item) => item.trangThaiGiao === key).length]);
-  return <section className="delivery-page delivery-list-page">
-    <header className="delivery-page-head"><div><nav>ADMIN <span>/</span> <strong>GIAO HÀNG</strong></nav><h1>GIAO HÀNG</h1></div></header>
-    <div className="delivery-toolbar"><label className="delivery-search"><HiOutlineSearch /><input value={query} onChange={(event) => { setQuery(event.target.value); setPage(1); }} placeholder="Tìm mã phiếu / mã vận đơn / mã đơn / tên hoặc SĐT người nhận..." /></label><FilterDropdown className="delivery-filter" options={STATUS_OPTIONS} value={status} onSelect={(value) => { setStatus(value); setPage(1); }} /><FilterDropdown className="delivery-filter" options={partnerOptions} value={partnerName} onSelect={(value) => { setPartnerName(value); setPage(1); }} /><strong className="delivery-count">{filtered.length} PHIẾU</strong></div>
-    <div className="delivery-table-scroll"><table className="delivery-table"><thead><tr><th>MÃ PHIẾU</th><th>MÃ VẬN ĐƠN</th><th>MÃ ĐƠN HÀNG</th><th>ĐÓNG GÓI</th><th>TRẠNG THÁI GIAO</th><th>ĐỐI TÁC</th><th>COD</th><th>PHÍ ĐỐI TÁC</th><th>NGƯỜI NHẬN</th><th>SĐT</th><th>ĐỊA CHỈ</th><th>CẬP NHẬT</th><th>THAO TÁC</th></tr></thead><tbody>{visible.map((record) => <tr key={record.id}><td><b>{record.id}</b></td><td className={!record.maVanDon ? 'delivery-muted' : ''}>{record.maVanDon || '—'}</td><td><button className="delivery-link" onClick={() => navigate(`/admin/don-hang/danh-sach-don-hang/${record.maDonHang}`)}>{record.maDonHang}</button></td><td><ReadOnlyBadge value={record.order?.packing || '—'} /></td><td><DeliveryBadge status={record.trangThaiGiao} /></td><td><button className="delivery-partner-link" onClick={() => navigate(PARTNER_ROUTE, { state: { partnerId: record.doiTacId } })}><b>{record.partner?.tenDoiTac || '—'}</b><small>{record.doiTacId}</small></button></td><td className={record.cod ? 'delivery-money-red' : 'delivery-muted'}>{record.cod ? formatMoney(record.cod) : 'Không thu'}</td><td className="delivery-money">{moneyOrZero(record.phiDoiTac)}</td><td>{record.order?.recipient?.name || '—'}</td><td>{record.order?.recipient?.phone || '—'}</td><td className="delivery-address">{record.order?.recipient?.address || '—'}</td><td>{formatDate(record.updatedAt)}</td><td><button className="delivery-detail-btn" onClick={() => navigate(`${LIST_ROUTE}/${record.id}`)}>XEM CHI TIẾT</button></td></tr>)}{!visible.length && <tr><td colSpan="13" className="delivery-empty">Không tìm thấy phiếu giao hàng phù hợp.</td></tr>}</tbody></table></div>
-    <footer className="delivery-list-footer"><div className="delivery-status-counts">{counts.map(([key, label, count]) => <span key={key}>{label.toLocaleUpperCase('vi')} <b>{count}</b></span>)}</div><TablePagination totalItems={filtered.length} pageSize={PAGE_SIZE} currentPage={safePage} onPageChange={setPage} idPrefix="delivery" showSummary={false} /></footer>
-  </section>;
+function ShipmentDetail({ id }) {
+  const navigate = useNavigate();
+  const operationBusy = useRef(false);
+  const mounted = useRef(true);
+
+  const [delivery, setDelivery] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
+  const [operationError, setOperationError] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [modal, setModal] = useState("");
+  const [notice, setNotice] = useState("");
+  const [returnDocument, setReturnDocument] = useState(null);
+  const [revision, setRevision] = useState(0);
+
+  const products = delivery?.san_pham || [];
+  const productPages = useDetailTablePagination(products);
+
+  useEffect(() => {
+    mounted.current = true;
+
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    const controller = new AbortController();
+
+    setLoading(true);
+    setLoadError("");
+
+    apiRequest(`${API}/${encodeURIComponent(id)}`, {
+      signal: controller.signal,
+    })
+      .then((data) => {
+        if (controller.signal.aborted) return;
+
+        if (!data?.id) {
+          throw new Error("Không nhận được dữ liệu phiếu giao hàng.");
+        }
+
+        setDelivery(data);
+      })
+      .catch((error) => {
+        if (!controller.signal.aborted) {
+          setLoadError(error.message || "Không tải được phiếu giao hàng.");
+        }
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) {
+          setLoading(false);
+        }
+      });
+
+    return () => controller.abort();
+  }, [id, revision]);
+
+  const open = (kind) => {
+    if (operationBusy.current || loading) return;
+
+    setOperationError("");
+    setNotice("");
+    setModal(kind);
+  };
+
+  const close = () => {
+    if (!operationBusy.current) {
+      setModal("");
+      setOperationError("");
+    }
+  };
+
+  const save = async (method, suffix, body, message) => {
+    if (operationBusy.current) return;
+
+    operationBusy.current = true;
+    setBusy(true);
+    setOperationError("");
+
+    try {
+      const path = `${API}/${encodeURIComponent(id)}${
+        suffix ? `/${suffix}` : ""
+      }`;
+
+      const result = await apiRequest(path, {
+        method,
+        body: JSON.stringify(body),
+      });
+
+      if (!mounted.current) return;
+
+      // Action chỉ trả một phần dữ liệu; giữ lại sản phẩm và người nhận.
+      setDelivery((current) => ({ ...current, ...result }));
+
+      if (result?.phieu_tra_hang) {
+        setReturnDocument(result.phieu_tra_hang);
+      }
+
+      setNotice(message);
+      setModal("");
+      setRevision((value) => value + 1);
+    } catch (error) {
+      if (mounted.current) {
+        setOperationError(error.message || "Không thực hiện được thao tác.");
+      }
+    } finally {
+      operationBusy.current = false;
+
+      if (mounted.current) {
+        setBusy(false);
+      }
+    }
+  };
+
+  if (!delivery) {
+    return (
+      <section className="delivery-page delivery-detail-page">
+        <div className="delivery-not-found">
+          <p role={loadError ? "alert" : "status"}>
+            {loadError || "Đang tải phiếu giao hàng..."}
+          </p>
+
+          {loadError && (
+            <button
+              type="button"
+              onClick={() => setRevision((value) => value + 1)}
+            >
+              THỬ LẠI
+            </button>
+          )}
+
+          <button type="button" onClick={() => navigate(LIST)}>
+            QUAY LẠI DANH SÁCH
+          </button>
+        </div>
+      </section>
+    );
+  }
+
+  const order = delivery.don_hang || {};
+  const recipient = delivery.nguoi_nhan || {};
+  const partner = delivery.doi_tac_van_chuyen || {};
+  const totals = delivery.tong_tien || {};
+  const status = delivery.trang_thai_giao_hang;
+  const locked = busy || loading;
+
+  const openOrder =
+    order.loai_don_hang === "ONLINE" &&
+    !["HUY_HANG", "HOAN_THANH"].includes(order.trang_thai_don_hang) &&
+    order.trang_thai_xuat_kho !== "DA_HOAN_KHO";
+
+  const packedAndExported =
+    order.trang_thai_dong_goi === "DA_DONG_GOI" &&
+    order.trang_thai_xuat_kho === "DA_XUAT_KHO";
+
+  const inTransit =
+    openOrder &&
+    packedAndExported &&
+    order.trang_thai_don_hang === "DANG_GIAO_HANG";
+
+  const canHandoff =
+    status === "CHO_GIAO" &&
+    openOrder &&
+    packedAndExported &&
+    order.trang_thai_don_hang === "CHO_LAY_HANG";
+
+  const canCancel =
+    status === "CHO_GIAO" &&
+    openOrder &&
+    order.trang_thai_don_hang === "CHO_DONG_GOI" &&
+    order.trang_thai_xuat_kho === "CHUA_XUAT_KHO" &&
+    ["DANG_DONG_GOI", "DA_DONG_GOI"].includes(order.trang_thai_dong_goi);
+
+  const stages = [
+    ["ĐƠN HÀNG", order.trang_thai_don_hang],
+    ["THANH TOÁN", order.trang_thai_thanh_toan],
+    ["ĐÓNG GÓI", order.trang_thai_dong_goi],
+    ["XUẤT KHO", order.trang_thai_xuat_kho],
+  ];
+
+  return (
+    <section className="delivery-page delivery-detail-page">
+      <header className="delivery-detail-head">
+        <div>
+          <nav>
+            ADMIN <span>›</span> GIAO HÀNG <span>›</span>
+            <strong>CHI TIẾT PHIẾU GIAO HÀNG</strong>
+          </nav>
+          <p className="delivery-detail-code">{delivery.ma_phieu_giao_hang}</p>
+        </div>
+
+        <button
+          type="button"
+          className="delivery-back"
+          disabled={busy}
+          onClick={() => navigate(LIST)}
+        >
+          ← QUAY LẠI
+        </button>
+      </header>
+
+      <div className="delivery-detail-inner">
+        {loadError && (
+          <div className="delivery-feedback is-error" role="alert">
+            <span>{loadError}</span>
+            <button
+              type="button"
+              disabled={locked}
+              onClick={() => setRevision((value) => value + 1)}
+            >
+              TẢI LẠI
+            </button>
+          </div>
+        )}
+
+        {notice && (
+          <div className="delivery-feedback is-success" role="status">
+            {notice}
+          </div>
+        )}
+
+        {returnDocument && (
+          <div className="delivery-feedback">
+            <span>
+              Phiếu trả: <strong>{returnDocument.ma_tra_hang}</strong>.
+              {returnDocument.can_hoan_tien
+                ? ` Khoản cần xử lý hoàn tiền: ${money(
+                    returnDocument.tong_tien_hoan,
+                  )}.`
+                : " Không phát sinh khoản hoàn tiền."}
+            </span>
+          </div>
+        )}
+
+        <div className="delivery-status-strip">
+          {stages.map(([title, value]) => (
+            <div key={title}>
+              <span>{title}</span>
+              <OrderStateBadge value={value} />
+            </div>
+          ))}
+
+          <div>
+            <span>GIAO HÀNG</span>
+            <ShipmentBadge value={status} />
+          </div>
+        </div>
+
+        <div className="delivery-detail-grid">
+          <div className="delivery-detail-main">
+            <ShipmentPanel
+              title="THÔNG TIN GIAO HÀNG"
+              tools={
+                status === "CHO_GIAO" && openOrder ? (
+                  <button
+                    type="button"
+                    className="delivery-small-btn"
+                    disabled={locked}
+                    onClick={() => open("edit")}
+                  >
+                    CHỈNH SỬA THÔNG TIN VẬN ĐƠN
+                  </button>
+                ) : (
+                  <span className="delivery-lock-note">
+                    THÔNG TIN VẬN ĐƠN ĐÃ KHÓA
+                  </span>
+                )
+              }
+            >
+              <dl className="delivery-info-grid">
+                <ShipmentInfo title="MÃ PHIẾU GIAO HÀNG">
+                  {delivery.ma_phieu_giao_hang}
+                </ShipmentInfo>
+                <ShipmentInfo title="MÃ VẬN ĐƠN">
+                  {delivery.ma_van_don || "—"}
+                </ShipmentInfo>
+                <ShipmentInfo title="TRẠNG THÁI">{label(status)}</ShipmentInfo>
+                <ShipmentInfo title="NGÀY TẠO">
+                  {dateTime(delivery.ngay_tao)}
+                </ShipmentInfo>
+                <ShipmentInfo title="NGƯỜI NHẬN">
+                  {recipient.ten_nguoi_nhan || "—"}
+                </ShipmentInfo>
+                <ShipmentInfo title="SỐ ĐIỆN THOẠI">
+                  {recipient.sdt_nguoi_nhan || "—"}
+                </ShipmentInfo>
+                <ShipmentInfo title="ĐỊA CHỈ GIAO HÀNG" wide>
+                  {recipient.dia_chi_giao_hang || "—"}
+                </ShipmentInfo>
+                <ShipmentInfo title="MÃ ĐƠN HÀNG">
+                  <button
+                    type="button"
+                    className="delivery-link"
+                    onClick={() =>
+                      navigate(`/admin/don-hang/danh-sach-don-hang/${order.id}`)
+                    }
+                  >
+                    {order.ma_don_hang}
+                  </button>
+                </ShipmentInfo>
+                <ShipmentInfo title="CẬP NHẬT CUỐI">
+                  {dateTime(delivery.ngay_cap_nhat)}
+                </ShipmentInfo>
+                {delivery.ghi_chu && (
+                  <ShipmentInfo title="GHI CHÚ" wide>
+                    {delivery.ghi_chu}
+                  </ShipmentInfo>
+                )}
+              </dl>
+            </ShipmentPanel>
+
+            <ShipmentPanel title="CHI TIẾT HÀNG HÓA">
+              <div className="delivery-items-wrap">
+                <table className="delivery-items">
+                  <thead>
+                    <tr>
+                      <th>SẢN PHẨM</th>
+                      <th>PHIÊN BẢN</th>
+                      <th>ĐƠN GIÁ</th>
+                      <th>SL</th>
+                      <th>THÀNH TIỀN</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {productPages.visibleItems.map((item) => (
+                      <tr key={item.chi_tiet_don_hang_id}>
+                        <td>
+                          <strong>{item.ten_san_pham}</strong>
+                          <small>{item.ma_san_pham}</small>
+                        </td>
+                        <td>{item.ten_phien_ban || "—"}</td>
+                        <td>{money(item.don_gia)}</td>
+                        <td>{item.so_luong}</td>
+                        <td className="delivery-money-red">
+                          {money(item.thanh_tien)}
+                        </td>
+                      </tr>
+                    ))}
+
+                    {!products.length && (
+                      <tr>
+                        <td colSpan={5} className="delivery-empty">
+                          Không có dữ liệu hàng hóa.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+
+              <DetailTablePagination
+                totalItems={products.length}
+                currentPage={productPages.currentPage}
+                onPageChange={productPages.onPageChange}
+                idPrefix={`delivery-${id}-products`}
+              />
+
+              <dl className="delivery-summary">
+                <ShipmentInfo title="Tổng tiền hàng">
+                  {money(totals.tong_tien_hang)}
+                </ShipmentInfo>
+                <ShipmentInfo title="Chiết khấu">
+                  {money(totals.tien_chiet_khau)}
+                </ShipmentInfo>
+                <ShipmentInfo title="VAT">
+                  {money(totals.tong_tien_vat)}
+                </ShipmentInfo>
+                <ShipmentInfo title="Phí giao hàng">
+                  {money(totals.phi_giao_hang)}
+                </ShipmentInfo>
+                <div className="delivery-total">
+                  <dt>KHÁCH PHẢI TRẢ</dt>
+                  <dd>{money(totals.tong_thanh_toan)}</dd>
+                </div>
+              </dl>
+            </ShipmentPanel>
+          </div>
+
+          <aside className="delivery-detail-side">
+            <ShipmentPanel title="THÔNG TIN VẬN CHUYỂN">
+              <dl className="delivery-side-info">
+                <ShipmentInfo title="ĐỐI TÁC VẬN CHUYỂN">
+                  {partner.id ? (
+                    <button
+                      type="button"
+                      className="delivery-link"
+                      onClick={() =>
+                        navigate(
+                          "/admin/khach-hang-doi-tac/doi-tac-van-chuyen",
+                          { state: { partnerId: Number(partner.id) } },
+                        )
+                      }
+                    >
+                      {partner.ten_doi_tac}
+                    </button>
+                  ) : (
+                    "—"
+                  )}
+                </ShipmentInfo>
+                <ShipmentInfo title="MÃ ĐỐI TÁC">
+                  {partner.ma_doi_tac || "—"}
+                </ShipmentInfo>
+                <ShipmentInfo title="LOẠI ĐỐI TÁC">
+                  {partner.loai_doi_tac === "SHIP_CUA_HANG"
+                    ? "Ship cửa hàng"
+                    : partner.loai_doi_tac === "SHIP_CA_NHAN"
+                      ? "Ship cá nhân"
+                      : "—"}
+                </ShipmentInfo>
+                <ShipmentInfo title="MÃ VẬN ĐƠN">
+                  {delivery.ma_van_don || "—"}
+                </ShipmentInfo>
+                <ShipmentInfo title="TIỀN THU HỘ COD">
+                  {Number(delivery.tien_thu_ho_cod) > 0
+                    ? money(delivery.tien_thu_ho_cod)
+                    : "Không thu COD"}
+                </ShipmentInfo>
+                <ShipmentInfo title="PHÍ TRẢ ĐỐI TÁC">
+                  {money(delivery.phi_tra_doi_tac)}
+                </ShipmentInfo>
+              </dl>
+            </ShipmentPanel>
+
+            <section className="delivery-actions-panel">
+              <h2>
+                <i aria-hidden="true" />
+                THAO TÁC
+              </h2>
+
+              <div>
+                {canHandoff && (
+                  <button
+                    type="button"
+                    className="delivery-action black"
+                    disabled={locked}
+                    onClick={() => open("handoff")}
+                  >
+                    XÁC NHẬN ĐỐI TÁC ĐÃ NHẬN HÀNG
+                  </button>
+                )}
+
+                {status === "DA_NHAN_HANG" && inTransit && (
+                  <button
+                    type="button"
+                    className="delivery-action black"
+                    disabled={locked}
+                    onClick={() => open("transit")}
+                  >
+                    CẬP NHẬT ĐANG GIAO
+                  </button>
+                )}
+
+                {status === "DANG_GIAO" && inTransit && (
+                  <>
+                    <button
+                      type="button"
+                      className="delivery-action success"
+                      disabled={locked}
+                      onClick={() => open("success")}
+                    >
+                      GIAO THÀNH CÔNG
+                    </button>
+
+                    <button
+                      type="button"
+                      className="delivery-action danger"
+                      disabled={locked}
+                      onClick={() => open("failure")}
+                    >
+                      GIAO THẤT BẠI
+                    </button>
+                  </>
+                )}
+
+                {status === "CHO_HOAN_HANG" && (
+                  <>
+                    <p className="delivery-action waiting">
+                      ĐANG CHỜ ĐỐI TÁC HOÀN HÀNG VỀ CỬA HÀNG
+                    </p>
+
+                    <button
+                      type="button"
+                      className="delivery-action return"
+                      disabled={locked || !inTransit}
+                      onClick={() => open("return")}
+                    >
+                      XÁC NHẬN ĐÃ NHẬN HÀNG HOÀN
+                    </button>
+                  </>
+                )}
+
+                {canCancel && (
+                  <button
+                    type="button"
+                    className="delivery-action danger"
+                    disabled={locked}
+                    onClick={() => open("cancel")}
+                  >
+                    HỦY PHIẾU GIAO HÀNG
+                  </button>
+                )}
+
+                {status === "GIAO_THANH_CONG" && (
+                  <p className="delivery-terminal">
+                    ĐƠN HÀNG ĐÃ GIAO THÀNH CÔNG
+                  </p>
+                )}
+
+                {status === "DA_HOAN_HANG" && (
+                  <p className="delivery-terminal">
+                    ĐÃ NHẬN HÀNG HOÀN VÀ NHẬP LẠI KHO
+                  </p>
+                )}
+
+                {status === "HUY_GIAO_HANG" && (
+                  <p className="delivery-terminal">PHIẾU GIAO HÀNG ĐÃ HỦY</p>
+                )}
+
+                {status === "CHO_GIAO" && !canHandoff && !canCancel && (
+                  <p className="delivery-terminal">
+                    Hoàn tất đóng gói và xuất kho trước khi bàn giao hàng.
+                  </p>
+                )}
+              </div>
+            </section>
+          </aside>
+        </div>
+      </div>
+
+      {modal === "edit" && (
+        <ShipmentEditDialog
+          delivery={delivery}
+          busy={busy}
+          error={operationError}
+          close={close}
+          submit={save}
+        />
+      )}
+
+      {modal === "return" && (
+        <ShipmentReturnDialog
+          delivery={delivery}
+          busy={busy}
+          error={operationError}
+          close={close}
+          submit={save}
+        />
+      )}
+
+      {["handoff", "transit", "success", "failure", "cancel"].includes(
+        modal,
+      ) && (
+        <ShipmentStatusDialog
+          key={modal}
+          kind={modal}
+          delivery={delivery}
+          busy={busy}
+          error={operationError}
+          close={close}
+          submit={save}
+        />
+      )}
+    </section>
+  );
 }
 
-function DeliveryDetail({ record, partners, navigate, persist }) {
-  const [modal, setModal] = useState('');
-  const itemPagination = useDetailTablePagination(record?.order?.products);
-  if (!record?.order) return <section className="delivery-page delivery-not-found"><h1>KHÔNG TÌM THẤY PHIẾU GIAO HÀNG</h1><button onClick={() => navigate(LIST_ROUTE)}>QUAY LẠI</button></section>;
-  const order = record.order; const merchandise = order.products.reduce((sum, product) => sum + Number(product.subtotal || 0), 0); const locked = record.trangThaiGiao !== 'CHO_GIAO';
-  const transition = (nextStatus) => { persist(record.id, { trangThaiGiao: nextStatus }, 'status-changed'); setModal(''); };
-  const confirmReturn = (returnInfo) => { const stockAdjustments = receiveReturnedStock(record, returnInfo); persist(record.id, { trangThaiGiao: 'DA_HOAN_HANG', returnInfo: { ...returnInfo, stockAdjustments, receivedAt: new Date().toISOString() } }, 'return-received'); setModal(''); };
-  return <section className="delivery-page delivery-detail-page"><header className="delivery-detail-head"><nav>ADMIN <span>/</span> GIAO HÀNG <span>/</span> <strong>CHI TIẾT PHIẾU GIAO HÀNG</strong></nav><button className="delivery-back" onClick={() => navigate(LIST_ROUTE)}><HiOutlineArrowLeft /> QUAY LẠI</button></header><div className="delivery-detail-inner"><StatusStrip order={order} delivery={record.trangThaiGiao} /><div className="delivery-detail-grid"><div className="delivery-detail-main">
-    <Panel title="THÔNG TIN GIAO HÀNG" tools={!locked ? <button className="delivery-small-btn" onClick={() => setModal('edit')}>CHỈNH SỬA THÔNG TIN VẬN ĐƠN</button> : <span className="delivery-lock-note">HÀNG ĐÃ ĐƯỢC BÀN GIAO — THÔNG TIN VẬN ĐƠN ĐÃ ĐƯỢC KHÓA</span>}><dl className="delivery-info-grid"><Info label="MÃ PHIẾU GIAO HÀNG">{record.id}</Info><Info label="MÃ VẬN ĐƠN">{record.maVanDon || '—'}</Info><Info label="TRẠNG THÁI">{deliveryStatusLabel(record.trangThaiGiao)}</Info><Info label="NGÀY TẠO">{formatDate(record.updatedAt)}</Info><Info label="NGƯỜI NHẬN">{order.recipient.name}</Info><Info label="SỐ ĐIỆN THOẠI">{order.recipient.phone || '—'}</Info><Info wide label="ĐỊA CHỈ GIAO HÀNG">{order.recipient.address}</Info><Info wide label="MÃ ĐƠN HÀNG"><button className="delivery-link" onClick={() => navigate(`/admin/don-hang/danh-sach-don-hang/${order.id}`)}>{order.id}</button></Info></dl></Panel>
-    <Panel title="CHI TIẾT HÀNG HÓA"><div className="delivery-items-wrap"><table className="delivery-items"><thead><tr><th>SẢN PHẨM</th><th>PHIÊN BẢN</th><th>ĐƠN GIÁ</th><th>SL</th><th>THÀNH TIỀN</th></tr></thead><tbody>{itemPagination.visibleItems.map((item) => <tr key={item.barcode}><td>{item.name}</td><td><b>{item.variant}</b></td><td>{formatMoney(item.unitPrice)}</td><td>{item.quantity}</td><td className="delivery-money-red">{formatMoney(item.subtotal)}</td></tr>)}</tbody></table></div><DetailTablePagination totalItems={order.products.length} currentPage={itemPagination.currentPage} onPageChange={itemPagination.onPageChange} idPrefix="delivery-items" /><dl className="delivery-summary"><Info label="Tổng tiền hàng">{formatMoney(merchandise)}</Info><Info label="Chiết khấu">{order.discount ? formatMoney(order.discount) : '—'}</Info><Info label="VAT">—</Info><Info label="Phí giao hàng">{moneyOrZero(order.shippingFee)}</Info><div className="delivery-total"><dt>KHÁCH PHẢI TRẢ</dt><dd>{formatMoney(order.total)}</dd></div></dl></Panel>
-  </div><aside className="delivery-detail-side"><Panel title="THÔNG TIN VẬN CHUYỂN"><dl className="delivery-side-info"><Info label="ĐỐI TÁC VẬN CHUYỂN"><button className="delivery-link" onClick={() => navigate(PARTNER_ROUTE, { state: { partnerId: record.doiTacId } })}>{record.partner?.tenDoiTac || '—'}</button></Info><Info label="MÃ ĐỐI TÁC">{record.doiTacId}</Info><Info label="MÃ VẬN ĐƠN">{record.maVanDon || '—'}</Info><Info label="TIỀN THU HỘ COD">{moneyOrZero(record.cod)}</Info><Info label="PHÍ TRẢ ĐỐI TÁC">{moneyOrZero(record.phiDoiTac)}</Info></dl></Panel><ActionPanel status={record.trangThaiGiao} onAction={(action) => { if (action === 'received') transition('DA_NHAN_HANG'); else if (action === 'start') transition('DANG_GIAO'); else setModal(action); }} /></aside></div></div>
-  {modal === 'edit' && <EditShipmentModal record={record} partners={partners} close={() => setModal('')} save={(changes) => { persist(record.id, changes, 'shipment-updated'); setModal(''); }} />}{modal === 'success' && <SuccessModal cod={record.cod} close={() => setModal('')} confirm={() => transition('GIAO_THANH_CONG')} />}{modal === 'failure' && <FailureModal close={() => setModal('')} confirm={() => transition('CHO_HOAN_HANG')} />}{modal === 'return' && <ReturnModal items={order.products} close={() => setModal('')} confirm={confirmReturn} />}</section>;
+function ShipmentEditDialog({ delivery, busy, error, close, submit }) {
+  const [partnerId, setPartnerId] = useState(
+    String(delivery.doi_tac_van_chuyen?.id || ""),
+  );
+  const [tracking, setTracking] = useState(delivery.ma_van_don || "");
+  const [fee, setFee] = useState(String(delivery.phi_tra_doi_tac ?? 0));
+  const [partners, setPartners] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
+  const [revision, setRevision] = useState(0);
+
+  useEffect(() => {
+    const controller = new AbortController();
+
+    const load = async () => {
+      setLoading(true);
+      setLoadError("");
+
+      try {
+        const items = [];
+        let totalPages = 1;
+
+        for (let page = 0; page < totalPages; page++) {
+          const result = await apiRequest(
+            `/api/v1/admin/shipping-partners?trang_thai=1&page=${page}&limit=100`,
+            { signal: controller.signal },
+          );
+
+          if (controller.signal.aborted) return;
+
+          items.push(...(result?.items || []));
+          totalPages = Math.max(
+            1,
+            Number(result?.pagination?.total_pages) || 1,
+          );
+        }
+
+        setPartners(items.filter((item) => Number(item.trang_thai) === 1));
+      } catch (exception) {
+        if (!controller.signal.aborted) {
+          setLoadError(exception.message || "Không tải được đối tác.");
+        }
+      } finally {
+        if (!controller.signal.aborted) setLoading(false);
+      }
+    };
+
+    load();
+    return () => controller.abort();
+  }, [revision]);
+
+  const valid =
+    !loading &&
+    !loadError &&
+    partners.some((item) => String(item.id) === partnerId) &&
+    /^\d{1,13}(\.\d{1,2})?$/.test(fee) &&
+    tracking.trim().length <= 50;
+
+  return (
+    <OrderModal
+      title="CHỈNH SỬA THÔNG TIN VẬN ĐƠN"
+      className="delivery-operation-dialog"
+      showClose
+      busy={busy}
+      close={close}
+      error={error || loadError}
+      disabled={!valid}
+      confirmLabel="LƯU THÔNG TIN"
+      submit={() =>
+        submit(
+          "PUT",
+          "",
+          {
+            doi_tac_van_chuyen_id: Number(partnerId),
+            ma_van_don: tracking.trim() || null,
+            phi_tra_doi_tac: Number(fee),
+          },
+          "Đã cập nhật thông tin vận đơn.",
+        )
+      }
+    >
+      <label className="delivery-field">
+        <span>ĐỐI TÁC VẬN CHUYỂN *</span>
+        <select
+          required
+          value={partnerId}
+          disabled={loading}
+          onChange={(event) => setPartnerId(event.target.value)}
+        >
+          <option value="">
+            {loading ? "Đang tải đối tác..." : "Chọn đối tác"}
+          </option>
+          {partners.map((item) => (
+            <option key={item.id} value={String(item.id)}>
+              {item.ten_doi_tac} — {item.ma_doi_tac}
+            </option>
+          ))}
+        </select>
+      </label>
+
+      {loadError && (
+        <button
+          type="button"
+          className="delivery-small-btn"
+          onClick={() => setRevision((value) => value + 1)}
+        >
+          TẢI LẠI ĐỐI TÁC
+        </button>
+      )}
+
+      <label className="delivery-field">
+        <span>MÃ VẬN ĐƠN</span>
+        <input
+          value={tracking}
+          maxLength={50}
+          onChange={(event) => setTracking(event.target.value)}
+          placeholder="Có thể để trống"
+        />
+      </label>
+
+      <label className="delivery-field">
+        <span>PHÍ TRẢ ĐỐI TÁC (đ) *</span>
+        <input
+          type="number"
+          min="0"
+          step="0.01"
+          required
+          value={fee}
+          onChange={(event) => setFee(event.target.value)}
+        />
+      </label>
+    </OrderModal>
+  );
 }
 
-function StatusStrip({ order, delivery }) { const values = [['ĐƠN HÀNG', order.status], ['THANH TOÁN', order.payment], ['ĐÓNG GÓI', order.packing], ['XUẤT KHO', order.warehouse], ['GIAO HÀNG', deliveryStatusLabel(delivery)]]; return <div className="delivery-status-strip">{values.map(([label, value], index) => <div key={label}><span>{label}</span>{index === 4 ? <DeliveryBadge status={delivery} /> : <ReadOnlyBadge value={value} />}</div>)}</div>; }
-function Panel({ title, tools, children }) { return <section className="delivery-panel"><header><h2><i />{title}</h2>{tools}</header>{children}</section>; }
-function Info({ label, wide, children }) { return <div className={wide ? 'wide' : ''}><dt>{label}</dt><dd>{children}</dd></div>; }
-function DeliveryBadge({ status }) { return <span className={`delivery-badge delivery-badge--${status}`}>{deliveryStatusLabel(status).toLocaleUpperCase('vi')}</span>; }
-function ReadOnlyBadge({ value }) { const tone = /Đã|Hoàn thành/.test(value) ? 'green' : /Hủy/.test(value) ? 'red' : /Chưa/.test(value) ? 'orange' : 'gray'; return <span className={`delivery-readonly-badge is-${tone}`}>{String(value).toLocaleUpperCase('vi')}</span>; }
-function ActionPanel({ status, onAction }) { let content; if (status === 'CHO_GIAO') content = <button className="delivery-action black" onClick={() => onAction('received')}>XÁC NHẬN ĐỐI TÁC ĐÃ NHẬN HÀNG</button>; else if (status === 'DA_NHAN_HANG') content = <button className="delivery-action black" onClick={() => onAction('start')}>BẮT ĐẦU GIAO HÀNG</button>; else if (status === 'DANG_GIAO') content = <><button className="delivery-action success" onClick={() => onAction('success')}>GIAO THÀNH CÔNG</button><button className="delivery-action danger" onClick={() => onAction('failure')}>GIAO THẤT BẠI</button></>; else if (status === 'CHO_HOAN_HANG') content = <><span className="delivery-action waiting">ĐANG CHỜ ĐỐI TÁC HOÀN HÀNG VỀ CỬA HÀNG</span><button className="delivery-action return" onClick={() => onAction('return')}>XÁC NHẬN ĐÃ NHẬN HÀNG HOÀN</button></>; else content = <p className="delivery-terminal">PHIẾU ĐÃ HOÀN TẤT — KHÔNG CÓ THAO TÁC BỔ SUNG</p>; return <section className="delivery-actions-panel"><h2><i />THAO TÁC</h2><div>{content}</div></section>; }
+function ShipmentStatusDialog({ kind, delivery, busy, error, close, submit }) {
+  const [confirmed, setConfirmed] = useState(false);
+  const [reason, setReason] = useState("");
+  const cod = Number(delivery.tien_thu_ho_cod || 0);
 
-function ModalShell({ title, tone = 'neutral', close, children, footer, wide = false }) { return <div className="delivery-modal-backdrop" onMouseDown={(event) => event.target === event.currentTarget && close()}><section className={`delivery-modal delivery-modal--${tone} ${wide ? 'is-wide' : ''}`} role="dialog" aria-modal="true"><header><h2><i />{title}</h2><button onClick={close} aria-label="Đóng"><HiOutlineX /></button></header><div className="delivery-modal-body">{children}</div><footer>{footer}</footer></section></div>; }
-function ModalButton({ children, variant = 'back', disabled, onClick }) { return <button type="button" className={`delivery-modal-button is-${variant}`} disabled={disabled} onClick={onClick}>{children}</button>; }
-function EditShipmentModal({ record, partners, close, save }) { const [tracking, setTracking] = useState(record.maVanDon || ''); const [partnerId, setPartnerId] = useState(record.doiTacId || ''); const [fee, setFee] = useState(String(record.phiDoiTac || 0)); const activePartners = partners.filter((partner) => partner.trangThai === 'hoat_dong'); const valid = Boolean(partnerId) && fee !== '' && Number(fee) >= 0; return <ModalShell title="CHỈNH SỬA THÔNG TIN VẬN ĐƠN" close={close} footer={<><ModalButton onClick={close}>QUAY LẠI</ModalButton><ModalButton variant="black" disabled={!valid} onClick={() => save({ maVanDon: tracking.trim(), doiTacId: partnerId, phiDoiTac: Number(fee) })}>LƯU THAY ĐỔI</ModalButton></>}><label className="delivery-field"><span>MÃ VẬN ĐƠN</span><input value={tracking} onChange={(event) => setTracking(event.target.value)} placeholder="Nhập mã vận đơn..." /></label><label className="delivery-field"><span>ĐỐI TÁC VẬN CHUYỂN *</span><select value={partnerId} onChange={(event) => setPartnerId(event.target.value)}><option value="">Chọn đối tác</option>{activePartners.map((partner) => <option key={partner.id} value={partner.id}>{partner.tenDoiTac} ({partner.id})</option>)}</select></label><label className="delivery-field"><span>PHÍ TRẢ ĐỐI TÁC *</span><input type="text" inputMode="numeric" value={fee === '' ? '' : new Intl.NumberFormat('vi-VN').format(Number(fee))} onChange={(event) => setFee(event.target.value.replace(/\D/g, ''))} onBlur={() => setFee(String(Math.max(0, Number(fee) || 0)))} /><b className="currency-suffix">đ</b></label></ModalShell>; }
-function SuccessModal({ cod, close, confirm }) { const [checked, setChecked] = useState(false); return <ModalShell title="XÁC NHẬN GIAO THÀNH CÔNG" tone="success" close={close} footer={<><ModalButton onClick={close}>QUAY LẠI</ModalButton><ModalButton variant="success" disabled={!checked} onClick={confirm}>XÁC NHẬN ĐÃ GIAO</ModalButton></>}><div className="delivery-cod"><span>TIỀN COD CẦN THU</span><strong>{formatMoney(cod)}</strong></div><label className="delivery-checkbox"><input type="checkbox" checked={checked} onChange={(event) => setChecked(event.target.checked)} /> Xác nhận shipper đã thu đủ tiền COD từ khách</label></ModalShell>; }
-function FailureModal({ close, confirm }) { return <ModalShell title="XÁC NHẬN GIAO HÀNG THẤT BẠI?" tone="danger" close={close} footer={<><ModalButton onClick={close}>QUAY LẠI</ModalButton><ModalButton variant="danger" onClick={confirm}>XÁC NHẬN THẤT BẠI</ModalButton></>}><p className="delivery-warning">Hàng sẽ chuyển sang trạng thái <b>CHỜ HOÀN VỀ CỬA HÀNG.</b></p></ModalShell>; }
-function ReturnModal({ items, close, confirm }) { const [rows, setRows] = useState(() => items.map((item) => ({ barcode: item.barcode, name: item.name, variant: item.variant, exported: item.quantity, nguyenVen: item.quantity, loi: 0, error: '' }))); const [reason, setReason] = useState(''); const [note, setNote] = useState(''); const changeQty = (index, field, raw) => setRows((current) => current.map((row, rowIndex) => { if (rowIndex !== index) return row; const value = Math.max(0, Math.floor(Number(raw) || 0)); const other = field === 'nguyenVen' ? Number(row.loi) : Number(row.nguyenVen); if (value + other > row.exported) return { ...row, error: `Tổng số lượng không được vượt quá ${row.exported}.` }; return { ...row, [field]: value, error: '' }; })); const valid = Boolean(reason.trim()) && rows.every((row) => !row.error && Number(row.nguyenVen) + Number(row.loi) <= row.exported); const cleanRows = () => rows.map(({ error: _error, ...row }) => row); return <ModalShell wide title="XÁC NHẬN HÀNG HOÀN VỀ KHO" tone="return" close={close} footer={<><ModalButton onClick={close}>QUAY LẠI</ModalButton><ModalButton variant="return" disabled={!valid} onClick={() => confirm({ items: cleanRows(), lyDoTra: reason.trim(), ghiChu: note.trim() })}>XÁC NHẬN ĐÃ NHẬN HÀNG HOÀN</ModalButton></>}><p className="delivery-warning">Hàng hoàn sẽ được nhập vào kho mặc định của cửa hàng. Không chọn kho khác.</p><h3>HÀNG NHẬN VỀ</h3>{rows.map((row, index) => <div className="delivery-return-row" key={row.barcode}><strong>{row.name}</strong><small>{row.variant} · Số lượng đã xuất: {row.exported}</small><div><label>SỐ LƯỢNG NGUYÊN VẸN<input type="number" min="0" max={row.exported} value={row.nguyenVen} onChange={(event) => changeQty(index, 'nguyenVen', event.target.value)} /></label><label>SỐ LƯỢNG LỖI<input type="number" min="0" max={row.exported} value={row.loi} onChange={(event) => changeQty(index, 'loi', event.target.value)} /></label></div>{row.error && <em>{row.error}</em>}</div>)}<label className="delivery-field"><span>LÝ DO TRẢ *</span><textarea value={reason} onChange={(event) => setReason(event.target.value)} placeholder="Ví dụ: Khách không nhận, đối tác đã hoàn đủ..." /></label><label className="delivery-field"><span>GHI CHÚ</span><textarea value={note} onChange={(event) => setNote(event.target.value)} placeholder="Tình trạng hàng khi nhận lại..." /></label></ModalShell>; }
+  const configurations = {
+    handoff: {
+      title: "XÁC NHẬN ĐỐI TÁC ĐÃ NHẬN HÀNG",
+      target: "DA_NHAN_HANG",
+      confirmLabel: "XÁC NHẬN BÀN GIAO",
+      confirmation: "Tôi xác nhận đã bàn giao hàng cho đối tác.",
+      message: "Đã xác nhận đối tác nhận hàng.",
+      tone: "",
+    },
+    transit: {
+      title: "CẬP NHẬT ĐANG GIAO HÀNG",
+      target: "DANG_GIAO",
+      confirmLabel: "XÁC NHẬN ĐANG GIAO",
+      confirmation: "Tôi xác nhận đối tác đang vận chuyển đơn hàng.",
+      message: "Đã cập nhật trạng thái đang giao hàng.",
+      tone: "",
+    },
+    success: {
+      title: "XÁC NHẬN GIAO THÀNH CÔNG",
+      target: "GIAO_THANH_CONG",
+      confirmLabel: "XÁC NHẬN ĐÃ GIAO",
+      confirmation:
+        cod > 0
+          ? "Xác nhận shipper đã thu đủ tiền COD từ khách."
+          : "Tôi xác nhận khách hàng đã nhận đủ hàng.",
+      message: "Đã xác nhận giao hàng thành công.",
+      tone: "is-success",
+    },
+    failure: {
+      title: "XÁC NHẬN GIAO HÀNG THẤT BẠI",
+      target: "GIAO_THAT_BAI",
+      confirmLabel: "XÁC NHẬN THẤT BẠI",
+      confirmation: "Tôi xác nhận đơn hàng giao không thành công.",
+      message: "Đã ghi nhận giao thất bại và chuyển sang chờ hoàn hàng.",
+      tone: "is-danger",
+    },
+    cancel: {
+      title: "HỦY PHIẾU GIAO HÀNG",
+      confirmLabel: "XÁC NHẬN HỦY",
+      confirmation: "Tôi xác nhận hủy phiếu giao hàng.",
+      message: "Đã hủy phiếu giao hàng.",
+      tone: "is-danger",
+    },
+  };
+
+  const config = configurations[kind];
+  const valid =
+    confirmed &&
+    (kind !== "cancel" || (reason.trim() && reason.trim().length <= 255));
+
+  const save = () => {
+    if (kind === "cancel") {
+      return submit("POST", "cancel", { ly_do: reason.trim() }, config.message);
+    }
+
+    return submit(
+      "PATCH",
+      "status",
+      {
+        trang_thai_giao_hang: config.target,
+        ...(kind === "success" && cod > 0 ? { xac_nhan_da_thu_cod: true } : {}),
+      },
+      config.message,
+    );
+  };
+
+  return (
+    <OrderModal
+      title={config.title}
+      className={`delivery-operation-dialog ${config.tone}`}
+      showClose
+      busy={busy}
+      close={close}
+      submit={save}
+      error={error}
+      disabled={!valid}
+      confirmLabel={config.confirmLabel}
+    >
+      {kind === "success" && (
+        <div className="delivery-cod">
+          <span>TIỀN COD CẦN THU</span>
+          <strong>{money(cod)}</strong>
+        </div>
+      )}
+
+      {kind === "failure" && (
+        <p className="delivery-warning">
+          Hàng sẽ chuyển sang trạng thái CHỜ HOÀN VỀ CỬA HÀNG. Xác nhận nhận
+          hàng hoàn khi hàng đã về kho.
+        </p>
+      )}
+
+      {kind === "cancel" && (
+        <label className="delivery-field">
+          <span>LÝ DO HỦY *</span>
+          <textarea
+            required
+            maxLength={255}
+            rows={3}
+            value={reason}
+            onChange={(event) => setReason(event.target.value)}
+          />
+        </label>
+      )}
+
+      <label className="delivery-checkbox">
+        <input
+          type="checkbox"
+          checked={confirmed}
+          onChange={(event) => setConfirmed(event.target.checked)}
+        />
+        <span>{config.confirmation}</span>
+      </label>
+    </OrderModal>
+  );
+}
+
+function ShipmentReturnDialog({ delivery, busy, error, close, submit }) {
+  const [requirements, setRequirements] = useState(null);
+  const [rows, setRows] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
+  const [revision, setRevision] = useState(0);
+  const [reason, setReason] = useState("");
+  const [note, setNote] = useState("");
+  const [refundMethod, setRefundMethod] = useState("CHUYEN_KHOAN");
+  const [confirmed, setConfirmed] = useState(false);
+
+  useEffect(() => {
+    const controller = new AbortController();
+
+    setLoading(true);
+    setLoadError("");
+
+    apiRequest(
+      `${API}/${encodeURIComponent(delivery.id)}/return-requirements`,
+      { signal: controller.signal },
+    )
+      .then((data) => {
+        if (controller.signal.aborted) return;
+
+        if (
+          !data?.kho_hang_id ||
+          !Array.isArray(data.items) ||
+          !data.items.length
+        ) {
+          throw new Error("Không có danh sách hàng cần nhận hoàn.");
+        }
+
+        const receivedRows = data.items.map((item) => {
+          // Đọc đúng trường backend đang trả.
+          const quantity = Number(item.so_luong_can_nhan);
+
+          if (
+            item.so_luong_can_nhan == null ||
+            !Number.isSafeInteger(quantity) ||
+            quantity <= 0
+          ) {
+            throw new Error(
+              `Số lượng cần nhận không hợp lệ của sản phẩm ${
+                item.ten_san_pham || item.phien_ban_id
+              }.`,
+            );
+          }
+
+          return {
+            ...item,
+
+            // Chuẩn hóa sang tên đang dùng trong form:
+            // max, updateQuantity và validReturnRow.
+            so_luong_da_xuat: quantity,
+
+            good: String(quantity),
+            bad: "0",
+            serials: (item.serials || []).map((serial) => ({
+              ...serial,
+              trang_thai_sau_nhan: "",
+            })),
+          };
+        });
+
+        setRequirements(data);
+        setRows(receivedRows);
+        setConfirmed(false);
+      })
+      .catch((exception) => {
+        if (!controller.signal.aborted) {
+          setLoadError(
+            exception.message || "Không tải được hàng cần nhận hoàn.",
+          );
+        }
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setLoading(false);
+      });
+
+    return () => controller.abort();
+  }, [delivery.id, revision]);
+
+  const updateQuantity = (index, field, rawValue) => {
+    setRows((current) =>
+      current.map((row, rowIndex) => {
+        if (rowIndex !== index || row.quan_ly_serial) {
+          return row;
+        }
+
+        const limit = Number(row.so_luong_da_xuat);
+
+        if (!Number.isSafeInteger(limit) || limit <= 0) {
+          return row;
+        }
+
+        // Cho phép xóa để nhập lại; nút xác nhận vẫn bị khóa.
+        if (rawValue === "") {
+          return { ...row, [field]: "" };
+        }
+
+        // Chỉ nhận số nguyên không âm.
+        if (!/^\d+$/.test(rawValue)) {
+          return row;
+        }
+
+        const entered = Number(rawValue);
+
+        if (!Number.isSafeInteger(entered)) {
+          return row;
+        }
+
+        const quantity = Math.min(limit, entered);
+        const otherField = field === "good" ? "bad" : "good";
+
+        return {
+          ...row,
+          [field]: String(quantity),
+          [otherField]: String(limit - quantity),
+        };
+      }),
+    );
+  };
+
+  const updateSerial = (index, serialId, status) => {
+    setRows((current) =>
+      current.map((row, rowIndex) =>
+        rowIndex === index
+          ? {
+              ...row,
+              serials: row.serials.map((serial) =>
+                serial.so_serial_id === serialId
+                  ? { ...serial, trang_thai_sau_nhan: status }
+                  : serial,
+              ),
+            }
+          : row,
+      ),
+    );
+  };
+
+  const valid =
+    !loading &&
+    !loadError &&
+    requirements &&
+    rows.length > 0 &&
+    rows.every(validReturnRow) &&
+    confirmed &&
+    reason.trim().length > 0 &&
+    reason.trim().length <= 255 &&
+    note.trim().length <= 2000;
+
+  const save = () => {
+    const body = {
+      xac_nhan_da_nhan_du_hang: true,
+      ly_do_tra: reason.trim(),
+      hinh_thuc_hoan_tien: refundMethod,
+      ghi_chu: note.trim() || null,
+      hang_nhan: rows.map((row) => {
+        const counts = getReturnCounts(row);
+
+        return {
+          chi_tiet_don_hang_id: row.chi_tiet_don_hang_id,
+          phien_ban_id: row.phien_ban_id,
+          kho_hang_id: requirements.kho_hang_id,
+          so_luong_nguyen_ven: counts.good,
+          so_luong_loi: counts.bad,
+          serials: row.quan_ly_serial
+            ? row.serials.map((serial) => ({
+                so_serial_id: serial.so_serial_id,
+                trang_thai_sau_nhan: serial.trang_thai_sau_nhan,
+              }))
+            : [],
+        };
+      }),
+    };
+
+    return submit(
+      "POST",
+      "return-receipt",
+      body,
+      "Đã nhận đủ hàng hoàn và nhập lại kho.",
+    );
+  };
+
+  return (
+    <OrderModal
+      title="XÁC NHẬN HÀNG HOÀN VỀ KHO"
+      className="delivery-operation-dialog delivery-return-dialog is-return"
+      showClose
+      busy={busy}
+      close={close}
+      submit={save}
+      disabled={!valid}
+      error={error || loadError}
+      confirmLabel="XÁC NHẬN ĐÃ NHẬN HÀNG HOÀN"
+    >
+      <p className="delivery-warning">
+        Hàng hoàn được nhập về{" "}
+        <strong>{requirements?.ten_kho || "kho mặc định của cửa hàng"}</strong>.
+        Không chọn kho khác.
+      </p>
+
+      {loading && <p role="status">Đang tải hàng cần nhận hoàn...</p>}
+
+      {loadError && (
+        <button
+          type="button"
+          className="delivery-small-btn"
+          onClick={() => setRevision((value) => value + 1)}
+        >
+          TẢI LẠI HÀNG CẦN NHẬN
+        </button>
+      )}
+
+      {!loading && !loadError && (
+        <>
+          <h3 className="delivery-form-heading">HÀNG NHẬN VỀ</h3>
+
+          {rows.map((row, index) => {
+            const counts = getReturnCounts(row);
+            const managed = row.quan_ly_serial;
+
+            return (
+              <section
+                className="delivery-return-row"
+                key={`${row.chi_tiet_don_hang_id}:${row.phien_ban_id}`}
+              >
+                <strong>{row.ten_san_pham}</strong>
+                <small>
+                  {row.ten_phien_ban} · Số lượng đã xuất: {row.so_luong_da_xuat}
+                </small>
+
+                <div className="delivery-return-quantities">
+                  <label>
+                    <span>SỐ LƯỢNG NGUYÊN VẸN</span>
+                    <input
+                      type="number"
+                      min="0"
+                      max={row.so_luong_da_xuat}
+                      step="1"
+                      required
+                      readOnly={managed}
+                      value={managed ? counts.good : row.good}
+                      onChange={(event) =>
+                        updateQuantity(index, "good", event.target.value)
+                      }
+                    />
+                  </label>
+
+                  <label>
+                    <span>SỐ LƯỢNG LỖI</span>
+                    <input
+                      type="number"
+                      min="0"
+                      max={row.so_luong_da_xuat}
+                      step="1"
+                      required
+                      readOnly={managed}
+                      value={managed ? counts.bad : row.bad}
+                      onChange={(event) =>
+                        updateQuantity(index, "bad", event.target.value)
+                      }
+                    />
+                  </label>
+                </div>
+
+                {managed && (
+                  <div className="delivery-return-serials">
+                    <p>
+                      Chọn tình trạng từng serial. Số lượng phía trên được tính
+                      theo serial đã chọn.
+                    </p>
+
+                    {row.serials.map((serial) => (
+                      <label key={serial.so_serial_id}>
+                        <span>{serial.so_serial}</span>
+                        <select
+                          required
+                          value={serial.trang_thai_sau_nhan}
+                          onChange={(event) =>
+                            updateSerial(
+                              index,
+                              serial.so_serial_id,
+                              event.target.value,
+                            )
+                          }
+                        >
+                          <option value="">Chọn tình trạng</option>
+                          <option value="TRONG_KHO">Nguyên vẹn</option>
+                          <option value="LOI">Hàng lỗi</option>
+                        </select>
+                      </label>
+                    ))}
+                  </div>
+                )}
+
+                {!validReturnRow(row) && (
+                  <em>
+                    {managed
+                      ? "Cần phân loại đủ tất cả serial đã xuất."
+                      : "Nguyên vẹn + lỗi phải bằng số lượng đã xuất."}
+                  </em>
+                )}
+              </section>
+            );
+          })}
+
+          <label className="delivery-field">
+            <span>LÝ DO TRẢ *</span>
+            <textarea
+              required
+              maxLength={255}
+              rows={3}
+              value={reason}
+              onChange={(event) => setReason(event.target.value)}
+              placeholder="Ví dụ: Khách không nhận, đối tác đã hoàn đủ hàng..."
+            />
+          </label>
+
+          <label className="delivery-field">
+            <span>GHI CHÚ</span>
+            <textarea
+              maxLength={2000}
+              rows={3}
+              value={note}
+              onChange={(event) => setNote(event.target.value)}
+              placeholder="Tình trạng hàng khi nhận lại..."
+            />
+          </label>
+
+          <label className="delivery-field">
+            <span>HÌNH THỨC HOÀN TIỀN DỰ KIẾN, NẾU CÓ *</span>
+            <select
+              value={refundMethod}
+              onChange={(event) => setRefundMethod(event.target.value)}
+            >
+              <option value="CHUYEN_KHOAN">Chuyển khoản</option>
+              <option value="TIEN_MAT">Tiền mặt</option>
+            </select>
+            <small>
+              Thao tác này ghi nhận hàng hoàn. Việc hoàn tiền được xử lý ở
+              nghiệp vụ hoàn tiền.
+            </small>
+          </label>
+
+          <label className="delivery-checkbox">
+            <input
+              type="checkbox"
+              checked={confirmed}
+              onChange={(event) => setConfirmed(event.target.checked)}
+            />
+            <span>
+              Tôi xác nhận đã nhận đủ hàng và kiểm tra tình trạng hàng.
+            </span>
+          </label>
+        </>
+      )}
+    </OrderModal>
+  );
+}
+
+function getReturnCounts(row) {
+  if (row.quan_ly_serial) {
+    return {
+      good: row.serials.filter(
+        (serial) => serial.trang_thai_sau_nhan === "TRONG_KHO",
+      ).length,
+      bad: row.serials.filter((serial) => serial.trang_thai_sau_nhan === "LOI")
+        .length,
+    };
+  }
+
+  return {
+    good: /^\d+$/.test(row.good) ? Number(row.good) : NaN,
+    bad: /^\d+$/.test(row.bad) ? Number(row.bad) : NaN,
+  };
+}
+
+function validReturnRow(row) {
+  const expected = Number(row.so_luong_da_xuat);
+  const counts = getReturnCounts(row);
+
+  if (
+    !Number.isSafeInteger(expected) ||
+    expected <= 0 ||
+    !Number.isSafeInteger(counts.good) ||
+    !Number.isSafeInteger(counts.bad) ||
+    counts.good < 0 ||
+    counts.bad < 0 ||
+    counts.good + counts.bad !== expected
+  ) {
+    return false;
+  }
+
+  if (!row.quan_ly_serial) return true;
+
+  return (
+    row.serials.length === expected &&
+    new Set(row.serials.map((serial) => serial.so_serial_id)).size ===
+      expected &&
+    row.serials.every((serial) =>
+      ["TRONG_KHO", "LOI"].includes(serial.trang_thai_sau_nhan),
+    )
+  );
+}
+
+function ShipmentPanel({ title, tools, children }) {
+  return (
+    <section className="delivery-panel">
+      <header>
+        <h2>
+          <i aria-hidden="true" />
+          {title}
+        </h2>
+        {tools}
+      </header>
+      {children}
+    </section>
+  );
+}
+
+function ShipmentInfo({ title, wide = false, children }) {
+  return (
+    <div className={wide ? "wide" : undefined}>
+      <dt>{title}</dt>
+      <dd>{children}</dd>
+    </div>
+  );
+}
+
+function ShipmentBadge({ value }) {
+  return (
+    <span className={`delivery-badge delivery-badge--${value}`}>
+      {label(value).toUpperCase()}
+    </span>
+  );
+}

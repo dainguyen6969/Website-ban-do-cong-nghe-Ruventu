@@ -33,6 +33,12 @@ public class AdminDeliveryController {
         service.getList(keyword, trangThai, partnerId, page, limit));
   }
 
+  @GetMapping("/{id}/return-requirements")
+  public ApiResponse<ReturnRequirements> getReturnRequirements(@PathVariable("id") Long id) {
+
+    return success("Lấy dữ liệu kiểm đếm hàng hoàn thành công", service.getReturnRequirements(id));
+  }
+
   @GetMapping("/{id}")
   public ApiResponse<Detail> getDetail(@PathVariable("id") Long id) {
     return success("Lấy chi tiết phiếu giao hàng thành công", service.getDetail(id));

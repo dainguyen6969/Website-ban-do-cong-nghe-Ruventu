@@ -19,7 +19,9 @@ import {
   refundOrder,
   setPackingStatus,
   startFulfillment,
+  startOrderDelivery,
 } from "../api/orderApi";
+
 import { OrderStateBadge } from "./DanhSachDonHang";
 import "./ChiTietDonHang.css";
 import OrderModal from "../components/OrderModal";
@@ -135,12 +137,7 @@ export default function ChiTietDonHang() {
     setDialog({ type, title, confirmed: false, ...fields });
   };
   const approve = () => open("approve", "DUYỆT ĐƠN");
-  const fulfillment = () => {
-    open("fulfillment", "BẮT ĐẦU ĐÓNG GÓI", {
-      partner: "",
-      fee: String(order.phi_giao_hang || 0),
-    });
-  };
+  const fulfillment = () => open("fulfillment", "BẮT ĐẦU ĐÓNG GÓI");
 
   const cancel = () =>
     run(async () => {
@@ -185,6 +182,19 @@ export default function ChiTietDonHang() {
       setState((s) => ({ ...s, busy: false, error: error.message }));
     }
   };
+
+  const canStartDelivery =
+    order.loai_don_hang === "ONLINE" &&
+    order.hinh_thuc_nhan_hang === "GIAO_HANG" &&
+    order.trang_thai_don_hang === "CHO_LAY_HANG" &&
+    order.trang_thai_dong_goi === "DA_DONG_GOI" &&
+    order.trang_thai_xuat_kho === "DA_XUAT_KHO";
+
+  const beginDelivery = () =>
+    open("startDelivery", "BẮT ĐẦU GIAO HÀNG", {
+      partner: "",
+      fee: "0",
+    });
 
   const deliveries = order.phieu_giao_hang || [];
 
@@ -280,7 +290,7 @@ export default function ChiTietDonHang() {
     if (!dialog?.confirmed) return;
 
     run(() => {
-      const { type, partner, fee, method, transaction } = dialog;
+      const { type, method, transaction } = dialog;
 
       if (type === "payment") {
         const body = {
@@ -338,12 +348,22 @@ export default function ChiTietDonHang() {
       }
 
       if (type === "fulfillment") {
-        return startFulfillment(order.id, {
-          doi_tac_van_chuyen_id:
-            order.hinh_thuc_nhan_hang === "GIAO_HANG" ? Number(partner) : null,
-          phi_tra_doi_tac:
-            order.hinh_thuc_nhan_hang === "GIAO_HANG" ? Number(fee) : null,
-        });
+        return startFulfillment(order.id);
+      }
+
+      if (type === "startDelivery") {
+        const partnerId = Number(dialog.partner);
+        const fee = Number(dialog.fee);
+
+        if (!Number.isSafeInteger(partnerId) || partnerId <= 0) {
+          throw new Error("Vui lòng chọn đối tác giao hàng.");
+        }
+
+        if (dialog.fee === "" || !Number.isFinite(fee) || fee < 0) {
+          throw new Error("Phí trả đối tác không hợp lệ.");
+        }
+
+        return startOrderDelivery(order.id, partnerId, fee);
       }
 
       throw new Error("Thao tác không hợp lệ.");
@@ -378,21 +398,16 @@ export default function ChiTietDonHang() {
           </div>
         </div>
         <div className="order-detail-hero__actions">
+          {canStartDelivery && (
+            <Action disabled={state.busy} click={beginDelivery}>
+              BẮT ĐẦU GIAO HÀNG
+            </Action>
+          )}
           {order.loai_don_hang === "ONLINE" &&
             order.trang_thai_don_hang === "CHO_DUYET" && (
-              <>
-                <Action
-                  disabled={state.busy}
-                  click={() =>
-                    navigate(`/admin/don-hang/dat-hang-online/${order.id}`)
-                  }
-                >
-                  CHỈNH SỬA ĐƠN
-                </Action>
-                <Action disabled={state.busy} click={approve}>
-                  DUYỆT ĐƠN
-                </Action>
-              </>
+              <Action disabled={state.busy} click={approve}>
+                DUYỆT ĐƠN
+              </Action>
             )}
           {order.hinh_thuc_nhan_hang === "NHAN_TAI_CUA_HANG" &&
             order.trang_thai_don_hang === "CHO_LAY_HANG" &&
@@ -576,7 +591,19 @@ export default function ChiTietDonHang() {
               deliveries.map((item) => (
                 <dl className="order-detail-kv" key={item.id}>
                   {deliveries.length > 1 && (
-                    <Info text="MÃ PHIẾU">{item.ma_phieu_giao_hang}</Info>
+                    <Info text="MÃ PHIẾU">
+                      <button
+                        type="button"
+                        className="order-shipment-link"
+                        onClick={() =>
+                          navigate(
+                            `/admin/don-hang/quan-ly-giao-hang/${item.id}`,
+                          )
+                        }
+                      >
+                        {item.ma_phieu_giao_hang || `Phiếu #${item.id}`}
+                      </button>
+                    </Info>
                   )}
                   <Info text="ĐƠN VỊ VẬN CHUYỂN">
                     {item.ten_doi_tac_van_chuyen ||
@@ -811,9 +838,6 @@ function OrderActionDialog({
   const refunding = dialog.type === "refund";
   const monetary = receiving || refunding;
 
-  const shipping =
-    dialog.type === "fulfillment" && order.hinh_thuc_nhan_hang === "GIAO_HANG";
-
   const field = (caption, key, type = "text", extra = {}) => (
     <label className="order-operation-field">
       <span>{caption}</span>
@@ -833,11 +857,52 @@ function OrderActionDialog({
       busy={busy}
       submit={submit}
       error={error}
-      disabled={!dialog.confirmed}
+      disabled={
+        !dialog.confirmed ||
+        (dialog.type === "startDelivery" &&
+          (!dialog.partner ||
+            dialog.fee === "" ||
+            !Number.isFinite(Number(dialog.fee)) ||
+            Number(dialog.fee) < 0))
+      }
     >
+      {dialog.type === "startDelivery" && (
+        <>
+          <p className="order-delivery-description">
+            Chọn đối tác và xác nhận đã bàn giao hàng. Phí trả đối tác là khoản
+            cửa hàng trả cho người giao.
+          </p>
+
+          <label className="order-operation-field">
+            <span>ĐỐI TÁC GIAO HÀNG *</span>
+
+            <select
+              required
+              disabled={busy}
+              value={dialog.partner}
+              onChange={(event) => change("partner", event.target.value)}
+            >
+              <option value="">— Chọn đối tác —</option>
+
+              {options.partners.map((partner) => (
+                <option key={partner.id} value={partner.id}>
+                  {partner.ten_doi_tac} — {partner.ma_doi_tac}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          {field("PHÍ TRẢ ĐỐI TÁC (đ) *", "fee", "number", {
+            required: true,
+            min: 0,
+            step: "0.01",
+            disabled: busy,
+          })}
+        </>
+      )}
       <p>{order.ma_don_hang}</p>
 
-      {shipping && (
+      {dialog.type === "startDelivery" && (
         <>
           <label className="order-operation-field">
             <span>ĐỐI TÁC VẬN CHUYỂN</span>

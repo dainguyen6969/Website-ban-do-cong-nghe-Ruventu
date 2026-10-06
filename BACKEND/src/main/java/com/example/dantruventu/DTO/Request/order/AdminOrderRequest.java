@@ -52,6 +52,10 @@ public final class AdminOrderRequest {
     @Digits(integer = 13, fraction = 2)
     @JsonProperty("phi_tra_doi_tac")
     private BigDecimal phiTraDoiTac;
+
+    @Size(max = 50, message = "Mã vận đơn tối đa 50 ký tự")
+    @JsonProperty("ma_van_don")
+    private String maVanDon;
   }
 
   @Getter

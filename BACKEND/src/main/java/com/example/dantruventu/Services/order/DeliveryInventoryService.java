@@ -1,6 +1,9 @@
 package com.example.dantruventu.Services.order;
 
 import com.example.dantruventu.DTO.Request.order.AdminDeliveryReturnRequest;
+import com.example.dantruventu.DTO.Response.order.AdminDeliveryResponse.ReturnRequirement;
+import com.example.dantruventu.DTO.Response.order.AdminDeliveryResponse.ReturnRequirements;
+import com.example.dantruventu.DTO.Response.order.AdminDeliveryResponse.ReturnSerial;
 import com.example.dantruventu.Entity.*;
 import com.example.dantruventu.Enum.*;
 import com.example.dantruventu.Error.AppException;
@@ -81,6 +84,67 @@ public class DeliveryInventoryService {
     }
 
     // Không đổi tồn thực tế, không sinh thẻ kho.
+  }
+
+  public ReturnRequirements getReturnRequirements(DonHang order) {
+    KhoHang warehouse = requireWarehouse();
+
+    Map<Key, Expected> requirements = expected(order.getId());
+    verifyExport(order.getId(), totals(requirements));
+
+    Map<Long, ArrayDeque<SoSerialSanPham>> serialsByVariant = new HashMap<>();
+
+    for (SoSerialSanPham serial : serialRepository.findByDonHang_IdOrderByIdAsc(order.getId())) {
+
+      if (serial.getTrangThai() != TrangThaiSerial.DA_BAN) {
+        throw conflict("Serial liên kết với đơn không ở trạng thái DA_BAN");
+      }
+
+      serialsByVariant
+          .computeIfAbsent(serial.getPhienBan().getId(), ignored -> new ArrayDeque<>())
+          .addLast(serial);
+    }
+
+    List<ReturnRequirement> items = new ArrayList<>();
+
+    for (Expected requirement : requirements.values()) {
+      PhienBanSanPham variant = requirement.variant();
+      boolean managed = serialRepository.countByPhienBanId(variant.getId()) > 0;
+
+      var pool = serialsByVariant.computeIfAbsent(variant.getId(), ignored -> new ArrayDeque<>());
+
+      List<ReturnSerial> serials = new ArrayList<>();
+
+      if (managed) {
+        if (pool.size() < requirement.quantity()) {
+          throw conflict("Thiếu serial đã xuất tại phiên bản " + variant.getId());
+        }
+
+        // ERD hiện liên kết serial với đơn và phiên bản.
+        // Phân bổ mỗi serial đúng một lần vào các dòng cùng phiên bản.
+        for (int index = 0; index < requirement.quantity(); index++) {
+          SoSerialSanPham serial = pool.removeFirst();
+          serials.add(new ReturnSerial(serial.getId(), serial.getSoSerial()));
+        }
+      }
+
+      items.add(
+          new ReturnRequirement(
+              requirement.line().getId(),
+              variant.getId(),
+              requirement.line().getPhienBan().getSanPham().getTenSanPham(),
+              variant.getSanPham().getTenSanPham(),
+              variant.getTenPhienBan(),
+              requirement.quantity(),
+              managed,
+              serials));
+    }
+
+    if (serialsByVariant.values().stream().anyMatch(pool -> !pool.isEmpty())) {
+      throw conflict("Serial liên kết với đơn không khớp toàn bộ hàng đã xuất");
+    }
+
+    return new ReturnRequirements(order.getId(), warehouse.getId(), warehouse.getTenKho(), items);
   }
 
   public void receiveAll(

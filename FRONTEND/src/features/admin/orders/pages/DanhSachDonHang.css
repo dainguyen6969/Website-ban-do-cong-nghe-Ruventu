@@ -89,3 +89,98 @@
 .order-api-message { margin:16px 0; padding:12px 16px; border:1px solid; font-size:12px; font-weight:700; }
 .order-api-message--error { color:#a80000; border-color:#e5a0a0; background:#fff1f1; }
 .order-api-message--success { color:#146c2e; border-color:#9fd4ae; background:#f0fff4; }
+
+/* Các nút thao tác trong danh sách đơn hàng */
+.order-list-table th:last-child {
+  min-width: 260px;
+}
+
+.order-list-table td.order-actions-cell {
+  min-width: 260px;
+  vertical-align: middle;
+}
+
+.order-row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  max-width: 360px;
+}
+
+.order-row-actions > .order-detail-button {
+  min-height: 32px;
+  padding: 6px 10px !important;
+  white-space: nowrap;
+}
+
+/* Bắt đầu giao hàng */
+.order-row-actions > .order-delivery-button {
+  color: #fff !important;
+  border-color: #111 !important;
+  background: #111 !important;
+}
+
+.order-row-actions > .order-delivery-button:hover:not(:disabled) {
+  border-color: #333 !important;
+  background: #333 !important;
+}
+
+/* Mở phiếu giao hàng */
+.order-row-actions > .order-shipment-button {
+  color: #0866bf !important;
+  border-color: #0866bf !important;
+  background: #eff7ff !important;
+}
+
+.order-row-actions > .order-shipment-button:hover:not(:disabled) {
+  color: #fff !important;
+  background: #0866bf !important;
+}
+
+/* Trạng thái đang tải hoặc đang xử lý */
+.order-row-actions > .order-detail-button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+/* Lỗi khi lấy thông tin hoặc bàn giao đơn */
+.order-row-actions > .order-delivery-error {
+  flex-basis: 100%;
+  max-width: 360px;
+  margin: 4px 0 0;
+  color: #b00000;
+  font-size: 11px;
+  line-height: 1.5;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 760px) {
+  .order-list-table th:last-child,
+  .order-list-table td.order-actions-cell {
+    min-width: 200px;
+  }
+
+  .order-row-actions {
+    max-width: 230px;
+  }
+}
+
+.order-list-table {
+  min-width: 1600px;
+}
+
+.order-list-table .order-delivery-status-cell {
+  min-width: 155px;
+}
+
+.order-delivery-status-cell .order-state-badge {
+  margin-top: 0;
+}
+
+.order-state-badge--indigo {
+  color: #2435b9;
+  border-color: #8995ef;
+  background: #eff0ff;
+}
