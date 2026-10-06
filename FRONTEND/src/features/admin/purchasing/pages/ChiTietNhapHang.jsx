@@ -702,11 +702,28 @@ function PurchaseOperationDialog({
     );
   });
 
+  const receivingRefund = kind === "refund";
+
+  const moneyFieldsValid = Boolean(
+    form.occurredAt &&
+    METHODS.some(([code]) => code === form.method) &&
+    (form.method === "TIEN_MAT" || form.transaction.trim()),
+  );
+
   const valid = returning
-    ? Boolean(form.reason.trim() && selectedItems.length && quantitiesValid)
-    : form.confirmed &&
-      (!paying ||
-        (Number(form.amount) > 0 && Number(form.amount) <= order.debt));
+    ? Boolean(
+        form.reason.trim() &&
+        selectedItems.length > 0 &&
+        quantitiesValid &&
+        (!form.confirmed || moneyFieldsValid),
+      )
+    : Boolean(
+        form.confirmed &&
+        moneyFieldsValid &&
+        (paying
+          ? Number(form.amount) > 0 && Number(form.amount) <= Number(order.debt)
+          : receivingRefund && Number(order.refundDue) > 0),
+      );
 
   const showMoneyFields = !returning || form.confirmed;
 
@@ -762,6 +779,13 @@ function PurchaseOperationDialog({
       submit={() => submit(buildBody)}
       error={error}
       disabled={!valid}
+      confirmLabel={
+        paying
+          ? "XÁC NHẬN THANH TOÁN"
+          : returning
+            ? "XÁC NHẬN TRẢ HÀNG"
+            : "XÁC NHẬN ĐÃ NHẬN TIỀN HOÀN"
+      }
     >
       <p>
         {order.code} · {order.supplier.name}
@@ -882,7 +906,7 @@ function PurchaseOperationDialog({
               <span>MÃ GIAO DỊCH</span>
               <input
                 required
-                maxLength={255}
+                maxLength={2555}
                 pattern=".*\S.*"
                 value={form.transaction}
                 onChange={(event) => change("transaction", event.target.value)}
