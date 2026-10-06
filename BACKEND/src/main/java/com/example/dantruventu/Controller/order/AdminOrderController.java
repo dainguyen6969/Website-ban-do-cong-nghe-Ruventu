@@ -110,13 +110,9 @@ public class AdminOrderController {
   }
 
   @PostMapping("/{id}/delivery/start")
-  @ResponseStatus(org.springframework.http.HttpStatus.GONE)
-  public ApiResponse<Void> retiredStartDelivery() {
-    return ApiResponse.<Void>builder()
-        .status(410)
-        .message(
-            "Luồng bắt đầu giao hàng trên đơn đã ngừng hỗ trợ. Cập nhật phiếu giao hàng qua API deliveries.")
-        .build();
+  public ApiResponse<AdminOrderResponse.Action> startDelivery(
+      @PathVariable("id") Long id, @Valid @RequestBody AdminOrderRequest.DeliveryStart request) {
+    return ok("Bắt đầu giao hàng thành công", orderService.startDelivery(id, request));
   }
 
   @GetMapping("/{id}/history")

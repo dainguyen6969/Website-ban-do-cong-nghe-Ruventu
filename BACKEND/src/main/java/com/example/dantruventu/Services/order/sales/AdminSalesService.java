@@ -13,6 +13,7 @@ import com.example.dantruventu.Mapper.order.AdminDeliveryMapper;
 import com.example.dantruventu.Mapper.order.AdminSalesMapper;
 import com.example.dantruventu.Repository.NguoiDungRepository;
 import com.example.dantruventu.Repository.VaiTroRepository;
+import com.example.dantruventu.Repository.cashbook.SoQuyThuChiRepository;
 import com.example.dantruventu.Repository.order.ChiTietDonHangRepository;
 import com.example.dantruventu.Repository.order.DonHangRepository;
 import com.example.dantruventu.Repository.order.PhieuGiaoHangRepository;
@@ -63,6 +64,7 @@ public class AdminSalesService {
   private final ObjectMapper objectMapper;
 
   private final CashbookService cashbookService;
+  private final SoQuyThuChiRepository cashRepository;
 
   public AdminSalesResponse.Options options() {
 
@@ -379,9 +381,19 @@ public class AdminSalesService {
     DonHang order =
         orderRepository.findById(id).orElseThrow(() -> notFound("Đơn hàng không tồn tại"));
 
-    var response = mapper.toOrder(order, properties.zone());
+    var response =
+        order.getLoaiDonHang() == LoaiDonHang.TAI_QUAY
+            ? mapper.toCheckout(order, properties.zone())
+            : mapper.toOrder(order, properties.zone());
 
     enrich(response, order);
+
+    if (response instanceof AdminSalesResponse.Checkout checkout) {
+      cashRepository
+          .findByMaPhieu("THU-POS-" + order.getId())
+          .map(mapper::toCashReceipt)
+          .ifPresent(checkout::setPhieuThu);
+    }
 
     return response;
   }
@@ -619,6 +631,21 @@ public class AdminSalesService {
         deliveryRepository.findByDonHang_IdOrderByIdAsc(order.getId()).stream()
             .map(mapper::toDelivery)
             .toList());
+
+    response.setDaGhiNhanThuCod(
+        response.getPhieuGiaoHang().stream()
+            .anyMatch(
+                delivery ->
+                    cashRepository
+                        .findByMaPhieu("THU-COD-" + delivery.id())
+                        .filter(
+                            voucher ->
+                                voucher.getLoaiPhieu() == LoaiPhieuThuChi.THU
+                                    && voucher.getNguonTao() == NguonTaoPhieuThuChi.TU_DONG
+                                    && voucher.getTrangThai() == TrangThaiPhieuThuChi.DA_GHI_NHAN
+                                    && Objects.equals(
+                                        voucher.getMaChungTuThamChieu(), order.getMaDonHang()))
+                        .isPresent()));
   }
 
   private boolean usesComboSerial(PhienBanSanPham variant) {

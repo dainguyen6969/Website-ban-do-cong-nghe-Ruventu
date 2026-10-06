@@ -45,6 +45,7 @@ public class AdminDeliveryService {
   private final ChiTietTraHangRepository returnLineRepository;
   private final DeliveryInventoryService inventoryService;
   private final AdminDeliveryMapper mapper;
+  private final AdminOrderService orderService;
 
   @Value("${ruventu.shipping.time-zone:Asia/Ho_Chi_Minh}")
   private String shippingTimeZone;
@@ -142,6 +143,10 @@ public class AdminDeliveryService {
     delivery.setTienThuHoCod(calculateCod(order));
     delivery.setNgayCapNhat(now());
 
+    orderService.recordHistory(
+        order,
+        "CAP_NHAT_GIAO_VAN",
+        "Cập nhật đối tác, phí trả và mã vận đơn của phiếu " + delivery.getMaPhieuGiaoHang());
     deliveryRepository.flush();
 
     return mapper.toAction(delivery, zone());
@@ -212,6 +217,18 @@ public class AdminDeliveryService {
     }
 
     delivery.setNgayCapNhat(now());
+    String description =
+        switch (target) {
+          case DA_NHAN_HANG -> "Bàn giao hàng cho đối tác";
+          case DANG_GIAO -> "Đối tác đang giao hàng";
+          case GIAO_THANH_CONG -> "Giao hàng thành công";
+          case GIAO_THAT_BAI -> "Giao hàng thất bại, chờ hoàn hàng";
+          default -> throw invalid("Trạng thái giao hàng không hợp lệ");
+        };
+    orderService.recordHistory(
+        order,
+        "GIAO_VAN_" + target.name(),
+        description + "; phiếu " + delivery.getMaPhieuGiaoHang());
     deliveryRepository.flush();
 
     return mapper.toAction(delivery, zone());
@@ -257,6 +274,8 @@ public class AdminDeliveryService {
     delivery.setTrangThaiGiaoHang(TrangThaiGiaoHangEnum.HUY_GIAO_HANG);
     delivery.setNgayCapNhat(now());
 
+    orderService.recordHistory(
+        order, "HUY_PHIEU_GIAO", "Hủy phiếu giao hàng " + delivery.getMaPhieuGiaoHang());
     deliveryRepository.flush();
 
     return mapper.toAction(delivery, zone());
@@ -334,6 +353,8 @@ public class AdminDeliveryService {
     order.setTrangThaiXuatKho(TrangThaiXuatKho.DA_HOAN_KHO);
 
     // Giữ nguyên trạng thái thanh toán gốc và trạng thái đóng gói.
+    orderService.recordHistory(
+        order, "NHAN_HOAN_GIAO_HANG", "Nhận hoàn hàng từ phiếu " + delivery.getMaPhieuGiaoHang());
     deliveryRepository.flush();
 
     return returnAction(delivery, returnDocument);
