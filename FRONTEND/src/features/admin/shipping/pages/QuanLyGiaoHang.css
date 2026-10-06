@@ -665,3 +665,406 @@
     flex-wrap: wrap;
   }
 }
+
+/* Danh sách giao hàng */
+.delivery-list-page {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: #fff;
+}
+
+.delivery-list-page .delivery-toolbar {
+  flex-shrink: 0;
+  min-height: 54px;
+  padding: 8px 12px;
+  grid-template-columns: minmax(240px, 1fr) 155px 190px 70px 34px;
+  gap: 10px;
+  border-bottom: 1px solid #111;
+  background: #fff;
+}
+
+.delivery-list-page .delivery-search {
+  min-width: 0;
+  height: 36px;
+  border: 1px solid #d6d6d6;
+}
+
+.delivery-list-page .delivery-search:focus-within {
+  border-color: #111;
+}
+
+.delivery-list-page .delivery-search input {
+  min-width: 0;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  outline: none;
+  font-size: 11px;
+}
+
+.delivery-list-page .delivery-search input::placeholder {
+  color: #9a9fa7;
+}
+
+.delivery-list-page .delivery-list-select {
+  width: 100%;
+  min-width: 0;
+  height: 36px;
+  padding: 0 10px;
+  border: 1px solid #ccc;
+  color: #111;
+  background: #fff;
+  font-family: "Barlow Condensed", sans-serif;
+  font-size: 11px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.delivery-list-page .delivery-list-select:disabled {
+  color: #929292;
+  cursor: wait;
+}
+
+.delivery-list-page .delivery-count {
+  text-align: center;
+  font-family: "Barlow Condensed", sans-serif;
+  font-size: 11px;
+  font-weight: 800;
+  color: #777f88;
+}
+
+.delivery-list-page .delivery-list-refresh {
+  width: 34px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 1px solid #ccc !important;
+  color: #111;
+  background: #fff;
+  cursor: pointer;
+}
+
+.delivery-list-page .delivery-list-refresh:hover:not(:disabled) {
+  border-color: #111 !important;
+  background: #f2f2f2;
+}
+
+.delivery-list-page .delivery-list-refresh:disabled {
+  opacity: 0.45;
+  cursor: wait;
+}
+
+.delivery-list-page .delivery-list-error {
+  flex-shrink: 0;
+  margin: 0;
+  padding: 10px 14px;
+  border-bottom: 1px solid #efb5b5;
+  color: #b00000;
+  background: #fff3f3;
+  font-size: 12px;
+}
+
+.delivery-list-page .delivery-table-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  scrollbar-color: #999 #eee;
+}
+
+.delivery-list-page .delivery-table {
+  width: 100%;
+  min-width: 1830px;
+  table-layout: fixed;
+  border-collapse: collapse;
+}
+
+/* Chiều rộng đủ 13 cột */
+.delivery-list-page .delivery-table col:nth-child(1) { width: 135px; }
+.delivery-list-page .delivery-table col:nth-child(2) { width: 125px; }
+.delivery-list-page .delivery-table col:nth-child(3) { width: 145px; }
+.delivery-list-page .delivery-table col:nth-child(4) { width: 120px; }
+.delivery-list-page .delivery-table col:nth-child(5) { width: 145px; }
+.delivery-list-page .delivery-table col:nth-child(6) { width: 165px; }
+.delivery-list-page .delivery-table col:nth-child(7) { width: 110px; }
+.delivery-list-page .delivery-table col:nth-child(8) { width: 105px; }
+.delivery-list-page .delivery-table col:nth-child(9) { width: 140px; }
+.delivery-list-page .delivery-table col:nth-child(10) { width: 115px; }
+.delivery-list-page .delivery-table col:nth-child(11) { width: 225px; }
+.delivery-list-page .delivery-table col:nth-child(12) { width: 135px; }
+.delivery-list-page .delivery-table col:nth-child(13) { width: 110px; }
+
+.delivery-list-page .delivery-table thead {
+  color: #777f88;
+  background: #f5f5f5;
+}
+
+.delivery-list-page .delivery-table th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  height: 35px;
+  padding: 8px 10px;
+  border-right: 0;
+  border-bottom: 1px solid #999;
+  background: #f5f5f5;
+  font-family: "Barlow Condensed", sans-serif;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.25px;
+}
+
+.delivery-list-page .delivery-table td {
+  height: 56px;
+  padding: 10px;
+  border-right: 1px solid #eee;
+  border-bottom: 1px solid #eee;
+  font-size: 11px;
+  vertical-align: middle;
+}
+
+.delivery-list-page .delivery-table td:last-child {
+  border-right: 0;
+  text-align: center;
+}
+
+.delivery-list-page .delivery-table tbody tr:nth-child(even) {
+  background: #fafafa;
+}
+
+.delivery-list-page .delivery-table tbody tr:hover {
+  background: #f3f5f7;
+}
+
+.delivery-list-page .delivery-list-ellipsis {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.delivery-list-page .delivery-list-code {
+  font-family: monospace;
+  font-size: 10px;
+}
+
+.delivery-list-page strong.delivery-list-code {
+  font-weight: 800;
+}
+
+.delivery-list-page .delivery-link {
+  width: 100%;
+  padding: 0;
+  text-align: left;
+  font-size: 11px;
+}
+
+.delivery-list-page .delivery-partner-link {
+  width: 100%;
+  min-width: 0;
+  padding: 0;
+  gap: 3px;
+  background: transparent;
+}
+
+.delivery-list-page .delivery-partner-link b {
+  font-size: 12px;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.delivery-list-page .delivery-partner-link small {
+  font-size: 9px;
+  color: #969da6;
+}
+
+.delivery-list-page .delivery-badge,
+.delivery-list-page .order-state-badge {
+  min-height: 22px;
+  margin: 0;
+  padding: 3px 6px;
+  font-family: "Barlow Condensed", sans-serif;
+  font-size: 10px;
+  line-height: 1.2;
+}
+
+.delivery-list-page .delivery-money,
+.delivery-list-page .delivery-money-red {
+  font-family: "Barlow Condensed", sans-serif;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.delivery-list-page .delivery-money-red {
+  color: #f00;
+}
+
+.delivery-list-page .delivery-money {
+  color: #626a74;
+}
+
+.delivery-list-page .delivery-muted {
+  font-size: 10px;
+  color: #9ba2ab;
+  white-space: nowrap;
+}
+
+.delivery-list-page .delivery-list-phone {
+  color: #818994;
+  font-size: 10px;
+  white-space: nowrap;
+}
+
+.delivery-list-page .delivery-list-address {
+  color: #9097a1;
+  font-size: 10px;
+}
+
+.delivery-list-page .delivery-list-updated {
+  color: #7e8792;
+  font-family: "Barlow Condensed", sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.delivery-list-page .delivery-detail-btn {
+  min-height: 29px;
+  padding: 0 9px;
+  border: 1px solid #111 !important;
+  color: #111;
+  background: #fff;
+  font-family: "Barlow Condensed", sans-serif;
+  font-size: 10px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.delivery-list-page .delivery-detail-btn:hover {
+  color: #fff;
+  background: #111;
+}
+
+.delivery-list-page .delivery-table td.delivery-list-empty {
+  height: 110px;
+  text-align: center;
+  color: #8a929d;
+  font-size: 12px;
+}
+
+/* Thống kê và phân trang ở cuối màn hình */
+.delivery-list-page .delivery-list-footer {
+  flex-shrink: 0;
+  min-height: 52px;
+  padding: 9px 14px;
+  flex-wrap: wrap;
+  gap: 10px 18px;
+  border-top: 1px solid #111;
+  background: #fafafa;
+}
+
+.delivery-list-page .delivery-status-counts {
+  flex: 1;
+  gap: 8px 14px;
+}
+
+.delivery-list-page .delivery-status-count {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 26px;
+  padding: 3px 0;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  color: #8d959f;
+  background: transparent;
+  font-family: "Barlow Condensed", sans-serif;
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.delivery-list-page .delivery-status-count strong {
+  color: #111;
+  font-size: 12px;
+}
+
+.delivery-list-page .delivery-status-count:hover:not(:disabled),
+.delivery-list-page .delivery-status-count.is-selected {
+  color: var(--delivery-status-color, #111);
+  border-bottom-color: var(--delivery-status-color, #111);
+}
+
+.delivery-list-page .delivery-status-count:disabled {
+  opacity: 0.55;
+  cursor: wait;
+}
+
+.delivery-list-page .delivery-status--CHO_GIAO { --delivery-status-color: #696969; }
+.delivery-list-page .delivery-status--DA_NHAN_HANG { --delivery-status-color: #0866bf; }
+.delivery-list-page .delivery-status--DANG_GIAO { --delivery-status-color: #2435b9; }
+.delivery-list-page .delivery-status--GIAO_THANH_CONG { --delivery-status-color: #148025; }
+.delivery-list-page .delivery-status--GIAO_THAT_BAI { --delivery-status-color: #dc151b; }
+.delivery-list-page .delivery-status--CHO_HOAN_HANG { --delivery-status-color: #ef5c00; }
+.delivery-list-page .delivery-status--DA_HOAN_HANG { --delivery-status-color: #ef5c00; }
+.delivery-list-page .delivery-status--HUY_GIAO_HANG { --delivery-status-color: #dc151b; }
+
+.delivery-list-page .delivery-list-pagination {
+  min-width: 0;
+  margin: 0 0 0 auto;
+  padding: 0;
+  border: 0;
+}
+
+.delivery-list-page .product-pagination-bar {
+  width: auto;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.delivery-list-page .product-pagination-btn {
+  min-width: 29px;
+  height: 29px;
+  padding: 0 8px;
+  font-size: 11px;
+}
+
+.delivery-list-page .product-pagination-jump {
+  height: 29px;
+  font-size: 11px;
+}
+
+@media (max-width: 1100px) {
+  .delivery-list-page .delivery-toolbar {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 70px 34px;
+  }
+
+  .delivery-list-page .delivery-search {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 600px) {
+  .delivery-list-page .delivery-toolbar {
+    padding: 8px;
+    gap: 8px;
+  }
+
+  .delivery-list-page .delivery-list-select {
+    font-size: 10px;
+    padding: 0 6px;
+  }
+
+  .delivery-list-page .delivery-list-footer {
+    padding: 8px;
+  }
+
+  .delivery-list-page .delivery-status-counts {
+    flex-basis: 100%;
+  }
+}

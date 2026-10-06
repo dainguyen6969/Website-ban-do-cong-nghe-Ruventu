@@ -166,3 +166,21 @@
     max-width: 230px;
   }
 }
+
+.order-list-table {
+  min-width: 1600px;
+}
+
+.order-list-table .order-delivery-status-cell {
+  min-width: 155px;
+}
+
+.order-delivery-status-cell .order-state-badge {
+  margin-top: 0;
+}
+
+.order-state-badge--indigo {
+  color: #2435b9;
+  border-color: #8995ef;
+  background: #eff0ff;
+}

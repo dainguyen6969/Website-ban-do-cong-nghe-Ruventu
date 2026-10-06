@@ -14,13 +14,12 @@ import com.example.dantruventu.Mapper.order.AdminDeliveryMapper;
 import com.example.dantruventu.Repository.order.*;
 import com.example.dantruventu.Repository.partner.DoiTacVanChuyenRepository;
 import com.example.dantruventu.Specification.DeliverySpecification;
+import jakarta.persistence.EntityManager;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.PageRequest;
@@ -46,6 +45,7 @@ public class AdminDeliveryService {
   private final DeliveryInventoryService inventoryService;
   private final AdminDeliveryMapper mapper;
   private final AdminOrderService orderService;
+  private final EntityManager entityManager;
 
   @Value("${ruventu.shipping.time-zone:Asia/Ho_Chi_Minh}")
   private String shippingTimeZone;
@@ -91,38 +91,39 @@ public class AdminDeliveryService {
 
     return new ListData(
         result.getContent().stream().map(entity -> mapper.toListItem(entity, zone)).toList(),
-        pagination);
+        pagination,
+        statusCounts(keyword, partnerId));
   }
 
-    public ReturnRequirements getReturnRequirements(Long id) {
-        validateId(id);
+  public ReturnRequirements getReturnRequirements(Long id) {
+    validateId(id);
 
-        PhieuGiaoHang delivery =
-                deliveryRepository
-                        .findById(id)
-                        .orElseThrow(() -> notFound("Phiếu giao hàng không tồn tại"));
+    PhieuGiaoHang delivery =
+        deliveryRepository
+            .findById(id)
+            .orElseThrow(() -> notFound("Phiếu giao hàng không tồn tại"));
 
-        DonHang order = delivery.getDonHang();
+    DonHang order = delivery.getDonHang();
 
-        requireOpenOrder(order);
-        requireOnlyEffectiveDelivery(delivery);
+    requireOpenOrder(order);
+    requireOnlyEffectiveDelivery(delivery);
 
-        if (delivery.getTrangThaiGiaoHang() != TrangThaiGiaoHangEnum.CHO_HOAN_HANG) {
-            throw conflict("Phiếu giao chưa ở trạng thái CHO_HOAN_HANG");
-        }
-
-        requireInTransitOrder(order);
-
-        if (order.getKhachHang() == null) {
-            throw conflict("Đơn chưa gắn khách hàng; cần gắn khách hàng trước khi lập phiếu trả");
-        }
-
-        if (returnRepository.existsByDonHang_Id(order.getId())) {
-            throw conflict("Đơn đã có phiếu trả khác, không thể hoàn toàn bộ lần nữa");
-        }
-
-        return inventoryService.getReturnRequirements(order);
+    if (delivery.getTrangThaiGiaoHang() != TrangThaiGiaoHangEnum.CHO_HOAN_HANG) {
+      throw conflict("Phiếu giao chưa ở trạng thái CHO_HOAN_HANG");
     }
+
+    requireInTransitOrder(order);
+
+    if (order.getKhachHang() == null) {
+      throw conflict("Đơn chưa gắn khách hàng; cần gắn khách hàng trước khi lập phiếu trả");
+    }
+
+    if (returnRepository.existsByDonHang_Id(order.getId())) {
+      throw conflict("Đơn đã có phiếu trả khác, không thể hoàn toàn bộ lần nữa");
+    }
+
+    return inventoryService.getReturnRequirements(order);
+  }
 
   public Detail getDetail(Long id) {
     validateId(id);
@@ -636,6 +637,41 @@ public class AdminDeliveryService {
     if (id == null || id <= 0) {
       throw invalid("ID phải là số nguyên dương");
     }
+  }
+
+  private Map<String, Long> statusCounts(String keyword, Long partnerId) {
+    Map<String, Long> counts = new LinkedHashMap<>();
+
+    for (TrangThaiGiaoHangEnum value : TrangThaiGiaoHangEnum.values()) {
+      counts.put(value.name(), 0L);
+    }
+
+    var cb = entityManager.getCriteriaBuilder();
+    var query = cb.createTupleQuery();
+    var root = query.from(PhieuGiaoHang.class);
+    var status = root.<TrangThaiGiaoHangEnum>get("trangThaiGiaoHang");
+
+    query.multiselect(status.alias("status"), cb.countDistinct(root.get("id")).alias("total"));
+
+    // Giữ bộ lọc từ khóa và đối tác; thống kê tất cả trạng thái.
+    var predicate =
+        DeliverySpecification.build(keyword, null, partnerId).toPredicate(root, query, cb);
+
+    if (predicate != null) {
+      query.where(predicate);
+    }
+
+    query.groupBy(status);
+
+    for (var row : entityManager.createQuery(query).getResultList()) {
+      TrangThaiGiaoHangEnum value = row.get("status", TrangThaiGiaoHangEnum.class);
+
+      if (value != null) {
+        counts.put(value.name(), row.get("total", Long.class));
+      }
+    }
+
+    return counts;
   }
 
   private AppException invalid(String message) {
