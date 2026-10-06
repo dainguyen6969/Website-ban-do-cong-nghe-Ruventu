@@ -2,6 +2,7 @@ package com.example.dantruventu.Controller.order;
 
 import com.example.dantruventu.DTO.Request.order.AdminReturnCreateRequest;
 import com.example.dantruventu.DTO.Request.order.AdminReturnReceiveRequest;
+import com.example.dantruventu.DTO.Request.order.AdminReturnRefundRequest;
 import com.example.dantruventu.DTO.Response.ApiResponse;
 import com.example.dantruventu.DTO.Response.order.AdminReturnResponse;
 import com.example.dantruventu.Entity.NguoiDung;
@@ -16,6 +17,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
@@ -28,6 +30,20 @@ import org.springframework.web.bind.annotation.RestController;
 public class AdminReturnController {
 
   private final AdminReturnService adminReturnService;
+
+  @PostMapping("/{id}/refund")
+  public ApiResponse<AdminReturnResponse.RefundResponse> refund(
+      @PathVariable("id") Long id,
+      @RequestHeader(name = "Idempotency-Key", required = false) String idempotencyKey,
+      @Valid @RequestBody AdminReturnRefundRequest request,
+      @AuthenticationPrincipal NguoiDung actor) {
+
+    return ApiResponse.<AdminReturnResponse.RefundResponse>builder()
+        .status(200)
+        .message("Ghi nhận hoàn tiền thành công")
+        .data(adminReturnService.refund(id, idempotencyKey, request, actor))
+        .build();
+  }
 
   @PostMapping("/{id}/receive")
   public ApiResponse<AdminReturnResponse.ReceiveResponse> receive(

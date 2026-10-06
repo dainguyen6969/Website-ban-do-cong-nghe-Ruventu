@@ -1,6 +1,7 @@
 package com.example.dantruventu.DTO.Response.order;
 
 import com.example.dantruventu.DTO.Response.PaginationResponse;
+import com.example.dantruventu.DTO.Response.cashbook.CashVoucherResponse;
 import com.example.dantruventu.Enum.LoaiDonHang;
 import com.example.dantruventu.Enum.TrangThaiDonHang;
 import com.example.dantruventu.Enum.TrangThaiSerial;
@@ -21,6 +22,31 @@ import lombok.Setter;
 public final class AdminReturnResponse {
 
   private AdminReturnResponse() {}
+
+  @Getter
+  @Setter
+  @NoArgsConstructor
+  @AllArgsConstructor
+  @Builder
+  public static class RefundResponse {
+
+    private Long id;
+
+    @JsonProperty("ma_tra_hang")
+    private String maTraHang;
+
+    @JsonProperty("trang_thai_tra_hang")
+    private TrangThaiTraHang trangThaiTraHang;
+
+    @JsonProperty("tong_tien_hoan")
+    private BigDecimal tongTienHoan;
+
+    @JsonProperty("hinh_thuc_hoan_tien")
+    private String hinhThucHoanTien;
+
+    @JsonProperty("phieu_chi")
+    private CashVoucherResponse phieuChi;
+  }
 
   @Getter
   @Setter

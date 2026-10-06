@@ -2,25 +2,40 @@ package com.example.dantruventu.Services.order;
 
 import com.example.dantruventu.DTO.Request.order.AdminReturnCreateRequest;
 import com.example.dantruventu.DTO.Request.order.AdminReturnReceiveRequest;
+import com.example.dantruventu.DTO.Request.order.AdminReturnRefundRequest;
 import com.example.dantruventu.DTO.Response.PaginationResponse;
+import com.example.dantruventu.DTO.Response.cashbook.CashVoucherResponse;
 import com.example.dantruventu.DTO.Response.order.AdminReturnResponse;
-import com.example.dantruventu.Entity.NguoiDung;
-import com.example.dantruventu.Entity.DonHang;
 import com.example.dantruventu.Entity.ChiTietDonHang;
 import com.example.dantruventu.Entity.ChiTietTraHang;
+import com.example.dantruventu.Entity.DonHang;
+import com.example.dantruventu.Entity.LoaiThuChi;
+import com.example.dantruventu.Entity.NguoiDung;
+import com.example.dantruventu.Entity.PhieuGiaoHang;
 import com.example.dantruventu.Entity.PhieuTraHang;
+import com.example.dantruventu.Entity.SoQuyThuChi;
+import com.example.dantruventu.Enum.LoaiPhieuThuChi;
 import com.example.dantruventu.Enum.LoaiSanPham;
-import com.example.dantruventu.Enum.TrangThaiTraHang;
+import com.example.dantruventu.Enum.NguonTaoPhieuThuChi;
+import com.example.dantruventu.Enum.NhomNguoiNopNhanEnum;
+import com.example.dantruventu.Enum.TrangThaiCoBanEnum;
 import com.example.dantruventu.Enum.TrangThaiDonHang;
+import com.example.dantruventu.Enum.TrangThaiGiaoHangEnum;
+import com.example.dantruventu.Enum.TrangThaiPhieuThuChi;
 import com.example.dantruventu.Enum.TrangThaiThanhToanDonHang;
+import com.example.dantruventu.Enum.TrangThaiTraHang;
 import com.example.dantruventu.Enum.TrangThaiXuatKho;
 import com.example.dantruventu.Error.AppException;
 import com.example.dantruventu.Error.ErrorCode;
-import com.example.dantruventu.Repository.order.PhieuTraHangRepository;
+import com.example.dantruventu.Repository.cashbook.LoaiThuChiRepository;
+import com.example.dantruventu.Repository.cashbook.SoQuyThuChiRepository;
 import com.example.dantruventu.Repository.order.AdminReturnOrderRepository;
 import com.example.dantruventu.Repository.order.ChiTietDonHangRepository;
 import com.example.dantruventu.Repository.order.ChiTietTraHangRepository;
 import com.example.dantruventu.Repository.order.DonHangRepository;
+import com.example.dantruventu.Repository.order.PhieuGiaoHangRepository;
+import com.example.dantruventu.Repository.order.PhieuTraHangRepository;
+import com.example.dantruventu.Services.cashbook.CashbookService;
 import com.example.dantruventu.Specification.PhieuTraHangSpecification;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -30,6 +45,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -43,12 +59,131 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional(readOnly = true)
 public class AdminReturnService {
 
+  private static final String REFUND_CASH_TYPE_CODE = "CHI_HOAN_DON_HANG";
+  private static final String REFUND_IDEMPOTENCY_PREFIX = "TH-REFUND-REQ-";
+  private static final String UUID_PATTERN =
+      "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-"
+          + "[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$";
+  private static final Set<String> REFUND_PAYMENT_METHODS = Set.of("TIEN_MAT", "CHUYEN_KHOAN");
+
   private final PhieuTraHangRepository returnRepository;
   private final AdminReturnOrderRepository returnOrderRepository;
   private final DonHangRepository orderRepository;
   private final ChiTietDonHangRepository orderLineRepository;
   private final ChiTietTraHangRepository returnLineRepository;
+  private final PhieuGiaoHangRepository deliveryRepository;
+  private final SoQuyThuChiRepository cashRepository;
+  private final LoaiThuChiRepository cashTypeRepository;
+  private final CashbookService cashbookService;
   private final ReturnInventoryService returnInventoryService;
+
+  @Transactional
+  public AdminReturnResponse.RefundResponse refund(
+      Long returnId,
+      String idempotencyKey,
+      AdminReturnRefundRequest request,
+      NguoiDung actor) {
+
+    validateId(returnId, "ID phiếu trả không hợp lệ");
+    if (request == null) {
+      throw invalid("Thiếu dữ liệu hoàn tiền");
+    }
+    if (actor == null || actor.getId() == null || actor.getId() <= 0) {
+      throw new AppException(
+          ErrorCode.UNAUTHORIZED, "Không xác định được người thao tác");
+    }
+
+    String requestKey = refundRequestKey(idempotencyKey);
+
+    return cashbookService.executeOnce(
+        requestKey,
+        actor,
+        List.of(returnId, request),
+        AdminReturnResponse.RefundResponse.class,
+        () -> doRefund(returnId, request, actor));
+  }
+
+  private AdminReturnResponse.RefundResponse doRefund(
+      Long returnId, AdminReturnRefundRequest request, NguoiDung actor) {
+
+    if (!Boolean.TRUE.equals(request.getXacNhanDaHoanTien())) {
+      throw invalid("Phải xác nhận đã hoàn tiền thực tế cho khách");
+    }
+
+    String paymentMethod = request.getPhuongThucHoan();
+    if (paymentMethod == null || !REFUND_PAYMENT_METHODS.contains(paymentMethod)) {
+      throw invalid("Phương thức hoàn tiền chỉ nhận TIEN_MAT hoặc CHUYEN_KHOAN");
+    }
+
+    String transactionCode = normalizeNote(request.getMaGiaoDich());
+    if ("CHUYEN_KHOAN".equals(paymentMethod) && transactionCode == null) {
+      throw invalid("Hoàn tiền chuyển khoản phải có mã giao dịch");
+    }
+
+    PhieuTraHang returnSlip =
+        returnRepository
+            .findByIdForUpdate(returnId)
+            .orElseThrow(
+                () -> new AppException(ErrorCode.NOT_FOUND, "Phiếu trả không tồn tại"));
+
+    if (returnSlip.getTrangThaiTraHang() == TrangThaiTraHang.DA_HOAN_TIEN) {
+      throw new AppException(ErrorCode.CONFLICT, "Phiếu trả đã hoàn tiền");
+    }
+    if (returnSlip.getTrangThaiTraHang() != TrangThaiTraHang.DA_NHAN_HANG) {
+      throw new AppException(ErrorCode.CONFLICT, "Phiếu trả chưa nhận hàng");
+    }
+
+    BigDecimal totalRefund = validatedRefundTotal(returnSlip);
+    ensureCodReconciled(returnSlip.getDonHang());
+
+    String voucherCode = "CHI-TH-" + returnSlip.getId();
+    if (cashRepository.findByMaPhieu(voucherCode).isPresent()
+        || cashRepository.existsByLoaiPhieuAndNguonTaoAndMaChungTuThamChieuAndSoTien(
+            LoaiPhieuThuChi.CHI,
+            NguonTaoPhieuThuChi.TU_DONG,
+            returnSlip.getMaTraHang(),
+            totalRefund)) {
+      throw new AppException(ErrorCode.CONFLICT, "Phiếu chi hoàn tiền đã tồn tại");
+    }
+
+    requireRefundCashTypeConfiguration();
+
+    NguoiDung customer = returnSlip.getKhachHang();
+    String description = "Hoàn tiền phiếu trả " + returnSlip.getMaTraHang();
+    if (transactionCode != null) {
+      description += "; Mã giao dịch: " + transactionCode;
+    }
+
+    SoQuyThuChi expense =
+        cashbookService.createAutomatic(
+            CashbookService.AutomaticVoucher.builder()
+                .maPhieu(voucherCode)
+                .loaiPhieu(LoaiPhieuThuChi.CHI)
+                .maLoaiThuChi(REFUND_CASH_TYPE_CODE)
+                .nhomNguoiNopNhan(NhomNguoiNopNhanEnum.KHACH_HANG)
+                .nguoiNopNhan(customer)
+                .tenDoiTuongTuDo(customer == null ? refundRecipientName(returnSlip) : null)
+                .maChungTuThamChieu(returnSlip.getMaTraHang())
+                .soTien(totalRefund)
+                .phuongThucThanhToan(paymentMethod)
+                .ngayGhiNhan(request.getNgayHoanTien())
+                .moTa(description)
+                .nguoiTao(actor)
+                .build());
+
+    returnSlip.setHinhThucHoanTien(paymentMethod);
+    returnSlip.setTrangThaiTraHang(TrangThaiTraHang.DA_HOAN_TIEN);
+    returnRepository.saveAndFlush(returnSlip);
+
+    return AdminReturnResponse.RefundResponse.builder()
+        .id(returnSlip.getId())
+        .maTraHang(returnSlip.getMaTraHang())
+        .trangThaiTraHang(returnSlip.getTrangThaiTraHang())
+        .tongTienHoan(totalRefund)
+        .hinhThucHoanTien(returnSlip.getHinhThucHoanTien())
+        .phieuChi(CashVoucherResponse.from(expense))
+        .build();
+  }
 
   @Transactional
   public AdminReturnResponse.ReceiveResponse receive(
@@ -695,6 +830,126 @@ public class AdminReturnService {
       }
     }
     return full;
+  }
+
+  private BigDecimal validatedRefundTotal(PhieuTraHang returnSlip) {
+    BigDecimal storedTotal = returnSlip.getTongTienHoan();
+    if (storedTotal == null || storedTotal.signum() <= 0) {
+      throw new AppException(
+          ErrorCode.CONFLICT, "Tổng tiền hoàn bằng 0, không phát sinh hoàn tiền");
+    }
+
+    BigDecimal normalizedTotal = exactRefundMoney(storedTotal);
+    if (normalizedTotal.precision() > 15) {
+      throw new AppException(ErrorCode.CONFLICT, "Dữ liệu tiền hoàn không nhất quán");
+    }
+
+    List<ChiTietTraHang> returnLines =
+        returnLineRepository.findByPhieuTraHang_IdOrderByIdAsc(returnSlip.getId());
+    if (returnLines.isEmpty()) {
+      throw new AppException(ErrorCode.CONFLICT, "Dữ liệu tiền hoàn không nhất quán");
+    }
+
+    BigDecimal calculatedTotal = BigDecimal.ZERO.setScale(2);
+    for (ChiTietTraHang returnLine : returnLines) {
+      BigDecimal lineAmount = returnLine.getThanhTienHoan();
+      if (lineAmount == null || lineAmount.signum() < 0) {
+        throw new AppException(ErrorCode.CONFLICT, "Dữ liệu tiền hoàn không nhất quán");
+      }
+      calculatedTotal = calculatedTotal.add(exactRefundMoney(lineAmount));
+    }
+
+    if (calculatedTotal.compareTo(normalizedTotal) != 0) {
+      throw new AppException(ErrorCode.CONFLICT, "Dữ liệu tiền hoàn không nhất quán");
+    }
+
+    return normalizedTotal;
+  }
+
+  private BigDecimal exactRefundMoney(BigDecimal value) {
+    try {
+      return value.setScale(2, RoundingMode.UNNECESSARY);
+    } catch (ArithmeticException exception) {
+      throw new AppException(ErrorCode.CONFLICT, "Dữ liệu tiền hoàn không nhất quán");
+    }
+  }
+
+  private void requireRefundCashTypeConfiguration() {
+    LoaiThuChi cashType =
+        cashTypeRepository
+            .findByMaLoai(REFUND_CASH_TYPE_CODE)
+            .orElseThrow(
+                () ->
+                    new AppException(
+                        ErrorCode.INTERNAL_SERVER_ERROR,
+                        "Thiếu cấu hình loại chi hoàn tiền " + REFUND_CASH_TYPE_CODE));
+
+    if (cashType.getLoaiPhieu() != LoaiPhieuThuChi.CHI
+        || cashType.getTrangThai() != TrangThaiCoBanEnum.HOAT_DONG) {
+      throw new AppException(
+          ErrorCode.INTERNAL_SERVER_ERROR,
+          "Cấu hình loại chi hoàn tiền " + REFUND_CASH_TYPE_CODE + " không hợp lệ");
+    }
+  }
+
+  private void ensureCodReconciled(DonHang order) {
+    List<PhieuGiaoHang> codDeliveries =
+        deliveryRepository.findByDonHang_IdOrderByIdAsc(order.getId()).stream()
+            .filter(
+                delivery ->
+                    delivery.getTrangThaiGiaoHang() != TrangThaiGiaoHangEnum.HUY_GIAO_HANG
+                        && delivery.getTrangThaiGiaoHang()
+                            != TrangThaiGiaoHangEnum.DA_HOAN_HANG)
+            .filter(
+                delivery ->
+                    delivery.getTienThuHoCod() != null
+                        && delivery.getTienThuHoCod().signum() > 0)
+            .toList();
+
+    for (PhieuGiaoHang delivery : codDeliveries) {
+      SoQuyThuChi receipt =
+          cashRepository.findByMaPhieu("THU-COD-" + delivery.getId()).orElse(null);
+      if (!isValidCodReceipt(order, delivery, receipt)) {
+        throw new AppException(
+            ErrorCode.CONFLICT,
+            "COD chưa được đối tác nộp đủ, cần đối soát thực thu trước khi hoàn tiền");
+      }
+    }
+  }
+
+  private boolean isValidCodReceipt(DonHang order, PhieuGiaoHang delivery, SoQuyThuChi receipt) {
+    return receipt != null
+        && receipt.getLoaiPhieu() == LoaiPhieuThuChi.THU
+        && receipt.getNguonTao() == NguonTaoPhieuThuChi.TU_DONG
+        && receipt.getTrangThai() == TrangThaiPhieuThuChi.DA_GHI_NHAN
+        && receipt.getLoaiThuChi() != null
+        && "THU_BAN_HANG".equals(receipt.getLoaiThuChi().getMaLoai())
+        && receipt.getNhomNguoiNopNhan() == NhomNguoiNopNhanEnum.DOI_TAC_GIAO_HANG
+        && receipt.getDoiTacVanChuyen() != null
+        && delivery.getDoiTacVanChuyen() != null
+        && Objects.equals(
+            receipt.getDoiTacVanChuyen().getId(), delivery.getDoiTacVanChuyen().getId())
+        && Objects.equals(receipt.getMaChungTuThamChieu(), order.getMaDonHang())
+        && receipt.getSoTien() != null
+        && receipt.getSoTien().compareTo(delivery.getTienThuHoCod()) == 0;
+  }
+
+  private String refundRecipientName(PhieuTraHang returnSlip) {
+    String recipientName = normalizeNote(returnSlip.getDonHang().getTenNguoiNhan());
+    return recipientName == null ? "Khách lẻ" : recipientName;
+  }
+
+  private String refundRequestKey(String value) {
+    if (value == null || !value.matches(UUID_PATTERN)) {
+      throw invalid("Idempotency-Key phải là UUID hợp lệ");
+    }
+
+    String key = REFUND_IDEMPOTENCY_PREFIX + UUID.fromString(value).toString();
+    if (key.length() > 50) {
+      throw new IllegalStateException(
+          "Khóa idempotency vượt giới hạn sales_idempotency.request_key");
+    }
+    return key;
   }
 
   private String normalizeNote(String value) {
