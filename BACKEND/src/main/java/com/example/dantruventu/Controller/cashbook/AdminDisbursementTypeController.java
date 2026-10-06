@@ -36,8 +36,7 @@ public class AdminDisbursementTypeController {
   }
 
   @GetMapping("/{id}")
-  public ApiResponse<AdminReceiptTypeResponse> getDisbursementTypeDetail(
-      @PathVariable String id) {
+  public ApiResponse<AdminReceiptTypeResponse> getDisbursementTypeDetail(@PathVariable String id) {
 
     return ApiResponse.<AdminReceiptTypeResponse>builder()
         .status(HttpStatus.OK.value())
@@ -65,8 +64,7 @@ public class AdminDisbursementTypeController {
       @PathVariable String id,
       @RequestBody(required = false) AdminReceiptTypeStatusRequest request) {
 
-    AdminReceiptTypeStatusResponse data =
-        service.updateDisbursementTypeStatus(id, request);
+    AdminReceiptTypeStatusResponse data = service.updateDisbursementTypeStatus(id, request);
 
     String message;
     if (!data.isChanged()) {

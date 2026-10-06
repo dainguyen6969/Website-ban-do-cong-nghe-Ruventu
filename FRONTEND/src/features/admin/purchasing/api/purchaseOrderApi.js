@@ -28,14 +28,17 @@ export function normalizePurchaseOrder(item) {
     paymentStatusLabel: PAYMENT_STATUS[item.trang_thai_thanh_toan] || item.trang_thai_thanh_toan,
     applyTax: Boolean(item.ap_dung_thue), taxRate: number(item.thue_vat), goodsTotal: number(item.tien_hang),
     taxTotal: number(item.tien_thue), total: number(item.tong_tien), 
-paid: nullableNumber(item.so_tien_da_thanh_toan),
-debt: nullableNumber(item.so_tien_con_no),
+    paid: nullableNumber(item.so_tien_da_thanh_toan),
+    debt: nullableNumber(item.so_tien_con_no),
 
-returnedValue: nullableNumber(item.gia_tri_hang_tra_luy_ke),
-netOrderValue: nullableNumber(item.gia_tri_don_sau_tra),
+    returnedValue: nullableNumber(item.gia_tri_hang_tra),
+    netOrderValue: nullableNumber(item.gia_tri_sau_tra),
 
-refunded: nullableNumber(item.so_tien_da_nhan_hoan),
-netPaid: nullableNumber(item.so_tien_da_thanh_toan_thuan),
+    refunded: nullableNumber(item.so_tien_da_nhan_hoan),
+    netPaid: nullableNumber(item.so_tien_da_thanh_toan_thuan),
+
+    refundDue: nullableNumber(item.so_tien_ncc_con_phai_hoan),
+    netPaid: nullableNumber(item.so_tien_da_thanh_toan_thuan),
 
 refundDue:
   item.so_tien_ncc_con_phai_hoan == null

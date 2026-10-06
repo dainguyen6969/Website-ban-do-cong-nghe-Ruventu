@@ -1,9 +1,6 @@
 package com.example.dantruventu.Controller.warehouse;
 
-import com.example.dantruventu.DTO.Request.warehouse.AdminPurchaseOrderPaymentRequest;
-import com.example.dantruventu.DTO.Request.warehouse.AdminPurchaseOrderReceiveRequest;
-import com.example.dantruventu.DTO.Request.warehouse.AdminPurchaseOrderReturnRequest;
-import com.example.dantruventu.DTO.Request.warehouse.AdminPurchaseOrderSaveRequest;
+import com.example.dantruventu.DTO.Request.warehouse.*;
 import com.example.dantruventu.DTO.Response.ApiResponse;
 import com.example.dantruventu.DTO.Response.warehouse.*;
 import com.example.dantruventu.Services.AdminPurchaseOrderService;
@@ -122,6 +119,19 @@ public class AdminPurchaseOrderController {
             .build();
 
     return ResponseEntity.status(HttpStatus.CREATED).body(response);
+  }
+
+  @PostMapping("/{id}/refunds")
+  public ApiResponse<AdminPurchaseOrderRefundResponse> receiveRefund(
+      @PathVariable Long id,
+      @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey,
+      @Valid @RequestBody AdminPurchaseOrderRefundRequest request) {
+
+    return ApiResponse.<AdminPurchaseOrderRefundResponse>builder()
+        .status(200)
+        .message("Ghi nhận nhận tiền hoàn từ nhà cung cấp thành công")
+        .data(service.receiveRefund(id, idempotencyKey, request))
+        .build();
   }
 
   @PostMapping("/{id}/cancel")
