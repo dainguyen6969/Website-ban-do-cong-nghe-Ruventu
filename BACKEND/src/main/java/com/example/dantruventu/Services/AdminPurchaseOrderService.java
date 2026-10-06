@@ -1,10 +1,8 @@
 package com.example.dantruventu.Services;
 
-import com.example.dantruventu.DTO.Request.warehouse.AdminPurchaseOrderPaymentRequest;
-import com.example.dantruventu.DTO.Request.warehouse.AdminPurchaseOrderReceiveRequest;
-import com.example.dantruventu.DTO.Request.warehouse.AdminPurchaseOrderReturnRequest;
-import com.example.dantruventu.DTO.Request.warehouse.AdminPurchaseOrderSaveRequest;
+import com.example.dantruventu.DTO.Request.warehouse.*;
 import com.example.dantruventu.DTO.Response.PaginationResponse;
+import com.example.dantruventu.DTO.Response.cashbook.CashVoucherResponse;
 import com.example.dantruventu.DTO.Response.warehouse.*;
 import com.example.dantruventu.Entity.*;
 import com.example.dantruventu.Enum.*;
@@ -197,6 +195,11 @@ public class AdminPurchaseOrderService {
         .trangThaiThanhToan(order.getTrangThaiThanhToan())
         .soTienDaThanhToan(paid)
         .soTienConNo(debt)
+        .giaTriHangTra(returnedValue)
+        .giaTriSauTra(adjustedTotal)
+        .soTienDaNhanHoan(refundReceived)
+        .soTienDaThanhToanThuan(netPaid)
+        .soTienNccConPhaiHoan(netPaid.subtract(adjustedTotal).max(BigDecimal.ZERO))
         .ngayTao(order.getNgayTao())
         .items(responseItems)
         .build();
@@ -529,7 +532,8 @@ public class AdminPurchaseOrderService {
 
     DonNhapHang order = requireOrderForUpdate(id);
 
-    if (order.getTrangThaiNhap() != TrangThaiNhapHang.DA_NHAP_KHO) {
+    if (order.getTrangThaiNhap() != TrangThaiNhapHang.DA_NHAP_KHO
+        && order.getTrangThaiNhap() != TrangThaiNhapHang.HOAN_TRA_MOT_PHAN) {
       throw new AppException(ErrorCode.CONFLICT, "Đơn nhập không ở trạng thái cho phép hoàn trả");
     }
 
@@ -884,6 +888,215 @@ public class AdminPurchaseOrderService {
         AdminPurchaseOrderReturnResponse.class,
         () -> doReturnToSupplier(id, request, actor, "THU-NCC-" + normalizedKey));
   }
+
+  @Transactional
+  public AdminPurchaseOrderRefundResponse receiveRefund(
+      Long id, String idempotencyKey, AdminPurchaseOrderRefundRequest request) {
+
+    if (id == null || id <= 0) {
+      throw new AppException(ErrorCode.INVALID_DATA, "ID đơn nhập không hợp lệ");
+    }
+
+    if (request == null || !Boolean.TRUE.equals(request.getXacNhanDaNhanTien())) {
+      throw new AppException(ErrorCode.INVALID_DATA, "Phải xác nhận đã nhận tiền NCC hoàn");
+    }
+
+    String method = request.getPhuongThucHoan();
+
+    if (method == null || !Set.of("TIEN_MAT", "CHUYEN_KHOAN", "THE").contains(method)) {
+      throw new AppException(ErrorCode.INVALID_DATA, "Phương thức hoàn tiền không hợp lệ");
+    }
+
+    if (request.getNgayNhanTien() == null) {
+      throw new AppException(ErrorCode.INVALID_DATA, "Thiếu ngày nhận tiền");
+    }
+
+    if (!"TIEN_MAT".equals(method)
+        && (request.getMaGiaoDich() == null || request.getMaGiaoDich().isBlank())) {
+      throw new AppException(ErrorCode.INVALID_DATA, "Chuyển khoản hoặc thẻ phải có mã giao dịch");
+    }
+
+    validateIdempotencyKey(idempotencyKey);
+
+    String normalizedKey = UUID.fromString(idempotencyKey).toString();
+
+    // UUID.fromString có thể chấp nhận một số chuỗi rút gọn.
+    // Yêu cầu UUID đầy đủ dạng 8-4-4-4-12.
+    if (!normalizedKey.equalsIgnoreCase(idempotencyKey)) {
+      throw new AppException(ErrorCode.INVALID_DATA, "Idempotency-Key phải là UUID hợp lệ");
+    }
+
+    NguoiDung actor = currentUser();
+
+    return cashbookService.executeOnce(
+        "REFUND-NCC-" + normalizedKey,
+        actor,
+        List.of(id, request),
+        AdminPurchaseOrderRefundResponse.class,
+        () -> doReceiveRefund(id, request, actor, "THU-NCC-" + normalizedKey));
+  }
+
+  private AdminPurchaseOrderRefundResponse doReceiveRefund(
+      Long id, AdminPurchaseOrderRefundRequest request, NguoiDung actor, String voucherCode) {
+
+    DonNhapHang order = requireOrderForUpdate(id);
+
+    if (order.getTrangThaiNhap() != TrangThaiNhapHang.HOAN_TRA_MOT_PHAN
+        && order.getTrangThaiNhap() != TrangThaiNhapHang.HOAN_TRA_TOAN_BO) {
+      throw new AppException(ErrorCode.CONFLICT, "Đơn nhập chưa có nghiệp vụ trả hàng NCC hợp lệ");
+    }
+
+    PurchaseRefundBalance before = readPurchaseRefundBalance(order);
+
+    if (before.refundDue().signum() <= 0) {
+      throw new AppException(ErrorCode.CONFLICT, "Nhà cung cấp không còn khoản tiền phải hoàn");
+    }
+
+    String transaction =
+        request.getMaGiaoDich() == null || request.getMaGiaoDich().isBlank()
+            ? null
+            : request.getMaGiaoDich().strip();
+
+    String note =
+        request.getGhiChu() == null || request.getGhiChu().isBlank()
+            ? null
+            : request.getGhiChu().strip();
+
+    String description =
+        "Nhận tiền NCC hoàn sau trả hàng"
+            + (transaction == null ? "" : "\nMã giao dịch: " + transaction)
+            + (note == null ? "" : "\nGhi chú: " + note);
+
+    SoQuyThuChi voucher =
+        cashbookService.createAutomatic(
+            CashbookService.AutomaticVoucher.builder()
+                .maPhieu(voucherCode)
+                .loaiPhieu(LoaiPhieuThuChi.THU)
+                .maLoaiThuChi("THU_HOAN_NCC")
+                .nhomNguoiNopNhan(NhomNguoiNopNhanEnum.NHA_CUNG_CAP)
+                .nhaCungCap(order.getNhaCungCap())
+                .maChungTuThamChieu(order.getMaDonNhap())
+                .soTien(before.refundDue())
+                .phuongThucThanhToan(request.getPhuongThucHoan())
+                .ngayGhiNhan(request.getNgayNhanTien())
+                .moTa(description)
+                .nguoiTao(actor)
+                .build());
+
+    // createAutomatic đã saveAndFlush phiếu thu.
+    updatePaymentStatus(order);
+    donNhapHangRepository.saveAndFlush(order);
+
+    PurchaseRefundBalance after = readPurchaseRefundBalance(order);
+
+    return new AdminPurchaseOrderRefundResponse(
+        order.getId(),
+        order.getTrangThaiNhap(),
+        order.getTrangThaiThanhToan(),
+        after.returnedValue(),
+        after.adjustedTotal(),
+        after.paid(),
+        after.refundReceived(),
+        after.debt(),
+        after.refundDue(),
+        CashVoucherResponse.from(voucher));
+  }
+
+  private PurchaseRefundBalance readPurchaseRefundBalance(DonNhapHang order) {
+
+    BigDecimal total = order.getTongTien();
+
+    List<ChiTietDonNhap> details =
+        chiTietDonNhapRepository.findByDonNhapHangIdOrderByIdAsc(order.getId());
+
+    if (order.getNhaCungCap() == null || total == null || total.signum() < 0 || details.isEmpty()) {
+      throw new AppException(ErrorCode.CONFLICT, "Dữ liệu tiền của đơn nhập không nhất quán");
+    }
+
+    for (ChiTietDonNhap detail : details) {
+      if (detail.getPhienBan() == null
+          || detail.getSoLuong() == null
+          || detail.getSoLuong() <= 0
+          || detail.getGiaNhap() == null
+          || detail.getGiaNhap().signum() < 0
+          || detail.getThanhTien() == null
+          || detail
+                  .getThanhTien()
+                  .compareTo(detail.getGiaNhap().multiply(BigDecimal.valueOf(detail.getSoLuong())))
+              != 0) {
+        throw new AppException(
+            ErrorCode.CONFLICT, "Dữ liệu tiền của chi tiết đơn nhập không nhất quán");
+      }
+    }
+
+    BigDecimal expectedTotal = applyTax(calculateGoodsAmount(details), order.getApDungThue());
+
+    if (total.compareTo(expectedTotal) != 0) {
+      throw new AppException(ErrorCode.CONFLICT, "Tổng tiền đơn nhập không khớp chi tiết và thuế");
+    }
+
+    // Không dùng nhầm phiếu của đối tượng hoặc nghiệp vụ khác
+    // có cùng mã chứng từ tham chiếu.
+    for (SoQuyThuChi entry : soQuyThuChiRepository.findByMaChungTuThamChieu(order.getMaDonNhap())) {
+
+      if (entry.getTrangThai() != TrangThaiPhieuThuChi.DA_GHI_NHAN) {
+        continue;
+      }
+
+      String expectedType =
+          entry.getLoaiPhieu() == LoaiPhieuThuChi.CHI
+              ? "CHI_NHAP_HANG"
+              : entry.getLoaiPhieu() == LoaiPhieuThuChi.THU ? "THU_HOAN_NCC" : null;
+
+      if (entry.getNhomNguoiNopNhan() != NhomNguoiNopNhanEnum.NHA_CUNG_CAP
+          || entry.getNhaCungCap() == null
+          || !Objects.equals(entry.getNhaCungCap().getId(), order.getNhaCungCap().getId())
+          || entry.getNguoiNopNhan() != null
+          || entry.getDoiTacVanChuyen() != null
+          || expectedType == null
+          || entry.getLoaiThuChi() == null
+          || !expectedType.equals(entry.getLoaiThuChi().getMaLoai())
+          || entry.getLoaiThuChi().getLoaiPhieu() != entry.getLoaiPhieu()
+          || entry.getSoTien() == null
+          || entry.getSoTien().signum() <= 0) {
+        throw new AppException(ErrorCode.CONFLICT, "Phiếu thu/chi của đơn nhập không nhất quán");
+      }
+    }
+
+    BigDecimal returnedValue = calculateReturnedValue(order, details);
+    BigDecimal paid = sumCash(order, LoaiPhieuThuChi.CHI);
+    BigDecimal refundReceived = sumCash(order, LoaiPhieuThuChi.THU);
+
+    if (returnedValue.signum() < 0
+        || returnedValue.compareTo(total) > 0
+        || paid.signum() < 0
+        || paid.compareTo(total) > 0
+        || refundReceived.signum() < 0) {
+      throw new AppException(ErrorCode.CONFLICT, "Dữ liệu tiền của đơn nhập không nhất quán");
+    }
+
+    BigDecimal adjustedTotal = total.subtract(returnedValue);
+    BigDecimal refundableTotal = paid.subtract(adjustedTotal).max(BigDecimal.ZERO);
+
+    if (refundReceived.compareTo(refundableTotal) > 0) {
+      throw new AppException(ErrorCode.CONFLICT, "Tiền đã nhận hoàn vượt khoản NCC phải hoàn");
+    }
+
+    BigDecimal netPaid = paid.subtract(refundReceived);
+    BigDecimal debt = adjustedTotal.subtract(netPaid).max(BigDecimal.ZERO);
+    BigDecimal refundDue = netPaid.subtract(adjustedTotal).max(BigDecimal.ZERO);
+
+    return new PurchaseRefundBalance(
+        returnedValue, adjustedTotal, paid, refundReceived, debt, refundDue);
+  }
+
+  private record PurchaseRefundBalance(
+      BigDecimal returnedValue,
+      BigDecimal adjustedTotal,
+      BigDecimal paid,
+      BigDecimal refundReceived,
+      BigDecimal debt,
+      BigDecimal refundDue) {}
 
   // =========================================================
   // CANCEL

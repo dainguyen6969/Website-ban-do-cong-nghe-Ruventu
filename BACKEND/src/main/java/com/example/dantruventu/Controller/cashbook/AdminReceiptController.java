@@ -1,7 +1,7 @@
 package com.example.dantruventu.Controller.cashbook;
 
-import com.example.dantruventu.DTO.Request.cashbook.AdminReceiptCreateRequest;
 import com.example.dantruventu.DTO.Request.cashbook.AdminReceiptCancelRequest;
+import com.example.dantruventu.DTO.Request.cashbook.AdminReceiptCreateRequest;
 import com.example.dantruventu.DTO.Response.ApiResponse;
 import com.example.dantruventu.DTO.Response.cashbook.AdminReceiptCancelResponse;
 import com.example.dantruventu.DTO.Response.cashbook.AdminReceiptListResponse;
@@ -87,8 +87,7 @@ public class AdminReceiptController {
 
   @PostMapping("/{id}/cancel")
   public ApiResponse<AdminReceiptCancelResponse> cancelReceipt(
-      @PathVariable String id,
-      @RequestBody(required = false) AdminReceiptCancelRequest request) {
+      @PathVariable String id, @RequestBody(required = false) AdminReceiptCancelRequest request) {
 
     return ApiResponse.<AdminReceiptCancelResponse>builder()
         .status(HttpStatus.OK.value())

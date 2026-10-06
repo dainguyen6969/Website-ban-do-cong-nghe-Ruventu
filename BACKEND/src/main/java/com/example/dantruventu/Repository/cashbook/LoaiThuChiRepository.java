@@ -41,8 +41,7 @@ public interface LoaiThuChiRepository
       SET l.trangThai = :trangThai
       WHERE l.id = :id
       """)
-  int updateStatus(
-      @Param("id") Long id, @Param("trangThai") TrangThaiCoBanEnum trangThai);
+  int updateStatus(@Param("id") Long id, @Param("trangThai") TrangThaiCoBanEnum trangThai);
 
   @Lock(LockModeType.PESSIMISTIC_READ)
   @Query("SELECT l FROM LoaiThuChi l WHERE l.id = :id")
