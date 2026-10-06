@@ -32,6 +32,10 @@ import tools.jackson.databind.ObjectMapper;
 @RequiredArgsConstructor
 public class CashbookService {
 
+  // Mã cấu hình mà các nghiệp vụ nguồn dùng để tự động lập phiếu.
+  public static final Set<String> SYSTEM_RESERVED_TYPE_CODES =
+      Set.of("THU_BAN_HANG", "THU_HOAN_NCC", "CHI_NHAP_HANG", "CHI_HOAN_DON_HANG");
+
   private static final ZoneId CASHBOOK_ZONE = ZoneId.of("Asia/Ho_Chi_Minh");
 
   private static final Set<String> PAYMENT_METHODS = Set.of("TIEN_MAT", "CHUYEN_KHOAN", "THE");

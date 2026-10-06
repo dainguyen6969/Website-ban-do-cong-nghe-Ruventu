@@ -25,13 +25,14 @@ public class AdminDisbursementTypeController {
   public ApiResponse<AdminReceiptTypeListResponse> getDisbursementTypes(
       @RequestParam(required = false) String keyword,
       @RequestParam(name = "trang_thai", required = false) String trangThai,
+      @RequestParam(name = "dung_cho", required = false) String dungCho,
       @RequestParam(defaultValue = "0") String page,
       @RequestParam(defaultValue = "20") String limit) {
 
     return ApiResponse.<AdminReceiptTypeListResponse>builder()
         .status(HttpStatus.OK.value())
         .message("Lấy danh sách loại phiếu chi thành công")
-        .data(service.getDisbursementTypes(keyword, trangThai, page, limit))
+        .data(service.getDisbursementTypes(keyword, trangThai, dungCho, page, limit))
         .build();
   }
 

@@ -18,9 +18,9 @@ public class AdminDisbursementTypeService {
   private final AdminReceiptTypeService sharedTypeService;
 
   public AdminReceiptTypeListResponse getDisbursementTypes(
-      String keyword, String status, String page, String limit) {
+      String keyword, String status, String usage, String page, String limit) {
     try {
-      return sharedTypeService.getTypes(LoaiPhieuThuChi.CHI, keyword, status, page, limit);
+      return sharedTypeService.getTypes(LoaiPhieuThuChi.CHI, keyword, status, usage, page, limit);
     } catch (AppException exception) {
       if (exception.getErrorCode() == ErrorCode.INVALID_CUSTOMER_SEARCH_PARAM) {
         throw new AppException(ErrorCode.INVALID_DISBURSEMENT_TYPE_SEARCH);

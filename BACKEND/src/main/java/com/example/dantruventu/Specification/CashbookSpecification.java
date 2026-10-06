@@ -2,6 +2,7 @@ package com.example.dantruventu.Specification;
 
 import com.example.dantruventu.Entity.SoQuyThuChi;
 import com.example.dantruventu.Enum.LoaiPhieuThuChi;
+import com.example.dantruventu.Enum.NguonTaoPhieuThuChi;
 import com.example.dantruventu.Enum.NhomNguoiNopNhanEnum;
 import com.example.dantruventu.Enum.TrangThaiPhieuThuChi;
 import java.time.LocalDateTime;
@@ -19,7 +20,12 @@ public final class CashbookSpecification {
       String paymentMethod,
       NhomNguoiNopNhanEnum payerGroup,
       String payerNamePattern,
-      Long creatorId) {
+      Long creatorId,
+      Long typeId,
+      Long userId,
+      Long supplierId,
+      Long partnerId,
+      NguonTaoPhieuThuChi source) {
 
     Specification<SoQuyThuChi> result =
         (root, query, cb) ->
@@ -71,6 +77,26 @@ public final class CashbookSpecification {
 
     if (creatorId != null) {
       result = result.and((root, query, cb) -> cb.equal(root.get("nguoiTao").get("id"), creatorId));
+    }
+
+    if (typeId != null) {
+      result = result.and((root, query, cb) -> cb.equal(root.get("loaiThuChi").get("id"), typeId));
+    }
+    if (userId != null) {
+      result =
+          result.and((root, query, cb) -> cb.equal(root.get("nguoiNopNhan").get("id"), userId));
+    }
+    if (supplierId != null) {
+      result =
+          result.and((root, query, cb) -> cb.equal(root.get("nhaCungCap").get("id"), supplierId));
+    }
+    if (partnerId != null) {
+      result =
+          result.and(
+              (root, query, cb) -> cb.equal(root.get("doiTacVanChuyen").get("id"), partnerId));
+    }
+    if (source != null) {
+      result = result.and((root, query, cb) -> cb.equal(root.get("nguonTao"), source));
     }
 
     return result;

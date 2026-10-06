@@ -26,6 +26,7 @@ import com.example.dantruventu.Repository.cashbook.LoaiThuChiRepository;
 import com.example.dantruventu.Repository.cashbook.SoQuyThuChiRepository;
 import com.example.dantruventu.Repository.partner.DoiTacVanChuyenRepository;
 import com.example.dantruventu.Repository.partner.NhaCungCapRepository;
+import com.example.dantruventu.Services.cashbook.CashbookService;
 import com.example.dantruventu.Specification.ReceiptSpecification;
 import java.math.BigDecimal;
 import java.time.DateTimeException;
@@ -36,6 +37,7 @@ import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
 import java.util.Locale;
 import java.util.Set;
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -57,6 +59,7 @@ public class AdminReceiptService {
   private final NguoiDungRepository userRepository;
   private final NhaCungCapRepository supplierRepository;
   private final DoiTacVanChuyenRepository shippingPartnerRepository;
+  private final CashbookService cashbookService;
 
   @Value("${ruventu.cashbook.time-zone:Asia/Ho_Chi_Minh}")
   private String cashbookTimeZone;
@@ -97,6 +100,11 @@ public class AdminReceiptService {
   }
 
   public PayerSuggestionListResponse getPayerSuggestions(
+      String rawGroup, String keyword, String page, String limit) {
+    return getActiveCounterpartySuggestions(rawGroup, keyword, page, limit);
+  }
+
+  public PayerSuggestionListResponse getActiveCounterpartySuggestions(
       String rawGroup, String keyword, String page, String limit) {
     NhomNguoiNopNhanEnum group = parsePayerGroupFilter(rawGroup);
     int pageNumber = parsePayerPageValue(page);
@@ -158,6 +166,24 @@ public class AdminReceiptService {
 
   @Transactional
   public AdminReceiptResponse createReceipt(
+      AdminReceiptCreateRequest request, NguoiDung authenticatedAdmin, String requestKey) {
+    try {
+      UUID.fromString(requestKey);
+      if (requestKey.length() != 36) {
+        throw new IllegalArgumentException();
+      }
+    } catch (IllegalArgumentException | NullPointerException exception) {
+      throw invalidRequest("Idempotency-Key bắt buộc và phải là UUID.");
+    }
+    return cashbookService.executeOnce(
+        "PT-" + requestKey.toLowerCase(Locale.ROOT),
+        authenticatedAdmin,
+        request,
+        AdminReceiptResponse.class,
+        () -> persistReceipt(request, authenticatedAdmin));
+  }
+
+  private AdminReceiptResponse persistReceipt(
       AdminReceiptCreateRequest request, NguoiDung authenticatedAdmin) {
 
     if (authenticatedAdmin == null || authenticatedAdmin.getId() == null) {
@@ -168,14 +194,32 @@ public class AdminReceiptService {
       throw invalidRequest("Không được gửi các trường do backend quản lý.");
     }
 
-    String receiptCode = requiredText(request.getMaPhieu(), "Mã phiếu không được để trống.");
-    String payerName =
-        requiredText(request.getTenNguoiNopNhan(), "Tên người nộp không được để trống.");
+    String receiptCode = optionalText(request.getMaPhieu());
+    if (receiptCode == null) {
+      receiptCode = "PT" + UUID.randomUUID().toString().replace("-", "").toUpperCase(Locale.ROOT);
+    }
+    if (receiptCode.length() > 50 || receiptCode.toUpperCase(Locale.ROOT).startsWith("THU-")) {
+      throw invalidRequest("Mã phiếu vượt 50 ký tự hoặc thuộc mã dành cho tự động.");
+    }
     NhomNguoiNopNhanEnum payerGroup = parsePayerGroup(request.getNhomNguoiNopNhan());
+    Counterparty payer =
+        resolveCounterparty(
+            payerGroup,
+            request.getNguoiNopNhanId(),
+            request.getNhaCungCapId(),
+            request.getDoiTacVanChuyenId(),
+            request.getTenNguoiNopNhan());
+    if (payer.name() == null || payer.name().isBlank() || payer.name().length() > 150) {
+      throw invalidRequest("Tên người nộp bắt buộc và tối đa 150 ký tự.");
+    }
     String paymentMethod = parsePaymentMethod(request.getPhuongThucThanhToan());
     BigDecimal amount = requirePositiveAmount(request.getSoTien());
     LocalDateTime recordedAt = toLocalDateTime(request.getNgayGhiNhan());
     String referenceCode = optionalText(request.getMaChungTuThamChieu());
+    if (request.getMoTa() != null
+        && request.getMoTa().getBytes(java.nio.charset.StandardCharsets.UTF_8).length > 65_535) {
+      throw invalidRequest("Mô tả vượt giới hạn cột TEXT.");
+    }
 
     if (request.getLoaiThuChiId() == null || request.getLoaiThuChiId() <= 0) {
       throw invalidRequest("Loại thu không hợp lệ.");
@@ -194,6 +238,11 @@ public class AdminReceiptService {
       throw new AppException(ErrorCode.RECEIPT_TYPE_INACTIVE);
     }
 
+    if (CashbookService.SYSTEM_RESERVED_TYPE_CODES.contains(
+        receiptType.getMaLoai().toUpperCase(Locale.ROOT))) {
+      throw invalidRequest("Loại thu này phải được ghi nhận qua nghiệp vụ nguồn.");
+    }
+
     if (receiptRepository.existsByMaPhieuIgnoreCase(receiptCode)) {
       throw new AppException(ErrorCode.RECEIPT_CODE_EXISTS);
     }
@@ -204,13 +253,24 @@ public class AdminReceiptService {
       throw new AppException(ErrorCode.RECEIPT_ALREADY_AUTO_RECORDED);
     }
 
+    if (referenceCode != null
+        && ((payerGroup == NhomNguoiNopNhanEnum.NHA_CUNG_CAP
+                && receiptRepository.isPurchaseOrderReference(referenceCode))
+            || receiptRepository.isCodReference(referenceCode))) {
+      throw invalidRequest(
+          "COD và tiền nhà cung cấp hoàn đơn nhập phải ghi nhận qua nghiệp vụ nguồn.");
+    }
+
     SoQuyThuChi receipt =
         SoQuyThuChi.builder()
             .maPhieu(receiptCode)
             .loaiPhieu(LoaiPhieuThuChi.THU)
             .loaiThuChi(receiptType)
             .nhomNguoiNopNhan(payerGroup)
-            .tenNguoiNopNhan(payerName)
+            .nguoiNopNhan(payer.user())
+            .nhaCungCap(payer.supplier())
+            .doiTacVanChuyen(payer.partner())
+            .tenNguoiNopNhan(payer.name())
             .maChungTuThamChieu(referenceCode)
             .soTien(amount)
             .phuongThucThanhToan(paymentMethod)
@@ -225,8 +285,11 @@ public class AdminReceiptService {
     try {
       receipt = receiptRepository.saveAndFlush(receipt);
     } catch (DataIntegrityViolationException exception) {
-      // Ràng buộc unique của so_quy_thu_chi.ma_phieu là lớp bảo vệ cuối cho request đồng thời.
-      throw new AppException(ErrorCode.RECEIPT_CODE_EXISTS);
+      String message = exception.getMostSpecificCause().getMessage();
+      if (message != null && message.toLowerCase(Locale.ROOT).contains("duplicate")) {
+        throw new AppException(ErrorCode.RECEIPT_CODE_EXISTS);
+      }
+      throw exception;
     }
 
     return toResponse(receipt);
@@ -276,6 +339,12 @@ public class AdminReceiptService {
     NguoiDung creator = receipt.getNguoiTao();
 
     return AdminReceiptListItemResponse.builder()
+        .nguoiNopNhanId(
+            receipt.getNguoiNopNhan() == null ? null : receipt.getNguoiNopNhan().getId())
+        .nhaCungCapId(receipt.getNhaCungCap() == null ? null : receipt.getNhaCungCap().getId())
+        .doiTacVanChuyenId(
+            receipt.getDoiTacVanChuyen() == null ? null : receipt.getDoiTacVanChuyen().getId())
+        .maChungTuThamChieu(receipt.getMaChungTuThamChieu())
         .id(receipt.getId())
         .maPhieu(receipt.getMaPhieu())
         .loaiPhieu(receipt.getLoaiPhieu())
@@ -295,16 +364,24 @@ public class AdminReceiptService {
   }
 
   private PayerSuggestionResponse toPayerSuggestion(NguoiDung user) {
-    return payerSuggestion(user.getId(), user.getHoTen(), user.getSoDienThoai());
+    PayerSuggestionResponse result =
+        payerSuggestion(user.getId(), user.getHoTen(), user.getSoDienThoai());
+    result.setNguoiNopNhanId(user.getId());
+    return result;
   }
 
   private PayerSuggestionResponse toPayerSuggestion(NhaCungCap supplier) {
-    return payerSuggestion(
-        supplier.getId(), supplier.getTenNhaCungCap(), supplier.getSoDienThoai());
+    PayerSuggestionResponse result =
+        payerSuggestion(supplier.getId(), supplier.getTenNhaCungCap(), supplier.getSoDienThoai());
+    result.setNhaCungCapId(supplier.getId());
+    return result;
   }
 
   private PayerSuggestionResponse toPayerSuggestion(DoiTacVanChuyen partner) {
-    return payerSuggestion(partner.getId(), partner.getTenDoiTac(), partner.getSoDienThoai());
+    PayerSuggestionResponse result =
+        payerSuggestion(partner.getId(), partner.getTenDoiTac(), partner.getSoDienThoai());
+    result.setDoiTacVanChuyenId(partner.getId());
+    return result;
   }
 
   private PayerSuggestionResponse payerSuggestion(Long id, String name, String phone) {
@@ -319,6 +396,11 @@ public class AdminReceiptService {
     NguoiDung creator = receipt.getNguoiTao();
 
     return AdminReceiptResponse.builder()
+        .nguoiNopNhanId(
+            receipt.getNguoiNopNhan() == null ? null : receipt.getNguoiNopNhan().getId())
+        .nhaCungCapId(receipt.getNhaCungCap() == null ? null : receipt.getNhaCungCap().getId())
+        .doiTacVanChuyenId(
+            receipt.getDoiTacVanChuyen() == null ? null : receipt.getDoiTacVanChuyen().getId())
         .id(receipt.getId())
         .maPhieu(receipt.getMaPhieu())
         .loaiPhieu(receipt.getLoaiPhieu())
@@ -409,7 +491,10 @@ public class AdminReceiptService {
     if (value == null) {
       throw invalidRequest("Ngày ghi nhận không được để trống.");
     }
-    return value.atZoneSameInstant(timeZone()).toLocalDateTime();
+    if (value.toInstant().isAfter(java.time.Instant.now())) {
+      throw invalidRequest("Ngày ghi nhận không được ở tương lai.");
+    }
+    return value.atZoneSameInstant(timeZone()).toLocalDateTime().truncatedTo(ChronoUnit.SECONDS);
   }
 
   private OffsetDateTime toOffsetDateTime(LocalDateTime value) {
@@ -419,6 +504,90 @@ public class AdminReceiptService {
   private ZoneId timeZone() {
     return ZoneId.of(cashbookTimeZone);
   }
+
+  public Counterparty resolveCounterparty(
+      NhomNguoiNopNhanEnum group, Long userId, Long supplierId, Long partnerId, String freeName) {
+    for (Long id : new Long[] {userId, supplierId, partnerId}) {
+      if (id != null && id <= 0) {
+        throw invalidRequest("FK người nộp không hợp lệ.");
+      }
+    }
+    switch (group) {
+      case KHACH_HANG, NHAN_VIEN -> {
+        if (supplierId != null || partnerId != null) {
+          throw invalidRequest("Nhóm khách hàng/nhân viên chỉ dùng nguoi_nop_nhan_id.");
+        }
+        if (userId == null) {
+          if (group == NhomNguoiNopNhanEnum.NHAN_VIEN) {
+            throw invalidRequest("Nhân viên bắt buộc có nguoi_nop_nhan_id.");
+          }
+          return new Counterparty(null, null, null, freeTextName(freeName));
+        }
+        NguoiDung user =
+            userRepository
+                .findById(userId)
+                .orElseThrow(() -> invalidRequest("Người nộp không tồn tại."));
+        String role =
+            user.getVaiTro() == null
+                ? ""
+                : user.getVaiTro().getTenVaiTro().toLowerCase(Locale.ROOT);
+        String roleDescription =
+            user.getVaiTro() == null || user.getVaiTro().getMoTa() == null
+                ? ""
+                : user.getVaiTro().getMoTa().toLowerCase(Locale.ROOT);
+        boolean customer =
+            Set.of("user", "khach_hang", "khách hàng", "khach hang").contains(role)
+                || roleDescription.contains("khách hàng")
+                || roleDescription.contains("khach hang");
+        if (user.getTrangThai() != TrangThaiCoBanEnum.HOAT_DONG
+            || user.getVaiTro() == null
+            || customer != (group == NhomNguoiNopNhanEnum.KHACH_HANG)) {
+          throw invalidRequest("Người nộp không hoạt động hoặc không đúng nhóm.");
+        }
+        return new Counterparty(user, null, null, user.getHoTen());
+      }
+      case NHA_CUNG_CAP -> {
+        if (supplierId == null || userId != null || partnerId != null) {
+          throw invalidRequest("Nhóm nhà cung cấp bắt buộc chỉ có nha_cung_cap_id.");
+        }
+        NhaCungCap supplier =
+            supplierRepository
+                .findById(supplierId)
+                .orElseThrow(() -> invalidRequest("Nhà cung cấp không tồn tại."));
+        if (supplier.getTrangThai() != TrangThaiCoBanEnum.HOAT_DONG) {
+          throw invalidRequest("Nhà cung cấp không hoạt động.");
+        }
+        return new Counterparty(null, supplier, null, supplier.getTenNhaCungCap());
+      }
+      case DOI_TAC_GIAO_HANG -> {
+        if (partnerId == null || userId != null || supplierId != null) {
+          throw invalidRequest("Nhóm giao hàng bắt buộc chỉ có doi_tac_van_chuyen_id.");
+        }
+        DoiTacVanChuyen partner =
+            shippingPartnerRepository
+                .findById(partnerId)
+                .orElseThrow(() -> invalidRequest("Đối tác giao hàng không tồn tại."));
+        if (partner.getTrangThai() != TrangThaiCoBanEnum.HOAT_DONG) {
+          throw invalidRequest("Đối tác giao hàng không hoạt động.");
+        }
+        return new Counterparty(null, null, partner, partner.getTenDoiTac());
+      }
+      case KHAC -> {
+        if (userId != null || supplierId != null || partnerId != null) {
+          throw invalidRequest("Nhóm KHAC không được gửi FK.");
+        }
+        return new Counterparty(null, null, null, freeTextName(freeName));
+      }
+      default -> throw invalidRequest("Nhóm người nộp không hợp lệ.");
+    }
+  }
+
+  private String freeTextName(String name) {
+    return requiredText(name, "Tên khách lẻ/người nộp nhận không được để trống.");
+  }
+
+  public record Counterparty(
+      NguoiDung user, NhaCungCap supplier, DoiTacVanChuyen partner, String name) {}
 
   private String requiredText(String value, String message) {
     String normalized = optionalText(value);
@@ -469,8 +638,7 @@ public class AdminReceiptService {
   }
 
   private PageRequest payerPageable(int page, int limit, String nameProperty) {
-    return PageRequest.of(
-        page, limit, Sort.by(nameProperty).ascending().and(Sort.by("id").ascending()));
+    return PageRequest.of(page, limit, Sort.by("id").descending());
   }
 
   private String toKeywordPattern(String keyword) {
