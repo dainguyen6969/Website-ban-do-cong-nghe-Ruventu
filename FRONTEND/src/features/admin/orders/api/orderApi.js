@@ -1,4 +1,7 @@
 import { adminRequest, getWarehouses } from '../../catalog/products/api/versionApi.js';
+import {
+  formatDateTimeVN,
+} from '../../../../shared/services/mutationUtils';
 
 const PATH = '/api/v1/admin/orders';
 
@@ -21,11 +24,29 @@ export const getSerialRequirements = (id) => adminRequest(`${PATH}/${encodeURICo
 export const getExportVariant = (id) => adminRequest(`/api/v1/admin/inventory/items/${encodeURIComponent(id)}?loai_doi_tuong=PHIEN_BAN`);
 export const getSerialCandidates = (id, values, signal) => adminRequest(`${PATH}/${encodeURIComponent(id)}/warehouse/serial-candidates?${query(values)}`, { signal });
 export const exportOrder = (id, body) => action(id, 'warehouse/export', body);
-export const confirmOrderPayment = (id, body, key) => action(id, 'payment/confirm', { ...body, xac_nhan_da_nhan_tien: true }, 'POST', key);
-export const cancelOrder = (id, reason) => action(id, 'cancel', { ly_do: reason });
+export const confirmOrderPayment = (id, key, body) =>
+  adminRequest(
+    `${PATH}/${encodeURIComponent(id)}/payment/confirm`,
+    {
+      method: 'POST',
+      headers: {
+        'Idempotency-Key': key,
+      },
+      body: JSON.stringify(body),
+    },
+  );export const cancelOrder = (id, reason) => action(id, 'cancel', { ly_do: reason });
 export const confirmPickup = (id) => action(id, 'pickup/confirm', { xac_nhan_da_nhan_hang: true });
-export const refundOrder = (id, body, key) => action(id, 'refund', { ...body, xac_nhan_da_hoan_tien: true }, 'POST', key);
-export const setDeliveryStatus = (id, status, confirmedCod) => adminRequest(`/api/v1/admin/deliveries/${encodeURIComponent(id)}/status`, {
+export const refundOrder = (id, key, body) =>
+  adminRequest(
+    `${PATH}/${encodeURIComponent(id)}/refund`,
+    {
+      method: 'POST',
+      headers: {
+        'Idempotency-Key': key,
+      },
+      body: JSON.stringify(body),
+    },
+  );export const setDeliveryStatus = (id, status, confirmedCod) => adminRequest(`/api/v1/admin/deliveries/${encodeURIComponent(id)}/status`, {
   method: 'PATCH', body: JSON.stringify({ trang_thai_giao_hang: status, ...(confirmedCod === undefined ? {} : { xac_nhan_da_thu_cod: confirmedCod }) }),
 });
 
@@ -81,4 +102,4 @@ export const labels = {
 
 export const label = (value) => labels[value] || value || '—';
 export const money = (value) => value == null ? '—' : `${Number(value).toLocaleString('vi-VN')}đ`;
-export const dateTime = (value) => value ? new Intl.DateTimeFormat('vi-VN', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(value)) : '—';
+export const dateTime = formatDateTimeVN;
