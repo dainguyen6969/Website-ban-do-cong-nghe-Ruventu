@@ -41,13 +41,12 @@ public interface LoaiThuChiRepository
       SET l.trangThai = :trangThai
       WHERE l.id = :id
       """)
-  int updateStatus(
-      @Param("id") Long id, @Param("trangThai") TrangThaiCoBanEnum trangThai);
+  int updateStatus(@Param("id") Long id, @Param("trangThai") TrangThaiCoBanEnum trangThai);
 
   @Lock(LockModeType.PESSIMISTIC_READ)
   @Query("SELECT l FROM LoaiThuChi l WHERE l.id = :id")
   Optional<LoaiThuChi> findByIdForShare(@Param("id") Long id);
-    
+
   @Lock(LockModeType.PESSIMISTIC_WRITE)
   @Query("SELECT l FROM LoaiThuChi l WHERE l.maLoai = :maLoai")
   Optional<LoaiThuChi> findByMaLoaiForUpdate(@Param("maLoai") String maLoai);

@@ -78,27 +78,21 @@ class AdminOrderExportedPackingTest {
                     .donGia(new BigDecimal("70000"))
                     .thanhTien(new BigDecimal("70000"))
                     .build()));
-    when(cashRepository.sumByPurchaseOrder(any(), any(), any())).thenReturn(BigDecimal.ZERO);
   }
 
   @Test
-  void approvesPrepaidOrderWithoutChangingPaymentOrExportingStock() {
+  void rejectsPrepaidApprovalUnderMainTestPaymentRules() {
     order.setTrangThaiThanhToan(TrangThaiThanhToanDonHang.DA_THANH_TOAN);
-    validStoredAmounts();
-    service.approve(1L);
-    assertEquals(TrangThaiDonHang.CHO_DONG_GOI, order.getTrangThaiDonHang());
+    assertThrows(AppException.class, () -> service.approve(1L));
+    assertEquals(TrangThaiDonHang.CHO_DUYET, order.getTrangThaiDonHang());
     assertEquals(TrangThaiThanhToanDonHang.DA_THANH_TOAN, order.getTrangThaiThanhToan());
     assertEquals(TrangThaiDongGoi.CHUA_DONG_GOI, order.getTrangThaiDongGoi());
     assertEquals(TrangThaiXuatKho.CHUA_XUAT_KHO, order.getTrangThaiXuatKho());
-    verify(inventory).checkAvailable(order);
-    verify(inventory, never()).reserve(any());
-    verify(inventory, never()).export(any(), any());
-    verify(historyRepository).save(any());
+    verifyNoInteractions(inventory, historyRepository);
   }
 
   @Test
-  void prepaidOrderStillCannotBeApprovedWithoutAvailableStock() {
-    order.setTrangThaiThanhToan(TrangThaiThanhToanDonHang.DA_THANH_TOAN);
+  void unpaidOrderCannotBeApprovedWithoutAvailableStock() {
     validStoredAmounts();
     var shortage =
         new AppException(
@@ -107,7 +101,7 @@ class AdminOrderExportedPackingTest {
     doThrow(shortage).when(inventory).checkAvailable(order);
     assertSame(shortage, assertThrows(AppException.class, () -> service.approve(1L)));
     assertEquals(TrangThaiDonHang.CHO_DUYET, order.getTrangThaiDonHang());
-    assertEquals(TrangThaiThanhToanDonHang.DA_THANH_TOAN, order.getTrangThaiThanhToan());
+    assertEquals(TrangThaiThanhToanDonHang.CHUA_THANH_TOAN, order.getTrangThaiThanhToan());
     verifyNoInteractions(historyRepository);
     verify(entityManager, never()).flush();
   }
@@ -124,7 +118,7 @@ class AdminOrderExportedPackingTest {
 
   @ParameterizedTest
   @ValueSource(booleans = {true, false})
-  void canonicalLifecycleCreatesDeliveryOnlyForShipping(boolean shipping) {
+  void packingAndExportDeferDeliveryUntilHandoff(boolean shipping) {
     order.setDiaChiGiaoHang(shipping ? "Dia chi giao hang" : null);
     validStoredAmounts();
     var deliveries = new ArrayList<PhieuGiaoHang>();
@@ -134,32 +128,13 @@ class AdminOrderExportedPackingTest {
     assertEquals(TrangThaiDonHang.CHO_DONG_GOI, order.getTrangThaiDonHang());
     assertEquals(TrangThaiDongGoi.CHUA_DONG_GOI, order.getTrangThaiDongGoi());
     var request = new AdminOrderRequest.Fulfillment();
-    if (shipping) {
-      var partner =
-          DoiTacVanChuyen.builder().id(3L).trangThai(TrangThaiCoBanEnum.HOAT_DONG).build();
-      when(partnerRepository.findByIdForShare(3L)).thenReturn(Optional.of(partner));
-      when(deliveryRepository.save(any()))
-          .thenAnswer(
-              call -> {
-                PhieuGiaoHang delivery = call.getArgument(0);
-                delivery.setId(2L);
-                deliveries.add(delivery);
-                return delivery;
-              });
-      when(deliveryRepository.findByIdForUpdate(2L))
-          .thenAnswer(call -> Optional.of(deliveries.getFirst()));
-      request.setDoiTacVanChuyenId(3L);
-      request.setPhiTraDoiTac(BigDecimal.ZERO);
-    }
+    request.setXacNhan(true);
     service.fulfillment(1L, request);
     assertEquals(TrangThaiDonHang.CHO_DONG_GOI, order.getTrangThaiDonHang());
     assertEquals(TrangThaiDongGoi.DANG_DONG_GOI, order.getTrangThaiDongGoi());
-    assertEquals(shipping ? 1 : 0, deliveries.size());
-    if (shipping) {
-      assertEquals(TrangThaiGiaoHangEnum.CHO_GIAO, deliveries.getFirst().getTrangThaiGiaoHang());
-      assertSame(order, deliveries.getFirst().getDonHang());
-      assertEquals(new BigDecimal("100000"), deliveries.getFirst().getTienThuHoCod());
-    } else verify(deliveryRepository, never()).save(any());
+    assertTrue(deliveries.isEmpty());
+    verify(deliveryRepository, never()).save(any());
+    verifyNoInteractions(partnerRepository);
     pack(TrangThaiDongGoi.DA_DONG_GOI);
     assertEquals(TrangThaiDonHang.CHO_DONG_GOI, order.getTrangThaiDonHang());
     assertEquals(TrangThaiXuatKho.CHUA_XUAT_KHO, order.getTrangThaiXuatKho());
@@ -168,8 +143,7 @@ class AdminOrderExportedPackingTest {
     assertEquals(TrangThaiDonHang.CHO_LAY_HANG, order.getTrangThaiDonHang());
     assertEquals(TrangThaiDongGoi.DA_DONG_GOI, order.getTrangThaiDongGoi());
     assertEquals(TrangThaiXuatKho.DA_XUAT_KHO, order.getTrangThaiXuatKho());
-    if (shipping)
-      assertEquals(TrangThaiGiaoHangEnum.CHO_GIAO, deliveries.getFirst().getTrangThaiGiaoHang());
+    assertTrue(deliveries.isEmpty());
     verify(inventory).reserve(order);
     verify(inventory).export(order, exportRequest);
     verifyNoInteractions(deliveryInventory);
@@ -183,6 +157,143 @@ class AdminOrderExportedPackingTest {
     assertEquals(TrangThaiDonHang.CHO_LAY_HANG, order.getTrangThaiDonHang());
     assertEquals(TrangThaiDongGoi.DA_DONG_GOI, order.getTrangThaiDongGoi());
     verify(historyRepository, times(4)).save(any());
+  }
+
+  AdminOrderRequest.DeliveryStart deliveryRequest() {
+    var request = new AdminOrderRequest.DeliveryStart();
+    request.setXacNhan(true);
+    request.setDoiTacVanChuyenId(3L);
+    request.setPhiTraDoiTac(new BigDecimal("25000.50"));
+    return request;
+  }
+
+  void exportedShippingOrder() {
+    order.setDiaChiGiaoHang("Dia chi giao hang");
+    order.setTrangThaiDonHang(TrangThaiDonHang.CHO_LAY_HANG);
+    order.setTrangThaiDongGoi(TrangThaiDongGoi.DA_DONG_GOI);
+    order.setTrangThaiXuatKho(TrangThaiXuatKho.DA_XUAT_KHO);
+  }
+
+  void activePartner() {
+    when(partnerRepository.findByIdForShare(3L))
+        .thenReturn(
+            Optional.of(
+                DoiTacVanChuyen.builder().id(3L).trangThai(TrangThaiCoBanEnum.HOAT_DONG).build()));
+  }
+
+  @ParameterizedTest
+  @ValueSource(booleans = {true, false})
+  void handoffCreatesDeliveryWithCorrectCodAndRepeatedRequestsDoNotDuplicate(boolean paid) {
+    exportedShippingOrder();
+    order.setTrangThaiThanhToan(
+        paid ? TrangThaiThanhToanDonHang.DA_THANH_TOAN : TrangThaiThanhToanDonHang.CHUA_THANH_TOAN);
+    activePartner();
+    var deliveries = new ArrayList<PhieuGiaoHang>();
+    when(deliveryRepository.findByDonHang_IdOrderByIdAsc(1L))
+        .thenAnswer(call -> List.copyOf(deliveries));
+    when(deliveryRepository.save(any()))
+        .thenAnswer(
+            call -> {
+              PhieuGiaoHang delivery = call.getArgument(0);
+              delivery.setId(2L);
+              deliveries.add(delivery);
+              return delivery;
+            });
+    when(deliveryRepository.findByIdForUpdate(2L))
+        .thenAnswer(call -> Optional.of(deliveries.getFirst()));
+    var request = deliveryRequest();
+    service.startDelivery(1L, request);
+    assertEquals(1, deliveries.size());
+    var delivery = deliveries.getFirst();
+    assertEquals(3L, delivery.getDoiTacVanChuyen().getId());
+    assertEquals(new BigDecimal("25000.50"), delivery.getPhiTraDoiTac());
+    assertEquals(paid ? BigDecimal.ZERO : new BigDecimal("100000"), delivery.getTienThuHoCod());
+    assertEquals(TrangThaiGiaoHangEnum.DA_NHAN_HANG, delivery.getTrangThaiGiaoHang());
+    assertEquals(TrangThaiDonHang.DANG_GIAO_HANG, order.getTrangThaiDonHang());
+    assertEquals(TrangThaiDongGoi.DA_DONG_GOI, order.getTrangThaiDongGoi());
+    assertEquals(TrangThaiXuatKho.DA_XUAT_KHO, order.getTrangThaiXuatKho());
+    service.startDelivery(1L, request);
+    request.setPhiTraDoiTac(new BigDecimal("30000"));
+    assertThrows(AppException.class, () -> service.startDelivery(1L, request));
+    verify(deliveryRepository).save(any());
+    var event = ArgumentCaptor.forClass(LichSuXuLyDonHang.class);
+    verify(historyRepository).save(event.capture());
+    assertEquals("GIAO_VAN_DA_NHAN_HANG", event.getValue().getHanhDong());
+    assertEquals(TrangThaiDonHang.DANG_GIAO_HANG, event.getValue().getTrangThaiDonHang());
+    verifyNoInteractions(inventory, deliveryInventory);
+  }
+
+  @Test
+  void handoffReusesAndUpdatesWaitingLegacyDelivery() {
+    exportedShippingOrder();
+    activePartner();
+    var delivery =
+        PhieuGiaoHang.builder()
+            .id(2L)
+            .maPhieuGiaoHang("PGH-OLD")
+            .donHang(order)
+            .doiTacVanChuyen(DoiTacVanChuyen.builder().id(4L).build())
+            .phiTraDoiTac(BigDecimal.ZERO)
+            .trangThaiGiaoHang(TrangThaiGiaoHangEnum.CHO_GIAO)
+            .build();
+    when(deliveryRepository.findByDonHang_IdOrderByIdAsc(1L)).thenReturn(List.of(delivery));
+    when(deliveryRepository.findByIdForUpdate(2L)).thenReturn(Optional.of(delivery));
+    service.startDelivery(1L, deliveryRequest());
+    assertEquals(2L, delivery.getId());
+    assertEquals("PGH-OLD", delivery.getMaPhieuGiaoHang());
+    assertEquals(3L, delivery.getDoiTacVanChuyen().getId());
+    assertEquals(new BigDecimal("25000.50"), delivery.getPhiTraDoiTac());
+    assertEquals(TrangThaiGiaoHangEnum.DA_NHAN_HANG, delivery.getTrangThaiGiaoHang());
+    verify(deliveryRepository).save(same(delivery));
+    verify(historyRepository).save(any());
+  }
+
+  @Test
+  void handoffRejectsPickupOrInvalidPackingAndExportStagesBeforeCreatingDelivery() {
+    var request = deliveryRequest();
+    assertThrows(AppException.class, () -> service.startDelivery(1L, request));
+    exportedShippingOrder();
+    order.setDiaChiGiaoHang(null);
+    assertThrows(AppException.class, () -> service.startDelivery(1L, request));
+    order.setDiaChiGiaoHang("Dia chi giao hang");
+    order.setTrangThaiDongGoi(TrangThaiDongGoi.DANG_DONG_GOI);
+    assertThrows(AppException.class, () -> service.startDelivery(1L, request));
+    order.setTrangThaiDongGoi(TrangThaiDongGoi.DA_DONG_GOI);
+    order.setTrangThaiXuatKho(TrangThaiXuatKho.CHUA_XUAT_KHO);
+    assertThrows(AppException.class, () -> service.startDelivery(1L, request));
+    order.setTrangThaiXuatKho(TrangThaiXuatKho.DA_XUAT_KHO);
+    order.setTrangThaiDonHang(TrangThaiDonHang.CHO_DONG_GOI);
+    assertThrows(AppException.class, () -> service.startDelivery(1L, request));
+    verify(deliveryRepository, never()).save(any());
+    verifyNoInteractions(partnerRepository, inventory, historyRepository);
+  }
+
+  @Test
+  void handoffRejectsMissingConfirmationInvalidFeesAndInactivePartners() {
+    exportedShippingOrder();
+    var request = deliveryRequest();
+    request.setXacNhan(false);
+    assertThrows(AppException.class, () -> service.startDelivery(1L, request));
+    request.setXacNhan(true);
+    for (var fee :
+        List.of(new BigDecimal("-1"), new BigDecimal("1.001"), new BigDecimal("10000000000000"))) {
+      request.setPhiTraDoiTac(fee);
+      assertThrows(AppException.class, () -> service.startDelivery(1L, request));
+    }
+    request.setPhiTraDoiTac(null);
+    assertThrows(AppException.class, () -> service.startDelivery(1L, request));
+    request.setPhiTraDoiTac(new BigDecimal("25000.50"));
+    when(partnerRepository.findByIdForShare(3L))
+        .thenReturn(
+            Optional.of(
+                DoiTacVanChuyen.builder()
+                    .id(3L)
+                    .trangThai(TrangThaiCoBanEnum.NGUNG_HOAT_DONG)
+                    .build()));
+    assertThrows(AppException.class, () -> service.startDelivery(1L, request));
+    assertEquals(TrangThaiDonHang.CHO_LAY_HANG, order.getTrangThaiDonHang());
+    verify(deliveryRepository, never()).save(any());
+    verifyNoInteractions(inventory, historyRepository);
   }
 
   @ParameterizedTest

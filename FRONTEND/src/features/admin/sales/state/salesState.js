@@ -8,11 +8,17 @@ export function resetOrder(order) {
   return { ...createOrder(order.id, order.employee), code: order.code };
 }
 
-export function closeOrderTab(orders, activeId, removedId, nextSequence) {
+export function nextOrderNumber(orders) {
+  let number = 1;
+  while (orders.some((order) => order.id === number)) number += 1;
+  return number;
+}
+
+export function closeOrderTab(orders, activeId, removedId) {
   const index = orders.findIndex((order) => order.id === removedId);
   const remaining = orders.filter((order) => order.id !== removedId);
   if (!remaining.length) {
-    const next = createOrder(nextSequence, orders[0]?.employee);
+    const next = createOrder(1, orders[0]?.employee);
     return { orders: [next], activeId: next.id };
   }
   return { orders: remaining, activeId: removedId === activeId ? remaining[Math.max(0, index - 1)].id : activeId };

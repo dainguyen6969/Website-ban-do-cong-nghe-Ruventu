@@ -40,6 +40,22 @@ public final class AdminOrderRequest {
 
   @Getter
   @Setter
+  public static class DeliveryStart extends Confirm {
+
+    @NotNull
+    @Positive
+    @JsonProperty("doi_tac_van_chuyen_id")
+    private Long doiTacVanChuyenId;
+
+    @NotNull
+    @DecimalMin("0")
+    @Digits(integer = 13, fraction = 2)
+    @JsonProperty("phi_tra_doi_tac")
+    private BigDecimal phiTraDoiTac;
+  }
+
+  @Getter
+  @Setter
   public static class Packing extends AdminSalesRequest.StrictRequest {
 
     @NotNull

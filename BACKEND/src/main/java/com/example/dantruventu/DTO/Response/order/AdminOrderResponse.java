@@ -58,16 +58,6 @@ public final class AdminOrderResponse {
     private BigDecimal tongThanhToan;
   }
 
-  public record CashDocument(
-      @JsonProperty("ma_phieu") String maPhieu,
-      @JsonProperty("loai_phieu") LoaiPhieuThuChi loaiPhieu,
-      @JsonProperty("ma_chung_tu_tham_chieu") String maChungTuThamChieu,
-      @JsonProperty("so_tien") BigDecimal soTien,
-      @JsonProperty("nhom_nguoi_nop_nhan") NhomNguoiNopNhanEnum nhomNguoiNopNhan,
-      @JsonProperty("nguon_tao") NguonTaoPhieuThuChi nguonTao,
-      @JsonProperty("trang_thai") TrangThaiPhieuThuChi trangThai,
-      @JsonProperty("ngay_ghi_nhan") OffsetDateTime ngayGhiNhan) {}
-
   public record History(
       Long id,
       @JsonProperty("hanh_dong") String hanhDong,

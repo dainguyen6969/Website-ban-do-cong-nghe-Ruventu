@@ -5,6 +5,8 @@ import { apiRequest as request } from '../../../../../auth/backendAuth';
 
 const COMBO_PATH = '/api/v1/admin/combos';
 const TAGS_KEY = '__combo_tags';
+const nullableNumber = (value) =>
+  value == null ? null : Number(value);
 
 let inMemoryToken = '';
 let loginPromise = null;
@@ -143,8 +145,13 @@ export async function getComboPage(filters, signal) {
     catch { /* A missing thumbnail must not hide a valid list row. */ }
     return {
       id: Number(item.id), code: item.ma_san_pham || '', name: item.ten_san_pham || '', image,
-      sellable: Number(item.ton_co_the_ban || 0), stock: Number(item.ton_thuc_te || 0),
-      price: Number(item.gia_ban || 0), status: statusText(item.trang_thai),
+assemblyCapacity: nullableNumber(item.so_bo_co_the_lap),
+
+// Giữ tên sellable để các chỗ chưa đổi vẫn đọc cùng giá trị.
+sellable: nullableNumber(item.so_bo_co_the_lap),
+
+stock: null,      price: Number(item.gia_ban || 0),
+ status: statusText(item.trang_thai),
       components: (item.thanh_phan || []).map(normalizeComponent),
     };
   }));

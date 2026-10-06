@@ -1,5 +1,8 @@
 /* Styles for the admin point-of-sale screen. */
 .pos-page { flex:1; min-height:0; display:flex; flex-direction:column; overflow:auto; background:#fff; color:#111; }
+.pos-controls { display:contents; }
+.pos-confirm-payment { display:flex; align-items:center; gap:8px; font-size:11px; }
+.pos-page .pos-confirm-payment input { width:16px; height:16px; padding:0; flex-shrink:0; accent-color:#111; }
 .pos-page button,.pos-page input,.pos-page select,.pos-page textarea { border-radius:0; }
 .pos-page button { cursor:pointer; }
 .pos-page button:focus-visible,.pos-page input:focus-visible,.pos-page select:focus-visible,.pos-page textarea:focus-visible { outline:2px solid var(--color-brand-red); outline-offset:2px; }
@@ -68,16 +71,17 @@
 .pos-cart-scroll { overflow:auto; flex:1; }
 .pos-cart { width:100%; border-collapse:collapse; text-align:left; }
 .pos-cart th { background:#090909; color:#9299a3; text-transform:uppercase; font-size:9px; letter-spacing:.6px; padding:14px 10px; white-space:nowrap; }
+.admin-app .pos-cart thead tr,.admin-app .pos-cart thead tr:hover,.admin-app .pos-cart thead th,.admin-app .pos-cart thead th:hover { background-color:#090909 !important; cursor:default; }
 .pos-cart th:nth-child(2) { width:100%; }
 .pos-cart td { border-bottom:1px solid #eee; padding:14px 10px; font-size:10px; vertical-align:middle; }
 .pos-cart td:first-child { color:#9ca3af; }
 .pos-cart td:nth-child(2) { min-width:180px; }
 .pos-cart td strong { display:block; font-size:11px; font-weight:800; }
 .pos-cart td small { display:block; color:#9ca3af; font-size:9px; margin-top:6px; }
-.pos-stepper { display:flex; height:32px; border:2px solid #111; width:100px; }
+.pos-stepper { display:flex; align-items:stretch; height:32px; border:2px solid #111; width:100px; }
 .pos-stepper button { border:0; background:white; width:28px; flex-shrink:0; font-size:14px; }
 .pos-stepper button:disabled { color:#aaa; cursor:default; }
-.pos-stepper input { width:42px; min-width:0; border:0; border-inline:1px solid #111; text-align:center; font-size:12px; font-weight:700; -moz-appearance:textfield; }
+.pos-page .pos-stepper input { flex:1; width:0; min-width:0; height:100%; padding:0; border:0; border-inline:1px solid #111; text-align:center; font-size:12px; font-weight:700; -moz-appearance:textfield; }
 .pos-stepper input::-webkit-inner-spin-button,.pos-stepper input::-webkit-outer-spin-button { margin:0; -webkit-appearance:none; }
 .pos-price,.pos-line-total { white-space:nowrap; font-weight:800; }
 .pos-line-total { color:var(--color-brand-red); }

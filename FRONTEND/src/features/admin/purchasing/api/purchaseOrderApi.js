@@ -1,6 +1,8 @@
 import { adminRequest, getAllVersions, getWarehouses } from '../../catalog/products/api/versionApi.js';
 
 const PATH = '/api/v1/admin/purchase-orders';
+const nullableNumber = (value) =>
+  value == null ? null : Number(value);
 
 export const IMPORT_STATUS = {
   DAT_HANG: 'Đặt hàng', DA_DUYET: 'Đã duyệt', NHAP_MOT_PHAN: 'Nhập một phần',
@@ -25,8 +27,21 @@ export function normalizePurchaseOrder(item) {
     paymentStatus: item.trang_thai_thanh_toan,
     paymentStatusLabel: PAYMENT_STATUS[item.trang_thai_thanh_toan] || item.trang_thai_thanh_toan,
     applyTax: Boolean(item.ap_dung_thue), taxRate: number(item.thue_vat), goodsTotal: number(item.tien_hang),
-    taxTotal: number(item.tien_thue), total: number(item.tong_tien), paid: number(item.so_tien_da_thanh_toan),
-    debt: number(item.so_tien_con_no), createdAt: item.ngay_tao, createdAtLabel: formatDate(item.ngay_tao),
+    taxTotal: number(item.tien_thue), total: number(item.tong_tien), 
+paid: nullableNumber(item.so_tien_da_thanh_toan),
+debt: nullableNumber(item.so_tien_con_no),
+
+returnedValue: nullableNumber(item.gia_tri_hang_tra_luy_ke),
+netOrderValue: nullableNumber(item.gia_tri_don_sau_tra),
+
+refunded: nullableNumber(item.so_tien_da_nhan_hoan),
+netPaid: nullableNumber(item.so_tien_da_thanh_toan_thuan),
+
+refundDue:
+  item.so_tien_ncc_con_phai_hoan == null
+    ? null
+    : Number(item.so_tien_ncc_con_phai_hoan),
+     createdAt: item.ngay_tao, createdAtLabel: formatDate(item.ngay_tao),
     items: (item.items || []).map((line) => ({
       id: number(line.id), versionId: number(line.phien_ban_id), name: line.ten_phien_ban || '',
       qty: number(line.so_luong), unitPrice: number(line.gia_nhap), lineTotal: number(line.thanh_tien),
@@ -56,11 +71,32 @@ export const createPurchaseOrder = (body) => adminRequest(PATH, { method: 'POST'
 export const updatePurchaseOrder = (id, body) => adminRequest(`${PATH}/${id}`, { method: 'PUT', body: JSON.stringify(body) });
 export const approvePurchaseOrder = (id) => adminRequest(`${PATH}/${id}/approve`, { method: 'POST' });
 export const cancelPurchaseOrder = (id) => adminRequest(`${PATH}/${id}/cancel`, { method: 'POST' });
-export const payPurchaseOrder = (id, key, body) => adminRequest(`${PATH}/${id}/payments`, {
-  method: 'POST', headers: { 'Idempotency-Key': key }, body: JSON.stringify(body),
-});
+export const payPurchaseOrder = (id, key, body) =>
+  adminRequest(`${PATH}/${encodeURIComponent(id)}/payments`, {
+    method: 'POST',
+    headers: {
+      'Idempotency-Key': key,
+    },
+    body: JSON.stringify(body),
+  });
 export const receivePurchaseOrder = (id, body) => adminRequest(`${PATH}/${id}/receive`, { method: 'POST', body: JSON.stringify(body) });
-export const returnPurchaseOrder = (id, body) => adminRequest(`${PATH}/${id}/returns`, { method: 'POST', body: JSON.stringify(body) });
+export const returnPurchaseOrder = (id, key, body) =>
+  adminRequest(`${PATH}/${encodeURIComponent(id)}/returns`, {
+    method: "POST",
+    headers: {
+      "Idempotency-Key": key,
+    },
+    body: JSON.stringify(body),
+  });
+
+export const receivePurchaseRefund = (id, key, body) =>
+  adminRequest(`${PATH}/${encodeURIComponent(id)}/refunds`, {
+    method: "POST",
+    headers: {
+      "Idempotency-Key": key,
+    },
+    body: JSON.stringify(body),
+  });
 
 async function allPages(path, params, signal) {
   const items = [];
