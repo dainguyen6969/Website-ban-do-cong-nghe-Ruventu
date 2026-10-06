@@ -12,6 +12,7 @@ import com.example.dantruventu.Enum.TrangThaiCoBanEnum;
 import com.example.dantruventu.Error.AppException;
 import com.example.dantruventu.Error.ErrorCode;
 import com.example.dantruventu.Repository.cashbook.LoaiThuChiRepository;
+import com.example.dantruventu.Services.cashbook.CashbookService;
 import com.example.dantruventu.Specification.ReceiptTypeSpecification;
 import java.util.Locale;
 import lombok.RequiredArgsConstructor;
@@ -33,13 +34,12 @@ public class AdminReceiptTypeService {
   private final LoaiThuChiRepository receiptTypeRepository;
 
   public AdminReceiptTypeListResponse getReceiptTypes(
-      String keyword, String status, String page, String limit) {
-    return getTypes(LoaiPhieuThuChi.THU, keyword, status, page, limit);
+      String keyword, String status, String usage, String page, String limit) {
+    return getTypes(LoaiPhieuThuChi.THU, keyword, status, usage, page, limit);
   }
 
   public AdminReceiptTypeResponse getReceiptTypeDetail(String rawId) {
-    return getTypeDetail(
-        rawId, LoaiPhieuThuChi.THU, ErrorCode.RECEIPT_TYPE_NOT_FOUND_OR_EXPENSE);
+    return getTypeDetail(rawId, LoaiPhieuThuChi.THU, ErrorCode.RECEIPT_TYPE_NOT_FOUND_OR_EXPENSE);
   }
 
   public AdminReceiptTypeResponse getTypeDetail(
@@ -64,16 +64,38 @@ public class AdminReceiptTypeService {
       String rawStatus,
       String rawPage,
       String rawLimit) {
+    return getTypes(voucherType, keyword, rawStatus, "TAT_CA", rawPage, rawLimit);
+  }
+
+  public AdminReceiptTypeListResponse getTypes(
+      LoaiPhieuThuChi voucherType,
+      String keyword,
+      String rawStatus,
+      String rawUsage,
+      String rawPage,
+      String rawLimit) {
     int page = parseInteger(rawPage);
     int limit = parseInteger(rawLimit);
     validatePagination(page, limit);
 
     TrangThaiCoBanEnum status = parseStatus(rawStatus);
+    String usage = rawUsage == null ? "TAT_CA" : rawUsage.strip();
+    if (!"TAT_CA".equals(usage) && !"THU_CONG".equals(usage)) {
+      throw new AppException(ErrorCode.INVALID_RECEIPT_TYPE_USAGE);
+    }
+    org.springframework.data.jpa.domain.Specification<LoaiThuChi> specification =
+        ReceiptTypeSpecification.build(keyword, voucherType, status);
+    if ("THU_CONG".equals(usage)) {
+      specification =
+          specification.and(
+              (root, query, cb) ->
+                  cb.not(
+                      cb.upper(root.<String>get("maLoai"))
+                          .in(CashbookService.SYSTEM_RESERVED_TYPE_CODES)));
+    }
     PageRequest pageable = PageRequest.of(page, limit, Sort.by("id").descending());
 
-    Page<LoaiThuChi> result =
-        receiptTypeRepository.findAll(
-            ReceiptTypeSpecification.build(keyword, voucherType, status), pageable);
+    Page<LoaiThuChi> result = receiptTypeRepository.findAll(specification, pageable);
 
     return AdminReceiptTypeListResponse.builder()
         .items(result.getContent().stream().map(this::toResponse).toList())
@@ -111,6 +133,10 @@ public class AdminReceiptTypeService {
 
     if (name.length() > MAX_NAME_LENGTH) {
       throw invalidRequest("Tên loại tối đa 150 ký tự.");
+    }
+
+    if (CashbookService.SYSTEM_RESERVED_TYPE_CODES.contains(code)) {
+      throw invalidRequest("Mã loại dành cho hệ thống không được tạo qua API thủ công.");
     }
 
     if (receiptTypeRepository.existsByMaLoaiIgnoreCase(code)) {
@@ -168,6 +194,13 @@ public class AdminReceiptTypeService {
 
     if (receiptType.getTrangThai() == requestedStatus) {
       return toStatusResponse(receiptType, requestedStatus, false);
+    }
+
+    if (voucherType == LoaiPhieuThuChi.CHI
+        && requestedStatus == TrangThaiCoBanEnum.NGUNG_HOAT_DONG
+        && CashbookService.SYSTEM_RESERVED_TYPE_CODES.contains(
+            receiptType.getMaLoai().toUpperCase(Locale.ROOT))) {
+      throw new AppException(ErrorCode.SYSTEM_DISBURSEMENT_TYPE_CANNOT_BE_DISABLED);
     }
 
     int updatedRows = receiptTypeRepository.updateStatus(id, requestedStatus);

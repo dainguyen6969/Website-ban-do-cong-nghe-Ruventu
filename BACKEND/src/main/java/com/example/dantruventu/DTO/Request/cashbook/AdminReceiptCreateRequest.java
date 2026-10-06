@@ -19,8 +19,16 @@ import lombok.Setter;
 @NoArgsConstructor
 public class AdminReceiptCreateRequest {
 
+  @JsonProperty("nguoi_nop_nhan_id")
+  private Long nguoiNopNhanId;
+
+  @JsonProperty("nha_cung_cap_id")
+  private Long nhaCungCapId;
+
+  @JsonProperty("doi_tac_van_chuyen_id")
+  private Long doiTacVanChuyenId;
+
   @JsonProperty("ma_phieu")
-  @NotBlank(message = "Mã phiếu không được để trống")
   @Size(max = 50, message = "Mã phiếu tối đa 50 ký tự")
   private String maPhieu;
 
@@ -33,7 +41,6 @@ public class AdminReceiptCreateRequest {
   private String nhomNguoiNopNhan;
 
   @JsonProperty("ten_nguoi_nop_nhan")
-  @NotBlank(message = "Tên người nộp không được để trống")
   @Size(max = 150, message = "Tên người nộp tối đa 150 ký tự")
   private String tenNguoiNopNhan;
 

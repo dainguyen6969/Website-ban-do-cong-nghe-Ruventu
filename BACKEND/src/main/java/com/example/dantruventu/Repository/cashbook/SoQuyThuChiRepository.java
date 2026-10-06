@@ -7,7 +7,6 @@ import com.example.dantruventu.Enum.NhomNguoiNopNhanEnum;
 import com.example.dantruventu.Enum.TrangThaiPhieuThuChi;
 import jakarta.persistence.LockModeType;
 import java.math.BigDecimal;
-
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -29,6 +28,19 @@ public interface SoQuyThuChiRepository
 
   boolean existsByMaPhieuIgnoreCase(String maPhieu);
 
+  @Query("SELECT COUNT(d) > 0 FROM DonNhapHang d WHERE LOWER(d.maDonNhap) = LOWER(:code)")
+  boolean isPurchaseOrderReference(@Param("code") String code);
+
+  @Query(
+      """
+      SELECT COUNT(p) > 0 FROM PhieuGiaoHang p
+      WHERE p.tienThuHoCod > 0
+        AND (LOWER(p.maPhieuGiaoHang) = LOWER(:code)
+          OR LOWER(p.maVanDon) = LOWER(:code)
+          OR LOWER(p.donHang.maDonHang) = LOWER(:code))
+      """)
+  boolean isCodReference(@Param("code") String code);
+
   boolean existsByLoaiPhieuAndNguonTaoAndMaChungTuThamChieuAndSoTien(
       LoaiPhieuThuChi loaiPhieu,
       NguonTaoPhieuThuChi nguonTao,
@@ -43,6 +55,9 @@ public interface SoQuyThuChiRepository
       SELECT COALESCE(SUM(s.soTien), 0)
       FROM SoQuyThuChi s
       LEFT JOIN s.nguoiTao creator
+      LEFT JOIN s.nguoiNopNhan payer
+      LEFT JOIN s.nhaCungCap supplier
+      LEFT JOIN s.doiTacVanChuyen partner
       WHERE s.trangThai = :confirmedStatus
         AND s.ngayGhiNhan IS NOT NULL
         AND s.loaiPhieu = :amountType
@@ -56,6 +71,11 @@ public interface SoQuyThuChiRepository
         AND (:payerNamePattern IS NULL
              OR LOWER(s.tenNguoiNopNhan) LIKE :payerNamePattern ESCAPE '!')
         AND (:creatorId IS NULL OR creator.id = :creatorId)
+        AND (:typeId IS NULL OR s.loaiThuChi.id = :typeId)
+        AND (:userId IS NULL OR payer.id = :userId)
+        AND (:supplierId IS NULL OR supplier.id = :supplierId)
+        AND (:partnerId IS NULL OR partner.id = :partnerId)
+        AND (:source IS NULL OR s.nguonTao = :source)
         AND (:startInclusive IS NULL OR s.ngayGhiNhan >= :startInclusive)
         AND (:endExclusive IS NULL OR s.ngayGhiNhan < :endExclusive)
       """)
@@ -68,6 +88,11 @@ public interface SoQuyThuChiRepository
       @Param("payerGroup") NhomNguoiNopNhanEnum payerGroup,
       @Param("payerNamePattern") String payerNamePattern,
       @Param("creatorId") Long creatorId,
+      @Param("typeId") Long typeId,
+      @Param("userId") Long userId,
+      @Param("supplierId") Long supplierId,
+      @Param("partnerId") Long partnerId,
+      @Param("source") NguonTaoPhieuThuChi source,
       @Param("startInclusive") LocalDateTime startInclusive,
       @Param("endExclusive") LocalDateTime endExclusive);
 

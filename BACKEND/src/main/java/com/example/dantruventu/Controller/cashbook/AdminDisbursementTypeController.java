@@ -25,19 +25,19 @@ public class AdminDisbursementTypeController {
   public ApiResponse<AdminReceiptTypeListResponse> getDisbursementTypes(
       @RequestParam(required = false) String keyword,
       @RequestParam(name = "trang_thai", required = false) String trangThai,
+      @RequestParam(name = "dung_cho", required = false) String dungCho,
       @RequestParam(defaultValue = "0") String page,
       @RequestParam(defaultValue = "20") String limit) {
 
     return ApiResponse.<AdminReceiptTypeListResponse>builder()
         .status(HttpStatus.OK.value())
         .message("Lấy danh sách loại phiếu chi thành công")
-        .data(service.getDisbursementTypes(keyword, trangThai, page, limit))
+        .data(service.getDisbursementTypes(keyword, trangThai, dungCho, page, limit))
         .build();
   }
 
   @GetMapping("/{id}")
-  public ApiResponse<AdminReceiptTypeResponse> getDisbursementTypeDetail(
-      @PathVariable String id) {
+  public ApiResponse<AdminReceiptTypeResponse> getDisbursementTypeDetail(@PathVariable String id) {
 
     return ApiResponse.<AdminReceiptTypeResponse>builder()
         .status(HttpStatus.OK.value())
@@ -65,8 +65,7 @@ public class AdminDisbursementTypeController {
       @PathVariable String id,
       @RequestBody(required = false) AdminReceiptTypeStatusRequest request) {
 
-    AdminReceiptTypeStatusResponse data =
-        service.updateDisbursementTypeStatus(id, request);
+    AdminReceiptTypeStatusResponse data = service.updateDisbursementTypeStatus(id, request);
 
     String message;
     if (!data.isChanged()) {

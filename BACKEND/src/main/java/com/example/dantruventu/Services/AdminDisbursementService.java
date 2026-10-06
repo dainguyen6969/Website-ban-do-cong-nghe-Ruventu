@@ -20,6 +20,7 @@ import com.example.dantruventu.Error.AppException;
 import com.example.dantruventu.Error.ErrorCode;
 import com.example.dantruventu.Repository.cashbook.LoaiThuChiRepository;
 import com.example.dantruventu.Repository.cashbook.SoQuyThuChiRepository;
+import com.example.dantruventu.Services.cashbook.CashbookService;
 import com.example.dantruventu.Specification.DisbursementSpecification;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
@@ -57,6 +58,7 @@ public class AdminDisbursementService {
   private final SoQuyThuChiRepository disbursementRepository;
   private final LoaiThuChiRepository disbursementTypeRepository;
   private final AdminReceiptService receiptService;
+  private final CashbookService cashbookService;
 
   @Value("${ruventu.cashbook.time-zone:Asia/Ho_Chi_Minh}")
   private String cashbookTimeZone;
@@ -154,6 +156,27 @@ public class AdminDisbursementService {
 
   @Transactional
   public AdminDisbursementResponse createDisbursement(
+      AdminDisbursementCreateRequest request, NguoiDung authenticatedAdmin, String requestKey) {
+    if (request == null) {
+      throw invalidRequest("Thiếu dữ liệu tạo phiếu chi.");
+    }
+    try {
+      UUID.fromString(requestKey);
+      if (requestKey.length() != 36) {
+        throw new IllegalArgumentException();
+      }
+    } catch (IllegalArgumentException | NullPointerException exception) {
+      throw invalidRequest("Idempotency-Key bắt buộc và phải là UUID.");
+    }
+    return cashbookService.executeOnce(
+        "PC-" + requestKey.toLowerCase(Locale.ROOT),
+        authenticatedAdmin,
+        request,
+        AdminDisbursementResponse.class,
+        () -> persistDisbursement(request, authenticatedAdmin));
+  }
+
+  private AdminDisbursementResponse persistDisbursement(
       AdminDisbursementCreateRequest request, NguoiDung authenticatedAdmin) {
 
     if (authenticatedAdmin == null || authenticatedAdmin.getId() == null) {
@@ -172,9 +195,23 @@ public class AdminDisbursementService {
       throw invalidRequest("Loại chi không hợp lệ.");
     }
 
-    String payerName =
-        requiredText(request.getTenNguoiNopNhan(), "Tên người nhận không được để trống.");
     NhomNguoiNopNhanEnum payerGroup = parseRequiredPayerGroup(request.getNhomNguoiNopNhan());
+    AdminReceiptService.Counterparty payee;
+    try {
+      payee =
+          receiptService.resolveCounterparty(
+              payerGroup,
+              request.getNguoiNopNhanId(),
+              request.getNhaCungCapId(),
+              request.getDoiTacVanChuyenId(),
+              request.getTenNguoiNopNhan());
+    } catch (AppException exception) {
+      if (exception.getErrorCode() == ErrorCode.INVALID_RECEIPT_REQUEST) {
+        throw invalidRequest(exception.getMessage());
+      }
+      throw exception;
+    }
+    String payerName = requiredText(payee.name(), "Tên người nhận không được để trống.");
     String paymentMethod = parseRequiredPaymentMethod(request.getPhuongThucThanhToan());
     BigDecimal amount = requirePositiveAmount(request.getSoTien());
     LocalDateTime recordedAt = toLocalDateTime(request.getNgayGhiNhan());
@@ -192,6 +229,9 @@ public class AdminDisbursementService {
       receiptCode = generateDisbursementCode();
     } else {
       validateLength(receiptCode, MAX_CODE_LENGTH, "Mã phiếu tối đa 50 ký tự.");
+    }
+    if (receiptCode.toUpperCase(Locale.ROOT).startsWith("CHI-")) {
+      throw invalidRequest("Mã phiếu thuộc mã dành cho nghiệp vụ tự động.");
     }
 
     LoaiThuChi disbursementType =
@@ -223,6 +263,9 @@ public class AdminDisbursementService {
             .loaiPhieu(LoaiPhieuThuChi.CHI)
             .loaiThuChi(disbursementType)
             .nhomNguoiNopNhan(payerGroup)
+            .nguoiNopNhan(payee.user())
+            .nhaCungCap(payee.supplier())
+            .doiTacVanChuyen(payee.partner())
             .tenNguoiNopNhan(payerName)
             .maChungTuThamChieu(referenceCode)
             .soTien(amount)
@@ -292,6 +335,15 @@ public class AdminDisbursementService {
     NguoiDung creator = disbursement.getNguoiTao();
 
     return AdminDisbursementListItemResponse.builder()
+        .nguoiNopNhanId(
+            disbursement.getNguoiNopNhan() == null ? null : disbursement.getNguoiNopNhan().getId())
+        .nhaCungCapId(
+            disbursement.getNhaCungCap() == null ? null : disbursement.getNhaCungCap().getId())
+        .doiTacVanChuyenId(
+            disbursement.getDoiTacVanChuyen() == null
+                ? null
+                : disbursement.getDoiTacVanChuyen().getId())
+        .maChungTuThamChieu(disbursement.getMaChungTuThamChieu())
         .id(disbursement.getId())
         .maPhieu(disbursement.getMaPhieu())
         .loaiPhieu(disbursement.getLoaiPhieu())
@@ -314,6 +366,14 @@ public class AdminDisbursementService {
     NguoiDung creator = disbursement.getNguoiTao();
 
     return AdminDisbursementResponse.builder()
+        .nguoiNopNhanId(
+            disbursement.getNguoiNopNhan() == null ? null : disbursement.getNguoiNopNhan().getId())
+        .nhaCungCapId(
+            disbursement.getNhaCungCap() == null ? null : disbursement.getNhaCungCap().getId())
+        .doiTacVanChuyenId(
+            disbursement.getDoiTacVanChuyen() == null
+                ? null
+                : disbursement.getDoiTacVanChuyen().getId())
         .id(disbursement.getId())
         .maPhieu(disbursement.getMaPhieu())
         .loaiPhieu(disbursement.getLoaiPhieu())
@@ -378,7 +438,10 @@ public class AdminDisbursementService {
     if (value == null) {
       throw invalidRequest("Ngày ghi nhận không được để trống.");
     }
-    return value.atZoneSameInstant(timeZone()).toLocalDateTime();
+    if (value.toInstant().isAfter(java.time.Instant.now())) {
+      throw invalidRequest("Ngày ghi nhận không được ở tương lai.");
+    }
+    return value.atZoneSameInstant(timeZone()).toLocalDateTime().truncatedTo(ChronoUnit.SECONDS);
   }
 
   private <E extends Enum<E>> E parseOptionalEnum(String value, Class<E> enumType) {

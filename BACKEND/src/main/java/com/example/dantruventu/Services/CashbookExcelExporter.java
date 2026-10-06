@@ -65,6 +65,21 @@ public class CashbookExcelExporter {
       rowIndex = addInfoRow(sheet, rowIndex, "Từ khóa", display(filter.getKeyword()), styles);
       rowIndex = addInfoRow(sheet, rowIndex, "Loại phiếu", display(filter.getLoaiPhieu()), styles);
       rowIndex =
+          addInfoRow(sheet, rowIndex, "Loại thu/chi ID", display(filter.getLoaiThuChiId()), styles);
+      rowIndex =
+          addInfoRow(
+              sheet, rowIndex, "Người nộp/nhận ID", display(filter.getNguoiNopNhanId()), styles);
+      rowIndex =
+          addInfoRow(sheet, rowIndex, "Nhà cung cấp ID", display(filter.getNhaCungCapId()), styles);
+      rowIndex =
+          addInfoRow(
+              sheet,
+              rowIndex,
+              "Đối tác vận chuyển ID",
+              display(filter.getDoiTacVanChuyenId()),
+              styles);
+      rowIndex = addInfoRow(sheet, rowIndex, "Nguồn tạo", display(filter.getNguonTao()), styles);
+      rowIndex =
           addInfoRow(
               sheet,
               rowIndex,

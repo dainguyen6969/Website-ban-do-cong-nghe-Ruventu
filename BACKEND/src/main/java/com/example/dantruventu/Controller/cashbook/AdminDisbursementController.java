@@ -31,8 +31,7 @@ public class AdminDisbursementController {
       @RequestParam(required = false) String keyword,
       @RequestParam(name = "loai_thu_chi_id", required = false) String loaiThuChiId,
       @RequestParam(name = "nhom_nguoi_nop_nhan", required = false) String nhomNguoiNopNhan,
-      @RequestParam(name = "phuong_thuc_thanh_toan", required = false)
-          String phuongThucThanhToan,
+      @RequestParam(name = "phuong_thuc_thanh_toan", required = false) String phuongThucThanhToan,
       @RequestParam(name = "nguoi_tao_id", required = false) String nguoiTaoId,
       @RequestParam(name = "nguon_tao", required = false) String nguonTao,
       @RequestParam(name = "trang_thai", required = false) String trangThai,
@@ -75,8 +74,7 @@ public class AdminDisbursementController {
   }
 
   @GetMapping("/{id}")
-  public ApiResponse<AdminDisbursementResponse> getDisbursementDetail(
-      @PathVariable String id) {
+  public ApiResponse<AdminDisbursementResponse> getDisbursementDetail(@PathVariable String id) {
 
     return ApiResponse.<AdminDisbursementResponse>builder()
         .status(HttpStatus.OK.value())
@@ -88,6 +86,7 @@ public class AdminDisbursementController {
   @PostMapping
   public ResponseEntity<ApiResponse<AdminDisbursementResponse>> createDisbursement(
       @RequestBody(required = false) AdminDisbursementCreateRequest request,
+      @RequestHeader(name = "Idempotency-Key", required = false) String requestKey,
       Authentication authentication) {
 
     if (authentication == null || !(authentication.getPrincipal() instanceof NguoiDung admin)) {
@@ -98,7 +97,7 @@ public class AdminDisbursementController {
         ApiResponse.<AdminDisbursementResponse>builder()
             .status(HttpStatus.CREATED.value())
             .message("Tạo phiếu chi thành công")
-            .data(service.createDisbursement(request, admin))
+            .data(service.createDisbursement(request, admin, requestKey))
             .build();
 
     return ResponseEntity.status(HttpStatus.CREATED).body(response);

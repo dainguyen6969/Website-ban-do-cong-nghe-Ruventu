@@ -39,7 +39,8 @@ public enum ErrorCode {
       HttpStatus.BAD_REQUEST, "Sai enum, ID lọc, khoảng ngày hoặc phân trang."),
 
   INVALID_CASHBOOK_FILTER(
-      HttpStatus.BAD_REQUEST, "Khoảng ngày sai, enum sai, ID hoặc phân trang không hợp lệ."),
+      HttpStatus.BAD_REQUEST,
+      "Thiếu/sai khoảng ngày, enum, ID, FK đối tượng hoặc phân trang không hợp lệ."),
 
   INVALID_CASHBOOK_EXPORT_FILTER(
       HttpStatus.BAD_REQUEST, "Bộ lọc không hợp lệ hoặc truyền tham số phân trang."),
@@ -65,6 +66,9 @@ public enum ErrorCode {
   INVALID_RECEIPT_TYPE_REQUEST(
       HttpStatus.BAD_REQUEST,
       "Thiếu mã/tên, vượt độ dài hoặc gửi trường loai_phieu, trang_thai ngoài input cho phép."),
+
+  INVALID_RECEIPT_TYPE_USAGE(
+      HttpStatus.BAD_REQUEST, "dung_cho không hợp lệ; chỉ nhận TAT_CA hoặc THU_CONG."),
 
   INVALID_DISBURSEMENT_TYPE_SEARCH(
       HttpStatus.BAD_REQUEST, "Trạng thái ngoài 0/1 hoặc phân trang không hợp lệ."),
@@ -109,8 +113,7 @@ public enum ErrorCode {
   DISBURSEMENT_TYPE_NOT_FOUND_OR_RECEIPT(HttpStatus.NOT_FOUND, "Không tồn tại hoặc là loại thu."),
 
   CASHBOOK_FILTER_REFERENCE_NOT_FOUND(
-      HttpStatus.NOT_FOUND,
-      "Nhân viên được chọn không tồn tại hoặc cặp nhóm/tên người nộp nhận không tồn tại trong dữ liệu lịch sử."),
+      HttpStatus.NOT_FOUND, "Loại thu/chi, đối tượng hoặc người tạo được chọn không tồn tại."),
 
   CASHBOOK_EXPORT_REFERENCE_NOT_FOUND(HttpStatus.NOT_FOUND, "Đối tượng được chọn không tồn tại."),
 
@@ -151,6 +154,9 @@ public enum ErrorCode {
   RECEIPT_TYPE_INACTIVE(HttpStatus.CONFLICT, "Loại thu đã ngừng hoạt động."),
 
   DISBURSEMENT_TYPE_INACTIVE(HttpStatus.CONFLICT, "Loại chi đã ngừng hoạt động."),
+
+  SYSTEM_DISBURSEMENT_TYPE_CANNOT_BE_DISABLED(
+      HttpStatus.CONFLICT, "Không được ngừng hoạt động loại chi dành cho nghiệp vụ tự động."),
 
   RECEIPT_TYPE_CODE_EXISTS(HttpStatus.CONFLICT, "Mã loại đã tồn tại."),
 

@@ -34,8 +34,14 @@ public class AdminCashbookController {
       @RequestParam(name = "nhom_nguoi_nop_nhan", required = false) String nhomNguoiNopNhan,
       @RequestParam(name = "ten_nguoi_nop_nhan", required = false) String tenNguoiNopNhan,
       @RequestParam(name = "nguoi_tao_id", required = false) String nguoiTaoId,
+      @RequestParam(name = "loai_thu_chi_id", required = false) String loaiThuChiId,
+      @RequestParam(name = "nguoi_nop_nhan_id", required = false) String nguoiNopNhanId,
+      @RequestParam(name = "nha_cung_cap_id", required = false) String nhaCungCapId,
+      @RequestParam(name = "doi_tac_van_chuyen_id", required = false) String doiTacVanChuyenId,
+      @RequestParam(name = "nguon_tao", required = false) String nguonTao,
       @RequestParam MultiValueMap<String, String> queryParameters) {
 
+    rejectStatusFilter(queryParameters, ErrorCode.INVALID_CASHBOOK_OVERVIEW_FILTER);
     rejectPaginationParameters(queryParameters, ErrorCode.INVALID_CASHBOOK_OVERVIEW_FILTER);
 
     return ApiResponse.<CashbookOverviewResponse>builder()
@@ -50,7 +56,12 @@ public class AdminCashbookController {
                 phuongThucThanhToan,
                 nhomNguoiNopNhan,
                 tenNguoiNopNhan,
-                nguoiTaoId))
+                nguoiTaoId,
+                loaiThuChiId,
+                nguoiNopNhanId,
+                nhaCungCapId,
+                doiTacVanChuyenId,
+                nguonTao))
         .build();
   }
 
@@ -65,8 +76,14 @@ public class AdminCashbookController {
       @RequestParam(name = "nhom_nguoi_nop_nhan", required = false) String nhomNguoiNopNhan,
       @RequestParam(name = "ten_nguoi_nop_nhan", required = false) String tenNguoiNopNhan,
       @RequestParam(name = "nguoi_tao_id", required = false) String nguoiTaoId,
+      @RequestParam(name = "loai_thu_chi_id", required = false) String loaiThuChiId,
+      @RequestParam(name = "nguoi_nop_nhan_id", required = false) String nguoiNopNhanId,
+      @RequestParam(name = "nha_cung_cap_id", required = false) String nhaCungCapId,
+      @RequestParam(name = "doi_tac_van_chuyen_id", required = false) String doiTacVanChuyenId,
+      @RequestParam(name = "nguon_tao", required = false) String nguonTao,
       @RequestParam MultiValueMap<String, String> queryParameters) {
 
+    rejectStatusFilter(queryParameters, ErrorCode.INVALID_CASH_FLOW_FILTER);
     rejectPaginationParameters(queryParameters, ErrorCode.INVALID_CASH_FLOW_FILTER);
 
     return ApiResponse.<CashFlowResponse>builder()
@@ -82,7 +99,12 @@ public class AdminCashbookController {
                 phuongThucThanhToan,
                 nhomNguoiNopNhan,
                 tenNguoiNopNhan,
-                nguoiTaoId))
+                nguoiTaoId,
+                loaiThuChiId,
+                nguoiNopNhanId,
+                nhaCungCapId,
+                doiTacVanChuyenId,
+                nguonTao))
         .build();
   }
 
@@ -96,8 +118,14 @@ public class AdminCashbookController {
       @RequestParam(name = "nhom_nguoi_nop_nhan", required = false) String nhomNguoiNopNhan,
       @RequestParam(name = "ten_nguoi_nop_nhan", required = false) String tenNguoiNopNhan,
       @RequestParam(name = "nguoi_tao_id", required = false) String nguoiTaoId,
+      @RequestParam(name = "loai_thu_chi_id", required = false) String loaiThuChiId,
+      @RequestParam(name = "nguoi_nop_nhan_id", required = false) String nguoiNopNhanId,
+      @RequestParam(name = "nha_cung_cap_id", required = false) String nhaCungCapId,
+      @RequestParam(name = "doi_tac_van_chuyen_id", required = false) String doiTacVanChuyenId,
+      @RequestParam(name = "nguon_tao", required = false) String nguonTao,
       @RequestParam MultiValueMap<String, String> queryParameters) {
 
+    rejectStatusFilter(queryParameters, ErrorCode.INVALID_CASHBOOK_EXPORT_FILTER);
     boolean paginationParameterPresent =
         queryParameters.containsKey("page") || queryParameters.containsKey("limit");
     byte[] content;
@@ -112,6 +140,11 @@ public class AdminCashbookController {
               nhomNguoiNopNhan,
               tenNguoiNopNhan,
               nguoiTaoId,
+              loaiThuChiId,
+              nguoiNopNhanId,
+              nhaCungCapId,
+              doiTacVanChuyenId,
+              nguonTao,
               paginationParameterPresent);
     } catch (AppException exception) {
       throw exception;
@@ -142,8 +175,15 @@ public class AdminCashbookController {
       @RequestParam(name = "nhom_nguoi_nop_nhan", required = false) String nhomNguoiNopNhan,
       @RequestParam(name = "ten_nguoi_nop_nhan", required = false) String tenNguoiNopNhan,
       @RequestParam(name = "nguoi_tao_id", required = false) String nguoiTaoId,
+      @RequestParam(name = "loai_thu_chi_id", required = false) String loaiThuChiId,
+      @RequestParam(name = "nguoi_nop_nhan_id", required = false) String nguoiNopNhanId,
+      @RequestParam(name = "nha_cung_cap_id", required = false) String nhaCungCapId,
+      @RequestParam(name = "doi_tac_van_chuyen_id", required = false) String doiTacVanChuyenId,
+      @RequestParam(name = "nguon_tao", required = false) String nguonTao,
       @RequestParam(defaultValue = "0") String page,
-      @RequestParam(defaultValue = "20") String limit) {
+      @RequestParam(defaultValue = "20") String limit,
+      @RequestParam MultiValueMap<String, String> queryParameters) {
+    rejectStatusFilter(queryParameters, ErrorCode.INVALID_CASHBOOK_FILTER);
 
     return ApiResponse.<CashbookResponse>builder()
         .status(HttpStatus.OK.value())
@@ -158,9 +198,22 @@ public class AdminCashbookController {
                 nhomNguoiNopNhan,
                 tenNguoiNopNhan,
                 nguoiTaoId,
+                loaiThuChiId,
+                nguoiNopNhanId,
+                nhaCungCapId,
+                doiTacVanChuyenId,
+                nguonTao,
                 page,
                 limit))
         .build();
+  }
+
+  private void rejectStatusFilter(
+      MultiValueMap<String, String> queryParameters, ErrorCode errorCode) {
+    if (queryParameters.containsKey("trang_thai")) {
+      throw new AppException(
+          errorCode, "Sổ quỹ chỉ lấy DA_GHI_NHAN; không nhận bộ lọc trang_thai.");
+    }
   }
 
   private void rejectPaginationParameters(
