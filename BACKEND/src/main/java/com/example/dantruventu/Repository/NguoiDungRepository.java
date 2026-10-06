@@ -1,7 +1,10 @@
 package com.example.dantruventu.Repository;
 
 import com.example.dantruventu.Entity.NguoiDung;
+import com.example.dantruventu.Enum.TrangThaiCoBanEnum;
 import java.util.Optional;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
@@ -13,6 +16,56 @@ public interface NguoiDungRepository
   Optional<NguoiDung> findByEmail(String email);
 
   Optional<NguoiDung> findByEmailOrSoDienThoai(String email, String soDienThoai);
+
+  @Query(
+      """
+      SELECT n
+      FROM NguoiDung n
+      JOIN n.vaiTro v
+      WHERE n.trangThai = :activeStatus
+        AND (
+          UPPER(v.tenVaiTro) = 'USER'
+          OR UPPER(v.tenVaiTro) = 'KHACH_HANG'
+          OR LOWER(v.tenVaiTro) = 'khách hàng'
+          OR LOWER(v.tenVaiTro) = 'khach hang'
+          OR LOWER(COALESCE(v.moTa, '')) LIKE '%khách hàng%'
+          OR LOWER(COALESCE(v.moTa, '')) LIKE '%khach hang%'
+        )
+        AND (
+          :keyword IS NULL
+          OR LOWER(n.hoTen) LIKE :keyword ESCAPE '!'
+          OR LOWER(n.soDienThoai) LIKE :keyword ESCAPE '!'
+        )
+      """)
+  Page<NguoiDung> findActiveCustomerPayers(
+      @Param("activeStatus") TrangThaiCoBanEnum activeStatus,
+      @Param("keyword") String keyword,
+      Pageable pageable);
+
+  @Query(
+      """
+      SELECT n
+      FROM NguoiDung n
+      JOIN n.vaiTro v
+      WHERE n.trangThai = :activeStatus
+        AND NOT (
+          UPPER(v.tenVaiTro) = 'USER'
+          OR UPPER(v.tenVaiTro) = 'KHACH_HANG'
+          OR LOWER(v.tenVaiTro) = 'khách hàng'
+          OR LOWER(v.tenVaiTro) = 'khach hang'
+          OR LOWER(COALESCE(v.moTa, '')) LIKE '%khách hàng%'
+          OR LOWER(COALESCE(v.moTa, '')) LIKE '%khach hang%'
+        )
+        AND (
+          :keyword IS NULL
+          OR LOWER(n.hoTen) LIKE :keyword ESCAPE '!'
+          OR LOWER(n.soDienThoai) LIKE :keyword ESCAPE '!'
+        )
+      """)
+  Page<NguoiDung> findActiveEmployeePayers(
+      @Param("activeStatus") TrangThaiCoBanEnum activeStatus,
+      @Param("keyword") String keyword,
+      Pageable pageable);
 
   boolean existsByEmail(String email);
 

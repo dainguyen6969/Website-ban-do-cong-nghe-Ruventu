@@ -1,8 +1,7 @@
-// IntelliJ/Spring adapter scoped to the admin product-list screen.
-const API_BASE_URL = (import.meta.env.VITE_RUVENTU_API_URL || '').replace(/\/$/, '');
+import { apiRequest as request } from '../../../../../auth/backendAuth';
+
 const PRODUCT_PATH = '/api/v1/admin/products';
 const COMBO_PATH = '/api/v1/admin/combos';
-const ACCESS_TOKEN_KEY = 'ruventu_backend_access_token';
 
 let inMemoryToken = '';
 let loginPromise = null;
@@ -45,26 +44,6 @@ async function login() {
   if (!response.ok || !token) throw new Error(payload?.message || 'Không thể đăng nhập backend.');
   storeToken(token);
   return token;
-}
-
-async function request(path, options = {}, retry = true) {
-  const token = readToken() || await (loginPromise ||= login().finally(() => { loginPromise = null; }));
-  const response = await fetch(`${API_BASE_URL}${path}`, {
-    ...options,
-    headers: {
-      Accept: 'application/json',
-      ...(options.body ? { 'Content-Type': 'application/json' } : {}),
-      ...options.headers,
-      Authorization: `Bearer ${token}`,
-    },
-  });
-  if (response.status === 401 && retry) {
-    storeToken('');
-    return request(path, options, false);
-  }
-  const payload = await parseResponse(response);
-  if (!response.ok) throw new Error(payload?.message || `Yêu cầu thất bại (${response.status}).`);
-  return payload?.data;
 }
 
 function normalizeProduct(item) {

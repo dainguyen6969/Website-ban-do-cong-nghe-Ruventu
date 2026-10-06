@@ -8,7 +8,7 @@ import {
   searchSalesCustomers, searchSalesProducts, createSalesCustomer,
 } from '../api/onlineOrderApi';
 import './DatHangOnline.css';
-import { getOrder } from '../api/orderApi';
+import { canEditOnlineOrder, getOrder } from '../api/orderApi';
 import OrderModal from '../components/OrderModal';
 
 const money = new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND', maximumFractionDigits: 0 });
@@ -25,6 +25,7 @@ export default function DatHangOnline() {
   const { orderId: editId } = useParams();
   const [options, setOptions] = useState(null);
   const [optionsError, setOptionsError] = useState('');
+  const [editReady, setEditReady] = useState(false);
   const [customerQuery, setCustomerQuery] = useState('');
   const [customerResults, setCustomerResults] = useState([]);
   const [customerLoading, setCustomerLoading] = useState(false);
@@ -71,10 +72,12 @@ export default function DatHangOnline() {
     if (!editId || !options) return undefined;
     const controller = new AbortController();
     getOrder(editId, controller.signal).then((order) => {
+      if (!canEditOnlineOrder(order)) throw new Error('Chỉ sửa đơn Online chờ duyệt, chưa thanh toán, chưa đóng gói và chưa xuất kho.');
       setCustomer(order.khach_hang_id ? { id: order.khach_hang_id, name: order.ten_khach_hang, phone: order.so_dien_thoai_khach_hang || '' } : null);
       setRecipient({ name: order.ten_nguoi_nhan || '', phone: order.sdt_nguoi_nhan || '', address: order.dia_chi_giao_hang || '' });
       setItems((order.san_pham || []).map((item) => ({ id: Number(item.phien_ban_id), name: item.ten_san_pham, variant: item.ten_phien_ban, code: item.ma_san_pham || '', unitPrice: Number(item.don_gia || 0), quantity: Number(item.so_luong) })));
       setPayment(order.phuong_thuc_thanh_toan); setApplyVat(Number(order.tong_tien_vat) > 0); setDelivery(order.hinh_thuc_nhan_hang); setShippingInput(String(Number(order.phi_giao_hang || 0) / 1000)); setNote(order.ghi_chu || '');
+      setEditReady(editId);
     }).catch((error) => { if (error.name !== 'AbortError') setOptionsError(error.message); });
     return () => controller.abort();
   }, [editId, options]);
@@ -125,7 +128,7 @@ export default function DatHangOnline() {
   const data = preview?.signature === previewSignature ? preview.data : null;
   const phoneError = recipient.phone && !validPhone(recipient.phone) ? 'Số điện thoại chưa đúng định dạng backend.' : '';
   const missing = [!customer && 'Chưa chọn khách hàng', !items.length && 'Chưa có sản phẩm', !recipient.name.trim() && 'Thiếu tên người nhận', !recipient.phone.trim() && 'Thiếu số điện thoại', delivery === 'GIAO_HANG' && !recipient.address.trim() && 'Thiếu địa chỉ giao hàng'].filter(Boolean);
-  const canSubmit = !missing.length && !phoneError && Boolean(payment) && Boolean(data) && !previewError && !submitting;
+  const canSubmit = (!editId || editReady === editId) && !missing.length && !phoneError && Boolean(payment) && Boolean(data) && !previewError && !submitting;
 
   const chooseCustomer = (entry) => {
     setCustomer(entry); setCustomerQuery(''); setTouched({});
@@ -175,6 +178,7 @@ export default function DatHangOnline() {
     finally { setCustomerSaving(false); }
   };
 
+  if (editId && editReady !== editId) return <div className="online-order-page"><p role={optionsError ? 'alert' : 'status'}>{optionsError || 'Đang kiểm tra điều kiện sửa đơn...'}</p><button type="button" className="online-outline-btn" onClick={() => navigate(`/admin/don-hang/danh-sach-don-hang/${editId}`)}>QUAY LẠI ĐƠN HÀNG</button></div>;
   return <div className="online-order-page">
     <div className="online-order-hero"><div><nav>ĐƠN HÀNG <span>/</span> ĐẶT HÀNG ONLINE</nav><h1>{editId ? 'CHỈNH SỬA ĐƠN HÀNG ONLINE' : 'TẠO ĐƠN HÀNG ONLINE'}</h1><p>LÊN ĐƠN THỦ CÔNG CHO KHÁCH HÀNG VÀ KIỂM TRA GIÁ / TỒN / KHUYẾN MẠI TRƯỚC KHI LƯU</p></div><button type="button" className="online-outline-btn" onClick={() => navigate('/admin/don-hang/danh-sach-don-hang')}><HiOutlineArrowLeft /> DANH SÁCH ĐƠN HÀNG</button></div>
     {optionsError && <p className="online-banner online-banner--error">{optionsError}</p>}
@@ -182,7 +186,7 @@ export default function DatHangOnline() {
       <Section n="1" title="KHÁCH HÀNG">
         <button type="button" className="online-outline-btn" onClick={() => { setCustomerError(''); setNewCustomer({ name: '', phone: '' }); }}>+ THÊM KHÁCH HÀNG</button>
         {customer ? <div className="selected-customer"><div><strong>{customer.name}</strong><span>{customer.phone}</span><span>{customer.email || 'Không có email'}</span></div><button type="button" className="online-outline-btn" onClick={clearCustomer}>ĐỔI KHÁCH</button></div> : <Search value={customerQuery} onChange={setCustomerQuery} placeholder="Tìm tên / số điện thoại / email..." loading={customerLoading}>{customerResults.map((entry) => <button type="button" key={entry.id} className="customer-result" onClick={() => chooseCustomer(entry)}><strong>{entry.name}</strong><span>{entry.phone}{entry.email ? ` · ${entry.email}` : ''}</span></button>)}</Search>}
-        {submitted && !customer && <Error>Vui lòng chọn khách hàng.</Error>}
+        {submitted && !customer && <InlineError>Vui lòng chọn khách hàng.</InlineError>}
       </Section>
       <Section n="2" title="THÔNG TIN NGƯỜI NHẬN"><div className="recipient-grid">
         <Field label="TÊN NGƯỜI NHẬN *" value={recipient.name} change={(value) => updateRecipient('name', value)} blur={() => setTouched((v) => ({ ...v, name: true }))} placeholder="Nhập họ tên" error={(touched.name || submitted) && !recipient.name.trim() ? 'Vui lòng nhập tên người nhận.' : ''} />
@@ -192,7 +196,7 @@ export default function DatHangOnline() {
       <Section n="3" title="SẢN PHẨM">
         <Search value={productQuery} onChange={setProductQuery} placeholder="Tìm mã / tên / phiên bản / mã vạch..." loading={productLoading}>{productResults.map((product) => <button type="button" key={product.id} className="product-result" onClick={() => addProduct(product)}><span><strong>{product.name}</strong><small>{product.code} · {product.variant}{product.barcode ? ` · ${product.barcode}` : ''}</small></span><span><b>{formatMoney(product.unitPrice)}</b><small>{product.stock ? `Tồn: ${product.stock}` : 'HẾT HÀNG'}</small></span></button>)}</Search>
         {!items.length ? <p className="product-empty">CHƯA CÓ SẢN PHẨM — TÌM VÀ THÊM SẢN PHẨM VÀO ĐƠN</p> : <LineTable items={items} previewLines={data?.san_pham || []} change={changeQuantity} remove={(id) => setItems((current) => current.filter((item) => item.id !== id))} />}
-        {stockNote && <p className="stock-note">{stockNote}</p>}{submitted && !items.length && <Error>Vui lòng thêm ít nhất một sản phẩm.</Error>}
+        {stockNote && <p className="stock-note">{stockNote}</p>}{submitted && !items.length && <InlineError>Vui lòng thêm ít nhất một sản phẩm.</InlineError>}
       </Section>
       <Section n="4" title="KHUYẾN MẠI"><label className="online-field"><span>CHƯƠNG TRÌNH ÁP DỤNG</span><select disabled={Boolean(editId)} value={promotion} onChange={(event) => setPromotion(event.target.value)}><option value="">— Không áp dụng —</option>{promotions.map((item) => <option key={item.ma_chuong_trinh} value={item.ma_chuong_trinh}>{item.ma_chuong_trinh} — {item.ten_chuong_trinh}</option>)}</select></label>{editId && <p className="stock-note">API chỉnh sửa chưa hỗ trợ thay đổi khuyến mại.</p>}</Section>
       <Section n="5" title="THANH TOÁN"><p className="field-label">PHƯƠNG THỨC THANH TOÁN *</p><div className="toggle-row">{(options?.phuong_thuc_online || []).map((value) => <Toggle key={value} active={payment === value} click={() => setPayment(value)}>{labels[value] || value}</Toggle>)}</div><div className="form-divider" /><p className="field-label">THUẾ VAT</p><label className="check-row"><input type="checkbox" checked={applyVat} onChange={(event) => setApplyVat(event.target.checked)} /> Áp dụng VAT</label>{applyVat && <div className="toggle-row vat-toggles">{(options?.che_do_thue || []).map((value) => <Toggle key={value} active={vatMode === value} click={() => setVatMode(value)}>{labels[value] || value}</Toggle>)}</div>}</Section>
@@ -207,7 +211,7 @@ function Section({ n, title, children }) { return <section className="online-sec
 function Search({ value, onChange, placeholder, loading, children }) { return <div className="search-combobox"><label><HiOutlineSearch /><input value={value} onChange={(event) => onChange(event.target.value)} placeholder={placeholder} /></label>{value && <div className="search-results">{loading ? <p>Đang tải dữ liệu...</p> : children?.length ? children : <p>Không tìm thấy kết quả phù hợp.</p>}</div>}</div>; }
 function Field({ label, value, change, blur, placeholder, error, wide }) { return <label className={`online-field ${wide ? 'online-field--wide' : ''} ${error ? 'online-field--error' : ''}`}><span>{label}</span><input value={value} onChange={(event) => change(event.target.value)} onBlur={blur} placeholder={placeholder} />{error && <small>{error}</small>}</label>; }
 function Toggle({ active, click, children }) { return <button type="button" className={`online-toggle ${active ? 'is-active' : ''}`} onClick={click}>{children}</button>; }
-function Error({ children }) { return <p className="inline-error">{children}</p>; }
+function InlineError({ children }) { return <p className="inline-error">{children}</p>; }
 function LineTable({ items, previewLines, change, remove }) { const byId = new Map(previewLines.map((line) => [Number(line.phien_ban_id), line])); return <div className="line-table-wrap"><table className="line-table"><thead><tr><th>SẢN PHẨM</th><th>ĐƠN GIÁ</th><th>SỐ LƯỢNG</th><th>THÀNH TIỀN</th><th /></tr></thead><tbody>{items.map((item) => { const line = byId.get(item.id); return <tr key={item.id}><td><strong>{item.name}</strong><small>{item.code} · {item.variant}</small></td><td>{line ? formatMoney(line.don_gia) : 'Đang tính...'}</td><td><div className="quantity-control"><button type="button" onClick={() => change(item.id, item.quantity - 1)}>−</button><input aria-label={`Số lượng ${item.name}`} type="number" min="1" max={item.stock} value={item.quantity} onChange={(event) => change(item.id, event.target.value)} /><button type="button" onClick={() => change(item.id, item.quantity + 1)}>+</button></div></td><td className="line-total">{line ? formatMoney(line.thanh_tien) : '—'}</td><td><button type="button" className="remove-line" onClick={() => remove(item.id)}>XÓA</button></td></tr>; })}{previewLines.filter((line) => line.la_qua_tang).map((line) => <tr key={line.ma_dong} className="gift-row"><td><strong>Quà tặng khuyến mại</strong><small>{line.ma_dong}</small></td><td>{formatMoney(line.don_gia)}</td><td>{line.so_luong}</td><td className="line-total">{formatMoney(line.thanh_tien)}</td><td><span>QUÀ TẶNG</span></td></tr>)}</tbody></table></div>; }
 function Summary({ data, loading, error, missing, phoneError, canSubmit, submitting, submit, edit }) { return <aside className="order-summary"><h2>TỔNG KẾT ĐƠN HÀNG</h2><div className="summary-body"><SummaryLine label="Tiền hàng" value={data ? formatMoney(data.tong_tien_hang) : '—'} /><SummaryLine label="Chiết khấu" value={data?.tien_chiet_khau ? `−${formatMoney(data.tien_chiet_khau)}` : '—'} red={Number(data?.tien_chiet_khau) > 0} /><SummaryLine label="VAT" value={data ? formatMoney(data.tong_tien_vat) : '—'} /><SummaryLine label="Phí giao hàng" value={data?.phi_giao_hang ? formatMoney(data.phi_giao_hang) : '—'} /><div className="summary-total"><strong>KHÁCH PHẢI TRẢ</strong><b>{data ? formatMoney(data.tong_thanh_toan) : '—'}</b></div>{loading && <p className="summary-note">Đang tính lại từ backend...</p>}{error && <p className="summary-error">- {error}</p>}{missing.length > 0 && <ul className="missing-list">{missing.map((item) => <li key={item}>- {item}</li>)}</ul>}{phoneError && <p className="summary-error">- Số điện thoại chưa hợp lệ</p>}<button type="button" className="submit-order" disabled={!canSubmit} onClick={submit}>{submitting ? 'ĐANG LƯU...' : edit ? 'LƯU THAY ĐỔI' : 'ĐẶT HÀNG'}</button></div></aside>; }
 function SummaryLine({ label, value, red }) { return <div className="summary-line"><span>{label}</span><strong className={red ? 'is-red' : ''}>{value}</strong></div>; }

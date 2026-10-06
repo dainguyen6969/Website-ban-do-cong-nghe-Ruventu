@@ -1,7 +1,7 @@
 // Tests for point-of-sale state helpers.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { addProduct, closeOrderTab, createOrder, finalizeOrder, findIncompleteSerialLine, findStockIssue, orderTotals, resetOrder, setProductQuantity, updateOrder } from './salesState.js';
+import { addProduct, closeOrderTab, createOrder, finalizeOrder, findIncompleteSerialLine, findStockIssue, nextOrderNumber, orderTotals, resetOrder, setProductQuantity, updateOrder } from './salesState.js';
 
 const product = { id: 'VGA', vatRate: 10, prices: { retail: 24990000, dealer: 23000000, business: 22000000 } };
 
@@ -62,20 +62,23 @@ test('closing active and inactive tabs preserves other orders and selects a neig
   assert.equal(closeOrderTab(orders, 1, 1, 4).activeId, 2);
 });
 
-test('closing the last tab creates a fresh sequential order with the logged-in employee', () => {
+test('closing the last tab reuses number one with the logged-in employee', () => {
   const employee = { id: 9, ho_ten: 'Nhân viên thật' };
   const old = updateOrder(createOrder(5, employee), { cart: addProduct([], product) });
   const next = closeOrderTab([old], 5, 5, 6);
-  assert.deepEqual(next, { orders: [createOrder(6, employee)], activeId: 6 });
+  assert.deepEqual(next, { orders: [createOrder(1, employee)], activeId: 1 });
   assert.equal(next.orders[0].employee, employee);
 });
 
-test('closed tab numbers are never reused in one session', () => {
-  let sequence = 2;
-  let orders = [createOrder(1), createOrder(sequence)];
-  orders = closeOrderTab(orders, 2, 2, sequence).orders;
-  orders.push(createOrder(++sequence));
-  assert.deepEqual(orders.map((order) => order.code), ['DH-001', 'DH-003']);
+test('deleted tabs reuse the lowest unused number repeatedly, including gaps', () => {
+  let orders = [createOrder(1), createOrder(2)];
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    orders = closeOrderTab(orders, 2, 2).orders;
+    orders.push(createOrder(nextOrderNumber(orders)));
+    assert.deepEqual(orders.map((order) => order.code), ['DH-001', 'DH-002']);
+  }
+  assert.equal(nextOrderNumber([createOrder(1), createOrder(3), createOrder(5)]), 2);
+  assert.equal(nextOrderNumber([createOrder(3)]), 1);
 });
 
 test('quantity above real available stock is reported', () => {

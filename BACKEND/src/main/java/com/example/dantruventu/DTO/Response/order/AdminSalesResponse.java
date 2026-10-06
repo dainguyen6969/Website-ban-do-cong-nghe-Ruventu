@@ -176,6 +176,9 @@ public final class AdminSalesResponse {
     @JsonProperty("trang_thai_thanh_toan")
     private TrangThaiThanhToanDonHang trangThaiThanhToan;
 
+    @JsonProperty("da_ghi_nhan_thu_cod")
+    private Boolean daGhiNhanThuCod;
+
     @JsonProperty("trang_thai_dong_goi")
     private TrangThaiDongGoi trangThaiDongGoi;
 
