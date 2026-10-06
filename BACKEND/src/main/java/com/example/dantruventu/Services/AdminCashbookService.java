@@ -11,12 +11,16 @@ import com.example.dantruventu.DTO.Response.cashbook.CashbookTransactionResponse
 import com.example.dantruventu.Entity.NguoiDung;
 import com.example.dantruventu.Entity.SoQuyThuChi;
 import com.example.dantruventu.Enum.LoaiPhieuThuChi;
+import com.example.dantruventu.Enum.NguonTaoPhieuThuChi;
 import com.example.dantruventu.Enum.NhomNguoiNopNhanEnum;
 import com.example.dantruventu.Enum.TrangThaiPhieuThuChi;
 import com.example.dantruventu.Error.AppException;
 import com.example.dantruventu.Error.ErrorCode;
 import com.example.dantruventu.Repository.NguoiDungRepository;
+import com.example.dantruventu.Repository.cashbook.LoaiThuChiRepository;
 import com.example.dantruventu.Repository.cashbook.SoQuyThuChiRepository;
+import com.example.dantruventu.Repository.partner.DoiTacVanChuyenRepository;
+import com.example.dantruventu.Repository.partner.NhaCungCapRepository;
 import com.example.dantruventu.Specification.CashbookSpecification;
 import java.math.BigDecimal;
 import java.time.DateTimeException;
@@ -50,6 +54,9 @@ public class AdminCashbookService {
 
   private final SoQuyThuChiRepository cashbookRepository;
   private final NguoiDungRepository userRepository;
+  private final LoaiThuChiRepository typeRepository;
+  private final NhaCungCapRepository supplierRepository;
+  private final DoiTacVanChuyenRepository partnerRepository;
   private final CashbookExcelExporter excelExporter;
 
   @Value("${ruventu.cashbook.time-zone:Asia/Ho_Chi_Minh}")
@@ -64,6 +71,11 @@ public class AdminCashbookService {
       String rawPayerGroup,
       String rawPayerName,
       String rawCreatorId,
+      String rawTypeId,
+      String rawUserId,
+      String rawSupplierId,
+      String rawPartnerId,
+      String rawSource,
       String rawPage,
       String rawLimit) {
 
@@ -77,6 +89,11 @@ public class AdminCashbookService {
             rawPayerGroup,
             rawPayerName,
             rawCreatorId,
+            rawTypeId,
+            rawUserId,
+            rawSupplierId,
+            rawPartnerId,
+            rawSource,
             ErrorCode.INVALID_CASHBOOK_FILTER,
             ErrorCode.CASHBOOK_FILTER_REFERENCE_NOT_FOUND);
 
@@ -105,7 +122,12 @@ public class AdminCashbookService {
       String rawPaymentMethod,
       String rawPayerGroup,
       String rawPayerName,
-      String rawCreatorId) {
+      String rawCreatorId,
+      String rawTypeId,
+      String rawUserId,
+      String rawSupplierId,
+      String rawPartnerId,
+      String rawSource) {
     try {
       CashbookCriteria criteria =
           prepareCriteria(
@@ -117,6 +139,11 @@ public class AdminCashbookService {
               rawPayerGroup,
               rawPayerName,
               rawCreatorId,
+              rawTypeId,
+              rawUserId,
+              rawSupplierId,
+              rawPartnerId,
+              rawSource,
               ErrorCode.INVALID_CASHBOOK_OVERVIEW_FILTER,
               null);
 
@@ -146,7 +173,12 @@ public class AdminCashbookService {
       String rawPaymentMethod,
       String rawPayerGroup,
       String rawPayerName,
-      String rawCreatorId) {
+      String rawCreatorId,
+      String rawTypeId,
+      String rawUserId,
+      String rawSupplierId,
+      String rawPartnerId,
+      String rawSource) {
     try {
       CashFlowGrouping grouping = parseGrouping(rawGrouping);
       CashbookCriteria criteria =
@@ -159,15 +191,20 @@ public class AdminCashbookService {
               rawPayerGroup,
               rawPayerName,
               rawCreatorId,
+              rawTypeId,
+              rawUserId,
+              rawSupplierId,
+              rawPartnerId,
+              rawSource,
               ErrorCode.INVALID_CASH_FLOW_FILTER,
               null);
 
-      CashFlowDateRange dateRange = resolveCashFlowDateRange(criteria);
-      boolean hasData = dateRange != null;
+      boolean hasData =
+          criteria.referencesExist() && cashbookRepository.count(buildSpecification(criteria)) > 0;
       List<CashFlowBucketItemResponse> items =
           hasData
               ? aggregateCashFlowBuckets(
-                  criteria, grouping, dateRange.startDate(), dateRange.endDate())
+                  criteria, grouping, criteria.startDate(), criteria.endDate())
               : List.of();
 
       return CashFlowResponse.builder()
@@ -193,6 +230,11 @@ public class AdminCashbookService {
       String rawPayerGroup,
       String rawPayerName,
       String rawCreatorId,
+      String rawTypeId,
+      String rawUserId,
+      String rawSupplierId,
+      String rawPartnerId,
+      String rawSource,
       boolean paginationParameterPresent) {
     if (paginationParameterPresent) {
       throw new AppException(ErrorCode.INVALID_CASHBOOK_EXPORT_FILTER);
@@ -209,6 +251,11 @@ public class AdminCashbookService {
               rawPayerGroup,
               rawPayerName,
               rawCreatorId,
+              rawTypeId,
+              rawUserId,
+              rawSupplierId,
+              rawPartnerId,
+              rawSource,
               ErrorCode.INVALID_CASHBOOK_EXPORT_FILTER,
               ErrorCode.CASHBOOK_EXPORT_REFERENCE_NOT_FOUND);
 
@@ -236,12 +283,16 @@ public class AdminCashbookService {
       String rawPayerGroup,
       String rawPayerName,
       String rawCreatorId,
+      String rawTypeId,
+      String rawUserId,
+      String rawSupplierId,
+      String rawPartnerId,
+      String rawSource,
       ErrorCode invalidFilterError,
       ErrorCode referenceNotFoundError) {
-    LocalDate startDate = parseOptionalDate(rawStartDate, invalidFilterError);
-    LocalDate endDate = parseOptionalDate(rawEndDate, invalidFilterError);
-    if ((startDate != null && endDate != null && startDate.isAfter(endDate))
-        || LocalDate.MAX.equals(endDate)) {
+    LocalDate startDate = parseRequiredDate(rawStartDate, invalidFilterError);
+    LocalDate endDate = parseRequiredDate(rawEndDate, invalidFilterError);
+    if (startDate.isAfter(endDate) || LocalDate.MAX.equals(endDate)) {
       throw new AppException(invalidFilterError);
     }
 
@@ -249,16 +300,23 @@ public class AdminCashbookService {
         parseOptionalEnum(rawVoucherType, LoaiPhieuThuChi.class, invalidFilterError);
     NhomNguoiNopNhanEnum payerGroup =
         parseOptionalEnum(rawPayerGroup, NhomNguoiNopNhanEnum.class, invalidFilterError);
-    // Ngoại lệ nghiệp vụ: phương thức không hợp lệ được bỏ qua thay vì trả 400.
-    String paymentMethod = parseLenientPaymentMethod(rawPaymentMethod);
+    String paymentMethod = parsePaymentMethod(rawPaymentMethod, invalidFilterError);
     String keyword = normalizeOptional(rawKeyword);
     String keywordPattern = toLikePattern(keyword);
     String payerName = normalizeOptional(rawPayerName);
     String payerNamePattern = toLikePattern(payerName);
     Long creatorId = parseOptionalPositiveId(rawCreatorId, invalidFilterError);
-
-    if (referenceNotFoundError != null) {
-      validateReferencedFilters(creatorId, payerGroup, payerName, referenceNotFoundError);
+    Long typeId = parseOptionalPositiveId(rawTypeId, invalidFilterError);
+    Long userId = parseOptionalPositiveId(rawUserId, invalidFilterError);
+    Long supplierId = parseOptionalPositiveId(rawSupplierId, invalidFilterError);
+    Long partnerId = parseOptionalPositiveId(rawPartnerId, invalidFilterError);
+    NguonTaoPhieuThuChi source =
+        parseOptionalEnum(rawSource, NguonTaoPhieuThuChi.class, invalidFilterError);
+    validateCounterpartyFilters(payerGroup, userId, supplierId, partnerId, invalidFilterError);
+    boolean referencesExist =
+        referencedFiltersExist(creatorId, typeId, userId, supplierId, partnerId);
+    if (!referencesExist && referenceNotFoundError != null) {
+      throw new AppException(referenceNotFoundError);
     }
 
     ZoneId zoneId = timeZone();
@@ -280,7 +338,13 @@ public class AdminCashbookService {
         payerNamePattern,
         creatorId,
         startInclusive,
-        endExclusive);
+        endExclusive,
+        typeId,
+        userId,
+        supplierId,
+        partnerId,
+        source,
+        referencesExist);
   }
 
   private org.springframework.data.jpa.domain.Specification<SoQuyThuChi> buildSpecification(
@@ -293,7 +357,12 @@ public class AdminCashbookService {
         criteria.paymentMethod(),
         criteria.payerGroup(),
         criteria.payerNamePattern(),
-        criteria.creatorId());
+        criteria.creatorId(),
+        criteria.typeId(),
+        criteria.userId(),
+        criteria.supplierId(),
+        criteria.partnerId(),
+        criteria.source());
   }
 
   private CashbookSummaryResponse calculateSummary(CashbookCriteria criteria) {
@@ -333,6 +402,9 @@ public class AdminCashbookService {
       CashbookCriteria criteria,
       LocalDateTime startInclusive,
       LocalDateTime endExclusive) {
+    if (!criteria.referencesExist()) {
+      return ZERO;
+    }
     BigDecimal result =
         cashbookRepository.sumCashbookAmount(
             amountType,
@@ -343,6 +415,11 @@ public class AdminCashbookService {
             criteria.payerGroup(),
             criteria.payerNamePattern(),
             criteria.creatorId(),
+            criteria.typeId(),
+            criteria.userId(),
+            criteria.supplierId(),
+            criteria.partnerId(),
+            criteria.source(),
             startInclusive,
             endExclusive);
     return result == null ? ZERO : result;
@@ -370,32 +447,6 @@ public class AdminCashbookService {
               .build());
     }
     return items;
-  }
-
-  private CashFlowDateRange resolveCashFlowDateRange(CashbookCriteria criteria) {
-    Page<SoQuyThuChi> firstResult =
-        cashbookRepository.findAll(
-            buildSpecification(criteria),
-            PageRequest.of(
-                0, 1, Sort.by("ngayGhiNhan").ascending().and(Sort.by("id").ascending())));
-    if (firstResult.isEmpty()) {
-      return null;
-    }
-
-    LocalDate startDate =
-        criteria.startDate() != null
-            ? criteria.startDate()
-            : firstResult.getContent().getFirst().getNgayGhiNhan().toLocalDate();
-    LocalDate endDate = criteria.endDate();
-    if (endDate == null) {
-      Page<SoQuyThuChi> lastResult =
-          cashbookRepository.findAll(
-              buildSpecification(criteria),
-              PageRequest.of(
-                  0, 1, Sort.by("ngayGhiNhan").descending().and(Sort.by("id").descending())));
-      endDate = lastResult.getContent().getFirst().getNgayGhiNhan().toLocalDate();
-    }
-    return new CashFlowDateRange(startDate, endDate);
   }
 
   /** Tạo bucket tăng dần; bucket đầu/cuối tự động được cắt theo khoảng ngày yêu cầu. */
@@ -428,6 +479,11 @@ public class AdminCashbookService {
         .denNgay(criteria.endDate())
         .keyword(criteria.keyword())
         .loaiPhieu(criteria.voucherType())
+        .loaiThuChiId(criteria.typeId())
+        .nguoiNopNhanId(criteria.userId())
+        .nhaCungCapId(criteria.supplierId())
+        .doiTacVanChuyenId(criteria.partnerId())
+        .nguonTao(criteria.source())
         .phuongThucThanhToan(criteria.paymentMethod())
         .nhomNguoiNopNhan(criteria.payerGroup())
         .tenNguoiNopNhan(criteria.payerName())
@@ -453,6 +509,16 @@ public class AdminCashbookService {
         .id(transaction.getId())
         .stt(sequence)
         .loaiPhieu(transaction.getLoaiPhieu())
+        .loaiThuChiId(transaction.getLoaiThuChi().getId())
+        .nguoiNopNhanId(
+            transaction.getNguoiNopNhan() == null ? null : transaction.getNguoiNopNhan().getId())
+        .nhaCungCapId(
+            transaction.getNhaCungCap() == null ? null : transaction.getNhaCungCap().getId())
+        .doiTacVanChuyenId(
+            transaction.getDoiTacVanChuyen() == null
+                ? null
+                : transaction.getDoiTacVanChuyen().getId())
+        .maChungTuThamChieu(transaction.getMaChungTuThamChieu())
         .ngayGhiNhan(toOffsetDateTime(transaction.getNgayGhiNhan()))
         .maPhieu(transaction.getMaPhieu())
         .nhomNguoiNopNhan(transaction.getNhomNguoiNopNhan())
@@ -468,29 +534,35 @@ public class AdminCashbookService {
         .build();
   }
 
-  private void validateReferencedFilters(
-      Long creatorId,
-      NhomNguoiNopNhanEnum payerGroup,
-      String payerName,
-      ErrorCode referenceNotFoundError) {
-    if (creatorId != null && !userRepository.existsById(creatorId)) {
-      throw new AppException(referenceNotFoundError);
+  private void validateCounterpartyFilters(
+      NhomNguoiNopNhanEnum group, Long userId, Long supplierId, Long partnerId, ErrorCode error) {
+    int count =
+        (userId == null ? 0 : 1) + (supplierId == null ? 0 : 1) + (partnerId == null ? 0 : 1);
+    if (count > 1) {
+      throw new AppException(error, "Chỉ được truyền một loại FK đối tượng.");
     }
-
-    // Chỉ kiểm tra tồn tại lịch sử khi đồng thời có cả nhóm và tên.
-    if (payerGroup != null
-        && payerName != null
-        && !cashbookRepository.existsByNhomNguoiNopNhanAndTenNguoiNopNhanIgnoreCase(
-            payerGroup, payerName)) {
-      throw new AppException(referenceNotFoundError);
+    if (group != null
+        && ((userId != null
+                && group != NhomNguoiNopNhanEnum.KHACH_HANG
+                && group != NhomNguoiNopNhanEnum.NHAN_VIEN)
+            || (supplierId != null && group != NhomNguoiNopNhanEnum.NHA_CUNG_CAP)
+            || (partnerId != null && group != NhomNguoiNopNhanEnum.DOI_TAC_GIAO_HANG))) {
+      throw new AppException(error, "Nhóm người nộp/nhận không khớp FK.");
     }
   }
 
-  private LocalDate parseOptionalDate(String value, ErrorCode invalidFilterError) {
-    if (value == null) {
-      return null;
-    }
-    if (value.isBlank()) {
+  private boolean referencedFiltersExist(
+      Long creatorId, Long typeId, Long userId, Long supplierId, Long partnerId) {
+    // Chỉ kiểm tra tồn tại, không lọc trạng thái hiện tại của đối tượng lịch sử.
+    return (creatorId == null || userRepository.existsById(creatorId))
+        && (typeId == null || typeRepository.existsById(typeId))
+        && (userId == null || userRepository.existsById(userId))
+        && (supplierId == null || supplierRepository.existsById(supplierId))
+        && (partnerId == null || partnerRepository.existsById(partnerId));
+  }
+
+  private LocalDate parseRequiredDate(String value, ErrorCode invalidFilterError) {
+    if (value == null || !value.matches("[0-9]{4}-[0-9]{2}-[0-9]{2}")) {
       throw new AppException(invalidFilterError);
     }
     try {
@@ -515,12 +587,15 @@ public class AdminCashbookService {
     }
   }
 
-  private String parseLenientPaymentMethod(String value) {
+  private String parsePaymentMethod(String value, ErrorCode invalidFilterError) {
     if (value == null) {
       return null;
     }
     String normalized = value.strip();
-    return PAYMENT_METHODS.contains(normalized) ? normalized : null;
+    if (!PAYMENT_METHODS.contains(normalized)) {
+      throw new AppException(invalidFilterError);
+    }
+    return normalized;
   }
 
   private Long parseOptionalPositiveId(String value, ErrorCode invalidFilterError) {
@@ -539,7 +614,10 @@ public class AdminCashbookService {
   }
 
   private CashFlowGrouping parseGrouping(String value) {
-    if (value == null || value.isBlank()) {
+    if (value == null) {
+      return CashFlowGrouping.NGAY;
+    }
+    if (value.isBlank()) {
       throw new AppException(ErrorCode.INVALID_CASH_FLOW_FILTER);
     }
     try {
@@ -605,7 +683,13 @@ public class AdminCashbookService {
       String payerNamePattern,
       Long creatorId,
       LocalDateTime startInclusive,
-      LocalDateTime endExclusive) {}
+      LocalDateTime endExclusive,
+      Long typeId,
+      Long userId,
+      Long supplierId,
+      Long partnerId,
+      NguonTaoPhieuThuChi source,
+      boolean referencesExist) {}
 
   enum CashFlowGrouping {
     NGAY,
@@ -614,6 +698,4 @@ public class AdminCashbookService {
   }
 
   record BucketRange(LocalDate startDate, LocalDate endDateExclusive) {}
-
-  record CashFlowDateRange(LocalDate startDate, LocalDate endDate) {}
 }

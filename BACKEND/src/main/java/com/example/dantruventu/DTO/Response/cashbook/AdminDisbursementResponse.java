@@ -5,6 +5,7 @@ import com.example.dantruventu.Enum.NguonTaoPhieuThuChi;
 import com.example.dantruventu.Enum.NhomNguoiNopNhanEnum;
 import com.example.dantruventu.Enum.TrangThaiPhieuThuChi;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import lombok.*;
@@ -14,6 +15,31 @@ import lombok.*;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@JsonPropertyOrder({
+  "id",
+  "ma_phieu",
+  "loai_phieu",
+  "loai_thu_chi_id",
+  "ma_loai",
+  "ten_loai",
+  "nhom_nguoi_nop_nhan",
+  "ten_nguoi_nop_nhan",
+  "nguoi_nop_nhan_id",
+  "doi_tac_van_chuyen_id",
+  "nha_cung_cap_id",
+  "ma_chung_tu_tham_chieu",
+  "so_tien",
+  "phuong_thuc_thanh_toan",
+  "ngay_ghi_nhan",
+  "mo_ta",
+  "tags",
+  "nguoi_tao_id",
+  "ten_nguoi_tao",
+  "nguon_tao",
+  "trang_thai",
+  "created_at",
+  "updated_at"
+})
 public class AdminDisbursementResponse {
 
   private Long id;
@@ -38,6 +64,15 @@ public class AdminDisbursementResponse {
 
   @JsonProperty("ten_nguoi_nop_nhan")
   private String tenNguoiNopNhan;
+
+  @JsonProperty("nguoi_nop_nhan_id")
+  private Long nguoiNopNhanId;
+
+  @JsonProperty("doi_tac_van_chuyen_id")
+  private Long doiTacVanChuyenId;
+
+  @JsonProperty("nha_cung_cap_id")
+  private Long nhaCungCapId;
 
   @JsonProperty("ma_chung_tu_tham_chieu")
   private String maChungTuThamChieu;

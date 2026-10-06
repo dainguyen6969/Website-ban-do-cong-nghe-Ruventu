@@ -1,10 +1,12 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { HiOutlineRefresh, HiOutlineSearch } from "react-icons/hi";
 
 import { apiRequest } from "../../../../auth/backendAuth";
 import { dateTime, label, money } from "../../orders/api/orderApi";
 import OrderModal from "../../orders/components/OrderModal";
 import { OrderStateBadge } from "../../orders/pages/DanhSachDonHang";
+import TablePagination from "../../../../shared/components/ui/TablePagination";
 import DetailTablePagination from "../../../../shared/components/ui/DetailTablePagination";
 import useDetailTablePagination from "../../../../hooks/useDetailTablePagination";
 
@@ -36,16 +38,79 @@ export default function QuanLyGiaoHang() {
 
 function ShipmentList() {
   const navigate = useNavigate();
+  const PAGE_SIZE = 20;
+
   const [keyword, setKeyword] = useState("");
   const [status, setStatus] = useState("");
-  const [page, setPage] = useState(0);
+  const [partnerId, setPartnerId] = useState("");
+  const [page, setPage] = useState(1);
   const [revision, setRevision] = useState(0);
+
+  const [partners, setPartners] = useState({
+    loading: true,
+    error: "",
+    items: [],
+  });
+
   const [state, setState] = useState({
     loading: true,
     error: "",
     items: [],
     pagination: null,
+    counts: null,
   });
+
+  useEffect(() => {
+    const controller = new AbortController();
+
+    setPartners((current) => ({
+      ...current,
+      loading: true,
+      error: "",
+    }));
+
+    async function loadPartners() {
+      const items = [];
+      let nextPage = 0;
+      let totalPages = 1;
+
+      // Lấy cả đối tác ngừng hoạt động để lọc lịch sử giao hàng.
+      while (nextPage < totalPages) {
+        const data = await apiRequest(
+          `/api/v1/admin/shipping-partners?page=${nextPage}&limit=100`,
+          { signal: controller.signal },
+        );
+
+        if (controller.signal.aborted) return;
+
+        items.push(...(data?.items || []));
+
+        totalPages = Math.max(1, Number(data?.pagination?.total_pages) || 1);
+
+        nextPage += 1;
+      }
+
+      if (controller.signal.aborted) return;
+
+      setPartners({
+        loading: false,
+        error: "",
+        items,
+      });
+    }
+
+    loadPartners().catch((error) => {
+      if (controller.signal.aborted) return;
+
+      setPartners((current) => ({
+        ...current,
+        loading: false,
+        error: error.message || "Không tải được danh sách đối tác.",
+      }));
+    });
+
+    return () => controller.abort();
+  }, [revision]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -56,81 +121,103 @@ function ShipmentList() {
       error: "",
     }));
 
-    const params = new URLSearchParams({
-      page: String(page),
-      limit: "20",
-    });
+    const timer = setTimeout(async () => {
+      const params = new URLSearchParams({
+        page: String(page - 1),
+        limit: String(PAGE_SIZE),
+      });
 
-    if (keyword.trim()) {
-      params.set("keyword", keyword.trim());
-    }
+      if (keyword.trim()) {
+        params.set("keyword", keyword.trim());
+      }
 
-    if (status) {
-      params.set("trang_thai_giao_hang", status);
-    }
+      if (status) {
+        params.set("trang_thai_giao_hang", status);
+      }
 
-    apiRequest(`${API}?${params}`, {
-      signal: controller.signal,
-    })
-      .then((data) => {
+      if (partnerId) {
+        params.set("doi_tac_van_chuyen_id", partnerId);
+      }
+
+      try {
+        const data = await apiRequest(`${API}?${params}`, {
+          signal: controller.signal,
+        });
+
         if (controller.signal.aborted) return;
+
+        const lastPage = Math.max(
+          1,
+          Number(data?.pagination?.total_pages) || 1,
+        );
+
+        if (page > lastPage) {
+          setPage(lastPage);
+          return;
+        }
 
         setState({
           loading: false,
           error: "",
           items: data?.items || [],
           pagination: data?.pagination || null,
+          counts: data?.thong_ke_trang_thai || null,
         });
-      })
-      .catch((error) => {
+      } catch (error) {
         if (controller.signal.aborted) return;
 
-        setState((current) => ({
-          ...current,
+        setState({
           loading: false,
-          error: error.message,
-        }));
-      });
+          error: error.message || "Không tải được phiếu giao hàng.",
+          items: [],
+          pagination: null,
+          counts: null,
+        });
+      }
+    }, 250);
 
-    return () => controller.abort();
-  }, [keyword, status, page, revision]);
+    return () => {
+      clearTimeout(timer);
+      controller.abort();
+    };
+  }, [keyword, status, partnerId, page, revision]);
 
-  const totalPages = Number(state.pagination?.total_pages || 0);
+  const total = Number(state.pagination?.total_elements) || 0;
+
+  const reload = () => {
+    setRevision((current) => current + 1);
+  };
 
   return (
     <section
-      className="delivery-page delivery-api-page"
+      className="delivery-page delivery-list-page"
+      aria-label="Quản lý giao hàng"
       aria-busy={state.loading}
     >
-      <header className="delivery-api-header">
-        <h1>QUẢN LÝ GIAO HÀNG</h1>
+      <div className="delivery-toolbar">
+        <label className="delivery-search">
+          <HiOutlineSearch size={16} aria-hidden="true" />
 
-        <button
-          type="button"
-          disabled={state.loading}
-          onClick={() => setRevision((value) => value + 1)}
-        >
-          TẢI LẠI
-        </button>
-      </header>
-
-      <div className="delivery-api-filters">
-        <input
-          aria-label="Tìm phiếu giao hàng"
-          placeholder="Mã phiếu, mã đơn, vận đơn, người nhận..."
-          value={keyword}
-          onChange={(event) => {
-            setKeyword(event.target.value);
-            setPage(0);
-          }}
-        />
+          <input
+            type="search"
+            maxLength={100}
+            aria-label="Tìm phiếu giao hàng"
+            placeholder="Tìm mã phiếu / mã vận đơn / mã đơn / tên hoặc SĐT người nhận..."
+            value={keyword}
+            onChange={(event) => {
+              setKeyword(event.target.value);
+              setPage(1);
+            }}
+          />
+        </label>
 
         <select
+          className="delivery-list-select"
           aria-label="Trạng thái giao hàng"
           value={status}
           onChange={(event) => {
             setStatus(event.target.value);
-            setPage(0);
+            setPage(1);
           }}
         >
           <option value="">Tất cả trạng thái</option>
@@ -141,26 +228,82 @@ function ShipmentList() {
             </option>
           ))}
         </select>
+
+        <select
+          className="delivery-list-select"
+          aria-label="Đối tác vận chuyển"
+          value={partnerId}
+          disabled={partners.loading}
+          onChange={(event) => {
+            setPartnerId(event.target.value);
+            setPage(1);
+          }}
+        >
+          <option value="">
+            {partners.loading ? "Đang tải đối tác..." : "Tất cả đối tác"}
+          </option>
+
+          {partners.items.map((partner) => (
+            <option key={partner.id} value={String(partner.id)}>
+              {partner.ten_doi_tac}
+              {Number(partner.trang_thai) === 0 ? " (Ngừng hoạt động)" : ""}
+            </option>
+          ))}
+        </select>
+
+        <span className="delivery-count" aria-live="polite">
+          {state.loading || state.error ? "—" : total} PHIẾU
+        </span>
+
+        <button
+          type="button"
+          className="delivery-list-refresh"
+          aria-label="Tải lại danh sách giao hàng"
+          title="Tải lại"
+          disabled={state.loading || partners.loading}
+          onClick={reload}
+        >
+          <HiOutlineRefresh size={16} aria-hidden="true" />
+        </button>
       </div>
 
+      {partners.error && (
+        <p className="delivery-list-error" role="alert">
+          Không tải được bộ lọc đối tác: {partners.error}
+        </p>
+      )}
+
       {state.error && (
-        <p className="delivery-api-error" role="alert">
+        <p className="delivery-list-error" role="alert">
           {state.error}
         </p>
       )}
 
       <div className="delivery-table-scroll">
-        <table className="delivery-table">
+        <table
+          className="delivery-table"
+          aria-label="Danh sách phiếu giao hàng"
+        >
+          <colgroup>
+            {Array.from({ length: 13 }, (_, index) => (
+              <col key={index} />
+            ))}
+          </colgroup>
+
           <thead>
             <tr>
               <th>MÃ PHIẾU</th>
               <th>MÃ VẬN ĐƠN</th>
               <th>MÃ ĐƠN HÀNG</th>
-              <th>TRẠNG THÁI</th>
-              <th>NGƯỜI NHẬN</th>
-              <th>SĐT</th>
+              <th>ĐÓNG GÓI</th>
+              <th>TRẠNG THÁI GIAO</th>
+              <th>ĐỐI TÁC</th>
               <th>COD</th>
               <th>PHÍ ĐỐI TÁC</th>
+              <th>NGƯỜI NHẬN</th>
+              <th>SĐT</th>
+              <th>ĐỊA CHỈ</th>
+              <th>CẬP NHẬT</th>
               <th>THAO TÁC</th>
             </tr>
           </thead>
@@ -168,78 +311,205 @@ function ShipmentList() {
           <tbody>
             {state.loading ? (
               <tr>
-                <td colSpan={9}>Đang tải phiếu giao hàng...</td>
+                <td colSpan={13} className="delivery-list-empty">
+                  Đang tải phiếu giao hàng...
+                </td>
               </tr>
             ) : state.error ? (
               <tr>
-                <td colSpan={9}>Không thể tải danh sách.</td>
+                <td colSpan={13} className="delivery-list-empty">
+                  Không thể tải danh sách. Nhấn nút tải lại để thử lại.
+                </td>
               </tr>
             ) : state.items.length === 0 ? (
               <tr>
-                <td colSpan={9}>Không có phiếu phù hợp.</td>
+                <td colSpan={13} className="delivery-list-empty">
+                  Không tìm thấy phiếu giao hàng phù hợp.
+                </td>
               </tr>
             ) : (
-              state.items.map((item) => (
-                <tr key={item.id}>
-                  <td>{item.ma_phieu_giao_hang}</td>
-                  <td>{item.ma_van_don || "—"}</td>
+              state.items.map((item) => {
+                const partner = item.doi_tac_van_chuyen;
+                const cod = Number(item.tien_thu_ho_cod) || 0;
 
-                  <td>
-                    <button
-                      type="button"
-                      className="delivery-link"
-                      onClick={() =>
-                        navigate(
-                          `/admin/don-hang/danh-sach-don-hang/${item.don_hang_id}`,
-                        )
-                      }
-                    >
-                      {item.ma_don_hang}
-                    </button>
-                  </td>
+                return (
+                  <tr key={item.id}>
+                    <td>
+                      <strong
+                        className="delivery-list-code delivery-list-ellipsis"
+                        title={item.ma_phieu_giao_hang}
+                      >
+                        {item.ma_phieu_giao_hang}
+                      </strong>
+                    </td>
 
-                  <td>{label(item.trang_thai_giao_hang)}</td>
-                  <td>{item.ten_nguoi_nhan || "—"}</td>
-                  <td>{item.sdt_nguoi_nhan || "—"}</td>
-                  <td>{money(item.tien_thu_ho_cod)}</td>
-                  <td>{money(item.phi_tra_doi_tac)}</td>
+                    <td>
+                      <span
+                        className="delivery-list-code delivery-list-ellipsis"
+                        title={item.ma_van_don || ""}
+                      >
+                        {item.ma_van_don || "—"}
+                      </span>
+                    </td>
 
-                  <td>
-                    <button
-                      type="button"
-                      className="delivery-detail-btn"
-                      onClick={() => navigate(`${LIST}/${item.id}`)}
-                    >
-                      XEM CHI TIẾT
-                    </button>
-                  </td>
-                </tr>
-              ))
+                    <td>
+                      <button
+                        type="button"
+                        className="delivery-link delivery-list-ellipsis"
+                        title={item.ma_don_hang}
+                        onClick={() =>
+                          navigate(
+                            `/admin/don-hang/danh-sach-don-hang/${item.don_hang_id}`,
+                          )
+                        }
+                      >
+                        {item.ma_don_hang}
+                      </button>
+                    </td>
+
+                    <td>
+                      <OrderStateBadge value={item.trang_thai_dong_goi} />
+                    </td>
+
+                    <td>
+                      <ShipmentBadge value={item.trang_thai_giao_hang} />
+                    </td>
+
+                    <td>
+                      {partner?.id ? (
+                        <button
+                          type="button"
+                          className="delivery-partner-link"
+                          title={partner.ten_doi_tac}
+                          onClick={() =>
+                            navigate(
+                              "/admin/khach-hang-doi-tac/doi-tac-van-chuyen",
+                              {
+                                state: {
+                                  partnerId: Number(partner.id),
+                                },
+                              },
+                            )
+                          }
+                        >
+                          <b className="delivery-list-ellipsis">
+                            {partner.ten_doi_tac}
+                          </b>
+                          <small>{partner.ma_doi_tac}</small>
+                        </button>
+                      ) : (
+                        <span className="delivery-muted">—</span>
+                      )}
+                    </td>
+
+                    <td>
+                      {cod > 0 ? (
+                        <strong className="delivery-money-red">
+                          {money(cod)}
+                        </strong>
+                      ) : (
+                        <span className="delivery-muted">Không thu</span>
+                      )}
+                    </td>
+
+                    <td>
+                      <strong className="delivery-money">
+                        {money(item.phi_tra_doi_tac ?? 0)}
+                      </strong>
+                    </td>
+
+                    <td>
+                      <span
+                        className="delivery-list-ellipsis"
+                        title={item.ten_nguoi_nhan || ""}
+                      >
+                        {item.ten_nguoi_nhan || "—"}
+                      </span>
+                    </td>
+
+                    <td className="delivery-list-phone">
+                      {item.sdt_nguoi_nhan || "—"}
+                    </td>
+
+                    <td>
+                      <span
+                        className="delivery-list-address delivery-list-ellipsis"
+                        title={item.dia_chi_giao_hang || ""}
+                      >
+                        {item.dia_chi_giao_hang || "—"}
+                      </span>
+                    </td>
+
+                    <td className="delivery-list-updated">
+                      {dateTime(item.ngay_cap_nhat || item.ngay_tao)}
+                    </td>
+
+                    <td>
+                      <button
+                        type="button"
+                        className="delivery-detail-btn"
+                        onClick={() =>
+                          navigate(`${LIST}/${encodeURIComponent(item.id)}`)
+                        }
+                      >
+                        XEM CHI TIẾT
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })
             )}
           </tbody>
         </table>
       </div>
 
-      <footer className="delivery-api-pagination">
-        <span>
-          Trang {page + 1} / {Math.max(1, totalPages)}
-        </span>
-
-        <button
-          type="button"
-          disabled={state.loading || page === 0}
-          onClick={() => setPage((value) => value - 1)}
+      <footer className="delivery-list-footer">
+        <div
+          className="delivery-status-counts"
+          role="group"
+          aria-label="Số lượng phiếu theo trạng thái"
         >
-          TRƯỚC
-        </button>
+          {STATUSES.map((value) => (
+            <button
+              key={value}
+              type="button"
+              className={[
+                "delivery-status-count",
+                `delivery-status--${value}`,
+                status === value ? "is-selected" : "",
+              ]
+                .filter(Boolean)
+                .join(" ")}
+              aria-pressed={status === value}
+              disabled={state.loading}
+              onClick={() => {
+                setStatus((current) => (current === value ? "" : value));
+                setPage(1);
+              }}
+            >
+              <span>{label(value)}</span>
 
-        <button
-          type="button"
-          disabled={state.loading || page + 1 >= totalPages}
-          onClick={() => setPage((value) => value + 1)}
+              <strong>
+                {state.loading ? "—" : (state.counts?.[value] ?? "—")}
+              </strong>
+            </button>
+          ))}
+        </div>
+
+        <fieldset
+          className="delivery-list-pagination"
+          aria-label="Phân trang phiếu giao hàng"
+          disabled={state.loading || Boolean(state.error)}
         >
-          SAU
-        </button>
+          <TablePagination
+            currentPage={page}
+            pageSize={PAGE_SIZE}
+            totalItems={total}
+            onPageChange={setPage}
+            idPrefix="deliveries"
+            showSummary={false}
+          />
+        </fieldset>
       </footer>
     </section>
   );

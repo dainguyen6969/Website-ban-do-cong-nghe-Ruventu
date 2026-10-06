@@ -16,6 +16,15 @@ import lombok.*;
 @Builder
 public class AdminReceiptResponse {
 
+  @JsonProperty("nguoi_nop_nhan_id")
+  private Long nguoiNopNhanId;
+
+  @JsonProperty("nha_cung_cap_id")
+  private Long nhaCungCapId;
+
+  @JsonProperty("doi_tac_van_chuyen_id")
+  private Long doiTacVanChuyenId;
+
   private Long id;
 
   @JsonProperty("ma_phieu")

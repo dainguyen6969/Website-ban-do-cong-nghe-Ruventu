@@ -54,14 +54,18 @@ public final class AdminOrderResponse {
     @JsonProperty("trang_thai_xuat_kho")
     private TrangThaiXuatKho trangThaiXuatKho;
 
+    @JsonProperty("trang_thai_giao_hang")
+    @JsonInclude(JsonInclude.Include.ALWAYS)
+    private TrangThaiGiaoHangEnum trangThaiGiaoHang;
+
     @JsonProperty("tong_thanh_toan")
     private BigDecimal tongThanhToan;
 
-      @JsonProperty("hinh_thuc_nhan_hang")
-      private String hinhThucNhanHang;
+    @JsonProperty("hinh_thuc_nhan_hang")
+    private String hinhThucNhanHang;
 
-      @JsonProperty("phieu_giao_hang_gan_nhat_id")
-      private Long phieuGiaoHangGanNhatId;
+    @JsonProperty("phieu_giao_hang_gan_nhat_id")
+    private Long phieuGiaoHangGanNhatId;
   }
 
   public record History(

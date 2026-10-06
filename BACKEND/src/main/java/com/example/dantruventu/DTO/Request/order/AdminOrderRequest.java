@@ -38,25 +38,25 @@ public final class AdminOrderRequest {
     private BigDecimal phiTraDoiTac;
   }
 
-    @Getter
-    @Setter
-    public static class DeliveryStart extends Confirm {
+  @Getter
+  @Setter
+  public static class DeliveryStart extends Confirm {
 
-        @NotNull
-        @Positive
-        @JsonProperty("doi_tac_van_chuyen_id")
-        private Long doiTacVanChuyenId;
+    @NotNull
+    @Positive
+    @JsonProperty("doi_tac_van_chuyen_id")
+    private Long doiTacVanChuyenId;
 
-        @NotNull
-        @DecimalMin("0")
-        @Digits(integer = 13, fraction = 2)
-        @JsonProperty("phi_tra_doi_tac")
-        private BigDecimal phiTraDoiTac;
+    @NotNull
+    @DecimalMin("0")
+    @Digits(integer = 13, fraction = 2)
+    @JsonProperty("phi_tra_doi_tac")
+    private BigDecimal phiTraDoiTac;
 
-        @Size(max = 50, message = "Mã vận đơn tối đa 50 ký tự")
-        @JsonProperty("ma_van_don")
-        private String maVanDon;
-    }
+    @Size(max = 50, message = "Mã vận đơn tối đa 50 ký tự")
+    @JsonProperty("ma_van_don")
+    private String maVanDon;
+  }
 
   @Getter
   @Setter

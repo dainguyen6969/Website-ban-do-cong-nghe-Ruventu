@@ -69,7 +69,9 @@ public class AdminReceiptController {
 
   @PostMapping
   public ResponseEntity<ApiResponse<AdminReceiptResponse>> createReceipt(
-      @Valid @RequestBody AdminReceiptCreateRequest request, Authentication authentication) {
+      @Valid @RequestBody AdminReceiptCreateRequest request,
+      @RequestHeader(name = "Idempotency-Key", required = false) String requestKey,
+      Authentication authentication) {
 
     if (authentication == null || !(authentication.getPrincipal() instanceof NguoiDung admin)) {
       throw new AppException(ErrorCode.UNAUTHORIZED);
@@ -79,7 +81,7 @@ public class AdminReceiptController {
         ApiResponse.<AdminReceiptResponse>builder()
             .status(HttpStatus.CREATED.value())
             .message("Tạo phiếu thu thành công")
-            .data(service.createReceipt(request, admin))
+            .data(service.createReceipt(request, admin, requestKey))
             .build();
 
     return ResponseEntity.status(HttpStatus.CREATED).body(response);

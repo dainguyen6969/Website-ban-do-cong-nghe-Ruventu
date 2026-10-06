@@ -86,6 +86,7 @@ public class AdminDisbursementController {
   @PostMapping
   public ResponseEntity<ApiResponse<AdminDisbursementResponse>> createDisbursement(
       @RequestBody(required = false) AdminDisbursementCreateRequest request,
+      @RequestHeader(name = "Idempotency-Key", required = false) String requestKey,
       Authentication authentication) {
 
     if (authentication == null || !(authentication.getPrincipal() instanceof NguoiDung admin)) {
@@ -96,7 +97,7 @@ public class AdminDisbursementController {
         ApiResponse.<AdminDisbursementResponse>builder()
             .status(HttpStatus.CREATED.value())
             .message("Tạo phiếu chi thành công")
-            .data(service.createDisbursement(request, admin))
+            .data(service.createDisbursement(request, admin, requestKey))
             .build();
 
     return ResponseEntity.status(HttpStatus.CREATED).body(response);

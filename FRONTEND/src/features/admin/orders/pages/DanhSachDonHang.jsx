@@ -280,6 +280,7 @@ export default function DanhSachDonHang() {
                 <th>THANH TOÁN</th>
                 <th>ĐÓNG GÓI</th>
                 <th>XUẤT KHO</th>
+                <th>TRẠNG THÁI GIAO</th>
                 <th>TỔNG TIỀN</th>
                 <th>THAO TÁC</th>
               </tr>
@@ -334,6 +335,33 @@ export default function DanhSachDonHang() {
                   <td>
                     <OrderStateBadge value={order.trang_thai_xuat_kho} />
                   </td>
+
+                  <td className="order-delivery-status-cell">
+                    <span
+                      className={`order-state-badge order-state-badge--${
+                        {
+                          CHO_GIAO: "neutral",
+                          DA_NHAN_HANG: "blue",
+                          DANG_GIAO: "indigo",
+                          GIAO_THANH_CONG: "green",
+                          GIAO_THAT_BAI: "red",
+                          CHO_HOAN_HANG: "orange",
+                          DA_HOAN_HANG: "orange",
+                          HUY_GIAO_HANG: "red",
+                        }[order.trang_thai_giao_hang] || "neutral"
+                      }`}
+                    >
+                      {order.trang_thai_giao_hang
+                        ? label(order.trang_thai_giao_hang).toUpperCase()
+                        : order.loai_don_hang === "TAI_QUAY" ||
+                            order.hinh_thuc_nhan_hang === "NHAN_TAI_CUA_HANG"
+                          ? "NHẬN TẠI CỬA HÀNG"
+                          : order.hinh_thuc_nhan_hang === "GIAO_HANG"
+                            ? "CHƯA TẠO PHIẾU GIAO"
+                            : "—"}
+                    </span>
+                  </td>
+
                   <td>
                     <strong className="order-total">
                       {money(order.tong_thanh_toan)}
@@ -374,12 +402,12 @@ export default function DanhSachDonHang() {
               ))}
               {!state.loading && !data.items.length && (
                 <tr className="order-empty-row">
-                  <td colSpan="10">Không tìm thấy đơn hàng phù hợp.</td>
+                  <td colSpan="11">Không tìm thấy đơn hàng phù hợp.</td>
                 </tr>
               )}
               {state.loading && (
                 <tr className="order-empty-row">
-                  <td colSpan="10">Đang tải dữ liệu...</td>
+                  <td colSpan="11">Đang tải dữ liệu...</td>
                 </tr>
               )}
             </tbody>
@@ -436,6 +464,46 @@ export function OrderStateBadge({ value }) {
   return (
     <span className={`order-state-badge order-state-badge--${variant}`}>
       {text.toUpperCase()}
+    </span>
+  );
+}
+
+function OrderDeliveryBadge({ order }) {
+  const status = order.trang_thai_giao_hang;
+
+  if (!status) {
+    const pickup =
+      order.loai_don_hang === "TAI_QUAY" ||
+      order.hinh_thuc_nhan_hang === "NHAN_TAI_CUA_HANG";
+
+    const text = pickup
+      ? "NHẬN TẠI CỬA HÀNG"
+      : order.hinh_thuc_nhan_hang === "GIAO_HANG"
+        ? "CHƯA TẠO PHIẾU GIAO"
+        : "—";
+
+    return (
+      <span className="order-state-badge order-state-badge--neutral">
+        {text}
+      </span>
+    );
+  }
+
+  const variant =
+    {
+      CHO_GIAO: "neutral",
+      DA_NHAN_HANG: "blue",
+      DANG_GIAO: "indigo",
+      GIAO_THANH_CONG: "green",
+      GIAO_THAT_BAI: "red",
+      CHO_HOAN_HANG: "orange",
+      DA_HOAN_HANG: "orange",
+      HUY_GIAO_HANG: "red",
+    }[status] || "neutral";
+
+  return (
+    <span className={`order-state-badge order-state-badge--${variant}`}>
+      {label(status).toUpperCase()}
     </span>
   );
 }

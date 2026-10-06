@@ -25,6 +25,15 @@ public class AdminDisbursementCreateRequest {
   @JsonProperty("ten_nguoi_nop_nhan")
   private String tenNguoiNopNhan;
 
+  @JsonProperty("nguoi_nop_nhan_id")
+  private Long nguoiNopNhanId;
+
+  @JsonProperty("doi_tac_van_chuyen_id")
+  private Long doiTacVanChuyenId;
+
+  @JsonProperty("nha_cung_cap_id")
+  private Long nhaCungCapId;
+
   @JsonProperty("ma_chung_tu_tham_chieu")
   private String maChungTuThamChieu;
 
