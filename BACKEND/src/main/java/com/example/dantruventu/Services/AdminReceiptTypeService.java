@@ -38,8 +38,7 @@ public class AdminReceiptTypeService {
   }
 
   public AdminReceiptTypeResponse getReceiptTypeDetail(String rawId) {
-    return getTypeDetail(
-        rawId, LoaiPhieuThuChi.THU, ErrorCode.RECEIPT_TYPE_NOT_FOUND_OR_EXPENSE);
+    return getTypeDetail(rawId, LoaiPhieuThuChi.THU, ErrorCode.RECEIPT_TYPE_NOT_FOUND_OR_EXPENSE);
   }
 
   public AdminReceiptTypeResponse getTypeDetail(

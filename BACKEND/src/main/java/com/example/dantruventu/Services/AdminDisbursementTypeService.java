@@ -20,8 +20,7 @@ public class AdminDisbursementTypeService {
   public AdminReceiptTypeListResponse getDisbursementTypes(
       String keyword, String status, String page, String limit) {
     try {
-      return sharedTypeService.getTypes(
-          LoaiPhieuThuChi.CHI, keyword, status, page, limit);
+      return sharedTypeService.getTypes(LoaiPhieuThuChi.CHI, keyword, status, page, limit);
     } catch (AppException exception) {
       if (exception.getErrorCode() == ErrorCode.INVALID_CUSTOMER_SEARCH_PARAM) {
         throw new AppException(ErrorCode.INVALID_DISBURSEMENT_TYPE_SEARCH);
@@ -30,16 +29,13 @@ public class AdminDisbursementTypeService {
     }
   }
 
-  public AdminReceiptTypeResponse createDisbursementType(
-      AdminReceiptTypeCreateRequest request) {
+  public AdminReceiptTypeResponse createDisbursementType(AdminReceiptTypeCreateRequest request) {
     return sharedTypeService.createType(LoaiPhieuThuChi.CHI, request);
   }
 
   public AdminReceiptTypeResponse getDisbursementTypeDetail(String id) {
     return sharedTypeService.getTypeDetail(
-        id,
-        LoaiPhieuThuChi.CHI,
-        ErrorCode.DISBURSEMENT_TYPE_NOT_FOUND_OR_RECEIPT);
+        id, LoaiPhieuThuChi.CHI, ErrorCode.DISBURSEMENT_TYPE_NOT_FOUND_OR_RECEIPT);
   }
 
   public AdminReceiptTypeStatusResponse updateDisbursementTypeStatus(
