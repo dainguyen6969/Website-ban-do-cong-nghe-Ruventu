@@ -1,5 +1,5 @@
-const API_BASE_URL = (import.meta.env?.VITE_RUVENTU_API_URL || '').replace(/\/$/, '');
-const ACCESS_TOKEN_KEY = 'ruventu_backend_access_token';
+import { apiRequest as request } from "../../../../../auth/backendAuth";
+
 const TRANSACTION_LABELS = {
   NHAP_HANG: 'Nhập hàng', XUAT_BAN: 'Xuất bán', KHACH_TRA: 'Khách trả',
   TRA_NCC: 'Trả NCC', KIEM_KHO: 'Kiểm kho',
@@ -8,7 +8,6 @@ const TRANSACTION_CODES = Object.fromEntries(Object.entries(TRANSACTION_LABELS).
 
 let token = '';
 let loginPromise = null;
-let refreshPromise = null;
 
 function storeToken(value) {
   token = value;
@@ -37,48 +36,6 @@ async function login() {
   return accessToken;
 }
 
-async function refreshAccessToken() {
-  const response = await fetch(`${API_BASE_URL}/api/v1/auth/refresh`, { method: 'POST', credentials: 'include' });
-  const payload = await parseResponse(response);
-  const accessToken = payload?.data?.access_token;
-  if (!response.ok || !accessToken) throw new Error(payload?.message || 'Phiên đăng nhập đã hết hạn.');
-  storeToken(accessToken);
-  return accessToken;
-}
-
-async function request(path, options = {}, retry = true) {
-  token ||= localStorage.getItem(ACCESS_TOKEN_KEY) || localStorage.getItem('access_token') || localStorage.getItem('accessToken') || '';
-  const accessToken = token || await (loginPromise ||= login().finally(() => { loginPromise = null; }));
-  const response = await fetch(`${API_BASE_URL}${path}`, {
-    ...options,
-    headers: {
-      Accept: 'application/json',
-      ...(options.body ? { 'Content-Type': 'application/json' } : {}),
-      ...options.headers,
-      Authorization: `Bearer ${accessToken}`,
-    },
-  });
-  if (response.status === 401 && retry) {
-    storeToken('');
-    try {
-      await (refreshPromise ||= refreshAccessToken().finally(() => { refreshPromise = null; }));
-    } catch (error) {
-      localStorage.removeItem('access_token');
-      localStorage.removeItem('accessToken');
-      if (typeof window !== 'undefined' && window.location.pathname !== '/login') window.location.replace('/login');
-      throw error;
-    }
-    return request(path, options, false);
-  }
-  const payload = await parseResponse(response);
-  if (!response.ok) {
-    const error = new Error(payload?.message || `Yêu cầu thất bại (${response.status}).`);
-    error.status = response.status;
-    throw error;
-  }
-  return payload?.data;
-}
-
 export { request as adminRequest };
 
 async function allPages(path, params, signal) {
@@ -98,32 +55,67 @@ export async function getWarehouses(signal) {
   }));
 }
 
-export async function getAllVersions(warehouseId, signal, includeCombos = true) {
-  const [warehouses, items, combos] = await Promise.all([
+export async function getAllVersions(
+  warehouseId,
+  signal,
+  includeCombos = true,
+) {
+  const [warehouses, items] = await Promise.all([
     getWarehouses(signal),
     allPages('/api/v1/admin/inventory/items', {
-      loai_doi_tuong: 'PHIEN_BAN',
-      ...(warehouseId ? { kho_hang_id: String(warehouseId) } : {}),
+      loai_doi_tuong: includeCombos ? 'ALL' : 'PHIEN_BAN',
+      ...(warehouseId
+        ? { kho_hang_id: String(warehouseId) }
+        : {}),
     }, signal),
-    includeCombos ? allPages('/api/v1/admin/combos', {}, signal) : Promise.resolve([]),
   ]);
-  const selectedWarehouse = warehouses.find((item) => item.id === Number(warehouseId));
+
+  const selectedWarehouse = warehouses.find(
+    (item) => item.id === Number(warehouseId),
+  );
+
+  const nullableNumber = (value) =>
+    value == null ? null : Number(value);
+
   return {
     warehouses,
-    versions: [...items.map((item) => ({
-      id: Number(item.doi_tuong_id), barcode: item.ma_hien_thi || '', sku: item.ma_hien_thi || '',
-      displayCode: item.ma_hien_thi || '', displayName: item.ten_hien_thi || '', type: 'Phiên bản',
-      available: Number(item.ton_co_the_ban || 0), actual: Number(item.ton_thuc_te || 0),
-      warehouse: selectedWarehouse?.name || 'Tất cả kho', location: item.vi_tri_luu_kho || '—', image: item.anh || '',
-    })), ...combos.map((item) => ({
-      id: `combo:${item.id}`, comboId: Number(item.id), barcode: '', sku: item.ma_san_pham || '',
-      displayCode: item.ma_san_pham || '', displayName: item.ten_san_pham || '', type: 'Combo',
-      available: Number(item.ton_co_the_ban || 0), actual: Number(item.ton_thuc_te || 0),
-      warehouse: 'Theo tồn thành phần', location: `${item.thanh_phan?.length || 0} thành phần`, image: '',
-    }))],
+    versions: items.map((item) => {
+      const combo = item.loai_doi_tuong === 'COMBO';
+
+      return {
+        id: combo
+          ? `combo:${item.doi_tuong_id}`
+          : Number(item.doi_tuong_id),
+
+        comboId: combo
+          ? Number(item.doi_tuong_id)
+          : null,
+
+        barcode: combo ? '' : item.ma_hien_thi || '',
+        sku: item.ma_hien_thi || '',
+        displayCode: item.ma_hien_thi || '',
+        displayName: item.ten_hien_thi || '',
+        type: combo ? 'Combo' : 'Phiên bản',
+
+        available: combo
+          ? null
+          : nullableNumber(item.ton_co_the_ban),
+
+        actual: combo
+          ? null
+          : nullableNumber(item.ton_thuc_te),
+
+        assemblyCapacity: combo
+          ? nullableNumber(item.so_bo_co_the_lap)
+          : null,
+
+        warehouse: selectedWarehouse?.name || 'Tất cả kho',
+        location: item.vi_tri_luu_kho || '—',
+        image: item.anh || '',
+      };
+    }),
   };
 }
-
 const allocation = (item, warehouses) => {
   const warehouse = warehouses.find((entry) => entry.id === Number(item.kho_hang_id));
   return {
