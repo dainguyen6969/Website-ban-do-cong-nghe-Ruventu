@@ -204,7 +204,11 @@ const menuItems = [
     label: 'Bảo hành',
     icon: IconBaoHanh,
     path: '/admin/bao-hanh',
-    expandable: false,
+    expandable: true,
+    subItems: [
+      { id: 'danh-sach-phieu-bao-hanh', label: 'Danh sách phiếu bảo hành', path: '/admin/bao-hanh/danh-sach' },
+      { id: 'lap-phieu-bao-hanh', label: 'Lập phiếu bảo hành', path: '/admin/bao-hanh/tao-moi' },
+    ],
   },
   {
     id: 'danh-muc',
@@ -232,9 +236,12 @@ const shouldShowBadge = (badge) => {
 const hasActivePath = (item, pathname) =>
   (item.path ? pathname.startsWith(item.path) : false) || item.children?.some((child) => hasActivePath(child, pathname));
 
+import useMockAuth from '../../../auth/useMockAuth';
+
 export default function Sidebar({ collapsed, mobileOpen = false, onToggle, onNavigate }) {
   const location = useLocation();
   const navigate = useNavigate();
+  const { currentAccount } = useMockAuth();
   const [expandedMenus, setExpandedMenus] = useState(['don-hang']);
   const showDetails = !collapsed || mobileOpen;
 
@@ -407,8 +414,8 @@ export default function Sidebar({ collapsed, mobileOpen = false, onToggle, onNav
           </div>
           {showDetails && (
             <div className="sidebar__user-info">
-              <span className="sidebar__user-name">Admin Tổng</span>
-              <span className="sidebar__user-email">admin@reventu.com</span>
+              <span className="sidebar__user-name">{currentAccount?.name || currentAccount?.ho_ten || currentAccount?.hoTen || 'Người dùng'}</span>
+              <span className="sidebar__user-email">{currentAccount?.email || ''}</span>
             </div>
           )}
         </div>

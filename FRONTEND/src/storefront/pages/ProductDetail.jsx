@@ -40,8 +40,7 @@ const ProductDetail = () => {
             fullSpecs: backendData.thongSoKyThuat ? Object.keys(backendData.thongSoKyThuat).map(k => ({ label: k, value: backendData.thongSoKyThuat[k] })) : [],
             tags: [],
             policies: [
-              { title: "BH 36 THÁNG", desc: "Chính hãng", icon: "shield" },
-              { title: "MIỄN PHÍ VC", desc: "Đơn từ 5tr", icon: "truck" },
+              { title: "MIỄN PHÍ VẬN CHUYỂN", desc: "Đơn từ 5tr", icon: "truck" },
               { title: "CAM KẾT GIÁ", desc: "Tốt nhất", icon: "tag" }
             ],
             description: backendData.moTa,

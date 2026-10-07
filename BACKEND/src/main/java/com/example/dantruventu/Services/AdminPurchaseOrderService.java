@@ -1461,7 +1461,7 @@ public class AdminPurchaseOrderService {
     }
 
     if (!rows.isEmpty()) {
-      return rows.getFirst();
+      return rows.get(0);
     }
 
     return TonKho.builder()
@@ -1487,7 +1487,7 @@ public class AdminPurchaseOrderService {
       throw new AppException(ErrorCode.CONFLICT, "Dữ liệu tồn kho bị trùng");
     }
 
-    return rows.getFirst();
+    return rows.get(0);
   }
 
   private void updatePaymentStatus(DonNhapHang order) {

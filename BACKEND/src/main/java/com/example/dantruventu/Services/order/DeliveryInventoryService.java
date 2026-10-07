@@ -422,7 +422,7 @@ public class DeliveryInventoryService {
       throw conflict("Phiên bản " + variantId + " phải có đúng một bản ghi tồn tại kho mặc định");
     }
 
-    return rows.getFirst();
+    return rows.get(0);
   }
 
   private void validateStock(TonKho stock) {

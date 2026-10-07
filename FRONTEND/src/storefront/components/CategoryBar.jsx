@@ -1,11 +1,8 @@
 import React from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import './CategoryBar.css';
 
 const CategoryBar = () => {
-  const location = useLocation();
-  const currentPath = location.pathname;
-
   const brands = [
     { name: 'NVIDIA', logo: 'https://upload.wikimedia.org/wikipedia/commons/a/a4/NVIDIA_logo.svg' },
     { name: 'AMD', logo: 'https://upload.wikimedia.org/wikipedia/commons/7/7c/AMD_Logo.svg' },
@@ -17,46 +14,19 @@ const CategoryBar = () => {
     { name: 'SAMSUNG', logo: 'https://upload.wikimedia.org/wikipedia/commons/6/61/Samsung_old_logo_before_year_2015.svg' }
   ];
 
-  const categories = [
-    { name: 'PC BUILD', path: '/category/pc-build' },
-    { name: 'LINH KIỆN', path: '/category/linh-kien' },
-    { name: 'PHỤ KIỆN', path: '/category/gaming-gear' },
-    { name: 'MÀN HÌNH', path: '/category/man-hinh' },
-    { name: 'LAPTOP', path: '/category/laptop' },
-    { name: 'TẢN NHIỆT', path: '/category/tan-nhiet' }
-  ];
-
   return (
     <div className="category-bar">
-      <div className="container category-container">
-        <div className="category-tabs">
-          <div className="tab active">DANH MỤC</div>
-          {categories.map((cat, index) => (
+      <div className="container brands-container">
+        <div className="brands-list">
+          {brands.map((brand, index) => (
             <Link 
               key={index} 
-              to={cat.path} 
-              className={`tab ${currentPath === cat.path ? 'highlight' : ''}`}
-              style={{ textDecoration: 'none' }}
+              to={`/search?q=${brand.name}`} 
+              className="brand-item"
             >
-              {cat.name}
+              <img src={brand.logo} alt={brand.name} className="brand-logo" />
             </Link>
           ))}
-        </div>
-      </div>
-      <div className="brands-bar">
-        <div className="container brands-container">
-          <div className="brand-label">THƯƠNG HIỆU</div>
-          <div className="brands-list">
-            {brands.map((brand, index) => (
-              <Link 
-                key={index} 
-                to={`/search?q=${brand.name}`} 
-                className="brand-item"
-              >
-                <img src={brand.logo} alt={brand.name} className="brand-logo" />
-              </Link>
-            ))}
-          </div>
         </div>
       </div>
     </div>

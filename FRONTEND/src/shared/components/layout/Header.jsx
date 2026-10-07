@@ -18,8 +18,11 @@ const routeTitleMap = {
   '/admin/danh-muc': 'DANH MỤC',
 };
 
+import useMockAuth from '../../../auth/useMockAuth';
+
 export default function Header({ notificationCount = 0, onMenuToggle, isMenuOpen = false }) {
   const location = useLocation();
+  const { currentAccount } = useMockAuth();
   
   // Find current top-level route title
   const currentPath = location.pathname;
@@ -207,7 +210,7 @@ export default function Header({ notificationCount = 0, onMenuToggle, isMenuOpen
           <div className="header__user-avatar">
             <HiOutlineUser size={18} />
           </div>
-          <span className="header__user-name">Admin Tổng</span>
+          <span className="header__user-name">{currentAccount?.name || currentAccount?.ho_ten || currentAccount?.hoTen || 'Người dùng'}</span>
         </div>
 
         {/* Red accent bar */}

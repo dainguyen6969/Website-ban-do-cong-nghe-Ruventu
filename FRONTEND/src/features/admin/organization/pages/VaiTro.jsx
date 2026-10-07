@@ -7,15 +7,16 @@ import {
   HiOutlineChevronRight,
   HiOutlineExclamationCircle,
   HiOutlineSave,
+  HiOutlinePlus,
+  HiOutlineTrash
 } from 'react-icons/hi';
-import useMockAuth from '../../../../auth/useMockAuth';
 import {
   PERMISSION_GROUPS,
   PERMISSION_MODULES,
   ROLE_ACTIONS,
-  ROLE_PRESETS,
   emptyPermissions,
 } from '../../../../auth/roleModel';
+import { getAllRoles, getRoleDetail, createRole, updateRole, deleteRole, parseRoleDescription } from '../api/roleApi';
 import './VaiTro.css';
 
 const ACTION_LABELS = { xem: 'XEM', them: 'THÊM', sua: 'SỬA', xoa: 'XÓA' };
@@ -33,7 +34,7 @@ function MatrixCheckbox({ checked, indeterminate = false, onChange, label }) {
 
 export default function VaiTro() {
   const navigate = useNavigate();
-  const { roles, saveRole } = useMockAuth();
+  const [roles, setRoles] = useState([]);
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [permissions, setPermissions] = useState(emptyPermissions);
@@ -42,11 +43,21 @@ export default function VaiTro() {
   const [collapsedGroups, setCollapsedGroups] = useState([]);
   const [submitted, setSubmitted] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [serverError, setServerError] = useState('');
+
+  const loadRoles = () => {
+    getAllRoles().then(setRoles).catch(console.error);
+  };
+
+  useEffect(() => {
+    loadRoles();
+  }, []);
 
   const permissionCount = useMemo(() => Object.values(permissions).reduce((sum, actions) => sum + actions.length, 0), [permissions]);
   const errors = submitted ? [
     !name.trim() ? 'Tên vai trò không được để trống.' : '',
     !permissionCount ? 'Vui lòng cấp ít nhất một quyền cho vai trò này.' : '',
+    serverError
   ].filter(Boolean) : [];
 
   const actionCounts = useMemo(() => Object.fromEntries(ROLE_ACTIONS.map((action) => {
@@ -56,17 +67,17 @@ export default function VaiTro() {
   })), [permissions]);
 
   const togglePermission = (moduleId, action) => {
-    setSaved(false);
+    setSaved(false); setServerError('');
     setPermissions((current) => ({ ...current, [moduleId]: current[moduleId].includes(action) ? current[moduleId].filter((item) => item !== action) : [...current[moduleId], action] }));
   };
 
   const toggleRow = (module) => {
-    setSaved(false);
+    setSaved(false); setServerError('');
     setPermissions((current) => ({ ...current, [module.id]: current[module.id].length ? [] : ['xem'] }));
   };
 
   const toggleColumn = (action) => {
-    setSaved(false);
+    setSaved(false); setServerError('');
     const applicable = PERMISSION_MODULES.filter((module) => module.actions.includes(action));
     const allChecked = applicable.every((module) => permissions[module.id].includes(action));
     setPermissions((current) => {
@@ -77,7 +88,7 @@ export default function VaiTro() {
   };
 
   const toggleGroup = (group) => {
-    setSaved(false);
+    setSaved(false); setServerError('');
     const allChecked = group.modules.every((module) => module.actions.every((action) => permissions[module.id].includes(action)));
     setPermissions((current) => {
       const next = copyPermissions(current);
@@ -86,31 +97,80 @@ export default function VaiTro() {
     });
   };
 
-  const applyPreset = (preset) => {
-    if (!name.trim()) setName(preset.label);
-    setPermissions(copyPermissions(preset.permissions));
-    setSelectedPreset(preset.id);
-    setEditingRoleId(preset.id);
-    setSaved(false);
+  const loadRoleDetail = async (role) => {
+    try {
+      const detail = await getRoleDetail(role.id);
+      const { description: desc, permissions: perms } = parseRoleDescription(detail.mo_ta);
+      setName(detail.ten_vai_tro);
+      setDescription(desc);
+      setPermissions(copyPermissions(perms));
+      setSelectedPreset(role.id);
+      setEditingRoleId(role.id);
+      setSaved(false);
+      setServerError('');
+      setSubmitted(false);
+    } catch (e) {
+      setServerError(e.message || 'Lỗi tải chi tiết vai trò');
+    }
   };
 
-  const submit = () => {
+  const handleAddNew = () => {
+    setName('');
+    setDescription('');
+    setPermissions(copyPermissions(emptyPermissions));
+    setSelectedPreset('new');
+    setEditingRoleId('');
+    setSaved(false);
+    setServerError('');
+    setSubmitted(false);
+  };
+
+  const submit = async () => {
     setSubmitted(true);
+    setServerError('');
     if (!name.trim() || !permissionCount) return;
-    const existingRole = roles.find((role) => role.id === editingRoleId);
-    const savedRole = saveRole({ id: existingRole?.id, label: name, description, abbreviation: existingRole?.abbreviation, permissions: copyPermissions(permissions) });
-    setEditingRoleId(savedRole.id);
-    setSaved(true);
+    
+    try {
+      const payload = { tenVaiTro: name, moTa: description, permissions: copyPermissions(permissions) };
+      if (editingRoleId) {
+        await updateRole(editingRoleId, payload);
+      } else {
+        const res = await createRole(payload);
+        setEditingRoleId(res.id);
+        setSelectedPreset(res.id);
+      }
+      setSaved(true);
+      loadRoles();
+    } catch (e) {
+      setServerError(e.message || 'Đã có lỗi xảy ra khi lưu.');
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!editingRoleId) return;
+    if (!window.confirm('Bạn có chắc chắn muốn xóa vai trò này?')) return;
+    try {
+      await deleteRole(editingRoleId);
+      handleAddNew();
+      loadRoles();
+    } catch (e) {
+      setServerError(e.message || 'Không thể xóa vai trò.');
+    }
   };
 
   return <main className="role-page" role="main">
-    <section className="role-topbar"><button className="role-back" onClick={() => navigate('/admin/nhan-vien/danh-sach')}><HiOutlineArrowLeft /> QUAY LẠI</button><h1>THÊM VAI TRÒ &amp; PHÂN QUYỀN</h1><button className="role-save" onClick={submit}><HiOutlineSave /> LƯU VAI TRÒ</button></section>
+    <section className="role-topbar"><button className="role-back" onClick={() => navigate('/admin/nhan-vien/danh-sach')}><HiOutlineArrowLeft /> QUAY LẠI</button><h1>QUẢN LÝ VAI TRÒ &amp; PHÂN QUYỀN</h1><div style={{display:'flex', gap:'12px'}}>
+      {editingRoleId && <button className="role-save" style={{background:'#dc2626'}} onClick={handleDelete}><HiOutlineTrash /> XÓA</button>}
+      <button className="role-save" onClick={submit}><HiOutlineSave /> LƯU VAI TRÒ</button>
+    </div></section>
     {errors.length > 0 && <div className="role-error-banner" role="alert">{errors.map((error) => <p key={error}><HiOutlineExclamationCircle />{error}</p>)}</div>}
     {saved && <div className="role-saved" role="status">ĐÃ LƯU VAI TRÒ VÀ MA TRẬN PHÂN QUYỀN</div>}
     <div className="role-workspace">
       <aside className="role-sidebar-panel">
-        <section className="role-info"><h2><span />THÔNG TIN VAI TRÒ</h2><label><span>TÊN VAI TRÒ <b>*</b></span><input value={name} onChange={(event) => { setName(event.target.value); setSaved(false); }} placeholder="VD: Nhân viên bán hàng" /></label><label>MÔ TẢ<textarea value={description} onChange={(event) => { setDescription(event.target.value); setSaved(false); }} placeholder="Mô tả ngắn về vai trò và phạm vi công việc..." /></label></section>
-        <section className="role-presets"><h2><span />MẪU VAI TRÒ CÓ SẴN</h2>{ROLE_PRESETS.map((preset) => <button key={preset.id} className={selectedPreset === preset.id ? 'role-preset role-preset--active' : 'role-preset'} onClick={() => applyPreset(preset)}><strong>{preset.label}</strong><HiOutlineChevronRight /></button>)}<p>Chọn mẫu để điền nhanh ma trận quyền. Bạn có thể chỉnh sửa sau.</p></section>
+        <section className="role-info"><h2><span />THÔNG TIN VAI TRÒ</h2><label><span>TÊN VAI TRÒ <b>*</b></span><input value={name} onChange={(event) => { setName(event.target.value); setSaved(false); setServerError(''); }} placeholder="VD: Nhân viên bán hàng" /></label><label>MÔ TẢ<textarea value={description} onChange={(event) => { setDescription(event.target.value); setSaved(false); setServerError(''); }} placeholder="Mô tả ngắn về vai trò và phạm vi công việc..." /></label></section>
+        <section className="role-presets"><h2><span />DANH SÁCH VAI TRÒ</h2>
+        <button className={`role-preset ${selectedPreset === 'new' ? 'role-preset--active' : ''}`} onClick={handleAddNew} style={{borderStyle:'dashed', justifyContent:'center'}}><HiOutlinePlus /> <strong>Thêm vai trò mới</strong></button>
+        {roles.map((preset) => <button key={preset.id} className={selectedPreset === preset.id ? 'role-preset role-preset--active' : 'role-preset'} onClick={() => loadRoleDetail(preset)}><strong>{preset.ten_vai_tro}</strong><span>{preset.so_luong_nhan_vien} NV</span><HiOutlineChevronRight /></button>)}<p>Nhấn vào để sửa quyền, hoặc nhấn "Thêm vai trò mới".</p></section>
         <section className="role-summary"><h2>TỔNG QUYỀN ĐÃ CẤP</h2>{ROLE_ACTIONS.map((action) => { const count = actionCounts[action]; return <div className="role-progress" key={action}><div><span>{ACTION_LABELS[action][0] + ACTION_LABELS[action].slice(1).toLowerCase()}</span><b>{count.checked}/{count.total}</b></div><div className="role-progress-track"><span style={{ width: `${count.total ? count.checked / count.total * 100 : 0}%` }} /></div></div>; })}</section>
       </aside>
       <section className="role-matrix-panel"><div className="role-matrix-title"><h2><span />MA TRẬN PHÂN QUYỀN</h2><p>— Nhấn tiêu đề cột hoặc tên module để chọn nhanh toàn bộ</p></div>

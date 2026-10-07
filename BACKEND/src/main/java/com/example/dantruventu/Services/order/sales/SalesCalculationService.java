@@ -124,7 +124,7 @@ public class SalesCalculationService {
                 ? variantRepository.findSaleVariantsForUpdate(comboId)
                 : variantRepository.findBySanPhamIdInOrderByIdAsc(List.of(comboId));
 
-        if (saleVariants.size() != 1 || !Objects.equals(saleVariants.getFirst().getId(), id)) {
+        if (saleVariants.size() != 1 || !Objects.equals(saleVariants.get(0).getId(), id)) {
           throw conflict("Combo phải có đúng một phiên bản bán: " + comboId);
         }
 
@@ -206,7 +206,7 @@ public class SalesCalculationService {
       return null;
     }
 
-    TonKho stock = rows.getFirst();
+    TonKho stock = rows.get(0);
 
     if (lock) {
       entityManager.refresh(stock);
