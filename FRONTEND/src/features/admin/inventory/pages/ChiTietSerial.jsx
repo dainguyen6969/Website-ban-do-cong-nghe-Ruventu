@@ -38,7 +38,7 @@ export default function ChiTietSerial() {
   }, [modalOpen]);
 
   if (loading || error || !serial) {
-    return <main className="serial-page"><div className="serial-not-found"><h1>{loading ? 'ĐANG TẢI SERIAL...' : error || 'KHÔNG TÌM THẤY SERIAL'}</h1><button onClick={() => navigate('/kho-hang/danh-sach-serial')}>QUAY LẠI DANH SÁCH</button></div></main>;
+    return <main className="serial-page"><div className="serial-not-found"><h1>{loading ? 'ĐANG TẢI SERIAL...' : error || 'SERIAL KHÔNG TỒN TẠI'}</h1><button onClick={() => navigate('/kho-hang/danh-sach-serial')}>← QUAY LẠI</button></div></main>;
   }
 
   const meta = SERIAL_STATUS_META[serial.status];

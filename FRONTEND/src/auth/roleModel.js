@@ -91,8 +91,15 @@ export const upgradeRoles = (storedRoles) => {
 };
 
 export const roleHasPermission = (roles, roleId, moduleId, action = 'xem') => {
-  if (roleId === 'admin_toan_quyen') return true;
-  return roles.find((role) => role.id === roleId)?.permissions?.[moduleId]?.includes(action) ?? false;
+  if (!roleId) return false;
+  const targetId = String(roleId).toLowerCase();
+  if (targetId === 'admin_toan_quyen' || targetId === 'admin') return true;
+  
+  return roles.find((role) => {
+    const id = String(role.id).toLowerCase();
+    const name = String(role.tenVaiTro || role.ten_vai_tro || role.label || '').toLowerCase();
+    return id === targetId || name === targetId;
+  })?.permissions?.[moduleId]?.includes(action) ?? false;
 };
 
 export const roleIdFromName = (name, roles) => {

@@ -282,6 +282,7 @@ public interface SanPhamRepository
                                     )
                             )
                         )
+                        
                         AND (
                             :thuongHieuId IS NULL
                             OR sp.thuong_hieu_id = :thuongHieuId

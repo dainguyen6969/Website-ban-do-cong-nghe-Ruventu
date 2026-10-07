@@ -378,7 +378,7 @@ public class AdminComboService {
           "Combo phải có đúng một phiên bản bán. " + "Dữ liệu hiện tại cần được kiểm tra.");
     }
 
-    return variants.getFirst();
+    return variants.get(0);
   }
 
   private Map<Long, Integer> requestQuantities(List<ComboComponentRequest> components) {
