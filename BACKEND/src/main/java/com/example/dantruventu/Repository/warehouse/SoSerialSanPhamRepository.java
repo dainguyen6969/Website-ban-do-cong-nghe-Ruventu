@@ -34,6 +34,29 @@ public interface SoSerialSanPhamRepository
   @Query("SELECT s FROM SoSerialSanPham s WHERE s.id = :id")
   Optional<SoSerialSanPham> findByIdForUpdate(@Param("id") Long id);
 
+  @Lock(LockModeType.PESSIMISTIC_WRITE)
+  @Query(
+      """
+      SELECT s
+      FROM SoSerialSanPham s
+      WHERE s.id IN :ids
+      ORDER BY s.id
+      """)
+  List<SoSerialSanPham> findAllByIdsForUpdate(@Param("ids") Collection<Long> ids);
+
+  Optional<SoSerialSanPham> findBySoSerial(String soSerial);
+
+  @Lock(LockModeType.PESSIMISTIC_WRITE)
+  @Query(
+      """
+      SELECT s
+      FROM SoSerialSanPham s
+      LEFT JOIN FETCH s.donHang d
+      LEFT JOIN FETCH d.khachHang
+      WHERE s.soSerial = :soSerial
+      """)
+  Optional<SoSerialSanPham> findBySoSerialForUpdate(@Param("soSerial") String soSerial);
+
   boolean existsBySoSerial(String soSerial);
 
   boolean existsBySoSerialIn(Collection<String> soSerials);
