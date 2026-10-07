@@ -65,7 +65,10 @@ export function saveLogin(data, identifier = '') {
   // Backend hiện đã đưa vai_tro vào JWT.
   // Việc đọc này dùng cho giao diện; backend vẫn xác thực quyền API.
   const claims = decodeClaims(token);
-  const isAdmin = claims.vai_tro === 'ADMIN';
+  
+  const roleName = claims.vai_tro ? claims.vai_tro.toUpperCase() : '';
+  const isCustomer = roleName === 'USER' || roleName === 'KHACH_HANG' || roleName === 'KHÁCH HÀNG';
+  const isAdmin = !isCustomer && roleName !== '';
 
   const account = {
     ...user,
@@ -73,7 +76,7 @@ export function saveLogin(data, identifier = '') {
     email: claims.email || identifier,
     avatar: user.anh_dai_dien || null,
     role: isAdmin ? 'admin' : 'user',
-    vaiTro: isAdmin ? 'admin_toan_quyen' : 'user',
+    vaiTro: isAdmin ? (claims.vai_tro === 'ADMIN' ? 'admin_toan_quyen' : claims.vai_tro) : 'user',
     trangThai: 'hoat_dong',
   };
 

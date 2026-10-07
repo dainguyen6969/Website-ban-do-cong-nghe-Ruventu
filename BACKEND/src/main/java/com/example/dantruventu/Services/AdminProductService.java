@@ -161,7 +161,7 @@ public class AdminProductService {
               .mapToLong(row -> row.getTonCoTheBan())
               .sum();
 
-      stockMap = Map.of(variants.getFirst().getId(), comboStock);
+      stockMap = Map.of(variants.get(0).getId(), comboStock);
     } else {
       stockMap = getStockMap(variantIds);
     }

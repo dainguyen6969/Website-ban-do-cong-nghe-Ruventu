@@ -366,7 +366,7 @@ public class AdminOrderService {
       throw conflict("Đơn có nhiều phiếu giao còn hiệu lực");
     }
 
-    PhieuGiaoHang delivery = active.isEmpty() ? null : active.getFirst();
+    PhieuGiaoHang delivery = active.isEmpty() ? null : active.get(0);
 
     // Client cũ không gửi ma_van_don: giữ mã hiện tại.
     // Client gửi chuỗi rỗng: bàn giao không có mã vận đơn.
@@ -629,7 +629,7 @@ public class AdminOrderService {
     if (shipping(order)) {
       if (active.size() > 1
           || (!active.isEmpty()
-              && active.getFirst().getTrangThaiGiaoHang() != TrangThaiGiaoHangEnum.CHO_GIAO)) {
+              && active.get(0).getTrangThaiGiaoHang() != TrangThaiGiaoHangEnum.CHO_GIAO)) {
         throw conflict("Đơn giao hàng chỉ được có tối đa một phiếu CHO_GIAO");
       }
     } else if (!active.isEmpty()) {

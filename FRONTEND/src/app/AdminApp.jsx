@@ -15,6 +15,7 @@ import DanhSachKhuyenMai from '../features/admin/promotions/pages/DanhSachKhuyen
 import TaoKhuyenMai from '../features/admin/promotions/pages/TaoKhuyenMai';
 import ChiTietKhuyenMai from '../features/admin/promotions/pages/ChiTietKhuyenMai';
 import BanHang from '../features/admin/sales/pages/BanHang';
+import TongQuat from '../features/admin/overview/pages/TongQuat';
 import TongQuanQuy from '../features/admin/cashbook/pages/TongQuanQuy';
 import SoQuy from '../features/admin/cashbook/pages/SoQuy';
 import DanhSachPhieuThu from '../features/admin/cashbook/pages/DanhSachPhieuThu';
@@ -30,6 +31,9 @@ import ChiTietLoaiPhieuChi from '../features/admin/cashbook/pages/ChiTietLoaiPhi
 import ChiTietPhieuThu from '../features/admin/cashbook/pages/ChiTietPhieuThu';
 import ChiTietPhieuChi from '../features/admin/cashbook/pages/ChiTietPhieuChi';
 import PlaceholderPage from '../features/admin/shared/pages/PlaceholderPage';
+import DanhSachBaoHanh from '../features/admin/warranty/pages/DanhSachBaoHanh';
+import LapPhieuBaoHanh from '../features/admin/warranty/pages/LapPhieuBaoHanh';
+import ChiTietBaoHanh from '../features/admin/warranty/pages/ChiTietBaoHanh';
 import QuanLyPhienBan from '../features/admin/catalog/products/pages/QuanLyPhienBan';
 import ChiTietTonKho from '../features/admin/inventory/pages/ChiTietTonKho';
 import DanhSachSerial from '../features/admin/inventory/pages/DanhSachSerial';
@@ -91,7 +95,7 @@ export default function AdminApp() {
           <Route path="/" element={<Navigate to="/admin/don-hang/danh-sach-don-hang" replace />} />
 
           {/* Non-expandable top-level pages */}
-          <Route path="/admin/tong-quat" element={<PlaceholderPage title="Tổng quát" />} />
+          <Route path="/admin/tong-quat" element={<TongQuat />} />
           <Route path="/admin/ban-hang" element={<BanHang />} />
 
           {/* Sản phẩm section */}
@@ -151,7 +155,10 @@ export default function AdminApp() {
           <Route path="/admin/so-quy-tien-mat/:placeholder" element={<PlaceholderPage title="Tính năng đang phát triển" />} />
 
           <Route path="/admin/bao-cao" element={<PlaceholderPage title="Báo cáo" />} />
-          <Route path="/admin/bao-hanh" element={<PlaceholderPage title="Bảo hành" />} />
+          <Route path="/admin/bao-hanh" element={<Navigate to="/admin/bao-hanh/danh-sach" replace />} />
+          <Route path="/admin/bao-hanh/danh-sach" element={<DanhSachBaoHanh />} />
+          <Route path="/admin/bao-hanh/chi-tiet/:id" element={<ChiTietBaoHanh />} />
+          <Route path="/admin/bao-hanh/tao-moi" element={<LapPhieuBaoHanh />} />
           <Route path="/admin/danh-muc" element={<Navigate to="/admin/danh-muc/danh-muc-san-pham" replace />} />
           <Route path="/admin/danh-muc/tags" element={<PlaceholderPage title="Tags" />} />
           <Route path="/admin/danh-muc/danh-muc-san-pham" element={<DanhMucSanPham />} />

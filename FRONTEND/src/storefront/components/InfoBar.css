@@ -1,18 +1,16 @@
 .info-bar-section {
-  background-color: #f5f5f5;
-  padding: 30px 0;
+  background-color: #ffffff;
+  padding: 0;
   position: relative;
   z-index: 10;
 }
 
 .info-bar-container {
   background-color: #ffffff;
-  border-radius: 4px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 24px 32px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
 }
 
 .info-item {
@@ -47,9 +45,9 @@
 }
 
 .info-divider {
-  width: 1px;
-  height: 40px;
-  background-color: #eee;
+  width: 2px;
+  height: 50px;
+  background-color: #d1d5db;
   margin: 0 24px;
 }
 

@@ -123,16 +123,9 @@ const ProductPurchaseSidebar = ({ selectedComponent, onClearSelection }) => {
 
       <div className="policy-grid">
         <div className="policy-item">
-          <ShieldCheck size={24} className="policy-icon" />
-          <div className="policy-text">
-            <strong>BH 36 THÁNG</strong>
-            <span>Chính hãng</span>
-          </div>
-        </div>
-        <div className="policy-item">
           <Truck size={24} className="policy-icon" />
           <div className="policy-text">
-            <strong>MIỄN PHÍ VC</strong>
+            <strong>MIỄN PHÍ VẬN CHUYỂN</strong>
             <span>Đơn từ 5tr</span>
           </div>
         </div>

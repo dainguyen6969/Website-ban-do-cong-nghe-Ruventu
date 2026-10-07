@@ -11,6 +11,7 @@ import WarrantyLookupPage from './pages/WarrantyLookupPage';
 import OrderLookupPage from './pages/OrderLookupPage';
 import OrderDetailPage from './pages/OrderDetailPage';
 import BuildPCDetail from './pages/BuildPCDetail';
+import CustomBuildPage from './pages/CustomBuildPage';
 import ProductDetail from './pages/ProductDetail';
 import CategoryPage from './pages/CategoryPage';
 import SearchPage from './pages/SearchPage';
@@ -42,6 +43,7 @@ function StorefrontApp() {
           <Route path="/warranty-lookup" element={<WarrantyLookupPage />} />
           <Route path="/order-lookup" element={<OrderLookupPage />} />
           <Route path="/order/:id" element={<OrderDetailPage />} />
+          <Route path="/build-pc" element={<CustomBuildPage />} />
           <Route path="/build-pc/:id" element={<BuildPCDetail />} />
           <Route path="/product/:id" element={<ProductDetail />} />
           <Route path="/promotions" element={<PromotionsPage />} />

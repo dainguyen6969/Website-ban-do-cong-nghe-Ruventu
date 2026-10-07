@@ -157,7 +157,7 @@ public class AdminSerialService {
               + "Vui lòng kiểm tra dữ liệu tồn kho");
     }
 
-    TonKho stock = stockRows.getFirst();
+    TonKho stock = stockRows.get(0);
 
     // Sau đó khóa serial.
     SoSerialSanPham serial = serialRepository.findByIdForUpdate(id).orElseThrow(this::notFound);

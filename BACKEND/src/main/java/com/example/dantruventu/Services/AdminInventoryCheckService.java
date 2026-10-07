@@ -249,7 +249,7 @@ public class AdminInventoryCheckService {
       throw conflict("Phiên bản phải có đúng một bản ghi tồn kho để thực hiện cân bằng");
     }
 
-    TonKho stock = stockRows.getFirst();
+    TonKho stock = stockRows.get(0);
     int oldPhysical = requiredStock(stock.getTonThucTe(), "Tồn thực tế hiện tại không hợp lệ");
 
     if (oldPhysical != inventoryCheck.getTonHeThong()) {
