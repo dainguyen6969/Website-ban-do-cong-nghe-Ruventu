@@ -18,6 +18,8 @@ public interface DanhMucRepository
 
   Optional<DanhMuc> findByDuongDanUrl(String duongDanUrl);
 
+  List<DanhMuc> findByDuongDanUrlIn(Collection<String> slugs);
+
   List<DanhMuc> findByDanhMucChaId(Long danhMucChaId);
 
   boolean existsByDanhMucChaId(Long danhMucChaId);

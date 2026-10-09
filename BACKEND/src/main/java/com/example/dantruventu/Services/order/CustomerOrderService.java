@@ -27,6 +27,7 @@ import com.example.dantruventu.Enum.TrangThaiXuatKho;
 import com.example.dantruventu.Error.AppException;
 import com.example.dantruventu.Error.ErrorCode;
 import com.example.dantruventu.Repository.GioHangRepository;
+import com.example.dantruventu.Repository.NguoiDungRepository;
 import com.example.dantruventu.Repository.SoDiaChiRepository;
 import com.example.dantruventu.Repository.order.ChiTietDonHangRepository;
 import com.example.dantruventu.Repository.order.DonHangRepository;
@@ -73,6 +74,7 @@ public class CustomerOrderService {
   private static final Duration IDEMPOTENCY_TTL = Duration.ofHours(24);
 
   private final GioHangRepository cartRepository;
+  private final NguoiDungRepository cartOwnerRepository;
   private final SoDiaChiRepository addressRepository;
   private final DonHangRepository orderRepository;
   private final ChiTietDonHangRepository orderLineRepository;
@@ -525,6 +527,16 @@ public class CustomerOrderService {
   }
 
   private List<CartLine> loadUserCartLines(Long userId, List<Long> selectedIds, boolean lock) {
+
+    if (lock) {
+      var owner =
+          cartOwnerRepository
+              .findForCartUpdate(userId)
+              .orElseThrow(() -> new AppException(ErrorCode.UNAUTHORIZED_TOKEN));
+      if (owner.getTrangThai() != com.example.dantruventu.Enum.TrangThaiCoBanEnum.HOAT_DONG) {
+        throw new AppException(ErrorCode.ACCOUNT_LOCKED_OR_FORBIDDEN);
+      }
+    }
 
     List<GioHang> cartItems =
         lock
