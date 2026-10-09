@@ -107,7 +107,7 @@
 }
 
 .category-table-wrap { border: 2px solid #111; overflow-x: auto; }
-.category-table { width: 100%; min-width: 1000px; border-collapse: collapse; }
+.category-table { width: 100%; border-collapse: collapse; }
 .category-table th { padding: 12px 10px; background: #080808; color: #fff; text-align: left; font-size: 10px; font-weight: 900; letter-spacing: .35px; }
 .category-table td { height: 58px; padding: 7px 10px; border-bottom: 1px solid #e6e6e6; font-size: 12px; vertical-align: middle; }
 .category-table tr:last-child td { border-bottom: 0; }

@@ -1,46 +1,83 @@
 // Admin customer screen: DanhSachKhachHang.
-import { useMemo, useState } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { HiOutlinePlus, HiOutlineSearch } from 'react-icons/hi';
 import FilterDropdown from '../../../../shared/components/ui/FilterDropdown';
 import TablePagination from '../../../../shared/components/ui/TablePagination';
 import AddCustomerModal from '../components/AddCustomerModal';
 import { formatCustomerStatus } from '../../../../data/mockCustomers';
-import useCustomers from '../../../../context/useCustomers';
+import { customerService } from '../../../../shared/services/customerService';
 import './KhachHang.css';
 
 const PAGE_SIZE = 10;
 const statusOptions = ['Tất cả trạng thái', 'Hoạt động', 'Ngừng hoạt động'];
-const normalize = (value) => value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D').toLowerCase();
 
 export default function DanhSachKhachHang() {
   const navigate = useNavigate();
-  const { customers } = useCustomers();
+  const [customers, setCustomers] = useState([]);
+  const [totalElements, setTotalElements] = useState(0);
+  
   const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState(statusOptions[0]);
   const [currentPage, setCurrentPage] = useState(1);
   const [isAddOpen, setIsAddOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
-  const filteredCustomers = useMemo(() => customers.filter((customer) => {
-    const query = normalize(search.trim());
-    const matchesSearch = !query || [customer.name, customer.email, customer.phone].some((value) => normalize(value || '').includes(query));
-    const matchesStatus = statusFilter === statusOptions[0]
-      || (statusFilter === 'Hoạt động' && customer.status === 'active')
-      || (statusFilter === 'Ngừng hoạt động' && customer.status === 'inactive');
-    return matchesSearch && matchesStatus;
-  }), [customers, search, statusFilter]);
+  const searchTimeoutRef = useRef(null);
 
-  const totalPages = Math.max(1, Math.ceil(filteredCustomers.length / PAGE_SIZE));
-  const safePage = Math.min(currentPage, totalPages);
-  const startIndex = (safePage - 1) * PAGE_SIZE;
-  const visibleCustomers = filteredCustomers.slice(startIndex, startIndex + PAGE_SIZE);
+  // Debounce search input
+  const handleSearchChange = (event) => {
+    const value = event.target.value;
+    setSearch(value);
+    
+    if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
+    searchTimeoutRef.current = setTimeout(() => {
+      setDebouncedSearch(value);
+      setCurrentPage(1);
+    }, 500);
+  };
+
+  const fetchCustomers = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      let trangThai = undefined;
+      if (statusFilter === 'Hoạt động') trangThai = 1;
+      if (statusFilter === 'Ngừng hoạt động') trangThai = 0;
+
+      const response = await customerService.getCustomers({
+        keyword: debouncedSearch.trim() || undefined,
+        trang_thai: trangThai,
+        page: Math.max(0, currentPage - 1),
+        limit: PAGE_SIZE
+      });
+
+      if (response.data?.data) {
+        setCustomers(response.data.data.items || []);
+        setTotalElements(response.data.data.pagination?.total_elements || 0);
+      }
+    } catch (error) {
+      console.error('Lỗi khi tải danh sách khách hàng:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [debouncedSearch, statusFilter, currentPage]);
+
+  useEffect(() => {
+    fetchCustomers();
+  }, [fetchCustomers]);
+
   const openCustomer = (id) => navigate(`/admin/khach-hang-doi-tac/khach-hang/${id}`);
 
   const customerCreated = () => {
     setSearch('');
+    setDebouncedSearch('');
     setStatusFilter(statusOptions[0]);
     setCurrentPage(1);
+    fetchCustomers();
   };
+
+  const mapStatusStr = (trangThaiVal) => trangThaiVal === 1 ? 'active' : 'inactive';
 
   return (
     <main className="customer-page customer-list-page" role="main">
@@ -55,7 +92,7 @@ export default function DanhSachKhachHang() {
 
       <section className="customer-toolbar" aria-label="Tìm kiếm và lọc khách hàng">
         <label className="customer-search" htmlFor="customer-search-input"><HiOutlineSearch size={18} />
-          <input id="customer-search-input" value={search} onChange={(event) => { setSearch(event.target.value); setCurrentPage(1); }} placeholder="TÌM TÊN / SỐ ĐIỆN THOẠI / EMAIL..." />
+          <input id="customer-search-input" value={search} onChange={handleSearchChange} placeholder="TÌM TÊN / SỐ ĐIỆN THOẠI / EMAIL..." />
         </label>
         <FilterDropdown id="customer-status-filter" className="customer-status-filter" options={statusOptions} value={statusFilter} onSelect={(value) => { setStatusFilter(value); setCurrentPage(1); }} />
       </section>
@@ -64,18 +101,23 @@ export default function DanhSachKhachHang() {
         <div className="customer-table-wrap"><table className="customer-table">
           <thead><tr><th>MÃ</th><th>TÊN KHÁCH HÀNG</th><th>EMAIL</th><th>SỐ ĐIỆN THOẠI</th><th>TRẠNG THÁI</th><th>THAO TÁC</th></tr></thead>
           <tbody>
-            {visibleCustomers.map((customer) => (
-              <tr key={customer.id} tabIndex={0} onClick={() => openCustomer(customer.id)} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') openCustomer(customer.id); }} aria-label={`Xem chi tiết khách hàng ${customer.name}`}>
-                <td className="customer-code">#{customer.id}</td><td className="customer-name">{customer.name}</td><td className={customer.email ? '' : 'customer-muted'}>{customer.email || '—'}</td><td>{customer.phone}</td><td><StatusBadge status={customer.status} /></td>
-                <td><button type="button" className="customer-action-btn" onClick={(event) => { event.stopPropagation(); openCustomer(customer.id); }}>XEM CHI TIẾT</button></td>
-              </tr>
-            ))}
-            {!visibleCustomers.length && <tr className="customer-empty-row"><td colSpan="6">Không tìm thấy khách hàng phù hợp.</td></tr>}
+            {isLoading ? (
+              <tr className="customer-empty-row"><td colSpan="6">Đang tải dữ liệu...</td></tr>
+            ) : customers.length > 0 ? (
+              customers.map((customer) => (
+                <tr key={customer.id} tabIndex={0} onClick={() => openCustomer(customer.id)} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') openCustomer(customer.id); }} aria-label={`Xem chi tiết khách hàng ${customer.ho_ten}`}>
+                  <td className="customer-code">#{customer.id}</td><td className="customer-name">{customer.ho_ten}</td><td className={customer.email ? '' : 'customer-muted'}>{customer.email || '—'}</td><td>{customer.so_dien_thoai}</td><td><StatusBadge status={mapStatusStr(customer.trang_thai)} /></td>
+                  <td><button type="button" className="customer-action-btn" onClick={(event) => { event.stopPropagation(); openCustomer(customer.id); }}>XEM CHI TIẾT</button></td>
+                </tr>
+              ))
+            ) : (
+              <tr className="customer-empty-row"><td colSpan="6">Không tìm thấy khách hàng phù hợp.</td></tr>
+            )}
           </tbody>
         </table></div>
         <div className="customer-list-footer">
-          <p>HIỂN THỊ {filteredCustomers.length ? startIndex + 1 : 0}-{Math.min(startIndex + PAGE_SIZE, filteredCustomers.length)} TRÊN TỔNG SỐ {filteredCustomers.length} KHÁCH HÀNG</p>
-          <TablePagination totalItems={filteredCustomers.length} pageSize={PAGE_SIZE} currentPage={safePage} onPageChange={setCurrentPage} idPrefix="customer" />
+          <p>HIỂN THỊ {customers.length ? (currentPage - 1) * PAGE_SIZE + 1 : 0}-{Math.min(currentPage * PAGE_SIZE, totalElements)} TRÊN TỔNG SỐ {totalElements} KHÁCH HÀNG</p>
+          <TablePagination totalItems={totalElements} pageSize={PAGE_SIZE} currentPage={currentPage} onPageChange={setCurrentPage} idPrefix="customer" />
         </div>
       </section>
 

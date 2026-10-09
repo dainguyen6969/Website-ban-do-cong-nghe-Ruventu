@@ -1,28 +1,28 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { useCashbook } from '../context/CashbookContext';
+import { Check, X } from 'lucide-react';
+import { receiptService } from '../../../../shared/services/receiptService';
+import DetailTablePagination from '../../../../shared/components/ui/DetailTablePagination';
 import './DanhSachPhieuThu.css';
-
-const mockDataFallback = [
-    { id: 1, code: 'PT0001006', person: 'ASUS Vietnam Co.', role: 'NHÀ CUNG CẤP', group: 'NHÀ CUNG CẤP', typeCode: 'LPT005', typeName: 'Thu phí dịch vụ', method: 'CHUYỂN KHOẢN', creator: 'Nguyễn Thị Lan', amount: 3500000, date: '15/09/2026 10:00', source: 'THỦ CÔNG', status: 'ĐÃ GHI NHẬN' },
-    { id: 2, code: 'PT0001005', person: 'Vũ Thị Ngọc', role: 'KHÁCH HÀNG', group: 'KHÁCH HÀNG', typeCode: 'LPT003', typeName: 'Thu đặt cọc', method: 'TIỀN MẶT', creator: 'Trần Minh Quân', amount: 2000000, date: '14/09/2026 15:00', source: 'THỦ CÔNG', status: 'ĐÃ HỦY' },
-    { id: 3, code: 'PT0001004', person: 'Phạm Quốc Hùng', role: 'KHÁCH HÀNG', group: 'KHÁCH HÀNG', typeCode: 'LPT002', typeName: 'Thu nợ khách hàng', method: 'CHUYỂN KHOẢN', creator: 'Nguyễn Thị Lan', amount: 8990000, date: '13/09/2026 11:00', source: 'THỦ CÔNG', status: 'ĐÃ GHI NHẬN' },
-    { id: 4, code: 'PT0001003', person: 'Trần Văn Bình', role: 'NHÂN VIÊN', group: 'NHÂN VIÊN', typeCode: 'LPT004', typeName: 'Thu hoàn ứng', method: 'TIỀN MẶT', creator: 'Trần Minh Quân', amount: 500000, date: '12/09/2026 09:00', source: 'THỦ CÔNG', status: 'ĐÃ GHI NHẬN' },
-    { id: 5, code: 'PT0001002', person: 'Hoàng Minh Khoa', role: 'KHÁCH HÀNG', group: 'KHÁCH HÀNG', typeCode: 'LPT001', typeName: 'Thu bán hàng', method: 'CHUYỂN KHOẢN', creator: 'HỆ THỐNG', amount: 12800000, date: '10/09/2026 14:30', source: 'TỰ ĐỘNG', status: 'ĐÃ GHI NHẬN' },
-    { id: 6, code: 'PT0001001', person: 'Nguyễn Thị Lan', role: 'KHÁCH HÀNG', group: 'KHÁCH HÀNG', typeCode: 'LPT001', typeName: 'Thu bán hàng', method: 'TIỀN MẶT', creator: 'Trần Minh Quân', amount: 5200000, date: '10/09/2026 09:00', source: 'TỰ ĐỘNG', status: 'ĐÃ GHI NHẬN' }
-];
 
 export default function DanhSachPhieuThu() {
     const navigate = useNavigate();
     const location = useLocation();
-    const { phieuThuList } = useCashbook();
-    const dataToUse = phieuThuList && phieuThuList.length > 0 ? phieuThuList : mockDataFallback;
+
+    const [receipts, setReceipts] = useState([]);
+    const [totalElements, setTotalElements] = useState(0);
+    const [isLoading, setIsLoading] = useState(true);
 
     const [searchQuery, setSearchQuery] = useState('');
-    const [filterStatus, setFilterStatus] = useState('TẤT CẢ TRẠNG THÁI');
+    const [debouncedSearch, setDebouncedSearch] = useState('');
+    const [filterStatus, setFilterStatus] = useState('ALL');
     const [fromDate, setFromDate] = useState('');
     const [toDate, setToDate] = useState('');
+    const [page, setPage] = useState(1);
+    const pageSize = 10;
+    
     const [toastMessage, setToastMessage] = useState('');
+    const searchTimeoutRef = useRef(null);
 
     useEffect(() => {
         if (location.state?.successMessage) {
@@ -32,24 +32,98 @@ export default function DanhSachPhieuThu() {
         }
     }, [location]);
 
-    const formatMoney = (amount) => {
-        return amount.toLocaleString('vi-VN') + 'đ';
+    const fetchReceipts = useCallback(async () => {
+        setIsLoading(true);
+        try {
+            const params = {
+                keyword: debouncedSearch.trim() || undefined,
+                trang_thai: filterStatus !== 'ALL' ? filterStatus : undefined,
+                tu_ngay: fromDate || undefined,
+                den_ngay: toDate || undefined,
+                page: Math.max(0, page - 1),
+                limit: pageSize
+            };
+            const response = await receiptService.getReceipts(params);
+            if (response.data?.data) {
+                setReceipts(response.data.data.items || []);
+                setTotalElements(response.data.data.pagination?.total_elements || 0);
+            }
+        } catch (error) {
+            console.error('Lỗi khi tải danh sách phiếu thu:', error);
+            setReceipts([]);
+        } finally {
+            setIsLoading(false);
+        }
+    }, [debouncedSearch, filterStatus, fromDate, toDate, page]);
+
+    useEffect(() => {
+        fetchReceipts();
+    }, [fetchReceipts]);
+
+    const handleSearchChange = (e) => {
+        const value = e.target.value;
+        setSearchQuery(value);
+        if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
+        searchTimeoutRef.current = setTimeout(() => {
+            setDebouncedSearch(value);
+            setPage(1);
+        }, 500);
     };
 
-    const filteredData = dataToUse.filter(item => {
-        if (searchQuery && !item.code.toLowerCase().includes(searchQuery.toLowerCase()) && !item.person.toLowerCase().includes(searchQuery.toLowerCase())) return false;
-        if (filterStatus !== 'TẤT CẢ TRẠNG THÁI' && item.status !== filterStatus) return false;
-        return true;
-    });
+    const formatMoney = (amount) => {
+        return (amount || 0).toLocaleString('vi-VN') + 'đ';
+    };
 
+    const mapStatusToText = (status) => {
+        switch (status) {
+            case 'DA_GHI_NHAN': return 'ĐÃ GHI NHẬN';
+            case 'HUY': return 'ĐÃ HỦY';
+            default: return status;
+        }
+    };
+    
+    const mapSourceToText = (source) => {
+        switch (source) {
+            case 'THU_CONG': return 'THỦ CÔNG';
+            case 'TU_DONG': return 'TỰ ĐỘNG';
+            default: return source;
+        }
+    };
+
+    const mapGroupToText = (group) => {
+        switch (group) {
+            case 'KHACH_HANG': return 'KHÁCH HÀNG';
+            case 'NHAN_VIEN': return 'NHÂN VIÊN';
+            case 'NHA_CUNG_CAP': return 'NHÀ CUNG CẤP';
+            case 'DOI_TAC_GIAO_HANG': return 'ĐỐI TÁC GIAO HÀNG';
+            case 'KHAC': return 'KHÁC';
+            default: return group;
+        }
+    };
+
+    const mapPaymentMethodToText = (method) => {
+        switch (method) {
+            case 'TIEN_MAT': return 'TIỀN MẶT';
+            case 'CHUYEN_KHOAN': return 'CHUYỂN KHOẢN';
+            case 'THE': return 'QUẸT THẺ';
+            default: return method;
+        }
+    };
 
     return (
         <div className="pt-page">
             {toastMessage && (
                 <div className="pt-toast">
                     <div className="pt-toast-content">
-                        <span className="toast-icon">✓</span>
-                        {toastMessage}
+                        <div className="toast-icon">
+                            <Check size={20} color="#fff" strokeWidth={3} />
+                        </div>
+                        <div className="toast-text">
+                            {toastMessage}
+                        </div>
+                        <button className="toast-close" onClick={() => setToastMessage('')}>
+                            <X size={18} strokeWidth={2.5} />
+                        </button>
                     </div>
                 </div>
             )}
@@ -72,20 +146,20 @@ export default function DanhSachPhieuThu() {
                     placeholder="TÌM MÃ PHIẾU / NGƯỜI NỘP / CHỨNG TỪ..." 
                     className="pt-search-input"
                     value={searchQuery}
-                    onChange={e => setSearchQuery(e.target.value)}
+                    onChange={handleSearchChange}
                 />
-                <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)}>
-                    <option value="TẤT CẢ TRẠNG THÁI">TẤT CẢ TRẠNG THÁI</option>
-                    <option value="ĐÃ GHI NHẬN">ĐÃ GHI NHẬN</option>
-                    <option value="ĐÃ HỦY">ĐÃ HỦY</option>
+                <select value={filterStatus} onChange={e => { setFilterStatus(e.target.value); setPage(1); }}>
+                    <option value="ALL">TẤT CẢ TRẠNG THÁI</option>
+                    <option value="DA_GHI_NHAN">ĐÃ GHI NHẬN</option>
+                    <option value="HUY">ĐÃ HỦY</option>
                 </select>
                 <div className="pt-date-filter">
                     <label>TỪ NGÀY</label>
-                    <input type="date" value={fromDate} onChange={e => setFromDate(e.target.value)} />
+                    <input type="date" value={fromDate} onChange={e => { setFromDate(e.target.value); setPage(1); }} />
                 </div>
                 <div className="pt-date-filter">
                     <label>ĐẾN NGÀY</label>
-                    <input type="date" value={toDate} onChange={e => setToDate(e.target.value)} />
+                    <input type="date" value={toDate} onChange={e => { setToDate(e.target.value); setPage(1); }} />
                 </div>
             </div>
 
@@ -107,35 +181,37 @@ export default function DanhSachPhieuThu() {
                         </tr>
                     </thead>
                     <tbody>
-                        {filteredData.length > 0 ? (
-                            filteredData.map(row => (
+                        {isLoading ? (
+                            <tr><td colSpan="11" style={{textAlign: 'center', padding: '20px'}}>Đang tải dữ liệu...</td></tr>
+                        ) : receipts.length > 0 ? (
+                            receipts.map(row => (
                                 <tr key={row.id}>
-                                    <td><strong>{row.code}</strong></td>
+                                    <td><strong>{row.ma_phieu}</strong></td>
                                     <td>
                                         <div className="person-col">
-                                            <strong>{row.person}</strong>
-                                            <span>{row.role}</span>
+                                            <strong>{row.ten_nguoi_nop_nhan}</strong>
+                                            <span>{mapGroupToText(row.nhom_nguoi_nop_nhan)}</span>
                                         </div>
                                     </td>
-                                    <td className="text-muted">{row.group}</td>
+                                    <td className="text-muted">{mapGroupToText(row.nhom_nguoi_nop_nhan)}</td>
                                     <td>
                                         <div className="type-col">
-                                            <span className="type-code">{row.typeCode}</span>
-                                            <strong>{row.typeName}</strong>
+                                            <span className="type-code">{row.ma_loai}</span>
+                                            <strong>{row.ten_loai}</strong>
                                         </div>
                                     </td>
-                                    <td><span className="method-text">{row.method}</span></td>
-                                    <td className="text-muted">{row.creator}</td>
-                                    <td><strong>{formatMoney(row.amount)}</strong></td>
-                                    <td className="text-muted">{row.date}</td>
-                                    <td className="text-muted">{row.source}</td>
+                                    <td><span className="method-text">{mapPaymentMethodToText(row.phuong_thuc_thanh_toan)}</span></td>
+                                    <td className="text-muted">{row.ten_nguoi_tao}</td>
+                                    <td><strong>{formatMoney(row.so_tien)}</strong></td>
+                                    <td className="text-muted">{new Date(row.ngay_ghi_nhan).toLocaleString()}</td>
+                                    <td className="text-muted">{mapSourceToText(row.nguon_tao)}</td>
                                     <td>
-                                        <span className={`status-outline ${row.status === 'ĐÃ HỦY' ? 'status-danger' : 'status-success'}`}>
-                                            {row.status}
+                                        <span className={`status-outline ${row.trang_thai === 'HUY' ? 'status-danger' : 'status-success'}`}>
+                                            {mapStatusToText(row.trang_thai)}
                                         </span>
                                     </td>
                                     <td>
-                                        <button className="pt-btn-detail" onClick={() => navigate(`/admin/so-quy-tien-mat/phieu-thu/${row.code}`)}>
+                                        <button className="pt-btn-detail" onClick={() => navigate(`/admin/so-quy-tien-mat/phieu-thu/${row.id}`)}>
                                             XEM CHI TIẾT
                                         </button>
                                     </td>
@@ -157,16 +233,14 @@ export default function DanhSachPhieuThu() {
                 </table>
             </div>
 
-            {filteredData.length > 0 && (
-                <div className="pt-pagination">
-                    <div className="pt-pagination-info">
-                        HIỂN THỊ 1-{filteredData.length} TRÊN {filteredData.length} PHIẾU
-                    </div>
-                    <div className="pt-pagination-controls">
-                        <button disabled>TRƯỚC</button>
-                        <button disabled>SAU</button>
-                    </div>
-                </div>
+            {receipts.length > 0 && (
+                <DetailTablePagination 
+                    totalItems={totalElements} 
+                    currentPage={page} 
+                    onPageChange={setPage} 
+                    pageSize={pageSize} 
+                    idPrefix="receipts" 
+                />
             )}
         </div>
     );

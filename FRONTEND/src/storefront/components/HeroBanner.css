@@ -38,10 +38,12 @@
   transition: transform 0.5s ease;
 }
 
+/* Removed hover scale effect for banners 
 .main-banner:hover .banner-img,
 .side-banner:hover .banner-img {
   transform: scale(1.05);
 }
+*/
 
 .banner-overlay {
   position: absolute;
