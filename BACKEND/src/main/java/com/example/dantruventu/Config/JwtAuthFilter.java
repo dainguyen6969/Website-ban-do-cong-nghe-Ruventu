@@ -33,6 +33,13 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
     String authorization = request.getHeader("Authorization");
 
+    if ("/api/v1/cart/pc-build".equals(request.getRequestURI())
+        && authorization != null
+        && !authorization.startsWith("Bearer ")) {
+      writeError(response, 401, ErrorCode.UNAUTHORIZED_TOKEN.getMessage());
+      return;
+    }
+
     if (authorization == null || !authorization.startsWith("Bearer ")) {
 
       filterChain.doFilter(request, response);

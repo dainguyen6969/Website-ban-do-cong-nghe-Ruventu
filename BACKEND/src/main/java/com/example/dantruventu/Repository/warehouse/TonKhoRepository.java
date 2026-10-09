@@ -27,6 +27,17 @@ public interface TonKhoRepository extends JpaRepository<TonKho, Long> {
             """)
   List<TonPhienBanProjection> tongTonCoTheBanTheoPhienBan(@Param("ids") Collection<Long> ids);
 
+  @Query(
+      """
+      SELECT t.phienBan.id AS phienBanId,
+             COALESCE(SUM(t.tonCoTheBan), 0) AS tonCoTheBan
+      FROM TonKho t
+      WHERE t.khoHang.id = :warehouseId AND t.phienBan.id IN :ids
+      GROUP BY t.phienBan.id
+      """)
+  List<TonPhienBanProjection> tongTonCoTheBanTheoKhoVaPhienBan(
+      @Param("warehouseId") Long warehouseId, @Param("ids") Collection<Long> ids);
+
   @Lock(LockModeType.PESSIMISTIC_WRITE)
   @Query(
       """
