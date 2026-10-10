@@ -24,7 +24,7 @@
 .returns-table-scroll { width: 100%; max-width: 100%; min-width: 0; overflow-x: auto; }
 .returns-list-card > .returns-table-scroll { border: 2px solid #111; background: #fff; }
 .returns-table { width: 100%; min-width: 760px; border-collapse: collapse; background: #fff; }
-.returns-table--list { min-width: 1430px; }
+.returns-table--list {  }
 .returns-table th { height: 38px; padding: 9px 12px; color: #fff; background: #0c0c0c; font-size: 9px; font-weight: 900; text-align: left; white-space: nowrap; }
 .returns-table td { height: 54px; padding: 9px 12px; border-bottom: 1px solid #ddd; color: #111; font-size: 11px; vertical-align: middle; }
 .returns-table tbody tr:nth-child(even) { background: #fafafa; }
@@ -56,7 +56,7 @@
 .return-panel__body { padding: 18px; }
 .return-panel--flush .return-panel__body { padding: 0; }
 .return-panel--flush .return-error { margin: 10px 12px; }
-.returns-products { min-width: 1120px; }
+.returns-products {  }
 .returns-products th { background: #f4f5f6; color: #111; border-bottom: 1px solid #d9d9d9; }
 .returns-products td { height: 55px; }
 .returns-version { color: #3978bc; }
@@ -92,7 +92,7 @@
 .return-modal > header button { width: 34px; height: 34px; display: grid; place-items: center; color: #fff; font-size: 22px; }
 .returns-modal-search { margin: 16px 18px; padding: 0 12px; }
 .returns-modal-table-wrap { width: 100%; max-width: 100%; min-width: 0; max-height: min(540px, 64vh); overflow: auto; }
-.returns-modal-table-wrap .returns-table { min-width: 900px; }
+.returns-modal-table-wrap .returns-table {  }
 .return-modal-footer { padding: 16px 18px; display: flex; justify-content: flex-end; gap: 10px; border-top: 1px solid #d9d9d9; }
 .refund-modal-body { padding: 18px; display: grid; gap: 14px; }
 .refund-info { padding: 14px; display: grid; grid-template-columns: 1fr 1fr; gap: 14px; border: 1px solid #d6dbe0; background: #f7f8f9; }

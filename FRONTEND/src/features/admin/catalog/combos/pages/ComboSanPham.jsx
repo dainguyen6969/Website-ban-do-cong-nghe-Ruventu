@@ -183,8 +183,6 @@ export default function ComboSanPham() {
                   <td className="number-strong">
                     {combo.assemblyCapacity ?? "—"}
                   </td>
-
-                  <td>—</td>
                   <td>{combo.stock}</td>
                   <td className="number-strong">{money(combo.price)}</td>
                   <td>
