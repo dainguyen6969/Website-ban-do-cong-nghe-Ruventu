@@ -1,6 +1,6 @@
 // Admin application routes and shell composition.
 import { useState } from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import Sidebar from '../shared/components/layout/Sidebar';
 import Header from '../shared/components/layout/Header';
 import OrderLayout from '../features/admin/orders/components/OrderLayout';
@@ -31,9 +31,9 @@ import ChiTietLoaiPhieuChi from '../features/admin/cashbook/pages/ChiTietLoaiPhi
 import ChiTietPhieuThu from '../features/admin/cashbook/pages/ChiTietPhieuThu';
 import ChiTietPhieuChi from '../features/admin/cashbook/pages/ChiTietPhieuChi';
 import PlaceholderPage from '../features/admin/shared/pages/PlaceholderPage';
-import DanhSachBaoHanh from '../features/admin/warranty/pages/DanhSachBaoHanh';
-import LapPhieuBaoHanh from '../features/admin/warranty/pages/LapPhieuBaoHanh';
-import ChiTietBaoHanh from '../features/admin/warranty/pages/ChiTietBaoHanh';
+import MockDanhSachBaoHanh from '../features/admin/warranty/pages/DanhSachBaoHanh';
+import MockLapPhieuBaoHanh from '../features/admin/warranty/pages/LapPhieuBaoHanh';
+import MockChiTietBaoHanh from '../features/admin/warranty/pages/ChiTietBaoHanh';
 import QuanLyPhienBan from '../features/admin/catalog/products/pages/QuanLyPhienBan';
 import ChiTietTonKho from '../features/admin/inventory/pages/ChiTietTonKho';
 import DanhSachSerial from '../features/admin/inventory/pages/DanhSachSerial';
@@ -68,6 +68,7 @@ import './App.css';
 import '../styles/responsive.css';
 
 export default function AdminApp() {
+  const { search } = useLocation();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const fontPreference = usePersistentFontPreference(ADMIN_FONT_STORAGE_KEY);
@@ -104,7 +105,7 @@ export default function AdminApp() {
           <Route path="/admin/san-pham/them-san-pham" element={<ThemSanPham />} />
           <Route path="/admin/san-pham/them-san-pham/:productId" element={<ThemSanPham />} />
           <Route path="/admin/san-pham/chi-tiet-san-pham/:productId" element={<ChiTietSanPham />} />
-          <Route path="/kho-hang/quan-ly-phien-ban" element={<QuanLyPhienBan />} />
+          <Route path="/kho-hang/quan-ly-phien-ban" element={<QuanLyPhienBan key={search} />} />
           <Route path="/kho-hang/quan-ly-phien-ban/chi-tiet/:id" element={<ChiTietTonKho />} />
           <Route path="/kho-hang/danh-sach-serial" element={<DanhSachSerial />} />
           <Route path="/kho-hang/danh-sach-serial/:serialId" element={<ChiTietSerial />} />
@@ -139,7 +140,7 @@ export default function AdminApp() {
           
           <Route path="/admin/so-quy-tien-mat" element={<Navigate to="/admin/so-quy-tien-mat/tong-quan" replace />} />
           <Route path="/admin/so-quy-tien-mat/tong-quan" element={<TongQuanQuy />} />
-          <Route path="/admin/so-quy-tien-mat/so-quy" element={<SoQuy />} />
+          <Route path="/admin/so-quy-tien-mat/so-quy" element={<SoQuy key={search} />} />
           <Route path="/admin/so-quy-tien-mat/tao-phieu-thu-chi" element={<TaoPhieuThuChi />} />
           <Route path="/admin/so-quy-tien-mat/phieu-thu" element={<DanhSachPhieuThu />} />
           <Route path="/admin/so-quy-tien-mat/phieu-thu/:id" element={<ChiTietPhieuThu />} />
@@ -155,10 +156,13 @@ export default function AdminApp() {
           <Route path="/admin/so-quy-tien-mat/:placeholder" element={<PlaceholderPage title="Tính năng đang phát triển" />} />
 
           <Route path="/admin/bao-cao" element={<PlaceholderPage title="Báo cáo" />} />
-          <Route path="/admin/bao-hanh" element={<Navigate to="/admin/bao-hanh/danh-sach" replace />} />
-          <Route path="/admin/bao-hanh/danh-sach" element={<DanhSachBaoHanh />} />
-          <Route path="/admin/bao-hanh/chi-tiet/:id" element={<ChiTietBaoHanh />} />
-          <Route path="/admin/bao-hanh/tao-moi" element={<LapPhieuBaoHanh />} />
+          <Route path="/admin/bao-hanh/danh-sach" element={<MockDanhSachBaoHanh key={search} />} />
+          <Route path="/admin/bao-hanh/chi-tiet/:id" element={<MockChiTietBaoHanh />} />
+          <Route path="/admin/bao-hanh/tao-moi" element={<MockLapPhieuBaoHanh />} />
+
+          <Route path="/admin/bao-hanh" element={<MockDanhSachBaoHanh key={search} />} />
+          <Route path="/admin/bao-hanh/lap-phieu" element={<MockLapPhieuBaoHanh />} />
+          <Route path="/admin/bao-hanh/:id" element={<MockChiTietBaoHanh />} />
           <Route path="/admin/danh-muc" element={<Navigate to="/admin/danh-muc/danh-muc-san-pham" replace />} />
           <Route path="/admin/danh-muc/tags" element={<PlaceholderPage title="Tags" />} />
           <Route path="/admin/danh-muc/danh-muc-san-pham" element={<DanhMucSanPham />} />
@@ -169,13 +173,13 @@ export default function AdminApp() {
           {/* Đơn hàng section — shared layout with 4 tabs */}
           <Route path="/admin/don-hang" element={<OrderLayout />}>
             <Route index element={<Navigate to="danh-sach-don-hang" replace />} />
-            <Route path="danh-sach-don-hang" element={<DanhSachDonHang />} />
+            <Route path="danh-sach-don-hang" element={<DanhSachDonHang key={search} />} />
             <Route path="danh-sach-don-hang/:orderId" element={<ChiTietDonHang />} />
             <Route path="dat-hang-online" element={<DatHangOnline />} />
             <Route path="dat-hang-online/:orderId" element={<DatHangOnline />} />
-            <Route path="quan-ly-giao-hang" element={<QuanLyGiaoHang />} />
+            <Route path="quan-ly-giao-hang" element={<QuanLyGiaoHang key={search} />} />
             <Route path="quan-ly-giao-hang/:deliveryId" element={<QuanLyGiaoHang />} />
-            <Route path="khach-tra-hang" element={<KhachTraHang />} />
+            <Route path="khach-tra-hang" element={<KhachTraHang key={search} />} />
             <Route path="khach-tra-hang/tao/:orderId" element={<KhachTraHang />} />
             <Route path="khach-tra-hang/:returnId" element={<KhachTraHang />} />
           </Route>

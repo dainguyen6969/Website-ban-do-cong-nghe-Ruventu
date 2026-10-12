@@ -66,6 +66,13 @@ export function returnTotals(record) {
   };
 }
 
+export function matchesReturnStatus(record, status) {
+  const waitingRefund = record.trangThai === RETURN_STATUS.RECEIVED && returnTotals(record).amount > 0;
+  if (status === 'CHO_HOAN_TIEN') return waitingRefund;
+  if (status === 'CAN_XU_LY') return record.trangThai === RETURN_STATUS.WAITING || waitingRefund;
+  return !status || record.trangThai === status;
+}
+
 function snapshotLine(order, product, index) {
   const quantity = Math.max(1, Number(product.quantity || 1));
   const unitPrice = Number(product.unitPrice ?? ((Number(product.subtotal || 0) / quantity) || 0));

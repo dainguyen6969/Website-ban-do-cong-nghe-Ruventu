@@ -28,6 +28,7 @@ const CheckoutPage = () => {
   const [previewRevision, setPreviewRevision] = useState(0);
 
   const [placing, setPlacing] = useState(false);
+  const [hasPendingAttempt, setHasPendingAttempt] = useState(false);
   const [checkoutError, setCheckoutError] = useState("");
 
   const checkoutAttempt = useRef(null);
@@ -179,39 +180,6 @@ const CheckoutPage = () => {
     }
   };
 
-  {
-    previewError && (
-      <p className="error-text" role="alert">
-        {previewError}
-      </p>
-    );
-  }
-
-  {
-    checkoutError && (
-      <p className="error-text" role="alert">
-        {checkoutError}
-      </p>
-    );
-  }
-
-  <button
-    type="button"
-    className="btn-confirm-order"
-    onClick={handlePlaceOrder}
-    disabled={
-      placing ||
-      (!checkoutAttempt.current &&
-        (!previewData || previewLoading || !draftReady))
-    }
-  >
-    {placing
-      ? "ĐANG ĐẶT HÀNG..."
-      : checkoutAttempt.current
-        ? "THỬ LẠI YÊU CẦU"
-        : "XÁC NHẬN ĐẶT HÀNG →"}
-  </button>;
-
   const handlePlaceOrder = async () => {
     if (placingRef.current) return;
 
@@ -299,6 +267,7 @@ const CheckoutPage = () => {
       }
     } finally {
       placingRef.current = false;
+      setHasPendingAttempt(Boolean(checkoutAttempt.current));
       setPlacing(false);
     }
   };
@@ -587,12 +556,27 @@ const CheckoutPage = () => {
               </div>
             )}
 
+            {previewError && (
+              <p className="error-text" role="alert">{previewError}</p>
+            )}
+            {checkoutError && (
+              <p className="error-text" role="alert">{checkoutError}</p>
+            )}
             <button
+              type="button"
               className="btn-confirm-order"
               onClick={handlePlaceOrder}
-              disabled={!previewData}
+              disabled={
+                placing ||
+                (!hasPendingAttempt &&
+                  (!previewData || previewLoading || !draftReady))
+              }
             >
-              XÁC NHẬN ĐẶT HÀNG &rarr;
+              {placing
+                ? "ĐANG ĐẶT HÀNG..."
+                : hasPendingAttempt
+                  ? "THỬ LẠI YÊU CẦU"
+                  : "XÁC NHẬN ĐẶT HÀNG →"}
             </button>
           </div>
 

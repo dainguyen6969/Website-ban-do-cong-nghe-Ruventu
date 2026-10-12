@@ -206,8 +206,8 @@ const menuItems = [
     path: '/admin/bao-hanh',
     expandable: true,
     subItems: [
-      { id: 'danh-sach-phieu-bao-hanh', label: 'Danh sách phiếu bảo hành', path: '/admin/bao-hanh/danh-sach' },
-      { id: 'lap-phieu-bao-hanh', label: 'Lập phiếu bảo hành', path: '/admin/bao-hanh/tao-moi' },
+      { id: 'danh-sach-bao-hanh', label: 'Danh sách phiếu bảo hành', path: '/admin/bao-hanh', exact: true },
+      { id: 'lap-phieu-bao-hanh', label: 'Lập phiếu bảo hành', path: '/admin/bao-hanh/lap-phieu' },
     ],
   },
   {
@@ -234,7 +234,7 @@ const shouldShowBadge = (badge) => {
 };
 
 const hasActivePath = (item, pathname) =>
-  (item.path ? pathname.startsWith(item.path) : false) || item.children?.some((child) => hasActivePath(child, pathname));
+  (item.path ? (item.exact ? pathname === item.path : pathname.startsWith(item.path)) : false) || item.children?.some((child) => hasActivePath(child, pathname));
 
 import useMockAuth from '../../../auth/useMockAuth';
 
@@ -408,17 +408,27 @@ export default function Sidebar({ collapsed, mobileOpen = false, onToggle, onNav
 
       {/* Sidebar Footer */}
       <div className="sidebar__footer">
-        <div className="sidebar__user">
-          <div className="sidebar__avatar">
-            <HiOutlineUser size={20} />
-          </div>
-          {showDetails && (
-            <div className="sidebar__user-info">
-              <span className="sidebar__user-name">{currentAccount?.name || currentAccount?.ho_ten || currentAccount?.hoTen || 'Người dùng'}</span>
-              <span className="sidebar__user-email">{currentAccount?.email || ''}</span>
+        {(() => {
+          const user = currentAccount || (() => {
+            try { return JSON.parse(localStorage.getItem('user') || 'null'); } catch { return null; }
+          })();
+          const displayName = user?.name || user?.ho_ten || user?.hoTen || user?.email || 'Admin';
+          const userEmail = user?.email || '';
+          const userInitial = (displayName.trim().charAt(0) || 'A').toUpperCase();
+          return (
+            <div className="sidebar__user" title={displayName}>
+              <div className="sidebar__avatar" aria-hidden="true">
+                <span className="sidebar__avatar-initial">{userInitial}</span>
+              </div>
+              {showDetails && (
+                <div className="sidebar__user-info">
+                  <span className="sidebar__user-name">{displayName}</span>
+                  <span className="sidebar__user-email">{userEmail}</span>
+                </div>
+              )}
             </div>
-          )}
-        </div>
+          );
+        })()}
         <button type="button" className="sidebar__exit-btn" id="exit-to-portal" title="Về cổng khách hàng" onClick={() => navigate('/')}>
           <HiOutlineLogout size={18} />
           {showDetails && <span>Về cổng khách hàng</span>}

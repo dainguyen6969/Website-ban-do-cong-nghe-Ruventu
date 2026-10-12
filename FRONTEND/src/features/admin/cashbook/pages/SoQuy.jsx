@@ -1,17 +1,18 @@
 import React, { useState, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useCashbook } from '../context/CashbookContext';
 import './SoQuy.css';
 
 export default function SoQuy() {
     const navigate = useNavigate();
+    const [params] = useSearchParams();
     const { cashbookList = [] } = useCashbook() || {};
 
-    const [fromDate, setFromDate] = useState('');
-    const [toDate, setToDate] = useState('');
-    const [filterType, setFilterType] = useState('Tất cả');
-    const [filterMethod, setFilterMethod] = useState('Tất cả');
-    const [searchPerson, setSearchPerson] = useState('');
+    const [fromDate, setFromDate] = useState(() => params.get('tu_ngay') || '');
+    const [toDate, setToDate] = useState(() => params.get('den_ngay') || '');
+    const [filterType, setFilterType] = useState(() => ({ THU: 'Phiếu thu', CHI: 'Phiếu chi' }[params.get('loai_phieu')] || 'Tất cả'));
+    const [filterMethod, setFilterMethod] = useState(() => ({ TIEN_MAT: 'Tiền mặt', CHUYEN_KHOAN: 'Chuyển khoản' }[params.get('phuong_thuc_thanh_toan')] || 'Tất cả'));
+    const [searchPerson, setSearchPerson] = useState(() => params.get('ten_nguoi_nop_nhan') || params.get('keyword') || '');
     const [filterStaff, setFilterStaff] = useState('Tất cả');
 
     const initialBalance = 125000000;

@@ -171,7 +171,7 @@ export async function apiRequest(path, options = {}, retry = true) {
   }
 
   const headers = new Headers(options.headers);
-  headers.set('Accept', 'application/json');
+  if (!headers.has('Accept')) headers.set('Accept', 'application/json');
   headers.set('Authorization', `Bearer ${token}`);
 
   if (
@@ -201,6 +201,8 @@ export async function apiRequest(path, options = {}, retry = true) {
     clearAuth();
   }
 
+  if (response.ok && options.responseType === 'blob') return response.blob();
+
   const payload = await parseResponse(response);
 
   if (!response.ok) {
@@ -211,7 +213,7 @@ export async function apiRequest(path, options = {}, retry = true) {
     );
   }
 
-  return payload?.data;
+  return options.responseType === 'payload' ? payload : payload?.data;
 }
 
 export async function logoutBackend() {

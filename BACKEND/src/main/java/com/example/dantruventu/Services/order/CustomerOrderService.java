@@ -15,6 +15,7 @@ import com.example.dantruventu.DTO.Request.order.CustomerOrderRequest;
 import com.example.dantruventu.DTO.Response.PaginationResponse;
 import com.example.dantruventu.DTO.Response.order.CustomerOrderResponse;
 import com.example.dantruventu.Entity.ChiTietDonHang;
+import com.example.dantruventu.Entity.AnhSanPham;
 import com.example.dantruventu.Entity.DonHang;
 import com.example.dantruventu.Entity.GioHang;
 import com.example.dantruventu.Entity.NguoiDung;
@@ -32,6 +33,7 @@ import com.example.dantruventu.Repository.SoDiaChiRepository;
 import com.example.dantruventu.Repository.order.ChiTietDonHangRepository;
 import com.example.dantruventu.Repository.order.DonHangRepository;
 import com.example.dantruventu.Repository.order.PhieuGiaoHangRepository;
+import com.example.dantruventu.Repository.product.AnhSanPhamRepository;
 import com.example.dantruventu.Repository.warehouse.SoSerialSanPhamRepository;
 import com.example.dantruventu.Repository.warehouse.ThanhPhanComboRepository;
 import com.example.dantruventu.Services.cashbook.CashbookService;
@@ -78,6 +80,7 @@ public class CustomerOrderService {
   private final SoDiaChiRepository addressRepository;
   private final DonHangRepository orderRepository;
   private final ChiTietDonHangRepository orderLineRepository;
+  private final AnhSanPhamRepository imageRepository;
   private final PhieuGiaoHangRepository deliveryRepository;
   private final SoSerialSanPhamRepository serialRepository;
   private final ThanhPhanComboRepository comboComponentRepository;
@@ -352,13 +355,31 @@ public class CustomerOrderService {
             .orElseThrow(
                 () -> notFound("Đơn hàng không tồn tại hoặc không thuộc khách hàng hiện tại"));
 
+    List<ChiTietDonHang> lines = orderLineRepository.findByDonHang_IdOrderByIdAsc(order.getId());
+    List<Long> productIds =
+        lines.stream().map(line -> line.getPhienBan().getSanPham().getId()).distinct().toList();
+    Map<Long, AnhSanPham> images = new LinkedHashMap<>();
+    if (!productIds.isEmpty()) {
+      for (AnhSanPham image : imageRepository.findBySanPhamIdInOrderByThuTuHienThiAscIdAsc(productIds)) {
+        Long productId = image.getSanPham().getId();
+        AnhSanPham current = images.get(productId);
+        if (current == null || (!Boolean.TRUE.equals(current.getLaAnhChinh()) && Boolean.TRUE.equals(image.getLaAnhChinh()))) {
+          images.put(productId, image);
+        }
+      }
+    }
+
     List<CustomerOrderResponse.DetailProduct> products =
-        orderLineRepository.findByDonHang_IdOrderByIdAsc(order.getId()).stream()
+        lines.stream()
             .map(
                 line ->
                     CustomerOrderResponse.DetailProduct.builder()
                         .chiTietDonHangId(line.getId())
                         .phienBanId(line.getPhienBan().getId())
+                        .anhDaiDien(
+                            images.containsKey(line.getPhienBan().getSanPham().getId())
+                                ? images.get(line.getPhienBan().getSanPham().getId()).getDuongDanAnh()
+                                : null)
                         .tenSanPham(line.getPhienBan().getSanPham().getTenSanPham())
                         .tenPhienBan(line.getPhienBan().getTenPhienBan())
                         .soLuong(line.getSoLuong())

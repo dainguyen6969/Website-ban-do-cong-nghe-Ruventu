@@ -185,6 +185,9 @@ public final class CustomerOrderResponse {
     @JsonProperty("phien_ban_id")
     private Long phienBanId;
 
+    @JsonProperty("anh_dai_dien")
+    private String anhDaiDien;
+
     @JsonProperty("ten_san_pham")
     private String tenSanPham;
 

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { HiOutlineRefresh, HiOutlineSearch } from "react-icons/hi";
 
 import { apiRequest } from "../../../../auth/backendAuth";
@@ -38,10 +38,11 @@ export default function QuanLyGiaoHang() {
 
 function ShipmentList() {
   const navigate = useNavigate();
+  const [params] = useSearchParams();
   const PAGE_SIZE = 20;
 
   const [keyword, setKeyword] = useState("");
-  const [status, setStatus] = useState("");
+  const [status, setStatus] = useState(() => STATUSES.includes(params.get('trang_thai_giao_hang')) ? params.get('trang_thai_giao_hang') : "");
   const [partnerId, setPartnerId] = useState("");
   const [page, setPage] = useState(1);
   const [revision, setRevision] = useState(0);

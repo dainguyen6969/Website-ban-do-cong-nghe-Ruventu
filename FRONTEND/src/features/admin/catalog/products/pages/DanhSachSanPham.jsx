@@ -494,8 +494,8 @@ export default function DanhSachSanPham() {
 
                     {/* Trạng thái bán */}
                     <td className="product-table__td product-table__td--status">
-                      <span className="product-status-pill">
-                        <span className="product-status-dot" aria-hidden="true" />
+                      <span className={`product-status-badge product-status-badge--${product.trangThaiBan === 'Đang kinh doanh' ? 'active' : 'inactive'}`}>
+                        <span className="product-status-square" aria-hidden="true" />
                         <span>{product.trangThaiBan}</span>
                       </span>
                     </td>

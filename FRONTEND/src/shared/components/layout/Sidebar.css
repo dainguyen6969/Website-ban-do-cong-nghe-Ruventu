@@ -189,8 +189,9 @@
 
 .sidebar__menu-label {
   flex: 1;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  min-width: 0;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 .sidebar__chevron {
@@ -309,8 +310,9 @@
 
 .sidebar__submenu-label {
   flex: 1;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  min-width: 0;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 .sidebar__submenu-chevron { margin-left: auto; display: flex; opacity: .6; }
@@ -333,7 +335,7 @@
   align-items: center;
   gap: 10px;
   padding: 10px 8px;
-  border-radius: var(--radius-md);
+  border-radius: 0;
   background: rgba(255, 255, 255, 0.03);
   margin-bottom: 6px;
 }
@@ -341,7 +343,7 @@
 .sidebar__avatar {
   width: 36px;
   height: 36px;
-  border-radius: var(--radius-full);
+  border-radius: 0;
   background: var(--color-brand-red);
   display: flex;
   align-items: center;
@@ -349,6 +351,13 @@
   color: var(--color-text-white);
   flex-shrink: 0;
   font-size: 14px;
+  font-weight: 800;
+  line-height: 1;
+  user-select: none;
+}
+
+.sidebar__avatar-initial {
+  text-transform: uppercase;
 }
 
 .sidebar__user-info {
@@ -384,7 +393,7 @@
   color: var(--color-sidebar-text);
   font-size: 12px;
   font-weight: 500;
-  border-radius: var(--radius-sm);
+  border-radius: 0;
   transition: all var(--transition-fast);
   white-space: nowrap;
 }
