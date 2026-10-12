@@ -1,53 +1,125 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useCashbook } from '../context/CashbookContext';
+import { disbursementService } from '../../../../shared/services/disbursementService';
 import './ChiTietPhieu.css';
 
 export default function ChiTietPhieuChi() {
     const { id } = useParams();
     const navigate = useNavigate();
-    const { phieuChiList = [], cancelPhieuChi } = useCashbook() || {};
 
+    const [currentItem, setCurrentItem] = useState(null);
+    const [isLoading, setIsLoading] = useState(true);
     const [showCancelModal, setShowCancelModal] = useState(false);
     const [showSuccessBanner, setShowSuccessBanner] = useState(false);
+    const [isCancelling, setIsCancelling] = useState(false);
 
-    // Find payment voucher by code or id
-    const currentItem = phieuChiList.find(p => p.code === id || String(p.id) === id) || {
-        id: 1,
-        code: id || 'PC0002005',
-        person: 'Nguyễn Thị Lan',
-        role: 'NHÂN VIÊN',
-        group: 'NHÂN VIÊN',
-        typeCode: 'LPC004',
-        typeName: 'Chi lương nhân viên',
-        method: 'TIỀN MẶT',
-        creator: 'Trần Minh Quân',
-        amount: 12000000,
-        date: '16/09/2026 09:00',
-        createdDate: '16/09/2026 09:05',
-        updatedDate: '16/09/2026 09:05',
-        source: 'THỦ CÔNG',
-        status: 'ĐÃ GHI NHẬN',
-        desc: 'Chi lương tháng 9/2026',
-        tags: ['luong', 'nhan_vien'],
-        voucherDoc: '-'
-    };
+    const fetchDetail = useCallback(async () => {
+        setIsLoading(true);
+        try {
+            const response = await disbursementService.getDisbursementDetail(id);
+            if (response.data?.data) {
+                setCurrentItem(response.data.data);
+            }
+        } catch (error) {
+            console.error('Lỗi lấy chi tiết phiếu chi:', error);
+            setCurrentItem(null);
+        } finally {
+            setIsLoading(false);
+        }
+    }, [id]);
 
-    const [status, setStatus] = useState(currentItem.status || 'ĐÃ GHI NHẬN');
+    useEffect(() => {
+        fetchDetail();
+    }, [fetchDetail]);
 
     const formatMoney = (val) => {
         if (!val && val !== 0) return '0đ';
-        return val.toLocaleString('vi-VN') + 'đ';
+        return Number(val).toLocaleString('vi-VN') + 'đ';
     };
 
-    const handleConfirmCancel = () => {
-        if (cancelPhieuChi) {
-            cancelPhieuChi(currentItem.code);
+    const mapStatusToText = (status) => {
+        switch (status) {
+            case 'DA_GHI_NHAN': return 'ĐÃ GHI NHẬN';
+            case 'HUY': return 'ĐÃ HỦY';
+            default: return status || '—';
         }
-        setStatus('ĐÃ HỦY');
-        setShowCancelModal(false);
-        setShowSuccessBanner(true);
     };
+    
+    const mapSourceToText = (source) => {
+        switch (source) {
+            case 'THU_CONG': return 'THỦ CÔNG';
+            case 'TU_DONG': return 'TỰ ĐỘNG';
+            default: return source || '—';
+        }
+    };
+
+    const mapGroupToText = (group) => {
+        switch (group) {
+            case 'KHACH_HANG': return 'KHÁCH HÀNG';
+            case 'NHAN_VIEN': return 'NHÂN VIÊN';
+            case 'NHA_CUNG_CAP': return 'NHÀ CUNG CẤP';
+            case 'DOI_TAC_GIAO_HANG': return 'ĐỐI TÁC GIAO HÀNG';
+            case 'KHAC': return 'KHÁC';
+            default: return group || '—';
+        }
+    };
+
+    const mapPaymentMethodToText = (method) => {
+        switch (method) {
+            case 'TIEN_MAT': return 'TIỀN MẶT';
+            case 'CHUYEN_KHOAN': return 'CHUYỂN KHOẢN';
+            case 'THE': return 'QUẸT THẺ';
+            default: return method || '—';
+        }
+    };
+
+    const formatDateDisplay = (dateStr) => {
+        if (!dateStr) return '—';
+        try {
+            return new Date(dateStr).toLocaleString('vi-VN', {
+                day: '2-digit', month: '2-digit', year: 'numeric',
+                hour: '2-digit', minute: '2-digit'
+            });
+        } catch {
+            return dateStr;
+        }
+    };
+
+    const handleConfirmCancel = async () => {
+        setIsCancelling(true);
+        try {
+            await disbursementService.cancelDisbursement(id, { xac_nhan: true });
+            setShowCancelModal(false);
+            setShowSuccessBanner(true);
+            await fetchDetail();
+        } catch (error) {
+            console.error('Lỗi khi hủy phiếu chi:', error);
+            alert(error.response?.data?.message || 'Không thể hủy phiếu chi lúc này');
+        } finally {
+            setIsCancelling(false);
+        }
+    };
+
+    if (isLoading) {
+        return <div className="ctp-page" style={{padding: 40, textAlign: 'center'}}>Đang tải dữ liệu phiếu chi...</div>;
+    }
+
+    if (!currentItem) {
+        return (
+            <div className="ctp-page" style={{padding: 40, textAlign: 'center'}}>
+                <h2>Không tìm thấy phiếu chi.</h2>
+                <button 
+                    className="ctp-btn-cancel-action" 
+                    style={{marginTop: 16, backgroundColor: '#374151'}} 
+                    onClick={() => navigate('/admin/so-quy-tien-mat/phieu-chi')}
+                >
+                    QUAY LẠI DANH SÁCH
+                </button>
+            </div>
+        );
+    }
+
+    const canCancel = currentItem.trang_thai === 'DA_GHI_NHAN' && currentItem.nguon_tao !== 'TU_DONG';
 
     return (
         <div className="ctp-page">
@@ -66,13 +138,13 @@ export default function ChiTietPhieuChi() {
                 <div className="ctp-title-row">
                     <div className="ctp-title-left">
                         <span className="ctp-badge-box">PHIẾU CHI</span>
-                        <h1 className="ctp-code-title">{currentItem.code}</h1>
-                        <span className={`ctp-status-badge ${status === 'ĐÃ HỦY' ? 'status-danger' : 'status-success'}`}>
-                            {status}
+                        <h1 className="ctp-code-title">{currentItem.ma_phieu}</h1>
+                        <span className={`ctp-status-badge ${currentItem.trang_thai === 'HUY' ? 'status-danger' : 'status-success'}`}>
+                            {mapStatusToText(currentItem.trang_thai)}
                         </span>
                     </div>
 
-                    {status === 'ĐÃ GHI NHẬN' && (
+                    {canCancel && (
                         <button className="ctp-btn-cancel-action" onClick={() => setShowCancelModal(true)}>
                             HỦY PHIẾU CHI
                         </button>
@@ -80,7 +152,7 @@ export default function ChiTietPhieuChi() {
                 </div>
 
                 <div className="ctp-amount-display red-text">
-                    {formatMoney(currentItem.amount)}
+                    {formatMoney(currentItem.so_tien)}
                 </div>
             </div>
 
@@ -93,7 +165,7 @@ export default function ChiTietPhieuChi() {
             )}
 
             {/* Secondary Alert Bar if Canceled */}
-            {status === 'ĐÃ HỦY' && (
+            {currentItem.trang_thai === 'HUY' && (
                 <div className="ctp-banner-danger">
                     PHIẾU CHI ĐÃ HỦY
                 </div>
@@ -109,7 +181,7 @@ export default function ChiTietPhieuChi() {
                         <div className="ctp-info-grid">
                             <div className="ctp-info-item">
                                 <span className="lbl">MÃ PHIẾU</span>
-                                <span className="val bold">{currentItem.code}</span>
+                                <span className="val bold">{currentItem.ma_phieu}</span>
                             </div>
                             <div className="ctp-info-item">
                                 <span className="lbl">LOẠI PHIẾU</span>
@@ -117,11 +189,11 @@ export default function ChiTietPhieuChi() {
                             </div>
                             <div className="ctp-info-item">
                                 <span className="lbl">MÃ LOẠI</span>
-                                <span className="val bold">{currentItem.typeCode || 'LPC004'}</span>
+                                <span className="val bold">{currentItem.ma_loai || '—'}</span>
                             </div>
                             <div className="ctp-info-item">
                                 <span className="lbl">TÊN LOẠI</span>
-                                <span className="val">{currentItem.typeName || 'Chi lương nhân viên'}</span>
+                                <span className="val">{currentItem.ten_loai || '—'}</span>
                             </div>
                         </div>
                     </div>
@@ -132,11 +204,11 @@ export default function ChiTietPhieuChi() {
                         <div className="ctp-info-grid">
                             <div className="ctp-info-item">
                                 <span className="lbl">NHÓM</span>
-                                <span className="val bold">{currentItem.group || 'NHÂN VIÊN'}</span>
+                                <span className="val bold">{mapGroupToText(currentItem.nhom_nguoi_nop_nhan)}</span>
                             </div>
                             <div className="ctp-info-item">
                                 <span className="lbl">TÊN NGƯỜI NHẬN</span>
-                                <span className="val bold">{currentItem.person}</span>
+                                <span className="val bold">{currentItem.ten_nguoi_nop_nhan || '—'}</span>
                             </div>
                         </div>
                     </div>
@@ -147,19 +219,19 @@ export default function ChiTietPhieuChi() {
                         <div className="ctp-info-grid">
                             <div className="ctp-info-item">
                                 <span className="lbl">SỐ TIỀN CHI</span>
-                                <span className="val amount-val red-text">{formatMoney(currentItem.amount)}</span>
+                                <span className="val amount-val red-text">{formatMoney(currentItem.so_tien)}</span>
                             </div>
                             <div className="ctp-info-item">
                                 <span className="lbl">PHƯƠNG THỨC</span>
-                                <span className="val bold">{currentItem.method}</span>
+                                <span className="val bold">{mapPaymentMethodToText(currentItem.phuong_thuc_thanh_toan)}</span>
                             </div>
                             <div className="ctp-info-item">
                                 <span className="lbl">NGÀY GHI NHẬN</span>
-                                <span className="val">{currentItem.date}</span>
+                                <span className="val">{formatDateDisplay(currentItem.ngay_ghi_nhan)}</span>
                             </div>
                             <div className="ctp-info-item">
-                                <span className="lbl">CHỨNG TỪ</span>
-                                <span className="val">{currentItem.voucherDoc || '-'}</span>
+                                <span className="lbl">CHỨNG TỪ THAM CHIẾU</span>
+                                <span className="val">{currentItem.ma_chung_tu_tham_chieu || '—'}</span>
                             </div>
                         </div>
                     </div>
@@ -169,14 +241,20 @@ export default function ChiTietPhieuChi() {
                         <div className="ctp-section-label">MÔ TẢ / TAGS</div>
                         <div className="ctp-desc-box">
                             <span className="lbl">MÔ TẢ</span>
-                            <p className="desc-text">{currentItem.desc || 'Chi lương tháng 9/2026'}</p>
+                            <p className="desc-text">{currentItem.mo_ta || 'Không có mô tả'}</p>
                         </div>
                         <div className="ctp-tags-box">
                             <span className="lbl">TAGS</span>
                             <div className="tag-chips">
-                                {(currentItem.tags && currentItem.tags.length > 0 ? currentItem.tags : ['luong', 'nhan_vien']).map((t, idx) => (
-                                    <span key={idx} className="tag-pill">{t}</span>
+                                {(currentItem.tags && currentItem.tags.length > 0 
+                                    ? (Array.isArray(currentItem.tags) ? currentItem.tags : currentItem.tags.split(',')) 
+                                    : []
+                                ).map((t, idx) => (
+                                    <span key={idx} className="tag-pill">{t.trim()}</span>
                                 ))}
+                                {(!currentItem.tags || currentItem.tags.length === 0) && (
+                                    <span style={{color: '#9ca3af', fontSize: '13px'}}>Không có tags</span>
+                                )}
                             </div>
                         </div>
                     </div>
@@ -186,37 +264,49 @@ export default function ChiTietPhieuChi() {
                 <div className="ctp-sidebar-card">
                     <div className="ctp-meta-group">
                         <span className="meta-lbl">LOẠI CHI</span>
-                        <span className="meta-val bold">{currentItem.typeCode || 'LPC004'}</span>
-                        <div className="sub-type-name">{currentItem.typeName || 'Chi lương nhân viên'}</div>
+                        <span className="meta-val bold">{currentItem.ma_loai || '—'}</span>
+                        <div className="sub-type-name">{currentItem.ten_loai || '—'}</div>
                     </div>
 
                     <div className="ctp-meta-group">
                         <span className="meta-lbl">NGUỒN TẠO</span>
-                        <span className="meta-val bold">{currentItem.source || 'THỦ CÔNG'}</span>
+                        <span className="meta-val bold">{mapSourceToText(currentItem.nguon_tao)}</span>
                     </div>
 
                     <div className="ctp-meta-group">
                         <span className="meta-lbl">NGƯỜI TẠO</span>
-                        <span className="meta-val bold">{currentItem.creator || 'Trần Minh Quân'}</span>
+                        <span className="meta-val bold">
+                            {currentItem.ten_nguoi_tao || (currentItem.nguon_tao === 'TU_DONG' ? 'HỆ THỐNG' : '—')}
+                        </span>
                     </div>
 
                     <div className="ctp-meta-group">
                         <span className="meta-lbl">THỜI GIAN</span>
                         <div className="time-sub-row">
                             <span className="sub-lbl">NGÀY TẠO</span>
-                            <span className="sub-val">{currentItem.createdDate || '16/09/2026 09:05'}</span>
+                            <span className="sub-val">{formatDateDisplay(currentItem.created_at)}</span>
                         </div>
                         <div className="time-sub-row">
                             <span className="sub-lbl">CẬP NHẬT</span>
-                            <span className="sub-val">{status === 'ĐÃ HỦY' ? '30/09/2026 00:29' : (currentItem.updatedDate || '16/09/2026 09:05')}</span>
+                            <span className="sub-val">{formatDateDisplay(currentItem.updated_at)}</span>
                         </div>
                     </div>
 
                     <div className="ctp-meta-group">
                         <span className="meta-lbl">TRẠNG THÁI</span>
-                        <span className={`ctp-status-badge ${status === 'ĐÃ HỦY' ? 'status-danger' : 'status-success'}`}>
-                            {status}
+                        <span className={`ctp-status-badge ${currentItem.trang_thai === 'HUY' ? 'status-danger' : 'status-success'}`}>
+                            {mapStatusToText(currentItem.trang_thai)}
                         </span>
+                    </div>
+
+                    <div style={{marginTop: 20}}>
+                        <button 
+                            className="btn-modal-cancel" 
+                            style={{width: '100%', padding: '10px 0', border: '1px solid #d1d5db', borderRadius: 6}}
+                            onClick={() => navigate('/admin/so-quy-tien-mat/phieu-chi')}
+                        >
+                            ← VỀ DANH SÁCH
+                        </button>
                     </div>
                 </div>
             </div>
@@ -230,8 +320,8 @@ export default function ChiTietPhieuChi() {
                         </div>
                         <div className="ctp-modal-body">
                             <div className="ctp-modal-card-info">
-                                <div className="modal-info-code">{currentItem.code}</div>
-                                <div className="modal-info-amount red-text">{formatMoney(currentItem.amount)}</div>
+                                <div className="modal-info-code">{currentItem.ma_phieu}</div>
+                                <div className="modal-info-amount red-text">{formatMoney(currentItem.so_tien)}</div>
                             </div>
                             <div className="ctp-modal-warning">
                                 HỦY PHIẾU CHI LOẠI BỎ GHI NHẬN CHI SAI KHỎI SỔ QUỸ.<br />
@@ -239,11 +329,11 @@ export default function ChiTietPhieuChi() {
                             </div>
                         </div>
                         <div className="ctp-modal-footer">
-                            <button className="btn-modal-cancel" onClick={() => setShowCancelModal(false)}>
+                            <button className="btn-modal-cancel" onClick={() => setShowCancelModal(false)} disabled={isCancelling}>
                                 QUAY LẠI
                             </button>
-                            <button className="btn-modal-confirm-red" onClick={handleConfirmCancel}>
-                                XÁC NHẬN HỦY
+                            <button className="btn-modal-confirm-red" onClick={handleConfirmCancel} disabled={isCancelling}>
+                                {isCancelling ? 'ĐANG HỦY...' : 'XÁC NHẬN HỦY'}
                             </button>
                         </div>
                     </div>
