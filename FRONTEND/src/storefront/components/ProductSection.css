@@ -49,7 +49,12 @@
 .product-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 24px;
+  gap: 0;
+}
+
+.product-grid .product-card {
+  margin-right: -3px; /* Prevent double borders horizontally */
+  margin-bottom: -3px; /* Prevent double borders vertically */
 }
 
 .section-tabs-wrapper {

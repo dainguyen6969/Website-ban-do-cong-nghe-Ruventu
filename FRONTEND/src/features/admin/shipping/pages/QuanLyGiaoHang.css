@@ -12,7 +12,7 @@
 .delivery-filter .filter__dropdown { height: 38px; padding: 0 10px; border: 1px solid #cfcfcf; font-size: 9px; }
 .delivery-count { font-size: 9px; white-space: nowrap; }
 .delivery-table-scroll { width: 100%; max-width: 100%; min-width: 0; overflow-x: auto; overflow-y: hidden; }
-.delivery-table { width: 100%; min-width: 1650px; border-collapse: collapse; }
+.delivery-table { width: 100%; border-collapse: collapse; }
 .delivery-table thead { color: #fff; background: #080808; }
 .delivery-table th { height: 34px; padding: 0 9px; text-align: left; font-size: 8px; font-weight: 900; white-space: nowrap; border-right: 1px solid #292929; }
 .delivery-table td { height: 52px; padding: 7px 9px; font-size: 9px; border-right: 1px solid #e3e3e3; border-bottom: 1px solid #e3e3e3; }

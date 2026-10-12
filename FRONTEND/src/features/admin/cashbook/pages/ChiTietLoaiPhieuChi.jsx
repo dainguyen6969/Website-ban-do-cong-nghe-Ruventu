@@ -1,40 +1,85 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { useCashbook } from '../context/CashbookContext';
 import './ChiTietLoaiPhieuThu.css'; // Reuse CSS
-
-const fallbackMock = {
-    'LPC001': { id: 1, code: 'LPC001', name: 'Chi nhập hàng', type: 'CHI', note: 'Thanh toán tiền mua hàng hóa, nguyên vật liệu', status: 'HOẠT ĐỘNG' },
-    'LPC002': { id: 2, code: 'LPC002', name: 'Chi hoàn tiền khách hàng', type: 'CHI', note: 'Hoàn tiền cho khách đổi/trả hàng', status: 'HOẠT ĐỘNG' },
-    'LPC020': { id: 6, code: 'LPC020', name: 'Chi phí thuê mặt bằng', type: 'CHI', note: '-', status: 'NGỪNG HOẠT ĐỘNG' }
-};
+import { getDisbursementTypeDetail, updateDisbursementTypeStatus, DISBURSEMENT_TYPE_STATUS } from '../api/disbursementTypeApi';
 
 export default function ChiTietLoaiPhieuChi() {
     const navigate = useNavigate();
     const { id } = useParams();
-    const { loaiPhieuChiList, toggleStatusLoaiPhieuChi } = useCashbook();
     
+    const [item, setItem] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
     const [modalType, setModalType] = useState(null); // 'STOP' | 'REACTIVATE' | null
     const [bannerMessage, setBannerMessage] = useState('');
+    const [actionLoading, setActionLoading] = useState(false);
 
-    const contextItem = loaiPhieuChiList?.find(x => x.code === id);
-    const item = contextItem || fallbackMock[id] || { code: id, name: 'Loại phiếu chi mẫu', type: 'CHI', note: '-', status: 'HOẠT ĐỘNG' };
+    useEffect(() => {
+        const controller = new AbortController();
+        const fetchDetail = async () => {
+            setLoading(true);
+            setError(null);
+            try {
+                const data = await getDisbursementTypeDetail(id, controller.signal);
+                setItem(data);
+            } catch (err) {
+                if (err.name !== 'AbortError') {
+                    setError('Không thể lấy thông tin chi tiết loại phiếu chi.');
+                }
+            } finally {
+                setLoading(false);
+            }
+        };
 
-    const handleConfirmStop = () => {
-        setModalType(null);
-        if (toggleStatusLoaiPhieuChi) {
-            toggleStatusLoaiPhieuChi(item.code, 'NGỪNG HOẠT ĐỘNG');
+        fetchDetail();
+
+        return () => {
+            controller.abort();
+        };
+    }, [id]);
+
+    const handleConfirmStop = async () => {
+        setActionLoading(true);
+        try {
+            await updateDisbursementTypeStatus(id, false);
+            setItem(prev => ({ ...prev, status: DISBURSEMENT_TYPE_STATUS.inactive }));
+            setBannerMessage('NGỪNG HOẠT ĐỘNG THÀNH CÔNG');
+            setModalType(null);
+        } catch (err) {
+            alert('Có lỗi xảy ra, không thể cập nhật trạng thái.');
+        } finally {
+            setActionLoading(false);
         }
-        setBannerMessage('NGỪNG HOẠT ĐỘNG THÀNH CÔNG');
     };
 
-    const handleConfirmReactivate = () => {
-        setModalType(null);
-        if (toggleStatusLoaiPhieuChi) {
-            toggleStatusLoaiPhieuChi(item.code, 'HOẠT ĐỘNG');
+    const handleConfirmReactivate = async () => {
+        setActionLoading(true);
+        try {
+            await updateDisbursementTypeStatus(id, true);
+            setItem(prev => ({ ...prev, status: DISBURSEMENT_TYPE_STATUS.active }));
+            setBannerMessage('KÍCH HOẠT LẠI THÀNH CÔNG');
+            setModalType(null);
+        } catch (err) {
+            alert('Có lỗi xảy ra, không thể cập nhật trạng thái.');
+        } finally {
+            setActionLoading(false);
         }
-        setBannerMessage('KÍCH HOẠT LẠI THÀNH CÔNG');
     };
+
+    if (loading) {
+        return <div className="ctlpt-page"><div className="ctlpt-header">ĐANG TẢI...</div></div>;
+    }
+
+    if (error || !item) {
+        return (
+            <div className="ctlpt-page">
+                <div className="ctlpt-header">
+                    <div className="text-red">{error || 'Không tìm thấy thông tin.'}</div>
+                    <button className="lpt-btn-outline" style={{marginTop: 10}} onClick={() => navigate('/admin/so-quy-tien-mat/loai-phieu-chi')}>QUAY LẠI</button>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="ctlpt-page">
@@ -47,11 +92,11 @@ export default function ChiTietLoaiPhieuChi() {
                     <div className="ctlpt-title-area">
                         <span className="ctlpt-badge">LOẠI PHIẾU CHI</span>
                         <h1>{item.code} <span>{item.name}</span></h1>
-                        <span className={`status-outline ${item.status === 'NGỪNG HOẠT ĐỘNG' ? 'status-gray' : 'status-success'}`}>
+                        <span className={`status-outline ${item.status === DISBURSEMENT_TYPE_STATUS.inactive ? 'status-gray' : 'status-success'}`}>
                             {item.status}
                         </span>
                     </div>
-                    {item.status === 'HOẠT ĐỘNG' ? (
+                    {item.status === DISBURSEMENT_TYPE_STATUS.active ? (
                         <button className="ctlpt-btn-stop" onClick={() => setModalType('STOP')}>NGỪNG HOẠT ĐỘNG</button>
                     ) : (
                         <button className="ctlpt-btn-reactivate" onClick={() => setModalType('REACTIVATE')}>KÍCH HOẠT LẠI</button>
@@ -89,7 +134,7 @@ export default function ChiTietLoaiPhieuChi() {
                 <div className="ctlpt-info-group">
                     <label>TRẠNG THÁI</label>
                     <div className="ctlpt-value">
-                        <strong className={item.status === 'NGỪNG HOẠT ĐỘNG' ? 'text-gray' : 'text-green'}>
+                        <strong className={item.status === DISBURSEMENT_TYPE_STATUS.inactive ? 'text-gray' : 'text-green'}>
                             {item.status}
                         </strong>
                     </div>
@@ -112,8 +157,10 @@ export default function ChiTietLoaiPhieuChi() {
                             </p>
                         </div>
                         <div className="lpt-modal-footer">
-                            <button className="lpt-btn-outline" onClick={() => setModalType(null)}>QUAY LẠI</button>
-                            <button className="ctlpt-btn-confirm" onClick={handleConfirmStop}>XÁC NHẬN NGỪNG</button>
+                            <button className="lpt-btn-outline" onClick={() => setModalType(null)} disabled={actionLoading}>QUAY LẠI</button>
+                            <button className="ctlpt-btn-confirm" onClick={handleConfirmStop} disabled={actionLoading}>
+                                {actionLoading ? 'ĐANG XỬ LÝ...' : 'XÁC NHẬN NGỪNG'}
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -132,8 +179,10 @@ export default function ChiTietLoaiPhieuChi() {
                             </div>
                         </div>
                         <div className="lpt-modal-footer">
-                            <button className="lpt-btn-outline" onClick={() => setModalType(null)}>QUAY LẠI</button>
-                            <button className="btn-confirm-reactivate" onClick={handleConfirmReactivate}>XÁC NHẬN KÍCH HOẠT</button>
+                            <button className="lpt-btn-outline" onClick={() => setModalType(null)} disabled={actionLoading}>QUAY LẠI</button>
+                            <button className="btn-confirm-reactivate" onClick={handleConfirmReactivate} disabled={actionLoading}>
+                                {actionLoading ? 'ĐANG XỬ LÝ...' : 'XÁC NHẬN KÍCH HOẠT'}
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -141,4 +190,3 @@ export default function ChiTietLoaiPhieuChi() {
         </div>
     );
 }
-

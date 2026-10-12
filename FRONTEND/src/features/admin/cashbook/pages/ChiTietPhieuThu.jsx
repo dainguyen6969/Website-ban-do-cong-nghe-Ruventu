@@ -1,53 +1,95 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useCashbook } from '../context/CashbookContext';
+import { receiptService } from '../../../../shared/services/receiptService';
 import './ChiTietPhieu.css';
 
 export default function ChiTietPhieuThu() {
     const { id } = useParams();
     const navigate = useNavigate();
-    const { phieuThuList = [], cancelPhieuThu } = useCashbook() || {};
 
+    const [currentItem, setCurrentItem] = useState(null);
+    const [isLoading, setIsLoading] = useState(true);
     const [showCancelModal, setShowCancelModal] = useState(false);
     const [showSuccessBanner, setShowSuccessBanner] = useState(false);
 
-    // Find receipt by code or id
-    const currentItem = phieuThuList.find(p => p.code === id || String(p.id) === id) || {
-        id: 1,
-        code: id || 'PT0001006',
-        person: 'ASUS Vietnam Co.',
-        role: 'NHÀ CUNG CẤP',
-        group: 'NHÀ CUNG CẤP',
-        typeCode: 'LPT005',
-        typeName: 'Thu phí dịch vụ',
-        method: 'CHUYỂN KHOẢN',
-        creator: 'Nguyễn Thị Lan',
-        amount: 3500000,
-        date: '15/09/2026 10:00',
-        createdDate: '15/09/2026 10:15',
-        updatedDate: '15/09/2026 10:15',
-        source: 'THỦ CÔNG',
-        status: 'ĐÃ GHI NHẬN',
-        desc: 'Phí dịch vụ bảo trì',
-        tags: ['phi_dv'],
-        voucherDoc: 'OTHER-101'
-    };
+    const fetchDetail = useCallback(async () => {
+        setIsLoading(true);
+        try {
+            const response = await receiptService.getReceiptDetail(id);
+            if (response.data?.data) {
+                setCurrentItem(response.data.data);
+            }
+        } catch (error) {
+            console.error('Lỗi lấy chi tiết phiếu thu:', error);
+        } finally {
+            setIsLoading(false);
+        }
+    }, [id]);
 
-    const [status, setStatus] = useState(currentItem.status || 'ĐÃ GHI NHẬN');
+    useEffect(() => {
+        fetchDetail();
+    }, [fetchDetail]);
 
     const formatMoney = (val) => {
         if (!val && val !== 0) return '0đ';
         return val.toLocaleString('vi-VN') + 'đ';
     };
 
-    const handleConfirmCancel = () => {
-        if (cancelPhieuThu) {
-            cancelPhieuThu(currentItem.code);
+    const mapStatusToText = (status) => {
+        switch (status) {
+            case 'DA_GHI_NHAN': return 'ĐÃ GHI NHẬN';
+            case 'HUY': return 'ĐÃ HỦY';
+            default: return status;
         }
-        setStatus('ĐÃ HỦY');
-        setShowCancelModal(false);
-        setShowSuccessBanner(true);
     };
+    
+    const mapSourceToText = (source) => {
+        switch (source) {
+            case 'THU_CONG': return 'THỦ CÔNG';
+            case 'TU_DONG': return 'TỰ ĐỘNG';
+            default: return source;
+        }
+    };
+
+    const mapGroupToText = (group) => {
+        switch (group) {
+            case 'KHACH_HANG': return 'KHÁCH HÀNG';
+            case 'NHAN_VIEN': return 'NHÂN VIÊN';
+            case 'NHA_CUNG_CAP': return 'NHÀ CUNG CẤP';
+            case 'DOI_TAC_GIAO_HANG': return 'ĐỐI TÁC GIAO HÀNG';
+            case 'KHAC': return 'KHÁC';
+            default: return group;
+        }
+    };
+
+    const mapPaymentMethodToText = (method) => {
+        switch (method) {
+            case 'TIEN_MAT': return 'TIỀN MẶT';
+            case 'CHUYEN_KHOAN': return 'CHUYỂN KHOẢN';
+            case 'THE': return 'QUẸT THẺ';
+            default: return method;
+        }
+    };
+
+    const handleConfirmCancel = async () => {
+        try {
+            await receiptService.cancelReceipt(id, { xac_nhan: true });
+            setShowCancelModal(false);
+            setShowSuccessBanner(true);
+            await fetchDetail();
+        } catch (error) {
+            console.error('Lỗi khi hủy phiếu:', error);
+            alert('Không thể hủy phiếu lúc này');
+        }
+    };
+
+    if (isLoading) {
+        return <div className="ctp-page" style={{padding: 40, textAlign: 'center'}}>Đang tải dữ liệu...</div>;
+    }
+
+    if (!currentItem) {
+        return <div className="ctp-page" style={{padding: 40, textAlign: 'center'}}>Không tìm thấy phiếu thu.</div>;
+    }
 
     return (
         <div className="ctp-page">
@@ -66,13 +108,13 @@ export default function ChiTietPhieuThu() {
                 <div className="ctp-title-row">
                     <div className="ctp-title-left">
                         <span className="ctp-badge-box">PHIẾU THU</span>
-                        <h1 className="ctp-code-title">{currentItem.code}</h1>
-                        <span className={`ctp-status-badge ${status === 'ĐÃ HỦY' ? 'status-danger' : 'status-success'}`}>
-                            {status}
+                        <h1 className="ctp-code-title">{currentItem.ma_phieu}</h1>
+                        <span className={`ctp-status-badge ${currentItem.trang_thai === 'HUY' ? 'status-danger' : 'status-success'}`}>
+                            {mapStatusToText(currentItem.trang_thai)}
                         </span>
                     </div>
 
-                    {status === 'ĐÃ GHI NHẬN' && (
+                    {currentItem.trang_thai === 'DA_GHI_NHAN' && (
                         <button className="ctp-btn-cancel-action" onClick={() => setShowCancelModal(true)}>
                             HỦY PHIẾU THU
                         </button>
@@ -80,7 +122,7 @@ export default function ChiTietPhieuThu() {
                 </div>
 
                 <div className="ctp-amount-display">
-                    {formatMoney(currentItem.amount)}
+                    {formatMoney(currentItem.so_tien)}
                 </div>
             </div>
 
@@ -93,7 +135,7 @@ export default function ChiTietPhieuThu() {
             )}
 
             {/* Secondary Alert Bar if Canceled */}
-            {status === 'ĐÃ HỦY' && (
+            {currentItem.trang_thai === 'HUY' && (
                 <div className="ctp-banner-danger">
                     PHIẾU THU ĐÃ HỦY
                 </div>
@@ -109,7 +151,7 @@ export default function ChiTietPhieuThu() {
                         <div className="ctp-info-grid">
                             <div className="ctp-info-item">
                                 <span className="lbl">MÃ PHIẾU</span>
-                                <span className="val bold">{currentItem.code}</span>
+                                <span className="val bold">{currentItem.ma_phieu}</span>
                             </div>
                             <div className="ctp-info-item">
                                 <span className="lbl">LOẠI PHIẾU</span>
@@ -117,11 +159,11 @@ export default function ChiTietPhieuThu() {
                             </div>
                             <div className="ctp-info-item">
                                 <span className="lbl">MÃ LOẠI</span>
-                                <span className="val bold">{currentItem.typeCode || 'LPT005'}</span>
+                                <span className="val bold">{currentItem.ma_loai || '—'}</span>
                             </div>
                             <div className="ctp-info-item">
                                 <span className="lbl">TÊN LOẠI</span>
-                                <span className="val">{currentItem.typeName || 'Thu phí dịch vụ'}</span>
+                                <span className="val">{currentItem.ten_loai || '—'}</span>
                             </div>
                         </div>
                     </div>
@@ -132,11 +174,11 @@ export default function ChiTietPhieuThu() {
                         <div className="ctp-info-grid">
                             <div className="ctp-info-item">
                                 <span className="lbl">NHÓM</span>
-                                <span className="val bold">{currentItem.group || 'NHÀ CUNG CẤP'}</span>
+                                <span className="val bold">{mapGroupToText(currentItem.nhom_nguoi_nop_nhan)}</span>
                             </div>
                             <div className="ctp-info-item">
                                 <span className="lbl">NGƯỜI NỘP</span>
-                                <span className="val bold">{currentItem.person}</span>
+                                <span className="val bold">{currentItem.ten_nguoi_nop_nhan || '—'}</span>
                             </div>
                         </div>
                     </div>
@@ -147,19 +189,19 @@ export default function ChiTietPhieuThu() {
                         <div className="ctp-info-grid">
                             <div className="ctp-info-item">
                                 <span className="lbl">SỐ TIỀN</span>
-                                <span className="val amount-val">{formatMoney(currentItem.amount)}</span>
+                                <span className="val amount-val">{formatMoney(currentItem.so_tien)}</span>
                             </div>
                             <div className="ctp-info-item">
                                 <span className="lbl">PHƯƠNG THỨC</span>
-                                <span className="val bold">{currentItem.method}</span>
+                                <span className="val bold">{mapPaymentMethodToText(currentItem.phuong_thuc_thanh_toan)}</span>
                             </div>
                             <div className="ctp-info-item">
                                 <span className="lbl">NGÀY GHI NHẬN</span>
-                                <span className="val">{currentItem.date}</span>
+                                <span className="val">{currentItem.ngay_ghi_nhan ? new Date(currentItem.ngay_ghi_nhan).toLocaleString() : '—'}</span>
                             </div>
                             <div className="ctp-info-item">
                                 <span className="lbl">CHỨNG TỪ</span>
-                                <span className="val">{currentItem.voucherDoc || 'OTHER-101'}</span>
+                                <span className="val">{currentItem.ma_chung_tu_tham_chieu || '—'}</span>
                             </div>
                         </div>
                     </div>
@@ -169,13 +211,13 @@ export default function ChiTietPhieuThu() {
                         <div className="ctp-section-label">MÔ TẢ / TAGS</div>
                         <div className="ctp-desc-box">
                             <span className="lbl">MÔ TẢ</span>
-                            <p className="desc-text">{currentItem.desc || 'Phí dịch vụ bảo trì'}</p>
+                            <p className="desc-text">{currentItem.mo_ta || 'Không có mô tả'}</p>
                         </div>
                         <div className="ctp-tags-box">
                             <span className="lbl">TAGS</span>
                             <div className="tag-chips">
-                                {(currentItem.tags && currentItem.tags.length > 0 ? currentItem.tags : ['phi_dv']).map((t, idx) => (
-                                    <span key={idx} className="tag-pill">{t}</span>
+                                {(currentItem.tags && currentItem.tags.length > 0 ? currentItem.tags.split(',') : []).map((t, idx) => (
+                                    <span key={idx} className="tag-pill">{t.trim()}</span>
                                 ))}
                             </div>
                         </div>
@@ -186,30 +228,30 @@ export default function ChiTietPhieuThu() {
                 <div className="ctp-sidebar-card">
                     <div className="ctp-meta-group">
                         <span className="meta-lbl">NGUỒN TẠO</span>
-                        <span className="meta-val bold">{currentItem.source || 'THỦ CÔNG'}</span>
+                        <span className="meta-val bold">{mapSourceToText(currentItem.nguon_tao)}</span>
                     </div>
 
                     <div className="ctp-meta-group">
                         <span className="meta-lbl">NGƯỜI TẠO</span>
-                        <span className="meta-val bold">{currentItem.creator || 'Nguyễn Thị Lan'}</span>
+                        <span className="meta-val bold">{currentItem.ten_nguoi_tao || '—'}</span>
                     </div>
 
                     <div className="ctp-meta-group">
                         <span className="meta-lbl">THỜI GIAN</span>
                         <div className="time-sub-row">
                             <span className="sub-lbl">NGÀY TẠO</span>
-                            <span className="sub-val">{currentItem.createdDate || '15/09/2026 10:15'}</span>
+                            <span className="sub-val">{currentItem.ngay_tao ? new Date(currentItem.ngay_tao).toLocaleString() : '—'}</span>
                         </div>
                         <div className="time-sub-row">
                             <span className="sub-lbl">CẬP NHẬT</span>
-                            <span className="sub-val">{status === 'ĐÃ HỦY' ? '30/09/2026 00:29' : (currentItem.updatedDate || '15/09/2026 10:15')}</span>
+                            <span className="sub-val">{currentItem.ngay_cap_nhat ? new Date(currentItem.ngay_cap_nhat).toLocaleString() : '—'}</span>
                         </div>
                     </div>
 
                     <div className="ctp-meta-group">
                         <span className="meta-lbl">TRẠNG THÁI</span>
-                        <span className={`ctp-status-badge ${status === 'ĐÃ HỦY' ? 'status-danger' : 'status-success'}`}>
-                            {status}
+                        <span className={`ctp-status-badge ${currentItem.trang_thai === 'HUY' ? 'status-danger' : 'status-success'}`}>
+                            {mapStatusToText(currentItem.trang_thai)}
                         </span>
                     </div>
                 </div>
@@ -224,8 +266,8 @@ export default function ChiTietPhieuThu() {
                         </div>
                         <div className="ctp-modal-body">
                             <div className="ctp-modal-card-info">
-                                <div className="modal-info-code">{currentItem.code}</div>
-                                <div className="modal-info-amount">{formatMoney(currentItem.amount)}</div>
+                                <div className="modal-info-code">{currentItem.ma_phieu}</div>
+                                <div className="modal-info-amount">{formatMoney(currentItem.so_tien)}</div>
                             </div>
                             <div className="ctp-modal-warning">
                                 HỦY PHIẾU THU LOẠI BỎ GHI NHẬN THU SAI KHỎI SỔ QUỸ.<br />
