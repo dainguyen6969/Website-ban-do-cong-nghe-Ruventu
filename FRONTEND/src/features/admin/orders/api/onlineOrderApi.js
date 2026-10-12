@@ -58,7 +58,7 @@ export function buildPreviewBody(form) {
     loai_don_hang: 'ONLINE', khach_hang_id: form.customerId || null,
     kho_hang_id: form.options.kho_mac_dinh_id, bang_gia: form.options.bang_gia[0],
     thue: { ap_dung: form.applyVat, che_do_gia: form.vatMode },
-    ma_chuong_trinh: form.promotion || null, phi_giao_hang: form.shippingFee,
+    ma_chuong_trinh: form.promotion?.trim() || null, phi_giao_hang: form.shippingFee,
     san_pham: lines(form.items),
   };
 }
@@ -71,22 +71,26 @@ const posBody = (order, options) => ({
   khach_hang_id: order.customer?.id || null,
   kho_hang_id: options.kho_mac_dinh_id, bang_gia: options.bang_gia[0],
   thue: { ap_dung: order.tax, che_do_gia: order.taxMode || 'CHUA_BAO_GOM' },
-  ma_chuong_trinh: null, phi_giao_hang: 0, ghi_chu: order.note || null,
+  ma_chuong_trinh: order.promotion?.trim() || null, phi_giao_hang: 0, ghi_chu: order.note || null,
   san_pham: lines(order.cart.map((item) => ({ ...item.product, quantity: item.quantity }))),
 });
 
-export const previewPosOrder = (order, options) => adminRequest(`${SALES_PATH}/preview`, {
-  method: 'POST', body: JSON.stringify({ ...posBody(order, options), loai_don_hang: 'TAI_QUAY' }),
-});
+export const buildPosPreviewBody = (order, options) => ({ ...posBody(order, options), loai_don_hang: 'TAI_QUAY' });
+export const previewPosOrder = (order, options, signal) => previewOnlineOrder(buildPosPreviewBody(order, options), signal);
 
 export function buildPosCheckoutBody(order, options, confirmedTotal, paymentDate = new Date().toISOString()) {
   const cash = order.paymentMethod === 'cash';
   return {
     ...posBody(order, options), nhan_vien_id: order.employee?.id || null,
-    phan_bo_serial: order.cart.filter((line) => line.serials?.length).map((line) => ({
+    phan_bo_serial: [...order.cart.filter((line) => line.serials?.length).map((line) => ({
       ma_dong: `d${line.product.id}`, phien_ban_id: line.product.id,
       serial_ids: line.serials.map((serial) => serial.id),
-    })),
+    })), ...(order.preview?.data.san_pham || []).filter(line => line.la_qua_tang).flatMap(line =>
+      line.serial_requirements.filter(requirement => order.giftSerials?.[`${line.ma_dong}:${requirement.phien_ban_id}`]?.length).map(requirement => ({
+        ma_dong: line.ma_dong, phien_ban_id: requirement.phien_ban_id,
+        serial_ids: order.giftSerials[`${line.ma_dong}:${requirement.phien_ban_id}`].map(serial => serial.id),
+      }))),
+    ],
     tong_thanh_toan_xac_nhan: confirmedTotal,
     thanh_toan: {
       phuong_thuc: { cash: 'TIEN_MAT', transfer: 'CHUYEN_KHOAN', card: 'THE' }[order.paymentMethod],

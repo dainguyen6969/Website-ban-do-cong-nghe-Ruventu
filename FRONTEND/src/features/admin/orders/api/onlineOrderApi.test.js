@@ -1,6 +1,10 @@
 import assert from 'node:assert/strict';
-import test from 'node:test';
-import { buildPosCheckoutBody, buildPreviewBody, checkoutPosOrder, normalizeSalesCustomer, normalizeSalesProduct } from './onlineOrderApi.js';
+import test, { after } from 'node:test';
+import { createServer } from 'vite';
+const server = await createServer({ configFile: false, cacheDir: 'node_modules/.vite-sales-test', server: { middlewareMode: true }, appType: 'custom' });
+const api = await server.ssrLoadModule('/src/features/admin/orders/api/onlineOrderApi.js');
+const { buildPosCheckoutBody, buildPreviewBody, checkoutPosOrder, normalizeSalesCustomer, normalizeSalesProduct } = api;
+after(() => server.close());
 
 test('sales customer lookup keeps the real backend id and contact fields', () => {
   assert.deepEqual(normalizeSalesCustomer({
@@ -52,4 +56,41 @@ test('online order keeps backend sales inventory and serial metadata', () => {
     customerId: 1, options: { kho_mac_dinh_id: 2, bang_gia: ['BAN_LE'] }, applyVat: false,
     vatMode: 'CHUA_BAO_GOM', promotion: '', shippingFee: 0, items: [{ ...product, quantity: 1 }],
   }).san_pham, [{ ma_dong: 'd42', phien_ban_id: 42, so_luong: 1 }]);
+});
+
+test('one promotion reaches both previews and commits; gift allocations never become purchased lines', async () => {
+  const options = { kho_mac_dinh_id: 1, bang_gia: ['BAN_LE'] };
+  const order = { tax: false, promotion: ' SALE ', paymentMethod: 'cash', paid: 99000, paymentReceived: true,
+    cart: [{ product: { id: 10 }, quantity: 1, serials: [] }],
+    preview: { data: { san_pham: [{ ma_dong: 'GIFT-7-20', phien_ban_id: 20, la_qua_tang: true, serial_requirements: [{ phien_ban_id: 20, so_luong_can_serial: 1 }] }] } },
+    giftSerials: { 'GIFT-7-20:20': [{ id: 500 }], 'GIFT-OLD:99': [{ id: 900 }] },
+  };
+  const form = { options, promotion: ' SALE ', customerId: 1, applyVat: false, vatMode: 'CHUA_BAO_GOM', shippingFee: 0,
+    items: [{ id: 10, quantity: 1 }], recipient: { name: 'Test', phone: '0900000000', address: '' }, delivery: 'NHAN_TAI_CUA_HANG', payment: 'TIEN_MAT', note: '' };
+  const pos = buildPosCheckoutBody(order, options, 99000);
+  assert.equal(pos.ma_chuong_trinh, 'SALE');
+  assert.deepEqual(pos.san_pham, [{ ma_dong: 'd10', phien_ban_id: 10, so_luong: 1 }]);
+  assert.deepEqual(pos.phan_bo_serial, [{ ma_dong: 'GIFT-7-20', phien_ban_id: 20, serial_ids: [500] }]);
+  const before = { fetch: globalThis.fetch, storage: globalThis.localStorage };
+  const calls = [];
+  const signal = new AbortController().signal;
+  try {
+    globalThis.localStorage = { getItem: () => 'test-token' };
+    globalThis.fetch = async (url, request) => { calls.push({ url, request, body: JSON.parse(request.body) }); return new Response(JSON.stringify({ data: { tien_chiet_khau: 1000, tong_thanh_toan: 99000 } })); };
+    await api.previewOnlineOrder(buildPreviewBody(form), signal);
+    await api.previewPosOrder(order, options, signal);
+    await api.createOnlineOrder(form, 99000, 'online-key');
+    await checkoutPosOrder(pos, 'pos-key');
+    assert.deepEqual(calls.map(call => call.url), ['/api/v1/admin/sales/preview', '/api/v1/admin/sales/preview', '/api/v1/admin/orders', '/api/v1/admin/pos/checkout']);
+    assert.ok(calls.every(call => call.body.ma_chuong_trinh === 'SALE' && !Array.isArray(call.body.ma_chuong_trinh)));
+    assert.equal(calls[0].body.loai_don_hang, 'ONLINE');
+    assert.equal(calls[1].body.loai_don_hang, 'TAI_QUAY');
+    assert.equal(calls[1].request.signal, signal);
+    assert.equal(calls[2].body.tong_thanh_toan_xac_nhan, 99000);
+    for (const status of [404, 409]) {
+      const message = status === 404 ? 'Mã khuyến mại không tồn tại' : 'Khuyến mại chưa bắt đầu, đã hết hạn hoặc hết lượt';
+      globalThis.fetch = async () => new Response(JSON.stringify({ message }), { status });
+      for (const action of [() => api.previewOnlineOrder(buildPreviewBody(form)), () => api.previewPosOrder(order, options), () => api.createOnlineOrder(form, 99000, 'online-key'), () => checkoutPosOrder(pos, 'pos-key')]) await assert.rejects(action, error => error.status === status && error.message === message);
+    }
+  } finally { globalThis.fetch = before.fetch; globalThis.localStorage = before.storage; }
 });

@@ -1,7 +1,8 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { HiOutlineSearch } from 'react-icons/hi';
-import { getPromotions } from '../../../../data/mockPromotions';
+import { getPromotions } from '../api/promotionApi.js';
+import { normalizePromotion, PROMOTION_STATUS } from '../promotionModel.js';
 import './DanhSachKhuyenMai.css';
 
 export default function DanhSachKhuyenMai() {
@@ -10,50 +11,48 @@ export default function DanhSachKhuyenMai() {
     const [promotions, setPromotions] = useState([]);
     const [toastMessage, setToastMessage] = useState('');
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState('');
+    const [totalItems, setTotalItems] = useState(0);
+    const [totalPages, setTotalPages] = useState(1);
     const [searchQuery, setSearchQuery] = useState('');
     const [methodFilter, setMethodFilter] = useState('ALL');
     const [statusFilter, setStatusFilter] = useState('ALL');
 
     // Pagination State
     const [currentPage, setCurrentPage] = useState(1);
-    const ITEMS_PER_PAGE = 5;
+    const ITEMS_PER_PAGE = 10;
 
     useEffect(() => {
         if (location.state?.successMessage) {
             setToastMessage(location.state.successMessage);
             window.history.replaceState({}, document.title);
-            setTimeout(() => setToastMessage(''), 3000);
+            const timer = setTimeout(() => setToastMessage(''), 3000);
+            return () => clearTimeout(timer);
         }
-
-        const fetchData = async () => {
-            const data = await getPromotions();
-            setPromotions(data);
-            setLoading(false);
-        };
-        fetchData();
     }, [location.state]);
 
-    // Reset to page 1 whenever filters change
     useEffect(() => {
-        setCurrentPage(1);
-    }, [searchQuery, methodFilter, statusFilter]);
-
-    const filteredPromotions = useMemo(() => {
-        return promotions.filter(promo => {
-            const matchSearch = promo.code.toLowerCase().includes(searchQuery.toLowerCase()) || promo.name.toLowerCase().includes(searchQuery.toLowerCase());
-            const matchMethod = methodFilter === 'ALL' || promo.method === methodFilter;
-            const matchStatus = statusFilter === 'ALL' || promo.status === statusFilter;
-            return matchSearch && matchMethod && matchStatus;
-        });
-    }, [promotions, searchQuery, methodFilter, statusFilter]);
-
-    const totalItems = filteredPromotions.length;
-    const totalPages = Math.ceil(totalItems / ITEMS_PER_PAGE) || 1;
-
-    const paginatedPromotions = useMemo(() => {
-        const start = (currentPage - 1) * ITEMS_PER_PAGE;
-        return filteredPromotions.slice(start, start + ITEMS_PER_PAGE);
-    }, [filteredPromotions, currentPage]);
+        const controller = new AbortController();
+        setLoading(true);
+        setError('');
+        const fetchData = async () => {
+            try {
+                const data = await getPromotions({ keyword: searchQuery, method: methodFilter, status: statusFilter, page: currentPage - 1, limit: ITEMS_PER_PAGE }, controller.signal);
+                if (controller.signal.aborted) return;
+                const pages = Math.max(1, data.pagination.total_pages);
+                setPromotions(data.items.map(normalizePromotion));
+                setTotalItems(data.pagination.total_elements);
+                setTotalPages(pages);
+                if (currentPage > pages) setCurrentPage(pages);
+            } catch (error) {
+                if (!controller.signal.aborted) setError(error.message);
+            } finally {
+                if (!controller.signal.aborted) setLoading(false);
+            }
+        };
+        const timer = setTimeout(fetchData, 250);
+        return () => { clearTimeout(timer); controller.abort(); };
+    }, [searchQuery, methodFilter, statusFilter, currentPage]);
 
     const startIndex = totalItems === 0 ? 0 : (currentPage - 1) * ITEMS_PER_PAGE + 1;
     const endIndex = Math.min(currentPage * ITEMS_PER_PAGE, totalItems);
@@ -62,6 +61,7 @@ export default function DanhSachKhuyenMai() {
         switch (status) {
             case 'ĐANG ÁP DỤNG': return 'status-badge status-active';
             case 'HẾT LƯỢT': return 'status-badge status-out';
+            case 'HẾT HẠN': return 'status-badge status-out';
             case 'CHƯA BẮT ĐẦU': return 'status-badge status-pending';
             case 'TẠM DỪNG': return 'status-badge status-paused';
             default: return 'status-badge';
@@ -124,21 +124,18 @@ export default function DanhSachKhuyenMai() {
                         type="text" 
                         placeholder="TÌM MÃ / TÊN CHƯƠNG TRÌNH..." 
                         value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
+                        onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
                     />
                 </div>
                 <div className="filter-selects">
-                    <select value={methodFilter} onChange={(e) => setMethodFilter(e.target.value)}>
+                    <select value={methodFilter} onChange={(e) => { setMethodFilter(e.target.value); setCurrentPage(1); }}>
                         <option value="ALL">TẤT CẢ PHƯƠNG THỨC</option>
-                        <option value="CHIẾT KHẤU">CHIẾT KHẤU</option>
-                        <option value="TẶNG SẢN PHẨM">TẶNG SẢN PHẨM</option>
+                        <option value="CHIET_KHAU">CHIẾT KHẤU</option>
+                        <option value="TANG_SAN_PHAM">TẶNG SẢN PHẨM</option>
                     </select>
-                    <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+                    <select value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(1); }}>
                         <option value="ALL">TẤT CẢ TRẠNG THÁI</option>
-                        <option value="ĐANG ÁP DỤNG">ĐANG ÁP DỤNG</option>
-                        <option value="HẾT LƯỢT">HẾT LƯỢT</option>
-                        <option value="CHƯA BẮT ĐẦU">CHƯA BẮT ĐẦU</option>
-                        <option value="TẠM DỪNG">TẠM DỪNG</option>
+                        {Object.entries(PROMOTION_STATUS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
                     </select>
                 </div>
             </div>
@@ -162,8 +159,10 @@ export default function DanhSachKhuyenMai() {
                     <tbody>
                         {loading ? (
                             <tr><td colSpan="9" style={{textAlign: 'center', padding: '20px'}}>Đang tải...</td></tr>
-                        ) : paginatedPromotions.length > 0 ? (
-                            paginatedPromotions.map(promo => (
+                        ) : error ? (
+                            <tr><td colSpan="9" role="alert" style={{textAlign: 'center', padding: '20px', color: '#dc2626'}}>{error}</td></tr>
+                        ) : promotions.length > 0 ? (
+                            promotions.map(promo => (
                                 <tr key={promo.id}>
                                     <td className="promo-code">{promo.code}</td>
                                     <td className="promo-name">{promo.name}</td>
@@ -193,6 +192,7 @@ export default function DanhSachKhuyenMai() {
                                             setSearchQuery('');
                                             setMethodFilter('ALL');
                                             setStatusFilter('ALL');
+                                            setCurrentPage(1);
                                         }}>XÓA BỘ LỌC</button>
                                     </div>
                                 </td>
@@ -203,7 +203,7 @@ export default function DanhSachKhuyenMai() {
             </div>
             </div>
 
-            {!loading && totalItems > 0 && (
+            {!loading && !error && totalItems > 0 && (
                 <div className="promo-pagination">
                     <div className="promo-pagination-info">
                         HIỂN THỊ {startIndex}-{endIndex} TRÊN TỔNG SỐ {totalItems} CHƯƠNG TRÌNH

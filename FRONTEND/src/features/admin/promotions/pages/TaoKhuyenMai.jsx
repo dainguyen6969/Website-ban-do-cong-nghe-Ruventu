@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { addPromotion } from '../../../../data/mockPromotions';
-import mockProducts from '../../../../data/mockProducts';
+import { createPromotion } from '../api/promotionApi.js';
+import { createPromotionBody } from '../promotionModel.js';
 import InlineProductSelector from '../components/InlineProductSelector';
 import '../components/InlineProductSelector.css';
 import './TaoKhuyenMai.css';
@@ -24,6 +24,7 @@ export default function TaoKhuyenMai() {
     
     // Selection state
     const [selectedDiscountProducts, setSelectedDiscountProducts] = useState([]);
+    const [variantCache, setVariantCache] = useState({});
     
     const [selectedGiftBuyProducts, setSelectedGiftBuyProducts] = useState([]);
     const [giftBuyQuantities, setGiftBuyQuantities] = useState({});
@@ -39,121 +40,25 @@ export default function TaoKhuyenMai() {
         setErrors(prev => ({ ...prev, code: null }));
     };
 
-    const validate = () => {
-        const newErrors = {};
-        if (!name.trim()) newErrors.name = 'Vui lòng nhập tên chương trình';
-        if (!code.trim()) newErrors.code = 'Vui lòng nhập mã chương trình';
-        if (!unlimited && (!limit || parseInt(limit) <= 0)) newErrors.limit = 'Vui lòng nhập số lượng hợp lệ';
-        if (!fromDate) newErrors.fromDate = 'Vui lòng chọn ngày bắt đầu';
-        if (!toDate) newErrors.toDate = 'Vui lòng chọn ngày kết thúc';
-        
-        if (fromDate && toDate && new Date(fromDate) > new Date(toDate)) {
-            newErrors.toDate = 'Ngày kết thúc phải lớn hơn hoặc bằng ngày bắt đầu';
-        }
+    const [saving, setSaving] = useState(false);
 
-        if (method === 'CHIẾT KHẤU') {
-            if (!discountValue || Number(discountValue) <= 0) {
-                newErrors.discountValue = 'Vui lòng nhập giá trị giảm hợp lệ';
-            }
-            if (discountType === 'PRODUCT' && selectedDiscountProducts.length === 0) {
-                newErrors.discountProducts = 'Vui lòng chọn ít nhất 1 phiên bản áp dụng';
-            }
-        } else if (method === 'TẶNG SẢN PHẨM') {
-            if (selectedGiftBuyProducts.length === 0) {
-                newErrors.giftBuy = 'Vui lòng chọn sản phẩm khách cần mua';
-            }
-            if (selectedGiftReceiveProducts.length === 0) {
-                newErrors.giftReceive = 'Vui lòng chọn sản phẩm tặng';
-            }
-        }
-
-        setErrors(newErrors);
-        return Object.keys(newErrors).length === 0;
-    };
-
-    const handleSave = () => {
-        if (validate()) {
-            const parsedLimit = unlimited ? null : (parseInt(limit) || 0);
-            
-            const todayStr = new Date().toISOString().split('T')[0];
-            let status = 'ĐANG ÁP DỤNG';
-            if (fromDate && fromDate > todayStr) {
-                status = 'CHƯA BẮT ĐẦU';
-            } else if (toDate && toDate < todayStr) {
-                status = 'HẾT LƯỢT';
-            }
-
-            let appliedProducts = [];
-            let buyProducts = [];
-            let giftProducts = [];
-
-            if (method === 'CHIẾT KHẤU' && discountType === 'PRODUCT') {
-                appliedProducts = selectedDiscountProducts.map(id => {
-                    const prod = mockProducts.find(p => p.id === id || p.maSanPham === id);
-                    return {
-                        role: 'SẢN PHẨM MUA',
-                        code: prod ? prod.maSanPham : id,
-                        name: prod ? prod.tenSanPham : id,
-                        version: prod && prod.soPhienBan ? `${prod.soPhienBan} phiên bản` : 'Mặc định',
-                        quantity: 'SL: 1'
-                    };
-                });
-            } else if (method === 'TẶNG SẢN PHẨM') {
-                buyProducts = selectedGiftBuyProducts.map(id => {
-                    const prod = mockProducts.find(p => p.id === id || p.maSanPham === id);
-                    const qty = giftBuyQuantities[id] || 1;
-                    return {
-                        code: prod ? prod.maSanPham : id,
-                        name: prod ? prod.tenSanPham : id,
-                        version: prod && prod.soPhienBan ? `${prod.soPhienBan} phiên bản` : 'Mặc định',
-                        reqQuantity: `SL: ${qty}`
-                    };
-                });
-
-                giftProducts = selectedGiftReceiveProducts.map(id => {
-                    const prod = mockProducts.find(p => p.id === id || p.maSanPham === id);
-                    const qty = giftReceiveQuantities[id] || 1;
-                    return {
-                        code: prod ? prod.maSanPham : id,
-                        name: prod ? prod.tenSanPham : id,
-                        version: prod && prod.soPhienBan ? `${prod.soPhienBan} phiên bản` : 'Mặc định',
-                        giftQuantity: `SL: ${qty}`
-                    };
-                });
-
-                appliedProducts = [
-                    ...buyProducts.map(b => ({ role: 'SẢN PHẨM MUA', code: b.code, name: b.name, version: b.version, quantity: b.reqQuantity })),
-                    ...giftProducts.map(g => ({ role: 'SẢN PHẨM TẶNG', code: g.code, name: g.name, version: g.version, quantity: g.giftQuantity }))
-                ];
-            }
-
-            const newPromo = {
-                id: String(Date.now()),
-                code: code.trim().toUpperCase(),
-                name: name.trim(),
-                method: method,
-                target: method === 'CHIẾT KHẤU' 
-                    ? (discountType === 'TOTAL' ? 'TỔNG ĐƠN HÀNG' : 'PHIÊN BẢN SẢN PHẨM') 
-                    : 'PHIÊN BẢN SẢN PHẨM',
-                maxUsage: parsedLimit,
-                usedUsage: 0,
-                remainingUsage: parsedLimit,
-                startDate: fromDate,
-                endDate: toDate,
-                status: status,
-                description: description.trim() || 'Không có mô tả',
-                discountType: method === 'CHIẾT KHẤU' 
-                    ? (discountType === 'TOTAL' ? 'GIẢM TIỀN TRÊN TỔNG ĐƠN' : 'GIẢM TIỀN THEO PHIÊN BẢN SẢN PHẨM') 
-                    : 'MUA PHIÊN BẢN CHỈ ĐỊNH ➔ TẶNG PHIÊN BẢN CHỈ ĐỊNH',
-                discountValue: Number(discountValue) || 0,
-                appliedProducts: appliedProducts,
-                buyProducts: buyProducts,
-                giftProducts: giftProducts
-            };
-
-            addPromotion(newPromo);
-
-            navigate('/admin/khuyen-mai/danh-sach-khuyen-mai');
+    const handleSave = async () => {
+        if (saving) return;
+        setSaving(true);
+        setErrors({});
+        try {
+            await createPromotion(createPromotionBody({
+                name, code, limit, unlimited, fromDate, toDate, description, method, discountType, discountValue,
+                selectedDiscountProducts, selectedGiftBuyProducts, giftBuyQuantities,
+                selectedGiftReceiveProducts, giftReceiveQuantities,
+            }));
+            navigate('/admin/khuyen-mai/danh-sach-khuyen-mai', {
+                state: { successMessage: 'Tạo khuyến mại thành công' },
+            });
+        } catch (error) {
+            setErrors({ save: error.message });
+        } finally {
+            setSaving(false);
         }
     };
 
@@ -327,6 +232,8 @@ export default function TaoKhuyenMai() {
                                 {discountType === 'PRODUCT' && (
                                     <div className="form-group">
                                         <InlineProductSelector 
+                                            variantCache={variantCache}
+                                            setVariantCache={setVariantCache}
                                             label="PHIÊN BẢN ÁP DỤNG *"
                                             selectedIds={selectedDiscountProducts}
                                             onSelectionChange={(ids) => {
@@ -344,6 +251,8 @@ export default function TaoKhuyenMai() {
                             <>
                                 <div className="form-group">
                                     <InlineProductSelector 
+                                        variantCache={variantCache}
+                                        setVariantCache={setVariantCache}
                                         label="SẢN PHẨM KHÁCH CẦN MUA *"
                                         selectedIds={selectedGiftBuyProducts}
                                         onSelectionChange={(ids) => {
@@ -360,6 +269,8 @@ export default function TaoKhuyenMai() {
 
                                 <div className="form-group">
                                     <InlineProductSelector 
+                                        variantCache={variantCache}
+                                        setVariantCache={setVariantCache}
                                         label="SẢN PHẨM TẶNG *"
                                         selectedIds={selectedGiftReceiveProducts}
                                         onSelectionChange={(ids) => {
@@ -377,9 +288,10 @@ export default function TaoKhuyenMai() {
                         )}
                     </div>
                     
+                    {errors.save && <p className="error-text" role="alert">{errors.save}</p>}
                     <div className="promo-actions">
                         <button className="btn-cancel" onClick={() => navigate('/admin/khuyen-mai/danh-sach-khuyen-mai')}>HỦY</button>
-                        <button className="btn-save" onClick={handleSave}>LƯU KHUYẾN MẠI</button>
+                        <button className="btn-save" disabled={saving} onClick={handleSave}>{saving ? 'ĐANG LƯU...' : 'LƯU KHUYẾN MẠI'}</button>
                     </div>
                 </div>
             </div>
