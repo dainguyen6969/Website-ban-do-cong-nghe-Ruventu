@@ -1,165 +1,276 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useCashbook } from '../context/CashbookContext';
+import { cashbookService } from '../../../../shared/services/cashbookService';
+import DetailTablePagination from '../../../../shared/components/ui/DetailTablePagination';
 import './SoQuy.css';
 
 export default function SoQuy() {
     const navigate = useNavigate();
-    const { cashbookList = [] } = useCashbook() || {};
 
-    const [fromDate, setFromDate] = useState('');
-    const [toDate, setToDate] = useState('');
-    const [filterType, setFilterType] = useState('Tất cả');
-    const [filterMethod, setFilterMethod] = useState('Tất cả');
+    // Default dates: First day of current month to today
+    const getFirstDayOfMonth = () => {
+        const d = new Date();
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        return `${year}-${month}-01`;
+    };
+
+    const getToday = () => {
+        const d = new Date();
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    };
+
+    const defaultFromDate = getFirstDayOfMonth();
+    const defaultToDate = getToday();
+
+    // Filter states
+    const [fromDate, setFromDate] = useState(defaultFromDate);
+    const [toDate, setToDate] = useState(defaultToDate);
+    const [filterType, setFilterType] = useState('ALL');
+    const [filterMethod, setFilterMethod] = useState('ALL');
     const [searchPerson, setSearchPerson] = useState('');
-    const [filterStaff, setFilterStaff] = useState('Tất cả');
+    const [debouncedPerson, setDebouncedPerson] = useState('');
 
-    const initialBalance = 125000000;
+    // Pagination
+    const [page, setPage] = useState(1);
+    const pageSize = 20;
+
+    // Data states
+    const [transactions, setTransactions] = useState([]);
+    const [totalElements, setTotalElements] = useState(0);
+    const [summary, setSummary] = useState({
+        soDuDauKy: 0,
+        tongThu: 0,
+        tongChi: 0,
+        tonCuoiKy: 0
+    });
+    const [isLoading, setIsLoading] = useState(true);
+    const [isExporting, setIsExporting] = useState(false);
+    const [dateError, setDateError] = useState('');
+
+    const searchTimeoutRef = useRef(null);
 
     const hasActiveFilter = Boolean(
-        fromDate ||
-        toDate ||
-        (filterType && filterType !== 'Tất cả') ||
-        (filterMethod && filterMethod !== 'Tất cả') ||
-        searchPerson.trim() !== '' ||
-        (filterStaff && filterStaff !== 'Tất cả')
+        fromDate !== defaultFromDate ||
+        toDate !== defaultToDate ||
+        filterType !== 'ALL' ||
+        filterMethod !== 'ALL' ||
+        searchPerson.trim() !== ''
     );
 
     const handleClearFilters = () => {
-        setFromDate('');
-        setToDate('');
-        setFilterType('Tất cả');
-        setFilterMethod('Tất cả');
+        setFromDate(defaultFromDate);
+        setToDate(defaultToDate);
+        setFilterType('ALL');
+        setFilterMethod('ALL');
         setSearchPerson('');
-        setFilterStaff('Tất cả');
+        setDebouncedPerson('');
+        setDateError('');
+        setPage(1);
     };
 
-    const filteredData = useMemo(() => {
-        return cashbookList.filter(item => {
-            if (fromDate && item.date < fromDate) return false;
-            if (toDate && item.date > toDate) return false;
+    const handlePersonChange = (e) => {
+        const value = e.target.value;
+        setSearchPerson(value);
+        if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
+        searchTimeoutRef.current = setTimeout(() => {
+            setDebouncedPerson(value);
+            setPage(1);
+        }, 400);
+    };
 
-            if (filterType && filterType !== 'Tất cả') {
-                if (item.type.toLowerCase() !== filterType.toLowerCase()) return false;
+    const fetchCashbookData = useCallback(async () => {
+        if (!fromDate || !toDate) return;
+        if (fromDate > toDate) {
+            setDateError('Ngày bắt đầu không được lớn hơn ngày kết thúc');
+            return;
+        }
+        setDateError('');
+        setIsLoading(true);
+
+        try {
+            const params = {
+                tu_ngay: fromDate,
+                den_ngay: toDate,
+                loai_phieu: filterType !== 'ALL' ? filterType : undefined,
+                phuong_thuc_thanh_toan: filterMethod !== 'ALL' ? filterMethod : undefined,
+                ten_nguoi_nop_nhan: debouncedPerson.trim() || undefined,
+                page: Math.max(0, page - 1),
+                limit: pageSize
+            };
+
+            const response = await cashbookService.getCashbook(params);
+            if (response.data?.data) {
+                const data = response.data.data;
+                setTransactions(data.items || []);
+                setTotalElements(data.pagination?.total_elements || 0);
+                if (data.tong_hop) {
+                    setSummary({
+                        soDuDauKy: data.tong_hop.so_du_dau_ky || 0,
+                        tongThu: data.tong_hop.tong_thu || 0,
+                        tongChi: data.tong_hop.tong_chi || 0,
+                        tonCuoiKy: data.tong_hop.ton_cuoi_ky || 0
+                    });
+                }
             }
+        } catch (error) {
+            console.error('Lỗi khi tải dữ liệu sổ quỹ:', error);
+            setTransactions([]);
+        } finally {
+            setIsLoading(false);
+        }
+    }, [fromDate, toDate, filterType, filterMethod, debouncedPerson, page]);
 
-            if (filterMethod && filterMethod !== 'Tất cả') {
-                if (item.method.toLowerCase() !== filterMethod.toLowerCase()) return false;
-            }
+    useEffect(() => {
+        fetchCashbookData();
+    }, [fetchCashbookData]);
 
-            if (searchPerson.trim()) {
-                const query = searchPerson.toLowerCase().trim();
-                const personMatch = item.person.toLowerCase().includes(query);
-                const codeMatch = item.code.toLowerCase().includes(query);
-                if (!personMatch && !codeMatch) return false;
-            }
+    const handleExportExcel = async () => {
+        if (!fromDate || !toDate) {
+            alert('Vui lòng chọn khoảng thời gian');
+            return;
+        }
+        if (fromDate > toDate) {
+            alert('Khoảng thời gian không hợp lệ (ngày bắt đầu lớn hơn ngày kết thúc)');
+            return;
+        }
 
-            if (filterStaff && filterStaff !== 'Tất cả') {
-                if (item.staff && item.staff.toLowerCase() !== filterStaff.toLowerCase()) return false;
-            }
+        setIsExporting(true);
+        try {
+            const params = {
+                tu_ngay: fromDate,
+                den_ngay: toDate,
+                loai_phieu: filterType !== 'ALL' ? filterType : undefined,
+                phuong_thuc_thanh_toan: filterMethod !== 'ALL' ? filterMethod : undefined,
+                ten_nguoi_nop_nhan: debouncedPerson.trim() || undefined
+            };
 
-            return true;
-        });
-    }, [cashbookList, fromDate, toDate, filterType, filterMethod, searchPerson, filterStaff]);
-
-    const totalThu = useMemo(() => {
-        return filteredData.reduce((acc, row) => acc + (row.amountIn || 0), 0);
-    }, [filteredData]);
-
-    const totalChi = useMemo(() => {
-        return filteredData.reduce((acc, row) => acc + (row.amountOut || 0), 0);
-    }, [filteredData]);
-
-    const tonCuoiKy = initialBalance + totalThu - totalChi;
+            const response = await cashbookService.exportCashbook(params);
+            const blob = new Blob([response.data], {
+                type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+            });
+            const downloadUrl = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = downloadUrl;
+            link.download = `So_quy_${fromDate}_${toDate}.xlsx`;
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            window.URL.revokeObjectURL(downloadUrl);
+        } catch (error) {
+            console.error('Lỗi khi xuất file Excel sổ quỹ:', error);
+            alert('Xuất file không thành công, vui lòng thử lại.');
+        } finally {
+            setIsExporting(false);
+        }
+    };
 
     const formatMoney = (amount) => {
-        if (!amount && amount !== 0) return '-';
-        return amount.toLocaleString('vi-VN') + 'đ';
+        if (!amount && amount !== 0) return '0đ';
+        return Number(amount).toLocaleString('vi-VN') + 'đ';
+    };
+
+    const formatDateDisplay = (dateStr) => {
+        if (!dateStr) return '—';
+        try {
+            return new Date(dateStr).toLocaleString('vi-VN', {
+                day: '2-digit', month: '2-digit', year: 'numeric',
+                hour: '2-digit', minute: '2-digit'
+            });
+        } catch {
+            return dateStr;
+        }
     };
 
     const getMethodStyle = (method) => {
         switch (method) {
+            case 'TIEN_MAT':
             case 'TIỀN MẶT': return 'method-badge method-cash';
+            case 'CHUYEN_KHOAN':
             case 'CHUYỂN KHOẢN': return 'method-badge method-transfer';
+            case 'THE':
             case 'QUẸT THẺ': return 'method-badge method-card';
             default: return 'method-badge';
+        }
+    };
+
+    const mapPaymentMethodToText = (method) => {
+        switch (method) {
+            case 'TIEN_MAT': return 'TIỀN MẶT';
+            case 'CHUYEN_KHOAN': return 'CHUYỂN KHOẢN';
+            case 'THE': return 'QUẸT THẺ';
+            default: return method || '—';
         }
     };
 
     return (
         <div className="sq-page">
             <div className="sq-header">
-                <div className="sq-breadcrumb">ADMIN <span>&rsaquo;</span> SỔ QUỸ</div>
+                <div className="sq-breadcrumb">ADMIN <span>&rsaquo;</span> SỔ QUỸ TIỀN MẶT / SỔ QUỸ</div>
                 <button className="cb-btn-primary bg-red" onClick={() => navigate('/admin/so-quy-tien-mat/tao-phieu-thu-chi')}>
                     + TẠO PHIẾU THU / CHI
                 </button>
-
             </div>
 
+            {/* Filter Bar */}
             <div className="cb-filter-bar">
                 <div className="cb-filter-item">
-                    <label>TỪ NGÀY</label>
+                    <label>TỪ NGÀY *</label>
                     <input
                         type="date"
                         value={fromDate}
-                        className={fromDate ? 'active-filter' : ''}
-                        onChange={e => setFromDate(e.target.value)}
+                        className={fromDate !== defaultFromDate ? 'active-filter' : ''}
+                        onChange={e => { setFromDate(e.target.value); setPage(1); }}
                     />
                 </div>
                 <div className="cb-filter-item">
-                    <label>ĐẾN NGÀY</label>
+                    <label>ĐẾN NGÀY *</label>
                     <input
                         type="date"
                         value={toDate}
-                        className={toDate ? 'active-filter' : ''}
-                        onChange={e => setToDate(e.target.value)}
+                        className={toDate !== defaultToDate ? 'active-filter' : ''}
+                        onChange={e => { setToDate(e.target.value); setPage(1); }}
                     />
                 </div>
                 <div className="cb-filter-item">
                     <label>LOẠI PHIẾU</label>
                     <select
                         value={filterType}
-                        className={filterType !== 'Tất cả' ? 'active-filter' : ''}
-                        onChange={e => setFilterType(e.target.value)}
+                        className={filterType !== 'ALL' ? 'active-filter' : ''}
+                        onChange={e => { setFilterType(e.target.value); setPage(1); }}
                     >
-                        <option value="Tất cả">Tất cả</option>
-                        <option value="Phiếu thu">Phiếu thu</option>
-                        <option value="Phiếu chi">Phiếu chi</option>
+                        <option value="ALL">Tất cả</option>
+                        <option value="THU">Phiếu thu</option>
+                        <option value="CHI">Phiếu chi</option>
                     </select>
                 </div>
                 <div className="cb-filter-item">
                     <label>PHƯƠNG THỨC</label>
                     <select
                         value={filterMethod}
-                        className={filterMethod !== 'Tất cả' ? 'active-filter' : ''}
-                        onChange={e => setFilterMethod(e.target.value)}
+                        className={filterMethod !== 'ALL' ? 'active-filter' : ''}
+                        onChange={e => { setFilterMethod(e.target.value); setPage(1); }}
                     >
-                        <option value="Tất cả">Tất cả</option>
-                        <option value="Tiền mặt">Tiền mặt</option>
-                        <option value="Chuyển khoản">Chuyển khoản</option>
+                        <option value="ALL">Tất cả</option>
+                        <option value="TIEN_MAT">Tiền mặt</option>
+                        <option value="CHUYEN_KHOAN">Chuyển khoản</option>
+                        <option value="THE">Quẹt thẻ</option>
                     </select>
                 </div>
                 <div className="cb-filter-item">
                     <label>NGƯỜI NỘP / NHẬN</label>
                     <input
                         type="text"
-                        placeholder="Tên khách / đơn vị..."
+                        placeholder="Tìm tên khách / đối tác..."
                         value={searchPerson}
                         className={searchPerson.trim() ? 'active-filter' : ''}
-                        onChange={e => setSearchPerson(e.target.value)}
+                        onChange={handlePersonChange}
                     />
                 </div>
-                <div className="cb-filter-item">
-                    <label>NHÂN VIÊN</label>
-                    <select
-                        value={filterStaff}
-                        className={filterStaff !== 'Tất cả' ? 'active-filter' : ''}
-                        onChange={e => setFilterStaff(e.target.value)}
-                    >
-                        <option value="Tất cả">Tất cả</option>
-                        <option value="Trần Thị B">Trần Thị B</option>
-                    </select>
-                </div>
+                
                 <div className="cb-filter-actions">
                     {hasActiveFilter && (
                         <button className="cb-btn-outline icon-btn btn-clear-filter" onClick={handleClearFilters}>
@@ -170,7 +281,7 @@ export default function SoQuy() {
                             XÓA BỘ LỌC
                         </button>
                     )}
-                    <button className="cb-btn-outline icon-btn">
+                    <button className="cb-btn-outline icon-btn" onClick={() => navigate('/admin/so-quy-tien-mat/tong-quan')}>
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{marginRight: '6px'}}>
                             <line x1="18" y1="20" x2="18" y2="10"/>
                             <line x1="12" y1="20" x2="12" y2="4"/>
@@ -178,7 +289,7 @@ export default function SoQuy() {
                         </svg>
                         XEM BÁO CÁO
                     </button>
-                    <button className="cb-btn-dark icon-btn">
+                    <button className="cb-btn-dark icon-btn" onClick={handleExportExcel} disabled={isExporting}>
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{marginRight: '6px'}}>
                             <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
                             <polyline points="14 2 14 8 20 8"/>
@@ -186,11 +297,18 @@ export default function SoQuy() {
                             <line x1="16" y1="17" x2="8" y2="17"/>
                             <polyline points="10 9 9 9 8 9"/>
                         </svg>
-                        XUẤT FILE EXCEL
+                        {isExporting ? 'ĐANG XUẤT...' : 'XUẤT FILE EXCEL'}
                     </button>
                 </div>
             </div>
 
+            {dateError && (
+                <div style={{padding: '8px 28px', backgroundColor: '#fee2e2', color: '#b91c1c', fontSize: '11px', fontWeight: 800}}>
+                    ⚠ {dateError}
+                </div>
+            )}
+
+            {/* 4 Stats Cards */}
             <div className="sq-stats-row">
                 <div className="sq-stat-box">
                     <div className="icon">
@@ -202,7 +320,7 @@ export default function SoQuy() {
                     </div>
                     <div className="info">
                         <label>SỐ DƯ ĐẦU KỲ</label>
-                        <div className="val">{formatMoney(initialBalance)}</div>
+                        <div className="val">{formatMoney(summary.soDuDauKy)}</div>
                     </div>
                 </div>
                 <div className="sq-stat-box">
@@ -214,7 +332,7 @@ export default function SoQuy() {
                     </div>
                     <div className="info">
                         <label>TỔNG THU</label>
-                        <div className="val text-green">+{formatMoney(totalThu)}</div>
+                        <div className="val text-green">+{formatMoney(summary.tongThu)}</div>
                     </div>
                 </div>
                 <div className="sq-stat-box">
@@ -226,23 +344,27 @@ export default function SoQuy() {
                     </div>
                     <div className="info">
                         <label>TỔNG CHI</label>
-                        <div className="val text-red">-{formatMoney(totalChi)}</div>
+                        <div className="val text-red">-{formatMoney(summary.tongChi)}</div>
                     </div>
                 </div>
                 <div className="sq-stat-box bg-dark">
                     <div className="icon icon-red-dollar">$</div>
                     <div className="info">
                         <label>TỒN CUỐI KỲ</label>
-                        <div className="val text-red">{formatMoney(tonCuoiKy)}</div>
+                        <div className="val text-red">{formatMoney(summary.tonCuoiKy)}</div>
                     </div>
                 </div>
             </div>
 
+            {/* Formula Subtext */}
             <div className="sq-subtext-row">
-                <span>(i) Tồn cuối kỳ = Số dư đầu kỳ + Tổng thu - Tổng chi - Số liệu đang lọc theo điều kiện đã chọn</span>
-                <span className="count-badge">{filteredData.length}/{cashbookList.length} phiếu</span>
+                <span>
+                    (i) Tồn cuối kỳ = {formatMoney(summary.soDuDauKy)} (Đầu kỳ) + {formatMoney(summary.tongThu)} (Tổng thu) - {formatMoney(summary.tongChi)} (Tổng chi) = {formatMoney(summary.tonCuoiKy)}
+                </span>
+                <span className="count-badge">Tổng {totalElements} phiếu ghi nhận</span>
             </div>
 
+            {/* Table */}
             <div className="sq-table-container">
                 <table className="promo-table sq-table">
                     <thead>
@@ -259,51 +381,70 @@ export default function SoQuy() {
                         </tr>
                     </thead>
                     <tbody>
-                        {filteredData.length > 0 ? (
-                            filteredData.map((row, index) => (
+                        {isLoading ? (
+                            <tr>
+                                <td colSpan="9" style={{ textAlign: 'center', padding: '32px' }}>
+                                    Đang tải dữ liệu sổ quỹ...
+                                </td>
+                            </tr>
+                        ) : transactions.length > 0 ? (
+                            transactions.map((row) => (
                                 <tr key={row.id}>
-                                    <td>{index + 1}</td>
+                                    <td>{row.stt}</td>
                                     <td>
-                                        <span className={`type-badge ${row.type === 'PHIẾU THU' ? 'type-thu' : 'type-chi'}`}>
-                                            {row.type}
+                                        <span className={`type-badge ${row.loai_phieu === 'THU' ? 'type-thu' : 'type-chi'}`}>
+                                            {row.loai_phieu === 'THU' ? 'PHIẾU THU' : 'PHIẾU CHI'}
                                         </span>
                                     </td>
-                                    <td>{row.date}</td>
-                                    <td><strong>{row.code}</strong></td>
-                                    <td>{row.person}</td>
+                                    <td>{formatDateDisplay(row.ngay_ghi_nhan)}</td>
+                                    <td><strong>{row.ma_phieu}</strong></td>
+                                    <td>{row.ten_nguoi_nop_nhan || '—'}</td>
                                     <td>
-                                        <span className={getMethodStyle(row.method)}>{row.method}</span>
+                                        <span className={getMethodStyle(row.phuong_thuc_thanh_toan)}>
+                                            {mapPaymentMethodToText(row.phuong_thuc_thanh_toan)}
+                                        </span>
                                     </td>
                                     <td>
-                                        {row.amountIn > 0 ? <strong className="text-green">+{formatMoney(row.amountIn)}</strong> : '-'}
+                                        {row.tien_thu > 0 ? <strong className="text-green">+{formatMoney(row.tien_thu)}</strong> : '—'}
                                     </td>
                                     <td>
-                                        {row.amountOut > 0 ? <strong className="text-red">-{formatMoney(row.amountOut)}</strong> : '-'}
+                                        {row.tien_chi > 0 ? <strong className="text-red">-{formatMoney(row.tien_chi)}</strong> : '—'}
                                     </td>
-                                    <td className="text-muted">{row.desc}</td>
+                                    <td className="text-muted">{row.mo_ta || '—'}</td>
                                 </tr>
                             ))
                         ) : (
                             <tr>
                                 <td colSpan="9" style={{ textAlign: 'center', padding: '32px', color: '#858c95', fontWeight: 600 }}>
-                                    Không tìm thấy phiếu nào phù hợp với bộ lọc đã chọn
+                                    Không có giao dịch nào phù hợp với bộ lọc trong khoảng thời gian đã chọn
                                 </td>
                             </tr>
                         )}
                     </tbody>
-                    <tfoot>
-                        <tr>
-                            <td colSpan="6" style={{textAlign: 'left'}}>
-                                <strong>TỔNG ({filteredData.length} PHIẾU)</strong>
-                            </td>
-                            <td><strong className="text-green">+{formatMoney(totalThu)}</strong></td>
-                            <td><strong className="text-red">-{formatMoney(totalChi)}</strong></td>
-                            <td></td>
-                        </tr>
-                    </tfoot>
+                    {transactions.length > 0 && (
+                        <tfoot>
+                            <tr>
+                                <td colSpan="6" style={{textAlign: 'left'}}>
+                                    <strong>TỔNG ({totalElements} PHIẾU)</strong>
+                                </td>
+                                <td><strong className="text-green">+{formatMoney(summary.tongThu)}</strong></td>
+                                <td><strong className="text-red">-{formatMoney(summary.tongChi)}</strong></td>
+                                <td></td>
+                            </tr>
+                        </tfoot>
+                    )}
                 </table>
             </div>
+
+            {totalElements > 0 && (
+                <DetailTablePagination 
+                    totalItems={totalElements} 
+                    currentPage={page} 
+                    onPageChange={setPage} 
+                    pageSize={pageSize} 
+                    idPrefix="cashbook" 
+                />
+            )}
         </div>
     );
 }
-

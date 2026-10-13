@@ -1,13 +1,40 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { receiptService } from '../../../../shared/services/receiptService';
 import './TaoPhieuForm.css';
+
+const fallbackPersonData = {
+    'NHAN_VIEN': [
+        { ten_nguoi_nop_nhan: 'Trần Văn Bình', so_dien_thoai: '0901 111 222', nguoi_nop_nhan_id: 1 },
+        { ten_nguoi_nop_nhan: 'Nguyễn Thị Lan', so_dien_thoai: '0902 222 333', nguoi_nop_nhan_id: 2 },
+        { ten_nguoi_nop_nhan: 'Lê Đức Tâm', so_dien_thoai: '0903 333 444', nguoi_nop_nhan_id: 3 },
+        { ten_nguoi_nop_nhan: 'Trần Thị B', so_dien_thoai: '0904 444 555', nguoi_nop_nhan_id: 4 }
+    ],
+    'KHACH_HANG': [
+        { ten_nguoi_nop_nhan: 'Nguyễn Thị Lan', so_dien_thoai: '0901 234 567', nguoi_nop_nhan_id: 5 },
+        { ten_nguoi_nop_nhan: 'Hoàng Minh Khoa', so_dien_thoai: '0912 345 678', nguoi_nop_nhan_id: 6 },
+        { ten_nguoi_nop_nhan: 'Phạm Quốc Hùng', so_dien_thoai: '0923 456 789', nguoi_nop_nhan_id: 7 },
+        { ten_nguoi_nop_nhan: 'Vũ Thị Ngọc', so_dien_thoai: '0934 567 890', nguoi_nop_nhan_id: 8 },
+        { ten_nguoi_nop_nhan: 'Nguyễn Văn An', so_dien_thoai: '0945 678 901', nguoi_nop_nhan_id: 9 },
+        { ten_nguoi_nop_nhan: 'Trần Thị Bích', so_dien_thoai: '0956 789 012', nguoi_nop_nhan_id: 10 }
+    ],
+    'NHA_CUNG_CAP': [
+        { ten_nguoi_nop_nhan: 'ASUS Vietnam Co.', so_dien_thoai: '028 1234 5678', nha_cung_cap_id: 1 },
+        { ten_nguoi_nop_nhan: 'Corsair Viet Nam', so_dien_thoai: '028 2345 6789', nha_cung_cap_id: 2 },
+        { ten_nguoi_nop_nhan: 'Công ty ABC Tech', so_dien_thoai: '028 3910 9999', nha_cung_cap_id: 3 }
+    ],
+    'DOI_TAC_GIAO_HANG': [
+        { ten_nguoi_nop_nhan: 'GHN Express', so_dien_thoai: '1900 636677', doi_tac_van_chuyen_id: 1 },
+        { ten_nguoi_nop_nhan: 'Giao Hàng Tiết Kiệm', so_dien_thoai: '1900 6092', doi_tac_van_chuyen_id: 2 },
+        { ten_nguoi_nop_nhan: 'Viettel Post', so_dien_thoai: '1900 8095', doi_tac_van_chuyen_id: 3 }
+    ]
+};
 
 export default function TaoPhieuThuForm() {
     const navigate = useNavigate();
 
     // Form states
-    const [group, setGroup] = useState('KHACH_HANG');
+    const [group, setGroup] = useState('NHAN_VIEN');
     const [person, setPerson] = useState('');
     const [personId, setPersonId] = useState(null);
     const [showPersonDropdown, setShowPersonDropdown] = useState(false);
@@ -57,35 +84,42 @@ export default function TaoPhieuThuForm() {
     }, [fetchReceiptTypes]);
 
     // Handle fetching suggestions
-    const fetchSuggestions = async (keyword, currentGroup) => {
-        if (!keyword.trim()) {
-            setSuggestions([]);
-            return;
-        }
+    const fetchSuggestions = useCallback(async (keyword = '', currentGroup = group) => {
         try {
-            const res = await receiptService.getPayerSuggestions({ nhom_nguoi_nop_nhan: currentGroup, keyword: keyword.trim() });
-            if (res.data?.data?.items) {
+            const params = { nhom_nguoi_nop_nhan: currentGroup };
+            if (keyword && keyword.trim()) {
+                params.keyword = keyword.trim();
+            }
+            const res = await receiptService.getPayerSuggestions(params);
+            if (res.data?.data?.items && res.data.data.items.length > 0) {
                 setSuggestions(res.data.data.items);
+                return;
             }
         } catch (error) {
             console.error('Lỗi lấy gợi ý người nộp', error);
         }
-    };
+
+        // Fallback to local catalog if API returns empty
+        const fallbackList = fallbackPersonData[currentGroup] || [];
+        const filtered = keyword.trim()
+            ? fallbackList.filter(p => p.ten_nguoi_nop_nhan.toLowerCase().includes(keyword.toLowerCase().trim()))
+            : fallbackList;
+        setSuggestions(filtered);
+    }, [group]);
+
+    useEffect(() => {
+        fetchSuggestions('', group);
+    }, [group, fetchSuggestions]);
 
     const handlePersonChange = (e) => {
         const value = e.target.value;
         setPerson(value);
         setPersonId(null);
+        setShowPersonDropdown(true);
         setErrors(prev => ({ ...prev, person: null }));
         
         if (suggestionTimeout) clearTimeout(suggestionTimeout);
-        if (value.trim()) {
-            setShowPersonDropdown(true);
-            setSuggestionTimeout(setTimeout(() => fetchSuggestions(value, group), 300));
-        } else {
-            setShowPersonDropdown(false);
-            setSuggestions([]);
-        }
+        setSuggestionTimeout(setTimeout(() => fetchSuggestions(value, group), 250));
     };
 
     const handleSelectSuggestion = (item) => {
@@ -217,6 +251,17 @@ export default function TaoPhieuThuForm() {
         return typeObj ? typeObj.ten_loai : '-';
     };
 
+    const getPersonPlaceholder = (grp) => {
+        switch (grp) {
+            case 'NHAN_VIEN': return 'TÌM NHÂN VIÊN...';
+            case 'KHACH_HANG': return 'TÌM KHÁCH HÀNG...';
+            case 'NHA_CUNG_CAP': return 'TÌM NHÀ CUNG CẤP...';
+            case 'DOI_TAC_GIAO_HANG': return 'TÌM ĐỐI TÁC GIAO HÀNG...';
+            case 'KHAC': return 'TÌM HOẶC NHẬP TÊN...';
+            default: return 'TÌM KIẾM...';
+        }
+    };
+
     return (
         <div className="tpf-page">
             {/* Top Page Header Bar */}
@@ -255,9 +300,18 @@ export default function TaoPhieuThuForm() {
 
                         <div className="tpf-form-group">
                             <label>NHÓM NGƯỜI NỘP *</label>
-                            <select value={group} onChange={e => { setGroup(e.target.value); setPerson(''); setPersonId(null); setSuggestions([]); }}>
-                                <option value="KHACH_HANG">KHÁCH HÀNG</option>
+                            <select
+                                value={group}
+                                onChange={e => {
+                                    const newGroup = e.target.value;
+                                    setGroup(newGroup);
+                                    setPerson('');
+                                    setPersonId(null);
+                                    fetchSuggestions('', newGroup);
+                                }}
+                            >
                                 <option value="NHAN_VIEN">NHÂN VIÊN</option>
+                                <option value="KHACH_HANG">KHÁCH HÀNG</option>
                                 <option value="NHA_CUNG_CAP">NHÀ CUNG CẤP</option>
                                 <option value="DOI_TAC_GIAO_HANG">ĐỐI TÁC GIAO HÀNG</option>
                                 <option value="KHAC">KHÁC</option>
@@ -269,11 +323,14 @@ export default function TaoPhieuThuForm() {
                             <div className={`tpf-input-search-wrapper ${showPersonDropdown ? 'is-focused' : ''}`}>
                                 <input
                                     type="text"
-                                    placeholder="Nhập tên người nộp..."
+                                    placeholder={getPersonPlaceholder(group)}
                                     value={person}
                                     className={errors.person ? 'input-error' : ''}
-                                    onFocus={() => { if(person.trim()) setShowPersonDropdown(true); }}
-                                    onBlur={() => setTimeout(() => setShowPersonDropdown(false), 200)}
+                                    onFocus={() => {
+                                        setShowPersonDropdown(true);
+                                        fetchSuggestions(person, group);
+                                    }}
+                                    onBlur={() => setTimeout(() => setShowPersonDropdown(false), 250)}
                                     onChange={handlePersonChange}
                                 />
                                 {showPersonDropdown && suggestions.length > 0 && (
@@ -285,7 +342,7 @@ export default function TaoPhieuThuForm() {
                                                 onMouseDown={() => handleSelectSuggestion(item)}
                                             >
                                                 <div className="dropdown-name">{item.ten_nguoi_nop_nhan}</div>
-                                                <div className="dropdown-phone">{item.thong_tin_bo_sung || ''}</div>
+                                                <div className="dropdown-phone">{item.so_dien_thoai || item.thong_tin_bo_sung || ''}</div>
                                             </div>
                                         ))}
                                     </div>
