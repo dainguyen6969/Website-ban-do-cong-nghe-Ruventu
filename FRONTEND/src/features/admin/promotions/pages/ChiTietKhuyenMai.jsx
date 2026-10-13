@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getPromotions, updatePromotion, deletePromotion, togglePromotionStatus } from '../../../../data/mockPromotions';
+import { getPromotion, getPromotionProductId, updatePromotion, deletePromotion, setPromotionStatus } from '../api/promotionApi.js';
+import { normalizePromotion, editPromotionBody } from '../promotionModel.js';
 import './ChiTietKhuyenMai.css';
 
 export default function ChiTietKhuyenMai() {
@@ -12,80 +13,121 @@ export default function ChiTietKhuyenMai() {
     const [isEditing, setIsEditing] = useState(false);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
 
+    const [error, setError] = useState('');
+    const [busy, setBusy] = useState(false);
+
     // Edit form states
     const [editName, setEditName] = useState('');
     const [editDescription, setEditDescription] = useState('');
     const [editMaxUsage, setEditMaxUsage] = useState('');
     const [editEndDate, setEditEndDate] = useState('');
 
+    const resetEdit = (found) => {
+        setEditName(found.name || '');
+        setEditDescription(found.description || '');
+        setEditMaxUsage(found.maxUsage === null ? '' : found.maxUsage);
+        setEditEndDate(found.endDate?.slice(0, 16) || '');
+    };
+
     useEffect(() => {
+        const controller = new AbortController();
+        setLoading(true);
+        setError('');
+        setPromo(null);
+        setIsEditing(false);
+        setShowDeleteModal(false);
         const fetchData = async () => {
-            const data = await getPromotions();
-            const found = data.find(p => p.id === id);
-            if (found) {
+            try {
+                const found = normalizePromotion(await getPromotion(id, controller.signal));
+                if (controller.signal.aborted) return;
                 setPromo(found);
-                setEditName(found.name || '');
-                setEditDescription(found.description || '');
-                setEditMaxUsage(found.maxUsage === null ? '' : found.maxUsage);
-                setEditEndDate(found.endDate || '');
+                resetEdit(found);
+            } catch (error) {
+                if (!controller.signal.aborted) setError(error.message);
+            } finally {
+                if (!controller.signal.aborted) setLoading(false);
             }
-            setLoading(false);
         };
         fetchData();
+        return () => controller.abort();
     }, [id]);
 
-    const handleToggleStatus = () => {
-        if (!promo) return;
-        const updated = togglePromotionStatus(promo.id);
-        if (updated) {
-            setPromo({ ...updated });
+    const handleToggleStatus = async () => {
+        if (!promo || busy) return;
+        setBusy(true);
+        setError('');
+        try {
+            const result = await setPromotionStatus(promo.id, promo.savedStatus === 0 ? 1 : 0);
+            setPromo(normalizePromotion({ ...promo.raw, ...result }));
+        } catch (error) {
+            setError(error.message);
+        } finally {
+            setBusy(false);
         }
     };
 
     const handleDeleteClick = () => {
+        setError('');
         setShowDeleteModal(true);
     };
 
-    const handleConfirmDelete = () => {
-        if (!promo) return;
-        deletePromotion(promo.id);
-        setShowDeleteModal(false);
-        navigate('/admin/khuyen-mai/danh-sach-khuyen-mai', {
-            state: { successMessage: `Đã xóa thành công chương trình ${promo.code}!` }
-        });
+    const handleConfirmDelete = async () => {
+        if (!promo || busy) return;
+        setBusy(true);
+        setError('');
+        try {
+            await deletePromotion(promo.id);
+            navigate('/admin/khuyen-mai/danh-sach-khuyen-mai', {
+                state: { successMessage: `Đã xóa thành công chương trình ${promo.code}!` },
+            });
+        } catch (error) {
+            setError(error.message);
+            setShowDeleteModal(false);
+        } finally {
+            setBusy(false);
+        }
     };
 
-    const handleSaveEdit = () => {
-        if (!promo) return;
-        const parsedLimit = editMaxUsage === '' || editMaxUsage === null ? null : parseInt(editMaxUsage);
-        const updatedFields = {
-            name: editName.trim() || promo.name,
-            description: editDescription.trim() || promo.description,
-            maxUsage: parsedLimit,
-            remainingUsage: parsedLimit === null ? null : Math.max(0, parsedLimit - (promo.usedUsage || 0)),
-            endDate: editEndDate || promo.endDate
-        };
-
-        const updated = updatePromotion(promo.id, updatedFields);
-        if (updated) {
-            setPromo({ ...updated });
+    const handleSaveEdit = async () => {
+        if (!promo || busy) return;
+        setBusy(true);
+        setError('');
+        try {
+            await updatePromotion(promo.id, editPromotionBody(promo.raw, {
+                name: editName, description: editDescription, limit: editMaxUsage, endDate: editEndDate,
+            }));
+            const found = normalizePromotion(await getPromotion(promo.id));
+            setPromo(found);
+            resetEdit(found);
             setIsEditing(false);
+        } catch (error) {
+            setError(error.message);
+        } finally {
+            setBusy(false);
         }
     };
 
     const handleCancelEdit = () => {
-        if (promo) {
-            setEditName(promo.name || '');
-            setEditDescription(promo.description || '');
-            setEditMaxUsage(promo.maxUsage === null ? '' : promo.maxUsage);
-            setEditEndDate(promo.endDate || '');
-        }
+        if (promo) resetEdit(promo);
+        setError('');
         setIsEditing(false);
+    };
+
+    const openProduct = async (variantId) => {
+        if (busy) return;
+        setBusy(true); setError('');
+        try {
+            const productId = await getPromotionProductId(variantId);
+            if (!productId) throw new Error('Không xác định được sản phẩm của phiên bản này.');
+            navigate(`/admin/san-pham/chi-tiet-san-pham/${encodeURIComponent(productId)}`);
+        } catch (error) { setError(error.message); }
+        finally { setBusy(false); }
     };
 
     const getStatusStyle = (status) => {
         switch (status) {
             case 'ĐANG ÁP DỤNG': return 'status-badge status-active';
+            case 'HẾT HẠN':
             case 'HẾT LƯỢT': return 'status-badge status-out';
             case 'CHƯA BẮT ĐẦU': return 'status-badge status-pending';
             case 'TẠM DỪNG': return 'status-badge status-paused';
@@ -96,6 +138,7 @@ export default function ChiTietKhuyenMai() {
     const getStatusTextColor = (status) => {
         switch (status) {
             case 'ĐANG ÁP DỤNG': return '#0d8425';
+            case 'HẾT HẠN':
             case 'HẾT LƯỢT': return '#df1720';
             case 'CHƯA BẮT ĐẦU': return '#0067df';
             case 'TẠM DỪNG': return '#d36b00';
@@ -138,7 +181,7 @@ export default function ChiTietKhuyenMai() {
         return (
             <div className="promo-detail-page">
                 <div className="not-found-container" style={{padding: '40px', textAlign: 'center'}}>
-                    <h2>Không tìm thấy chương trình khuyến mại</h2>
+                    <h2 role="alert">{error || 'Không tìm thấy chương trình khuyến mại'}</h2>
                     <button className="btn-back-link" onClick={() => navigate('/admin/khuyen-mai/danh-sach-khuyen-mai')}>
                         &larr; QUAY LẠI DANH SÁCH
                     </button>
@@ -149,20 +192,8 @@ export default function ChiTietKhuyenMai() {
 
     const usagePercent = promo.maxUsage ? Math.round(((promo.usedUsage || 0) / promo.maxUsage) * 100) : 0;
     
-    // Remaining days calculation
-    let remainingDaysText = '0 NGÀY';
-    if (promo.endDate) {
-        const endDateStr = promo.endDate.includes('T') ? promo.endDate : `${promo.endDate}T23:59:59`;
-        const endDateTime = new Date(endDateStr);
-        const now = new Date();
-        if (endDateTime < now) {
-            remainingDaysText = 'ĐÃ KẾT THÚC';
-        } else {
-            const timeDiff = endDateTime.getTime() - now.getTime();
-            const daysDiff = Math.ceil(timeDiff / (1000 * 3600 * 24));
-            remainingDaysText = `${daysDiff > 0 ? daysDiff : 0} NGÀY`;
-        }
-    }
+    const remainingDaysText = promo.remainingSeconds > 0
+        ? `${Math.ceil(promo.remainingSeconds / 86400)} NGÀY` : 'ĐÃ KẾT THÚC';
 
     const hasUsage = (promo.usedUsage || 0) > 0;
     const isGiftMethod = promo.method === 'TẶNG SẢN PHẨM';
@@ -171,6 +202,7 @@ export default function ChiTietKhuyenMai() {
     const buyProducts = (promo.buyProducts && promo.buyProducts.length > 0)
         ? promo.buyProducts 
         : (promo.appliedProducts ? promo.appliedProducts.filter(p => p.role === 'SẢN PHẨM MUA').map(p => ({
+            variantId: p.variantId,
             code: p.code,
             name: p.name,
             version: p.version,
@@ -180,6 +212,7 @@ export default function ChiTietKhuyenMai() {
     const giftProducts = (promo.giftProducts && promo.giftProducts.length > 0)
         ? promo.giftProducts
         : (promo.appliedProducts ? promo.appliedProducts.filter(p => p.role === 'SẢN PHẨM TẶNG').map(p => ({
+            variantId: p.variantId,
             code: p.code,
             name: p.name,
             version: p.version,
@@ -188,6 +221,7 @@ export default function ChiTietKhuyenMai() {
 
     return (
         <div className="promo-detail-page">
+            {error && <p className="error-text" role="alert" style={{ color: '#dc2626' }}>{error}</p>}
             {/* Custom Delete Confirmation Modal */}
             {showDeleteModal && (
                 <div className="promo-modal-overlay" onClick={() => setShowDeleteModal(false)}>
@@ -208,7 +242,7 @@ export default function ChiTietKhuyenMai() {
                             <button className="btn-modal-cancel" onClick={() => setShowDeleteModal(false)}>
                                 QUAY LẠI
                             </button>
-                            <button className="btn-modal-confirm-delete" onClick={handleConfirmDelete}>
+                            <button className="btn-modal-confirm-delete" disabled={busy} onClick={handleConfirmDelete}>
                                 XÁC NHẬN XÓA
                             </button>
                         </div>
@@ -225,8 +259,8 @@ export default function ChiTietKhuyenMai() {
                     <span className="top-nav-title">CHI TIẾT KHUYẾN MẠI</span>
                 </div>
                 <div className="top-nav-actions">
-                    {promo.status === 'TẠM DỪNG' ? (
-                        <button className="btn-action btn-restore" onClick={handleToggleStatus}>
+                    {promo.savedStatus === 0 ? (
+                        <button className="btn-action btn-restore" disabled={busy} onClick={handleToggleStatus}>
                             KHÔI PHỤC
                         </button>
                     ) : (
@@ -236,11 +270,11 @@ export default function ChiTietKhuyenMai() {
                                     SỬA KHUYẾN MẠI
                                 </button>
                             )}
-                            <button className="btn-action btn-pause" onClick={handleToggleStatus}>
+                            <button className="btn-action btn-pause" disabled={busy} onClick={handleToggleStatus}>
                                 TẠM DỪNG
                             </button>
                             {!hasUsage && (
-                                <button className="btn-action btn-delete" onClick={handleDeleteClick}>
+                                <button className="btn-action btn-delete" disabled={busy} onClick={handleDeleteClick}>
                                     XÓA KHUYẾN MẠI
                                 </button>
                             )}
@@ -259,7 +293,7 @@ export default function ChiTietKhuyenMai() {
             </div>
 
             {/* Warning Callout Banner (if promo has usage or paused) */}
-            {(hasUsage || promo.status === 'TẠM DỪNG') && (
+            {hasUsage && (
                 <div className="promo-warning-banner">
                     CHƯƠNG TRÌNH ĐÃ PHÁT SINH LƯỢT SỬ DỤNG. CẤU HÌNH KHUYẾN MẠI CỐT LÕI ĐƯỢC KHÓA ĐỂ BẢO TOÀN LỊCH SỬ.
                 </div>
@@ -301,8 +335,8 @@ export default function ChiTietKhuyenMai() {
                                     </div>
                                 </div>
                                 <div className="edit-actions-row">
-                                    <button className="btn-save-edit" onClick={handleSaveEdit}>LƯU THAY ĐỔI</button>
-                                    <button className="btn-cancel-edit" onClick={handleCancelEdit}>HỦY</button>
+                                    <button className="btn-save-edit" disabled={busy} onClick={handleSaveEdit}>LƯU THAY ĐỔI</button>
+                                    <button className="btn-cancel-edit" disabled={busy} onClick={handleCancelEdit}>HỦY</button>
                                 </div>
                             </div>
                         ) : (
@@ -375,7 +409,7 @@ export default function ChiTietKhuyenMai() {
                                     <tbody>
                                         {buyProducts.map((prod, idx) => (
                                             <tr key={idx}>
-                                                <td className="code-col">{prod.code}</td>
+                                                <td className="code-col"><button type="button" className="product-code-link" disabled={busy || !prod.variantId} onClick={() => openProduct(prod.variantId)}>{prod.code}</button></td>
                                                 <td className="name-col">{prod.name}</td>
                                                 <td>{prod.version}</td>
                                                 <td>{prod.reqQuantity || prod.quantity || 'SL: 1'}</td>
@@ -399,7 +433,7 @@ export default function ChiTietKhuyenMai() {
                                     <tbody>
                                         {giftProducts.map((prod, idx) => (
                                             <tr key={idx}>
-                                                <td className="code-col">{prod.code}</td>
+                                                <td className="code-col"><button type="button" className="product-code-link" disabled={busy || !prod.variantId} onClick={() => openProduct(prod.variantId)}>{prod.code}</button></td>
                                                 <td className="name-col">{prod.name}</td>
                                                 <td>{prod.version}</td>
                                                 <td>{prod.giftQuantity || prod.quantity || 'SL: 1'}</td>
@@ -430,7 +464,7 @@ export default function ChiTietKhuyenMai() {
                                                     {prod.role}
                                                 </span>
                                             </td>
-                                            <td className="code-col">{prod.code}</td>
+                                            <td className="code-col"><button type="button" className="product-code-link" disabled={busy || !prod.variantId} onClick={() => openProduct(prod.variantId)}>{prod.code}</button></td>
                                             <td className="name-col">{prod.name}</td>
                                             <td>{prod.version}</td>
                                             <td>{prod.quantity}</td>

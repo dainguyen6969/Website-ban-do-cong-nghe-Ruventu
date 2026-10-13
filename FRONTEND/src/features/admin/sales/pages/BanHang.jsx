@@ -2,8 +2,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { HiOutlineCheck, HiOutlinePlus, HiOutlineSearch, HiOutlineShoppingCart, HiOutlineTrash, HiOutlineX } from 'react-icons/hi';
 import { getSerialPage } from '../../inventory/api/serialApi';
-import { buildPosCheckoutBody, checkoutPosOrder, createSalesCustomer, getSalesOptions, previewPosOrder, searchSalesCustomers, searchSalesProducts } from '../../orders/api/onlineOrderApi';
-import { addProduct, closeOrderTab, createOrder, findIncompleteSerialLine, findStockIssue, nextOrderNumber, orderTotals, resetOrder, setProductQuantity, updateOrder } from '../state/salesState';
+import { buildPosCheckoutBody, buildPosPreviewBody, checkoutPosOrder, createSalesCustomer, getSalesOptions, previewOnlineOrder, previewPosOrder, searchSalesCustomers, searchSalesProducts } from '../../orders/api/onlineOrderApi';
+import { addProduct, closeOrderTab, createOrder, findIncompleteSerialLine, findStockIssue, giftSerialRequirements, nextOrderNumber, orderTotals, resetOrder, setProductQuantity, updateOrder } from '../state/salesState';
 import PaymentSuccessModal from '../components/PaymentSuccessModal';
 import './BanHang.css';
 
@@ -49,6 +49,36 @@ export default function BanHang() {
   const checkoutLock = useRef(false);
   const order = orders.find((item) => item.id === activeId);
   const totals = orderTotals(order);
+  const [previewState, setPreviewState] = useState({});
+  const [previewRevision, setPreviewRevision] = useState(0);
+  const previewSignature = salesOptions && order.cart.length ? JSON.stringify(buildPosPreviewBody(order, salesOptions)) : '';
+  const previewKey = `${activeId}|${previewSignature}`;
+  const previewReady = Boolean(previewSignature) && order.preview?.signature === previewSignature && previewState.key === previewKey && !previewState.loading && !previewState.error;
+  const previewData = previewReady ? order.preview.data : null;
+  const giftRequirements = giftSerialRequirements(previewData);
+  const giftSerialIssue = giftRequirements.find(requirement => (order.giftSerials?.[requirement.key]?.length || 0) !== requirement.quantity);
+  useEffect(() => {
+    if (!previewSignature) return;
+    const controller = new AbortController();
+    setPreviewState({ key: previewKey, loading: true });
+    const timer = setTimeout(async () => {
+      try {
+        const data = await previewOnlineOrder(JSON.parse(previewSignature), controller.signal);
+        if (controller.signal.aborted) return;
+        setOrders(current => current.map(item => item.id === activeId ? {
+          ...item, preview: { signature: previewSignature, data }, promotions: data.khuyen_mai_kha_dung,
+          paid: item.paid === orderTotals(item).total ? Number(data.tong_thanh_toan) : item.paid,
+        } : item));
+        setPreviewState({ key: previewKey });
+      } catch (error) {
+        if (!controller.signal.aborted) {
+          setOrders(current => current.map(item => item.id === activeId ? { ...item, preview: null, paymentReceived: false } : item));
+          setPreviewState({ key: previewKey, error: error.message });
+        }
+      }
+    }, 300);
+    return () => { clearTimeout(timer); controller.abort(); };
+  }, [activeId, previewSignature, previewKey, previewRevision]);
   useEffect(() => {
     const controller = new AbortController();
     getSalesOptions(controller.signal).then((data) => {
@@ -115,40 +145,58 @@ export default function BanHang() {
   const changeQuantity = (id, quantity) => patch((current) => ({ cart: setProductQuantity(current.cart, id, quantity) }));
   const openSerialModal = async (line) => {
     const request = ++serialRequest.current;
-    setSerialSearch(''); setSerialModal({ productId: line.product.id, loading: true, candidates: [], total: 0, error: '' });
+    setSerialSearch(''); setSerialModal({ productId: line.product.id, gift: line.gift, loading: true, candidates: [], total: 0, error: '' });
     try {
       const first = await getSerialPage({ page: 1, limit: 100, status: 'TRONG_KHO', versionId: line.product.id });
       const rest = await Promise.all(Array.from({ length: Math.max(0, first.totalPages - 1) }, (_, index) => getSerialPage({ page: index + 2, limit: 100, status: 'TRONG_KHO', versionId: line.product.id })));
       const data = { ...first, items: [first, ...rest].flatMap((page) => page.items) };
       if (request !== serialRequest.current) return;
-      setSerialModal({ productId: line.product.id, loading: false, candidates: data.items, total: data.totalItems, error: '' });
-      patch((current) => ({ cart: current.cart.map((item) => item.product.id === line.product.id ? { ...item, serialAvailable: data.totalItems } : item) }));
-    } catch { if (request === serialRequest.current) setSerialModal({ productId: line.product.id, loading: false, candidates: [], total: 0, error: 'Không thể tải serial khả dụng.' }); }
+      setSerialModal({ productId: line.product.id, gift: line.gift, loading: false, candidates: data.items, total: data.totalItems, error: '' });
+      if (!line.gift) setOrders(current => current.map(item => item.id === activeId ? { ...item, cart: item.cart.map(entry => entry.product.id === line.product.id ? { ...entry, serialAvailable: data.totalItems } : entry) } : item));
+    } catch { if (request === serialRequest.current) setSerialModal({ productId: line.product.id, gift: line.gift, loading: false, candidates: [], total: 0, error: 'Không thể tải serial khả dụng.' }); }
   };
   const closeSerialModal = () => { serialRequest.current += 1; setSerialModal(null); };
   const serialIssue = findIncompleteSerialLine(order.cart);
   const stockIssue = findStockIssue(order.cart);
   const transactionMissing = order.paymentMethod !== 'cash' && !(order.transactionCode || '').trim();
   const paymentIssue = order.paymentMethod === 'cash' ? order.paid < totals.total : order.paid !== totals.total;
-  const serialLine = serialModal && order.cart.find((item) => item.product.id === serialModal.productId);
+  const serialLine = serialModal?.gift ? {
+    product: { id: serialModal.productId, name: `Quà tặng · phiên bản #${serialModal.productId}` },
+    quantity: serialModal.gift.quantity, serials: order.giftSerials?.[serialModal.gift.key] || [],
+  } : serialModal && order.cart.find((item) => item.product.id === serialModal.productId);
   const shownSerials = serialModal?.candidates.filter((item) => item.serial.toLowerCase().includes(serialSearch.trim().toLowerCase())) || [];
-  const toggleSerial = (candidate) => patch((current) => ({ cart: current.cart.map((item) => {
+  const toggleSerial = (candidate) => {
+    if (serialModal.gift) {
+      patch(current => {
+        const selected = current.giftSerials?.[serialModal.gift.key] || [];
+        const next = selected.some(serial => serial.id === candidate.id) ? selected.filter(serial => serial.id !== candidate.id)
+          : selected.length < serialModal.gift.quantity ? [...selected, candidate] : selected;
+        return { giftSerials: { ...current.giftSerials, [serialModal.gift.key]: next } };
+      });
+      return;
+    }
+    setOrders(current => current.map(entry => entry.id === activeId ? { ...entry, cart: entry.cart.map((item) => {
     if (item.product.id !== serialModal.productId) return item;
     const selected = item.serials || [];
     if (selected.some((serial) => serial.id === candidate.id)) return { ...item, serials: selected.filter((serial) => serial.id !== candidate.id) };
     return selected.length < item.quantity ? { ...item, serials: [...selected, candidate] } : item;
-  }) }));
+    }) } : entry));
+  };
   const checkout = async () => {
     if (checkoutLock.current || receipt || !salesOptions) return;
-    if (!checkoutPending && (!order.cart.length || serialIssue || stockIssue || transactionMissing || paymentIssue || !order.paymentReceived)) return;
+    if (!checkoutPending && (!previewReady || !order.cart.length || serialIssue || giftSerialIssue || stockIssue || transactionMissing || paymentIssue || !order.paymentReceived)) return;
     checkoutLock.current = true;
     setCheckoutBusy(true); setCheckoutError('');
     try {
       let attempt = checkoutPending;
       if (!attempt) {
-        if (order.discount) throw new Error('API POS chỉ hỗ trợ chiết khấu từ chương trình khuyến mại; vui lòng đặt chiết khấu thủ công về 0.');
+        if (order.discount) throw new Error('Chiết khấu thủ công chưa được hỗ trợ khi thanh toán. Vui lòng đặt về 0 và chọn chương trình khuyến mại.');
         const preview = await previewPosOrder(order, salesOptions);
-        if (Number(preview.tong_thanh_toan) !== totals.total) throw new Error('Giá hoặc tổng tiền đã thay đổi. Vui lòng tìm lại sản phẩm và kiểm tra tổng tiền trước khi thanh toán.');
+        if (JSON.stringify(preview.san_pham) !== JSON.stringify(previewData.san_pham) || Number(preview.tong_thanh_toan) !== totals.total) {
+          setOrders(current => current.map(item => item.id === activeId ? { ...item, preview: null, giftSerials: {}, paymentReceived: false } : item));
+          setPreviewRevision(value => value + 1);
+          throw new Error('Giá hoặc cấu hình khuyến mại đã thay đổi. Vui lòng kiểm tra lại đơn và xác nhận lại thanh toán.');
+        }
         attempt = { tabId: order.id, key: crypto.randomUUID(), body: buildPosCheckoutBody(order, salesOptions, totals.total) };
         sessionStorage.setItem(pendingCheckoutKey, JSON.stringify(attempt));
         setCheckoutPending(attempt);
@@ -159,7 +207,11 @@ export default function BanHang() {
       setCheckoutPending(null);
     } catch (error) {
       setCheckoutError(error.message);
-      if ([400, 404, 409].includes(error.status)) { sessionStorage.removeItem(pendingCheckoutKey); setCheckoutPending(null); }
+      if ([400, 404, 409].includes(error.status)) {
+        sessionStorage.removeItem(pendingCheckoutKey); setCheckoutPending(null);
+        setOrders(current => current.map(item => item.id === activeId ? { ...item, preview: null, paymentReceived: false } : item));
+        setPreviewRevision(value => value + 1);
+      }
     } finally { checkoutLock.current = false; setCheckoutBusy(false); }
   };
 
@@ -193,22 +245,25 @@ export default function BanHang() {
         </div>
         <div className="pos-cart-scroll"><table className="pos-cart"><thead><tr><th>STT</th><th>Sản phẩm</th><th>Số lượng</th><th>Đơn giá</th><th>VAT</th><th>Chiết khấu</th><th>Thành tiền</th><th>Serial</th><th><span className="pos-sr-only">Xóa</span></th></tr></thead><tbody>
           {order.cart.map(({ product, quantity, serials = [], serialAvailable }, index) => {
-            const price = productPrice(product, order.priceList);
+            const previewLine = previewData?.san_pham.find(line => line.ma_dong === `d${product.id}`);
+            const price = previewLine ? Number(previewLine.don_gia) : productPrice(product, order.priceList);
             const subtotal = price * quantity;
-            const lineTotal = subtotal + (order.tax && (order.taxMode || 'CHUA_BAO_GOM') === 'CHUA_BAO_GOM' ? Math.round(subtotal * product.vatRate / 100) : 0);
-            return <tr key={product.id}><td>{index + 1}</td><td><strong>{productName(product)}</strong><small>{productCode(product)}</small>{quantity > product.stock && <small className="pos-inline-error">Số lượng vượt tồn có thể bán ({product.stock}).</small>}</td><td><div className="pos-stepper"><button type="button" aria-label={`Giảm số lượng ${productName(product)}`} disabled={quantity === 1} onClick={() => changeQuantity(product.id, quantity - 1)}>−</button><input aria-label={`Số lượng ${productName(product)}`} type="number" inputMode="numeric" min="1" max={product.stock} value={quantity} onChange={(event) => changeQuantity(product.id, event.target.value)} /><button type="button" aria-label={`Tăng số lượng ${productName(product)}`} disabled={quantity >= product.stock} onClick={() => changeQuantity(product.id, quantity + 1)}>+</button></div></td><td className="pos-price">{money(price)}</td><td>{order.tax && <span className="pos-vat-badge">{product.vatRate}%</span>}</td><td>—</td><td className="pos-line-total">{money(lineTotal)}</td><td>{product.serialManaged && <button type="button" className={`pos-serial-badge ${serials.length === quantity ? 'is-complete' : ''}`} onClick={() => openSerialModal({ product, quantity, serials, serialAvailable })}>{serials.length}/{quantity} SERIAL</button>}{serials.map((serial) => <small key={serial.id}>{serial.serial}</small>)}</td><td><button type="button" className="pos-remove" aria-label={`Xóa ${productName(product)}`} onClick={() => patch((current) => ({ cart: current.cart.filter((item) => item.product.id !== product.id) }))}><HiOutlineTrash /></button></td></tr>;
+            const lineTotal = previewLine ? Number(previewLine.thanh_toan_dong) : subtotal + (order.tax && (order.taxMode || 'CHUA_BAO_GOM') === 'CHUA_BAO_GOM' ? Math.round(subtotal * product.vatRate / 100) : 0);
+            return <tr key={product.id}><td>{index + 1}</td><td><strong>{productName(product)}</strong><small>{productCode(product)}</small>{quantity > product.stock && <small className="pos-inline-error">Số lượng vượt tồn có thể bán ({product.stock}).</small>}</td><td><div className="pos-stepper"><button type="button" aria-label={`Giảm số lượng ${productName(product)}`} disabled={quantity === 1} onClick={() => changeQuantity(product.id, quantity - 1)}>−</button><input aria-label={`Số lượng ${productName(product)}`} type="number" inputMode="numeric" min="1" max={product.stock} value={quantity} onChange={(event) => changeQuantity(product.id, event.target.value)} /><button type="button" aria-label={`Tăng số lượng ${productName(product)}`} disabled={quantity >= product.stock} onClick={() => changeQuantity(product.id, quantity + 1)}>+</button></div></td><td className="pos-price">{money(price)}</td><td>{order.tax && <span className="pos-vat-badge">{product.vatRate}%</span>}</td><td>{previewLine?.tien_chiet_khau > 0 ? `−${money(previewLine.tien_chiet_khau)}` : '—'}</td><td className="pos-line-total">{money(lineTotal)}</td><td>{product.serialManaged && <button type="button" className={`pos-serial-badge ${serials.length === quantity ? 'is-complete' : ''}`} onClick={() => openSerialModal({ product, quantity, serials, serialAvailable })}>{serials.length}/{quantity} SERIAL</button>}{serials.map((serial) => <small key={serial.id}>{serial.serial}</small>)}</td><td><button type="button" className="pos-remove" aria-label={`Xóa ${productName(product)}`} onClick={() => patch((current) => ({ cart: current.cart.filter((item) => item.product.id !== product.id) }))}><HiOutlineTrash /></button></td></tr>;
           })}
+          {(previewData?.san_pham || []).filter(line => line.la_qua_tang).map(line => <tr key={line.ma_dong} className="pos-gift-row"><td>🎁</td><td><strong>Quà tặng khuyến mại</strong><small>Phiên bản #{line.phien_ban_id}</small></td><td>{line.so_luong}</td><td>{money(line.don_gia)}</td><td>—</td><td>—</td><td className="pos-line-total">{money(line.thanh_toan_dong)}</td><td>{giftRequirements.filter(requirement => requirement.key.startsWith(`${line.ma_dong}:`)).map(requirement => <button key={requirement.key} type="button" className="pos-serial-badge" onClick={() => openSerialModal({ product: { id: requirement.variantId }, gift: requirement })}>{order.giftSerials?.[requirement.key]?.length || 0}/{requirement.quantity} SERIAL · #{requirement.variantId}</button>)}</td><td /></tr>)}
         </tbody></table>
         {!order.cart.length && <div className="pos-empty"><HiOutlineShoppingCart /><strong>CHƯA CÓ SẢN PHẨM</strong><p>Tìm và thêm sản phẩm ở thanh tìm kiếm phía trên</p></div>}
         </div>
       </section>
       <aside className="pos-right">
-        <section className="pos-block pos-summary"><Heading>Tổng đơn hàng</Heading><div><span>Tạm tính</span><strong>{money(totals.subtotal)}</strong></div><div><span>Thuế VAT</span><strong>{order.tax ? money(totals.vat) : 'Miễn thuế'}</strong></div><label className="pos-discount"><span>Chiết khấu (%)</span><span><input aria-label="Chiết khấu (%)" type="number" min="0" max="100" value={order.discount} onChange={(event) => patch({ discount: Math.min(100, Math.max(0, Number(event.target.value) || 0)) })} /><i>%</i></span></label>{order.discount > 0 && <div className="pos-discount-amount"><span>Giảm giá</span><strong>-{money(totals.discountAmount)}</strong></div>}<div className="pos-total"><strong>TỔNG TIỀN</strong><strong>{money(totals.total)}</strong></div></section>
+        <section className="pos-block pos-summary"><Heading>Tổng đơn hàng</Heading><div><span>Tạm tính</span><strong>{money(totals.subtotal)}</strong></div><div><span>Thuế VAT</span><strong>{order.tax ? money(totals.vat) : 'Miễn thuế'}</strong></div><label className="pos-discount"><span>Chiết khấu (%)</span><span><input aria-label="Chiết khấu (%)" type="number" min="0" max="100" value={order.discount} onChange={(event) => patch({ discount: Math.min(100, Math.max(0, Number(event.target.value) || 0)) })} /><i>%</i></span></label>{totals.discountAmount > 0 && <div className="pos-discount-amount"><span>Giảm giá</span><strong>-{money(totals.discountAmount)}</strong></div>}<div className="pos-total"><strong>TỔNG TIỀN</strong><strong>{money(totals.total)}</strong></div></section>
+        {order.cart.length > 0 && <section className="pos-block pos-promotions" aria-label="Khuyến mại"><div className="pos-promotion-header"><Heading>Khuyến mại</Heading>{order.promotion && <button type="button" onClick={() => { patch({ promotion: '' }); setCheckoutError(''); }}>✕ BỎ KHUYẾN MẠI</button>}</div>{!previewReady && !previewState.error && <p className="pos-promotion-note" role="status">Đang tính lại...</p>}{previewState.key === previewKey && previewState.error && <p className="pos-error" role="alert">{previewState.error}</p>}{(order.promotions || []).map(promotion => <button key={promotion.ma_chuong_trinh} type="button" aria-pressed={order.promotion === promotion.ma_chuong_trinh} className={`pos-promotion-card ${order.promotion === promotion.ma_chuong_trinh ? 'is-selected' : ''}`} onClick={() => { patch({ promotion: promotion.ma_chuong_trinh, discount: 0 }); setCheckoutError(''); }}><strong>{promotion.ma_chuong_trinh}</strong><small>{promotion.ten_chuong_trinh}</small></button>)}{previewReady && !order.promotions?.length && <p className="pos-promotion-note">Không có chương trình khả dụng cho giỏ hàng.</p>}</section>}
         <section className="pos-block pos-field"><span>Phương thức thanh toán</span><div className="pos-payment-method">{[['cash', 'TIỀN MẶT'], ['transfer', 'CHUYỂN KHOẢN'], ['card', 'THẺ']].map(([id, label]) => <button type="button" key={id} aria-pressed={order.paymentMethod === id} className={order.paymentMethod === id ? 'is-selected' : ''} onClick={() => patch({ paymentMethod: id })}>○ {label}</button>)}</div></section>
         <label className="pos-block pos-field"><span>{order.paymentMethod === 'cash' ? 'Tiền khách đưa' : 'Số tiền đã nhận'}</span><div className="pos-paid"><input aria-label={order.paymentMethod === 'cash' ? 'Tiền khách đưa' : 'Số tiền đã nhận'} inputMode="numeric" value={Number(order.paid).toLocaleString('vi-VN')} onChange={(event) => patch({ paid: Number(event.target.value.replace(/\D/g, '')) || 0 })} /><span>đ</span></div>{order.paymentMethod === 'cash' && <small className="pos-change">TIỀN THỪA TRẢ KHÁCH <strong>{money(Math.max(0, order.paid - totals.total))}</strong></small>}</label>
         {order.paymentMethod !== 'cash' && <label className="pos-block pos-field"><span>Mã giao dịch *</span><input aria-label="Mã giao dịch" placeholder="Nhập mã giao dịch..." value={order.transactionCode || ''} onChange={(event) => patch({ transactionCode: event.target.value })} /></label>}
         <label className="pos-block pos-confirm-payment"><input type="checkbox" checked={Boolean(order.paymentReceived)} onChange={(event) => patch({ paymentReceived: event.target.checked })} />Xác nhận đã nhận tiền từ khách</label>
-        <div className="pos-checkout">{stockIssue && <p className="pos-error">Số lượng {productName(stockIssue.product)} vượt tồn có thể bán ({stockIssue.product.stock}).</p>}{serialIssue && <p className="pos-error">{Number.isFinite(serialIssue.serialAvailable) && serialIssue.quantity > serialIssue.serialAvailable ? `Chỉ có ${serialIssue.serialAvailable} serial khả dụng, cần ${serialIssue.quantity}` : 'Cần chọn đủ serial trước khi thanh toán'}</p>}{transactionMissing && <p className="pos-error">Vui lòng nhập mã giao dịch</p>}{paymentIssue && <p className="pos-error">{order.paymentMethod === 'cash' ? 'Tiền khách đưa chưa đủ.' : 'Số tiền đã nhận phải bằng đúng tổng thanh toán.'}</p>}{checkoutError && <p className="pos-error">{checkoutError}</p>}<button type="button" className="pos-red-button" disabled={checkoutBusy || !salesOptions || !order.cart.length || Boolean(serialIssue) || Boolean(stockIssue) || transactionMissing || paymentIssue || !order.paymentReceived} onClick={checkout}><HiOutlineCheck /> {checkoutBusy ? 'ĐANG THANH TOÁN...' : 'THANH TOÁN'}</button><small>Đơn hoàn thành ngay sau khi thanh toán.</small></div>
+        <div className="pos-checkout">{order.discount > 0 && <p className="pos-error" role="alert">Chiết khấu thủ công chưa được hỗ trợ khi thanh toán. Vui lòng đặt về 0 và chọn chương trình khuyến mại.</p>}{giftSerialIssue && <p className="pos-error">Chọn đủ {giftSerialIssue.quantity} serial cho quà tặng phiên bản #{giftSerialIssue.variantId}.</p>}{stockIssue && <p className="pos-error">Số lượng {productName(stockIssue.product)} vượt tồn có thể bán ({stockIssue.product.stock}).</p>}{serialIssue && <p className="pos-error">{Number.isFinite(serialIssue.serialAvailable) && serialIssue.quantity > serialIssue.serialAvailable ? `Chỉ có ${serialIssue.serialAvailable} serial khả dụng, cần ${serialIssue.quantity}` : 'Cần chọn đủ serial trước khi thanh toán'}</p>}{transactionMissing && <p className="pos-error">Vui lòng nhập mã giao dịch</p>}{paymentIssue && <p className="pos-error">{order.paymentMethod === 'cash' ? 'Tiền khách đưa chưa đủ.' : 'Số tiền đã nhận phải bằng đúng tổng thanh toán.'}</p>}{checkoutError && checkoutError !== previewState.error && <p className="pos-error" role="alert">{checkoutError}</p>}<button type="button" className="pos-red-button" disabled={checkoutBusy || !previewReady || order.discount > 0 || Boolean(giftSerialIssue) || !salesOptions || !order.cart.length || Boolean(serialIssue) || Boolean(stockIssue) || transactionMissing || paymentIssue || !order.paymentReceived} onClick={checkout}><HiOutlineCheck /> {checkoutBusy ? 'ĐANG THANH TOÁN...' : 'THANH TOÁN'}</button><small>Đơn hoàn thành ngay sau khi thanh toán.</small></div>
       </aside>
     </div>
     </fieldset>
