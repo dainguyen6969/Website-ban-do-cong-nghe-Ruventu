@@ -12,7 +12,7 @@
 .order-search:focus-within { border-color: #8b8b8b; }
 .order-search input { width: 100%; min-width: 0; color: #111; background: transparent; font-size: 10px; font-weight: 700; }
 .order-search input::placeholder { color: #9ca1a8; }
-.order-toolbar .filter__dropdown { height: 38px; padding: 0 11px; border: 2px solid #dedede; font-size: 10px; }
+.admin-app .order-toolbar .filter__dropdown { height: 38px; padding: 0 11px; border: 2px solid #dedede; font-size: 10px; white-space: nowrap; }
 .order-toolbar .filter__dropdown-menu { z-index: 30; }
 .order-advanced-toggle { height: 38px; padding: 0 13px !important; display: inline-flex; align-items: center; justify-content: center; gap: 7px; border: 2px solid #dedede !important; color: #111; background: #fff !important; font-size: 9px; font-weight: 900; white-space: nowrap; }
 .order-advanced-toggle--active { color: #fff; border-color: #111 !important; background: #111 !important; }

@@ -482,20 +482,29 @@
   letter-spacing: 0.3px;
 }
 
-/* Status pill */
-.product-status-pill {
+/* Sales status */
+.product-status-badge {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   font-size: 12px;
   font-weight: 600;
+  white-space: nowrap;
 }
 
-.product-status-dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 9999px;
-  background: #10b981;
+.product-status-badge--active {
+  color: #166534;
+}
+
+.product-status-badge--inactive {
+  color: #b91c1c;
+}
+
+.product-status-square {
+  width: 9px;
+  height: 9px;
+  border-radius: 0;
+  background: currentColor;
   flex-shrink: 0;
 }
 

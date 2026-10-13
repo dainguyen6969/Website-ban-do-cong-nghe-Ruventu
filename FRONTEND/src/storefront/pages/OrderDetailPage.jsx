@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { ArrowLeft, Check, ImageOff } from "lucide-react";
 
 import Header from "../components/Header";
 import Footer from "../components/Footer";
@@ -14,6 +15,7 @@ import {
 } from "../../shared/services/mutationUtils";
 
 import "./OrderDetailPage.css";
+import { customerOrderProgress } from "./customerOrderProgress";
 
 const returnLabels = {
   CHO_TIEP_NHAN: "Chờ tiếp nhận",
@@ -188,140 +190,106 @@ export default function OrderDetailPage() {
     <div className="order-detail-page">
       <Header />
 
-      <main className="order-main-content">
-        <div className="container">
+      <main className="customer-order-main">
+        <div className="customer-order-heading">
+          <div className="customer-order-container customer-order-heading-row">
           <button
             type="button"
-            className="back-btn-outline"
+            className="customer-order-button customer-order-button--back"
             onClick={() => navigate("/profile?tab=orders")}
           >
-            QUAY LẠI
+            <ArrowLeft size={16} aria-hidden="true" /> QUAY LẠI
           </button>
-
-          {loading && <p>Đang tải đơn hàng...</p>}
-          {error && <p role="alert">{error}</p>}
-
-          {!loading && !order && (
-            <button
-              type="button"
-              className="btn-outline"
-              onClick={() => navigate("/login")}
-            >
-              ĐĂNG NHẬP LẠI
-            </button>
-          )}
-
-          {order && (
-            <>
-              <section className="order-card">
-                <h1>{order.ma_don_hang}</h1>
-                <p>{formatDateTimeVN(order.ngay_tao)}</p>
-
-                <p>Đơn hàng: {label(order.trang_thai_don_hang)}</p>
-                <p>Thanh toán: {label(order.trang_thai_thanh_toan)}</p>
-                <p>Đóng gói: {label(order.trang_thai_dong_goi)}</p>
-                <p>Xuất kho: {label(order.trang_thai_xuat_kho)}</p>
-
-                {canCancel && (
-                  <button
-                    type="button"
-                    className="btn-outline"
-                    disabled={busy}
-                    onClick={() => {
-                      setError("");
-                      setDialog({ type: "cancel", reason: "" });
-                    }}
-                  >
-                    HỦY ĐƠN
-                  </button>
-                )}
-
-                {canReturn && (
-                  <button
-                    type="button"
-                    className="btn-outline"
-                    disabled={busy}
-                    onClick={openReturn}
-                  >
-                    YÊU CẦU TRẢ HÀNG
-                  </button>
-                )}
-              </section>
-
-              <section className="order-card">
-                <h2>SẢN PHẨM</h2>
-
-                <table style={{ width: "100%" }}>
+          <h1>CHI TIẾT ĐƠN HÀNG {order && <span>#{order.ma_don_hang}</span>}</h1>
+          {order && <>
+            <span className={`customer-order-status${order.trang_thai_don_hang === 'HOAN_THANH' ? ' is-complete' : order.trang_thai_don_hang === 'HUY_HANG' ? ' is-cancelled' : ''}`}>{label(order.trang_thai_don_hang)}</span>
+            <p className="customer-order-date">Ngày đặt: {formatDateTimeVN(order.ngay_tao)}</p>
+          </>}
+          </div>
+        </div>
+        {order && <div className="customer-order-progress-wrapper">
+          <ol className="customer-order-container customer-order-progress" aria-label="Tiến trình đơn hàng">
+            {customerOrderProgress(order).map(step => <li key={step.title} className={`is-${step.state}`} aria-current={step.state === 'active' ? 'step' : undefined}>
+              <span className="customer-order-step-icon" aria-hidden="true">{step.state === 'done' ? <Check size={16} /> : step.state === 'active' ? <span /> : null}</span>
+              <span>{step.title}</span>
+            </li>)}
+          </ol>
+        </div>}
+        <div className="customer-order-container customer-order-content">
+          {loading && <p className="customer-order-message" role="status">Đang tải đơn hàng...</p>}
+          {error && <p className="customer-order-message is-error" role="alert">{error}</p>}
+          {!loading && !order && <button type="button" className="customer-order-button" onClick={() => navigate("/login")}>ĐĂNG NHẬP LẠI</button>}
+          {order && <div className="customer-order-grid">
+            <div className="customer-order-products">
+              <section className="customer-order-card">
+                <h2 className="customer-order-card-title">SẢN PHẨM ĐẶT MUA</h2>
+                <table className="customer-order-table">
                   <thead>
                     <tr>
-                      <th>Sản phẩm</th>
-                      <th>Phiên bản</th>
-                      <th>Số lượng</th>
-                      <th>Đơn giá</th>
-                      <th>Thành tiền</th>
+                      <th scope="col">Sản phẩm</th>
+                      <th scope="col">Đơn giá</th>
+                      <th scope="col">Số lượng</th>
+                      <th scope="col">Thành tiền</th>
                     </tr>
                   </thead>
                   <tbody>
                     {(order.san_pham || []).map((item) => (
                       <tr key={item.chi_tiet_don_hang_id}>
-                        <td>{item.ten_san_pham}</td>
-                        <td>{item.ten_phien_ban || "—"}</td>
-                        <td>{item.so_luong}</td>
-                        <td>{money(item.don_gia)}</td>
-                        <td>{money(item.thanh_tien)}</td>
+                        <td className="customer-order-product-cell"><div className="customer-order-product-info">
+                          <OrderProductImage item={item} />
+                          <div><h3>{item.ten_san_pham}</h3><p>Phiên bản: {item.ten_phien_ban || "—"}</p></div>
+                        </div></td>
+                        <td data-label="Đơn giá">{money(item.don_gia)}</td>
+                        <td data-label="Số lượng">{item.so_luong}</td>
+                        <td data-label="Thành tiền" className="customer-order-line-total">{money(item.thanh_tien)}</td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
+                <div className="customer-order-actions">
+                  <p>{canCancel ? 'Bạn có thể hủy đơn trước khi đơn được xuất kho.' : 'Đơn hàng hiện không còn đủ điều kiện hủy.'}</p>
+                  <div>
+                    <button type="button" className="customer-order-button customer-order-button--cancel" disabled={busy || !canCancel} onClick={() => { setError(""); setDialog({ type: "cancel", reason: "" }); }}>HỦY ĐƠN HÀNG</button>
+                    {canReturn && <button type="button" className="customer-order-button" disabled={busy} onClick={openReturn}>YÊU CẦU TRẢ HÀNG</button>}
+                  </div>
+                </div>
               </section>
-
-              <section className="order-card">
-                <h2>NGƯỜI NHẬN</h2>
-                <p>{order.ten_nguoi_nhan}</p>
-                <p>{order.sdt_nguoi_nhan}</p>
-                <p>
-                  {order.hinh_thuc_nhan_hang === "NHAN_TAI_CUA_HANG"
-                    ? "Nhận tại cửa hàng"
-                    : order.dia_chi_giao_hang}
-                </p>
-              </section>
-
-              <section className="order-card">
-                <h2>TỔNG KẾT</h2>
-                <p>Tiền hàng: {money(order.tong_tien_hang)}</p>
-                <p>Chiết khấu: {money(order.tien_chiet_khau)}</p>
-                <p>VAT: {money(order.tong_tien_vat)}</p>
-                <p>Phí giao hàng: {money(order.phi_giao_hang)}</p>
-                <strong>Tổng thanh toán: {money(order.tong_thanh_toan)}</strong>
-              </section>
-
-              <section className="order-card">
+              <section className="customer-order-card customer-order-returns">
                 <h2>YÊU CẦU TRẢ HÀNG</h2>
-
-                {returnsError && <p role="alert">{returnsError}</p>}
-
-                {returns.map((item) => (
-                  <p key={item.id}>
-                    {item.ma_tra_hang}
-                    {" · "}
-                    {returnLabels[item.trang_thai_tra_hang] ||
-                      item.trang_thai_tra_hang}
-                    {" · "}
-                    {money(item.tong_tien_hoan)}
-                  </p>
-                ))}
-
-                {!returnsError && returns.length === 0 && (
-                  <p>Chưa có yêu cầu trả hàng.</p>
-                )}
+                {returnsError && <p role="alert">Không tải được yêu cầu trả hàng: {returnsError}</p>}
+                {returns.map(item => <p key={item.id}><strong>{item.ma_tra_hang}</strong> · {returnLabels[item.trang_thai_tra_hang] || item.trang_thai_tra_hang} · {money(item.tong_tien_hoan)}</p>)}
+                {!returnsError && returns.length === 0 && <p>Chưa có yêu cầu trả hàng.</p>}
               </section>
-            </>
-          )}
+            </div>
+            <aside className="customer-order-sidebar" aria-label="Thông tin và chi phí đơn hàng">
+              <section><h2>THÔNG TIN NGƯỜI NHẬN</h2><dl>
+                <div><dt>Họ tên</dt><dd>{order.ten_nguoi_nhan || '—'}</dd></div>
+                <div><dt>Điện thoại</dt><dd>{order.sdt_nguoi_nhan || '—'}</dd></div>
+                <div><dt>Nhận hàng</dt><dd>{label(order.hinh_thuc_nhan_hang)}</dd></div>
+                {order.hinh_thuc_nhan_hang !== 'NHAN_TAI_CUA_HANG' && <div><dt>Địa chỉ</dt><dd>{order.dia_chi_giao_hang || '—'}</dd></div>}
+                {order.ghi_chu && <div><dt>Ghi chú</dt><dd>{order.ghi_chu}</dd></div>}
+              </dl></section>
+              <section><h2>THANH TOÁN</h2><dl>
+                <div><dt>Phương thức</dt><dd>{label(order.phuong_thuc_thanh_toan)}</dd></div>
+                <div><dt>Trạng thái</dt><dd><span className={`customer-order-payment${order.trang_thai_thanh_toan === 'DA_THANH_TOAN' ? ' is-paid' : ''}`}>{label(order.trang_thai_thanh_toan)}</span></dd></div>
+                <div><dt>Đóng gói</dt><dd>{label(order.trang_thai_dong_goi)}</dd></div>
+                <div><dt>Xuất kho</dt><dd>{label(order.trang_thai_xuat_kho)}</dd></div>
+              </dl></section>
+              <section><h2>CHI PHÍ ĐƠN HÀNG</h2><dl>
+                <div><dt>Tạm tính</dt><dd>{money(order.tong_tien_hang)}</dd></div>
+                <div><dt>Phí vận chuyển</dt><dd>{Number(order.phi_giao_hang) === 0 ? 'Miễn phí' : money(order.phi_giao_hang)}</dd></div>
+                <div><dt>Giảm giá</dt><dd>{Number(order.tien_chiet_khau) > 0 ? `−${money(order.tien_chiet_khau)}` : money(order.tien_chiet_khau)}</dd></div>
+                <div><dt>VAT</dt><dd>{money(order.tong_tien_vat)}</dd></div>
+              </dl><div className="customer-order-grand-total"><strong>TỔNG TIỀN</strong><strong>{money(order.tong_thanh_toan)}</strong></div></section>
+            </aside>
+          </div>}
         </div>
       </main>
 
       {dialog && (
         <OrderModal
+          className="customer-order-dialog"
+          showClose
           title={dialog.type === "cancel" ? "HỦY ĐƠN HÀNG" : "YÊU CẦU TRẢ HÀNG"}
           busy={busy}
           close={() => setDialog(null)}
@@ -398,4 +366,11 @@ export default function OrderDetailPage() {
       <Footer />
     </div>
   );
+}
+
+function OrderProductImage({ item }) {
+  const [failedUrl, setFailedUrl] = useState(null);
+  return item.anh_dai_dien && failedUrl !== item.anh_dai_dien
+    ? <img className="customer-order-product-image" src={item.anh_dai_dien} alt={item.ten_san_pham} loading="lazy" onError={() => setFailedUrl(item.anh_dai_dien)} />
+    : <div className="customer-order-product-image customer-order-no-image"><ImageOff size={20} aria-hidden="true" /><span>Chưa có ảnh</span></div>;
 }

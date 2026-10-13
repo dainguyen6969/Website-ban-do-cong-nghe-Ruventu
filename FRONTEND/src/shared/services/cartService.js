@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { apiRequest, getAccessToken } from '../../auth/backendAuth';
 
 const API_URL = (import.meta.env.VITE_RUVENTU_API_URL || '').replace(/\/$/, '') + '/api/v1/cart';
 
@@ -11,15 +12,25 @@ const cartAxios = axios.create({
   },
 });
 
+async function request(method, path = '', body, headers) {
+  if (getAccessToken()) {
+    const data = await apiRequest('/api/v1/cart' + path, {
+      method, headers, responseType: 'payload', body: body == null ? undefined : JSON.stringify(body),
+    });
+    return { data };
+  }
+  return cartAxios.request({ method, url: path, data: body, headers });
+}
+
 export const cartService = {
   // Get current cart details (fetches data and any applied promotions)
   getCurrentCart: async () => {
-    return await cartAxios.get('');
+    return await request('GET');
   },
 
   // Add an item to the cart
   addItem: async (phienBanId, soLuong = 1) => {
-    return await cartAxios.post('/items', {
+    return await request('POST', '/items', {
       phien_ban_id: phienBanId,
       so_luong: soLuong,
     });
@@ -27,25 +38,27 @@ export const cartService = {
 
   // Update item quantity
   updateItem: async (itemId, soLuong) => {
-    return await cartAxios.put(`/items/${itemId}`, {
+    return await request('PUT', `/items/${itemId}`, {
       so_luong: soLuong,
     });
   },
 
   // Remove an item from the cart
   removeItem: async (itemId) => {
-    return await cartAxios.delete(`/items/${itemId}`);
+    return await request('DELETE', `/items/${itemId}`);
   },
 
   // Apply a discount promotion
   applyPromotion: async (maKhuyenMai) => {
-    return await cartAxios.post('/promotions/apply', {
+    return await request('POST', '/promotions/apply', {
       ma_khuyen_mai: maKhuyenMai,
     });
   },
 
   // Remove applied promotion
   removePromotion: async () => {
-    return await cartAxios.delete('/promotions');
-  }
+    return await request('DELETE', '/promotions');
+  },
+
+  addPcBuild: (key, body) => request('POST', '/pc-build', body, { 'Idempotency-Key': key }),
 };

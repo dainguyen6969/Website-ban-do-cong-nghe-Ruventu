@@ -1,6 +1,5 @@
 package com.example.dantruventu.Config;
 
-import com.example.dantruventu.Enum.PcBuilderCategory;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import lombok.Getter;
@@ -17,10 +16,18 @@ public class PcBuilderProperties {
   private Map<String, String> categorySlugs = defaultMappings();
 
   private static Map<String, String> defaultMappings() {
-    Map<String, String> mappings = new LinkedHashMap<>();
-    for (PcBuilderCategory item : PcBuilderCategory.values()) {
-      mappings.put(item.name(), item.getDefaultCategorySlug());
-    }
-    return mappings;
+    // Hạng mục chưa có danh mục riêng trong DB được để trống, không gán vào Phụ kiện chung.
+    return new LinkedHashMap<>(
+        Map.of(
+            "CPU", "cpu",
+            "MAIN", "mainboard",
+            "RAM", "ram",
+            "SSD_1", "ssd",
+            "SSD_2", "ssd",
+            "VGA", "vga",
+            "PSU", "psu",
+            "CASE", "case",
+            "MONITOR_1", "man-hinh",
+            "MONITOR_2", "man-hinh"));
   }
 }

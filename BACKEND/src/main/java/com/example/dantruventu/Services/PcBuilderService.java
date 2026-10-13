@@ -135,7 +135,7 @@ public class PcBuilderService {
 
   /** Dùng chung kiểm tra phiên bản/hạng mục cho preview và lần ghi giỏ. */
   public Map<Long, PhienBanSanPham> validateVariants(List<Selection> selected) {
-    var mappings = resolveCategoryMappings(false);
+    var mappings = resolveCategoryMappings();
     var ids = selected.stream().map(Selection::variantId).collect(Collectors.toSet());
     var variants =
         variantRepository.findPcBuilderPreviewVariants(ids).stream()
@@ -146,7 +146,8 @@ public class PcBuilderService {
       var variant = variants.get(selection.variantId());
       var product = variant.getSanPham();
       var category = mappings.get(selection.category());
-      if (variant.getTrangThai() != TrangThaiCoBanEnum.HOAT_DONG
+      if (category == null
+          || variant.getTrangThai() != TrangThaiCoBanEnum.HOAT_DONG
           || product.getTrangThai() != TrangThaiCoBanEnum.HOAT_DONG
           || product.getDanhMuc().getTrangThai() != TrangThaiCoBanEnum.HOAT_DONG
           || category.getTrangThai() != TrangThaiCoBanEnum.HOAT_DONG
@@ -316,7 +317,21 @@ public class PcBuilderService {
       }
 
       var mappings = resolveCategoryMappings();
-      Long categoryId = mappings.get(category).getId();
+      var mappedCategory = mappings.get(category);
+      if (mappedCategory == null || mappedCategory.getTrangThai() != TrangThaiCoBanEnum.HOAT_DONG) {
+        return new PcBuilderProductsResponse(
+            category.name(),
+            new PcBuilderProductsResponse.CompatibilityFilter(false, referenceId, null),
+            List.of(),
+            List.of(),
+            PaginationResponse.builder()
+                .page(page)
+                .limit(limit)
+                .totalElements(0)
+                .totalPages(0)
+                .build());
+      }
+      Long categoryId = mappedCategory.getId();
       String referenceSocket = null;
       if (referenceId != null) {
         var reference =
@@ -326,18 +341,20 @@ public class PcBuilderService {
         var product = reference.getSanPham();
         var opposite =
             category == PcBuilderCategory.CPU ? PcBuilderCategory.MAIN : PcBuilderCategory.CPU;
-        if (!mappings.get(opposite).getId().equals(product.getDanhMuc().getId())) {
+        if (mappings.get(opposite) == null
+            || !mappings.get(opposite).getId().equals(product.getDanhMuc().getId())) {
           throw invalidProducts("Phiên bản đối chiếu sai nhóm CPU/MAIN.");
         }
         if (reference.getTrangThai() != TrangThaiCoBanEnum.HOAT_DONG
-            || product.getTrangThai() != TrangThaiCoBanEnum.HOAT_DONG) {
+            || product.getTrangThai() != TrangThaiCoBanEnum.HOAT_DONG
+            || product.getDanhMuc().getTrangThai() != TrangThaiCoBanEnum.HOAT_DONG) {
           throw new AppException(ErrorCode.PC_BUILDER_REFERENCE_DISCONTINUED);
         }
         if (product.getLoaiSanPham() != LoaiSanPham.DON) {
           throw invalidProducts("Phiên bản đối chiếu phải là sản phẩm đơn.");
         }
         referenceSocket = socketSupport.extractSocket(product.getThongSoKyThuat());
-        if (referenceSocket == null) {
+        if (socketOnly && referenceSocket == null) {
           throw new AppException(ErrorCode.PC_BUILDER_REFERENCE_SOCKET_MISSING);
         }
       }
@@ -527,27 +544,16 @@ public class PcBuilderService {
 
   /** Dùng cùng mapping này cho các endpoint chọn sản phẩm/preview sau này. */
   public Map<PcBuilderCategory, DanhMuc> resolveCategoryMappings() {
-    return resolveCategoryMappings(true);
-  }
-
-  private Map<PcBuilderCategory, DanhMuc> resolveCategoryMappings(boolean requireActive) {
     try {
       Map<PcBuilderCategory, String> slugs = new EnumMap<>(PcBuilderCategory.class);
-      var invalid = new ArrayList<String>();
       for (PcBuilderCategory item : PcBuilderCategory.values()) {
         String slug =
             properties.getCategorySlugs() == null
                 ? null
                 : properties.getCategorySlugs().get(item.name());
-        if (slug == null || slug.isBlank()) {
-          invalid.add(item.name() + ": chưa cấu hình slug");
-        } else {
+        if (slug != null && !slug.isBlank()) {
           slugs.put(item, slug.strip());
         }
-      }
-      if (!invalid.isEmpty()) {
-        log.error("Cấu hình PC Builder thiếu mapping: {}", invalid);
-        throw new AppException(ErrorCode.PC_BUILDER_CONFIGURATION_INVALID);
       }
       Map<String, DanhMuc> categories =
           categoryRepository.findByDuongDanUrlIn(slugs.values()).stream()
@@ -555,16 +561,9 @@ public class PcBuilderService {
       Map<PcBuilderCategory, DanhMuc> resolved = new LinkedHashMap<>();
       for (PcBuilderCategory item : PcBuilderCategory.values()) {
         DanhMuc category = categories.get(slugs.get(item));
-        if (category == null
-            || (requireActive && category.getTrangThai() != TrangThaiCoBanEnum.HOAT_DONG)) {
-          invalid.add(item.name() + " -> " + slugs.get(item));
-        } else {
+        if (category != null) {
           resolved.put(item, category);
         }
-      }
-      if (!invalid.isEmpty()) {
-        log.error("Danh mục PC Builder thiếu hoặc ngừng hoạt động: {}", invalid);
-        throw new AppException(ErrorCode.PC_BUILDER_CONFIGURATION_INVALID);
       }
       return Map.copyOf(resolved);
     } catch (AppException exception) {

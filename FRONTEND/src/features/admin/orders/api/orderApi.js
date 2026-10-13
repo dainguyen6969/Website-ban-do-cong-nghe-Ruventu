@@ -13,7 +13,21 @@ const query = (values) => {
   return params;
 };
 
-export const getOrders = (filters, signal) => adminRequest(`${PATH}?${query(filters)}`, { signal });
+export async function getOrders(filters, signal) {
+  const { cho_lau_phut: rawMinutes, ...params } = filters;
+  const minutes = Number(rawMinutes);
+  if (!Number.isFinite(minutes) || minutes <= 0) return adminRequest(`${PATH}?${query(params)}`, { signal });
+  // ponytail: đọc hết các trang để lọc chờ lâu đúng; chuyển sang BE khi có bộ lọc phút.
+  const items = [];
+  const cutoff = Date.now() - minutes * 60000;
+  for (let page = 0, pages = 1; page < pages; page += 1) {
+    const data = await adminRequest(`${PATH}?${query({ ...params, page, limit: 100 })}`, { signal });
+    pages = Number(data.pagination.total_pages);
+    items.push(...data.items.filter(item => ['CHO_DUYET', 'CHO_THANH_TOAN', 'CHO_DONG_GOI', 'CHO_LAY_HANG'].includes(item.trang_thai_don_hang) && Date.parse(item.ngay_tao) <= cutoff));
+  }
+  const start = Number(params.page || 0) * Number(params.limit || 20);
+  return { items: items.slice(start, start + Number(params.limit || 20)), pagination: { page: Number(params.page || 0), limit: Number(params.limit || 20), total_elements: items.length, total_pages: Math.ceil(items.length / Number(params.limit || 20)) } };
+}
 export const getOrder = (id, signal) => adminRequest(`${PATH}/${encodeURIComponent(id)}`, { signal });
 export const getOrderHistory = (id, signal) => adminRequest(`${PATH}/${encodeURIComponent(id)}/history`, { signal });
 export const approveOrder = (id) => action(id, 'approve', { xac_nhan: true });

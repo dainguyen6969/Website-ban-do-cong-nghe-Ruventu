@@ -126,14 +126,17 @@ const ProfilePage = () => {
 
   const renderProfileTab = () => (
     <div className="content-card">
-      <div className="card-header-row">
-        <h3 className="card-title">THÔNG TIN CÁ NHÂN</h3>
+      <header className="profile-card-header">
+        <h3 className="profile-card-title">
+          <span className="profile-card-accent" aria-hidden="true" />
+          THÔNG TIN CÁ NHÂN
+        </h3>
         {!isEditing && (
-          <button className="btn-outline" onClick={handleEditClick}>
+          <button className="btn-outline btn-outline--header" onClick={handleEditClick}>
             <Edit size={14} /> CHỈNH SỬA THÔNG TIN
           </button>
         )}
-      </div>
+      </header>
 
       <div className="form-grid">
         <div className="form-group full-width">
@@ -268,9 +271,12 @@ const ProfilePage = () => {
 
   const renderOrdersTab = () => (
     <div className="content-card">
-      <div className="card-header-row">
-        <h3 className="card-title">LỊCH SỬ ĐƠN HÀNG</h3>
-      </div>
+      <header className="profile-card-header">
+        <h3 className="profile-card-title">
+          <span className="profile-card-accent" aria-hidden="true" />
+          LỊCH SỬ ĐƠN HÀNG
+        </h3>
+      </header>
 
       {ordersError && <p role="alert">{ordersError}</p>}
       {ordersLoading && <p>Đang tải đơn hàng...</p>}
@@ -351,9 +357,12 @@ const ProfilePage = () => {
 
   const renderWarrantyTab = () => (
     <div className="content-card">
-      <div className="card-header-row" style={{ marginBottom: "20px" }}>
-        <h3 className="card-title">THÔNG TIN BẢO HÀNH</h3>
-      </div>
+      <header className="profile-card-header">
+        <h3 className="profile-card-title">
+          <span className="profile-card-accent" aria-hidden="true" />
+          THÔNG TIN BẢO HÀNH
+        </h3>
+      </header>
       <div className="list-container">
         <div className="list-item">
           <div className="item-info">
@@ -442,8 +451,10 @@ const ProfilePage = () => {
       {/* Black User Banner */}
       <div className="profile-banner">
         <div className="container profile-banner-content">
-          <div className="profile-banner-avatar">
-            <User size={32} />
+          <div className="profile-banner-avatar" aria-hidden="true">
+            <span className="profile-banner-initial">
+              {(user.name?.trim().charAt(0) || user.email?.charAt(0) || 'U').toUpperCase()}
+            </span>
           </div>
           <div className="profile-banner-info">
             <h2>{user.name}</h2>
