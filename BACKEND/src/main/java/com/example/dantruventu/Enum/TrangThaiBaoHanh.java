@@ -6,5 +6,7 @@ public enum TrangThaiBaoHanh {
   DA_GUI_BAO_HANH,
   DANG_BAO_HANH,
   DA_NHAN_LAI,
+  CHO_TRA_KHACH,
+  CHO_DOI_SAN_PHAM,
   HOAN_TAT
 }
