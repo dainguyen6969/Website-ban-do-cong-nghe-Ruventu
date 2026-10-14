@@ -1,5 +1,5 @@
 import { Link, useNavigate, useLocation } from "react-router-dom";
-import { ArrowLeft, ShieldCheck, Truck } from "lucide-react";
+import { ArrowLeft, ShieldCheck, Truck, MapPin, Navigation, Loader2 } from "lucide-react";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 import { orderService } from "../../shared/services/orderService";
@@ -11,8 +11,11 @@ import {
   withIdempotency,
 } from "../../shared/services/mutationUtils";
 
-const formatPrice = (price) =>
-  new Intl.NumberFormat("vi-VN").format(price) + "đ";
+const formatPrice = (price) => {
+  const num = Number(price);
+  if (isNaN(num)) return "0đ";
+  return new Intl.NumberFormat("vi-VN").format(num) + "đ";
+};
 
 const CheckoutPage = () => {
   const navigate = useNavigate();
@@ -32,12 +35,79 @@ const CheckoutPage = () => {
 
   const checkoutAttempt = useRef(null);
   const placingRef = useRef(false);
+  const GOONG_API_KEY = "w6ddDpyabJSpcJXqsZB9FPLFv6dgaIrL9WfTYvAS";
+
+  const [addressSuggestions, setAddressSuggestions] = useState([]);
+  const [showAddressDropdown, setShowAddressDropdown] = useState(false);
+  const [locatingUser, setLocatingUser] = useState(false);
+  const [addressSearchLoading, setAddressSearchLoading] = useState(false);
+  const addressWrapperRef = useRef(null);
+
+  const LOCATION_DATA = {
+    "Hà Nội": [
+      "Quận Ba Đình",
+      "Quận Cầu Giấy",
+      "Quận Đống Đa",
+      "Quận Hai Bà Trưng",
+      "Quận Hoàn Kiếm",
+      "Quận Hoàng Mai",
+      "Quận Long Biên",
+      "Quận Nam Từ Liêm",
+      "Quận Bắc Từ Liêm",
+      "Quận Tây Hồ",
+      "Quận Thanh Xuân",
+      "Quận Hà Đông",
+      "Thị xã Sơn Tây",
+      "Huyện Ba Vì",
+      "Huyện Chương Mỹ",
+      "Huyện Đan Phượng",
+      "Huyện Đông Anh",
+      "Huyện Gia Lâm",
+      "Huyện Hoài Đức",
+      "Huyện Mê Linh",
+      "Huyện Mỹ Đức",
+      "Huyện Phú Xuyên",
+      "Huyện Phúc Thọ",
+      "Huyện Quốc Oai",
+      "Huyện Sóc Sơn",
+      "Huyện Thạch Thất",
+      "Huyện Thanh Oai",
+      "Huyện Thanh Trì",
+      "Huyện Thường Tín",
+      "Huyện Ứng Hòa",
+    ],
+    "TP. Hồ Chí Minh": [
+      "Quận 1",
+      "Quận 3",
+      "Quận 4",
+      "Quận 5",
+      "Quận 6",
+      "Quận 7",
+      "Quận 8",
+      "Quận 10",
+      "Quận 11",
+      "Quận 12",
+      "Quận Bình Tân",
+      "Quận Bình Thạnh",
+      "Quận Gò Vấp",
+      "Quận Phú Nhuận",
+      "Quận Tân Bình",
+      "Quận Tân Phú",
+      "Thành phố Thủ Đức",
+      "Huyện Bình Chánh",
+      "Huyện Cần Giờ",
+      "Huyện Củ Chi",
+      "Huyện Hóc Môn",
+      "Huyện Nhà Bè",
+    ],
+  };
+
   const [formData, setFormData] = useState({
     name: "",
     phone: "",
     email: "",
     province: "Hà Nội",
-    ward: "Cầu Giấy",
+    ward: "Quận Cầu Giấy",
     address: "",
     note: "",
   });
@@ -94,6 +164,21 @@ const CheckoutPage = () => {
       Boolean(formData.address.trim()));
 
   const [errors, setErrors] = useState({});
+
+  // Tạm tính từ giỏ hàng khi chưa có previewData từ server
+  const tempSubtotal = useMemo(() => {
+    return cartItemsData
+      .filter((c) => cartItemIds.includes(c.cartItemId))
+      .reduce((sum, item) => sum + (Number(item.donGia ?? item.giaBan) || 0) * (item.soLuong || 1), 0);
+  }, [cartItemsData, cartItemIds]);
+
+  const tempShippingFee = useMemo(() => {
+    if (deliveryMethod === "NHAN_TAI_CUA_HANG") return 0;
+    if (tempSubtotal > 5000000 || tempSubtotal === 0) return 0;
+    return 30000;
+  }, [deliveryMethod, tempSubtotal]);
+
+  const tempTotal = tempSubtotal + tempShippingFee;
 
   useEffect(() => {
     // Check if user is logged in to prefill data
@@ -173,44 +258,167 @@ const CheckoutPage = () => {
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    
+    if (name === "province") {
+      const defaultWard = LOCATION_DATA[value]?.[0] || "";
+      setFormData((prev) => ({
+        ...prev,
+        province: value,
+        ward: defaultWard,
+      }));
+    } else {
+      setFormData((prev) => ({ ...prev, [name]: value }));
+    }
+
     if (errors[name]) {
       setErrors((prev) => ({ ...prev, [name]: null }));
     }
+
+    if (name === "address") {
+      if (value.trim().length >= 3) {
+        searchGoongPlaces(value.trim());
+      } else {
+        setAddressSuggestions([]);
+        setShowAddressDropdown(false);
+      }
+    }
   };
 
-  {
-    previewError && (
-      <p className="error-text" role="alert">
-        {previewError}
-      </p>
-    );
-  }
-
-  {
-    checkoutError && (
-      <p className="error-text" role="alert">
-        {checkoutError}
-      </p>
-    );
-  }
-
-  <button
-    type="button"
-    className="btn-confirm-order"
-    onClick={handlePlaceOrder}
-    disabled={
-      placing ||
-      (!checkoutAttempt.current &&
-        (!previewData || previewLoading || !draftReady))
+  // Tìm kiếm địa chỉ với Goong AutoComplete
+  const searchGoongPlaces = async (query) => {
+    try {
+      setAddressSearchLoading(true);
+      const url = `https://rsapi.goong.io/Place/AutoComplete?api_key=${GOONG_API_KEY}&input=${encodeURIComponent(query)}`;
+      const res = await fetch(url);
+      const data = await res.json();
+      if (data?.predictions) {
+        setAddressSuggestions(data.predictions);
+        setShowAddressDropdown(true);
+      }
+    } catch (err) {
+      console.error("Lỗi tìm kiếm địa chỉ Goong:", err);
+    } finally {
+      setAddressSearchLoading(false);
     }
-  >
-    {placing
-      ? "ĐANG ĐẶT HÀNG..."
-      : checkoutAttempt.current
-        ? "THỬ LẠI YÊU CẦU"
-        : "XÁC NHẬN ĐẶT HÀNG →"}
-  </button>;
+  };
+
+  // Chọn địa chỉ từ danh sách gợi ý của Goong
+  const handleSelectSuggestion = (place) => {
+    const compound = place.compound || {};
+    const fullAddress = place.description || "";
+
+    let matchedProvince = "Hà Nội";
+    if (compound.province) {
+      if (compound.province.toLowerCase().includes("hồ chí minh") || compound.province.toLowerCase().includes("hcm")) {
+        matchedProvince = "TP. Hồ Chí Minh";
+      } else if (compound.province.toLowerCase().includes("hà nội")) {
+        matchedProvince = "Hà Nội";
+      }
+    }
+
+    const availableWards = LOCATION_DATA[matchedProvince] || [];
+    let matchedWard = availableWards[0] || "";
+    const districtText = (compound.district || compound.commune || "").toLowerCase();
+    
+    if (districtText) {
+      const found = availableWards.find((w) =>
+        w.toLowerCase().includes(districtText) || districtText.includes(w.toLowerCase().replace(/^(quận|huyện|thành phố|thị xã)\s+/i, ""))
+      );
+      if (found) matchedWard = found;
+    }
+
+    setFormData((prev) => ({
+      ...prev,
+      address: fullAddress,
+      province: matchedProvince,
+      ward: matchedWard,
+    }));
+
+    if (errors.address) {
+      setErrors((prev) => ({ ...prev, address: null }));
+    }
+
+    setShowAddressDropdown(false);
+    setAddressSuggestions([]);
+  };
+
+  // Lấy vị trí GPS hiện tại của người dùng qua Geolocation + Goong Reverse Geocoding
+  const handleGetCurrentLocation = () => {
+    if (!navigator.geolocation) {
+      alert("Trình duyệt của bạn không hỗ trợ định vị GPS.");
+      return;
+    }
+
+    setLocatingUser(true);
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        try {
+          const { latitude, longitude } = position.coords;
+          const url = `https://rsapi.goong.io/Geocode?api_key=${GOONG_API_KEY}&latlng=${latitude},${longitude}`;
+          const res = await fetch(url);
+          const data = await res.json();
+          if (data?.results && data.results.length > 0) {
+            const first = data.results[0];
+            const compound = first.compound || {};
+            const fullAddress = first.formatted_address || first.address || "";
+
+            let matchedProvince = "Hà Nội";
+            if (compound.province) {
+              if (compound.province.toLowerCase().includes("hồ chí minh") || compound.province.toLowerCase().includes("hcm")) {
+                matchedProvince = "TP. Hồ Chí Minh";
+              } else if (compound.province.toLowerCase().includes("hà nội")) {
+                matchedProvince = "Hà Nội";
+              }
+            }
+
+            const availableWards = LOCATION_DATA[matchedProvince] || [];
+            let matchedWard = availableWards[0] || "";
+            const districtText = (compound.district || compound.commune || "").toLowerCase();
+            
+            if (districtText) {
+              const found = availableWards.find((w) =>
+                w.toLowerCase().includes(districtText) || districtText.includes(w.toLowerCase().replace(/^(quận|huyện|thành phố|thị xã)\s+/i, ""))
+              );
+              if (found) matchedWard = found;
+            }
+
+            setFormData((prev) => ({
+              ...prev,
+              address: fullAddress,
+              province: matchedProvince,
+              ward: matchedWard,
+            }));
+
+            if (errors.address) {
+              setErrors((prev) => ({ ...prev, address: null }));
+            }
+          }
+        } catch (err) {
+          console.error("Lỗi lấy thông tin vị trí:", err);
+          alert("Không thể chuyển đổi tọa độ thành địa chỉ. Vui lòng nhập tay.");
+        } finally {
+          setLocatingUser(false);
+        }
+      },
+      (err) => {
+        console.error("Lỗi Geolocation:", err);
+        setLocatingUser(false);
+        alert("Không thể truy cập vị trí hiện tại. Vui lòng cho phép quyền định vị trên trình duyệt.");
+      },
+      { timeout: 10000, enableHighAccuracy: true }
+    );
+  };
+
+  // Đóng dropdown gợi ý địa chỉ khi click ra ngoài
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (addressWrapperRef.current && !addressWrapperRef.current.contains(e.target)) {
+        setShowAddressDropdown(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   const handlePlaceOrder = async () => {
     if (placingRef.current) return;
@@ -426,35 +634,110 @@ const CheckoutPage = () => {
                       onChange={handleInputChange}
                       className="form-input"
                     >
-                      <option>Hà Nội</option>
-                      <option>TP. Hồ Chí Minh</option>
+                      {Object.keys(LOCATION_DATA).map((prov) => (
+                        <option key={prov} value={prov}>
+                          {prov}
+                        </option>
+                      ))}
                     </select>
                   </div>
                   <div className="form-group">
-                    <label className="form-label">PHƯỜNG / XÃ</label>
+                    <label className="form-label">QUẬN / HUYỆN / PHƯỜNG</label>
                     <select
                       name="ward"
                       value={formData.ward}
                       onChange={handleInputChange}
                       className="form-input"
                     >
-                      <option>Cầu Giấy</option>
-                      <option>Đống Đa</option>
+                      {(LOCATION_DATA[formData.province] || []).map((w) => (
+                        <option key={w} value={w}>
+                          {w}
+                        </option>
+                      ))}
                     </select>
                   </div>
                 </div>
-                <div className="form-group">
-                  <label className="form-label">ĐỊA CHỈ CỤ THỂ</label>
-                  <input
-                    type="text"
-                    name="address"
-                    value={formData.address}
-                    onChange={handleInputChange}
-                    className={`form-input ${errors.address ? "input-error" : ""}`}
-                    placeholder="Số nhà, tên đường, khu dân cư..."
-                  />
+                <div className="form-group" ref={addressWrapperRef} style={{ position: "relative" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
+                    <label className="form-label" style={{ margin: 0 }}>ĐỊA CHỈ CỤ THỂ</label>
+                    <button
+                      type="button"
+                      onClick={handleGetCurrentLocation}
+                      disabled={locatingUser}
+                      style={{
+                        background: "transparent",
+                        border: "none",
+                        color: "#f11919",
+                        fontSize: "12px",
+                        fontWeight: 600,
+                        cursor: locatingUser ? "not-allowed" : "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "4px",
+                        padding: 0,
+                      }}
+                      title="Lấy vị trí hiện tại của bạn"
+                    >
+                      {locatingUser ? (
+                        <>
+                          <Loader2 size={13} className="spin-animate" />
+                          <span>Đang định vị...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Navigation size={13} />
+                          <span>Lấy vị trí hiện tại</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+
+                  <div style={{ position: "relative" }}>
+                    <input
+                      type="text"
+                      name="address"
+                      value={formData.address}
+                      onChange={handleInputChange}
+                      onFocus={() => {
+                        if (addressSuggestions.length > 0) setShowAddressDropdown(true);
+                      }}
+                      className={`form-input ${errors.address ? "input-error" : ""}`}
+                      placeholder="Nhập địa chỉ hoặc tên địa điểm (Goong Maps)..."
+                      autoComplete="off"
+                    />
+                    {addressSearchLoading && (
+                      <div style={{ position: "absolute", right: "12px", top: "50%", transform: "translateY(-50%)", color: "#888" }}>
+                        <Loader2 size={16} className="spin-animate" />
+                      </div>
+                    )}
+                  </div>
+
                   {errors.address && (
                     <span className="error-text">{errors.address}</span>
+                  )}
+
+                  {showAddressDropdown && addressSuggestions.length > 0 && (
+                    <div className="goong-autocomplete-dropdown">
+                      {addressSuggestions.map((item, idx) => (
+                        <div
+                          key={item.place_id || idx}
+                          className="goong-suggestion-item"
+                          onClick={() => handleSelectSuggestion(item)}
+                        >
+                          <MapPin size={16} className="goong-icon" />
+                          <div className="goong-item-text">
+                            <span className="goong-main">
+                              {item.structured_formatting?.main_text || item.description}
+                            </span>
+                            {item.structured_formatting?.secondary_text && (
+                              <span className="goong-secondary">
+                                {item.structured_formatting.secondary_text}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   )}
                 </div>
               </>
@@ -515,8 +798,7 @@ const CheckoutPage = () => {
           <div className="sidebar-header">ĐƠN HÀNG CỦA BẠN</div>
 
           <div className="sidebar-items">
-            {previewData &&
-              previewData.san_pham &&
+            {previewData?.san_pham ? (
               previewData.san_pham.map((item) => {
                 const cartInfo =
                   cartItemsData.find(
@@ -540,7 +822,29 @@ const CheckoutPage = () => {
                     </div>
                   </div>
                 );
-              })}
+              })
+            ) : (
+              cartItemsData
+                .filter((c) => cartItemIds.includes(c.cartItemId))
+                .map((item) => (
+                  <div key={item.cartItemId} className="sidebar-item">
+                    <img
+                      src={item.anh || "https://via.placeholder.com/60"}
+                      alt={item.tenSanPham || "Sản phẩm"}
+                    />
+                    <div className="sidebar-item-details">
+                      <h4>{item.tenSanPham}</h4>
+                      <p>{item.tenPhienBan || "Tiêu chuẩn"}</p>
+                      <div className="sidebar-item-price">
+                        <span className="qty">x{item.soLuong}</span>
+                        <span className="price">
+                          {formatPrice(item.donGia ?? item.giaBan)}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                ))
+            )}
           </div>
 
           <div className="sidebar-summary">
@@ -582,17 +886,72 @@ const CheckoutPage = () => {
                 </div>
               </>
             ) : (
-              <div style={{ textAlign: "center", padding: "20px" }}>
-                Đang tính toán...
-              </div>
+              <>
+                <div className="summary-row">
+                  <span>Tạm tính</span>
+                  <span>{formatPrice(tempSubtotal)}</span>
+                </div>
+                <div className="summary-row">
+                  <span>Phí vận chuyển</span>
+                  {tempShippingFee === 0 ? (
+                    <span
+                      style={{
+                        backgroundColor: "#111",
+                        color: "white",
+                        padding: "2px 6px",
+                        fontSize: "10px",
+                        fontWeight: "bold",
+                      }}
+                    >
+                      MIỄN PHÍ
+                    </span>
+                  ) : (
+                    <span>{formatPrice(tempShippingFee)}</span>
+                  )}
+                </div>
+                <div className="summary-row total">
+                  <span>TỔNG TIỀN</span>
+                  <span className="price">
+                    {formatPrice(tempTotal)}
+                  </span>
+                </div>
+                <div style={{ textAlign: "center", padding: "10px 0 4px", color: "#666", fontSize: "12px" }}>
+                  {previewLoading
+                    ? "Đang cập nhật phí vận chuyển và khuyến mãi..."
+                    : (!formData.phone || (deliveryMethod === "GIAO_HANG" && !formData.address.trim()))
+                    ? "Vui lòng nhập SĐT & địa chỉ cụ thể để tính chính xác phí ship"
+                    : ""}
+                </div>
+              </>
+            )}
+
+            {previewError && (
+              <p className="error-text" role="alert" style={{ marginTop: "12px", textAlign: "center" }}>
+                {previewError}
+              </p>
+            )}
+
+            {checkoutError && (
+              <p className="error-text" role="alert" style={{ marginTop: "12px", textAlign: "center" }}>
+                {checkoutError}
+              </p>
             )}
 
             <button
+              type="button"
               className="btn-confirm-order"
               onClick={handlePlaceOrder}
-              disabled={!previewData}
+              disabled={
+                placing ||
+                (!checkoutAttempt.current &&
+                  (!previewData || previewLoading || !draftReady))
+              }
             >
-              XÁC NHẬN ĐẶT HÀNG &rarr;
+              {placing
+                ? "ĐANG ĐẶT HÀNG..."
+                : checkoutAttempt.current
+                  ? "THỬ LẠI YÊU CẦU"
+                  : "XÁC NHẬN ĐẶT HÀNG →"}
             </button>
           </div>
 
