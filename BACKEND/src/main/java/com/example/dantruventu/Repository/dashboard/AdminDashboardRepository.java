@@ -282,11 +282,11 @@ public class AdminDashboardRepository {
         WHERE component.so_luong > 0
         GROUP BY component.san_pham_combo_id
         """;
-    return jdbc.query(
+    return jdbc
+        .query(
             sql,
             new MapSqlParameterSource("warehouseId", warehouseId),
-            (rs, row) ->
-                Map.entry(rs.getLong("san_pham_combo_id"), rs.getLong("capacity")))
+            (rs, row) -> Map.entry(rs.getLong("san_pham_combo_id"), rs.getLong("capacity")))
         .stream()
         .collect(java.util.stream.Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
   }
@@ -313,8 +313,7 @@ public class AdminDashboardRepository {
             sql,
             (rs, row) ->
                 new PurchaseRow(
-                    rs.getString("trang_thai_nhap"),
-                    rs.getString("trang_thai_thanh_toan")));
+                    rs.getString("trang_thai_nhap"), rs.getString("trang_thai_thanh_toan")));
   }
 
   public long countCustomers() {

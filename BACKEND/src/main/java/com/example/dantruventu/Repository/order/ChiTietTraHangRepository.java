@@ -45,8 +45,7 @@ public interface ChiTietTraHangRepository extends JpaRepository<ChiTietTraHang, 
       WHERE c.chiTietDonHang.donHang.id = :orderId
       GROUP BY c.chiTietDonHang.id
       """)
-  List<ReturnedQuantityProjection> sumReturnedQuantityByOrder(
-      @Param("orderId") Long orderId);
+  List<ReturnedQuantityProjection> sumReturnedQuantityByOrder(@Param("orderId") Long orderId);
 
   @Query(
       """
@@ -58,6 +57,5 @@ public interface ChiTietTraHangRepository extends JpaRepository<ChiTietTraHang, 
       GROUP BY c.chiTietDonHang.id
       """)
   List<ReceivedQuantityProjection> sumReceivedQuantityByOrder(
-      @Param("orderId") Long orderId,
-      @Param("statuses") Collection<TrangThaiTraHang> statuses);
+      @Param("orderId") Long orderId, @Param("statuses") Collection<TrangThaiTraHang> statuses);
 }

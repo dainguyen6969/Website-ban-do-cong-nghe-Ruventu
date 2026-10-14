@@ -54,11 +54,7 @@ public class AdminReturnController {
     return ApiResponse.<AdminReturnResponse.ReceiveResponse>builder()
         .status(200)
         .message("Nhận hàng trả thành công")
-        .data(
-            adminReturnService.receive(
-                id,
-                request,
-                actor == null ? null : actor.getId()))
+        .data(adminReturnService.receive(id, request, actor == null ? null : actor.getId()))
         .build();
   }
 
@@ -82,10 +78,7 @@ public class AdminReturnController {
     return ApiResponse.<AdminReturnResponse.CreateResponse>builder()
         .status(HttpStatus.CREATED.value())
         .message("Tạo phiếu trả thành công")
-        .data(
-            adminReturnService.create(
-                request,
-                actor == null ? null : actor.getId()))
+        .data(adminReturnService.create(request, actor == null ? null : actor.getId()))
         .build();
   }
 
@@ -116,8 +109,7 @@ public class AdminReturnController {
   @GetMapping
   public ApiResponse<AdminReturnResponse.ListResponse> getReturns(
       @RequestParam(name = "keyword", required = false) String keyword,
-      @RequestParam(name = "trang_thai_tra_hang", required = false)
-          TrangThaiTraHang returnStatus,
+      @RequestParam(name = "trang_thai_tra_hang", required = false) TrangThaiTraHang returnStatus,
       @RequestParam(name = "page", defaultValue = "0") int page,
       @RequestParam(name = "limit", defaultValue = "20") int limit) {
 

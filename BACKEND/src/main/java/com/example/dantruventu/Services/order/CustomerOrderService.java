@@ -14,8 +14,8 @@ import com.example.dantruventu.DTO.Request.order.CustomerCheckoutRequest;
 import com.example.dantruventu.DTO.Request.order.CustomerOrderRequest;
 import com.example.dantruventu.DTO.Response.PaginationResponse;
 import com.example.dantruventu.DTO.Response.order.CustomerOrderResponse;
-import com.example.dantruventu.Entity.ChiTietDonHang;
 import com.example.dantruventu.Entity.AnhSanPham;
+import com.example.dantruventu.Entity.ChiTietDonHang;
 import com.example.dantruventu.Entity.DonHang;
 import com.example.dantruventu.Entity.GioHang;
 import com.example.dantruventu.Entity.NguoiDung;
@@ -360,10 +360,13 @@ public class CustomerOrderService {
         lines.stream().map(line -> line.getPhienBan().getSanPham().getId()).distinct().toList();
     Map<Long, AnhSanPham> images = new LinkedHashMap<>();
     if (!productIds.isEmpty()) {
-      for (AnhSanPham image : imageRepository.findBySanPhamIdInOrderByThuTuHienThiAscIdAsc(productIds)) {
+      for (AnhSanPham image :
+          imageRepository.findBySanPhamIdInOrderByThuTuHienThiAscIdAsc(productIds)) {
         Long productId = image.getSanPham().getId();
         AnhSanPham current = images.get(productId);
-        if (current == null || (!Boolean.TRUE.equals(current.getLaAnhChinh()) && Boolean.TRUE.equals(image.getLaAnhChinh()))) {
+        if (current == null
+            || (!Boolean.TRUE.equals(current.getLaAnhChinh())
+                && Boolean.TRUE.equals(image.getLaAnhChinh()))) {
           images.put(productId, image);
         }
       }
@@ -378,7 +381,9 @@ public class CustomerOrderService {
                         .phienBanId(line.getPhienBan().getId())
                         .anhDaiDien(
                             images.containsKey(line.getPhienBan().getSanPham().getId())
-                                ? images.get(line.getPhienBan().getSanPham().getId()).getDuongDanAnh()
+                                ? images
+                                    .get(line.getPhienBan().getSanPham().getId())
+                                    .getDuongDanAnh()
                                 : null)
                         .tenSanPham(line.getPhienBan().getSanPham().getTenSanPham())
                         .tenPhienBan(line.getPhienBan().getTenPhienBan())
