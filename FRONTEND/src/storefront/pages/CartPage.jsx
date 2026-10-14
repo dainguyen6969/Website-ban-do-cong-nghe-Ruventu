@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Trash2, X } from 'lucide-react';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
@@ -9,6 +9,7 @@ import './CartPage.css';
 const formatPrice = (price) => new Intl.NumberFormat('vi-VN').format(price) + 'đ';
 
 const CartPage = () => {
+  const navigate = useNavigate();
   const [cartItems, setCartItems] = useState([]);
   const [cartData, setCartData] = useState({ tongTien: 0, tongTienSauKhuyenMai: 0, khuyenMai: null });
   const [voucherCode, setVoucherCode] = useState('');
@@ -121,6 +122,16 @@ const CartPage = () => {
   // If all selected, use API totals (which includes voucher). Otherwise use local total (ignoring voucher for simplicity on partial select)
   const finalPrice = isAllSelected && cartData.khuyenMai ? cartData.tongTienSauKhuyenMai : localTotalPrice;
   const discountAmount = isAllSelected && cartData.khuyenMai ? (cartData.tongTien - cartData.tongTienSauKhuyenMai) : 0;
+
+  const handleProceedToCheckout = () => {
+    if (selectedQuantity === 0) return;
+    navigate('/checkout', {
+      state: {
+        cartItemIds: selectedItems.map(i => i.cartItemId),
+        voucherCode: cartData.khuyenMai?.maKhuyenMai
+      }
+    });
+  };
 
   return (
     <div className="cart-page-wrapper">
@@ -238,16 +249,18 @@ const CartPage = () => {
               <span>TỔNG TIỀN</span>
               <span className="total-amount">{formatPrice(finalPrice + (finalPrice > 0 && finalPrice <= 5000000 ? 30000 : 0))}</span>
             </div>
-            <Link 
-              to="/checkout" 
-              style={{textDecoration: 'none'}}
-              state={{ 
-                cartItemIds: selectedItems.map(i => i.cartItemId), 
-                voucherCode: cartData.khuyenMai?.maKhuyenMai 
+            <button
+              type="button"
+              className="btn-checkout-full"
+              onClick={handleProceedToCheckout}
+              disabled={selectedQuantity === 0}
+              style={{
+                opacity: selectedQuantity === 0 ? 0.5 : 1,
+                cursor: selectedQuantity === 0 ? 'not-allowed' : 'pointer'
               }}
             >
-              <button className="btn-checkout-full" disabled={selectedQuantity === 0} style={{ opacity: selectedQuantity === 0 ? 0.5 : 1 }}>TIẾN HÀNH ĐẶT HÀNG &rarr;</button>
-            </Link>
+              TIẾN HÀNH ĐẶT HÀNG &rarr;
+            </button>
             <div className="trust-badges">
               <span><ShieldCheckIcon /> Bảo hành chính hãng</span>
               <span><TruckIcon /> Giao hàng toàn quốc</span>

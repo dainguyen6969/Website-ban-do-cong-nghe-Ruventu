@@ -33,21 +33,28 @@ export default function ImageUploader({ images = [], onImagesChange, maxSizeMB =
         });
       }
       if (newImages.length > 0) {
-        const pending = [...images, ...newImages];
-        onImagesChange(pending);
-        const uploaded = await Promise.all(newImages.map(async (image) => {
-          try {
-            const result = await uploadImage(image.file, folder);
-            URL.revokeObjectURL(image.url);
-            return { ...image, url: result.url, publicId: result.public_id, file: null, uploading: false };
-          } catch (error) {
-            return { ...image, uploading: false, error: error?.message || 'Không thể tải ảnh lên.' };
-          }
-        }));
-        onImagesChange([...images, ...uploaded]);
+        const pending = [...newImages];
+        onImagesChange((prev) => (typeof prev === 'function' ? prev : [...(prev || []), ...pending]));
+        const uploaded = await Promise.all(
+          newImages.map(async (image) => {
+            try {
+              const result = await uploadImage(image.file, folder);
+              URL.revokeObjectURL(image.url);
+              return { ...image, url: result.url, publicId: result.public_id, file: null, uploading: false };
+            } catch (error) {
+              return { ...image, uploading: false, error: error?.message || 'Không thể tải ảnh lên.' };
+            }
+          })
+        );
+
+        const byId = new Map(uploaded.map((img) => [img.id, img]));
+        onImagesChange((current) => {
+          const list = typeof current === 'function' ? current : (current || []);
+          return list.map((img) => byId.get(img.id) || img);
+        });
       }
     },
-    [images, onImagesChange, maxSizeMB, folder]
+    [onImagesChange, maxSizeMB, folder]
   );
 
   const handleDrop = useCallback(
@@ -122,8 +129,20 @@ export default function ImageUploader({ images = [], onImagesChange, maxSizeMB =
       {images.length > 0 && (
         <div className="image-uploader__thumbs">
           {images.map((img) => (
-            <div key={img.id} className="image-uploader__thumb" title={img.error || (img.uploading ? 'Đang tải ảnh lên Cloudinary...' : '')}>
+            <div
+              key={img.id}
+              className={`image-uploader__thumb ${img.uploading ? 'image-uploader__thumb--uploading' : ''} ${img.error ? 'image-uploader__thumb--error' : ''}`}
+              title={img.error || (img.uploading ? 'Đang tải ảnh lên Cloudinary...' : '')}
+            >
               <img src={img.url} alt="" className="image-uploader__thumb-img" />
+              {img.uploading && (
+                <div className="image-uploader__overlay">
+                  <div className="image-uploader__spinner" />
+                </div>
+              )}
+              {img.error && (
+                <div className="image-uploader__error-badge">!</div>
+              )}
               <button
                 type="button"
                 className="image-uploader__thumb-remove"

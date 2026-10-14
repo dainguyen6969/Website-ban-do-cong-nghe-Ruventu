@@ -20,12 +20,14 @@ const ProductGallery = ({ images = [], discountPercent, isFullBuild = false }) =
     setCurrentIndex((prevIndex) => (prevIndex === 0 ? galleryImages.length - 1 : prevIndex - 1));
   };
 
+  const badgeDiscount = discountPercent > 0 ? discountPercent : 13;
+
   return (
     <div className="product-gallery-container">
       {/* Top badges */}
       <div className="gallery-badges">
-        {discountPercent > 0 && <div className="discount-badge">-{discountPercent}%</div>}
-        {isFullBuild && <div className="full-build-badge">FULL BUILD</div>}
+        <div className="discount-badge">-{badgeDiscount}%</div>
+        <div className="variant-model-badge">ROG STRIX STANDARD</div>
       </div>
 
       {/* Main Image */}
