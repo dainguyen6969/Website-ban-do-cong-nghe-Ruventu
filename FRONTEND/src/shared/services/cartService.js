@@ -12,15 +12,15 @@ const cartAxios = axios.create({
   },
 });
 
-async function request(method, path = '', body, headers) {
-  if (getAccessToken()) {
-    const data = await apiRequest('/api/v1/cart' + path, {
-      method, headers, responseType: 'payload', body: body == null ? undefined : JSON.stringify(body),
-    });
-    return { data };
+cartAxios.interceptors.request.use((config) => {
+  const token = localStorage.getItem('accessToken');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  } else {
+    delete config.headers.Authorization;
   }
-  return cartAxios.request({ method, url: path, data: body, headers });
-}
+  return config;
+});
 
 export const cartService = {
   // Get current cart details (fetches data and any applied promotions)

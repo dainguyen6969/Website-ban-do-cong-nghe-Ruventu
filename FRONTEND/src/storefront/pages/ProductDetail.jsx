@@ -26,6 +26,22 @@ const ProductDetail = () => {
           const backendData = response.data;
           const mainVariant = backendData.danhSachPhienBan && backendData.danhSachPhienBan[0] ? backendData.danhSachPhienBan[0] : null;
           
+          let parsedSpecs = {};
+          if (backendData.thongSoKyThuat) {
+            if (typeof backendData.thongSoKyThuat === 'string') {
+              try {
+                parsedSpecs = JSON.parse(backendData.thongSoKyThuat);
+              } catch (e) {
+                console.warn('thongSoKyThuat is not JSON string', e);
+                parsedSpecs = {};
+              }
+            } else if (typeof backendData.thongSoKyThuat === 'object') {
+              parsedSpecs = backendData.thongSoKyThuat;
+            }
+          }
+
+          const specEntries = Object.keys(parsedSpecs).map(k => ({ label: k, value: String(parsedSpecs[k]) }));
+
           const mappedProduct = {
             id: backendData.id,
             category: backendData.danhMuc?.tenDanhMuc || 'Chưa phân loại',
@@ -36,8 +52,8 @@ const ProductDetail = () => {
             stock: mainVariant ? mainVariant.tonCoTheBan : 0,
             discountPercent: 0,
             images: backendData.anhSanPham?.map(img => img.duongDanAnh) || [],
-            specsSummary: backendData.thongSoKyThuat ? Object.keys(backendData.thongSoKyThuat).slice(0,4).map(k => ({ label: k, value: backendData.thongSoKyThuat[k] })) : [],
-            fullSpecs: backendData.thongSoKyThuat ? Object.keys(backendData.thongSoKyThuat).map(k => ({ label: k, value: backendData.thongSoKyThuat[k] })) : [],
+            specsSummary: specEntries,
+            fullSpecs: specEntries,
             tags: [],
             policies: [
               { title: "MIỄN PHÍ VẬN CHUYỂN", desc: "Đơn từ 5tr", icon: "truck" },
