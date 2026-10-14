@@ -22,6 +22,8 @@ public interface ComboMapper {
   @Mapping(target = "thuongHieu", ignore = true)
   @Mapping(target = "loaiSanPham", constant = "BO_PC")
   @Mapping(target = "ngayTao", ignore = true)
+  // DTO tạo combo hiện chưa có thời hạn bảo hành; không tự suy đoán giá trị nghiệp vụ.
+  @Mapping(target = "thoiHanBaoHanhThang", ignore = true)
   @Mapping(target = "danhSachAnhSanPham", ignore = true)
   @Mapping(target = "danhSachPhienBan", ignore = true)
   @Mapping(target = "danhSachThanhPhanCombo", ignore = true)

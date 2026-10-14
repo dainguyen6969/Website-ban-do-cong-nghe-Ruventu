@@ -30,7 +30,7 @@ function initials(name = '') {
 function BrandLogo({ brand, large = false }) {
   const [failedLogo, setFailedLogo] = useState('');
   const showLogo = Boolean(brand.logo) && failedLogo !== brand.logo;
-  return <div className={`brand-logo ${large ? 'brand-logo--large' : ''}`}>
+  return <div className={`admin-brand-logo ${large ? 'admin-brand-logo--large' : ''}`}>
     {showLogo ? <img src={brand.logo} alt={`Logo ${brand.name}`} onError={() => setFailedLogo(brand.logo)} /> : <span>{initials(brand.name)}</span>}
   </div>;
 }

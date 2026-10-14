@@ -1,9 +1,11 @@
 package com.example.dantruventu.Repository.order;
 
 import com.example.dantruventu.Entity.ChiTietDonHang;
+import jakarta.persistence.LockModeType;
 import java.util.List;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -11,6 +13,17 @@ public interface ChiTietDonHangRepository extends JpaRepository<ChiTietDonHang, 
 
   @EntityGraph(attributePaths = {"phienBan", "phienBan.sanPham"})
   List<ChiTietDonHang> findByDonHang_IdOrderByIdAsc(Long orderId);
+
+  @Lock(LockModeType.PESSIMISTIC_WRITE)
+  @EntityGraph(attributePaths = {"phienBan", "phienBan.sanPham"})
+  @Query(
+      """
+      SELECT c
+      FROM ChiTietDonHang c
+      WHERE c.donHang.id = :orderId
+      ORDER BY c.id
+      """)
+  List<ChiTietDonHang> findByDonHangIdForUpdate(@Param("orderId") Long orderId);
 
   /*
    * MVP một kho.

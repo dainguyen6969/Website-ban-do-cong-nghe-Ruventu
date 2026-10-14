@@ -144,6 +144,10 @@ public class AdminReceiptService {
                       payerPageable(pageNumber, pageSize, "tenDoiTac"))
                   .map(this::toPayerSuggestion);
           case KHAC -> Page.empty(PageRequest.of(pageNumber, pageSize));
+          case HE_THONG_TU_DONG ->
+              throw new AppException(
+                  ErrorCode.INVALID_RECEIPT_PAYER_SEARCH,
+                  "Nhóm HE_THONG_TU_DONG không dùng để chọn người nộp/nhận cho phiếu thủ công.");
         };
 
     return PayerSuggestionListResponse.builder()

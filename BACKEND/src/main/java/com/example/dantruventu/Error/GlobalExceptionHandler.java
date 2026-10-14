@@ -1,8 +1,10 @@
 package com.example.dantruventu.Error;
 
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.redis.RedisConnectionFailureException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.PessimisticLockingFailureException;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.AccessDeniedException;
@@ -130,6 +132,15 @@ public class GlobalExceptionHandler {
             ErrorCode.FORBIDDEN.getStatus().value(), ErrorCode.FORBIDDEN.getMessage());
 
     return ResponseEntity.status(ErrorCode.FORBIDDEN.getStatus()).body(response);
+  }
+
+  @ExceptionHandler(RedisConnectionFailureException.class)
+  public ResponseEntity<ErrorResponse> handleRedisUnavailable(
+      RedisConnectionFailureException exception) {
+
+    log.warn("Redis không khả dụng; request phụ thuộc Redis chưa thể xử lý");
+    return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+        .body(new ErrorResponse(503, "Dịch vụ tạm thời không khả dụng, vui lòng thử lại."));
   }
 
   @ExceptionHandler(Exception.class)

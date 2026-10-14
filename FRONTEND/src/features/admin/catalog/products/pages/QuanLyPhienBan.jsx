@@ -1,6 +1,6 @@
 // Admin product screen: QuanLyPhienBan.
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { HiOutlineDownload, HiOutlineSearch } from "react-icons/hi";
 import TablePagination from "../../../../../shared/components/ui/TablePagination";
 import { getAllVersions } from "../api/versionApi";
@@ -15,9 +15,11 @@ function escapeCsv(value) {
 
 export default function QuanLyPhienBan() {
   const navigate = useNavigate();
+  const [params] = useSearchParams();
   const [searchTerm, setSearchTerm] = useState("");
-  const [warehouse, setWarehouse] = useState("");
-  const [type, setType] = useState("Tất cả");
+  const [warehouse, setWarehouse] = useState(() => params.get('kho_hang_id') || "");
+  const [type, setType] = useState(() => params.get('loai_doi_tuong') === 'PHIEN_BAN' ? 'Phiên bản' : "Tất cả");
+  const [warning, setWarning] = useState(() => ['HET_HANG', 'DUOI_TOI_THIEU'].includes(params.get('canh_bao')) ? params.get('canh_bao') : '');
   const [versions, setVersions] = useState([]);
   const [warehouses, setWarehouses] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -45,7 +47,7 @@ export default function QuanLyPhienBan() {
     const controller = new AbortController();
     setLoading(true);
     setError("");
-    getAllVersions(warehouse, controller.signal)
+    getAllVersions(warehouse, controller.signal, true, warning)
       .then(({ versions: rows, warehouses: options }) => {
         setVersions(rows);
         setWarehouses(options);
@@ -61,7 +63,7 @@ export default function QuanLyPhienBan() {
         if (!controller.signal.aborted) setLoading(false);
       });
     return () => controller.abort();
-  }, [warehouse, reloadKey]);
+  }, [warehouse, reloadKey, warning]);
 
   const totalPages = Math.max(
     1,
@@ -212,6 +214,8 @@ export default function QuanLyPhienBan() {
               ))}
             </select>
           </label>
+
+          <label className="version-select-wrap"><span className="sr-only">Lọc cảnh báo tồn kho</span><select aria-label="Lọc cảnh báo tồn kho" value={warning} onChange={event => { setWarning(event.target.value); setCurrentPage(1); }}><option value="">Tất cả cảnh báo</option><option value="HET_HANG">Hết hàng</option><option value="DUOI_TOI_THIEU">Dưới mức tối thiểu</option></select></label>
 
           <button
             type="button"

@@ -191,6 +191,24 @@ public class SalesCalculationService {
     return serialRepository.countByPhienBanId(variantId) > 0;
   }
 
+  /** Cùng phép quy đổi combo -> linh kiện cho đơn hàng và kiểm tra toàn bộ giỏ. */
+  public Map<Long, Integer> physicalDemand(Catalog catalog, Map<Long, Integer> saleQuantities) {
+    Map<Long, Integer> total = new TreeMap<>();
+    for (var sale : saleQuantities.entrySet()) {
+      physicalLineDemand(catalog, sale.getKey(), sale.getValue())
+          .forEach((id, required) -> total.merge(id, required, (a, b) -> quantity((long) a + b)));
+    }
+    return total;
+  }
+
+  private Map<Long, Integer> physicalLineDemand(Catalog catalog, Long variantId, int saleQuantity) {
+    Map<Long, Integer> physical = new TreeMap<>();
+    for (var part : catalog.physicalUnits().get(variantId).entrySet()) {
+      physical.put(part.getKey(), quantity((long) part.getValue() * saleQuantity));
+    }
+    return physical;
+  }
+
   public TonKho stock(Long warehouseId, Long variantId, boolean lock) {
 
     List<TonKho> rows =
@@ -348,22 +366,18 @@ public class SalesCalculationService {
     Catalog catalog = catalog(inputs.stream().map(InputLine::variantId).toList(), lock);
 
     List<SaleLine> lines = new ArrayList<>();
-    Map<Long, Integer> totalQuantities = new TreeMap<>();
+    Map<Long, Integer> saleQuantities = new TreeMap<>();
+    for (InputLine input : inputs) {
+      saleQuantities.merge(input.variantId(), input.quantity(), (a, b) -> quantity((long) a + b));
+    }
+    Map<Long, Integer> totalQuantities = physicalDemand(catalog, saleQuantities);
 
     for (InputLine input : inputs) {
 
       PhienBanSanPham variant = catalog.variants().get(input.variantId());
 
-      Map<Long, Integer> physical = new TreeMap<>();
-
-      for (var part : catalog.physicalUnits().get(input.variantId()).entrySet()) {
-
-        int required = quantity((long) part.getValue() * input.quantity());
-
-        physical.put(part.getKey(), required);
-
-        totalQuantities.merge(part.getKey(), required, (a, b) -> quantity((long) a + b));
-      }
+      Map<Long, Integer> physical =
+          physicalLineDemand(catalog, input.variantId(), input.quantity());
 
       BigDecimal rate = vatRate(variant, request.getThue().getApDung());
       BigDecimal price = input.gift() ? BigDecimal.ZERO : money(variant.getGiaBanLe());

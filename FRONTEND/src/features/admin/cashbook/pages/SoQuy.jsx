@@ -1,42 +1,19 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { cashbookService } from '../../../../shared/services/cashbookService';
-import DetailTablePagination from '../../../../shared/components/ui/DetailTablePagination';
+import React, { useState, useMemo } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useCashbook } from '../context/CashbookContext';
 import './SoQuy.css';
 
 export default function SoQuy() {
     const navigate = useNavigate();
+    const [params] = useSearchParams();
+    const { cashbookList = [] } = useCashbook() || {};
 
-    // Default dates: First day of current month to today
-    const getFirstDayOfMonth = () => {
-        const d = new Date();
-        const year = d.getFullYear();
-        const month = String(d.getMonth() + 1).padStart(2, '0');
-        return `${year}-${month}-01`;
-    };
-
-    const getToday = () => {
-        const d = new Date();
-        const year = d.getFullYear();
-        const month = String(d.getMonth() + 1).padStart(2, '0');
-        const day = String(d.getDate()).padStart(2, '0');
-        return `${year}-${month}-${day}`;
-    };
-
-    const defaultFromDate = getFirstDayOfMonth();
-    const defaultToDate = getToday();
-
-    // Filter states
-    const [fromDate, setFromDate] = useState(defaultFromDate);
-    const [toDate, setToDate] = useState(defaultToDate);
-    const [filterType, setFilterType] = useState('ALL');
-    const [filterMethod, setFilterMethod] = useState('ALL');
-    const [searchPerson, setSearchPerson] = useState('');
-    const [debouncedPerson, setDebouncedPerson] = useState('');
-
-    // Pagination
-    const [page, setPage] = useState(1);
-    const pageSize = 20;
+    const [fromDate, setFromDate] = useState(() => params.get('tu_ngay') || '');
+    const [toDate, setToDate] = useState(() => params.get('den_ngay') || '');
+    const [filterType, setFilterType] = useState(() => ({ THU: 'Phiếu thu', CHI: 'Phiếu chi' }[params.get('loai_phieu')] || 'Tất cả'));
+    const [filterMethod, setFilterMethod] = useState(() => ({ TIEN_MAT: 'Tiền mặt', CHUYEN_KHOAN: 'Chuyển khoản' }[params.get('phuong_thuc_thanh_toan')] || 'Tất cả'));
+    const [searchPerson, setSearchPerson] = useState(() => params.get('ten_nguoi_nop_nhan') || params.get('keyword') || '');
+    const [filterStaff, setFilterStaff] = useState('Tất cả');
 
     // Data states
     const [transactions, setTransactions] = useState([]);

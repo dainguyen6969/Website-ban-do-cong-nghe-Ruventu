@@ -31,6 +31,7 @@ const CheckoutPage = () => {
   const [previewRevision, setPreviewRevision] = useState(0);
 
   const [placing, setPlacing] = useState(false);
+  const [hasPendingAttempt, setHasPendingAttempt] = useState(false);
   const [checkoutError, setCheckoutError] = useState("");
 
   const checkoutAttempt = useRef(null);
@@ -419,7 +420,6 @@ const CheckoutPage = () => {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
-
   const handlePlaceOrder = async () => {
     if (placingRef.current) return;
 
@@ -507,6 +507,7 @@ const CheckoutPage = () => {
       }
     } finally {
       placingRef.current = false;
+      setHasPendingAttempt(Boolean(checkoutAttempt.current));
       setPlacing(false);
     }
   };
@@ -937,6 +938,12 @@ const CheckoutPage = () => {
               </p>
             )}
 
+            {previewError && (
+              <p className="error-text" role="alert">{previewError}</p>
+            )}
+            {checkoutError && (
+              <p className="error-text" role="alert">{checkoutError}</p>
+            )}
             <button
               type="button"
               className="btn-confirm-order"

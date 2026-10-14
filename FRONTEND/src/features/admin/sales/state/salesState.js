@@ -1,7 +1,7 @@
 // State helpers for the admin point-of-sale workflow.
 export function createOrder(sequence, employee = null) {
   return { id: sequence, code: `DH-${String(sequence).padStart(3, '0')}`, customer: null, cart: [], tax: true,
-    priceList: 'retail', employee, discount: 0, paymentMethod: 'cash', paid: 0 };
+    priceList: 'retail', employee, discount: 0, promotion: '', paymentMethod: 'cash', paid: 0 };
 }
 
 export function resetOrder(order) {
@@ -32,6 +32,10 @@ export function finalizeOrder(order) {
 const priceOf = (product, priceList) => Number(product.unitPrice ?? product.prices?.[priceList] ?? 0);
 
 export function orderTotals(order) {
+  if (order.preview && !order.discount) {
+    const data = order.preview.data;
+    return { subtotal: Number(data.tong_tien_hang), vat: Number(data.tong_tien_vat), discountAmount: Number(data.tien_chiet_khau), total: Number(data.tong_thanh_toan) };
+  }
   const subtotal = order.cart.reduce((sum, item) => sum + priceOf(item.product, order.priceList) * item.quantity, 0);
   const included = order.taxMode === 'DA_BAO_GOM';
   const vat = order.tax ? order.cart.reduce((sum, item) => {
@@ -45,7 +49,12 @@ export function orderTotals(order) {
 
 export function updateOrder(order, patch) {
   const next = { ...order, ...patch };
-  if (['cart', 'tax', 'taxMode', 'priceList', 'discount'].some((field) => Object.hasOwn(patch, field))) next.paid = orderTotals(next).total;
+  if (['cart', 'tax', 'taxMode', 'priceList', 'discount', 'promotion', 'customer'].some((field) => Object.hasOwn(patch, field))) {
+    next.preview = null;
+    next.giftSerials = {};
+    next.paymentReceived = false;
+    next.paid = orderTotals(next).total;
+  }
   return next;
 }
 
@@ -71,3 +80,9 @@ export const findIncompleteSerialLine = (cart) => cart.find(
 ) || null;
 
 export const findStockIssue = (cart) => cart.find((item) => item.quantity > item.product.stock) || null;
+
+export const giftSerialRequirements = (preview) => (preview?.san_pham || []).filter(line => line.la_qua_tang).flatMap(line =>
+  line.serial_requirements.map(requirement => ({
+    key: `${line.ma_dong}:${requirement.phien_ban_id}`, variantId: requirement.phien_ban_id,
+    quantity: requirement.so_luong_can_serial,
+  })));

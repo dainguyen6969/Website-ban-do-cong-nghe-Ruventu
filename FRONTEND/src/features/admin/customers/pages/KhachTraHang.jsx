@@ -1,6 +1,6 @@
 // Admin customer screen: KhachTraHang.
 import { useEffect, useMemo, useState } from 'react';
-import { useLocation, useNavigate, useParams } from 'react-router-dom';
+import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { HiOutlineArrowLeft, HiOutlineSearch, HiOutlineX } from 'react-icons/hi';
 import TablePagination from '../../../../shared/components/ui/TablePagination';
 import DetailTablePagination from '../../../../shared/components/ui/DetailTablePagination';
@@ -9,20 +9,20 @@ import useOrders from '../../../../context/useOrders';
 import { subscribeToAdminSlice } from '../../../../sync/adminSync';
 import {
   CUSTOMER_RETURNS_SYNC_SLICE, RETURN_STATUS, createReturnId, orderCustomerName,
-  orderLineRef, orderPhone, readCustomerReturns, returnTotals, returnedQuantity, saveCustomerReturns,
+  orderLineRef, orderPhone, readCustomerReturns, returnTotals, returnedQuantity, saveCustomerReturns, matchesReturnStatus,
 } from '../../../../data/customerReturns';
 import './KhachTraHang.css';
 
 const LIST_ROUTE = '/admin/don-hang/khach-tra-hang';
 const ORDER_DETAIL_ROUTE = '/admin/don-hang/danh-sach-don-hang';
 const PAGE_SIZE = 8;
-const STATUS_OPTIONS = ['Tất cả trạng thái', 'Chờ tiếp nhận', 'Đã nhận hàng', 'Đã hoàn tiền'];
+const STATUS_OPTIONS = ['Tất cả trạng thái', 'Chờ tiếp nhận', 'Đã nhận hàng', 'Đã hoàn tiền', 'Chờ hoàn tiền', 'Cần xử lý'];
 const normalize = (value = '') => value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D').toLowerCase();
 const money = (value) => `${new Intl.NumberFormat('vi-VN').format(Number(value || 0))}đ`;
 const dateOnly = (value) => new Intl.DateTimeFormat('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' }).format(new Date(value));
 const today = () => new Date().toISOString().slice(0, 10);
-const statusLabel = (status) => ({ CHO_TIEP_NHAN: 'Chờ tiếp nhận', DA_NHAN_HANG: 'Đã nhận hàng', DA_HOAN_TIEN: 'Đã hoàn tiền' }[status] || status);
-const statusFromLabel = (label) => ({ 'Chờ tiếp nhận': 'CHO_TIEP_NHAN', 'Đã nhận hàng': 'DA_NHAN_HANG', 'Đã hoàn tiền': 'DA_HOAN_TIEN' }[label]);
+const statusLabel = (status) => ({ CHO_TIEP_NHAN: 'Chờ tiếp nhận', DA_NHAN_HANG: 'Đã nhận hàng', DA_HOAN_TIEN: 'Đã hoàn tiền', CHO_HOAN_TIEN: 'Chờ hoàn tiền', CAN_XU_LY: 'Cần xử lý' }[status] || status);
+const statusFromLabel = (label) => ({ 'Chờ tiếp nhận': 'CHO_TIEP_NHAN', 'Đã nhận hàng': 'DA_NHAN_HANG', 'Đã hoàn tiền': 'DA_HOAN_TIEN', 'Chờ hoàn tiền': 'CHO_HOAN_TIEN', 'Cần xử lý': 'CAN_XU_LY' }[label]);
 const guestName = (name) => name || 'Khách lẻ';
 
 export default function KhachTraHang() {
@@ -38,8 +38,9 @@ export default function KhachTraHang() {
 
 function ReturnList({ orders, returns }) {
   const navigate = useNavigate();
+  const [params] = useSearchParams();
   const [query, setQuery] = useState('');
-  const [status, setStatus] = useState(STATUS_OPTIONS[0]);
+  const [status, setStatus] = useState(() => { const value = statusLabel(params.get('trang_thai_tra_hang')); return STATUS_OPTIONS.includes(value) ? value : STATUS_OPTIONS[0]; });
   const [page, setPage] = useState(1);
   const [selecting, setSelecting] = useState(false);
   const filtered = useMemo(() => {
@@ -47,7 +48,7 @@ function ReturnList({ orders, returns }) {
     const wantedStatus = statusFromLabel(status);
     return returns.filter((record) => {
       const matchesText = !term || [record.id, record.orderId, record.khachHang, record.soDienThoai].some((value) => normalize(value || '').includes(term));
-      return matchesText && (!wantedStatus || record.trangThai === wantedStatus);
+      return matchesText && matchesReturnStatus(record, wantedStatus);
     });
   }, [query, returns, status]);
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));

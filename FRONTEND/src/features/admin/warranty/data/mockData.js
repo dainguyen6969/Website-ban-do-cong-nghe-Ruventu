@@ -1,3 +1,8 @@
+export const warrantyStatusLabels = {
+  TIEP_NHAN: 'TIẾP NHẬN', DANG_KIEM_TRA: 'ĐANG KIỂM TRA', DA_GUI_BAO_HANH: 'ĐÃ GỬI BẢO HÀNH',
+  DANG_BAO_HANH: 'ĐANG BẢO HÀNH', DA_NHAN_LAI: 'ĐÃ NHẬN LẠI', HOAN_TAT: 'HOÀN TẤT',
+};
+
 export const progressSteps = [
   'TIẾP NHẬN',
   'ĐANG KIỂM TRA',

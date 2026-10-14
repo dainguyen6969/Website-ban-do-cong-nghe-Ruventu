@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import React, { useState } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import '../styles/warranty.css';
-import { mockWarrantyData, statusColors } from '../data/mockData';
+import { mockWarrantyData, statusColors, warrantyStatusLabels } from '../data/mockData';
 
 const parseDate = (dateStr) => {
   // dateStr format: "14/09/2026 14:00" or "14/09/2026"
@@ -15,16 +15,12 @@ const parseDate = (dateStr) => {
 
 const DanhSachBaoHanh = () => {
   const navigate = useNavigate();
+  const [params] = useSearchParams();
   const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState('TẤT CẢ TRẠNG THÁI');
+  const [statusFilter, setStatusFilter] = useState(() => warrantyStatusLabels[params.get('trang_thai')] || 'TẤT CẢ TRẠNG THÁI');
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
-  const [data, setData] = useState([]);
-
-  useEffect(() => {
-    // Read from the shared mutable array
-    setData([...mockWarrantyData]);
-  }, []);
+  const [data] = useState(() => [...mockWarrantyData]);
 
   const filteredData = data.filter(item => {
     if (search && !item.id.toLowerCase().includes(search.toLowerCase()) && !item.serial.toLowerCase().includes(search.toLowerCase()) && !item.customerName.toLowerCase().includes(search.toLowerCase())) return false;
@@ -54,6 +50,7 @@ const DanhSachBaoHanh = () => {
         <div>
           <h1 className="warranty-page-title">DANH SÁCH PHIẾU BẢO HÀNH</h1>
           <p className="warranty-page-subtitle">THEO DÕI CÁC THIẾT BỊ ĐANG ĐƯỢC TIẾP NHẬN VÀ XỬ LÝ BẢO HÀNH</p>
+          <p className="warranty-page-subtitle">DỮ LIỆU MẪU</p>
         </div>
         <button className="btn-black-create" onClick={() => navigate('/admin/bao-hanh/tao-moi')}>+ LẬP PHIẾU BẢO HÀNH</button>
       </div>
@@ -68,6 +65,7 @@ const DanhSachBaoHanh = () => {
         />
         <select 
           className="w-filter-select"
+          aria-label="Trạng thái bảo hành"
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
         >

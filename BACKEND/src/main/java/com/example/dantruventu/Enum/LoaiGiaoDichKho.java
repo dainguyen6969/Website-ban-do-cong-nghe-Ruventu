@@ -5,5 +5,8 @@ public enum LoaiGiaoDichKho {
   XUAT_BAN,
   KHACH_TRA,
   KIEM_KHO,
-  TRA_NCC
+  TRA_NCC,
+  XUAT_DOI_BAO_HANH,
+  NHAP_BU_BAO_HANH,
+  HOAN_XUAT_DOI_BAO_HANH,
 }

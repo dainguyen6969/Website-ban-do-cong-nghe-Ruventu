@@ -2,11 +2,13 @@ package com.example.dantruventu.Repository;
 
 import com.example.dantruventu.Entity.NguoiDung;
 import com.example.dantruventu.Enum.TrangThaiCoBanEnum;
+import jakarta.persistence.LockModeType;
 import java.util.Optional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -14,6 +16,11 @@ public interface NguoiDungRepository
     extends JpaRepository<NguoiDung, Long>, JpaSpecificationExecutor<NguoiDung> {
 
   Optional<NguoiDung> findByEmail(String email);
+
+  // Khóa cả chủ giỏ, kể cả khi chưa có dòng gio_hang nào để khóa.
+  @Lock(LockModeType.PESSIMISTIC_WRITE)
+  @Query("SELECT n FROM NguoiDung n WHERE n.id = :id")
+  Optional<NguoiDung> findForCartUpdate(@Param("id") Long id);
 
   Optional<NguoiDung> findByEmailOrSoDienThoai(String email, String soDienThoai);
 
