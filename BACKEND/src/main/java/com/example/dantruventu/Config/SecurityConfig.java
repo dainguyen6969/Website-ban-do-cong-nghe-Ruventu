@@ -41,6 +41,7 @@ public class SecurityConfig {
                         "/api/v1/auth/login",
                         "/api/v1/auth/refresh",
                         "/api/v1/auth/logout",
+                        "/api/v1/admin/orders/realtime",
                         "/api/v1/cart/**",
                         "/api/v1/orders/checkout/preview",
                         "/api/v1/orders/checkout",

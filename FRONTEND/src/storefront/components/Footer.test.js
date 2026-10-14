@@ -5,7 +5,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { MemoryRouter } from 'react-router-dom';
 import { createServer } from 'vite';
 
-const vite = await createServer({ server: { middlewareMode: true }, appType: 'custom' });
+const vite = await createServer({ cacheDir: 'node_modules/.vite-footer-test', server: { middlewareMode: true, ws: false }, appType: 'custom' });
 const Footer = (await vite.ssrLoadModule('/src/storefront/components/Footer.jsx')).default;
 const MockAuthContext = (await vite.ssrLoadModule('/src/auth/mockAuthContext.js')).default;
 after(() => vite.close());
