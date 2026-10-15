@@ -1,7 +1,12 @@
-import { adminRequest, getWarehouses } from '../../catalog/products/api/versionApi.js';
+import {
+  adminRequest,
+  getWarehouses,
+} from "../../catalog/products/api/versionApi.js";
+
 import {
   formatDateTimeVN,
-} from '../../../../shared/services/mutationUtils';
+  requireBasicStatus,
+} from "../../../../shared/services/mutationUtils";
 
 const PATH = '/api/v1/admin/orders';
 
@@ -96,10 +101,26 @@ export function paymentSource(order) {
 export async function getOrderOptions(signal) {
   const [warehouses, partners, sales] = await Promise.all([
     getWarehouses(signal),
-    adminRequest('/api/v1/admin/shipping-partners?trang_thai=1&page=0&limit=100', { signal }),
-    adminRequest('/api/v1/admin/sales/options', { signal }),
+
+    adminRequest(
+      "/api/v1/admin/shipping-partners?trang_thai=1&page=0&limit=100",
+      { signal },
+    ),
+
+    adminRequest("/api/v1/admin/sales/options", { signal }),
   ]);
-  return { warehouses: warehouses.filter((warehouse) => warehouse.id === Number(sales.kho_mac_dinh_id)), partners: partners?.items || [] };
+
+  const defaultWarehouseId = Number(sales.kho_mac_dinh_id);
+
+  return {
+    warehouses: warehouses.filter(
+      (warehouse) => Number(warehouse.id) === defaultWarehouseId,
+    ),
+
+    partners: (partners?.items || []).filter(
+      (partner) => requireBasicStatus(partner.trang_thai) === 1,
+    ),
+  };
 }
 
 export const labels = {

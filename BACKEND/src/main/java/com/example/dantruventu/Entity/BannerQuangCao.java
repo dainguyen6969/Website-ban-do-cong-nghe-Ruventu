@@ -1,8 +1,10 @@
 package com.example.dantruventu.Entity;
 
+import com.example.dantruventu.Config.TrangThaiCoBanConverter;
 import com.example.dantruventu.Enum.TrangThaiCoBanEnum;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.ColumnDefault;
 
 @Entity
 @Table(name = "banner_quang_cao")
@@ -34,6 +36,8 @@ public class BannerQuangCao {
   private Integer thuTu = 0;
 
   @Builder.Default
-  @Column(name = "trang_thai", nullable = false)
+  @Convert(converter = TrangThaiCoBanConverter.class)
+  @ColumnDefault("1")
+  @Column(name = "trang_thai", nullable = false, columnDefinition = "SMALLINT")
   private TrangThaiCoBanEnum trangThai = TrangThaiCoBanEnum.HOAT_DONG;
 }

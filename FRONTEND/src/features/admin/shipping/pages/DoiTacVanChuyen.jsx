@@ -12,6 +12,8 @@ import TablePagination from "../../../../shared/components/ui/TablePagination";
 import { adminRequest } from "../../catalog/products/api/versionApi";
 import { label, money } from "../../orders/api/orderApi";
 
+import { basicStatusValue } from "../../../../shared/services/mutationUtils";
+
 import "./DoiTacVanChuyen.css";
 
 const ROUTE = "/admin/khach-hang-doi-tac/doi-tac-van-chuyen";
@@ -103,10 +105,7 @@ function formatDateTimeVN(value) {
 }
 
 function partnerStatus(value) {
-  if (value == null || value === "") return null;
-
-  const status = Number(value);
-  return status === 0 || status === 1 ? status : null;
+  return basicStatusValue(value);
 }
 
 function formatPartnerStatus(value) {
