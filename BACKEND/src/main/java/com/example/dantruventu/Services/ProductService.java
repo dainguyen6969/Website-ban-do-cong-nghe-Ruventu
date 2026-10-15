@@ -10,6 +10,7 @@ import com.example.dantruventu.Repository.ProductDetailProjection;
 import com.example.dantruventu.Repository.ProductDetailRepository;
 import com.example.dantruventu.Repository.ProductListProjection;
 import com.example.dantruventu.Repository.product.SanPhamRepository;
+import com.example.dantruventu.Services.order.sales.SalesCalculationService;
 import java.math.BigDecimal;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -29,6 +30,8 @@ public class ProductService {
 
   private final SanPhamRepository sanPhamRepository;
   private final ProductDetailRepository productDetailRepository;
+
+  private final SalesCalculationService calculationService;
 
   @Transactional(readOnly = true)
   public ProductListResponse getProducts(
@@ -99,6 +102,18 @@ public class ProductService {
             .map(this::toProductVariantResponse)
             .toList();
 
+    if ("BO_PC".equals(product.getLoaiSanPham()) && !variants.isEmpty()) {
+      var availability = calculationService.readSaleAvailability(variants.get(0).getId());
+
+      for (var variant : variants) {
+        // Combo không có tồn kho vật lý riêng.
+        variant.setTonCoTheBan(null);
+        variant.setSoBoCoTheLap(availability.quantity());
+        variant.setCoTheBan(availability.canSell());
+        variant.setLyDoChuaTheBan(availability.reason());
+      }
+    }
+
     ProductDetailResponse.ThuongHieuResponse brand = null;
 
     if (product.getThuongHieuId() != null) {
@@ -132,11 +147,15 @@ public class ProductService {
   public ProductVariantDetailResponse getProductVariantDetail(Long productId, Long variantId) {
 
     if (productId == null || productId <= 0 || variantId == null || variantId <= 0) {
-
       throw new AppException(ErrorCode.INVALID_DATA);
     }
 
-    ProductDetailProjection.ProductVariantDetailProjection variant =
+    ProductDetailProjection product =
+        productDetailRepository
+            .findActiveProductDetail(productId)
+            .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND));
+
+    var variant =
         productDetailRepository
             .findActiveProductVariantDetail(productId, variantId)
             .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND));
@@ -145,18 +164,33 @@ public class ProductService {
 
     long availableStock = variant.getTonCoTheBan() == null ? 0L : variant.getTonCoTheBan();
 
-    return ProductVariantDetailResponse.builder()
-        .id(variant.getId())
-        .sanPhamId(variant.getSanPhamId())
-        .tenPhienBan(variant.getTenPhienBan())
-        .maVach(variant.getMaVach())
-        .giaBanLe(variant.getGiaBanLe())
-        .khoiLuong(variant.getKhoiLuong())
-        .trangThai(variant.getTrangThai())
-        .tonThucTe(actualStock)
-        .tonCoTheBan(availableStock)
-        .conHang(availableStock > 0)
-        .build();
+    var response =
+        ProductVariantDetailResponse.builder()
+            .id(variant.getId())
+            .sanPhamId(variant.getSanPhamId())
+            .tenPhienBan(variant.getTenPhienBan())
+            .maVach(variant.getMaVach())
+            .giaBanLe(variant.getGiaBanLe())
+            .khoiLuong(variant.getKhoiLuong())
+            .trangThai(variant.getTrangThai())
+            .tonThucTe(actualStock)
+            .tonCoTheBan(availableStock)
+            .conHang(availableStock > 0)
+            .coTheBan(availableStock > 0)
+            .build();
+
+    if ("BO_PC".equals(product.getLoaiSanPham())) {
+      var availability = calculationService.readSaleAvailability(variantId);
+
+      response.setTonThucTe(null);
+      response.setTonCoTheBan(null);
+      response.setSoBoCoTheLap(availability.quantity());
+      response.setConHang(availability.canSell());
+      response.setCoTheBan(availability.canSell());
+      response.setLyDoChuaTheBan(availability.reason());
+    }
+
+    return response;
   }
 
   private ProductListResponse.ProductItemResponse toProductItemResponse(

@@ -1,5 +1,6 @@
 package com.example.dantruventu.DTO.Response;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonRawValue;
 import java.math.BigDecimal;
 import java.util.List;
@@ -77,6 +78,14 @@ public class ProductDetailResponse {
     private String maVach;
     private BigDecimal giaBanLe;
     private BigDecimal khoiLuong;
+
+    @JsonInclude(JsonInclude.Include.ALWAYS)
     private Long tonCoTheBan;
+
+    @JsonInclude(JsonInclude.Include.ALWAYS)
+    private Long soBoCoTheLap;
+
+    private Boolean coTheBan;
+    private String lyDoChuaTheBan;
   }
 }

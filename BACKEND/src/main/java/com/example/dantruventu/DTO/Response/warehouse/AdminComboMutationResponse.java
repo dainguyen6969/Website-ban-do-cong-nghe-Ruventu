@@ -1,7 +1,9 @@
 package com.example.dantruventu.DTO.Response.warehouse;
 
+import com.example.dantruventu.DTO.catalog.CatalogFields;
 import com.example.dantruventu.Enum.LoaiSanPham;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import java.math.BigDecimal;
 import java.util.List;
 import lombok.*;
 
@@ -10,7 +12,7 @@ import lombok.*;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class AdminComboMutationResponse {
+public class AdminComboMutationResponse extends CatalogFields.Metadata {
 
   private Long id;
 
@@ -32,6 +34,25 @@ public class AdminComboMutationResponse {
   @JsonProperty("thanh_phan")
   private List<ThanhPhanData> thanhPhan;
 
+  @JsonProperty("gia_ban_le")
+  private BigDecimal giaBanLe;
+
+  @JsonProperty("gia_nhap")
+  private BigDecimal giaNhap;
+
+  @JsonProperty("khoi_luong")
+  private BigDecimal khoiLuong;
+
+  @JsonProperty("ton_thuc_te")
+  @com.fasterxml.jackson.annotation.JsonInclude(
+      com.fasterxml.jackson.annotation.JsonInclude.Include.ALWAYS)
+  private Long tonThucTe;
+
+  @JsonProperty("ton_co_the_ban")
+  @com.fasterxml.jackson.annotation.JsonInclude(
+      com.fasterxml.jackson.annotation.JsonInclude.Include.ALWAYS)
+  private Long tonCoTheBan;
+
   @Getter
   @Setter
   @NoArgsConstructor
@@ -44,5 +65,8 @@ public class AdminComboMutationResponse {
 
     @JsonProperty("so_luong")
     private Integer soLuong;
+
+    @JsonProperty("thoi_han_bao_hanh_thang")
+    private Integer thoiHanBaoHanhThang;
   }
 }

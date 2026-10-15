@@ -34,6 +34,7 @@ public interface ComboMapper {
   @Mapping(target = "giaBan", ignore = true)
   @Mapping(target = "tonCoTheBan", ignore = true)
   @Mapping(target = "tonThucTe", ignore = true)
+  @Mapping(target = "anhChinh", ignore = true)
   AdminComboListItemResponse toListItem(SanPham sanPham);
 
   @Mapping(target = "danhMucId", source = "danhMuc.id")
@@ -60,14 +61,25 @@ public interface ComboMapper {
   @Mapping(target = "giaBanLe", source = "phienBanThanhPhan.giaBanLe")
   @Mapping(target = "giaNhap", source = "phienBanThanhPhan.giaNhap")
   @Mapping(target = "tonCoTheBan", ignore = true)
+  @Mapping(target = "thoiHanBaoHanhThang", source = "phienBanThanhPhan.sanPham.thoiHanBaoHanhThang")
+  @Mapping(target = "coQuanLySerial", source = "phienBanThanhPhan.coQuanLySerial")
+  @Mapping(target = "anhChinh", ignore = true)
   ComboComponentResponse toComponent(ThanhPhanCombo thanhPhan);
 
   @Mapping(target = "phienBanId", ignore = true)
   @Mapping(target = "thanhPhan", ignore = true)
+  @Mapping(target = "giaBanLe", ignore = true)
+  @Mapping(target = "giaNhap", ignore = true)
+  @Mapping(target = "khoiLuong", ignore = true)
+  @Mapping(target = "tonThucTe", ignore = true)
+  @Mapping(target = "tonCoTheBan", ignore = true)
   AdminComboMutationResponse toMutation(SanPham sanPham);
 
   AdminComboStatusResponse toStatus(SanPham sanPham);
 
+  @Mapping(target = "thoiHanBaoHanhThang", ignore = true)
+  @Mapping(target = "coQuanLySerial", ignore = true)
+  @Mapping(target = "anhChinh", ignore = true)
   AdminComboComponentOptionResponse toComponentOption(
       ComboRepository.ComponentOptionProjection source);
 

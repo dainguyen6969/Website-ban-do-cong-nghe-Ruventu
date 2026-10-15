@@ -1,14 +1,14 @@
-import React, { useEffect, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
-import Header from '../components/Header';
-import Footer from '../components/Footer';
-import ProductGallery from '../components/ProductGallery';
-import ProductInfoSidebar from '../components/ProductInfoSidebar';
-import ProductPurchaseRightSidebar from '../components/ProductPurchaseRightSidebar';
-import ProductSpecsTabs from '../components/ProductSpecsTabs';
-import { mockProducts } from '../data/mockProducts';
-import { productService } from '../../shared/services/productService';
-import './ProductDetail.css';
+import React, { useEffect, useState } from "react";
+import { Link, useParams } from "react-router-dom";
+import Header from "../components/Header";
+import Footer from "../components/Footer";
+import ProductGallery from "../components/ProductGallery";
+import ProductInfoSidebar from "../components/ProductInfoSidebar";
+import ProductPurchaseRightSidebar from "../components/ProductPurchaseRightSidebar";
+import ProductSpecsTabs from "../components/ProductSpecsTabs";
+import { mockProducts } from "../data/mockProducts";
+import { productService } from "../../shared/services/productService";
+import "./ProductDetail.css";
 
 const ProductDetail = () => {
   const { id } = useParams();
@@ -24,43 +24,58 @@ const ProductDetail = () => {
         const response = await productService.getProductDetail(id);
         if (response && response.data) {
           const backendData = response.data;
-          const mainVariant = backendData.danhSachPhienBan && backendData.danhSachPhienBan[0] ? backendData.danhSachPhienBan[0] : null;
-          
+          const mainVariant =
+            backendData.danhSachPhienBan && backendData.danhSachPhienBan[0]
+              ? backendData.danhSachPhienBan[0]
+              : null;
+
           let parsedSpecs = {};
           if (backendData.thongSoKyThuat) {
-            if (typeof backendData.thongSoKyThuat === 'string') {
+            if (typeof backendData.thongSoKyThuat === "string") {
               try {
                 parsedSpecs = JSON.parse(backendData.thongSoKyThuat);
               } catch (e) {
-                console.warn('thongSoKyThuat is not JSON string', e);
+                console.warn("thongSoKyThuat is not JSON string", e);
                 parsedSpecs = {};
               }
-            } else if (typeof backendData.thongSoKyThuat === 'object') {
+            } else if (typeof backendData.thongSoKyThuat === "object") {
               parsedSpecs = backendData.thongSoKyThuat;
             }
           }
 
-          const specEntries = Object.keys(parsedSpecs).map(k => ({ label: k, value: String(parsedSpecs[k]) }));
+          const specEntries = Object.keys(parsedSpecs).map((k) => ({
+            label: k,
+            value: String(parsedSpecs[k]),
+          }));
 
           const mappedProduct = {
             id: backendData.id,
-            category: backendData.danhMuc?.tenDanhMuc || 'Chưa phân loại',
-            brand: backendData.thuongHieu?.tenThuongHieu || 'Chưa rõ',
+            category: backendData.danhMuc?.tenDanhMuc || "Chưa phân loại",
+            brand: backendData.thuongHieu?.tenThuongHieu || "Chưa rõ",
             name: backendData.tenSanPham,
             currentPrice: mainVariant ? mainVariant.giaBanLe : 0,
             originalPrice: mainVariant ? mainVariant.giaBanLe : 0,
-            stock: mainVariant ? mainVariant.tonCoTheBan : 0,
+            loaiSanPham: backendData.loaiSanPham,
+
+            stock:
+              backendData.loaiSanPham === "BO_PC"
+                ? (mainVariant?.soBoCoTheLap ?? null)
+                : (mainVariant?.tonCoTheBan ?? 0),
             discountPercent: 0,
-            images: backendData.anhSanPham?.map(img => img.duongDanAnh) || [],
+            images: backendData.anhSanPham?.map((img) => img.duongDanAnh) || [],
             specsSummary: specEntries,
             fullSpecs: specEntries,
             tags: [],
             policies: [
-              { title: "MIỄN PHÍ VẬN CHUYỂN", desc: "Đơn từ 5tr", icon: "truck" },
-              { title: "CAM KẾT GIÁ", desc: "Tốt nhất", icon: "tag" }
+              {
+                title: "MIỄN PHÍ VẬN CHUYỂN",
+                desc: "Đơn từ 5tr",
+                icon: "truck",
+              },
+              { title: "CAM KẾT GIÁ", desc: "Tốt nhất", icon: "tag" },
             ],
             description: backendData.moTa,
-            variants: backendData.danhSachPhienBan || []
+            variants: backendData.danhSachPhienBan || [],
           };
           setProduct(mappedProduct);
           if (mappedProduct.variants && mappedProduct.variants.length > 0) {
@@ -70,7 +85,8 @@ const ProductDetail = () => {
       } catch (err) {
         console.error("Lỗi fetch chi tiết sản phẩm:", err);
         // Fallback to mock data if API fails
-        const foundProduct = mockProducts[id] || mockProducts["RVT-MB-X670E-MSI-TOM"];
+        const foundProduct =
+          mockProducts[id] || mockProducts["RVT-MB-X670E-MSI-TOM"];
         setProduct(foundProduct);
       } finally {
         setLoading(false);
@@ -79,19 +95,31 @@ const ProductDetail = () => {
     fetchProduct();
   }, [id]);
 
-  if (loading) return <div style={{textAlign: 'center', padding: '50px'}}>Đang tải thông tin sản phẩm...</div>;
-  if (!product) return <div style={{textAlign: 'center', padding: '50px'}}>Không tìm thấy sản phẩm.</div>;
+  if (loading)
+    return (
+      <div style={{ textAlign: "center", padding: "50px" }}>
+        Đang tải thông tin sản phẩm...
+      </div>
+    );
+  if (!product)
+    return (
+      <div style={{ textAlign: "center", padding: "50px" }}>
+        Không tìm thấy sản phẩm.
+      </div>
+    );
 
   return (
     <div className="product-detail-page">
       <Header />
-      
+
       {/* Breadcrumbs */}
       <div className="breadcrumb-container">
         <div className="breadcrumb">
           <Link to="/">Trang chủ</Link>
           <span className="separator">&gt;</span>
-          <Link to={`/category/${product.category.toLowerCase()}`}>{product.category}</Link>
+          <Link to={`/category/${product.category.toLowerCase()}`}>
+            {product.category}
+          </Link>
           <span className="separator">&gt;</span>
           <span className="current">{product.name}</span>
         </div>
@@ -101,8 +129,8 @@ const ProductDetail = () => {
       <div className="product-main-container">
         {/* Left Sidebar - Specs summary and thumbnail */}
         <div className="info-sidebar-column">
-          <ProductInfoSidebar 
-            product={product} 
+          <ProductInfoSidebar
+            product={product}
             selectedVariantId={selectedVariantId}
             setSelectedVariantId={setSelectedVariantId}
           />
@@ -110,17 +138,17 @@ const ProductDetail = () => {
 
         {/* Center - Gallery */}
         <div className="gallery-column">
-          <ProductGallery 
-            images={product.images || []} 
-            discountPercent={product.discountPercent} 
-            isFullBuild={false} 
+          <ProductGallery
+            images={product.images || []}
+            discountPercent={product.discountPercent}
+            isFullBuild={false}
           />
         </div>
 
         {/* Right Sidebar - Purchase Info */}
         <div className="purchase-right-sidebar-column">
-          <ProductPurchaseRightSidebar 
-            product={product} 
+          <ProductPurchaseRightSidebar
+            product={product}
             selectedVariantId={selectedVariantId}
           />
         </div>
