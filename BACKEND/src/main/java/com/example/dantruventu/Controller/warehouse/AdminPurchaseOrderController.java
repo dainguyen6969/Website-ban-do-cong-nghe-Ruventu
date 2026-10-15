@@ -4,6 +4,7 @@ import com.example.dantruventu.DTO.Request.warehouse.*;
 import com.example.dantruventu.DTO.Response.ApiResponse;
 import com.example.dantruventu.DTO.Response.warehouse.*;
 import com.example.dantruventu.Services.AdminPurchaseOrderService;
+import com.example.dantruventu.Services.warehouse.WarehouseOperations;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -18,6 +19,7 @@ import org.springframework.web.bind.annotation.*;
 public class AdminPurchaseOrderController {
 
   private final AdminPurchaseOrderService service;
+  private final WarehouseOperations warehouseOperations;
 
   @GetMapping
   public ApiResponse<AdminPurchaseOrderListResponse> getList(
@@ -96,12 +98,14 @@ public class AdminPurchaseOrderController {
 
   @PostMapping("/{id}/receive")
   public ApiResponse<AdminPurchaseOrderReceiveResponse> receive(
-      @PathVariable Long id, @Valid @RequestBody AdminPurchaseOrderReceiveRequest request) {
+      @PathVariable Long id,
+      @RequestHeader("Idempotency-Key") String idempotencyKey,
+      @Valid @RequestBody AdminPurchaseOrderReceiveRequest request) {
 
     return ApiResponse.<AdminPurchaseOrderReceiveResponse>builder()
         .status(200)
         .message("Nhập kho thành công")
-        .data(service.receive(id, request))
+        .data(warehouseOperations.receivePurchase(id, idempotencyKey, request))
         .build();
   }
 

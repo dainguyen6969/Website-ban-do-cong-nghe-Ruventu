@@ -16,6 +16,7 @@ import com.example.dantruventu.Repository.product.SanPhamRepository;
 import com.example.dantruventu.Repository.warehouse.SoSerialSanPhamRepository;
 import com.example.dantruventu.Repository.warehouse.ThanhPhanComboRepository;
 import com.example.dantruventu.Repository.warehouse.TonKhoRepository;
+import com.example.dantruventu.Services.catalog.CatalogSupport;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.LockModeType;
 import java.math.BigDecimal;
@@ -241,7 +242,21 @@ public class SalesCalculationService {
   }
 
   public boolean usesSerial(Long variantId) {
-    return serialRepository.countByPhienBanId(variantId) > 0;
+    var variant =
+        variantRepository
+            .findById(variantId)
+            .orElseThrow(
+                () ->
+                    new AppException(ErrorCode.NOT_FOUND, "Không tìm thấy phiên bản " + variantId));
+
+    Boolean configured = variant.getCoQuanLySerial();
+
+    if (configured == null) {
+      throw new AppException(
+          ErrorCode.CONFLICT, "Phiên bản " + variantId + " chưa có cấu hình quản lý serial");
+    }
+
+    return configured;
   }
 
   /** Cùng phép quy đổi combo -> linh kiện cho đơn hàng và kiểm tra toàn bộ giỏ. */
@@ -286,10 +301,14 @@ public class SalesCalculationService {
     if (stock.getTonThucTe() == null
         || stock.getTonCoTheBan() == null
         || stock.getHangLoi() == null
+        || stock.getSoLuongGiuChoBaoHanh() == null
         || stock.getTonThucTe() < 0
         || stock.getTonCoTheBan() < 0
         || stock.getHangLoi() < 0
-        || (long) stock.getTonCoTheBan() + stock.getHangLoi() > stock.getTonThucTe()) {
+        || stock.getSoLuongGiuChoBaoHanh() < 0
+        || (long) stock.getTonCoTheBan() + stock.getHangLoi() + stock.getSoLuongGiuChoBaoHanh()
+            > stock.getTonThucTe()) {
+
       throw conflict("Dữ liệu tồn kho không nhất quán tại phiên bản " + variantId);
     }
 
@@ -478,7 +497,9 @@ public class SalesCalculationService {
     Map<Long, Boolean> serialModes = new HashMap<>();
 
     for (Long physicalId : totalQuantities.keySet()) {
-      serialModes.put(physicalId, usesSerial(physicalId));
+      PhienBanSanPham physicalVariant = catalog.variants().get(physicalId);
+
+      serialModes.put(physicalId, CatalogSupport.serialManaged(physicalVariant));
     }
 
     Map<String, BigDecimal> discounts = discounts(promotion, promotionDetails, lines);

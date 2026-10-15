@@ -608,4 +608,24 @@ public class CatalogSupport {
       throw CatalogException.bad("anh_san_pham", "INVALID_IMAGE", "Chỉ được chọn một ảnh chính");
     }
   }
+
+  public static boolean serialManaged(PhienBanSanPham variant) {
+    if (variant == null) {
+      throw CatalogException.conflict(
+          "phien_ban_id",
+          "SERIAL_MODE_VARIANT_MISSING",
+          "Không tìm thấy phiên bản để đọc cấu hình serial");
+    }
+
+    Boolean configured = variant.getCoQuanLySerial();
+
+    if (configured == null) {
+      throw CatalogException.conflict(
+          "co_quan_ly_serial",
+          "SERIAL_MODE_NOT_CONFIGURED",
+          "Phiên bản " + variant.getId() + " chưa có cấu hình quản lý serial");
+    }
+
+    return configured;
+  }
 }

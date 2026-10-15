@@ -30,6 +30,7 @@ import com.example.dantruventu.Repository.warehouse.PhieuKiemKhoRepository;
 import com.example.dantruventu.Repository.warehouse.SoSerialSanPhamRepository;
 import com.example.dantruventu.Repository.warehouse.TheKhoRepository;
 import com.example.dantruventu.Repository.warehouse.TonKhoRepository;
+import com.example.dantruventu.Services.warehouse.WarehouseSupport;
 import com.example.dantruventu.Specification.PhieuKiemKhoSpecification;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -59,6 +60,7 @@ public class AdminInventoryCheckService {
   private final NguoiDungRepository userRepository;
   private final SoSerialSanPhamRepository serialRepository;
   private final TheKhoRepository stockCardRepository;
+  private final WarehouseSupport warehouseSupport;
 
   @Value("${ruventu.inventory.time-zone:Asia/Ho_Chi_Minh}")
   private String inventoryTimeZone;
@@ -241,6 +243,12 @@ public class AdminInventoryCheckService {
     Long variantId = inventoryCheck.getPhienBan().getId();
     List<TonKho> stockRows = stockRepository.findAllByPhienBanIdForInventoryCheckUpdate(variantId);
 
+    PhienBanSanPham lockedVariant = warehouseSupport.lockVariant(variantId);
+
+    if (lockedVariant.getCoQuanLySerial() == null) {
+      throw conflict("Phiên bản chưa có cấu hình quản lý serial");
+    }
+
     if (stockRows.isEmpty()) {
       throw conflict("Dữ liệu tồn kho của phiên bản không còn tồn tại");
     }
@@ -268,9 +276,11 @@ public class AdminInventoryCheckService {
       throw conflict("Số lượng chênh lệch trên phiếu kiểm hàng không nhất quán");
     }
 
-    if (difference != 0 && serialRepository.countByPhienBanId(variantId) > 0) {
+    if (difference != 0 && Boolean.TRUE.equals(lockedVariant.getCoQuanLySerial())) {
+
       throw conflict(
-          "Phiên bản đang quản lý serial, cần đối chiếu serial trước khi cân bằng chênh lệch");
+          "Phiên bản quản lý serial phải đối chiếu từng mã; "
+              + "không được cân bằng bằng số lượng tổng");
     }
 
     if (stockCardRepository.existsByMaChungTuGocAndLoaiGiaoDich(
@@ -278,21 +288,21 @@ public class AdminInventoryCheckService {
       throw conflict("Phiếu kiểm hàng đã được ghi nhận vào thẻ kho");
     }
 
-    int available = requiredStock(stock.getTonCoTheBan(), "Tồn có thể bán hiện tại không hợp lệ");
-    int damaged = requiredStock(stock.getHangLoi(), "Số lượng hàng lỗi hiện tại không hợp lệ");
-    long held = (long) oldPhysical - damaged - available;
+    var stockNumbers = WarehouseSupport.numbers(stock);
 
-    if (damaged > oldPhysical || held < 0) {
-      throw conflict("Số liệu tồn kho hiện tại không nhất quán, cần đối soát trước khi cân bằng");
+    long calculatedAvailable =
+        (long) newPhysical
+            - stockNumbers.damaged()
+            - stockNumbers.orderHeld()
+            - stockNumbers.warrantyHeld();
+
+    if (calculatedAvailable < 0 || calculatedAvailable > Integer.MAX_VALUE) {
+
+      throw conflict(
+          "Tồn sau kiểm kê không đủ bảo toàn hàng lỗi, " + "hàng giữ cho đơn và hàng giữ bảo hành");
     }
 
-    long calculatedAvailable = (long) newPhysical - damaged - held;
-    int newAvailable =
-        calculatedAvailable <= 0
-            ? 0
-            : calculatedAvailable > Integer.MAX_VALUE
-                ? Integer.MAX_VALUE
-                : (int) calculatedAvailable;
+    int newAvailable = (int) calculatedAvailable;
 
     stock.setTonThucTe(newPhysical);
     stock.setTonCoTheBan(newAvailable);
