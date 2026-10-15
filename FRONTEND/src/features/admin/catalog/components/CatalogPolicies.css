@@ -1,0 +1,130 @@
+.catalog-policy,
+.catalog-variant {
+  padding: 16px;
+  border: 1px solid #ddd;
+  background: #fff;
+}
+
+.catalog-policy {
+  margin: 16px 0;
+}
+
+.catalog-policy p {
+  margin: 8px 0;
+}
+
+.catalog-policy ul {
+  padding: 0;
+  margin: 12px 0;
+  list-style: none;
+}
+
+.catalog-policy li {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 9px 0;
+  border-bottom: 1px solid #eee;
+}
+
+.catalog-muted {
+  color: #707070;
+  font-size: 13px;
+}
+
+.catalog-variant {
+  display: grid;
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+.catalog-variant-fields {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.catalog-variant-fields label {
+  display: grid;
+  gap: 7px;
+  font-size: 13px;
+}
+
+.catalog-variant input:not([type="checkbox"]),
+.catalog-variant select,
+.catalog-attribute-row input {
+  width: 100%;
+  min-width: 0;
+  min-height: 38px;
+  padding: 8px 10px;
+  border: 1px solid #ccc;
+  background: #fff;
+  box-sizing: border-box;
+}
+
+.catalog-variant input:disabled,
+.catalog-variant select:disabled {
+  background: #f4f4f4;
+}
+
+.catalog-attribute-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  gap: 10px;
+}
+
+.catalog-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.catalog-form-error {
+  padding: 12px;
+  margin: 12px 0;
+  color: #b42318;
+  background: #fff1f0;
+  border: 1px solid #f2b8b5;
+  white-space: pre-line;
+}
+
+.catalog-form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+@media (max-width: 900px) {
+  .catalog-variant-fields {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 600px) {
+  .catalog-variant-fields,
+  .catalog-attribute-row {
+    grid-template-columns: 1fr;
+  }
+
+  .catalog-policy li {
+    flex-direction: column;
+    gap: 5px;
+  }
+}
+
+.catalog-product-fieldset {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.catalog-product-fieldset .form-label {
+  display: block;
+  margin-top: 14px;
+  margin-bottom: 7px;
+}
+
+.catalog-product-fieldset .catalog-attribute-row {
+  margin-bottom: 10px;
+}

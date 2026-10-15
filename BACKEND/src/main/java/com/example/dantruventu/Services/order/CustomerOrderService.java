@@ -20,11 +20,7 @@ import com.example.dantruventu.Entity.DonHang;
 import com.example.dantruventu.Entity.GioHang;
 import com.example.dantruventu.Entity.NguoiDung;
 import com.example.dantruventu.Entity.SoDiaChi;
-import com.example.dantruventu.Enum.LoaiDonHang;
-import com.example.dantruventu.Enum.TrangThaiDonHang;
-import com.example.dantruventu.Enum.TrangThaiDongGoi;
-import com.example.dantruventu.Enum.TrangThaiThanhToanDonHang;
-import com.example.dantruventu.Enum.TrangThaiXuatKho;
+import com.example.dantruventu.Enum.*;
 import com.example.dantruventu.Error.AppException;
 import com.example.dantruventu.Error.ErrorCode;
 import com.example.dantruventu.Repository.GioHangRepository;
@@ -37,6 +33,7 @@ import com.example.dantruventu.Repository.product.AnhSanPhamRepository;
 import com.example.dantruventu.Repository.warehouse.SoSerialSanPhamRepository;
 import com.example.dantruventu.Repository.warehouse.ThanhPhanComboRepository;
 import com.example.dantruventu.Services.cashbook.CashbookService;
+import com.example.dantruventu.Services.catalog.CatalogSupport;
 import com.example.dantruventu.Services.order.sales.SalesCalculationService;
 import com.example.dantruventu.Services.order.sales.SalesContext;
 import java.math.BigDecimal;
@@ -91,6 +88,7 @@ public class CustomerOrderService {
   private final ObjectMapper objectMapper;
   private final AdminOrderService adminOrderService;
   private final CashbookService cashbookService;
+  private final CatalogSupport catalogSupport;
 
   @Value("${ruventu.order.delivery-fee:30000}")
   private BigDecimal deliveryFee;
@@ -372,30 +370,43 @@ public class CustomerOrderService {
       }
     }
 
+    var comboParts =
+        catalogSupport.comboParts(
+            lines.stream()
+                .filter(
+                    line -> line.getPhienBan().getSanPham().getLoaiSanPham() == LoaiSanPham.BO_PC)
+                .map(line -> line.getPhienBan().getSanPham().getId())
+                .distinct()
+                .toList());
+
     List<CustomerOrderResponse.DetailProduct> products =
         lines.stream()
             .map(
-                line ->
-                    CustomerOrderResponse.DetailProduct.builder()
-                        .chiTietDonHangId(line.getId())
-                        .phienBanId(line.getPhienBan().getId())
-                        .anhDaiDien(
-                            images.containsKey(line.getPhienBan().getSanPham().getId())
-                                ? images
-                                    .get(line.getPhienBan().getSanPham().getId())
-                                    .getDuongDanAnh()
-                                : null)
-                        .tenSanPham(line.getPhienBan().getSanPham().getTenSanPham())
-                        .tenPhienBan(line.getPhienBan().getTenPhienBan())
-                        .soLuong(line.getSoLuong())
-                        .donGia(line.getDonGia())
-                        .thanhTien(line.getThanhTien())
-                        // ERD hiện không lưu snapshot VAT/chiết khấu theo từng dòng.
-                        .thueVat(null)
-                        .tienChietKhau(null)
-                        .tienVat(null)
-                        .quanLySerial(calculationService.usesSerial(line.getPhienBan().getId()))
-                        .build())
+                line -> {
+                  var variant = line.getPhienBan();
+                  var product = variant.getSanPham();
+                  var image = images.get(product.getId());
+
+                  return CustomerOrderResponse.DetailProduct.builder()
+                      .chiTietDonHangId(line.getId())
+                      .phienBanId(variant.getId())
+                      .anhDaiDien(image == null ? null : image.getDuongDanAnh())
+                      .tenSanPham(product.getTenSanPham())
+                      .tenPhienBan(variant.getTenPhienBan())
+                      .loaiSanPham(product.getLoaiSanPham())
+                      .soLuong(line.getSoLuong())
+                      .donGia(line.getDonGia())
+                      .thanhTien(line.getThanhTien())
+                      .thueVat(null)
+                      .tienChietKhau(null)
+                      .tienVat(null)
+                      .quanLySerial(calculationService.usesSerial(variant.getId()))
+                      .thanhPhan(
+                          catalogSupport.partsForQuantity(
+                              comboParts.getOrDefault(product.getId(), List.of()),
+                              line.getSoLuong()))
+                      .build();
+                })
             .toList();
 
     List<CustomerOrderResponse.Serial> serials =
