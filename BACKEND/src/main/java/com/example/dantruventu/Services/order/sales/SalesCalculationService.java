@@ -69,6 +69,59 @@ public class SalesCalculationService {
 
   private record InputLine(String key, Long variantId, int quantity, boolean gift) {}
 
+  public record SaleAvailability(Long quantity, String reason) {
+
+    public boolean canSell() {
+      return quantity != null && quantity > 0;
+    }
+  }
+
+  public SaleAvailability readSaleAvailability(Long variantId) {
+
+    if (variantId == null || variantId <= 0) {
+      return new SaleAvailability(null, "Phiên bản không hợp lệ.");
+    }
+
+    try {
+      Long warehouseId = context.defaultWarehouseId();
+      context.warehouse(warehouseId);
+
+      // Dùng chính phép quy đổi đang phục vụ nghiệp vụ bán hàng.
+      Catalog catalog = catalog(List.of(variantId), false);
+      Map<Long, Integer> units = catalog.physicalUnits().get(variantId);
+
+      if (units == null || units.isEmpty()) {
+        return new SaleAvailability(null, "Sản phẩm chưa có cấu hình bán hàng.");
+      }
+
+      long capacity = Long.MAX_VALUE;
+
+      for (var entry : units.entrySet()) {
+        TonKho currentStock = stock(warehouseId, entry.getKey(), false);
+
+        long available = currentStock == null ? 0L : currentStock.getTonCoTheBan();
+
+        long quantity = available / entry.getValue();
+        capacity = Math.min(capacity, quantity);
+      }
+
+      long availableQuantity = capacity == Long.MAX_VALUE ? 0L : capacity;
+
+      return new SaleAvailability(
+          availableQuantity,
+          availableQuantity > 0 ? null : "Hiện chưa đủ tồn để mua sản phẩm này.");
+
+    } catch (AppException exception) {
+      if (exception.getErrorCode() == ErrorCode.CONFLICT
+          || exception.getErrorCode() == ErrorCode.NOT_FOUND) {
+
+        return new SaleAvailability(null, "Sản phẩm hoặc cấu hình hiện chưa sẵn sàng để bán.");
+      }
+
+      throw exception;
+    }
+  }
+
   public Catalog catalog(Collection<Long> requestedIds, boolean lock) {
 
     var ids = new TreeSet<>(requestedIds);

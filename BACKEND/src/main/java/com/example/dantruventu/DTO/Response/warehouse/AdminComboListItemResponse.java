@@ -1,5 +1,7 @@
 package com.example.dantruventu.DTO.Response.warehouse;
 
+import com.example.dantruventu.DTO.catalog.CatalogFields;
+import com.example.dantruventu.Enum.LoaiSanPham;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import java.math.BigDecimal;
 import java.util.List;
@@ -10,7 +12,7 @@ import lombok.*;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class AdminComboListItemResponse {
+public class AdminComboListItemResponse extends CatalogFields.Metadata {
 
   private Long id;
 
@@ -37,4 +39,10 @@ public class AdminComboListItemResponse {
 
   @JsonProperty("trang_thai")
   private Short trangThai;
+
+  @JsonProperty("loai_san_pham")
+  private LoaiSanPham loaiSanPham;
+
+  @JsonProperty("anh_chinh")
+  private String anhChinh;
 }

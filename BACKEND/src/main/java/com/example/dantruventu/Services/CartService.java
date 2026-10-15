@@ -718,13 +718,13 @@ public class CartService {
 
   private int calculateAvailableStock(PhienBanSanPham phienBan) {
 
-    if (phienBan.getDanhSachTonKho() == null) {
+    var availability = calculationService.readSaleAvailability(phienBan.getId());
+
+    if (!availability.canSell()) {
       return 0;
     }
 
-    return phienBan.getDanhSachTonKho().stream()
-        .mapToInt(tonKho -> tonKho.getTonCoTheBan() == null ? 0 : tonKho.getTonCoTheBan())
-        .sum();
+    return (int) Math.min(availability.quantity(), (long) Integer.MAX_VALUE);
   }
 
   private boolean isActiveVariant(PhienBanSanPham phienBan) {
