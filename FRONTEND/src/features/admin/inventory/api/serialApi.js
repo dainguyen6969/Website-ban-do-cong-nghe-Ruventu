@@ -50,9 +50,15 @@ export async function getSerialDetail(id, signal) {
   return normalize(await adminRequest(`/api/v1/admin/serials/${encodeURIComponent(id)}`, { signal }));
 }
 
-export async function updateSerialStatus(id, status, reason) {
-  return adminRequest(`/api/v1/admin/serials/${encodeURIComponent(id)}/status`, {
-    method: 'PATCH',
-    body: JSON.stringify({ trang_thai: status, ly_do: reason.trim() }),
-  });
+export async function updateSerialStatus(id, key, body) {
+  return adminRequest(
+    `/api/v1/admin/serials/${encodeURIComponent(id)}/status`,
+    {
+      method: "PATCH",
+      headers: {
+        "Idempotency-Key": key,
+      },
+      body: JSON.stringify(body),
+    },
+  );
 }

@@ -82,8 +82,17 @@ export const payPurchaseOrder = (id, key, body) =>
     },
     body: JSON.stringify(body),
   });
-export const receivePurchaseOrder = (id, body) => adminRequest(`${PATH}/${id}/receive`, { method: 'POST', body: JSON.stringify(body) });
-export const returnPurchaseOrder = (id, key, body) =>
+export const receivePurchaseOrder = (id, key, body) =>
+  adminRequest(
+    `${PATH}/${encodeURIComponent(id)}/receive`,
+    {
+      method: "POST",
+      headers: {
+        "Idempotency-Key": key,
+      },
+      body: JSON.stringify(body),
+    },
+  );export const returnPurchaseOrder = (id, key, body) =>
   adminRequest(`${PATH}/${encodeURIComponent(id)}/returns`, {
     method: "POST",
     headers: {

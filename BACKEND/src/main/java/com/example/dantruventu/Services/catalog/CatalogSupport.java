@@ -319,6 +319,106 @@ public class CatalogSupport {
     return new ArrayList<>(result.values());
   }
 
+  public Map<Long, List<CatalogFields.ComboPart>> comboParts(Collection<Long> comboIds) {
+
+    if (comboIds == null || comboIds.isEmpty()) {
+      return Map.of();
+    }
+
+    var rows = components(comboIds);
+
+    Map<Long, PhienBanSanPham> variants = new HashMap<>();
+    Map<Long, Map<Long, Integer>> quantities = new TreeMap<>();
+
+    for (var row : rows) {
+      var variant = row.getPhienBanThanhPhan();
+      var product = variant.getSanPham();
+      Integer quantity = row.getSoLuong();
+
+      if (quantity == null || quantity <= 0 || product.getLoaiSanPham() != LoaiSanPham.DON) {
+
+        throw CatalogException.conflict(
+            "thanh_phan", "INVALID_COMBO_CONFIGURATION", "Cấu hình linh kiện combo không hợp lệ");
+      }
+
+      variants.put(variant.getId(), variant);
+
+      try {
+        quantities
+            .computeIfAbsent(row.getSanPhamCombo().getId(), ignored -> new TreeMap<>())
+            .merge(variant.getId(), quantity, Math::addExact);
+
+      } catch (ArithmeticException exception) {
+        throw CatalogException.conflict(
+            "thanh_phan", "INVALID_COMBO_CONFIGURATION", "Số lượng linh kiện vượt giới hạn");
+      }
+    }
+
+    var images =
+        primaryImages(
+            variants.values().stream().map(v -> v.getSanPham().getId()).distinct().toList());
+
+    Map<Long, List<CatalogFields.ComboPart>> result = new TreeMap<>();
+
+    for (var combo : quantities.entrySet()) {
+      List<CatalogFields.ComboPart> items = new ArrayList<>();
+
+      for (var entry : combo.getValue().entrySet()) {
+        var variant = variants.get(entry.getKey());
+        var product = variant.getSanPham();
+        Integer quantity = entry.getValue();
+
+        items.add(
+            new CatalogFields.ComboPart(
+                product.getId(),
+                variant.getId(),
+                product.getMaSanPham(),
+                product.getTenSanPham(),
+                variant.getTenPhienBan(),
+                variant.getMaVach(),
+                images.get(product.getId()),
+                quantity,
+                quantity.longValue(),
+                variant.getCoQuanLySerial(),
+                product.getThoiHanBaoHanhThang()));
+      }
+
+      result.put(combo.getKey(), List.copyOf(items));
+    }
+
+    return result;
+  }
+
+  public List<CatalogFields.ComboPart> partsForQuantity(
+      List<CatalogFields.ComboPart> parts, Integer quantity) {
+
+    if (parts == null || parts.isEmpty()) {
+      return List.of();
+    }
+
+    if (quantity == null || quantity <= 0) {
+      throw CatalogException.conflict(
+          "so_luong", "INVALID_ORDER_QUANTITY", "Số lượng bộ PC trong đơn không hợp lệ");
+    }
+
+    return parts.stream()
+        .map(
+            part ->
+                new CatalogFields.ComboPart(
+                    part.sanPhamId(),
+                    part.phienBanId(),
+                    part.maSanPham(),
+                    part.tenSanPham(),
+                    part.tenPhienBan(),
+                    part.maVach(),
+                    part.anhChinh(),
+                    part.soLuongTrongBo(),
+                    Math.multiplyExact(part.soLuongTrongBo().longValue(), quantity.longValue()),
+                    part.coQuanLySerial(),
+                    part.thoiHanBaoHanhThang()))
+        .toList();
+  }
+
   public Set<Long> lockedSerialModes(Collection<Long> ids) {
     if (ids.isEmpty()) return Set.of();
 
@@ -507,5 +607,25 @@ public class CatalogSupport {
     if (mainCount > 1) {
       throw CatalogException.bad("anh_san_pham", "INVALID_IMAGE", "Chỉ được chọn một ảnh chính");
     }
+  }
+
+  public static boolean serialManaged(PhienBanSanPham variant) {
+    if (variant == null) {
+      throw CatalogException.conflict(
+          "phien_ban_id",
+          "SERIAL_MODE_VARIANT_MISSING",
+          "Không tìm thấy phiên bản để đọc cấu hình serial");
+    }
+
+    Boolean configured = variant.getCoQuanLySerial();
+
+    if (configured == null) {
+      throw CatalogException.conflict(
+          "co_quan_ly_serial",
+          "SERIAL_MODE_NOT_CONFIGURED",
+          "Phiên bản " + variant.getId() + " chưa có cấu hình quản lý serial");
+    }
+
+    return configured;
   }
 }

@@ -107,3 +107,24 @@
   background-color: #ff0000;
   border-right-color: #ff0000;
 }
+
+.product-section .empty-products {
+  grid-column: 1 / -1;
+  padding: 40px 20px;
+  text-align: center;
+  color: #888;
+}
+
+.product-section.dark-theme .empty-products {
+  color: #bbb;
+}
+
+.home-catalog-status {
+  padding: 40px 20px;
+  text-align: center;
+  color: #666;
+}
+
+.home-catalog-status--error {
+  color: #c51d25;
+}

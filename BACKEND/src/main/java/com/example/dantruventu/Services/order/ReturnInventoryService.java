@@ -25,6 +25,7 @@ import com.example.dantruventu.Repository.warehouse.SoSerialSanPhamRepository;
 import com.example.dantruventu.Repository.warehouse.ThanhPhanComboRepository;
 import com.example.dantruventu.Repository.warehouse.TheKhoRepository;
 import com.example.dantruventu.Repository.warehouse.TonKhoRepository;
+import com.example.dantruventu.Services.catalog.CatalogSupport;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -206,7 +207,7 @@ public class ReturnInventoryService {
     for (var entry : expected.entrySet()) {
       Expected required = entry.getValue();
       AdminReturnReceiveRequest.Item item = received.get(entry.getKey());
-      boolean managed = serialRepository.countByPhienBanId(required.variant().getId()) > 0;
+      boolean managed = CatalogSupport.serialManaged(required.variant());
       List<AdminReturnReceiveRequest.SerialItem> serials = item.getSerials();
 
       if (managed && serials.size() != required.quantity()) {

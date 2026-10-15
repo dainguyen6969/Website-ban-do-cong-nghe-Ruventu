@@ -10,6 +10,7 @@ import com.example.dantruventu.Error.AppException;
 import com.example.dantruventu.Error.ErrorCode;
 import com.example.dantruventu.Repository.order.ChiTietDonHangRepository;
 import com.example.dantruventu.Repository.warehouse.*;
+import com.example.dantruventu.Services.catalog.CatalogSupport;
 import java.util.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -37,14 +38,35 @@ public class DeliveryInventoryService {
   private record Expected(ChiTietDonHang line, PhienBanSanPham variant, int quantity) {}
 
   public boolean usesSerial(PhienBanSanPham variant) {
-    if (variant.getSanPham().getLoaiSanPham() == LoaiSanPham.DON) {
-      return serialRepository.countByPhienBanId(variant.getId()) > 0;
+    if (variant == null) {
+      throw conflict("Không tìm thấy phiên bản");
     }
 
-    return componentRepository.findByComboIds(List.of(variant.getSanPham().getId())).stream()
-        .anyMatch(
-            component ->
-                serialRepository.countByPhienBanId(component.getPhienBanThanhPhan().getId()) > 0);
+    LoaiSanPham productType = variant.getSanPham().getLoaiSanPham();
+
+    if (productType == LoaiSanPham.DON) {
+      return CatalogSupport.serialManaged(variant);
+    }
+
+    if (productType != LoaiSanPham.BO_PC) {
+      throw conflict("Loại sản phẩm không được hỗ trợ");
+    }
+
+    var components = componentRepository.findByComboIds(List.of(variant.getSanPham().getId()));
+
+    if (components.isEmpty()) {
+      throw conflict("Combo chưa có thành phần");
+    }
+
+    boolean managed = false;
+
+    for (var component : components) {
+      boolean componentManaged = CatalogSupport.serialManaged(component.getPhienBanThanhPhan());
+
+      managed = managed || componentManaged;
+    }
+
+    return managed;
   }
 
   public void releaseReservation(DonHang order) {
@@ -109,7 +131,7 @@ public class DeliveryInventoryService {
 
     for (Expected requirement : requirements.values()) {
       PhienBanSanPham variant = requirement.variant();
-      boolean managed = serialRepository.countByPhienBanId(variant.getId()) > 0;
+      boolean managed = CatalogSupport.serialManaged(variant);
 
       var pool = serialsByVariant.computeIfAbsent(variant.getId(), ignored -> new ArrayDeque<>());
 
@@ -218,7 +240,7 @@ public class DeliveryInventoryService {
       var item = received.get(entry.getKey());
       Long variantId = requirement.variant().getId();
 
-      boolean managed = serialRepository.countByPhienBanId(variantId) > 0;
+      boolean managed = CatalogSupport.serialManaged(requirement.variant());
 
       if (managed && item.getSerials().size() != requirement.quantity()) {
         throw conflict("Phiên bản quản lý serial phải nhận đủ serial");

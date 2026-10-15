@@ -102,4 +102,17 @@ public final class CatalogFields {
       @JsonProperty("phien_ban_id") Long phienBanId,
       @JsonProperty("san_pham_id") Long sanPhamId,
       @JsonProperty("thuoc_tinh_phien_ban") List<AttributeData> thuocTinhPhienBan) {}
+
+  public record ComboPart(
+      @JsonProperty("san_pham_id") Long sanPhamId,
+      @JsonProperty("phien_ban_id") Long phienBanId,
+      @JsonProperty("ma_san_pham") String maSanPham,
+      @JsonProperty("ten_san_pham") String tenSanPham,
+      @JsonProperty("ten_phien_ban") String tenPhienBan,
+      @JsonProperty("ma_vach") String maVach,
+      @JsonProperty("anh_chinh") String anhChinh,
+      @JsonProperty("so_luong_trong_bo") Integer soLuongTrongBo,
+      @JsonProperty("so_luong_tong") Long soLuongTong,
+      @JsonProperty("co_quan_ly_serial") Boolean coQuanLySerial,
+      @JsonProperty("thoi_han_bao_hanh_thang") Integer thoiHanBaoHanhThang) {}
 }

@@ -1,6 +1,7 @@
 package com.example.dantruventu.DTO.Response.order;
 
 import com.example.dantruventu.DTO.Response.PaginationResponse;
+import com.example.dantruventu.DTO.catalog.CatalogFields;
 import com.example.dantruventu.Enum.*;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import java.math.BigDecimal;
@@ -214,6 +215,13 @@ public final class CustomerOrderResponse {
 
     @JsonProperty("quan_ly_serial")
     private Boolean quanLySerial;
+
+    @JsonProperty("loai_san_pham")
+    private LoaiSanPham loaiSanPham;
+
+    @Builder.Default
+    @JsonProperty("thanh_phan")
+    private List<CatalogFields.ComboPart> thanhPhan = List.of();
   }
 
   @Getter

@@ -14,6 +14,7 @@ import com.example.dantruventu.DTO.Response.warehouse.AdminInventoryCheckUpdateR
 import com.example.dantruventu.Entity.NguoiDung;
 import com.example.dantruventu.Enum.TrangThaiPhieuKiemKho;
 import com.example.dantruventu.Services.AdminInventoryCheckService;
+import com.example.dantruventu.Services.warehouse.WarehouseOperations;
 import jakarta.validation.Valid;
 import java.time.LocalDate;
 import lombok.RequiredArgsConstructor;
@@ -21,16 +22,7 @@ import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PatchMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.ResponseStatus;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/v1/admin/inventory-checks")
@@ -39,6 +31,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class AdminInventoryCheckController {
 
   private final AdminInventoryCheckService adminInventoryCheckService;
+  private final WarehouseOperations warehouseOperations;
 
   @GetMapping("/products")
   public ApiResponse<AdminInventoryCheckProductListResponse> searchProducts(
@@ -115,12 +108,12 @@ public class AdminInventoryCheckController {
 
   @PostMapping("/{id}/balance")
   public ApiResponse<AdminInventoryCheckBalanceResponse> balance(
-      @PathVariable("id") Long id, @AuthenticationPrincipal NguoiDung actor) {
+      @PathVariable("id") Long id, @RequestHeader("Idempotency-Key") String idempotencyKey) {
 
     return ApiResponse.<AdminInventoryCheckBalanceResponse>builder()
         .status(200)
         .message("Cân bằng kho thành công")
-        .data(adminInventoryCheckService.balance(id, actor == null ? null : actor.getId()))
+        .data(warehouseOperations.balanceInventory(id, idempotencyKey))
         .build();
   }
 

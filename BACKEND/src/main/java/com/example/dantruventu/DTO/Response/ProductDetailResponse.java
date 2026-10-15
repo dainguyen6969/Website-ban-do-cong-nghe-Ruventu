@@ -1,5 +1,6 @@
 package com.example.dantruventu.DTO.Response;
 
+import com.example.dantruventu.DTO.catalog.CatalogFields;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonRawValue;
 import java.math.BigDecimal;
@@ -30,6 +31,7 @@ public class ProductDetailResponse {
   private Short trangThai;
   private List<AnhSanPhamResponse> anhSanPham;
   private List<PhienBanResponse> danhSachPhienBan;
+  @Builder.Default private List<CatalogFields.ComboPart> thanhPhan = List.of();
 
   @Getter
   @Setter
