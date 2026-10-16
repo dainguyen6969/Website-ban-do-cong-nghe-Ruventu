@@ -30,8 +30,9 @@ public class AdminOrderController {
   @PostMapping("/realtime-ticket")
   public ApiResponse<java.util.Map<String, String>> realtimeTicket(
       @RequestHeader("Authorization") String authorization) {
-    return ok("Kết nối cập nhật đơn hàng", java.util.Map.of("ticket",
-        orderWebSocket.issueTicket(authorization.substring(7))));
+    return ok(
+        "Kết nối cập nhật đơn hàng",
+        java.util.Map.of("ticket", orderWebSocket.issueTicket(authorization.substring(7))));
   }
 
   @GetMapping
