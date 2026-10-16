@@ -54,6 +54,14 @@ const lines = (items) => items.map((item) => ({
 }));
 
 export function buildPreviewBody(form) {
+
+  if (form.frozenFinancial) {
+    return {
+      loai_don_hang: 'ONLINE',
+      ...JSON.parse(JSON.stringify(form.frozenFinancial)),
+    };
+  }
+
   return {
     loai_don_hang: 'ONLINE', khach_hang_id: form.customerId || null,
     kho_hang_id: form.options.kho_mac_dinh_id, bang_gia: form.options.bang_gia[0],
@@ -110,27 +118,49 @@ const orderBody = (form) => {
   return body;
 };
 
-export const createOnlineOrder = (form, confirmedTotal, idempotencyKey) => adminRequest('/api/v1/admin/orders', {
-  method: 'POST',
-  ...(idempotencyKey ? { headers: { 'Idempotency-Key': idempotencyKey } } : {}),
-  body: JSON.stringify({
-    ...orderBody(form), tong_thanh_toan_xac_nhan: confirmedTotal,
+export function buildOnlineOrderBody(form, confirmedTotal) {
+  return {
+    ...orderBody(form),
+    tong_thanh_toan_xac_nhan: confirmedTotal,
+
     thong_tin_nguoi_nhan: {
       ten_nguoi_nhan: form.recipient.name.trim(),
       sdt_nguoi_nhan: form.recipient.phone.replace(/[\s.-]/g, ''),
-      dia_chi_giao_hang: form.delivery === 'GIAO_HANG' ? form.recipient.address.trim() : null,
+      dia_chi_giao_hang:
+        form.delivery === 'GIAO_HANG'
+          ? form.recipient.address.trim()
+          : null,
     },
+
     phuong_thuc_thanh_toan: form.payment,
     hinh_thuc_nhan_hang: form.delivery,
     ghi_chu: form.note.trim() || null,
-  }),
-});
+  };
+}
 
-export const updateOnlineOrder = (id, form, confirmedTotal) => adminRequest(`/api/v1/admin/orders/${encodeURIComponent(id)}`, {
-  method: 'PUT',
-  body: JSON.stringify({
-    ...orderBody({ ...form, promotion: '' }), tong_thanh_toan_xac_nhan: confirmedTotal,
-    thong_tin_nguoi_nhan: { ten_nguoi_nhan: form.recipient.name.trim(), sdt_nguoi_nhan: form.recipient.phone.replace(/[\s.-]/g, ''), dia_chi_giao_hang: form.delivery === 'GIAO_HANG' ? form.recipient.address.trim() : null },
-    phuong_thuc_thanh_toan: form.payment, hinh_thuc_nhan_hang: form.delivery, ghi_chu: form.note.trim() || null,
-  }),
-});
+export function saveOnlineOrder(id, body, key) {
+  if (!key) {
+    throw new Error('Thiếu Idempotency-Key của yêu cầu lưu đơn.');
+  }
+
+  const editing = id != null;
+
+  return adminRequest(
+    editing
+      ? `/api/v1/admin/orders/${encodeURIComponent(id)}`
+      : '/api/v1/admin/orders',
+    {
+      method: editing ? 'PUT' : 'POST',
+      headers: {
+        'Idempotency-Key': key,
+      },
+      body: JSON.stringify(body),
+    },
+  );
+}
+
+export const createOnlineOrder = (form, total, key) =>
+  saveOnlineOrder(null, buildOnlineOrderBody(form, total), key);
+
+export const updateOnlineOrder = (id, form, total, key) =>
+  saveOnlineOrder(id, buildOnlineOrderBody(form, total), key);

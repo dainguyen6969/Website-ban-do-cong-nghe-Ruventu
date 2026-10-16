@@ -49,6 +49,24 @@ public final class CustomerOrderResponse {
 
     @JsonProperty("thanh_tien")
     private BigDecimal thanhTien;
+
+    @JsonProperty("ma_dong")
+    private String maDong;
+
+    @JsonProperty("la_qua_tang")
+    private Boolean laQuaTang;
+
+    @JsonProperty("ten_san_pham")
+    private String tenSanPham;
+
+    @JsonProperty("ten_phien_ban")
+    private String tenPhienBan;
+
+    @JsonProperty("don_gia_da_gom_vat")
+    private BigDecimal donGiaDaGomVat;
+
+    @JsonProperty("thanh_tien_da_gom_vat")
+    private BigDecimal thanhTienDaGomVat;
   }
 
   @Getter
@@ -75,6 +93,15 @@ public final class CustomerOrderResponse {
 
     @JsonProperty("thong_tin_nguoi_nhan")
     private Recipient thongTinNguoiNhan;
+
+    @JsonProperty("gia_da_bao_gom_vat")
+    private Boolean giaDaBaoGomVat;
+
+    @JsonProperty("tong_tien_hang_da_gom_vat")
+    private BigDecimal tongTienHangDaGomVat;
+
+    @JsonProperty("tien_giam_da_gom_vat")
+    private BigDecimal tienGiamDaGomVat;
   }
 
   @Getter
@@ -126,7 +153,10 @@ public final class CustomerOrderResponse {
     private Recipient thongTinNguoiNhan;
 
     @JsonProperty("san_pham")
-    private List<CreatedProduct> sanPham;
+    private List<AdminDeliveryResponse.ProductData> sanPham;
+
+    @JsonProperty("khuyen_mai")
+    private AdminSalesResponse.AppliedPromotion khuyenMai;
   }
 
   @Getter
@@ -222,6 +252,18 @@ public final class CustomerOrderResponse {
     @Builder.Default
     @JsonProperty("thanh_phan")
     private List<CatalogFields.ComboPart> thanhPhan = List.of();
+
+    @JsonProperty("ma_dong")
+    private String maDong;
+
+    @JsonProperty("la_qua_tang")
+    private Boolean laQuaTang;
+
+    @JsonProperty("thanh_toan_dong")
+    private BigDecimal thanhToanDong;
+
+    @JsonProperty("canh_bao_du_lieu")
+    private String canhBaoDuLieu;
   }
 
   @Getter
@@ -335,6 +377,9 @@ public final class CustomerOrderResponse {
 
     @JsonProperty("ngay_tao")
     private OffsetDateTime ngayTao;
+
+    @JsonProperty("khuyen_mai")
+    private AdminSalesResponse.AppliedPromotion khuyenMai;
   }
 
   @Getter

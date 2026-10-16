@@ -93,9 +93,11 @@ public class AdminOrderController {
 
   @PutMapping("/{id}")
   public ApiResponse<AdminOrderResponse.Action> update(
-      @PathVariable("id") Long id, @Valid @RequestBody AdminSalesRequest.Online request) {
+      @PathVariable("id") Long id,
+      @RequestHeader(name = "Idempotency-Key", required = false) String key,
+      @Valid @RequestBody AdminSalesRequest.Online request) {
 
-    return ok("Cập nhật đơn hàng thành công", orderService.update(id, request));
+    return ok("Cập nhật đơn hàng thành công", orderService.update(id, key, request));
   }
 
   @PostMapping("/{id}/approve")

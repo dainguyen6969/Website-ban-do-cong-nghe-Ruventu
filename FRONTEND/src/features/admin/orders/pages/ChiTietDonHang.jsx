@@ -36,6 +36,11 @@ import {
   toApiDateTime,
   withIdempotency,
 } from "../../../../shared/services/mutationUtils";
+import {
+  OrderLineAmount,
+  OrderLineNotice,
+  OrderPromotionSummary,
+} from "../../../../shared/components/ui/OrderSaleDetails";
 import ComboContents from "../../../../shared/components/ui/ComboContents";
 
 export default function ChiTietDonHang() {
@@ -618,8 +623,12 @@ export default function ChiTietDonHang() {
                     <tr key={item.chi_tiet_don_hang_id}>
                       <td>—</td>
                       <td>
-                        <strong>{item.ten_san_pham}</strong>
+                        <strong>
+                          {item.ten_san_pham ||
+                            `Phiên bản #${item.phien_ban_id}`}
+                        </strong>
 
+                        <OrderLineNotice item={item} />
                         <span>
                           {item.loai_san_pham === "BO_PC"
                             ? "Bộ PC"
@@ -638,7 +647,7 @@ export default function ChiTietDonHang() {
                       <td className="align-right">{money(item.don_gia)}</td>
                       <td className="align-center">{item.so_luong}</td>
                       <td className="align-right">
-                        <strong>{money(item.thanh_tien)}</strong>
+                        <OrderLineAmount item={item} />{" "}
                       </td>
                     </tr>
                   ))}
@@ -841,6 +850,11 @@ export default function ChiTietDonHang() {
                   ? "—"
                   : money(order.tien_chiet_khau)}
               </Info>
+
+              <Info text="VAT">
+                {order.tong_tien_vat == null ? "—" : money(order.tong_tien_vat)}
+              </Info>
+
               <Info text="PHÍ GIAO HÀNG">{money(order.phi_giao_hang)}</Info>
               <div className="order-summary-total">
                 <dt>KHÁCH PHẢI TRẢ</dt>
@@ -849,7 +863,7 @@ export default function ChiTietDonHang() {
             </dl>
           </Panel>
           <Panel title="KHUYẾN MẠI / ƯU ĐÃI">
-            <p className="order-note">—</p>
+            <OrderPromotionSummary order={order} showUsage />
           </Panel>
           <Panel title="GHI CHÚ">
             <p className="order-note">{order.ghi_chu || "Không có ghi chú."}</p>
