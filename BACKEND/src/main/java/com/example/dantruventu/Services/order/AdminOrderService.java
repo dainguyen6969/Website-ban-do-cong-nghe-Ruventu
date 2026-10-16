@@ -779,12 +779,31 @@ public class AdminOrderService {
               .findFirst()
               .orElseThrow(() -> notFound("Phiếu giao hàng không tồn tại hoặc không thuộc đơn"));
 
-      if (order.getTrangThaiDonHang() != TrangThaiDonHang.HOAN_THANH
-          || order.getTrangThaiThanhToan() != TrangThaiThanhToanDonHang.DA_THANH_TOAN
+      var activeDeliveries = effective(deliveries);
+
+      if (activeDeliveries.size() != 1
+          || !Objects.equals(activeDeliveries.get(0).getId(), delivery.getId())) {
+
+        throw conflict("Đơn phải có đúng một phiếu giao hàng hiệu lực");
+      }
+
+      boolean pendingCod =
+          order.getTrangThaiThanhToan() == TrangThaiThanhToanDonHang.CHUA_THANH_TOAN
+              && (order.getTrangThaiDonHang() == TrangThaiDonHang.DANG_GIAO_HANG
+                  || order.getTrangThaiDonHang() == TrangThaiDonHang.HOAN_THANH);
+
+      // Tương thích đơn do code cũ đã đánh dấu thanh toán
+      // khi giao thành công, nhưng chưa ghi nhận thực thu.
+      boolean legacyCod =
+          order.getTrangThaiThanhToan() == TrangThaiThanhToanDonHang.DA_THANH_TOAN
+              && order.getTrangThaiDonHang() == TrangThaiDonHang.HOAN_THANH;
+
+      if ((!pendingCod && !legacyCod)
+          || order.getTrangThaiDongGoi() != TrangThaiDongGoi.DA_DONG_GOI
           || order.getTrangThaiXuatKho() != TrangThaiXuatKho.DA_XUAT_KHO
           || delivery.getTrangThaiGiaoHang() != TrangThaiGiaoHangEnum.GIAO_THANH_CONG) {
 
-        throw conflict("Chỉ nhận COD khi giao thành công và khách đã thanh toán");
+        throw conflict("Chỉ nhận COD cho đơn đã giao thành công, đóng gói và xuất kho đầy đủ");
       }
 
       if (delivery.getDoiTacVanChuyen() == null) {
@@ -805,7 +824,11 @@ public class AdminOrderService {
         throw invalid("Số tiền đối tác nộp phải bằng toàn bộ COD của phiếu giao hàng");
       }
 
-      // Không được vừa thực thu trực tiếp vừa thực thu COD cho cùng đơn.
+      if (cashRepository.findByMaPhieu("THU-COD-" + delivery.getId()).isPresent()) {
+
+        throw conflict("Khoản COD của phiếu giao hàng đã được ghi nhận");
+      }
+
       if (sumCash(order, LoaiPhieuThuChi.THU).signum() != 0
           || sumCash(order, LoaiPhieuThuChi.CHI).signum() != 0) {
 
@@ -829,13 +852,12 @@ public class AdminOrderService {
               request.getMaGiaoDichThanhToan(),
               "Cửa hàng thực nhận COD từ đối tác, phiếu " + delivery.getMaPhieuGiaoHang());
 
-      /*
-       * Giữ phương thức khách đã thanh toán trên don_hang.
-       *
-       * Phương thức đối tác nộp COD được lưu trên phiếu thu.
-       * Không đổi tien_thu_ho_cod thành 0 vì đây là giá trị
-       * COD lịch sử của phiếu giao hàng.
-       */
+      order.setTrangThaiThanhToan(TrangThaiThanhToanDonHang.DA_THANH_TOAN);
+
+      order.setTrangThaiDonHang(TrangThaiDonHang.HOAN_THANH);
+
+      // Giữ tiền COD lịch sử trên phiếu giao hàng.
+      // Phương thức đối tác nộp tiền được lưu trên phiếu thu.
 
     } else {
       throw invalid("Nguồn thu không hợp lệ");

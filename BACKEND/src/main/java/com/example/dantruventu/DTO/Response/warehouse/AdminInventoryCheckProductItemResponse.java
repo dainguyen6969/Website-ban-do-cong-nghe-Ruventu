@@ -1,5 +1,6 @@
 package com.example.dantruventu.DTO.Response.warehouse;
 
+import com.example.dantruventu.Enum.LoaiSanPham;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -31,4 +32,7 @@ public class AdminInventoryCheckProductItemResponse {
 
   @JsonProperty("ton_he_thong")
   private Long tonHeThong;
+
+  @JsonProperty("loai_san_pham")
+  private LoaiSanPham loaiSanPham;
 }

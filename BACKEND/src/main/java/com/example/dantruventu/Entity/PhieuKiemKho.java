@@ -49,4 +49,7 @@ public class PhieuKiemKho {
   @CreationTimestamp
   @Column(name = "ngay_tao", updatable = false)
   private LocalDateTime ngayTao;
+
+  @Column(name = "du_lieu_kiem_serial", columnDefinition = "LONGTEXT")
+  private String duLieuKiemSerial;
 }

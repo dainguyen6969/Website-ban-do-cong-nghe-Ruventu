@@ -1,16 +1,17 @@
 package com.example.dantruventu.Services.warehouse;
 
 import com.example.dantruventu.Entity.PhienBanSanPham;
+import com.example.dantruventu.Entity.SoSerialSanPham;
 import com.example.dantruventu.Entity.TonKho;
+import com.example.dantruventu.Enum.TrangThaiSerial;
 import com.example.dantruventu.Error.AppException;
 import com.example.dantruventu.Error.ErrorCode;
 import com.example.dantruventu.Repository.order.SalesIdempotencyRepository;
 import com.example.dantruventu.Repository.product.PhienBanSanPhamRepository;
 import jakarta.persistence.EntityManager;
+import jakarta.persistence.LockModeType;
 import java.security.MessageDigest;
-import java.util.HexFormat;
-import java.util.Objects;
-import java.util.UUID;
+import java.util.*;
 import java.util.function.Supplier;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -137,6 +138,39 @@ public class WarehouseSupport {
     } catch (IllegalArgumentException exception) {
       throw invalidKey();
     }
+  }
+
+  public List<SoSerialSanPham> shopSerials(Collection<Long> variantIds, boolean lock) {
+
+    if (variantIds.isEmpty()) {
+      return List.of();
+    }
+
+    var query =
+        entityManager
+            .createQuery(
+                """
+      select s
+      from SoSerialSanPham s
+      where s.phienBan.id in :ids
+        and s.donHang is null
+        and s.trangThai in :states
+      order by s.id
+      """,
+                SoSerialSanPham.class)
+            .setParameter("ids", variantIds)
+            .setParameter(
+                "states",
+                List.of(
+                    TrangThaiSerial.TRONG_KHO,
+                    TrangThaiSerial.LOI,
+                    TrangThaiSerial.GIU_CHO_BAO_HANH));
+
+    if (lock) {
+      query.setLockMode(LockModeType.PESSIMISTIC_WRITE);
+    }
+
+    return query.getResultList();
   }
 
   private String hash(Fingerprint value) {

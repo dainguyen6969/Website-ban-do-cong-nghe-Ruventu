@@ -3,6 +3,7 @@ package com.example.dantruventu.Controller.warehouse;
 import com.example.dantruventu.DTO.Request.warehouse.AdminInventoryCheckCancelRequest;
 import com.example.dantruventu.DTO.Request.warehouse.AdminInventoryCheckCreateRequest;
 import com.example.dantruventu.DTO.Request.warehouse.AdminInventoryCheckUpdateRequest;
+import com.example.dantruventu.DTO.Request.warehouse.InventoryCountData;
 import com.example.dantruventu.DTO.Response.ApiResponse;
 import com.example.dantruventu.DTO.Response.warehouse.AdminInventoryCheckBalanceResponse;
 import com.example.dantruventu.DTO.Response.warehouse.AdminInventoryCheckCancelResponse;
@@ -127,6 +128,32 @@ public class AdminInventoryCheckController {
         .status(HttpStatus.CREATED.value())
         .message("Tạo phiếu kiểm hàng thành công")
         .data(adminInventoryCheckService.create(request, actor == null ? null : actor.getId()))
+        .build();
+  }
+
+  @GetMapping("/products/{id}/requirements")
+  public ApiResponse<InventoryCountData.Requirements> requirements(@PathVariable Long id) {
+
+    return ApiResponse.<InventoryCountData.Requirements>builder()
+        .status(200)
+        .message("Lấy yêu cầu kiểm hàng thành công")
+        .data(adminInventoryCheckService.requirements(id))
+        .build();
+  }
+
+  @PostMapping("/batch")
+  @ResponseStatus(HttpStatus.CREATED)
+  public ApiResponse<InventoryCountData.BatchResult> createBatch(
+      @RequestHeader("Idempotency-Key") String key,
+      @Valid @RequestBody InventoryCountData.BatchRequest request,
+      @AuthenticationPrincipal NguoiDung actor) {
+
+    return ApiResponse.<InventoryCountData.BatchResult>builder()
+        .status(201)
+        .message("Tạo các phiếu kiểm hàng thành công")
+        .data(
+            adminInventoryCheckService.createBatch(
+                key, request, actor == null ? null : actor.getId()))
         .build();
   }
 }

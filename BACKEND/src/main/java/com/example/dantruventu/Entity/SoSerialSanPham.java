@@ -34,6 +34,10 @@ public class SoSerialSanPham {
   @JoinColumn(name = "don_hang_id")
   private DonHang donHang;
 
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "don_nhap_hang_id")
+  private DonNhapHang donNhapHang;
+
   @Column(name = "ngay_kich_hoat")
   private LocalDateTime ngayKichHoat;
 

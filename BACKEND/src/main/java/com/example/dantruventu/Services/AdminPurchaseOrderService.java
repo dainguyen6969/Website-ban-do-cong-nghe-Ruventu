@@ -17,6 +17,7 @@ import com.example.dantruventu.Repository.warehouse.*;
 import com.example.dantruventu.Services.cashbook.CashbookService;
 import com.example.dantruventu.Services.warehouse.WarehouseSupport;
 import com.example.dantruventu.Specification.PurchaseOrderSpecification;
+import jakarta.persistence.EntityManager;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.*;
@@ -66,6 +67,8 @@ public class AdminPurchaseOrderService {
   private final AdminPurchaseOrderMapper mapper;
   private final CashbookService cashbookService;
   private final WarehouseSupport warehouseSupport;
+
+  private final EntityManager entityManager;
 
   @Value("${ruventu.inventory.default-warehouse-id:1}")
   private Long defaultWarehouseId;
@@ -399,7 +402,14 @@ public class AdminPurchaseOrderService {
 
     DonNhapHang order = requireOrderForUpdate(id);
 
-    if (order.getTrangThaiNhap() != TrangThaiNhapHang.DA_DUYET) {
+    var allowed =
+        EnumSet.of(
+            TrangThaiNhapHang.DA_DUYET,
+            TrangThaiNhapHang.NHAP_MOT_PHAN,
+            TrangThaiNhapHang.HOAN_TRA_MOT_PHAN,
+            TrangThaiNhapHang.HOAN_TRA_TOAN_BO);
+
+    if (!allowed.contains(order.getTrangThaiNhap())) {
       throw new AppException(ErrorCode.CONFLICT, "Đơn nhập không ở trạng thái cho phép nhập kho");
     }
 
@@ -412,7 +422,6 @@ public class AdminPurchaseOrderService {
 
     validateReceiveRequest(request, detailMap);
 
-    // Khóa phiên bản theo thứ tự cố định.
     Map<Long, PhienBanSanPham> lockedVariants = new TreeMap<>();
 
     for (Long variantId :
@@ -421,7 +430,6 @@ public class AdminPurchaseOrderService {
       lockedVariants.put(variantId, warehouseSupport.lockVariant(variantId));
     }
 
-    // Kiểm tra tất cả dòng trước khi tăng tồn.
     for (var item : request.getItems()) {
       var detail = detailMap.get(item.getChiTietDonNhapId());
       var variant = lockedVariants.get(detail.getPhienBan().getId());
@@ -438,15 +446,8 @@ public class AdminPurchaseOrderService {
       }
 
       if (!Objects.equals(configured, item.getQuanLySerial())) {
-
         throw new AppException(
             ErrorCode.CONFLICT, "Chế độ serial không khớp cấu hình phiên bản " + variant.getId());
-      }
-
-      if (sumMovement(id, variant.getId(), LoaiGiaoDichKho.NHAP_HANG) != 0) {
-
-        throw new AppException(
-            ErrorCode.CONFLICT, "Đơn đã có dữ liệu nhập kho; không được nhập lại");
       }
     }
 
@@ -468,14 +469,15 @@ public class AdminPurchaseOrderService {
 
     for (var item : sortedItems) {
       var detail = detailMap.get(item.getChiTietDonNhapId());
-
       var variant = lockedVariants.get(detail.getPhienBan().getId());
+
+      int previouslyReceived = grossReceived(detail);
+      int quantity = item.getSoLuongNhapKho();
+      int cumulativeReceived = previouslyReceived + quantity;
 
       TonKho inventory = lockOrCreateInventory(warehouse, variant);
 
       WarehouseSupport.numbers(inventory);
-
-      int quantity = item.getSoLuongNhapKho();
 
       try {
         inventory.setTonThucTe(Math.addExact(inventory.getTonThucTe(), quantity));
@@ -486,7 +488,7 @@ public class AdminPurchaseOrderService {
         throw new AppException(ErrorCode.CONFLICT, "Số lượng tồn kho vượt giới hạn cho phép");
       }
 
-      inventory = tonKhoRepository.save(inventory);
+      tonKhoRepository.save(inventory);
 
       theKhoRepository.save(
           TheKho.builder()
@@ -502,13 +504,14 @@ public class AdminPurchaseOrderService {
       List<AdminPurchaseOrderReceiveResponse.SerialData> serialResponses = new ArrayList<>();
 
       if (Boolean.TRUE.equals(variant.getCoQuanLySerial())) {
-        List<SoSerialSanPham> serialEntities =
+        var serialEntities =
             item.getSoSerials().stream()
                 .map(String::trim)
                 .map(
                     code ->
                         SoSerialSanPham.builder()
                             .phienBan(variant)
+                            .donNhapHang(order)
                             .soSerial(code)
                             .trangThai(TrangThaiSerial.TRONG_KHO)
                             .donHang(null)
@@ -535,9 +538,9 @@ public class AdminPurchaseOrderService {
               .phienBanId(variant.getId())
               .soLuongNhapKho(quantity)
               .soLuongDat(detail.getSoLuong())
-              .soLuongDaNhapKho(quantity)
-              .conTheoDon(0)
-              .chenhLech(0)
+              .soLuongDaNhapKho(cumulativeReceived)
+              .conTheoDon(detail.getSoLuong() - cumulativeReceived)
+              .chenhLech(cumulativeReceived - detail.getSoLuong())
               .quanLySerial(variant.getCoQuanLySerial())
               .cheDoSerialDaXacLap(true)
               .tonThucTeSauNhap(inventory.getTonThucTe())
@@ -545,10 +548,10 @@ public class AdminPurchaseOrderService {
               .build());
     }
 
-    order.setTrangThaiNhap(TrangThaiNhapHang.DA_NHAP_KHO);
-    donNhapHangRepository.save(order);
-
     theKhoRepository.flush();
+
+    refreshImportStatus(order, details);
+    donNhapHangRepository.save(order);
 
     return AdminPurchaseOrderReceiveResponse.builder()
         .donNhapHangId(order.getId())
@@ -566,8 +569,12 @@ public class AdminPurchaseOrderService {
 
     DonNhapHang order = requireOrderForUpdate(id);
 
-    if (order.getTrangThaiNhap() != TrangThaiNhapHang.DA_NHAP_KHO
-        && order.getTrangThaiNhap() != TrangThaiNhapHang.HOAN_TRA_MOT_PHAN) {
+    if (!EnumSet.of(
+            TrangThaiNhapHang.NHAP_MOT_PHAN,
+            TrangThaiNhapHang.DA_NHAP_KHO,
+            TrangThaiNhapHang.HOAN_TRA_MOT_PHAN)
+        .contains(order.getTrangThaiNhap())) {
+
       throw new AppException(ErrorCode.CONFLICT, "Đơn nhập không ở trạng thái cho phép hoàn trả");
     }
 
@@ -589,6 +596,12 @@ public class AdminPurchaseOrderService {
      * chưa bao gồm VAT.
      */
     BigDecimal returnedGoods = BigDecimal.ZERO;
+
+    for (Long variantId :
+        details.stream().map(detail -> detail.getPhienBan().getId()).distinct().sorted().toList()) {
+
+      warehouseSupport.lockVariant(variantId);
+    }
 
     for (AdminPurchaseOrderReturnRequest.Item item : request.getItems()) {
 
@@ -613,17 +626,6 @@ public class AdminPurchaseOrderService {
       }
 
       Long variantId = detail.getPhienBan().getId();
-
-      /*
-       * MVP hiện tại:
-       * chưa hỗ trợ xuất trả NCC đối với hàng quản lý Serial.
-       */
-      SerialMode mode = resolveSerialMode(variantId);
-
-      if (Boolean.TRUE.equals(mode.value())) {
-        throw new AppException(
-            ErrorCode.CONFLICT, "MVP chưa hỗ trợ trả NCC đối với hàng quản lý Serial");
-      }
 
       /*
        * Tổng số lượng đã nhập từ PO này.
@@ -694,6 +696,9 @@ public class AdminPurchaseOrderService {
 
         throw new AppException(ErrorCode.CONFLICT, "Số lượng hàng lỗi trong kho không đủ");
       }
+
+      WarehouseSupport.numbers(inventory);
+      markSupplierSerialsReturned(order, detail, item);
 
       /*
        * Giảm tồn thực tế.
@@ -1420,12 +1425,9 @@ public class AdminPurchaseOrderService {
   private void validateReceiveRequest(
       AdminPurchaseOrderReceiveRequest request, Map<Long, ChiTietDonNhap> detailMap) {
 
-    if (request.getItems() == null
-        || detailMap.isEmpty()
-        || request.getItems().size() != detailMap.size()) {
-
+    if (request.getItems() == null || request.getItems().isEmpty()) {
       throw new AppException(
-          ErrorCode.UNPROCESSABLE_ENTITY, "Phải nhập đủ toàn bộ dòng của đơn trong một lần");
+          ErrorCode.UNPROCESSABLE_ENTITY, "Phải chọn ít nhất một dòng để nhập kho");
     }
 
     Set<Long> seen = new HashSet<>();
@@ -1434,23 +1436,83 @@ public class AdminPurchaseOrderService {
       if (item == null
           || item.getChiTietDonNhapId() == null
           || !seen.add(item.getChiTietDonNhapId())) {
-
         throw new AppException(ErrorCode.UNPROCESSABLE_ENTITY, "Dòng nhập kho bị thiếu hoặc trùng");
       }
 
-      ChiTietDonNhap detail = detailMap.get(item.getChiTietDonNhapId());
+      var detail = detailMap.get(item.getChiTietDonNhapId());
 
       if (detail == null) {
         throw new AppException(
             ErrorCode.UNPROCESSABLE_ENTITY, "Có dòng không thuộc đơn nhập hiện tại");
       }
 
-      if (!Objects.equals(item.getSoLuongNhapKho(), detail.getSoLuong())) {
+      int received = grossReceived(detail);
+      int remaining = detail.getSoLuong() - received;
 
+      Integer quantity = item.getSoLuongNhapKho();
+
+      if (quantity == null || quantity <= 0 || quantity > remaining) {
         throw new AppException(
-            ErrorCode.UNPROCESSABLE_ENTITY, "Số lượng nhập kho phải bằng số lượng đã đặt");
+            ErrorCode.UNPROCESSABLE_ENTITY,
+            "Dòng " + detail.getId() + " chỉ còn " + remaining + " sản phẩm chưa nhập");
       }
     }
+  }
+
+  private int grossReceived(ChiTietDonNhap detail) {
+    int received =
+        sumMovement(
+            detail.getDonNhapHang().getId(),
+            detail.getPhienBan().getId(),
+            LoaiGiaoDichKho.NHAP_HANG);
+
+    if (received < 0 || received > detail.getSoLuong()) {
+      throw new AppException(
+          ErrorCode.CONFLICT, "Số lượng đã nhập không nhất quán ở dòng " + detail.getId());
+    }
+
+    return received;
+  }
+
+  private void refreshImportStatus(DonNhapHang order, List<ChiTietDonNhap> details) {
+
+    boolean hasReturn =
+        details.stream()
+            .anyMatch(
+                detail ->
+                    sumMovement(
+                            order.getId(), detail.getPhienBan().getId(), LoaiGiaoDichKho.TRA_NCC)
+                        < 0);
+
+    if (hasReturn) {
+      boolean allReceivedGoodsReturned =
+          details.stream()
+              .allMatch(
+                  detail -> {
+                    int received = grossReceived(detail);
+                    int returned =
+                        Math.abs(
+                            sumMovement(
+                                order.getId(),
+                                detail.getPhienBan().getId(),
+                                LoaiGiaoDichKho.TRA_NCC));
+
+                    return returned >= received;
+                  });
+
+      order.setTrangThaiNhap(
+          allReceivedGoodsReturned
+              ? TrangThaiNhapHang.HOAN_TRA_TOAN_BO
+              : TrangThaiNhapHang.HOAN_TRA_MOT_PHAN);
+
+      return;
+    }
+
+    boolean fullyReceived =
+        details.stream().allMatch(detail -> grossReceived(detail) == detail.getSoLuong());
+
+    order.setTrangThaiNhap(
+        fullyReceived ? TrangThaiNhapHang.DA_NHAP_KHO : TrangThaiNhapHang.NHAP_MOT_PHAN);
   }
 
   private Set<String> collectAndValidateSerials(
@@ -1584,6 +1646,135 @@ public class AdminPurchaseOrderService {
                 .soTien(voucher.getSoTien())
                 .build())
         .build();
+  }
+
+  public List<AdminPurchaseOrderReceiveResponse.SerialData> getReturnSerials(
+      Long orderId, Long detailId) {
+
+    requireOrder(orderId);
+
+    var detail =
+        chiTietDonNhapRepository.findByDonNhapHangIdOrderByIdAsc(orderId).stream()
+            .filter(item -> Objects.equals(item.getId(), detailId))
+            .findFirst()
+            .orElseThrow(
+                () -> new AppException(ErrorCode.NOT_FOUND, "Chi tiết không thuộc đơn nhập"));
+
+    return warehouseSupport.shopSerials(List.of(detail.getPhienBan().getId()), false).stream()
+        .filter(
+            serial ->
+                serial.getDonNhapHang() != null
+                    && Objects.equals(serial.getDonNhapHang().getId(), orderId))
+        .filter(
+            serial ->
+                serial.getTrangThai() == TrangThaiSerial.TRONG_KHO
+                    || serial.getTrangThai() == TrangThaiSerial.LOI)
+        .map(
+            serial ->
+                AdminPurchaseOrderReceiveResponse.SerialData.builder()
+                    .id(serial.getId())
+                    .soSerial(serial.getSoSerial())
+                    .trangThai(serial.getTrangThai())
+                    .build())
+        .toList();
+  }
+
+  private void markSupplierSerialsReturned(
+      DonNhapHang order, ChiTietDonNhap detail, AdminPurchaseOrderReturnRequest.Item item) {
+
+    Boolean managed = detail.getPhienBan().getCoQuanLySerial();
+
+    if (managed == null) {
+      throw new AppException(ErrorCode.CONFLICT, "Phiên bản chưa có cấu hình quản lý serial");
+    }
+
+    List<Long> ids = item.getSoSerialIds();
+
+    if (ids == null) {
+      throw new AppException(ErrorCode.INVALID_DATA, "so_serial_ids không được null");
+    }
+
+    if (!managed) {
+      if (!ids.isEmpty()) {
+        throw new AppException(
+            ErrorCode.INVALID_DATA, "Hàng không quản lý serial phải gửi so_serial_ids: []");
+      }
+
+      return;
+    }
+
+    if (ids.stream().anyMatch(value -> value == null || value <= 0)
+        || new HashSet<>(ids).size() != ids.size()
+        || ids.size() != item.getSoLuongTra()) {
+
+      throw new AppException(
+          ErrorCode.INVALID_DATA, "Phải chọn đúng số lượng serial trả và không được trùng");
+    }
+
+    var serials = soSerialSanPhamRepository.findAllByIdsForUpdate(ids);
+
+    if (serials.size() != ids.size()) {
+      throw new AppException(ErrorCode.NOT_FOUND, "Có serial không tồn tại");
+    }
+
+    int defects = 0;
+
+    for (var serial : serials) {
+      boolean correctSource =
+          Objects.equals(serial.getPhienBan().getId(), detail.getPhienBan().getId())
+              && serial.getDonNhapHang() != null
+              && Objects.equals(serial.getDonNhapHang().getId(), order.getId());
+
+      boolean warehouseState =
+          serial.getTrangThai() == TrangThaiSerial.TRONG_KHO
+              || serial.getTrangThai() == TrangThaiSerial.LOI;
+
+      if (!correctSource || serial.getDonHang() != null || !warehouseState) {
+
+        throw new AppException(
+            ErrorCode.CONFLICT,
+            "Serial " + serial.getSoSerial() + " không còn đủ điều kiện trả cho đơn nhập này");
+      }
+
+      if (serial.getTrangThai() == TrangThaiSerial.LOI) {
+        defects++;
+      }
+    }
+
+    if (defects != item.getSoLuongLoi()) {
+      throw new AppException(
+          ErrorCode.INVALID_DATA, "Số lượng lỗi phải khớp trạng thái các serial đã chọn");
+    }
+
+    Long activeWarranty =
+        entityManager
+            .createQuery(
+                """
+      select count(p.id)
+      from PhieuBaoHanh p
+      left join p.soSerial sourceSerial
+      left join p.thietBi device
+      left join device.soSerial deviceSerial
+      left join p.thietBiThayThe replacement
+      left join replacement.soSerial replacementSerial
+      where p.trangThaiXuLy <> :completed
+        and (
+          sourceSerial.id in :ids
+          or deviceSerial.id in :ids
+          or replacementSerial.id in :ids
+        )
+      """,
+                Long.class)
+            .setParameter("completed", TrangThaiBaoHanh.HOAN_TAT)
+            .setParameter("ids", ids)
+            .getSingleResult();
+
+    if (activeWarranty > 0) {
+      throw new AppException(
+          ErrorCode.CONFLICT, "Có serial đang thuộc hồ sơ bảo hành chưa hoàn tất");
+    }
+
+    serials.forEach(serial -> serial.setTrangThai(TrangThaiSerial.DA_TRA_NCC));
   }
 
   private void validateIdempotencyKey(String value) {
