@@ -62,8 +62,7 @@ public class AdminReturnService {
   private static final String REFUND_CASH_TYPE_CODE = "CHI_HOAN_DON_HANG";
   private static final String REFUND_IDEMPOTENCY_PREFIX = "TH-REFUND-REQ-";
   private static final String UUID_PATTERN =
-      "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-"
-          + "[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$";
+      "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-" + "[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$";
   private static final Set<String> REFUND_PAYMENT_METHODS = Set.of("TIEN_MAT", "CHUYEN_KHOAN");
 
   private final PhieuTraHangRepository returnRepository;
@@ -80,18 +79,14 @@ public class AdminReturnService {
 
   @Transactional
   public AdminReturnResponse.RefundResponse refund(
-      Long returnId,
-      String idempotencyKey,
-      AdminReturnRefundRequest request,
-      NguoiDung actor) {
+      Long returnId, String idempotencyKey, AdminReturnRefundRequest request, NguoiDung actor) {
 
     validateId(returnId, "ID phiếu trả không hợp lệ");
     if (request == null) {
       throw invalid("Thiếu dữ liệu hoàn tiền");
     }
     if (actor == null || actor.getId() == null || actor.getId() <= 0) {
-      throw new AppException(
-          ErrorCode.UNAUTHORIZED, "Không xác định được người thao tác");
+      throw new AppException(ErrorCode.UNAUTHORIZED, "Không xác định được người thao tác");
     }
 
     String requestKey = refundRequestKey(idempotencyKey);
@@ -124,8 +119,7 @@ public class AdminReturnService {
     PhieuTraHang returnSlip =
         returnRepository
             .findByIdForUpdate(returnId)
-            .orElseThrow(
-                () -> new AppException(ErrorCode.NOT_FOUND, "Phiếu trả không tồn tại"));
+            .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "Phiếu trả không tồn tại"));
 
     if (returnSlip.getTrangThaiTraHang() == TrangThaiTraHang.DA_HOAN_TIEN) {
       throw new AppException(ErrorCode.CONFLICT, "Phiếu trả đã hoàn tiền");
@@ -189,9 +183,7 @@ public class AdminReturnService {
 
   @Transactional
   public AdminReturnResponse.ReceiveResponse receive(
-      Long returnId,
-      AdminReturnReceiveRequest request,
-      Long actorId) {
+      Long returnId, AdminReturnReceiveRequest request, Long actorId) {
 
     validateId(returnId, "ID phiếu trả không hợp lệ");
     if (actorId == null) {
@@ -201,12 +193,10 @@ public class AdminReturnService {
     PhieuTraHang returnSlip =
         returnRepository
             .findByIdForUpdate(returnId)
-            .orElseThrow(
-                () -> new AppException(ErrorCode.NOT_FOUND, "Phiếu trả không tồn tại"));
+            .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "Phiếu trả không tồn tại"));
 
     if (returnSlip.getTrangThaiTraHang() != TrangThaiTraHang.CHO_TIEP_NHAN) {
-      throw new AppException(
-          ErrorCode.CONFLICT, "Phiếu trả không còn ở trạng thái CHO_TIEP_NHAN");
+      throw new AppException(ErrorCode.CONFLICT, "Phiếu trả không còn ở trạng thái CHO_TIEP_NHAN");
     }
 
     DonHang order =
@@ -247,20 +237,16 @@ public class AdminReturnService {
     PhieuTraHang returnSlip =
         returnRepository
             .findById(returnId)
-            .orElseThrow(
-                () -> new AppException(ErrorCode.NOT_FOUND, "Phiếu trả không tồn tại"));
+            .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "Phiếu trả không tồn tại"));
 
     List<ChiTietTraHang> returnLines =
         returnLineRepository.findByPhieuTraHang_IdOrderByIdAsc(returnId);
     if (returnLines.isEmpty()) {
-      throw new AppException(
-          ErrorCode.CONFLICT, "Phiếu trả không có chi tiết sản phẩm");
+      throw new AppException(ErrorCode.CONFLICT, "Phiếu trả không có chi tiết sản phẩm");
     }
 
     int totalQuantity =
-        returnLines.stream()
-            .map(ChiTietTraHang::getSoLuong)
-            .reduce(0, Integer::sum);
+        returnLines.stream().map(ChiTietTraHang::getSoLuong).reduce(0, Integer::sum);
 
     NguoiDung customer = returnSlip.getKhachHang();
     TrangThaiTraHang status = returnSlip.getTrangThaiTraHang();
@@ -291,14 +277,12 @@ public class AdminReturnService {
         .ghiChu(returnSlip.getGhiChu())
         .ngayTao(returnSlip.getNgayTao())
         .canNhanHang(status == TrangThaiTraHang.CHO_TIEP_NHAN)
-        .canHoanTien(
-            status == TrangThaiTraHang.DA_NHAN_HANG && totalRefund.signum() > 0)
+        .canHoanTien(status == TrangThaiTraHang.DA_NHAN_HANG && totalRefund.signum() > 0)
         .build();
   }
 
   @Transactional
-  public AdminReturnResponse.CreateResponse create(
-      AdminReturnCreateRequest request, Long actorId) {
+  public AdminReturnResponse.CreateResponse create(AdminReturnCreateRequest request, Long actorId) {
 
     if (actorId == null) {
       throw new AppException(ErrorCode.UNAUTHORIZED, "Không xác định được người thao tác");
@@ -311,8 +295,7 @@ public class AdminReturnService {
 
     ensureReturnEligible(order);
 
-    List<ChiTietDonHang> orderLines =
-        orderLineRepository.findByDonHangIdForUpdate(order.getId());
+    List<ChiTietDonHang> orderLines = orderLineRepository.findByDonHangIdForUpdate(order.getId());
     if (orderLines.isEmpty()) {
       throw new AppException(ErrorCode.CONFLICT, "Đơn hàng không có sản phẩm để trả");
     }
@@ -340,8 +323,7 @@ public class AdminReturnService {
     ensureSpecialOrderReturnPolicy(orderLines, request.getChiTietTra(), returnedStats);
 
     BigDecimal refundableTotal = refundableGoodsTotal(order);
-    Map<Long, BigDecimal> fullLineRefunds =
-        calculateFullLineRefunds(orderLines, refundableTotal);
+    Map<Long, BigDecimal> fullLineRefunds = calculateFullLineRefunds(orderLines, refundableTotal);
 
     PhieuTraHang returnSlip =
         PhieuTraHang.builder()
@@ -364,8 +346,7 @@ public class AdminReturnService {
         request.getChiTietTra().stream()
             .map(
                 requestedLine -> {
-                  ChiTietDonHang orderLine =
-                      orderLineById.get(requestedLine.getChiTietDonHangId());
+                  ChiTietDonHang orderLine = orderLineById.get(requestedLine.getChiTietDonHangId());
                   ReturnStats previous =
                       returnedStats.getOrDefault(orderLine.getId(), ReturnStats.empty());
                   int purchasedQuantity = requiredPurchasedQuantity(orderLine);
@@ -378,8 +359,7 @@ public class AdminReturnService {
                   }
 
                   BigDecimal fullLineRefund = fullLineRefunds.get(orderLine.getId());
-                  BigDecimal remainingLineRefund =
-                      fullLineRefund.subtract(previous.amount());
+                  BigDecimal remainingLineRefund = fullLineRefund.subtract(previous.amount());
                   if (remainingLineRefund.signum() < 0) {
                     throw new AppException(
                         ErrorCode.CONFLICT, "Số tiền đã yêu cầu trả không nhất quán");
@@ -393,8 +373,7 @@ public class AdminReturnService {
                         fullLineRefund.divide(
                             BigDecimal.valueOf(purchasedQuantity), 0, RoundingMode.DOWN);
                     amount =
-                        baseUnitRefund.multiply(
-                            BigDecimal.valueOf(requestedLine.getSoLuong()));
+                        baseUnitRefund.multiply(BigDecimal.valueOf(requestedLine.getSoLuong()));
                     if (amount.compareTo(remainingLineRefund) > 0) {
                       amount = remainingLineRefund;
                     }
@@ -403,9 +382,7 @@ public class AdminReturnService {
                   amount = amount.setScale(0, RoundingMode.HALF_UP);
                   BigDecimal unitRefund =
                       amount.divide(
-                          BigDecimal.valueOf(requestedLine.getSoLuong()),
-                          2,
-                          RoundingMode.HALF_UP);
+                          BigDecimal.valueOf(requestedLine.getSoLuong()), 2, RoundingMode.HALF_UP);
 
                   return ChiTietTraHang.builder()
                       .phieuTraHang(savedReturnSlip)
@@ -437,8 +414,7 @@ public class AdminReturnService {
         .build();
   }
 
-  public AdminReturnResponse.EligibleOrderDetailResponse getEligibleOrderDetail(
-      Long orderId) {
+  public AdminReturnResponse.EligibleOrderDetailResponse getEligibleOrderDetail(Long orderId) {
 
     validateId(orderId, "ID đơn hàng không hợp lệ");
 
@@ -449,8 +425,7 @@ public class AdminReturnService {
 
     ensureReturnEligible(order);
 
-    List<ChiTietDonHang> orderLines =
-        orderLineRepository.findByDonHang_IdOrderByIdAsc(orderId);
+    List<ChiTietDonHang> orderLines = orderLineRepository.findByDonHang_IdOrderByIdAsc(orderId);
     if (orderLines.isEmpty()) {
       throw new AppException(ErrorCode.CONFLICT, "Đơn hàng không có sản phẩm để trả");
     }
@@ -469,11 +444,9 @@ public class AdminReturnService {
                         fullLineRefunds.get(line.getId())))
             .toList();
 
-    boolean hasRemaining =
-        responseLines.stream().anyMatch(line -> line.getSoLuongConDuocTra() > 0);
+    boolean hasRemaining = responseLines.stream().anyMatch(line -> line.getSoLuongConDuocTra() > 0);
     if (!hasRemaining) {
-      throw new AppException(
-          ErrorCode.CONFLICT, "Đơn hàng không còn số lượng sản phẩm được trả");
+      throw new AppException(ErrorCode.CONFLICT, "Đơn hàng không còn số lượng sản phẩm được trả");
     }
 
     NguoiDung customer = order.getKhachHang();
@@ -519,11 +492,7 @@ public class AdminReturnService {
             TrangThaiThanhToanDonHang.DA_THANH_TOAN,
             TrangThaiXuatKho.DA_XUAT_KHO,
             PageRequest.of(
-                page,
-                limit,
-                Sort.by(
-                    Sort.Order.desc("ngayTao"),
-                    Sort.Order.desc("id"))));
+                page, limit, Sort.by(Sort.Order.desc("ngayTao"), Sort.Order.desc("id"))));
 
     return AdminReturnResponse.EligibleOrderListResponse.builder()
         .items(result.getContent().stream().map(this::toEligibleOrderItem).toList())
@@ -551,11 +520,7 @@ public class AdminReturnService {
         returnRepository.findAll(
             PhieuTraHangSpecification.build(normalizedKeyword, returnStatus),
             PageRequest.of(
-                page,
-                limit,
-                Sort.by(
-                    Sort.Order.desc("ngayTao"),
-                    Sort.Order.desc("id"))));
+                page, limit, Sort.by(Sort.Order.desc("ngayTao"), Sort.Order.desc("id"))));
 
     return AdminReturnResponse.ListResponse.builder()
         .items(result.getContent().stream().map(this::toListItem).toList())
@@ -619,19 +584,15 @@ public class AdminReturnService {
   }
 
   private AdminReturnResponse.EligibleOrderLine toEligibleOrderLine(
-      ChiTietDonHang line,
-      long returnedQuantity,
-      BigDecimal fullLineRefund) {
+      ChiTietDonHang line, long returnedQuantity, BigDecimal fullLineRefund) {
 
     int purchasedQuantity = line.getSoLuong() == null ? 0 : line.getSoLuong();
     if (purchasedQuantity <= 0 || returnedQuantity < 0 || returnedQuantity > purchasedQuantity) {
-      throw new AppException(
-          ErrorCode.CONFLICT, "Số lượng trả của đơn hàng không nhất quán");
+      throw new AppException(ErrorCode.CONFLICT, "Số lượng trả của đơn hàng không nhất quán");
     }
 
     BigDecimal unitRefund =
-        fullLineRefund.divide(
-            BigDecimal.valueOf(purchasedQuantity), 2, RoundingMode.HALF_UP);
+        fullLineRefund.divide(BigDecimal.valueOf(purchasedQuantity), 2, RoundingMode.HALF_UP);
 
     var variant = line.getPhienBan();
     var product = variant.getSanPham();
@@ -667,20 +628,17 @@ public class AdminReturnService {
   }
 
   private boolean isGiftLine(ChiTietDonHang line) {
-    return money(line.getDonGia()).signum() == 0
-        && money(lineTotal(line)).signum() == 0;
+    return money(line.getDonGia()).signum() == 0 && money(lineTotal(line)).signum() == 0;
   }
 
   private Map<Long, ReturnStats> readReturnStats(Long orderId) {
     Map<Long, ReturnStats> result = new HashMap<>();
     for (ChiTietTraHangRepository.ReturnedQuantityProjection item :
         returnLineRepository.sumReturnedQuantityByOrder(orderId)) {
-      long quantity =
-          item.getSoLuongDaYeuCauTra() == null ? 0L : item.getSoLuongDaYeuCauTra();
+      long quantity = item.getSoLuongDaYeuCauTra() == null ? 0L : item.getSoLuongDaYeuCauTra();
       BigDecimal amount = money(item.getTongTienDaYeuCauTra());
       if (quantity < 0 || amount.signum() < 0) {
-        throw new AppException(
-            ErrorCode.CONFLICT, "Dữ liệu trả hàng trước đó không nhất quán");
+        throw new AppException(ErrorCode.CONFLICT, "Dữ liệu trả hàng trước đó không nhất quán");
       }
       result.put(item.getChiTietDonHangId(), new ReturnStats(quantity, amount));
     }
@@ -693,12 +651,10 @@ public class AdminReturnService {
     BigDecimal grossLineTotal =
         orderLines.stream().map(this::lineTotal).reduce(BigDecimal.ZERO, BigDecimal::add);
     if (grossLineTotal.signum() <= 0) {
-      throw new AppException(
-          ErrorCode.CONFLICT, "Giá trị sản phẩm trong đơn hàng không hợp lệ");
+      throw new AppException(ErrorCode.CONFLICT, "Giá trị sản phẩm trong đơn hàng không hợp lệ");
     }
 
-    BigDecimal roundedRefundableTotal =
-        refundableTotal.setScale(0, RoundingMode.HALF_UP);
+    BigDecimal roundedRefundableTotal = refundableTotal.setScale(0, RoundingMode.HALF_UP);
     int lastPositiveLineIndex = -1;
     for (int index = orderLines.size() - 1; index >= 0; index--) {
       if (lineTotal(orderLines.get(index)).signum() > 0) {
@@ -727,9 +683,7 @@ public class AdminReturnService {
         amount = BigDecimal.ZERO.setScale(0);
       } else {
         amount =
-            roundedRefundableTotal
-                .multiply(weight)
-                .divide(grossLineTotal, 0, RoundingMode.DOWN);
+            roundedRefundableTotal.multiply(weight).divide(grossLineTotal, 0, RoundingMode.DOWN);
       }
 
       if (amount.signum() < 0) {
@@ -744,11 +698,9 @@ public class AdminReturnService {
   }
 
   private BigDecimal refundableGoodsTotal(DonHang order) {
-    BigDecimal result =
-        money(order.getTongThanhToan()).subtract(money(order.getPhiGiaoHang()));
+    BigDecimal result = money(order.getTongThanhToan()).subtract(money(order.getPhiGiaoHang()));
     if (result.signum() < 0) {
-      throw new AppException(
-          ErrorCode.CONFLICT, "Phí giao hàng lớn hơn tổng thanh toán");
+      throw new AppException(ErrorCode.CONFLICT, "Phí giao hàng lớn hơn tổng thanh toán");
     }
     return result.setScale(0, RoundingMode.HALF_UP);
   }
@@ -779,8 +731,7 @@ public class AdminReturnService {
 
     Map<Long, Integer> requestedQuantityByLine = new HashMap<>();
     for (AdminReturnCreateRequest.ReturnLine requestedLine : requestedLines) {
-      requestedQuantityByLine.put(
-          requestedLine.getChiTietDonHangId(), requestedLine.getSoLuong());
+      requestedQuantityByLine.put(requestedLine.getChiTietDonHangId(), requestedLine.getSoLuong());
     }
 
     boolean fullReturn =
@@ -799,8 +750,7 @@ public class AdminReturnService {
   private int requiredPurchasedQuantity(ChiTietDonHang line) {
     int quantity = line.getSoLuong() == null ? 0 : line.getSoLuong();
     if (quantity <= 0) {
-      throw new AppException(
-          ErrorCode.CONFLICT, "Số lượng mua trong đơn hàng không hợp lệ");
+      throw new AppException(ErrorCode.CONFLICT, "Số lượng mua trong đơn hàng không hợp lệ");
     }
     return quantity;
   }
@@ -809,13 +759,11 @@ public class AdminReturnService {
     Map<Long, Long> receivedQuantityByLine = new HashMap<>();
     for (ChiTietTraHangRepository.ReceivedQuantityProjection item :
         returnLineRepository.sumReceivedQuantityByOrder(
-            orderId,
-            List.of(TrangThaiTraHang.DA_NHAN_HANG, TrangThaiTraHang.DA_HOAN_TIEN))) {
+            orderId, List.of(TrangThaiTraHang.DA_NHAN_HANG, TrangThaiTraHang.DA_HOAN_TIEN))) {
       receivedQuantityByLine.put(item.getChiTietDonHangId(), item.getSoLuongDaNhan());
     }
 
-    List<ChiTietDonHang> orderLines =
-        orderLineRepository.findByDonHang_IdOrderByIdAsc(orderId);
+    List<ChiTietDonHang> orderLines = orderLineRepository.findByDonHang_IdOrderByIdAsc(orderId);
     if (orderLines.isEmpty()) {
       throw new AppException(ErrorCode.CONFLICT, "Đơn hàng không có chi tiết sản phẩm");
     }
@@ -901,12 +849,10 @@ public class AdminReturnService {
             .filter(
                 delivery ->
                     delivery.getTrangThaiGiaoHang() != TrangThaiGiaoHangEnum.HUY_GIAO_HANG
-                        && delivery.getTrangThaiGiaoHang()
-                            != TrangThaiGiaoHangEnum.DA_HOAN_HANG)
+                        && delivery.getTrangThaiGiaoHang() != TrangThaiGiaoHangEnum.DA_HOAN_HANG)
             .filter(
                 delivery ->
-                    delivery.getTienThuHoCod() != null
-                        && delivery.getTienThuHoCod().signum() > 0)
+                    delivery.getTienThuHoCod() != null && delivery.getTienThuHoCod().signum() > 0)
             .toList();
 
     for (PhieuGiaoHang delivery : codDeliveries) {

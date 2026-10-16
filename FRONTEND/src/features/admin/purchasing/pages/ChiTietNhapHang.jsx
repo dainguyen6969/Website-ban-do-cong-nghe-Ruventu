@@ -52,10 +52,7 @@ export default function ChiTietNhapHang() {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-  const [serialModes, setSerialModes] = useState({});
   const [serialValues, setSerialValues] = useState({});
-  const [serialPrefix, setSerialPrefix] = useState("");
-  const [locations, setLocations] = useState({});
   const pagination = useDetailTablePagination(order?.items);
   const load = useCallback(
     async (signal) => {
@@ -130,31 +127,88 @@ export default function ChiTietNhapHang() {
       </main>
     );
 
+  const receiptScope = `purchase:${order.id}:receive`;
+
   const openReceive = () => {
-    setSerialModes(
-      Object.fromEntries(
-        order.items.map((item) => [
-          item.id,
-          item.serialModeEstablished ? String(item.serialManaged) : "",
-        ]),
-      ),
+    const pending = purchaseAttempt.current;
+
+    if (pending && pending.scope !== receiptScope) {
+      setError(
+        "Còn một thao tác chưa xác định kết quả. " +
+          "Hãy xử lý thao tác đó trước.",
+      );
+      return;
+    }
+
+    if (order.items.some((item) => typeof item.serialManaged !== "boolean")) {
+      setError(
+        "Có phiên bản chưa trả về cấu hình quản lý serial. " +
+          "Kiểm tra Backend trước khi nhập kho.",
+      );
+      return;
+    }
+
+    setSerialValues(
+      pending
+        ? Object.fromEntries(
+            pending.body.items.map((item) => [
+              item.chi_tiet_don_nhap_id,
+              item.so_serials.join("\n"),
+            ]),
+          )
+        : {},
     );
-    setSerialValues({});
-    setSerialPrefix("");
-    setLocations({});
-    setModal("receipt");
+
     setError("");
+    setModal("receipt");
   };
-  const receiveValid = order.items.every((item) => {
-    const mode = serialModes[item.id];
-    const codes = serialCodes(serialValues[item.id]);
-    return (
-      (mode === "true" &&
-        codes.length === item.qty &&
-        new Set(codes).size === codes.length) ||
-      (mode === "false" && codes.length === 0)
-    );
-  });
+
+  const receiptCodes = order.items.flatMap((item) =>
+    item.serialManaged ? serialCodes(serialValues[item.id]) : [],
+  );
+
+  const receiveValid =
+    order.items.length > 0 &&
+    order.items.every((item) => {
+      if (typeof item.serialManaged !== "boolean") {
+        return false;
+      }
+
+      return item.serialManaged
+        ? serialCodes(serialValues[item.id]).length === item.qty
+        : true;
+    }) &&
+    new Set(receiptCodes.map((code) => code.toLocaleUpperCase())).size ===
+      receiptCodes.length;
+
+  const receiptLocked = busy || purchaseAttempt.current?.scope === receiptScope;
+
+  const submitReceive = () =>
+    run(() => {
+      const pending = purchaseAttempt.current;
+
+      const body =
+        pending?.scope === receiptScope
+          ? pending.body
+          : {
+              kho_hang_id: order.warehouse.id,
+              items: order.items.map((item) => ({
+                chi_tiet_don_nhap_id: item.id,
+                so_luong_nhap_kho: item.qty,
+                quan_ly_serial: item.serialManaged,
+                so_serials: item.serialManaged
+                  ? serialCodes(serialValues[item.id])
+                  : [],
+              })),
+            };
+
+      return withIdempotency(
+        purchaseAttempt,
+        receiptScope,
+        body,
+        (key, payload) => receivePurchaseOrder(order.id, key, payload),
+      );
+    });
 
   const returnable = order.items.filter(
     (item) => item.serialManaged === false && item.received > item.returned,
@@ -449,114 +503,105 @@ export default function ChiTietNhapHang() {
         </Modal>
       )}
       {modal === "receipt" && (
-        <Modal onClose={() => setModal("")} className="receipt-modal">
+        <Modal
+          className="receipt-modal"
+          onClose={() => {
+            if (!operationBusy.current) setModal("");
+          }}
+        >
           <h2>NHẬP TOÀN BỘ ĐƠN VÀO KHO</h2>
+
           <p className="modal-subtitle">
             {order.code} · Kho: <b>{order.warehouse.name}</b>
           </p>
-          <div className="serial-generator">
-            <label>
-              MÃ SERIAL GỐC
-              <input
-                value={serialPrefix}
-                onChange={(event) => setSerialPrefix(event.target.value)}
-                placeholder="VD: RV-PO-"
-              />
-            </label>
-          </div>
+
+          <p className="receipt-config-note">
+            Chế độ serial lấy từ cấu hình phiên bản. Nhập đúng các mã thực tế
+            trên sản phẩm.
+          </p>
+
+          {error && (
+            <p className="receipt-error" role="alert">
+              {error}
+            </p>
+          )}
+
           <div className="return-table-scroll">
             <table className="receipt-table serial-receipt-table">
               <thead>
                 <tr>
                   <th>PHIÊN BẢN</th>
                   <th>SL NHẬP</th>
-                  <th>VỊ TRÍ LƯU KHO</th>
-                  <th>CHẾ ĐỘ SERIAL</th>
+                  <th>QUẢN LÝ SERIAL</th>
                   <th>MÃ SERIAL THỰC TẾ</th>
                 </tr>
               </thead>
+
               <tbody>
-                {order.items.map((item) => (
-                  <tr key={item.id}>
-                    <td>
-                      <strong>{item.name}</strong>
-                    </td>
-                    <td>{item.qty}</td>
-                    <td>
-                      <input
-                        className="storage-location-input"
-                        maxLength="255"
-                        value={locations[item.id] || ""}
-                        onChange={(event) =>
-                          setLocations((old) => ({
-                            ...old,
-                            [item.id]: event.target.value,
-                          }))
-                        }
-                        placeholder="VD: Kệ A1"
-                      />
-                    </td>
-                    <td>
-                      <select
-                        value={serialModes[item.id] ?? ""}
-                        disabled={item.serialModeEstablished}
-                        onChange={(event) =>
-                          setSerialModes((old) => ({
-                            ...old,
-                            [item.id]: event.target.value,
-                          }))
-                        }
-                      >
-                        <option value="">CHỌN CHẾ ĐỘ</option>
-                        <option value="true">CÓ QUẢN LÝ SERIAL</option>
-                        <option value="false">KHÔNG QUẢN LÝ SERIAL</option>
-                      </select>
-                    </td>
-                    <td>
-                      {serialModes[item.id] === "true" ? (
-                        <textarea
-                          value={serialValues[item.id] || ""}
-                          onChange={(event) =>
-                            setSerialValues((old) => ({
-                              ...old,
-                              [item.id]: event.target.value,
-                            }))
-                          }
-                          placeholder={`Nhập ${item.qty} mã, mỗi mã một dòng`}
-                        />
-                      ) : (
-                        "Không yêu cầu Serial"
-                      )}
-                    </td>
-                  </tr>
-                ))}
+                {order.items.map((item) => {
+                  const codes = serialCodes(serialValues[item.id]);
+
+                  return (
+                    <tr key={item.id}>
+                      <td>
+                        <strong>{item.name}</strong>
+                      </td>
+
+                      <td>{item.qty}</td>
+
+                      <td>
+                        <span className="receipt-serial-mode">
+                          {item.serialManaged
+                            ? "CÓ QUẢN LÝ SERIAL"
+                            : "KHÔNG QUẢN LÝ SERIAL"}
+                        </span>
+                      </td>
+
+                      <td>
+                        {item.serialManaged ? (
+                          <div className="receipt-serial-input">
+                            <textarea
+                              disabled={receiptLocked}
+                              value={serialValues[item.id] || ""}
+                              onChange={(event) =>
+                                setSerialValues((current) => ({
+                                  ...current,
+                                  [item.id]: event.target.value,
+                                }))
+                              }
+                              placeholder={
+                                `Nhập ${item.qty} mã, ` + "mỗi mã một dòng"
+                              }
+                            />
+
+                            <small>
+                              Đã nhập {codes.length}/{item.qty} mã
+                            </small>
+                          </div>
+                        ) : (
+                          <span>Không yêu cầu serial</span>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
-          <p className="modal-note success">
-            Nhập hoặc quét thủ công đúng số lượng mã Serial thực tế. Mỗi mã phải
-            duy nhất trước khi xác nhận.
-          </p>
+
+          {purchaseAttempt.current?.scope === receiptScope && (
+            <p className="receipt-config-note">
+              Yêu cầu trước chưa xác định kết quả. Bấm xác nhận để gửi lại cùng
+              dữ liệu và cùng khóa.
+            </p>
+          )}
+
           <ModalActions
             busy={busy}
-            onClose={() => setModal("")}
-            confirm={() =>
-              run(() =>
-                receivePurchaseOrder(order.id, {
-                  kho_hang_id: order.warehouse.id,
-                  items: order.items.map((item) => ({
-                    chi_tiet_don_nhap_id: item.id,
-                    so_luong_nhap_kho: item.qty,
-                    vi_tri_luu_kho: (locations[item.id] || "").trim(),
-                    quan_ly_serial: serialModes[item.id] === "true",
-                    so_serials:
-                      serialModes[item.id] === "true"
-                        ? serialCodes(serialValues[item.id])
-                        : [],
-                  })),
-                }),
-              )
-            }
+            onClose={() => {
+              if (!operationBusy.current) setModal("");
+            }}
+            confirm={submitReceive}
             label="XÁC NHẬN NHẬP KHO"
             color="green"
             disabled={!receiveValid}

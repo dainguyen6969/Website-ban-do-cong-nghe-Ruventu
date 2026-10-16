@@ -109,6 +109,18 @@ public class SoQuyThuChi {
   @JoinColumn(name = "doi_tac_van_chuyen_id", updatable = false)
   private DoiTacVanChuyen doiTacVanChuyen;
 
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "hoa_don_bao_hanh_id")
+  private HoaDonBaoHanh hoaDonBaoHanh;
+
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "phieu_bao_hanh_id")
+  private PhieuBaoHanh phieuBaoHanh;
+
+  @OneToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "phieu_tra_hang_id", unique = true)
+  private PhieuTraHang phieuTraHang;
+
   @PrePersist
   public void prePersist() {
     if (ngayGhiNhan == null) {

@@ -287,9 +287,9 @@ public class CashbookService {
         yield requiredText(partner.getTenDoiTac(), "Tên đối tác vận chuyển", 150);
       }
 
-      case KHAC -> {
+      case KHAC, HE_THONG_TU_DONG -> {
         if (linkCount != 0) {
-          throw invalid("Nhóm KHAC không được gắn FK đối tượng");
+          throw invalid("Nhóm " + group + " không được gắn FK đối tượng");
         }
 
         yield requiredText(command.tenDoiTuongTuDo(), "Tên người nộp/nhận", 150);

@@ -1,11 +1,12 @@
 package com.example.dantruventu.Entity;
 
-import com.example.dantruventu.Config.TrangThaiDoiTacVanChuyenConverter;
+import com.example.dantruventu.Config.TrangThaiCoBanConverter;
 import com.example.dantruventu.Enum.LoaiDoiTacVanChuyenEnum;
 import com.example.dantruventu.Enum.TrangThaiCoBanEnum;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 import lombok.*;
+import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
@@ -44,8 +45,9 @@ public class DoiTacVanChuyen {
   private LoaiDoiTacVanChuyenEnum loaiDoiTac;
 
   @Builder.Default
-  @Convert(converter = TrangThaiDoiTacVanChuyenConverter.class)
-  @Column(name = "trang_thai", nullable = false, length = 30)
+  @Convert(converter = TrangThaiCoBanConverter.class)
+  @ColumnDefault("1")
+  @Column(name = "trang_thai", nullable = false, columnDefinition = "SMALLINT")
   private TrangThaiCoBanEnum trangThai = TrangThaiCoBanEnum.HOAT_DONG;
 
   @Column(name = "ghi_chu", columnDefinition = "TEXT")

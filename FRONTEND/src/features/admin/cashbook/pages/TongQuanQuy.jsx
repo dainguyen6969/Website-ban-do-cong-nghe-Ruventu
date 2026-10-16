@@ -1,159 +1,381 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import './TongQuanQuy.css';
+import { LineChart, X } from 'lucide-react';
+import { cashbookService } from '../../../../shared/services/cashbookService';
+import { getEmployeePage } from '../../organization/api/employeeApi';
 import WebGL2LineChart from '../components/WebGL2LineChart';
+import './TongQuanQuy.css';
+
+// Default dates: First day of current month to today
+const getFirstDayOfMonth = () => {
+    const d = new Date();
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    return `${year}-${month}-01`;
+};
+
+const getToday = () => {
+    const d = new Date();
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+};
+
+const formatCurrency = (amount) => {
+    return (Number(amount) || 0).toLocaleString('vi-VN') + 'đ';
+};
+
+const formatBucketLabel = (item, mode) => {
+    if (!item.tu_ngay) return '';
+    const [y1, m1, d1] = item.tu_ngay.split('-');
+
+    if (mode === 'THEO NGÀY') {
+        return `${d1}/${m1}`;
+    }
+
+    if (mode === 'THEO TUẦN') {
+        if (!item.den_ngay) return `${d1}/${m1}`;
+        const [, m2, d2] = item.den_ngay.split('-');
+        return `${d1}/${m1}-${d2}/${m2}`;
+    }
+
+    if (mode === 'THEO THÁNG') {
+        return `T${m1}/${y1}`;
+    }
+
+    return `${d1}/${m1}`;
+};
+
+const modeToGrouping = (mode) => {
+    switch (mode) {
+        case 'THEO TUẦN':
+            return 'TUAN';
+        case 'THEO THÁNG':
+            return 'THANG';
+        case 'THEO NGÀY':
+        default:
+            return 'NGAY';
+    }
+};
+
+const buildQueryParams = (filters) => {
+    const params = {
+        tu_ngay: filters.fromDate,
+        den_ngay: filters.toDate,
+    };
+
+    if (filters.filterType === 'THU' || filters.filterType === 'CHI') {
+        params.loai_phieu = filters.filterType;
+    }
+
+    if (filters.filterMethod === 'TIỀN MẶT') {
+        params.phuong_thuc_thanh_toan = 'TIEN_MAT';
+    } else if (filters.filterMethod === 'CHUYỂN KHOẢN') {
+        params.phuong_thuc_thanh_toan = 'CHUYEN_KHOAN';
+    } else if (filters.filterMethod === 'THẺ') {
+        params.phuong_thuc_thanh_toan = 'THE';
+    }
+
+    if (filters.filterGroup === 'KHÁCH HÀNG') {
+        params.nhom_nguoi_nop_nhan = 'KHACH_HANG';
+    } else if (filters.filterGroup === 'NHÂN VIÊN') {
+        params.nhom_nguoi_nop_nhan = 'NHAN_VIEN';
+    } else if (filters.filterGroup === 'NHÀ CUNG CẤP') {
+        params.nhom_nguoi_nop_nhan = 'NHA_CUNG_CAP';
+    } else if (filters.filterGroup === 'ĐỐI TÁC GIAO HÀNG') {
+        params.nhom_nguoi_nop_nhan = 'DOI_TAC_GIAO_HANG';
+    }
+
+    if (filters.searchPerson && filters.searchPerson.trim()) {
+        params.ten_nguoi_nop_nhan = filters.searchPerson.trim();
+    }
+
+    if (filters.employeeId && filters.employeeId.trim()) {
+        params.nguoi_tao_id = filters.employeeId.trim();
+    }
+
+    return params;
+};
 
 export default function TongQuanQuy() {
     const navigate = useNavigate();
 
+    const defaultFrom = getFirstDayOfMonth();
+    const defaultTo = getToday();
+
     // Top Filter States
-    const [fromDate, setFromDate] = useState('');
-    const [toDate, setToDate] = useState('');
+    const [fromDate, setFromDate] = useState(defaultFrom);
+    const [toDate, setToDate] = useState(defaultTo);
     const [filterType, setFilterType] = useState('TẤT CẢ');
     const [filterMethod, setFilterMethod] = useState('TẤT CẢ');
     const [searchPerson, setSearchPerson] = useState('');
     const [filterGroup, setFilterGroup] = useState('TẤT CẢ NHÓM');
+    const [employeeId, setEmployeeId] = useState('');
 
-    // Applied Filters State (updates when user clicks "ÁP DỤNG")
+    // Employee Options List
+    const [employees, setEmployees] = useState([]);
+
+    // Applied Filters State
     const [appliedFilters, setAppliedFilters] = useState({
-        fromDate: '',
-        toDate: '',
+        fromDate: defaultFrom,
+        toDate: defaultTo,
         filterType: 'TẤT CẢ',
         filterMethod: 'TẤT CẢ',
         searchPerson: '',
         filterGroup: 'TẤT CẢ NHÓM',
+        employeeId: '',
     });
 
     // Time Mode State: 'THEO NGÀY' | 'THEO TUẦN' | 'THEO THÁNG'
     const [timeMode, setTimeMode] = useState('THEO NGÀY');
 
-    // Baseline Data according to Time Mode
-    const baseChartData = useMemo(() => {
-        if (timeMode === 'THEO TUẦN') {
-            return {
-                labels: ['Tuần 1 (01-07)', 'Tuần 2 (08-14)', 'Tuần 3 (15-21)', 'Tuần 4 (22-30)'],
-                thu: [22, 15, 10, 19],
-                chi: [48, 5, 2, 8.8],
-            };
-        } else if (timeMode === 'THEO THÁNG') {
-            return {
-                labels: ['Tháng 5', 'Tháng 6', 'Tháng 7', 'Tháng 8', 'Tháng 9'],
-                thu: [120, 145, 110, 160, 66],
-                chi: [90, 130, 105, 140, 63.8],
-            };
+    // Overview Stats State
+    const [overviewData, setOverviewData] = useState({
+        soDuDauKy: 0,
+        tongThu: 0,
+        tongChi: 0,
+        tonQuy: 0,
+    });
+
+    // Chart Data State
+    const [chartData, setChartData] = useState({
+        labels: [],
+        datasets: [],
+        hasData: false,
+    });
+
+    // Status States
+    const [isLoading, setIsLoading] = useState(true);
+    const [isChartLoading, setIsChartLoading] = useState(false);
+    const [dateError, setDateError] = useState('');
+    const [errorMessage, setErrorMessage] = useState('');
+
+    // Fetch employee list for filter
+    useEffect(() => {
+        let isMounted = true;
+        getEmployeePage({ limit: 100 })
+            .then(res => {
+                if (isMounted && res?.items) {
+                    setEmployees(res.items);
+                }
+            })
+            .catch(err => {
+                console.warn('Không thể tải danh sách nhân viên:', err);
+            });
+        return () => { isMounted = false; };
+    }, []);
+
+    // Main Data Fetcher
+    const fetchAllData = useCallback(async (filters, mode) => {
+        if (!filters.fromDate || !filters.toDate) {
+            setDateError('Vui lòng chọn ngày bắt đầu và ngày kết thúc');
+            return;
         }
-        // Default: 'THEO NGÀY'
-        return {
-            labels: ['01/09', '05/09', '10/09', '15/09', '20/09', '25/09', '30/09'],
-            thu: [12, 10, 5, 2, 8, 4, 15],
-            chi: [0, 48, 0, 5, 2, 0, 8],
+        if (filters.fromDate > filters.toDate) {
+            setDateError('Khoảng thời gian không hợp lệ (ngày bắt đầu lớn hơn ngày kết thúc)');
+            return;
+        }
+
+        setDateError('');
+        setErrorMessage('');
+        setIsLoading(true);
+
+        const baseParams = buildQueryParams(filters);
+        const chartParams = {
+            ...baseParams,
+            nhom_theo: modeToGrouping(mode),
         };
-    }, [timeMode]);
 
-    // Compute Filtered Datasets based on appliedFilters
-    const filteredChart = useMemo(() => {
-        let thu = [...baseChartData.thu];
-        let chi = [...baseChartData.chi];
-        let labels = [...baseChartData.labels];
+        try {
+            const [overviewRes, flowRes] = await Promise.allSettled([
+                cashbookService.getOverview(baseParams),
+                cashbookService.getCashFlow(chartParams),
+            ]);
 
-        // Filter Type (THU vs CHI)
-        if (appliedFilters.filterType === 'THU') {
-            chi = chi.map(() => 0);
-        } else if (appliedFilters.filterType === 'CHI') {
-            thu = thu.map(() => 0);
-        }
-
-        // Filter Method (TIỀN MẶT vs CHUYỂN KHOẢN)
-        if (appliedFilters.filterMethod === 'TIỀN MẶT') {
-            thu = thu.map(v => Number((v * 0.7).toFixed(1)));
-            chi = chi.map(v => Number((v * 0.6).toFixed(1)));
-        } else if (appliedFilters.filterMethod === 'CHUYỂN KHOẢN') {
-            thu = thu.map(v => Number((v * 0.3).toFixed(1)));
-            chi = chi.map(v => Number((v * 0.4).toFixed(1)));
-        }
-
-        // Search Person / Object Group adjustment multiplier
-        if (appliedFilters.searchPerson.trim() !== '') {
-            thu = thu.map(v => Number((v * 0.4).toFixed(1)));
-            chi = chi.map(v => Number((v * 0.3).toFixed(1)));
-        }
-
-        if (appliedFilters.filterGroup !== 'TẤT CẢ NHÓM') {
-            thu = thu.map(v => Number((v * 0.8).toFixed(1)));
-            chi = chi.map(v => Number((v * 0.85).toFixed(1)));
-        }
-
-        // Format datasets for WebGL2 chart
-        const datasets = [];
-        if (appliedFilters.filterType !== 'CHI') {
-            datasets.push({
-                label: 'TỔNG THU',
-                data: thu,
-                color: [0.07, 0.07, 0.07, 1.0], // Dark #111
-                dashed: false,
-            });
-        }
-        if (appliedFilters.filterType !== 'THU') {
-            datasets.push({
-                label: 'TỔNG CHI',
-                data: chi,
-                color: [0.86, 0.15, 0.15, 1.0], // Red #dc2626
-                dashed: true,
-            });
-        }
-
-        // Calculate Totals for Stats Cards (in Million VNĐ)
-        const totalThuM = thu.reduce((a, b) => a + b, 0);
-        const totalChiM = chi.reduce((a, b) => a + b, 0);
-        const dauKyM = 5.0; // 5.000.000đ baseline
-        const tonQuyM = dauKyM + totalThuM - totalChiM;
-
-        return {
-            labels,
-            datasets,
-            stats: {
-                dauKy: (dauKyM * 1000000).toLocaleString('vi-VN') + 'đ',
-                totalThu: (totalThuM * 1000000).toLocaleString('vi-VN') + 'đ',
-                totalChi: (totalChiM * 1000000).toLocaleString('vi-VN') + 'đ',
-                tonQuy: (tonQuyM * 1000000).toLocaleString('vi-VN') + 'đ',
-                isNegative: tonQuyM < 0
+            // Process Overview Response
+            if (overviewRes.status === 'fulfilled' && overviewRes.value.data?.data) {
+                const data = overviewRes.value.data.data;
+                setOverviewData({
+                    soDuDauKy: Number(data.so_du_dau_ky || 0),
+                    tongThu: Number(data.tong_thu || 0),
+                    tongChi: Number(data.tong_chi || 0),
+                    tonQuy: Number(data.ton_quy || 0),
+                });
+            } else if (overviewRes.status === 'rejected') {
+                const error = overviewRes.reason;
+                console.error('Lỗi khi lấy dữ liệu tổng quan quỹ:', error);
+                if (error.response?.status === 403) {
+                    setErrorMessage('Bạn không có quyền truy cập dữ liệu Tổng Quan Quỹ');
+                } else {
+                    setErrorMessage(error.response?.data?.message || 'Có lỗi khi lấy số liệu tổng quan quỹ');
+                }
             }
+
+            // Process Cash Flow Chart Response (Luồng ngoại lệ 4: vẫn hiển thị overview nếu chart thất bại)
+            if (flowRes.status === 'fulfilled' && flowRes.value.data?.data) {
+                const flowData = flowRes.value.data.data;
+                const items = flowData.items || [];
+                const labels = items.map(item => formatBucketLabel(item, mode));
+                const thuValues = items.map(item => Number(item.tong_thu || 0));
+                const chiValues = items.map(item => Number(item.tong_chi || 0));
+
+                const datasets = [];
+                if (filters.filterType !== 'CHI') {
+                    datasets.push({
+                        label: 'TỔNG THU',
+                        data: thuValues.map(v => Number((v / 1000000).toFixed(4))),
+                        rawAmounts: thuValues,
+                        color: [0.07, 0.07, 0.07, 1.0],
+                        dashed: false,
+                    });
+                }
+                if (filters.filterType !== 'THU') {
+                    datasets.push({
+                        label: 'TỔNG CHI',
+                        data: chiValues.map(v => Number((v / 1000000).toFixed(4))),
+                        rawAmounts: chiValues,
+                        color: [0.86, 0.15, 0.15, 1.0],
+                        dashed: true,
+                    });
+                }
+
+                setChartData({
+                    labels,
+                    datasets,
+                    hasData: Boolean(flowData.co_du_lieu && items.length > 0),
+                });
+            } else if (flowRes.status === 'rejected') {
+                console.error('Lỗi khi lấy dữ liệu biểu đồ dòng tiền:', flowRes.reason);
+                setChartData({
+                    labels: [],
+                    datasets: [],
+                    hasData: false,
+                });
+            }
+        } catch (err) {
+            console.error('Lỗi tổng hợp dữ liệu:', err);
+            setErrorMessage('Không thể tải dữ liệu tổng quan quỹ');
+        } finally {
+            setIsLoading(false);
+        }
+    }, []);
+
+    // Initial load
+    useEffect(() => {
+        fetchAllData(appliedFilters, timeMode);
+    }, [fetchAllData]);
+
+    // Handle Time Mode Switching (Day / Week / Month)
+    const handleTimeModeChange = async (newMode) => {
+        setTimeMode(newMode);
+        if (!appliedFilters.fromDate || !appliedFilters.toDate || appliedFilters.fromDate > appliedFilters.toDate) {
+            return;
+        }
+
+        setIsChartLoading(true);
+        const chartParams = {
+            ...buildQueryParams(appliedFilters),
+            nhom_theo: modeToGrouping(newMode),
         };
-    }, [baseChartData, appliedFilters]);
+
+        try {
+            const res = await cashbookService.getCashFlow(chartParams);
+            if (res.data?.data) {
+                const flowData = res.data.data;
+                const items = flowData.items || [];
+                const labels = items.map(item => formatBucketLabel(item, newMode));
+                const thuValues = items.map(item => Number(item.tong_thu || 0));
+                const chiValues = items.map(item => Number(item.tong_chi || 0));
+
+                const datasets = [];
+                if (appliedFilters.filterType !== 'CHI') {
+                    datasets.push({
+                        label: 'TỔNG THU',
+                        data: thuValues.map(v => Number((v / 1000000).toFixed(4))),
+                        rawAmounts: thuValues,
+                        color: [0.07, 0.07, 0.07, 1.0],
+                        dashed: false,
+                    });
+                }
+                if (appliedFilters.filterType !== 'THU') {
+                    datasets.push({
+                        label: 'TỔNG CHI',
+                        data: chiValues.map(v => Number((v / 1000000).toFixed(4))),
+                        rawAmounts: chiValues,
+                        color: [0.86, 0.15, 0.15, 1.0],
+                        dashed: true,
+                    });
+                }
+
+                setChartData({
+                    labels,
+                    datasets,
+                    hasData: Boolean(flowData.co_du_lieu && items.length > 0),
+                });
+            }
+        } catch (err) {
+            console.error('Lỗi khi đổi mốc thời gian biểu đồ:', err);
+        } finally {
+            setIsChartLoading(false);
+        }
+    };
 
     // Apply Filters Click Handler
     const handleApplyFilters = () => {
-        setAppliedFilters({
+        if (!fromDate || !toDate) {
+            setDateError('Vui lòng chọn ngày bắt đầu và ngày kết thúc');
+            return;
+        }
+        if (fromDate > toDate) {
+            setDateError('Khoảng thời gian không hợp lệ (ngày bắt đầu lớn hơn ngày kết thúc)');
+            return;
+        }
+
+        const newFilters = {
             fromDate,
             toDate,
             filterType,
             filterMethod,
             searchPerson,
             filterGroup,
-        });
+            employeeId,
+        };
+        setAppliedFilters(newFilters);
+        fetchAllData(newFilters, timeMode);
     };
 
-    // Clear Filters Click Handler (Resets filters AND switches timeMode back to 'THEO NGÀY')
+    // Clear Filters Click Handler
     const handleClearFilters = () => {
-        setFromDate('');
-        setToDate('');
+        const defaultStart = getFirstDayOfMonth();
+        const defaultEnd = getToday();
+
+        setFromDate(defaultStart);
+        setToDate(defaultEnd);
         setFilterType('TẤT CẢ');
         setFilterMethod('TẤT CẢ');
         setSearchPerson('');
         setFilterGroup('TẤT CẢ NHÓM');
+        setEmployeeId('');
+        setTimeMode('THEO NGÀY');
+        setDateError('');
+        setErrorMessage('');
 
-        setAppliedFilters({
-            fromDate: '',
-            toDate: '',
+        const resetFilters = {
+            fromDate: defaultStart,
+            toDate: defaultEnd,
             filterType: 'TẤT CẢ',
             filterMethod: 'TẤT CẢ',
             searchPerson: '',
             filterGroup: 'TẤT CẢ NHÓM',
-        });
+            employeeId: '',
+        };
 
-        // Default to 'THEO NGÀY' on filter clear
-        setTimeMode('THEO NGÀY');
+        setAppliedFilters(resetFilters);
+        fetchAllData(resetFilters, 'THEO NGÀY');
     };
+
+    const isNegative = overviewData.tonQuy < 0;
 
     return (
         <div className="cashbook-page">
@@ -161,12 +383,22 @@ export default function TongQuanQuy() {
                 <div className="cb-title-area">
                     <div className="cb-breadcrumb">SỔ QUỸ TIỀN MẶT / TỔNG QUAN</div>
                     <h1>TỔNG QUAN QUỸ</h1>
-                    <p>THEO DÕI NHANH TÌNH HÌNH THU CHI VÀ TỒN QUỸ CỦA HÀNG</p>
+                    <p>THEO DÕI NHANH TÌNH HÌNH THU CHI VÀ TỒN QUỸ CỦA CỬA HÀNG</p>
                 </div>
                 <button className="cb-btn-secondary" onClick={() => navigate('/admin/so-quy-tien-mat/so-quy')}>
                     XEM SỔ QUỸ &rarr;
                 </button>
             </div>
+
+            {/* Error Banners */}
+            {(dateError || errorMessage) && (
+                <div className="cb-error-banner">
+                    <span>{dateError || errorMessage}</span>
+                    <button className="cb-error-dismiss" onClick={() => { setDateError(''); setErrorMessage(''); }} aria-label="Đóng thông báo">
+                        <X size={14} strokeWidth={2.5} />
+                    </button>
+                </div>
+            )}
 
             {/* Top Filter Bar */}
             <div className="cb-filter-bar">
@@ -192,6 +424,7 @@ export default function TongQuanQuy() {
                         <option value="TẤT CẢ">TẤT CẢ</option>
                         <option value="TIỀN MẶT">TIỀN MẶT</option>
                         <option value="CHUYỂN KHOẢN">CHUYỂN KHOẢN</option>
+                        <option value="THẺ">THẺ</option>
                     </select>
                 </div>
                 <div className="cb-filter-item">
@@ -205,6 +438,18 @@ export default function TongQuanQuy() {
                         <option value="KHÁCH HÀNG">KHÁCH HÀNG</option>
                         <option value="NHÂN VIÊN">NHÂN VIÊN</option>
                         <option value="NHÀ CUNG CẤP">NHÀ CUNG CẤP</option>
+                        <option value="ĐỐI TÁC GIAO HÀNG">ĐỐI TÁC GIAO HÀNG</option>
+                    </select>
+                </div>
+                <div className="cb-filter-item">
+                    <label>NHÂN VIÊN (TẠO PHIẾU)</label>
+                    <select value={employeeId} onChange={e => setEmployeeId(e.target.value)}>
+                        <option value="">TẤT CẢ NHÂN VIÊN</option>
+                        {employees.map(emp => (
+                            <option key={emp.id} value={emp.id}>
+                                {emp.hoTen || emp.ho_ten || emp.tenNhanVien || emp.username}
+                            </option>
+                        ))}
                     </select>
                 </div>
                 <div className="cb-filter-actions">
@@ -217,31 +462,31 @@ export default function TongQuanQuy() {
             <div className="cb-stats-row">
                 <div className="cb-stat-box">
                     <label>SỐ DƯ ĐẦU KỲ</label>
-                    <div className="val">{filteredChart.stats.dauKy}</div>
+                    <div className="val">{isLoading ? '...' : formatCurrency(overviewData.soDuDauKy)}</div>
                 </div>
                 <div className="cb-stat-box">
                     <label>TỔNG THU</label>
-                    <div className="val text-green">{filteredChart.stats.totalThu}</div>
+                    <div className="val text-green">{isLoading ? '...' : formatCurrency(overviewData.tongThu)}</div>
                 </div>
                 <div className="cb-stat-box">
                     <label>TỔNG CHI</label>
-                    <div className="val text-red">{filteredChart.stats.totalChi}</div>
+                    <div className="val text-red">{isLoading ? '...' : formatCurrency(overviewData.tongChi)}</div>
                 </div>
                 <div className="cb-stat-box bg-dark">
                     <label>TỒN QUỸ</label>
-                    <div className={`val ${filteredChart.stats.isNegative ? 'text-red' : 'text-green'}`}>
-                        {filteredChart.stats.tonQuy}
+                    <div className={`val ${isNegative ? 'text-red' : 'text-green'}`}>
+                        {isLoading ? '...' : formatCurrency(overviewData.tonQuy)}
                     </div>
-                    {filteredChart.stats.isNegative && <span className="sub">TỒN QUỸ ÂM</span>}
+                    {isNegative && <span className="sub">TỒN QUỸ ÂM</span>}
                 </div>
             </div>
 
             {/* Calculation Formula Row */}
             <div className="cb-calculation-row">
-                {filteredChart.stats.dauKy} <span>+</span> {filteredChart.stats.totalThu} <span>-</span> {filteredChart.stats.totalChi} <span>=</span> <strong className={filteredChart.stats.isNegative ? 'text-red' : 'text-green'}>{filteredChart.stats.tonQuy}</strong>
+                {formatCurrency(overviewData.soDuDauKy)} <span>+</span> {formatCurrency(overviewData.tongThu)} <span>-</span> {formatCurrency(overviewData.tongChi)} <span>=</span> <strong className={isNegative ? 'text-red' : 'text-green'}>{formatCurrency(overviewData.tonQuy)}</strong>
             </div>
 
-            {/* WebGL2 Cash Flow Line Chart Container */}
+            {/* Cash Flow Line Chart Container */}
             <div className="cb-chart-container">
                 <div className="cb-chart-header">
                     <div className="cb-chart-title">
@@ -251,30 +496,48 @@ export default function TongQuanQuy() {
                     <div className="cb-chart-tabs">
                         <button
                             className={timeMode === 'THEO NGÀY' ? 'active' : ''}
-                            onClick={() => setTimeMode('THEO NGÀY')}
+                            onClick={() => handleTimeModeChange('THEO NGÀY')}
+                            disabled={isChartLoading}
                         >
                             THEO NGÀY
                         </button>
                         <button
                             className={timeMode === 'THEO TUẦN' ? 'active' : ''}
-                            onClick={() => setTimeMode('THEO TUẦN')}
+                            onClick={() => handleTimeModeChange('THEO TUẦN')}
+                            disabled={isChartLoading}
                         >
                             THEO TUẦN
                         </button>
                         <button
                             className={timeMode === 'THEO THÁNG' ? 'active' : ''}
-                            onClick={() => setTimeMode('THEO THÁNG')}
+                            onClick={() => handleTimeModeChange('THEO THÁNG')}
+                            disabled={isChartLoading}
                         >
                             THEO THÁNG
                         </button>
                     </div>
                 </div>
                 <div className="cb-chart-body">
-                    <WebGL2LineChart
-                        labels={filteredChart.labels}
-                        datasets={filteredChart.datasets}
-                        title="DÒNG TIỀN THEO THỜI GIAN"
-                    />
+                    {isLoading || isChartLoading ? (
+                        <div className="cb-loading-state">
+                            <div className="cb-spinner" />
+                            <span>Đang tổng hợp dữ liệu dòng tiền...</span>
+                        </div>
+                    ) : chartData.hasData ? (
+                        <WebGL2LineChart
+                            labels={chartData.labels}
+                            datasets={chartData.datasets}
+                            title="DÒNG TIỀN THEO THỜI GIAN"
+                        />
+                    ) : (
+                        <div className="cb-empty-chart">
+                            <div className="cb-empty-chart-icon-box">
+                                <LineChart size={28} strokeWidth={1.8} />
+                            </div>
+                            <p className="cb-empty-chart-text">KHÔNG CÓ DỮ LIỆU DÒNG TIỀN TRONG KHOẢNG THỜI GIAN ĐÃ CHỌN</p>
+                            <span className="cb-empty-chart-sub">Thử chọn khoảng thời gian khác hoặc điều chỉnh lại bộ lọc</span>
+                        </div>
+                    )}
                 </div>
             </div>
         </div>

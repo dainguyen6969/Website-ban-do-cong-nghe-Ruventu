@@ -25,6 +25,7 @@ import com.example.dantruventu.Repository.warehouse.SoSerialSanPhamRepository;
 import com.example.dantruventu.Repository.warehouse.ThanhPhanComboRepository;
 import com.example.dantruventu.Repository.warehouse.TheKhoRepository;
 import com.example.dantruventu.Repository.warehouse.TonKhoRepository;
+import com.example.dantruventu.Services.catalog.CatalogSupport;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -62,9 +63,7 @@ public class ReturnInventoryService {
   private record Expected(ChiTietDonHang orderLine, PhienBanSanPham variant, int quantity) {}
 
   public List<AdminReturnResponse.ReceivedItem> receive(
-      PhieuTraHang returnSlip,
-      DonHang order,
-      AdminReturnReceiveRequest request) {
+      PhieuTraHang returnSlip, DonHang order, AdminReturnReceiveRequest request) {
 
     if (ledgerRepository.existsByMaChungTuGocAndLoaiGiaoDich(
         returnSlip.getId(), LoaiGiaoDichKho.KHACH_TRA)) {
@@ -117,8 +116,7 @@ public class ReturnInventoryService {
   }
 
   private Map<ItemKey, AdminReturnReceiveRequest.Item> validateReceivedItems(
-      AdminReturnReceiveRequest request,
-      Map<ItemKey, Expected> expected) {
+      AdminReturnReceiveRequest request, Map<ItemKey, Expected> expected) {
 
     Map<ItemKey, AdminReturnReceiveRequest.Item> received = new LinkedHashMap<>();
 
@@ -152,8 +150,7 @@ public class ReturnInventoryService {
     return received;
   }
 
-  private Map<Long, KhoHang> loadWarehouses(
-      Iterable<AdminReturnReceiveRequest.Item> items) {
+  private Map<Long, KhoHang> loadWarehouses(Iterable<AdminReturnReceiveRequest.Item> items) {
 
     Set<Long> warehouseIds = new TreeSet<>();
     for (AdminReturnReceiveRequest.Item item : items) {
@@ -181,8 +178,7 @@ public class ReturnInventoryService {
 
     Map<StockKey, TonKho> result = new LinkedHashMap<>();
     for (StockKey key : sortedKeys) {
-      List<TonKho> rows =
-          stockRepository.findForSerialUpdate(key.warehouseId(), key.variantId());
+      List<TonKho> rows = stockRepository.findForSerialUpdate(key.warehouseId(), key.variantId());
       if (rows.isEmpty()) {
         throw notFound(
             "Chưa có dữ liệu tồn kho cho phiên bản "
@@ -211,7 +207,7 @@ public class ReturnInventoryService {
     for (var entry : expected.entrySet()) {
       Expected required = entry.getValue();
       AdminReturnReceiveRequest.Item item = received.get(entry.getKey());
-      boolean managed = serialRepository.countByPhienBanId(required.variant().getId()) > 0;
+      boolean managed = CatalogSupport.serialManaged(required.variant());
       List<AdminReturnReceiveRequest.SerialItem> serials = item.getSerials();
 
       if (managed && serials.size() != required.quantity()) {
@@ -248,8 +244,7 @@ public class ReturnInventoryService {
       return;
     }
 
-    List<SoSerialSanPham> serials =
-        serialRepository.findAllByIdsForUpdate(serialIds);
+    List<SoSerialSanPham> serials = serialRepository.findAllByIdsForUpdate(serialIds);
     if (serials.size() != serialIds.size()) {
       throw notFound("Serial không tồn tại");
     }
@@ -273,8 +268,7 @@ public class ReturnInventoryService {
             || !Objects.equals(serial.getDonHang().getId(), order.getId())
             || !Objects.equals(serial.getPhienBan().getId(), required.variant().getId())
             || serial.getTrangThai() != TrangThaiSerial.DA_BAN) {
-          throw conflict(
-              "Serial không thuộc đơn/phiên bản, đã nhận trước đó hoặc đang bảo hành");
+          throw conflict("Serial không thuộc đơn/phiên bản, đã nhận trước đó hoặc đang bảo hành");
         }
       }
     }
@@ -305,8 +299,7 @@ public class ReturnInventoryService {
   }
 
   private Map<ItemKey, Expected> expectedForOrder(Long orderId) {
-    List<ChiTietDonHang> orderLines =
-        orderLineRepository.findByDonHang_IdOrderByIdAsc(orderId);
+    List<ChiTietDonHang> orderLines = orderLineRepository.findByDonHang_IdOrderByIdAsc(orderId);
     if (orderLines.isEmpty()) {
       throw conflict("Đơn hàng không có chi tiết sản phẩm");
     }
@@ -321,8 +314,7 @@ public class ReturnInventoryService {
   private Map<ItemKey, Expected> expandPhysicalItems(List<Source> sources) {
     Set<Long> comboIds = new TreeSet<>();
     for (Source source : sources) {
-      if (source.orderLine().getPhienBan().getSanPham().getLoaiSanPham()
-          == LoaiSanPham.BO_PC) {
+      if (source.orderLine().getPhienBan().getSanPham().getLoaiSanPham() == LoaiSanPham.BO_PC) {
         comboIds.add(source.orderLine().getPhienBan().getSanPham().getId());
       }
     }
@@ -358,8 +350,7 @@ public class ReturnInventoryService {
 
       for (ThanhPhanCombo component : components) {
         int componentQuantity = requiredQuantity(component.getSoLuong());
-        if (component.getPhienBanThanhPhan().getSanPham().getLoaiSanPham()
-            != LoaiSanPham.DON) {
+        if (component.getPhienBanThanhPhan().getSanPham().getLoaiSanPham() != LoaiSanPham.DON) {
           throw conflict("Cấu hình thành phần combo không hợp lệ");
         }
         addExpected(
@@ -417,8 +408,7 @@ public class ReturnInventoryService {
     return result;
   }
 
-  private AdminReturnResponse.ReceivedItem toReceivedItem(
-      AdminReturnReceiveRequest.Item item) {
+  private AdminReturnResponse.ReceivedItem toReceivedItem(AdminReturnReceiveRequest.Item item) {
 
     return AdminReturnResponse.ReceivedItem.builder()
         .chiTietDonHangId(item.getChiTietDonHangId())

@@ -193,11 +193,22 @@ export async function getVersionLedger(filters, signal) {
 }
 
 export async function getEditableVersions(productId, signal) {
-  const item = await request(`/api/v1/admin/products/${encodeURIComponent(productId)}`, { signal });
-  return (item.danh_sach_phien_ban || []).map((variant) => ({
-    id: Number(variant.id), name: variant.ten_phien_ban || 'Mặc định', sku: variant.ma_vach || '',
-    giaBanLe: Number(variant.gia_ban_le || 0), giaNhap: Number(variant.gia_nhap || 0),
-    khoiLuong: variant.khoi_luong == null ? '' : String(variant.khoi_luong), trangThai: Number(variant.trang_thai),
+  const item = await request(
+    `/api/v1/admin/products/${encodeURIComponent(productId)}`,
+    { signal },
+  );
+
+  return (item.danh_sach_phien_ban || []).map(variant => ({
+    id: Number(variant.id),
+    name: variant.ten_phien_ban || '',
+    sku: variant.ma_vach || '',
+    giaBanLe: Number(variant.gia_ban_le ?? 0),
+    giaNhap: Number(variant.gia_nhap ?? 0),
+    khoiLuong: variant.khoi_luong == null ? '' : String(variant.khoi_luong),
+    trangThai: Number(variant.trang_thai),
+    serialMode: variant.co_quan_ly_serial,
+    serialModeLocked: Boolean(variant.che_do_serial_bi_khoa),
+    attributes: variant.thuoc_tinh_phien_ban || [],
   }));
 }
 

@@ -51,10 +51,16 @@ export async function cancelInventoryCheck(id, reason) {
   });
 }
 
-export async function balanceInventoryCheck(id) {
-  return adminRequest(`/api/v1/admin/inventory-checks/${encodeURIComponent(id)}/balance`, {
-    method: 'POST',
-  });
+export async function balanceInventoryCheck(id, key) {
+  return adminRequest(
+    `/api/v1/admin/inventory-checks/${encodeURIComponent(id)}/balance`,
+    {
+      method: "POST",
+      headers: {
+        "Idempotency-Key": key,
+      },
+    },
+  );
 }
 
 export async function searchInventoryCheckProducts(keyword, page = 1, limit = 20, signal) {

@@ -1,6 +1,6 @@
 // Product list screen: real IntelliJ API data with server-side search, filters, and pagination.
-import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   HiOutlineUpload,
   HiOutlinePlus,
@@ -9,67 +9,59 @@ import {
   HiOutlineEye,
   HiOutlinePencilAlt,
   HiOutlineTrash,
-} from 'react-icons/hi';
-import FilterDropdown from '../../../../../shared/components/ui/FilterDropdown';
-import TablePagination from '../../../../../shared/components/ui/TablePagination';
-import { getAllBrands } from '../../brands/api/brandApi';
-import { getAllCategories } from '../../categories/api/categoryApi';
-import { getProductPage } from '../api/productApi';
-import './DanhSachSanPham.css';
+} from "react-icons/hi";
+import FilterDropdown from "../../../../../shared/components/ui/FilterDropdown";
+import TablePagination from "../../../../../shared/components/ui/TablePagination";
+import { getAllBrands } from "../../brands/api/brandApi";
+import { getAllCategories } from "../../categories/api/categoryApi";
+import { getProductPage } from "../api/productApi";
+import "./DanhSachSanPham.css";
 
 // Exact category options in order specified
 const categoryOptions = [
-  'Danh mục',
-  'CPU',
-  'VGA',
-  'Mainboard',
-  'RAM',
-  'SSD',
-  'PSU',
-  'Màn hình',
-  'Tản nhiệt',
-  'Case',
-  'PC Build',
-  'Phụ kiện',
+  "Danh mục",
+  "CPU",
+  "VGA",
+  "Mainboard",
+  "RAM",
+  "SSD",
+  "PSU",
+  "Màn hình",
+  "Tản nhiệt",
+  "Case",
+  "PC Build",
+  "Phụ kiện",
 ];
 
 const brandOptions = [
-  'Thương hiệu',
-  'Intel',
-  'AMD',
-  'ASUS',
-  'MSI',
-  'Gigabyte',
-  'Corsair',
-  'Kingston',
-  'Samsung',
-  'WD',
-  'EVGA',
-  'LG',
-  'Lian Li',
+  "Thương hiệu",
+  "Intel",
+  "AMD",
+  "ASUS",
+  "MSI",
+  "Gigabyte",
+  "Corsair",
+  "Kingston",
+  "Samsung",
+  "WD",
+  "EVGA",
+  "LG",
+  "Lian Li",
 ];
 
-const productTypeOptions = [
-  'Loại sản phẩm',
-  'Sản phẩm đơn',
-  'Theo bộ (Combo)',
-];
+const productTypeOptions = ["Loại sản phẩm", "Sản phẩm đơn", "Theo bộ (Combo)"];
 
-const statusOptions = [
-  'Trạng thái bán',
-  'Đang kinh doanh',
-  'Ngừng kinh doanh',
-];
+const statusOptions = ["Trạng thái bán", "Đang kinh doanh", "Ngừng kinh doanh"];
 
 const tableColumns = [
-  { id: 'checkbox', label: '', isCheckbox: true },
-  { id: 'hinh-anh', label: 'HÌNH ẢNH' },
-  { id: 'ma-ten-san-pham', label: 'MÃ & TÊN SẢN PHẨM' },
-  { id: 'phan-loai', label: 'PHÂN LOẠI' },
-  { id: 'thuong-hieu', label: 'THƯƠNG HIỆU' },
-  { id: 'ton-kho', label: 'TỒN KHO' },
-  { id: 'trang-thai-ban', label: 'TRẠNG THÁI BÁN' },
-  { id: 'thao-tac', label: 'THAO TÁC' },
+  { id: "checkbox", label: "", isCheckbox: true },
+  { id: "hinh-anh", label: "HÌNH ẢNH" },
+  { id: "ma-ten-san-pham", label: "MÃ & TÊN SẢN PHẨM" },
+  { id: "phan-loai", label: "PHÂN LOẠI" },
+  { id: "thuong-hieu", label: "THƯƠNG HIỆU" },
+  { id: "ton-kho", label: "TỒN KHO" },
+  { id: "trang-thai-ban", label: "TRẠNG THÁI BÁN" },
+  { id: "thao-tac", label: "THAO TÁC" },
 ];
 
 const PAGE_SIZE = 10;
@@ -82,23 +74,24 @@ export default function DanhSachSanPham() {
   const [totalFilteredCount, setTotalFilteredCount] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
   const [reloadKey, setReloadKey] = useState(0);
 
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchTerm, setSearchTerm] = useState("");
   const [isFilterPanelOpen, setIsFilterPanelOpen] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState('Danh mục');
-  const [selectedBrand, setSelectedBrand] = useState('Thương hiệu');
-  const [selectedProductType, setSelectedProductType] = useState('Loại sản phẩm');
-  const [selectedStatus, setSelectedStatus] = useState('Trạng thái bán');
+  const [selectedCategory, setSelectedCategory] = useState("Danh mục");
+  const [selectedBrand, setSelectedBrand] = useState("Thương hiệu");
+  const [selectedProductType, setSelectedProductType] =
+    useState("Loại sản phẩm");
+  const [selectedStatus, setSelectedStatus] = useState("Trạng thái bán");
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedIds, setSelectedIds] = useState([]);
 
   // Check active filters against defaults
-  const isCategoryActive = selectedCategory !== 'Danh mục';
-  const isBrandActive = selectedBrand !== 'Thương hiệu';
-  const isProductTypeActive = selectedProductType !== 'Loại sản phẩm';
-  const isStatusActive = selectedStatus !== 'Trạng thái bán';
+  const isCategoryActive = selectedCategory !== "Danh mục";
+  const isBrandActive = selectedBrand !== "Thương hiệu";
+  const isProductTypeActive = selectedProductType !== "Loại sản phẩm";
+  const isStatusActive = selectedStatus !== "Trạng thái bán";
 
   const activeFilterCount =
     (isCategoryActive ? 1 : 0) +
@@ -109,10 +102,10 @@ export default function DanhSachSanPham() {
   const isFiltered = activeFilterCount > 0;
 
   const handleClearFilters = () => {
-    setSelectedCategory('Danh mục');
-    setSelectedBrand('Thương hiệu');
-    setSelectedProductType('Loại sản phẩm');
-    setSelectedStatus('Trạng thái bán');
+    setSelectedCategory("Danh mục");
+    setSelectedBrand("Thương hiệu");
+    setSelectedProductType("Loại sản phẩm");
+    setSelectedStatus("Trạng thái bán");
     setCurrentPage(1);
   };
 
@@ -141,24 +134,37 @@ export default function DanhSachSanPham() {
     setCurrentPage(1);
   };
 
-  const categoryId = categoryLookup.find((item) => item.name === selectedCategory)?.id;
+  const categoryId = categoryLookup.find(
+    (item) => item.name === selectedCategory,
+  )?.id;
   const brandId = brandLookup.find((item) => item.name === selectedBrand)?.id;
-  const productType = selectedProductType === 'Sản phẩm đơn'
-    ? 'DON'
-    : selectedProductType === 'Theo bộ (Combo)' ? 'BO_PC' : '';
-  const status = selectedStatus === 'Đang kinh doanh'
-    ? 1
-    : selectedStatus === 'Ngừng kinh doanh' ? 0 : null;
+  const productType =
+    selectedProductType === "Sản phẩm đơn"
+      ? "DON"
+      : selectedProductType === "Theo bộ (Combo)"
+        ? "BO_PC"
+        : "";
+  const status =
+    selectedStatus === "Đang kinh doanh"
+      ? 1
+      : selectedStatus === "Ngừng kinh doanh"
+        ? 0
+        : null;
 
   // Load lookup IDs without replacing the existing visible dropdown labels or options.
   useEffect(() => {
     let active = true;
     Promise.all([getAllCategories(), getAllBrands()])
       .then(([categories, brands]) => {
-        if (active) { setCategoryLookup(categories); setBrandLookup(brands); }
+        if (active) {
+          setCategoryLookup(categories);
+          setBrandLookup(brands);
+        }
       })
       .catch(() => {});
-    return () => { active = false; };
+    return () => {
+      active = false;
+    };
   }, []);
 
   // Server-side pagination/search/filtering keeps counts and page boundaries authoritative.
@@ -166,33 +172,51 @@ export default function DanhSachSanPham() {
     const controller = new AbortController();
     const timer = window.setTimeout(async () => {
       setLoading(true);
-      setError('');
+      setError("");
       try {
-        const result = await getProductPage({
-          keyword: searchTerm,
-          categoryId: isCategoryActive ? categoryId : null,
-          brandId: isBrandActive ? brandId : null,
-          productType,
-          status,
-          page: currentPage,
-          limit: PAGE_SIZE,
-        }, controller.signal);
+        const result = await getProductPage(
+          {
+            keyword: searchTerm,
+            categoryId: isCategoryActive ? categoryId : null,
+            brandId: isBrandActive ? brandId : null,
+            productType,
+            status,
+            page: currentPage,
+            limit: PAGE_SIZE,
+          },
+          controller.signal,
+        );
         setProductsList(result.items);
         setTotalFilteredCount(result.totalItems);
         setTotalPages(result.totalPages);
       } catch (requestError) {
-        if (requestError?.name !== 'AbortError') {
+        if (requestError?.name !== "AbortError") {
           setProductsList([]);
           setTotalFilteredCount(0);
           setTotalPages(0);
-          setError(requestError?.message || 'Không thể tải danh sách sản phẩm.');
+          setError(
+            requestError?.message || "Không thể tải danh sách sản phẩm.",
+          );
         }
       } finally {
         if (!controller.signal.aborted) setLoading(false);
       }
     }, 250);
-    return () => { window.clearTimeout(timer); controller.abort(); };
-  }, [searchTerm, categoryId, brandId, productType, status, currentPage, reloadKey, isCategoryActive, isBrandActive]);
+    return () => {
+      window.clearTimeout(timer);
+      controller.abort();
+    };
+  }, [
+    searchTerm,
+    categoryId,
+    brandId,
+    productType,
+    status,
+    currentPage,
+    reloadKey,
+    isCategoryActive,
+    isBrandActive,
+  ]);
 
   const safeCurrentPage = Math.min(currentPage, Math.max(1, totalPages));
   const currentProducts = productsList;
@@ -204,7 +228,9 @@ export default function DanhSachSanPham() {
 
   const handleToggleSelectAll = () => {
     if (allCurrentPageSelected) {
-      setSelectedIds((prev) => prev.filter((id) => !currentProducts.some((p) => p.id === id)));
+      setSelectedIds((prev) =>
+        prev.filter((id) => !currentProducts.some((p) => p.id === id)),
+      );
     } else {
       const currentIds = currentProducts.map((p) => p.id);
       setSelectedIds((prev) => Array.from(new Set([...prev, ...currentIds])));
@@ -213,7 +239,7 @@ export default function DanhSachSanPham() {
 
   const handleToggleSelectRow = (id) => {
     setSelectedIds((prev) =>
-      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id],
     );
   };
 
@@ -222,14 +248,17 @@ export default function DanhSachSanPham() {
       {/* 2. Action button band */}
       <div className="product-actions-band">
         <div className="product-actions-band__content">
-          <button className="btn-product-band btn-product-band--white" id="btn-import-excel">
+          <button
+            className="btn-product-band btn-product-band--white"
+            id="btn-import-excel"
+          >
             <HiOutlineUpload size={16} />
             <span>NHẬP EXCEL</span>
           </button>
-          <button 
-            className="btn-product-band btn-product-band--red" 
+          <button
+            className="btn-product-band btn-product-band--red"
             id="btn-add-product-band"
-            onClick={() => navigate('/admin/san-pham/them-san-pham')}
+            onClick={() => navigate("/admin/san-pham/them-san-pham")}
           >
             <HiOutlinePlus size={16} />
             <span>THÊM SẢN PHẨM</span>
@@ -243,7 +272,9 @@ export default function DanhSachSanPham() {
           <span className="product-breadcrumb__item product-breadcrumb__item--muted">
             SẢN PHẨM
           </span>
-          <span className="product-breadcrumb__sep" aria-hidden="true">›</span>
+          <span className="product-breadcrumb__sep" aria-hidden="true">
+            ›
+          </span>
           <span className="product-breadcrumb__item product-breadcrumb__item--current">
             DANH SÁCH SẢN PHẨM
           </span>
@@ -272,7 +303,7 @@ export default function DanhSachSanPham() {
           {/* "Bộ lọc" toggle button */}
           <button
             type="button"
-            className={`btn-product-filter-toggle ${isFilterPanelOpen ? 'btn-product-filter-toggle--open' : ''} ${activeFilterCount > 0 ? 'btn-product-filter-toggle--has-filters' : ''}`}
+            className={`btn-product-filter-toggle ${isFilterPanelOpen ? "btn-product-filter-toggle--open" : ""} ${activeFilterCount > 0 ? "btn-product-filter-toggle--has-filters" : ""}`}
             onClick={() => setIsFilterPanelOpen((prev) => !prev)}
             id="btn-filter-utility"
             aria-expanded={isFilterPanelOpen}
@@ -348,7 +379,10 @@ export default function DanhSachSanPham() {
             </div>
 
             {/* Dynamic result count text at far right */}
-            <div className="product-dropdowns-count" id="product-filtered-count">
+            <div
+              className="product-dropdowns-count"
+              id="product-filtered-count"
+            >
               {totalFilteredCount} kết quả
             </div>
           </div>
@@ -366,7 +400,7 @@ export default function DanhSachSanPham() {
               {tableColumns.map((col) => (
                 <th
                   key={col.id}
-                  className={`product-table__th ${col.isCheckbox ? 'product-table__th--checkbox' : ''}`}
+                  className={`product-table__th ${col.isCheckbox ? "product-table__th--checkbox" : ""}`}
                 >
                   {col.isCheckbox ? (
                     <input
@@ -387,26 +421,60 @@ export default function DanhSachSanPham() {
           <tbody className="product-table__body">
             {currentProducts.length === 0 ? (
               <tr className="product-table__empty-row">
-                <td colSpan={tableColumns.length} className="product-table__empty-cell">
+                <td
+                  colSpan={tableColumns.length}
+                  className="product-table__empty-cell"
+                >
                   <div
                     className="product-table__empty-state"
-                    role={error ? 'button' : undefined}
+                    role={error ? "button" : undefined}
                     tabIndex={error ? 0 : undefined}
-                    onClick={error ? () => setReloadKey((value) => value + 1) : undefined}
-                    onKeyDown={error ? (event) => event.key === 'Enter' && setReloadKey((value) => value + 1) : undefined}
+                    onClick={
+                      error
+                        ? () => setReloadKey((value) => value + 1)
+                        : undefined
+                    }
+                    onKeyDown={
+                      error
+                        ? (event) =>
+                            event.key === "Enter" &&
+                            setReloadKey((value) => value + 1)
+                        : undefined
+                    }
                   >
-                    <div className="product-table__empty-icon" aria-hidden="true">
-                      <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
-                        <rect x="6" y="10" width="36" height="30" stroke="#d1d5db" strokeWidth="2" fill="none" />
-                        <path d="M6 18h36M24 18v22M18 10l6-6 6 6" stroke="#d1d5db" strokeWidth="2" strokeLinecap="square" />
+                    <div
+                      className="product-table__empty-icon"
+                      aria-hidden="true"
+                    >
+                      <svg
+                        width="48"
+                        height="48"
+                        viewBox="0 0 48 48"
+                        fill="none"
+                      >
+                        <rect
+                          x="6"
+                          y="10"
+                          width="36"
+                          height="30"
+                          stroke="#d1d5db"
+                          strokeWidth="2"
+                          fill="none"
+                        />
+                        <path
+                          d="M6 18h36M24 18v22M18 10l6-6 6 6"
+                          stroke="#d1d5db"
+                          strokeWidth="2"
+                          strokeLinecap="square"
+                        />
                       </svg>
                     </div>
                     <span className="product-table__empty-text">
                       {loading
-                        ? 'Đang tải dữ liệu sản phẩm...'
+                        ? "Đang tải dữ liệu sản phẩm..."
                         : error
                           ? `${error} Nhấn để thử lại.`
-                          : 'Không tìm thấy sản phẩm phù hợp.'}
+                          : "Không tìm thấy sản phẩm phù hợp."}
                     </span>
                   </div>
                 </td>
@@ -417,7 +485,7 @@ export default function DanhSachSanPham() {
                 return (
                   <tr
                     key={product.id}
-                    className={`product-table__tr ${isSelected ? 'product-table__tr--selected' : ''}`}
+                    className={`product-table__tr ${isSelected ? "product-table__tr--selected" : ""}`}
                   >
                     {/* Checkbox */}
                     <td className="product-table__td product-table__td--checkbox">
@@ -440,7 +508,14 @@ export default function DanhSachSanPham() {
                             className="product-thumb__img"
                           />
                         ) : (
-                          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="1.5">
+                          <svg
+                            width="22"
+                            height="22"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="#9ca3af"
+                            strokeWidth="1.5"
+                          >
                             <rect x="3" y="3" width="18" height="18" rx="0" />
                             <circle cx="8.5" cy="8.5" r="1.5" />
                             <path d="M21 15l-5-5L5 21" />
@@ -452,11 +527,16 @@ export default function DanhSachSanPham() {
                     {/* Mã & Tên sản phẩm */}
                     <td className="product-table__td product-table__td--name">
                       <div className="product-name-info">
-                        <span className="product-name-text" title={product.tenSanPham}>
+                        <span
+                          className="product-name-text"
+                          title={product.tenSanPham}
+                        >
                           {product.tenSanPham}
                         </span>
                         <div className="product-name-sub">
-                          <span className="product-code-text">{product.maSanPham}</span>
+                          <span className="product-code-text">
+                            {product.maSanPham}
+                          </span>
                           {product.isCombo && product.soThanhPhan > 0 ? (
                             <span className="product-version-tag">
                               Có {product.soThanhPhan} thành phần
@@ -472,20 +552,38 @@ export default function DanhSachSanPham() {
 
                     {/* Phân loại */}
                     <td className="product-table__td product-table__td--type">
-                      <span className="product-type-text">{product.phanLoai}</span>
+                      <span className="product-type-text">
+                        {product.phanLoai}
+                      </span>
                     </td>
 
                     {/* Thương hiệu */}
                     <td className="product-table__td product-table__td--brand">
-                      <span className="product-brand-text">{product.thuongHieu}</span>
+                      <span className="product-brand-text">
+                        {product.thuongHieu}
+                      </span>
                     </td>
 
                     {/* Tồn kho */}
                     <td className="product-table__td product-table__td--stock">
                       <div className="product-stock-container">
-                        <span className="product-stock-val">{product.tonKho}</span>
+                        <span
+                          className="product-stock-val"
+                          title={
+                            product.isCombo
+                              ? "Số bộ có thể lắp từ linh kiện"
+                              : "Tồn thực tế tại kho mặc định"
+                          }
+                        >
+                          {product.isCombo
+                            ? (product.assemblyCapacity ?? "—")
+                            : (product.tonKho ?? "—")}
+                        </span>
                         {product.canhBao && (
-                          <span className="product-stock-warning" title="Sắp hết hàng">
+                          <span
+                            className="product-stock-warning"
+                            title="Sắp hết hàng"
+                          >
                             {product.canhBao}
                           </span>
                         )}
@@ -494,8 +592,13 @@ export default function DanhSachSanPham() {
 
                     {/* Trạng thái bán */}
                     <td className="product-table__td product-table__td--status">
-                      <span className={`product-status-badge product-status-badge--${product.trangThaiBan === 'Đang kinh doanh' ? 'active' : 'inactive'}`}>
-                        <span className="product-status-square" aria-hidden="true" />
+                      <span
+                        className={`product-status-badge product-status-badge--${product.trangThaiBan === "Đang kinh doanh" ? "active" : "inactive"}`}
+                      >
+                        <span
+                          className="product-status-square"
+                          aria-hidden="true"
+                        />
                         <span>{product.trangThaiBan}</span>
                       </span>
                     </td>
@@ -506,9 +609,13 @@ export default function DanhSachSanPham() {
                         <button
                           type="button"
                           className="btn-product-action"
-                          onClick={() => navigate(product.isCombo
-                            ? `/kho-hang/combo-san-pham/chi-tiet/${encodeURIComponent(product.id)}`
-                            : `/admin/san-pham/chi-tiet-san-pham/${encodeURIComponent(product.id)}`)}
+                          onClick={() =>
+                            navigate(
+                              product.isCombo
+                                ? `/kho-hang/combo-san-pham/chi-tiet/${encodeURIComponent(product.id)}`
+                                : `/admin/san-pham/chi-tiet-san-pham/${encodeURIComponent(product.id)}`,
+                            )
+                          }
                           title="Xem chi tiết"
                           aria-label="Xem chi tiết"
                         >
@@ -517,9 +624,13 @@ export default function DanhSachSanPham() {
                         <button
                           type="button"
                           className="btn-product-action"
-                          onClick={() => navigate(product.isCombo
-                            ? `/kho-hang/combo-san-pham/them-moi?id=${encodeURIComponent(product.id)}`
-                            : `/admin/san-pham/them-san-pham/${encodeURIComponent(product.id)}`)}
+                          onClick={() =>
+                            navigate(
+                              product.isCombo
+                                ? `/kho-hang/combo-san-pham/them-moi?id=${encodeURIComponent(product.id)}`
+                                : `/admin/san-pham/them-san-pham/${encodeURIComponent(product.id)}`,
+                            )
+                          }
                           title="Chỉnh sửa"
                           aria-label="Chỉnh sửa"
                         >
