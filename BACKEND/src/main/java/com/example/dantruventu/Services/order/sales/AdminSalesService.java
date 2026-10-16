@@ -24,6 +24,7 @@ import com.example.dantruventu.Repository.warehouse.SoSerialSanPhamRepository;
 import com.example.dantruventu.Repository.warehouse.TheKhoRepository;
 import com.example.dantruventu.Services.cashbook.CashbookService;
 import com.example.dantruventu.Services.order.OrderEvents;
+import com.example.dantruventu.Services.catalog.CatalogSupport;
 import com.example.dantruventu.Specification.SalesSpecification;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
@@ -67,6 +68,8 @@ public class AdminSalesService {
   private final CashbookService cashbookService;
   private final OrderEvents orderEvents;
   private final SoQuyThuChiRepository cashRepository;
+
+  private final CatalogSupport catalogSupport;
 
   public AdminSalesResponse.Options options() {
 
@@ -608,8 +611,19 @@ public class AdminSalesService {
             .add(order.getTienChietKhau() == null ? BigDecimal.ZERO : order.getTienChietKhau())
             .subtract(order.getPhiGiaoHang() == null ? BigDecimal.ZERO : order.getPhiGiaoHang()));
 
+    var lines = orderLineRepository.findByDonHang_IdOrderByIdAsc(order.getId());
+
+    var comboParts =
+        catalogSupport.comboParts(
+            lines.stream()
+                .filter(
+                    line -> line.getPhienBan().getSanPham().getLoaiSanPham() == LoaiSanPham.BO_PC)
+                .map(line -> line.getPhienBan().getSanPham().getId())
+                .distinct()
+                .toList());
+
     response.setSanPham(
-        orderLineRepository.findByDonHang_IdOrderByIdAsc(order.getId()).stream()
+        lines.stream()
             .map(
                 line -> {
                   var item = deliveryMapper.toProduct(line);
@@ -619,7 +633,12 @@ public class AdminSalesService {
                           ? calculation.usesSerial(line.getPhienBan().getId())
                           : usesComboSerial(line.getPhienBan()));
 
-                  // Các giá trị VAT/chiết khấu từng dòng không có snapshot trong ERD.
+                  item.setThanhPhan(
+                      catalogSupport.partsForQuantity(
+                          comboParts.getOrDefault(
+                              line.getPhienBan().getSanPham().getId(), List.of()),
+                          line.getSoLuong()));
+
                   item.setThueVat(null);
                   item.setTienChietKhau(null);
                   item.setTienVat(null);

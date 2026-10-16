@@ -19,6 +19,7 @@ import com.example.dantruventu.Error.ErrorCode;
 import com.example.dantruventu.Mapper.warehouse.SoSerialSanPhamMapper;
 import com.example.dantruventu.Repository.NguoiDungRepository;
 import com.example.dantruventu.Repository.warehouse.*;
+import com.example.dantruventu.Services.warehouse.WarehouseSupport;
 import com.example.dantruventu.Specification.SoSerialSanPhamSpecification;
 import java.time.ZoneId;
 import java.util.Locale;
@@ -43,11 +44,12 @@ public class AdminSerialService {
   private final NguoiDungRepository nguoiDungRepository;
   private final SoSerialSanPhamMapper serialMapper;
   private final KhoHangRepository khoHangRepository;
+  private final WarehouseSupport warehouseSupport;
 
   @Value("${ruventu.inventory.time-zone:Asia/Ho_Chi_Minh}")
   private String inventoryTimeZone;
 
-  @Value("${ruventu.inventory.warehouse-id:0}")
+  @Value("${ruventu.inventory.default-warehouse-id:1}")
   private Long inventoryWarehouseId;
 
   public AdminSerialListResponse getSerials(
@@ -129,9 +131,8 @@ public class AdminSerialService {
     }
 
     if (!isWarehouseState(target)) {
-      throw conflict(
-          "API này chỉ cho phép chuyển TRONG_KHO ↔ LOI. "
-              + "Xuất bán và bảo hành phải qua nghiệp vụ tương ứng");
+      throw new AppException(
+          ErrorCode.UNPROCESSABLE_ENTITY, "API này chỉ cho phép chuyển TRONG_KHO ↔ LOI");
     }
 
     String reason = normalizeOptional(request.getLyDo());
@@ -145,6 +146,13 @@ public class AdminSerialService {
      * Serial sẽ được nạp và kiểm tra lại sau khi khóa tồn.
      */
     Long variantId = serialRepository.findPhienBanIdBySerialId(id).orElseThrow(this::notFound);
+
+    var configuredVariant = warehouseSupport.lockVariant(variantId);
+
+    if (!Boolean.TRUE.equals(configuredVariant.getCoQuanLySerial())) {
+
+      throw conflict("Phiên bản không được cấu hình quản lý serial");
+    }
 
     Long warehouseId = requireSingleWarehouseId();
 
@@ -188,17 +196,14 @@ public class AdminSerialService {
       throw conflict("Serial vật lý phải thuộc phiên bản sản phẩm đơn");
     }
 
-    int physical = requiredStock(stock.getTonThucTe(), "ton_thuc_te");
+    var stockNumbers = WarehouseSupport.numbers(stock);
 
-    int available = requiredStock(stock.getTonCoTheBan(), "ton_co_the_ban");
+    int physical = stockNumbers.actual();
+    int available = stockNumbers.available();
+    int damaged = stockNumbers.damaged();
 
-    int damaged = requiredStock(stock.getHangLoi(), "hang_loi");
-
-    long held = (long) physical - damaged - available;
-
-    if (physical <= 0 || available < 0 || damaged < 0 || damaged > physical || held < 0) {
-
-      throw conflict("Số liệu tồn kho không nhất quán, " + "cần đối soát trước khi sửa serial");
+    if (physical <= 0) {
+      throw conflict("Kho không có hàng thực tế tương ứng với serial");
     }
 
     if (target == TrangThaiSerial.LOI) {

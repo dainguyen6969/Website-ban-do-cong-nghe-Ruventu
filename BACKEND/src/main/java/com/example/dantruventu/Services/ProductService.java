@@ -10,9 +10,12 @@ import com.example.dantruventu.Repository.ProductDetailProjection;
 import com.example.dantruventu.Repository.ProductDetailRepository;
 import com.example.dantruventu.Repository.ProductListProjection;
 import com.example.dantruventu.Repository.product.SanPhamRepository;
+import com.example.dantruventu.Services.catalog.CatalogSupport;
+import com.example.dantruventu.Services.order.sales.SalesCalculationService;
 import java.math.BigDecimal;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -29,6 +32,13 @@ public class ProductService {
 
   private final SanPhamRepository sanPhamRepository;
   private final ProductDetailRepository productDetailRepository;
+
+  private final SalesCalculationService calculationService;
+
+  private final CatalogSupport catalogSupport;
+
+  @Value("${ruventu.inventory.default-warehouse-id:1}")
+  private Long warehouseId;
 
   @Transactional(readOnly = true)
   public ProductListResponse getProducts(
@@ -63,10 +73,27 @@ public class ProductService {
             danhMucId,
             tonKho,
             productSort.getValue(),
+            warehouseId,
             pageable);
 
+    var comboParts =
+        catalogSupport.comboParts(
+            productPage.getContent().stream()
+                .filter(p -> "BO_PC".equals(p.getLoaiSanPham()))
+                .map(ProductListProjection::getId)
+                .toList());
+
     List<ProductListResponse.ProductItemResponse> items =
-        productPage.getContent().stream().map(this::toProductItemResponse).toList();
+        productPage.getContent().stream()
+            .map(
+                projection -> {
+                  var item = toProductItemResponse(projection);
+
+                  item.setThanhPhan(comboParts.getOrDefault(projection.getId(), List.of()));
+
+                  return item;
+                })
+            .toList();
 
     return ProductListResponse.builder()
         .danhSachSanPham(items)
@@ -99,6 +126,18 @@ public class ProductService {
             .map(this::toProductVariantResponse)
             .toList();
 
+    if ("BO_PC".equals(product.getLoaiSanPham()) && !variants.isEmpty()) {
+      var availability = calculationService.readSaleAvailability(variants.get(0).getId());
+
+      for (var variant : variants) {
+        // Combo không có tồn kho vật lý riêng.
+        variant.setTonCoTheBan(null);
+        variant.setSoBoCoTheLap(availability.quantity());
+        variant.setCoTheBan(availability.canSell());
+        variant.setLyDoChuaTheBan(availability.reason());
+      }
+    }
+
     ProductDetailResponse.ThuongHieuResponse brand = null;
 
     if (product.getThuongHieuId() != null) {
@@ -125,6 +164,10 @@ public class ProductService {
         .trangThai(product.getTrangThai())
         .anhSanPham(images)
         .danhSachPhienBan(variants)
+        .thanhPhan(
+            "BO_PC".equals(product.getLoaiSanPham())
+                ? catalogSupport.comboParts(List.of(productId)).getOrDefault(productId, List.of())
+                : List.of())
         .build();
   }
 
@@ -132,11 +175,15 @@ public class ProductService {
   public ProductVariantDetailResponse getProductVariantDetail(Long productId, Long variantId) {
 
     if (productId == null || productId <= 0 || variantId == null || variantId <= 0) {
-
       throw new AppException(ErrorCode.INVALID_DATA);
     }
 
-    ProductDetailProjection.ProductVariantDetailProjection variant =
+    ProductDetailProjection product =
+        productDetailRepository
+            .findActiveProductDetail(productId)
+            .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND));
+
+    var variant =
         productDetailRepository
             .findActiveProductVariantDetail(productId, variantId)
             .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND));
@@ -145,24 +192,48 @@ public class ProductService {
 
     long availableStock = variant.getTonCoTheBan() == null ? 0L : variant.getTonCoTheBan();
 
-    return ProductVariantDetailResponse.builder()
-        .id(variant.getId())
-        .sanPhamId(variant.getSanPhamId())
-        .tenPhienBan(variant.getTenPhienBan())
-        .maVach(variant.getMaVach())
-        .giaBanLe(variant.getGiaBanLe())
-        .khoiLuong(variant.getKhoiLuong())
-        .trangThai(variant.getTrangThai())
-        .tonThucTe(actualStock)
-        .tonCoTheBan(availableStock)
-        .conHang(availableStock > 0)
-        .build();
+    var response =
+        ProductVariantDetailResponse.builder()
+            .id(variant.getId())
+            .sanPhamId(variant.getSanPhamId())
+            .tenPhienBan(variant.getTenPhienBan())
+            .maVach(variant.getMaVach())
+            .giaBanLe(variant.getGiaBanLe())
+            .khoiLuong(variant.getKhoiLuong())
+            .trangThai(variant.getTrangThai())
+            .tonThucTe(actualStock)
+            .tonCoTheBan(availableStock)
+            .conHang(availableStock > 0)
+            .coTheBan(availableStock > 0)
+            .build();
+
+    if ("BO_PC".equals(product.getLoaiSanPham())) {
+      var availability = calculationService.readSaleAvailability(variantId);
+
+      response.setTonThucTe(null);
+      response.setTonCoTheBan(null);
+      response.setSoBoCoTheLap(availability.quantity());
+      response.setConHang(availability.canSell());
+      response.setCoTheBan(availability.canSell());
+      response.setLyDoChuaTheBan(availability.reason());
+    }
+
+    return response;
   }
 
   private ProductListResponse.ProductItemResponse toProductItemResponse(
       ProductListProjection projection) {
 
-    long stock = projection.getTonKhoKhaDung() == null ? 0L : projection.getTonKhoKhaDung();
+    boolean combo = "BO_PC".equals(projection.getLoaiSanPham());
+
+    Long physicalStock =
+        combo ? null : projection.getTonKhoKhaDung() == null ? 0L : projection.getTonKhoKhaDung();
+
+    Long assemblyCapacity = combo ? projection.getSoBoCoTheLap() : null;
+
+    Long saleQuantity = combo ? assemblyCapacity : physicalStock;
+
+    boolean sellable = saleQuantity != null && saleQuantity > 0;
 
     return ProductListResponse.ProductItemResponse.builder()
         .id(projection.getId())
@@ -176,8 +247,10 @@ public class ProductService {
         .anhChinh(projection.getAnhChinh())
         .giaThapNhat(projection.getGiaThapNhat())
         .giaCaoNhat(projection.getGiaCaoNhat())
-        .tonKhoKhaDung(stock)
-        .conHang(stock > 0)
+        .tonKhoKhaDung(physicalStock)
+        .soBoCoTheLap(assemblyCapacity)
+        .conHang(sellable)
+        .coTheBan(sellable)
         .ngayTao(projection.getNgayTao())
         .build();
   }

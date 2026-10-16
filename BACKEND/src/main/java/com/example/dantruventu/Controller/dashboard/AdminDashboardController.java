@@ -23,8 +23,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class AdminDashboardController {
 
   private static final MediaType XLSX =
-      MediaType.parseMediaType(
-          "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+      MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
 
   private final AdminDashboardService service;
 
@@ -80,8 +79,7 @@ public class AdminDashboardController {
       @RequestParam(name = "so_ngay_khong_ban", defaultValue = "30") String soNgayKhongBan,
       @RequestParam(defaultValue = "5") String limit) {
     return ok(
-        "Lấy sản phẩm tồn lâu thành công",
-        service.getSlowMovingProducts(soNgayKhongBan, limit));
+        "Lấy sản phẩm tồn lâu thành công", service.getSlowMovingProducts(soNgayKhongBan, limit));
   }
 
   @GetMapping("/purchases")
@@ -96,8 +94,7 @@ public class AdminDashboardController {
       @RequestParam(name = "den_ngay", required = false) String denNgay,
       @RequestParam(name = "kenh_ban", required = false) String kenhBan) {
     return ok(
-        "Lấy tổng quát khách hàng thành công",
-        service.getCustomers(ky, tuNgay, denNgay, kenhBan));
+        "Lấy tổng quát khách hàng thành công", service.getCustomers(ky, tuNgay, denNgay, kenhBan));
   }
 
   @GetMapping("/cashflow")
@@ -115,9 +112,7 @@ public class AdminDashboardController {
   @GetMapping("/after-sales")
   public ApiResponse<AdminDashboardResponse.AfterSales> getAfterSales(
       @RequestParam(name = "kenh_ban", required = false) String kenhBan) {
-    return ok(
-        "Lấy tổng quát bảo hành và trả hàng thành công",
-        service.getAfterSales(kenhBan));
+    return ok("Lấy tổng quát bảo hành và trả hàng thành công", service.getAfterSales(kenhBan));
   }
 
   @GetMapping("/promotions")
@@ -138,27 +133,18 @@ public class AdminDashboardController {
     try {
       AdminDashboardService.ExportResult result =
           service.export(
-              ky,
-              tuNgay,
-              denNgay,
-              kenhBan,
-              nhomTheo,
-              xepHangTheo,
-              soNgayKhongBan,
-              limit);
+              ky, tuNgay, denNgay, kenhBan, nhomTheo, xepHangTheo, soNgayKhongBan, limit);
       return ResponseEntity.ok()
           .contentType(XLSX)
           .header(
-              HttpHeaders.CONTENT_DISPOSITION,
-              "attachment; filename=\"" + result.filename() + "\"")
+              HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + result.filename() + "\"")
           .contentLength(result.content().length)
           .body(result.content());
     } catch (AppException exception) {
       throw exception;
     } catch (Exception exception) {
       throw new AppException(
-          ErrorCode.INTERNAL_SERVER_ERROR,
-          "Xuất báo cáo không thành công, vui lòng thử lại");
+          ErrorCode.INTERNAL_SERVER_ERROR, "Xuất báo cáo không thành công, vui lòng thử lại");
     }
   }
 

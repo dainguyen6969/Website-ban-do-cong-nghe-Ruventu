@@ -5,6 +5,8 @@ import jakarta.persistence.*;
 import java.time.LocalDateTime;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 @Entity
 @Table(name = "the_kho")
@@ -28,7 +30,8 @@ public class TheKho {
   private PhienBanSanPham phienBan;
 
   @Enumerated(EnumType.STRING)
-  @Column(name = "loai_giao_dich", nullable = false)
+  @JdbcTypeCode(SqlTypes.VARCHAR)
+  @Column(name = "loai_giao_dich", nullable = false, length = 50)
   private LoaiGiaoDichKho loaiGiaoDich;
 
   @Column(name = "ma_chung_tu_goc", nullable = false)
@@ -40,10 +43,21 @@ public class TheKho {
   @Column(name = "ton_cuoi", nullable = false)
   private Integer tonCuoi;
 
-  @Column(name = "ghi_chu")
+  @Column(name = "ghi_chu", length = 255)
   private String ghiChu;
 
   @CreationTimestamp
-  @Column(name = "ngay_tao", updatable = false)
+  @Column(
+      name = "ngay_tao",
+      updatable = false,
+      columnDefinition = "TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
   private LocalDateTime ngayTao;
+
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "phieu_bao_hanh_id")
+  private PhieuBaoHanh phieuBaoHanh;
+
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "phieu_tra_hang_id")
+  private PhieuTraHang phieuTraHang;
 }

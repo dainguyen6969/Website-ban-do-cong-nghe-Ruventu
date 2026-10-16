@@ -24,58 +24,165 @@ const ProductSpecsTabs = ({ product }) => {
       <div className="tab-content">
         {activeTab === 'specs' && (
           <div className="specs-content">
-            <div className="specs-section-title">THÔNG SỐ — {product ? product.category.toUpperCase() : "PC BUILD SẴN"}</div>
-            <table className="full-specs-table">
-              <tbody>
-                {product && product.fullSpecs ? (
-                  product.fullSpecs.map((spec, index) => (
-                    <tr key={index}>
-                      <td>{spec.label}</td>
-                      <td>{spec.value}</td>
-                    </tr>
-                  ))
-                ) : (
-                  <>
-                    <tr>
-                      <td>Thương hiệu</td>
-                      <td>Reventu</td>
-                    </tr>
-                    <tr>
-                      <td>Mã sản phẩm</td>
-                      <td>RVT-BUILD-502</td>
-                    </tr>
-                    <tr>
-                      <td>VGA</td>
-                      <td>RTX 4080 Super 16GB</td>
-                    </tr>
-                    <tr>
-                      <td>CPU</td>
-                      <td>Ryzen 9 7950X</td>
-                    </tr>
-                    <tr>
-                      <td>RAM</td>
-                      <td>32GB DDR5-6200</td>
-                    </tr>
-                    <tr>
-                      <td>SSD</td>
-                      <td>WD Black SN850X 1TB</td>
-                    </tr>
-                    <tr>
-                      <td>PSU</td>
-                      <td>Corsair RM850x Gold</td>
-                    </tr>
-                    <tr>
-                      <td>Bảo hành</td>
-                      <td>36 tháng chính hãng</td>
-                    </tr>
-                    <tr>
-                      <td>Xuất xứ</td>
-                      <td>Chính hãng phân phối</td>
-                    </tr>
-                  </>
-                )}
-              </tbody>
-            </table>
+            {product?.fullSpecs && product.fullSpecs.length > 0 ? (
+              <div className="custom-specs-card">
+                <div className="spec-card-header">
+                  THÔNG SỐ KỸ THUẬT — {product.category?.toUpperCase() || 'SẢN PHẨM'}
+                </div>
+                <div className="spec-card-body custom-specs-grid">
+                  {product.fullSpecs.map((spec, index) => (
+                    <div key={index} className="spec-row custom-spec-row">
+                      <span className="spec-name">{spec.label || spec.name}</span>
+                      <span className="spec-val">{spec.value}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div className="specs-grid-container">
+                {/* Box 1: KIẾN TRÚC */}
+                <div className="spec-card">
+                  <div className="spec-card-header">KIẾN TRÚC</div>
+                  <div className="spec-card-body">
+                    <div className="spec-row">
+                      <span className="spec-name">Kiến trúc GPU</span>
+                      <span className="spec-val">NVIDIA Ada Lovelace</span>
+                    </div>
+                    <div className="spec-row">
+                      <span className="spec-name">Tiến trình sản xuất</span>
+                      <span className="spec-val">TSMC 4N</span>
+                    </div>
+                    <div className="spec-row">
+                      <span className="spec-name">CUDA Cores</span>
+                      <span className="spec-val">16.384 nhân</span>
+                    </div>
+                    <div className="spec-row">
+                      <span className="spec-name">Tensor Cores</span>
+                      <span className="spec-val">512 (4th Gen)</span>
+                    </div>
+                    <div className="spec-row">
+                      <span className="spec-name">RT Cores</span>
+                      <span className="spec-val">128 (3rd Gen)</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Box 2: BỘ NHỚ */}
+                <div className="spec-card">
+                  <div className="spec-card-header">BỘ NHỚ</div>
+                  <div className="spec-card-body">
+                    <div className="spec-row">
+                      <span className="spec-name">Dung lượng VRAM</span>
+                      <span className="spec-val">24 GB GDDR6X</span>
+                    </div>
+                    <div className="spec-row">
+                      <span className="spec-name">Băng thông bộ nhớ</span>
+                      <span className="spec-val">1.008 GB/s</span>
+                    </div>
+                    <div className="spec-row">
+                      <span className="spec-name">Bus bộ nhớ</span>
+                      <span className="spec-val">384-bit</span>
+                    </div>
+                    <div className="spec-row">
+                      <span className="spec-name">Tốc độ bộ nhớ</span>
+                      <span className="spec-val">21 Gbps</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Box 3: HIỆU NĂNG */}
+                <div className="spec-card">
+                  <div className="spec-card-header">HIỆU NĂNG</div>
+                  <div className="spec-card-body">
+                    <div className="spec-row">
+                      <span className="spec-name">Xung nhịp Base</span>
+                      <span className="spec-val">2.235 MHz</span>
+                    </div>
+                    <div className="spec-row">
+                      <span className="spec-name">Xung nhịp Boost (OC)</span>
+                      <span className="spec-val">2.610 MHz</span>
+                    </div>
+                    <div className="spec-row">
+                      <span className="spec-name">TDP (TGP)</span>
+                      <span className="spec-val">450 W</span>
+                    </div>
+                    <div className="spec-row">
+                      <span className="spec-name">DirectX</span>
+                      <span className="spec-val">DirectX 12 Ultimate</span>
+                    </div>
+                    <div className="spec-row">
+                      <span className="spec-name">OpenGL</span>
+                      <span className="spec-val">OpenGL 4.6</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Box 4: KẾT NỐI */}
+                <div className="spec-card">
+                  <div className="spec-card-header">KẾT NỐI</div>
+                  <div className="spec-card-body">
+                    <div className="spec-row">
+                      <span className="spec-name">Giao tiếp</span>
+                      <span className="spec-val">PCIe 4.0 x16</span>
+                    </div>
+                    <div className="spec-row">
+                      <span className="spec-name">Đầu ra màn hình</span>
+                      <span className="spec-val">3x DisplayPort 1.4a, 1x HDMI 2.1</span>
+                    </div>
+                    <div className="spec-row">
+                      <span className="spec-name">Hỗ trợ màn hình</span>
+                      <span className="spec-val">Tối đa 4 màn hình đồng thời</span>
+                    </div>
+                    <div className="spec-row">
+                      <span className="spec-name">Độ phân giải tối đa</span>
+                      <span className="spec-val">7680 x 4320 (8K)</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Box 5: VẬT LÝ */}
+                <div className="spec-card">
+                  <div className="spec-card-header">VẬT LÝ</div>
+                  <div className="spec-card-body">
+                    <div className="spec-row">
+                      <span className="spec-name">Kích thước</span>
+                      <span className="spec-val">357 x 149 x 70 mm (3.5 slot)</span>
+                    </div>
+                    <div className="spec-row">
+                      <span className="spec-name">Khối lượng</span>
+                      <span className="spec-val">~ 1.78 kg</span>
+                    </div>
+                    <div className="spec-row">
+                      <span className="spec-name">Nguồn điện yêu cầu</span>
+                      <span className="spec-val">3x 8-pin PCIe (adapter 16-pin kèm hộp)</span>
+                    </div>
+                    <div className="spec-row">
+                      <span className="spec-name">PSU khuyến nghị</span>
+                      <span className="spec-val">≥ 850 W</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Box 6: BẢO HÀNH */}
+                <div className="spec-card">
+                  <div className="spec-card-header">BẢO HÀNH</div>
+                  <div className="spec-card-body">
+                    <div className="spec-row">
+                      <span className="spec-name">Bảo hành chính hãng</span>
+                      <span className="spec-val">36 tháng tại Reventu</span>
+                    </div>
+                    <div className="spec-row">
+                      <span className="spec-name">Đổi trả</span>
+                      <span className="spec-val">7 ngày nếu lỗi kỹ thuật</span>
+                    </div>
+                    <div className="spec-row">
+                      <span className="spec-name">Hỗ trợ kỹ thuật</span>
+                      <span className="spec-val">24/7 qua hotline 1800 9999</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         )}
         

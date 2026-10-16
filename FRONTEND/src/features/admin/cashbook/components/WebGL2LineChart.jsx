@@ -38,6 +38,7 @@ export default function WebGL2LineChart({ labels = [], datasets = [], title = ''
       return {
         label: ds.label,
         data: ds.data,
+        rawAmounts: ds.rawAmounts,
         borderColor: mainColor,
         backgroundColor: bgColor,
         borderWidth: 2,
@@ -81,15 +82,17 @@ export default function WebGL2LineChart({ labels = [], datasets = [], title = ''
         callbacks: {
           label: function(context) {
             const label = context.dataset.label || '';
-            const value = (context.parsed.y || 0) * 1000000;
-            return ` ${label}: ${value.toLocaleString('vi-VN')}đ`;
+            const rawVal = context.dataset.rawAmounts ? context.dataset.rawAmounts[context.dataIndex] : (context.parsed.y || 0) * 1000000;
+            return ` ${label}: ${Math.round(rawVal).toLocaleString('vi-VN')}đ`;
           },
           footer: function(tooltipItems) {
             if (tooltipItems.length >= 2) {
-              const thu = (tooltipItems[0].parsed.y || 0) * 1000000;
-              const chi = (tooltipItems[1].parsed.y || 0) * 1000000;
-              const tonQuy = thu - chi;
-              return `TỒN QUỸ: ${tonQuy.toLocaleString('vi-VN')}đ`;
+              const item0 = tooltipItems[0];
+              const item1 = tooltipItems[1];
+              const thu = item0.dataset.rawAmounts ? item0.dataset.rawAmounts[item0.dataIndex] : (item0.parsed.y || 0) * 1000000;
+              const chi = item1.dataset.rawAmounts ? item1.dataset.rawAmounts[item1.dataIndex] : (item1.parsed.y || 0) * 1000000;
+              const chenhLech = thu - chi;
+              return `CHÊNH LỆCH: ${Math.round(chenhLech).toLocaleString('vi-VN')}đ`;
             }
             return '';
           }

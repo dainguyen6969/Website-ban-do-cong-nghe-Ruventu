@@ -98,3 +98,47 @@
 .image-uploader__thumb-remove:hover {
   background: rgba(227, 30, 36, 0.85);
 }
+
+.image-uploader__thumb--error {
+  border-color: #ef4444;
+}
+
+.image-uploader__overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.image-uploader__spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid #ffffff;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: img-spin 0.8s linear infinite;
+}
+
+.image-uploader__error-badge {
+  position: absolute;
+  bottom: 2px;
+  left: 2px;
+  background: #ef4444;
+  color: white;
+  font-size: 10px;
+  font-weight: bold;
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+}
+
+@keyframes img-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

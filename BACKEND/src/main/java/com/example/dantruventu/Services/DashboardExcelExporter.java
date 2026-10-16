@@ -56,8 +56,7 @@ public class DashboardExcelExporter {
     }
   }
 
-  private void summarySheet(
-      Workbook workbook, Styles styles, AdminDashboardResponse.Summary data) {
+  private void summarySheet(Workbook workbook, Styles styles, AdminDashboardResponse.Summary data) {
     Sheet sheet = sheet(workbook, "Tổng quan", styles, "TỔNG QUAN RUVENTU", 4);
     int row = 2;
     row = info(sheet, row, "Thời điểm xuất", data.capNhatLuc(), styles);
@@ -78,40 +77,15 @@ public class DashboardExcelExporter {
     row = info(sheet, row, "Doanh thu bán hàng", data.kinhDoanh().doanhThuBanHang(), styles);
     row = info(sheet, row, "Tổng giảm giá", data.kinhDoanh().tongGiamGia(), styles);
     row = info(sheet, row, "Giá trị hàng trả", data.kinhDoanh().giaTriHangTra(), styles);
-    row =
-        info(
-            sheet,
-            row,
-            "Giá trị trung bình đơn",
-            data.kinhDoanh().giaTriTrungBinhDon(),
-            styles);
+    row = info(sheet, row, "Giá trị trung bình đơn", data.kinhDoanh().giaTriTrungBinhDon(), styles);
     row = info(sheet, row, "Giá vốn ước tính", data.kinhDoanh().giaVonUocTinh(), styles);
-    row =
-        info(
-            sheet,
-            row,
-            "Lợi nhuận gộp ước tính",
-            data.kinhDoanh().loiNhuanGopUocTinh(),
-            styles);
+    row = info(sheet, row, "Lợi nhuận gộp ước tính", data.kinhDoanh().loiNhuanGopUocTinh(), styles);
     row = info(sheet, row, "Số dư quỹ hiện tại", data.hienTai().soDuQuy(), styles);
     row =
-        info(
-            sheet,
-            row,
-            "Nhân viên đang hoạt động",
-            data.hienTai().nhanVienDangHoatDong(),
-            styles);
+        info(sheet, row, "Nhân viên đang hoạt động", data.hienTai().nhanVienDangHoatDong(), styles);
     row++;
     row = section(sheet, row, "Cơ cấu kênh", styles);
-    row =
-        header(
-            sheet,
-            row,
-            styles,
-            "Kênh",
-            "Doanh thu thuần",
-            "Số đơn",
-            "Tỷ trọng (%)");
+    row = header(sheet, row, styles, "Kênh", "Doanh thu thuần", "Số đơn", "Tỷ trọng (%)");
     for (AdminDashboardResponse.ChannelMix item : data.coCauKenh()) {
       dataRow(
           sheet,
@@ -153,26 +127,12 @@ public class DashboardExcelExporter {
     row = section(sheet, row, "Trả hàng", styles);
     row = info(sheet, row, "Chờ tiếp nhận", data.traHang().choTiepNhan(), styles);
     row = info(sheet, row, "Chờ hoàn tiền", data.traHang().choHoanTien(), styles);
-    row =
-        info(
-            sheet,
-            row,
-            "Tổng phiếu cần xử lý",
-            data.traHang().tongPhieuCanXuLy(),
-            styles);
+    row = info(sheet, row, "Tổng phiếu cần xử lý", data.traHang().tongPhieuCanXuLy(), styles);
     row++;
     row = section(sheet, row, "Top " + limit + " đơn ưu tiên", styles);
     row =
         header(
-            sheet,
-            row,
-            styles,
-            "ID",
-            "Mã đơn",
-            "Trạng thái",
-            "Lý do",
-            "Ngày tạo",
-            "Số phút chờ");
+            sheet, row, styles, "ID", "Mã đơn", "Trạng thái", "Lý do", "Ngày tạo", "Số phút chờ");
     for (AdminDashboardResponse.PriorityOrder item : data.canUuTien()) {
       dataRow(
           sheet,
@@ -386,12 +346,7 @@ public class DashboardExcelExporter {
       row = info(sheet, row, "Khách hàng ID", data.khachGiaTriCaoNhat().khachHangId(), styles);
       row = info(sheet, row, "Họ tên", data.khachGiaTriCaoNhat().hoTen(), styles);
       row = info(sheet, row, "Số đơn", data.khachGiaTriCaoNhat().soDon(), styles);
-      info(
-          sheet,
-          row,
-          "Giá trị mua thuần",
-          data.khachGiaTriCaoNhat().giaTriMuaThuan(),
-          styles);
+      info(sheet, row, "Giá trị mua thuần", data.khachGiaTriCaoNhat().giaTriMuaThuan(), styles);
     }
     finish(sheet, 4);
   }
@@ -413,8 +368,7 @@ public class DashboardExcelExporter {
     row = section(sheet, row + 1, "Biểu đồ dòng tiền", styles);
     row = header(sheet, row, styles, "Từ ngày", "Đến ngày", "Tổng thu", "Tổng chi");
     for (AdminDashboardResponse.CashPoint item : data.bieuDo()) {
-      dataRow(
-          sheet, row++, styles, item.tuNgay(), item.denNgay(), item.tongThu(), item.tongChi());
+      dataRow(sheet, row++, styles, item.tuNgay(), item.denNgay(), item.tongThu(), item.tongChi());
     }
     row = section(sheet, row + 1, "Đơn hàng hiện tại", styles);
     row = info(sheet, row, "Kênh bán", data.donHangHienTai().kenhBan(), styles);
@@ -425,33 +379,15 @@ public class DashboardExcelExporter {
             "Giá trị chưa thanh toán",
             data.donHangHienTai().giaTriChuaThanhToan(),
             styles);
-    row =
-        info(
-            sheet,
-            row,
-            "COD đang vận chuyển",
-            data.donHangHienTai().codDangVanChuyen(),
-            styles);
-    row =
-        info(
-            sheet,
-            row,
-            "COD chờ đối soát",
-            data.donHangHienTai().codChoDoiSoat(),
-            styles);
+    row = info(sheet, row, "COD đang vận chuyển", data.donHangHienTai().codDangVanChuyen(), styles);
+    row = info(sheet, row, "COD chờ đối soát", data.donHangHienTai().codChoDoiSoat(), styles);
     info(sheet, row, "Lý do COD null", data.donHangHienTai().lyDoCodNull(), styles);
     finish(sheet, 5);
   }
 
   private void afterSalesSheet(
       Workbook workbook, Styles styles, AdminDashboardResponse.AfterSales data) {
-    Sheet sheet =
-        sheet(
-            workbook,
-            "Bảo hành và trả hàng",
-            styles,
-            "BẢO HÀNH VÀ TRẢ HÀNG",
-            3);
+    Sheet sheet = sheet(workbook, "Bảo hành và trả hàng", styles, "BẢO HÀNH VÀ TRẢ HÀNG", 3);
     int row = 2;
     row = info(sheet, row, "Kênh bán", data.kenhBan(), styles);
     row = section(sheet, row + 1, "Bảo hành", styles);
@@ -472,23 +408,11 @@ public class DashboardExcelExporter {
     Sheet sheet = sheet(workbook, "Khuyến mại", styles, "KHUYẾN MẠI", 3);
     int row = 2;
     row = info(sheet, row, "Ngưỡng sắp đến (ngày)", data.nguongSapDenNgay(), styles);
-    row =
-        info(
-            sheet,
-            row,
-            "Đang trong thời gian áp dụng",
-            data.dangTrongThoiGianApDung(),
-            styles);
+    row = info(sheet, row, "Đang trong thời gian áp dụng", data.dangTrongThoiGianApDung(), styles);
     row = info(sheet, row, "Còn lượt áp dụng", data.conLuotApDung(), styles);
     row = info(sheet, row, "Sắp bắt đầu", data.sapBatDau(), styles);
     row = info(sheet, row, "Sắp kết thúc", data.sapKetThuc(), styles);
-    row =
-        info(
-            sheet,
-            row,
-            "Tổng lượt đã dùng lũy kế",
-            data.tongLuotDaDungLuyKe(),
-            styles);
+    row = info(sheet, row, "Tổng lượt đã dùng lũy kế", data.tongLuotDaDungLuyKe(), styles);
     row = info(sheet, row, "Số đơn sử dụng trong kỳ", data.soDonSuDungTrongKy(), styles);
     row =
         info(
@@ -502,11 +426,7 @@ public class DashboardExcelExporter {
   }
 
   private int metric(
-      Sheet sheet,
-      int row,
-      String label,
-      AdminDashboardResponse.Metric metric,
-      Styles styles) {
+      Sheet sheet, int row, String label, AdminDashboardResponse.Metric metric, Styles styles) {
     Row target = sheet.createRow(row);
     value(target.createCell(0), label, styles.label());
     value(target.createCell(1), metric.giaTri(), styles.body());
@@ -515,8 +435,7 @@ public class DashboardExcelExporter {
     return row + 1;
   }
 
-  private Sheet sheet(
-      Workbook workbook, String name, Styles styles, String title, int columns) {
+  private Sheet sheet(Workbook workbook, String name, Styles styles, String title, int columns) {
     Sheet sheet = workbook.createSheet(name);
     Row titleRow = sheet.createRow(0);
     Cell titleCell = titleRow.createCell(0);
@@ -554,8 +473,7 @@ public class DashboardExcelExporter {
     }
   }
 
-  private void note(
-      Sheet sheet, int rowIndex, String text, Styles styles, int mergedColumns) {
+  private void note(Sheet sheet, int rowIndex, String text, Styles styles, int mergedColumns) {
     Row row = sheet.createRow(rowIndex);
     value(row.createCell(0), text, styles.note());
     sheet.addMergedRegion(new CellRangeAddress(rowIndex, rowIndex, 0, mergedColumns - 1));

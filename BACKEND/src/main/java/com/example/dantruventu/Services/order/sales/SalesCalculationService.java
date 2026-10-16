@@ -16,6 +16,7 @@ import com.example.dantruventu.Repository.product.SanPhamRepository;
 import com.example.dantruventu.Repository.warehouse.SoSerialSanPhamRepository;
 import com.example.dantruventu.Repository.warehouse.ThanhPhanComboRepository;
 import com.example.dantruventu.Repository.warehouse.TonKhoRepository;
+import com.example.dantruventu.Services.catalog.CatalogSupport;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.LockModeType;
 import java.math.BigDecimal;
@@ -68,6 +69,59 @@ public class SalesCalculationService {
       AdminSalesResponse.Preview data) {}
 
   private record InputLine(String key, Long variantId, int quantity, boolean gift) {}
+
+  public record SaleAvailability(Long quantity, String reason) {
+
+    public boolean canSell() {
+      return quantity != null && quantity > 0;
+    }
+  }
+
+  public SaleAvailability readSaleAvailability(Long variantId) {
+
+    if (variantId == null || variantId <= 0) {
+      return new SaleAvailability(null, "Phiên bản không hợp lệ.");
+    }
+
+    try {
+      Long warehouseId = context.defaultWarehouseId();
+      context.warehouse(warehouseId);
+
+      // Dùng chính phép quy đổi đang phục vụ nghiệp vụ bán hàng.
+      Catalog catalog = catalog(List.of(variantId), false);
+      Map<Long, Integer> units = catalog.physicalUnits().get(variantId);
+
+      if (units == null || units.isEmpty()) {
+        return new SaleAvailability(null, "Sản phẩm chưa có cấu hình bán hàng.");
+      }
+
+      long capacity = Long.MAX_VALUE;
+
+      for (var entry : units.entrySet()) {
+        TonKho currentStock = stock(warehouseId, entry.getKey(), false);
+
+        long available = currentStock == null ? 0L : currentStock.getTonCoTheBan();
+
+        long quantity = available / entry.getValue();
+        capacity = Math.min(capacity, quantity);
+      }
+
+      long availableQuantity = capacity == Long.MAX_VALUE ? 0L : capacity;
+
+      return new SaleAvailability(
+          availableQuantity,
+          availableQuantity > 0 ? null : "Hiện chưa đủ tồn để mua sản phẩm này.");
+
+    } catch (AppException exception) {
+      if (exception.getErrorCode() == ErrorCode.CONFLICT
+          || exception.getErrorCode() == ErrorCode.NOT_FOUND) {
+
+        return new SaleAvailability(null, "Sản phẩm hoặc cấu hình hiện chưa sẵn sàng để bán.");
+      }
+
+      throw exception;
+    }
+  }
 
   public Catalog catalog(Collection<Long> requestedIds, boolean lock) {
 
@@ -188,7 +242,21 @@ public class SalesCalculationService {
   }
 
   public boolean usesSerial(Long variantId) {
-    return serialRepository.countByPhienBanId(variantId) > 0;
+    var variant =
+        variantRepository
+            .findById(variantId)
+            .orElseThrow(
+                () ->
+                    new AppException(ErrorCode.NOT_FOUND, "Không tìm thấy phiên bản " + variantId));
+
+    Boolean configured = variant.getCoQuanLySerial();
+
+    if (configured == null) {
+      throw new AppException(
+          ErrorCode.CONFLICT, "Phiên bản " + variantId + " chưa có cấu hình quản lý serial");
+    }
+
+    return configured;
   }
 
   /** Cùng phép quy đổi combo -> linh kiện cho đơn hàng và kiểm tra toàn bộ giỏ. */
@@ -233,10 +301,14 @@ public class SalesCalculationService {
     if (stock.getTonThucTe() == null
         || stock.getTonCoTheBan() == null
         || stock.getHangLoi() == null
+        || stock.getSoLuongGiuChoBaoHanh() == null
         || stock.getTonThucTe() < 0
         || stock.getTonCoTheBan() < 0
         || stock.getHangLoi() < 0
-        || (long) stock.getTonCoTheBan() + stock.getHangLoi() > stock.getTonThucTe()) {
+        || stock.getSoLuongGiuChoBaoHanh() < 0
+        || (long) stock.getTonCoTheBan() + stock.getHangLoi() + stock.getSoLuongGiuChoBaoHanh()
+            > stock.getTonThucTe()) {
+
       throw conflict("Dữ liệu tồn kho không nhất quán tại phiên bản " + variantId);
     }
 
@@ -425,7 +497,9 @@ public class SalesCalculationService {
     Map<Long, Boolean> serialModes = new HashMap<>();
 
     for (Long physicalId : totalQuantities.keySet()) {
-      serialModes.put(physicalId, usesSerial(physicalId));
+      PhienBanSanPham physicalVariant = catalog.variants().get(physicalId);
+
+      serialModes.put(physicalId, CatalogSupport.serialManaged(physicalVariant));
     }
 
     Map<String, BigDecimal> discounts = discounts(promotion, promotionDetails, lines);

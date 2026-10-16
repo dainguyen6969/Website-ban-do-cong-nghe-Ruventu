@@ -34,6 +34,7 @@ import {
   toApiDateTime,
   withIdempotency,
 } from "../../../../shared/services/mutationUtils";
+import ComboContents from "../../../../shared/components/ui/ComboContents";
 
 export default function ChiTietDonHang() {
   const actionBusy = useRef(false);
@@ -491,7 +492,20 @@ export default function ChiTietDonHang() {
                       <td>—</td>
                       <td>
                         <strong>{item.ten_san_pham}</strong>
-                        <span>{item.ten_phien_ban || "—"}</span>
+
+                        <span>
+                          {item.loai_san_pham === "BO_PC"
+                            ? "Bộ PC"
+                            : item.ten_phien_ban || "—"}
+                        </span>
+
+                        {item.loai_san_pham === "BO_PC" && (
+                          <ComboContents
+                            items={item.thanh_phan || []}
+                            order
+                            compact
+                          />
+                        )}
                       </td>
                       <td>—</td>
                       <td className="align-right">{money(item.don_gia)}</td>
