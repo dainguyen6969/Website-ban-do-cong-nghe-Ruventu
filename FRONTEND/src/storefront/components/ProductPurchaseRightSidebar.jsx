@@ -283,20 +283,6 @@ const ProductPurchaseRightSidebar = ({ product, selectedVariantId }) => {
           </div>
         ))}
       </div>
-
-      <div className="mini-specs">
-        <div className="mini-specs-header">THÔNG SỐ CHÍNH</div>
-        <table className="mini-specs-table">
-          <tbody>
-            {product.specsSummary.map((spec, index) => (
-              <tr key={index}>
-                <td>{spec.label}</td>
-                <td>{spec.value}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
     </div>
   );
 };
