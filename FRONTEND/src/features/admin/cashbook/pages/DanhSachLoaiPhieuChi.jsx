@@ -1,33 +1,62 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { useCashbook } from '../context/CashbookContext';
 import './DanhSachLoaiPhieuThu.css'; // Reuse CSS
-
-const mockDataFallback = [
-    { id: 1, code: 'LPC001', name: 'Chi nhập hàng', type: 'CHI', note: 'Thanh toán tiền mua hàng hóa, nguyên vật liệu', status: 'HOẠT ĐỘNG' },
-    { id: 2, code: 'LPC002', name: 'Chi hoàn tiền khách hàng', type: 'CHI', note: 'Hoàn tiền cho khách đổi/trả hàng', status: 'HOẠT ĐỘNG' },
-    { id: 3, code: 'LPC003', name: 'Chi phí vận chuyển', type: 'CHI', note: 'Trả phí vận chuyển cho đối tác giao hàng', status: 'HOẠT ĐỘNG' },
-    { id: 4, code: 'LPC004', name: 'Chi lương nhân viên', type: 'CHI', note: '-', status: 'HOẠT ĐỘNG' },
-    { id: 5, code: 'LPC015', name: 'Chi tạm ứng nhân viên', type: 'CHI', note: 'Khoản tạm ứng để nhân viên mua vật tư', status: 'HOẠT ĐỘNG' },
-    { id: 6, code: 'LPC020', name: 'Chi phí thuê mặt bằng', type: 'CHI', note: '-', status: 'NGỪNG HOẠT ĐỘNG' }
-];
+import TablePagination from '../../../../shared/components/ui/TablePagination';
+import { getDisbursementTypes, createDisbursementType, DISBURSEMENT_TYPE_STATUS } from '../api/disbursementTypeApi';
 
 export default function DanhSachLoaiPhieuChi() {
     const navigate = useNavigate();
     const location = useLocation();
-    const { loaiPhieuChiList, addLoaiPhieuChi } = useCashbook();
 
-    const dataToUse = loaiPhieuChiList && loaiPhieuChiList.length > 0 ? loaiPhieuChiList : mockDataFallback;
+    const [data, setData] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+    const [pagination, setPagination] = useState({ page: 1, limit: 20, totalItems: 0, totalPages: 0 });
 
     const [searchQuery, setSearchQuery] = useState('');
     const [filterStatus, setFilterStatus] = useState('TẤT CẢ TRẠNG THÁI');
     const [showModal, setShowModal] = useState(false);
+    const [creating, setCreating] = useState(false);
     
     // Form state
     const [newCode, setNewCode] = useState('');
     const [newName, setNewName] = useState('');
     const [newNote, setNewNote] = useState('');
     const [errors, setErrors] = useState({});
+    const [refreshKey, setRefreshKey] = useState(0);
+
+    useEffect(() => {
+        const controller = new AbortController();
+        const loadData = async () => {
+            setLoading(true);
+            setError(null);
+            try {
+                const res = await getDisbursementTypes({
+                    page: pagination.page,
+                    limit: pagination.limit,
+                    keyword: searchQuery,
+                    status: filterStatus !== 'TẤT CẢ TRẠNG THÁI' ? filterStatus : undefined
+                }, controller.signal);
+                setData(res.items);
+                setPagination(prev => ({ ...prev, totalItems: res.totalItems, totalPages: res.totalPages }));
+            } catch (err) {
+                if (err.name !== 'AbortError') {
+                    setError('Không thể tải danh sách loại phiếu chi. Vui lòng thử lại.');
+                }
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        const timer = setTimeout(() => {
+            loadData();
+        }, 300);
+
+        return () => {
+            clearTimeout(timer);
+            controller.abort();
+        };
+    }, [pagination.page, pagination.limit, searchQuery, filterStatus, refreshKey]);
 
     const handleOpenModal = () => {
         setNewCode('');
@@ -37,7 +66,7 @@ export default function DanhSachLoaiPhieuChi() {
         setShowModal(true);
     };
 
-    const handleCreate = () => {
+    const handleCreate = async () => {
         let newErrors = {};
         if (!newCode.trim()) newErrors.code = 'Vui lòng nhập mã loại';
         if (!newName.trim()) newErrors.name = 'Vui lòng nhập tên loại';
@@ -47,25 +76,26 @@ export default function DanhSachLoaiPhieuChi() {
             return;
         }
 
-        if (addLoaiPhieuChi) {
-            addLoaiPhieuChi({
-                id: Date.now(),
+        setCreating(true);
+        try {
+            await createDisbursementType({
                 code: newCode,
                 name: newName,
-                type: 'CHI',
-                note: newNote || '-',
-                status: 'HOẠT ĐỘNG'
+                note: newNote
             });
+            setShowModal(false);
+            setPagination(prev => ({ ...prev, page: 1 }));
+            setRefreshKey(prev => prev + 1);
+        } catch (err) {
+            if (err.response?.data?.message?.includes('đã tồn tại')) {
+                setErrors({ code: err.response.data.message });
+            } else {
+                setErrors({ submit: err.message || 'Có lỗi xảy ra, vui lòng thử lại' });
+            }
+        } finally {
+            setCreating(false);
         }
-
-        setShowModal(false);
     };
-
-    const filteredData = dataToUse.filter(item => {
-        if (searchQuery && !item.code.toLowerCase().includes(searchQuery.toLowerCase()) && !item.name.toLowerCase().includes(searchQuery.toLowerCase())) return false;
-        if (filterStatus !== 'TẤT CẢ TRẠNG THÁI' && item.status !== filterStatus) return false;
-        return true;
-    });
 
 
     return (
@@ -98,7 +128,6 @@ export default function DanhSachLoaiPhieuChi() {
                 </select>
             </div>
 
-
             <div className="pt-table-container">
                 <table className="promo-table pt-table">
                     <thead>
@@ -112,8 +141,24 @@ export default function DanhSachLoaiPhieuChi() {
                         </tr>
                     </thead>
                     <tbody>
-                        {filteredData.length > 0 ? (
-                            filteredData.map(row => (
+                        {loading ? (
+                            <tr>
+                                <td colSpan="6">
+                                    <div className="pt-empty-state">
+                                        <p>ĐANG TẢI DỮ LIỆU...</p>
+                                    </div>
+                                </td>
+                            </tr>
+                        ) : error ? (
+                            <tr>
+                                <td colSpan="6">
+                                    <div className="pt-empty-state">
+                                        <p className="text-red">{error}</p>
+                                    </div>
+                                </td>
+                            </tr>
+                        ) : data.length > 0 ? (
+                            data.map(row => (
                                 <tr key={row.id}>
                                     <td><strong>{row.code}</strong></td>
                                     <td><strong>{row.name}</strong></td>
@@ -125,7 +170,7 @@ export default function DanhSachLoaiPhieuChi() {
                                         </span>
                                     </td>
                                     <td>
-                                        <button className="pt-btn-detail" onClick={() => navigate(`/admin/so-quy-tien-mat/loai-phieu-chi/${row.code}`)}>XEM CHI TIẾT</button>
+                                        <button className="pt-btn-detail" onClick={() => navigate(`/admin/so-quy-tien-mat/loai-phieu-chi/${encodeURIComponent(row.id)}`)}>XEM CHI TIẾT</button>
                                     </td>
                                 </tr>
                             ))
@@ -142,16 +187,13 @@ export default function DanhSachLoaiPhieuChi() {
                 </table>
             </div>
 
-            {filteredData.length > 0 && (
-                <div className="pt-pagination">
-                    <div className="pt-pagination-info">
-                        HIỂN THỊ 1-{filteredData.length} TRÊN {filteredData.length} LOẠI
-                    </div>
-                    <div className="pt-pagination-controls">
-                        <button disabled>TRƯỚC</button>
-                        <button disabled>SAU</button>
-                    </div>
-                </div>
+            {data.length > 0 && !loading && (
+                <TablePagination
+                    totalItems={pagination.totalItems}
+                    pageSize={pagination.limit}
+                    currentPage={pagination.page}
+                    onPageChange={(page) => setPagination(prev => ({ ...prev, page }))}
+                />
             )}
 
             {showModal && (
@@ -203,8 +245,9 @@ export default function DanhSachLoaiPhieuChi() {
                             </div>
                         </div>
                         <div className="lpt-modal-footer">
-                            <button className="lpt-btn-outline" onClick={() => setShowModal(false)}>HỦY</button>
-                            <button className="lpt-btn-primary" onClick={handleCreate}>TẠO LOẠI PHIẾU CHI</button>
+                            {errors.submit && <div className="component-error" style={{flex: 1, textAlign: 'left', margin: 0}}>{errors.submit}</div>}
+                            <button className="lpt-btn-outline" onClick={() => setShowModal(false)} disabled={creating}>HỦY</button>
+                            <button className="lpt-btn-primary" onClick={handleCreate} disabled={creating}>{creating ? 'ĐANG TẠO...' : 'TẠO LOẠI PHIẾU CHI'}</button>
                         </div>
                     </div>
                 </div>

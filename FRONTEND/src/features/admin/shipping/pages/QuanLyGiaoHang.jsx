@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { HiOutlineRefresh, HiOutlineSearch } from "react-icons/hi";
 
 import { apiRequest } from "../../../../auth/backendAuth";
@@ -9,6 +9,8 @@ import { OrderStateBadge } from "../../orders/pages/DanhSachDonHang";
 import TablePagination from "../../../../shared/components/ui/TablePagination";
 import DetailTablePagination from "../../../../shared/components/ui/DetailTablePagination";
 import useDetailTablePagination from "../../../../hooks/useDetailTablePagination";
+
+import { requireBasicStatus } from "../../../../shared/services/mutationUtils";
 
 import "./QuanLyGiaoHang.css";
 
@@ -38,10 +40,15 @@ export default function QuanLyGiaoHang() {
 
 function ShipmentList() {
   const navigate = useNavigate();
+  const [params] = useSearchParams();
   const PAGE_SIZE = 20;
 
   const [keyword, setKeyword] = useState("");
-  const [status, setStatus] = useState("");
+  const [status, setStatus] = useState(() =>
+    STATUSES.includes(params.get("trang_thai_giao_hang"))
+      ? params.get("trang_thai_giao_hang")
+      : "",
+  );
   const [partnerId, setPartnerId] = useState("");
   const [page, setPage] = useState(1);
   const [revision, setRevision] = useState(0);
@@ -1113,23 +1120,31 @@ function ShipmentEditDialog({ delivery, busy, error, close, submit }) {
           if (controller.signal.aborted) return;
 
           items.push(...(result?.items || []));
+
           totalPages = Math.max(
             1,
             Number(result?.pagination?.total_pages) || 1,
           );
         }
 
-        setPartners(items.filter((item) => Number(item.trang_thai) === 1));
+        const activePartners = items.filter(
+          (item) => requireBasicStatus(item.trang_thai) === 1,
+        );
+
+        setPartners(activePartners);
       } catch (exception) {
         if (!controller.signal.aborted) {
           setLoadError(exception.message || "Không tải được đối tác.");
         }
       } finally {
-        if (!controller.signal.aborted) setLoading(false);
+        if (!controller.signal.aborted) {
+          setLoading(false);
+        }
       }
     };
 
     load();
+
     return () => controller.abort();
   }, [revision]);
 

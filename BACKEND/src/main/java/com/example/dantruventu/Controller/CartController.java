@@ -2,9 +2,11 @@ package com.example.dantruventu.Controller;
 
 import com.example.dantruventu.DTO.Request.AddCartItemRequest;
 import com.example.dantruventu.DTO.Request.ApplyCartPromotionRequest;
+import com.example.dantruventu.DTO.Request.CartPcBuildRequest;
 import com.example.dantruventu.DTO.Request.UpdateCartItemRequest;
 import com.example.dantruventu.DTO.Response.ApiResponse;
 import com.example.dantruventu.DTO.Response.CartItemMutationResponse;
+import com.example.dantruventu.DTO.Response.CartPcBuildResponse;
 import com.example.dantruventu.DTO.Response.CartPromotionResponse;
 import com.example.dantruventu.DTO.Response.CartResponse;
 import com.example.dantruventu.Entity.NguoiDung;
@@ -26,6 +28,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -45,6 +48,30 @@ public class CartController {
   @Value("${cart.cookie.secure}")
   private boolean cartCookieSecure;
 
+  @PostMapping("/pc-build")
+  public ResponseEntity<ApiResponse<CartPcBuildResponse>> addPcBuild(
+      Authentication authentication,
+      @CookieValue(value = GUEST_CART_COOKIE_NAME, required = false) String guestCartId,
+      @RequestHeader(value = "Idempotency-Key", required = false) String key,
+      @RequestBody(required = false) CartPcBuildRequest request) {
+    NguoiDung user = getAuthenticatedUser(authentication);
+    HttpHeaders headers = new HttpHeaders();
+    String effectiveGuestId = guestCartId;
+    if (user == null) effectiveGuestId = cartService.preparePcBuildGuest(guestCartId);
+    // Không merge giỏ khách tại đây: merge trước kiểm tra có thể đổi giỏ khi build thất bại.
+    var result = cartService.addPcBuild(user, effectiveGuestId, key, request);
+    if (user == null)
+      headers.add(HttpHeaders.SET_COOKIE, createGuestCartCookie(effectiveGuestId).toString());
+    // data.items chỉ gồm phiên bản vừa tác động. Frontend gọi GET /api/v1/cart để lấy toàn bộ giỏ.
+    var response =
+        ApiResponse.<CartPcBuildResponse>builder()
+            .status(200)
+            .message("Đã thêm cấu hình vào giỏ hàng")
+            .data(result)
+            .build();
+    return new ResponseEntity<>(response, headers, HttpStatus.OK);
+  }
+
   @GetMapping
   public ResponseEntity<ApiResponse<CartResponse>> getCurrentCart(
       Authentication authentication,
@@ -54,15 +81,21 @@ public class CartController {
 
     HttpHeaders headers = new HttpHeaders();
 
+    String effectiveGuestCartId = guestCartId;
+    if (nguoiDung == null) {
+      effectiveGuestCartId = cartService.getOrCreateGuestCartId(guestCartId);
+      headers.add(HttpHeaders.SET_COOKIE, createGuestCartCookie(effectiveGuestCartId).toString());
+    }
+
     boolean guestCartHandled = mergeGuestCartAndPromotion(nguoiDung, guestCartId);
 
     if (guestCartHandled) {
       headers.add(HttpHeaders.SET_COOKIE, createExpiredGuestCartCookie().toString());
     }
 
-    CartResponse data = cartService.getCurrentCart(nguoiDung, guestCartId);
+    CartResponse data = cartService.getCurrentCart(nguoiDung, effectiveGuestCartId);
 
-    data = cartPromotionService.applyStoredPromotion(nguoiDung, guestCartId, data);
+    data = cartPromotionService.applyStoredPromotion(nguoiDung, effectiveGuestCartId, data);
 
     ApiResponse<CartResponse> response =
         ApiResponse.<CartResponse>builder()

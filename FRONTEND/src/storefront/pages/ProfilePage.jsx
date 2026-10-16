@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { VIETNAM_LOCATIONS } from "../../data/vietnamLocations";
 import { useNavigate, useLocation } from "react-router-dom";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
@@ -121,19 +122,27 @@ const ProfilePage = () => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    if (name === "city") {
+      const defaultWard = VIETNAM_LOCATIONS[value]?.[0] || "";
+      setFormData((prev) => ({ ...prev, city: value, ward: defaultWard }));
+    } else {
+      setFormData((prev) => ({ ...prev, [name]: value }));
+    }
   };
 
   const renderProfileTab = () => (
     <div className="content-card">
-      <div className="card-header-row">
-        <h3 className="card-title">THÔNG TIN CÁ NHÂN</h3>
+      <header className="profile-card-header">
+        <h3 className="profile-card-title">
+          <span className="profile-card-accent" aria-hidden="true" />
+          THÔNG TIN CÁ NHÂN
+        </h3>
         {!isEditing && (
-          <button className="btn-outline" onClick={handleEditClick}>
+          <button className="btn-outline btn-outline--header" onClick={handleEditClick}>
             <Edit size={14} /> CHỈNH SỬA THÔNG TIN
           </button>
         )}
-      </div>
+      </header>
 
       <div className="form-grid">
         <div className="form-group full-width">
@@ -208,9 +217,9 @@ const ProfilePage = () => {
                   : "input-disabled select-disabled"
               }
             >
-              <option>Hà Nội</option>
-              <option>TP. Hồ Chí Minh</option>
-              <option>Đà Nẵng</option>
+              {Object.keys(VIETNAM_LOCATIONS).map((prov) => (
+                <option key={prov} value={prov}>{prov}</option>
+              ))}
             </select>
           </div>
           <div className="form-group">
@@ -226,9 +235,9 @@ const ProfilePage = () => {
                   : "input-disabled select-disabled"
               }
             >
-              <option>Cầu Giấy</option>
-              <option>Đống Đa</option>
-              <option>Thanh Xuân</option>
+              {(VIETNAM_LOCATIONS[formData.city] || []).map((w) => (
+                <option key={w} value={w}>{w}</option>
+              ))}
             </select>
           </div>
         </div>
@@ -268,9 +277,12 @@ const ProfilePage = () => {
 
   const renderOrdersTab = () => (
     <div className="content-card">
-      <div className="card-header-row">
-        <h3 className="card-title">LỊCH SỬ ĐƠN HÀNG</h3>
-      </div>
+      <header className="profile-card-header">
+        <h3 className="profile-card-title">
+          <span className="profile-card-accent" aria-hidden="true" />
+          LỊCH SỬ ĐƠN HÀNG
+        </h3>
+      </header>
 
       {ordersError && <p role="alert">{ordersError}</p>}
       {ordersLoading && <p>Đang tải đơn hàng...</p>}
@@ -351,9 +363,12 @@ const ProfilePage = () => {
 
   const renderWarrantyTab = () => (
     <div className="content-card">
-      <div className="card-header-row" style={{ marginBottom: "20px" }}>
-        <h3 className="card-title">THÔNG TIN BẢO HÀNH</h3>
-      </div>
+      <header className="profile-card-header">
+        <h3 className="profile-card-title">
+          <span className="profile-card-accent" aria-hidden="true" />
+          THÔNG TIN BẢO HÀNH
+        </h3>
+      </header>
       <div className="list-container">
         <div className="list-item">
           <div className="item-info">
@@ -442,8 +457,10 @@ const ProfilePage = () => {
       {/* Black User Banner */}
       <div className="profile-banner">
         <div className="container profile-banner-content">
-          <div className="profile-banner-avatar">
-            <User size={32} />
+          <div className="profile-banner-avatar" aria-hidden="true">
+            <span className="profile-banner-initial">
+              {(user.name?.trim().charAt(0) || user.email?.charAt(0) || 'U').toUpperCase()}
+            </span>
           </div>
           <div className="profile-banner-info">
             <h2>{user.name}</h2>

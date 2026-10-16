@@ -122,6 +122,8 @@ const Header = () => {
     } finally {
 
       localStorage.removeItem("ruventu_cart");
+      setCartCount(0);
+      window.dispatchEvent(new CustomEvent("cartCountUpdated", { detail: { count: 0 } }));
       window.dispatchEvent(new CustomEvent("cartUpdated"));
 
       setUser(null);

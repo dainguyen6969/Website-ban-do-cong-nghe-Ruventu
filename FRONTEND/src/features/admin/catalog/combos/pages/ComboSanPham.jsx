@@ -137,7 +137,7 @@ export default function ComboSanPham() {
               <th>MÃ COMBO</th>
               <th>TÊN COMBO</th>
               <th>THÀNH PHẦN</th>
-              <th>CÓ THỂ BÁN</th>
+              <th>SỐ BỘ CÓ THỂ LẮP</th>
               <th>TỒN THỰC TẾ</th>
               <th>GIÁ BÁN</th>
               <th>TRẠNG THÁI</th>
@@ -183,9 +183,7 @@ export default function ComboSanPham() {
                   <td className="number-strong">
                     {combo.assemblyCapacity ?? "—"}
                   </td>
-
                   <td>—</td>
-                  <td>{combo.stock}</td>
                   <td className="number-strong">{money(combo.price)}</td>
                   <td>
                     <span

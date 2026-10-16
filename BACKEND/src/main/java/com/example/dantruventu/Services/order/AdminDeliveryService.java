@@ -13,6 +13,7 @@ import com.example.dantruventu.Error.ErrorCode;
 import com.example.dantruventu.Mapper.order.AdminDeliveryMapper;
 import com.example.dantruventu.Repository.order.*;
 import com.example.dantruventu.Repository.partner.DoiTacVanChuyenRepository;
+import com.example.dantruventu.Services.catalog.CatalogSupport;
 import com.example.dantruventu.Specification.DeliverySpecification;
 import jakarta.persistence.EntityManager;
 import java.math.BigDecimal;
@@ -46,6 +47,7 @@ public class AdminDeliveryService {
   private final AdminDeliveryMapper mapper;
   private final AdminOrderService orderService;
   private final EntityManager entityManager;
+  private final CatalogSupport catalogSupport;
 
   @Value("${ruventu.shipping.time-zone:Asia/Ho_Chi_Minh}")
   private String shippingTimeZone;
@@ -135,12 +137,31 @@ public class AdminDeliveryService {
 
     Detail response = mapper.toDetail(delivery, zone());
 
+    var lines = orderLineRepository.findByDonHang_IdOrderByIdAsc(delivery.getDonHang().getId());
+
+    var comboParts =
+        catalogSupport.comboParts(
+            lines.stream()
+                .filter(
+                    line -> line.getPhienBan().getSanPham().getLoaiSanPham() == LoaiSanPham.BO_PC)
+                .map(line -> line.getPhienBan().getSanPham().getId())
+                .distinct()
+                .toList());
+
     response.setSanPham(
-        orderLineRepository.findByDonHang_IdOrderByIdAsc(delivery.getDonHang().getId()).stream()
+        lines.stream()
             .map(
                 line -> {
                   ProductData item = mapper.toProduct(line);
+
                   item.setQuanLySerial(inventoryService.usesSerial(line.getPhienBan()));
+
+                  item.setThanhPhan(
+                      catalogSupport.partsForQuantity(
+                          comboParts.getOrDefault(
+                              line.getPhienBan().getSanPham().getId(), List.of()),
+                          line.getSoLuong()));
+
                   return item;
                 })
             .toList());
@@ -240,7 +261,13 @@ public class AdminDeliveryService {
         confirmCustomerPayment(delivery, request.getXacNhanDaThuCod());
 
         delivery.setTrangThaiGiaoHang(TrangThaiGiaoHangEnum.GIAO_THANH_CONG);
-        order.setTrangThaiDonHang(TrangThaiDonHang.HOAN_THANH);
+
+        // Đơn đã thanh toán trước có thể hoàn thành ngay.
+        // Đơn COD tiếp tục chờ cửa hàng thực nhận tiền từ đối tác.
+        if (order.getTrangThaiThanhToan() == TrangThaiThanhToanDonHang.DA_THANH_TOAN) {
+
+          order.setTrangThaiDonHang(TrangThaiDonHang.HOAN_THANH);
+        }
       } else {
         // Không cộng kho tại bước báo giao thất bại.
         delivery.setTrangThaiGiaoHang(TrangThaiGiaoHangEnum.CHO_HOAN_HANG);
@@ -517,12 +544,14 @@ public class AdminDeliveryService {
   private void confirmCustomerPayment(PhieuGiaoHang delivery, Boolean confirmedCod) {
 
     DonHang order = delivery.getDonHang();
+
     BigDecimal cod = money(delivery.getTienThuHoCod());
     BigDecimal total = money(order.getTongThanhToan());
 
     if (cod.signum() > 0) {
       if (order.getTrangThaiThanhToan() != TrangThaiThanhToanDonHang.CHUA_THANH_TOAN
           || cod.compareTo(total) != 0) {
+
         throw conflict("Dữ liệu COD không khớp trạng thái hoặc tổng tiền đơn");
       }
 
@@ -530,7 +559,8 @@ public class AdminDeliveryService {
         throw conflict("Phải xác nhận shipper đã thu đủ COD từ khách");
       }
 
-      order.setTrangThaiThanhToan(TrangThaiThanhToanDonHang.DA_THANH_TOAN);
+      // Shipper đã thu tiền khách, cửa hàng chưa thực nhận COD.
+      // Giữ CHUA_THANH_TOAN đến khi ghi nhận phiếu thu từ đối tác.
       return;
     }
 
@@ -538,9 +568,12 @@ public class AdminDeliveryService {
       return;
     }
 
+    // Đơn bằng 0 không phát sinh khoản tiền cần thu.
     if (order.getTrangThaiThanhToan() == TrangThaiThanhToanDonHang.CHUA_THANH_TOAN
         && total.signum() == 0) {
+
       order.setTrangThaiThanhToan(TrangThaiThanhToanDonHang.DA_THANH_TOAN);
+
       return;
     }
 

@@ -1,153 +1,62 @@
-import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import '../styles/warranty.css';
-import { mockWarrantyData, statusColors } from '../data/mockData';
+import { useState } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { Search, SlidersHorizontal, Plus } from 'lucide-react';
+import { mockWarrantyData, warrantyStatusLabels } from '../data/mockData';
+import { filterWarranties, statusLabels, quoteStatuses, paymentStatuses, refundStatuses } from '../data/warrantyModel';
+import { WarrantyBadge } from '../components/WarrantyShell';
+import '../styles/warrantyShell.css';
 
-const parseDate = (dateStr) => {
-  // dateStr format: "14/09/2026 14:00" or "14/09/2026"
-  if (!dateStr) return null;
-  const parts = dateStr.split(' ')[0].split('/');
-  if (parts.length === 3) {
-    return new Date(`${parts[2]}-${parts[1]}-${parts[0]}`);
-  }
-  return null;
-};
+const emptyFilters = { search: '', status: '', quoteStatus: '', paymentStatus: '', refundStatus: '', fromDate: '', toDate: '' };
 
-const DanhSachBaoHanh = () => {
+export default function DanhSachBaoHanh() {
   const navigate = useNavigate();
-  const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState('TẤT CẢ TRẠNG THÁI');
-  const [fromDate, setFromDate] = useState('');
-  const [toDate, setToDate] = useState('');
-  const [data, setData] = useState([]);
+  const [params] = useSearchParams();
+  const [filters, setFilters] = useState(() => ({ ...emptyFilters, status: warrantyStatusLabels[params.get('trang_thai')] || '' }));
+  const [advanced, setAdvanced] = useState(false);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
+  const invalidDates = filters.fromDate && filters.toDate && filters.fromDate > filters.toDate;
+  const items = invalidDates ? [] : filterWarranties(mockWarrantyData, filters);
+  const pages = Math.max(1, Math.ceil(items.length / pageSize));
+  const currentPage = Math.min(page, pages);
+  const start = (currentPage - 1) * pageSize;
+  const visible = items.slice(start, start + pageSize);
+  const update = (field, value) => { setFilters(current => ({ ...current, [field]: value })); setPage(1); };
+  const date = value => <><span>{value?.split(' ')[0] || 'Chưa xác định'}</span><small>{value?.split(' ')[1] || ''}</small></>;
 
-  useEffect(() => {
-    // Read from the shared mutable array
-    setData([...mockWarrantyData]);
-  }, []);
-
-  const filteredData = data.filter(item => {
-    if (search && !item.id.toLowerCase().includes(search.toLowerCase()) && !item.serial.toLowerCase().includes(search.toLowerCase()) && !item.customerName.toLowerCase().includes(search.toLowerCase())) return false;
-    if (statusFilter !== 'TẤT CẢ TRẠNG THÁI' && item.status !== statusFilter) return false;
-    
-    const itemDate = parseDate(item.created);
-    if (itemDate) {
-      if (fromDate) {
-        const fromD = new Date(fromDate);
-        if (itemDate < fromD) return false;
-      }
-      if (toDate) {
-        const toD = new Date(toDate);
-        if (itemDate > toD) return false;
-      }
-    }
-    
-    return true;
-  });
-
-  return (
-    <div className="warranty-page">
-      <div className="w-breadcrumb">
-        <span>ADMIN</span> <span>›</span> <strong>BẢO HÀNH</strong>
+  return <div className="w-shell">
+    <header className="w-shell-hero">
+      <div><h1>DANH SÁCH PHIẾU BẢO HÀNH</h1><p>Theo dõi tiếp nhận, xử lý và bàn giao thiết bị.</p><p className="w-shell-note">Dữ liệu mẫu</p></div>
+      <button type="button" className="w-shell-button w-shell-button--red" onClick={() => navigate('/admin/bao-hanh/tao-moi')}><Plus size={14} /> LẬP PHIẾU BẢO HÀNH</button>
+    </header>
+    <section className="w-shell-toolbar" aria-label="Bộ lọc phiếu bảo hành">
+      <div className="w-shell-filter-primary">
+        <label className="w-shell-search"><Search size={16} /><input aria-label="Tìm phiếu bảo hành" placeholder="Tìm mã phiếu / serial / mã theo dõi / tên / SĐT..." value={filters.search} onChange={event => update('search', event.target.value)} /></label>
+        <select aria-label="Trạng thái xử lý" value={filters.status} onChange={event => update('status', event.target.value)}><option value="">Trạng thái xử lý — Tất cả</option>{Object.entries(statusLabels).map(([value, text]) => <option key={value} value={value}>{text}</option>)}</select>
+        <button type="button" className={`w-shell-button ${advanced ? 'w-shell-button--black' : ''}`} aria-expanded={advanced} onClick={() => setAdvanced(value => !value)}><SlidersHorizontal size={14} /> BỘ LỌC</button>
       </div>
-      <div className="warranty-header-row">
-        <div>
-          <h1 className="warranty-page-title">DANH SÁCH PHIẾU BẢO HÀNH</h1>
-          <p className="warranty-page-subtitle">THEO DÕI CÁC THIẾT BỊ ĐANG ĐƯỢC TIẾP NHẬN VÀ XỬ LÝ BẢO HÀNH</p>
-        </div>
-        <button className="btn-black-create" onClick={() => navigate('/admin/bao-hanh/tao-moi')}>+ LẬP PHIẾU BẢO HÀNH</button>
-      </div>
-
-      <div className="warranty-filters">
-        <input 
-          type="text" 
-          placeholder="TÌM MÃ PHIẾU / SERIAL / TÊN KHÁCH HÀNG..." 
-          className="w-filter-input search-input"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
-        <select 
-          className="w-filter-select"
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
-        >
-          <option value="TẤT CẢ TRẠNG THÁI">TẤT CẢ TRẠNG THÁI</option>
-          <option value="TIẾP NHẬN">TIẾP NHẬN</option>
-          <option value="ĐANG KIỂM TRA">ĐANG KIỂM TRA</option>
-          <option value="ĐÃ GỬI BẢO HÀNH">ĐÃ GỬI BẢO HÀNH</option>
-          <option value="ĐANG BẢO HÀNH">ĐANG BẢO HÀNH</option>
-          <option value="ĐÃ NHẬN LẠI">ĐÃ NHẬN LẠI</option>
-          <option value="HOÀN TẤT">HOÀN TẤT</option>
-        </select>
-        
-        <div className="date-filter-group">
-          <span className="date-label">TỪ NGÀY</span>
-          <input type="date" className="w-filter-date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} />
-        </div>
-        <div className="date-filter-group">
-          <span className="date-label">ĐẾN NGÀY</span>
-          <input type="date" className="w-filter-date" value={toDate} onChange={(e) => setToDate(e.target.value)} />
-        </div>
-      </div>
-
-      <div className="warranty-table-container">
-        <table className="warranty-table">
-          <thead>
-            <tr>
-              <th>MÃ PHIẾU</th>
-              <th>ĐƠN HÀNG</th>
-              <th>KHÁCH HÀNG</th>
-              <th>SẢN PHẨM</th>
-              <th>SERIAL NUMBER</th>
-              <th>TRẠNG THÁI</th>
-              <th>NGÀY TIẾP NHẬN</th>
-              <th>CẬP NHẬT CUỐI</th>
-              <th>THAO TÁC</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredData.length > 0 ? filteredData.map(item => (
-              <tr key={item.id}>
-                <td className="fw-bold">{item.id}</td>
-                <td>{item.orderId}</td>
-                <td className="fw-bold">{item.customerName}</td>
-                <td>
-                  <div className="fw-bold">{item.productName}</div>
-                  <div className="text-gray">{item.productVariant}</div>
-                </td>
-                <td className="fw-bold">{item.serial}</td>
-                <td>
-                  <span className="w-status-badge" style={{ color: statusColors[item.status]?.color, borderColor: statusColors[item.status]?.border }}>
-                    {item.status}
-                  </span>
-                </td>
-                <td className="text-gray">{item.created}</td>
-                <td className="text-gray">{item.updated}</td>
-                <td>
-                  <button className="btn-view-detail" onClick={() => navigate(`/admin/bao-hanh/chi-tiet/${item.id}`)}>XEM CHI TIẾT</button>
-                </td>
-              </tr>
-            )) : (
-              <tr>
-                <td colSpan="9" className="w-empty-state">
-                  <div className="empty-text">KHÔNG TÌM THẤY PHIẾU BẢO HÀNH PHÙ HỢP</div>
-                  <button className="btn-black-create mt-2" onClick={() => navigate('/admin/bao-hanh/tao-moi')}>LẬP PHIẾU BẢO HÀNH</button>
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
-
-      <div className="w-pagination-footer">
-        <div className="w-pagination-info">HIỂN THỊ {filteredData.length > 0 ? `1-${filteredData.length}` : '0'} TRÊN TỔNG SỐ {filteredData.length} PHIẾU</div>
-        <div className="w-pagination-controls">
-          <button disabled>← TRƯỚC</button>
-          <button disabled>SAU →</button>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-export default DanhSachBaoHanh;
+      {advanced && <div className="w-shell-filter-advanced">
+        {[[ 'BÁO GIÁ', 'quoteStatus', quoteStatuses ], [ 'THANH TOÁN', 'paymentStatus', paymentStatuses ], [ 'HOÀN TIỀN', 'refundStatus', refundStatuses ]].map(([label, field, options]) => <label key={field}>{label}<select aria-label={label} value={filters[field]} onChange={event => update(field, event.target.value)}><option value="">Tất cả</option>{options.map(value => <option key={value}>{value}</option>)}</select></label>)}
+        <label>TỪ NGÀY<input type="date" value={filters.fromDate} onChange={event => update('fromDate', event.target.value)} /></label>
+        <label>ĐẾN NGÀY<input type="date" value={filters.toDate} onChange={event => update('toDate', event.target.value)} /></label>
+        <button type="button" className="w-shell-button" onClick={() => { setFilters(emptyFilters); setPage(1); }}>XÓA BỘ LỌC</button>
+      </div>}
+      {invalidDates && <p className="w-shell-error" role="alert">Từ ngày phải nhỏ hơn hoặc bằng đến ngày.</p>}
+    </section>
+    <div className="w-shell-content"><section className="w-shell-list-frame">
+      <div className="w-shell-table-scroll"><table className="w-shell-list-table">
+        <thead><tr>{['PHIẾU / ĐƠN HÀNG', 'NGƯỜI LIÊN HỆ', 'THIẾT BỊ', 'XỬ LÝ / BÁO GIÁ', 'THANH TOÁN / HOÀN TIỀN', 'TIẾP NHẬN', 'CẬP NHẬT', 'THAO TÁC'].map(title => <th key={title}>{title}</th>)}</tr></thead>
+        <tbody>{visible.map(item => <tr key={item.id}>
+          <td><strong>{item.id}</strong><small>{item.orderId || '—'}</small></td>
+          <td><strong>{item.customerName || '—'}</strong><small>{item.customerPhone || '—'}</small></td>
+          <td><strong>{item.productName}</strong><span>{item.serial || '—'}</span>{item.trackingCode && <small>Mã theo dõi: {item.trackingCode}</small>}</td>
+          <td><WarrantyBadge>{statusLabels[item.status] || item.status}</WarrantyBadge><div className="w-shell-state-line">Báo giá: <WarrantyBadge>{item.quoteStatus}</WarrantyBadge></div></td>
+          <td><div className="w-shell-state-line">Thanh toán: <WarrantyBadge>{item.paymentStatus}</WarrantyBadge></div><div className="w-shell-state-line">Hoàn tiền: <WarrantyBadge>{item.refundStatus}</WarrantyBadge></div>{item.remainingRefund != null && <small className="w-shell-error">Còn hoàn: {item.remainingRefund.toLocaleString('vi-VN')}đ</small>}{item.pendingSettlement && <small>Còn đối soát NCC</small>}</td>
+          <td>{date(item.created)}</td><td>{date(item.updated)}</td>
+          <td><button type="button" className="w-shell-button" aria-label={`Xem chi tiết ${item.id}`} onClick={() => navigate(`/admin/bao-hanh/chi-tiet/${item.id}`)}>XEM CHI TIẾT</button></td>
+        </tr>)}{!visible.length && <tr><td colSpan={8} className="w-shell-empty">Không tìm thấy phiếu bảo hành phù hợp.</td></tr>}</tbody>
+      </table></div>
+      <footer className="w-shell-list-footer"><div>Hiển thị {items.length ? `${start + 1}–${start + visible.length}` : '0'} / tổng {items.length}<small>—: chưa có thông tin.</small></div><div className="w-shell-pager"><strong>TRANG {currentPage} / {pages}</strong><select aria-label="Số phiếu mỗi trang" value={pageSize} onChange={event => { setPageSize(Number(event.target.value)); setPage(1); }}>{[10, 20, 50, 100].map(size => <option key={size} value={size}>{size} / trang</option>)}</select><button type="button" className="w-shell-button" disabled={currentPage === 1} onClick={() => setPage(currentPage - 1)}>TRƯỚC</button><button type="button" className="w-shell-button" disabled={currentPage === pages} onClick={() => setPage(currentPage + 1)}>SAU</button></div></footer>
+    </section></div>
+  </div>;
+}

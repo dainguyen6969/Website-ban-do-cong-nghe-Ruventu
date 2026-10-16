@@ -177,3 +177,44 @@
   color: #555;
   line-height: 1.5;
 }
+
+.admin-order-detail .order-detail-hero__actions {
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.admin-order-detail
+  .order-detail-hero__actions
+  .order-handover-action {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  min-width: 0;
+  max-width: 260px;
+}
+
+.admin-order-detail
+  .order-detail-hero__actions
+  .order-handover-action > .order-action {
+  align-self: flex-start;
+}
+
+.admin-order-detail
+  .order-detail-hero__actions
+  .order-handover-warning {
+  display: block;
+  margin: 0;
+  max-width: 260px;
+
+  color: #dc2626;
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.5;
+
+  text-align: left;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}

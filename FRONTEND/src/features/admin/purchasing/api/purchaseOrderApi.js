@@ -11,6 +11,15 @@ export const IMPORT_STATUS = {
 };
 export const PAYMENT_STATUS = { CHUA_TRA: 'Chưa trả', TRA_MOT_PHAN: 'Trả một phần', DA_TRA: 'Đã trả' };
 
+export const getPurchaseReturnSerials = (id, detailId, signal) =>
+  adminRequest(
+    `${PATH}/${encodeURIComponent(id)}/return-serials?` +
+      new URLSearchParams({
+        chi_tiet_don_nhap_id: String(detailId),
+      }),
+    { signal },
+  );
+
 export const formatDate = (value) => value ? new Intl.DateTimeFormat('vi-VN').format(new Date(value)) : '—';
 const number = (value) => Number(value || 0);
 const supplier = (item = {}) => ({
@@ -82,8 +91,17 @@ export const payPurchaseOrder = (id, key, body) =>
     },
     body: JSON.stringify(body),
   });
-export const receivePurchaseOrder = (id, body) => adminRequest(`${PATH}/${id}/receive`, { method: 'POST', body: JSON.stringify(body) });
-export const returnPurchaseOrder = (id, key, body) =>
+export const receivePurchaseOrder = (id, key, body) =>
+  adminRequest(
+    `${PATH}/${encodeURIComponent(id)}/receive`,
+    {
+      method: "POST",
+      headers: {
+        "Idempotency-Key": key,
+      },
+      body: JSON.stringify(body),
+    },
+  );export const returnPurchaseOrder = (id, key, body) =>
   adminRequest(`${PATH}/${encodeURIComponent(id)}/returns`, {
     method: "POST",
     headers: {

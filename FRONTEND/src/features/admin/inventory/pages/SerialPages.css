@@ -112,7 +112,7 @@
 .serial-export:hover { background: #292929 !important; }
 
 .serial-table-shell { width: 100%; max-width: 100%; min-width: 0; overflow-x: auto; border: 1px solid #dedede; border-top: 0; background: #fff; }
-.serial-table { width: 100%; min-width: 1050px; border-collapse: collapse; }
+.serial-table { width: 100%; border-collapse: collapse; }
 .serial-table thead { height: 44px; background: #090909; color: #fff; }
 .serial-table th { padding: 0 15px; text-align: left; font-size: 10px; font-weight: 750; letter-spacing: .065em; white-space: nowrap; }
 .serial-table th:first-child { width: 31%; }
@@ -235,4 +235,28 @@
   .serial-info-card dl { grid-template-columns: 1fr; }
   .serial-info-card dl > div { border-right: 0; border-bottom: 1px solid #ededed !important; }
   .serial-info-card dl > div:last-child { border-bottom: 0 !important; }
+}
+
+.serial-status--held {
+  border-color: #e9c46a;
+  background: #fff8df;
+  color: #8a6116;
+}
+
+.serial-status--replaced {
+  border-color: #c7bfdc;
+  background: #f3effa;
+  color: #655080;
+}
+
+.serial-banner--held,
+.serial-stat--held {
+  border-color: #e9c46a;
+  background: #fff8df;
+}
+
+.serial-banner--replaced,
+.serial-stat--replaced {
+  border-color: #c7bfdc;
+  background: #f3effa;
 }

@@ -7,6 +7,7 @@ import com.example.dantruventu.DTO.Response.order.AdminOrderResponse;
 import com.example.dantruventu.DTO.Response.order.AdminSalesResponse;
 import com.example.dantruventu.Enum.*;
 import com.example.dantruventu.Services.order.AdminOrderService;
+import com.example.dantruventu.Services.order.OrderWebSocket;
 import com.example.dantruventu.Services.order.sales.AdminSalesService;
 import jakarta.validation.Valid;
 import java.time.LocalDate;
@@ -24,6 +25,15 @@ public class AdminOrderController {
 
   private final AdminSalesService salesService;
   private final AdminOrderService orderService;
+  private final OrderWebSocket orderWebSocket;
+
+  @PostMapping("/realtime-ticket")
+  public ApiResponse<java.util.Map<String, String>> realtimeTicket(
+      @RequestHeader("Authorization") String authorization) {
+    return ok(
+        "Kết nối cập nhật đơn hàng",
+        java.util.Map.of("ticket", orderWebSocket.issueTicket(authorization.substring(7))));
+  }
 
   @GetMapping
   public ApiResponse<AdminSalesResponse.PageData<AdminOrderResponse.ListItem>> list(

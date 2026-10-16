@@ -87,7 +87,7 @@
 }
 
 .promo-table {
-    width: 100%; min-width: 1000px; border-collapse: collapse;
+    width: 100%; border-collapse: collapse;
 }
 
 .promo-table thead {
@@ -146,32 +146,6 @@
 
 .btn-clear-filters:hover {
     background-color: #f1f1f1 !important;
-}
-
-.promo-pagination {
-    min-height: 62px; display: flex; align-items: center; justify-content: space-between; gap: 18px;
-    padding: 0 28px;
-}
-
-.promo-pagination-info {
-    color: #858c95; font-size: 9px; font-weight: 800; white-space: nowrap; text-transform: uppercase;
-}
-
-.promo-pagination-controls {
-    display: flex; gap: 8px;
-}
-
-.promo-pagination-controls button {
-    width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; background-color: white; border: 1px solid #dedede; font-size: 10px; font-weight: 700;
-    cursor: pointer; color: #111;
-}
-
-.promo-pagination-controls button.active {
-    background-color: #111; color: white; border-color: #111;
-}
-
-.promo-pagination-controls button:disabled {
-    color: #d1d5db; cursor: not-allowed;
 }
 
 .promo-toast {

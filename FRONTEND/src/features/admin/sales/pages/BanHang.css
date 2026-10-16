@@ -95,6 +95,16 @@
 .pos-empty strong { font-size:11px; }
 .pos-empty p { font-size:11px; }
 .pos-right { border-left:2px solid #111; display:flex; flex-direction:column; overflow-y:auto; }
+.pos-promotion-header { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:8px; }
+.pos-promotion-header .pos-heading { margin:0; }
+.pos-promotion-header > button { border:0; background:none; color:var(--color-brand-red); font-size:9px; padding:0; }
+.pos-promotion-card { display:block; width:100%; border:1px solid #e5e7eb; background:white; text-align:left; padding:6px 8px; margin-top:4px; }
+.pos-promotion-card strong { display:block; font-size:11px; font-weight:700; }
+.pos-promotion-card small { display:block; font-size:10px; color:#6b7280; margin-top:2px; }
+.pos-promotion-card.is-selected { background:#0a0a0a; border-color:#0a0a0a; color:white; }
+.pos-promotion-card.is-selected small { color:#ccc; }
+.pos-promotion-note { font-size:10px; color:#6b7280; }
+.pos-gift-row { background:#f0fdf4; }
 .pos-summary { border-bottom:2px solid #111; }
 .pos-summary > div,.pos-discount { display:flex; align-items:center; justify-content:space-between; gap:10px; font-size:11px; margin-top:16px; }
 .pos-summary > div > span,.pos-discount > span:first-child { color:#929ba7; }

@@ -1,9 +1,10 @@
-import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { HiOutlineAdjustments, HiOutlineSearch } from "react-icons/hi";
 import FilterDropdown from "../../../../shared/components/ui/FilterDropdown";
 import TablePagination from "../../../../shared/components/ui/TablePagination";
 import { dateTime, getOrders, label, money } from "../api/orderApi";
+import { subscribeOrderUpdates } from "../api/orderRealtime";
 import "./DanhSachDonHang.css";
 
 const PAGE_SIZE = 10;
@@ -17,6 +18,7 @@ const empty = {
   trang_thai_xuat_kho: "",
   tu_ngay: "",
   den_ngay: "",
+  cho_lau_phut: "",
 };
 const options = {
   loai_don_hang: [
@@ -58,12 +60,16 @@ const selectedLabel = (field, value) =>
 
 export default function DanhSachDonHang() {
   const navigate = useNavigate();
+  const [params] = useSearchParams();
+  const initialFilters = () => Object.fromEntries(Object.keys(empty).map(key => [key, params.get(key) || ""]));
   const [showAdvanced, setShowAdvanced] = useState(false);
-  const [draft, setDraft] = useState(empty);
-  const [filters, setFilters] = useState(empty);
+  const [draft, setDraft] = useState(initialFilters);
+  const [filters, setFilters] = useState(initialFilters);
   const [page, setPage] = useState(1);
   const [data, setData] = useState({ items: [], pagination: {} });
   const [state, setState] = useState({ loading: true, error: "" });
+  const [revision, setRevision] = useState(0);
+  const loadedRequest = useRef(null);
   const request = useMemo(
     () => ({
       ...filters,
@@ -75,14 +81,20 @@ export default function DanhSachDonHang() {
   );
 
   useEffect(() => {
-    const controller = new AbortController();
+    return subscribeOrderUpdates(() => setRevision(value => value + 1));
+  }, []);
 
-    setState({ loading: true, error: "" });
+  useEffect(() => {
+    const controller = new AbortController();
+    const background = loadedRequest.current === request;
+
+    if (!background) setState({ loading: true, error: "" });
 
     const timer = setTimeout(() => {
       getOrders(request, controller.signal)
         .then((result) => {
           if (controller.signal.aborted) return;
+          loadedRequest.current = request;
 
           setData({
             items: result?.items || [],
@@ -93,6 +105,7 @@ export default function DanhSachDonHang() {
         })
         .catch((error) => {
           if (controller.signal.aborted) return;
+          if (background) return;
 
           setData({ items: [], pagination: {} });
           setState({
@@ -106,7 +119,7 @@ export default function DanhSachDonHang() {
       clearTimeout(timer);
       controller.abort();
     };
-  }, [request]);
+  }, [request, revision]);
 
   const updateImmediate = (field, value) => {
     setDraft((current) => ({
@@ -148,6 +161,7 @@ export default function DanhSachDonHang() {
   return (
     <>
       <section className="order-toolbar" aria-label="Bộ lọc đơn hàng">
+        {filters.cho_lau_phut && <p>Đơn chờ từ {filters.cho_lau_phut} phút · chờ duyệt/thanh toán/đóng gói/lấy hàng <button type="button" onClick={() => updateImmediate('cho_lau_phut', '')}>Bỏ lọc chờ lâu</button></p>}
         <div className="order-toolbar__primary">
           <label className="order-search">
             <HiOutlineSearch size={17} />

@@ -1,7 +1,7 @@
 // Tests for point-of-sale state helpers.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { addProduct, closeOrderTab, createOrder, finalizeOrder, findIncompleteSerialLine, findStockIssue, nextOrderNumber, orderTotals, resetOrder, setProductQuantity, updateOrder } from './salesState.js';
+import { addProduct, closeOrderTab, createOrder, finalizeOrder, findIncompleteSerialLine, findStockIssue, giftSerialRequirements, nextOrderNumber, orderTotals, resetOrder, setProductQuantity, updateOrder } from './salesState.js';
 
 const product = { id: 'VGA', vatRate: 10, prices: { retail: 24990000, dealer: 23000000, business: 22000000 } };
 
@@ -44,7 +44,7 @@ test('manual payment survives unrelated changes and recalculates with pricing or
 test('new orders reset defaults without changing existing order data', () => {
   const first = updateOrder(createOrder(1), { cart: addProduct([], product), customer: { id: 'KH004' }, tax: false, priceList: 'dealer', discount: 5, employee: 'Vi Nhật Minh', paymentMethod: 'transfer' });
   const next = createOrder(2);
-  assert.deepEqual(next, { id: 2, code: 'DH-002', customer: null, cart: [], tax: true, priceList: 'retail', employee: null, discount: 0, paymentMethod: 'cash', paid: 0 });
+  assert.deepEqual(next, { id: 2, code: 'DH-002', customer: null, cart: [], tax: true, priceList: 'retail', employee: null, discount: 0, promotion: '', paymentMethod: 'cash', paid: 0 });
   const changed = updateOrder(next, { cart: addProduct([], { ...product, id: 'CPU' }) });
   assert.equal(first.cart[0].product.id, 'VGA');
   assert.equal(first.customer.id, 'KH004');
@@ -113,4 +113,25 @@ test('payment reset retains the tab code, restores every default and preserves t
   assert.equal(receipt.cart.length, 1);
   assert.ok(receipt.total > 0);
   assert.equal(receipt.code, reset.code);
+});
+
+test('server totals include pre-VAT promotion allocation and changing pricing invalidates payment confirmation', () => {
+  const order = { ...createOrder(1), cart: addProduct([], product), promotion: 'SALE', paymentReceived: true,
+    preview: { data: { tong_tien_hang: 100000, tien_chiet_khau: 10000, tong_tien_vat: 9000, tong_thanh_toan: 99000 } }, giftSerials: { gift: [{ id: 1 }] } };
+  assert.deepEqual(orderTotals(order), { subtotal: 100000, discountAmount: 10000, vat: 9000, total: 99000 });
+  assert.equal(updateOrder(order, { note: 'Unrelated' }).preview, order.preview);
+  for (const patch of [{ promotion: 'OTHER' }, { cart: [] }, { tax: false }, { customer: { id: 2 } }]) {
+    const changed = updateOrder(order, patch);
+    assert.equal(changed.preview, null);
+    assert.equal(changed.paymentReceived, false);
+    assert.deepEqual(changed.giftSerials, {});
+  }
+  assert.equal(resetOrder(order).promotion, '');
+});
+
+test('gift serials use server gift row and component IDs, separate from purchased variant IDs', () => {
+  assert.deepEqual(giftSerialRequirements({ san_pham: [
+    { ma_dong: 'd10', la_qua_tang: false, serial_requirements: [{ phien_ban_id: 10, so_luong_can_serial: 1 }] },
+    { ma_dong: 'GIFT-7-20', la_qua_tang: true, serial_requirements: [{ phien_ban_id: 21, so_luong_can_serial: 2 }, { phien_ban_id: 22, so_luong_can_serial: 1 }] },
+  ] }), [{ key: 'GIFT-7-20:21', variantId: 21, quantity: 2 }, { key: 'GIFT-7-20:22', variantId: 22, quantity: 1 }]);
 });

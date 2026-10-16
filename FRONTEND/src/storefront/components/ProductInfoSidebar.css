@@ -166,6 +166,13 @@
   color: #ff0000;
 }
 
+.attr-btn.disabled-attr {
+  opacity: 0.35;
+  cursor: not-allowed;
+  border-color: #222;
+  color: #666;
+}
+
 .info-sidebar-specs-section {
   display: flex;
   flex-direction: column;

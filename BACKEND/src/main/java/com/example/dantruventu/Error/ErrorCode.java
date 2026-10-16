@@ -193,6 +193,52 @@ public enum ErrorCode {
 
   CASH_FLOW_AGGREGATION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "Không tổng hợp được biểu đồ."),
 
+  PC_BUILDER_CONFIGURATION_INVALID(
+      HttpStatus.INTERNAL_SERVER_ERROR,
+      "Không tải được cấu hình hạng mục hoặc cấu hình danh mục không hợp lệ."),
+
+  INVALID_PC_BUILDER_PRODUCTS_FILTER(
+      HttpStatus.BAD_REQUEST,
+      "Hạng mục, giá, phân trang, sắp xếp hoặc đối chiếu socket không hợp lệ."),
+
+  PC_BUILDER_REFERENCE_NOT_FOUND(HttpStatus.NOT_FOUND, "Phiên bản đối chiếu không tồn tại."),
+
+  PC_BUILDER_REFERENCE_DISCONTINUED(HttpStatus.CONFLICT, "Phiên bản đối chiếu đã ngừng bán."),
+
+  PC_BUILDER_REFERENCE_SOCKET_MISSING(HttpStatus.CONFLICT, "Thiếu socket để lọc chính xác."),
+
+  PC_BUILDER_PRODUCTS_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "Lỗi hệ thống hoặc cấu hình kho."),
+
+  INVALID_PC_BUILDER_PREVIEW(
+      HttpStatus.BAD_REQUEST,
+      "Sai cấu trúc, hạng mục trùng, phiên bản đặt sai hạng mục hoặc số lượng không phải số nguyên dương."),
+
+  PC_BUILDER_PREVIEW_VARIANT_NOT_FOUND(HttpStatus.NOT_FOUND, "Phiên bản không tồn tại."),
+
+  PC_BUILDER_PREVIEW_UNAVAILABLE(
+      HttpStatus.CONFLICT,
+      "Sản phẩm/phiên bản vừa ngừng hoạt động hoặc hạng mục không còn cho phép sản phẩm đó."),
+
+  PC_BUILDER_PREVIEW_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "Không kiểm tra được cấu hình."),
+
+  INVALID_CART_PC_BUILD(
+      HttpStatus.BAD_REQUEST,
+      "Cấu hình rỗng, DTO sai, thiếu khóa chống lặp hoặc thiếu đơn giá đối chiếu."),
+  CART_PC_BUILD_DISCONTINUED(HttpStatus.CONFLICT, "Sản phẩm hoặc phiên bản đã ngừng bán."),
+  CART_PC_BUILD_PRICE_CHANGED(
+      HttpStatus.CONFLICT, "Giá đã thay đổi. Vui lòng kiểm tra lại cấu hình."),
+  CART_PC_BUILD_SOCKET_INVALID(
+      HttpStatus.CONFLICT, "CPU và MAIN không khớp hoặc thiếu dữ liệu socket."),
+  CART_PC_BUILD_INSUFFICIENT_STOCK(
+      HttpStatus.CONFLICT, "Tổng số lượng sau cộng giỏ vượt số lượng có thể bán."),
+  CART_PC_BUILD_IDEMPOTENCY_CONFLICT(
+      HttpStatus.CONFLICT, "Cùng Idempotency-Key nhưng nội dung khác."),
+  GUEST_CART_EXPIRED(HttpStatus.CONFLICT, "Phiên giỏ khách đã hết hạn. Vui lòng tải lại giỏ hàng."),
+  CART_CONCURRENT_CHANGE(
+      HttpStatus.CONFLICT,
+      "Giỏ hàng đã thay đổi đồng thời. Vui lòng gửi lại với cùng Idempotency-Key."),
+  CART_PC_BUILD_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "Không cập nhật được toàn bộ giỏ."),
+
   INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "Đã xảy ra lỗi hệ thống");
 
   private final HttpStatus status;

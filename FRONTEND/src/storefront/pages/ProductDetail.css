@@ -114,3 +114,15 @@
     padding-right: 20px;
   }
 }
+
+.product-detail-status {
+  min-height: 320px;
+  display: grid;
+  place-items: center;
+  padding: 40px 20px;
+  text-align: center;
+}
+
+.product-detail-status--error {
+  color: #c51d25;
+}

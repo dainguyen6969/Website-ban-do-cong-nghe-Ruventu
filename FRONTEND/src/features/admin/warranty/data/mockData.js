@@ -1,3 +1,8 @@
+export const warrantyStatusLabels = {
+  TIEP_NHAN: 'TIẾP NHẬN', DANG_KIEM_TRA: 'ĐANG KIỂM TRA', DA_GUI_BAO_HANH: 'ĐÃ GỬI BẢO HÀNH',
+  DANG_BAO_HANH: 'ĐANG BẢO HÀNH', DA_NHAN_LAI: 'ĐÃ NHẬN LẠI', HOAN_TAT: 'HOÀN TẤT',
+};
+
 export const progressSteps = [
   'TIẾP NHẬN',
   'ĐANG KIỂM TRA',
@@ -118,3 +123,52 @@ export const statusColors = {
   'ĐÃ NHẬN LẠI': { color: '#00a3bf', border: '#00a3bf' },
   'HOÀN TẤT': { color: '#555', border: '#555' }
 };
+
+// Mock-only examples for the new processing, quotation and settlement layouts.
+const demoTickets = [
+  ['Nguyễn Minh An', 'Card đồ họa RTX4080', '16GB OC', 'RUV-RTX4080-101', 'TIẾP NHẬN', '', '', 'Không cần hoàn'],
+  ['Trần Quốc Bình', 'Chuột không dây 2.4GHz', 'Đen', '', 'ĐANG KIỂM TRA', 'Bản nháp', '', 'Không cần hoàn'],
+  ['Lê Phương Chi', 'Ổ cứng SSD NVMe', '2TB', 'RUV-SSD2T-103', 'ĐANG KIỂM TRA', 'Chờ khách phản hồi', '', 'Không cần hoàn'],
+  ['Phạm Anh Dũng', 'Bàn phím cơ', 'Brown Switch', 'RUV-KBBRN-104', 'CHỜ TRẢ KHÁCH', 'Khách đã từ chối', 'Không phát sinh phí', 'Không cần hoàn'],
+  ['Đặng Thu Hà', 'Ổ cứng SSD NVMe', '1TB', 'RUV-SSD1T-105', 'ĐANG KIỂM TRA', 'Hết hiệu lực', '', 'Không cần hoàn'],
+  ['Vũ Gia Huy', 'Card đồ họa RTX4080', '16GB OC', 'RUV-RTX4080-106', 'ĐÃ GỬI BẢO HÀNH', '', 'Không phát sinh phí', 'Không cần hoàn'],
+  ['Hoàng Ngọc Khang', 'RAM DDR5', '16GB', 'RUV-RAM16-107', 'ĐANG BẢO HÀNH', 'Khách đã đồng ý', 'Thanh toán một phần', 'Không cần hoàn'],
+  ['Bùi Đức Lâm', 'Ổ cứng SSD NVMe', '1TB', 'RUV-SSD1T-108', 'ĐÃ NHẬN LẠI', '', 'Không phát sinh phí', 'Không cần hoàn'],
+  ['Ngô Mai Linh', 'Ổ cứng SSD NVMe', '2TB', 'RUV-SSD2T-109', 'CHỜ TRẢ KHÁCH', 'Khách đã đồng ý', 'Đã thanh toán', 'Không cần hoàn'],
+  ['Lý Bảo Nam', 'Ổ cứng SSD NVMe', '2TB', 'RUV-SSD2T-110', 'CHỜ ĐỔI SẢN PHẨM', '', 'Không phát sinh phí', 'Không cần hoàn'],
+  ['Đỗ Thanh Oanh', 'Card đồ họa RTX4080', '16GB OC', 'RUV-RTX4080-111', 'CHỜ ĐỔI SẢN PHẨM', 'Khách đã đồng ý', 'Chưa thanh toán', 'Không cần hoàn'],
+  ['Trịnh Minh Phúc', 'RAM DDR5', '16GB', 'RUV-RAM16-112-OLD', 'HOÀN TẤT', 'Khách đã đồng ý', 'Hóa đơn đã hủy', 'Chờ hoàn tiền', 50000],
+  ['Nguyễn Khánh Quỳnh', 'Ổ cứng SSD NVMe', '1TB', 'RUV-SSD1T-113', 'HOÀN TẤT', 'Khách đã đồng ý', 'Hóa đơn đã hủy', 'Hoàn tiền một phần', 30000],
+  ['Phan Tuấn Sơn', 'Chuột không dây 2.4GHz', 'Đen', '', 'HOÀN TẤT', 'Khách đã đồng ý', 'Hóa đơn đã hủy', 'Đã hoàn tiền', 0],
+];
+
+mockWarrantyData.push(...demoTickets.map(([customerName, productName, productVariant, serial, status, quoteStatus, paymentStatus, refundStatus, remainingRefund], index) => {
+  const number = index + 101;
+  const day = String(index + 1).padStart(2, '0');
+  return {
+    id: `BH-${number}`, orderId: `ORD-DEMO-${number}`, customerName, customerPhone: `0901000${number}`,
+    productName, productVariant, serial, trackingCode: `TB-DEMO-${number}`, status,
+    serialStatus: status, quoteStatus, paymentStatus, refundStatus, remainingRefund,
+    created: `${day}/10/2026 09:00`, updated: `${day}/10/2026 11:00`,
+    receptionReason: 'Thiết bị hoạt động không ổn định khi sử dụng.',
+    receptionCondition: 'Đã kiểm tra tình trạng bên ngoài và phụ kiện khi nhận.',
+    receptionUnit: 'Bàn kiểm thử Ruventu', receptionNote: '',
+    custodyName: 'Bàn kiểm thử Ruventu', custodyType: 'Cửa hàng',
+    eligibility: 'Đủ điều kiện miễn phí', verification: 'Đối chiếu đơn gốc, tem và tình trạng vật lý khi nhận.',
+    warrantyExpiry: '30/09/2029', expiryBasis: 'Ngày giao thành công của đơn hàng gốc',
+    accessories: ['Hộp thiết bị × 1'], pendingSettlement: number === 110 || number === 112,
+    history: [],
+  };
+}));
+mockWarrantyData.sort((a, b) => a.id.localeCompare(b.id));
+
+Object.assign(mockWarrantyData.find(item => item.id === 'BH-001'), {
+  quoteStatus: 'Bản nháp', paymentStatus: 'Thanh toán một phần', refundStatus: 'Không cần hoàn',
+  quotes: [
+    { version: 1, status: 'Khách đã đồng ý', amount: 100000, note: 'Kiểm tra và xử lý lỗi kết nối' },
+    { version: 2, status: 'Hết hiệu lực', amount: 150000, note: 'Phương án sửa chữa trước' },
+    { version: 3, status: 'Bản nháp', amount: 175000, note: 'Phương án sửa thay thế đang soạn' },
+  ],
+  invoices: [{ code: 'BH-INV-3801', version: 'Chưa có dữ liệu', total: 150000, paid: 50000, due: 100000, refund: 0 }],
+  canceledInvoices: [{ code: 'BH-INV-3802', version: 1, total: 50000, paid: 50000, refunded: 0, refund: 50000 }],
+});

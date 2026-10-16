@@ -14,26 +14,26 @@ import com.example.dantruventu.DTO.Request.order.CustomerCheckoutRequest;
 import com.example.dantruventu.DTO.Request.order.CustomerOrderRequest;
 import com.example.dantruventu.DTO.Response.PaginationResponse;
 import com.example.dantruventu.DTO.Response.order.CustomerOrderResponse;
+import com.example.dantruventu.Entity.AnhSanPham;
 import com.example.dantruventu.Entity.ChiTietDonHang;
 import com.example.dantruventu.Entity.DonHang;
 import com.example.dantruventu.Entity.GioHang;
 import com.example.dantruventu.Entity.NguoiDung;
 import com.example.dantruventu.Entity.SoDiaChi;
-import com.example.dantruventu.Enum.LoaiDonHang;
-import com.example.dantruventu.Enum.TrangThaiDonHang;
-import com.example.dantruventu.Enum.TrangThaiDongGoi;
-import com.example.dantruventu.Enum.TrangThaiThanhToanDonHang;
-import com.example.dantruventu.Enum.TrangThaiXuatKho;
+import com.example.dantruventu.Enum.*;
 import com.example.dantruventu.Error.AppException;
 import com.example.dantruventu.Error.ErrorCode;
 import com.example.dantruventu.Repository.GioHangRepository;
+import com.example.dantruventu.Repository.NguoiDungRepository;
 import com.example.dantruventu.Repository.SoDiaChiRepository;
 import com.example.dantruventu.Repository.order.ChiTietDonHangRepository;
 import com.example.dantruventu.Repository.order.DonHangRepository;
 import com.example.dantruventu.Repository.order.PhieuGiaoHangRepository;
+import com.example.dantruventu.Repository.product.AnhSanPhamRepository;
 import com.example.dantruventu.Repository.warehouse.SoSerialSanPhamRepository;
 import com.example.dantruventu.Repository.warehouse.ThanhPhanComboRepository;
 import com.example.dantruventu.Services.cashbook.CashbookService;
+import com.example.dantruventu.Services.catalog.CatalogSupport;
 import com.example.dantruventu.Services.order.sales.SalesCalculationService;
 import com.example.dantruventu.Services.order.sales.SalesContext;
 import java.math.BigDecimal;
@@ -73,9 +73,12 @@ public class CustomerOrderService {
   private static final Duration IDEMPOTENCY_TTL = Duration.ofHours(24);
 
   private final GioHangRepository cartRepository;
+  private final NguoiDungRepository cartOwnerRepository;
   private final SoDiaChiRepository addressRepository;
   private final DonHangRepository orderRepository;
+  private final OrderEvents orderEvents;
   private final ChiTietDonHangRepository orderLineRepository;
+  private final AnhSanPhamRepository imageRepository;
   private final PhieuGiaoHangRepository deliveryRepository;
   private final SoSerialSanPhamRepository serialRepository;
   private final ThanhPhanComboRepository comboComponentRepository;
@@ -86,6 +89,7 @@ public class CustomerOrderService {
   private final ObjectMapper objectMapper;
   private final AdminOrderService adminOrderService;
   private final CashbookService cashbookService;
+  private final CatalogSupport catalogSupport;
 
   @Value("${ruventu.order.delivery-fee:30000}")
   private BigDecimal deliveryFee;
@@ -259,6 +263,7 @@ public class CustomerOrderService {
     }
 
     registerCartCleanupAfterCommit(user, guestCartId, cartLines);
+    orderEvents.changed(order.getId(), "CREATED");
 
     return CustomerOrderResponse.Created.builder()
         .id(order.getId())
@@ -350,24 +355,60 @@ public class CustomerOrderService {
             .orElseThrow(
                 () -> notFound("Đơn hàng không tồn tại hoặc không thuộc khách hàng hiện tại"));
 
+    List<ChiTietDonHang> lines = orderLineRepository.findByDonHang_IdOrderByIdAsc(order.getId());
+    List<Long> productIds =
+        lines.stream().map(line -> line.getPhienBan().getSanPham().getId()).distinct().toList();
+    Map<Long, AnhSanPham> images = new LinkedHashMap<>();
+    if (!productIds.isEmpty()) {
+      for (AnhSanPham image :
+          imageRepository.findBySanPhamIdInOrderByThuTuHienThiAscIdAsc(productIds)) {
+        Long productId = image.getSanPham().getId();
+        AnhSanPham current = images.get(productId);
+        if (current == null
+            || (!Boolean.TRUE.equals(current.getLaAnhChinh())
+                && Boolean.TRUE.equals(image.getLaAnhChinh()))) {
+          images.put(productId, image);
+        }
+      }
+    }
+
+    var comboParts =
+        catalogSupport.comboParts(
+            lines.stream()
+                .filter(
+                    line -> line.getPhienBan().getSanPham().getLoaiSanPham() == LoaiSanPham.BO_PC)
+                .map(line -> line.getPhienBan().getSanPham().getId())
+                .distinct()
+                .toList());
+
     List<CustomerOrderResponse.DetailProduct> products =
-        orderLineRepository.findByDonHang_IdOrderByIdAsc(order.getId()).stream()
+        lines.stream()
             .map(
-                line ->
-                    CustomerOrderResponse.DetailProduct.builder()
-                        .chiTietDonHangId(line.getId())
-                        .phienBanId(line.getPhienBan().getId())
-                        .tenSanPham(line.getPhienBan().getSanPham().getTenSanPham())
-                        .tenPhienBan(line.getPhienBan().getTenPhienBan())
-                        .soLuong(line.getSoLuong())
-                        .donGia(line.getDonGia())
-                        .thanhTien(line.getThanhTien())
-                        // ERD hiện không lưu snapshot VAT/chiết khấu theo từng dòng.
-                        .thueVat(null)
-                        .tienChietKhau(null)
-                        .tienVat(null)
-                        .quanLySerial(calculationService.usesSerial(line.getPhienBan().getId()))
-                        .build())
+                line -> {
+                  var variant = line.getPhienBan();
+                  var product = variant.getSanPham();
+                  var image = images.get(product.getId());
+
+                  return CustomerOrderResponse.DetailProduct.builder()
+                      .chiTietDonHangId(line.getId())
+                      .phienBanId(variant.getId())
+                      .anhDaiDien(image == null ? null : image.getDuongDanAnh())
+                      .tenSanPham(product.getTenSanPham())
+                      .tenPhienBan(variant.getTenPhienBan())
+                      .loaiSanPham(product.getLoaiSanPham())
+                      .soLuong(line.getSoLuong())
+                      .donGia(line.getDonGia())
+                      .thanhTien(line.getThanhTien())
+                      .thueVat(null)
+                      .tienChietKhau(null)
+                      .tienVat(null)
+                      .quanLySerial(calculationService.usesSerial(variant.getId()))
+                      .thanhPhan(
+                          catalogSupport.partsForQuantity(
+                              comboParts.getOrDefault(product.getId(), List.of()),
+                              line.getSoLuong()))
+                      .build();
+                })
             .toList();
 
     List<CustomerOrderResponse.Serial> serials =
@@ -525,6 +566,16 @@ public class CustomerOrderService {
   }
 
   private List<CartLine> loadUserCartLines(Long userId, List<Long> selectedIds, boolean lock) {
+
+    if (lock) {
+      var owner =
+          cartOwnerRepository
+              .findForCartUpdate(userId)
+              .orElseThrow(() -> new AppException(ErrorCode.UNAUTHORIZED_TOKEN));
+      if (owner.getTrangThai() != com.example.dantruventu.Enum.TrangThaiCoBanEnum.HOAT_DONG) {
+        throw new AppException(ErrorCode.ACCOUNT_LOCKED_OR_FORBIDDEN);
+      }
+    }
 
     List<GioHang> cartItems =
         lock

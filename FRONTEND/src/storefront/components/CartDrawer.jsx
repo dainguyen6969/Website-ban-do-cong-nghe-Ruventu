@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { X, Trash2 } from 'lucide-react';
 import { cartService } from '../../shared/services/cartService';
 import './CartDrawer.css';
@@ -7,6 +7,7 @@ import './CartDrawer.css';
 const formatPrice = (price) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(price);
 
 const CartDrawer = ({ isOpen, onClose }) => {
+  const navigate = useNavigate();
   const [cartData, setCartData] = useState({ items: [], totalAmount: 0, totalQuantity: 0 });
 
   const loadCart = async () => {
@@ -56,6 +57,19 @@ const CartDrawer = ({ isOpen, onClose }) => {
     } catch (err) {
       alert(err.response?.data?.message || 'Lỗi cập nhật số lượng');
     }
+  };
+
+  const handleCheckout = () => {
+    if (!cartData.items || cartData.items.length === 0) return;
+    onClose();
+    navigate('/checkout', {
+      state: { cartItemIds: cartData.items.map(i => i.cartItemId) }
+    });
+  };
+
+  const handleViewCart = () => {
+    onClose();
+    navigate('/cart');
   };
 
   return (
@@ -114,17 +128,21 @@ const CartDrawer = ({ isOpen, onClose }) => {
             * Miễn phí vận chuyển cho đơn từ 500.000đ
           </div>
           <div className="cart-drawer-actions">
-            <Link 
-              to="/checkout" 
-              onClick={onClose} 
-              style={{textDecoration: 'none'}}
-              state={{ cartItemIds: cartData.items.map(i => i.cartItemId) }}
+            <button
+              type="button"
+              className="btn-checkout"
+              onClick={handleCheckout}
+              disabled={!cartData.items || cartData.items.length === 0}
             >
-              <button className="btn-checkout">THANH TOÁN NGAY &rarr;</button>
-            </Link>
-            <Link to="/cart" onClick={onClose} style={{textDecoration: 'none'}}>
-              <button className="btn-view-cart">XEM GIỎ HÀNG &rarr;</button>
-            </Link>
+              THANH TOÁN NGAY &rarr;
+            </button>
+            <button
+              type="button"
+              className="btn-view-cart"
+              onClick={handleViewCart}
+            >
+              XEM GIỎ HÀNG &rarr;
+            </button>
           </div>
         </div>
       </div>

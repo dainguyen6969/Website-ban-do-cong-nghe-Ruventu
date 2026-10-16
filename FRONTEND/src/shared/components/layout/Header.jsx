@@ -20,12 +20,22 @@ const routeTitleMap = {
 
 import useMockAuth from '../../../auth/useMockAuth';
 
+const DAYS_VN = ['Ch\u1ee7 Nh\u1eadt', 'Th\u1ee9 Hai', 'Th\u1ee9 Ba', 'Th\u1ee9 T\u01b0', 'Th\u1ee9 N\u0103m', 'Th\u1ee9 S\u00e1u', 'Th\u1ee9 B\u1ea3y'];
+function getLiveDate() {
+  const now = new Date();
+  const d = String(now.getDate()).padStart(2, '0');
+  const m = String(now.getMonth() + 1).padStart(2, '0');
+  return DAYS_VN[now.getDay()] + ', ' + d + '/' + m + '/' + now.getFullYear();
+}
+
 export default function Header({ notificationCount = 0, onMenuToggle, isMenuOpen = false }) {
   const location = useLocation();
   const { currentAccount } = useMockAuth();
   
   // Find current top-level route title
   const currentPath = location.pathname;
+  const isWarrantyCreate = ['/admin/bao-hanh/lap-phieu', '/admin/bao-hanh/tao-moi'].includes(currentPath);
+  const isWarrantyDetail = !isWarrantyCreate && currentPath !== '/admin/bao-hanh/danh-sach' && /^\/admin\/bao-hanh\/(?:chi-tiet\/)?[^/]+$/.test(currentPath);
   const isInventoryDetail = currentPath.startsWith('/kho-hang/quan-ly-phien-ban/chi-tiet/');
   const isVersionManagement = currentPath === '/kho-hang/quan-ly-phien-ban';
   const isSerialDetail = currentPath.startsWith('/kho-hang/danh-sach-serial/');
@@ -72,7 +82,13 @@ export default function Header({ notificationCount = 0, onMenuToggle, isMenuOpen
             ADMIN
           </span>
           <span className="header__breadcrumb-sep" aria-hidden="true">›</span>
-          {isCategoryDetail ? (
+          {isWarrantyDetail || isWarrantyCreate ? (
+            <>
+              <span className="header__breadcrumb-item header__breadcrumb-item--muted">BẢO HÀNH</span>
+              <span className="header__breadcrumb-sep" aria-hidden="true">›</span>
+              <span className="header__breadcrumb-item header__breadcrumb-item--active">{isWarrantyCreate ? 'LẬP PHIẾU BẢO HÀNH' : 'CHI TIẾT PHIẾU BẢO HÀNH'}</span>
+            </>
+          ) : isCategoryDetail ? (
             <>
               <span className="header__breadcrumb-item header__breadcrumb-item--muted">DANH MỤC SẢN PHẨM</span>
               <span className="header__breadcrumb-sep" aria-hidden="true">›</span>
@@ -183,7 +199,7 @@ export default function Header({ notificationCount = 0, onMenuToggle, isMenuOpen
       <div className="header__right">
         {/* Date */}
         <div className="header__group">
-          <span className="header__date">Thứ Bảy, 31/08/2024</span>
+          <span className="header__date">{getLiveDate()}</span>
         </div>
 
         <div className="header__divider" aria-hidden="true" />
@@ -206,12 +222,21 @@ export default function Header({ notificationCount = 0, onMenuToggle, isMenuOpen
         <div className="header__divider" aria-hidden="true" />
 
         {/* User info */}
-        <div className="header__group header__user">
-          <div className="header__user-avatar">
-            <HiOutlineUser size={18} />
-          </div>
-          <span className="header__user-name">{currentAccount?.name || currentAccount?.ho_ten || currentAccount?.hoTen || 'Người dùng'}</span>
-        </div>
+        {(() => {
+          const user = currentAccount || (() => {
+            try { return JSON.parse(localStorage.getItem('user') || 'null'); } catch { return null; }
+          })();
+          const displayName = user?.name || user?.ho_ten || user?.hoTen || user?.email || 'Admin';
+          const userInitial = (displayName.trim().charAt(0) || 'A').toUpperCase();
+          return (
+            <div className="header__group header__user">
+              <div className="header__user-avatar" aria-label={`Tài khoản ${displayName}`} title={displayName}>
+                <span className="header__user-initial">{userInitial}</span>
+              </div>
+              <span className="header__user-name">{displayName}</span>
+            </div>
+          );
+        })()}
 
         {/* Red accent bar */}
         <div className="header__accent-bar" aria-hidden="true" />

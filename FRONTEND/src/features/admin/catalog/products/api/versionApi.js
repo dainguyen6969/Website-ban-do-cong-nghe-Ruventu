@@ -59,16 +59,36 @@ export async function getAllVersions(
   warehouseId,
   signal,
   includeCombos = true,
+  warning = '',
 ) {
   const [warehouses, items] = await Promise.all([
     getWarehouses(signal),
     allPages('/api/v1/admin/inventory/items', {
-      loai_doi_tuong: includeCombos ? 'ALL' : 'PHIEN_BAN',
+      loai_doi_tuong: includeCombos && !warning ? 'ALL' : 'PHIEN_BAN',
       ...(warehouseId
         ? { kho_hang_id: String(warehouseId) }
         : {}),
     }, signal),
   ]);
+
+  let matchedItems = items;
+  if (warning) {
+    const candidates = items.filter(item => warning === 'HET_HANG' ? Number(item.ton_co_the_ban) <= 0 : item.canh_bao);
+    matchedItems = [];
+    const products = new Map();
+    // ponytail: DTO danh sách thiếu mức tối thiểu/trạng thái; đọc chi tiết 10 mục/lượt cho bộ lọc cảnh báo, bỏ khi BE trả đủ field.
+    for (let start = 0; start < candidates.length; start += 10) {
+      const batch = await Promise.all(candidates.slice(start, start + 10).map(async item => {
+        const detail = await request(`/api/v1/admin/inventory/items/${item.doi_tuong_id}?loai_doi_tuong=PHIEN_BAN`, { signal });
+        const productId = detail.phien_ban.san_pham_id;
+        if (!products.has(productId)) products.set(productId, request(`/api/v1/admin/products/${productId}`, { signal }));
+        const product = await products.get(productId);
+        const below = detail.ton_kho_theo_kho.some(stock => (!warehouseId || String(stock.kho_hang_id) === String(warehouseId)) && stock.muc_ton_toi_thieu != null && Number(stock.ton_co_the_ban) < Number(stock.muc_ton_toi_thieu));
+        return Number(detail.phien_ban.trang_thai) === 1 && Number(product.trang_thai) === 1 && (warning === 'HET_HANG' || below) ? item : null;
+      }));
+      matchedItems.push(...batch.filter(Boolean));
+    }
+  }
 
   const selectedWarehouse = warehouses.find(
     (item) => item.id === Number(warehouseId),
@@ -79,7 +99,7 @@ export async function getAllVersions(
 
   return {
     warehouses,
-    versions: items.map((item) => {
+    versions: matchedItems.map((item) => {
       const combo = item.loai_doi_tuong === 'COMBO';
 
       return {
@@ -173,11 +193,22 @@ export async function getVersionLedger(filters, signal) {
 }
 
 export async function getEditableVersions(productId, signal) {
-  const item = await request(`/api/v1/admin/products/${encodeURIComponent(productId)}`, { signal });
-  return (item.danh_sach_phien_ban || []).map((variant) => ({
-    id: Number(variant.id), name: variant.ten_phien_ban || 'Mặc định', sku: variant.ma_vach || '',
-    giaBanLe: Number(variant.gia_ban_le || 0), giaNhap: Number(variant.gia_nhap || 0),
-    khoiLuong: variant.khoi_luong == null ? '' : String(variant.khoi_luong), trangThai: Number(variant.trang_thai),
+  const item = await request(
+    `/api/v1/admin/products/${encodeURIComponent(productId)}`,
+    { signal },
+  );
+
+  return (item.danh_sach_phien_ban || []).map(variant => ({
+    id: Number(variant.id),
+    name: variant.ten_phien_ban || '',
+    sku: variant.ma_vach || '',
+    giaBanLe: Number(variant.gia_ban_le ?? 0),
+    giaNhap: Number(variant.gia_nhap ?? 0),
+    khoiLuong: variant.khoi_luong == null ? '' : String(variant.khoi_luong),
+    trangThai: Number(variant.trang_thai),
+    serialMode: variant.co_quan_ly_serial,
+    serialModeLocked: Boolean(variant.che_do_serial_bi_khoa),
+    attributes: variant.thuoc_tinh_phien_ban || [],
   }));
 }
 

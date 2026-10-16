@@ -17,6 +17,7 @@ import {
   updateCombo,
 } from "../api/comboApi";
 import fallbackImage from "../../../../../assets/hero.png";
+import { WarrantySummary } from "../../components/CatalogPolicies";
 import "./ComboSanPham.css";
 
 const money = (value) => `${Number(value || 0).toLocaleString("vi-VN")}đ`;
@@ -143,6 +144,7 @@ export default function ThemComboSanPham() {
     active: true,
     vat: false,
     vatRate: "10",
+    weight: "",
   });
   const [errors, setErrors] = useState({});
   const [images, setImages] = useState([]);
@@ -197,8 +199,9 @@ export default function ThemComboSanPham() {
           description: combo.description,
           category: String(combo.categoryId || ""),
           brand: String(combo.brandId || ""),
-          retail: String(combo.price / 1000),
-          cost: String(combo.cost / 1000),
+          retail: String(combo.price),
+          cost: String(combo.cost),
+          weight: String(combo.weight ?? ""),
           active: !String(combo.status).startsWith("Ng"),
           vat: combo.vat > 0,
           vatRate: String(combo.vat || 10),
@@ -248,11 +251,8 @@ export default function ThemComboSanPham() {
   }, [products, search, components]);
 
   const addComponent = (product) => {
-    if (
-      !isActive(product) ||
-      Number(product.coTheBan ?? product.tonKho ?? 0) <= 0
-    )
-      return;
+    if (configurationLocked || !isActive(product)) return;
+
     const variant = product.variants?.[0] || {};
     setComponents((prev) => [
       ...prev,
@@ -267,6 +267,8 @@ export default function ThemComboSanPham() {
         price: Number(variant.giaBanLe || product.giaBanLe || 0),
         stock: Number(product.coTheBan ?? product.tonKho ?? 0),
         qty: 1,
+        warrantyMonths: product.warrantyMonths,
+        serialMode: product.serialMode,
       },
     ]);
     setSearch("");
@@ -337,8 +339,19 @@ export default function ThemComboSanPham() {
       next.components = "Vui lòng chọn ít nhất một thành phần.";
     if (!form.retail || Number(form.retail) <= 0)
       next.retail = "Giá bán lẻ phải lớn hơn 0.";
-    if (!form.cost || Number(form.cost) <= 0)
-      next.cost = "Giá nhập phải lớn hơn 0.";
+    if (
+      form.cost !== "" &&
+      (!Number.isFinite(Number(form.cost)) || Number(form.cost) < 0)
+    ) {
+      next.cost = "Giá nhập không được âm.";
+    }
+
+    if (
+      form.weight !== "" &&
+      (!Number.isFinite(Number(form.weight)) || Number(form.weight) < 0)
+    ) {
+      next.weight = "Khối lượng không được âm.";
+    }
     if (form.vat && (Number(form.vatRate) < 0 || Number(form.vatRate) > 100))
       next.vatRate = "Thuế VAT phải từ 0 đến 100.";
     const duplicate = tags.some(
@@ -529,10 +542,6 @@ export default function ThemComboSanPham() {
               </p>
             )}
 
-            <fieldset
-              disabled={configurationLocked}
-              style={{ border: 0, padding: 0, margin: 0 }}
-            ></fieldset>
             <p className="combo-help">
               Chọn các phiên bản sản phẩm được sử dụng để cấu thành Combo.
             </p>
@@ -550,9 +559,7 @@ export default function ThemComboSanPham() {
               {searchOpen && (
                 <div className="component-results">
                   {searchResults.map((product) => {
-                    const available =
-                      isActive(product) &&
-                      Number(product.coTheBan ?? product.tonKho ?? 0) > 0;
+                    const available = isActive(product) && !configurationLocked;
                     const variant = product.variants?.[0] || {};
                     return (
                       <div
@@ -692,6 +699,7 @@ export default function ThemComboSanPham() {
                                   ),
                                 )
                               }
+                              disabled={configurationLocked}
                             >
                               XÓA
                             </button>
@@ -704,6 +712,11 @@ export default function ThemComboSanPham() {
               </div>
             )}
           </FormCard>
+          <WarrantySummary
+            isCombo
+            components={components}
+            capacity={components.length ? bottleneck : null}
+          />
           <FormCard title="Giá">
             <div className="variant-fields">
               <div className="combo-field">
@@ -733,6 +746,18 @@ export default function ThemComboSanPham() {
                   <span>đ</span>
                 </div>
                 {errors.cost && <small>{errors.cost}</small>}
+              </div>
+              <div className="combo-field">
+                <label>KHỐI LƯỢNG (KG)</label>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  className={fieldClass(errors.weight)}
+                  value={form.weight}
+                  onChange={(event) => update("weight", event.target.value)}
+                />
+                {errors.weight && <small>{errors.weight}</small>}
               </div>
             </div>
           </FormCard>
