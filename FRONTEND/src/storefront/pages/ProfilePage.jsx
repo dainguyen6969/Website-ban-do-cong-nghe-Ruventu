@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { VIETNAM_LOCATIONS } from "../../data/vietnamLocations";
 import { useNavigate, useLocation } from "react-router-dom";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
@@ -121,7 +122,12 @@ const ProfilePage = () => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    if (name === "city") {
+      const defaultWard = VIETNAM_LOCATIONS[value]?.[0] || "";
+      setFormData((prev) => ({ ...prev, city: value, ward: defaultWard }));
+    } else {
+      setFormData((prev) => ({ ...prev, [name]: value }));
+    }
   };
 
   const renderProfileTab = () => (
@@ -208,9 +214,9 @@ const ProfilePage = () => {
                   : "input-disabled select-disabled"
               }
             >
-              <option>Hà Nội</option>
-              <option>TP. Hồ Chí Minh</option>
-              <option>Đà Nẵng</option>
+              {Object.keys(VIETNAM_LOCATIONS).map((prov) => (
+                <option key={prov} value={prov}>{prov}</option>
+              ))}
             </select>
           </div>
           <div className="form-group">
@@ -226,9 +232,9 @@ const ProfilePage = () => {
                   : "input-disabled select-disabled"
               }
             >
-              <option>Cầu Giấy</option>
-              <option>Đống Đa</option>
-              <option>Thanh Xuân</option>
+              {(VIETNAM_LOCATIONS[formData.city] || []).map((w) => (
+                <option key={w} value={w}>{w}</option>
+              ))}
             </select>
           </div>
         </div>

@@ -27,7 +27,7 @@ const ProductSpecsTabs = ({ product }) => {
             {product?.fullSpecs && product.fullSpecs.length > 0 ? (
               <div className="custom-specs-card">
                 <div className="spec-card-header">
-                  THÔNG SỐ KỸ THUẬT — {product.category?.toUpperCase() || 'SẢN PHẨM'}
+                  THÔNG SỐ KỸ THUẬT — {product.name?.toUpperCase() || 'SẢN PHẨM'}
                 </div>
                 <div className="spec-card-body custom-specs-grid">
                   {product.fullSpecs.map((spec, index) => (

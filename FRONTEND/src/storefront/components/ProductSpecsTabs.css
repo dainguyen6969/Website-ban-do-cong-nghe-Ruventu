@@ -30,7 +30,7 @@
 }
 
 .tab-content {
-  padding: 40px 0;
+  padding: 16px 0;
   background-color: #0a0a0a;
 }
 
@@ -112,26 +112,40 @@
   background-color: #121212;
   border: 1px solid #222;
   overflow: hidden;
-  max-width: 1000px;
-  margin: 0 auto;
+  max-width: 460px;
+  margin: 0;
 }
 
 .custom-specs-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 16px 32px;
-  padding: 20px 24px;
-}
-
-@media (max-width: 768px) {
-  .custom-specs-grid {
-    grid-template-columns: 1fr;
-  }
+  display: flex;
+  flex-direction: column;
+  padding: 0;
 }
 
 .custom-spec-row {
-  font-size: 13px;
-  padding-bottom: 10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+  padding: 7px 16px;
+  border-bottom: 1px solid #1e1e1e;
+}
+
+.custom-spec-row:last-child {
+  border-bottom: none;
+}
+
+.custom-spec-row .spec-name {
+  color: #888;
+  font-weight: 500;
+  flex: 0 0 40%;
+}
+
+.custom-spec-row .spec-val {
+  color: #e2e8f0;
+  font-weight: 600;
+  text-align: right;
+  flex: 1;
 }
 
 /* Ensure red bar extends across screen for tabs bottom edge as shown in screenshot */
@@ -141,55 +155,72 @@
 }
 
 .desc-content {
-  background-color: #fff;
-  color: #333;
-  padding: 40px;
-  border-radius: 4px;
+  background-color: #0a0a0a;
+  color: #ccc;
+  padding: 0;
+  border-radius: 0;
 }
 
 .desc-header {
-  border-left: 4px solid #ff0000;
-  padding-left: 15px;
-  margin-bottom: 40px;
+  border-left: 4px solid #f11919;
+  padding: 14px 20px;
+  margin-bottom: 0;
+  background-color: #111;
+  border-bottom: 1px solid #1e1e1e;
 }
 
 .desc-title {
-  font-size: 24px;
+  font-size: 20px;
   font-weight: 900;
-  margin: 0 0 10px 0;
-  color: #000;
+  margin: 0 0 4px 0;
+  color: #fff;
   text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .desc-subtitle {
-  font-size: 14px;
-  color: #666;
+  font-size: 12px;
+  color: #888;
   margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
 }
 
 .desc-section {
-  margin-bottom: 30px;
-  padding-bottom: 30px;
-  border-bottom: 1px solid #eee;
+  margin: 0;
+  padding: 18px 20px;
+  border-bottom: 1px solid #1a1a1a;
+  position: relative;
 }
 
 .desc-section:last-child {
   border-bottom: none;
-  margin-bottom: 0;
-  padding-bottom: 0;
 }
 
 .desc-section-title {
-  font-size: 18px;
-  font-weight: 800;
-  color: #000;
-  margin: 0 0 15px 0;
+  font-size: 12px;
+  font-weight: 900;
+  color: #f11919;
+  margin: 0 0 10px 0;
   text-transform: uppercase;
+  letter-spacing: 1.5px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.desc-section-title::before {
+  content: '';
+  display: inline-block;
+  width: 3px;
+  height: 12px;
+  background-color: #f11919;
+  flex-shrink: 0;
 }
 
 .desc-section-text {
-  font-size: 15px;
-  line-height: 1.6;
-  color: #555;
+  font-size: 13px;
+  line-height: 1.65;
+  color: #aaa;
   margin: 0;
 }

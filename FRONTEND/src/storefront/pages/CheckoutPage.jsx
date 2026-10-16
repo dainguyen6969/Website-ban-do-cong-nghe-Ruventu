@@ -1,4 +1,5 @@
 import { Link, useNavigate, useLocation } from "react-router-dom";
+import { VIETNAM_LOCATIONS, matchProvince, matchDistrict } from "../../data/vietnamLocations";
 import { ArrowLeft, ShieldCheck, Truck, MapPin, Navigation, Loader2 } from "lucide-react";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
@@ -43,64 +44,7 @@ const CheckoutPage = () => {
   const [addressSearchLoading, setAddressSearchLoading] = useState(false);
   const addressWrapperRef = useRef(null);
 
-  const LOCATION_DATA = {
-    "Hà Nội": [
-      "Quận Ba Đình",
-      "Quận Cầu Giấy",
-      "Quận Đống Đa",
-      "Quận Hai Bà Trưng",
-      "Quận Hoàn Kiếm",
-      "Quận Hoàng Mai",
-      "Quận Long Biên",
-      "Quận Nam Từ Liêm",
-      "Quận Bắc Từ Liêm",
-      "Quận Tây Hồ",
-      "Quận Thanh Xuân",
-      "Quận Hà Đông",
-      "Thị xã Sơn Tây",
-      "Huyện Ba Vì",
-      "Huyện Chương Mỹ",
-      "Huyện Đan Phượng",
-      "Huyện Đông Anh",
-      "Huyện Gia Lâm",
-      "Huyện Hoài Đức",
-      "Huyện Mê Linh",
-      "Huyện Mỹ Đức",
-      "Huyện Phú Xuyên",
-      "Huyện Phúc Thọ",
-      "Huyện Quốc Oai",
-      "Huyện Sóc Sơn",
-      "Huyện Thạch Thất",
-      "Huyện Thanh Oai",
-      "Huyện Thanh Trì",
-      "Huyện Thường Tín",
-      "Huyện Ứng Hòa",
-    ],
-    "TP. Hồ Chí Minh": [
-      "Quận 1",
-      "Quận 3",
-      "Quận 4",
-      "Quận 5",
-      "Quận 6",
-      "Quận 7",
-      "Quận 8",
-      "Quận 10",
-      "Quận 11",
-      "Quận 12",
-      "Quận Bình Tân",
-      "Quận Bình Thạnh",
-      "Quận Gò Vấp",
-      "Quận Phú Nhuận",
-      "Quận Tân Bình",
-      "Quận Tân Phú",
-      "Thành phố Thủ Đức",
-      "Huyện Bình Chánh",
-      "Huyện Cần Giờ",
-      "Huyện Củ Chi",
-      "Huyện Hóc Môn",
-      "Huyện Nhà Bè",
-    ],
-  };
+  const LOCATION_DATA = VIETNAM_LOCATIONS;
 
   const [formData, setFormData] = useState({
     name: "",
@@ -307,25 +251,9 @@ const CheckoutPage = () => {
     const compound = place.compound || {};
     const fullAddress = place.description || "";
 
-    let matchedProvince = "Hà Nội";
-    if (compound.province) {
-      if (compound.province.toLowerCase().includes("hồ chí minh") || compound.province.toLowerCase().includes("hcm")) {
-        matchedProvince = "TP. Hồ Chí Minh";
-      } else if (compound.province.toLowerCase().includes("hà nội")) {
-        matchedProvince = "Hà Nội";
-      }
-    }
-
+    const matchedProvince = matchProvince(compound.province || "");
     const availableWards = LOCATION_DATA[matchedProvince] || [];
-    let matchedWard = availableWards[0] || "";
-    const districtText = (compound.district || compound.commune || "").toLowerCase();
-    
-    if (districtText) {
-      const found = availableWards.find((w) =>
-        w.toLowerCase().includes(districtText) || districtText.includes(w.toLowerCase().replace(/^(quận|huyện|thành phố|thị xã)\s+/i, ""))
-      );
-      if (found) matchedWard = found;
-    }
+    const matchedWard = matchDistrict(compound.district || compound.commune || "", availableWards);
 
     setFormData((prev) => ({
       ...prev,
@@ -362,25 +290,9 @@ const CheckoutPage = () => {
             const compound = first.compound || {};
             const fullAddress = first.formatted_address || first.address || "";
 
-            let matchedProvince = "Hà Nội";
-            if (compound.province) {
-              if (compound.province.toLowerCase().includes("hồ chí minh") || compound.province.toLowerCase().includes("hcm")) {
-                matchedProvince = "TP. Hồ Chí Minh";
-              } else if (compound.province.toLowerCase().includes("hà nội")) {
-                matchedProvince = "Hà Nội";
-              }
-            }
-
+            const matchedProvince = matchProvince(compound.province || "");
             const availableWards = LOCATION_DATA[matchedProvince] || [];
-            let matchedWard = availableWards[0] || "";
-            const districtText = (compound.district || compound.commune || "").toLowerCase();
-            
-            if (districtText) {
-              const found = availableWards.find((w) =>
-                w.toLowerCase().includes(districtText) || districtText.includes(w.toLowerCase().replace(/^(quận|huyện|thành phố|thị xã)\s+/i, ""))
-              );
-              if (found) matchedWard = found;
-            }
+            const matchedWard = matchDistrict(compound.district || compound.commune || "", availableWards);
 
             setFormData((prev) => ({
               ...prev,
