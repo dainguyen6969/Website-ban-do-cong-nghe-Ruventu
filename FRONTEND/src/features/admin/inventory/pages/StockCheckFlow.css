@@ -2,3 +2,953 @@
 .stock-flow-page{flex:1;min-height:0;overflow:auto;padding-bottom:72px;background:#f2f2f2;color:#111}.stock-flow-heading,.stock-detail-heading{padding:16px 24px 18px;border-bottom:2px solid #111;background:#fff}.stock-flow-heading{min-height:94px}.stock-flow-heading nav,.stock-detail-heading>nav{color:#989aa0;font-size:9px;letter-spacing:.03em}.stock-flow-heading nav b,.stock-detail-heading>nav b{padding:0 8px;color:#bbb}.stock-flow-heading nav strong,.stock-detail-heading>nav strong{color:#e31e24}.stock-flow-heading h1{margin-top:18px;font-size:21px;line-height:1;font-weight:900}.stock-create-grid,.stock-detail-grid{display:grid;grid-template-columns:minmax(0,2fr) minmax(290px,1fr);gap:24px;padding:24px}.stock-flow-card{min-width:0;border:2px solid #111;background:#fff}.stock-flow-card>h2,.stock-modal>h2{height:38px;padding:0 16px;display:flex;align-items:center;background:#0b0b0b;color:#fff;font-size:10px;letter-spacing:.04em}.stock-flow-card>h2::before,.stock-modal>h2::before{content:'';width:3px;height:18px;margin-right:9px;background:red}.stock-product-search{height:39px;margin:16px 16px 7px;padding:0 10px;position:relative;display:flex;align-items:center;gap:9px;border:2px solid #111;color:#aaa}.stock-product-search input{width:100%;height:100%;background:#fff;font-size:10px}.stock-product-search input:disabled{background:#f5f5f5;color:#777}.stock-search-results{position:absolute;z-index:35;top:37px;left:-2px;right:-2px;max-height:315px;overflow:auto;border:2px solid #111;background:#fff;box-shadow:0 12px 24px #0002}.stock-search-results button{width:100%;min-height:56px;padding:8px 13px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #eee!important;text-align:left}.stock-search-results button:hover{background:#f6f6f6!important}.stock-search-results strong,.stock-search-results small{display:block}.stock-search-results strong{font-size:10px}.stock-search-results small{margin-top:3px;color:#999;font-size:8px}.stock-search-results em{color:#0671d8;font-size:9px;font-style:normal;font-weight:900;white-space:nowrap}.stock-form-table-wrap{padding:0 16px;overflow-x:auto}.stock-form-table{width:100%;border-collapse:collapse}.stock-form-table th{height:29px;border-bottom:2px solid #ddd;color:#96969b;text-align:left;font-size:8px;letter-spacing:.06em}.stock-form-table td{height:69px;padding:8px 0;border-bottom:1px solid #eee;font-size:9px;vertical-align:middle}.stock-form-table td:not(:last-child),.stock-form-table th:not(:last-child){padding-right:12px}.stock-form-table td small,.stock-form-table td strong{display:block}.stock-form-table td small{margin-top:4px;color:#999;font-size:8px}.stock-form-table td strong{font-size:10px}.stock-form-table th:nth-child(1){width:13%}.stock-form-table th:nth-child(2){width:36%}.stock-form-table th:nth-child(3){width:10%}.stock-form-table th:nth-child(4){width:14%}.stock-form-table th:nth-child(5){width:11%}.stock-form-table th:nth-child(6){width:16%}.stock-number{font-size:13px!important;font-weight:900;text-align:center}.stock-adjust-input{width:80px;height:35px;border:2px solid #ddd!important;text-align:center;font-size:11px;font-weight:900}.stock-difference{display:inline-grid;min-width:28px;height:27px;place-items:center;color:#16863f;font-size:13px;font-weight:900}.stock-difference.has-difference{background:#fff0f0;color:#e00000}.stock-form-table select{width:100%;min-width:145px;height:32px;padding:0 8px;border:1px solid #d5d5d7!important;background:#fff;font-size:9px}.stock-custom-reason{width:100%;height:30px;margin-top:5px;padding:0 8px;border:1px solid #d5d5d7!important;font-size:9px}.stock-reason-error{color:#e31e24!important;line-height:1.35}.stock-form-empty{height:82px!important;border:2px dashed #ddd!important;text-align:center;color:#c2c2c7;font-weight:800}.stock-form-summary{margin:16px;padding-top:14px;display:flex;gap:44px;border-top:2px solid #ddd}.stock-form-summary div{display:flex;flex-direction:column;gap:7px}.stock-form-summary span{color:#999;font-size:8px;font-weight:800}.stock-form-summary strong{font-size:18px;font-weight:900}.stock-form-summary .is-red{color:#e00000}.stock-create-side{display:flex;flex-direction:column;gap:16px}.stock-warehouse-box{min-height:65px;padding:14px;border:2px solid #ddd;background:#fff}.stock-warehouse-box span{display:block;color:#aaa;font-size:8px;font-weight:800}.stock-warehouse-box strong{display:block;margin-top:7px;font-size:10px}.stock-date-card>div{padding:15px}.stock-date-card input{width:100%;height:38px;padding:0 11px;border:2px solid #ddd!important;font-size:10px}.stock-flow-footer{position:fixed;z-index:44;bottom:0;left:var(--color-sidebar-width);right:0;height:70px;padding:0 24px;display:flex;align-items:center;justify-content:space-between;border-top:2px solid #111;background:#fff}.sidebar--collapsed~.app-layout__main .stock-flow-footer{left:var(--color-sidebar-collapsed)}.stock-action{min-width:84px;height:40px;padding:0 16px;display:inline-flex;align-items:center;justify-content:center;font-size:9px;font-weight:900;white-space:nowrap}.stock-action.outline{border:2px solid #ddd!important;background:#fff!important}.stock-action.black{border:2px solid #111!important;background:#111!important;color:#fff}.stock-action.red{border:2px solid #d80000!important;background:#d80000!important;color:#fff}.stock-action.red-text{color:#e31e24}.stock-action:disabled{opacity:.35;cursor:not-allowed}.stock-submit-area{max-width:650px;display:flex;align-items:center;justify-content:flex-end;gap:12px}.stock-duplicate-warning{min-width:0;color:red;font-size:9px;line-height:1.5;text-align:right}.stock-list-button{min-width:104px;flex:0 0 auto;color:red}.stock-create-success{color:#16863f;font-size:10px;font-weight:800}.stock-flow-not-found{margin:24px;padding:40px;border:2px solid #111;background:#fff;text-align:center}
 .stock-detail-heading{min-height:98px}.stock-detail-title-row{margin-top:13px;display:flex;align-items:center;justify-content:space-between;gap:14px}.stock-detail-title-row>div{display:flex;align-items:center;gap:12px}.stock-detail-title-row h1{font-size:19px}.stock-detail-actions{display:flex;gap:8px}.stock-inline-banner{margin-top:12px;padding:11px 13px;border:1px solid;font-size:9px}.stock-inline-banner.error{border-color:#ff9999;background:#fff0f0;color:#e31e24}.stock-inline-banner.success{border-color:#8bd298;background:#eff9ef;color:#25843b}.stock-balance-success{margin-top:12px;padding:12px 14px;border:1px solid #75ca83;background:#eaf8ec;color:#247f36;font-size:9px}.stock-balance-success>strong{display:block;margin-bottom:9px;font-size:10px}.stock-balance-success>div{display:flex;gap:26px}.stock-detail-grid{grid-template-columns:minmax(0,4fr) minmax(280px,1fr)}.stock-detail-table{}.stock-detail-table th:nth-child(1){width:10%}.stock-detail-table th:nth-child(2){width:25%}.stock-detail-table th:nth-child(3){width:15%}.stock-detail-table th:nth-child(4),.stock-detail-table th:nth-child(5),.stock-detail-table th:nth-child(6){width:10%}.stock-detail-table th:nth-child(7){width:20%}.stock-detail-table td:nth-child(4),.stock-detail-table td:nth-child(5),.stock-detail-table td:nth-child(6){text-align:center}.stock-detail-table.is-muted tbody{color:#aaa}.stock-detail-table.is-muted strong,.stock-detail-table.is-muted small{color:#aaa}.stock-detail-table.is-muted .stock-difference{opacity:.6}.stock-detail-side{display:flex;flex-direction:column;gap:15px}.stock-info-card dl{padding:14px;display:grid;grid-template-columns:1fr 1.15fr;gap:12px 8px;align-items:center}.stock-info-card dt{color:#999;font-size:8px;font-weight:800}.stock-info-card dd{font-size:9px;font-weight:800}.stock-lock-note{padding:12px;border:1px solid #ddd;background:#fff;color:#aaa;font-size:8px}.stock-modal-backdrop{position:fixed;z-index:1000;inset:0;padding:20px;display:grid;place-items:center;background:#0009}.stock-modal{width:min(560px,100%);border:2px solid #111;background:#fff}.stock-modal>h2{height:52px;font-size:12px}.stock-modal>h2 button{margin-left:auto;color:#fff;font-size:22px;font-weight:300}.stock-modal-body{padding:22px}.stock-modal-body dl{display:grid;grid-template-columns:180px 1fr;gap:12px;font-size:9px}.stock-modal-body dt,.stock-modal-label{color:#999;font-size:8px;font-weight:800}.stock-modal-body dd{font-weight:700}.stock-modal-label{display:block;margin:4px 0 7px}.stock-modal-body>strong,.stock-modal-body>p{display:block;margin-bottom:17px;font-size:10px}.stock-modal-note{margin:20px 0 0!important;padding:12px;border:1px solid #ffd46c;background:#fff8e5;color:#777;font-size:9px!important;line-height:1.5}.stock-modal-body footer{margin-top:16px;display:flex;justify-content:flex-end;gap:8px}.stock-cancel-field{display:block;margin-top:16px}.stock-cancel-field>span{display:block;margin-bottom:7px;font-size:8px;font-weight:800}.stock-cancel-field textarea{width:100%;height:74px;padding:10px;border:2px solid #ddd!important;outline:none;resize:vertical;font:inherit}.stock-cancel-field small{display:block;margin-top:5px;color:#e31e24;font-size:8px}
 @media(max-width:1050px){.stock-create-grid,.stock-detail-grid{grid-template-columns:1fr}.stock-detail-title-row{align-items:flex-start;flex-direction:column}.stock-detail-actions{flex-wrap:wrap}.stock-flow-footer{left:0}.stock-submit-area{max-width:70%}}@media(max-width:700px){.stock-flow-heading,.stock-detail-heading,.stock-create-grid,.stock-detail-grid{padding-left:14px;padding-right:14px}.stock-flow-footer{padding:0 14px}.stock-submit-area{max-width:65%}.stock-duplicate-warning{font-size:8px}.stock-balance-success>div{flex-wrap:wrap;gap:8px 18px}.stock-modal-body dl{grid-template-columns:1fr}.stock-detail-title-row>div{align-items:flex-start;flex-wrap:wrap}}
+
+.inventory-count-fields {
+  display: grid;
+  gap: 18px;
+  min-width: 0;
+  padding: 0;
+  margin: 0 0 20px;
+  border: 0;
+}
+
+.inventory-count-fields input,
+.inventory-count-fields textarea {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px 12px;
+  border: 1px solid #d4d4d8;
+  background: #fff;
+}
+
+.inventory-count-fields textarea {
+  min-height: 130px;
+  resize: vertical;
+}
+
+.inventory-count-results {
+  display: grid;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.inventory-count-results button {
+  display: grid;
+  gap: 4px;
+  padding: 12px;
+  text-align: left;
+  border: 1px solid #e4e4e7;
+  background: #fff;
+  cursor: pointer;
+}
+
+.inventory-count-card {
+  display: grid;
+  gap: 12px;
+  padding: 18px;
+}
+
+.inventory-count-card label,
+.inventory-count-reason {
+  display: grid;
+  gap: 8px;
+}
+
+.inventory-count-metrics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  padding: 12px;
+  background: #f4f4f5;
+}
+
+.inventory-count-note {
+  padding: 12px 14px;
+  border-left: 3px solid #111;
+  background: #f4f4f5;
+}
+
+.inventory-count-created {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.inventory-count-created > p {
+  width: 100%;
+}
+
+.inventory-count-card details p,
+.inventory-count-card > p {
+  overflow-wrap: anywhere;
+}
+
+/* ===== GIAO DIỆN TẠO PHIẾU KIỂM HÀNG ===== */
+
+#inventory-count-create {
+  --inv-font: Arial, "Helvetica Neue", sans-serif;
+  --inv-border: #dedee3;
+  --inv-text: #18181b;
+  --inv-muted: #71717a;
+
+  background: #f5f5f6;
+  color: var(--inv-text);
+  padding-bottom: 100px;
+}
+
+/* Nội dung dùng phông dễ đọc, tách khỏi phông tiêu đề của hệ thống. */
+#inventory-count-create :where(
+  p, small, span, strong, label, input, textarea,
+  button, li, summary, dt, dd
+) {
+  font-family: var(--inv-font) !important;
+}
+
+/* Header */
+#inventory-count-create .stock-flow-heading {
+  min-height: auto;
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--inv-border);
+}
+
+#inventory-count-create .stock-flow-heading > nav {
+  display: none;
+}
+
+#inventory-count-create .stock-flow-heading h1 {
+  margin: 0;
+  font-size: 23px;
+  line-height: 1.3;
+}
+
+/* Bố cục */
+#inventory-count-create .inventory-count-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 300px;
+  align-items: start;
+  gap: 22px;
+  box-sizing: border-box;
+  max-width: 1560px;
+  margin: 0 auto;
+  padding: 24px;
+}
+
+#inventory-count-create .inventory-count-main,
+#inventory-count-create .inventory-count-fields {
+  display: grid;
+  gap: 20px;
+  min-width: 0;
+}
+
+#inventory-count-create .inventory-count-fields {
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+/* Khung nội dung */
+#inventory-count-create .stock-flow-card {
+  min-width: 0;
+  padding: 0;
+  border: 1px solid var(--inv-border);
+  background: #fff;
+  box-shadow: 0 2px 5px rgb(0 0 0 / 3%);
+}
+
+#inventory-count-create .stock-flow-card > h2 {
+  display: flex;
+  align-items: center;
+  box-sizing: border-box;
+  height: 42px;
+  margin: 0;
+  padding: 0 18px;
+  background: #111;
+  color: #fff;
+  font-family: var(--inv-font) !important;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+}
+
+#inventory-count-create .stock-flow-card > h2::before {
+  width: 3px;
+  height: 15px;
+  margin-right: 10px;
+  background: #ef1616;
+}
+
+#inventory-count-create .inventory-count-card-body {
+  display: grid;
+  gap: 14px;
+  padding: 20px;
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+/* Tìm sản phẩm */
+#inventory-count-create .inventory-count-search {
+  position: relative;
+  box-sizing: border-box;
+  height: 46px;
+  margin: 18px 18px 10px;
+  padding: 0 14px;
+  border: 1px solid #cfcfd5 !important;
+  background: #fff;
+}
+
+#inventory-count-create .inventory-count-search:focus-within {
+  border-color: #18181b !important;
+  box-shadow: 0 0 0 3px rgb(0 0 0 / 4%);
+}
+
+#inventory-count-create .inventory-count-search input {
+  min-width: 0;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: 0 !important;
+  outline: none;
+  background: transparent;
+  color: var(--inv-text);
+  font-size: 13px;
+  font-weight: 400;
+}
+
+#inventory-count-create input::placeholder,
+#inventory-count-create textarea::placeholder {
+  color: #9b9ba5;
+  font-size: 13px;
+  font-weight: 400;
+}
+
+#inventory-count-create .inventory-count-help {
+  margin: 0;
+  color: var(--inv-muted);
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.7;
+  text-align: left;
+}
+
+#inventory-count-create
+  .inventory-count-search + .inventory-count-help {
+  padding: 0 18px 18px;
+}
+
+#inventory-count-create .stock-search-results {
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  max-height: 330px;
+  border: 1px solid var(--inv-border);
+  box-shadow: 0 12px 28px rgb(0 0 0 / 12%);
+}
+
+#inventory-count-create .stock-search-results button {
+  min-height: 64px;
+  padding: 12px 14px;
+  gap: 16px;
+}
+
+#inventory-count-create .stock-search-results strong {
+  color: var(--inv-text);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+#inventory-count-create .stock-search-results small {
+  margin-top: 5px;
+  color: var(--inv-muted);
+  font-size: 12px;
+}
+
+#inventory-count-create .stock-search-results em {
+  font-family: var(--inv-font) !important;
+  font-size: 11px;
+}
+
+/* Khi chưa chọn sản phẩm */
+#inventory-count-create .inventory-count-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  min-height: 210px;
+  gap: 10px;
+  margin: 18px;
+  padding: 30px 20px;
+  border: 1px dashed #d4d4d8;
+  background: #fafafa;
+  text-align: center;
+}
+
+#inventory-count-create .inventory-count-empty strong {
+  color: #52525b;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+#inventory-count-create .inventory-count-empty p,
+#inventory-count-create .inventory-count-empty small {
+  max-width: 460px;
+  margin: 0;
+  color: var(--inv-muted);
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.7;
+}
+
+/* Thông tin sản phẩm và số lượng */
+#inventory-count-create .inventory-count-product {
+  display: grid;
+  gap: 5px;
+}
+
+#inventory-count-create .inventory-count-product > strong {
+  font-size: 15px;
+}
+
+#inventory-count-create .inventory-count-product > span,
+#inventory-count-create .inventory-count-product > small {
+  color: var(--inv-muted);
+  font-size: 12px;
+}
+
+#inventory-count-create .inventory-count-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin: 2px 0;
+  padding: 0;
+  background: transparent;
+}
+
+#inventory-count-create .inventory-count-metrics > div {
+  display: grid;
+  gap: 8px;
+  padding: 15px;
+  border: 1px solid #e8e8ec;
+  background: #fafafa;
+}
+
+#inventory-count-create .inventory-count-metrics span {
+  color: var(--inv-muted);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+#inventory-count-create .inventory-count-metrics strong {
+  font-size: 24px;
+  line-height: 1.2;
+}
+
+/* Ô nhập */
+#inventory-count-create .inventory-count-field {
+  display: grid;
+  gap: 9px;
+}
+
+#inventory-count-create .inventory-count-field > span {
+  color: #52525b;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+#inventory-count-create .inventory-count-field input,
+#inventory-count-create .inventory-count-field textarea {
+  box-sizing: border-box;
+  width: 100%;
+  margin: 0;
+  padding: 12px 14px;
+  border: 1px solid #d4d4d8 !important;
+  border-radius: 0;
+  outline: none;
+  background: #fff;
+  color: var(--inv-text);
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.7;
+}
+
+#inventory-count-create .inventory-count-field textarea {
+  min-height: 115px;
+  resize: vertical;
+}
+
+#inventory-count-create .inventory-count-field input:focus,
+#inventory-count-create .inventory-count-field textarea:focus {
+  border-color: #18181b !important;
+}
+
+#inventory-count-create .inventory-count-field input:disabled,
+#inventory-count-create .inventory-count-field textarea:disabled {
+  background: #f7f7f8;
+  color: #a1a1aa;
+}
+
+#inventory-count-create .inventory-count-quantity {
+  max-width: 190px;
+}
+
+/* Cột hướng dẫn */
+#inventory-count-create .inventory-count-sidebar {
+  display: grid;
+  gap: 18px;
+}
+
+#inventory-count-create .stock-warehouse-box {
+  min-height: auto;
+  padding: 18px;
+  border: 1px solid var(--inv-border);
+  background: #fff;
+}
+
+#inventory-count-create .stock-warehouse-box span {
+  color: var(--inv-muted);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+#inventory-count-create .stock-warehouse-box strong {
+  margin-top: 9px;
+  color: var(--inv-text);
+  font-size: 15px;
+}
+
+#inventory-count-create .inventory-count-sidebar ol {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+  padding-left: 20px;
+  list-style: decimal;
+}
+
+#inventory-count-create .inventory-count-sidebar li {
+  display: list-item;
+  padding-left: 3px;
+  color: #52525b;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.7;
+}
+
+/* Thông báo */
+#inventory-count-create .inventory-count-error,
+#inventory-count-create .inventory-count-notice {
+  margin: 0;
+  padding: 13px 16px;
+  font-size: 13px;
+  line-height: 1.7;
+  overflow-wrap: anywhere;
+}
+
+#inventory-count-create .inventory-count-error {
+  border: 1px solid #fecaca;
+  background: #fff5f5;
+  color: #dc2626;
+}
+
+#inventory-count-create .inventory-count-notice {
+  border: 1px solid var(--inv-border);
+  background: #fff;
+}
+
+#inventory-count-create .inventory-count-notice p {
+  margin: 5px 0 0;
+  color: var(--inv-muted);
+}
+
+#inventory-count-create .inventory-count-red {
+  color: #dc2626;
+}
+
+#inventory-count-create .inventory-count-details {
+  font-size: 13px;
+  line-height: 1.7;
+  overflow-wrap: anywhere;
+}
+
+#inventory-count-create .inventory-count-details summary {
+  color: #52525b;
+  cursor: pointer;
+}
+
+/* Thanh thao tác */
+#inventory-count-create .inventory-count-footer {
+  box-sizing: border-box;
+  height: auto;
+  min-height: 76px;
+  gap: 16px;
+  padding: 12px 24px;
+  border-top: 1px solid var(--inv-border);
+  background: #fff;
+  box-shadow: 0 -3px 12px rgb(0 0 0 / 3%);
+}
+
+#inventory-count-create .stock-action {
+  min-height: 42px;
+  height: auto;
+  padding: 10px 18px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+#inventory-count-create .inventory-count-submit-note {
+  color: var(--inv-muted);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+/* Màn hình nhỏ */
+@media (max-width: 1050px) {
+  #inventory-count-create .inventory-count-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 600px) {
+  #inventory-count-create .inventory-count-layout {
+    gap: 16px;
+    padding: 16px;
+  }
+
+  #inventory-count-create .inventory-count-card-body {
+    padding: 16px;
+  }
+
+  #inventory-count-create .inventory-count-metrics {
+    gap: 8px;
+  }
+
+  #inventory-count-create .inventory-count-metrics > div {
+    padding: 10px;
+  }
+
+  #inventory-count-create .inventory-count-metrics strong {
+    font-size: 20px;
+  }
+
+  #inventory-count-create .inventory-count-submit-note {
+    display: none;
+  }
+}
+
+/* ===== TẠO PHIẾU KIỂM: BỐ CỤC BẢNG THEO FIGMA ===== */
+
+#stock-check-create-v2 {
+  background: #efefef;
+  color: #111;
+  padding-bottom: 90px;
+}
+
+#stock-check-create-v2 .stock-flow-heading {
+  min-height: auto;
+  padding: 16px 20px 18px;
+  border-bottom: 1px solid #111;
+}
+
+#stock-check-create-v2 .stock-flow-heading h1 {
+  margin: 14px 0 0;
+  font-size: 22px;
+  line-height: 1.2;
+}
+
+#stock-check-create-v2 .stock-create-grid {
+  grid-template-columns: minmax(0, 2fr) minmax(280px, 1fr);
+  align-items: start;
+  gap: 20px;
+  padding: 22px 20px;
+}
+
+#stock-check-create-v2 .stock-check-main {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+}
+
+#stock-check-create-v2 .stock-flow-card {
+  border: 1px solid #111;
+  border-radius: 0;
+  background: #fff;
+  box-shadow: none;
+}
+
+#stock-check-create-v2 .stock-flow-card > h2 {
+  box-sizing: border-box;
+  height: 34px;
+  margin: 0;
+  padding: 0 14px;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+}
+
+#stock-check-create-v2 .stock-flow-card > h2::before {
+  width: 3px;
+  height: 14px;
+  margin-right: 9px;
+}
+
+#stock-check-create-v2 .stock-check-fields {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+/* Tìm kiếm */
+#stock-check-create-v2 .stock-product-search {
+  box-sizing: border-box;
+  height: 36px;
+  margin: 14px 14px 8px;
+  padding: 0 10px;
+  border: 1px solid #111;
+}
+
+#stock-check-create-v2 .stock-product-search > svg {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+}
+
+#stock-check-create-v2 .stock-product-search input {
+  min-width: 0;
+  height: 100%;
+  padding: 0;
+  border: 0 !important;
+  outline: none;
+  font: inherit;
+  font-size: 11px;
+}
+
+#stock-check-create-v2 .stock-search-results {
+  top: calc(100% + 1px);
+  left: -1px;
+  right: -1px;
+  border: 1px solid #111;
+}
+
+#stock-check-create-v2 .stock-search-results button {
+  min-height: 56px;
+  padding: 10px 12px;
+  gap: 14px;
+}
+
+#stock-check-create-v2 .stock-search-results strong {
+  font-size: 12px;
+}
+
+#stock-check-create-v2 .stock-search-results small {
+  font-size: 10px;
+}
+
+#stock-check-create-v2 .stock-check-search-note {
+  margin: 0;
+  padding: 0 14px 10px;
+  color: #81818a;
+  font-size: 11px;
+}
+
+/* Bảng */
+#stock-check-create-v2 .stock-form-table-wrap {
+  padding: 0 14px;
+}
+
+#stock-check-create-v2 .stock-check-items {
+  min-width: 850px;
+  table-layout: fixed;
+}
+
+#stock-check-create-v2 .stock-check-items th {
+  height: 28px;
+  border-bottom: 1px solid #ddd;
+  color: #96969e;
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+}
+
+#stock-check-create-v2 .stock-check-items th:nth-child(1) {
+  width: 15%;
+}
+
+#stock-check-create-v2 .stock-check-items th:nth-child(2) {
+  width: 30%;
+}
+
+#stock-check-create-v2 .stock-check-items th:nth-child(3) {
+  width: 9%;
+  text-align: center;
+}
+
+#stock-check-create-v2 .stock-check-items th:nth-child(4) {
+  width: 11%;
+  text-align: center;
+}
+
+#stock-check-create-v2 .stock-check-items th:nth-child(5) {
+  width: 8%;
+  text-align: center;
+}
+
+#stock-check-create-v2 .stock-check-items th:nth-child(6) {
+  width: 27%;
+}
+
+#stock-check-create-v2 .stock-check-items td {
+  height: 58px;
+  padding-top: 10px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #eee;
+  font-size: 11px;
+  overflow-wrap: anywhere;
+}
+
+#stock-check-create-v2 .stock-check-items td strong {
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+#stock-check-create-v2 .stock-check-items td small {
+  margin-top: 4px;
+  color: #9999a1;
+  font-size: 10px;
+  font-weight: 400;
+  line-height: 1.5;
+}
+
+#stock-check-create-v2 .stock-check-code {
+  color: #2f5069;
+}
+
+#stock-check-create-v2 .stock-check-actual,
+#stock-check-create-v2 .stock-check-difference {
+  text-align: center;
+}
+
+#stock-check-create-v2 .stock-adjust-input {
+  box-sizing: border-box;
+  width: 74px;
+  height: 32px;
+  border: 1px solid #d7d7dc !important;
+  background: #fff;
+  font: inherit;
+  font-size: 12px;
+  text-align: center;
+}
+
+#stock-check-create-v2 .stock-adjust-input[readonly] {
+  background: #f7f7f8;
+}
+
+#stock-check-create-v2 .stock-check-items select {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  height: 32px;
+  padding: 0 9px;
+  border: 1px solid #d7d7dc !important;
+  font: inherit;
+  font-size: 11px;
+}
+
+#stock-check-create-v2 .stock-custom-reason {
+  box-sizing: border-box;
+  font: inherit;
+  font-size: 11px;
+}
+
+#stock-check-create-v2 .stock-form-empty {
+  height: 100px !important;
+  font-size: 11px;
+  letter-spacing: 0.02em;
+}
+
+#stock-check-create-v2 .stock-form-summary {
+  margin: 14px;
+  padding-top: 14px;
+  gap: 40px;
+  border-top: 1px solid #ddd;
+}
+
+#stock-check-create-v2 .stock-form-summary span {
+  font-size: 9px;
+  letter-spacing: 0.04em;
+}
+
+#stock-check-create-v2 .stock-form-summary strong {
+  font-size: 24px;
+  line-height: 1.2;
+}
+
+/* Serial mở dưới dòng sản phẩm */
+#stock-check-create-v2 .stock-check-serial-button {
+  display: inline-flex;
+  margin-top: 7px;
+  padding: 4px 7px;
+  border: 1px solid #d7d7dc !important;
+  background: #fff;
+  color: #333;
+  font: inherit;
+  font-size: 10px;
+  cursor: pointer;
+}
+
+#stock-check-create-v2 .stock-check-serial-row > td {
+  height: auto;
+  padding: 12px;
+  background: #fafafa;
+}
+
+#stock-check-create-v2 .stock-check-serial-panel {
+  display: grid;
+  gap: 10px;
+}
+
+#stock-check-create-v2 .stock-check-serial-panel label {
+  display: grid;
+  gap: 7px;
+}
+
+#stock-check-create-v2 .stock-check-serial-panel label > span {
+  color: #777780;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+#stock-check-create-v2 .stock-check-serial-panel textarea {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 100px;
+  padding: 10px 12px;
+  border: 1px solid #d7d7dc !important;
+  background: #fff;
+  font: inherit;
+  font-size: 12px;
+  line-height: 1.6;
+  resize: vertical;
+}
+
+#stock-check-create-v2 .stock-check-serial-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18px;
+  color: #71717a;
+  font-size: 11px;
+}
+
+#stock-check-create-v2 .stock-check-serial-panel details {
+  font-size: 11px;
+  line-height: 1.7;
+}
+
+#stock-check-create-v2 .stock-check-serial-panel summary {
+  cursor: pointer;
+}
+
+#stock-check-create-v2 .stock-check-error {
+  margin: 0;
+  color: #dc2626;
+  font-size: 11px;
+  line-height: 1.6;
+}
+
+/* Kho và ngày kiểm bên phải */
+#stock-check-create-v2 .stock-create-side {
+  gap: 16px;
+}
+
+#stock-check-create-v2 .stock-warehouse-box {
+  min-height: auto;
+  padding: 15px 14px;
+  border: 1px solid #ddd;
+  background: #f8f8f8;
+}
+
+#stock-check-create-v2 .stock-warehouse-box span {
+  font-size: 9px;
+}
+
+#stock-check-create-v2 .stock-warehouse-box strong {
+  font-size: 12px;
+}
+
+#stock-check-create-v2 .stock-date-card > div {
+  padding: 15px;
+}
+
+#stock-check-create-v2 .stock-date-card input {
+  box-sizing: border-box;
+  height: 34px;
+  border: 1px solid #ddd !important;
+  background: #fff;
+  font: inherit;
+  font-size: 12px;
+}
+
+#stock-check-create-v2 .stock-check-date-note {
+  display: block;
+  margin-top: 8px;
+  color: #9999a1;
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+/* Trạng thái và kết quả */
+#stock-check-create-v2 .stock-check-message {
+  margin: 0;
+  padding: 12px 14px;
+  border: 1px solid #ddd;
+  background: #fff;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+#stock-check-create-v2 .stock-check-message.error {
+  border-color: #fecaca;
+  background: #fff5f5;
+  color: #dc2626;
+}
+
+#stock-check-create-v2 .stock-check-source {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  margin: 0 14px 8px;
+  padding: 10px;
+  background: #f5f5f5;
+  font-size: 11px;
+}
+
+#stock-check-create-v2 .stock-check-source span {
+  color: #777780;
+}
+
+#stock-check-create-v2 .stock-check-created {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 14px;
+}
+
+#stock-check-create-v2 .stock-check-footer-note {
+  color: #888891;
+  font-size: 11px;
+}
+
+@media (max-width: 1050px) {
+  #stock-check-create-v2 .stock-create-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 600px) {
+  #stock-check-create-v2 .stock-create-grid {
+    padding: 16px 14px;
+  }
+
+  #stock-check-create-v2 .stock-check-footer-note {
+    display: none;
+  }
+}

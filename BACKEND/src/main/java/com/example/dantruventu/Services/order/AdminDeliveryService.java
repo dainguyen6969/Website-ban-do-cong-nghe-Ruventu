@@ -261,7 +261,13 @@ public class AdminDeliveryService {
         confirmCustomerPayment(delivery, request.getXacNhanDaThuCod());
 
         delivery.setTrangThaiGiaoHang(TrangThaiGiaoHangEnum.GIAO_THANH_CONG);
-        order.setTrangThaiDonHang(TrangThaiDonHang.HOAN_THANH);
+
+        // Đơn đã thanh toán trước có thể hoàn thành ngay.
+        // Đơn COD tiếp tục chờ cửa hàng thực nhận tiền từ đối tác.
+        if (order.getTrangThaiThanhToan() == TrangThaiThanhToanDonHang.DA_THANH_TOAN) {
+
+          order.setTrangThaiDonHang(TrangThaiDonHang.HOAN_THANH);
+        }
       } else {
         // Không cộng kho tại bước báo giao thất bại.
         delivery.setTrangThaiGiaoHang(TrangThaiGiaoHangEnum.CHO_HOAN_HANG);
@@ -538,12 +544,14 @@ public class AdminDeliveryService {
   private void confirmCustomerPayment(PhieuGiaoHang delivery, Boolean confirmedCod) {
 
     DonHang order = delivery.getDonHang();
+
     BigDecimal cod = money(delivery.getTienThuHoCod());
     BigDecimal total = money(order.getTongThanhToan());
 
     if (cod.signum() > 0) {
       if (order.getTrangThaiThanhToan() != TrangThaiThanhToanDonHang.CHUA_THANH_TOAN
           || cod.compareTo(total) != 0) {
+
         throw conflict("Dữ liệu COD không khớp trạng thái hoặc tổng tiền đơn");
       }
 
@@ -551,7 +559,8 @@ public class AdminDeliveryService {
         throw conflict("Phải xác nhận shipper đã thu đủ COD từ khách");
       }
 
-      order.setTrangThaiThanhToan(TrangThaiThanhToanDonHang.DA_THANH_TOAN);
+      // Shipper đã thu tiền khách, cửa hàng chưa thực nhận COD.
+      // Giữ CHUA_THANH_TOAN đến khi ghi nhận phiếu thu từ đối tác.
       return;
     }
 
@@ -559,9 +568,12 @@ public class AdminDeliveryService {
       return;
     }
 
+    // Đơn bằng 0 không phát sinh khoản tiền cần thu.
     if (order.getTrangThaiThanhToan() == TrangThaiThanhToanDonHang.CHUA_THANH_TOAN
         && total.signum() == 0) {
+
       order.setTrangThaiThanhToan(TrangThaiThanhToanDonHang.DA_THANH_TOAN);
+
       return;
     }
 

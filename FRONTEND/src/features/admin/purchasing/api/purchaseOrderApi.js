@@ -11,6 +11,15 @@ export const IMPORT_STATUS = {
 };
 export const PAYMENT_STATUS = { CHUA_TRA: 'Chưa trả', TRA_MOT_PHAN: 'Trả một phần', DA_TRA: 'Đã trả' };
 
+export const getPurchaseReturnSerials = (id, detailId, signal) =>
+  adminRequest(
+    `${PATH}/${encodeURIComponent(id)}/return-serials?` +
+      new URLSearchParams({
+        chi_tiet_don_nhap_id: String(detailId),
+      }),
+    { signal },
+  );
+
 export const formatDate = (value) => value ? new Intl.DateTimeFormat('vi-VN').format(new Date(value)) : '—';
 const number = (value) => Number(value || 0);
 const supplier = (item = {}) => ({

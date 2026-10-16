@@ -1,6 +1,7 @@
 package com.example.dantruventu.Repository.warehouse;
 
 import com.example.dantruventu.Entity.PhienBanSanPham;
+import com.example.dantruventu.Enum.LoaiSanPham;
 import com.example.dantruventu.Enum.TrangThaiCoBanEnum;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -23,6 +24,8 @@ public interface AdminInventoryCheckProductRepository extends JpaRepository<Phie
     String getMaVach();
 
     Long getTonHeThong();
+
+    LoaiSanPham getLoaiSanPham();
   }
 
   @Query(
@@ -33,6 +36,7 @@ public interface AdminInventoryCheckProductRepository extends JpaRepository<Phie
                  p.tenSanPham AS tenSanPham,
                  v.tenPhienBan AS tenPhienBan,
                  v.maVach AS maVach,
+                 p.loaiSanPham AS loaiSanPham,
                  COALESCE(SUM(t.tonThucTe), 0) AS tonHeThong
           FROM PhienBanSanPham v
           JOIN v.sanPham p
@@ -50,7 +54,8 @@ public interface AdminInventoryCheckProductRepository extends JpaRepository<Phie
                    p.maSanPham,
                    p.tenSanPham,
                    v.tenPhienBan,
-                   v.maVach
+                   v.maVach,
+                   p.loaiSanPham
           ORDER BY v.id ASC
           """,
       countQuery =

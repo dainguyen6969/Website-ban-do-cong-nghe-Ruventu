@@ -37,8 +37,18 @@ export const getOrder = (id, signal) => adminRequest(`${PATH}/${encodeURICompone
 export const getOrderHistory = (id, signal) => adminRequest(`${PATH}/${encodeURIComponent(id)}/history`, { signal });
 export const approveOrder = (id) => action(id, 'approve', { xac_nhan: true });
 export const startFulfillment = (id) => action(id, 'fulfillment', { xac_nhan: true });
-export const startOrderDelivery = (id, partnerId, fee) => action(id, 'delivery/start', { xac_nhan: true, doi_tac_van_chuyen_id: partnerId, phi_tra_doi_tac: fee });
-export const setPackingStatus = (id, status) => action(id, 'packing-status', { trang_thai_dong_goi: status }, 'PATCH');
+export const startOrderDelivery = (
+  id,
+  partnerId,
+  fee,
+  tracking = "",
+) =>
+  action(id, "delivery/start", {
+    xac_nhan: true,
+    doi_tac_van_chuyen_id: partnerId,
+    phi_tra_doi_tac: fee,
+    ma_van_don: tracking.trim(),
+  });export const setPackingStatus = (id, status) => action(id, 'packing-status', { trang_thai_dong_goi: status }, 'PATCH');
 export const getSerialRequirements = (id) => adminRequest(`${PATH}/${encodeURIComponent(id)}/warehouse/serial-requirements`);
 export const getExportVariant = (id) => adminRequest(`/api/v1/admin/inventory/items/${encodeURIComponent(id)}?loai_doi_tuong=PHIEN_BAN`);
 export const getSerialCandidates = (id, values, signal) => adminRequest(`${PATH}/${encodeURIComponent(id)}/warehouse/serial-candidates?${query(values)}`, { signal });
@@ -82,19 +92,66 @@ export const canEditOnlineOrder = (order) => order?.loai_don_hang === 'ONLINE'
   && order.trang_thai_dong_goi === 'CHUA_DONG_GOI';
 
 export function paymentSource(order) {
-  if (order?.loai_don_hang !== 'ONLINE' || !(Number(order.tong_thanh_toan) > 0)) return null;
-  const active = (order.phieu_giao_hang || []).filter((item) => !['HUY_GIAO_HANG', 'DA_HOAN_HANG'].includes(item.trang_thai_giao_hang));
-  if (order.trang_thai_thanh_toan === 'CHUA_THANH_TOAN'
-      && ['CHO_THANH_TOAN', 'CHO_DONG_GOI', 'CHO_LAY_HANG'].includes(order.trang_thai_don_hang)
-      && order.trang_thai_xuat_kho !== 'DA_HOAN_KHO'
-      && active.every((item) => item.trang_thai_giao_hang === 'CHO_GIAO')) return { nguon_thu: 'KHACH_HANG' };
-  if (order.trang_thai_don_hang === 'HOAN_THANH' && order.trang_thai_thanh_toan === 'DA_THANH_TOAN'
-      && order.trang_thai_xuat_kho === 'DA_XUAT_KHO'
-      && !order.da_ghi_nhan_thu_cod
-      && active.length === 1 && active[0].trang_thai_giao_hang === 'GIAO_THANH_CONG'
-      && Number(active[0].tien_thu_ho_cod) === Number(order.tong_thanh_toan)) {
-    return { nguon_thu: 'DOI_TAC_GIAO_HANG', phieu_giao_hang_id: active[0].id };
+  const total = Number(order?.tong_thanh_toan);
+
+  if (
+    order?.loai_don_hang !== "ONLINE" ||
+    !Number.isFinite(total) ||
+    total <= 0
+  ) {
+    return null;
   }
+
+  const active = (order.phieu_giao_hang || []).filter(
+    (item) =>
+      !["HUY_GIAO_HANG", "DA_HOAN_HANG"].includes(
+        item.trang_thai_giao_hang,
+      ),
+  );
+
+  const canReceiveFromCustomer =
+    order.trang_thai_thanh_toan === "CHUA_THANH_TOAN" &&
+    ["CHO_THANH_TOAN", "CHO_DONG_GOI", "CHO_LAY_HANG"].includes(
+      order.trang_thai_don_hang,
+    ) &&
+    order.trang_thai_xuat_kho !== "DA_HOAN_KHO" &&
+    active.every(
+      (item) => item.trang_thai_giao_hang === "CHO_GIAO",
+    );
+
+  if (canReceiveFromCustomer) {
+    return { nguon_thu: "KHACH_HANG" };
+  }
+
+  const delivery = active.length === 1 ? active[0] : null;
+
+  const pendingCod =
+    order.trang_thai_thanh_toan === "CHUA_THANH_TOAN" &&
+    ["DANG_GIAO_HANG", "HOAN_THANH"].includes(
+      order.trang_thai_don_hang,
+    );
+
+  const legacyCod =
+    order.trang_thai_thanh_toan === "DA_THANH_TOAN" &&
+    order.trang_thai_don_hang === "HOAN_THANH";
+
+  const canReceiveCod =
+    (pendingCod || legacyCod) &&
+    order.da_ghi_nhan_thu_cod === false &&
+    order.hinh_thuc_nhan_hang === "GIAO_HANG" &&
+    order.trang_thai_dong_goi === "DA_DONG_GOI" &&
+    order.trang_thai_xuat_kho === "DA_XUAT_KHO" &&
+    delivery?.trang_thai_giao_hang === "GIAO_THANH_CONG" &&
+    Number(delivery?.doi_tac_van_chuyen_id) > 0 &&
+    Number(delivery?.tien_thu_ho_cod) === total;
+
+  if (canReceiveCod) {
+    return {
+      nguon_thu: "DOI_TAC_GIAO_HANG",
+      phieu_giao_hang_id: delivery.id,
+    };
+  }
+
   return null;
 }
 

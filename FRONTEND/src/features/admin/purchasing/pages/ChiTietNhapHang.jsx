@@ -54,6 +54,7 @@ export default function ChiTietNhapHang() {
   const [error, setError] = useState("");
   const [serialValues, setSerialValues] = useState({});
   const pagination = useDetailTablePagination(order?.items);
+  const [receiptQuantities, setReceiptQuantities] = useState({});
   const load = useCallback(
     async (signal) => {
       try {
@@ -129,56 +130,86 @@ export default function ChiTietNhapHang() {
 
   const receiptScope = `purchase:${order.id}:receive`;
 
+  const waitingReceipt = order.items.filter((item) => item.qty > item.received);
+
+  const canReceive =
+    [
+      "DA_DUYET",
+      "NHAP_MOT_PHAN",
+      "HOAN_TRA_MOT_PHAN",
+      "HOAN_TRA_TOAN_BO",
+    ].includes(order.importStatus) && waitingReceipt.length > 0;
+
   const openReceive = () => {
     const pending = purchaseAttempt.current;
 
     if (pending && pending.scope !== receiptScope) {
-      setError(
-        "Còn một thao tác chưa xác định kết quả. " +
-          "Hãy xử lý thao tác đó trước.",
-      );
+      setError("Hãy xử lý thao tác đang chờ kết quả trước.");
       return;
     }
 
-    if (order.items.some((item) => typeof item.serialManaged !== "boolean")) {
-      setError(
-        "Có phiên bản chưa trả về cấu hình quản lý serial. " +
-          "Kiểm tra Backend trước khi nhập kho.",
-      );
+    if (
+      waitingReceipt.some((item) => typeof item.serialManaged !== "boolean")
+    ) {
+      setError("Có phiên bản chưa có cấu hình quản lý serial.");
       return;
     }
+
+    setReceiptQuantities(
+      Object.fromEntries(
+        waitingReceipt.map((item) => {
+          const saved = pending?.body.items.find(
+            (line) => Number(line.chi_tiet_don_nhap_id) === item.id,
+          );
+
+          return [
+            item.id,
+            pending
+              ? (saved?.so_luong_nhap_kho ?? 0)
+              : item.qty - item.received,
+          ];
+        }),
+      ),
+    );
 
     setSerialValues(
-      pending
-        ? Object.fromEntries(
-            pending.body.items.map((item) => [
-              item.chi_tiet_don_nhap_id,
-              item.so_serials.join("\n"),
-            ]),
-          )
-        : {},
+      Object.fromEntries(
+        waitingReceipt.map((item) => {
+          const saved = pending?.body.items.find(
+            (line) => Number(line.chi_tiet_don_nhap_id) === item.id,
+          );
+
+          return [item.id, saved?.so_serials?.join("\n") || ""];
+        }),
+      ),
     );
 
     setError("");
     setModal("receipt");
   };
 
-  const receiptCodes = order.items.flatMap((item) =>
-    item.serialManaged ? serialCodes(serialValues[item.id]) : [],
-  );
+  const receiptItems = waitingReceipt.map((item) => ({
+    item,
+    quantity: Number(receiptQuantities[item.id] ?? 0),
+    codes: item.serialManaged ? serialCodes(serialValues[item.id]) : [],
+  }));
+
+  const receiptCodes = receiptItems
+    .filter(({ quantity }) => quantity > 0)
+    .flatMap(({ codes }) => codes);
 
   const receiveValid =
-    order.items.length > 0 &&
-    order.items.every((item) => {
-      if (typeof item.serialManaged !== "boolean") {
-        return false;
-      }
-
-      return item.serialManaged
-        ? serialCodes(serialValues[item.id]).length === item.qty
-        : true;
-    }) &&
-    new Set(receiptCodes.map((code) => code.toLocaleUpperCase())).size ===
+    receiptItems.some(({ quantity }) => quantity > 0) &&
+    receiptItems.every(
+      ({ item, quantity, codes }) =>
+        typeof item.serialManaged === "boolean" &&
+        Number.isSafeInteger(quantity) &&
+        quantity >= 0 &&
+        quantity <= item.qty - item.received &&
+        (quantity === 0 || !item.serialManaged || codes.length === quantity) &&
+        codes.every((code) => code.length <= 100),
+    ) &&
+    new Set(receiptCodes.map((code) => code.toUpperCase())).size ===
       receiptCodes.length;
 
   const receiptLocked = busy || purchaseAttempt.current?.scope === receiptScope;
@@ -187,19 +218,23 @@ export default function ChiTietNhapHang() {
     run(() => {
       const pending = purchaseAttempt.current;
 
+      if (!pending && !receiveValid) {
+        throw new Error("Số lượng nhập hoặc danh sách serial chưa hợp lệ.");
+      }
+
       const body =
         pending?.scope === receiptScope
           ? pending.body
           : {
               kho_hang_id: order.warehouse.id,
-              items: order.items.map((item) => ({
-                chi_tiet_don_nhap_id: item.id,
-                so_luong_nhap_kho: item.qty,
-                quan_ly_serial: item.serialManaged,
-                so_serials: item.serialManaged
-                  ? serialCodes(serialValues[item.id])
-                  : [],
-              })),
+              items: receiptItems
+                .filter(({ quantity }) => quantity > 0)
+                .map(({ item, quantity, codes }) => ({
+                  chi_tiet_don_nhap_id: item.id,
+                  so_luong_nhap_kho: quantity,
+                  quan_ly_serial: item.serialManaged,
+                  so_serials: codes,
+                })),
             };
 
       return withIdempotency(
@@ -211,13 +246,15 @@ export default function ChiTietNhapHang() {
     });
 
   const returnable = order.items.filter(
-    (item) => item.serialManaged === false && item.received > item.returned,
+    (item) => item.received > item.returned,
   );
 
   const savePurchaseOperation = (kind, buildBody) =>
     run(() => {
-      const body = buildBody();
+      const scope = `purchase:${order.id}:${kind}`;
+      const pending = purchaseAttempt.current;
 
+      const body = pending?.scope === scope ? pending.body : buildBody();
       return withIdempotency(
         purchaseAttempt,
         `purchase:${order.id}:${kind}`,
@@ -292,12 +329,14 @@ export default function ChiTietNhapHang() {
               THANH TOÁN
             </button>
           )}
-          {order.importStatus === "DA_DUYET" && (
+          {canReceive && (
             <button className="purchase-btn green" onClick={openReceive}>
               NHẬP KHO
             </button>
           )}
-          {["DA_NHAP_KHO", "HOAN_TRA_MOT_PHAN"].includes(order.importStatus) &&
+          {["NHAP_MOT_PHAN", "DA_NHAP_KHO", "HOAN_TRA_MOT_PHAN"].includes(
+            order.importStatus,
+          ) &&
             returnable.length > 0 && (
               <button
                 type="button"
@@ -509,15 +548,14 @@ export default function ChiTietNhapHang() {
             if (!operationBusy.current) setModal("");
           }}
         >
-          <h2>NHẬP TOÀN BỘ ĐƠN VÀO KHO</h2>
+          <h2>NHẬP HÀNG THỰC TẾ VÀO KHO</h2>
 
-          <p className="modal-subtitle">
-            {order.code} · Kho: <b>{order.warehouse.name}</b>
+          <p>
+            {order.code} · Kho: <strong>{order.warehouse.name}</strong>
           </p>
 
           <p className="receipt-config-note">
-            Chế độ serial lấy từ cấu hình phiên bản. Nhập đúng các mã thực tế
-            trên sản phẩm.
+            Có thể nhập từng phần. Để số lượng bằng 0 đối với dòng chưa nhận.
           </p>
 
           {error && (
@@ -527,18 +565,21 @@ export default function ChiTietNhapHang() {
           )}
 
           <div className="return-table-scroll">
-            <table className="receipt-table serial-receipt-table">
+            <table className="receipt-table">
               <thead>
                 <tr>
                   <th>PHIÊN BẢN</th>
-                  <th>SL NHẬP</th>
-                  <th>QUẢN LÝ SERIAL</th>
-                  <th>MÃ SERIAL THỰC TẾ</th>
+                  <th>ĐÃ ĐẶT</th>
+                  <th>ĐÃ NHẬP</th>
+                  <th>CÒN NHẬP</th>
+                  <th>NHẬP LẦN NÀY</th>
+                  <th>SERIAL</th>
                 </tr>
               </thead>
 
               <tbody>
-                {order.items.map((item) => {
+                {waitingReceipt.map((item) => {
+                  const quantity = Number(receiptQuantities[item.id] ?? 0);
                   const codes = serialCodes(serialValues[item.id]);
 
                   return (
@@ -546,22 +587,32 @@ export default function ChiTietNhapHang() {
                       <td>
                         <strong>{item.name}</strong>
                       </td>
-
                       <td>{item.qty}</td>
-
+                      <td>{item.received}</td>
+                      <td>{item.qty - item.received}</td>
                       <td>
-                        <span className="receipt-serial-mode">
-                          {item.serialManaged
-                            ? "CÓ QUẢN LÝ SERIAL"
-                            : "KHÔNG QUẢN LÝ SERIAL"}
-                        </span>
+                        <input
+                          aria-label={`Số lượng nhập ${item.name}`}
+                          className="purchase-receive-quantity"
+                          type="number"
+                          min="0"
+                          max={item.qty - item.received}
+                          step="1"
+                          disabled={receiptLocked}
+                          value={receiptQuantities[item.id] ?? 0}
+                          onChange={(event) =>
+                            setReceiptQuantities((current) => ({
+                              ...current,
+                              [item.id]: event.target.value,
+                            }))
+                          }
+                        />
                       </td>
-
                       <td>
                         {item.serialManaged ? (
                           <div className="receipt-serial-input">
                             <textarea
-                              disabled={receiptLocked}
+                              disabled={receiptLocked || quantity === 0}
                               value={serialValues[item.id] || ""}
                               onChange={(event) =>
                                 setSerialValues((current) => ({
@@ -569,17 +620,14 @@ export default function ChiTietNhapHang() {
                                   [item.id]: event.target.value,
                                 }))
                               }
-                              placeholder={
-                                `Nhập ${item.qty} mã, ` + "mỗi mã một dòng"
-                              }
+                              placeholder="Mỗi serial một dòng"
                             />
-
                             <small>
-                              Đã nhập {codes.length}/{item.qty} mã
+                              Đã nhập {codes.length}/{quantity} serial
                             </small>
                           </div>
                         ) : (
-                          <span>Không yêu cầu serial</span>
+                          "Không quản lý serial"
                         )}
                       </td>
                     </tr>
@@ -591,8 +639,8 @@ export default function ChiTietNhapHang() {
 
           {purchaseAttempt.current?.scope === receiptScope && (
             <p className="receipt-config-note">
-              Yêu cầu trước chưa xác định kết quả. Bấm xác nhận để gửi lại cùng
-              dữ liệu và cùng khóa.
+              Chưa xác định kết quả lần gửi trước. Thử lại sẽ giữ nguyên dữ liệu
+              và khóa chống gửi lặp.
             </p>
           )}
 
@@ -681,6 +729,7 @@ function PurchaseOperationDialog({
 
   const [form, setForm] = useState(() => ({
     amount: previous?.so_tien_thanh_toan ?? "",
+
     method:
       previous?.phuong_thuc_thanh_toan ||
       previous?.phuong_thuc_hoan ||
@@ -717,29 +766,129 @@ function PurchaseOperationDialog({
         return [item.id, saved?.so_luong_loi ?? 0];
       }),
     ),
+
+    serialSelections: Object.fromEntries(
+      returnable.map((item) => {
+        const saved = previous?.items?.find(
+          (line) => Number(line.chi_tiet_don_nhap_id) === item.id,
+        );
+
+        return [item.id, (saved?.so_serial_ids || []).map(Number)];
+      }),
+    ),
   }));
 
-  const change = (key, value) =>
-    setForm((current) => ({ ...current, [key]: value }));
+  const [serialCandidates, setSerialCandidates] = useState({});
+  const [serialLoadErrors, setSerialLoadErrors] = useState({});
 
   const returning = kind === "return";
   const paying = kind === "payment";
 
+  const serialLineKey = JSON.stringify(
+    returning
+      ? returnable
+          .filter((item) => item.serialManaged === true)
+          .map((item) => item.id)
+          .sort((a, b) => a - b)
+      : [],
+  );
+
+  useEffect(() => {
+    const ids = JSON.parse(serialLineKey);
+    if (!ids.length) return undefined;
+
+    const controller = new AbortController();
+    setSerialCandidates({});
+    setSerialLoadErrors({});
+
+    Promise.all(
+      ids.map(async (detailId) => {
+        try {
+          const items = await getPurchaseReturnSerials(
+            order.id,
+            detailId,
+            controller.signal,
+          );
+
+          return { detailId, items };
+        } catch (reason) {
+          if (controller.signal.aborted) return null;
+
+          return {
+            detailId,
+            error: errorMessage(reason),
+          };
+        }
+      }),
+    ).then((results) => {
+      if (controller.signal.aborted) return;
+
+      const candidates = {};
+      const errors = {};
+
+      results.filter(Boolean).forEach((result) => {
+        if (result.error) errors[result.detailId] = result.error;
+        else candidates[result.detailId] = result.items || [];
+      });
+
+      setSerialCandidates(candidates);
+      setSerialLoadErrors(errors);
+    });
+
+    return () => controller.abort();
+  }, [order.id, serialLineKey]);
+
+  const change = (key, value) => {
+    if (busy || previous) return;
+    setForm((current) => ({ ...current, [key]: value }));
+  };
+
   const selectedItems = returnable
-    .map((item) => ({
-      chi_tiet_don_nhap_id: item.id,
-      so_luong_tra: Number(form.quantities[item.id] || 0),
-      so_luong_loi: Number(form.defects[item.id] || 0),
-    }))
+    .map((item) => {
+      if (item.serialManaged === true) {
+        const ids = (form.serialSelections[item.id] || []).map(Number);
+        const candidates = serialCandidates[item.id] || [];
+
+        return {
+          chi_tiet_don_nhap_id: item.id,
+          so_luong_tra: ids.length,
+          so_luong_loi: candidates.filter(
+            (serial) =>
+              ids.includes(Number(serial.id)) && serial.trang_thai === "LOI",
+          ).length,
+          so_serial_ids: ids,
+        };
+      }
+
+      return {
+        chi_tiet_don_nhap_id: item.id,
+        so_luong_tra: Number(form.quantities[item.id] || 0),
+        so_luong_loi: Number(form.defects[item.id] || 0),
+        so_serial_ids: [],
+      };
+    })
     .filter((item) => item.so_luong_tra > 0);
 
   const quantitiesValid = returnable.every((item) => {
+    if (typeof item.serialManaged !== "boolean") return false;
+
+    if (item.serialManaged) {
+      const ids = (form.serialSelections[item.id] || []).map(Number);
+      const candidates = serialCandidates[item.id] || [];
+
+      return (
+        ids.length <= item.received - item.returned &&
+        new Set(ids).size === ids.length &&
+        ids.every((id) => candidates.some((serial) => Number(serial.id) === id))
+      );
+    }
+
     const quantity = Number(form.quantities[item.id] || 0);
     const defect = Number(form.defects[item.id] || 0);
 
     return (
-      Number.isInteger(quantity) &&
-      Number.isInteger(defect) &&
+      Number.isSafeInteger(quantity) &&
+      Number.isSafeInteger(defect) &&
       quantity >= 0 &&
       quantity <= item.received - item.returned &&
       defect >= 0 &&
@@ -755,24 +904,28 @@ function PurchaseOperationDialog({
     (form.method === "TIEN_MAT" || form.transaction.trim()),
   );
 
-  const valid = returning
-    ? Boolean(
-        form.reason.trim() &&
-        selectedItems.length > 0 &&
-        quantitiesValid &&
-        (!form.confirmed || moneyFieldsValid),
-      )
-    : Boolean(
-        form.confirmed &&
-        moneyFieldsValid &&
-        (paying
-          ? Number(form.amount) > 0 && Number(form.amount) <= Number(order.debt)
-          : receivingRefund && Number(order.refundDue) > 0),
-      );
+  const valid = previous
+    ? true
+    : returning
+      ? Boolean(
+          form.reason.trim() &&
+          selectedItems.length > 0 &&
+          quantitiesValid &&
+          (!form.confirmed || moneyFieldsValid),
+        )
+      : Boolean(
+          form.confirmed &&
+          moneyFieldsValid &&
+          (paying
+            ? Number(form.amount) > 0 &&
+              Number(form.amount) <= Number(order.debt)
+            : receivingRefund && Number(order.refundDue) > 0),
+        );
 
   const showMoneyFields = !returning || form.confirmed;
 
   const buildBody = () => {
+    if (previous) return previous;
     if (paying) {
       return {
         so_tien_thanh_toan: Number(form.amount),
@@ -858,45 +1011,111 @@ function PurchaseOperationDialog({
 
       {returning && (
         <>
-          {returnable.map((item) => (
-            <div key={item.id}>
-              <strong>{item.name}</strong>
+          {returnable.map((item) => {
+            const candidates = serialCandidates[item.id];
+            const selected = form.serialSelections[item.id] || [];
 
-              <label className="order-operation-field">
-                <span>SỐ LƯỢNG TRẢ</span>
-                <input
-                  type="number"
-                  min="0"
-                  max={item.received - item.returned}
-                  step="1"
-                  value={form.quantities[item.id]}
-                  onChange={(event) =>
-                    change("quantities", {
-                      ...form.quantities,
-                      [item.id]: event.target.value,
-                    })
-                  }
-                />
-              </label>
+            return (
+              <div className="purchase-return-line" key={item.id}>
+                <strong>{item.name}</strong>
+                <small>Còn có thể trả: {item.received - item.returned}</small>
 
-              <label className="order-operation-field">
-                <span>TRONG ĐÓ HÀNG LỖI</span>
-                <input
-                  type="number"
-                  min="0"
-                  max={Number(form.quantities[item.id] || 0)}
-                  step="1"
-                  value={form.defects[item.id]}
-                  onChange={(event) =>
-                    change("defects", {
-                      ...form.defects,
-                      [item.id]: event.target.value,
-                    })
-                  }
-                />
-              </label>
-            </div>
-          ))}
+                {item.serialManaged ? (
+                  <>
+                    {serialLoadErrors[item.id] && (
+                      <p className="receipt-error">
+                        {serialLoadErrors[item.id]}
+                      </p>
+                    )}
+
+                    {!candidates && !serialLoadErrors[item.id] && (
+                      <p>Đang tải serial...</p>
+                    )}
+
+                    {candidates?.length === 0 && (
+                      <p className="receipt-config-note">
+                        Chưa có serial đủ điều kiện. Với dữ liệu cũ, cần đối
+                        soát liên kết serial với đơn nhập gốc.
+                      </p>
+                    )}
+
+                    <div className="purchase-return-serials">
+                      {(candidates || []).map((serial) => {
+                        const serialId = Number(serial.id);
+                        const checked = selected.includes(serialId);
+
+                        return (
+                          <label key={serialId}>
+                            <input
+                              type="checkbox"
+                              disabled={busy || Boolean(previous)}
+                              checked={checked}
+                              onChange={(event) => {
+                                const next = event.target.checked
+                                  ? [...selected, serialId]
+                                  : selected.filter((id) => id !== serialId);
+
+                                change("serialSelections", {
+                                  ...form.serialSelections,
+                                  [item.id]: next,
+                                });
+                              }}
+                            />
+                            <span>{serial.so_serial}</span>
+                            <small>
+                              {serial.trang_thai === "LOI"
+                                ? "Hàng lỗi"
+                                : "Trong kho"}
+                            </small>
+                          </label>
+                        );
+                      })}
+                    </div>
+
+                    <p>Đã chọn {selected.length} serial trả.</p>
+                  </>
+                ) : (
+                  <div className="purchase-return-quantities">
+                    <label className="order-operation-field">
+                      <span>SỐ LƯỢNG TRẢ</span>
+                      <input
+                        type="number"
+                        min="0"
+                        max={item.received - item.returned}
+                        step="1"
+                        disabled={busy || Boolean(previous)}
+                        value={form.quantities[item.id]}
+                        onChange={(event) =>
+                          change("quantities", {
+                            ...form.quantities,
+                            [item.id]: event.target.value,
+                          })
+                        }
+                      />
+                    </label>
+
+                    <label className="order-operation-field">
+                      <span>TRONG ĐÓ HÀNG LỖI</span>
+                      <input
+                        type="number"
+                        min="0"
+                        max={Number(form.quantities[item.id] || 0)}
+                        step="1"
+                        disabled={busy || Boolean(previous)}
+                        value={form.defects[item.id]}
+                        onChange={(event) =>
+                          change("defects", {
+                            ...form.defects,
+                            [item.id]: event.target.value,
+                          })
+                        }
+                      />
+                    </label>
+                  </div>
+                )}
+              </div>
+            );
+          })}
 
           <label className="order-operation-field">
             <span>LÝ DO TRẢ *</span>

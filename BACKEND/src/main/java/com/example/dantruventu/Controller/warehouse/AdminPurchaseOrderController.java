@@ -147,4 +147,15 @@ public class AdminPurchaseOrderController {
         .data(service.cancel(id))
         .build();
   }
+
+  @GetMapping("/{id}/return-serials")
+  public ApiResponse<java.util.List<AdminPurchaseOrderReceiveResponse.SerialData>> getReturnSerials(
+      @PathVariable Long id, @RequestParam("chi_tiet_don_nhap_id") Long detailId) {
+
+    return ApiResponse.<java.util.List<AdminPurchaseOrderReceiveResponse.SerialData>>builder()
+        .status(200)
+        .message("Lấy serial có thể trả nhà cung cấp thành công")
+        .data(service.getReturnSerials(id, detailId))
+        .build();
+  }
 }
