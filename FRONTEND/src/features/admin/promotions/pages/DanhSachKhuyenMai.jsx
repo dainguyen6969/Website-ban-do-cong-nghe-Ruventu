@@ -3,6 +3,7 @@ import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { HiOutlineSearch } from 'react-icons/hi';
 import { getPromotions } from '../api/promotionApi.js';
 import { normalizePromotion, PROMOTION_STATUS } from '../promotionModel.js';
+import TablePagination from '../../../../shared/components/ui/TablePagination';
 import './DanhSachKhuyenMai.css';
 
 export default function DanhSachKhuyenMai() {
@@ -13,7 +14,6 @@ export default function DanhSachKhuyenMai() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [totalItems, setTotalItems] = useState(0);
-    const [totalPages, setTotalPages] = useState(1);
     const [searchQuery, setSearchQuery] = useState('');
     const [methodFilter, setMethodFilter] = useState('ALL');
     const [statusFilter, setStatusFilter] = useState('ALL');
@@ -42,7 +42,6 @@ export default function DanhSachKhuyenMai() {
                 const pages = Math.max(1, data.pagination.total_pages);
                 setPromotions(data.items.map(normalizePromotion));
                 setTotalItems(data.pagination.total_elements);
-                setTotalPages(pages);
                 if (currentPage > pages) setCurrentPage(pages);
             } catch (error) {
                 if (!controller.signal.aborted) setError(error.message);
@@ -54,8 +53,6 @@ export default function DanhSachKhuyenMai() {
         return () => { clearTimeout(timer); controller.abort(); };
     }, [searchQuery, methodFilter, statusFilter, currentPage]);
 
-    const startIndex = totalItems === 0 ? 0 : (currentPage - 1) * ITEMS_PER_PAGE + 1;
-    const endIndex = Math.min(currentPage * ITEMS_PER_PAGE, totalItems);
 
     const getStatusStyle = (status) => {
         switch (status) {
@@ -203,38 +200,7 @@ export default function DanhSachKhuyenMai() {
             </div>
             </div>
 
-            {!loading && !error && totalItems > 0 && (
-                <div className="promo-pagination">
-                    <div className="promo-pagination-info">
-                        HIỂN THỊ {startIndex}-{endIndex} TRÊN TỔNG SỐ {totalItems} CHƯƠNG TRÌNH
-                    </div>
-                    <div className="promo-pagination-controls">
-                        <button 
-                            disabled={currentPage === 1} 
-                            onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                        >
-                            &larr;
-                        </button>
-
-                        {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
-                            <button 
-                                key={p} 
-                                className={currentPage === p ? 'active' : ''}
-                                onClick={() => setCurrentPage(p)}
-                            >
-                                {p}
-                            </button>
-                        ))}
-
-                        <button 
-                            disabled={currentPage === totalPages} 
-                            onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                        >
-                            &rarr;
-                        </button>
-                    </div>
-                </div>
-            )}
+            {!loading && !error && <TablePagination totalItems={totalItems} pageSize={ITEMS_PER_PAGE} currentPage={currentPage} onPageChange={setCurrentPage} idPrefix="promotion" />}
         </div>
     );
 }

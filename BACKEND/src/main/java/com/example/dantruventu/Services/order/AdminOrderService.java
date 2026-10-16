@@ -66,6 +66,7 @@ public class AdminOrderService {
   private final DeliveryInventoryService deliveryInventory;
   private final EntityManager entityManager;
   private final CashbookService cashbookService;
+  private final OrderEvents orderEvents;
 
   public AdminSalesResponse.PageData<AdminOrderResponse.ListItem> list(
       String keyword,
@@ -223,6 +224,7 @@ public class AdminOrderService {
     }
 
     // Không hoàn lượt khuyến mại cũ, không tiêu thụ lượt mới.
+    orderEvents.changed(order.getId(), "UPDATED");
     return action(order);
   }
 
@@ -508,6 +510,7 @@ public class AdminOrderService {
   }
 
   void recordHistory(DonHang order, String action, String description) {
+    orderEvents.changed(order.getId(), action);
     historyRepository.save(
         LichSuXuLyDonHang.builder()
             .donHang(order)

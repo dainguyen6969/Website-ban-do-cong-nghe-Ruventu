@@ -68,6 +68,7 @@ public class AdminReturnService {
   private final PhieuTraHangRepository returnRepository;
   private final AdminReturnOrderRepository returnOrderRepository;
   private final DonHangRepository orderRepository;
+  private final OrderEvents orderEvents;
   private final ChiTietDonHangRepository orderLineRepository;
   private final ChiTietTraHangRepository returnLineRepository;
   private final PhieuGiaoHangRepository deliveryRepository;
@@ -168,6 +169,7 @@ public class AdminReturnService {
     returnSlip.setHinhThucHoanTien(paymentMethod);
     returnSlip.setTrangThaiTraHang(TrangThaiTraHang.DA_HOAN_TIEN);
     returnRepository.saveAndFlush(returnSlip);
+    orderEvents.changed(returnSlip.getDonHang().getId(), "REFUNDED");
 
     return AdminReturnResponse.RefundResponse.builder()
         .id(returnSlip.getId())
@@ -214,6 +216,7 @@ public class AdminReturnService {
       orderRepository.saveAndFlush(order);
     }
 
+    orderEvents.changed(order.getId(), "RETURN_RECEIVED");
     return AdminReturnResponse.ReceiveResponse.builder()
         .id(returnSlip.getId())
         .trangThaiTraHang(returnSlip.getTrangThaiTraHang())

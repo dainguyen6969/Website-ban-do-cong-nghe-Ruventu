@@ -41,6 +41,7 @@ class AdminOrderPaymentTest {
   @Mock AdminSalesService salesService;
   @Mock SalesContext context;
   @Mock EntityManager entityManager;
+  @Mock OrderEvents orderEvents;
   @Spy SalesProperties properties = new SalesProperties();
   @InjectMocks AdminOrderService service;
   DonHang order;
@@ -139,6 +140,7 @@ class AdminOrderPaymentTest {
     verify(historyRepository).save(event.capture());
     assertEquals("XAC_NHAN_THU_TIEN", event.getValue().getHanhDong());
     assertTrue(event.getValue().getMoTa().contains("THU-DH-1"));
+    verify(orderEvents).changed(1L, "XAC_NHAN_THU_TIEN");
   }
 
   @ParameterizedTest
@@ -149,6 +151,7 @@ class AdminOrderPaymentTest {
     order.setTrangThaiDonHang(status);
     assertThrows(AppException.class, this::pay);
     verify(cashbookService, never()).createAutomatic(any());
+    verifyNoInteractions(orderEvents);
   }
 
   @ParameterizedTest

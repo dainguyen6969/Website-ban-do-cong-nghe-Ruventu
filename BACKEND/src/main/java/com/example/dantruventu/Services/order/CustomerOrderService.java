@@ -76,6 +76,7 @@ public class CustomerOrderService {
   private final NguoiDungRepository cartOwnerRepository;
   private final SoDiaChiRepository addressRepository;
   private final DonHangRepository orderRepository;
+  private final OrderEvents orderEvents;
   private final ChiTietDonHangRepository orderLineRepository;
   private final AnhSanPhamRepository imageRepository;
   private final PhieuGiaoHangRepository deliveryRepository;
@@ -262,6 +263,7 @@ public class CustomerOrderService {
     }
 
     registerCartCleanupAfterCommit(user, guestCartId, cartLines);
+    orderEvents.changed(order.getId(), "CREATED");
 
     return CustomerOrderResponse.Created.builder()
         .id(order.getId())

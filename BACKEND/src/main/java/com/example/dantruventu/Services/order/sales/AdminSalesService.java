@@ -23,6 +23,7 @@ import com.example.dantruventu.Repository.product.PhienBanSanPhamRepository;
 import com.example.dantruventu.Repository.warehouse.SoSerialSanPhamRepository;
 import com.example.dantruventu.Repository.warehouse.TheKhoRepository;
 import com.example.dantruventu.Services.cashbook.CashbookService;
+import com.example.dantruventu.Services.order.OrderEvents;
 import com.example.dantruventu.Services.catalog.CatalogSupport;
 import com.example.dantruventu.Specification.SalesSpecification;
 import java.math.BigDecimal;
@@ -65,6 +66,7 @@ public class AdminSalesService {
   private final ObjectMapper objectMapper;
 
   private final CashbookService cashbookService;
+  private final OrderEvents orderEvents;
   private final SoQuyThuChiRepository cashRepository;
 
   private final CatalogSupport catalogSupport;
@@ -271,6 +273,8 @@ public class AdminSalesService {
 
     idempotencyRepository.complete(key, encode(response));
 
+    orderEvents.changed(order.getId(), "CREATED");
+
     return response;
   }
 
@@ -371,6 +375,8 @@ public class AdminSalesService {
     response.setPhieuThu(receipt == null ? null : mapper.toCashReceipt(receipt));
 
     idempotencyRepository.complete(key, encode(response));
+
+    orderEvents.changed(order.getId(), "CREATED");
 
     return response;
   }

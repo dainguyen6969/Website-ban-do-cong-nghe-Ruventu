@@ -34,8 +34,8 @@ export default function Header({ notificationCount = 0, onMenuToggle, isMenuOpen
   
   // Find current top-level route title
   const currentPath = location.pathname;
-  const isWarrantyCreate = currentPath === '/admin/bao-hanh/lap-phieu';
-  const isWarrantyDetail = !isWarrantyCreate && /^\/admin\/bao-hanh\/[^/]+$/.test(currentPath);
+  const isWarrantyCreate = ['/admin/bao-hanh/lap-phieu', '/admin/bao-hanh/tao-moi'].includes(currentPath);
+  const isWarrantyDetail = !isWarrantyCreate && currentPath !== '/admin/bao-hanh/danh-sach' && /^\/admin\/bao-hanh\/(?:chi-tiet\/)?[^/]+$/.test(currentPath);
   const isInventoryDetail = currentPath.startsWith('/kho-hang/quan-ly-phien-ban/chi-tiet/');
   const isVersionManagement = currentPath === '/kho-hang/quan-ly-phien-ban';
   const isSerialDetail = currentPath.startsWith('/kho-hang/danh-sach-serial/');

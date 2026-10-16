@@ -1,9 +1,10 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { HiOutlineAdjustments, HiOutlineSearch } from "react-icons/hi";
 import FilterDropdown from "../../../../shared/components/ui/FilterDropdown";
 import TablePagination from "../../../../shared/components/ui/TablePagination";
 import { dateTime, getOrders, label, money } from "../api/orderApi";
+import { subscribeOrderUpdates } from "../api/orderRealtime";
 import "./DanhSachDonHang.css";
 
 const PAGE_SIZE = 10;
@@ -67,6 +68,8 @@ export default function DanhSachDonHang() {
   const [page, setPage] = useState(1);
   const [data, setData] = useState({ items: [], pagination: {} });
   const [state, setState] = useState({ loading: true, error: "" });
+  const [revision, setRevision] = useState(0);
+  const loadedRequest = useRef(null);
   const request = useMemo(
     () => ({
       ...filters,
@@ -78,14 +81,20 @@ export default function DanhSachDonHang() {
   );
 
   useEffect(() => {
-    const controller = new AbortController();
+    return subscribeOrderUpdates(() => setRevision(value => value + 1));
+  }, []);
 
-    setState({ loading: true, error: "" });
+  useEffect(() => {
+    const controller = new AbortController();
+    const background = loadedRequest.current === request;
+
+    if (!background) setState({ loading: true, error: "" });
 
     const timer = setTimeout(() => {
       getOrders(request, controller.signal)
         .then((result) => {
           if (controller.signal.aborted) return;
+          loadedRequest.current = request;
 
           setData({
             items: result?.items || [],
@@ -96,6 +105,7 @@ export default function DanhSachDonHang() {
         })
         .catch((error) => {
           if (controller.signal.aborted) return;
+          if (background) return;
 
           setData({ items: [], pagination: {} });
           setState({
@@ -109,7 +119,7 @@ export default function DanhSachDonHang() {
       clearTimeout(timer);
       controller.abort();
     };
-  }, [request]);
+  }, [request, revision]);
 
   const updateImmediate = (field, value) => {
     setDraft((current) => ({
