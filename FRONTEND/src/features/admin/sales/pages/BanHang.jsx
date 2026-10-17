@@ -19,14 +19,13 @@ import {
   previewPosOrder,
   searchSalesCustomers,
   searchSalesProducts,
+  posSerialGroups,
 } from "../../orders/api/onlineOrderApi";
 import {
   addProduct,
   closeOrderTab,
   createOrder,
-  findIncompleteSerialLine,
   findStockIssue,
-  giftSerialRequirements,
   nextOrderNumber,
   orderTotals,
   resetOrder,
@@ -34,6 +33,9 @@ import {
   updateOrder,
 } from "../state/salesState";
 import PaymentSuccessModal from "../components/PaymentSuccessModal";
+import { sameQuotedPrice } from "../../../../shared/services/saleQuote";
+
+import { createRequestKey } from "../../../../shared/services/mutationUtils";
 import "./BanHang.css";
 
 const money = (value) =>
@@ -76,7 +78,6 @@ function PosDialog({ children, className, labelledBy, onClose }) {
 export default function BanHang() {
   const [orders, setOrders] = useState(() => [createOrder(1)]);
   const [activeId, setActiveId] = useState(1);
-  const serialRequest = useRef(0);
   const [salesOptions, setSalesOptions] = useState(null);
   const [optionsError, setOptionsError] = useState(false);
   const [productSearch, setProductSearch] = useState("");
@@ -121,12 +122,9 @@ export default function BanHang() {
     ...order,
     preview: previewReady ? order.preview : null,
   });
-  const giftRequirements = giftSerialRequirements(previewData);
-  const giftSerialIssue = giftRequirements.find(
-    (requirement) =>
-      (order.giftSerials?.[requirement.key]?.length || 0) !==
-      requirement.quantity,
-  );
+
+  const serialGroups = posSerialGroups(previewData);
+  const giftRequirements = serialGroups.filter((group) => group.gift);
   useEffect(() => {
     if (!previewSignature) return;
     const controller = new AbortController();
@@ -325,216 +323,270 @@ export default function BanHang() {
       setCustomerModal((current) => current && { ...current, saving: false });
     }
   };
+
   const changeQuantity = (id, quantity) =>
     patch((current) => ({
       cart: setProductQuantity(current.cart, id, quantity),
     }));
-  const openSerialModal = async (line) => {
-    const request = ++serialRequest.current;
+
+  const openSerialModal = (group) => {
     setSerialSearch("");
+
     setSerialModal({
-      productId: line.product.id,
-      gift: line.gift,
+      ...group,
+      productId: group.variantId,
+      page: 1,
+      totalPages: 0,
+      total: 0,
       loading: true,
       candidates: [],
-      total: 0,
       error: "",
     });
-    try {
-      const first = await getSerialPage({
-        page: 1,
-        limit: 100,
-        status: "TRONG_KHO",
-        versionId: line.product.id,
-      });
-      const rest = await Promise.all(
-        Array.from({ length: Math.max(0, first.totalPages - 1) }, (_, index) =>
-          getSerialPage({
-            page: index + 2,
-            limit: 100,
-            status: "TRONG_KHO",
-            versionId: line.product.id,
-          }),
-        ),
-      );
-      const data = {
-        ...first,
-        items: [first, ...rest].flatMap((page) => page.items),
-      };
-      if (request !== serialRequest.current) return;
-      setSerialModal({
-        productId: line.product.id,
-        gift: line.gift,
-        loading: false,
-        candidates: data.items,
-        total: data.totalItems,
-        error: "",
-      });
-      if (!line.gift)
-        setOrders((current) =>
-          current.map((item) =>
-            item.id === activeId
-              ? {
-                  ...item,
-                  cart: item.cart.map((entry) =>
-                    entry.product.id === line.product.id
-                      ? { ...entry, serialAvailable: data.totalItems }
-                      : entry,
-                  ),
-                }
-              : item,
-          ),
-        );
-    } catch {
-      if (request === serialRequest.current)
-        setSerialModal({
-          productId: line.product.id,
-          gift: line.gift,
-          loading: false,
-          candidates: [],
-          total: 0,
-          error: "Không thể tải serial khả dụng.",
-        });
-    }
   };
+
   const closeSerialModal = () => {
-    serialRequest.current += 1;
     setSerialModal(null);
   };
-  const serialIssue = findIncompleteSerialLine(order.cart);
+
+  useEffect(() => {
+    if (!serialModal) return undefined;
+
+    const controller = new AbortController();
+    const key = serialModal.key;
+    const page = serialModal.page;
+    const productId = serialModal.productId;
+
+    const updateModal = (patchValue) => {
+      setSerialModal((current) =>
+        current?.key === key && current.page === page
+          ? { ...current, ...patchValue }
+          : current,
+      );
+    };
+
+    updateModal({
+      loading: true,
+      candidates: [],
+      error: "",
+    });
+
+    const timer = setTimeout(async () => {
+      try {
+        const data = await getSerialPage(
+          {
+            page,
+            limit: 50,
+            status: "TRONG_KHO",
+            versionId: productId,
+            serial: serialSearch,
+          },
+          controller.signal,
+        );
+
+        if (controller.signal.aborted) return;
+
+        updateModal({
+          loading: false,
+          candidates: data.items,
+          total: data.totalItems,
+          totalPages: data.totalPages,
+        });
+      } catch (error) {
+        if (controller.signal.aborted) return;
+
+        updateModal({
+          loading: false,
+          candidates: [],
+          error: error.message || "Không thể tải serial khả dụng.",
+        });
+      }
+    }, 250);
+
+    return () => {
+      clearTimeout(timer);
+      controller.abort();
+    };
+  }, [
+    serialModal?.key,
+    serialModal?.page,
+    serialModal?.productId,
+    serialSearch,
+  ]);
+
+  const serialIssue = serialGroups.find(
+    (group) =>
+      (order.serialSelections?.[group.key]?.length || 0) !== group.quantity,
+  );
+
   const stockIssue = findStockIssue(order.cart);
+
   const transactionMissing =
     order.paymentMethod !== "cash" && !(order.transactionCode || "").trim();
+
   const paymentIssue =
     previewReady &&
     (order.paymentMethod === "cash"
       ? order.paid < totals.total
       : order.paid !== totals.total);
-  const serialLine = serialModal?.gift
+
+  const serialLine = serialModal
     ? {
         product: {
           id: serialModal.productId,
-          name: `Quà tặng · phiên bản #${serialModal.productId}`,
+          name: serialModal.label,
         },
-        quantity: serialModal.gift.quantity,
-        serials: order.giftSerials?.[serialModal.gift.key] || [],
+        quantity: serialModal.quantity,
+        serials: order.serialSelections?.[serialModal.key] || [],
       }
-    : serialModal &&
-      order.cart.find((item) => item.product.id === serialModal.productId);
-  const shownSerials =
-    serialModal?.candidates.filter((item) =>
-      item.serial.toLowerCase().includes(serialSearch.trim().toLowerCase()),
-    ) || [];
+    : null;
+
+  const shownSerials = serialModal?.candidates || [];
+
   const toggleSerial = (candidate) => {
-    if (serialModal.gift) {
-      patch((current) => {
-        const selected = current.giftSerials?.[serialModal.gift.key] || [];
-        const next = selected.some((serial) => serial.id === candidate.id)
-          ? selected.filter((serial) => serial.id !== candidate.id)
-          : selected.length < serialModal.gift.quantity
-            ? [...selected, candidate]
-            : selected;
-        return {
-          giftSerials: { ...current.giftSerials, [serialModal.gift.key]: next },
-        };
-      });
+    if (!serialModal) return;
+
+    const usedElsewhere = Object.entries(order.serialSelections || {}).some(
+      ([key, selected]) =>
+        key !== serialModal.key &&
+        selected.some((serial) => serial.id === candidate.id),
+    );
+
+    if (usedElsewhere) {
+      setSerialModal((current) => ({
+        ...current,
+        error: "Serial này đã được chọn cho dòng hoặc linh kiện khác.",
+      }));
       return;
     }
-    setOrders((current) =>
-      current.map((entry) =>
-        entry.id === activeId
-          ? {
-              ...entry,
-              cart: entry.cart.map((item) => {
-                if (item.product.id !== serialModal.productId) return item;
-                const selected = item.serials || [];
-                if (selected.some((serial) => serial.id === candidate.id))
-                  return {
-                    ...item,
-                    serials: selected.filter(
-                      (serial) => serial.id !== candidate.id,
-                    ),
-                  };
-                return selected.length < item.quantity
-                  ? { ...item, serials: [...selected, candidate] }
-                  : item;
-              }),
-            }
-          : entry,
-      ),
-    );
+
+    setSerialModal((current) => ({
+      ...current,
+      error: "",
+    }));
+
+    patch((current) => {
+      const selected = current.serialSelections?.[serialModal.key] || [];
+
+      const exists = selected.some((serial) => serial.id === candidate.id);
+
+      const next = exists
+        ? selected.filter((serial) => serial.id !== candidate.id)
+        : selected.length < serialModal.quantity
+          ? [...selected, candidate]
+          : selected;
+
+      return {
+        serialSelections: {
+          ...current.serialSelections,
+          [serialModal.key]: next,
+        },
+      };
+    });
   };
+
   const checkout = async () => {
-    if (checkoutLock.current || receipt || !salesOptions) return;
+    if (
+      checkoutLock.current ||
+      receipt ||
+      (!checkoutPending && !salesOptions)
+    ) {
+      return;
+    }
+
     if (
       !checkoutPending &&
       (!previewReady ||
         !order.cart.length ||
         serialIssue ||
-        giftSerialIssue ||
         stockIssue ||
         transactionMissing ||
         paymentIssue ||
         !order.paymentReceived)
-    )
+    ) {
       return;
+    }
+
     checkoutLock.current = true;
     setCheckoutBusy(true);
     setCheckoutError("");
+
     try {
       let attempt = checkoutPending;
+
       if (!attempt) {
-        if (order.discount)
+        if (order.discount) {
           throw new Error(
-            "Chiết khấu thủ công chưa được hỗ trợ khi thanh toán. Vui lòng đặt về 0 và chọn chương trình khuyến mại.",
+            "Chiết khấu thủ công chưa được hỗ trợ. " +
+              "Vui lòng đặt về 0 và chọn chương trình khuyến mại.",
           );
-        const preview = await previewPosOrder(order, salesOptions);
-        if (
-          JSON.stringify(preview.san_pham) !==
-            JSON.stringify(previewData.san_pham) ||
-          Number(preview.tong_thanh_toan) !== totals.total
-        ) {
+        }
+
+        const freshPreview = await previewPosOrder(order, salesOptions);
+
+        if (!sameQuotedPrice(previewData, freshPreview)) {
           setOrders((current) =>
             current.map((item) =>
               item.id === activeId
                 ? {
                     ...item,
                     preview: null,
-                    giftSerials: {},
+                    serialSelections: {},
                     paymentReceived: false,
                   }
                 : item,
             ),
           );
+
           setPreviewRevision((value) => value + 1);
+
           throw new Error(
-            "Giá hoặc cấu hình khuyến mại đã thay đổi. Vui lòng kiểm tra lại đơn và xác nhận lại thanh toán.",
+            "Giá hoặc cấu hình khuyến mại đã thay đổi. " +
+              "Vui lòng kiểm tra lại và xác nhận thanh toán.",
           );
         }
+
         attempt = {
           tabId: order.id,
-          key: crypto.randomUUID(),
-          body: buildPosCheckoutBody(order, salesOptions, totals.total),
+          key: createRequestKey(),
+          body: buildPosCheckoutBody(order, salesOptions, freshPreview),
         };
+
         sessionStorage.setItem(pendingCheckoutKey, JSON.stringify(attempt));
+
         setCheckoutPending(attempt);
       }
+
       const result = await checkoutPosOrder(attempt.body, attempt.key);
-      setReceipt({ ...result, tabId: attempt.tabId });
+
+      setReceipt({
+        ...result,
+        tabId: attempt.tabId,
+      });
+
       sessionStorage.removeItem(pendingCheckoutKey);
       setCheckoutPending(null);
     } catch (error) {
-      setCheckoutError(error.message);
-      if ([400, 404, 409].includes(error.status)) {
+      setCheckoutError(error.message || "Không thể thanh toán.");
+
+      const status = Number(error.status || error.response?.status);
+
+      if ([400, 401, 403, 404, 409, 422].includes(status)) {
         sessionStorage.removeItem(pendingCheckoutKey);
         setCheckoutPending(null);
+
         setOrders((current) =>
           current.map((item) =>
             item.id === activeId
-              ? { ...item, preview: null, paymentReceived: false }
+              ? {
+                  ...item,
+                  preview: null,
+                  serialSelections: {},
+                  paymentReceived: false,
+                }
               : item,
           ),
         );
+
         setPreviewRevision((value) => value + 1);
       }
     } finally {
@@ -842,123 +894,127 @@ export default function BanHang() {
                   </tr>
                 </thead>
                 <tbody>
-                  {order.cart.map(
-                    (
-                      { product, quantity, serials = [], serialAvailable },
-                      index,
-                    ) => {
-                      const previewLine = previewData?.san_pham.find(
-                        (line) => line.ma_dong === `d${product.id}`,
-                      );
-                      const price = previewLine
-                        ? Number(previewLine.don_gia)
-                        : productPrice(product, order.priceList);
-                      const subtotal = price * quantity;
-                      const lineTotal = previewLine
-                        ? Number(previewLine.thanh_toan_dong)
-                        : null;
-                      return (
-                        <tr key={product.id}>
-                          <td>{index + 1}</td>
-                          <td>
-                            <strong>{productName(product)}</strong>
-                            <small>{productCode(product)}</small>
-                            {quantity > product.stock && (
-                              <small className="pos-inline-error">
-                                Số lượng vượt tồn có thể bán ({product.stock}).
-                              </small>
-                            )}
-                          </td>
-                          <td>
-                            <div className="pos-stepper">
-                              <button
-                                type="button"
-                                aria-label={`Giảm số lượng ${productName(product)}`}
-                                disabled={quantity === 1}
-                                onClick={() =>
-                                  changeQuantity(product.id, quantity - 1)
-                                }
-                              >
-                                −
-                              </button>
-                              <input
-                                aria-label={`Số lượng ${productName(product)}`}
-                                type="number"
-                                inputMode="numeric"
-                                min="1"
-                                max={product.stock}
-                                value={quantity}
-                                onChange={(event) =>
-                                  changeQuantity(product.id, event.target.value)
-                                }
-                              />
-                              <button
-                                type="button"
-                                aria-label={`Tăng số lượng ${productName(product)}`}
-                                disabled={quantity >= product.stock}
-                                onClick={() =>
-                                  changeQuantity(product.id, quantity + 1)
-                                }
-                              >
-                                +
-                              </button>
-                            </div>
-                          </td>
-                          <td className="pos-price">{money(price)}</td>
-                          <td>
-                            {order.tax && (
-                              <span className="pos-vat-badge">
-                                {product.vatRate}%
-                              </span>
-                            )}
-                          </td>
-                          <td>
-                            {previewLine?.tien_chiet_khau > 0
-                              ? `−${money(previewLine.tien_chiet_khau)}`
-                              : "—"}
-                          </td>
-                          <td className="pos-line-total">{money(lineTotal)}</td>
-                          <td>
-                            {product.serialManaged && (
-                              <button
-                                type="button"
-                                className={`pos-serial-badge ${serials.length === quantity ? "is-complete" : ""}`}
-                                onClick={() =>
-                                  openSerialModal({
-                                    product,
-                                    quantity,
-                                    serials,
-                                    serialAvailable,
-                                  })
-                                }
-                              >
-                                {serials.length}/{quantity} SERIAL
-                              </button>
-                            )}
-                            {serials.map((serial) => (
-                              <small key={serial.id}>{serial.serial}</small>
-                            ))}
-                          </td>
-                          <td>
+                  {order.cart.map(({ product, quantity }, index) => {
+                    const previewLine = previewData?.san_pham.find(
+                      (line) => line.ma_dong === `d${product.id}`,
+                    );
+                    const price = previewLine
+                      ? Number(previewLine.don_gia)
+                      : productPrice(product, order.priceList);
+                    const subtotal = price * quantity;
+                    const lineTotal = previewLine
+                      ? Number(previewLine.thanh_toan_dong)
+                      : null;
+                    return (
+                      <tr key={product.id}>
+                        <td>{index + 1}</td>
+                        <td>
+                          <strong>{productName(product)}</strong>
+                          <small>{productCode(product)}</small>
+                          {quantity > product.stock && (
+                            <small className="pos-inline-error">
+                              Số lượng vượt tồn có thể bán ({product.stock}).
+                            </small>
+                          )}
+                        </td>
+                        <td>
+                          <div className="pos-stepper">
                             <button
                               type="button"
-                              className="pos-remove"
-                              aria-label={`Xóa ${productName(product)}`}
+                              aria-label={`Giảm số lượng ${productName(product)}`}
+                              disabled={quantity === 1}
                               onClick={() =>
-                                patch((current) => ({
-                                  cart: current.cart.filter(
-                                    (item) => item.product.id !== product.id,
-                                  ),
-                                }))
+                                changeQuantity(product.id, quantity - 1)
                               }
                             >
-                              <HiOutlineTrash />
+                              −
                             </button>
-                          </td>
-                        </tr>
-                      );
-                    },
-                  )}
+                            <input
+                              aria-label={`Số lượng ${productName(product)}`}
+                              type="number"
+                              inputMode="numeric"
+                              min="1"
+                              max={product.stock}
+                              value={quantity}
+                              onChange={(event) =>
+                                changeQuantity(product.id, event.target.value)
+                              }
+                            />
+                            <button
+                              type="button"
+                              aria-label={`Tăng số lượng ${productName(product)}`}
+                              disabled={quantity >= product.stock}
+                              onClick={() =>
+                                changeQuantity(product.id, quantity + 1)
+                              }
+                            >
+                              +
+                            </button>
+                          </div>
+                        </td>
+                        <td className="pos-price">{money(price)}</td>
+                        <td>
+                          {order.tax && (
+                            <span className="pos-vat-badge">
+                              {product.vatRate}%
+                            </span>
+                          )}
+                        </td>
+                        <td>
+                          {previewLine?.tien_chiet_khau > 0
+                            ? `−${money(previewLine.tien_chiet_khau)}`
+                            : "—"}
+                        </td>
+                        <td className="pos-line-total">{money(lineTotal)}</td>
+                        <td>
+                          {serialGroups
+                            .filter(
+                              (group) => group.lineKey === `d${product.id}`,
+                            )
+                            .map((group) => {
+                              const selected =
+                                order.serialSelections?.[group.key] || [];
+
+                              return (
+                                <div
+                                  className="pos-serial-group"
+                                  key={group.key}
+                                >
+                                  <button
+                                    type="button"
+                                    className={
+                                      "pos-serial-badge " +
+                                      (selected.length === group.quantity
+                                        ? "is-complete"
+                                        : "")
+                                    }
+                                    onClick={() => openSerialModal(group)}
+                                  >
+                                    {selected.length}/{group.quantity} SERIAL
+                                  </button>
+                                </div>
+                              );
+                            })}
+                        </td>
+                        <td>
+                          <button
+                            type="button"
+                            className="pos-remove"
+                            aria-label={`Xóa ${productName(product)}`}
+                            onClick={() =>
+                              patch((current) => ({
+                                cart: current.cart.filter(
+                                  (item) => item.product.id !== product.id,
+                                ),
+                              }))
+                            }
+                          >
+                            <HiOutlineTrash />
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
                   {(previewData?.san_pham || [])
                     .filter((line) => line.la_qua_tang)
                     .map((line) => (
@@ -977,27 +1033,33 @@ export default function BanHang() {
                         </td>
                         <td>
                           {giftRequirements
-                            .filter((requirement) =>
-                              requirement.key.startsWith(`${line.ma_dong}:`),
-                            )
-                            .map((requirement) => (
-                              <button
-                                key={requirement.key}
-                                type="button"
-                                className="pos-serial-badge"
-                                onClick={() =>
-                                  openSerialModal({
-                                    product: { id: requirement.variantId },
-                                    gift: requirement,
-                                  })
-                                }
-                              >
-                                {order.giftSerials?.[requirement.key]?.length ||
-                                  0}
-                                /{requirement.quantity} SERIAL · #
-                                {requirement.variantId}
-                              </button>
-                            ))}
+                            .filter((group) => group.lineKey === line.ma_dong)
+                            .map((group) => {
+                              const selected =
+                                order.serialSelections?.[group.key] || [];
+
+                              return (
+                                <div
+                                  className="pos-serial-group"
+                                  key={group.key}
+                                >
+                                  <button
+                                    type="button"
+                                    title={group.label}
+                                    aria-label={`Chọn serial cho quà tặng ${group.label}`}
+                                    className={
+                                      "pos-serial-badge " +
+                                      (selected.length === group.quantity
+                                        ? "is-complete"
+                                        : "")
+                                    }
+                                    onClick={() => openSerialModal(group)}
+                                  >
+                                    {selected.length}/{group.quantity} SERIAL
+                                  </button>
+                                </div>
+                              );
+                            })}
                         </td>
                         <td />
                       </tr>
@@ -1200,12 +1262,6 @@ export default function BanHang() {
                   đặt về 0 và chọn chương trình khuyến mại.
                 </p>
               )}
-              {giftSerialIssue && (
-                <p className="pos-error">
-                  Chọn đủ {giftSerialIssue.quantity} serial cho quà tặng phiên
-                  bản #{giftSerialIssue.variantId}.
-                </p>
-              )}
               {stockIssue && (
                 <p className="pos-error">
                   Số lượng {productName(stockIssue.product)} vượt tồn có thể bán
@@ -1214,10 +1270,8 @@ export default function BanHang() {
               )}
               {serialIssue && (
                 <p className="pos-error">
-                  {Number.isFinite(serialIssue.serialAvailable) &&
-                  serialIssue.quantity > serialIssue.serialAvailable
-                    ? `Chỉ có ${serialIssue.serialAvailable} serial khả dụng, cần ${serialIssue.quantity}`
-                    : "Cần chọn đủ serial trước khi thanh toán"}
+                  Cần chọn đủ {serialIssue.quantity} serial cho{" "}
+                  {serialIssue.label}.
                 </p>
               )}
               {transactionMissing && (
@@ -1242,7 +1296,6 @@ export default function BanHang() {
                   checkoutBusy ||
                   !previewReady ||
                   order.discount > 0 ||
-                  Boolean(giftSerialIssue) ||
                   !salesOptions ||
                   !order.cart.length ||
                   Boolean(serialIssue) ||
@@ -1346,7 +1399,13 @@ export default function BanHang() {
               autoFocus
               placeholder="QUÉT / NHẬP SERIAL..."
               value={serialSearch}
-              onChange={(event) => setSerialSearch(event.target.value)}
+              onChange={(event) => {
+                setSerialSearch(event.target.value);
+
+                setSerialModal((current) =>
+                  current ? { ...current, page: 1 } : current,
+                );
+              }}
               onKeyDown={(event) => {
                 if (event.key === "Enter") {
                   event.preventDefault();
@@ -1404,6 +1463,41 @@ export default function BanHang() {
               XONG ({serialLine.serials?.length || 0}/{serialLine.quantity})
             </button>
           </footer>
+
+          <div className="pos-serial-pagination">
+            <button
+              type="button"
+              disabled={serialModal.loading || serialModal.page <= 1}
+              onClick={() =>
+                setSerialModal((current) => ({
+                  ...current,
+                  page: current.page - 1,
+                }))
+              }
+            >
+              TRƯỚC
+            </button>
+
+            <span>
+              Trang {serialModal.page}/{Math.max(1, serialModal.totalPages)}
+            </span>
+
+            <button
+              type="button"
+              disabled={
+                serialModal.loading ||
+                serialModal.page >= Math.max(1, serialModal.totalPages)
+              }
+              onClick={() =>
+                setSerialModal((current) => ({
+                  ...current,
+                  page: current.page + 1,
+                }))
+              }
+            >
+              SAU
+            </button>
+          </div>
         </PosDialog>
       )}
       {receipt && (

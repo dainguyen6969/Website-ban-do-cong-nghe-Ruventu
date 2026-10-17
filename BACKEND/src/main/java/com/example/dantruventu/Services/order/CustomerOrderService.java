@@ -27,11 +27,10 @@ import com.example.dantruventu.Repository.order.PhieuGiaoHangRepository;
 import com.example.dantruventu.Repository.product.AnhSanPhamRepository;
 import com.example.dantruventu.Repository.warehouse.SoSerialSanPhamRepository;
 import com.example.dantruventu.Repository.warehouse.ThanhPhanComboRepository;
+import com.example.dantruventu.Services.CartPromotionService;
 import com.example.dantruventu.Services.cashbook.CashbookService;
 import com.example.dantruventu.Services.catalog.CatalogSupport;
-import com.example.dantruventu.Services.order.sales.OrderSaleSnapshotService;
-import com.example.dantruventu.Services.order.sales.SalesCalculationService;
-import com.example.dantruventu.Services.order.sales.SalesContext;
+import com.example.dantruventu.Services.order.sales.*;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -87,12 +86,18 @@ public class CustomerOrderService {
   private final CashbookService cashbookService;
   private final CatalogSupport catalogSupport;
   private final OrderSaleSnapshotService saleSnapshots;
+  private final SalesQuoteService saleQuotes;
+  private final CartPromotionService cartPromotionService;
+  private final SoldDeviceService soldDevices;
+  private final OrderInventoryService orderInventory;
 
   @Value("${ruventu.order.delivery-fee:30000}")
   private BigDecimal deliveryFee;
 
   public CustomerOrderResponse.Preview preview(
       NguoiDung user, String guestCartId, CustomerCheckoutRequest.Preview request) {
+
+    cartPromotionService.requireSelectedPromotion(user, guestCartId, request.getMaChuongTrinh());
 
     List<Long> selectedIds = validateSelectedIds(request.getCartItemIds());
     List<CartLine> cartLines = loadSelectedCartLines(user, guestCartId, selectedIds, false);
@@ -146,18 +151,26 @@ public class CustomerOrderService {
       throw conflict("Tổng tiền đã gồm VAT không khớp kết quả tính giá");
     }
 
-    return CustomerOrderResponse.Preview.builder()
-        .tongTienHang(plan.data().getTongTienHang())
-        .tienChietKhau(plan.data().getTienChietKhau())
-        .tongTienVat(plan.data().getTongTienVat())
-        .phiGiaoHang(plan.data().getPhiGiaoHang())
-        .tongThanhToan(plan.data().getTongThanhToan())
-        .giaDaBaoGomVat(true)
-        .tongTienHangDaGomVat(grossGoods)
-        .tienGiamDaGomVat(grossDiscount)
-        .sanPham(products)
-        .thongTinNguoiNhan(recipient)
-        .build();
+    var response =
+        CustomerOrderResponse.Preview.builder()
+            .tongTienHang(plan.data().getTongTienHang())
+            .tienChietKhau(plan.data().getTienChietKhau())
+            .tongTienVat(plan.data().getTongTienVat())
+            .phiGiaoHang(plan.data().getPhiGiaoHang())
+            .tongThanhToan(plan.data().getTongThanhToan())
+            .giaDaBaoGomVat(true)
+            .tongTienHangDaGomVat(grossGoods)
+            .tienGiamDaGomVat(grossDiscount)
+            .sanPham(products)
+            .thongTinNguoiNhan(recipient)
+            .build();
+
+    return saleQuotes.issue(
+        response,
+        SalesQuoteService.identity(user, guestCartId),
+        SalesQuoteService.CUSTOMER_CHECKOUT,
+        salesRequest,
+        plan);
   }
 
   @Transactional(isolation = Isolation.READ_COMMITTED)
@@ -221,6 +234,8 @@ public class CustomerOrderService {
   private CustomerOrderResponse.Created createOrder(
       NguoiDung user, String guestCartId, CustomerCheckoutRequest.Checkout request) {
 
+    cartPromotionService.requireSelectedPromotion(user, guestCartId, request.getMaChuongTrinh());
+
     List<Long> selectedIds = validateSelectedIds(request.getCartItemIds());
     List<CartLine> cartLines = loadSelectedCartLines(user, guestCartId, selectedIds, true);
     CustomerOrderResponse.Recipient recipient = resolveRecipient(user, request);
@@ -228,6 +243,13 @@ public class CustomerOrderService {
     AdminSalesRequest.Preview salesRequest = buildSalesRequest(user, request, cartLines);
     SalesCalculationService.Plan plan =
         calculationService.calculate(salesRequest, LoaiDonHang.ONLINE, true);
+
+    saleQuotes.require(
+        request.getMaXacNhanGia(),
+        SalesQuoteService.identity(user, guestCartId),
+        SalesQuoteService.CUSTOMER_CHECKOUT,
+        salesRequest,
+        plan);
 
     if (inputMoney(request.getTongThanhToanXacNhan()).compareTo(plan.data().getTongThanhToan())
         != 0) {
@@ -379,15 +401,6 @@ public class CustomerOrderService {
       }
     }
 
-    var comboParts =
-        catalogSupport.comboParts(
-            lines.stream()
-                .filter(
-                    line -> line.getPhienBan().getSanPham().getLoaiSanPham() == LoaiSanPham.BO_PC)
-                .map(line -> line.getPhienBan().getSanPham().getId())
-                .distinct()
-                .toList());
-
     List<CustomerOrderResponse.DetailProduct> products =
         lines.stream()
             .map(
@@ -420,14 +433,14 @@ public class CustomerOrderService {
             .toList();
 
     List<CustomerOrderResponse.Serial> serials =
-        serialRepository.findByDonHang_IdOrderByIdAsc(order.getId()).stream()
+        soldDevices.originalSerials(order.getId()).stream()
             .map(
                 serial ->
                     CustomerOrderResponse.Serial.builder()
-                        .id(serial.getId())
-                        .phienBanId(serial.getPhienBan().getId())
-                        .soSerial(serial.getSoSerial())
-                        .trangThai(serial.getTrangThai())
+                        .id(serial.id())
+                        .phienBanId(serial.phienBanId())
+                        .soSerial(serial.soSerial())
+                        .trangThai(serial.trangThai())
                         .build())
             .toList();
 
@@ -484,48 +497,68 @@ public class CustomerOrderService {
             order.getNgayTao() == null
                 ? null
                 : order.getNgayTao().atZone(salesProperties.zone()).toOffsetDateTime())
+        .khuyenMai(saleSnapshots.appliedPromotion(order.getId()))
+        .thietBiDaGiao(soldDevices.details(order.getId()))
+        .canhBaoThietBi(soldDevices.warning(order))
+        .ngayHoanThanh(
+            order.getNgayHoanThanh() == null
+                ? null
+                : order.getNgayHoanThanh().atZone(salesProperties.zone()).toOffsetDateTime())
         .build();
   }
 
   @Transactional(isolation = Isolation.READ_COMMITTED)
   public CustomerOrderResponse.Cancelled cancelOrder(
-      NguoiDung user, Long orderId, CustomerOrderRequest.Cancel request) {
+      NguoiDung user, Long orderId, String idempotencyKey, CustomerOrderRequest.Cancel request) {
 
-    NguoiDung customer = requireAuthenticatedUser(user);
+    var customer = requireAuthenticatedUser(user);
+    String key = "CANCEL-" + SalesQuoteService.uuid(idempotencyKey);
 
-    if (orderId == null || orderId <= 0) {
-      throw invalid("ID đơn hàng không hợp lệ");
-    }
+    return cashbookService.executeOnce(
+        key,
+        customer,
+        List.of(orderId, request),
+        CustomerOrderResponse.Cancelled.class,
+        () -> {
+          DonHang order =
+              orderRepository
+                  .findCustomerOrderForUpdate(orderId, customer.getId())
+                  .orElseThrow(() -> notFound("Đơn không tồn tại hoặc không thuộc khách hàng"));
 
-    /*
-     * Khóa và xác minh quyền sở hữu trước khi gọi nghiệp vụ chung.
-     * Không nhận khach_hang_id từ request.
-     */
-    DonHang order =
-        orderRepository
-            .findCustomerOrderForUpdate(orderId, customer.getId())
-            .orElseThrow(() -> notFound("Đơn hàng không tồn tại hoặc không thuộc khách hàng"));
+          boolean held =
+              order.getTrangThaiDongGoi() == TrangThaiDongGoi.DANG_DONG_GOI
+                  || order.getTrangThaiDongGoi() == TrangThaiDongGoi.DA_DONG_GOI;
 
-    AdminOrderRequest.Cancel sharedRequest = new AdminOrderRequest.Cancel();
+          List<CustomerOrderResponse.ReleasedStock> released =
+              held
+                  ? orderInventory.plan(order, true).quantities().entrySet().stream()
+                      .map(
+                          entry ->
+                              new CustomerOrderResponse.ReleasedStock(
+                                  entry.getKey(), entry.getValue()))
+                      .toList()
+                  : List.of();
 
-    sharedRequest.setLyDo(request.getLyDo());
+          var shared = new AdminOrderRequest.Cancel();
+          shared.setLyDo(request.getLyDo());
 
-    /*
-     * Dùng cùng quy tắc với Admin:
-     * - chỉ hủy trước xuất kho;
-     * - chỉ giải phóng lượng hàng đã giữ;
-     * - hủy phiếu giao đang CHO_GIAO;
-     * - giữ lịch sử thanh toán;
-     * - không tự hoàn tiền.
-     */
-    adminOrderService.cancel(orderId, sharedRequest);
+          adminOrderService.cancel(orderId, shared);
 
-    return CustomerOrderResponse.Cancelled.builder()
-        .id(order.getId())
-        .maDonHang(order.getMaDonHang())
-        .trangThaiDonHang(order.getTrangThaiDonHang())
-        .trangThaiXuatKho(order.getTrangThaiXuatKho())
-        .build();
+          return CustomerOrderResponse.Cancelled.builder()
+              .id(order.getId())
+              .maDonHang(order.getMaDonHang())
+              .trangThaiDonHang(order.getTrangThaiDonHang())
+              .trangThaiXuatKho(order.getTrangThaiXuatKho())
+              .trangThaiDongGoi(order.getTrangThaiDongGoi())
+              .trangThaiThanhToan(order.getTrangThaiThanhToan())
+              .khuyenMai(saleSnapshots.appliedPromotion(orderId))
+              .giaiPhongGiuKho(released)
+              .tienCanDoiSoatHoan(
+                  order.getTrangThaiThanhToan() == TrangThaiThanhToanDonHang.DA_THANH_TOAN
+                      ? money(order.getTongThanhToan())
+                      : BigDecimal.ZERO)
+              .build();
+        });
   }
 
   public CustomerOrderResponse.Tracking trackOrder(String orderCode, String recipientPhone) {

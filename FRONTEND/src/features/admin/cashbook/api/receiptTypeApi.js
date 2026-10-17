@@ -1,6 +1,4 @@
-import {
-  adminRequest,
-} from "../../catalog/products/api/versionApi.js";
+import { adminRequest } from "../../catalog/products/api/versionApi.js";
 
 import {
   basicStatusLabel,
@@ -62,10 +60,9 @@ export async function getReceiptTypes(filters = {}, signal) {
 }
 
 export async function getReceiptTypeDetail(id, signal) {
-  const data = await adminRequest(
-    `${PATH}/${encodeURIComponent(id)}`,
-    { signal },
-  );
+  const data = await adminRequest(`${PATH}/${encodeURIComponent(id)}`, {
+    signal,
+  });
 
   return normalizeReceiptType(data);
 }
@@ -89,13 +86,10 @@ export async function updateReceiptTypeStatus(id, isActive) {
       ? Number(isActive)
       : requireBasicStatus(isActive);
 
-  return adminRequest(
-    `${PATH}/${encodeURIComponent(id)}/status`,
-    {
-      method: "PATCH",
-      body: JSON.stringify({
-        trang_thai: status,
-      }),
-    },
-  );
+  return adminRequest(`${PATH}/${encodeURIComponent(id)}/status`, {
+    method: "PATCH",
+    body: JSON.stringify({
+      trang_thai: status,
+    }),
+  });
 }

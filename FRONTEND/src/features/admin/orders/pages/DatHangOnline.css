@@ -27,3 +27,7 @@
 .online-section-fields:disabled select {
   cursor: not-allowed;
 }
+
+.online-order-form[inert] {
+  opacity: 0.65;
+}

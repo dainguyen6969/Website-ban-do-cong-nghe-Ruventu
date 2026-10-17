@@ -5,6 +5,7 @@ import useDetailTablePagination from "../../../../hooks/useDetailTablePagination
 import {
   approveOrder,
   cancelOrder,
+  canEditOnlineOrder,
   confirmOrderPayment,
   confirmPickup,
   dateTime,
@@ -41,6 +42,7 @@ import {
   OrderLineNotice,
   OrderPromotionSummary,
 } from "../../../../shared/components/ui/OrderSaleDetails";
+import SoldDevices from "../../../../shared/components/ui/SoldDevices";
 import ComboContents from "../../../../shared/components/ui/ComboContents";
 
 export default function ChiTietDonHang() {
@@ -486,6 +488,17 @@ export default function ChiTietDonHang() {
           </div>
         </div>
         <div className="order-detail-hero__actions">
+          {canEditOnlineOrder(order) && (
+            <Action
+              disabled={state.busy}
+              click={() =>
+                navigate(`/admin/don-hang/dat-hang-online/${order.id}`)
+              }
+            >
+              SỬA ĐƠN HÀNG
+            </Action>
+          )}
+
           {openOnlineOrder &&
             isShipping &&
             (!activeDelivery ||
@@ -661,6 +674,11 @@ export default function ChiTietDonHang() {
               idPrefix="order-products"
             />
           </Panel>
+
+          <Panel title="THIẾT BỊ VÀ BẢO HÀNH">
+            <SoldDevices order={order} />
+          </Panel>
+
           <Panel title="THANH TOÁN">
             <dl className="order-detail-kv">
               <Info text="PHƯƠNG THỨC">

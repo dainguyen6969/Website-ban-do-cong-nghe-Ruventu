@@ -12,6 +12,7 @@ import {
   saveOnlineOrder,
   searchSalesCustomers,
   searchSalesProducts,
+  buildOnlineOrderDraft,
 } from "../api/onlineOrderApi";
 import "./DatHangOnline.css";
 import { canEditOnlineOrder, getOrder } from "../api/orderApi";
@@ -227,6 +228,7 @@ export default function DatHangOnline() {
       options
         ? {
             options,
+            editId,
             customerId: customer?.id,
             applyVat,
             vatMode,
@@ -242,6 +244,7 @@ export default function DatHangOnline() {
         : null,
     [
       options,
+      editId,
       customer,
       applyVat,
       vatMode,
@@ -338,15 +341,20 @@ export default function DatHangOnline() {
       "Đơn cũ chưa có đủ bản chụp để chỉnh sửa.",
   ].filter(Boolean);
 
+  const hasPendingSave = Boolean(requestKey.current);
+  const canRetry = hasPendingSave && !submitting;
+
   const canSubmit =
     (!editId || editReady === editId) &&
     !missing.length &&
     !phoneError &&
     Boolean(payment) &&
     Boolean(data) &&
+    (financialLocked || Boolean(data?.ma_xac_nhan_gia)) &&
     !previewLoading &&
     !previewError &&
-    !submitting;
+    !submitting &&
+    !hasPendingSave;
 
   const chooseCustomer = (entry) => {
     setCustomer(entry);
@@ -399,16 +407,43 @@ export default function DatHangOnline() {
 
   const submit = async () => {
     setSubmitted(true);
-    setTouched({ name: true, phone: true, address: true });
+    setTouched({
+      name: true,
+      phone: true,
+      address: true,
+    });
 
-    if (!canSubmit || submitBusy.current) return;
+    if ((!canSubmit && !canRetry) || submitBusy.current) {
+      return;
+    }
 
     submitBusy.current = true;
     setSubmitting(true);
     setSubmitError("");
 
     try {
-      const body = buildOnlineOrderBody(form, data.tong_thanh_toan);
+      let body;
+
+      if (requestKey.current) {
+        const {
+          ma_xac_nhan_gia: _quote,
+          tong_thanh_toan_xac_nhan: _total,
+          ...previousDraft
+        } = requestKey.current.body;
+
+        const currentDraft = buildOnlineOrderDraft(form);
+
+        if (JSON.stringify(previousDraft) !== JSON.stringify(currentDraft)) {
+          throw new Error(
+            "Yêu cầu trước chưa xác định kết quả. " +
+              "Giữ nguyên dữ liệu để thử lại.",
+          );
+        }
+
+        body = requestKey.current.body;
+      } else {
+        body = buildOnlineOrderBody(form, data);
+      }
 
       const result = await withIdempotency(
         requestKey,
@@ -502,8 +537,15 @@ export default function DatHangOnline() {
           chú; sản phẩm và số tiền được giữ nguyên.
         </p>
       )}
+
+      {hasPendingSave && (
+        <p className="online-banner" role="status">
+          Chưa xác định được kết quả lưu đơn. Dữ liệu đang được giữ nguyên; bấm
+          thử lại để gửi cùng yêu cầu.
+        </p>
+      )}
       <div className="online-order-grid">
-        <div className="online-order-form">
+        <div className="online-order-form" inert={submitting || hasPendingSave}>
           <Section n="1" title="KHÁCH HÀNG" disabled={financialLocked}>
             <button
               type="button"
@@ -759,7 +801,8 @@ export default function DatHangOnline() {
           error={submitError || previewError}
           missing={missing}
           phoneError={phoneError && recipient.phone}
-          canSubmit={canSubmit}
+          canSubmit={canSubmit || canRetry}
+          retry={canRetry}
           submitting={submitting}
           submit={submit}
           edit={Boolean(editId)}
@@ -976,6 +1019,7 @@ function LineTable({ items, previewLines, change, remove }) {
     </div>
   );
 }
+
 function Summary({
   data,
   loading,
@@ -983,6 +1027,7 @@ function Summary({
   missing,
   phoneError,
   canSubmit,
+  retry,
   submitting,
   submit,
   edit,
@@ -1038,12 +1083,19 @@ function Summary({
           disabled={!canSubmit}
           onClick={submit}
         >
-          {submitting ? "ĐANG LƯU..." : edit ? "LƯU THAY ĐỔI" : "ĐẶT HÀNG"}
+          {submitting
+            ? "ĐANG LƯU..."
+            : retry
+              ? "THỬ LẠI YÊU CẦU"
+              : edit
+                ? "LƯU THAY ĐỔI"
+                : "ĐẶT HÀNG"}
         </button>
       </div>
     </aside>
   );
 }
+
 function SummaryLine({ label, value, red }) {
   return (
     <div className="summary-line">

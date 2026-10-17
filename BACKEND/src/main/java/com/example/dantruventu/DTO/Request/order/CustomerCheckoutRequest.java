@@ -86,5 +86,10 @@ public final class CustomerCheckoutRequest {
         message = "Tổng thanh toán xác nhận không hợp lệ")
     @JsonProperty("tong_thanh_toan_xac_nhan")
     private BigDecimal tongThanhToanXacNhan;
+
+    @NotBlank(message = "Thiếu mã xác nhận giá")
+    @Size(max = 100)
+    @JsonProperty("ma_xac_nhan_gia")
+    private String maXacNhanGia;
   }
 }

@@ -15,6 +15,7 @@ import com.example.dantruventu.Repository.order.*;
 import com.example.dantruventu.Repository.partner.DoiTacVanChuyenRepository;
 import com.example.dantruventu.Services.catalog.CatalogSupport;
 import com.example.dantruventu.Services.order.sales.OrderSaleSnapshotService;
+import com.example.dantruventu.Services.order.sales.SoldDeviceService;
 import com.example.dantruventu.Specification.DeliverySpecification;
 import jakarta.persistence.EntityManager;
 import java.math.BigDecimal;
@@ -50,6 +51,7 @@ public class AdminDeliveryService {
   private final EntityManager entityManager;
   private final CatalogSupport catalogSupport;
   private final OrderSaleSnapshotService saleSnapshots;
+  private final SoldDeviceService soldDevices;
 
   @Value("${ruventu.shipping.time-zone:Asia/Ho_Chi_Minh}")
   private String shippingTimeZone;
@@ -236,6 +238,8 @@ public class AdminDeliveryService {
 
       if (target == TrangThaiGiaoHangEnum.GIAO_THANH_CONG) {
         confirmCustomerPayment(delivery, request.getXacNhanDaThuCod());
+
+        soldDevices.handover(order);
 
         delivery.setTrangThaiGiaoHang(TrangThaiGiaoHangEnum.GIAO_THANH_CONG);
 

@@ -1,25 +1,25 @@
 package com.example.dantruventu.Services;
 
+import static com.example.dantruventu.Services.order.sales.SalesSupport.*;
+
 import com.example.dantruventu.DTO.Request.ApplyCartPromotionRequest;
 import com.example.dantruventu.DTO.Request.order.AdminSalesRequest;
 import com.example.dantruventu.DTO.Response.CartItemMutationResponse;
 import com.example.dantruventu.DTO.Response.CartPromotionResponse;
 import com.example.dantruventu.DTO.Response.CartResponse;
-import com.example.dantruventu.Entity.GioHang;
+import com.example.dantruventu.DTO.Response.order.SalePreviewData;
 import com.example.dantruventu.Entity.NguoiDung;
 import com.example.dantruventu.Enum.LoaiDonHang;
 import com.example.dantruventu.Error.AppException;
 import com.example.dantruventu.Error.ErrorCode;
-import com.example.dantruventu.Repository.GioHangRepository;
 import com.example.dantruventu.Services.order.sales.SalesCalculationService;
 import com.example.dantruventu.Services.order.sales.SalesContext;
+import com.example.dantruventu.Services.order.sales.SalesQuoteService;
 import java.math.BigDecimal;
 import java.time.Duration;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
@@ -27,393 +27,286 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class CartPromotionService {
 
-  private static final String GUEST_CART_KEY_PREFIX = "cart:guest:";
-
-  private static final String USER_PROMOTION_KEY_PREFIX = "cart:user:";
-
-  private static final String PROMOTION_KEY_SUFFIX = ":promotion";
-
-  private final GioHangRepository gioHangRepository;
+  private final CartService cartService;
   private final StringRedisTemplate redisTemplate;
-  private final SalesCalculationService salesCalculationService;
-  private final SalesContext salesContext;
+  private final SalesCalculationService calculation;
+  private final SalesContext context;
+  private final SalesQuoteService saleQuotes;
 
   @Value("${cart.guest-expiration}")
   private long cartExpiration;
 
-  @Transactional(readOnly = true)
+  public String selectedCode(NguoiDung user, String guestCartId) {
+    String key = promotionKey(user, guestCartId);
+    return key == null ? null : text(redisTemplate.opsForValue().get(key));
+  }
+
+  public void requireSelectedPromotion(NguoiDung user, String guestCartId, String requestedCode) {
+
+    String selected = selectedCode(user, guestCartId);
+    String requested = text(requestedCode);
+
+    if (selected != null && (requested == null || !selected.equalsIgnoreCase(requested))) {
+      throw conflict(
+          "Giỏ hàng đang chọn mã "
+              + selected
+              + ". Hãy thay đổi hoặc bỏ mã trong giỏ rồi xác nhận lại.");
+    }
+  }
+
   public CartPromotionResponse applyPromotion(
-      NguoiDung nguoiDung, String guestCartId, ApplyCartPromotionRequest request) {
+      NguoiDung user, String guestCartId, ApplyCartPromotionRequest request) {
 
-    List<CartLine> cartLines = getCartLines(nguoiDung, guestCartId);
+    CartResponse cart = cartService.getCurrentCart(user, guestCartId);
 
-    if (cartLines.isEmpty()) {
-      throw new AppException(ErrorCode.INVALID_DATA, "Giỏ hàng đang trống");
+    if (cart.getItems() == null || cart.getItems().isEmpty()) {
+      throw invalid("Giỏ hàng đang trống");
     }
 
-    String promotionCode = request.getMaChuongTrinh().strip();
+    String code = text(request.getMaChuongTrinh());
 
-    SalesCalculationService.Plan plan;
-
-    try {
-      plan = calculate(cartLines, promotionCode);
-
-    } catch (AppException exception) {
-      throw new AppException(ErrorCode.INVALID_DATA, exception.getMessage());
+    if (code == null) {
+      throw invalid("Thiếu mã chương trình");
     }
 
-    String actualPromotionCode = plan.promotion().getMaChuongTrinh();
+    var input = buildRequest(user, cart, code);
+    var plan = calculation.calculate(input, LoaiDonHang.ONLINE, false);
 
-    savePromotionCode(requirePromotionKey(nguoiDung, guestCartId), actualPromotionCode);
+    String actualCode = plan.promotion().getMaChuongTrinh();
+    String key = requirePromotionKey(user, guestCartId);
 
-    return buildPromotionResponse(
-        200,
-        "Áp dụng khuyến mại thành công",
-        actualPromotionCode,
-        plan.data().getTienChietKhau(),
-        plan.data().getTongTienHang(),
-        plan.data().getTongThanhToan());
+    redisTemplate.opsForValue().set(key, actualCode, Duration.ofMillis(cartExpiration));
+
+    complete(user, guestCartId, cart, input, plan);
+
+    return promotionResponse(cart, actualCode, "Áp dụng khuyến mại thành công");
   }
 
-  @Transactional(readOnly = true)
-  public CartPromotionResponse removePromotion(NguoiDung nguoiDung, String guestCartId) {
+  public CartPromotionResponse removePromotion(NguoiDung user, String guestCartId) {
 
-    String promotionKey = findPromotionKey(nguoiDung, guestCartId);
+    String key = requirePromotionKey(user, guestCartId);
 
-    String promotionCode =
-        promotionKey == null ? null : redisTemplate.opsForValue().get(promotionKey);
-
-    if (promotionCode == null || promotionCode.isBlank()) {
-
-      throw new AppException(ErrorCode.NOT_FOUND, "Không có mã khuyến mại đang áp dụng");
+    if (text(redisTemplate.opsForValue().get(key)) == null) {
+      throw notFound("Không có mã khuyến mại đang áp dụng");
     }
 
-    List<CartLine> cartLines = getCartLines(nguoiDung, guestCartId);
+    redisTemplate.delete(key);
 
-    BigDecimal subtotal = BigDecimal.ZERO;
+    CartResponse cart =
+        applyStoredPromotion(user, guestCartId, cartService.getCurrentCart(user, guestCartId));
 
-    BigDecimal total = BigDecimal.ZERO;
-
-    if (!cartLines.isEmpty()) {
-      SalesCalculationService.Plan plan = calculate(cartLines, null);
-
-      subtotal = plan.data().getTongTienHang();
-
-      total = plan.data().getTongThanhToan();
-    }
-
-    redisTemplate.delete(promotionKey);
-
-    return buildPromotionResponse(
-        200, "Đã xóa mã khuyến mại", null, BigDecimal.ZERO, subtotal, total);
+    return promotionResponse(cart, null, "Đã xóa mã khuyến mại");
   }
 
-  @Transactional(readOnly = true)
   public CartResponse applyStoredPromotion(
-      NguoiDung nguoiDung, String guestCartId, CartResponse response) {
+      NguoiDung user, String guestCartId, CartResponse response) {
 
-    if (response == null) {
-      return null;
-    }
+    if (response == null) return null;
 
-    String promotionKey = findPromotionKey(nguoiDung, guestCartId);
+    clearConfirmation(response);
 
-    String promotionCode = getStoredPromotionCode(promotionKey);
+    String code = selectedCode(user, guestCartId);
+    boolean empty = response.getItems() == null || response.getItems().isEmpty();
 
-    if (promotionCode == null) {
-      resetCartResponseDiscount(response);
+    if (empty) {
+      response.setTamTinh(BigDecimal.ZERO);
+      response.setGiamGia(BigDecimal.ZERO);
+      response.setTongTien(BigDecimal.ZERO);
+      response.setCoTheThanhToan(false);
+      response.setTrangThaiKhuyenMai(code == null ? "CHUA_CHON" : "KHONG_CON_HOP_LE");
+
+      if (code != null) {
+        response.setKhuyenMai(Map.of("ma_chuong_trinh", code));
+        response.setLyDoKhuyenMai(
+            "Giỏ hàng đang trống. Mã đã chọn được giữ lại để kiểm tra khi thêm hàng.");
+      }
+
       return response;
     }
 
-    List<CartLine> cartLines = getCartLines(nguoiDung, guestCartId);
-
-    if (cartLines.isEmpty()) {
-      redisTemplate.delete(promotionKey);
-      resetCartResponseDiscount(response);
-      return response;
-    }
+    var input = buildRequest(user, response, code);
 
     try {
-      SalesCalculationService.Plan plan = calculate(cartLines, promotionCode);
+      var plan = calculation.calculate(input, LoaiDonHang.ONLINE, false);
 
-      response.setTamTinh(plan.data().getTongTienHang());
-
-      response.setGiamGia(plan.data().getTienChietKhau());
-
-      response.setTongTien(plan.data().getTongThanhToan());
+      complete(user, guestCartId, response, input, plan);
 
     } catch (AppException exception) {
-      redisTemplate.delete(promotionKey);
-      resetCartResponseDiscount(response);
-    }
+      if (!Set.of(ErrorCode.CONFLICT, ErrorCode.NOT_FOUND, ErrorCode.INVALID_DATA)
+          .contains(exception.getErrorCode())) {
+        throw exception;
+      }
 
-    return response;
-  }
+      // Giữ mã đã chọn và giữ các dòng mua.
+      // Chưa có kết quả tài chính hợp lệ thì không khẳng định tổng phải trả.
+      response.setTamTinh(grossSubtotal(response));
+      response.setGiamGia(null);
+      response.setTongTien(null);
+      response.setCoTheThanhToan(false);
+      response.setLyDoTinhGia(exception.getMessage());
+      response.setTrangThaiKhuyenMai(code == null ? "CHUA_CHON" : "KHONG_CON_HOP_LE");
 
-  @Transactional(readOnly = true)
-  public CartItemMutationResponse applyStoredPromotion(
-      NguoiDung nguoiDung, String guestCartId, CartItemMutationResponse response) {
-
-    if (response == null || response.getCartSummary() == null) {
-
-      return response;
-    }
-
-    String promotionKey = findPromotionKey(nguoiDung, guestCartId);
-
-    String promotionCode = getStoredPromotionCode(promotionKey);
-
-    if (promotionCode == null) {
-      resetMutationResponseDiscount(response);
-      return response;
-    }
-
-    List<CartLine> cartLines = getCartLines(nguoiDung, guestCartId);
-
-    if (cartLines.isEmpty()) {
-      redisTemplate.delete(promotionKey);
-      resetMutationResponseDiscount(response);
-      return response;
-    }
-
-    try {
-      SalesCalculationService.Plan plan = calculate(cartLines, promotionCode);
-
-      response.getCartSummary().setTamTinh(plan.data().getTongTienHang());
-
-      response.getCartSummary().setGiamGia(plan.data().getTienChietKhau());
-
-      response.getCartSummary().setTongTien(plan.data().getTongThanhToan());
-
-    } catch (AppException exception) {
-      redisTemplate.delete(promotionKey);
-      resetMutationResponseDiscount(response);
-    }
-
-    return response;
-  }
-
-  public void mergeGuestPromotion(NguoiDung nguoiDung, String guestCartId) {
-
-    if (nguoiDung == null || !isValidGuestCartId(guestCartId)) {
-
-      return;
-    }
-
-    String guestPromotionKey = buildGuestCartKey(guestCartId) + PROMOTION_KEY_SUFFIX;
-
-    String promotionCode = redisTemplate.opsForValue().get(guestPromotionKey);
-
-    if (promotionCode == null || promotionCode.isBlank()) {
-
-      return;
-    }
-
-    String userPromotionKey = USER_PROMOTION_KEY_PREFIX + nguoiDung.getId() + PROMOTION_KEY_SUFFIX;
-
-    savePromotionCode(userPromotionKey, promotionCode);
-
-    redisTemplate.delete(guestPromotionKey);
-  }
-
-  private SalesCalculationService.Plan calculate(List<CartLine> cartLines, String promotionCode) {
-
-    AdminSalesRequest.Preview previewRequest = buildPreviewRequest(cartLines, promotionCode);
-
-    return salesCalculationService.calculate(previewRequest, LoaiDonHang.ONLINE, false);
-  }
-
-  private List<CartLine> getCartLines(NguoiDung nguoiDung, String guestCartId) {
-
-    if (nguoiDung != null) {
-      return getUserCartLines(nguoiDung.getId());
-    }
-
-    if (!isValidGuestCartId(guestCartId)) {
-      return List.of();
-    }
-
-    return getGuestCartLines(guestCartId);
-  }
-
-  private List<CartLine> getUserCartLines(Long userId) {
-
-    List<GioHang> cartItems = gioHangRepository.findByNguoiDungIdOrderByNgayCapNhatDesc(userId);
-
-    return cartItems.stream()
-        .map(cartItem -> new CartLine(cartItem.getPhienBan().getId(), cartItem.getSoLuong()))
-        .toList();
-  }
-
-  private List<CartLine> getGuestCartLines(String guestCartId) {
-
-    Map<Object, Object> redisItems =
-        redisTemplate.opsForHash().entries(buildGuestCartKey(guestCartId));
-
-    List<CartLine> cartLines = new ArrayList<>();
-
-    for (Map.Entry<Object, Object> entry : redisItems.entrySet()) {
-
-      try {
-        Long variantId = Long.valueOf(entry.getKey().toString());
-
-        Integer quantity = Integer.valueOf(entry.getValue().toString());
-
-        if (variantId > 0 && quantity > 0) {
-
-          cartLines.add(new CartLine(variantId, quantity));
-        }
-
-      } catch (NumberFormatException exception) {
-        // Bỏ qua dữ liệu Redis không hợp lệ.
+      if (code != null) {
+        response.setKhuyenMai(Map.of("ma_chuong_trinh", code));
+        response.setLyDoKhuyenMai(exception.getMessage());
       }
     }
 
-    return cartLines;
+    return response;
   }
 
-  private AdminSalesRequest.Preview buildPreviewRequest(
-      List<CartLine> cartLines, String promotionCode) {
+  public CartItemMutationResponse applyStoredPromotion(
+      NguoiDung user, String guestCartId, CartItemMutationResponse response) {
 
-    AdminSalesRequest.Tax tax = new AdminSalesRequest.Tax();
+    if (response == null) return null;
 
-    tax.setApDung(false);
-    tax.setCheDoGia("CHUA_BAO_GOM");
+    CartResponse priced =
+        applyStoredPromotion(user, guestCartId, cartService.getCurrentCart(user, guestCartId));
 
-    List<AdminSalesRequest.Line> products = cartLines.stream().map(this::toSalesLine).toList();
+    var summary = response.getCartSummary();
 
-    AdminSalesRequest.Preview request = new AdminSalesRequest.Preview();
+    if (summary == null) {
+      summary = new CartItemMutationResponse.CartSummary();
+      response.setCartSummary(summary);
+    }
 
-    request.setKhoHangId(salesContext.defaultWarehouseId());
+    summary.setTongSoLuong(priced.getTongSoLuong());
+    summary.setTamTinh(priced.getTamTinh());
+    summary.setGiamGia(priced.getGiamGia());
+    summary.setTongTien(priced.getTongTien());
 
+    BeanUtils.copyProperties(priced, summary, SalePreviewData.class);
+
+    return response;
+  }
+
+  public void mergeGuestPromotion(NguoiDung user, String guestCartId) {
+
+    if (user == null || !validGuest(guestCartId)) return;
+
+    String guestKey = promotionKey(null, guestCartId);
+    String code = text(redisTemplate.opsForValue().get(guestKey));
+
+    if (code == null) return;
+
+    // Giữ lựa chọn đang có của tài khoản.
+    redisTemplate
+        .opsForValue()
+        .setIfAbsent(promotionKey(user, null), code, Duration.ofMillis(cartExpiration));
+
+    redisTemplate.delete(guestKey);
+  }
+
+  private void complete(
+      NguoiDung user,
+      String guestCartId,
+      CartResponse cart,
+      AdminSalesRequest.Preview input,
+      SalesCalculationService.Plan plan) {
+
+    BigDecimal gross = grossSubtotal(cart);
+    BigDecimal total = plan.data().getTongThanhToan();
+
+    cart.setTamTinh(gross);
+    cart.setGiamGia(gross.subtract(total));
+    cart.setTongTien(total);
+
+    saleQuotes.issue(
+        cart, SalesQuoteService.identity(user, guestCartId), SalesQuoteService.CART, input, plan);
+  }
+
+  private BigDecimal grossSubtotal(CartResponse cart) {
+    return cart.getItems().stream()
+        .map(item -> money(item.getDonGia()).multiply(BigDecimal.valueOf(item.getSoLuong())))
+        .reduce(BigDecimal.ZERO, BigDecimal::add);
+  }
+
+  private AdminSalesRequest.Preview buildRequest(NguoiDung user, CartResponse cart, String code) {
+
+    var tax = new AdminSalesRequest.Tax();
+    tax.setApDung(true);
+    tax.setCheDoGia("DA_BAO_GOM");
+
+    var lines =
+        cart.getItems().stream()
+            .sorted(Comparator.comparing(CartResponse.CartItemResponse::getCartItemId))
+            .map(
+                item -> {
+                  var line = new AdminSalesRequest.Line();
+                  line.setMaDong("c" + item.getCartItemId());
+                  line.setPhienBanId(item.getPhienBanId());
+                  line.setSoLuong(item.getSoLuong());
+                  return line;
+                })
+            .toList();
+
+    var request = new AdminSalesRequest.Preview();
+    request.setLoaiDonHang(LoaiDonHang.ONLINE);
+    request.setKhachHangId(user == null ? null : user.getId());
+    request.setKhoHangId(context.defaultWarehouseId());
     request.setBangGia("BAN_LE");
     request.setThue(tax);
-    request.setMaChuongTrinh(promotionCode);
-    request.setSanPham(products);
+    request.setMaChuongTrinh(code);
     request.setPhiGiaoHang(BigDecimal.ZERO);
-    request.setLoaiDonHang(LoaiDonHang.ONLINE);
+    request.setSanPham(lines);
 
     return request;
   }
 
-  private AdminSalesRequest.Line toSalesLine(CartLine cartLine) {
+  private CartPromotionResponse promotionResponse(CartResponse cart, String code, String message) {
 
-    AdminSalesRequest.Line line = new AdminSalesRequest.Line();
-
-    line.setPhienBanId(cartLine.variantId());
-
-    line.setSoLuong(cartLine.quantity());
-
-    return line;
-  }
-
-  private CartPromotionResponse buildPromotionResponse(
-      int status,
-      String message,
-      String promotionCode,
-      BigDecimal discount,
-      BigDecimal subtotal,
-      BigDecimal total) {
-
-    CartPromotionResponse.PromotionData data =
+    var data =
         CartPromotionResponse.PromotionData.builder()
-            .maChuongTrinh(promotionCode)
-            .giamGia(discount)
-            .tamTinh(subtotal)
-            .tongTienMoi(total)
+            .maChuongTrinh(code)
+            .tamTinh(cart.getTamTinh())
+            .giamGia(cart.getGiamGia())
+            .tongTienMoi(cart.getTongTien())
             .build();
 
-    return CartPromotionResponse.builder().status(status).message(message).data(data).build();
+    BeanUtils.copyProperties(cart, data, SalePreviewData.class);
+
+    return CartPromotionResponse.builder().status(200).message(message).data(data).build();
   }
 
-  private void resetCartResponseDiscount(CartResponse response) {
-
-    BigDecimal subtotal = response.getTamTinh() == null ? BigDecimal.ZERO : response.getTamTinh();
-
-    response.setGiamGia(BigDecimal.ZERO);
-
-    response.setTongTien(subtotal);
+  private void clearConfirmation(SalePreviewData response) {
+    response.setMaXacNhanGia(null);
+    response.setHetHanXacNhanGia(null);
+    response.setDauVanTayGia(null);
+    response.setKhuyenMai(null);
+    response.setQuaTang(List.of());
+    response.setLyDoKhuyenMai(null);
+    response.setLyDoTinhGia(null);
+    response.setCoTheThanhToan(false);
   }
 
-  private void resetMutationResponseDiscount(CartItemMutationResponse response) {
+  private String requirePromotionKey(NguoiDung user, String guestCartId) {
 
-    BigDecimal subtotal =
-        response.getCartSummary().getTamTinh() == null
-            ? BigDecimal.ZERO
-            : response.getCartSummary().getTamTinh();
+    String key = promotionKey(user, guestCartId);
 
-    response.getCartSummary().setGiamGia(BigDecimal.ZERO);
-
-    response.getCartSummary().setTongTien(subtotal);
-  }
-
-  private String getStoredPromotionCode(String promotionKey) {
-
-    if (promotionKey == null) {
-      return null;
+    if (key == null) {
+      throw invalid("Giỏ hàng khách không hợp lệ");
     }
 
-    String promotionCode = redisTemplate.opsForValue().get(promotionKey);
-
-    if (promotionCode == null || promotionCode.isBlank()) {
-
-      return null;
-    }
-
-    return promotionCode;
+    return key;
   }
 
-  private void savePromotionCode(String promotionKey, String promotionCode) {
+  private String promotionKey(NguoiDung user, String guestCartId) {
 
-    redisTemplate.opsForValue().set(promotionKey, promotionCode, Duration.ofMillis(cartExpiration));
-  }
-
-  private String requirePromotionKey(NguoiDung nguoiDung, String guestCartId) {
-
-    String promotionKey = findPromotionKey(nguoiDung, guestCartId);
-
-    if (promotionKey == null) {
-      throw new AppException(ErrorCode.INVALID_DATA, "Giỏ hàng khách không hợp lệ");
+    if (user != null) {
+      return "cart:user:" + user.getId() + ":promotion";
     }
 
-    return promotionKey;
+    return validGuest(guestCartId) ? "cart:guest:" + guestCartId + ":promotion" : null;
   }
 
-  private String findPromotionKey(NguoiDung nguoiDung, String guestCartId) {
-
-    if (nguoiDung != null) {
-      return USER_PROMOTION_KEY_PREFIX + nguoiDung.getId() + PROMOTION_KEY_SUFFIX;
-    }
-
-    if (!isValidGuestCartId(guestCartId)) {
-      return null;
-    }
-
-    return buildGuestCartKey(guestCartId) + PROMOTION_KEY_SUFFIX;
-  }
-
-  private String buildGuestCartKey(String guestCartId) {
-
-    return GUEST_CART_KEY_PREFIX + guestCartId;
-  }
-
-  private boolean isValidGuestCartId(String guestCartId) {
-
-    if (guestCartId == null || guestCartId.isBlank()) {
-
-      return false;
-    }
-
+  private boolean validGuest(String id) {
     try {
-      UUID.fromString(guestCartId);
-      return true;
-
+      return id != null && UUID.fromString(id).toString().equalsIgnoreCase(id);
     } catch (IllegalArgumentException exception) {
       return false;
     }
   }
-
-  private record CartLine(Long variantId, Integer quantity) {}
 }

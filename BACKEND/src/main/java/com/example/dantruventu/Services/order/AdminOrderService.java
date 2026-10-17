@@ -22,10 +22,8 @@ import com.example.dantruventu.Repository.product.AnhSanPhamRepository;
 import com.example.dantruventu.Repository.product.PhienBanSanPhamRepository;
 import com.example.dantruventu.Repository.warehouse.SoSerialSanPhamRepository;
 import com.example.dantruventu.Services.cashbook.CashbookService;
-import com.example.dantruventu.Services.order.sales.AdminSalesService;
-import com.example.dantruventu.Services.order.sales.OrderSaleSnapshotService;
-import com.example.dantruventu.Services.order.sales.SalesCalculationService;
-import com.example.dantruventu.Services.order.sales.SalesContext;
+import com.example.dantruventu.Services.order.sales.*;
+import com.example.dantruventu.Services.order.sales.SoldDeviceService;
 import com.example.dantruventu.Specification.OrderSpecification;
 import jakarta.persistence.EntityManager;
 import java.math.BigDecimal;
@@ -69,6 +67,8 @@ public class AdminOrderService {
   private final CashbookService cashbookService;
   private final OrderEvents orderEvents;
   private final OrderSaleSnapshotService saleSnapshots;
+  private final SalesQuoteService saleQuotes;
+  private final SoldDeviceService soldDevices;
 
   public AdminSalesResponse.PageData<AdminOrderResponse.ListItem> list(
       String keyword,
@@ -233,6 +233,13 @@ public class AdminOrderService {
     NguoiDung customer = context.customer(request.getKhachHangId(), false);
 
     var plan = calculation.calculate(request, LoaiDonHang.ONLINE, true);
+
+    saleQuotes.require(
+        request.getMaXacNhanGia(),
+        SalesQuoteService.identity(context.actor(), null),
+        SalesQuoteService.editScope(id),
+        request,
+        plan);
 
     if (inputMoney(request.getTongThanhToanXacNhan()).compareTo(plan.data().getTongThanhToan())
         != 0) {
@@ -887,6 +894,8 @@ public class AdminOrderService {
               "Cửa hàng thực nhận COD từ đối tác, phiếu " + delivery.getMaPhieuGiaoHang());
 
       order.setTrangThaiThanhToan(TrangThaiThanhToanDonHang.DA_THANH_TOAN);
+
+      soldDevices.handover(order);
 
       order.setTrangThaiDonHang(TrangThaiDonHang.HOAN_THANH);
       saleSnapshots.onOrderStateChanged(order);

@@ -563,8 +563,14 @@ public class SalesCalculationService {
 
           serialRequirements.put(new SerialKey(line.key(), physical.getKey()), physical.getValue());
 
+          var physicalVariant = catalog.variants().get(physical.getKey());
+
           requirements.add(
-              new AdminSalesResponse.SerialRequirement(physical.getKey(), physical.getValue()));
+              new AdminSalesResponse.SerialRequirement(
+                  physical.getKey(),
+                  physical.getValue(),
+                  physicalVariant.getSanPham().getTenSanPham(),
+                  physicalVariant.getTenPhienBan()));
         }
       }
 

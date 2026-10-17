@@ -27,41 +27,73 @@ public interface ChiTietDonHangRepository extends JpaRepository<ChiTietDonHang, 
 
   /*
    * MVP một kho.
-   * Những đơn đang đóng gói/đã đóng gói nhưng chưa xuất phải giữ đủ hàng.
+   * Những đơn đang đóng gói/đã đóng gói nhưng chưa xuất phải giữ đủ hàng. (Sau này sẽ thay đổi lại thành đóng gói sẽ giữ hàng.)
    */
   @Query(
       value =
           """
-          SELECT COALESCE(SUM(x.quantity), 0)
-          FROM (
-              SELECT ct.so_luong AS quantity
-              FROM chi_tiet_don_hang ct
-              JOIN don_hang d ON d.id = ct.don_hang_id
-              JOIN phien_ban_san_pham v ON v.id = ct.phien_ban_id
-              JOIN san_pham p ON p.id = v.san_pham_id
-              WHERE v.id = :variantId
-                AND p.loai_san_pham = 'DON'
-                AND d.loai_don_hang = 'ONLINE'
-                AND d.trang_thai_don_hang IN ('CHO_DONG_GOI', 'CHO_LAY_HANG')
-                AND d.trang_thai_dong_goi IN ('DANG_DONG_GOI', 'DA_DONG_GOI')
-                AND d.trang_thai_xuat_kho = 'CHUA_XUAT_KHO'
+        SELECT COALESCE(SUM(x.quantity), 0)
+        FROM (
+            SELECT
+                ct.don_hang_id AS order_id,
+                part.variant_id,
+                part.quantity
+            FROM chi_tiet_don_hang ct
+            JOIN JSON_TABLE(
+                CASE
+                    WHEN JSON_UNQUOTE(
+                        JSON_EXTRACT(ct.cau_hinh_da_ban, '$.loai_san_pham')
+                    ) = 'BO_PC'
+                    THEN JSON_EXTRACT(
+                        ct.cau_hinh_da_ban, '$.thanh_phan'
+                    )
+                    ELSE JSON_ARRAY(JSON_OBJECT(
+                        'phien_ban_id', ct.phien_ban_id,
+                        'so_luong_tong', ct.so_luong
+                    ))
+                END,
+                '$[*]' COLUMNS (
+                    variant_id BIGINT PATH '$.phien_ban_id',
+                    quantity BIGINT PATH '$.so_luong_tong'
+                )
+            ) part ON TRUE
+            WHERE JSON_EXTRACT(
+                ct.cau_hinh_da_ban, '$.phien_ban_snapshot'
+            ) = 1
 
-              UNION ALL
+            UNION ALL
 
-              SELECT ct.so_luong * c.so_luong AS quantity
-              FROM chi_tiet_don_hang ct
-              JOIN don_hang d ON d.id = ct.don_hang_id
-              JOIN phien_ban_san_pham v ON v.id = ct.phien_ban_id
-              JOIN san_pham p ON p.id = v.san_pham_id
-              JOIN thanh_phan_combo c ON c.san_pham_combo_id = p.id
-              WHERE c.phien_ban_thanh_phan_id = :variantId
-                AND p.loai_san_pham = 'BO_PC'
-                AND d.loai_don_hang = 'ONLINE'
-                AND d.trang_thai_don_hang IN ('CHO_DONG_GOI', 'CHO_LAY_HANG')
-                AND d.trang_thai_dong_goi IN ('DANG_DONG_GOI', 'DA_DONG_GOI')
-                AND d.trang_thai_xuat_kho = 'CHUA_XUAT_KHO'
-          ) x
-          """,
+            SELECT ct.don_hang_id, ct.phien_ban_id, ct.so_luong
+            FROM chi_tiet_don_hang ct
+            JOIN phien_ban_san_pham v ON v.id = ct.phien_ban_id
+            JOIN san_pham p ON p.id = v.san_pham_id
+            WHERE p.loai_san_pham = 'DON'
+              AND JSON_EXTRACT(
+                  ct.cau_hinh_da_ban, '$.phien_ban_snapshot'
+              ) IS NULL
+
+            UNION ALL
+
+            SELECT
+                ct.don_hang_id,
+                c.phien_ban_thanh_phan_id,
+                ct.so_luong * c.so_luong
+            FROM chi_tiet_don_hang ct
+            JOIN phien_ban_san_pham v ON v.id = ct.phien_ban_id
+            JOIN san_pham p ON p.id = v.san_pham_id
+            JOIN thanh_phan_combo c ON c.san_pham_combo_id = p.id
+            WHERE p.loai_san_pham = 'BO_PC'
+              AND JSON_EXTRACT(
+                  ct.cau_hinh_da_ban, '$.phien_ban_snapshot'
+              ) IS NULL
+        ) x
+        JOIN don_hang d ON d.id = x.order_id
+        WHERE x.variant_id = :variantId
+          AND d.loai_don_hang = 'ONLINE'
+          AND d.trang_thai_don_hang IN ('CHO_DONG_GOI', 'CHO_LAY_HANG')
+          AND d.trang_thai_dong_goi IN ('DANG_DONG_GOI', 'DA_DONG_GOI')
+          AND d.trang_thai_xuat_kho = 'CHUA_XUAT_KHO'
+        """,
       nativeQuery = true)
   Long sumReservedQuantity(@Param("variantId") Long variantId);
 

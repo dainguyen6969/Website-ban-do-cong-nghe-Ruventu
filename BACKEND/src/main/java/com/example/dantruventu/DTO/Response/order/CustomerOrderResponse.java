@@ -71,7 +71,7 @@ public final class CustomerOrderResponse {
 
   @Getter
   @Builder
-  public static class Preview {
+  public static class Preview extends SalePreviewData {
 
     @JsonProperty("tong_tien_hang")
     private BigDecimal tongTienHang;
@@ -157,6 +157,15 @@ public final class CustomerOrderResponse {
 
     @JsonProperty("khuyen_mai")
     private AdminSalesResponse.AppliedPromotion khuyenMai;
+
+    @JsonProperty("ngay_hoan_thanh")
+    private OffsetDateTime ngayHoanThanh;
+
+    @JsonProperty("thiet_bi_da_giao")
+    private List<SoldDeviceData> thietBiDaGiao;
+
+    @JsonProperty("canh_bao_thiet_bi")
+    private String canhBaoThietBi;
   }
 
   @Getter
@@ -380,9 +389,21 @@ public final class CustomerOrderResponse {
 
     @JsonProperty("khuyen_mai")
     private AdminSalesResponse.AppliedPromotion khuyenMai;
+
+    @JsonProperty("ngay_hoan_thanh")
+    private OffsetDateTime ngayHoanThanh;
+
+    @JsonProperty("thiet_bi_da_giao")
+    private List<SoldDeviceData> thietBiDaGiao;
+
+    @JsonProperty("canh_bao_thiet_bi")
+    private String canhBaoThietBi;
   }
 
   @Getter
+  @Setter
+  @NoArgsConstructor
+  @AllArgsConstructor
   @Builder
   public static class Cancelled {
     private Long id;
@@ -395,7 +416,25 @@ public final class CustomerOrderResponse {
 
     @JsonProperty("trang_thai_xuat_kho")
     private TrangThaiXuatKho trangThaiXuatKho;
+
+    @JsonProperty("trang_thai_dong_goi")
+    private TrangThaiDongGoi trangThaiDongGoi;
+
+    @JsonProperty("trang_thai_thanh_toan")
+    private TrangThaiThanhToanDonHang trangThaiThanhToan;
+
+    @JsonProperty("khuyen_mai")
+    private AdminSalesResponse.AppliedPromotion khuyenMai;
+
+    @JsonProperty("giai_phong_giu_kho")
+    private List<ReleasedStock> giaiPhongGiuKho;
+
+    @JsonProperty("tien_can_doi_soat_hoan")
+    private BigDecimal tienCanDoiSoatHoan;
   }
+
+  public record ReleasedStock(
+      @JsonProperty("phien_ban_id") Long phienBanId, @JsonProperty("so_luong") Integer soLuong) {}
 
   @Getter
   @Builder
