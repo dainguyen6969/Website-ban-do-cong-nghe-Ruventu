@@ -11,8 +11,10 @@ import com.example.dantruventu.Enum.TrangThaiSerial;
 import com.example.dantruventu.Repository.order.ChiTietDonHangRepository;
 import com.example.dantruventu.Repository.warehouse.SoSerialSanPhamRepository;
 import com.example.dantruventu.Repository.warehouse.TheKhoRepository;
+import com.example.dantruventu.Services.order.sales.OrderSaleSnapshotService;
 import com.example.dantruventu.Services.order.sales.SalesCalculationService;
 import com.example.dantruventu.Services.order.sales.SalesContext;
+import com.example.dantruventu.Services.order.sales.SoldDeviceService;
 import jakarta.persistence.EntityManager;
 import java.time.LocalDateTime;
 import java.util.*;
@@ -33,6 +35,8 @@ public class OrderInventoryService {
   private final SalesContext context;
   private final SalesProperties properties;
   private final EntityManager entityManager;
+  private final OrderSaleSnapshotService saleSnapshots;
+  private final SoldDeviceService soldDevices;
 
   public record Key(Long lineId, Long variantId) {}
 
@@ -45,48 +49,38 @@ public class OrderInventoryService {
   public Plan plan(DonHang order, boolean lockCatalog) {
     context.warehouse(context.defaultWarehouseId());
 
-    var lines = lineRepository.findByDonHang_IdOrderByIdAsc(order.getId());
+    var lines =
+        lockCatalog
+            ? lineRepository.findByDonHangIdForUpdate(order.getId())
+            : lineRepository.findByDonHang_IdOrderByIdAsc(order.getId());
 
     if (lines.isEmpty()) {
       throw conflict("Đơn hàng không có sản phẩm");
     }
 
-    var catalog =
-        calculation.catalog(lines.stream().map(x -> x.getPhienBan().getId()).toList(), lockCatalog);
-
     Map<Long, Integer> totals = new TreeMap<>();
     Map<Key, Integer> serials = new LinkedHashMap<>();
-    Map<Long, Boolean> modes = new HashMap<>();
     List<AdminOrderResponse.RequirementLine> requirements = new ArrayList<>();
 
     for (var line : lines) {
-      if (line.getSoLuong() == null || line.getSoLuong() <= 0) {
-        throw conflict("Số lượng dòng đơn không hợp lệ");
-      }
-
-      var units = catalog.physicalUnits().get(line.getPhienBan().getId());
+      var snapshot = saleSnapshots.requireSnapshot(line);
       List<AdminOrderResponse.Requirement> groups = new ArrayList<>();
 
-      for (var part : units.entrySet()) {
-        int needed = quantity((long) line.getSoLuong() * part.getValue());
+      for (var physical : saleSnapshots.physical(line).values()) {
+        totals.merge(physical.variantId(), physical.quantity(), (a, b) -> quantity((long) a + b));
 
-        totals.merge(part.getKey(), needed, (a, b) -> quantity((long) a + b));
+        if (physical.serialManaged()) {
+          serials.put(new Key(line.getId(), physical.variantId()), physical.quantity());
 
-        boolean managed = modes.computeIfAbsent(part.getKey(), calculation::usesSerial);
-
-        if (managed) {
-          serials.put(new Key(line.getId(), part.getKey()), needed);
-
-          groups.add(new AdminOrderResponse.Requirement(part.getKey(), part.getValue(), needed));
+          groups.add(
+              new AdminOrderResponse.Requirement(
+                  physical.variantId(), physical.perUnit(), physical.quantity()));
         }
       }
 
       requirements.add(
           new AdminOrderResponse.RequirementLine(
-              line.getId(),
-              line.getPhienBan().getSanPham().getLoaiSanPham(),
-              line.getSoLuong(),
-              groups));
+              line.getId(), snapshot.productType(), line.getSoLuong(), groups));
     }
 
     return new Plan(lines, totals, serials, requirements);
@@ -211,9 +205,27 @@ public class OrderInventoryService {
     for (SoSerialSanPham serial : selected) {
       serial.setDonHang(order);
       serial.setTrangThai(TrangThaiSerial.DA_BAN);
-      serial.setNgayKichHoat(activation);
-      // Chưa tính hanBaoHanh.
+      serial.setNgayKichHoat(null);
+      serial.setHanBaoHanh(null);
     }
+
+    Map<Long, SoSerialSanPham> selectedById = new HashMap<>();
+
+    for (var serial : selected) {
+      selectedById.put(serial.getId(), serial);
+    }
+
+    Map<SoldDeviceService.Key, List<SoSerialSanPham>> bindings = new HashMap<>();
+
+    for (var item : request.getItems()) {
+      for (var group : item.getSerials()) {
+        bindings.put(
+            new SoldDeviceService.Key(item.getChiTietDonHangId(), group.getPhienBanId()),
+            group.getSerialIds().stream().map(selectedById::get).toList());
+      }
+    }
+
+    soldDevices.prepare(order, plan.lines(), bindings);
 
     for (var need : plan.quantities().entrySet()) {
       TonKho stock = stocks.get(need.getKey());
@@ -252,8 +264,11 @@ public class OrderInventoryService {
     for (var entry : stocks.entrySet()) {
       TonKho stock = entry.getValue();
 
-      long actualHeld = (long) stock.getTonThucTe() - stock.getHangLoi() - stock.getTonCoTheBan();
-
+      long actualHeld =
+          (long) stock.getTonThucTe()
+              - stock.getHangLoi()
+              - stock.getSoLuongGiuChoBaoHanh()
+              - stock.getTonCoTheBan();
       Long expectedHeld = lineRepository.sumReservedQuantity(entry.getKey());
 
       if (expectedHeld == null || actualHeld != expectedHeld.longValue()) {

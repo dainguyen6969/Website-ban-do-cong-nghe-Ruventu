@@ -29,7 +29,6 @@ import com.example.dantruventu.Specification.SalesSpecification;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
-import java.time.LocalDateTime;
 import java.util.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -69,8 +68,10 @@ public class AdminSalesService {
   private final OrderEvents orderEvents;
   private final SoQuyThuChiRepository cashRepository;
 
-  private final CatalogSupport catalogSupport;
   private final OrderSaleSnapshotService saleSnapshots;
+  private final SalesQuoteService saleQuotes;
+  private final SoldDeviceService soldDevices;
+  private final CatalogSupport catalogSupport;
 
   public AdminSalesResponse.Options options() {
 
@@ -163,6 +164,18 @@ public class AdminSalesService {
 
     List<AdminSalesResponse.Product> items = new ArrayList<>();
 
+    var attributes =
+        catalogSupport.attributes(
+            result.getContent().stream().map(PhienBanSanPham::getId).toList());
+
+    var parts =
+        catalogSupport.comboParts(
+            result.getContent().stream()
+                .filter(v -> v.getSanPham().getLoaiSanPham() == LoaiSanPham.BO_PC)
+                .map(v -> v.getSanPham().getId())
+                .distinct()
+                .toList());
+
     for (PhienBanSanPham variant : result.getContent()) {
 
       var response = mapper.toProduct(variant);
@@ -203,14 +216,32 @@ public class AdminSalesService {
 
   public AdminSalesResponse.Preview preview(AdminSalesRequest.Preview request) {
 
+    var actor = context.actor();
     context.customer(request.getKhachHangId(), false);
+
+    String scope;
+
+    if (request.getLoaiDonHang() == LoaiDonHang.TAI_QUAY) {
+      if (request.getDonHangId() != null) {
+        throw invalid("Preview POS không nhận don_hang_id");
+      }
+      scope = SalesQuoteService.POS;
+    } else if (request.getLoaiDonHang() == LoaiDonHang.ONLINE) {
+      scope =
+          request.getDonHangId() == null
+              ? SalesQuoteService.ADMIN_CREATE
+              : SalesQuoteService.editScope(request.getDonHangId());
+    } else {
+      throw invalid("Loại đơn hàng không hợp lệ");
+    }
 
     var plan = calculation.calculate(request, request.getLoaiDonHang(), false);
 
     plan.data()
         .setKhuyenMaiKhaDung(calculation.availablePromotions(request, request.getLoaiDonHang()));
 
-    return plan.data();
+    return saleQuotes.issue(
+        plan.data(), SalesQuoteService.identity(actor, null), scope, request, plan);
   }
 
   @Transactional(isolation = Isolation.READ_COMMITTED)
@@ -245,6 +276,13 @@ public class AdminSalesService {
     }
 
     var plan = calculation.calculate(request, LoaiDonHang.ONLINE, true);
+
+    saleQuotes.require(
+        request.getMaXacNhanGia(),
+        SalesQuoteService.identity(actor, null),
+        SalesQuoteService.ADMIN_CREATE,
+        request,
+        plan);
 
     confirmTotal(request.getTongThanhToanXacNhan(), plan.data().getTongThanhToan());
 
@@ -301,6 +339,13 @@ public class AdminSalesService {
 
     var plan = calculation.calculate(request, LoaiDonHang.TAI_QUAY, true);
 
+    saleQuotes.require(
+        request.getMaXacNhanGia(),
+        SalesQuoteService.identity(actor, null),
+        SalesQuoteService.POS,
+        request,
+        plan);
+
     BigDecimal total = plan.data().getTongThanhToan();
 
     confirmTotal(request.getTongThanhToanXacNhan(), total);
@@ -327,16 +372,30 @@ public class AdminSalesService {
 
     order = orderRepository.saveAndFlush(order);
 
-    saleSnapshots.saveLines(order, plan, request);
-
-    LocalDateTime activationTime = LocalDateTime.now(properties.zone());
+    var savedLines = saleSnapshots.saveLines(order, plan, request);
 
     for (SoSerialSanPham serial : selectedSerials.values()) {
       serial.setTrangThai(TrangThaiSerial.DA_BAN);
       serial.setDonHang(order);
-      serial.setNgayKichHoat(activationTime);
-      // Không tự suy ra hoặc đặt thêm thời hạn bảo hành.
     }
+
+    Map<String, Long> lineIds = new HashMap<>();
+
+    for (var line : savedLines) {
+      lineIds.put(saleSnapshots.requireSnapshot(line).lineKey(), line.getId());
+    }
+
+    Map<SoldDeviceService.Key, List<SoSerialSanPham>> bindings = new HashMap<>();
+
+    for (var allocation : request.getPhanBoSerial()) {
+      bindings.put(
+          new SoldDeviceService.Key(
+              lineIds.get(allocation.getMaDong()), allocation.getPhienBanId()),
+          allocation.getSerialIds().stream().map(selectedSerials::get).toList());
+    }
+
+    soldDevices.prepare(order, savedLines, bindings);
+    soldDevices.handover(order);
 
     for (var requirement : plan.quantities().entrySet()) {
 
@@ -592,10 +651,16 @@ public class AdminSalesService {
 
     response.setKhuyenMai(saleSnapshots.appliedPromotion(order.getId()));
 
-    response.setSerials(
-        serialRepository.findByDonHang_IdOrderByIdAsc(order.getId()).stream()
-            .map(mapper::toSerial)
-            .toList());
+    response.setSerials(soldDevices.originalSerials(order.getId()));
+
+    response.setThietBiDaGiao(soldDevices.details(order.getId()));
+
+    response.setCanhBaoThietBi(soldDevices.warning(order));
+
+    response.setNgayHoanThanh(
+        order.getNgayHoanThanh() == null
+            ? null
+            : order.getNgayHoanThanh().atZone(properties.zone()).toOffsetDateTime());
 
     response.setPhieuGiaoHang(
         deliveryRepository.findByDonHang_IdOrderByIdAsc(order.getId()).stream()

@@ -64,6 +64,90 @@ public class OrderSaleSnapshotService {
       @JsonProperty("loai_ap_dung") LoaiApDungKhuyenMai role,
       @JsonProperty("so_luong") Integer quantity) {}
 
+  public record PhysicalItem(
+      Long variantId,
+      int perUnit,
+      int quantity,
+      boolean serialManaged,
+      Integer warrantyMonths,
+      String productName,
+      String variantName) {}
+
+  public LineSnapshot requireSnapshot(ChiTietDonHang line) {
+    LineSnapshot snapshot = readLine(line);
+
+    if (snapshot == null) {
+      throw conflict(
+          "Dòng đơn #"
+              + line.getId()
+              + " chưa có cấu hình đã chốt hợp lệ; cần xác minh dữ liệu cũ.");
+    }
+
+    return snapshot;
+  }
+
+  public Map<Long, PhysicalItem> physical(ChiTietDonHang line) {
+    LineSnapshot snapshot = requireSnapshot(line);
+    Map<Long, PhysicalItem> result = new TreeMap<>();
+
+    if (snapshot.productType() == LoaiSanPham.DON) {
+      if (snapshot.serialManaged() == null) {
+        throw conflict("Bản chụp thiếu chế độ serial");
+      }
+
+      result.put(
+          snapshot.variantId(),
+          new PhysicalItem(
+              snapshot.variantId(),
+              1,
+              quantity(snapshot.quantity()),
+              snapshot.serialManaged(),
+              snapshot.warrantyMonths(),
+              snapshot.productName(),
+              snapshot.variantName()));
+
+      return result;
+    }
+
+    if (snapshot.productType() != LoaiSanPham.BO_PC || snapshot.parts().isEmpty()) {
+      throw conflict("Bản chụp combo không có thành phần hợp lệ");
+    }
+
+    for (var part : snapshot.parts()) {
+      if (part.phienBanId() == null
+          || part.soLuongTrongBo() == null
+          || part.soLuongTrongBo() <= 0
+          || part.soLuongTong() == null
+          || part.coQuanLySerial() == null) {
+        throw conflict("Bản chụp linh kiện combo thiếu dữ liệu");
+      }
+
+      int total = quantity((long) snapshot.quantity() * part.soLuongTrongBo());
+
+      if (part.soLuongTong() != total) {
+        throw conflict("Số lượng linh kiện trong bản chụp không khớp");
+      }
+
+      var previous =
+          result.putIfAbsent(
+              part.phienBanId(),
+              new PhysicalItem(
+                  part.phienBanId(),
+                  part.soLuongTrongBo(),
+                  total,
+                  part.coQuanLySerial(),
+                  part.thoiHanBaoHanhThang(),
+                  part.tenSanPham(),
+                  part.tenPhienBan()));
+
+      if (previous != null) {
+        throw conflict("Bản chụp có phiên bản linh kiện bị trùng");
+      }
+    }
+
+    return result;
+  }
+
   public List<ChiTietDonHang> saveLines(
       DonHang order, SalesCalculationService.Plan plan, AdminSalesRequest.Base request) {
 

@@ -101,6 +101,7 @@ public class CustomerOrderController {
   public ApiResponse<CustomerOrderResponse.Cancelled> cancelOrder(
       Authentication authentication,
       @PathVariable Long id,
+      @RequestHeader(name = "Idempotency-Key", required = false) String idempotencyKey,
       @Valid @RequestBody CustomerOrderRequest.Cancel request) {
 
     NguoiDung user = getAuthenticatedUser(authentication);
@@ -108,7 +109,7 @@ public class CustomerOrderController {
     return ApiResponse.<CustomerOrderResponse.Cancelled>builder()
         .status(HttpStatus.OK.value())
         .message("Hủy đơn hàng thành công")
-        .data(customerOrderService.cancelOrder(user, id, request))
+        .data(customerOrderService.cancelOrder(user, id, idempotencyKey, request))
         .build();
   }
 

@@ -11,6 +11,9 @@ import com.example.dantruventu.Error.ErrorCode;
 import com.example.dantruventu.Repository.order.ChiTietDonHangRepository;
 import com.example.dantruventu.Repository.warehouse.*;
 import com.example.dantruventu.Services.catalog.CatalogSupport;
+import com.example.dantruventu.Services.order.sales.OrderSaleSnapshotService;
+import com.example.dantruventu.Services.order.sales.SoldDeviceService;
+import jakarta.persistence.EntityManager;
 import java.util.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -29,13 +32,17 @@ public class DeliveryInventoryService {
   private final TonKhoRepository stockRepository;
   private final TheKhoRepository ledgerRepository;
   private final SoSerialSanPhamRepository serialRepository;
+  private final OrderSaleSnapshotService saleSnapshots;
+  private final SoldDeviceService soldDevices;
+  private final EntityManager entityManager;
 
   @Value("${ruventu.inventory.default-warehouse-id:1}")
   private Long defaultWarehouseId;
 
   private record Key(Long lineId, Long variantId) {}
 
-  private record Expected(ChiTietDonHang line, PhienBanSanPham variant, int quantity) {}
+  private record Expected(
+      ChiTietDonHang line, PhienBanSanPham variant, int quantity, boolean serialManaged) {}
 
   public boolean usesSerial(PhienBanSanPham variant) {
     if (variant == null) {
@@ -91,8 +98,11 @@ public class DeliveryInventoryService {
       TonKho stock = lockStock(variantId);
       validateStock(stock);
 
-      long held = (long) stock.getTonThucTe() - stock.getHangLoi() - stock.getTonCoTheBan();
-
+      long held =
+          (long) stock.getTonThucTe()
+              - stock.getHangLoi()
+              - stock.getSoLuongGiuChoBaoHanh()
+              - stock.getTonCoTheBan();
       Long expectedHeld = orderLineRepository.sumReservedQuantity(variantId);
 
       if (expectedHeld == null || held != expectedHeld || held < quantity) {
@@ -114,56 +124,36 @@ public class DeliveryInventoryService {
     Map<Key, Expected> requirements = expected(order.getId());
     verifyExport(order.getId(), totals(requirements));
 
-    Map<Long, ArrayDeque<SoSerialSanPham>> serialsByVariant = new HashMap<>();
-
-    for (SoSerialSanPham serial : serialRepository.findByDonHang_IdOrderByIdAsc(order.getId())) {
-
-      if (serial.getTrangThai() != TrangThaiSerial.DA_BAN) {
-        throw conflict("Serial liên kết với đơn không ở trạng thái DA_BAN");
-      }
-
-      serialsByVariant
-          .computeIfAbsent(serial.getPhienBan().getId(), ignored -> new ArrayDeque<>())
-          .addLast(serial);
-    }
-
+    var devices = soldDevices.details(order.getId());
     List<ReturnRequirement> items = new ArrayList<>();
 
-    for (Expected requirement : requirements.values()) {
-      PhienBanSanPham variant = requirement.variant();
-      boolean managed = CatalogSupport.serialManaged(variant);
+    for (var requirement : requirements.values()) {
+      var variant = requirement.variant();
 
-      var pool = serialsByVariant.computeIfAbsent(variant.getId(), ignored -> new ArrayDeque<>());
+      var serials =
+          devices.stream()
+              .filter(
+                  device ->
+                      Objects.equals(device.chiTietDonHangId(), requirement.line().getId())
+                          && Objects.equals(device.phienBanId(), variant.getId())
+                          && device.soSerialId() != null)
+              .map(device -> new ReturnSerial(device.soSerialId(), device.soSerial()))
+              .toList();
 
-      List<ReturnSerial> serials = new ArrayList<>();
-
-      if (managed) {
-        if (pool.size() < requirement.quantity()) {
-          throw conflict("Thiếu serial đã xuất tại phiên bản " + variant.getId());
-        }
-
-        // ERD hiện liên kết serial với đơn và phiên bản.
-        // Phân bổ mỗi serial đúng một lần vào các dòng cùng phiên bản.
-        for (int index = 0; index < requirement.quantity(); index++) {
-          SoSerialSanPham serial = pool.removeFirst();
-          serials.add(new ReturnSerial(serial.getId(), serial.getSoSerial()));
-        }
+      if (requirement.serialManaged() && serials.size() != requirement.quantity()) {
+        throw conflict("Thiếu nhận dạng serial xuất gốc của dòng đơn");
       }
 
       items.add(
           new ReturnRequirement(
               requirement.line().getId(),
               variant.getId(),
-              requirement.line().getPhienBan().getSanPham().getTenSanPham(),
+              saleSnapshots.requireSnapshot(requirement.line()).productName(),
               variant.getSanPham().getTenSanPham(),
               variant.getTenPhienBan(),
               requirement.quantity(),
-              managed,
+              requirement.serialManaged(),
               serials));
-    }
-
-    if (serialsByVariant.values().stream().anyMatch(pool -> !pool.isEmpty())) {
-      throw conflict("Serial liên kết với đơn không khớp toàn bộ hàng đã xuất");
     }
 
     return new ReturnRequirements(order.getId(), warehouse.getId(), warehouse.getTenKho(), items);
@@ -235,8 +225,21 @@ public class DeliveryInventoryService {
     Map<Long, Integer> goodTotals = new TreeMap<>();
     Map<Long, Integer> damagedTotals = new TreeMap<>();
 
+    var originalDevices = soldDevices.details(order.getId());
+
     for (var entry : expected.entrySet()) {
       Expected requirement = entry.getValue();
+
+      Set<Long> originalSerialIds = new HashSet<>();
+
+      for (var device : originalDevices) {
+        if (Objects.equals(device.chiTietDonHangId(), requirement.line().getId())
+            && Objects.equals(device.phienBanId(), requirement.variant().getId())
+            && device.soSerialId() != null) {
+          originalSerialIds.add(device.soSerialId());
+        }
+      }
+
       var item = received.get(entry.getKey());
       Long variantId = requirement.variant().getId();
 
@@ -254,6 +257,10 @@ public class DeliveryInventoryService {
       int damagedSerials = 0;
 
       for (var serialItem : item.getSerials()) {
+        if (!originalSerialIds.contains(serialItem.getSoSerialId())) {
+          throw conflict("Serial không thuộc lần xuất gốc của dòng đơn này");
+        }
+
         if (!seenSerialIds.add(serialItem.getSoSerialId())) {
           throw conflict("Một serial bị gửi nhiều lần");
         }
@@ -325,7 +332,7 @@ public class DeliveryInventoryService {
   }
 
   private Map<Key, Expected> expected(Long orderId) {
-    List<ChiTietDonHang> lines = orderLineRepository.findByDonHang_IdOrderByIdAsc(orderId);
+    var lines = orderLineRepository.findByDonHang_IdOrderByIdAsc(orderId);
 
     if (lines.isEmpty()) {
       throw conflict("Đơn hàng không có chi tiết sản phẩm");
@@ -333,54 +340,21 @@ public class DeliveryInventoryService {
 
     Map<Key, Expected> result = new LinkedHashMap<>();
 
-    for (ChiTietDonHang line : lines) {
-      if (line.getSoLuong() == null || line.getSoLuong() <= 0) {
-        throw conflict("Số lượng dòng đơn không hợp lệ");
-      }
+    for (var line : lines) {
+      for (var physical : saleSnapshots.physical(line).values()) {
+        var variant = entityManager.find(PhienBanSanPham.class, physical.variantId());
 
-      PhienBanSanPham saleVariant = line.getPhienBan();
-
-      if (saleVariant.getSanPham().getLoaiSanPham() == LoaiSanPham.DON) {
-        addExpected(result, line, saleVariant, line.getSoLuong());
-        continue;
-      }
-
-      if (saleVariant.getSanPham().getLoaiSanPham() != LoaiSanPham.BO_PC) {
-        throw conflict("Loại sản phẩm không được hỗ trợ");
-      }
-
-      var components =
-          componentRepository.findByComboIds(List.of(saleVariant.getSanPham().getId()));
-
-      if (components.isEmpty()) {
-        throw conflict("Combo không có cấu hình thành phần");
-      }
-
-      for (ThanhPhanCombo component : components) {
-        if (component.getSoLuong() == null
-            || component.getSoLuong() <= 0
-            || component.getPhienBanThanhPhan().getSanPham().getLoaiSanPham() != LoaiSanPham.DON) {
-          throw conflict("Cấu hình combo không hợp lệ");
+        if (variant == null) {
+          throw conflict("Không tìm thấy linh kiện đã bán");
         }
 
-        int quantity = bounded((long) line.getSoLuong() * component.getSoLuong());
-
-        addExpected(result, line, component.getPhienBanThanhPhan(), quantity);
+        result.put(
+            new Key(line.getId(), physical.variantId()),
+            new Expected(line, variant, physical.quantity(), physical.serialManaged()));
       }
     }
 
     return result;
-  }
-
-  private void addExpected(
-      Map<Key, Expected> result, ChiTietDonHang line, PhienBanSanPham variant, int quantity) {
-
-    Key key = new Key(line.getId(), variant.getId());
-    Expected previous = result.get(key);
-
-    int total = previous == null ? quantity : bounded((long) previous.quantity() + quantity);
-
-    result.put(key, new Expected(line, variant, total));
   }
 
   private Map<Long, Integer> totals(Map<Key, Expected> expected) {
@@ -448,6 +422,7 @@ public class DeliveryInventoryService {
   }
 
   private void validateStock(TonKho stock) {
+    Integer warrantyHeld = stock.getSoLuongGiuChoBaoHanh();
     Integer physical = stock.getTonThucTe();
     Integer available = stock.getTonCoTheBan();
     Integer damaged = stock.getHangLoi();
@@ -458,6 +433,9 @@ public class DeliveryInventoryService {
         || physical < 0
         || available < 0
         || damaged < 0
+        || warrantyHeld == null
+        || warrantyHeld < 0
+        || (long) available + damaged + warrantyHeld > physical
         || (long) available + damaged > physical) {
       throw conflict("Dữ liệu tồn kho không hợp lệ, cần đối chiếu trước khi xử lý");
     }

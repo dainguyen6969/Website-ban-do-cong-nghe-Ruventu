@@ -173,3 +173,38 @@
 .pos-serial-list span { font-size:9px; }
 @media (max-width:1300px) { .pos-columns { grid-template-columns:210px minmax(0,1fr) 250px; } .pos-block { padding:12px; } .pos-cart { min-width:650px; } }
 @media (max-width:1000px) { .pos-columns { grid-template-columns:190px minmax(0,1fr); min-height:auto; } .pos-right { grid-column:1 / -1; border-left:0; border-top:2px solid #111; overflow:visible; } .pos-middle { min-height:420px; } .pos-left { overflow:visible; } .pos-checkout { margin-top:20px; } }
+
+.pos-serial-group {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 5px;
+  margin-bottom: 10px;
+}
+
+.pos-serial-group > small {
+  max-width: 230px;
+  white-space: normal;
+  line-height: 1.5;
+}
+
+.pos-serial-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 12px 16px;
+  border-top: 1px solid #e5e7eb;
+}
+
+.pos-serial-pagination button {
+  padding: 7px 12px;
+  border: 1px solid #d1d5db;
+  background: #fff;
+  cursor: pointer;
+}
+
+.pos-serial-pagination button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
