@@ -980,8 +980,6 @@ export default function BanHang() {
                                   className="pos-serial-group"
                                   key={group.key}
                                 >
-                                  <small>{group.label}</small>
-
                                   <button
                                     type="button"
                                     className={
@@ -994,12 +992,6 @@ export default function BanHang() {
                                   >
                                     {selected.length}/{group.quantity} SERIAL
                                   </button>
-
-                                  {selected.map((serial) => (
-                                    <small key={serial.id}>
-                                      {serial.serial}
-                                    </small>
-                                  ))}
                                 </div>
                               );
                             })}
@@ -1051,10 +1043,10 @@ export default function BanHang() {
                                   className="pos-serial-group"
                                   key={group.key}
                                 >
-                                  <small>{group.label}</small>
-
                                   <button
                                     type="button"
+                                    title={group.label}
+                                    aria-label={`Chọn serial cho quà tặng ${group.label}`}
                                     className={
                                       "pos-serial-badge " +
                                       (selected.length === group.quantity
@@ -1065,12 +1057,6 @@ export default function BanHang() {
                                   >
                                     {selected.length}/{group.quantity} SERIAL
                                   </button>
-
-                                  {selected.map((serial) => (
-                                    <small key={serial.id}>
-                                      {serial.serial}
-                                    </small>
-                                  ))}
                                 </div>
                               );
                             })}

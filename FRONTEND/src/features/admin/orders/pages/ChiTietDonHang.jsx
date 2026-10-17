@@ -5,6 +5,7 @@ import useDetailTablePagination from "../../../../hooks/useDetailTablePagination
 import {
   approveOrder,
   cancelOrder,
+  canEditOnlineOrder,
   confirmOrderPayment,
   confirmPickup,
   dateTime,
@@ -487,6 +488,17 @@ export default function ChiTietDonHang() {
           </div>
         </div>
         <div className="order-detail-hero__actions">
+          {canEditOnlineOrder(order) && (
+            <Action
+              disabled={state.busy}
+              click={() =>
+                navigate(`/admin/don-hang/dat-hang-online/${order.id}`)
+              }
+            >
+              SỬA ĐƠN HÀNG
+            </Action>
+          )}
+
           {openOnlineOrder &&
             isShipping &&
             (!activeDelivery ||

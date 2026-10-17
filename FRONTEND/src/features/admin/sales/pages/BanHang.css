@@ -208,3 +208,17 @@
   opacity: 0.45;
   cursor: not-allowed;
 }
+
+.pos-serial-group {
+  display: flex;
+  align-items: center;
+  margin: 0 0 6px;
+}
+
+.pos-serial-group:last-child {
+  margin-bottom: 0;
+}
+
+.pos-serial-group .pos-serial-badge {
+  white-space: nowrap;
+}
