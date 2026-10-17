@@ -1,6 +1,6 @@
 // State helpers for the admin point-of-sale workflow.
 export function createOrder(sequence, employee = null) {
-  return { id: sequence, code: `DH-${String(sequence).padStart(3, '0')}`, customer: null, cart: [], tax: true,
+  return { id: sequence, code: `DH-${String(sequence).padStart(3, '0')}`, customer: null, cart: [], tax: false, taxMode: "CHUA_BAO_GOM",
     priceList: 'retail', employee, discount: 0, promotion: '', paymentMethod: 'cash', paid: 0 };
 }
 
@@ -32,19 +32,36 @@ export function finalizeOrder(order) {
 const priceOf = (product, priceList) => Number(product.unitPrice ?? product.prices?.[priceList] ?? 0);
 
 export function orderTotals(order) {
+  if (!order.cart.length) {
+    return {
+      subtotal: 0,
+      vat: 0,
+      discountAmount: 0,
+      total: 0,
+    };
+  }
+
   if (order.preview && !order.discount) {
     const data = order.preview.data;
-    return { subtotal: Number(data.tong_tien_hang), vat: Number(data.tong_tien_vat), discountAmount: Number(data.tien_chiet_khau), total: Number(data.tong_thanh_toan) };
+
+    return {
+      subtotal: Number(data.tong_tien_hang),
+      vat: Number(data.tong_tien_vat),
+      discountAmount: Number(data.tien_chiet_khau),
+      total: Number(data.tong_thanh_toan),
+    };
   }
-  const subtotal = order.cart.reduce((sum, item) => sum + priceOf(item.product, order.priceList) * item.quantity, 0);
-  const included = order.taxMode === 'DA_BAO_GOM';
-  const vat = order.tax ? order.cart.reduce((sum, item) => {
-    const line = priceOf(item.product, order.priceList) * item.quantity;
-    return sum + Math.round(included ? line - line / (1 + item.product.vatRate / 100) : line * item.product.vatRate / 100);
-  }, 0) : 0
-  const gross = subtotal + (included ? 0 : vat);
-  const discountAmount = Math.round(gross * order.discount / 100);
-  return { subtotal, vat, discountAmount, total: gross - discountAmount };
+
+  return {
+    subtotal: order.cart.reduce(
+      (sum, item) =>
+        sum + priceOf(item.product, order.priceList) * item.quantity,
+      0,
+    ),
+    vat: null,
+    discountAmount: null,
+    total: null,
+  };
 }
 
 export function updateOrder(order, patch) {
@@ -53,7 +70,7 @@ export function updateOrder(order, patch) {
     next.preview = null;
     next.giftSerials = {};
     next.paymentReceived = false;
-    next.paid = orderTotals(next).total;
+    next.paid = 0;
   }
   return next;
 }

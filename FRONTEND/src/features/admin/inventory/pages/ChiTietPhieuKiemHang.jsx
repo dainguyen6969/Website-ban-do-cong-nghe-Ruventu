@@ -317,6 +317,49 @@ export default function ChiTietPhieuKiemHang() {
         </aside>
       </div>
 
+      {check.quan_ly_serial && (
+        <section className="stock-flow-card inventory-count-card">
+          <h2>KẾT QUẢ KIỂM SERIAL</h2>
+
+          {check.kiem_serial ? (
+            <>
+              <p>
+                Đã kiểm: {(check.kiem_serial.da_kiem ?? []).length}
+                {" · "}
+                Thiếu: {(check.kiem_serial.thieu ?? []).length}
+                {" · "}
+                Ngoài danh sách:{" "}
+                {(check.kiem_serial.ngoai_danh_sach ?? []).length}
+              </p>
+
+              <details>
+                <summary>Danh sách đã kiểm</summary>
+                <p>
+                  {(check.kiem_serial.da_kiem ?? []).join(", ") || "Chưa có mã"}
+                </p>
+              </details>
+
+              {(check.kiem_serial.thieu ?? []).length > 0 && (
+                <p className="stock-duplicate-warning">
+                  Thiếu: {check.kiem_serial.thieu.join(", ")}
+                </p>
+              )}
+
+              {(check.kiem_serial.ngoai_danh_sach ?? []).length > 0 && (
+                <p className="stock-duplicate-warning">
+                  Ngoài danh sách:{" "}
+                  {check.kiem_serial.ngoai_danh_sach.join(", ")}
+                </p>
+              )}
+            </>
+          ) : (
+            <p>
+              Phiếu cũ chưa có danh sách serial. Chọn chỉnh sửa để kiểm từng mã.
+            </p>
+          )}
+        </section>
+      )}
+
       {balanceModal && (
         <div
           className="stock-modal-backdrop"

@@ -36,6 +36,12 @@ export const SERIAL_STATUS_META = {
     description:
       "Serial cũ đã được thay bằng thiết bị khác.",
   },
+
+  DA_TRA_NCC: {
+  label: "Đã trả NCC",
+  key: "returned-supplier",
+  description: "Serial đã được xuất trả nhà cung cấp.",
+},
 };
 
 export const nextWarehouseStatus = (status) =>
