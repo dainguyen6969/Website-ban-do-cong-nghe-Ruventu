@@ -52,6 +52,8 @@ public interface AdminDeliveryMapper {
   @Mapping(target = "quanLySerial", ignore = true)
   @Mapping(target = "loaiSanPham", source = "phienBan.sanPham.loaiSanPham")
   @Mapping(target = "thanhPhan", ignore = true)
+  @Mapping(target = "maDong", ignore = true)
+  @Mapping(target = "canhBaoDuLieu", ignore = true)
   ProductData toProduct(ChiTietDonHang entity);
 
   @Mapping(target = "khachHangId", source = "khachHang.id")

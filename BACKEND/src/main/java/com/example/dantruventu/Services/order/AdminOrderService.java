@@ -23,6 +23,7 @@ import com.example.dantruventu.Repository.product.PhienBanSanPhamRepository;
 import com.example.dantruventu.Repository.warehouse.SoSerialSanPhamRepository;
 import com.example.dantruventu.Services.cashbook.CashbookService;
 import com.example.dantruventu.Services.order.sales.AdminSalesService;
+import com.example.dantruventu.Services.order.sales.OrderSaleSnapshotService;
 import com.example.dantruventu.Services.order.sales.SalesCalculationService;
 import com.example.dantruventu.Services.order.sales.SalesContext;
 import com.example.dantruventu.Specification.OrderSpecification;
@@ -67,6 +68,7 @@ public class AdminOrderService {
   private final EntityManager entityManager;
   private final CashbookService cashbookService;
   private final OrderEvents orderEvents;
+  private final OrderSaleSnapshotService saleSnapshots;
 
   public AdminSalesResponse.PageData<AdminOrderResponse.ListItem> list(
       String keyword,
@@ -155,7 +157,22 @@ public class AdminOrderService {
   }
 
   @Transactional(isolation = Isolation.READ_COMMITTED)
-  public AdminOrderResponse.Action update(Long id, AdminSalesRequest.Online request) {
+  public AdminOrderResponse.Action update(
+      Long id, String idempotencyKey, AdminSalesRequest.Online request) {
+
+    NguoiDung actor = context.actor();
+
+    String key = paymentRequestKey("SUA-DH-REQ-", idempotencyKey);
+
+    return cashbookService.executeOnce(
+        key,
+        actor,
+        List.of(id, request),
+        AdminOrderResponse.Action.class,
+        () -> doUpdate(id, request));
+  }
+
+  private AdminOrderResponse.Action doUpdate(Long id, AdminSalesRequest.Online request) {
 
     DonHang order = lockOrder(id);
     requireOnline(order);
@@ -164,11 +181,8 @@ public class AdminOrderService {
     if (order.getTrangThaiDonHang() != TrangThaiDonHang.CHO_DUYET
         || order.getTrangThaiThanhToan() != TrangThaiThanhToanDonHang.CHUA_THANH_TOAN
         || order.getTrangThaiDongGoi() != TrangThaiDongGoi.CHUA_DONG_GOI) {
-      throw conflict("Chỉ sửa đơn Online chờ duyệt, chưa thanh toán và chưa đóng gói");
-    }
 
-    if (request.getMaChuongTrinh() != null) {
-      throw invalid("Sửa đơn không nhận ma_chuong_trinh; hãy preview không khuyến mại");
+      throw conflict("Chỉ sửa đơn Online chờ duyệt, chưa thanh toán và chưa đóng gói");
     }
 
     if (!lockDeliveries(order).isEmpty()) {
@@ -178,8 +192,6 @@ public class AdminOrderService {
     requireNoCash(order);
     inventory.requireNoExport(order);
 
-    NguoiDung customer = context.customer(request.getKhachHangId(), true);
-
     String address = text(request.getThongTinNguoiNhan().getDiaChiGiaoHang());
 
     if ("GIAO_HANG".equals(request.getHinhThucNhanHang())) {
@@ -187,13 +199,44 @@ public class AdminOrderService {
         throw invalid("Đơn giao hàng phải có địa chỉ");
       }
     } else if (address != null || inputMoney(request.getPhiGiaoHang()).signum() != 0) {
+
       throw invalid("Nhận tại cửa hàng phải có địa chỉ null và phí giao hàng bằng 0");
     }
+
+    if (saleSnapshots.hasPromotion(order.getId())) {
+      saleSnapshots.requireSameFinancialInput(order, request);
+
+      order.setTenNguoiNhan(request.getThongTinNguoiNhan().getTenNguoiNhan().strip());
+      order.setSdtNguoiNhan(request.getThongTinNguoiNhan().getSdtNguoiNhan());
+      order.setDiaChiGiaoHang(address);
+      order.setGhiChu(text(request.getGhiChu()));
+
+      recordHistory(order, "SUA_THONG_TIN_NGUOI_NHAN", "Cập nhật thông tin người nhận và ghi chú");
+
+      return action(order);
+    }
+
+    if (text(request.getMaChuongTrinh()) != null) {
+      throw invalid("Không thêm khuyến mại bằng API sửa đơn; hãy tạo đơn mới");
+    }
+
+    var existingLines = lineRepository.findByDonHang_IdOrderByIdAsc(order.getId());
+
+    if ((order.getTienChietKhau() != null && order.getTienChietKhau().signum() > 0)
+        || existingLines.stream().anyMatch(line -> Boolean.TRUE.equals(line.getLaQuaTang()))) {
+
+      throw conflict(
+          "Đơn cũ có quyền lợi khuyến mại nhưng thiếu bản chụp; "
+              + "chưa thể thay nội dung tài chính");
+    }
+
+    NguoiDung customer = context.customer(request.getKhachHangId(), false);
 
     var plan = calculation.calculate(request, LoaiDonHang.ONLINE, true);
 
     if (inputMoney(request.getTongThanhToanXacNhan()).compareTo(plan.data().getTongThanhToan())
         != 0) {
+
       throw conflict("Tổng tiền thay đổi; hãy gọi preview và xác nhận lại");
     }
 
@@ -209,22 +252,13 @@ public class AdminOrderService {
     order.setTongThanhToan(plan.data().getTongThanhToan());
     order.setGhiChu(text(request.getGhiChu()));
 
-    lineRepository.deleteAll(lineRepository.findByDonHang_IdOrderByIdAsc(order.getId()));
+    lineRepository.deleteAll(existingLines);
     lineRepository.flush();
 
-    for (var line : plan.lines()) {
-      lineRepository.save(
-          ChiTietDonHang.builder()
-              .donHang(order)
-              .phienBan(line.variant())
-              .soLuong(line.quantity())
-              .donGia(line.unitPrice())
-              .thanhTien(line.amount())
-              .build());
-    }
+    saleSnapshots.saveLines(order, plan, request);
 
-    // Không hoàn lượt khuyến mại cũ, không tiêu thụ lượt mới.
-    orderEvents.changed(order.getId(), "UPDATED");
+    recordHistory(order, "SUA_DON_HANG", "Cập nhật nội dung đơn hàng");
+
     return action(order);
   }
 
@@ -855,7 +889,7 @@ public class AdminOrderService {
       order.setTrangThaiThanhToan(TrangThaiThanhToanDonHang.DA_THANH_TOAN);
 
       order.setTrangThaiDonHang(TrangThaiDonHang.HOAN_THANH);
-
+      saleSnapshots.onOrderStateChanged(order);
       // Giữ tiền COD lịch sử trên phiếu giao hàng.
       // Phương thức đối tác nộp tiền được lưu trên phiếu thu.
 
@@ -901,6 +935,7 @@ public class AdminOrderService {
     }
 
     order.setTrangThaiDonHang(TrangThaiDonHang.HUY_HANG);
+    saleSnapshots.onOrderStateChanged(order);
 
     String note = "[Hủy đơn] " + request.getLyDo().strip();
     order.setGhiChu(text(order.getGhiChu()) == null ? note : order.getGhiChu() + "\n" + note);
@@ -928,6 +963,7 @@ public class AdminOrderService {
     }
 
     order.setTrangThaiDonHang(TrangThaiDonHang.HOAN_THANH);
+    saleSnapshots.onOrderStateChanged(order);
     recordHistory(order, "XAC_NHAN_NHAN_TAI_CUA_HANG", "Xác nhận khách đã nhận hàng tại cửa hàng");
     return action(order);
   }
@@ -1243,6 +1279,9 @@ public class AdminOrderService {
         orderRepository.findByIdForUpdate(id).orElseThrow(() -> notFound("Đơn hàng không tồn tại"));
 
     entityManager.refresh(order);
+
+    saleSnapshots.lockPromotionForOrder(order.getId());
+
     return order;
   }
 

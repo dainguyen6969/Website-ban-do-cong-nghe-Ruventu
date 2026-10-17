@@ -17,6 +17,11 @@ import {
 import "./OrderDetailPage.css";
 import { customerOrderProgress } from "./customerOrderProgress";
 
+import {
+  OrderLineAmount,
+  OrderLineNotice,
+  OrderPromotionSummary,
+} from "../../shared/components/ui/OrderSaleDetails";
 import ComboContents from "../../shared/components/ui/ComboContents";
 
 const returnLabels = {
@@ -277,7 +282,7 @@ export default function OrderDetailPage() {
                         <th scope="col">Sản phẩm</th>
                         <th scope="col">Đơn giá</th>
                         <th scope="col">Số lượng</th>
-                        <th scope="col">Thành tiền</th>
+                        <th scope="col">Khách trả</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -288,7 +293,12 @@ export default function OrderDetailPage() {
                               <OrderProductImage item={item} />
 
                               <div>
-                                <h3>{item.ten_san_pham}</h3>
+                                <h3>
+                                  {item.ten_san_pham ||
+                                    `Phiên bản #${item.phien_ban_id}`}
+                                </h3>
+
+                                <OrderLineNotice item={item} />
 
                                 <p>
                                   {item.loai_san_pham === "BO_PC"
@@ -309,10 +319,10 @@ export default function OrderDetailPage() {
                           <td data-label="Đơn giá">{money(item.don_gia)}</td>
                           <td data-label="Số lượng">{item.so_luong}</td>
                           <td
-                            data-label="Thành tiền"
+                            data-label="Khách trả"
                             className="customer-order-line-total"
                           >
-                            {money(item.thanh_tien)}
+                            <OrderLineAmount item={item} />
                           </td>
                         </tr>
                       ))}
@@ -430,12 +440,20 @@ export default function OrderDetailPage() {
                   </dl>
                 </section>
                 <section>
+                  <h2>KHUYẾN MẠI</h2>
+
+                  <OrderPromotionSummary order={order} />
+                </section>
+
+                <section>
                   <h2>CHI PHÍ ĐƠN HÀNG</h2>
+
                   <dl>
                     <div>
                       <dt>Tạm tính</dt>
                       <dd>{money(order.tong_tien_hang)}</dd>
                     </div>
+
                     <div>
                       <dt>Phí vận chuyển</dt>
                       <dd>
@@ -444,6 +462,7 @@ export default function OrderDetailPage() {
                           : money(order.phi_giao_hang)}
                       </dd>
                     </div>
+
                     <div>
                       <dt>Giảm giá</dt>
                       <dd>
@@ -452,11 +471,17 @@ export default function OrderDetailPage() {
                           : money(order.tien_chiet_khau)}
                       </dd>
                     </div>
+
                     <div>
                       <dt>VAT</dt>
-                      <dd>{money(order.tong_tien_vat)}</dd>
+                      <dd>
+                        {order.tong_tien_vat == null
+                          ? "—"
+                          : money(order.tong_tien_vat)}
+                      </dd>
                     </div>
                   </dl>
+
                   <div className="customer-order-grand-total">
                     <strong>TỔNG TIỀN</strong>
                     <strong>{money(order.tong_thanh_toan)}</strong>

@@ -430,3 +430,45 @@
     transform: rotate(360deg);
   }
 }
+
+.checkout-sidebar .checkout-vat-note {
+  margin: 12px 0 16px;
+  color: #64748b;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.checkout-sidebar .summary-row--discount {
+  color: #d60000;
+}
+
+.checkout-sidebar .checkout-shipping-badge {
+  padding: 3px 7px;
+  background: #111;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.checkout-sidebar .checkout-summary-message {
+  margin: 12px 0;
+  color: #64748b;
+  font-size: 12px;
+  line-height: 1.6;
+  text-align: center;
+}
+
+.checkout-sidebar .checkout-summary-error {
+  margin-top: 12px;
+  text-align: center;
+}
+
+.checkout-sidebar .checkout-gift-badge {
+  display: inline-block;
+  margin: 4px 0;
+  padding: 3px 6px;
+  background: #edf8ef;
+  color: #237331;
+  font-size: 10px;
+  font-weight: 700;
+}

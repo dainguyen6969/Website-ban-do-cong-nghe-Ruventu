@@ -10,6 +10,7 @@ import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
+import tools.jackson.databind.JsonNode;
 
 public final class AdminSalesResponse {
 
@@ -234,6 +235,9 @@ public final class AdminSalesResponse {
 
     @JsonProperty("ma_giao_dich_thanh_toan")
     private String maGiaoDichThanhToan;
+
+    @JsonProperty("khuyen_mai")
+    private AppliedPromotion khuyenMai;
   }
 
   @Getter
@@ -251,4 +255,14 @@ public final class AdminSalesResponse {
     @JsonProperty("phieu_thu")
     private CashReceipt phieuThu;
   }
+
+  public record AppliedPromotion(
+      Long id,
+      @JsonProperty("khuyen_mai_id") Long khuyenMaiId,
+      @JsonProperty("ma_chuong_trinh") String maChuongTrinh,
+      @JsonProperty("ten_chuong_trinh") String tenChuongTrinh,
+      @JsonProperty("so_tien_giam") BigDecimal soTienGiam,
+      @JsonProperty("trang_thai_ap_dung") TrangThaiApDungKhuyenMai trangThaiApDung,
+      @JsonProperty("du_lieu_ap_dung") JsonNode duLieuApDung,
+      @JsonProperty("canh_bao_du_lieu") String canhBaoDuLieu) {}
 }

@@ -70,6 +70,7 @@ public class AdminSalesService {
   private final SoQuyThuChiRepository cashRepository;
 
   private final CatalogSupport catalogSupport;
+  private final OrderSaleSnapshotService saleSnapshots;
 
   public AdminSalesResponse.Options options() {
 
@@ -218,7 +219,7 @@ public class AdminSalesService {
 
     NguoiDung actor = context.actor();
 
-    String key = requestKey("ORD", idempotencyKey, false);
+    String key = requestKey("ORD", idempotencyKey, true);
 
     var entry = idempotencyRepository.acquire(key, actor.getId(), hash(actor.getId(), request));
 
@@ -228,7 +229,7 @@ public class AdminSalesService {
       return decode(entry.responseJson(), AdminSalesResponse.Order.class);
     }
 
-    NguoiDung customer = context.customer(request.getKhachHangId(), true);
+    NguoiDung customer = context.customer(request.getKhachHangId(), false);
 
     String address = text(request.getThongTinNguoiNhan().getDiaChiGiaoHang());
     BigDecimal shipping = inputMoney(request.getPhiGiaoHang());
@@ -263,8 +264,8 @@ public class AdminSalesService {
 
     order = orderRepository.saveAndFlush(order);
 
-    saveLines(order, plan);
-    consumePromotion(plan);
+    saleSnapshots.saveLines(order, plan, request);
+    saleSnapshots.recordPromotion(order, plan, request, actor);
 
     orderRepository.flush();
 
@@ -326,7 +327,7 @@ public class AdminSalesService {
 
     order = orderRepository.saveAndFlush(order);
 
-    saveLines(order, plan);
+    saleSnapshots.saveLines(order, plan, request);
 
     LocalDateTime activationTime = LocalDateTime.now(properties.zone());
 
@@ -357,7 +358,7 @@ public class AdminSalesService {
               .build());
     }
 
-    consumePromotion(plan);
+    saleSnapshots.recordPromotion(order, plan, request, actor);
 
     SoQuyThuChi receipt = createCashReceipt(order, actor, request.getThanhToan());
 
@@ -432,32 +433,6 @@ public class AdminSalesService {
         .trangThaiXuatKho(TrangThaiXuatKho.CHUA_XUAT_KHO)
         .ghiChu(text(note))
         .build();
-  }
-
-  private void saveLines(DonHang order, SalesCalculationService.Plan plan) {
-
-    for (var line : plan.lines()) {
-
-      orderLineRepository.save(
-          ChiTietDonHang.builder()
-              .donHang(order)
-              .phienBan(line.variant())
-              .soLuong(line.quantity())
-              .donGia(line.unitPrice())
-              .thanhTien(line.amount())
-              .build());
-    }
-  }
-
-  private void consumePromotion(SalesCalculationService.Plan plan) {
-
-    if (plan.promotion() == null) {
-      return;
-    }
-
-    Integer used = plan.promotion().getSoLuongDaDung();
-
-    plan.promotion().setSoLuongDaDung((used == null ? 0 : used) + 1);
   }
 
   private void confirmTotal(BigDecimal confirmed, BigDecimal actual) {
@@ -613,39 +588,9 @@ public class AdminSalesService {
 
     var lines = orderLineRepository.findByDonHang_IdOrderByIdAsc(order.getId());
 
-    var comboParts =
-        catalogSupport.comboParts(
-            lines.stream()
-                .filter(
-                    line -> line.getPhienBan().getSanPham().getLoaiSanPham() == LoaiSanPham.BO_PC)
-                .map(line -> line.getPhienBan().getSanPham().getId())
-                .distinct()
-                .toList());
+    response.setSanPham(lines.stream().map(saleSnapshots::product).toList());
 
-    response.setSanPham(
-        lines.stream()
-            .map(
-                line -> {
-                  var item = deliveryMapper.toProduct(line);
-
-                  item.setQuanLySerial(
-                      line.getPhienBan().getSanPham().getLoaiSanPham() == LoaiSanPham.DON
-                          ? calculation.usesSerial(line.getPhienBan().getId())
-                          : usesComboSerial(line.getPhienBan()));
-
-                  item.setThanhPhan(
-                      catalogSupport.partsForQuantity(
-                          comboParts.getOrDefault(
-                              line.getPhienBan().getSanPham().getId(), List.of()),
-                          line.getSoLuong()));
-
-                  item.setThueVat(null);
-                  item.setTienChietKhau(null);
-                  item.setTienVat(null);
-
-                  return item;
-                })
-            .toList());
+    response.setKhuyenMai(saleSnapshots.appliedPromotion(order.getId()));
 
     response.setSerials(
         serialRepository.findByDonHang_IdOrderByIdAsc(order.getId()).stream()

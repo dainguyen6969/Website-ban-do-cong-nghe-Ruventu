@@ -14,6 +14,7 @@ import com.example.dantruventu.Mapper.order.AdminDeliveryMapper;
 import com.example.dantruventu.Repository.order.*;
 import com.example.dantruventu.Repository.partner.DoiTacVanChuyenRepository;
 import com.example.dantruventu.Services.catalog.CatalogSupport;
+import com.example.dantruventu.Services.order.sales.OrderSaleSnapshotService;
 import com.example.dantruventu.Specification.DeliverySpecification;
 import jakarta.persistence.EntityManager;
 import java.math.BigDecimal;
@@ -48,6 +49,7 @@ public class AdminDeliveryService {
   private final AdminOrderService orderService;
   private final EntityManager entityManager;
   private final CatalogSupport catalogSupport;
+  private final OrderSaleSnapshotService saleSnapshots;
 
   @Value("${ruventu.shipping.time-zone:Asia/Ho_Chi_Minh}")
   private String shippingTimeZone;
@@ -139,32 +141,7 @@ public class AdminDeliveryService {
 
     var lines = orderLineRepository.findByDonHang_IdOrderByIdAsc(delivery.getDonHang().getId());
 
-    var comboParts =
-        catalogSupport.comboParts(
-            lines.stream()
-                .filter(
-                    line -> line.getPhienBan().getSanPham().getLoaiSanPham() == LoaiSanPham.BO_PC)
-                .map(line -> line.getPhienBan().getSanPham().getId())
-                .distinct()
-                .toList());
-
-    response.setSanPham(
-        lines.stream()
-            .map(
-                line -> {
-                  ProductData item = mapper.toProduct(line);
-
-                  item.setQuanLySerial(inventoryService.usesSerial(line.getPhienBan()));
-
-                  item.setThanhPhan(
-                      catalogSupport.partsForQuantity(
-                          comboParts.getOrDefault(
-                              line.getPhienBan().getSanPham().getId(), List.of()),
-                          line.getSoLuong()));
-
-                  return item;
-                })
-            .toList());
+    response.setSanPham(lines.stream().map(saleSnapshots::product).toList());
 
     return response;
   }
@@ -262,14 +239,17 @@ public class AdminDeliveryService {
 
         delivery.setTrangThaiGiaoHang(TrangThaiGiaoHangEnum.GIAO_THANH_CONG);
 
-        // Đơn đã thanh toán trước có thể hoàn thành ngay.
-        // Đơn COD tiếp tục chờ cửa hàng thực nhận tiền từ đối tác.
+        // Đơn đã thanh toán trước được hoàn tất khi giao thành công.
         if (order.getTrangThaiThanhToan() == TrangThaiThanhToanDonHang.DA_THANH_TOAN) {
 
           order.setTrangThaiDonHang(TrangThaiDonHang.HOAN_THANH);
+
+          // Thêm tại đây, bên trong điều kiện đã thanh toán.
+          saleSnapshots.onOrderStateChanged(order);
         }
+
       } else {
-        // Không cộng kho tại bước báo giao thất bại.
+        // Báo giao thất bại, chờ nhận hàng hoàn.
         delivery.setTrangThaiGiaoHang(TrangThaiGiaoHangEnum.CHO_HOAN_HANG);
       }
     }
@@ -408,8 +388,10 @@ public class AdminDeliveryService {
     delivery.setNgayCapNhat(now());
 
     order.setTrangThaiDonHang(TrangThaiDonHang.HUY_HANG);
+
     order.setTrangThaiXuatKho(TrangThaiXuatKho.DA_HOAN_KHO);
 
+    saleSnapshots.onOrderStateChanged(order);
     // Giữ nguyên trạng thái thanh toán gốc và trạng thái đóng gói.
     orderService.recordHistory(
         order, "NHAN_HOAN_GIAO_HANG", "Nhận hoàn hàng từ phiếu " + delivery.getMaPhieuGiaoHang());
@@ -452,7 +434,6 @@ public class AdminDeliveryService {
   private PhieuGiaoHang lockDelivery(Long id) {
     validateId(id);
 
-    // Chỉ đọc scalar ID trước, tránh nạp entity cũ trước khi khóa.
     Long orderId =
         deliveryRepository
             .findOrderId(id)
@@ -462,6 +443,9 @@ public class AdminDeliveryService {
         orderRepository
             .findByIdForUpdate(orderId)
             .orElseThrow(() -> notFound("Đơn hàng không tồn tại"));
+
+    // Thêm tại đây: đã khóa đơn, chưa khóa phiếu giao hàng.
+    saleSnapshots.lockPromotionForOrder(order.getId());
 
     PhieuGiaoHang delivery =
         deliveryRepository
