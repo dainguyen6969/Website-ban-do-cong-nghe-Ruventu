@@ -8,7 +8,9 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { cartService } from "../../shared/services/cartService";
+import { formatProductPrice } from "../../shared/services/productService";
 import "./ProductPurchaseRightSidebar.css";
+import ProductHighlights from './ProductHighlights';
 
 const ProductPurchaseRightSidebar = ({ product, selectedVariantId }) => {
   const [quantity, setQuantity] = useState(1);
@@ -44,13 +46,11 @@ const ProductPurchaseRightSidebar = ({ product, selectedVariantId }) => {
   const activeVariant =
     product.variants?.find((v) => v.id === selectedVariantId) || null;
   const currentPrice = activeVariant
-    ? activeVariant.giaBanLe || activeVariant.currentPrice || 0
+    ? activeVariant.giaBanLe ?? activeVariant.currentPrice ?? 0
     : product.currentPrice;
-  const originalPrice =
-    activeVariant?.originalPrice ||
-    (product.originalPrice && product.originalPrice > currentPrice
-      ? product.originalPrice
-      : Math.round(currentPrice * 1.15));
+  const originalPrice = activeVariant
+    ? (activeVariant.originalPrice ?? currentPrice)
+    : (product.originalPrice ?? currentPrice);
   const discountAmount =
     originalPrice > currentPrice ? originalPrice - currentPrice : 0;
   const isCombo = product.loaiSanPham === "BO_PC";
@@ -80,12 +80,8 @@ const ProductPurchaseRightSidebar = ({ product, selectedVariantId }) => {
       : !canSell
         ? "TẠM NGỪNG BÁN"
         : `CÒN HÀNG — ${stock} ${isCombo ? "BỘ" : "SẢN PHẨM"}`;
-  const sku = activeVariant
-    ? activeVariant.sku || activeVariant.maVach || product.id
-    : product.id;
-  const displayTitle = activeVariant
-    ? `${product.name} — ${activeVariant.tenPhienBan || activeVariant.name}`
-    : product.name;
+  const sku = product.maSanPham || product.id;
+  const displayTitle = product.name;
 
   const availableStock = canSell
     ? Math.max(0, Math.min(stock, 99) - quantityInCart)
@@ -155,9 +151,9 @@ const ProductPurchaseRightSidebar = ({ product, selectedVariantId }) => {
     product.tags && product.tags.length > 0
       ? product.tags
       : [
-          product.category?.toUpperCase() || "VGA",
-          product.brand?.toUpperCase() || "ASUS",
-        ];
+          product.category?.toUpperCase(),
+          product.brand?.toUpperCase(),
+        ].filter(Boolean);
 
   return (
     <div className="purchase-right-sidebar-container">
@@ -169,7 +165,13 @@ const ProductPurchaseRightSidebar = ({ product, selectedVariantId }) => {
         ))}
       </div>
 
-      <h1 className="product-title">{displayTitle}</h1>
+      <h1 className="product-title" title={displayTitle}>{displayTitle}</h1>
+
+      {product.variants?.length > 1 && activeVariant && (
+        <p className="selected-variant-name" title={activeVariant.tenPhienBan}>
+          Phiên bản: {activeVariant.tenPhienBan}
+        </p>
+      )}
 
       <div className="sku-container">
         <span className="sku-label">MÃ SẢN PHẨM:</span>
@@ -180,16 +182,16 @@ const ProductPurchaseRightSidebar = ({ product, selectedVariantId }) => {
         {originalPrice > currentPrice && (
           <div className="price-top-row">
             <span className="original-price">
-              {originalPrice.toLocaleString("vi-VN")}đ
+              {formatProductPrice(originalPrice)}
             </span>
             <div className="save-badge">
-              TIẾT KIỆM {discountAmount.toLocaleString("vi-VN")}đ
+              TIẾT KIỆM {formatProductPrice(discountAmount)}
             </div>
           </div>
         )}
         <div className="price-bottom-row">
           <span className="current-price">
-            {currentPrice.toLocaleString("vi-VN")}đ
+            {formatProductPrice(currentPrice)}
           </span>
           <span className="vat-note">Đã bao gồm VAT</span>
         </div>
@@ -237,10 +239,9 @@ const ProductPurchaseRightSidebar = ({ product, selectedVariantId }) => {
         <div className="total-calc">
           <span className="total-label">TỔNG CỘNG</span>
           <span className="total-price">
-            {(
+            {formatProductPrice(
               currentPrice * (availableStock > 0 ? quantity : 0)
-            ).toLocaleString("vi-VN")}
-            đ
+            )}
           </span>
         </div>
       </div>
@@ -284,19 +285,7 @@ const ProductPurchaseRightSidebar = ({ product, selectedVariantId }) => {
         ))}
       </div>
 
-      <div className="mini-specs">
-        <div className="mini-specs-header">THÔNG SỐ CHÍNH</div>
-        <table className="mini-specs-table">
-          <tbody>
-            {product.specsSummary.map((spec, index) => (
-              <tr key={index}>
-                <td>{spec.label}</td>
-                <td>{spec.value}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <ProductHighlights product={product} selectedVariantId={selectedVariantId} />
     </div>
   );
 };

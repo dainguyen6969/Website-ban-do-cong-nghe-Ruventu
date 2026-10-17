@@ -5,12 +5,13 @@ export default function ComboContents({
   items = [],
   order = false,
   compact = false,
+  scrollable = false,
 }) {
   const parts = Array.isArray(items) ? items : [];
 
   return (
     <section
-      className={["combo-contents", compact ? "combo-contents--compact" : ""]
+      className={["combo-contents", compact ? "combo-contents--compact" : "", scrollable ? "combo-contents--scrollable" : ""]
         .filter(Boolean)
         .join(" ")}
       aria-label="Danh sách linh kiện bộ PC"
@@ -23,7 +24,7 @@ export default function ComboContents({
       {parts.length === 0 ? (
         <p className="combo-contents__empty">Chưa có cấu hình linh kiện.</p>
       ) : (
-        <ul className="combo-contents__list">
+        <ul className="combo-contents__list" tabIndex={scrollable ? 0 : undefined} aria-label={scrollable ? 'Cuộn xem linh kiện trong bộ PC' : undefined}>
           {parts.map((part) => (
             <li className="combo-contents__item" key={part.phien_ban_id}>
               <div className="combo-contents__image">
@@ -43,12 +44,14 @@ export default function ComboContents({
               </div>
 
               <div className="combo-contents__info">
-                {part.san_pham_id ? (
+                {part.san_pham_id && part.co_trang_chi_tiet !== false ? (
                   <Link to={`/product/${part.san_pham_id}`}>
                     {part.ten_san_pham}
                   </Link>
                 ) : (
-                  <b>{part.ten_san_pham || "Linh kiện"}</b>
+                  <b title={part.co_trang_chi_tiet === false ? 'Linh kiện chưa có trang chi tiết công khai' : undefined}>
+                    {part.ten_san_pham || "Linh kiện"}
+                  </b>
                 )}
 
                 <small>Phiên bản: {part.ten_phien_ban || "—"}</small>

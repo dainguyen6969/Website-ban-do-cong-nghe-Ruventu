@@ -57,6 +57,7 @@
 .consultation-actions .btn-primary:hover {
   background-color: #cc0000;
 }
+.consultation-actions .btn-primary:disabled { opacity: .5; cursor: not-allowed; }
 
 .consultation-actions .btn-secondary {
   background-color: transparent;

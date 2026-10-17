@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import './HeroBanner.css';
 
 const HeroBanner = () => {
@@ -21,8 +22,8 @@ const HeroBanner = () => {
             </h1>
             <p className="hero-desc">PC Gaming chuyên dụng, linh kiện cao cấp chính hãng. Bảo hành 36 tháng. Giao hàng toàn quốc.</p>
             <div className="hero-actions">
-              <button className="btn-primary">XEM PC BUILD SẴN</button>
-              <button className="btn-outline">MUA LINH KIỆN</button>
+              <a className="btn-primary" href="#pc-build-san">XEM PC BUILD SẴN</a>
+              <Link className="btn-outline" to="/category/linh-kien">MUA LINH KIỆN</Link>
             </div>
           </div>
         </div>
@@ -38,7 +39,7 @@ const HeroBanner = () => {
               </div>
               <h3 className="side-title">RTX 4090<br/>ROG STRIX OC</h3>
               <p className="side-price">24.990.000đ</p>
-              <span className="arrow-link">XEM &rarr;</span>
+              <Link className="arrow-link" to="/search?q=RTX%204090" aria-label="Xem sản phẩm RTX 4090">XEM &rarr;</Link>
             </div>
           </div>
           <div className="side-banner">
@@ -49,7 +50,7 @@ const HeroBanner = () => {
               <span className="small-label">PC BUILD SẴN</span>
               <h3 className="side-title">RUVENTU<br/>WARLORD PRO</h3>
               <p className="side-price">54.900.000đ</p>
-              <span className="arrow-link">XEM &rarr;</span>
+              <a className="arrow-link" href="#pc-build-san" aria-label="Xem các bộ PC build sẵn">XEM &rarr;</a>
             </div>
           </div>
         </div>

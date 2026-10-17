@@ -380,7 +380,12 @@ public class CatalogSupport {
                 quantity,
                 quantity.longValue(),
                 variant.getCoQuanLySerial(),
-                product.getThoiHanBaoHanhThang()));
+                product.getThoiHanBaoHanhThang(),
+                product.getTrangThai() == TrangThaiCoBanEnum.HOAT_DONG
+                    && product.getDanhMuc() != null
+                    && product.getDanhMuc().getTrangThai() == TrangThaiCoBanEnum.HOAT_DONG
+                    && (product.getThuongHieu() == null
+                        || product.getThuongHieu().getTrangThai() == TrangThaiCoBanEnum.HOAT_DONG)));
       }
 
       result.put(combo.getKey(), List.copyOf(items));
@@ -415,7 +420,8 @@ public class CatalogSupport {
                     part.soLuongTrongBo(),
                     Math.multiplyExact(part.soLuongTrongBo().longValue(), quantity.longValue()),
                     part.coQuanLySerial(),
-                    part.thoiHanBaoHanhThang()))
+                    part.thoiHanBaoHanhThang(),
+                    part.coTrangChiTiet()))
         .toList();
   }
 

@@ -233,7 +233,8 @@ public interface SanPhamRepository
         AND (
             :keyword IS NULL
             OR :keyword = ''
-            OR sp.ten_san_pham LIKE CONCAT('%', :keyword, '%')
+            OR CONCAT_WS(' ', dm.ten_danh_muc, sp.ten_san_pham, th.ten_thuong_hieu)
+                LIKE CONCAT('%', :keyword, '%')
             OR sp.ma_san_pham LIKE CONCAT('%', :keyword, '%')
             OR dm.ten_danh_muc LIKE CONCAT('%', :keyword, '%')
             OR th.ten_thuong_hieu LIKE CONCAT('%', :keyword, '%')
@@ -250,6 +251,19 @@ public interface SanPhamRepository
                             LIKE CONCAT('%', :keyword, '%')
                     )
             )
+            OR (sp.loai_san_pham = 'BO_PC' AND EXISTS (
+                SELECT 1
+                FROM thanh_phan_combo search_part
+                JOIN phien_ban_san_pham part_v ON part_v.id = search_part.phien_ban_thanh_phan_id
+                JOIN san_pham part_p ON part_p.id = part_v.san_pham_id
+                JOIN danh_muc part_dm ON part_dm.id = part_p.danh_muc_id
+                LEFT JOIN thuong_hieu part_th ON part_th.id = part_p.thuong_hieu_id
+                WHERE search_part.san_pham_combo_id = sp.id
+                    AND part_p.trang_thai = 1 AND part_v.trang_thai = 1
+                    AND CONCAT_WS(' ', part_dm.ten_danh_muc, part_p.ten_san_pham,
+                        part_th.ten_thuong_hieu, part_v.ten_phien_ban, part_v.ma_vach)
+                        LIKE CONCAT('%', :keyword, '%')
+            ))
         )
         AND (
             :thuongHieuId IS NULL
