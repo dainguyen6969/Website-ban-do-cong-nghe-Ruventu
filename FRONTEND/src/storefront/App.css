@@ -23,11 +23,6 @@
 .storefront-app .arrow-link { position: static; align-self: flex-end; margin-top: 1em; }
 .storefront-app .banner-red-stripe { position: relative; }
 .storefront-app .user-dropdown { top: 100%; max-width: 100vw; }
-.storefront-app .nav-container { position: relative; }
-.storefront-app .nav-links .has-mega-menu { position: static; }
-.storefront-app .mega-menu { display: none; max-width: 100%; }
-.storefront-app .has-mega-menu:hover .mega-menu { display: block; }
-.storefront-app .mega-menu-content { flex-wrap: wrap; }
 .storefront-app .header-actions { flex-shrink: 0; }
 .storefront-app .top-banner { padding-inline: 1em; text-align: center; }
 

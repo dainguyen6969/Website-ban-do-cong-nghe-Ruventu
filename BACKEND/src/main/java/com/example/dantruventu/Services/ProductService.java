@@ -325,6 +325,6 @@ public class ProductService {
       return null;
     }
 
-    return keyword.trim();
+    return keyword.trim().replaceAll("\\s+", "%");
   }
 }

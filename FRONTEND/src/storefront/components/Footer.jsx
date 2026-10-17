@@ -11,41 +11,41 @@ const Footer = () => {
           <div className="footer-col">
             <h4>VỀ RUVENTU</h4>
             <ul>
-              <li><a href="#">Giới thiệu</a></li>
-              <li><a href="#">Tuyển dụng</a></li>
-              <li><a href="#">Tin tức</a></li>
-              <li><a href="#">Chính sách bảo hành</a></li>
-              <li><a href="#">Điều khoản dịch vụ</a></li>
+              <li><span className="footer-unavailable" aria-disabled="true" title="Chưa có trang hoặc đường dẫn chính thức">Giới thiệu</span></li>
+              <li><span className="footer-unavailable" aria-disabled="true" title="Chưa có trang hoặc đường dẫn chính thức">Tuyển dụng</span></li>
+              <li><span className="footer-unavailable" aria-disabled="true" title="Chưa có trang hoặc đường dẫn chính thức">Tin tức</span></li>
+              <li><span className="footer-unavailable" aria-disabled="true" title="Chưa có trang hoặc đường dẫn chính thức">Chính sách bảo hành</span></li>
+              <li><span className="footer-unavailable" aria-disabled="true" title="Chưa có trang hoặc đường dẫn chính thức">Điều khoản dịch vụ</span></li>
             </ul>
           </div>
           <div className="footer-col">
             <h4>HỖ TRỢ</h4>
             <ul>
-              <li><a href="#">Hướng dẫn mua hàng</a></li>
-              <li><a href="#">Kiểm tra đơn hàng</a></li>
-              <li><a href="#">Đổi trả & hoàn tiền</a></li>
+              <li><span className="footer-unavailable" aria-disabled="true" title="Chưa có trang hoặc đường dẫn chính thức">Hướng dẫn mua hàng</span></li>
+              <li><Link to="/order-lookup">Kiểm tra đơn hàng</Link></li>
+              <li><span className="footer-unavailable" aria-disabled="true" title="Chưa có trang hoặc đường dẫn chính thức">Đổi trả & hoàn tiền</span></li>
               <li><Link to="/warranty-lookup">Tra cứu bảo hành</Link></li>
-              <li><a href="#">Liên hệ CSKH</a></li>
+              <li><a href="tel:19009999">Liên hệ CSKH</a></li>
             </ul>
           </div>
           <div className="footer-col">
             <h4>DANH MỤC</h4>
             <ul>
-              <li><a href="#">Card đồ họa (VGA)</a></li>
-              <li><a href="#">Vi xử lý (CPU)</a></li>
-              <li><a href="#">RAM DDR5</a></li>
-              <li><a href="#">Ổ cứng SSD</a></li>
-              <li><a href="#">Nguồn máy tính</a></li>
+              <li><Link to="/category/vga">Card đồ họa (VGA)</Link></li>
+              <li><Link to="/category/cpu">Vi xử lý (CPU)</Link></li>
+              <li><Link to="/search?q=RAM%20DDR5">RAM DDR5</Link></li>
+              <li><Link to="/category/ssd">Ổ cứng SSD</Link></li>
+              <li><Link to="/category/psu">Nguồn máy tính</Link></li>
             </ul>
           </div>
           <div className="footer-col">
             <h4>KẾT NỐI</h4>
             <ul>
-              <li><a href="#">Facebook</a></li>
-              <li><a href="#">YouTube</a></li>
-              <li><a href="#">Discord</a></li>
-              <li><a href="#">Zalo OA</a></li>
-              <li><a href="#">TikTok</a></li>
+              <li><span className="footer-unavailable" aria-disabled="true" title="Chưa có trang hoặc đường dẫn chính thức">Facebook</span></li>
+              <li><span className="footer-unavailable" aria-disabled="true" title="Chưa có trang hoặc đường dẫn chính thức">YouTube</span></li>
+              <li><span className="footer-unavailable" aria-disabled="true" title="Chưa có trang hoặc đường dẫn chính thức">Discord</span></li>
+              <li><span className="footer-unavailable" aria-disabled="true" title="Chưa có trang hoặc đường dẫn chính thức">Zalo OA</span></li>
+              <li><span className="footer-unavailable" aria-disabled="true" title="Chưa có trang hoặc đường dẫn chính thức">TikTok</span></li>
             </ul>
           </div>
         </div>
@@ -59,9 +59,9 @@ const Footer = () => {
           </div>
           <div className="bottom-links">
             <Link to="/404" className="quick-test-btn" style={{color: '#ff0000', fontWeight: 'bold', border: '1px solid #ff0000', padding: '2px 8px', borderRadius: '4px'}}>Test Trang 404</Link>
-            <a href="#">Chính sách bảo mật</a>
-            <a href="#">Điều khoản</a>
-            <a href="#">Sitemap</a>
+            <span className="footer-unavailable" aria-disabled="true" title="Chưa có trang hoặc đường dẫn chính thức">Chính sách bảo mật</span>
+            <span className="footer-unavailable" aria-disabled="true" title="Chưa có trang hoặc đường dẫn chính thức">Điều khoản</span>
+            <span className="footer-unavailable" aria-disabled="true" title="Chưa có trang hoặc đường dẫn chính thức">Sitemap</span>
           </div>
         </div>
       </div>

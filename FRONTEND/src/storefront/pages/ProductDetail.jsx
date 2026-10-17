@@ -9,9 +9,10 @@ import ProductPurchaseRightSidebar from "../components/ProductPurchaseRightSideb
 import ProductSpecsTabs from "../components/ProductSpecsTabs";
 
 import ComboContents from "../../shared/components/ui/ComboContents";
-import { productService } from "../../shared/services/productService";
+import { productService, toProductDetail } from "../../shared/services/productService";
 
 import "./ProductDetail.css";
+import { parseSpecifications, resolveProductContent } from './productDetailContent';
 
 export default function ProductDetail() {
   const { id } = useParams();
@@ -39,76 +40,13 @@ export default function ProductDetail() {
           throw new Error("Không tìm thấy sản phẩm.");
         }
 
-        let specifications = data.thongSoKyThuat || {};
-
-        if (typeof specifications === "string") {
-          try {
-            specifications = JSON.parse(specifications);
-          } catch {
-            specifications = {};
-          }
-        }
-
-        const specs = Object.entries(specifications).map(([label, value]) => ({
-          label,
-          value:
-            value !== null && typeof value === "object"
-              ? JSON.stringify(value)
-              : String(value ?? ""),
-        }));
-
-        const variants = data.danhSachPhienBan || [];
-        const combo = data.loaiSanPham === "BO_PC";
-
-        const firstVariant =
-          variants.find((variant) =>
-            combo
-              ? variant.coTheBan === true
-              : Number(variant.tonCoTheBan ?? 0) > 0,
-          ) ||
-          variants[0] ||
-          null;
-
-        const mapped = {
-          id: data.id,
-          maSanPham: data.maSanPham,
-          name: data.tenSanPham,
-          category: data.danhMuc?.tenDanhMuc || "Sản phẩm",
-          brand: data.thuongHieu?.tenThuongHieu || "",
-          loaiSanPham: data.loaiSanPham,
-          currentPrice: firstVariant?.giaBanLe ?? 0,
-          originalPrice: firstVariant?.giaBanLe ?? 0,
-          stock: combo
-            ? (firstVariant?.soBoCoTheLap ?? null)
-            : (firstVariant?.tonCoTheBan ?? 0),
-          thanhPhan: data.thanhPhan || [],
-          variants,
-          images: (data.anhSanPham || [])
-            .map((image) => image.duongDanAnh)
-            .filter(Boolean),
-          specsSummary: specs,
-          fullSpecs: specs,
-          description: data.moTa || "",
-          discountPercent: 0,
-          tags: [],
-          policies: [
-            {
-              title: "MIỄN PHÍ VẬN CHUYỂN",
-              desc: "Đơn từ 5tr",
-              icon: "truck",
-            },
-            {
-              title: "CAM KẾT GIÁ",
-              desc: "Tốt nhất",
-              icon: "tag",
-            },
-          ],
-        };
+        const mapped = toProductDetail(data);
+        mapped.specifications = parseSpecifications(mapped.specifications);
 
         if (!active) return;
 
         setProduct(mapped);
-        setSelectedVariantId(firstVariant?.id ?? null);
+        setSelectedVariantId(mapped.defaultVariantId);
       } catch (reason) {
         if (active) {
           setError(
@@ -128,6 +66,11 @@ export default function ProductDetail() {
       active = false;
     };
   }, [id]);
+
+  const displayProduct = product ? {
+    ...product,
+    ...resolveProductContent(product.specifications,product.description,product.category,selectedVariantId),
+  } : null;
 
   return (
     <div className="product-detail-page">
@@ -159,10 +102,10 @@ export default function ProductDetail() {
           <div className="product-main-container">
             <div className="info-sidebar-column">
               {product.loaiSanPham === "BO_PC" ? (
-                <ComboContents items={product.thanhPhan} />
+                <ComboContents items={product.thanhPhan} scrollable />
               ) : (
                 <ProductInfoSidebar
-                  product={product}
+                  product={displayProduct}
                   selectedVariantId={selectedVariantId}
                   setSelectedVariantId={setSelectedVariantId}
                 />
@@ -179,14 +122,14 @@ export default function ProductDetail() {
 
             <div className="purchase-right-sidebar-column">
               <ProductPurchaseRightSidebar
-                product={product}
+                product={displayProduct}
                 selectedVariantId={selectedVariantId}
               />
             </div>
-          </div>
 
-          <div className="tabs-container">
-            <ProductSpecsTabs product={product} />
+            <div className="product-description-column">
+              <ProductSpecsTabs product={displayProduct} />
+            </div>
           </div>
         </>
       )}

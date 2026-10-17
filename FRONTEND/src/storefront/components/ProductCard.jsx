@@ -92,13 +92,13 @@ export default function ProductCard({ product }) {
 
         {outOfStock && <div className="out-of-stock-overlay">HẾT HÀNG</div>}
 
-        {product.image && (
+        {product.image ? (
           <img
             src={product.image}
             alt={product.title}
             className="product-image"
           />
-        )}
+        ) : <span className="product-image-placeholder">Chưa có ảnh sản phẩm</span>}
       </div>
 
       <div className="product-info">
@@ -156,7 +156,7 @@ export default function ProductCard({ product }) {
             </div>
           )}
 
-          <p className="sale-price">{product.price}</p>
+          <p className="sale-price">{product.priceFrom && "Từ "}{product.price}</p>
         </div>
 
         {error && (
