@@ -131,6 +131,20 @@
   max-width: 520px;
 }
 
+/* Match the POS serial picker: scroll remains available without a visible bar. */
+.combo-contents--scrollable .combo-contents__list {
+  max-height: 520px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.combo-contents--scrollable .combo-contents__list::-webkit-scrollbar { display: none; }
+.combo-contents--scrollable .combo-contents__list:focus-visible { outline: 2px solid #ed1c24; outline-offset: -2px; }
+@media (max-width: 768px) {
+  .combo-contents--scrollable .combo-contents__list { max-height: 420px; }
+}
+
 .combo-contents--compact .combo-contents__header {
   padding: 8px 10px;
 }

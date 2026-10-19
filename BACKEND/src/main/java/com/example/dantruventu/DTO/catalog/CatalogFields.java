@@ -114,5 +114,6 @@ public final class CatalogFields {
       @JsonProperty("so_luong_trong_bo") Integer soLuongTrongBo,
       @JsonProperty("so_luong_tong") Long soLuongTong,
       @JsonProperty("co_quan_ly_serial") Boolean coQuanLySerial,
-      @JsonProperty("thoi_han_bao_hanh_thang") Integer thoiHanBaoHanhThang) {}
+      @JsonProperty("thoi_han_bao_hanh_thang") Integer thoiHanBaoHanhThang,
+      @JsonProperty("co_trang_chi_tiet") Boolean coTrangChiTiet) {}
 }

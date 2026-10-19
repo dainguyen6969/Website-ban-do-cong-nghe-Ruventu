@@ -1,33 +1,26 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { useSearchParams, Link, useNavigate } from "react-router-dom";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import { Search, X, ChevronDown, ChevronUp } from "lucide-react";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 import ProductCard from "../components/ProductCard";
 import {
-  mockPcBuildProducts,
-  mockLinhKien,
-  mockGamingGear,
-} from "../data/categoryData";
-import {
   productService,
   toProductCard,
 } from "../../shared/services/productService";
+import TablePagination from "../../shared/components/ui/TablePagination";
 import "./SearchPage.css";
-
-const allProducts = [
-  ...mockPcBuildProducts,
-  ...mockLinhKien,
-  ...mockGamingGear,
-];
 
 const SearchPage = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const query = searchParams.get("q") || "";
 
-  const [filteredProducts, setFilteredProducts] = useState([]);
-  const [totalProducts, setTotalProducts] = useState(0);
+  const [searchProducts, setSearchProducts] = useState([]);
+  const [suggestedProducts, setSuggestedProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [page, setPage] = useState(1);
   const [sortBy, setSortBy] = useState("relevance");
   const [isSortDropdownOpen, setIsSortDropdownOpen] = useState(false);
 
@@ -39,7 +32,9 @@ const SearchPage = () => {
   const [selectedCategories, setSelectedCategories] = useState([]);
 
   useEffect(() => {
+    let active = true;
     const loadProducts = async () => {
+      setLoading(true); setError('');
       try {
         const params = { keyword: query };
 
@@ -57,49 +52,23 @@ const SearchPage = () => {
           params.sort = "ban_chay";
         }
 
-        const response = await productService.getProducts(params);
-        if (response && response.data && response.data.danhSachSanPham) {
-          const mappedProducts =
-            response.data.danhSachSanPham.map(toProductCard);
-
-          let results = mappedProducts;
-          if (selectedBrands.length > 0) {
-            results = results.filter((p) =>
-              selectedBrands.some((brand) =>
-                (p.title || p.name || "")
-                  .toLowerCase()
-                  .includes(brand.toLowerCase()),
-              ),
-            );
-          }
-          if (selectedCategories.length > 0) {
-            results = results.filter((p) =>
-              selectedCategories.some((cat) =>
-                (p.category || "").toLowerCase().includes(cat.toLowerCase()),
-              ),
-            );
-          }
-
-          setFilteredProducts(results);
-          setTotalProducts(results.length);
-        } else {
-          setFilteredProducts([]);
-          setTotalProducts(0);
-        }
-      } catch (error) {
-        console.error("Lỗi fetch sản phẩm:", error);
-      }
+        const products = await productService.getAllProducts(params);
+        const recommended = products.length ? [] : (await productService.getProducts({ limit: 4, sort: 'moi_nhat' })).data.danhSachSanPham.map(toProductCard);
+        if (active) { setSearchProducts(products); setSuggestedProducts(recommended); setPage(1); }
+      } catch (reason) {
+        if (active) { setSearchProducts([]); setSuggestedProducts([]); setError(reason.response?.data?.message || reason.message || 'Không tải được sản phẩm.'); }
+      } finally { if (active) setLoading(false); }
     };
     loadProducts();
-  }, [
-    query,
-    sortBy,
-    minPrice,
-    maxPrice,
-    stockStatus,
-    selectedBrands,
-    selectedCategories,
-  ]);
+    return () => { active = false; };
+  }, [query, sortBy, minPrice, maxPrice, stockStatus]);
+
+  const filteredProducts = useMemo(() => searchProducts.filter(product =>
+    (!selectedBrands.length || selectedBrands.includes(product.brand)) &&
+    (!selectedCategories.length || selectedCategories.includes(product.category))), [searchProducts, selectedBrands, selectedCategories]);
+  const totalProducts = filteredProducts.length;
+  const currentPage = Math.min(page, Math.max(1, Math.ceil(totalProducts / 20)));
+  const facets = field => [...new Set(searchProducts.map(product => product[field]).filter(Boolean))].sort((a,b) => a.localeCompare(b,'vi')).map(name => ({ name, count: searchProducts.filter(product => product[field] === name).length }));
 
   const sortOptions = [
     { value: "relevance", label: "Liên quan nhất" },
@@ -109,34 +78,8 @@ const SearchPage = () => {
     { value: "bestseller", label: "Bán chạy nhất" },
   ];
 
-  // Mock data for filters
-  const brands = [
-    { name: "AMD", count: 2 },
-    { name: "ASUS ROG", count: 3 },
-    { name: "BE QUIET!", count: 1 },
-    { name: "CORSAIR", count: 2 },
-    { name: "G.SKILL", count: 1 },
-    { name: "GIGABYTE", count: 1 },
-    { name: "INTEL", count: 2 },
-    { name: "KEYCHRON", count: 1 },
-    { name: "LG", count: 1 },
-    { name: "MSI", count: 2 },
-    { name: "RAZER", count: 1 },
-    { name: "SAMSUNG", count: 2 },
-    { name: "WD", count: 1 },
-  ];
-
-  const categories = [
-    { name: "Bàn phím", count: 2 },
-    { name: "CPU", count: 4 },
-    { name: "Mainboard", count: 2 },
-    { name: "Màn hình", count: 2 },
-    { name: "PSU", count: 1 },
-    { name: "RAM", count: 2 },
-    { name: "SSD", count: 2 },
-    { name: "Tản nhiệt", count: 1 },
-    { name: "VGA", count: 4 },
-  ];
+  const brands = facets('brand');
+  const categories = facets('category');
 
   const suggestedKeywords = [
     "RTX 4090",
@@ -147,6 +90,7 @@ const SearchPage = () => {
   ];
 
   const handleBrandChange = (brandName) => {
+    setPage(1);
     setSelectedBrands((prev) =>
       prev.includes(brandName)
         ? prev.filter((b) => b !== brandName)
@@ -155,6 +99,7 @@ const SearchPage = () => {
   };
 
   const handleCategoryChange = (catName) => {
+    setPage(1);
     setSelectedCategories((prev) =>
       prev.includes(catName)
         ? prev.filter((c) => c !== catName)
@@ -199,11 +144,8 @@ const SearchPage = () => {
     maxPrice ||
     stockStatus !== "all";
 
-  const suggestedProducts = useMemo(() => {
-    return mockPcBuildProducts.slice(0, 4);
-  }, []);
-
-  const handleSuggestKeyword = (k) => {
+const handleSuggestKeyword = (k) => {
+    clearAllFilters();
     navigate(`/search?q=${encodeURIComponent(k)}`);
   };
 
@@ -418,12 +360,12 @@ const SearchPage = () => {
             </div>
           )}
 
-          {filteredProducts.length > 0 ? (
-            <div className="search-product-grid">
-              {filteredProducts.map((product, index) => (
-                <ProductCard key={index} product={product} />
+          {loading ? <p role="status">Đang tải sản phẩm...</p> : error ? <p role="alert">{error}</p> : filteredProducts.length > 0 ? (
+            <><div className="search-product-grid">
+              {filteredProducts.slice((currentPage - 1) * 20, currentPage * 20).map(product => (
+                <ProductCard key={product.id} product={product} />
               ))}
-            </div>
+            </div><TablePagination totalItems={totalProducts} pageSize={20} currentPage={currentPage} onPageChange={setPage} idPrefix="store-search" /></>
           ) : (
             <div className="no-results-area">
               <div className="no-results-header">

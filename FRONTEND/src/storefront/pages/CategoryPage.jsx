@@ -1,203 +1,52 @@
-import React, { useState, useEffect } from "react";
-import { useParams, Link } from "react-router-dom";
-import Header from "../components/Header";
-import Footer from "../components/Footer";
-import ProductCard from "../components/ProductCard";
-import {
-  mockPcBuildProducts,
-  mockLinhKien,
-  mockGamingGear,
-} from "../data/categoryData";
-import {
-  productService,
-  toProductCard,
-} from "../../shared/services/productService";
-import "./CategoryPage.css";
+import { useEffect, useState } from 'react';
+import { Link, useParams } from 'react-router-dom';
+import Header from '../components/Header';
+import Footer from '../components/Footer';
+import ProductCard from '../components/ProductCard';
+import TablePagination from '../../shared/components/ui/TablePagination';
+import { productService } from '../../shared/services/productService';
+import { catalogScopes, inCatalogScope } from './catalogModel';
+import './CategoryPage.css';
 
-const categoryMap = {
-  "pc-build": {
-    title: "PC BUILD SẴN",
-    data: mockPcBuildProducts,
-    filters: [
-      { name: "Thương hiệu", options: ["Ruventu", "Asus", "Gigabyte", "MSI"] },
-      {
-        name: "Mức giá",
-        options: [
-          "Dưới 15 triệu",
-          "15 - 25 triệu",
-          "25 - 50 triệu",
-          "Trên 50 triệu",
-        ],
-      },
-    ],
-  },
-  "linh-kien": {
-    title: "LINH KIỆN KHỦNG",
-    data: mockLinhKien,
-    filters: [
-      {
-        name: "Thương hiệu",
-        options: ["ASUS", "MSI", "Gigabyte", "Corsair", "Intel", "AMD"],
-      },
-      {
-        name: "Loại linh kiện",
-        options: ["VGA", "Mainboard", "CPU", "RAM", "SSD", "Nguồn (PSU)"],
-      },
-      {
-        name: "Mức giá",
-        options: [
-          "Dưới 5 triệu",
-          "5 - 10 triệu",
-          "10 - 20 triệu",
-          "Trên 20 triệu",
-        ],
-      },
-    ],
-  },
-  "gaming-gear": {
-    title: "GAMING GEAR",
-    data: mockGamingGear,
-    filters: [
-      {
-        name: "Thương hiệu",
-        options: ["Razer", "Logitech", "Corsair", "SteelSeries", "Keychron"],
-      },
-      {
-        name: "Loại sản phẩm",
-        options: ["Bàn phím", "Chuột", "Tai nghe", "Lót chuột", "Ghế gaming"],
-      },
-      {
-        name: "Mức giá",
-        options: ["Dưới 1 triệu", "1 - 2 triệu", "2 - 5 triệu", "Trên 5 triệu"],
-      },
-    ],
-  },
-};
-
-const CategoryPage = () => {
+export default function CategoryPage() {
   const { slug } = useParams();
-  const categoryInfo = categoryMap[slug] || categoryMap["linh-kien"]; // Fallback
+  return <CategoryContent key={slug} slug={slug} />;
+}
 
-  const [products, setProducts] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [sortBy, setSortBy] = useState("newest");
-
+function CategoryContent({ slug }) {
+  const scope = catalogScopes[slug];
+  const [catalog, setCatalog] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [brands, setBrands] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [minPrice, setMinPrice] = useState('');
+  const [maxPrice, setMaxPrice] = useState('');
+  const [sort, setSort] = useState('newest');
+  const [page, setPage] = useState(1);
   useEffect(() => {
-    const fetchProducts = async () => {
-      setIsLoading(true);
-      try {
-        const response = await productService.getProducts({ ton_kho: true });
-        if (response && response.data && response.data.danhSachSanPham) {
-          const mappedProducts =
-            response.data.danhSachSanPham.map(toProductCard);
-          setProducts(
-            slug === "pc-build"
-              ? mappedProducts.filter(
-                  (product) => product.loaiSanPham === "BO_PC",
-                )
-              : mappedProducts,
-          );
-        } else {
-          setProducts([]);
-        }
-      } catch (error) {
-        console.error("Failed to fetch products:", error);
-        setProducts([]);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    fetchProducts();
-  }, [slug, categoryInfo.data]);
-
-  return (
-    <div className="storefront-category-page">
-      <Header />
-
-      {/* Breadcrumb */}
-      <div className="breadcrumb-wrapper">
-        <div className="container">
-          <div className="breadcrumb">
-            <Link to="/">Trang chủ</Link>
-            <span className="separator">/</span>
-            <span className="current">{categoryInfo.title}</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Banner */}
-      <div className="category-banner">
-        <div className="container">
-          <h1 className="category-title">{categoryInfo.title}</h1>
-        </div>
-      </div>
-
-      {/* Main Content */}
-      <div className="category-main container">
-        {/* Sidebar Filters */}
-        <aside className="category-sidebar">
-          <div className="filter-block">
-            <h3 className="filter-title">LỌC SẢN PHẨM</h3>
-
-            {categoryInfo.filters.map((filterGroup, idx) => (
-              <div key={idx} className="filter-group">
-                <h4 className="filter-group-title">{filterGroup.name}</h4>
-                <div className="filter-options">
-                  {filterGroup.options.map((opt, oIdx) => (
-                    <label key={oIdx} className="filter-label">
-                      <input type="checkbox" className="filter-checkbox" />
-                      <span className="filter-text">{opt}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-        </aside>
-
-        {/* Product Grid Area */}
-        <div className="category-content">
-          <div className="category-toolbar">
-            <div className="toolbar-left">
-              <span>
-                Hiển thị <strong>{products.length}</strong> sản phẩm
-              </span>
-            </div>
-            <div className="toolbar-right">
-              <label>Sắp xếp theo:</label>
-              <select
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value)}
-                className="sort-select"
-              >
-                <option value="newest">Mới nhất</option>
-                <option value="price-asc">Giá tăng dần</option>
-                <option value="price-desc">Giá giảm dần</option>
-                <option value="name-asc">Tên A-Z</option>
-              </select>
-            </div>
-          </div>
-
-          <div className="category-product-grid">
-            {products.map((product, index) => (
-              <ProductCard key={index} product={product} />
-            ))}
-          </div>
-
-          {/* Pagination UI */}
-          <div className="category-pagination">
-            <button className="page-btn active">1</button>
-            <button className="page-btn">2</button>
-            <button className="page-btn">3</button>
-            <span className="page-dots">...</span>
-            <button className="page-btn">&gt;</button>
-          </div>
-        </div>
-      </div>
-
-      <Footer />
-    </div>
-  );
-};
-
-export default CategoryPage;
+    let active = true;
+    productService.getAllProducts({ sort: 'moi_nhat' }).then(items => {
+      if (active) { setCatalog(items); setLoading(false); }
+    }).catch(reason => { if (active) { setError(reason.response?.data?.message || reason.message); setLoading(false); } });
+    return () => { active = false; };
+  }, []);
+  const scoped = catalog.filter(product => inCatalogScope(product, slug));
+  const products = scoped.filter(product => (!brands.length || brands.includes(product.brand)) && (!categories.length || categories.includes(product.category)) && (!minPrice || product.priceValue >= Number(minPrice)) && (!maxPrice || product.priceValue <= Number(maxPrice)));
+  if (sort === 'price-asc') products.sort((a,b) => a.priceValue - b.priceValue);
+  if (sort === 'price-desc') products.sort((a,b) => b.priceValue - a.priceValue);
+  if (sort === 'name-asc') products.sort((a,b) => a.title.localeCompare(b.title,'vi'));
+  const currentPage = Math.min(page, Math.max(1, Math.ceil(products.length / 20)));
+  const toggle = (set, selected, value) => { set(selected.includes(value) ? selected.filter(item => item !== value) : [...selected, value]); setPage(1); };
+  return <div className="storefront-category-page"><Header />
+    <div className="breadcrumb-wrapper"><div className="container"><div className="breadcrumb"><Link to="/">Trang chủ</Link><span className="separator">/</span><span className="current">{scope?.title || 'Không tìm thấy danh mục'}</span></div></div></div>
+    <div className="category-banner"><div className="container"><h1 className="category-title">{scope?.title || 'KHÔNG TÌM THẤY DANH MỤC'}</h1></div></div>
+    <div className="category-main container"><aside className="category-sidebar"><div className="filter-block"><h3 className="filter-title">LỌC SẢN PHẨM</h3>
+      {[[ 'Thương hiệu', 'brand', brands, setBrands ], [ 'Loại sản phẩm', 'category', categories, setCategories ]].map(([label, field, selected, set]) => <div className="filter-group" key={field}><h4 className="filter-group-title">{label}</h4><div className="filter-options">{[...new Set(scoped.map(product => product[field]).filter(Boolean))].sort((a,b) => a.localeCompare(b,'vi')).map(value => <label className="filter-label" key={value}><input type="checkbox" className="filter-checkbox" checked={selected.includes(value)} onChange={() => toggle(set, selected, value)} /><span className="filter-text">{value}</span></label>)}</div></div>)}
+      <div className="filter-group"><h4 className="filter-group-title">Khoảng giá</h4><label>Giá tối thiểu<input type="number" min="0" value={minPrice} onChange={event => { setMinPrice(event.target.value); setPage(1); }} /></label><label>Giá tối đa<input type="number" min="0" value={maxPrice} onChange={event => { setMaxPrice(event.target.value); setPage(1); }} /></label></div>
+      <button type="button" className="page-btn" onClick={() => { setBrands([]); setCategories([]); setMinPrice(''); setMaxPrice(''); setPage(1); }}>XÓA BỘ LỌC</button>
+    </div></aside><div className="category-content"><div className="category-toolbar"><div className="toolbar-left">Hiển thị <strong>{products.length}</strong> sản phẩm</div><div className="toolbar-right"><label>Sắp xếp theo:<select className="sort-select" value={sort} onChange={event => { setSort(event.target.value); setPage(1); }}><option value="newest">Mới nhất</option><option value="price-asc">Giá tăng dần</option><option value="price-desc">Giá giảm dần</option><option value="name-asc">Tên A-Z</option></select></label></div></div>
+      {loading ? <p role="status">Đang tải sản phẩm...</p> : error ? <p role="alert">{error}</p> : !products.length ? <p role="status">Không tìm thấy sản phẩm phù hợp.</p> : <div className="category-product-grid">{products.slice((currentPage - 1) * 20, currentPage * 20).map(product => <ProductCard key={product.id} product={product} />)}</div>}
+      <TablePagination totalItems={products.length} pageSize={20} currentPage={currentPage} onPageChange={setPage} idPrefix="store-category" />
+    </div></div><Footer /></div>;
+}

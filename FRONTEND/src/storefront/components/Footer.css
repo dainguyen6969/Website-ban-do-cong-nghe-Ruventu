@@ -69,6 +69,7 @@
 .footer-col a:hover {
   color: var(--primary-red);
 }
+.footer-unavailable { color: #777; font-size: 13px; cursor: default; }
 
 .footer-bottom {
   padding: 24px 0;

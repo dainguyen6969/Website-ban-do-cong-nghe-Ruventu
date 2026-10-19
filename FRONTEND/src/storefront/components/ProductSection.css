@@ -26,7 +26,7 @@
 }
 
 .dark-theme .product-section-title {
-  color: var(--primary-red);
+  color: var(--text-light);
 }
 
 .section-subtitle {
@@ -127,4 +127,401 @@
 
 .home-catalog-status--error {
   color: #c51d25;
+}
+
+.homepage- .product-section > .container {
+  max-width: 1280px;
+  padding: 24px;
+}
+
+.storefront-app .home-page .product-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  border: 2px solid #000;
+}
+
+.home-page .product-grid .product-card {
+  margin: 0;
+  border: 2px solid #000;
+  border-radius: 0;
+  background-color: #fff;
+  font-family: 'Barlow', sans-serif;
+  transition: border-color 0.2s;
+}
+
+.home-page .product-grid .product-card:hover {
+  border-color: #cc0000;
+  box-shadow: none ;
+  transform: none;
+}
+
+.home-page .product-card .product-image-container {
+  aspect-ratio: 4 / 3;
+  padding-top: 0;
+  background-color: #edebeb;
+  border-bottom: 2px solid #000;
+}
+
+.home-page .product-card .product-image {
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  transition: transform 0.5s;
+}
+
+.home-page .product-card:hover .product-image {
+  transform: scale(1.05);
+}
+
+.home-page .product-card .product-badge {
+  top: 0;
+  padding: 4px 8px;
+  font-family: 'Barlow Condensed', sans-serif;
+  line-height: 1.5;
+}
+
+.home-page .product-card .badge-discount {
+  left: 0;
+  background: #f00;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.home-page .product-card :is(.badge-hot, .badge-bestseller) {
+  right: 0;
+  background: #000;
+  letter-spacing: 0.08em;
+}
+
+.home-page .product-card .product-info {
+  padding: 16px 16px 12px;
+  gap: 12px;
+}
+
+.storefront-app .home-page .product-card .product-header {
+  flex-wrap: nowrap;
+  gap: 8px;
+  margin: 0;
+}
+
+.home-page .product-card .product-title {
+  flex: 1;
+  min-width: 0;
+  height: 37.5px;
+  margin: 0;
+  padding: 0;
+  color: #000;
+  font: 700 15px/1.25 'Barlow Condensed', sans-serif;
+  text-transform: none;
+  letter-spacing: normal;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.storefront-app .home-page .product-card .product-catergory-label {
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
+  letter-spacing: 0.06em;
+  font: 700 11px/1.5 'Barlow Condensed', sans-serif;
+  color: #555;
+  background-color: #f0f0f0;
+  padding: 2px 8px;
+  flex-shrink: 0;
+  max-width: 40%;
+}
+
+.home-page .product-card :is(.product-card_capacity, .product-card_confuguration) {
+  display: none;
+}
+
+.home-page .product-card .product-specs {
+  flex: initial;
+  margin: 0;
+}
+
+.home-page .product-card .specs-table {
+  display: flex;
+  border: 1px solid #000;
+  font: 400 12px/1.5 'Barlow', sans-serif;
+}
+
+.home-page .product-card .specs-table td {
+  padding: 6px 8px;
+  border: 0;
+  border-bottom: 1px solid #ebebeb;
+}
+
+.home-page .product-card .specs-table tr:last-child td {
+  border-bottom: 0;
+}
+
+.storefront-app .home-page .product-card .specs-label {
+  width: 80px;
+  font: 700 11px/1.5 'Barlow Condensed', sans-serif;
+  letter-spacing: 0.06em;
+  text-align: left;
+  color: #fff;
+  background: #000;
+}
+
+.home-page .product-card .specs-value {
+  color: #333;
+}
+
+.home-page .product-card .price-row {
+  margin: 0;
+}
+
+.home-page .product-card .original-price {
+  font: 400 12px/1.5 'Barlow', sans-serif;
+  color: #aaa;
+}
+
+.home-page .product-card .sale-price {
+  font: 900 22px/1 'Barlow Condensed', sans-serif;
+  color: #f00;
+  margin: 0;
+}
+
+.home-page .product-card .product-actions {
+  margin: 0 16px 16px;
+  border: 0;
+}
+
+.storefront-app .home-page .product-card .product-actions > button {
+  padding: 12px 4px;
+  font: 800 13px/1.5 'Barlow Condensed', sans-serif;
+  letter-spacing: 0.06em;
+  border: 2px solid #000;
+  border-radius: 0;
+}
+
+.home-page .product-card .btn-details {
+  color: #000;
+  background: #fff;
+}
+
+.home-page .product-card .btn-details:hover {
+  color: #fff;
+  background: #000;
+}
+
+.home-page .product-card .product-actions > .btn-add-cart:enabled {
+  background: #f00;
+  color: #fff;
+  border-color: #f00;
+}
+
+.home-page .product-card .product-actions > .btn-add-cart:enabled:hover {
+  background: #c00;
+  color: #fff;
+  border-color: #c00;
+}
+
+@media (max-width: 1279px) {
+  .storefront-app .home-page .product-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* Homepage product cards follow the Figma Make reference. */
+.home-page .product-section > .container {
+  max-width: 1280px;
+  padding-inline: 24px;
+}
+
+.storefront-app .home-page .product-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  border: 2px solid #000;
+}
+
+.home-page .product-grid .product-card {
+  margin: 0;
+  border: 2px solid #000;
+  border-radius: 0;
+  background: #fff;
+  font-family: "Barlow", sans-serif;
+  transition: border-color 0.2s;
+}
+
+.home-page .product-grid .product-card:hover {
+  border-color: #cc0000;
+  box-shadow: none;
+  transform: none;
+}
+
+.home-page .product-card .product-image-container {
+  aspect-ratio: 4 / 3;
+  padding-top: 0;
+  background: #efefef;
+  border-bottom: 2px solid #000;
+}
+
+.home-page .product-card .product-image {
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  transition: transform 0.5s;
+}
+
+.home-page .product-card:hover .product-image {
+  transform: scale(1.05);
+}
+
+.home-page .product-card .product-badge {
+  top: 0;
+  padding: 4px 8px;
+  font-family: "Barlow Condensed", sans-serif;
+  line-height: 1.5;
+}
+
+.home-page .product-card .badge-discount {
+  left: 0;
+  background: #f00;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.home-page .product-card :is(.badge-hot, .badge-bestseller) {
+  right: 0;
+  background: #000;
+  letter-spacing: 0.08em;
+}
+
+.home-page .product-card .product-info {
+  padding: 16px 16px 12px;
+  gap: 12px;
+}
+
+.storefront-app .home-page .product-card .product-header {
+  flex-wrap: nowrap;
+  gap: 8px;
+  margin: 0;
+}
+
+.home-page .product-card .product-title {
+  flex: 1;
+  min-width: 0;
+  height: 37.5px;
+  margin: 0;
+  padding: 0;
+  color: #000;
+  font: 700 15px/1.25 "Barlow Condensed", sans-serif;
+  text-transform: none;
+  letter-spacing: normal;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.storefront-app .home-page .product-card .product-category-label {
+  flex-shrink: 0;
+  max-width: 40%;
+  padding: 2px 8px;
+  background: #f0f0f0;
+  color: #555;
+  font: 700 11px/1.5 "Barlow Condensed", sans-serif;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.home-page .product-card :is(.product-card__capacity, .product-card__configuration) {
+  display: none;
+}
+
+.home-page .product-card .product-specs {
+  flex: initial;
+  margin: 0;
+}
+
+.home-page .product-card .specs-table {
+  border: 1px solid #000;
+  font: 400 12px/1.5 "Barlow", sans-serif;
+}
+
+.home-page .product-card .specs-table td {
+  padding: 6px 8px;
+  border: 0;
+  border-bottom: 1px solid #e8e8e8;
+}
+
+.home-page .product-card .specs-table tr:last-child td {
+  border-bottom: 0;
+}
+
+.storefront-app .home-page .product-card .spec-label {
+  width: 80px;
+  background: #000;
+  color: #fff;
+  font: 700 11px/1.5 "Barlow Condensed", sans-serif;
+  letter-spacing: 0.06em;
+  text-align: left;
+}
+
+.home-page .product-card .spec-value {
+  color: #333;
+}
+
+.home-page .product-card .price-row {
+  margin: 0;
+}
+
+.home-page .product-card .original-price {
+  color: #aaa;
+  font: 400 12px/1.5 "Barlow", sans-serif;
+}
+
+.home-page .product-card .sale-price {
+  margin: 0;
+  color: #f00;
+  font: 900 22px/1 "Barlow Condensed", sans-serif;
+}
+
+.home-page .product-card .product-actions {
+  margin: 0 16px 16px;
+  border: 0;
+}
+
+.storefront-app .home-page .product-card .product-actions > button {
+  padding: 12px 4px;
+  font: 800 13px/1.5 "Barlow Condensed", sans-serif;
+  letter-spacing: 0.06em;
+  border: 2px solid #000;
+  border-radius: 0;
+}
+
+.home-page .product-card .btn-details {
+  color: #000;
+  background: #fff;
+}
+
+.home-page .product-card .btn-details:hover {
+  color: #fff;
+  background: #000;
+}
+
+.home-page .product-card .product-actions > .btn-add-cart:enabled {
+  background: #f00;
+  color: #fff;
+  border-color: #f00;
+}
+
+.home-page .product-card .product-actions > .btn-add-cart:enabled:hover {
+  background: #c00;
+  border-color: #c00;
+}
+
+@media (max-width: 1279px) {
+  .storefront-app .home-page .product-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }

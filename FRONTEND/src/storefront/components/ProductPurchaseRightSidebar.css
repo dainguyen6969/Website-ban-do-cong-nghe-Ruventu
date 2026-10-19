@@ -48,6 +48,18 @@
   color: #666;
 }
 
+.selected-variant-name {
+  margin: 0 0 12px;
+  color: #555;
+  font-size: 13px;
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+}
+
 .sku-label {
   text-transform: uppercase;
 }

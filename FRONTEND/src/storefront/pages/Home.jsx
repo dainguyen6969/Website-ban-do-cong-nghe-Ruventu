@@ -8,10 +8,8 @@ import ProductSection from "../components/ProductSection";
 import ConsultationBanner from "../components/ConsultationBanner";
 import Footer from "../components/Footer";
 
-import {
-  productService,
-  toProductCard,
-} from "../../shared/services/productService";
+import { productService } from "../../shared/services/productService";
+import { catalogScopes, inCatalogScope, shuffleProducts } from "./catalogModel";
 
 export default function Home() {
   const [products, setProducts] = useState([]);
@@ -26,20 +24,10 @@ export default function Home() {
       setError("");
 
       try {
-        const response = await productService.getProducts({
-          page: 0,
-          limit: 100,
-          sort: "moi_nhat",
-        });
-
-        const items = response?.data?.danhSachSanPham;
-
-        if (!Array.isArray(items)) {
-          throw new Error("Dữ liệu danh sách sản phẩm không hợp lệ.");
-        }
+        const items = await productService.getAllProducts({ sort: "moi_nhat" });
 
         if (active) {
-          setProducts(items.map(toProductCard));
+          setProducts(shuffleProducts(items));
         }
       } catch (reason) {
         if (active) {
@@ -63,25 +51,18 @@ export default function Home() {
   }, []);
 
   const pcProducts = useMemo(
-    () => products.filter((product) => product.loaiSanPham === "BO_PC"),
+    () => products.filter((product) => inCatalogScope(product, "pc-build")),
     [products],
   );
 
-  const standaloneProducts = useMemo(
-    () => products.filter((product) => product.loaiSanPham === "DON"),
+  const componentProducts = useMemo(
+    () => products.filter((product) => inCatalogScope(product, "linh-kien")),
     [products],
   );
 
-  const standaloneCategories = useMemo(
-    () =>
-      [
-        ...new Set(
-          standaloneProducts.map(
-            (product) => product.category || "Chưa phân loại",
-          ),
-        ),
-      ].sort((a, b) => a.localeCompare(b, "vi")),
-    [standaloneProducts],
+  const gamingGearProducts = useMemo(
+    () => products.filter((product) => inCatalogScope(product, "gaming-gear")),
+    [products],
   );
 
   return (
@@ -91,6 +72,7 @@ export default function Home() {
       <InfoBar />
       <CategoryBar />
 
+      <div id="pc-build-san">
       {loading && (
         <div className="container home-catalog-status" role="status">
           Đang tải sản phẩm...
@@ -119,16 +101,30 @@ export default function Home() {
           <ConsultationBanner />
 
           <ProductSection
-            title="LINH KIỆN & GAMING GEAR"
-            subtitle="Linh kiện, thiết bị và phụ kiện công nghệ"
-            linkText="XEM DANH SÁCH"
-            linkUrl="/search"
-            products={standaloneProducts}
-            categories={standaloneCategories}
+            title="LINH KIỆN KHỦNG"
+            subtitle="Linh kiện chính hãng cho cấu hình PC của bạn"
+            linkText="XEM TẤT CẢ"
+            linkUrl="/category/linh-kien"
+            products={componentProducts}
+            categories={catalogScopes["linh-kien"].categories.filter(category =>
+              componentProducts.some(product => product.category === category)
+            )}
+          />
+
+          <ProductSection
+            title="GAMING GEAR"
+            subtitle="Màn hình, linh kiện và phụ kiện cho góc gaming"
+            linkText="XEM TẤT CẢ"
+            linkUrl="/category/gaming-gear"
+            products={gamingGearProducts}
+            categories={[...new Set(gamingGearProducts.map(product => product.category).filter(Boolean))]
+              .sort((a, b) => a.localeCompare(b, "vi"))}
+            darkTheme
           />
         </>
       )}
 
+      </div>
       <Footer />
     </div>
   );
