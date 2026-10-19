@@ -46,10 +46,22 @@ function NetworkState({ error, onRetry }) {
 
 function BrandFormModal({ brand, brands, saving, serverError, onClose, onSave }) {
   const [form, setForm] = useState(() => ({ name: brand?.name || '', logo: brand?.logo || '', status: brand?.status || 'active' }));
-  const [mode, setMode] = useState('url');
-  const [images, setImages] = useState([]);
+  const [mode, setMode] = useState('upload');
+  const [images, setImages] = useState(() => brand?.logo ? [{ id: 'current', url: brand.logo }] : []);
   const [errors, setErrors] = useState({});
   const update = (field, value) => { setForm((current) => ({ ...current, [field]: value })); setErrors((current) => ({ ...current, [field]: '' })); };
+
+  const handleImagesChange = (next) => {
+    const list = Array.isArray(next) ? next : (typeof next === 'function' ? next(images) : []);
+    const latest = list.slice(-1);
+    setImages(latest);
+    if (latest[0]?.url && !latest[0]?.uploading && !latest[0]?.error) {
+      update('logo', latest[0].url);
+    } else if (!latest[0]) {
+      update('logo', '');
+    }
+  };
+
   const submit = (event) => {
     event.preventDefault();
     const name = form.name.trim();
@@ -57,16 +69,19 @@ function BrandFormModal({ brand, brands, saving, serverError, onClose, onSave })
     if (!name) next.name = 'Vui lòng nhập tên thương hiệu.';
     else if (name.length < 2) next.name = 'Tên thương hiệu phải có ít nhất 2 ký tự.';
     else if (brands.some((item) => item.id !== brand?.id && item.name.toLocaleLowerCase('vi') === name.toLocaleLowerCase('vi'))) next.name = 'Tên thương hiệu đã tồn tại.';
-    if (mode === 'url' && form.logo.trim()) {
+    
+    const activeLogo = mode === 'upload' ? (images[0]?.url || '') : form.logo.trim();
+    if (mode === 'upload') {
+      if (images[0]?.uploading) next.logo = 'Ảnh đang được tải lên. Vui lòng chờ hoàn tất.';
+      else if (images[0]?.error) next.logo = images[0].error;
+    } else if (activeLogo) {
       try {
-        const parsed = new URL(form.logo.trim());
+        const parsed = new URL(activeLogo);
         if (!['http:', 'https:'].includes(parsed.protocol) || !/\.(jpe?g|png|webp)$/i.test(parsed.pathname)) throw new Error('invalid');
       } catch { next.logo = 'Logo phải là URL HTTP/HTTPS của ảnh JPG, PNG hoặc WEBP.'; }
     }
-    if (mode === 'upload' && images[0]?.uploading) next.logo = 'Ảnh đang được tải lên. Vui lòng chờ hoàn tất.';
-    else if (mode === 'upload' && (!images[0]?.url || images[0]?.error)) next.logo = images[0]?.error || 'Vui lòng chọn một ảnh để tải lên.';
     if (Object.keys(next).length) { setErrors(next); return; }
-    onSave({ name, logo: mode === 'url' ? form.logo.trim() : images[0].url, status: form.status });
+    onSave({ name, logo: activeLogo, status: form.status });
   };
   return <div className="brand-modal-backdrop" onMouseDown={(event) => !saving && event.target === event.currentTarget && onClose()}>
     <section className="brand-modal" role="dialog" aria-modal="true" aria-labelledby="brand-form-title">
@@ -75,8 +90,12 @@ function BrandFormModal({ brand, brands, saving, serverError, onClose, onSave })
         <div className="brand-modal__body">
           {serverError && <div className="brand-inline-error" role="alert">{serverError}</div>}
           <label className="brand-field"><span>TÊN THƯƠNG HIỆU <b>*</b></span><input autoFocus value={form.name} onChange={(event) => update('name', event.target.value)} placeholder="Ví dụ: ASUS" />{errors.name && <small>{errors.name}</small>}</label>
-          <fieldset className="brand-image-field"><legend>LOGO / ẢNH THƯƠNG HIỆU</legend><div className="brand-mode-tabs"><button type="button" className={mode === 'upload' ? 'is-active' : ''} onClick={() => { setMode('upload'); setErrors({}); }}>TẢI ẢNH LÊN</button><button type="button" className={mode === 'url' ? 'is-active' : ''} onClick={() => { setMode('url'); setErrors({}); }}>NHẬP URL</button></div>
-            {mode === 'upload' ? <ImageUploader images={images} onImagesChange={(next) => setImages(next.slice(-1))} maxSizeMB={5} folder="brands" /> : <><input className="brand-url-input" value={form.logo} onChange={(event) => update('logo', event.target.value)} placeholder="URL logo (JPG, PNG, WEBP)..." />{form.logo && <div className="brand-logo-preview"><img src={form.logo} alt="Xem trước logo" /></div>}</>}
+          <fieldset className="brand-image-field"><legend>LOGO / ẢNH THƯƠNG HIỆU</legend>
+            <div className="brand-mode-tabs">
+              <button type="button" className={mode === 'upload' ? 'is-active' : ''} onClick={() => { setMode('upload'); setErrors((prev) => ({ ...prev, logo: '' })); if (form.logo && (!images.length || images[0]?.url !== form.logo)) setImages([{ id: 'current', url: form.logo }]); }}>TẢI ẢNH LÊN</button>
+              <button type="button" className={mode === 'url' ? 'is-active' : ''} onClick={() => { setMode('url'); setErrors((prev) => ({ ...prev, logo: '' })); if (images[0]?.url && !images[0]?.uploading && !images[0]?.error) update('logo', images[0].url); }}>NHẬP URL</button>
+            </div>
+            {mode === 'upload' ? <ImageUploader images={images} onImagesChange={handleImagesChange} maxSizeMB={5} folder="brands" multiple={false} /> : <><input className="brand-url-input" value={form.logo} onChange={(event) => update('logo', event.target.value)} placeholder="URL logo (JPG, PNG, WEBP)..." />{form.logo && <div className="brand-logo-preview"><img src={form.logo} alt="Xem trước logo" /></div>}</>}
             {errors.logo && <small className="brand-field-error">{errors.logo}</small>}
           </fieldset>
           <fieldset className="brand-status-field"><legend>TRẠNG THÁI</legend><div><button type="button" className={form.status === 'active' ? 'is-active' : ''} onClick={() => update('status', 'active')}>HOẠT ĐỘNG</button><button type="button" className={form.status === 'inactive' ? 'is-active' : ''} onClick={() => update('status', 'inactive')}>NGỪNG HOẠT ĐỘNG</button></div></fieldset>

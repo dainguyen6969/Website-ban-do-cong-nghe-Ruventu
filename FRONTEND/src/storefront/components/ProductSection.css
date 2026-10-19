@@ -107,3 +107,46 @@
   background-color: #ff0000;
   border-right-color: #ff0000;
 }
+
+/* Skeleton loading cards */
+@keyframes shimmer {
+  0% { background-position: -400px 0; }
+  100% { background-position: 400px 0; }
+}
+
+.skeleton-card {
+  background: #fff;
+  border: 1px solid #e5e5e5;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.skeleton-img {
+  width: 100%;
+  aspect-ratio: 1;
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 800px 100%;
+  animation: shimmer 1.4s infinite;
+  border-radius: 4px;
+}
+
+.skeleton-line {
+  height: 12px;
+  border-radius: 4px;
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 800px 100%;
+  animation: shimmer 1.4s infinite;
+}
+
+.skeleton-line.long { width: 90%; }
+.skeleton-line.medium { width: 65%; }
+.skeleton-line.short { width: 40%; }
+
+.dark-theme .skeleton-card { background: #1a1a1a; border-color: #333; }
+.dark-theme .skeleton-img,
+.dark-theme .skeleton-line {
+  background: linear-gradient(90deg, #2a2a2a 25%, #333 50%, #2a2a2a 75%);
+  background-size: 800px 100%;
+}

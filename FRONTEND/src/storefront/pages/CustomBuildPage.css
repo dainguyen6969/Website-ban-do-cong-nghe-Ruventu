@@ -239,7 +239,24 @@
 
 .selected-specs-large {
   font-size: 11px;
-  color: #888;
+  color: #555;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 3px 0;
+}
+
+.selected-spec-pill {
+  background: #f0f0f0;
+  border: 1px solid #e0e0e0;
+  padding: 2px 7px;
+  border-radius: 2px;
+  font-size: 10px;
+  color: #444;
+}
+
+.selected-spec-pill strong {
+  color: #111;
 }
 
 .selected-meta-large {

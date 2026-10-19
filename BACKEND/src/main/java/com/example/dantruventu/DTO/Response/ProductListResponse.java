@@ -45,6 +45,12 @@ public class ProductListResponse {
 
     private String tenDanhMuc;
 
+    private String duongDanUrl;
+
+    private Long danhMucChaId;
+
+    private String tenDanhMucCha;
+
     private Long thuongHieuId;
 
     private String tenThuongHieu;

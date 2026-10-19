@@ -1,20 +1,48 @@
-import React, { useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Search, ArrowLeft } from 'lucide-react';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import ProductCard from '../components/ProductCard';
-import { mockPcBuildProducts } from '../data/categoryData';
+import { productService } from '../../shared/services/productService';
 import './NotFoundPage.css';
+
+const formatVND = (amount) =>
+  new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount ?? 0);
 
 const NotFoundPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const isAccountNotFound = location.state?.type === 'account';
-  
-  // Use a subset of products for "SẢN PHẨM NỔI BẬT" section
-  const suggestedProducts = useMemo(() => {
-    return mockPcBuildProducts.slice(0, 4);
+  const [suggestedProducts, setSuggestedProducts] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchSuggested = async () => {
+      setIsLoading(true);
+      try {
+        const response = await productService.getProducts({ ton_kho: true, limit: 8, sort: 'moi_nhat' });
+        const list = response?.data?.danhSachSanPham || [];
+        setSuggestedProducts(
+          list.slice(0, 4).map((p) => ({
+            id: p.id,
+            title: p.tenSanPham,
+            name: p.tenSanPham,
+            image: p.anhChinh || 'https://via.placeholder.com/300',
+            price: formatVND(p.giaThapNhat),
+            rawPrice: p.giaThapNhat || 0,
+            category: p.tenDanhMuc || '',
+            brand: p.tenThuongHieu || '',
+            outOfStock: !p.conHang,
+          }))
+        );
+      } catch (err) {
+        console.error('Lỗi tải sản phẩm nổi bật:', err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchSuggested();
   }, []);
 
   const searchKeywords = [
@@ -101,9 +129,19 @@ const NotFoundPage = () => {
         </div>
         
         <div className="products-grid">
-          {suggestedProducts.map((product, index) => (
-            <ProductCard key={index} product={product} />
-          ))}
+          {isLoading ? (
+            <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '30px', color: '#888' }}>
+              Đang tải sản phẩm nổi bật...
+            </div>
+          ) : suggestedProducts.length > 0 ? (
+            suggestedProducts.map((product) => (
+              <ProductCard key={product.id} product={product} />
+            ))
+          ) : (
+            <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '30px', color: '#888' }}>
+              Chưa có sản phẩm nổi bật nào.
+            </div>
+          )}
         </div>
         
         <div className="quick-search-box">

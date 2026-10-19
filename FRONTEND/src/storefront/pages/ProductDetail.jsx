@@ -6,7 +6,6 @@ import ProductGallery from '../components/ProductGallery';
 import ProductInfoSidebar from '../components/ProductInfoSidebar';
 import ProductPurchaseRightSidebar from '../components/ProductPurchaseRightSidebar';
 import ProductSpecsTabs from '../components/ProductSpecsTabs';
-import { mockProducts } from '../data/mockProducts';
 import { productService } from '../../shared/services/productService';
 import './ProductDetail.css';
 
@@ -66,12 +65,12 @@ const ProductDetail = () => {
           if (mappedProduct.variants && mappedProduct.variants.length > 0) {
             setSelectedVariantId(mappedProduct.variants[0].id);
           }
+        } else {
+          setProduct(null);
         }
       } catch (err) {
         console.error("Lỗi fetch chi tiết sản phẩm:", err);
-        // Fallback to mock data if API fails
-        const foundProduct = mockProducts[id] || mockProducts["RVT-MB-X670E-MSI-TOM"];
-        setProduct(foundProduct);
+        setProduct(null);
       } finally {
         setLoading(false);
       }
@@ -80,7 +79,21 @@ const ProductDetail = () => {
   }, [id]);
 
   if (loading) return <div style={{textAlign: 'center', padding: '50px'}}>Đang tải thông tin sản phẩm...</div>;
-  if (!product) return <div style={{textAlign: 'center', padding: '50px'}}>Không tìm thấy sản phẩm.</div>;
+  if (!product) {
+    return (
+      <div className="product-detail-page">
+        <Header />
+        <div style={{ textAlign: 'center', padding: '80px 20px' }}>
+          <h2>Sản phẩm không tồn tại hoặc đã ngừng kinh doanh</h2>
+          <p style={{ margin: '20px 0', color: '#666' }}>Vui lòng kiểm tra lại liên kết hoặc quay về trang chủ.</p>
+          <Link to="/" style={{ display: 'inline-block', padding: '10px 20px', background: '#e30019', color: '#fff', textDecoration: 'none', fontWeight: 600 }}>
+            QUAY VỀ TRANG CHỦ
+          </Link>
+        </div>
+        <Footer />
+      </div>
+    );
+  }
 
   return (
     <div className="product-detail-page">

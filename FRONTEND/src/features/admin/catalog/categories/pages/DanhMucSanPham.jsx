@@ -50,13 +50,27 @@ function CategoryFormModal({ category, categories, productCount = 0, saving, ser
     image: category.image || '',
     status: category.status,
   } : DEFAULT_FORM);
-  const [imageMode, setImageMode] = useState('url');
-  const [images, setImages] = useState([]);
+  const [imageMode, setImageMode] = useState('upload');
+  const [images, setImages] = useState(() => (
+    category?.image ? [{ id: 'current', url: category.image }] : []
+  ));
   const [errors, setErrors] = useState({});
   const update = (field, value) => {
     setForm((current) => ({ ...current, [field]: value }));
     setErrors((current) => ({ ...current, [field]: '' }));
   };
+
+  const handleImagesChange = (next) => {
+    const list = Array.isArray(next) ? next : (typeof next === 'function' ? next(images) : []);
+    const latest = list.slice(-1);
+    setImages(latest);
+    if (latest[0]?.url && !latest[0]?.uploading && !latest[0]?.error) {
+      update('image', latest[0].url);
+    } else if (!latest[0]) {
+      update('image', '');
+    }
+  };
+
   const submit = (event) => {
     event.preventDefault();
     const nextErrors = {};
@@ -70,20 +84,22 @@ function CategoryFormModal({ category, categories, productCount = 0, saving, ser
     if (category && parent && categories.some((item) => item.parentId === category.id)) nextErrors.parentId = 'Không thể chuyển danh mục đang có danh mục con thành danh mục con.';
     const hasChildren = category && categories.some((item) => item.parentId === category.id);
     if (category?.status === 'active' && form.status === 'inactive' && (hasChildren || productCount > 0)) nextErrors.status = 'Không thể ngừng hoạt động khi danh mục còn sản phẩm hoặc danh mục con trực thuộc.';
-    if (imageMode === 'upload' && images[0]?.uploading) {
-      nextErrors.image = 'Ảnh đang được tải lên. Vui lòng chờ hoàn tất.';
-    } else if (imageMode === 'upload' && images[0]?.error) {
-      nextErrors.image = images[0].error;
-    } else if (imageMode === 'upload' && !images[0]?.url) {
-      nextErrors.image = 'Vui lòng chọn một ảnh để tải lên.';
-    } else if (form.image.trim()) {
+    
+    const activeImage = imageMode === 'upload' ? (images[0]?.url || '') : form.image.trim();
+    if (imageMode === 'upload') {
+      if (images[0]?.uploading) {
+        nextErrors.image = 'Ảnh đang được tải lên. Vui lòng chờ hoàn tất.';
+      } else if (images[0]?.error) {
+        nextErrors.image = images[0].error;
+      }
+    } else if (activeImage) {
       try {
-        const parsed = new URL(form.image.trim());
+        const parsed = new URL(activeImage);
         if (!['http:', 'https:'].includes(parsed.protocol)) throw new Error('invalid');
       } catch { nextErrors.image = 'URL ảnh phải bắt đầu bằng http:// hoặc https://.'; }
     }
     if (Object.keys(nextErrors).length) { setErrors(nextErrors); return; }
-    onSave({ name: trimmedName, parentId: parent?.id ?? null, image: form.image.trim(), status: form.status });
+    onSave({ name: trimmedName, parentId: parent?.id ?? null, image: activeImage, status: form.status });
   };
   return <div className="category-modal-backdrop" role="presentation" onMouseDown={(event) => !saving && event.target === event.currentTarget && onClose()}>
     <section className="category-modal" role="dialog" aria-modal="true" aria-labelledby="category-form-title">
@@ -95,9 +111,36 @@ function CategoryFormModal({ category, categories, productCount = 0, saving, ser
           <label className="category-field"><span>DANH MỤC CHA</span><select value={form.parentId} onChange={(event) => update('parentId', event.target.value)}><option value="">KHÔNG CÓ — DANH MỤC GỐC</option>{categories.filter((item) => item.id !== category?.id).map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select>{errors.parentId && <small>{errors.parentId}</small>}</label>
           <fieldset className="category-image-field">
             <legend>ẢNH ĐẠI DIỆN</legend>
-            <div className="category-mode-tabs"><button type="button" className={imageMode === 'upload' ? 'is-active' : ''} onClick={() => { setImageMode('upload'); setErrors({}); }}><HiOutlineUpload /> TẢI ẢNH LÊN</button><button type="button" className={imageMode === 'url' ? 'is-active' : ''} onClick={() => { setImageMode('url'); setErrors({}); }}>NHẬP URL</button></div>
+            <div className="category-mode-tabs">
+              <button
+                type="button"
+                className={imageMode === 'upload' ? 'is-active' : ''}
+                onClick={() => {
+                  setImageMode('upload');
+                  setErrors((prev) => ({ ...prev, image: '' }));
+                  if (form.image && (!images.length || images[0]?.url !== form.image)) {
+                    setImages([{ id: 'current', url: form.image }]);
+                  }
+                }}
+              >
+                <HiOutlineUpload /> TẢI ẢNH LÊN
+              </button>
+              <button
+                type="button"
+                className={imageMode === 'url' ? 'is-active' : ''}
+                onClick={() => {
+                  setImageMode('url');
+                  setErrors((prev) => ({ ...prev, image: '' }));
+                  if (images[0]?.url && !images[0]?.uploading && !images[0]?.error) {
+                    update('image', images[0].url);
+                  }
+                }}
+              >
+                NHẬP URL
+              </button>
+            </div>
             {imageMode === 'upload'
-              ? <ImageUploader images={images} onImagesChange={(next) => { const latest = next.slice(-1); setImages(latest); if (latest[0]?.url && !latest[0]?.uploading && !latest[0]?.error) update('image', latest[0].url); }} maxSizeMB={5} folder="categories" />
+              ? <ImageUploader images={images} onImagesChange={handleImagesChange} maxSizeMB={5} folder="categories" multiple={false} />
               : <input className="category-url-input" value={form.image} onChange={(event) => update('image', event.target.value)} placeholder="URL ảnh đại diện (tùy chọn)" />}
             {errors.image && <small className="category-field-error">{errors.image}</small>}
           </fieldset>

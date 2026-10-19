@@ -17,6 +17,12 @@ public interface ProductListProjection {
 
   String getTenDanhMuc();
 
+  String getDuongDanUrl();
+
+  Long getDanhMucChaId();
+
+  String getTenDanhMucCha();
+
   Long getThuongHieuId();
 
   String getTenThuongHieu();

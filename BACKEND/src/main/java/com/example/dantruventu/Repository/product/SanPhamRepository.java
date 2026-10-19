@@ -78,6 +78,9 @@ public interface SanPhamRepository
                         sp.loai_san_pham AS loaiSanPham,
                         dm.id AS danhMucId,
                         dm.ten_danh_muc AS tenDanhMuc,
+                        dm.duong_dan_url AS duongDanUrl,
+                        dm.danh_muc_cha_id AS danhMucChaId,
+                        dm_parent.ten_danh_muc AS tenDanhMucCha,
                         th.id AS thuongHieuId,
                         th.ten_thuong_hieu AS tenThuongHieu,
                         (
@@ -100,6 +103,8 @@ public interface SanPhamRepository
                     FROM san_pham sp
                     JOIN danh_muc dm
                         ON dm.id = sp.danh_muc_id
+                    LEFT JOIN danh_muc dm_parent
+                        ON dm_parent.id = dm.danh_muc_cha_id
                     LEFT JOIN thuong_hieu th
                         ON th.id = sp.thuong_hieu_id
                     JOIN (
@@ -176,6 +181,7 @@ public interface SanPhamRepository
                         AND (
                             :danhMucId IS NULL
                             OR sp.danh_muc_id = :danhMucId
+                            OR dm.danh_muc_cha_id = :danhMucId
                         )
                         AND (
                             (
@@ -290,6 +296,7 @@ public interface SanPhamRepository
                         AND (
                             :danhMucId IS NULL
                             OR sp.danh_muc_id = :danhMucId
+                            OR dm.danh_muc_cha_id = :danhMucId
                         )
                         AND (
                             (

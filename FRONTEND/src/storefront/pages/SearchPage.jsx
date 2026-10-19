@@ -1,20 +1,17 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { useSearchParams, Link, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Search, X, ChevronDown, ChevronUp } from 'lucide-react';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import ProductCard from '../components/ProductCard';
-import { mockPcBuildProducts, mockLinhKien, mockGamingGear } from '../data/categoryData';
 import { productService } from '../../shared/services/productService';
 import './SearchPage.css';
-
-const allProducts = [...mockPcBuildProducts, ...mockLinhKien, ...mockGamingGear];
 
 const SearchPage = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const query = searchParams.get('q') || '';
-  
+
   const [filteredProducts, setFilteredProducts] = useState([]);
   const [totalProducts, setTotalProducts] = useState(0);
   const [sortBy, setSortBy] = useState('relevance');
@@ -23,43 +20,117 @@ const SearchPage = () => {
   // Filter states
   const [minPrice, setMinPrice] = useState('');
   const [maxPrice, setMaxPrice] = useState('');
-  const [stockStatus, setStockStatus] = useState('all'); // 'all', 'in-stock'
+  const [stockStatus, setStockStatus] = useState('all');
   const [selectedBrands, setSelectedBrands] = useState([]);
   const [selectedCategories, setSelectedCategories] = useState([]);
 
+  // Dynamic filter lists derived from API products
+  const [brands, setBrands] = useState([]);
+  const [categories, setCategories] = useState([]);
+
+  // Featured products for "no results" section — real from API
+  const [featuredProducts, setFeaturedProducts] = useState([]);
+
+  // Load featured products once on mount
+  useEffect(() => {
+    const loadFeatured = async () => {
+      try {
+        const res = await productService.getProducts({ ton_kho: true, limit: 4, sort: 'moi_nhat' });
+        if (res?.data?.danhSachSanPham) {
+          setFeaturedProducts(
+            res.data.danhSachSanPham.slice(0, 4).map(p => ({
+              id: p.id,
+              title: p.tenSanPham,
+              name: p.tenSanPham,
+              image: p.anhChinh || 'https://via.placeholder.com/300',
+              price: new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(p.giaThapNhat || 0),
+              category: p.tenDanhMuc,
+              outOfStock: !p.conHang,
+            }))
+          );
+        }
+      } catch (e) {
+        console.error('Error loading featured products:', e);
+      }
+    };
+    loadFeatured();
+  }, []);
+
+  // Always fetch ALL products (no keyword) once on mount to build the complete
+  // brand & category filter lists from the full catalog — so filters are always visible
+  // regardless of whether the current search query has any results.
+  useEffect(() => {
+    const loadFilterOptions = async () => {
+      try {
+        const response = await productService.getProducts({ ton_kho: true, limit: 100 });
+        if (response?.data?.danhSachSanPham) {
+          const brandMap = {};
+          const catMap = {};
+          response.data.danhSachSanPham
+            .filter(p => p.conHang)
+            .forEach(p => {
+              const brand = p.tenThuongHieu || '';
+              const cat = p.tenDanhMuc || '';
+              if (brand) brandMap[brand] = (brandMap[brand] || 0) + 1;
+              if (cat) catMap[cat] = (catMap[cat] || 0) + 1;
+            });
+
+          setBrands(
+            Object.entries(brandMap)
+              .sort((a, b) => b[1] - a[1])
+              .map(([name, count]) => ({ name, count }))
+          );
+          setCategories(
+            Object.entries(catMap)
+              .sort((a, b) => b[1] - a[1])
+              .map(([name, count]) => ({ name, count }))
+          );
+        }
+      } catch (error) {
+        console.error('Lỗi load filter options:', error);
+      }
+    };
+    loadFilterOptions();
+  }, []);
+
+  // Load filtered search results — re-runs whenever any filter or sort changes.
   useEffect(() => {
     const loadProducts = async () => {
       try {
-        const params = { keyword: query };
-        
+        const params = { keyword: query, limit: 100, ton_kho: true };
         if (minPrice) params.gia_min = Number(minPrice);
         if (maxPrice) params.gia_max = Number(maxPrice);
         if (stockStatus === 'in-stock') params.ton_kho = true;
-        
         if (sortBy === 'price-asc') params.sort = 'gia_thap_nhat';
         else if (sortBy === 'price-desc') params.sort = 'gia_cao_nhat';
         else if (sortBy === 'newest') params.sort = 'moi_nhat';
 
         const response = await productService.getProducts(params);
-        if (response && response.data && response.data.danhSachSanPham) {
-          const mappedProducts = response.data.danhSachSanPham.map(p => ({
-            id: p.id,
-            title: p.tenSanPham,
-            name: p.tenSanPham,
-            image: p.anhChinh || 'https://via.placeholder.com/300',
-            price: new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(p.giaThapNhat),
-            category: p.tenDanhMuc,
-            outOfStock: !p.conHang
-          }));
-          
-          let results = mappedProducts;
+        if (response?.data?.danhSachSanPham) {
+          const mapped = response.data.danhSachSanPham
+            .map(p => ({
+              id: p.id,
+              title: p.tenSanPham,
+              name: p.tenSanPham,
+              image: p.anhChinh || 'https://via.placeholder.com/300',
+              price: new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(p.giaThapNhat || 0),
+              category: p.tenDanhMuc || '',
+              brand: p.tenThuongHieu || '',
+              outOfStock: !p.conHang,
+            }))
+            .filter(p => !p.outOfStock);
+
+          // Apply client-side brand & category filters
+          let results = mapped;
           if (selectedBrands.length > 0) {
-            results = results.filter(p => selectedBrands.some(brand => (p.title || p.name || '').toLowerCase().includes(brand.toLowerCase())));
+            results = results.filter(p => selectedBrands.includes(p.brand));
           }
           if (selectedCategories.length > 0) {
-            results = results.filter(p => selectedCategories.some(cat => (p.category || '').toLowerCase().includes(cat.toLowerCase())));
+            results = results.filter(p =>
+              selectedCategories.some(cat => (p.category || '').toLowerCase().includes(cat.toLowerCase()))
+            );
           }
-          
+
           setFilteredProducts(results);
           setTotalProducts(results.length);
         } else {
@@ -67,12 +138,12 @@ const SearchPage = () => {
           setTotalProducts(0);
         }
       } catch (error) {
-        console.error("Lỗi fetch sản phẩm:", error);
+        console.error('Lỗi fetch sản phẩm:', error);
       }
     };
     loadProducts();
   }, [query, sortBy, minPrice, maxPrice, stockStatus, selectedBrands, selectedCategories]);
-  
+
   const sortOptions = [
     { value: 'relevance', label: 'Liên quan nhất' },
     { value: 'price-asc', label: 'Giá thấp → cao' },
@@ -80,50 +151,17 @@ const SearchPage = () => {
     { value: 'newest', label: 'Mới nhất' },
     { value: 'bestseller', label: 'Bán chạy nhất' },
   ];
-  
-
-
-  // Mock data for filters
-  const brands = [
-    { name: 'AMD', count: 2 },
-    { name: 'ASUS ROG', count: 3 },
-    { name: 'BE QUIET!', count: 1 },
-    { name: 'CORSAIR', count: 2 },
-    { name: 'G.SKILL', count: 1 },
-    { name: 'GIGABYTE', count: 1 },
-    { name: 'INTEL', count: 2 },
-    { name: 'KEYCHRON', count: 1 },
-    { name: 'LG', count: 1 },
-    { name: 'MSI', count: 2 },
-    { name: 'RAZER', count: 1 },
-    { name: 'SAMSUNG', count: 2 },
-    { name: 'WD', count: 1 },
-  ];
-
-  const categories = [
-    { name: 'Bàn phím', count: 2 },
-    { name: 'CPU', count: 4 },
-    { name: 'Mainboard', count: 2 },
-    { name: 'Màn hình', count: 2 },
-    { name: 'PSU', count: 1 },
-    { name: 'RAM', count: 2 },
-    { name: 'SSD', count: 2 },
-    { name: 'Tản nhiệt', count: 1 },
-    { name: 'VGA', count: 4 },
-  ];
 
   const suggestedKeywords = ['RTX 4090', 'Ryzen 9', 'Mainboard Z790', 'Chuột gaming', 'Bàn phím cơ'];
 
-
-
   const handleBrandChange = (brandName) => {
-    setSelectedBrands(prev => 
+    setSelectedBrands(prev =>
       prev.includes(brandName) ? prev.filter(b => b !== brandName) : [...prev, brandName]
     );
   };
 
   const handleCategoryChange = (catName) => {
-    setSelectedCategories(prev => 
+    setSelectedCategories(prev =>
       prev.includes(catName) ? prev.filter(c => c !== catName) : [...prev, catName]
     );
   };
@@ -143,17 +181,12 @@ const SearchPage = () => {
     setStockStatus('all');
   };
 
-  const removeFilter = (filter, type) => {
-    if (type === 'brand') {
-      setSelectedBrands(prev => prev.filter(b => b !== filter));
-    }
-  };
-
-  const hasActiveFilters = selectedBrands.length > 0 || selectedCategories.length > 0 || minPrice || maxPrice || stockStatus !== 'all';
-
-  const suggestedProducts = useMemo(() => {
-    return mockPcBuildProducts.slice(0, 4);
-  }, []);
+  const hasActiveFilters =
+    selectedBrands.length > 0 ||
+    selectedCategories.length > 0 ||
+    minPrice ||
+    maxPrice ||
+    stockStatus !== 'all';
 
   const handleSuggestKeyword = (k) => {
     navigate(`/search?q=${encodeURIComponent(k)}`);
@@ -162,7 +195,7 @@ const SearchPage = () => {
   return (
     <div className="search-page-wrapper">
       <Header />
-      
+
       {/* Search Header Banner */}
       <div className="search-banner">
         <div className="container">
@@ -181,7 +214,7 @@ const SearchPage = () => {
               <button className="clear-all-btn" onClick={clearAllFilters}>XÓA TẤT CẢ</button>
             )}
           </div>
-          
+
           <div className="filter-block-content">
             {/* Price Filter */}
             <div className="filter-section">
@@ -203,13 +236,13 @@ const SearchPage = () => {
             <div className="filter-section">
               <h4 className="filter-section-title"><span>|</span> TÌNH TRẠNG</h4>
               <div className="status-buttons">
-                <button 
+                <button
                   className={`status-btn ${stockStatus === 'all' ? 'active' : ''}`}
                   onClick={() => setStockStatus('all')}
                 >
                   Tất cả
                 </button>
-                <button 
+                <button
                   className={`status-btn ${stockStatus === 'in-stock' ? 'active' : ''}`}
                   onClick={() => setStockStatus('in-stock')}
                 >
@@ -218,47 +251,51 @@ const SearchPage = () => {
               </div>
             </div>
 
-            {/* Brands Filter */}
-            <div className="filter-section">
-              <h4 className="filter-section-title"><span>|</span> THƯƠNG HIỆU</h4>
-              <div className="checkbox-list brand-list">
-                {brands.map(brand => (
-                  <label key={brand.name} className="checkbox-item">
-                    <div className="checkbox-wrap">
-                      <input 
-                        type="checkbox" 
-                        checked={selectedBrands.includes(brand.name)}
-                        onChange={() => handleBrandChange(brand.name)}
-                      />
-                      <span className="checkbox-custom"></span>
-                      <span className="checkbox-label">{brand.name}</span>
-                    </div>
-                    <span className="item-count">{brand.count}</span>
-                  </label>
-                ))}
+            {/* Brands Filter - DYNAMIC from API */}
+            {brands.length > 0 && (
+              <div className="filter-section">
+                <h4 className="filter-section-title"><span>|</span> THƯƠNG HIỆU</h4>
+                <div className="checkbox-list brand-list">
+                  {brands.map(brand => (
+                    <label key={brand.name} className="checkbox-item">
+                      <div className="checkbox-wrap">
+                        <input
+                          type="checkbox"
+                          checked={selectedBrands.includes(brand.name)}
+                          onChange={() => handleBrandChange(brand.name)}
+                        />
+                        <span className="checkbox-custom"></span>
+                        <span className="checkbox-label">{brand.name}</span>
+                      </div>
+                      <span className="item-count">{brand.count}</span>
+                    </label>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
 
-            {/* Categories Filter */}
-            <div className="filter-section">
-              <h4 className="filter-section-title"><span>|</span> DANH MỤC</h4>
-              <div className="checkbox-list category-list">
-                {categories.map(cat => (
-                  <label key={cat.name} className="checkbox-item">
-                    <div className="checkbox-wrap">
-                      <input 
-                        type="checkbox" 
-                        checked={selectedCategories.includes(cat.name)}
-                        onChange={() => handleCategoryChange(cat.name)}
-                      />
-                      <span className="checkbox-custom"></span>
-                      <span className="checkbox-label">{cat.name}</span>
-                    </div>
-                    <span className="item-count">{cat.count}</span>
-                  </label>
-                ))}
+            {/* Categories Filter - DYNAMIC from API */}
+            {categories.length > 0 && (
+              <div className="filter-section">
+                <h4 className="filter-section-title"><span>|</span> DANH MỤC</h4>
+                <div className="checkbox-list category-list">
+                  {categories.map(cat => (
+                    <label key={cat.name} className="checkbox-item">
+                      <div className="checkbox-wrap">
+                        <input
+                          type="checkbox"
+                          checked={selectedCategories.includes(cat.name)}
+                          onChange={() => handleCategoryChange(cat.name)}
+                        />
+                        <span className="checkbox-custom"></span>
+                        <span className="checkbox-label">{cat.name}</span>
+                      </div>
+                      <span className="item-count">{cat.count}</span>
+                    </label>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
           </div>
         </aside>
 
@@ -274,19 +311,19 @@ const SearchPage = () => {
             </div>
             <div className="toolbar-right">
               <div className="custom-sort-wrapper">
-                <button 
-                  className="custom-sort-btn" 
+                <button
+                  className="custom-sort-btn"
                   onClick={() => setIsSortDropdownOpen(!isSortDropdownOpen)}
                 >
                   <span className="sort-label">SẮP XẾP: </span>
                   <span className="sort-current">{sortOptions.find(opt => opt.value === sortBy)?.label}</span>
                   {isSortDropdownOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
                 </button>
-                
+
                 {isSortDropdownOpen && (
                   <div className="custom-sort-dropdown">
                     {sortOptions.map(option => (
-                      <div 
+                      <div
                         key={option.value}
                         className={`sort-option ${sortBy === option.value ? 'active' : ''}`}
                         onClick={() => {
@@ -303,16 +340,21 @@ const SearchPage = () => {
             </div>
           </div>
 
-          {/* Active Filters */}
+          {/* Active Filter Chips */}
           {hasActiveFilters && (
             <div className="active-filters">
               {selectedBrands.map(brand => (
                 <div key={brand} className="filter-chip">
                   <span className="chip-text">{brand}</span>
-                  <button className="chip-close" onClick={() => removeFilter(brand, 'brand')}><X size={14}/></button>
+                  <button className="chip-close" onClick={() => handleBrandChange(brand)}><X size={14} /></button>
                 </div>
               ))}
-              {/* Other chips can be added similarly */}
+              {selectedCategories.map(cat => (
+                <div key={cat} className="filter-chip">
+                  <span className="chip-text">{cat}</span>
+                  <button className="chip-close" onClick={() => handleCategoryChange(cat)}><X size={14} /></button>
+                </div>
+              ))}
             </div>
           )}
 
@@ -339,7 +381,7 @@ const SearchPage = () => {
                     <span>"{query}"</span>
                   </div>
                   <p>Hệ thống không tìm thấy sản phẩm nào phù hợp. Thử kiểm tra lại chính tả, dùng từ khóa ngắn hơn, hoặc tìm theo tên thương hiệu / danh mục.</p>
-                  
+
                   <div className="suggested-keywords">
                     {suggestedKeywords.map(k => (
                       <button key={k} className="keyword-btn" onClick={() => handleSuggestKeyword(k)}>{k}</button>
@@ -354,18 +396,20 @@ const SearchPage = () => {
                 </div>
               </div>
 
-              {/* Recommended Products when no results */}
-              <div className="recommended-section">
-                <div className="recommended-header">
-                  <h3><span>|</span> SẢN PHẨM NỔI BẬT</h3>
-                  <span className="recommended-subtitle">GỢI Ý CHO BẠN</span>
+              {/* Sản phẩm nổi bật - real products from API */}
+              {featuredProducts.length > 0 && (
+                <div className="recommended-section">
+                  <div className="recommended-header">
+                    <h3><span>|</span> SẢN PHẨM NỔI BẬT</h3>
+                    <span className="recommended-subtitle">GỢI Ý CHO BẠN</span>
+                  </div>
+                  <div className="search-product-grid">
+                    {featuredProducts.map((product, index) => (
+                      <ProductCard key={index} product={product} />
+                    ))}
+                  </div>
                 </div>
-                <div className="search-product-grid">
-                  {suggestedProducts.map((product, index) => (
-                    <ProductCard key={index} product={product} />
-                  ))}
-                </div>
-              </div>
+              )}
             </div>
           )}
         </div>

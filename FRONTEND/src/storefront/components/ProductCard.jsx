@@ -57,10 +57,8 @@ const ProductCard = ({ product }) => {
   };
 
   const handleViewDetails = () => {
-    if (product.category === 'PC Build Sẵn') {
-      navigate(`/build-pc/${product.id || 'rvt-build-502'}`);
-    } else {
-      navigate(`/product/${product.id || 'RVT-MB-X670E-MSI-TOM'}`);
+    if (product?.id) {
+      navigate(`/product/${product.id}`);
     }
   };
 
