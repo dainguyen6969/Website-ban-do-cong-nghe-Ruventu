@@ -319,6 +319,10 @@ public class AdminReturnService {
       }
     }
 
+    if (orderLineRepository.countOpenWarrantiesForLines(requestedLineIds) > 0) {
+      throw new AppException(ErrorCode.CONFLICT, "Dòng mua đang có phiếu bảo hành chưa kết thúc");
+    }
+
     Map<Long, ReturnStats> returnedStats = readReturnStats(order.getId());
     ensureSpecialOrderReturnPolicy(orderLines, request.getChiTietTra(), returnedStats);
 
