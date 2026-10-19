@@ -11,6 +11,11 @@ import org.springframework.data.repository.query.Param;
 
 public interface ChiTietDonHangRepository extends JpaRepository<ChiTietDonHang, Long> {
 
+  // Called only after locking the order and its lines, shared with warranty intake.
+  @Query(
+      "SELECT COUNT(w) FROM PhieuBaoHanh w WHERE w.thietBi.chiTietDonHang.id IN :lineIds AND w.trangThaiXuLy <> com.example.dantruventu.Enum.TrangThaiBaoHanh.HOAN_TAT")
+  long countOpenWarrantiesForLines(@Param("lineIds") java.util.Collection<Long> lineIds);
+
   @EntityGraph(attributePaths = {"phienBan", "phienBan.sanPham"})
   List<ChiTietDonHang> findByDonHang_IdOrderByIdAsc(Long orderId);
 

@@ -1,9 +1,9 @@
 package com.example.dantruventu.Error;
 
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.redis.RedisConnectionFailureException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.PessimisticLockingFailureException;
+import org.springframework.data.redis.RedisConnectionFailureException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -26,6 +26,12 @@ public class GlobalExceptionHandler {
 
     ErrorResponse response =
         new ErrorResponse(errorCode.getStatus().value(), exception.getMessage());
+
+    if (exception instanceof WarrantyReadException warrantyException) {
+      response =
+          new WarrantyErrorResponse(
+              errorCode.getStatus().value(), exception.getMessage(), warrantyException.getErrors());
+    }
 
     return ResponseEntity.status(errorCode.getStatus()).body(response);
   }
