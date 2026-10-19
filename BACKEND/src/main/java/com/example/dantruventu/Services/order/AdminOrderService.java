@@ -260,10 +260,16 @@ public class AdminOrderService {
     order.setTongThanhToan(plan.data().getTongThanhToan());
     order.setGhiChu(text(request.getGhiChu()));
 
+    boolean unpaidEvidenceKnown = saleSnapshots.hasUnpaidCreationEvidence(order.getId());
+
     lineRepository.deleteAll(existingLines);
     lineRepository.flush();
 
     saleSnapshots.saveLines(order, plan, request);
+
+    if (unpaidEvidenceKnown) {
+      saleSnapshots.recordUnpaidCreationEvidence(order);
+    }
 
     recordHistory(order, "SUA_DON_HANG", "Cập nhật nội dung đơn hàng");
 
@@ -877,6 +883,14 @@ public class AdminOrderService {
         throw conflict("Đơn đã có thực thu hoặc hoàn tiền; cần đối soát trước khi nhận COD");
       }
 
+      if (order.getNgayHoanThanh() == null) {
+        throw new AppException(
+            com.example.dantruventu.Error.ErrorCode.UNPROCESSABLE_ENTITY,
+            "don_hang_id",
+            "HANDOVER_HISTORY_UNVERIFIED",
+            "Chưa có căn cứ thời điểm khách thực nhận; cần xác minh trước khi nhận COD");
+      }
+
       receipt =
           createCash(
               order,
@@ -895,8 +909,6 @@ public class AdminOrderService {
               "Cửa hàng thực nhận COD từ đối tác, phiếu " + delivery.getMaPhieuGiaoHang());
 
       order.setTrangThaiThanhToan(TrangThaiThanhToanDonHang.DA_THANH_TOAN);
-
-      soldDevices.handover(order);
 
       order.setTrangThaiDonHang(TrangThaiDonHang.HOAN_THANH);
       saleSnapshots.onOrderStateChanged(order);
@@ -1209,7 +1221,7 @@ public class AdminOrderService {
 
       for (var voucher : vouchers) {
         if (voucher.getTrangThai() != TrangThaiPhieuThuChi.DA_GHI_NHAN) {
-          continue;
+          return result;
         }
 
         if (voucher.getNguonTao() != NguonTaoPhieuThuChi.TU_DONG
@@ -1234,7 +1246,8 @@ public class AdminOrderService {
 
       if (total.signum() > 0) {
         if (received.signum() == 0) {
-          if (order.getTrangThaiThanhToan() != TrangThaiThanhToanDonHang.CHUA_THANH_TOAN) {
+          if (order.getTrangThaiThanhToan() != TrangThaiThanhToanDonHang.CHUA_THANH_TOAN
+              || !saleSnapshots.hasUnpaidCreationEvidence(order.getId())) {
 
             return result;
           }

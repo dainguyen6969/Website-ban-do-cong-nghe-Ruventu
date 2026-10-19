@@ -544,6 +544,7 @@ export default function DatHangOnline() {
           thử lại để gửi cùng yêu cầu.
         </p>
       )}
+
       <div className="online-order-grid">
         <div className="online-order-form" inert={submitting || hasPendingSave}>
           <Section n="1" title="KHÁCH HÀNG" disabled={financialLocked}>

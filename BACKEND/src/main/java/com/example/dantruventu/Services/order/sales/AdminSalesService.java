@@ -303,6 +303,7 @@ public class AdminSalesService {
     order = orderRepository.saveAndFlush(order);
 
     saleSnapshots.saveLines(order, plan, request);
+    saleSnapshots.recordUnpaidCreationEvidence(order);
     saleSnapshots.recordPromotion(order, plan, request, actor);
 
     orderRepository.flush();

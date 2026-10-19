@@ -132,6 +132,9 @@ public final class AdminDeliveryResponse {
 
     @JsonProperty("ngay_cap_nhat")
     private OffsetDateTime ngayCapNhat;
+
+    @JsonProperty("phieu_tra_hang")
+    private ReturnData phieuTraHang;
   }
 
   @Getter
@@ -166,6 +169,12 @@ public final class AdminDeliveryResponse {
     @JsonProperty("phieu_tra_hang")
     @JsonInclude(JsonInclude.Include.NON_NULL)
     private ReturnData phieuTraHang;
+
+    @JsonProperty("kho_nhan")
+    private ReturnWarehouse khoNhan;
+
+    @JsonProperty("bien_dong_kho")
+    private List<ReturnStockChange> bienDongKho = List.of();
   }
 
   @Getter
@@ -190,6 +199,9 @@ public final class AdminDeliveryResponse {
   @Setter
   public static class OrderData {
     private Long id;
+
+    @JsonProperty("khach_hang_id")
+    private Long khachHangId;
 
     @JsonProperty("ma_don_hang")
     private String maDonHang;
@@ -327,10 +339,22 @@ public final class AdminDeliveryResponse {
 
     @JsonProperty("can_hoan_tien")
     private boolean canHoanTien;
+
+    @JsonProperty("nguon_yeu_cau")
+    private String nguonYeuCau;
+
+    @JsonProperty("ngay_ket_thuc")
+    private OffsetDateTime ngayKetThuc;
   }
 
-  public record ReturnSerial(
-      @JsonProperty("so_serial_id") Long soSerialId, @JsonProperty("so_serial") String soSerial) {}
+  public record ReturnDevice(
+      @JsonProperty("thiet_bi_id") Long thietBiId,
+      @JsonProperty("ma_theo_doi") String maTheoDoi,
+      @JsonProperty("so_serial_id") Long soSerialId,
+      @JsonProperty("so_serial") String soSerial) {}
+
+  public record ReturnWarehouse(
+      Long id, @JsonProperty("ma_kho") String maKho, @JsonProperty("ten_kho") String tenKho) {}
 
   public record ReturnRequirement(
       @JsonProperty("chi_tiet_don_hang_id") Long chiTietDonHangId,
@@ -338,13 +362,31 @@ public final class AdminDeliveryResponse {
       @JsonProperty("ten_dong_don_hang") String tenDongDonHang,
       @JsonProperty("ten_san_pham") String tenSanPham,
       @JsonProperty("ten_phien_ban") String tenPhienBan,
-      @JsonProperty("so_luong_can_nhan") Integer soLuongCanNhan,
-      @JsonProperty("quan_ly_serial") boolean quanLySerial,
-      List<ReturnSerial> serials) {}
+      @JsonProperty("so_luong_da_xuat") Integer soLuongDaXuat,
+      @JsonProperty("co_quan_ly_serial") boolean coQuanLySerial,
+      @JsonProperty("la_qua_tang") boolean laQuaTang,
+      @JsonProperty("thiet_bi") List<ReturnDevice> thietBi) {}
 
+  @JsonInclude(value = JsonInclude.Include.ALWAYS, content = JsonInclude.Include.ALWAYS)
   public record ReturnRequirements(
       Long id,
-      @JsonProperty("kho_hang_id") Long khoHangId,
-      @JsonProperty("ten_kho") String tenKho,
-      List<ReturnRequirement> items) {}
+      @JsonProperty("ma_phieu_giao_hang") String maPhieuGiaoHang,
+      @JsonProperty("trang_thai_giao_hang") TrangThaiGiaoHangEnum trangThaiGiaoHang,
+      @JsonProperty("don_hang") OrderData donHang,
+      @JsonProperty("kho_nhan") ReturnWarehouse khoNhan,
+      @JsonProperty("nguon_yeu_cau") String nguonYeuCau,
+      @JsonProperty("co_the_nhan_hoan") boolean coTheNhanHoan,
+      @JsonProperty("ly_do_chan") List<String> lyDoChan,
+      @JsonProperty("hang_phai_nhan") List<ReturnRequirement> hangPhaiNhan,
+      @JsonProperty("doi_soat_tien") Map<String, Object> doiSoatTien,
+      @JsonProperty("phieu_tra_hang_da_tao") ReturnData phieuTraHangDaTao) {}
+
+  public record ReturnStockChange(
+      @JsonProperty("the_kho_id") Long theKhoId,
+      @JsonProperty("phien_ban_id") Long phienBanId,
+      @JsonProperty("loai_giao_dich") LoaiGiaoDichKho loaiGiaoDich,
+      @JsonProperty("so_luong_thay_doi") Integer soLuongThayDoi,
+      @JsonProperty("ton_thuc_te_sau") Integer tonThucTeSau,
+      @JsonProperty("ton_co_the_ban_sau") Integer tonCoTheBanSau,
+      @JsonProperty("hang_loi_sau") Integer hangLoiSau) {}
 }

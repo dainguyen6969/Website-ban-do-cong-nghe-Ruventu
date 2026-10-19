@@ -166,6 +166,9 @@ public class AdminReturnService {
                 .nguoiTao(actor)
                 .build());
 
+    expense.setPhieuTraHang(returnSlip);
+    cashRepository.saveAndFlush(expense);
+
     returnSlip.setHinhThucHoanTien(paymentMethod);
     returnSlip.setTrangThaiTraHang(TrangThaiTraHang.DA_HOAN_TIEN);
     returnRepository.saveAndFlush(returnSlip);

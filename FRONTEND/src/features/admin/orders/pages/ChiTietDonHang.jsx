@@ -291,7 +291,8 @@ export default function ChiTietDonHang() {
 
   const pickupReasons = [
     ...handoverReasons,
-    order.trang_thai_thanh_toan !== "DA_THANH_TOAN" &&
+    Number(order.tong_thanh_toan) > 0 &&
+      order.trang_thai_thanh_toan !== "DA_THANH_TOAN" &&
       "Khách chưa thanh toán đủ.",
     activeDeliveries.length > 0 && "Đơn đang có phiếu giao hàng hiệu lực.",
   ].filter(Boolean);
