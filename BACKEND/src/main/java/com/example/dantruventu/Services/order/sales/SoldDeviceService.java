@@ -8,6 +8,8 @@ import com.example.dantruventu.DTO.Response.order.SoldDeviceData;
 import com.example.dantruventu.Entity.*;
 import com.example.dantruventu.Enum.TrangThaiSerial;
 import com.example.dantruventu.Enum.TrangThaiXuatKho;
+import com.example.dantruventu.Error.AppException;
+import com.example.dantruventu.Error.ErrorCode;
 import com.example.dantruventu.Repository.order.ChiTietDonHangRepository;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.LockModeType;
@@ -205,6 +207,64 @@ public class SoldDeviceService {
     }
 
     order.setNgayHoanThanh(actualTime);
+  }
+
+  @Transactional(propagation = Propagation.MANDATORY)
+  public void markReturned(DonHang order, Map<Long, ChiTietTraHang> returnLinesByOrderLine) {
+
+    var originalDevices = details(order.getId());
+
+    if (originalDevices.isEmpty()) {
+      throw new AppException(
+          ErrorCode.UNPROCESSABLE_ENTITY, "Thiếu nhận dạng thiết bị của lần xuất gốc");
+    }
+
+    Map<Long, SoldDeviceData> originals = new TreeMap<>();
+
+    for (var row : originalDevices) {
+      if (row.thietBiId() == null || originals.putIfAbsent(row.thietBiId(), row) != null) {
+
+        throw new AppException(
+            ErrorCode.UNPROCESSABLE_ENTITY, "Nhận dạng thiết bị xuất gốc bị thiếu hoặc trùng");
+      }
+    }
+
+    for (var entry : originals.entrySet()) {
+      SoldDeviceData original = entry.getValue();
+
+      ThietBiBaoHanh device =
+          entityManager.find(ThietBiBaoHanh.class, entry.getKey(), LockModeType.PESSIMISTIC_WRITE);
+
+      if (device == null) {
+        throw new AppException(ErrorCode.UNPROCESSABLE_ENTITY, "Không tìm thấy thiết bị xuất gốc");
+      }
+
+      entityManager.refresh(device);
+
+      ChiTietTraHang returnLine = returnLinesByOrderLine.get(original.chiTietDonHangId());
+
+      if (returnLine == null
+          || !Objects.equals(device.getChiTietDonHang().getId(), original.chiTietDonHangId())
+          || !Objects.equals(device.getChiTietDonHang().getDonHang().getId(), order.getId())
+          || !Objects.equals(device.getPhienBan().getId(), original.phienBanId())) {
+
+        throw new AppException(ErrorCode.UNPROCESSABLE_ENTITY, "Thiết bị không khớp dòng xuất gốc");
+      }
+
+      if (device.getChiTietTraHang() != null) {
+        throw conflict("Thiết bị đã được nhận trả");
+      }
+
+      // Luồng này nhận lại hàng giao thất bại, chưa bàn giao cho khách.
+      if (device.getNgayKichHoat() != null || device.getHanBaoHanh() != null) {
+
+        throw new AppException(
+            ErrorCode.UNPROCESSABLE_ENTITY,
+            "Thiết bị đã có mốc bảo hành; cần xác minh lịch sử giao nhận");
+      }
+
+      device.setChiTietTraHang(returnLine);
+    }
   }
 
   public List<SoldDeviceData> details(Long orderId) {

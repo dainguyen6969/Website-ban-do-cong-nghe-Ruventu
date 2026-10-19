@@ -48,6 +48,7 @@ import ComboContents from "../../../../shared/components/ui/ComboContents";
 export default function ChiTietDonHang() {
   const actionBusy = useRef(false);
   const cashAttempt = useRef(null);
+  const orderAttempt = useRef(null);
   const { orderId } = useParams();
   const navigate = useNavigate();
   const [order, setOrder] = useState(null);
@@ -149,9 +150,58 @@ export default function ChiTietDonHang() {
   const approve = () => open("approve", "DUYỆT ĐƠN");
   const fulfillment = () => open("fulfillment", "BẮT ĐẦU ĐÓNG GÓI");
 
+  const sendOrderOperation = (kind, body) => {
+    const scope = `order:${order.id}:${kind}`;
+
+    return withIdempotency(orderAttempt, scope, body, (key, payload) => {
+      switch (kind) {
+        case "fulfillment":
+          return startFulfillment(order.id, key, payload);
+
+        case "export":
+          return exportOrder(order.id, key, payload);
+
+        case "cancel":
+          return cancelOrder(order.id, key, payload);
+
+        case "pickup":
+          return confirmPickup(order.id, key, payload);
+
+        case "deliveryStatus":
+          return setDeliveryStatus(payload.deliveryId, key, payload.request);
+
+        default:
+          throw new Error("Thao tác không hợp lệ.");
+      }
+    });
+  };
+
+  const retryOrderOperation = () => {
+    const pending = orderAttempt.current;
+
+    if (!pending) return;
+
+    const kind = pending.scope.split(":").at(-1);
+
+    return run(() => sendOrderOperation(kind, pending.body));
+  };
+
   const cancel = () =>
     run(async () => {
-      await cancelOrder(order.id, cancelReason);
+      if (orderAttempt.current) {
+        const pending = orderAttempt.current;
+
+        if (pending.scope !== `order:${order.id}:cancel`) {
+          throw new Error("Hãy xử lý yêu cầu đang chờ kết quả trước.");
+        }
+
+        await sendOrderOperation("cancel", pending.body);
+      } else {
+        await sendOrderOperation("cancel", {
+          ly_do: cancelReason.trim(),
+        });
+      }
+
       setIsCancelOpen(false);
       setCancelReason("");
     });
@@ -341,6 +391,10 @@ export default function ChiTietDonHang() {
   };
 
   const submitAction = () => {
+    if (orderAttempt.current) {
+      return retryOrderOperation();
+    }
+
     if (!dialog?.confirmed) return;
 
     run(() => {
@@ -398,7 +452,9 @@ export default function ChiTietDonHang() {
       }
 
       if (type === "pickup") {
-        return confirmPickup(order.id);
+        return sendOrderOperation("pickup", {
+          xac_nhan_da_nhan_hang: true,
+        });
       }
 
       if (type === "packed" || type === "cancelPacking") {
@@ -409,7 +465,9 @@ export default function ChiTietDonHang() {
       }
 
       if (type === "fulfillment") {
-        return startFulfillment(order.id);
+        return sendOrderOperation("fulfillment", {
+          xac_nhan: true,
+        });
       }
 
       if (type === "startDelivery") {
@@ -440,11 +498,19 @@ export default function ChiTietDonHang() {
           throw new Error("Phải xác nhận người giao đã thu đủ COD từ khách.");
         }
 
-        return setDeliveryStatus(
-          dialog.deliveryId,
-          dialog.target,
-          requiresCod ? true : undefined,
-        );
+        return sendOrderOperation("deliveryStatus", {
+          deliveryId: dialog.deliveryId,
+
+          request: {
+            trang_thai_giao_hang: dialog.target,
+
+            ...(requiresCod
+              ? {
+                  xac_nhan_da_thu_cod: true,
+                }
+              : {}),
+          },
+        });
       }
 
       throw new Error("Thao tác không hợp lệ.");
@@ -616,6 +682,27 @@ export default function ChiTietDonHang() {
           {state.error}
         </p>
       )}
+
+      {orderAttempt.current && (
+        <div className="order-pending-operation" role="status">
+          <div>
+            <strong>YÊU CẦU ĐANG CHỜ XÁC ĐỊNH KẾT QUẢ</strong>
+
+            <p>
+              Dữ liệu gửi được giữ nguyên. Bấm thử lại để gửi cùng mã yêu cầu.
+            </p>
+          </div>
+
+          <button
+            type="button"
+            disabled={state.busy}
+            onClick={retryOrderOperation}
+          >
+            THỬ LẠI YÊU CẦU CŨ
+          </button>
+        </div>
+      )}
+
       <div className="order-detail-content">
         <div className="order-detail-main">
           <Panel title="SẢN PHẨM TRONG ĐƠN">
@@ -910,7 +997,7 @@ export default function ChiTietDonHang() {
                 id="cancel-reason"
                 required
                 maxLength={255}
-                disabled={state.busy}
+                disabled={state.busy || Boolean(orderAttempt.current)}
                 value={cancelReason}
                 onChange={(event) => setCancelReason(event.target.value)}
                 placeholder="Nhập lý do hủy đơn..."
@@ -954,7 +1041,13 @@ export default function ChiTietDonHang() {
           warehouses={options.warehouses}
           busy={state.busy}
           error={state.error}
-          submit={(body) => run(() => exportOrder(order.id, body))}
+          submit={(body) => {
+            if (orderAttempt.current) {
+              return retryOrderOperation();
+            }
+
+            return run(() => sendOrderOperation("export", body));
+          }}
         />
       ) : (
         dialog && (
@@ -1174,6 +1267,24 @@ function OrderActionDialog({
             })}
         </>
       )}
+
+      {dialog.type === "deliveryStatus" &&
+        dialog.target === "GIAO_THANH_CONG" &&
+        Number(dialog.cod) > 0 && (
+          <label className="order-operation-confirm">
+            <input
+              type="checkbox"
+              disabled={busy}
+              checked={Boolean(dialog.codConfirmed)}
+              onChange={(event) => change("codConfirmed", event.target.checked)}
+            />
+
+            <span>
+              Xác nhận người giao đã thu đủ <strong>{money(dialog.cod)}</strong>{" "}
+              từ khách hàng.
+            </span>
+          </label>
+        )}
 
       <label className="order-operation-confirm">
         <input
