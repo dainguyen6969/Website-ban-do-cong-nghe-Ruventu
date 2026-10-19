@@ -1068,3 +1068,15 @@
     flex-basis: 100%;
   }
 }
+
+.delivery-feedback.is-warning {
+  border: 1px solid #f0c57a;
+  background: #fff8eb;
+  color: #854d0e;
+}
+
+.delivery-feedback.is-warning button {
+  border: 1px solid currentColor;
+  background: #fff;
+  color: inherit;
+}

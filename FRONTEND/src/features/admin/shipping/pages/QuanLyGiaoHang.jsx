@@ -10,7 +10,10 @@ import TablePagination from "../../../../shared/components/ui/TablePagination";
 import DetailTablePagination from "../../../../shared/components/ui/DetailTablePagination";
 import useDetailTablePagination from "../../../../hooks/useDetailTablePagination";
 
-import { requireBasicStatus } from "../../../../shared/services/mutationUtils";
+import {
+  requireBasicStatus,
+  withIdempotency,
+} from "../../../../shared/services/mutationUtils";
 
 import "./QuanLyGiaoHang.css";
 
@@ -526,6 +529,7 @@ function ShipmentDetail({ id }) {
   const navigate = useNavigate();
   const operationBusy = useRef(false);
   const mounted = useRef(true);
+  const deliveryAttempt = useRef(null);
 
   const [delivery, setDelivery] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -581,7 +585,9 @@ function ShipmentDetail({ id }) {
   }, [id, revision]);
 
   const open = (kind) => {
-    if (operationBusy.current || loading) return;
+    if (operationBusy.current || loading || deliveryAttempt.current) {
+      return;
+    }
 
     setOperationError("");
     setNotice("");
@@ -602,20 +608,51 @@ function ShipmentDetail({ id }) {
     setBusy(true);
     setOperationError("");
 
-    try {
-      const path = `${API}/${encodeURIComponent(id)}${
-        suffix ? `/${suffix}` : ""
-      }`;
+    const command = {
+      method,
+      suffix,
+      body,
+      message,
+    };
 
-      const result = await apiRequest(path, {
-        method,
-        body: JSON.stringify(body),
-      });
+    try {
+      const send = async (key, payload) => {
+        const path =
+          `${API}/${encodeURIComponent(id)}` +
+          (payload.suffix ? `/${payload.suffix}` : "");
+
+        return apiRequest(path, {
+          method: payload.method,
+
+          ...(key
+            ? {
+                headers: {
+                  "Idempotency-Key": key,
+                },
+              }
+            : {}),
+
+          body: JSON.stringify(payload.body),
+        });
+      };
+
+      const usesIdempotency = ["status", "return-receipt"].includes(suffix);
+
+      const result = usesIdempotency
+        ? await withIdempotency(
+            deliveryAttempt,
+            `delivery:${id}:${suffix}`,
+            command,
+            send,
+          )
+        : await send(null, command);
 
       if (!mounted.current) return;
 
-      // Action chỉ trả một phần dữ liệu; giữ lại sản phẩm và người nhận.
-      setDelivery((current) => ({ ...current, ...result }));
+      setDelivery((current) => ({
+        ...current,
+        ...result,
+      }));
 
       if (result?.phieu_tra_hang) {
         setReturnDocument(result.phieu_tra_hang);
@@ -635,6 +672,18 @@ function ShipmentDetail({ id }) {
         setBusy(false);
       }
     }
+  };
+
+  const retryDeliveryOperation = () => {
+    const pending = deliveryAttempt.current;
+
+    if (!pending || operationBusy.current) {
+      return;
+    }
+
+    const command = pending.body;
+
+    return save(command.method, command.suffix, command.body, command.message);
   };
 
   if (!delivery) {
@@ -725,6 +774,23 @@ function ShipmentDetail({ id }) {
       </header>
 
       <div className="delivery-detail-inner">
+        {deliveryAttempt.current && (
+          <div className="delivery-feedback is-warning" role="status">
+            <span>
+              Chưa xác định được kết quả. Dữ liệu đang được giữ nguyên để thử
+              lại.
+            </span>
+
+            <button
+              type="button"
+              disabled={busy}
+              onClick={retryDeliveryOperation}
+            >
+              THỬ LẠI YÊU CẦU CŨ
+            </button>
+          </div>
+        )}
+
         {loadError && (
           <div className="delivery-feedback is-error" role="alert">
             <span>{loadError}</span>
@@ -1052,7 +1118,7 @@ function ShipmentDetail({ id }) {
         </div>
       </div>
 
-      {modal === "edit" && (
+      {!deliveryAttempt.current && modal === "edit" && (
         <ShipmentEditDialog
           delivery={delivery}
           busy={busy}
@@ -1062,7 +1128,7 @@ function ShipmentDetail({ id }) {
         />
       )}
 
-      {modal === "return" && (
+      {!deliveryAttempt.current && modal === "return" && (
         <ShipmentReturnDialog
           delivery={delivery}
           busy={busy}
@@ -1072,19 +1138,20 @@ function ShipmentDetail({ id }) {
         />
       )}
 
-      {["handoff", "transit", "success", "failure", "cancel"].includes(
-        modal,
-      ) && (
-        <ShipmentStatusDialog
-          key={modal}
-          kind={modal}
-          delivery={delivery}
-          busy={busy}
-          error={operationError}
-          close={close}
-          submit={save}
-        />
-      )}
+      {!deliveryAttempt.current &&
+        ["handoff", "transit", "success", "failure", "cancel"].includes(
+          modal,
+        ) && (
+          <ShipmentStatusDialog
+            key={modal}
+            kind={modal}
+            delivery={delivery}
+            busy={busy}
+            error={operationError}
+            close={close}
+            submit={save}
+          />
+        )}
     </section>
   );
 }

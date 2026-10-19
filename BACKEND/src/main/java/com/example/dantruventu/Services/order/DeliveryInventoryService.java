@@ -243,7 +243,7 @@ public class DeliveryInventoryService {
       var item = received.get(entry.getKey());
       Long variantId = requirement.variant().getId();
 
-      boolean managed = CatalogSupport.serialManaged(requirement.variant());
+      boolean managed = requirement.serialManaged();
 
       if (managed && item.getSerials().size() != requirement.quantity()) {
         throw conflict("Phiên bản quản lý serial phải nhận đủ serial");

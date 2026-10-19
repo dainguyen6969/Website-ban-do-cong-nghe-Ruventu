@@ -385,7 +385,8 @@ public class CatalogSupport {
                     && product.getDanhMuc() != null
                     && product.getDanhMuc().getTrangThai() == TrangThaiCoBanEnum.HOAT_DONG
                     && (product.getThuongHieu() == null
-                        || product.getThuongHieu().getTrangThai() == TrangThaiCoBanEnum.HOAT_DONG)));
+                        || product.getThuongHieu().getTrangThai()
+                            == TrangThaiCoBanEnum.HOAT_DONG)));
       }
 
       result.put(combo.getKey(), List.copyOf(items));

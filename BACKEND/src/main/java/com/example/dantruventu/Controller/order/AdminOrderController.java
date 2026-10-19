@@ -109,9 +109,12 @@ public class AdminOrderController {
 
   @PostMapping("/{id}/fulfillment")
   public ApiResponse<AdminOrderResponse.Action> fulfillment(
-      @PathVariable("id") Long id, @Valid @RequestBody AdminOrderRequest.Fulfillment request) {
+      @PathVariable("id") Long id,
+      @RequestHeader("Idempotency-Key") String idempotencyKey,
+      @Valid @RequestBody AdminOrderRequest.Fulfillment request) {
 
-    return ok("Bắt đầu xử lý đơn hàng thành công", orderService.fulfillment(id, request));
+    return ok(
+        "Bắt đầu xử lý đơn hàng thành công", orderService.fulfillment(id, idempotencyKey, request));
   }
 
   @PatchMapping("/{id}/packing-status")
@@ -157,9 +160,11 @@ public class AdminOrderController {
 
   @PostMapping("/{id}/warehouse/export")
   public ApiResponse<AdminOrderResponse.Action> export(
-      @PathVariable("id") Long id, @Valid @RequestBody AdminOrderRequest.Export request) {
+      @PathVariable("id") Long id,
+      @RequestHeader("Idempotency-Key") String idempotencyKey,
+      @Valid @RequestBody AdminOrderRequest.Export request) {
 
-    return ok("Xuất kho thành công", orderService.export(id, request));
+    return ok("Xuất kho thành công", orderService.export(id, idempotencyKey, request));
   }
 
   @PostMapping("/{id}/payment/confirm")
@@ -175,16 +180,21 @@ public class AdminOrderController {
 
   @PostMapping("/{id}/cancel")
   public ApiResponse<AdminOrderResponse.Action> cancel(
-      @PathVariable("id") Long id, @Valid @RequestBody AdminOrderRequest.Cancel request) {
+      @PathVariable("id") Long id,
+      @RequestHeader("Idempotency-Key") String idempotencyKey,
+      @Valid @RequestBody AdminOrderRequest.Cancel request) {
 
-    return ok("Hủy đơn hàng thành công", orderService.cancel(id, request));
+    return ok("Hủy đơn hàng thành công", orderService.cancel(id, idempotencyKey, request));
   }
 
   @PostMapping("/{id}/pickup/confirm")
   public ApiResponse<AdminOrderResponse.Action> pickup(
-      @PathVariable("id") Long id, @Valid @RequestBody AdminOrderRequest.Pickup request) {
+      @PathVariable("id") Long id,
+      @RequestHeader("Idempotency-Key") String idempotencyKey,
+      @Valid @RequestBody AdminOrderRequest.Pickup request) {
 
-    return ok("Xác nhận khách nhận hàng thành công", orderService.pickup(id));
+    return ok(
+        "Xác nhận khách nhận hàng thành công", orderService.pickup(id, idempotencyKey, request));
   }
 
   @PostMapping("/{id}/refund")
