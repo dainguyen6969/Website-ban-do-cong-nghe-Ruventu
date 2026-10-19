@@ -73,6 +73,90 @@ public class OrderSaleSnapshotService {
       String productName,
       String variantName) {}
 
+  @SuppressWarnings("unchecked")
+  public void recordUnpaidCreationEvidence(DonHang order) {
+    if (order.getLoaiDonHang() != com.example.dantruventu.Enum.LoaiDonHang.ONLINE
+        || order.getTrangThaiDonHang() != TrangThaiDonHang.CHO_DUYET
+        || order.getTrangThaiThanhToan()
+            != com.example.dantruventu.Enum.TrangThaiThanhToanDonHang.CHUA_THANH_TOAN) {
+
+      throw conflict("Chỉ ghi căn cứ chưa thu tiền khi tạo đơn Online chờ duyệt");
+    }
+
+    var orderLines =
+        entityManager
+            .createQuery(
+                """
+                                select c from ChiTietDonHang c
+                                where c.donHang.id = :orderId
+                                order by c.id
+                                """,
+                ChiTietDonHang.class)
+            .setParameter("orderId", order.getId())
+            .getResultList();
+
+    if (orderLines.isEmpty()) {
+      throw conflict("Đơn chưa có dòng hàng để ghi căn cứ tiền");
+    }
+
+    for (var line : orderLines) {
+      requireSnapshot(line);
+
+      Map<String, Object> snapshot =
+          objectMapper.readValue(line.getCauHinhDaBan(), LinkedHashMap.class);
+
+      snapshot.put(
+          "can_cu_tien",
+          Map.of(
+              "phien_ban",
+              1,
+              "don_hang_id",
+              order.getId(),
+              "nguon",
+              "TAO_DON_CHUA_THU_TIEN",
+              "thuc_thu_khi_tao",
+              0));
+
+      line.setCauHinhDaBan(objectMapper.writeValueAsString(snapshot));
+    }
+  }
+
+  public boolean hasUnpaidCreationEvidence(Long orderId) {
+    var orderLines =
+        entityManager
+            .createQuery(
+                """
+                                select c from ChiTietDonHang c
+                                where c.donHang.id = :orderId
+                                order by c.id
+                                """,
+                ChiTietDonHang.class)
+            .setParameter("orderId", orderId)
+            .getResultList();
+
+    if (orderLines.isEmpty()) {
+      return false;
+    }
+
+    for (var line : orderLines) {
+      try {
+        var evidence = objectMapper.readTree(line.getCauHinhDaBan()).path("can_cu_tien");
+
+        if (evidence.path("phien_ban").asInt(-1) != 1
+            || evidence.path("don_hang_id").asLong(-1) != orderId.longValue()
+            || !"TAO_DON_CHUA_THU_TIEN".equals(evidence.path("nguon").asString())
+            || !evidence.path("thuc_thu_khi_tao").isNumber()
+            || evidence.path("thuc_thu_khi_tao").decimalValue().signum() != 0) {
+          return false;
+        }
+      } catch (RuntimeException exception) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
   public LineSnapshot requireSnapshot(ChiTietDonHang line) {
     LineSnapshot snapshot = readLine(line);
 

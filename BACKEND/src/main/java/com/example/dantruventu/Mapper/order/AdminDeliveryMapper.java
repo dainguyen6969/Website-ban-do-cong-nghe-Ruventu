@@ -27,13 +27,17 @@ public interface AdminDeliveryMapper {
   @Mapping(target = "tongTien", source = "donHang")
   @Mapping(target = "ghiChu", source = "donHang.ghiChu")
   @Mapping(target = "sanPham", ignore = true)
+  @Mapping(target = "phieuTraHang", ignore = true)
   Detail toDetail(PhieuGiaoHang entity, @Context ZoneId zone);
 
   @Mapping(target = "phieuTraHang", ignore = true)
+  @Mapping(target = "khoNhan", ignore = true)
+  @Mapping(target = "bienDongKho", ignore = true)
   Action toAction(PhieuGiaoHang entity, @Context ZoneId zone);
 
   PartnerData toPartner(DoiTacVanChuyen entity);
 
+  @Mapping(target = "khachHangId", source = "khachHang.id")
   OrderData toOrder(DonHang entity);
 
   RecipientData toRecipient(DonHang entity);
@@ -58,7 +62,8 @@ public interface AdminDeliveryMapper {
 
   @Mapping(target = "khachHangId", source = "khachHang.id")
   @Mapping(target = "canHoanTien", ignore = true)
-  ReturnData toReturn(PhieuTraHang entity);
+  @Mapping(target = "nguonYeuCau", ignore = true)
+  ReturnData toReturn(PhieuTraHang entity, @Context ZoneId zone);
 
   default Short map(TrangThaiCoBanEnum value) {
     return value == null ? null : value.getValue();

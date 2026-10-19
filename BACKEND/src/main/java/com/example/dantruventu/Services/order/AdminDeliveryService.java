@@ -22,7 +22,9 @@ import com.example.dantruventu.Specification.DeliverySpecification;
 import jakarta.persistence.EntityManager;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.net.URI;
 import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.util.*;
 import lombok.RequiredArgsConstructor;
@@ -33,6 +35,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+import tools.jackson.databind.ObjectMapper;
 
 @Service
 @RequiredArgsConstructor
@@ -56,6 +59,7 @@ public class AdminDeliveryService {
   private final SoldDeviceService soldDevices;
   private final CashbookService cashbookService;
   private final SalesContext salesContext;
+  private final ObjectMapper objectMapper;
 
   @Value("${ruventu.shipping.time-zone:Asia/Ho_Chi_Minh}")
   private String shippingTimeZone;
@@ -124,11 +128,54 @@ public class AdminDeliveryService {
 
     requireInTransitOrder(order);
 
-    if (returnRepository.existsByDonHang_Id(order.getId())) {
-      throw conflict("Đơn đã có phiếu trả khác, không thể hoàn toàn bộ lần nữa");
+    if (order.getNgayHoanThanh() != null) {
+      throw conflict("Đơn đã có mốc khách thực nhận, không thuộc hoàn giao thất bại");
     }
 
-    return inventoryService.getReturnRequirements(order);
+    ReturnWarehouse warehouse = inventoryService.returnWarehouse();
+
+    List<String> reasons = new ArrayList<>();
+    List<ReturnRequirement> items = List.of();
+
+    try {
+      items = inventoryService.getReturnRequirements(order);
+    } catch (AppException exception) {
+      if (exception.getErrorCode() != ErrorCode.CONFLICT
+          && exception.getErrorCode() != ErrorCode.UNPROCESSABLE_ENTITY) {
+        throw exception;
+      }
+
+      reasons.add("EXPORT_HISTORY_UNVERIFIED");
+    }
+
+    Map<String, Object> moneyEvidence = orderService.failedDeliveryMoney(order);
+
+    if (!Boolean.TRUE.equals(moneyEvidence.get("co_du_can_cu"))) {
+      reasons.add("PAYMENT_HISTORY_UNVERIFIED");
+    }
+
+    var existing = returnRepository.findByMaTraHang("TH-PGH-" + delivery.getId());
+
+    if (returnRepository.existsByDonHang_Id(order.getId())) {
+      reasons.add("RETURN_ALREADY_EXISTS");
+    }
+
+    if (!validReturnContact(order)) {
+      reasons.add("RECIPIENT_HISTORY_UNVERIFIED");
+    }
+
+    return new ReturnRequirements(
+        delivery.getId(),
+        delivery.getMaPhieuGiaoHang(),
+        delivery.getTrangThaiGiaoHang(),
+        mapper.toOrder(order),
+        warehouse,
+        "HOAN_GIAO_HANG",
+        reasons.isEmpty(),
+        List.copyOf(reasons),
+        items,
+        moneyEvidence,
+        existing.map(this::returnData).orElse(null));
   }
 
   public Detail getDetail(Long id) {
@@ -139,11 +186,33 @@ public class AdminDeliveryService {
             .findById(id)
             .orElseThrow(() -> notFound("Phiếu giao hàng không tồn tại"));
 
+    DonHang order = delivery.getDonHang();
+
     Detail response = mapper.toDetail(delivery, zone());
 
-    var lines = orderLineRepository.findByDonHang_IdOrderByIdAsc(delivery.getDonHang().getId());
+    var lines = orderLineRepository.findByDonHang_IdOrderByIdAsc(order.getId());
 
     response.setSanPham(lines.stream().map(saleSnapshots::product).toList());
+
+    if (response.getTongTien() != null
+        && order.getTongThanhToan() != null
+        && order.getTongTienHang() != null
+        && order.getTienChietKhau() != null
+        && order.getPhiGiaoHang() != null) {
+
+      BigDecimal vat =
+          order
+              .getTongThanhToan()
+              .subtract(order.getTongTienHang())
+              .add(order.getTienChietKhau())
+              .subtract(order.getPhiGiaoHang());
+
+      response.getTongTien().setTongTienVat(vat.signum() < 0 ? null : vat);
+    }
+
+    returnRepository
+        .findByMaTraHang("TH-PGH-" + delivery.getId())
+        .ifPresent(document -> response.setPhieuTraHang(returnData(document)));
 
     return response;
   }
@@ -329,8 +398,6 @@ public class AdminDeliveryService {
 
     String returnCode = "TH-PGH-" + id;
 
-    // Cùng khóa được trả lại bởi executeOnce.
-    // Khóa mới cho nghiệp vụ đã thực hiện phải bị chặn.
     if (returnRepository.findByMaTraHang(returnCode).isPresent()) {
       throw conflict("Phiếu giao hàng đã được nhận hoàn");
     }
@@ -339,80 +406,113 @@ public class AdminDeliveryService {
     requireOnlyEffectiveDelivery(delivery);
 
     if (delivery.getTrangThaiGiaoHang() != TrangThaiGiaoHangEnum.CHO_HOAN_HANG) {
-
       throw conflict("Phiếu giao chưa ở trạng thái CHO_HOAN_HANG");
     }
 
     requireInTransitOrder(order);
 
     if (order.getNgayHoanThanh() != null) {
-      throw conflict("Đơn đã có mốc khách thực nhận; không dùng luồng hoàn giao thất bại");
+      throw conflict("Đơn đã có mốc khách thực nhận, không thuộc hoàn giao thất bại");
     }
 
     orderLineRepository.findByDonHangIdForUpdate(order.getId());
 
     if (returnRepository.existsByDonHang_Id(order.getId())) {
-      throw conflict("Đơn đã có phiếu trả khác; cần đối soát trước khi nhận hoàn toàn bộ");
+      throw conflict("Đơn đã có phiếu trả khác, cần đối soát trước khi nhận toàn bộ");
     }
 
-    var moneyEvidence = orderService.failedDeliveryMoney(order);
+    if (!Boolean.TRUE.equals(request.getXacNhanDaNhanDuHang())) {
+      throw invalid("Phải xác nhận đã thực nhận đủ hàng");
+    }
+
+    if (!validReturnContact(order)) {
+      throw new AppException(
+          ErrorCode.UNPROCESSABLE_ENTITY,
+          "don_hang_id",
+          "RECIPIENT_HISTORY_UNVERIFIED",
+          "Thiếu thông tin liên hệ đã lưu trên đơn hàng");
+    }
+
+    validateReturnEvidence(request.getBangChungUrls());
+
+    LocalDateTime receivedAt = validateReceivedAt(order, request.getThoiDiemNhan());
+
+    Map<String, Object> moneyEvidence = orderService.failedDeliveryMoney(order);
 
     if (!Boolean.TRUE.equals(moneyEvidence.get("co_du_can_cu"))) {
       throw new AppException(
-          ErrorCode.UNPROCESSABLE_ENTITY, "Chưa đủ căn cứ xác định khoản tiền cần hoàn");
+          ErrorCode.UNPROCESSABLE_ENTITY,
+          "don_hang_id",
+          "PAYMENT_HISTORY_UNVERIFIED",
+          "Chưa đủ căn cứ xác định khoản tiền cần hoàn");
     }
 
     BigDecimal refund = (BigDecimal) moneyEvidence.get("tong_tien_can_hoan");
 
-    String contactName = order.getTenNguoiNhan() == null ? null : order.getTenNguoiNhan().strip();
+    ReturnWarehouse warehouse = inventoryService.returnWarehouse();
 
-    String contactPhone = order.getSdtNguoiNhan() == null ? null : order.getSdtNguoiNhan().strip();
+    List<ReturnRequirement> originalItems;
 
-    if (contactName == null
-        || contactName.isBlank()
-        || contactName.length() > 100
-        || contactPhone == null
-        || contactPhone.isBlank()
-        || contactPhone.length() > 20) {
+    try {
+      originalItems = inventoryService.getReturnRequirements(order);
+    } catch (AppException exception) {
+      if (exception.getErrorCode() != ErrorCode.CONFLICT
+          && exception.getErrorCode() != ErrorCode.UNPROCESSABLE_ENTITY) {
+        throw exception;
+      }
 
       throw new AppException(
-          ErrorCode.UNPROCESSABLE_ENTITY, "Thiếu thông tin liên hệ đã lưu trên đơn hàng");
+          ErrorCode.UNPROCESSABLE_ENTITY,
+          "hang_nhan",
+          "EXPORT_HISTORY_UNVERIFIED",
+          "Chưa đủ căn cứ đối chiếu toàn bộ hàng xuất gốc");
     }
 
-    LocalDateTime receivedAt = now();
+    NguoiDung actor = salesContext.actor();
 
-    PhieuTraHang returnDocument =
+    PhieuTraHang document =
         PhieuTraHang.builder()
             .maTraHang(returnCode)
             .donHang(order)
             .khachHang(order.getKhachHang())
-            .tenNguoiLienHe(contactName)
-            .sdtNguoiLienHe(contactPhone)
-            .nguoiTao(salesContext.actor())
+            .tenNguoiLienHe(order.getTenNguoiNhan().strip())
+            .sdtNguoiLienHe(order.getSdtNguoiNhan().strip())
+            .nguoiTao(actor)
             .tongTienHoan(refund)
             .hinhThucHoanTien(request.getHinhThucHoanTien())
             .trangThaiTraHang(
                 refund.signum() == 0 ? TrangThaiTraHang.HOAN_TAT : TrangThaiTraHang.DA_NHAN_HANG)
             .lyDoTra(request.getLyDoTra().strip())
-            .ghiChu(
-                request.getGhiChu() == null || request.getGhiChu().isBlank()
-                    ? null
-                    : request.getGhiChu().strip())
             .ngayTiepNhanThucTe(receivedAt)
             .ngayNhanHang(receivedAt)
             .ngayKetThuc(refund.signum() == 0 ? receivedAt : null)
             .build();
 
-    returnDocument = returnRepository.saveAndFlush(returnDocument);
+    returnRepository.saveAndFlush(document);
 
-    inventoryService.receiveAll(order, returnDocument, request);
+    List<ReturnStockChange> movements = inventoryService.receiveAll(order, document, request);
 
-    Map<Long, ChiTietTraHang> returnLines = saveReturnLines(order, returnDocument);
+    Map<Long, ChiTietTraHang> returnLines = saveReturnLines(order, document);
 
     soldDevices.markReturned(order, returnLines);
 
-    delivery.setTrangThaiGiaoHang(TrangThaiGiaoHangEnum.DA_HOAN_HANG);
+    Map<String, Object> source = new LinkedHashMap<>();
+    source.put("phien_ban", 1);
+    source.put("nguon", "HOAN_GIAO_HANG");
+    source.put("don_hang_id", order.getId());
+    source.put("phieu_giao_hang_id", delivery.getId());
+    source.put("kho_nhan", warehouse);
+    source.put("nguoi_nhan_hang_id", actor.getId());
+    source.put("thoi_diem_nhan", request.getThoiDiemNhan());
+    source.put("hang_da_xuat", originalItems);
+    source.put("hang_nhan", request.getHangNhan());
+    source.put("bang_chung_urls", request.getBangChungUrls());
+    source.put("doi_soat_tien", moneyEvidence);
+    source.put("bien_dong_kho", movements);
 
+    document.setDuLieuNhanHang(objectMapper.writeValueAsString(source));
+
+    delivery.setTrangThaiGiaoHang(TrangThaiGiaoHangEnum.DA_HOAN_HANG);
     delivery.setNgayCapNhat(now());
 
     order.setTrangThaiDonHang(TrangThaiDonHang.HUY_HANG);
@@ -425,7 +525,11 @@ public class AdminDeliveryService {
 
     deliveryRepository.flush();
 
-    return returnAction(delivery, returnDocument);
+    Action response = returnAction(delivery, document);
+    response.setKhoNhan(warehouse);
+    response.setBienDongKho(movements);
+
+    return response;
   }
 
   @Transactional(propagation = Propagation.MANDATORY)
@@ -591,6 +695,133 @@ public class AdminDeliveryService {
     throw conflict("Đơn chưa thanh toán nhưng phiếu không có COD hợp lệ");
   }
 
+  private boolean validReturnContact(DonHang order) {
+    String name = order.getTenNguoiNhan();
+    String phone = order.getSdtNguoiNhan();
+
+    return name != null
+        && !name.isBlank()
+        && name.strip().length() <= 100
+        && phone != null
+        && !phone.isBlank()
+        && phone.strip().length() <= 20;
+  }
+
+  private void validateReturnEvidence(List<String> urls) {
+    if (urls == null || urls.isEmpty() || urls.size() > 50) {
+      throw invalid("Cần từ 1 đến 50 ảnh bằng chứng");
+    }
+
+    Set<String> unique = new HashSet<>();
+
+    for (String raw : urls) {
+      if (raw == null || raw.isBlank() || raw.length() > 2048) {
+        throw invalid("Đường dẫn bằng chứng không hợp lệ");
+      }
+
+      String value = raw.strip();
+
+      if (!unique.add(value)) {
+        throw invalid("Ảnh bằng chứng bị gửi trùng");
+      }
+
+      if (value.startsWith("/uploads/")) {
+        URI uri;
+
+        try {
+          uri = URI.create(value);
+        } catch (IllegalArgumentException exception) {
+          throw invalid("Đường dẫn bằng chứng không hợp lệ");
+        }
+
+        if (uri.getHost() != null
+            || uri.getScheme() != null
+            || value.contains("..")
+            || value.contains("\\")) {
+          throw invalid("Đường dẫn bằng chứng không hợp lệ");
+        }
+
+        continue;
+      }
+
+      URI uri;
+
+      try {
+        uri = URI.create(value);
+      } catch (IllegalArgumentException exception) {
+        throw invalid("Đường dẫn bằng chứng không hợp lệ");
+      }
+
+      if (!"https".equalsIgnoreCase(uri.getScheme())
+          || uri.getHost() == null
+          || uri.getHost().isBlank()
+          || uri.getUserInfo() != null) {
+        throw invalid("Bằng chứng phải là URL HTTPS hoặc đường dẫn /uploads/");
+      }
+    }
+  }
+
+  private LocalDateTime validateReceivedAt(DonHang order, OffsetDateTime occurredAt) {
+
+    if (occurredAt == null || occurredAt.toInstant().isAfter(java.time.Instant.now())) {
+      throw invalid("Thời điểm thực nhận không hợp lệ");
+    }
+
+    LocalDateTime receivedAt = occurredAt.atZoneSameInstant(zone()).toLocalDateTime();
+
+    LocalDateTime exportedAt =
+        entityManager
+            .createQuery(
+                """
+                                select max(t.ngayTao)
+                                from TheKho t
+                                where t.maChungTuGoc = :orderId
+                                  and t.loaiGiaoDich = :type
+                                """,
+                LocalDateTime.class)
+            .setParameter("orderId", order.getId())
+            .setParameter("type", LoaiGiaoDichKho.XUAT_BAN)
+            .getSingleResult();
+
+    if (exportedAt == null) {
+      throw new AppException(
+          ErrorCode.UNPROCESSABLE_ENTITY,
+          "hang_nhan",
+          "EXPORT_HISTORY_UNVERIFIED",
+          "Thiếu thời điểm xuất kho gốc");
+    }
+
+    if (receivedAt.isBefore(exportedAt)
+        || (order.getNgayTao() != null && receivedAt.isBefore(order.getNgayTao()))) {
+      throw invalid("Thời điểm nhận hoàn không được nằm trước lần xuất kho");
+    }
+
+    return receivedAt;
+  }
+
+  private ReturnData returnData(PhieuTraHang document) {
+    ReturnData response = mapper.toReturn(document, zone());
+
+    response.setCanHoanTien(
+        document.getTrangThaiTraHang() == TrangThaiTraHang.DA_NHAN_HANG
+            && document.getTongTienHoan() != null
+            && document.getTongTienHoan().signum() > 0);
+
+    if (document.getDuLieuNhanHang() != null) {
+      try {
+        var source = objectMapper.readTree(document.getDuLieuNhanHang());
+
+        if ("HOAN_GIAO_HANG".equals(source.path("nguon").asString())) {
+          response.setNguonYeuCau("HOAN_GIAO_HANG");
+        }
+      } catch (RuntimeException ignored) {
+        // Không tự dựng nguồn cho dữ liệu cũ thiếu bản chụp.
+      }
+    }
+
+    return response;
+  }
+
   private Map<Long, ChiTietTraHang> saveReturnLines(DonHang order, PhieuTraHang returnDocument) {
 
     var lines = orderLineRepository.findByDonHang_IdOrderByIdAsc(order.getId());
@@ -697,13 +928,8 @@ public class AdminDeliveryService {
   private Action returnAction(PhieuGiaoHang delivery, PhieuTraHang returnDocument) {
 
     Action response = mapper.toAction(delivery, zone());
-    ReturnData returnData = mapper.toReturn(returnDocument);
+    response.setPhieuTraHang(returnData(returnDocument));
 
-    returnData.setCanHoanTien(
-        returnDocument.getTrangThaiTraHang() == TrangThaiTraHang.DA_NHAN_HANG
-            && returnDocument.getTongTienHoan().signum() > 0);
-
-    response.setPhieuTraHang(returnData);
     return response;
   }
 
