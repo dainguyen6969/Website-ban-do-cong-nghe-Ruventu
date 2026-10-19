@@ -16,8 +16,8 @@ const ConsultationBanner = () => {
           </p>
         </div>
         <div className="consultation-actions">
-          <button className="btn-primary" disabled title="Chưa có chức năng đăng ký tư vấn trực tuyến">NHẬN TƯ VẤN MIỄN PHÍ</button>
-          <a className="btn-secondary" href="tel:19009999">GỌI 1900 9999</a>
+          <button className="consultation-button consultation-button--primary" disabled title="Chưa có chức năng đăng ký tư vấn trực tuyến">NHẬN TƯ VẤN MIỄN PHÍ</button>
+          <a className="consultation-button consultation-button--phone" href="tel:19009999">GỌI 1900 9999</a>
         </div>
       </div>
     </section>

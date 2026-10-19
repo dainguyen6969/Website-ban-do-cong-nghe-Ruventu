@@ -242,6 +242,9 @@ public final class AdminDeliveryResponse {
     @JsonProperty("ten_phien_ban")
     private String tenPhienBan;
 
+    @JsonProperty("anh_dai_dien")
+    private String anhDaiDien;
+
     @JsonProperty("so_luong")
     private Integer soLuong;
 

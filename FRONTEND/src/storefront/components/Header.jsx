@@ -393,9 +393,7 @@ const Header = () => {
 
                       <div className="mega-sub-category">
                         <h5 className="mega-sub-title">
-                          <Link to="/category/cpu">
-                            CPU - Bộ vi xử lý
-                          </Link>
+                          CPU - Bộ vi xử lý
                         </h5>
 
                         <ul>
@@ -411,9 +409,7 @@ const Header = () => {
 
                       <div className="mega-sub-category">
                         <h5 className="mega-sub-title">
-                          <Link to="/category/mainboard">
-                            Mainboard - Bo mạch chủ
-                          </Link>
+                          Mainboard - Bo mạch chủ
                         </h5>
 
                         <ul>
@@ -433,9 +429,7 @@ const Header = () => {
 
                       <div className="mega-sub-category">
                         <h5 className="mega-sub-title">
-                          <Link to="/category/ram">
-                            RAM - Bộ nhớ trong
-                          </Link>
+                          RAM - Bộ nhớ trong
                         </h5>
 
                         <ul>
@@ -455,9 +449,7 @@ const Header = () => {
 
                       <div className="mega-sub-category">
                         <h5 className="mega-sub-title">
-                          <Link to="/category/vga">
-                            VGA - Card màn hình
-                          </Link>
+                          VGA - Card màn hình
                         </h5>
 
                         <ul>
@@ -473,9 +465,7 @@ const Header = () => {
 
                       <div className="mega-sub-category">
                         <h5 className="mega-sub-title">
-                          <Link to="/category/psu">
-                            PSU - Nguồn máy tính
-                          </Link>
+                          PSU - Nguồn máy tính
                         </h5>
 
                         <ul>
@@ -491,9 +481,7 @@ const Header = () => {
 
                       <div className="mega-sub-category">
                         <h5 className="mega-sub-title">
-                          <Link to="/category/case">
-                            Case - Vỏ máy tính
-                          </Link>
+                          Case - Vỏ máy tính
                         </h5>
 
                         <ul>
@@ -515,7 +503,7 @@ const Header = () => {
 
                       <div className="mega-sub-category">
                         <h5 className="mega-sub-title">
-                          <Link to="/category/ssd">Ổ cứng SSD/HDD</Link>
+                          Ổ cứng SSD/HDD
                         </h5>
 
                         <ul>
@@ -531,9 +519,7 @@ const Header = () => {
 
                       <div className="mega-sub-category">
                         <h5 className="mega-sub-title">
-                          <Link to="/category/tan-nhiet">
-                            Tản nhiệt máy tính
-                          </Link>
+                          Tản nhiệt máy tính
                         </h5>
 
                         <ul>

@@ -38,6 +38,20 @@ import {
 } from "../../../../shared/services/mutationUtils";
 import ComboContents from "../../../../shared/components/ui/ComboContents";
 
+function OrderProductImage({ item }) {
+  const [failedUrl, setFailedUrl] = useState(null);
+  return item.anh_dai_dien && failedUrl !== item.anh_dai_dien ? (
+    <img
+      src={item.anh_dai_dien}
+      alt={item.ten_phien_ban || item.ten_san_pham}
+      loading="lazy"
+      onError={() => setFailedUrl(item.anh_dai_dien)}
+    />
+  ) : (
+    <span className="order-product-no-image">Chưa có ảnh</span>
+  );
+}
+
 export default function ChiTietDonHang() {
   const actionBusy = useRef(false);
   const cashAttempt = useRef(null);
@@ -616,7 +630,7 @@ export default function ChiTietDonHang() {
                 <tbody>
                   {products.visibleItems.map((item) => (
                     <tr key={item.chi_tiet_don_hang_id}>
-                      <td>—</td>
+                      <td><OrderProductImage item={item} /></td>
                       <td>
                         <strong>{item.ten_san_pham}</strong>
 

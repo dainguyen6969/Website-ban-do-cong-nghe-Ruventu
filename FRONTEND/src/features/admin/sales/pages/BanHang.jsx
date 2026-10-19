@@ -9,6 +9,8 @@ import {
   HiOutlineX,
 } from "react-icons/hi";
 import { getSerialPage } from "../../inventory/api/serialApi";
+import { getExportVariant } from "../../orders/api/orderApi";
+import { getProductDetail } from "../../catalog/products/api/productApi";
 import {
   buildPosCheckoutBody,
   buildPosPreviewBody,
@@ -23,6 +25,7 @@ import {
 import {
   addProduct,
   closeOrderTab,
+  comboSerialRequirements,
   createOrder,
   findIncompleteSerialLine,
   findStockIssue,
@@ -40,7 +43,7 @@ const money = (value) =>
   value == null ? "—" : `${Number(value).toLocaleString("vi-VN")}đ`;
 const productName = (product) => product.name || product.tenSanPham;
 const productCode = (product) =>
-  [product.code || product.maSanPham, product.variant]
+  [product.code || product.maSanPham, product.type !== "BO_PC" && product.variant]
     .filter(Boolean)
     .join(" · ");
 const productPrice = (product, priceList) =>
@@ -92,6 +95,9 @@ export default function BanHang() {
   const [customerCreateError, setCustomerCreateError] = useState("");
   const [serialModal, setSerialModal] = useState(null);
   const [serialSearch, setSerialSearch] = useState("");
+  const [componentDetails, setComponentDetails] = useState({});
+  const [componentError, setComponentError] = useState("");
+  const [componentRevision, setComponentRevision] = useState(0);
   const [checkoutError, setCheckoutError] = useState("");
   const [checkoutBusy, setCheckoutBusy] = useState(false);
   const [checkoutPending, setCheckoutPending] = useState(() => {
@@ -121,6 +127,20 @@ export default function BanHang() {
     ...order,
     preview: previewReady ? order.preview : null,
   });
+  const comboRequirements = comboSerialRequirements(order.cart, previewData);
+  const comboSerialIssue = comboRequirements.find(group => group.serials.length !== group.quantity);
+  const componentIds = JSON.stringify([...new Set(comboRequirements.map(group => group.variantId))].sort((a, b) => a - b));
+  useEffect(() => {
+    let cancelled = false;
+    Promise.all(JSON.parse(componentIds).map(async id => {
+      const variant = (await getExportVariant(id)).phien_ban;
+      const product = await getProductDetail(variant.san_pham_id);
+      return [id, { ...variant, ten_san_pham: product.tenSanPham }];
+    }))
+      .then(entries => { if (!cancelled) { setComponentDetails(Object.fromEntries(entries)); setComponentError(""); } })
+      .catch(() => { if (!cancelled) setComponentError("Không thể tải tên linh kiện. Vui lòng thử lại."); });
+    return () => { cancelled = true; };
+  }, [componentIds, componentRevision]);
   const giftRequirements = giftSerialRequirements(previewData);
   const giftSerialIssue = giftRequirements.find(
     (requirement) =>
@@ -331,10 +351,10 @@ export default function BanHang() {
     }));
   const openSerialModal = async (line) => {
     const request = ++serialRequest.current;
+    const identity = { productId: line.product.id, gift: line.gift, combo: line.combo };
     setSerialSearch("");
     setSerialModal({
-      productId: line.product.id,
-      gift: line.gift,
+      ...identity,
       loading: true,
       candidates: [],
       total: 0,
@@ -363,14 +383,13 @@ export default function BanHang() {
       };
       if (request !== serialRequest.current) return;
       setSerialModal({
-        productId: line.product.id,
-        gift: line.gift,
+        ...identity,
         loading: false,
         candidates: data.items,
         total: data.totalItems,
         error: "",
       });
-      if (!line.gift)
+      if (!line.gift && !line.combo)
         setOrders((current) =>
           current.map((item) =>
             item.id === activeId
@@ -388,8 +407,7 @@ export default function BanHang() {
     } catch {
       if (request === serialRequest.current)
         setSerialModal({
-          productId: line.product.id,
-          gift: line.gift,
+          ...identity,
           loading: false,
           candidates: [],
           total: 0,
@@ -410,7 +428,12 @@ export default function BanHang() {
     (order.paymentMethod === "cash"
       ? order.paid < totals.total
       : order.paid !== totals.total);
-  const serialLine = serialModal?.gift
+  const componentName = id => [...new Set([componentDetails[id]?.ten_san_pham, componentDetails[id]?.ten_phien_ban].filter(Boolean))].join(" · ");
+  const componentGroup = serialModal?.combo && comboRequirements.find(group => group.key === serialModal.combo.key);
+  const serialLine = componentGroup ? {
+    product: { id: componentGroup.variantId, name: componentName(componentGroup.variantId) },
+    quantity: componentGroup.quantity, serials: componentGroup.serials,
+  } : serialModal?.gift
     ? {
         product: {
           id: serialModal.productId,
@@ -425,7 +448,23 @@ export default function BanHang() {
     serialModal?.candidates.filter((item) =>
       item.serial.toLowerCase().includes(serialSearch.trim().toLowerCase()),
     ) || [];
+  const usedComponentSerialIds = componentGroup ? [
+    ...comboRequirements.filter(group => group.key !== componentGroup.key).flatMap(group => group.serials),
+    ...order.cart.filter(line => line.product.type !== "BO_PC").flatMap(line => line.serials || []),
+    ...Object.values(order.giftSerials || {}).flat(),
+  ].map(serial => serial.id) : [];
   const toggleSerial = (candidate) => {
+    if (serialModal.combo) {
+      if (!componentGroup || usedComponentSerialIds.includes(candidate.id)) return;
+      setOrders(current => current.map(entry => entry.id === activeId ? { ...entry, cart: entry.cart.map(line => {
+        if (line.product.id !== componentGroup.productId) return line;
+        const selected = line.componentSerials?.[componentGroup.variantId] || [];
+        const serials = selected.some(serial => serial.id === candidate.id) ? selected.filter(serial => serial.id !== candidate.id)
+          : selected.length < componentGroup.quantity ? [...selected, candidate] : selected;
+        return { ...line, componentSerials: { ...line.componentSerials, [componentGroup.variantId]: serials } };
+      }) } : entry));
+      return;
+    }
     if (serialModal.gift) {
       patch((current) => {
         const selected = current.giftSerials?.[serialModal.gift.key] || [];
@@ -471,6 +510,7 @@ export default function BanHang() {
       (!previewReady ||
         !order.cart.length ||
         serialIssue ||
+        comboSerialIssue ||
         giftSerialIssue ||
         stockIssue ||
         transactionMissing ||
@@ -804,7 +844,7 @@ export default function BanHang() {
                           <small>{productCode(product)}</small>
                           <small>
                             CÒN BÁN: {product.stock}
-                            {product.serialManaged && (
+                            {product.type !== "BO_PC" && product.serialManaged && (
                               <b className="pos-serial-required">
                                 YÊU CẦU SERIAL
                               </b>
@@ -824,6 +864,7 @@ export default function BanHang() {
                 </div>
               )}
             </div>
+            {componentError && <p className="pos-error" role="alert">{componentError} <button type="button" onClick={() => setComponentRevision(value => value + 1)}>THỬ LẠI</button></p>}
             <div className="pos-cart-scroll">
               <table className="pos-cart">
                 <thead>
@@ -919,6 +960,7 @@ export default function BanHang() {
                           </td>
                           <td className="pos-line-total">{money(lineTotal)}</td>
                           <td>
+                            {product.type === "BO_PC" ? <div className="pos-combo-serials">{!previewReady ? <small>Đang xác minh linh kiện...</small> : comboRequirements.filter(group => group.productId === product.id).map(group => <section key={group.key}><strong>{componentName(group.variantId) || "Đang tải tên linh kiện..."}</strong><small>SL MỖI BỘ: {group.perUnit} · CẦN SERIAL: {group.quantity}</small><span className={group.serials.length === group.quantity ? "is-complete" : "pos-error"}>{group.serials.length === group.quantity ? `ĐÃ CHỌN ${group.serials.length}/${group.quantity}` : `CÒN THIẾU ${group.quantity - group.serials.length} SERIAL`}</span><button type="button" className="pos-serial-badge" disabled={!componentDetails[group.variantId]} aria-label={`Chọn serial ${componentName(group.variantId)}`} onClick={() => openSerialModal({ product: { id: group.variantId }, combo: group })}>{group.serials.length ? "SỬA SERIAL" : "CHỌN SERIAL"}</button>{group.serials.map(serial => <small key={serial.id}>{serial.serial}</small>)}</section>)}{previewReady && !comboRequirements.some(group => group.productId === product.id) && <small>Linh kiện không yêu cầu serial.</small>}</div> : <>
                             {product.serialManaged && (
                               <button
                                 type="button"
@@ -938,6 +980,7 @@ export default function BanHang() {
                             {serials.map((serial) => (
                               <small key={serial.id}>{serial.serial}</small>
                             ))}
+                            </>}
                           </td>
                           <td>
                             <button
@@ -1200,6 +1243,7 @@ export default function BanHang() {
                   đặt về 0 và chọn chương trình khuyến mại.
                 </p>
               )}
+              {comboSerialIssue && <p className="pos-error">Chọn đủ serial cho từng linh kiện trong bộ PC.</p>}
               {giftSerialIssue && (
                 <p className="pos-error">
                   Chọn đủ {giftSerialIssue.quantity} serial cho quà tặng phiên
@@ -1243,6 +1287,7 @@ export default function BanHang() {
                   !previewReady ||
                   order.discount > 0 ||
                   Boolean(giftSerialIssue) ||
+                  Boolean(comboSerialIssue) ||
                   !salesOptions ||
                   !order.cart.length ||
                   Boolean(serialIssue) ||
@@ -1383,10 +1428,12 @@ export default function BanHang() {
                     type="button"
                     key={candidate.id}
                     className={selected ? "is-selected" : ""}
+                    disabled={Boolean(componentGroup) && (usedComponentSerialIds.includes(candidate.id) || !selected && serialLine.serials.length >= serialLine.quantity)}
                     onClick={() => toggleSerial(candidate)}
                   >
                     <strong>{candidate.serial}</strong>
                     {selected && <span>✓ ĐÃ CHỌN</span>}
+                    {usedComponentSerialIds.includes(candidate.id) && <span>ĐÃ CHỌN Ở DÒNG KHÁC</span>}
                   </button>
                 );
               })}

@@ -412,21 +412,10 @@
 
 .mega-sub-title {
   margin: 0 0 10px 0;
-}
-
-.mega-sub-title a {
-  padding: 0 !important;
-  border: none !important;
-  color: #fff !important;
-  font-size: 13px !important;
-  font-weight: 700 !important;
-  text-transform: none !important;
-  transition: all 0.2s ease !important;
-}
-
-.mega-sub-title a:hover {
-  color: #ff0000 !important;
-  background-color: transparent !important;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: none;
 }
 
 .mega-sub-category ul {

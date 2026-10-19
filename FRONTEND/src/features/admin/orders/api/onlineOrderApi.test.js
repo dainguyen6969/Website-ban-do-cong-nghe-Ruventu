@@ -6,6 +6,20 @@ const api = await server.ssrLoadModule('/src/features/admin/orders/api/onlineOrd
 const { buildPosCheckoutBody, buildPreviewBody, checkoutPosOrder, normalizeSalesCustomer, normalizeSalesProduct } = api;
 after(() => server.close());
 
+test('POS combo checkout allocates only component versions under their purchased combo row', () => {
+  const order = { paymentMethod: 'cash', paid: 100, cart: [
+    { product: { id: 747, type: 'BO_PC' }, quantity: 2, serials: [{ id: 999 }], componentSerials: { 10: [{ id: 101 }, { id: 102 }, { id: 103 }, { id: 104 }], 20: [{ id: 201 }, { id: 202 }], 99: [{ id: 999 }] } },
+    { product: { id: 30, type: 'DON' }, quantity: 1, serials: [{ id: 301 }] },
+  ], preview: { data: { san_pham: [{ ma_dong: 'd747', serial_requirements: [{ phien_ban_id: 10, so_luong_can_serial: 4 }, { phien_ban_id: 20, so_luong_can_serial: 2 }] }] } } };
+  const body = buildPosCheckoutBody(order, { kho_mac_dinh_id: 1, bang_gia: ['BAN_LE'] }, 100);
+  assert.deepEqual(body.phan_bo_serial, [
+    { ma_dong: 'd30', phien_ban_id: 30, serial_ids: [301] },
+    { ma_dong: 'd747', phien_ban_id: 10, serial_ids: [101, 102, 103, 104] },
+    { ma_dong: 'd747', phien_ban_id: 20, serial_ids: [201, 202] },
+  ]);
+  assert.deepEqual(body.san_pham, [{ ma_dong: 'd747', phien_ban_id: 747, so_luong: 2 }, { ma_dong: 'd30', phien_ban_id: 30, so_luong: 1 }]);
+});
+
 test('sales customer lookup keeps the real backend id and contact fields', () => {
   assert.deepEqual(normalizeSalesCustomer({
     id: 12, ho_ten: 'Nguyễn Văn An', so_dien_thoai: '0901234567', email: 'an@example.com',

@@ -22,37 +22,39 @@ const HeroBanner = () => {
             </h1>
             <p className="hero-desc">PC Gaming chuyên dụng, linh kiện cao cấp chính hãng. Bảo hành 36 tháng. Giao hàng toàn quốc.</p>
             <div className="hero-actions">
-              <a className="btn-primary" href="#pc-build-san">XEM PC BUILD SẴN</a>
-              <Link className="btn-outline" to="/category/linh-kien">MUA LINH KIỆN</Link>
+              <a className="hero-button hero-button--primary" href="#pc-build-san">XEM PC BUILD SẴN</a>
+              <Link className="hero-button hero-button--outline" to="/category/linh-kien">MUA LINH KIỆN</Link>
             </div>
           </div>
         </div>
 
         {/* Side Banners */}
         <div className="side-banners">
-          <div className="side-banner">
+          <Link className="side-banner" to="/search?q=RTX%204090" aria-label="Xem sản phẩm RTX 4090">
             <img src="https://images.unsplash.com/photo-1587202372775-e229f172b9d7?auto=format&fit=crop&q=80&w=600&h=300" alt="RTX 4090" className="banner-img" />
-            <div className="banner-overlay"></div>
             <div className="banner-content small-content">
               <div style={{display: 'flex', marginBottom: '8px'}}>
                 <span className="small-label-badge">VGA - FLAGSHIP</span>
               </div>
               <h3 className="side-title">RTX 4090<br/>ROG STRIX OC</h3>
-              <p className="side-price">24.990.000đ</p>
-              <Link className="arrow-link" to="/search?q=RTX%204090" aria-label="Xem sản phẩm RTX 4090">XEM &rarr;</Link>
+              <div className="side-banner-footer">
+                <p className="side-price">24.990.000đ</p>
+                <span className="arrow-link">XEM &rarr;</span>
+              </div>
             </div>
-          </div>
-          <div className="side-banner">
+          </Link>
+          <a className="side-banner" href="#pc-build-san" aria-label="Xem các bộ PC build sẵn">
             <div className="banner-red-stripe">⚡ KHUYẾN MÃI TUẦN NÀY</div>
             <img src="https://images.unsplash.com/photo-1593640408182-31c70c8268f5?auto=format&fit=crop&q=80&w=600&h=300" alt="PC Build Sẵn" className="banner-img" />
-            <div className="banner-overlay"></div>
             <div className="banner-content small-content">
               <span className="small-label">PC BUILD SẴN</span>
               <h3 className="side-title">RUVENTU<br/>WARLORD PRO</h3>
-              <p className="side-price">54.900.000đ</p>
-              <a className="arrow-link" href="#pc-build-san" aria-label="Xem các bộ PC build sẵn">XEM &rarr;</a>
+              <div className="side-banner-footer">
+                <p className="side-price">54.900.000đ</p>
+                <span className="arrow-link">XEM &rarr;</span>
+              </div>
             </div>
-          </div>
+          </a>
         </div>
       </div>
     </section>

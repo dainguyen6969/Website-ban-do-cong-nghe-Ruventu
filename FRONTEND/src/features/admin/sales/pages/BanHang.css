@@ -173,3 +173,8 @@
 .pos-serial-list span { font-size:9px; }
 @media (max-width:1300px) { .pos-columns { grid-template-columns:210px minmax(0,1fr) 250px; } .pos-block { padding:12px; } .pos-cart { min-width:650px; } }
 @media (max-width:1000px) { .pos-columns { grid-template-columns:190px minmax(0,1fr); min-height:auto; } .pos-right { grid-column:1 / -1; border-left:0; border-top:2px solid #111; overflow:visible; } .pos-middle { min-height:420px; } .pos-left { overflow:visible; } .pos-checkout { margin-top:20px; } }
+.pos-combo-serials { min-width: 260px; display: grid; gap: 12px; }
+.pos-combo-serials section { display: grid; justify-items: start; gap: 6px; padding: 10px; border: 1px solid #ddd; }
+.pos-combo-serials section strong { white-space: normal; }
+.pos-combo-serials section span { font-size: 11px; font-weight: 700; }
+.pos-combo-serials .is-complete { color: #15803d; }

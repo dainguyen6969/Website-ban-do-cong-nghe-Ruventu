@@ -172,3 +172,19 @@ Object.assign(mockWarrantyData.find(item => item.id === 'BH-001'), {
   invoices: [{ code: 'BH-INV-3801', version: 'Chưa có dữ liệu', total: 150000, paid: 50000, due: 100000, refund: 0 }],
   canceledInvoices: [{ code: 'BH-INV-3802', version: 1, total: 50000, paid: 50000, refunded: 0, refund: 50000 }],
 });
+
+// Sold units reuse the module's existing mock order, product and customer records.
+const soldUnits = [['BH-004', 'SSD1T-SN-002', '1TB'], ['BH-004', 'SSD2T-SN-002', '2TB'], ['BH-002', 'VGA4080-SN-003', '16GB OC']];
+export const mockWarrantyDevices = [
+  ...mockWarrantyData.map(item => ({ ...item, key: item.serial || item.trackingCode })),
+  ...soldUnits.map(([source, serial, productVariant]) => {
+    const item = mockWarrantyData.find(ticket => ticket.id === source);
+    return { key: serial, serial, productName: item.productName, productVariant, orderId: item.orderId,
+      customerName: item.customerName, customerPhone: item.customerPhone, serialStatus: 'ĐÃ BÁN',
+      activationDate: item.activationDate, warrantyExpiry: item.warrantyExpiry,
+      expiryBasis: 'Ngày giao thành công của đơn hàng gốc (dữ liệu mẫu)' };
+  }),
+];
+mockWarrantyDevices.find(item => item.serial === 'RUV-RAM16-112-OLD').replacedBy = 'RUV-RAM16-112-NEW';
+// shortcut: warranty tickets and intake requests live in memory; replace after a warranty backend exists.
+export const mockIntakeRequests = [];

@@ -46,6 +46,7 @@ public interface AdminDeliveryMapper {
   @Mapping(target = "maSanPham", source = "phienBan.sanPham.maSanPham")
   @Mapping(target = "tenSanPham", source = "phienBan.sanPham.tenSanPham")
   @Mapping(target = "tenPhienBan", source = "phienBan.tenPhienBan")
+  @Mapping(target = "anhDaiDien", ignore = true)
   @Mapping(target = "thueVat", ignore = true)
   @Mapping(target = "tienChietKhau", ignore = true)
   @Mapping(target = "tienVat", ignore = true)

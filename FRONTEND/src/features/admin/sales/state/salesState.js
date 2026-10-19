@@ -77,7 +77,7 @@ export function updateOrder(order, patch) {
 
 export function addProduct(cart, product) {
   return cart.some((item) => item.product.id === product.id)
-    ? cart.map((item) => item.product.id === product.id ? { ...item, product, quantity: clampQuantity(product, item.quantity + 1) } : item)
+    ? cart.map((item) => item.product.id === product.id ? { ...item, product, quantity: clampQuantity(product, item.quantity + 1), ...(product.type === 'BO_PC' ? { componentSerials: {} } : {}) } : item)
     : [...cart, { product, quantity: 1, serials: [] }];
 }
 
@@ -89,12 +89,26 @@ const clampQuantity = (product, value) => {
 export const setProductQuantity = (cart, id, value) => cart.map((item) => {
   if (item.product.id !== id) return item;
   const quantity = clampQuantity(item.product, value);
-  return { ...item, quantity, serials: (item.serials || []).slice(0, quantity) };
+  return { ...item, quantity, serials: (item.serials || []).slice(0, quantity), ...(item.product.type === 'BO_PC' && quantity !== item.quantity ? { componentSerials: {} } : {}) };
 });
 
 export const findIncompleteSerialLine = (cart) => cart.find(
-  (item) => item.product.serialManaged && (item.serials?.length || 0) !== item.quantity,
+  (item) => item.product.type !== 'BO_PC' && item.product.serialManaged && (item.serials?.length || 0) !== item.quantity,
 ) || null;
+
+export const comboSerialRequirements = (cart, preview) => cart.filter(line => line.product.type === 'BO_PC').flatMap(line => {
+  const groups = new Map();
+  const source = preview?.san_pham?.find(item => !item.la_qua_tang && item.ma_dong === `d${line.product.id}`);
+  // Like order export, use BE requirements: duplicate components are merged before quantity multiplication.
+  for (const requirement of source?.serial_requirements || []) {
+    const id = requirement.phien_ban_id;
+    groups.set(id, (groups.get(id) || 0) + requirement.so_luong_can_serial);
+  }
+  return [...groups].map(([variantId, quantity]) => ({
+    key: `${source.ma_dong}:${variantId}`, productId: line.product.id, variantId, quantity,
+    perUnit: quantity / line.quantity, serials: line.componentSerials?.[variantId] || [],
+  }));
+});
 
 export const findStockIssue = (cart) => cart.find((item) => item.quantity > item.product.stock) || null;
 

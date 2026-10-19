@@ -139,6 +139,13 @@ public class AdminDeliveryService {
 
     var lines = orderLineRepository.findByDonHang_IdOrderByIdAsc(delivery.getDonHang().getId());
 
+    var images =
+        catalogSupport.primaryImages(
+            lines.stream()
+                .map(line -> line.getPhienBan().getSanPham().getId())
+                .distinct()
+                .toList());
+
     var comboParts =
         catalogSupport.comboParts(
             lines.stream()
@@ -153,6 +160,8 @@ public class AdminDeliveryService {
             .map(
                 line -> {
                   ProductData item = mapper.toProduct(line);
+
+                  item.setAnhDaiDien(images.get(line.getPhienBan().getSanPham().getId()));
 
                   item.setQuanLySerial(inventoryService.usesSerial(line.getPhienBan()));
 

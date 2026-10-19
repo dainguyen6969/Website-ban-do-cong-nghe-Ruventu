@@ -613,6 +613,13 @@ public class AdminSalesService {
 
     var lines = orderLineRepository.findByDonHang_IdOrderByIdAsc(order.getId());
 
+    var images =
+        catalogSupport.primaryImages(
+            lines.stream()
+                .map(line -> line.getPhienBan().getSanPham().getId())
+                .distinct()
+                .toList());
+
     var comboParts =
         catalogSupport.comboParts(
             lines.stream()
@@ -627,6 +634,8 @@ public class AdminSalesService {
             .map(
                 line -> {
                   var item = deliveryMapper.toProduct(line);
+
+                  item.setAnhDaiDien(images.get(line.getPhienBan().getSanPham().getId()));
 
                   item.setQuanLySerial(
                       line.getPhienBan().getSanPham().getLoaiSanPham() == LoaiSanPham.DON

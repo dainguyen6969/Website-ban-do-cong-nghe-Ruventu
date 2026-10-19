@@ -33,6 +33,7 @@ test('product title stays consistent while selected variant is labeled separatel
   const card = render(React.createElement(Card, { product }));
   assert.match(card, /Từ 13\.990\.000/);
   assert.match(card, /Chưa có ảnh sản phẩm/);
+  assert.match(card, /title="ASUS ROG THOR"/);
   const gallery = renderToStaticMarkup(React.createElement(Gallery, { images: [] }));
   assert.match(gallery, /Chưa có ảnh sản phẩm/);
   assert.doesNotMatch(gallery, /<img|nav-arrow|zoom-btn/);

@@ -9,6 +9,7 @@ import {
   HiOutlineEye,
   HiOutlinePencilAlt,
   HiOutlineTrash,
+  HiOutlineX,
 } from "react-icons/hi";
 import FilterDropdown from "../../../../../shared/components/ui/FilterDropdown";
 import TablePagination from "../../../../../shared/components/ui/TablePagination";
@@ -17,41 +18,9 @@ import { getAllCategories } from "../../categories/api/categoryApi";
 import { getProductPage } from "../api/productApi";
 import "./DanhSachSanPham.css";
 
-// Exact category options in order specified
-const categoryOptions = [
-  "Danh mục",
-  "CPU",
-  "VGA",
-  "Mainboard",
-  "RAM",
-  "SSD",
-  "PSU",
-  "Màn hình",
-  "Tản nhiệt",
-  "Case",
-  "PC Build",
-  "Phụ kiện",
-];
+const productTypeOptions = ["Tất cả loại sản phẩm", "Sản phẩm đơn", "Theo bộ (Combo)"];
 
-const brandOptions = [
-  "Thương hiệu",
-  "Intel",
-  "AMD",
-  "ASUS",
-  "MSI",
-  "Gigabyte",
-  "Corsair",
-  "Kingston",
-  "Samsung",
-  "WD",
-  "EVGA",
-  "LG",
-  "Lian Li",
-];
-
-const productTypeOptions = ["Loại sản phẩm", "Sản phẩm đơn", "Theo bộ (Combo)"];
-
-const statusOptions = ["Trạng thái bán", "Đang kinh doanh", "Ngừng kinh doanh"];
+const statusOptions = ["Tất cả trạng thái", "Đang kinh doanh", "Ngừng kinh doanh"];
 
 const tableColumns = [
   { id: "checkbox", label: "", isCheckbox: true },
@@ -79,19 +48,19 @@ export default function DanhSachSanPham() {
 
   const [searchTerm, setSearchTerm] = useState("");
   const [isFilterPanelOpen, setIsFilterPanelOpen] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState("Danh mục");
-  const [selectedBrand, setSelectedBrand] = useState("Thương hiệu");
+  const [selectedCategory, setSelectedCategory] = useState("Tất cả danh mục");
+  const [selectedBrand, setSelectedBrand] = useState("Tất cả thương hiệu");
   const [selectedProductType, setSelectedProductType] =
-    useState("Loại sản phẩm");
-  const [selectedStatus, setSelectedStatus] = useState("Trạng thái bán");
+    useState("Tất cả loại sản phẩm");
+  const [selectedStatus, setSelectedStatus] = useState("Tất cả trạng thái");
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedIds, setSelectedIds] = useState([]);
 
   // Check active filters against defaults
-  const isCategoryActive = selectedCategory !== "Danh mục";
-  const isBrandActive = selectedBrand !== "Thương hiệu";
-  const isProductTypeActive = selectedProductType !== "Loại sản phẩm";
-  const isStatusActive = selectedStatus !== "Trạng thái bán";
+  const isCategoryActive = selectedCategory !== "Tất cả danh mục";
+  const isBrandActive = selectedBrand !== "Tất cả thương hiệu";
+  const isProductTypeActive = selectedProductType !== "Tất cả loại sản phẩm";
+  const isStatusActive = selectedStatus !== "Tất cả trạng thái";
 
   const activeFilterCount =
     (isCategoryActive ? 1 : 0) +
@@ -102,10 +71,10 @@ export default function DanhSachSanPham() {
   const isFiltered = activeFilterCount > 0;
 
   const handleClearFilters = () => {
-    setSelectedCategory("Danh mục");
-    setSelectedBrand("Thương hiệu");
-    setSelectedProductType("Loại sản phẩm");
-    setSelectedStatus("Trạng thái bán");
+    setSelectedCategory("Tất cả danh mục");
+    setSelectedBrand("Tất cả thương hiệu");
+    setSelectedProductType("Tất cả loại sản phẩm");
+    setSelectedStatus("Tất cả trạng thái");
     setCurrentPage(1);
   };
 
@@ -134,6 +103,16 @@ export default function DanhSachSanPham() {
     setCurrentPage(1);
   };
 
+  const filterFields = [
+    { id: 'filter-danh-muc', label: 'Danh mục', value: selectedCategory, onSelect: handleCategoryChange,
+      options: ['Tất cả danh mục', ...categoryLookup.map(item => item.name).sort((a, b) => a.localeCompare(b, 'vi'))] },
+    { id: 'filter-thuong-hieu', label: 'Thương hiệu', value: selectedBrand, onSelect: handleBrandChange,
+      options: ['Tất cả thương hiệu', ...brandLookup.map(item => item.name).sort((a, b) => a.localeCompare(b, 'vi'))] },
+    { id: 'filter-loai-san-pham', label: 'Loại sản phẩm', value: selectedProductType, onSelect: handleProductTypeChange, options: productTypeOptions },
+    { id: 'filter-trang-thai-ban', label: 'Trạng thái bán', value: selectedStatus, onSelect: handleStatusChange, options: statusOptions },
+  ];
+  const activeFilters = filterFields.filter(field => field.value !== field.options[0]);
+
   const categoryId = categoryLookup.find(
     (item) => item.name === selectedCategory,
   )?.id;
@@ -151,7 +130,7 @@ export default function DanhSachSanPham() {
         ? 0
         : null;
 
-  // Load lookup IDs without replacing the existing visible dropdown labels or options.
+  // Use the same lookup records for dropdown choices and API IDs.
   useEffect(() => {
     let active = true;
     Promise.all([getAllCategories(), getAllBrands()])
@@ -297,6 +276,7 @@ export default function DanhSachSanPham() {
               value={searchTerm}
               onChange={handleSearchChange}
               id="search-products"
+              aria-label="Tìm kiếm theo tên hoặc mã sản phẩm"
             />
           </div>
 
@@ -307,6 +287,7 @@ export default function DanhSachSanPham() {
             onClick={() => setIsFilterPanelOpen((prev) => !prev)}
             id="btn-filter-utility"
             aria-expanded={isFilterPanelOpen}
+            aria-controls="product-filter-panel"
           >
             <HiOutlineFilter size={15} />
             <span>Bộ lọc</span>
@@ -319,74 +300,45 @@ export default function DanhSachSanPham() {
         </div>
       </div>
 
-      {/* Collapsible 4-dropdown row with black divider between search and dropdowns */}
       {isFilterPanelOpen && (
-        <>
-          <div className="product-divider" aria-hidden="true" />
-          <div className="product-dropdowns-row">
-            <div className="product-dropdowns-group">
-              {/* Dropdown 1: Danh mục */}
-              <FilterDropdown
-                id="filter-danh-muc"
-                options={categoryOptions}
-                value={selectedCategory}
-                onSelect={handleCategoryChange}
-                className="product-dropdown"
-                selectedDark
-              />
-
-              {/* Dropdown 2: Thương hiệu */}
-              <FilterDropdown
-                id="filter-thuong-hieu"
-                options={brandOptions}
-                value={selectedBrand}
-                onSelect={handleBrandChange}
-                className="product-dropdown"
-                selectedDark
-              />
-
-              {/* Dropdown 3: Loại sản phẩm */}
-              <FilterDropdown
-                id="filter-loai-san-pham"
-                options={productTypeOptions}
-                value={selectedProductType}
-                onSelect={handleProductTypeChange}
-                className="product-dropdown"
-                selectedDark
-              />
-
-              {/* Dropdown 4: Trạng thái bán */}
-              <FilterDropdown
-                id="filter-trang-thai-ban"
-                options={statusOptions}
-                value={selectedStatus}
-                onSelect={handleStatusChange}
-                className="product-dropdown"
-                selectedDark
-              />
-
-              {/* Conditional "Xóa lọc" button inline */}
-              {isFiltered && (
-                <button
-                  type="button"
-                  className="product-clear-filter-btn"
-                  onClick={handleClearFilters}
-                  id="btn-clear-product-filters"
-                >
-                  Xóa lọc
-                </button>
-              )}
-            </div>
-
-            {/* Dynamic result count text at far right */}
-            <div
-              className="product-dropdowns-count"
-              id="product-filtered-count"
-            >
-              {totalFilteredCount} kết quả
-            </div>
+        <section className="product-filter-panel" id="product-filter-panel" aria-label="Bộ lọc sản phẩm">
+          <div className="product-dropdowns-group">
+            {filterFields.map(field => (
+              <div className="product-filter-field" key={field.id}>
+                <span className="product-filter-field__label">{field.label}</span>
+                <FilterDropdown
+                  id={field.id}
+                  options={field.options}
+                  value={field.value}
+                  onSelect={field.onSelect}
+                  className="product-dropdown"
+                  selectedDark
+                />
+              </div>
+            ))}
           </div>
-        </>
+        </section>
+      )}
+
+      {isFiltered && (
+        <div className="product-active-filters" aria-label="Điều kiện đang lọc">
+          <span className="product-active-filters__label">ĐANG LỌC</span>
+          {activeFilters.map(field => (
+            <button
+              type="button"
+              className="product-filter-chip"
+              key={field.id}
+              onClick={() => field.onSelect(field.options[0])}
+              aria-label={'Bỏ lọc ' + field.label + ': ' + field.value}
+            >
+              <span>{field.label}: <strong>{field.value}</strong></span>
+              <HiOutlineX size={14} aria-hidden="true" />
+            </button>
+          ))}
+          <button type="button" className="product-clear-filter-btn" onClick={handleClearFilters} id="btn-clear-product-filters">
+            Xóa tất cả bộ lọc
+          </button>
+        </div>
       )}
 
       {/* Full-width black divider above table */}

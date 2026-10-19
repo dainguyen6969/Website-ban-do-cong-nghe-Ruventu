@@ -1,4 +1,5 @@
 import { adminRequest } from '../../catalog/products/api/versionApi.js';
+import { comboSerialRequirements } from '../../sales/state/salesState.js';
 
 const SALES_PATH = '/api/v1/admin/sales';
 
@@ -82,9 +83,11 @@ export function buildPosCheckoutBody(order, options, confirmedTotal, paymentDate
   const cash = order.paymentMethod === 'cash';
   return {
     ...posBody(order, options), nhan_vien_id: order.employee?.id || null,
-    phan_bo_serial: [...order.cart.filter((line) => line.serials?.length).map((line) => ({
+    phan_bo_serial: [...order.cart.filter((line) => line.product.type !== 'BO_PC' && line.serials?.length).map((line) => ({
       ma_dong: `d${line.product.id}`, phien_ban_id: line.product.id,
       serial_ids: line.serials.map((serial) => serial.id),
+    })), ...comboSerialRequirements(order.cart, order.preview?.data).filter(group => group.serials.length).map(group => ({
+      ma_dong: `d${group.productId}`, phien_ban_id: group.variantId, serial_ids: group.serials.map(serial => serial.id),
     })), ...(order.preview?.data.san_pham || []).filter(line => line.la_qua_tang).flatMap(line =>
       line.serial_requirements.filter(requirement => order.giftSerials?.[`${line.ma_dong}:${requirement.phien_ban_id}`]?.length).map(requirement => ({
         ma_dong: line.ma_dong, phien_ban_id: requirement.phien_ban_id,

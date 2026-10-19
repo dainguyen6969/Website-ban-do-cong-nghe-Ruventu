@@ -103,7 +103,7 @@ export default function ProductCard({ product }) {
 
       <div className="product-info">
         <div className="product-header">
-          <h4 className="product-title" onClick={handleViewDetails}>
+          <h4 className="product-title" title={product.title} onClick={handleViewDetails}>
             {product.title}
           </h4>
 

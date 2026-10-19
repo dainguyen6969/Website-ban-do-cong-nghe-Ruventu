@@ -28,7 +28,9 @@
 .order-products-table { width: 100%; min-width: 760px; border-collapse: collapse; }
 .order-products-table th { height: 31px; padding: 5px 6px; border-bottom: 1px solid #d7d7d7; color: #858c95; font-size: 8px; font-weight: 800; text-align: left; white-space: nowrap; }
 .order-products-table td { min-height: 58px; padding: 10px 6px; border-bottom: 1px solid #e5e5e5; color: #222; font-size: 9px; vertical-align: middle; }
-.order-products-table td img { width: 42px; height: 42px; object-fit: contain; border: 1px solid #ddd; background: #f6f6f6; }
+.order-products-table th:first-child, .order-products-table td:first-child { width: 54px; min-width: 54px; }
+.order-products-table td img { display: block; width: 42px; height: 42px; object-fit: contain; border: 1px solid #ddd; background: #f6f6f6; }
+.order-products-table .order-product-no-image { width: 42px; margin: 0; font-size: 9px; text-align: center; }
 .order-products-table td strong { display: block; color: #070707; font-size: 10px; font-weight: 900; }
 .order-products-table td span { display: block; margin-top: 4px; color: #858c95; }
 .order-products-table .align-right { text-align: right; }
