@@ -39,6 +39,8 @@ public interface PhienBanSanPhamRepository
     Long getTonCoTheBan();
 
     String getThongSoKyThuat();
+
+    Integer getBaoHanhThang();
   }
 
   interface PcBuilderBrand {
@@ -86,7 +88,8 @@ public interface PhienBanSanPhamRepository
                    a.thu_tu_hien_thi ASC, a.id ASC LIMIT 1) AS anhDaiDien,
         b.id AS thuongHieuId, b.ten_thuong_hieu AS tenThuongHieu,
         v.gia_ban_le AS giaBanLe, COALESCE(stock.available, 0) AS tonCoTheBan,
-        p.thong_so_ky_thuat AS thongSoKyThuat
+        p.thong_so_ky_thuat AS thongSoKyThuat,
+            p.thoi_han_bao_hanh_thang AS baoHanhThang
       """
               + PC_BUILDER_FROM_WHERE
               + """

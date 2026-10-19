@@ -120,6 +120,10 @@ public final class AdminSalesRequest {
     @NotNull
     @JsonProperty("loai_don_hang")
     private LoaiDonHang loaiDonHang;
+
+    @Positive
+    @JsonProperty("don_hang_id")
+    private Long donHangId;
   }
 
   @Getter
@@ -165,6 +169,10 @@ public final class AdminSalesRequest {
     @Digits(integer = 13, fraction = 2)
     @JsonProperty("tong_thanh_toan_xac_nhan")
     private BigDecimal tongThanhToanXacNhan;
+
+    @Size(max = 100)
+    @JsonProperty("ma_xac_nhan_gia")
+    private String maXacNhanGia;
   }
 
   @Getter
@@ -245,5 +253,10 @@ public final class AdminSalesRequest {
     @Valid
     @JsonProperty("thanh_toan")
     private Payment thanhToan;
+
+    @NotBlank
+    @Size(max = 100)
+    @JsonProperty("ma_xac_nhan_gia")
+    private String maXacNhanGia;
   }
 }

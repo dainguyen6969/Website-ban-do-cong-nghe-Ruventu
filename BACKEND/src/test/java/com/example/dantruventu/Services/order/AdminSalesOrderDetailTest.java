@@ -13,7 +13,6 @@ import com.example.dantruventu.Entity.PhieuGiaoHang;
 import com.example.dantruventu.Entity.SanPham;
 import com.example.dantruventu.Entity.SoQuyThuChi;
 import com.example.dantruventu.Enum.*;
-import com.example.dantruventu.Mapper.order.AdminDeliveryMapper;
 import com.example.dantruventu.Mapper.order.AdminSalesMapper;
 import com.example.dantruventu.Repository.cashbook.SoQuyThuChiRepository;
 import com.example.dantruventu.Repository.order.ChiTietDonHangRepository;
@@ -22,7 +21,8 @@ import com.example.dantruventu.Repository.order.PhieuGiaoHangRepository;
 import com.example.dantruventu.Repository.warehouse.SoSerialSanPhamRepository;
 import com.example.dantruventu.Services.catalog.CatalogSupport;
 import com.example.dantruventu.Services.order.sales.AdminSalesService;
-import com.example.dantruventu.Services.order.sales.SalesCalculationService;
+import com.example.dantruventu.Services.order.sales.OrderSaleSnapshotService;
+import com.example.dantruventu.Services.order.sales.SoldDeviceService;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
@@ -46,8 +46,8 @@ class AdminSalesOrderDetailTest {
   @Mock PhieuGiaoHangRepository deliveryRepository;
   @Mock SoQuyThuChiRepository cashRepository;
   @Mock CatalogSupport catalogSupport;
-  @Mock AdminDeliveryMapper deliveryMapper;
-  @Mock SalesCalculationService calculation;
+  @Mock OrderSaleSnapshotService saleSnapshots;
+  @Mock SoldDeviceService soldDevices;
   @InjectMocks AdminSalesService service;
 
   @ParameterizedTest
@@ -80,7 +80,14 @@ class AdminSalesOrderDetailTest {
       when(mapper.toOrder(eq(order), any())).thenReturn(new AdminSalesResponse.Order());
     }
     when(orderLineRepository.findByDonHang_IdOrderByIdAsc(9L)).thenReturn(lines);
-    when(deliveryMapper.toProduct(any())).thenAnswer(invocation -> new ProductData());
+    when(saleSnapshots.product(any()))
+        .thenAnswer(
+            invocation -> {
+              var item = new ProductData();
+              item.setTenSanPham("Tên sản phẩm lúc bán");
+              item.setDonGia(BigDecimal.TEN);
+              return item;
+            });
     when(catalogSupport.primaryImages(List.of(12L, 13L))).thenReturn(Map.of(12L, "/image.jpg"));
 
     var products = service.getOrder(9L).getSanPham();
@@ -88,6 +95,8 @@ class AdminSalesOrderDetailTest {
     assertEquals("/image.jpg", products.get(0).getAnhDaiDien());
     assertEquals("/image.jpg", products.get(1).getAnhDaiDien());
     assertNull(products.get(2).getAnhDaiDien());
+    assertEquals("Tên sản phẩm lúc bán", products.get(0).getTenSanPham());
+    assertEquals(BigDecimal.TEN, products.get(0).getDonGia());
     verify(catalogSupport).primaryImages(List.of(12L, 13L));
   }
 
@@ -106,7 +115,6 @@ class AdminSalesOrderDetailTest {
     when(orderRepository.findById(9L)).thenReturn(Optional.of(order));
     when(mapper.toCheckout(eq(order), any())).thenReturn(response);
     when(orderLineRepository.findByDonHang_IdOrderByIdAsc(9L)).thenReturn(List.of());
-    when(serialRepository.findByDonHang_IdOrderByIdAsc(9L)).thenReturn(List.of());
     when(deliveryRepository.findByDonHang_IdOrderByIdAsc(9L)).thenReturn(List.of());
     when(cashRepository.findByMaPhieu("THU-POS-9")).thenReturn(Optional.of(receipt));
     when(mapper.toCashReceipt(receipt)).thenReturn(mapped);

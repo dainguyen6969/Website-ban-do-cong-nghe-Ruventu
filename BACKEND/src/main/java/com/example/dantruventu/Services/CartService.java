@@ -1,5 +1,7 @@
 package com.example.dantruventu.Services;
 
+import static com.example.dantruventu.Services.order.sales.SalesSupport.money;
+
 import com.example.dantruventu.DTO.Request.AddCartItemRequest;
 import com.example.dantruventu.DTO.Request.CartPcBuildRequest;
 import com.example.dantruventu.DTO.Request.PcBuilderPreviewRequest;
@@ -595,7 +597,7 @@ public class CartService {
       CartResponse cartResponse,
       String message) {
 
-    BigDecimal donGia = phienBan.getGiaBanLe();
+    BigDecimal donGia = money(phienBan.getGiaBanLe());
 
     BigDecimal thanhTien = donGia.multiply(BigDecimal.valueOf(soLuong));
 
@@ -698,7 +700,7 @@ public class CartService {
 
     boolean conHang = isActiveVariant(phienBan) && tonKhoKhaDung >= soLuong;
 
-    BigDecimal donGia = phienBan.getGiaBanLe();
+    BigDecimal donGia = money(phienBan.getGiaBanLe());
 
     BigDecimal thanhTien = donGia.multiply(BigDecimal.valueOf(soLuong));
 

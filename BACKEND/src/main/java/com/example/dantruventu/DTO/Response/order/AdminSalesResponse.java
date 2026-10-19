@@ -10,6 +10,7 @@ import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
+import tools.jackson.databind.JsonNode;
 
 public final class AdminSalesResponse {
 
@@ -76,11 +77,33 @@ public final class AdminSalesResponse {
 
     @JsonProperty("ton_co_the_ban")
     private long tonCoTheBan;
+
+    @JsonProperty("so_bo_co_the_lap")
+    private Long soBoCoTheLap;
+
+    @JsonProperty("thoi_han_bao_hanh_thang")
+    private Integer thoiHanBaoHanhThang;
+
+    @JsonProperty("bao_hanh_theo_linh_kien")
+    private Boolean baoHanhTheoLinhKien;
+
+    @JsonProperty("thuoc_tinh_phien_ban")
+    private List<com.example.dantruventu.DTO.catalog.CatalogFields.AttributeData> thuocTinhPhienBan;
+
+    @JsonProperty("thanh_phan")
+    private List<com.example.dantruventu.DTO.catalog.CatalogFields.ComboPart> thanhPhan;
   }
 
   public record SerialRequirement(
       @JsonProperty("phien_ban_id") Long phienBanId,
-      @JsonProperty("so_luong_can_serial") Integer soLuongCanSerial) {}
+      @JsonProperty("so_luong_can_serial") Integer soLuongCanSerial,
+      @JsonProperty("ten_san_pham") String tenSanPham,
+      @JsonProperty("ten_phien_ban") String tenPhienBan) {
+
+    public SerialRequirement(Long phienBanId, Integer soLuongCanSerial) {
+      this(phienBanId, soLuongCanSerial, null, null);
+    }
+  }
 
   public record PreviewLine(
       @JsonProperty("ma_dong") String maDong,
@@ -102,7 +125,7 @@ public final class AdminSalesResponse {
   @Getter
   @Setter
   @AllArgsConstructor
-  public static class Preview {
+  public static class Preview extends SalePreviewData {
 
     @JsonProperty("tong_tien_hang")
     private BigDecimal tongTienHang;
@@ -234,6 +257,18 @@ public final class AdminSalesResponse {
 
     @JsonProperty("ma_giao_dich_thanh_toan")
     private String maGiaoDichThanhToan;
+
+    @JsonProperty("khuyen_mai")
+    private AppliedPromotion khuyenMai;
+
+    @JsonProperty("ngay_hoan_thanh")
+    private OffsetDateTime ngayHoanThanh;
+
+    @JsonProperty("thiet_bi_da_giao")
+    private List<SoldDeviceData> thietBiDaGiao;
+
+    @JsonProperty("canh_bao_thiet_bi")
+    private String canhBaoThietBi;
   }
 
   @Getter
@@ -251,4 +286,14 @@ public final class AdminSalesResponse {
     @JsonProperty("phieu_thu")
     private CashReceipt phieuThu;
   }
+
+  public record AppliedPromotion(
+      Long id,
+      @JsonProperty("khuyen_mai_id") Long khuyenMaiId,
+      @JsonProperty("ma_chuong_trinh") String maChuongTrinh,
+      @JsonProperty("ten_chuong_trinh") String tenChuongTrinh,
+      @JsonProperty("so_tien_giam") BigDecimal soTienGiam,
+      @JsonProperty("trang_thai_ap_dung") TrangThaiApDungKhuyenMai trangThaiApDung,
+      @JsonProperty("du_lieu_ap_dung") JsonNode duLieuApDung,
+      @JsonProperty("canh_bao_du_lieu") String canhBaoDuLieu) {}
 }

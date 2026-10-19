@@ -17,6 +17,7 @@ import com.example.dantruventu.Repository.order.ChiTietDonHangRepository;
 import com.example.dantruventu.Repository.order.DonHangRepository;
 import com.example.dantruventu.Repository.order.PhieuGiaoHangRepository;
 import com.example.dantruventu.Services.catalog.CatalogSupport;
+import com.example.dantruventu.Services.order.sales.OrderSaleSnapshotService;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
@@ -38,6 +39,7 @@ class AdminDeliveryPaymentTest {
   @Mock AdminOrderService orderService;
   @Mock ChiTietDonHangRepository orderLineRepository;
   @Mock CatalogSupport catalogSupport;
+  @Mock OrderSaleSnapshotService saleSnapshots;
   @Mock DeliveryInventoryService inventoryService;
   @InjectMocks AdminDeliveryService service;
 
@@ -54,7 +56,7 @@ class AdminDeliveryPaymentTest {
     when(deliveryRepository.findById(3L)).thenReturn(Optional.of(delivery));
     when(mapper.toDetail(eq(delivery), any())).thenReturn(new AdminDeliveryResponse.Detail());
     when(orderLineRepository.findByDonHang_IdOrderByIdAsc(1L)).thenReturn(List.of(line));
-    when(mapper.toProduct(line)).thenReturn(new AdminDeliveryResponse.ProductData());
+    when(saleSnapshots.product(line)).thenReturn(new AdminDeliveryResponse.ProductData());
     when(catalogSupport.primaryImages(List.of(12L))).thenReturn(Map.of(12L, "/image.jpg"));
 
     assertEquals("/image.jpg", service.getDetail(3L).getSanPham().get(0).getAnhDaiDien());

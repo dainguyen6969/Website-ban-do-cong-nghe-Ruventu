@@ -271,6 +271,18 @@ public final class AdminDeliveryResponse {
 
     @JsonProperty("thanh_phan")
     private List<CatalogFields.ComboPart> thanhPhan = List.of();
+
+    @JsonProperty("ma_dong")
+    private String maDong;
+
+    @JsonProperty("la_qua_tang")
+    private Boolean laQuaTang;
+
+    @JsonProperty("thanh_toan_dong")
+    private BigDecimal thanhToanDong;
+
+    @JsonProperty("canh_bao_du_lieu")
+    private String canhBaoDuLieu;
   }
 
   @Getter

@@ -12,11 +12,18 @@ import { orderService } from "../../shared/services/orderService";
 import {
   errorMessage,
   formatDateTimeVN,
+  withIdempotency,
 } from "../../shared/services/mutationUtils";
 
 import "./OrderDetailPage.css";
 import { customerOrderProgress } from "./customerOrderProgress";
 
+import {
+  OrderLineAmount,
+  OrderLineNotice,
+  OrderPromotionSummary,
+} from "../../shared/components/ui/OrderSaleDetails";
+import SoldDevices from "../../shared/components/ui/SoldDevices";
 import ComboContents from "../../shared/components/ui/ComboContents";
 
 const returnLabels = {
@@ -38,6 +45,7 @@ export default function OrderDetailPage() {
   const [dialog, setDialog] = useState(null);
 
   const busyRef = useRef(false);
+  const cancelAttempt = useRef(null);
 
   const loadReturns = useCallback(
     async (signal) => {
@@ -149,7 +157,19 @@ export default function OrderDetailPage() {
 
   const submitDialog = () => {
     if (dialog.type === "cancel") {
-      return run(() => orderService.cancelOrder(order.id, dialog.reason));
+      const body = cancelAttempt.current?.body || {
+        ly_do: dialog.reason.trim(),
+      };
+
+      return run(() =>
+        withIdempotency(
+          cancelAttempt,
+          `customer-cancel:${order.id}`,
+          body,
+          (key, frozenBody) =>
+            orderService.cancelOrder(order.id, frozenBody.ly_do, key),
+        ),
+      );
     }
 
     const lines = (order.san_pham || [])
@@ -277,7 +297,7 @@ export default function OrderDetailPage() {
                         <th scope="col">Sản phẩm</th>
                         <th scope="col">Đơn giá</th>
                         <th scope="col">Số lượng</th>
-                        <th scope="col">Thành tiền</th>
+                        <th scope="col">Khách trả</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -288,7 +308,12 @@ export default function OrderDetailPage() {
                               <OrderProductImage item={item} />
 
                               <div>
-                                <h3>{item.ten_san_pham}</h3>
+                                <h3>
+                                  {item.ten_san_pham ||
+                                    `Phiên bản #${item.phien_ban_id}`}
+                                </h3>
+
+                                <OrderLineNotice item={item} />
 
                                 <p>
                                   {item.loai_san_pham === "BO_PC"
@@ -309,10 +334,10 @@ export default function OrderDetailPage() {
                           <td data-label="Đơn giá">{money(item.don_gia)}</td>
                           <td data-label="Số lượng">{item.so_luong}</td>
                           <td
-                            data-label="Thành tiền"
+                            data-label="Khách trả"
                             className="customer-order-line-total"
                           >
-                            {money(item.thanh_tien)}
+                            <OrderLineAmount item={item} />
                           </td>
                         </tr>
                       ))}
@@ -331,7 +356,11 @@ export default function OrderDetailPage() {
                         disabled={busy || !canCancel}
                         onClick={() => {
                           setError("");
-                          setDialog({ type: "cancel", reason: "" });
+
+                          setDialog({
+                            type: "cancel",
+                            reason: cancelAttempt.current?.body?.ly_do || "",
+                          });
                         }}
                       >
                         HỦY ĐƠN HÀNG
@@ -349,6 +378,12 @@ export default function OrderDetailPage() {
                     </div>
                   </div>
                 </section>
+
+                <section className="customer-order-card">
+                  <h2>THIẾT BỊ VÀ BẢO HÀNH</h2>
+                  <SoldDevices order={order} />
+                </section>
+
                 <section className="customer-order-card customer-order-returns">
                   <h2>YÊU CẦU TRẢ HÀNG</h2>
                   {returnsError && (
@@ -430,12 +465,20 @@ export default function OrderDetailPage() {
                   </dl>
                 </section>
                 <section>
+                  <h2>KHUYẾN MẠI</h2>
+
+                  <OrderPromotionSummary order={order} />
+                </section>
+
+                <section>
                   <h2>CHI PHÍ ĐƠN HÀNG</h2>
+
                   <dl>
                     <div>
                       <dt>Tạm tính</dt>
                       <dd>{money(order.tong_tien_hang)}</dd>
                     </div>
+
                     <div>
                       <dt>Phí vận chuyển</dt>
                       <dd>
@@ -444,6 +487,7 @@ export default function OrderDetailPage() {
                           : money(order.phi_giao_hang)}
                       </dd>
                     </div>
+
                     <div>
                       <dt>Giảm giá</dt>
                       <dd>
@@ -452,11 +496,17 @@ export default function OrderDetailPage() {
                           : money(order.tien_chiet_khau)}
                       </dd>
                     </div>
+
                     <div>
                       <dt>VAT</dt>
-                      <dd>{money(order.tong_tien_vat)}</dd>
+                      <dd>
+                        {order.tong_tien_vat == null
+                          ? "—"
+                          : money(order.tong_tien_vat)}
+                      </dd>
                     </div>
                   </dl>
+
                   <div className="customer-order-grand-total">
                     <strong>TỔNG TIỀN</strong>
                     <strong>{money(order.tong_thanh_toan)}</strong>
@@ -539,6 +589,10 @@ export default function OrderDetailPage() {
               required
               maxLength={255}
               value={dialog.reason}
+              disabled={
+                busy ||
+                (dialog.type === "cancel" && Boolean(cancelAttempt.current))
+              }
               onChange={(event) => updateDialog("reason", event.target.value)}
             />
           </label>

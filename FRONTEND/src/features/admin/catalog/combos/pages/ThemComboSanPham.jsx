@@ -735,7 +735,7 @@ export default function ThemComboSanPham() {
               </div>
               <div className="combo-field">
                 <label>
-                  GIÁ NHẬP <i>*</i>
+                  GIÁ NHẬP (ĐỂ TRỐNG ĐỂ TÍNH THEO LINH KIỆN) <i>*</i>
                 </label>
                 <div className="unit-input">
                   <PriceInput
