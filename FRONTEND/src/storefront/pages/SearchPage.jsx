@@ -9,19 +9,22 @@ import {
   toProductCard,
 } from "../../shared/services/productService";
 import TablePagination from "../../shared/components/ui/TablePagination";
+import { catalogScopes, inCatalogScope } from './catalogModel';
 import "./SearchPage.css";
 
-const SearchPage = () => {
+const SearchPage = ({ categorySlug } = {}) => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const query = searchParams.get("q") || "";
+  const isCategory = categorySlug != null;
+  const categoryTitle = catalogScopes[categorySlug]?.title || 'Không tìm thấy danh mục';
 
   const [searchProducts, setSearchProducts] = useState([]);
   const [suggestedProducts, setSuggestedProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [page, setPage] = useState(1);
-  const [sortBy, setSortBy] = useState("relevance");
+  const [sortBy, setSortBy] = useState(isCategory ? "newest" : "relevance");
   const [isSortDropdownOpen, setIsSortDropdownOpen] = useState(false);
 
   // Filter states
@@ -52,8 +55,9 @@ const SearchPage = () => {
           params.sort = "ban_chay";
         }
 
-        const products = await productService.getAllProducts(params);
-        const recommended = products.length ? [] : (await productService.getProducts({ limit: 4, sort: 'moi_nhat' })).data.danhSachSanPham.map(toProductCard);
+        const catalog = await productService.getAllProducts(params);
+        const products = isCategory ? catalog.filter(product => inCatalogScope(product, categorySlug)) : catalog;
+        const recommended = products.length || isCategory ? [] : (await productService.getProducts({ limit: 4, sort: 'moi_nhat' })).data.danhSachSanPham.map(toProductCard);
         if (active) { setSearchProducts(products); setSuggestedProducts(recommended); setPage(1); }
       } catch (reason) {
         if (active) { setSearchProducts([]); setSuggestedProducts([]); setError(reason.response?.data?.message || reason.message || 'Không tải được sản phẩm.'); }
@@ -61,11 +65,15 @@ const SearchPage = () => {
     };
     loadProducts();
     return () => { active = false; };
-  }, [query, sortBy, minPrice, maxPrice, stockStatus]);
+  }, [query, sortBy, minPrice, maxPrice, stockStatus, categorySlug, isCategory]);
 
-  const filteredProducts = useMemo(() => searchProducts.filter(product =>
-    (!selectedBrands.length || selectedBrands.includes(product.brand)) &&
-    (!selectedCategories.length || selectedCategories.includes(product.category))), [searchProducts, selectedBrands, selectedCategories]);
+  const filteredProducts = useMemo(() => {
+    const products = searchProducts.filter(product =>
+      (!selectedBrands.length || selectedBrands.includes(product.brand)) &&
+      (!selectedCategories.length || selectedCategories.includes(product.category)));
+    if (sortBy === 'name-asc') products.sort((a, b) => a.title.localeCompare(b.title, 'vi'));
+    return products;
+  }, [searchProducts, selectedBrands, selectedCategories, sortBy]);
   const totalProducts = filteredProducts.length;
   const currentPage = Math.min(page, Math.max(1, Math.ceil(totalProducts / 20)));
   const facets = field => [...new Set(searchProducts.map(product => product[field]).filter(Boolean))].sort((a,b) => a.localeCompare(b,'vi')).map(name => ({ name, count: searchProducts.filter(product => product[field] === name).length }));
@@ -75,6 +83,7 @@ const SearchPage = () => {
     { value: "price-asc", label: "Giá thấp → cao" },
     { value: "price-desc", label: "Giá cao → thấp" },
     { value: "newest", label: "Mới nhất" },
+    { value: "name-asc", label: "Tên A–Z" },
     { value: "bestseller", label: "Bán chạy nhất" },
   ];
 
@@ -156,10 +165,10 @@ const handleSuggestKeyword = (k) => {
       {/* Search Header Banner */}
       <div className="search-banner">
         <div className="container">
-          <div className="search-query-info">
+          {isCategory ? <h1 className="catalog-listing-title">{categoryTitle}</h1> : <div className="search-query-info">
             Kết quả cho: <strong>"{query}"</strong> - {filteredProducts.length}{" "}
             sản phẩm
-          </div>
+          </div>}
         </div>
       </div>
 
@@ -167,7 +176,7 @@ const handleSuggestKeyword = (k) => {
         {/* Sidebar Filters */}
         <aside className="search-sidebar">
           <div className="filter-header-block">
-            <h3 className="filter-title">BỘ LỌC TÌM KIẾM</h3>
+            <h3 className="filter-title">{isCategory ? 'BỘ LỌC SẢN PHẨM' : 'BỘ LỌC TÌM KIẾM'}</h3>
             {hasActiveFilters && (
               <button className="clear-all-btn" onClick={clearAllFilters}>
                 XÓA TẤT CẢ
@@ -184,6 +193,8 @@ const handleSuggestKeyword = (k) => {
               <div className="price-inputs">
                 <input
                   type="text"
+                  inputMode="numeric"
+                  aria-label="Giá tối thiểu"
                   placeholder="Tối thiểu"
                   value={minPrice}
                   onChange={(e) => setMinPrice(e.target.value)}
@@ -191,6 +202,8 @@ const handleSuggestKeyword = (k) => {
                 <span className="price-separator">-</span>
                 <input
                   type="text"
+                  inputMode="numeric"
+                  aria-label="Giá tối đa"
                   placeholder="Tối đa"
                   value={maxPrice}
                   onChange={(e) => setMaxPrice(e.target.value)}
@@ -299,7 +312,7 @@ const handleSuggestKeyword = (k) => {
             <div className="toolbar-left">
               {totalProducts > 0 ? (
                 <span>
-                  <strong>{totalProducts}</strong> sản phẩm tìm thấy
+                  <strong>{totalProducts}</strong> {isCategory ? 'sản phẩm' : 'sản phẩm tìm thấy'}
                 </span>
               ) : (
                 <span>Không có kết quả</span>
@@ -377,18 +390,16 @@ const handleSuggestKeyword = (k) => {
                   <Search size={40} />
                 </div>
                 <div className="no-results-content">
-                  <h2>KHÔNG TÌM THẤY KẾT QUẢ NÀO PHÙ HỢP VỚI TỪ KHÓA</h2>
-                  <div className="keyword-badge">
+                  <h2>{isCategory ? 'KHÔNG CÓ SẢN PHẨM PHÙ HỢP VỚI BỘ LỌC' : 'KHÔNG TÌM THẤY KẾT QUẢ NÀO PHÙ HỢP VỚI TỪ KHÓA'}</h2>
+                  {!isCategory && <div className="keyword-badge">
                     <Search size={16} />
                     <span>"{query}"</span>
-                  </div>
+                  </div>}
                   <p>
-                    Hệ thống không tìm thấy sản phẩm nào phù hợp. Thử kiểm tra
-                    lại chính tả, dùng từ khóa ngắn hơn, hoặc tìm theo tên
-                    thương hiệu / danh mục.
+                    {isCategory ? 'Thử thay đổi khoảng giá, thương hiệu hoặc xóa bộ lọc để xem thêm sản phẩm trong danh mục.' : 'Hệ thống không tìm thấy sản phẩm nào phù hợp. Thử kiểm tra lại chính tả, dùng từ khóa ngắn hơn, hoặc tìm theo tên thương hiệu / danh mục.'}
                   </p>
 
-                  <div className="suggested-keywords">
+                  {!isCategory && <div className="suggested-keywords">
                     {suggestedKeywords.map((k) => (
                       <button
                         key={k}
@@ -398,7 +409,7 @@ const handleSuggestKeyword = (k) => {
                         {k}
                       </button>
                     ))}
-                  </div>
+                  </div>}
 
                   {hasActiveFilters && (
                     <button
@@ -412,7 +423,7 @@ const handleSuggestKeyword = (k) => {
               </div>
 
               {/* Recommended Products when no results */}
-              <div className="recommended-section">
+              {suggestedProducts.length > 0 && <div className="recommended-section">
                 <div className="recommended-header">
                   <h3>
                     <span>|</span> SẢN PHẨM NỔI BẬT
@@ -424,7 +435,7 @@ const handleSuggestKeyword = (k) => {
                     <ProductCard key={index} product={product} />
                   ))}
                 </div>
-              </div>
+              </div>}
             </div>
           )}
         </div>

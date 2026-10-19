@@ -161,7 +161,19 @@
   font-size: 9px;
   vertical-align: middle;
 }
+.order-products-table th:first-child,
+.order-products-table td:first-child {
+  width: 54px;
+  min-width: 54px;
+}
+.order-products-table .order-product-no-image {
+  width: 42px;
+  margin: 0;
+  font-size: 9px;
+  text-align: center;
+}
 .order-products-table td img {
+  display: block;
   width: 42px;
   height: 42px;
   object-fit: contain;

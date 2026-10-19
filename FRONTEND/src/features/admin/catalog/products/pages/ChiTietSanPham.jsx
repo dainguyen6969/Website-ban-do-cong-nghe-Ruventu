@@ -276,6 +276,9 @@ export default function ChiTietSanPham() {
               </tr>
             </thead>
             <tbody>
+              {!product.specs?.length && (
+                <tr><td colSpan={2}>Chưa có thông số kỹ thuật cho sản phẩm này.</td></tr>
+              )}
               {(product.specs || []).map((spec, index) => (
                 <tr key={spec.id || index}>
                   <td>{spec.name}</td>

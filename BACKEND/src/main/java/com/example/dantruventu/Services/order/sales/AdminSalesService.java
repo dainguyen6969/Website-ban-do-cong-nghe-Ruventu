@@ -647,7 +647,22 @@ public class AdminSalesService {
 
     var lines = orderLineRepository.findByDonHang_IdOrderByIdAsc(order.getId());
 
-    response.setSanPham(lines.stream().map(saleSnapshots::product).toList());
+    var images =
+        catalogSupport.primaryImages(
+            lines.stream()
+                .map(line -> line.getPhienBan().getSanPham().getId())
+                .distinct()
+                .toList());
+
+    response.setSanPham(
+        lines.stream()
+            .map(
+                line -> {
+                  var item = saleSnapshots.product(line);
+                  item.setAnhDaiDien(images.get(line.getPhienBan().getSanPham().getId()));
+                  return item;
+                })
+            .toList());
 
     response.setKhuyenMai(saleSnapshots.appliedPromotion(order.getId()));
 
