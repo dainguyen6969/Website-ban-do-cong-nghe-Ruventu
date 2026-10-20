@@ -73,6 +73,8 @@ public class AdminSalesService {
   private final SoldDeviceService soldDevices;
   private final CatalogSupport catalogSupport;
 
+  private final OrderDeviceHistoryService deviceHistory;
+
   public AdminSalesResponse.Options options() {
 
     NguoiDung actor = context.actor();
@@ -670,6 +672,13 @@ public class AdminSalesService {
     response.setSerials(soldDevices.originalSerials(order.getId()));
 
     response.setThietBiDaGiao(soldDevices.details(order.getId()));
+
+    var historyView = deviceHistory.read(order);
+
+    response.setThietBiDaBan(historyView.originals());
+    response.setThietBiHienHanh(historyView.current());
+    response.setCanXacMinhLichSu(historyView.needsVerification());
+    response.setCanhBao(historyView.warnings());
 
     response.setCanhBaoThietBi(soldDevices.warning(order));
 

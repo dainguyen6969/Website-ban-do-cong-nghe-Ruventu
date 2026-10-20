@@ -168,7 +168,7 @@ public class AdminDeliveryService {
         delivery.getId(),
         delivery.getMaPhieuGiaoHang(),
         delivery.getTrangThaiGiaoHang(),
-        mapper.toOrder(order),
+        mapper.toOrder(order, zone()),
         warehouse,
         "HOAN_GIAO_HANG",
         reasons.isEmpty(),
@@ -282,6 +282,8 @@ public class AdminDeliveryService {
     DonHang order = delivery.getDonHang();
     TrangThaiGiaoHangEnum source = delivery.getTrangThaiGiaoHang();
 
+    var promotionBefore = saleSnapshots.appliedPromotion(order.getId());
+
     // Gửi lại đúng bước đã xử lý: trả dữ liệu, không xử lý tiền lần hai.
     if (source == target
         || (source == TrangThaiGiaoHangEnum.CHO_HOAN_HANG
@@ -355,7 +357,42 @@ public class AdminDeliveryService {
         description + "; phiếu " + delivery.getMaPhieuGiaoHang());
     deliveryRepository.flush();
 
-    return mapper.toAction(delivery, zone());
+    Action response = mapper.toAction(delivery, zone());
+
+    var promotionAfter = saleSnapshots.appliedPromotion(order.getId());
+    response.setKhuyenMai(promotionAfter);
+
+    Map<String, Object> usage = new LinkedHashMap<>();
+    usage.put(
+        "trang_thai_truoc", promotionBefore == null ? null : promotionBefore.trangThaiApDung());
+    usage.put("trang_thai_sau", promotionAfter == null ? null : promotionAfter.trangThaiApDung());
+
+    boolean consumed =
+        promotionBefore != null
+            && promotionAfter != null
+            && promotionBefore.trangThaiApDung() == TrangThaiApDungKhuyenMai.GIU_CHO
+            && promotionAfter.trangThaiApDung() == TrangThaiApDungKhuyenMai.DA_SU_DUNG;
+
+    usage.put("tang_so_luong_da_dung", consumed ? 1 : 0);
+    response.setCapNhatLuot(usage);
+
+    boolean customerCodCollected =
+        target == TrangThaiGiaoHangEnum.GIAO_THANH_CONG
+            && delivery.getTienThuHoCod() != null
+            && delivery.getTienThuHoCod().signum() > 0;
+
+    Map<String, Object> settlement = new LinkedHashMap<>();
+    settlement.put("nguon", customerCodCollected ? "DOI_TAC_GIAO_HANG" : null);
+    settlement.put(
+        "so_tien_da_thu_cod", customerCodCollected ? delivery.getTienThuHoCod() : BigDecimal.ZERO);
+    settlement.put("phieu_thu_moi", null);
+    settlement.put(
+        "can_doi_soat_doi_tac",
+        customerCodCollected
+            && order.getTrangThaiThanhToan() == TrangThaiThanhToanDonHang.CHUA_THANH_TOAN);
+
+    response.setThanhToanGiaoHang(settlement);
+    return response;
   }
 
   @Transactional(isolation = Isolation.READ_COMMITTED)
@@ -944,6 +981,8 @@ public class AdminDeliveryService {
 
     Action response = mapper.toAction(delivery, zone());
     response.setPhieuTraHang(returnData(returnDocument));
+
+    response.setKhuyenMai(saleSnapshots.appliedPromotion(delivery.getDonHang().getId()));
 
     return response;
   }

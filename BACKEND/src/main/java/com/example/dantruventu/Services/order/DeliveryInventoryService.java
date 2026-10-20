@@ -36,6 +36,7 @@ public class DeliveryInventoryService {
   private final OrderSaleSnapshotService saleSnapshots;
   private final SoldDeviceService soldDevices;
   private final EntityManager entityManager;
+  private final OrderInventoryService orderInventory;
 
   @Value("${ruventu.inventory.default-warehouse-id:1}")
   private Long defaultWarehouseId;
@@ -104,7 +105,7 @@ public class DeliveryInventoryService {
               - stock.getHangLoi()
               - stock.getSoLuongGiuChoBaoHanh()
               - stock.getTonCoTheBan();
-      Long expectedHeld = orderLineRepository.sumReservedQuantity(variantId);
+      Long expectedHeld = orderInventory.expectedHeld(variantId);
 
       if (expectedHeld == null || held != expectedHeld || held < quantity) {
         throw conflict(

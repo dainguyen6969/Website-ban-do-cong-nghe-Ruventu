@@ -34,7 +34,18 @@ public class CashbookService {
 
   // Mã cấu hình mà các nghiệp vụ nguồn dùng để tự động lập phiếu.
   public static final Set<String> SYSTEM_RESERVED_TYPE_CODES =
-      Set.of("THU_BAN_HANG", "THU_HOAN_NCC", "CHI_NHAP_HANG", "CHI_HOAN_DON_HANG");
+      Set.of(
+          "THU_BAN_HANG",
+          "THU_HOAN_NCC",
+          "CHI_NHAP_HANG",
+          "CHI_HOAN_DON_HANG",
+          "BH-THU",
+          "BH-CHI",
+          "THU_KHACH_BAO_HANH",
+          "HOAN_KHACH_BAO_HANH",
+          "CHI_DON_VI_BAO_HANH",
+          "THU_HOAN_DON_VI_BAO_HANH",
+          "HOAN_TIEN_TRA_HANG");
 
   private static final ZoneId CASHBOOK_ZONE = ZoneId.of("Asia/Ho_Chi_Minh");
 
@@ -67,7 +78,10 @@ public class CashbookService {
       OffsetDateTime ngayGhiNhan,
       String moTa,
       String tags,
-      NguoiDung nguoiTao) {}
+      NguoiDung nguoiTao,
+      HoaDonBaoHanh hoaDonBaoHanh,
+      PhieuBaoHanh phieuBaoHanh,
+      PhieuTraHang phieuTraHang) {}
 
   @Transactional(propagation = Propagation.MANDATORY)
   public SoQuyThuChi createAutomatic(AutomaticVoucher command) {
@@ -98,6 +112,8 @@ public class CashbookService {
     BigDecimal amount = normalizeAmount(command.soTien());
 
     LocalDateTime occurredAt = normalizeOccurredAt(command.ngayGhiNhan());
+
+    validateSourceLinks(command, occurredAt);
 
     String counterpartyName = resolveCounterpartyName(command);
 
@@ -141,6 +157,9 @@ public class CashbookService {
             .moTa(command.moTa())
             .tags(tags)
             .nguoiTao(command.nguoiTao())
+            .hoaDonBaoHanh(command.hoaDonBaoHanh())
+            .phieuBaoHanh(command.phieuBaoHanh())
+            .phieuTraHang(command.phieuTraHang())
             .nguonTao(NguonTaoPhieuThuChi.TU_DONG)
             .trangThai(TrangThaiPhieuThuChi.DA_GHI_NHAN)
             .build();
@@ -222,6 +241,102 @@ public class CashbookService {
     idempotencyRepository.complete(key, serialize(result));
 
     return result;
+  }
+
+  private void validateSourceLinks(AutomaticVoucher command, LocalDateTime occurredAt) {
+
+    var invoice = command.hoaDonBaoHanh();
+    var warranty = command.phieuBaoHanh();
+    var returned = command.phieuTraHang();
+
+    if (returned != null && (invoice != null || warranty != null)) {
+      throw invalid("Phiếu trả hàng không được trộn liên kết bảo hành");
+    }
+
+    if (invoice != null) {
+      requirePersistedId(invoice.getId(), "Hóa đơn bảo hành");
+
+      if (warranty == null
+          || !Objects.equals(invoice.getPhieuBaoHanh().getId(), warranty.getId())) {
+        throw invalid("Hóa đơn không thuộc phiếu bảo hành đã liên kết");
+      }
+    }
+
+    if (warranty != null) {
+      requirePersistedId(warranty.getId(), "Phiếu bảo hành");
+    }
+
+    if (returned != null) {
+      requirePersistedId(returned.getId(), "Phiếu trả hàng");
+
+      if (command.loaiPhieu() != LoaiPhieuThuChi.CHI
+          || command.nhomNguoiNopNhan() != NhomNguoiNopNhanEnum.KHACH_HANG
+          || returned.getTrangThaiTraHang() != TrangThaiTraHang.DA_NHAN_HANG) {
+        throw conflict("Phiếu trả chưa đủ điều kiện ghi nhận hoàn tiền");
+      }
+
+      if (returned.getNgayNhanHang() == null || occurredAt.isBefore(returned.getNgayNhanHang())) {
+        throw invalid("Ngày hoàn tiền phải từ thời điểm đã nhận hàng trả");
+      }
+
+      if (returned.getTongTienHoan() == null
+          || command.soTien().compareTo(returned.getTongTienHoan()) != 0) {
+        throw conflict("MVP phải hoàn đủ khoản tiền của phiếu trả");
+      }
+    }
+  }
+
+  public static boolean protectedVoucher(SoQuyThuChi voucher) {
+    return voucher.getNguonTao() != NguonTaoPhieuThuChi.THU_CONG
+        || voucher.getHoaDonBaoHanh() != null
+        || voucher.getPhieuBaoHanh() != null
+        || voucher.getPhieuTraHang() != null;
+  }
+
+  public static String sourceBusiness(SoQuyThuChi voucher) {
+    boolean warranty = voucher.getHoaDonBaoHanh() != null || voucher.getPhieuBaoHanh() != null;
+
+    if (voucher.getPhieuTraHang() != null) {
+      return !warranty
+              && voucher.getLoaiPhieu() == LoaiPhieuThuChi.CHI
+              && voucher.getNhomNguoiNopNhan() == NhomNguoiNopNhanEnum.KHACH_HANG
+          ? "HOAN_TIEN_TRA_HANG"
+          : null;
+    }
+
+    if (!warranty) return null;
+
+    if (voucher.getNhomNguoiNopNhan() == NhomNguoiNopNhanEnum.KHACH_HANG) {
+      return voucher.getLoaiPhieu() == LoaiPhieuThuChi.THU
+          ? "THU_KHACH_BAO_HANH"
+          : "HOAN_KHACH_BAO_HANH";
+    }
+
+    if (voucher.getNhomNguoiNopNhan() == NhomNguoiNopNhanEnum.NHA_CUNG_CAP) {
+      return voucher.getLoaiPhieu() == LoaiPhieuThuChi.THU
+          ? "THU_HOAN_DON_VI_BAO_HANH"
+          : "CHI_DON_VI_BAO_HANH";
+    }
+
+    return null;
+  }
+
+  public static String uuidKey(String prefix, String value) {
+    try {
+      var uuid = java.util.UUID.fromString(value);
+
+      if (!uuid.toString().equalsIgnoreCase(value)) {
+        throw new IllegalArgumentException();
+      }
+
+      return prefix + uuid;
+    } catch (IllegalArgumentException | NullPointerException exception) {
+      throw new AppException(
+          ErrorCode.INVALID_DATA,
+          "Idempotency-Key",
+          "IDEMPOTENCY_KEY_INVALID",
+          "Idempotency-Key phải là UUID hợp lệ");
+    }
   }
 
   private String resolveCounterpartyName(AutomaticVoucher command) {

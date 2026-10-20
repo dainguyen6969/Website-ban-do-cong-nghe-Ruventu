@@ -378,7 +378,11 @@ public class AdminOrderService {
     }
 
     recordHistory(order, "BAT_DAU_DONG_GOI", "Bắt đầu đóng gói");
-    return action(order);
+
+    var response = action(order);
+    response.setKhoHangId(context.defaultWarehouseId());
+    response.setHangGiu(inventory.reservationRows(order, false));
+    return response;
   }
 
   @Transactional(isolation = Isolation.READ_COMMITTED)
@@ -583,6 +587,7 @@ public class AdminOrderService {
         order.getTrangThaiDonHang(),
         order.getTrangThaiDongGoi(),
         order.getTrangThaiXuatKho(),
+        context.defaultWarehouseId(),
         plan.requirements());
   }
 
@@ -693,7 +698,11 @@ public class AdminOrderService {
     order.setTrangThaiDonHang(TrangThaiDonHang.CHO_LAY_HANG);
 
     recordHistory(order, "XUAT_KHO", "Xuất kho đơn hàng");
-    return action(order);
+
+    var response = action(order);
+    response.setKhoHangId(context.defaultWarehouseId());
+    response.setThietBiDaXuat(soldDevices.details(order.getId()));
+    return response;
   }
 
   @Transactional(isolation = Isolation.READ_COMMITTED)
@@ -945,10 +954,13 @@ public class AdminOrderService {
 
     inventory.requireNoExport(order);
 
+    boolean hadReservation = hasReservation(order);
+    var moneyEvidence = failedDeliveryMoney(order);
+
     var deliveries = lockDeliveries(order);
     cancelWaitingDeliveries(deliveries);
 
-    if (hasReservation(order)) {
+    if (hadReservation) {
       deliveryInventory.releaseReservation(order);
       order.setTrangThaiDongGoi(TrangThaiDongGoi.HUY_DONG_GOI);
     } else if (order.getTrangThaiDongGoi() != TrangThaiDongGoi.CHUA_DONG_GOI
@@ -964,7 +976,18 @@ public class AdminOrderService {
 
     // Giữ trạng thái thanh toán và các phiếu thu đã phát sinh.
     recordHistory(order, "HUY_DON", "Hủy đơn hàng trước xuất kho");
-    return action(order);
+
+    var response = action(order);
+
+    response.setGiaiPhongGiuKho(
+        hadReservation ? inventory.reservationRows(order, true) : List.of());
+
+    response.setTienCanDoiSoatHoan(
+        Boolean.TRUE.equals(moneyEvidence.get("co_du_can_cu"))
+            ? (BigDecimal) moneyEvidence.get("tong_tien_can_hoan")
+            : null);
+
+    return response;
   }
 
   @Transactional(isolation = Isolation.READ_COMMITTED)
@@ -1268,6 +1291,10 @@ public class AdminOrderService {
 
       return result;
     } catch (AppException exception) {
+      if (exception.getErrorCode().getStatus().is5xxServerError()) {
+        throw exception;
+      }
+
       return result;
     }
   }
