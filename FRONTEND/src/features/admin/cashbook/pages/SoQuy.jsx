@@ -74,7 +74,7 @@ export default function SoQuy() {
   });
 
   const [searchPerson, setSearchPerson] = useState(
-    () => params.get("ten_nguoi_nop_nhan") || params.get("keyword") || "",
+    () => params.get("ten_nguoi_nop_nhan") || "",
   );
 
   const [debouncedPerson, setDebouncedPerson] = useState(searchPerson);
@@ -466,6 +466,7 @@ export default function SoQuy() {
       )}
 
       <CashbookSourceFilters
+        extended
         value={sourceFilters}
         onChange={(nextFilters) => {
           setSourceFilters(nextFilters);

@@ -1215,33 +1215,8 @@ function OrderActionDialog({
           })}
         </>
       )}
+
       <p>{order.ma_don_hang}</p>
-
-      {dialog.type === "startDelivery" && (
-        <>
-          <label className="order-operation-field">
-            <span>ĐỐI TÁC VẬN CHUYỂN</span>
-            <select
-              required
-              value={dialog.partner}
-              onChange={(event) => change("partner", event.target.value)}
-            >
-              <option value="">— Chọn đối tác —</option>
-              {options.partners.map((partner) => (
-                <option key={partner.id} value={partner.id}>
-                  {partner.ten_doi_tac}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          {field("PHÍ TRẢ ĐỐI TÁC (đ)", "fee", "number", {
-            min: 0,
-            step: 1,
-            required: true,
-          })}
-        </>
-      )}
 
       {monetary && (
         <>
