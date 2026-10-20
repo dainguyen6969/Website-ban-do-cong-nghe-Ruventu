@@ -39,6 +39,7 @@ import com.example.dantruventu.Services.cashbook.CashbookService;
 import com.example.dantruventu.Specification.PhieuTraHangSpecification;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.ZoneId;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -121,9 +122,11 @@ public class AdminReturnService {
             .findByIdForUpdate(returnId)
             .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "Phiếu trả không tồn tại"));
 
-    if (returnSlip.getTrangThaiTraHang() == TrangThaiTraHang.DA_HOAN_TIEN) {
-      throw new AppException(ErrorCode.CONFLICT, "Phiếu trả đã hoàn tiền");
+    if (returnSlip.getTrangThaiTraHang() == TrangThaiTraHang.DA_HOAN_TIEN
+        || returnSlip.getTrangThaiTraHang() == TrangThaiTraHang.HOAN_TAT) {
+      throw new AppException(ErrorCode.CONFLICT, "Phiếu trả đã kết thúc");
     }
+
     if (returnSlip.getTrangThaiTraHang() != TrangThaiTraHang.DA_NHAN_HANG) {
       throw new AppException(ErrorCode.CONFLICT, "Phiếu trả chưa nhận hàng");
     }
@@ -164,13 +167,18 @@ public class AdminReturnService {
                 .ngayGhiNhan(request.getNgayHoanTien())
                 .moTa(description)
                 .nguoiTao(actor)
+                .phieuTraHang(returnSlip)
                 .build());
 
-    expense.setPhieuTraHang(returnSlip);
-    cashRepository.saveAndFlush(expense);
-
     returnSlip.setHinhThucHoanTien(paymentMethod);
-    returnSlip.setTrangThaiTraHang(TrangThaiTraHang.DA_HOAN_TIEN);
+    returnSlip.setTrangThaiTraHang(TrangThaiTraHang.HOAN_TAT);
+
+    returnSlip.setNgayKetThuc(
+        request
+            .getNgayHoanTien()
+            .atZoneSameInstant(ZoneId.of("Asia/Ho_Chi_Minh"))
+            .toLocalDateTime());
+
     returnRepository.saveAndFlush(returnSlip);
     orderEvents.changed(returnSlip.getDonHang().getId(), "REFUNDED");
 

@@ -269,6 +269,18 @@ public final class AdminSalesResponse {
 
     @JsonProperty("canh_bao_thiet_bi")
     private String canhBaoThietBi;
+
+    @JsonProperty("thiet_bi_da_ban")
+    private List<java.util.Map<String, Object>> thietBiDaBan;
+
+    @JsonProperty("thiet_bi_hien_hanh")
+    private List<java.util.Map<String, Object>> thietBiHienHanh;
+
+    @JsonProperty("can_xac_minh_lich_su")
+    private boolean canXacMinhLichSu;
+
+    @JsonProperty("canh_bao")
+    private List<String> canhBao;
   }
 
   @Getter

@@ -33,12 +33,15 @@ public interface AdminDeliveryMapper {
   @Mapping(target = "phieuTraHang", ignore = true)
   @Mapping(target = "khoNhan", ignore = true)
   @Mapping(target = "bienDongKho", ignore = true)
+  @Mapping(target = "khuyenMai", ignore = true)
+  @Mapping(target = "capNhatLuot", ignore = true)
+  @Mapping(target = "thanhToanGiaoHang", ignore = true)
   Action toAction(PhieuGiaoHang entity, @Context ZoneId zone);
 
   PartnerData toPartner(DoiTacVanChuyen entity);
 
   @Mapping(target = "khachHangId", source = "khachHang.id")
-  OrderData toOrder(DonHang entity);
+  OrderData toOrder(DonHang entity, @Context ZoneId zone);
 
   RecipientData toRecipient(DonHang entity);
 

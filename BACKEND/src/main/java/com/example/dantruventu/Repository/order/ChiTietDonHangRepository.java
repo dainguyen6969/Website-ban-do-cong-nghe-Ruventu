@@ -30,6 +30,27 @@ public interface ChiTietDonHangRepository extends JpaRepository<ChiTietDonHang, 
       """)
   List<ChiTietDonHang> findByDonHangIdForUpdate(@Param("orderId") Long orderId);
 
+  @EntityGraph(attributePaths = {"phienBan", "phienBan.sanPham", "donHang"})
+  @Query(
+      """
+    SELECT c
+    FROM ChiTietDonHang c
+    WHERE c.donHang.loaiDonHang =
+        com.example.dantruventu.Enum.LoaiDonHang.ONLINE
+      AND c.donHang.trangThaiDonHang IN (
+        com.example.dantruventu.Enum.TrangThaiDonHang.CHO_DONG_GOI,
+        com.example.dantruventu.Enum.TrangThaiDonHang.CHO_LAY_HANG
+      )
+      AND c.donHang.trangThaiDongGoi IN (
+        com.example.dantruventu.Enum.TrangThaiDongGoi.DANG_DONG_GOI,
+        com.example.dantruventu.Enum.TrangThaiDongGoi.DA_DONG_GOI
+      )
+      AND c.donHang.trangThaiXuatKho =
+        com.example.dantruventu.Enum.TrangThaiXuatKho.CHUA_XUAT_KHO
+    ORDER BY c.id
+    """)
+  List<ChiTietDonHang> findHeldLines();
+
   /*
    * MVP một kho.
    * Những đơn đang đóng gói/đã đóng gói nhưng chưa xuất phải giữ đủ hàng. (Sau này sẽ thay đổi lại thành đóng gói sẽ giữ hàng.)

@@ -10,7 +10,6 @@ import {
   confirmPickup,
   dateTime,
   exportOrder,
-  getExportVariant,
   getOrder,
   getOrderHistory,
   getOrderOptions,
@@ -222,38 +221,52 @@ export default function ChiTietDonHang() {
 
   const warehouseExport = async () => {
     try {
-      setState((s) => ({ ...s, busy: true, error: "" }));
+      setState((current) => ({
+        ...current,
+        busy: true,
+        error: "",
+      }));
+
       const requirements = await getSerialRequirements(order.id);
-      const variants = new Map(
-        await Promise.all(
-          [
-            ...new Set(
-              (requirements.items || []).flatMap((line) =>
-                line.serial_requirements.map((item) => item.phien_ban_id),
-              ),
-            ),
-          ].map(async (id) => [id, (await getExportVariant(id)).phien_ban]),
-        ),
-      );
-      const groups = (requirements.items || []).flatMap((line) =>
-        line.serial_requirements.map((requirement) => ({
-          lineId: line.chi_tiet_don_hang_id,
+      const warehouseId = Number(requirements.kho_hang_id);
+
+      if (!Number.isSafeInteger(warehouseId) || warehouseId <= 0) {
+        throw new Error("Chưa xác định được kho xuất của đơn hàng.");
+      }
+
+      const lines = requirements.items || [];
+
+      if (!lines.length) {
+        throw new Error("Đơn chưa có căn cứ hàng vật lý để xuất.");
+      }
+
+      const groups = lines.flatMap((line) =>
+        (line.serial_requirements || []).map((requirement) => ({
           ...requirement,
+          lineId: line.chi_tiet_don_hang_id,
           name:
-            variants.get(requirement.phien_ban_id)?.ten_phien_ban ||
-            `Phiên bản ${requirement.phien_ban_id}`,
-          barcode: variants.get(requirement.phien_ban_id)?.ma_vach,
+            [requirement.ten_san_pham, requirement.ten_phien_ban]
+              .filter(Boolean)
+              .join(" · ") || `Phiên bản #${requirement.phien_ban_id}`,
           selected: [],
         })),
       );
+
       open("export", "XUẤT KHO ĐƠN HÀNG", {
-        warehouseId: options.warehouses[0]?.id || "",
-        requirements: requirements.items || [],
+        warehouseId,
+        requirements: lines,
         groups,
       });
-      setState((s) => ({ ...s, busy: false }));
     } catch (error) {
-      setState((s) => ({ ...s, busy: false, error: error.message }));
+      setState((current) => ({
+        ...current,
+        error: errorMessage(error),
+      }));
+    } finally {
+      setState((current) => ({
+        ...current,
+        busy: false,
+      }));
     }
   };
 
@@ -736,7 +749,9 @@ export default function ChiTietDonHang() {
                 <tbody>
                   {products.visibleItems.map((item) => (
                     <tr key={item.chi_tiet_don_hang_id}>
-                      <td><OrderProductImage item={item} /></td>
+                      <td>
+                        <OrderProductImage item={item} />
+                      </td>
                       <td>
                         <strong>
                           {item.ten_san_pham ||

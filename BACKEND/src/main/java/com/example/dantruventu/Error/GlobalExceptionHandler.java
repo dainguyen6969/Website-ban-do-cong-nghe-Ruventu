@@ -13,6 +13,7 @@ import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingRequestHeaderException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -26,6 +27,16 @@ public class GlobalExceptionHandler {
   public ResponseEntity<?> handleAppException(AppException exception) {
     ErrorCode errorCode = exception.getErrorCode();
 
+    // Nhánh bảo hành trả response riêng.
+    if (exception instanceof WarrantyReadException warrantyException) {
+      WarrantyErrorResponse response =
+          new WarrantyErrorResponse(
+              errorCode.getStatus().value(), exception.getMessage(), warrantyException.getErrors());
+
+      return ResponseEntity.status(errorCode.getStatus()).body(response);
+    }
+
+    // Các lỗi nghiệp vụ khác sử dụng Map.
     Map<String, Object> response = new LinkedHashMap<>();
     response.put("status", errorCode.getStatus().value());
     response.put("message", exception.getMessage());
@@ -40,18 +51,12 @@ public class GlobalExceptionHandler {
       response.put("errors", List.of(detail));
     }
 
-    if (exception instanceof WarrantyReadException warrantyException) {
-      response =
-          new WarrantyErrorResponse(
-              errorCode.getStatus().value(), exception.getMessage(), warrantyException.getErrors());
-    }
-
     return ResponseEntity.status(errorCode.getStatus()).body(response);
   }
 
-  @ExceptionHandler(org.springframework.web.bind.MissingRequestHeaderException.class)
+  @ExceptionHandler(MissingRequestHeaderException.class)
   public ResponseEntity<ErrorResponse> handleMissingHeader(
-      org.springframework.web.bind.MissingRequestHeaderException exception) {
+      MissingRequestHeaderException exception) {
 
     return ResponseEntity.badRequest()
         .body(new ErrorResponse(400, "Thiếu header: " + exception.getHeaderName()));
@@ -76,17 +81,14 @@ public class GlobalExceptionHandler {
     HttpMessageNotReadableException.class,
     MethodArgumentTypeMismatchException.class
   })
-  public ResponseEntity<ErrorResponse> handleInvalidRequest(Exception exception) {
+  public ResponseEntity<?> handleInvalidRequest(Exception exception) {
 
     // Giữ thông báo nghiệp vụ nếu lỗi bị Jackson bọc lại.
     Throwable current = exception;
 
     for (int depth = 0; current != null && depth < 32; depth++) {
       if (current instanceof AppException appException) {
-        ErrorCode errorCode = appException.getErrorCode();
-
-        return ResponseEntity.status(errorCode.getStatus())
-            .body(new ErrorResponse(errorCode.getStatus().value(), appException.getMessage()));
+        return handleAppException(appException);
       }
 
       current = current.getCause();

@@ -175,6 +175,15 @@ public final class AdminDeliveryResponse {
 
     @JsonProperty("bien_dong_kho")
     private List<ReturnStockChange> bienDongKho = List.of();
+
+    @JsonProperty("khuyen_mai")
+    private AdminSalesResponse.AppliedPromotion khuyenMai;
+
+    @JsonProperty("cap_nhat_luot")
+    private java.util.Map<String, Object> capNhatLuot;
+
+    @JsonProperty("thanh_toan_giao_hang")
+    private java.util.Map<String, Object> thanhToanGiaoHang;
   }
 
   @Getter
@@ -220,6 +229,9 @@ public final class AdminDeliveryResponse {
 
     @JsonProperty("trang_thai_thanh_toan")
     private TrangThaiThanhToanDonHang trangThaiThanhToan;
+
+    @JsonProperty("ngay_hoan_thanh")
+    private OffsetDateTime ngayHoanThanh;
   }
 
   @Getter
