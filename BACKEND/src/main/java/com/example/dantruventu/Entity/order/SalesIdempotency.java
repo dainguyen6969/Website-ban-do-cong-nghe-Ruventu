@@ -9,7 +9,6 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "sales_idempotency")
@@ -20,16 +19,16 @@ import java.time.LocalDateTime;
 @Builder
 public class SalesIdempotency {
 
-    @Id
-    @Column(name = "request_key", length = 50, nullable = false)
-    private String requestKey;
+  @Id
+  @Column(name = "request_key", length = 50, nullable = false)
+  private String requestKey;
 
-    @Column(name = "actor_id")
-    private Long actorId;
+  @Column(name = "actor_id")
+  private Long actorId;
 
-    @Column(name = "request_hash", length = 64)
-    private String requestHash;
+  @Column(name = "request_hash", length = 64)
+  private String requestHash;
 
-    @Column(name = "response_json", columnDefinition = "TEXT")
-    private String responseJson;
+  @Column(name = "response_json", columnDefinition = "TEXT")
+  private String responseJson;
 }

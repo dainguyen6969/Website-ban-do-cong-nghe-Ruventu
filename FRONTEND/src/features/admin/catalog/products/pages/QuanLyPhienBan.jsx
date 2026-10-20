@@ -1,12 +1,12 @@
 // Admin product screen: QuanLyPhienBan.
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { HiOutlineDownload, HiOutlineSearch } from 'react-icons/hi';
-import TablePagination from '../../../../../shared/components/ui/TablePagination';
-import { getAllVersions } from '../api/versionApi';
-import './QuanLyPhienBan.css';
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { HiOutlineDownload, HiOutlineSearch } from "react-icons/hi";
+import TablePagination from "../../../../../shared/components/ui/TablePagination";
+import { getAllVersions } from "../api/versionApi";
+import "./QuanLyPhienBan.css";
 
-const typeOptions = ['Tất cả', 'Phiên bản', 'Combo'];
+const typeOptions = ["Tất cả", "Phiên bản", "Combo"];
 const PAGE_SIZE = 10;
 
 function escapeCsv(value) {
@@ -15,28 +15,30 @@ function escapeCsv(value) {
 
 export default function QuanLyPhienBan() {
   const navigate = useNavigate();
-  const [searchTerm, setSearchTerm] = useState('');
-  const [warehouse, setWarehouse] = useState('');
-  const [type, setType] = useState('Tất cả');
+  const [params] = useSearchParams();
+  const [searchTerm, setSearchTerm] = useState("");
+  const [warehouse, setWarehouse] = useState(() => params.get('kho_hang_id') || "");
+  const [type, setType] = useState(() => params.get('loai_doi_tuong') === 'PHIEN_BAN' ? 'Phiên bản' : "Tất cả");
+  const [warning, setWarning] = useState(() => ['HET_HANG', 'DUOI_TOI_THIEU'].includes(params.get('canh_bao')) ? params.get('canh_bao') : '');
   const [versions, setVersions] = useState([]);
   const [warehouses, setWarehouses] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
   const [reloadKey, setReloadKey] = useState(0);
   const [selectedIds, setSelectedIds] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
   const selectAllRef = useRef(null);
 
   const filteredVersions = useMemo(() => {
-    const query = searchTerm.trim().toLocaleLowerCase('vi');
+    const query = searchTerm.trim().toLocaleLowerCase("vi");
 
     return versions.filter((item) => {
       const matchesSearch =
         !query ||
-        [item.barcode, item.sku, item.displayCode, item.displayName].some((value) =>
-          value.toLocaleLowerCase('vi').includes(query)
+        [item.barcode, item.sku, item.displayCode, item.displayName].some(
+          (value) => value.toLocaleLowerCase("vi").includes(query),
         );
-      const matchesType = type === 'Tất cả' || item.type === type;
+      const matchesType = type === "Tất cả" || item.type === type;
       return matchesSearch && matchesType;
     });
   }, [searchTerm, type, versions]);
@@ -44,51 +46,67 @@ export default function QuanLyPhienBan() {
   useEffect(() => {
     const controller = new AbortController();
     setLoading(true);
-    setError('');
-    getAllVersions(warehouse, controller.signal)
+    setError("");
+    getAllVersions(warehouse, controller.signal, true, warning)
       .then(({ versions: rows, warehouses: options }) => {
         setVersions(rows);
         setWarehouses(options);
-        setSelectedIds((current) => current.filter((id) => rows.some((item) => item.id === id)));
+        setSelectedIds((current) =>
+          current.filter((id) => rows.some((item) => item.id === id)),
+        );
       })
       .catch((cause) => {
-        if (cause.name !== 'AbortError') setError(cause.message || 'Đã xảy ra lỗi hệ thống.');
+        if (cause.name !== "AbortError")
+          setError(cause.message || "Đã xảy ra lỗi hệ thống.");
       })
       .finally(() => {
         if (!controller.signal.aborted) setLoading(false);
       });
     return () => controller.abort();
-  }, [warehouse, reloadKey]);
+  }, [warehouse, reloadKey, warning]);
 
-  const totalPages = Math.max(1, Math.ceil(filteredVersions.length / PAGE_SIZE));
+  const totalPages = Math.max(
+    1,
+    Math.ceil(filteredVersions.length / PAGE_SIZE),
+  );
   const safePage = Math.min(currentPage, totalPages);
   const pageVersions = useMemo(() => {
     const start = (safePage - 1) * PAGE_SIZE;
     return filteredVersions.slice(start, start + PAGE_SIZE);
   }, [filteredVersions, safePage]);
 
-  const negativeCount = filteredVersions.filter((item) => item.available < 0).length;
-  const selectedOnPage = pageVersions.filter((item) => selectedIds.includes(item.id)).length;
-  const allVisibleSelected = pageVersions.length > 0 && selectedOnPage === pageVersions.length;
+  const negativeCount = filteredVersions.filter(
+    (item) => item.available < 0,
+  ).length;
+  const selectedOnPage = pageVersions.filter((item) =>
+    selectedIds.includes(item.id),
+  ).length;
+  const allVisibleSelected =
+    pageVersions.length > 0 && selectedOnPage === pageVersions.length;
   const someVisibleSelected = selectedOnPage > 0 && !allVisibleSelected;
 
   useEffect(() => {
-    if (selectAllRef.current) selectAllRef.current.indeterminate = someVisibleSelected;
+    if (selectAllRef.current)
+      selectAllRef.current.indeterminate = someVisibleSelected;
   }, [someVisibleSelected]);
 
   const toggleAll = () => {
     if (allVisibleSelected) {
       setSelectedIds((current) =>
-        current.filter((id) => !pageVersions.some((item) => item.id === id))
+        current.filter((id) => !pageVersions.some((item) => item.id === id)),
       );
       return;
     }
-    setSelectedIds((current) => [...new Set([...current, ...pageVersions.map((item) => item.id)])]);
+    setSelectedIds((current) => [
+      ...new Set([...current, ...pageVersions.map((item) => item.id)]),
+    ]);
   };
 
   const toggleRow = (id) => {
     setSelectedIds((current) =>
-      current.includes(id) ? current.filter((itemId) => itemId !== id) : [...current, id]
+      current.includes(id)
+        ? current.filter((itemId) => itemId !== id)
+        : [...current, id],
     );
   };
 
@@ -97,31 +115,37 @@ export default function QuanLyPhienBan() {
       ? versions.filter((item) => selectedIds.includes(item.id))
       : filteredVersions;
     const headers = [
-      'Mã vạch',
-      'SKU',
-      'Tên hiển thị',
-      'Phân loại',
-      'Có thể bán',
-      'Tồn thực tế',
-      'Kho',
-      'Vị trí lưu kho',
+      "Mã vạch",
+      "SKU",
+      "Tên hiển thị",
+      "Phân loại",
+      "Có thể bán",
+      "Tồn thực tế",
+      "Kho",
+      "Vị trí lưu kho",
     ];
     const csvRows = rows.map((item) => [
       item.barcode,
       item.sku,
       item.displayName,
       item.type,
-      item.type === 'Combo' ? (item.assemblyCapacity ?? '') : (item.available ?? ''),
+      item.type === "Combo"
+        ? (item.assemblyCapacity ?? "")
+        : (item.available ?? ""),
 
-      item.type === 'Combo' ? '' : (item.actual ?? ''),
+      item.type === "Combo" ? "" : (item.actual ?? ""),
       item.warehouse,
       item.location,
     ]);
-    const csv = `\uFEFF${[headers, ...csvRows].map((row) => row.map(escapeCsv).join(',')).join('\n')}`;
-    const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
-    const anchor = document.createElement('a');
+    const csv = `\uFEFF${[headers, ...csvRows].map((row) => row.map(escapeCsv).join(",")).join("\n")}`;
+    const url = URL.createObjectURL(
+      new Blob([csv], { type: "text/csv;charset=utf-8" }),
+    );
+    const anchor = document.createElement("a");
     anchor.href = url;
-    anchor.download = selectedOnly ? 'phien-ban-da-chon.csv' : 'toan-bo-phien-ban.csv';
+    anchor.download = selectedOnly
+      ? "phien-ban-da-chon.csv"
+      : "toan-bo-phien-ban.csv";
     anchor.click();
     URL.revokeObjectURL(url);
   };
@@ -137,7 +161,10 @@ export default function QuanLyPhienBan() {
           <strong>Toàn bộ phiên bản</strong>
         </nav>
 
-        <section className="version-toolbar" aria-label="Tìm kiếm và lọc phiên bản">
+        <section
+          className="version-toolbar"
+          aria-label="Tìm kiếm và lọc phiên bản"
+        >
           <label className="version-search">
             <HiOutlineSearch size={18} aria-hidden="true" />
             <span className="sr-only">Tìm phiên bản</span>
@@ -188,7 +215,13 @@ export default function QuanLyPhienBan() {
             </select>
           </label>
 
-          <button type="button" className="version-export" onClick={() => exportExcel(false)}>
+          <label className="version-select-wrap"><span className="sr-only">Lọc cảnh báo tồn kho</span><select aria-label="Lọc cảnh báo tồn kho" value={warning} onChange={event => { setWarning(event.target.value); setCurrentPage(1); }}><option value="">Tất cả cảnh báo</option><option value="HET_HANG">Hết hàng</option><option value="DUOI_TOI_THIEU">Dưới mức tối thiểu</option></select></label>
+
+          <button
+            type="button"
+            className="version-export"
+            onClick={() => exportExcel(false)}
+          >
             <HiOutlineDownload size={17} aria-hidden="true" />
             <span>XUẤT EXCEL</span>
           </button>
@@ -198,7 +231,8 @@ export default function QuanLyPhienBan() {
           <span className="version-warning__marker" aria-hidden="true" />
           <strong>CẢNH BÁO ĐỒNG BỘ:</strong>
           <span>
-            {negativeCount} mục có tồn kho &quot;Có thể bán&quot; âm — cần kiểm tra và xử lý ngay.
+            {negativeCount} mục có tồn kho &quot;Có thể bán&quot; âm — cần kiểm
+            tra và xử lý ngay.
           </span>
         </aside>
 
@@ -247,7 +281,7 @@ export default function QuanLyPhienBan() {
               ) : error ? (
                 <tr>
                   <td className="version-empty" colSpan="9">
-                    Đã xảy ra lỗi hệ thống.{' '}
+                    Đã xảy ra lỗi hệ thống.{" "}
                     <button
                       type="button"
                       className="version-detail"
@@ -266,7 +300,7 @@ export default function QuanLyPhienBan() {
               ) : (
                 pageVersions.map((item) => {
                   const selected = selectedIds.includes(item.id);
-                  const isCombo = item.type === 'Combo';
+                  const isCombo = item.type === "Combo";
 
                   const isNegative = !isCombo && item.available < 0;
 
@@ -279,7 +313,7 @@ export default function QuanLyPhienBan() {
                   return (
                     <tr
                       key={item.id}
-                      className={`${isNegative ? 'version-table__row--negative' : ''} ${selected ? 'version-table__row--selected' : ''}`}
+                      className={`${isNegative ? "version-table__row--negative" : ""} ${selected ? "version-table__row--selected" : ""}`}
                     >
                       <td className="version-table__check">
                         <input
@@ -309,15 +343,15 @@ export default function QuanLyPhienBan() {
                       </td>
                       <td>
                         <span
-                          className={`version-type ${item.type === 'Combo' ? 'version-type--combo' : ''}`}
+                          className={`version-type ${item.type === "Combo" ? "version-type--combo" : ""}`}
                         >
-                          {item.type.toLocaleUpperCase('vi')}
+                          {item.type.toLocaleUpperCase("vi")}
                         </span>
                       </td>
                       <td>
                         <span
                           className={`version-available ${
-                            isNegative ? 'version-available--negative' : ''
+                            isNegative ? "version-available--negative" : ""
                           }`}
                         >
                           {!isNegative && hasNoBuffer && (
@@ -327,16 +361,20 @@ export default function QuanLyPhienBan() {
                             />
                           )}
 
-                          {isCombo ? (item.assemblyCapacity ?? '—') : (item.available ?? '—')}
+                          {isCombo
+                            ? (item.assemblyCapacity ?? "—")
+                            : (item.available ?? "—")}
                         </span>
                       </td>
                       <td>
                         <strong className="version-actual">
-                          {isCombo ? '—' : (item.actual ?? '—')}
+                          {isCombo ? "—" : (item.actual ?? "—")}
                         </strong>
                       </td>
                       <td>
-                        <span className="version-location">{item.location}</span>
+                        <span className="version-location">
+                          {item.location}
+                        </span>
                       </td>
                       <td>
                         <button
@@ -344,13 +382,13 @@ export default function QuanLyPhienBan() {
                           className="version-detail"
                           onClick={() =>
                             navigate(
-                              item.type === 'Combo'
+                              item.type === "Combo"
                                 ? `/kho-hang/combo-san-pham/chi-tiet/${item.comboId}`
-                                : `/kho-hang/quan-ly-phien-ban/chi-tiet/${encodeURIComponent(item.id)}`
+                                : `/kho-hang/quan-ly-phien-ban/chi-tiet/${encodeURIComponent(item.id)}`,
                             )
                           }
                         >
-                          {item.type === 'Combo' ? 'THÀNH PHẦN' : 'CHI TIẾT'}
+                          {item.type === "Combo" ? "THÀNH PHẦN" : "CHI TIẾT"}
                         </button>
                       </td>
                     </tr>

@@ -1,5 +1,6 @@
 package com.example.dantruventu.DTO.Response.product;
 
+import com.example.dantruventu.DTO.catalog.CatalogFields;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.List;
 import lombok.*;
@@ -9,7 +10,7 @@ import lombok.*;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class AdminProductCreateResponse {
+public class AdminProductCreateResponse extends CatalogFields.Metadata {
 
   private Long id;
 
@@ -17,5 +18,8 @@ public class AdminProductCreateResponse {
   private String maSanPham;
 
   @JsonProperty("danh_sach_phien_ban")
-  private List<Long> danhSachPhienBan;
+  private List<AdminProductVariantResponse> danhSachPhienBan;
+
+  @JsonProperty("loai_san_pham")
+  private com.example.dantruventu.Enum.LoaiSanPham loaiSanPham;
 }

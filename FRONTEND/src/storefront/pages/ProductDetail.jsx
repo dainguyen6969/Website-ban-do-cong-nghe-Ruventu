@@ -1,170 +1,140 @@
-import React, { useEffect, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
-import Header from '../components/Header';
-import Footer from '../components/Footer';
-import ProductGallery from '../components/ProductGallery';
-import ProductInfoSidebar from '../components/ProductInfoSidebar';
-import ProductPurchaseRightSidebar from '../components/ProductPurchaseRightSidebar';
-import ProductSpecsTabs from '../components/ProductSpecsTabs';
-import { productService } from '../../shared/services/productService';
-import './ProductDetail.css';
+import { useEffect, useState } from "react";
+import { Link, useParams } from "react-router-dom";
 
-const ProductDetail = () => {
+import Header from "../components/Header";
+import Footer from "../components/Footer";
+import ProductGallery from "../components/ProductGallery";
+import ProductInfoSidebar from "../components/ProductInfoSidebar";
+import ProductPurchaseRightSidebar from "../components/ProductPurchaseRightSidebar";
+import ProductSpecsTabs from "../components/ProductSpecsTabs";
+
+import ComboContents from "../../shared/components/ui/ComboContents";
+import { productService, toProductDetail } from "../../shared/services/productService";
+
+import "./ProductDetail.css";
+import { parseSpecifications, resolveProductContent } from './productDetailContent';
+
+export default function ProductDetail() {
   const { id } = useParams();
+
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
   const [selectedVariantId, setSelectedVariantId] = useState(null);
 
   useEffect(() => {
+    let active = true;
+
     window.scrollTo(0, 0);
-    const fetchProduct = async () => {
-      setLoading(true);
+    setLoading(true);
+    setProduct(null);
+    setError("");
+    setSelectedVariantId(null);
+
+    async function load() {
       try {
         const response = await productService.getProductDetail(id);
-        if (response && response.data) {
-          const backendData = response.data;
-          const mainVariant =
-            backendData.danhSachPhienBan && backendData.danhSachPhienBan[0]
-              ? backendData.danhSachPhienBan[0]
-              : null;
+        const data = response?.data;
 
-          let parsedSpecs = {};
-          if (backendData.thongSoKyThuat) {
-            if (typeof backendData.thongSoKyThuat === 'string') {
-              try {
-                parsedSpecs = JSON.parse(backendData.thongSoKyThuat);
-              } catch (e) {
-                console.warn('thongSoKyThuat is not JSON string', e);
-                parsedSpecs = {};
-              }
-            } else if (typeof backendData.thongSoKyThuat === 'object') {
-              parsedSpecs = backendData.thongSoKyThuat;
-            }
-          }
-
-          const specEntries = Object.keys(parsedSpecs).map((k) => ({
-            label: k,
-            value: String(parsedSpecs[k]),
-          }));
-
-          const mappedProduct = {
-            id: backendData.id,
-            category: backendData.danhMuc?.tenDanhMuc || 'Chưa phân loại',
-            brand: backendData.thuongHieu?.tenThuongHieu || 'Chưa rõ',
-            name: backendData.tenSanPham,
-            currentPrice: mainVariant ? mainVariant.giaBanLe : 0,
-            originalPrice: mainVariant ? mainVariant.giaBanLe : 0,
-            stock: mainVariant ? mainVariant.tonCoTheBan : 0,
-            discountPercent: 0,
-            images: backendData.anhSanPham?.map((img) => img.duongDanAnh) || [],
-            specsSummary: specEntries,
-            fullSpecs: specEntries,
-            tags: [],
-            policies: [
-              { title: 'MIỄN PHÍ VẬN CHUYỂN', desc: 'Đơn từ 5tr', icon: 'truck' },
-              { title: 'CAM KẾT GIÁ', desc: 'Tốt nhất', icon: 'tag' },
-            ],
-            description: backendData.moTa,
-            variants: backendData.danhSachPhienBan || [],
-          };
-          setProduct(mappedProduct);
-          if (mappedProduct.variants && mappedProduct.variants.length > 0) {
-            setSelectedVariantId(mappedProduct.variants[0].id);
-          }
-        } else {
-          setProduct(null);
+        if (!data) {
+          throw new Error("Không tìm thấy sản phẩm.");
         }
-      } catch (err) {
-        console.error('Lỗi fetch chi tiết sản phẩm:', err);
-        setProduct(null);
+
+        const mapped = toProductDetail(data);
+        mapped.specifications = parseSpecifications(mapped.specifications);
+
+        if (!active) return;
+
+        setProduct(mapped);
+        setSelectedVariantId(mapped.defaultVariantId);
+      } catch (reason) {
+        if (active) {
+          setError(
+            reason.response?.data?.message ||
+              reason.message ||
+              "Không tải được sản phẩm.",
+          );
+        }
       } finally {
-        setLoading(false);
+        if (active) setLoading(false);
       }
+    }
+
+    load();
+
+    return () => {
+      active = false;
     };
-    fetchProduct();
   }, [id]);
 
-  if (loading)
-    return (
-      <div style={{ textAlign: 'center', padding: '50px' }}>Đang tải thông tin sản phẩm...</div>
-    );
-  if (!product) {
-    return (
-      <div className="product-detail-page">
-        <Header />
-        <div style={{ textAlign: 'center', padding: '80px 20px' }}>
-          <h2>Sản phẩm không tồn tại hoặc đã ngừng kinh doanh</h2>
-          <p style={{ margin: '20px 0', color: '#666' }}>
-            Vui lòng kiểm tra lại liên kết hoặc quay về trang chủ.
-          </p>
-          <Link
-            to="/"
-            style={{
-              display: 'inline-block',
-              padding: '10px 20px',
-              background: '#e30019',
-              color: '#fff',
-              textDecoration: 'none',
-              fontWeight: 600,
-            }}
-          >
-            QUAY VỀ TRANG CHỦ
-          </Link>
-        </div>
-        <Footer />
-      </div>
-    );
-  }
+  const displayProduct = product ? {
+    ...product,
+    ...resolveProductContent(product.specifications,product.description,product.category,selectedVariantId),
+  } : null;
 
   return (
     <div className="product-detail-page">
       <Header />
 
-      {/* Breadcrumbs */}
-      <div className="breadcrumb-container">
-        <div className="breadcrumb">
-          <Link to="/">Trang chủ</Link>
-          <span className="separator">&gt;</span>
-          <Link to={`/category/${product.category.toLowerCase()}`}>{product.category}</Link>
-          <span className="separator">&gt;</span>
-          <span className="current">{product.name}</span>
+      {loading ? (
+        <div className="product-detail-status">
+          Đang tải thông tin sản phẩm...
         </div>
-      </div>
-
-      {/* Main Content Area */}
-      <div className="product-main-container">
-        {/* Left Sidebar - Specs summary and thumbnail */}
-        <div className="info-sidebar-column">
-          <ProductInfoSidebar
-            product={product}
-            selectedVariantId={selectedVariantId}
-            setSelectedVariantId={setSelectedVariantId}
-          />
+      ) : !product ? (
+        <div
+          className="product-detail-status product-detail-status--error"
+          role="alert"
+        >
+          {error || "Không tìm thấy sản phẩm."}
         </div>
+      ) : (
+        <>
+          <div className="breadcrumb-container">
+            <div className="breadcrumb">
+              <Link to="/">Trang chủ</Link>
+              <span className="separator">&gt;</span>
+              <span>{product.category}</span>
+              <span className="separator">&gt;</span>
+              <span className="current">{product.name}</span>
+            </div>
+          </div>
 
-        {/* Center - Gallery */}
-        <div className="gallery-column">
-          <ProductGallery
-            images={product.images || []}
-            discountPercent={product.discountPercent}
-            isFullBuild={false}
-          />
-        </div>
+          <div className="product-main-container">
+            <div className="info-sidebar-column">
+              {product.loaiSanPham === "BO_PC" ? (
+                <ComboContents items={product.thanhPhan} scrollable />
+              ) : (
+                <ProductInfoSidebar
+                  product={displayProduct}
+                  selectedVariantId={selectedVariantId}
+                  setSelectedVariantId={setSelectedVariantId}
+                />
+              )}
+            </div>
 
-        {/* Right Sidebar - Purchase Info */}
-        <div className="purchase-right-sidebar-column">
-          <ProductPurchaseRightSidebar product={product} selectedVariantId={selectedVariantId} />
-        </div>
-      </div>
+            <div className="gallery-column">
+              <ProductGallery
+                images={product.images}
+                discountPercent={product.discountPercent}
+                isFullBuild={product.loaiSanPham === "BO_PC"}
+              />
+            </div>
 
-      {/* Bottom Tabs Area */}
-      <div className="tabs-container">
-        <ProductSpecsTabs product={product} />
-      </div>
+            <div className="purchase-right-sidebar-column">
+              <ProductPurchaseRightSidebar
+                product={displayProduct}
+                selectedVariantId={selectedVariantId}
+              />
+            </div>
+
+            <div className="product-description-column">
+              <ProductSpecsTabs product={displayProduct} />
+            </div>
+          </div>
+        </>
+      )}
 
       <Footer />
     </div>
   );
-};
-
-export default ProductDetail;
+}

@@ -30,4 +30,6 @@ public interface ProductListProjection {
   Long getTonKhoKhaDung();
 
   LocalDateTime getNgayTao();
+
+  Long getSoBoCoTheLap();
 }

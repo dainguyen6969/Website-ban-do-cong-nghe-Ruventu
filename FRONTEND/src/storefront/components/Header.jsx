@@ -1,23 +1,27 @@
-import React, { useEffect, useState, useRef } from 'react';
-import { Link, NavLink, useNavigate } from 'react-router-dom';
-import useMockAuth from '../../auth/useMockAuth';
-import { Search, User, ShoppingBag, Settings, ClipboardList } from 'lucide-react';
-import axios from 'axios';
+import React, { useEffect, useState, useRef } from "react";
+import { Link, NavLink, useNavigate } from "react-router-dom";
+import useMockAuth from "../../auth/useMockAuth";
+import {
+  Search,
+  User,
+  ShoppingBag,
+  Settings,
+  ClipboardList,
+} from "lucide-react";
 
-import './Header.css';
-import logo from '../assets/reventu.png';
-import CartDrawer from './CartDrawer';
-import FontSwitcher from '../../shared/components/ui/FontSwitcher';
-import { productService } from '../../shared/services/productService';
-import { cartService } from '../../shared/services/cartService';
-
-const API_BASE_URL = (import.meta.env.VITE_RUVENTU_API_URL || '').replace(/\/$/, '');
+import "./Header.css";
+import logo from "../assets/reventu.png";
+import CartDrawer from "./CartDrawer";
+import NavMenu from "./NavMenu";
+import FontSwitcher from "../../shared/components/ui/FontSwitcher";
+import { productService, toProductCard } from "../../shared/services/productService";
+import { cartService } from "../../shared/services/cartService";
 
 const Header = () => {
   const navigate = useNavigate();
   const { logout } = useMockAuth();
 
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState("");
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [suggestions, setSuggestions] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -25,7 +29,7 @@ const Header = () => {
 
   const [user, setUser] = useState(() => {
     try {
-      const storedUser = localStorage.getItem('user');
+      const storedUser = localStorage.getItem("user");
       return storedUser ? JSON.parse(storedUser) : null;
     } catch {
       return null;
@@ -44,7 +48,7 @@ const Header = () => {
         if (res?.data?.data?.tongSoLuong) {
           setCartCount(res.data.data.tongSoLuong);
         }
-      } catch (err) {
+      } catch {
         setCartCount(0);
       }
     };
@@ -59,12 +63,12 @@ const Header = () => {
       }
     };
 
-    window.addEventListener('cartUpdated', fetchCartCount);
-    window.addEventListener('cartCountUpdated', handleCartUpdate);
+    window.addEventListener("cartUpdated", fetchCartCount);
+    window.addEventListener("cartCountUpdated", handleCartUpdate);
 
     return () => {
-      window.removeEventListener('cartUpdated', fetchCartCount);
-      window.removeEventListener('cartCountUpdated', handleCartUpdate);
+      window.removeEventListener("cartUpdated", fetchCartCount);
+      window.removeEventListener("cartCountUpdated", handleCartUpdate);
     };
   }, []);
 
@@ -75,8 +79,8 @@ const Header = () => {
         setShowSuggestions(false);
       }
     };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
   // Debounce gọi API tìm kiếm
@@ -84,16 +88,13 @@ const Header = () => {
     const fetchSuggestions = async () => {
       if (searchQuery.trim().length >= 2) {
         try {
-          const response = await productService.getProducts({
-            keyword: searchQuery.trim(),
-            limit: 5,
-          });
+          const response = await productService.getProducts({ keyword: searchQuery.trim(), limit: 5 });
           if (response && response.data && response.data.danhSachSanPham) {
-            setSuggestions(response.data.danhSachSanPham);
+            setSuggestions(response.data.danhSachSanPham.map(toProductCard));
             setShowSuggestions(true);
           }
         } catch (error) {
-          console.error('Lỗi fetch suggestions:', error);
+          console.error("Lỗi fetch suggestions:", error);
         }
       } else {
         setSuggestions([]);
@@ -112,17 +113,18 @@ const Header = () => {
     try {
       await logout();
     } catch (error) {
-      console.error('Lỗi đăng xuất backend:', error);
+      console.error("Lỗi đăng xuất backend:", error);
     } finally {
-      localStorage.removeItem('ruventu_cart');
+
+      localStorage.removeItem("ruventu_cart");
       setCartCount(0);
-      window.dispatchEvent(new CustomEvent('cartCountUpdated', { detail: { count: 0 } }));
-      window.dispatchEvent(new CustomEvent('cartUpdated'));
+      window.dispatchEvent(new CustomEvent("cartCountUpdated", { detail: { count: 0 } }));
+      window.dispatchEvent(new CustomEvent("cartUpdated"));
 
       setUser(null);
       setIsDropdownOpen(false);
 
-      navigate('/login', { replace: true });
+      navigate("/login", { replace: true });
     }
   };
 
@@ -138,7 +140,7 @@ const Header = () => {
     navigate(`/search?q=${encodeURIComponent(keyword)}`);
   };
 
-  const displayName = user?.name || user?.ho_ten || user?.email || 'Người dùng';
+  const displayName = user?.name || user?.ho_ten || user?.email || "Người dùng";
 
   const avatarLetter = displayName.charAt(0).toUpperCase();
 
@@ -148,8 +150,8 @@ const Header = () => {
         {/* ================= TOP BANNER ================= */}
         <div className="top-banner">
           <p>
-            MIỄN PHÍ VẬN CHUYỂN ĐƠN HÀNG TRÊN 5.000.000Đ - BẢO HÀNH CHÍNH HÃNG 36 THÁNG - HỖ TRỢ KỸ
-            THUẬT 24/7
+            MIỄN PHÍ VẬN CHUYỂN ĐƠN HÀNG TRÊN 5.000.000Đ - BẢO HÀNH CHÍNH HÃNG
+            36 THÁNG - HỖ TRỢ KỸ THUẬT 24/7
           </p>
         </div>
 
@@ -164,12 +166,12 @@ const Header = () => {
             </div>
 
             {/* Search */}
-            <div className="search-bar" ref={searchRef} style={{ position: 'relative' }}>
+            <div className="search-bar" ref={searchRef} style={{ position: "relative" }}>
               <form
                 onSubmit={handleSearchSubmit}
                 style={{
-                  display: 'flex',
-                  width: '100%',
+                  display: "flex",
+                  width: "100%",
                 }}
               >
                 <input
@@ -200,21 +202,14 @@ const Header = () => {
                       className="suggestion-item"
                       onClick={() => {
                         setShowSuggestions(false);
-                        setSearchQuery('');
+                        setSearchQuery("");
                       }}
                     >
-                      <img
-                        src={p.anhChinh || 'https://via.placeholder.com/40'}
-                        alt={p.tenSanPham}
-                        className="suggestion-img"
-                      />
+                      {p.image && <img src={p.image} alt={p.title} className="suggestion-img" />}
                       <div className="suggestion-info">
-                        <span className="suggestion-name">{p.tenSanPham}</span>
+                        <span className="suggestion-name">{p.title}</span>
                         <span className="suggestion-price">
-                          {new Intl.NumberFormat('vi-VN', {
-                            style: 'currency',
-                            currency: 'VND',
-                          }).format(p.giaThapNhat)}
+                          {p.priceFrom && "Từ "}{p.price}
                         </span>
                       </div>
                     </Link>
@@ -233,8 +228,8 @@ const Header = () => {
                 to="/order-lookup"
                 className="action-item"
                 style={{
-                  textDecoration: 'none',
-                  color: 'inherit',
+                  textDecoration: "none",
+                  color: "inherit",
                 }}
               >
                 <ClipboardList size={24} />
@@ -248,7 +243,16 @@ const Header = () => {
                   onMouseEnter={() => setIsDropdownOpen(true)}
                   onMouseLeave={() => setIsDropdownOpen(false)}
                 >
-                  <div className="user-profile-trigger">
+                  <div className="user-profile-trigger" role="button" tabIndex={0}
+                    aria-label="Mở menu tài khoản" aria-expanded={isDropdownOpen}
+                    onClick={() => setIsDropdownOpen(true)}
+                    onKeyDown={event => {
+                      if (event.key === 'Enter' || event.key === ' ') {
+                        event.preventDefault();
+                        setIsDropdownOpen(true);
+                      }
+                      if (event.key === 'Escape') setIsDropdownOpen(false);
+                    }}>
                     <div className="user-avatar">{avatarLetter}</div>
 
                     <div className="user-greeting">
@@ -266,7 +270,9 @@ const Header = () => {
                         <div className="user-info">
                           <span className="user-name">{displayName}</span>
 
-                          {user?.email && <span className="user-email">{user.email}</span>}
+                          {user?.email && (
+                            <span className="user-email">{user.email}</span>
+                          )}
                         </div>
                       </div>
 
@@ -292,7 +298,7 @@ const Header = () => {
                           </Link>
                         </li>
 
-                        {user?.role === 'admin' && (
+                        {user?.role === "admin" && (
                           <li>
                             <Link to="/admin">
                               <Settings size={16} />
@@ -313,8 +319,8 @@ const Header = () => {
                   to="/login"
                   className="action-item"
                   style={{
-                    textDecoration: 'none',
-                    color: 'inherit',
+                    textDecoration: "none",
+                    color: "inherit",
                   }}
                 >
                   <User size={24} />
@@ -325,14 +331,23 @@ const Header = () => {
               {/* Cart */}
               <div
                 className="action-item cart-action"
+                role="button"
+                tabIndex={0}
+                aria-label="Mở giỏ hàng"
                 onClick={() => setIsCartOpen(true)}
+                onKeyDown={event => {
+                  if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    setIsCartOpen(true);
+                  }
+                }}
                 style={{
-                  cursor: 'pointer',
+                  cursor: "pointer",
                 }}
               >
                 <div
                   style={{
-                    position: 'relative',
+                    position: "relative",
                   }}
                 >
                   <ShoppingBag size={24} />
@@ -340,19 +355,19 @@ const Header = () => {
                   {cartCount > 0 && (
                     <span
                       style={{
-                        position: 'absolute',
-                        top: '-5px',
-                        right: '-10px',
-                        background: '#f11919',
-                        color: 'white',
-                        fontSize: '10px',
-                        width: '18px',
-                        height: '18px',
-                        borderRadius: '50%',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontWeight: 'bold',
+                        position: "absolute",
+                        top: "-5px",
+                        right: "-10px",
+                        background: "#f11919",
+                        color: "white",
+                        fontSize: "10px",
+                        width: "18px",
+                        height: "18px",
+                        borderRadius: "50%",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        fontWeight: "bold",
                       }}
                     >
                       {cartCount}
@@ -371,22 +386,14 @@ const Header = () => {
           <div className="container nav-container">
             <ul className="nav-links">
               {/* ================= LINH KIỆN ================= */}
-              <li className="has-mega-menu">
-                <NavLink
-                  to="/category/linh-kien"
-                  className={({ isActive }) => (isActive ? 'active' : '')}
-                >
-                  Linh Kiện PC
-                </NavLink>
-
-                <div className="mega-menu">
+              <NavMenu label="Linh Kiện PC" to="/category/linh-kien">
                   <div className="mega-menu-content">
                     <div className="mega-col">
                       <h4 className="mega-title">Xử lý & Bo mạch</h4>
 
                       <div className="mega-sub-category">
                         <h5 className="mega-sub-title">
-                          <Link to="/category/linh-kien">CPU - Bộ vi xử lý</Link>
+                          CPU - Bộ vi xử lý
                         </h5>
 
                         <ul>
@@ -402,23 +409,27 @@ const Header = () => {
 
                       <div className="mega-sub-category">
                         <h5 className="mega-sub-title">
-                          <Link to="/category/linh-kien">Mainboard - Bo mạch chủ</Link>
+                          Mainboard - Bo mạch chủ
                         </h5>
 
                         <ul>
                           <li>
-                            <Link to="/search?q=Mainboard Intel">Mainboard Intel</Link>
+                            <Link to="/search?q=Mainboard Intel">
+                              Mainboard Intel
+                            </Link>
                           </li>
 
                           <li>
-                            <Link to="/search?q=Mainboard AMD">Mainboard AMD</Link>
+                            <Link to="/search?q=Mainboard AMD">
+                              Mainboard AMD
+                            </Link>
                           </li>
                         </ul>
                       </div>
 
                       <div className="mega-sub-category">
                         <h5 className="mega-sub-title">
-                          <Link to="/category/linh-kien">RAM - Bộ nhớ trong</Link>
+                          RAM - Bộ nhớ trong
                         </h5>
 
                         <ul>
@@ -438,7 +449,7 @@ const Header = () => {
 
                       <div className="mega-sub-category">
                         <h5 className="mega-sub-title">
-                          <Link to="/category/linh-kien">VGA - Card màn hình</Link>
+                          VGA - Card màn hình
                         </h5>
 
                         <ul>
@@ -447,30 +458,30 @@ const Header = () => {
                           </li>
 
                           <li>
-                            <Link to="/search?q=AMD">VGA AMD</Link>
+                            <Link to="/search?q=VGA AMD">VGA AMD</Link>
                           </li>
                         </ul>
                       </div>
 
                       <div className="mega-sub-category">
                         <h5 className="mega-sub-title">
-                          <Link to="/category/linh-kien">PSU - Nguồn máy tính</Link>
+                          PSU - Nguồn máy tính
                         </h5>
 
                         <ul>
                           <li>
-                            <Link to="/search?q=Corsair">Nguồn Corsair</Link>
+                            <Link to="/search?q=PSU Corsair">Nguồn Corsair</Link>
                           </li>
 
                           <li>
-                            <Link to="/search?q=MSI">Nguồn MSI</Link>
+                            <Link to="/search?q=PSU MSI">Nguồn MSI</Link>
                           </li>
                         </ul>
                       </div>
 
                       <div className="mega-sub-category">
                         <h5 className="mega-sub-title">
-                          <Link to="/category/linh-kien">Case - Vỏ máy tính</Link>
+                          Case - Vỏ máy tính
                         </h5>
 
                         <ul>
@@ -479,7 +490,9 @@ const Header = () => {
                           </li>
 
                           <li>
-                            <Link to="/search?q=Case Full Tower">Full Tower</Link>
+                            <Link to="/search?q=Case Full Tower">
+                              Full Tower
+                            </Link>
                           </li>
                         </ul>
                       </div>
@@ -490,7 +503,7 @@ const Header = () => {
 
                       <div className="mega-sub-category">
                         <h5 className="mega-sub-title">
-                          <Link to="/category/linh-kien">Ổ cứng SSD/HDD</Link>
+                          Ổ cứng SSD/HDD
                         </h5>
 
                         <ul>
@@ -506,7 +519,7 @@ const Header = () => {
 
                       <div className="mega-sub-category">
                         <h5 className="mega-sub-title">
-                          <Link to="/category/linh-kien">Tản nhiệt máy tính</Link>
+                          Tản nhiệt máy tính
                         </h5>
 
                         <ul>
@@ -515,25 +528,18 @@ const Header = () => {
                           </li>
 
                           <li>
-                            <Link to="/search?q=Tản nước">Tản nhiệt nước (AIO)</Link>
+                            <Link to="/search?q=Tản nước">
+                              Tản nhiệt nước (AIO)
+                            </Link>
                           </li>
                         </ul>
                       </div>
                     </div>
                   </div>
-                </div>
-              </li>
+              </NavMenu>
 
               {/* ================= GAMING GEAR ================= */}
-              <li className="has-mega-menu">
-                <NavLink
-                  to="/category/gaming-gear"
-                  className={({ isActive }) => (isActive ? 'active' : '')}
-                >
-                  Gaming Gear
-                </NavLink>
-
-                <div className="mega-menu">
+              <NavMenu label="Gaming Gear" to="/category/gaming-gear">
                   <div className="mega-menu-content">
                     <div className="mega-col">
                       <ul>
@@ -546,7 +552,9 @@ const Header = () => {
                         </li>
 
                         <li>
-                          <Link to="/search?q=Tai nghe Gaming">Tai nghe Gaming</Link>
+                          <Link to="/search?q=Tai nghe Gaming">
+                            Tai nghe Gaming
+                          </Link>
                         </li>
                       </ul>
                     </div>
@@ -566,24 +574,17 @@ const Header = () => {
                         </li>
 
                         <li>
-                          <Link to="/search?q=Phụ kiện Gear khác">Phụ kiện Gear khác</Link>
+                          <Link to="/search?q=Phụ kiện Gear khác">
+                            Phụ kiện Gear khác
+                          </Link>
                         </li>
                       </ul>
                     </div>
                   </div>
-                </div>
-              </li>
+              </NavMenu>
 
               {/* ================= MÀN HÌNH ================= */}
-              <li className="has-mega-menu">
-                <NavLink
-                  to="/category/man-hinh"
-                  className={({ isActive }) => (isActive ? 'active' : '')}
-                >
-                  Màn Hình
-                </NavLink>
-
-                <div className="mega-menu">
+              <NavMenu label="Màn Hình" to="/category/man-hinh">
                   <div className="mega-menu-content">
                     <div className="mega-col">
                       <ul>
@@ -594,45 +595,48 @@ const Header = () => {
                         </li>
 
                         <li>
-                          <Link to="/search?q=Màn hình Đồ họa">Màn hình Đồ họa</Link>
+                          <Link to="/search?q=Màn hình Đồ họa">
+                            Màn hình Đồ họa
+                          </Link>
                         </li>
 
                         <li>
-                          <Link to="/search?q=Màn hình Văn phòng">Màn hình Văn phòng</Link>
+                          <Link to="/search?q=Màn hình Văn phòng">
+                            Màn hình Văn phòng
+                          </Link>
                         </li>
 
                         <li>
-                          <Link to="/search?q=Giá treo màn hình">Giá treo màn hình (Arm)</Link>
+                          <Link to="/search?q=Giá treo màn hình">
+                            Giá treo màn hình (Arm)
+                          </Link>
                         </li>
                       </ul>
                     </div>
                   </div>
-                </div>
-              </li>
+              </NavMenu>
 
               {/* ================= LAPTOP ================= */}
-              <li className="has-mega-menu">
-                <NavLink
-                  to="/category/laptop"
-                  className={({ isActive }) => (isActive ? 'active' : '')}
-                >
-                  Laptop
-                </NavLink>
-
-                <div className="mega-menu">
+              <NavMenu label="Laptop" to="/category/laptop">
                   <div className="mega-menu-content">
                     <div className="mega-col">
                       <ul>
                         <li>
-                          <Link to="/search?q=Laptop Gaming">Laptop Gaming</Link>
+                          <Link to="/search?q=Laptop Gaming">
+                            Laptop Gaming
+                          </Link>
                         </li>
 
                         <li>
-                          <Link to="/search?q=Laptop Văn phòng">Laptop Văn phòng</Link>
+                          <Link to="/search?q=Laptop Văn phòng">
+                            Laptop Văn phòng
+                          </Link>
                         </li>
 
                         <li>
-                          <Link to="/search?q=Laptop Đồ họa">Laptop Đồ họa - Creator</Link>
+                          <Link to="/search?q=Laptop Đồ họa">
+                            Laptop Đồ họa - Creator
+                          </Link>
                         </li>
                       </ul>
                     </div>
@@ -644,7 +648,9 @@ const Header = () => {
                         </li>
 
                         <li>
-                          <Link to="/search?q=Linh kiện Laptop">Linh kiện Laptop</Link>
+                          <Link to="/search?q=Linh kiện Laptop">
+                            Linh kiện Laptop
+                          </Link>
                         </li>
 
                         <li>
@@ -653,45 +659,42 @@ const Header = () => {
                       </ul>
                     </div>
                   </div>
-                </div>
-              </li>
+              </NavMenu>
 
               {/* ================= BUILD PC ================= */}
-              <li className="has-mega-menu">
-                <NavLink to="/build-pc" className={({ isActive }) => (isActive ? 'active' : '')}>
-                  Build PC
-                </NavLink>
-
-                <div className="mega-menu">
+              <NavMenu label="Build PC" to="/build-pc">
                   <div className="mega-menu-content">
                     <div className="mega-col">
                       <ul>
                         <li>
-                          <Link to="/build-pc?type=budget">Build PC theo Ngân sách</Link>
+                          <span aria-disabled="true" title="Chưa có chế độ gợi ý theo ngân sách">Build PC theo Ngân sách</span>
                         </li>
 
                         <li>
-                          <Link to="/build-pc?type=need">Build PC theo Nhu cầu</Link>
+                          <span aria-disabled="true" title="Chưa có chế độ gợi ý theo nhu cầu">Build PC theo Nhu cầu</span>
                         </li>
 
                         <li>
-                          <Link to="/category/pc-gaming">PC Gaming lắp ráp sẵn</Link>
+                          <Link to="/category/pc-build">
+                            PC build sẵn
+                          </Link>
                         </li>
 
                         <li>
-                          <Link to="/category/pc-van-phong">PC Văn phòng lắp ráp sẵn</Link>
+                          <span aria-disabled="true" title="Chưa có danh mục PC văn phòng riêng">PC Văn phòng lắp ráp sẵn</span>
                         </li>
                       </ul>
                     </div>
                   </div>
-                </div>
-              </li>
+              </NavMenu>
 
               {/* ================= KHÁC ================= */}
               <li>
                 <NavLink
                   to="/promotions"
-                  className={({ isActive }) => (isActive ? 'highlight active' : 'highlight')}
+                  className={({ isActive }) =>
+                    isActive ? "highlight active" : "highlight"
+                  }
                 >
                   Khuyến Mãi
                 </NavLink>
@@ -700,7 +703,7 @@ const Header = () => {
               <li>
                 <NavLink
                   to="/warranty-lookup"
-                  className={({ isActive }) => (isActive ? 'active' : '')}
+                  className={({ isActive }) => (isActive ? "active" : "")}
                 >
                   Tra Cứu Bảo Hành
                 </NavLink>
@@ -708,7 +711,7 @@ const Header = () => {
             </ul>
 
             <div className="hotline">
-              Hotline: <span>1900 9999</span>
+              Hotline: <a href="tel:19009999">1900 9999</a>
             </div>
           </div>
         </nav>

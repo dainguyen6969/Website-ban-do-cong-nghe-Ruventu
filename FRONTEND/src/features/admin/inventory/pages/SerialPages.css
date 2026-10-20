@@ -697,3 +697,27 @@
     border-bottom: 0 !important;
   }
 }
+
+.serial-status--held {
+  border-color: #e9c46a;
+  background: #fff8df;
+  color: #8a6116;
+}
+
+.serial-status--replaced {
+  border-color: #c7bfdc;
+  background: #f3effa;
+  color: #655080;
+}
+
+.serial-banner--held,
+.serial-stat--held {
+  border-color: #e9c46a;
+  background: #fff8df;
+}
+
+.serial-banner--replaced,
+.serial-stat--replaced {
+  border-color: #c7bfdc;
+  background: #f3effa;
+}

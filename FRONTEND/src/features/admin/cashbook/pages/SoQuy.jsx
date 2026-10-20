@@ -1,74 +1,140 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { cashbookService } from '../../../../shared/services/cashbookService';
-import DetailTablePagination from '../../../../shared/components/ui/DetailTablePagination';
-import './SoQuy.css';
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+
+import { useNavigate, useSearchParams } from "react-router-dom";
+
+import { cashbookService } from "../../../../shared/services/cashbookService";
+
+import DetailTablePagination from "../../../../shared/components/ui/DetailTablePagination";
+
+import { DETAIL_TABLE_PAGE_SIZE } from "../../../../hooks/useDetailTablePagination";
+
+import {
+  CashSourceFilters,
+  CashSourceInfo,
+  useCashSourceFilters,
+} from "../components/CashbookEnhancements";
+
+import CashbookSourceFilters from "../components/CashbookSourceFilters";
+
+import {
+  createCashbookSourceFilters,
+  cashbookSourceParams,
+} from "../api/cashbookFilterParams";
+
+import "./SoQuy.css";
+
+function getDefaultDateRange() {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Ho_Chi_Minh",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(new Date());
+
+  const getPart = (type) => parts.find((part) => part.type === type).value;
+
+  const today = [getPart("year"), getPart("month"), getPart("day")].join("-");
+
+  return {
+    defaultFromDate: `${today.slice(0, 7)}-01`,
+    defaultToDate: today,
+  };
+}
 
 export default function SoQuy() {
   const navigate = useNavigate();
+  const [params] = useSearchParams();
 
-  // Default dates: First day of current month to today
-  const getFirstDayOfMonth = () => {
-    const d = new Date();
-    const year = d.getFullYear();
-    const month = String(d.getMonth() + 1).padStart(2, '0');
-    return `${year}-${month}-01`;
-  };
+  const { defaultFromDate, defaultToDate } = useMemo(getDefaultDateRange, []);
 
-  const getToday = () => {
-    const d = new Date();
-    const year = d.getFullYear();
-    const month = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
-  };
+  const [fromDate, setFromDate] = useState(
+    () => params.get("tu_ngay") || defaultFromDate,
+  );
 
-  const defaultFromDate = getFirstDayOfMonth();
-  const defaultToDate = getToday();
+  const [toDate, setToDate] = useState(
+    () => params.get("den_ngay") || defaultToDate,
+  );
 
-  // Filter states
-  const [fromDate, setFromDate] = useState(defaultFromDate);
-  const [toDate, setToDate] = useState(defaultToDate);
-  const [filterType, setFilterType] = useState('ALL');
-  const [filterMethod, setFilterMethod] = useState('ALL');
-  const [searchPerson, setSearchPerson] = useState('');
-  const [debouncedPerson, setDebouncedPerson] = useState('');
+  const [filterType, setFilterType] = useState(() => {
+    const value = params.get("loai_phieu");
 
-  // Pagination
+    return ["THU", "CHI"].includes(value) ? value : "ALL";
+  });
+
+  const [filterMethod, setFilterMethod] = useState(() => {
+    const value = params.get("phuong_thuc_thanh_toan");
+
+    return ["TIEN_MAT", "CHUYEN_KHOAN", "THE"].includes(value) ? value : "ALL";
+  });
+
+  const [searchPerson, setSearchPerson] = useState(
+    () => params.get("ten_nguoi_nop_nhan") || "",
+  );
+
+  const [debouncedPerson, setDebouncedPerson] = useState(searchPerson);
+
   const [page, setPage] = useState(1);
-  const pageSize = 20;
 
-  // Data states
+  const [sourceFilters, setSourceFilters] = useState(() =>
+    createCashbookSourceFilters(params),
+  );
+
+  // Khớp với component DetailTablePagination đang dùng.
+  const pageSize = DETAIL_TABLE_PAGE_SIZE;
+
   const [transactions, setTransactions] = useState([]);
   const [totalElements, setTotalElements] = useState(0);
+
   const [summary, setSummary] = useState({
     soDuDauKy: 0,
     tongThu: 0,
     tongChi: 0,
     tonCuoiKy: 0,
   });
+
   const [isLoading, setIsLoading] = useState(true);
   const [isExporting, setIsExporting] = useState(false);
-  const [dateError, setDateError] = useState('');
+  const [dateError, setDateError] = useState("");
 
   const searchTimeoutRef = useRef(null);
+
+  useEffect(() => {
+    return () => {
+      if (searchTimeoutRef.current !== null) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const hasActiveFilter = Boolean(
     fromDate !== defaultFromDate ||
     toDate !== defaultToDate ||
-    filterType !== 'ALL' ||
-    filterMethod !== 'ALL' ||
-    searchPerson.trim() !== ''
+    filterType !== "ALL" ||
+    filterMethod !== "ALL" ||
+    searchPerson.trim() !== "" ||
+    Object.keys(cashbookSourceParams(sourceFilters)).length > 0,
   );
 
   const handleClearFilters = () => {
+    if (searchTimeoutRef.current !== null) {
+      clearTimeout(searchTimeoutRef.current);
+      searchTimeoutRef.current = null;
+    }
+
     setFromDate(defaultFromDate);
     setToDate(defaultToDate);
-    setFilterType('ALL');
-    setFilterMethod('ALL');
-    setSearchPerson('');
-    setDebouncedPerson('');
-    setDateError('');
+    setFilterType("ALL");
+    setFilterMethod("ALL");
+    setSearchPerson("");
+    setDebouncedPerson("");
+    setSourceFilters(createCashbookSourceFilters());
+    setDateError("");
     setPage(1);
   };
 
@@ -85,21 +151,23 @@ export default function SoQuy() {
   const fetchCashbookData = useCallback(async () => {
     if (!fromDate || !toDate) return;
     if (fromDate > toDate) {
-      setDateError('Ngày bắt đầu không được lớn hơn ngày kết thúc');
+      setDateError("Ngày bắt đầu không được lớn hơn ngày kết thúc");
       return;
     }
-    setDateError('');
+    setDateError("");
     setIsLoading(true);
 
     try {
       const params = {
         tu_ngay: fromDate,
         den_ngay: toDate,
-        loai_phieu: filterType !== 'ALL' ? filterType : undefined,
-        phuong_thuc_thanh_toan: filterMethod !== 'ALL' ? filterMethod : undefined,
+        loai_phieu: filterType !== "ALL" ? filterType : undefined,
+        phuong_thuc_thanh_toan:
+          filterMethod !== "ALL" ? filterMethod : undefined,
         ten_nguoi_nop_nhan: debouncedPerson.trim() || undefined,
         page: Math.max(0, page - 1),
         limit: pageSize,
+        ...cashbookSourceParams(sourceFilters),
       };
 
       const response = await cashbookService.getCashbook(params);
@@ -117,12 +185,21 @@ export default function SoQuy() {
         }
       }
     } catch (error) {
-      console.error('Lỗi khi tải dữ liệu sổ quỹ:', error);
+      console.error("Lỗi khi tải dữ liệu sổ quỹ:", error);
       setTransactions([]);
     } finally {
       setIsLoading(false);
     }
-  }, [fromDate, toDate, filterType, filterMethod, debouncedPerson, page]);
+  }, [
+    fromDate,
+    toDate,
+    filterType,
+    filterMethod,
+    debouncedPerson,
+    page,
+    pageSize,
+    sourceFilters,
+  ]);
 
   useEffect(() => {
     fetchCashbookData();
@@ -130,11 +207,13 @@ export default function SoQuy() {
 
   const handleExportExcel = async () => {
     if (!fromDate || !toDate) {
-      alert('Vui lòng chọn khoảng thời gian');
+      alert("Vui lòng chọn khoảng thời gian");
       return;
     }
     if (fromDate > toDate) {
-      alert('Khoảng thời gian không hợp lệ (ngày bắt đầu lớn hơn ngày kết thúc)');
+      alert(
+        "Khoảng thời gian không hợp lệ (ngày bắt đầu lớn hơn ngày kết thúc)",
+      );
       return;
     }
 
@@ -143,17 +222,19 @@ export default function SoQuy() {
       const params = {
         tu_ngay: fromDate,
         den_ngay: toDate,
-        loai_phieu: filterType !== 'ALL' ? filterType : undefined,
-        phuong_thuc_thanh_toan: filterMethod !== 'ALL' ? filterMethod : undefined,
+        loai_phieu: filterType !== "ALL" ? filterType : undefined,
+        phuong_thuc_thanh_toan:
+          filterMethod !== "ALL" ? filterMethod : undefined,
         ten_nguoi_nop_nhan: debouncedPerson.trim() || undefined,
+        ...cashbookSourceParams(sourceFilters),
       };
 
       const response = await cashbookService.exportCashbook(params);
       const blob = new Blob([response.data], {
-        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
       });
       const downloadUrl = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
+      const link = document.createElement("a");
       link.href = downloadUrl;
       link.download = `So_quy_${fromDate}_${toDate}.xlsx`;
       document.body.appendChild(link);
@@ -161,27 +242,27 @@ export default function SoQuy() {
       link.remove();
       window.URL.revokeObjectURL(downloadUrl);
     } catch (error) {
-      console.error('Lỗi khi xuất file Excel sổ quỹ:', error);
-      alert('Xuất file không thành công, vui lòng thử lại.');
+      console.error("Lỗi khi xuất file Excel sổ quỹ:", error);
+      alert("Xuất file không thành công, vui lòng thử lại.");
     } finally {
       setIsExporting(false);
     }
   };
 
   const formatMoney = (amount) => {
-    if (!amount && amount !== 0) return '0đ';
-    return Number(amount).toLocaleString('vi-VN') + 'đ';
+    if (!amount && amount !== 0) return "0đ";
+    return Number(amount).toLocaleString("vi-VN") + "đ";
   };
 
   const formatDateDisplay = (dateStr) => {
-    if (!dateStr) return '—';
+    if (!dateStr) return "—";
     try {
-      return new Date(dateStr).toLocaleString('vi-VN', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
+      return new Date(dateStr).toLocaleString("vi-VN", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
       });
     } catch {
       return dateStr;
@@ -190,30 +271,30 @@ export default function SoQuy() {
 
   const getMethodStyle = (method) => {
     switch (method) {
-      case 'TIEN_MAT':
-      case 'TIỀN MẶT':
-        return 'method-badge method-cash';
-      case 'CHUYEN_KHOAN':
-      case 'CHUYỂN KHOẢN':
-        return 'method-badge method-transfer';
-      case 'THE':
-      case 'QUẸT THẺ':
-        return 'method-badge method-card';
+      case "TIEN_MAT":
+      case "TIỀN MẶT":
+        return "method-badge method-cash";
+      case "CHUYEN_KHOAN":
+      case "CHUYỂN KHOẢN":
+        return "method-badge method-transfer";
+      case "THE":
+      case "QUẸT THẺ":
+        return "method-badge method-card";
       default:
-        return 'method-badge';
+        return "method-badge";
     }
   };
 
   const mapPaymentMethodToText = (method) => {
     switch (method) {
-      case 'TIEN_MAT':
-        return 'TIỀN MẶT';
-      case 'CHUYEN_KHOAN':
-        return 'CHUYỂN KHOẢN';
-      case 'THE':
-        return 'QUẸT THẺ';
+      case "TIEN_MAT":
+        return "TIỀN MẶT";
+      case "CHUYEN_KHOAN":
+        return "CHUYỂN KHOẢN";
+      case "THE":
+        return "QUẸT THẺ";
       default:
-        return method || '—';
+        return method || "—";
     }
   };
 
@@ -225,7 +306,7 @@ export default function SoQuy() {
         </div>
         <button
           className="cb-btn-primary bg-red"
-          onClick={() => navigate('/admin/so-quy-tien-mat/tao-phieu-thu-chi')}
+          onClick={() => navigate("/admin/so-quy-tien-mat/tao-phieu-thu-chi")}
         >
           + TẠO PHIẾU THU / CHI
         </button>
@@ -238,7 +319,7 @@ export default function SoQuy() {
           <input
             type="date"
             value={fromDate}
-            className={fromDate !== defaultFromDate ? 'active-filter' : ''}
+            className={fromDate !== defaultFromDate ? "active-filter" : ""}
             onChange={(e) => {
               setFromDate(e.target.value);
               setPage(1);
@@ -250,7 +331,7 @@ export default function SoQuy() {
           <input
             type="date"
             value={toDate}
-            className={toDate !== defaultToDate ? 'active-filter' : ''}
+            className={toDate !== defaultToDate ? "active-filter" : ""}
             onChange={(e) => {
               setToDate(e.target.value);
               setPage(1);
@@ -261,7 +342,7 @@ export default function SoQuy() {
           <label>LOẠI PHIẾU</label>
           <select
             value={filterType}
-            className={filterType !== 'ALL' ? 'active-filter' : ''}
+            className={filterType !== "ALL" ? "active-filter" : ""}
             onChange={(e) => {
               setFilterType(e.target.value);
               setPage(1);
@@ -276,7 +357,7 @@ export default function SoQuy() {
           <label>PHƯƠNG THỨC</label>
           <select
             value={filterMethod}
-            className={filterMethod !== 'ALL' ? 'active-filter' : ''}
+            className={filterMethod !== "ALL" ? "active-filter" : ""}
             onChange={(e) => {
               setFilterMethod(e.target.value);
               setPage(1);
@@ -294,7 +375,7 @@ export default function SoQuy() {
             type="text"
             placeholder="Tìm tên khách / đối tác..."
             value={searchPerson}
-            className={searchPerson.trim() ? 'active-filter' : ''}
+            className={searchPerson.trim() ? "active-filter" : ""}
             onChange={handlePersonChange}
           />
         </div>
@@ -314,7 +395,7 @@ export default function SoQuy() {
                 strokeWidth="2.5"
                 strokeLinecap="round"
                 strokeLinejoin="round"
-                style={{ marginRight: '6px' }}
+                style={{ marginRight: "6px" }}
               >
                 <line x1="18" y1="6" x2="6" y2="18" />
                 <line x1="6" y1="6" x2="18" y2="18" />
@@ -324,7 +405,7 @@ export default function SoQuy() {
           )}
           <button
             className="cb-btn-outline icon-btn"
-            onClick={() => navigate('/admin/so-quy-tien-mat/tong-quan')}
+            onClick={() => navigate("/admin/so-quy-tien-mat/tong-quan")}
           >
             <svg
               width="14"
@@ -335,7 +416,7 @@ export default function SoQuy() {
               strokeWidth="2"
               strokeLinecap="round"
               strokeLinejoin="round"
-              style={{ marginRight: '6px' }}
+              style={{ marginRight: "6px" }}
             >
               <line x1="18" y1="20" x2="18" y2="10" />
               <line x1="12" y1="20" x2="12" y2="4" />
@@ -357,7 +438,7 @@ export default function SoQuy() {
               strokeWidth="2"
               strokeLinecap="round"
               strokeLinejoin="round"
-              style={{ marginRight: '6px' }}
+              style={{ marginRight: "6px" }}
             >
               <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
               <polyline points="14 2 14 8 20 8" />
@@ -365,7 +446,7 @@ export default function SoQuy() {
               <line x1="16" y1="17" x2="8" y2="17" />
               <polyline points="10 9 9 9 8 9" />
             </svg>
-            {isExporting ? 'ĐANG XUẤT...' : 'XUẤT FILE EXCEL'}
+            {isExporting ? "ĐANG XUẤT..." : "XUẤT FILE EXCEL"}
           </button>
         </div>
       </div>
@@ -373,16 +454,25 @@ export default function SoQuy() {
       {dateError && (
         <div
           style={{
-            padding: '8px 28px',
-            backgroundColor: '#fee2e2',
-            color: '#b91c1c',
-            fontSize: '11px',
+            padding: "8px 28px",
+            backgroundColor: "#fee2e2",
+            color: "#b91c1c",
+            fontSize: "11px",
             fontWeight: 800,
           }}
         >
           ⚠ {dateError}
         </div>
       )}
+
+      <CashbookSourceFilters
+        extended
+        value={sourceFilters}
+        onChange={(nextFilters) => {
+          setSourceFilters(nextFilters);
+          setPage(1);
+        }}
+      />
 
       {/* 4 Stats Cards */}
       <div className="sq-stats-row">
@@ -426,7 +516,9 @@ export default function SoQuy() {
           </div>
           <div className="info">
             <label>TỔNG THU</label>
-            <div className="val text-green">+{formatMoney(summary.tongThu)}</div>
+            <div className="val text-green">
+              +{formatMoney(summary.tongThu)}
+            </div>
           </div>
         </div>
         <div className="sq-stat-box">
@@ -462,8 +554,9 @@ export default function SoQuy() {
       {/* Formula Subtext */}
       <div className="sq-subtext-row">
         <span>
-          (i) Tồn cuối kỳ = {formatMoney(summary.soDuDauKy)} (Đầu kỳ) +{' '}
-          {formatMoney(summary.tongThu)} (Tổng thu) - {formatMoney(summary.tongChi)} (Tổng chi) ={' '}
+          (i) Tồn cuối kỳ = {formatMoney(summary.soDuDauKy)} (Đầu kỳ) +{" "}
+          {formatMoney(summary.tongThu)} (Tổng thu) -{" "}
+          {formatMoney(summary.tongChi)} (Tổng chi) ={" "}
           {formatMoney(summary.tonCuoiKy)}
         </span>
         <span className="count-badge">Tổng {totalElements} phiếu ghi nhận</span>
@@ -488,7 +581,10 @@ export default function SoQuy() {
           <tbody>
             {isLoading ? (
               <tr>
-                <td colSpan="9" style={{ textAlign: 'center', padding: '32px' }}>
+                <td
+                  colSpan="9"
+                  style={{ textAlign: "center", padding: "32px" }}
+                >
                   Đang tải dữ liệu sổ quỹ...
                 </td>
               </tr>
@@ -498,36 +594,42 @@ export default function SoQuy() {
                   <td>{row.stt}</td>
                   <td>
                     <span
-                      className={`type-badge ${row.loai_phieu === 'THU' ? 'type-thu' : 'type-chi'}`}
+                      className={`type-badge ${row.loai_phieu === "THU" ? "type-thu" : "type-chi"}`}
                     >
-                      {row.loai_phieu === 'THU' ? 'PHIẾU THU' : 'PHIẾU CHI'}
+                      {row.loai_phieu === "THU" ? "PHIẾU THU" : "PHIẾU CHI"}
                     </span>
                   </td>
                   <td>{formatDateDisplay(row.ngay_ghi_nhan)}</td>
                   <td>
                     <strong>{row.ma_phieu}</strong>
                   </td>
-                  <td>{row.ten_nguoi_nop_nhan || '—'}</td>
+                  <td>{row.ten_nguoi_nop_nhan || "—"}</td>
                   <td>
-                    <span className={getMethodStyle(row.phuong_thuc_thanh_toan)}>
+                    <span
+                      className={getMethodStyle(row.phuong_thuc_thanh_toan)}
+                    >
                       {mapPaymentMethodToText(row.phuong_thuc_thanh_toan)}
                     </span>
                   </td>
                   <td>
                     {row.tien_thu > 0 ? (
-                      <strong className="text-green">+{formatMoney(row.tien_thu)}</strong>
+                      <strong className="text-green">
+                        +{formatMoney(row.tien_thu)}
+                      </strong>
                     ) : (
-                      '—'
+                      "—"
                     )}
                   </td>
                   <td>
                     {row.tien_chi > 0 ? (
-                      <strong className="text-red">-{formatMoney(row.tien_chi)}</strong>
+                      <strong className="text-red">
+                        -{formatMoney(row.tien_chi)}
+                      </strong>
                     ) : (
-                      '—'
+                      "—"
                     )}
                   </td>
-                  <td className="text-muted">{row.mo_ta || '—'}</td>
+                  <td className="text-muted">{row.mo_ta || "—"}</td>
                 </tr>
               ))
             ) : (
@@ -535,13 +637,14 @@ export default function SoQuy() {
                 <td
                   colSpan="9"
                   style={{
-                    textAlign: 'center',
-                    padding: '32px',
-                    color: '#858c95',
+                    textAlign: "center",
+                    padding: "32px",
+                    color: "#858c95",
                     fontWeight: 600,
                   }}
                 >
-                  Không có giao dịch nào phù hợp với bộ lọc trong khoảng thời gian đã chọn
+                  Không có giao dịch nào phù hợp với bộ lọc trong khoảng thời
+                  gian đã chọn
                 </td>
               </tr>
             )}
@@ -549,14 +652,18 @@ export default function SoQuy() {
           {transactions.length > 0 && (
             <tfoot>
               <tr>
-                <td colSpan="6" style={{ textAlign: 'left' }}>
+                <td colSpan="6" style={{ textAlign: "left" }}>
                   <strong>TỔNG ({totalElements} PHIẾU)</strong>
                 </td>
                 <td>
-                  <strong className="text-green">+{formatMoney(summary.tongThu)}</strong>
+                  <strong className="text-green">
+                    +{formatMoney(summary.tongThu)}
+                  </strong>
                 </td>
                 <td>
-                  <strong className="text-red">-{formatMoney(summary.tongChi)}</strong>
+                  <strong className="text-red">
+                    -{formatMoney(summary.tongChi)}
+                  </strong>
                 </td>
                 <td></td>
               </tr>

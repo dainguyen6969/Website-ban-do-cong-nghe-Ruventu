@@ -19,11 +19,12 @@ import com.example.dantruventu.Error.ErrorCode;
 import com.example.dantruventu.Mapper.warehouse.SoSerialSanPhamMapper;
 import com.example.dantruventu.Repository.NguoiDungRepository;
 import com.example.dantruventu.Repository.warehouse.*;
+import com.example.dantruventu.Services.warehouse.WarehouseSupport;
 import com.example.dantruventu.Specification.SoSerialSanPhamSpecification;
+import jakarta.persistence.EntityManager;
+import java.time.LocalDateTime;
 import java.time.ZoneId;
-import java.util.Locale;
-import java.util.Objects;
-import java.util.UUID;
+import java.util.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.PageRequest;
@@ -43,11 +44,55 @@ public class AdminSerialService {
   private final NguoiDungRepository nguoiDungRepository;
   private final SoSerialSanPhamMapper serialMapper;
   private final KhoHangRepository khoHangRepository;
+  private final WarehouseSupport warehouseSupport;
+
+  private final EntityManager entityManager;
+
+  private record WarrantyDates(LocalDateTime activatedAt, LocalDateTime expiresAt) {}
+
+  private Map<Long, WarrantyDates> warrantyDates(List<SoSerialSanPham> serials) {
+
+    Map<Long, WarrantyDates> result = new HashMap<>();
+
+    for (var serial : serials) {
+      result.put(
+          serial.getId(), new WarrantyDates(serial.getNgayKichHoat(), serial.getHanBaoHanh()));
+    }
+
+    if (serials.isEmpty()) return result;
+
+    var rows =
+        entityManager
+            .createQuery(
+                """
+      select d.soSerial.id, d.ngayKichHoat, d.hanBaoHanh
+      from ThietBiBaoHanh d
+      join d.soSerial s
+      where s.id in :ids
+        and s.donHang.id = d.chiTietDonHang.donHang.id
+      order by d.id desc
+      """,
+                Object[].class)
+            .setParameter("ids", serials.stream().map(SoSerialSanPham::getId).toList())
+            .getResultList();
+
+    var seen = new HashSet<Long>();
+
+    for (var row : rows) {
+      Long serialId = (Long) row[0];
+
+      if (seen.add(serialId)) {
+        result.put(serialId, new WarrantyDates((LocalDateTime) row[1], (LocalDateTime) row[2]));
+      }
+    }
+
+    return result;
+  }
 
   @Value("${ruventu.inventory.time-zone:Asia/Ho_Chi_Minh}")
   private String inventoryTimeZone;
 
-  @Value("${ruventu.inventory.warehouse-id:0}")
+  @Value("${ruventu.inventory.default-warehouse-id:1}")
   private Long inventoryWarehouseId;
 
   public AdminSerialListResponse getSerials(
@@ -89,10 +134,28 @@ public class AdminSerialService {
 
     ZoneId zoneId = ZoneId.of(inventoryTimeZone);
 
+    var dates = warrantyDates(result.getContent());
+
     return AdminSerialListResponse.builder()
         .items(
             result.getContent().stream()
-                .map(serial -> serialMapper.toListItem(serial, zoneId))
+                .map(
+                    serial -> {
+                      var response = serialMapper.toListItem(serial, zoneId);
+                      var warranty = dates.get(serial.getId());
+
+                      response.setNgayKichHoat(
+                          warranty.activatedAt() == null
+                              ? null
+                              : warranty.activatedAt().atZone(zoneId).toOffsetDateTime());
+
+                      response.setHanBaoHanh(
+                          warranty.expiresAt() == null
+                              ? null
+                              : warranty.expiresAt().atZone(zoneId).toOffsetDateTime());
+
+                      return response;
+                    })
                 .toList())
         .pagination(
             PaginationResponse.builder()
@@ -107,9 +170,21 @@ public class AdminSerialService {
   public AdminSerialDetailResponse getDetail(Long id) {
     validateId(id);
 
-    SoSerialSanPham serial = serialRepository.findById(id).orElseThrow(this::notFound);
+    var serial = serialRepository.findById(id).orElseThrow(this::notFound);
 
-    return serialMapper.toDetail(serial, ZoneId.of(inventoryTimeZone));
+    ZoneId zone = ZoneId.of(inventoryTimeZone);
+    var response = serialMapper.toDetail(serial, zone);
+    var warranty = warrantyDates(List.of(serial)).get(serial.getId());
+
+    response.setNgayKichHoat(
+        warranty.activatedAt() == null
+            ? null
+            : warranty.activatedAt().atZone(zone).toOffsetDateTime());
+
+    response.setHanBaoHanh(
+        warranty.expiresAt() == null ? null : warranty.expiresAt().atZone(zone).toOffsetDateTime());
+
+    return response;
   }
 
   @Transactional
@@ -129,9 +204,8 @@ public class AdminSerialService {
     }
 
     if (!isWarehouseState(target)) {
-      throw conflict(
-          "API này chỉ cho phép chuyển TRONG_KHO ↔ LOI. "
-              + "Xuất bán và bảo hành phải qua nghiệp vụ tương ứng");
+      throw new AppException(
+          ErrorCode.UNPROCESSABLE_ENTITY, "API này chỉ cho phép chuyển TRONG_KHO ↔ LOI");
     }
 
     String reason = normalizeOptional(request.getLyDo());
@@ -145,6 +219,13 @@ public class AdminSerialService {
      * Serial sẽ được nạp và kiểm tra lại sau khi khóa tồn.
      */
     Long variantId = serialRepository.findPhienBanIdBySerialId(id).orElseThrow(this::notFound);
+
+    var configuredVariant = warehouseSupport.lockVariant(variantId);
+
+    if (!Boolean.TRUE.equals(configuredVariant.getCoQuanLySerial())) {
+
+      throw conflict("Phiên bản không được cấu hình quản lý serial");
+    }
 
     Long warehouseId = requireSingleWarehouseId();
 
@@ -188,17 +269,14 @@ public class AdminSerialService {
       throw conflict("Serial vật lý phải thuộc phiên bản sản phẩm đơn");
     }
 
-    int physical = requiredStock(stock.getTonThucTe(), "ton_thuc_te");
+    var stockNumbers = WarehouseSupport.numbers(stock);
 
-    int available = requiredStock(stock.getTonCoTheBan(), "ton_co_the_ban");
+    int physical = stockNumbers.actual();
+    int available = stockNumbers.available();
+    int damaged = stockNumbers.damaged();
 
-    int damaged = requiredStock(stock.getHangLoi(), "hang_loi");
-
-    long held = (long) physical - damaged - available;
-
-    if (physical <= 0 || available < 0 || damaged < 0 || damaged > physical || held < 0) {
-
-      throw conflict("Số liệu tồn kho không nhất quán, " + "cần đối soát trước khi sửa serial");
+    if (physical <= 0) {
+      throw conflict("Kho không có hàng thực tế tương ứng với serial");
     }
 
     if (target == TrangThaiSerial.LOI) {

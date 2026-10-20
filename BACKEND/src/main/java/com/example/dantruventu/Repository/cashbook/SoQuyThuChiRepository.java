@@ -13,6 +13,7 @@ import java.util.Optional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
@@ -125,14 +126,11 @@ public interface SoQuyThuChiRepository
 
   @Override
   @EntityGraph(attributePaths = {"loaiThuChi", "nguoiTao"})
-  Page<SoQuyThuChi> findAll(
-      org.springframework.data.jpa.domain.Specification<SoQuyThuChi> specification,
-      Pageable pageable);
+  Page<SoQuyThuChi> findAll(Specification<SoQuyThuChi> specification, Pageable pageable);
 
   @Override
-  @EntityGraph(attributePaths = {"nguoiTao"})
-  List<SoQuyThuChi> findAll(
-      org.springframework.data.jpa.domain.Specification<SoQuyThuChi> specification, Sort sort);
+  @EntityGraph(attributePaths = {"loaiThuChi", "nguoiTao"})
+  List<SoQuyThuChi> findAll(Specification<SoQuyThuChi> specification, Sort sort);
 
   @Query(
       """

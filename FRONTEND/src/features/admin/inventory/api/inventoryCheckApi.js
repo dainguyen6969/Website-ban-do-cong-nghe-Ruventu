@@ -40,6 +40,7 @@ export async function updateInventoryCheck(id, payload) {
     body: JSON.stringify({
       ton_thuc_te: payload.actualStock,
       ly_do: payload.reason,
+      serials_da_kiem: payload.serialCodes,
     }),
   });
 }
@@ -51,10 +52,16 @@ export async function cancelInventoryCheck(id, reason) {
   });
 }
 
-export async function balanceInventoryCheck(id) {
-  return adminRequest(`/api/v1/admin/inventory-checks/${encodeURIComponent(id)}/balance`, {
-    method: 'POST',
-  });
+export async function balanceInventoryCheck(id, key) {
+  return adminRequest(
+    `/api/v1/admin/inventory-checks/${encodeURIComponent(id)}/balance`,
+    {
+      method: "POST",
+      headers: {
+        "Idempotency-Key": key,
+      },
+    },
+  );
 }
 
 export async function searchInventoryCheckProducts(keyword, page = 1, limit = 20, signal) {
@@ -71,3 +78,16 @@ export async function searchInventoryCheckProducts(keyword, page = 1, limit = 20
     totalPages: Number(data?.pagination?.total_pages || 0),
   };
 }
+
+export const getInventoryCountRequirements = (id, signal) =>
+  adminRequest(
+    `/api/v1/admin/inventory-checks/products/${encodeURIComponent(id)}/requirements`,
+    { signal },
+  );
+
+export const createInventoryCheckBatch = (body, key) =>
+  adminRequest("/api/v1/admin/inventory-checks/batch", {
+    method: "POST",
+    headers: { "Idempotency-Key": key },
+    body: JSON.stringify(body),
+  });

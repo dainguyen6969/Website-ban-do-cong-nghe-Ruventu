@@ -1,5 +1,6 @@
 package com.example.dantruventu.DTO.Response.warehouse;
 
+import com.example.dantruventu.DTO.Request.warehouse.InventoryCountData;
 import com.example.dantruventu.Enum.TrangThaiPhieuKiemKho;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import java.time.LocalDateTime;
@@ -44,6 +45,12 @@ public class AdminInventoryCheckDetailResponse {
 
   @JsonProperty("ngay_tao")
   private LocalDateTime ngayTao;
+
+  @JsonProperty("quan_ly_serial")
+  private Boolean quanLySerial;
+
+  @JsonProperty("kiem_serial")
+  private InventoryCountData.Audit kiemSerial;
 
   @Getter
   @Setter

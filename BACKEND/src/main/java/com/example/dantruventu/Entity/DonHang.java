@@ -123,4 +123,7 @@ public class DonHang {
 
   @OneToMany(mappedBy = "donHang", fetch = FetchType.LAZY)
   private List<PhieuTraHang> danhSachPhieuTraHang;
+
+  @Column(name = "ngay_hoan_thanh", columnDefinition = "DATETIME")
+  private LocalDateTime ngayHoanThanh;
 }

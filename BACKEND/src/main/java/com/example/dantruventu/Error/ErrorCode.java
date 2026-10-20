@@ -33,6 +33,29 @@ public enum ErrorCode {
 
   FORBIDDEN(HttpStatus.FORBIDDEN, "Không có quyền."),
 
+  INVALID_WARRANTY_SEARCH(
+      HttpStatus.BAD_REQUEST, "Enum, khoảng ngày hoặc phân trang bảo hành không hợp lệ."),
+
+  INVALID_WARRANTY_FINANCIAL_DATA(
+      HttpStatus.INTERNAL_SERVER_ERROR,
+      "Dữ liệu hóa đơn hoặc giao dịch tiền bảo hành không hợp lệ."),
+
+  INVALID_WARRANTY_LOOKUP(
+      HttpStatus.BAD_REQUEST, "Thiếu tiêu chí tra cứu, ID hoặc phân trang không hợp lệ."),
+
+  INVALID_WARRANTY_DETAIL(
+      HttpStatus.BAD_REQUEST, "ID hoặc phân trang lịch sử bảo hành không hợp lệ."),
+
+  WARRANTY_NOT_FOUND(HttpStatus.NOT_FOUND, "Không tìm thấy phiếu bảo hành"),
+
+  INTAKE_REQUEST_NOT_FOUND(HttpStatus.NOT_FOUND, "Không tìm thấy yêu cầu tiếp nhận"),
+
+  INVALID_WARRANTY_HISTORY(
+      HttpStatus.INTERNAL_SERVER_ERROR, "Dữ liệu lịch sử bảo hành không hợp lệ."),
+
+  INVALID_WARRANTY_READ_DATA(
+      HttpStatus.INTERNAL_SERVER_ERROR, "Dữ liệu thiết bị hoặc quyền bảo hành không nhất quán."),
+
   INVALID_RECEIPT_SEARCH(HttpStatus.BAD_REQUEST, "Sai enum, khoảng ngày hoặc phân trang."),
 
   INVALID_DISBURSEMENT_SEARCH(
@@ -193,6 +216,99 @@ public enum ErrorCode {
 
   CASH_FLOW_AGGREGATION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "Không tổng hợp được biểu đồ."),
 
+  PC_BUILDER_CONFIGURATION_INVALID(
+      HttpStatus.INTERNAL_SERVER_ERROR,
+      "Không tải được cấu hình hạng mục hoặc cấu hình danh mục không hợp lệ."),
+
+  INVALID_PC_BUILDER_PRODUCTS_FILTER(
+      HttpStatus.BAD_REQUEST,
+      "Hạng mục, giá, phân trang, sắp xếp hoặc đối chiếu socket không hợp lệ."),
+
+  PC_BUILDER_REFERENCE_NOT_FOUND(HttpStatus.NOT_FOUND, "Phiên bản đối chiếu không tồn tại."),
+
+  PC_BUILDER_REFERENCE_DISCONTINUED(HttpStatus.CONFLICT, "Phiên bản đối chiếu đã ngừng bán."),
+
+  PC_BUILDER_REFERENCE_SOCKET_MISSING(HttpStatus.CONFLICT, "Thiếu socket để lọc chính xác."),
+
+  PC_BUILDER_PRODUCTS_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "Lỗi hệ thống hoặc cấu hình kho."),
+
+  INVALID_PC_BUILDER_PREVIEW(
+      HttpStatus.BAD_REQUEST,
+      "Sai cấu trúc, hạng mục trùng, phiên bản đặt sai hạng mục hoặc số lượng không phải số nguyên dương."),
+
+  PC_BUILDER_PREVIEW_VARIANT_NOT_FOUND(HttpStatus.NOT_FOUND, "Phiên bản không tồn tại."),
+
+  PC_BUILDER_PREVIEW_UNAVAILABLE(
+      HttpStatus.CONFLICT,
+      "Sản phẩm/phiên bản vừa ngừng hoạt động hoặc hạng mục không còn cho phép sản phẩm đó."),
+
+  PC_BUILDER_PREVIEW_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "Không kiểm tra được cấu hình."),
+
+  INVALID_CART_PC_BUILD(
+      HttpStatus.BAD_REQUEST,
+      "Cấu hình rỗng, DTO sai, thiếu khóa chống lặp hoặc thiếu đơn giá đối chiếu."),
+  CART_PC_BUILD_DISCONTINUED(HttpStatus.CONFLICT, "Sản phẩm hoặc phiên bản đã ngừng bán."),
+  CART_PC_BUILD_PRICE_CHANGED(
+      HttpStatus.CONFLICT, "Giá đã thay đổi. Vui lòng kiểm tra lại cấu hình."),
+  CART_PC_BUILD_SOCKET_INVALID(
+      HttpStatus.CONFLICT, "CPU và MAIN không khớp hoặc thiếu dữ liệu socket."),
+  CART_PC_BUILD_INSUFFICIENT_STOCK(
+      HttpStatus.CONFLICT, "Tổng số lượng sau cộng giỏ vượt số lượng có thể bán."),
+  CART_PC_BUILD_IDEMPOTENCY_CONFLICT(
+      HttpStatus.CONFLICT, "Cùng Idempotency-Key nhưng nội dung khác."),
+  GUEST_CART_EXPIRED(HttpStatus.CONFLICT, "Phiên giỏ khách đã hết hạn. Vui lòng tải lại giỏ hàng."),
+  CART_CONCURRENT_CHANGE(
+      HttpStatus.CONFLICT,
+      "Giỏ hàng đã thay đổi đồng thời. Vui lòng gửi lại với cùng Idempotency-Key."),
+  CART_PC_BUILD_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "Không cập nhật được toàn bộ giỏ."),
+
+  INVALID_WARRANTY_CREATE(HttpStatus.BAD_REQUEST, "Thông tin tiếp nhận bảo hành không hợp lệ."),
+  WARRANTY_DEVICE_NOT_FOUND(HttpStatus.NOT_FOUND, "Thiết bị không tồn tại."),
+  WARRANTY_PURCHASE_LINE_NOT_FOUND(HttpStatus.NOT_FOUND, "Dòng mua không tồn tại."),
+  WARRANTY_OR_RETURN_LOCKED(HttpStatus.CONFLICT, "Không thể tiếp nhận do xung đột xử lý"),
+  WARRANTY_IDEMPOTENCY_KEY_REUSED(HttpStatus.CONFLICT, "Idempotency-Key đã dùng với nội dung khác"),
+  WARRANTY_ORIGIN_UNVERIFIED(
+      HttpStatus.CONFLICT,
+      "Chưa đủ căn cứ xác minh thiết bị đã giao và quyền bảo hành còn hợp lệ."),
+  WARRANTY_FREE_CONDITION_UNVERIFIED(
+      HttpStatus.CONFLICT, "Chưa đủ căn cứ hoặc hạn bảo hành để xác nhận đủ điều kiện miễn phí."),
+  WARRANTY_PC_COMPONENT_UNSUPPORTED(
+      HttpStatus.CONFLICT,
+      "Chưa hỗ trợ tạo hồ sơ thành phần bộ PC vì chưa có quy ước và luồng lưu bản chụp linh kiện thực tế đã giao."),
+  WARRANTY_CREATE_FAILED(
+      HttpStatus.INTERNAL_SERVER_ERROR,
+      "Không thể tiếp nhận bảo hành; toàn bộ thay đổi đã được hủy."),
+
+  INVALID_WARRANTY_INTAKE_RESULT(
+      HttpStatus.BAD_REQUEST, "Thông tin kết quả tiếp nhận không hợp lệ."),
+  WARRANTY_INTAKE_LINK_MISMATCH(
+      HttpStatus.BAD_REQUEST, "Các liên kết tiếp nhận không thuộc cùng thiết bị hoặc giao dịch."),
+  WARRANTY_DEVICE_ALREADY_IN_CUSTODY(
+      HttpStatus.CONFLICT, "Thiết bị đã được cửa hàng giữ, phải theo dõi tới bàn giao"),
+  WARRANTY_INTAKE_RESULT_CLOSED(
+      HttpStatus.CONFLICT, "Yêu cầu tiếp nhận đã kết thúc hoặc đã thay đổi; vui lòng tải lại."),
+  WARRANTY_INTAKE_RESULT_FAILED(
+      HttpStatus.INTERNAL_SERVER_ERROR,
+      "Không lưu được kết quả tiếp nhận; toàn bộ thay đổi đã được hủy."),
+  INVALID_WARRANTY_STATUS(
+      HttpStatus.BAD_REQUEST, "Sự kiện hoặc thông tin cập nhật trạng thái không hợp lệ."),
+  WARRANTY_STATUS_TRANSITION_INVALID(
+      HttpStatus.CONFLICT, "Không được chuyển trạng thái bảo hành theo sự kiện này."),
+  WARRANTY_HANDOVER_DEVICE_NOT_READY(HttpStatus.CONFLICT, "Chưa có thiết bị đúng để bàn giao"),
+  WARRANTY_STATUS_FAILED(
+      HttpStatus.INTERNAL_SERVER_ERROR,
+      "Không cập nhật được trạng thái bảo hành; toàn bộ thay đổi đã được hủy."),
+
+  INVALID_WARRANTY_EVENT(
+      HttpStatus.BAD_REQUEST, "Sự kiện hoặc thông tin sự kiện bảo hành không hợp lệ."),
+  WARRANTY_EVENT_TRANSITION_INVALID(
+      HttpStatus.CONFLICT, "Sự kiện không phù hợp trạng thái hoặc nơi giữ thiết bị."),
+  WARRANTY_ALREADY_COMPLETED(HttpStatus.CONFLICT, "Phiếu đã hoàn tất, không mở lại xử lý thiết bị"),
+  WARRANTY_PAID_WORK_NOT_AUTHORIZED(
+      HttpStatus.CONFLICT, "Chưa được phép thực hiện công việc có phí"),
+  WARRANTY_EVENT_FAILED(
+      HttpStatus.INTERNAL_SERVER_ERROR,
+      "Không lưu được sự kiện bảo hành; toàn bộ thay đổi đã được hủy."),
   INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "Đã xảy ra lỗi hệ thống");
 
   private final HttpStatus status;

@@ -39,7 +39,59 @@
   -webkit-overflow-scrolling: touch;
 }
 
+/* Text may grow independently of its icon and of the default Inter metrics. */
+.admin-app :is(.content__actions, .heading-actions, .content__stats, .content__filter-left) {
+  min-width: 0;
+  max-width: 100%;
+  flex-wrap: wrap;
+}
+
+.admin-app :is(.btn, .filter__dropdown, .btn-product-band, .product-add-btn, .category-primary-button, .category-clear-button) {
+  min-width: 0;
+  max-width: 100%;
+  height: auto;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  line-height: 1.5;
+}
+
+.admin-app :is(button, a) > svg { flex-shrink: 0; }
+.admin-app :is(.stat-badge, .status-badge, .product-status-badge) {
+  max-width: 100%;
+  height: auto;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.admin-app .filter-dropdown-container { min-width: 0; }
+.admin-app .filter__dropdown-menu { max-width: min(100vw, 100%); }
+.admin-app .filter__dropdown-item { white-space: normal; overflow-wrap: anywhere; }
+.admin-app :is(.data-table, .category-table, .product-table) { table-layout: auto; }
+.admin-app :is(th, td) { overflow-wrap: anywhere; }
+.admin-app :is(.category-heading, .category-actions) { flex-wrap: wrap; }
+.admin-app .category-toolbar { grid-template-columns: minmax(0, 1fr) repeat(2, minmax(0, auto)) auto; }
+.admin-app :is(.modal-header, .modal-footer, .category-modal__header, .category-modal__footer, .supplier-modal-footer, .partner-modal-footer, .order-cancel-modal-actions) {
+  min-width: 0;
+  flex-wrap: wrap;
+  height: auto;
+}
+.admin-app :is(.modal-header, .category-modal__header, .order-cancel-modal-heading) h2 {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.admin-app :is(.modal-footer, .category-modal__footer, .supplier-modal-footer, .partner-modal-footer, .order-cancel-modal-actions) button {
+  height: auto;
+  max-width: 100%;
+  white-space: normal;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
 @media (max-width: 1024px) {
+  .admin-app .header__group:not(.header__utilities) { display: none; }
+  .admin-app .header__mobile-menu { display: inline-flex; }
+  .admin-app .header__group { padding-inline: .5em; }
+  .admin-app .header { padding-inline: 1em; gap: .5em; }
   .admin-app .main-content {
     padding: 18px 20px 24px;
   }
@@ -62,6 +114,7 @@
 }
 
 @media (max-width: 768px) {
+  .admin-app .category-toolbar { grid-template-columns: minmax(0, 1fr); }
   .admin-app .main-content {
     padding: 14px;
   }

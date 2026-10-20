@@ -1,21 +1,36 @@
 // Admin product screen: ChiTietSanPham.
-import { useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
-import { HiOutlineArrowLeft, HiOutlinePencilAlt, HiOutlineOfficeBuilding } from 'react-icons/hi';
-import FormCard from '../../../../../shared/components/ui/FormCard';
-import DetailTablePagination from '../../../../../shared/components/ui/DetailTablePagination';
+import { useEffect, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import {
+  HiOutlineArrowLeft,
+  HiOutlinePencilAlt,
+  HiOutlineOfficeBuilding,
+} from "react-icons/hi";
+import FormCard from "../../../../../shared/components/ui/FormCard";
+import DetailTablePagination from "../../../../../shared/components/ui/DetailTablePagination";
 import useDetailTablePagination, {
   DETAIL_TABLE_PAGE_SIZE,
-} from '../../../../../hooks/useDetailTablePagination';
-import { getProductDetail } from '../api/productApi';
-import './ChiTietSanPham.css';
+} from "../../../../../hooks/useDetailTablePagination";
+import { getProductDetail } from "../api/productApi";
+import { WarrantySummary } from "../../components/CatalogPolicies";
+import "./ChiTietSanPham.css";
 
-const money = (value) => `${Number(value || 0).toLocaleString('vi-VN')}đ`;
-const total = (items, field) => items.reduce((sum, item) => sum + Number(item[field] || 0), 0);
+const money = (value) => `${Number(value || 0).toLocaleString("vi-VN")}đ`;
+const total = (items, field) =>
+  items.reduce((sum, item) => sum + Number(item[field] || 0), 0);
 
 function warehouses(product) {
-  const stock = Number(product.tonKho || 0);
-  return [{ name: 'Tổng tồn kho', tonKho: stock, coTheBan: stock, dangVe: 0, location: '—' }];
+  if (product.isCombo) return [];
+
+  return [
+    {
+      name: "Kho mặc định",
+      tonKho: product.tonKho ?? 0,
+      coTheBan: product.coTheBan ?? 0,
+      dangVe: 0,
+      location: "—",
+    },
+  ];
 }
 
 function StatusPill({ children }) {
@@ -34,17 +49,17 @@ export default function ChiTietSanPham() {
   const { productId } = useParams();
   const navigate = useNavigate();
   const [product, setProduct] = useState(null);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
   const componentPagination = useDetailTablePagination(product?.comboItems);
   const variantPagination = useDetailTablePagination(product?.variants);
 
   useEffect(() => {
     const controller = new AbortController();
-    setError('');
-    getProductDetail(decodeURIComponent(productId || ''), controller.signal)
+    setError("");
+    getProductDetail(decodeURIComponent(productId || ""), controller.signal)
       .then(setProduct)
       .catch((requestError) => {
-        if (requestError.name !== 'AbortError') setError(requestError.message);
+        if (requestError.name !== "AbortError") setError(requestError.message);
       });
     return () => controller.abort();
   }, [productId]);
@@ -55,7 +70,7 @@ export default function ChiTietSanPham() {
         <p>{error}</p>
         <button
           className="detail-btn detail-btn--outline"
-          onClick={() => navigate('/admin/san-pham/danh-sach-san-pham')}
+          onClick={() => navigate("/admin/san-pham/danh-sach-san-pham")}
         >
           Quay lại
         </button>
@@ -68,17 +83,19 @@ export default function ChiTietSanPham() {
       </main>
     );
 
-  const isCombo = product.phanLoai === 'Theo bộ (Combo)';
+  const isCombo = product.phanLoai === "Theo bộ (Combo)";
   const variants = product.variants || [];
-  const hasVariantTable = !isCombo && variants.length > 1;
+  const hasVariantTable = !isCombo && variants.length > 0;
   const components = product.comboItems || [];
-  const componentTotal = total(components, 'giaNhap') || total(components, 'donGia');
+  const componentTotal =
+    total(components, "giaNhap") || total(components, "donGia");
   const margin = product.giaNhap
     ? Math.round(((product.giaBanLe - product.giaNhap) / product.giaNhap) * 100)
     : 0;
   const storage = warehouses(product);
-  const storageIncoming = total(storage, 'dangVe');
-  const edit = () => navigate(`/admin/san-pham/them-san-pham/${encodeURIComponent(product.id)}`);
+  const storageIncoming = total(storage, "dangVe");
+  const edit = () =>
+    navigate(`/admin/san-pham/them-san-pham/${encodeURIComponent(product.id)}`);
 
   return (
     <main className="detail-page">
@@ -96,15 +113,17 @@ export default function ChiTietSanPham() {
           <span className="detail-code">{product.maSanPham}</span>
           <span className="detail-separator">·</span>
           <span className="detail-type-text">
-            {isCombo ? 'Sản phẩm theo bộ (Combo)' : 'Sản phẩm đơn'}
+            {isCombo ? "Sản phẩm theo bộ (Combo)" : "Sản phẩm đơn"}
           </span>
           <span className="detail-separator">·</span>
-          <strong className="detail-hero-price">{money(product.giaBanLe)}</strong>
+          <strong className="detail-hero-price">
+            {money(product.giaBanLe)}
+          </strong>
         </div>
         <div className="detail-hero__actions">
           <button
             className="detail-btn detail-btn--outline"
-            onClick={() => navigate('/admin/san-pham/danh-sach-san-pham')}
+            onClick={() => navigate("/admin/san-pham/danh-sach-san-pham")}
           >
             <HiOutlineArrowLeft />
             Quay lại
@@ -122,15 +141,31 @@ export default function ChiTietSanPham() {
           caption="Giá niêm yết"
           tone="red"
         />
-        <Stat label="GIÁ NHẬP" value={money(product.giaNhap)} caption="Giá vốn bình quân" />
+        <Stat
+          label="GIÁ NHẬP"
+          value={money(product.giaNhap)}
+          caption="Giá vốn bình quân"
+        />
         <Stat
           label="GIÁ BÁN BUÔN"
           value={money(product.giaBanBuon)}
           caption="Cho đại lý"
           tone="blue"
         />
-        <Stat label="BIÊN LỢI NHUẬN" value={`${margin}%`} caption="Trên giá vốn" tone="green" />
+        <Stat
+          label="BIÊN LỢI NHUẬN"
+          value={`${margin}%`}
+          caption="Trên giá vốn"
+          tone="green"
+        />
       </section>
+
+      <WarrantySummary
+        isCombo={product.isCombo}
+        months={product.warrantyMonths}
+        components={product.components}
+        capacity={product.assemblyCapacity}
+      />
 
       <div className="detail-grid">
         <FormCard title="Thông tin chính">
@@ -140,12 +175,18 @@ export default function ChiTietSanPham() {
               <span className="detail-code">{product.maSanPham}</span>
             </Info>
             <Info label="Đơn vị tính">{product.donViTinh}</Info>
-            <Info label="Khối lượng">{product.khoiLuong || '—'}</Info>
+            <Info label="Khối lượng">{product.khoiLuong || "—"}</Info>
             <Info label="Ảnh sản phẩm">
               {product.hinhAnh ? (
-                <img className="detail-image" src={product.hinhAnh} alt={product.tenSanPham} />
+                <img
+                  className="detail-image"
+                  src={product.hinhAnh}
+                  alt={product.tenSanPham}
+                />
               ) : (
-                <div className="detail-image detail-image--empty">Chưa có ảnh</div>
+                <div className="detail-image detail-image--empty">
+                  Chưa có ảnh
+                </div>
               )}
             </Info>
           </dl>
@@ -153,13 +194,15 @@ export default function ChiTietSanPham() {
         <FormCard title="Thuộc tính & phân loại">
           <dl className="detail-info-list">
             <Info label="Loại sản phẩm">
-              <Badge>{isCombo ? 'SẢN PHẨM THEO BỘ (COMBO)' : 'SẢN PHẨM ĐƠN'}</Badge>
+              <Badge>
+                {isCombo ? "SẢN PHẨM THEO BỘ (COMBO)" : "SẢN PHẨM ĐƠN"}
+              </Badge>
             </Info>
-            <Info label="Thương hiệu">{product.thuongHieu || '—'}</Info>
+            <Info label="Thương hiệu">{product.thuongHieu || "—"}</Info>
             <Info label="Trạng thái">
               <StatusPill>{product.trangThaiBan}</StatusPill>
             </Info>
-            <Info label="Thuế">VAT {product.vat || '10%'}</Info>
+            <Info label="Thuế">VAT {product.vat || "10%"}</Info>
             <Info label="Tags">
               <div className="detail-chip-set">
                 {(product.tags || []).map((tag) => (
@@ -173,11 +216,13 @@ export default function ChiTietSanPham() {
               <div className="detail-chip-set">
                 {(product.attributes || []).length
                   ? (product.attributes || []).map((tag) => (
-                      <Badge key={typeof tag === 'string' ? tag : tag.name}>
-                        {typeof tag === 'string' ? tag : `${tag.name}: ${tag.values.join(', ')}`}
+                      <Badge key={typeof tag === "string" ? tag : tag.name}>
+                        {typeof tag === "string"
+                          ? tag
+                          : `${tag.name}: ${tag.values.join(", ")}`}
                       </Badge>
                     ))
-                  : '—'}
+                  : "—"}
               </div>
             </Info>
             {isCombo && (
@@ -193,7 +238,9 @@ export default function ChiTietSanPham() {
                   <small>Tổng tồn</small>
                 </div>
                 <div>
-                  <strong className="detail-green">{product.coTheBan ?? product.tonKho}</strong>
+                  <strong className="detail-green">
+                    {product.coTheBan ?? product.tonKho}
+                  </strong>
                   <small>Có thể bán</small>
                 </div>
               </div>
@@ -213,7 +260,11 @@ export default function ChiTietSanPham() {
       >
         <section className="detail-description">
           <h4>Mô tả sản phẩm</h4>
-          <div dangerouslySetInnerHTML={{ __html: product.moTa || 'Chưa có mô tả.' }} />
+          <div
+            dangerouslySetInnerHTML={{
+              __html: product.moTa || "Chưa có mô tả.",
+            }}
+          />
         </section>
         <section>
           <h4>Thông số kỹ thuật</h4>
@@ -225,6 +276,9 @@ export default function ChiTietSanPham() {
               </tr>
             </thead>
             <tbody>
+              {!product.specs?.length && (
+                <tr><td colSpan={2}>Chưa có thông số kỹ thuật cho sản phẩm này.</td></tr>
+              )}
               {(product.specs || []).map((spec, index) => (
                 <tr key={spec.id || index}>
                   <td>{spec.name}</td>
@@ -242,7 +296,9 @@ export default function ChiTietSanPham() {
           headerRight={
             <>
               <Badge>{components.length} LINH KIỆN</Badge>
-              <strong className="detail-header-total">TỔNG: {money(componentTotal)}</strong>
+              <strong className="detail-header-total">
+                TỔNG: {money(componentTotal)}
+              </strong>
             </>
           }
           className="detail-card"
@@ -260,11 +316,15 @@ export default function ChiTietSanPham() {
             </thead>
             <tbody>
               {componentPagination.visibleItems.map((item, index) => {
-                const line = Number(item.giaNhap || item.donGia || 0) * (item.qty || 1);
+                const line =
+                  Number(item.giaNhap || item.donGia || 0) * (item.qty || 1);
                 return (
                   <tr key={`${item.id}-${index}`}>
                     <td>
-                      {(componentPagination.currentPage - 1) * DETAIL_TABLE_PAGE_SIZE + index + 1}
+                      {(componentPagination.currentPage - 1) *
+                        DETAIL_TABLE_PAGE_SIZE +
+                        index +
+                        1}
                     </td>
                     <td className="detail-name">{item.tenSanPham}</td>
                     <td>
@@ -291,35 +351,44 @@ export default function ChiTietSanPham() {
         </FormCard>
       )}
       {hasVariantTable && (
-        <FormCard
-          title="Thông tin phiên bản"
-          headerRight={<Badge>{variants.length} PHIÊN BẢN</Badge>}
-          className="detail-card"
-        >
+        <FormCard title="Thông tin phiên bản" className="detail-card">
           <table className="detail-table">
             <thead>
               <tr>
-                <th>TÊN PHIÊN BẢN</th>
-                <th>MÃ SKU</th>
-                <th>GIÁ BÁN LẺ</th>
+                <th>PHIÊN BẢN</th>
+                <th>MÃ VẠCH</th>
+                <th>GIÁ BÁN</th>
                 <th>GIÁ NHẬP</th>
-                <th>TỒN ĐẦU KỲ</th>
-                <th>TỒN KHO HIỆN TẠI</th>
+                <th>SERIAL</th>
+                <th>THUỘC TÍNH</th>
+                <th>TỒN THỰC TẾ</th>
+                <th>CÓ THỂ BÁN</th>
               </tr>
             </thead>
             <tbody>
-              {variantPagination.visibleItems.map((v) => (
-                <tr key={v.name}>
-                  <td className="detail-name">{v.name}</td>
-                  <td>{v.sku || '—'}</td>
-                  <td>{money(v.giaBanLe)}</td>
-                  <td>{money(v.giaNhap)}</td>
-                  <td>{v.tonDauKy || 0}</td>
-                  <td>{v.tonKho ?? v.tonDauKy ?? 0}</td>
+              {variantPagination.visibleItems.map((variant) => (
+                <tr key={variant.id}>
+                  <td>{variant.name}</td>
+                  <td>{variant.sku || "—"}</td>
+                  <td>{money(variant.giaBanLe)}</td>
+                  <td>{money(variant.giaNhap)}</td>
+                  <td>{variant.serialMode === true ? "Có" : "Không"}</td>
+                  <td>
+                    {variant.attributes.length
+                      ? variant.attributes.map((attribute) => (
+                          <div key={attribute.id}>
+                            {attribute.ten_thuoc_tinh}: {attribute.gia_tri}
+                          </div>
+                        ))
+                      : "—"}
+                  </td>
+                  <td>{variant.tonKho ?? "—"}</td>
+                  <td>{variant.available ?? "—"}</td>
                 </tr>
               ))}
             </tbody>
           </table>
+
           <DetailTablePagination
             totalItems={variants.length}
             currentPage={variantPagination.currentPage}
@@ -338,7 +407,10 @@ export default function ChiTietSanPham() {
               Tổng tồn: <b>{product.tonKho}</b>
             </span>
             <span>
-              Có thể bán: <b className="detail-green">{product.coTheBan ?? product.tonKho}</b>
+              Có thể bán:{" "}
+              <b className="detail-green">
+                {product.coTheBan ?? product.tonKho}
+              </b>
             </span>
           </>
         }
@@ -362,7 +434,9 @@ export default function ChiTietSanPham() {
                 </td>
                 <td>{row.tonKho}</td>
                 <td className="detail-green">{row.coTheBan}</td>
-                <td className="detail-incoming">{row.dangVe ? `↑ ${row.dangVe}` : '—'}</td>
+                <td className="detail-incoming">
+                  {row.dangVe ? `↑ ${row.dangVe}` : "—"}
+                </td>
                 <td>
                   <Badge>{row.location}</Badge>
                 </td>
@@ -371,7 +445,9 @@ export default function ChiTietSanPham() {
             <tr className="detail-total-row">
               <td>TỔNG CỘNG</td>
               <td>{product.tonKho}</td>
-              <td className="detail-green">{product.coTheBan ?? product.tonKho}</td>
+              <td className="detail-green">
+                {product.coTheBan ?? product.tonKho}
+              </td>
               <td className="detail-incoming">{storageIncoming}</td>
               <td />
             </tr>
@@ -381,11 +457,11 @@ export default function ChiTietSanPham() {
     </main>
   );
 }
-function Stat({ label, value, caption, tone = '' }) {
+function Stat({ label, value, caption, tone = "" }) {
   return (
     <div className="detail-stat">
       <span>{label}</span>
-      <strong className={tone ? `detail-${tone}` : ''}>{value}</strong>
+      <strong className={tone ? `detail-${tone}` : ""}>{value}</strong>
       <small>{caption}</small>
     </div>
   );

@@ -5,6 +5,11 @@ export const FONT_OPTIONS = Object.freeze([
   { name: 'Inter Tight', family: "'Inter Tight', Arial, sans-serif" },
   { name: 'Geist', family: "'Geist', Arial, sans-serif" },
   { name: 'Asap Condensed', family: "'Asap Condensed', Arial, sans-serif" },
+  { name: 'Roboto Condensed', family: "'Roboto Condensed', Arial, sans-serif" },
+  { name: 'Oswald', family: "'Oswald', Arial, sans-serif" },
+  { name: 'Barlow Condensed', family: "'Barlow Condensed', Arial, sans-serif" },
+  { name: 'Fjalla One', family: "'Fjalla One', Arial, sans-serif" },
+  { name: 'Saira Condensed', family: "'Saira Condensed', Arial, sans-serif" },
 ]);
 
 export const ADMIN_FONT_STORAGE_KEY = 'ruventu_admin_font_override';

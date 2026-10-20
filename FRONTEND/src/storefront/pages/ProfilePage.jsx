@@ -1,46 +1,53 @@
-import React, { useEffect, useState } from 'react';
-import { VIETNAM_LOCATIONS } from '../../data/vietnamLocations';
-import { useNavigate, useLocation } from 'react-router-dom';
-import Header from '../components/Header';
-import Footer from '../components/Footer';
-import { User, Edit, Lock, Check } from 'lucide-react';
-import './ProfilePage.css';
-import { orderService } from '../../shared/services/orderService';
+import React, { useEffect, useState } from "react";
+import { VIETNAM_LOCATIONS } from "../../data/vietnamLocations";
+import { useNavigate, useLocation } from "react-router-dom";
+import Header from "../components/Header";
+import Footer from "../components/Footer";
+import { User, Edit, Lock, Check } from "lucide-react";
+import "./ProfilePage.css";
+import { orderService } from "../../shared/services/orderService";
 
-import { errorMessage, formatDateTimeVN } from '../../shared/services/mutationUtils';
+import {
+  errorMessage,
+  formatDateTimeVN,
+} from "../../shared/services/mutationUtils";
 
-import { label, money } from '../../features/admin/orders/api/orderApi';
+import { label, money } from "../../features/admin/orders/api/orderApi";
 
 const ProfilePage = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [user, setUser] = useState(null);
-  const [activeTab, setActiveTab] = useState('profile');
+  const [activeTab, setActiveTab] = useState("profile");
   const [isEditing, setIsEditing] = useState(false);
 
   // Local form state for edit simulation
   const [formData, setFormData] = useState({
-    name: '',
-    city: 'Hà Nội',
-    ward: 'Cầu Giấy',
-    address: '12 Đường Xuân Thủy, KĐT Dịch Vọng',
+    name: "",
+    city: "Hà Nội",
+    ward: "Cầu Giấy",
+    address: "12 Đường Xuân Thủy, KĐT Dịch Vọng",
   });
 
   useEffect(() => {
-    const storedUser = localStorage.getItem('user');
+    const storedUser = localStorage.getItem("user");
     if (storedUser) {
       const parsedUser = JSON.parse(storedUser);
       setUser(parsedUser);
       setFormData((prev) => ({ ...prev, name: parsedUser.name }));
     } else {
-      navigate('/login');
+      navigate("/login");
     }
   }, [navigate]);
 
   useEffect(() => {
     const searchParams = new URLSearchParams(location.search);
-    const tabParam = searchParams.get('tab');
-    if (tabParam === 'orders' || tabParam === 'warranty' || tabParam === 'profile') {
+    const tabParam = searchParams.get("tab");
+    if (
+      tabParam === "orders" ||
+      tabParam === "warranty" ||
+      tabParam === "profile"
+    ) {
       setActiveTab(tabParam);
     }
   }, [location.search]);
@@ -51,24 +58,24 @@ const ProfilePage = () => {
     pagination: {},
   });
   const [ordersLoading, setOrdersLoading] = useState(false);
-  const [ordersError, setOrdersError] = useState('');
+  const [ordersError, setOrdersError] = useState("");
 
   useEffect(() => {
-    if (!user || activeTab !== 'orders') return undefined;
+    if (!user || activeTab !== "orders") return undefined;
 
     const controller = new AbortController();
 
     setOrdersLoading(true);
-    setOrdersError('');
+    setOrdersError("");
 
     orderService
       .getOrders(
         {
           page: orderPage - 1,
           limit: 10,
-          sort: 'ngay_tao,desc',
+          sort: "ngay_tao,desc",
         },
-        controller.signal
+        controller.signal,
       )
       .then((response) => {
         if (controller.signal.aborted) return;
@@ -110,13 +117,13 @@ const ProfilePage = () => {
     // In simulation, update the local user state to persist UI
     const updatedUser = { ...user, name: formData.name };
     setUser(updatedUser);
-    localStorage.setItem('user', JSON.stringify(updatedUser));
+    localStorage.setItem("user", JSON.stringify(updatedUser));
   };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    if (name === 'city') {
-      const defaultWard = VIETNAM_LOCATIONS[value]?.[0] || '';
+    if (name === "city") {
+      const defaultWard = VIETNAM_LOCATIONS[value]?.[0] || "";
       setFormData((prev) => ({ ...prev, city: value, ward: defaultWard }));
     } else {
       setFormData((prev) => ({ ...prev, [name]: value }));
@@ -125,14 +132,17 @@ const ProfilePage = () => {
 
   const renderProfileTab = () => (
     <div className="content-card">
-      <div className="card-header-row">
-        <h3 className="card-title">THÔNG TIN CÁ NHÂN</h3>
+      <header className="profile-card-header">
+        <h3 className="profile-card-title">
+          <span className="profile-card-accent" aria-hidden="true" />
+          THÔNG TIN CÁ NHÂN
+        </h3>
         {!isEditing && (
-          <button className="btn-outline" onClick={handleEditClick}>
+          <button className="btn-outline btn-outline--header" onClick={handleEditClick}>
             <Edit size={14} /> CHỈNH SỬA THÔNG TIN
           </button>
         )}
-      </div>
+      </header>
 
       <div className="form-grid">
         <div className="form-group full-width">
@@ -143,7 +153,7 @@ const ProfilePage = () => {
             value={formData.name}
             onChange={handleChange}
             disabled={!isEditing}
-            className={isEditing ? 'input-editable' : 'input-disabled'}
+            className={isEditing ? "input-editable" : "input-disabled"}
           />
         </div>
 
@@ -154,7 +164,12 @@ const ProfilePage = () => {
               <span className="tag">Không thể chỉnh sửa</span>
             </div>
             <div className="input-with-icon">
-              <input type="text" value={user.email} disabled className="input-disabled" />
+              <input
+                type="text"
+                value={user.email}
+                disabled
+                className="input-disabled"
+              />
               <Lock size={14} className="lock-icon" />
             </div>
             <p className="helper-text">Xác minh OTP để thay đổi email.</p>
@@ -166,10 +181,17 @@ const ProfilePage = () => {
               <span className="tag">Không thể chỉnh sửa</span>
             </div>
             <div className="input-with-icon">
-              <input type="text" value="0901 234 567" disabled className="input-disabled" />
+              <input
+                type="text"
+                value="0901 234 567"
+                disabled
+                className="input-disabled"
+              />
               <Lock size={14} className="lock-icon" />
             </div>
-            <p className="helper-text">Liên hệ hỗ trợ để thay đổi số điện thoại.</p>
+            <p className="helper-text">
+              Liên hệ hỗ trợ để thay đổi số điện thoại.
+            </p>
           </div>
         </div>
       </div>
@@ -177,7 +199,10 @@ const ProfilePage = () => {
       <div className="divider"></div>
 
       <h3 className="card-title">ĐỊA CHỈ GIAO HÀNG MẶC ĐỊNH</h3>
-      <div className="form-grid" style={{ marginBottom: isEditing ? '0' : '20px' }}>
+      <div
+        className="form-grid"
+        style={{ marginBottom: isEditing ? "0" : "20px" }}
+      >
         <div className="form-row">
           <div className="form-group">
             <label>TỈNH / THÀNH PHỐ</label>
@@ -187,13 +212,13 @@ const ProfilePage = () => {
               onChange={handleChange}
               disabled={!isEditing}
               className={
-                isEditing ? 'input-editable select-editable' : 'input-disabled select-disabled'
+                isEditing
+                  ? "input-editable select-editable"
+                  : "input-disabled select-disabled"
               }
             >
               {Object.keys(VIETNAM_LOCATIONS).map((prov) => (
-                <option key={prov} value={prov}>
-                  {prov}
-                </option>
+                <option key={prov} value={prov}>{prov}</option>
               ))}
             </select>
           </div>
@@ -205,13 +230,13 @@ const ProfilePage = () => {
               onChange={handleChange}
               disabled={!isEditing}
               className={
-                isEditing ? 'input-editable select-editable' : 'input-disabled select-disabled'
+                isEditing
+                  ? "input-editable select-editable"
+                  : "input-disabled select-disabled"
               }
             >
               {(VIETNAM_LOCATIONS[formData.city] || []).map((w) => (
-                <option key={w} value={w}>
-                  {w}
-                </option>
+                <option key={w} value={w}>{w}</option>
               ))}
             </select>
           </div>
@@ -225,7 +250,7 @@ const ProfilePage = () => {
             value={formData.address}
             onChange={handleChange}
             disabled={!isEditing}
-            className={isEditing ? 'input-editable' : 'input-disabled'}
+            className={isEditing ? "input-editable" : "input-disabled"}
           />
         </div>
       </div>
@@ -238,7 +263,9 @@ const ProfilePage = () => {
           <button className="btn-secondary" onClick={handleCancelEdit}>
             HỦY
           </button>
-          <span className="edit-hint">Các thay đổi sẽ được lưu vào hồ sơ của bạn.</span>
+          <span className="edit-hint">
+            Các thay đổi sẽ được lưu vào hồ sơ của bạn.
+          </span>
         </div>
       ) : (
         <button className="btn-outline bottom-btn">
@@ -250,9 +277,12 @@ const ProfilePage = () => {
 
   const renderOrdersTab = () => (
     <div className="content-card">
-      <div className="card-header-row">
-        <h3 className="card-title">LỊCH SỬ ĐƠN HÀNG</h3>
-      </div>
+      <header className="profile-card-header">
+        <h3 className="profile-card-title">
+          <span className="profile-card-accent" aria-hidden="true" />
+          LỊCH SỬ ĐƠN HÀNG
+        </h3>
+      </header>
 
       {ordersError && <p role="alert">{ordersError}</p>}
       {ordersLoading && <p>Đang tải đơn hàng...</p>}
@@ -263,16 +293,20 @@ const ProfilePage = () => {
             <div className="item-info">
               <div className="item-header">
                 <span className="item-id">{order.ma_don_hang}</span>
-                <span className="item-tag">{label(order.trang_thai_don_hang)}</span>
+                <span className="item-tag">
+                  {label(order.trang_thai_don_hang)}
+                </span>
               </div>
 
-              <div className="item-meta">Ngày đặt: {formatDateTimeVN(order.ngay_tao)}</div>
+              <div className="item-meta">
+                Ngày đặt: {formatDateTimeVN(order.ngay_tao)}
+              </div>
 
               <div className="item-meta">
                 Thanh toán: {label(order.trang_thai_thanh_toan)}
-                {' · '}
+                {" · "}
                 Đóng gói: {label(order.trang_thai_dong_goi)}
-                {' · '}
+                {" · "}
                 Xuất kho: {label(order.trang_thai_xuat_kho)}
               </div>
             </div>
@@ -291,13 +325,15 @@ const ProfilePage = () => {
           </div>
         ))}
 
-        {!ordersLoading && !ordersError && customerOrders.items.length === 0 && (
-          <p>Bạn chưa có đơn hàng.</p>
-        )}
+        {!ordersLoading &&
+          !ordersError &&
+          customerOrders.items.length === 0 && <p>Bạn chưa có đơn hàng.</p>}
       </div>
 
       <div className="list-footer">
-        <span>Tổng {customerOrders.pagination.total_elements || 0} đơn hàng</span>
+        <span>
+          Tổng {customerOrders.pagination.total_elements || 0} đơn hàng
+        </span>
 
         <button
           type="button"
@@ -314,7 +350,8 @@ const ProfilePage = () => {
           type="button"
           className="btn-outline"
           disabled={
-            ordersLoading || orderPage >= Number(customerOrders.pagination.total_pages || 0)
+            ordersLoading ||
+            orderPage >= Number(customerOrders.pagination.total_pages || 0)
           }
           onClick={() => setOrderPage((current) => current + 1)}
         >
@@ -326,9 +363,12 @@ const ProfilePage = () => {
 
   const renderWarrantyTab = () => (
     <div className="content-card">
-      <div className="card-header-row" style={{ marginBottom: '20px' }}>
-        <h3 className="card-title">THÔNG TIN BẢO HÀNH</h3>
-      </div>
+      <header className="profile-card-header">
+        <h3 className="profile-card-title">
+          <span className="profile-card-accent" aria-hidden="true" />
+          THÔNG TIN BẢO HÀNH
+        </h3>
+      </header>
       <div className="list-container">
         <div className="list-item">
           <div className="item-info">
@@ -347,7 +387,7 @@ const ProfilePage = () => {
           </div>
           <div
             className="item-action"
-            style={{ flexDirection: 'row', alignItems: 'center', gap: '20px' }}
+            style={{ flexDirection: "row", alignItems: "center", gap: "20px" }}
           >
             <span className="item-tag tag-light-green">Còn bảo hành</span>
             <button className="btn-outline">YÊU CẦU BẢO HÀNH</button>
@@ -370,7 +410,7 @@ const ProfilePage = () => {
           </div>
           <div
             className="item-action"
-            style={{ flexDirection: 'row', alignItems: 'center', gap: '20px' }}
+            style={{ flexDirection: "row", alignItems: "center", gap: "20px" }}
           >
             <span className="item-tag tag-light-green">Còn bảo hành</span>
             <button className="btn-outline">YÊU CẦU BẢO HÀNH</button>
@@ -393,7 +433,7 @@ const ProfilePage = () => {
           </div>
           <div
             className="item-action"
-            style={{ flexDirection: 'row', alignItems: 'center', gap: '20px' }}
+            style={{ flexDirection: "row", alignItems: "center", gap: "20px" }}
           >
             <span className="item-tag tag-light-green">Còn bảo hành</span>
             <button className="btn-outline">YÊU CẦU BẢO HÀNH</button>
@@ -402,8 +442,9 @@ const ProfilePage = () => {
       </div>
       <div className="list-footer text-only">
         <span className="list-footer-text">
-          Để tra cứu bảo hành hoặc yêu cầu hỗ trợ, vui lòng liên hệ hotline{' '}
-          <strong>1800 6018</strong> hoặc email <strong>support@reventu.com</strong>.
+          Để tra cứu bảo hành hoặc yêu cầu hỗ trợ, vui lòng liên hệ hotline{" "}
+          <strong>1800 6018</strong> hoặc email{" "}
+          <strong>support@reventu.com</strong>.
         </span>
       </div>
     </div>
@@ -416,8 +457,10 @@ const ProfilePage = () => {
       {/* Black User Banner */}
       <div className="profile-banner">
         <div className="container profile-banner-content">
-          <div className="profile-banner-avatar">
-            <User size={32} />
+          <div className="profile-banner-avatar" aria-hidden="true">
+            <span className="profile-banner-initial">
+              {(user.name?.trim().charAt(0) || user.email?.charAt(0) || 'U').toUpperCase()}
+            </span>
           </div>
           <div className="profile-banner-info">
             <h2>{user.name}</h2>
@@ -433,20 +476,20 @@ const ProfilePage = () => {
           <div className="sidebar-header">QUẢN LÝ TÀI KHOẢN</div>
           <ul className="sidebar-menu">
             <li
-              className={activeTab === 'profile' ? 'active' : ''}
-              onClick={() => setActiveTab('profile')}
+              className={activeTab === "profile" ? "active" : ""}
+              onClick={() => setActiveTab("profile")}
             >
               Tài khoản của tôi
             </li>
             <li
-              className={activeTab === 'orders' ? 'active' : ''}
-              onClick={() => setActiveTab('orders')}
+              className={activeTab === "orders" ? "active" : ""}
+              onClick={() => setActiveTab("orders")}
             >
               Đơn hàng
             </li>
             <li
-              className={activeTab === 'warranty' ? 'active' : ''}
-              onClick={() => setActiveTab('warranty')}
+              className={activeTab === "warranty" ? "active" : ""}
+              onClick={() => setActiveTab("warranty")}
             >
               Bảo hành
             </li>
@@ -455,9 +498,9 @@ const ProfilePage = () => {
 
         {/* Content Area */}
         <main className="profile-content">
-          {activeTab === 'profile' && renderProfileTab()}
-          {activeTab === 'orders' && renderOrdersTab()}
-          {activeTab === 'warranty' && renderWarrantyTab()}
+          {activeTab === "profile" && renderProfileTab()}
+          {activeTab === "orders" && renderOrdersTab()}
+          {activeTab === "warranty" && renderWarrantyTab()}
         </main>
       </div>
 

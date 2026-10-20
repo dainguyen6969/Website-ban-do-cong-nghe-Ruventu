@@ -1,40 +1,52 @@
 // Admin inventory screen: ChiTietPhieuKiemHang.
-import { useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useEffect, useRef, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import {
   getInventoryCheckDetail,
   cancelInventoryCheck,
   balanceInventoryCheck,
-} from '../api/inventoryCheckApi';
-import './StockCheckFlow.css';
+} from "../api/inventoryCheckApi";
+import { withIdempotency } from "../../../../shared/services/mutationUtils";
+import "./StockCheckFlow.css";
 
 const formatDate = (value, withTime = false) => {
-  if (!value) return '—';
+  if (!value) return "—";
   const dateObj = new Date(value);
-  const dateStr = dateObj.toLocaleDateString('vi-VN');
-  const timeStr = dateObj.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+  const dateStr = dateObj.toLocaleDateString("vi-VN");
+  const timeStr = dateObj.toLocaleTimeString("vi-VN", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
   return withTime ? `${dateStr} ${timeStr}` : dateStr;
 };
 
 const STOCK_CHECK_LABELS = {
-  DANG_KIEM: 'Đang kiểm',
-  DA_CAN_BANG: 'Đã cân bằng',
-  DA_HUY: 'Đã hủy',
+  DANG_KIEM: "Đang kiểm",
+  DA_CAN_BANG: "Đã cân bằng",
+  DA_HUY: "Đã hủy",
 };
 
 const statusClass = (status) =>
-  status === 'DANG_KIEM' ? 'checking' : status === 'DA_CAN_BANG' ? 'balanced' : 'cancelled';
+  status === "DANG_KIEM"
+    ? "checking"
+    : status === "DA_CAN_BANG"
+      ? "balanced"
+      : "cancelled";
 
 export default function ChiTietPhieuKiemHang() {
   const navigate = useNavigate();
   const { id } = useParams();
+
+  const balanceBusy = useRef(false);
+  const balanceAttempt = useRef(null);
+
   const [check, setCheck] = useState(null);
   const [errorMsg, setErrorMsg] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
 
   const [balanceModal, setBalanceModal] = useState(false);
   const [cancelModal, setCancelModal] = useState(false);
-  const [cancelReason, setCancelReason] = useState('');
+  const [cancelReason, setCancelReason] = useState("");
   const [cancelError, setCancelError] = useState(false);
   const [balanceError, setBalanceError] = useState(false);
   const [balanceSuccess, setBalanceSuccess] = useState(null);
@@ -47,7 +59,9 @@ export default function ChiTietPhieuKiemHang() {
         setCheck(data);
         setErrorMsg(null);
       })
-      .catch((err) => setErrorMsg(err.message || 'Không thể tải chi tiết phiếu kiểm hàng'))
+      .catch((err) =>
+        setErrorMsg(err.message || "Không thể tải chi tiết phiếu kiểm hàng"),
+      )
       .finally(() => setIsLoading(false));
   }, [id]);
 
@@ -60,12 +74,14 @@ export default function ChiTietPhieuKiemHang() {
   if (errorMsg || !check)
     return (
       <main className="stock-flow-page">
-        <div className="stock-flow-not-found">{errorMsg || 'Không tìm thấy phiếu kiểm hàng.'}</div>
+        <div className="stock-flow-not-found">
+          {errorMsg || "Không tìm thấy phiếu kiểm hàng."}
+        </div>
       </main>
     );
 
   const difference = check.so_luong_chenh_lech;
-  const isOpen = check.trang_thai === 'DANG_KIEM';
+  const isOpen = check.trang_thai === "DANG_KIEM";
 
   const openBalance = () => {
     setBalanceError(false);
@@ -73,20 +89,36 @@ export default function ChiTietPhieuKiemHang() {
   };
 
   const confirmBalance = async () => {
+    if (balanceBusy.current) return;
+
+    balanceBusy.current = true;
     setIsSubmitting(true);
+
     try {
-      const result = await balanceInventoryCheck(check.id);
-      setCheck((prev) => ({ ...prev, trang_thai: 'DA_CAN_BANG' }));
+      const result = await withIdempotency(
+        balanceAttempt,
+        `inventory-check:${check.id}:balance`,
+        {},
+        (key) => balanceInventoryCheck(check.id, key),
+      );
+
+      setCheck((current) => ({
+        ...current,
+        trang_thai: result.trang_thai,
+      }));
+
       setBalanceSuccess({
         previousStock: result.ton_cu,
         nextStock: result.ton_moi,
         change: result.so_luong_thay_doi,
-        date: new Date().toLocaleDateString('vi-VN'),
+        date: new Date().toLocaleDateString("vi-VN"),
       });
+
       setBalanceModal(false);
-    } catch (err) {
-      alert(err.message || 'Lỗi khi cân bằng kho');
+    } catch (error) {
+      alert(error.message || "Không thể cân bằng kho.");
     } finally {
+      balanceBusy.current = false;
       setIsSubmitting(false);
     }
   };
@@ -99,10 +131,14 @@ export default function ChiTietPhieuKiemHang() {
     setIsSubmitting(true);
     try {
       await cancelInventoryCheck(check.id, cancelReason.trim());
-      setCheck((prev) => ({ ...prev, trang_thai: 'DA_HUY', ly_do: cancelReason.trim() }));
+      setCheck((prev) => ({
+        ...prev,
+        trang_thai: "DA_HUY",
+        ly_do: cancelReason.trim(),
+      }));
       setCancelModal(false);
     } catch (err) {
-      alert(err.message || 'Lỗi khi hủy phiếu');
+      alert(err.message || "Lỗi khi hủy phiếu");
     } finally {
       setIsSubmitting(false);
     }
@@ -112,14 +148,15 @@ export default function ChiTietPhieuKiemHang() {
     <main className="stock-flow-page">
       <header className="stock-detail-heading">
         <nav>
-          KIỂM HÀNG <b>›</b> DANH SÁCH PHIẾU KIỂM HÀNG <b>›</b> <strong>{check.ma_phieu}</strong>
+          KIỂM HÀNG <b>›</b> DANH SÁCH PHIẾU KIỂM HÀNG <b>›</b>{" "}
+          <strong>{check.ma_phieu}</strong>
         </nav>
         <div className="stock-detail-title-row">
           <div>
             <button
               type="button"
               className="stock-action outline"
-              onClick={() => navigate('/kho-hang/kiem-hang')}
+              onClick={() => navigate("/kho-hang/kiem-hang")}
             >
               ‹ &nbsp; QUAY LẠI DANH SÁCH
             </button>
@@ -127,7 +164,7 @@ export default function ChiTietPhieuKiemHang() {
             <span
               className={`stock-check-status stock-check-status--${statusClass(check.trang_thai)}`}
             >
-              {STOCK_CHECK_LABELS[check.trang_thai]?.toLocaleUpperCase('vi')}
+              {STOCK_CHECK_LABELS[check.trang_thai]?.toLocaleUpperCase("vi")}
             </span>
           </div>
           {isOpen && (
@@ -135,7 +172,9 @@ export default function ChiTietPhieuKiemHang() {
               <button
                 type="button"
                 className="stock-action outline"
-                onClick={() => navigate(`/kho-hang/kiem-hang/${check.id}/chinh-sua`)}
+                onClick={() =>
+                  navigate(`/kho-hang/kiem-hang/${check.id}/chinh-sua`)
+                }
               >
                 CHỈNH SỬA
               </button>
@@ -146,18 +185,22 @@ export default function ChiTietPhieuKiemHang() {
               >
                 HỦY PHIẾU
               </button>
-              <button type="button" className="stock-action black" onClick={openBalance}>
+              <button
+                type="button"
+                className="stock-action black"
+                onClick={openBalance}
+              >
                 CÂN BẰNG KHO
               </button>
             </div>
           )}
         </div>
-        {check.trang_thai === 'DA_HUY' && (
+        {check.trang_thai === "DA_HUY" && (
           <div className="stock-inline-banner error">
             Phiếu kiểm đã hủy. Không phát sinh điều chỉnh tồn kho từ phiếu này.
           </div>
         )}
-        {check.trang_thai === 'DA_CAN_BANG' && (
+        {check.trang_thai === "DA_CAN_BANG" && (
           <div className="stock-inline-banner success">
             Phiếu kiểm đã được chốt và cập nhật tồn kho, không thay đổi.
           </div>
@@ -173,9 +216,11 @@ export default function ChiTietPhieuKiemHang() {
                 Tồn sau: <b>{balanceSuccess.nextStock}</b>
               </span>
               <span>
-                Thay đổi:{' '}
+                Thay đổi:{" "}
                 <b>
-                  {balanceSuccess.change > 0 ? `+${balanceSuccess.change}` : balanceSuccess.change}
+                  {balanceSuccess.change > 0
+                    ? `+${balanceSuccess.change}`
+                    : balanceSuccess.change}
                 </b>
               </span>
               <span>Cập nhật: {balanceSuccess.date}</span>
@@ -189,7 +234,7 @@ export default function ChiTietPhieuKiemHang() {
           <h2>SẢN PHẨM KIỂM</h2>
           <div className="stock-form-table-wrap">
             <table
-              className={`stock-form-table stock-detail-table ${check.trang_thai === 'DA_HUY' ? 'is-muted' : ''}`}
+              className={`stock-form-table stock-detail-table ${check.trang_thai === "DA_HUY" ? "is-muted" : ""}`}
             >
               <thead>
                 <tr>
@@ -214,12 +259,12 @@ export default function ChiTietPhieuKiemHang() {
                   <td className="stock-number">{check.ton_thuc_te}</td>
                   <td>
                     <span
-                      className={`stock-difference ${difference !== 0 ? 'has-difference' : ''}`}
+                      className={`stock-difference ${difference !== 0 ? "has-difference" : ""}`}
                     >
                       {difference > 0 ? `+${difference}` : difference}
                     </span>
                   </td>
-                  <td>{check.ly_do || '—'}</td>
+                  <td>{check.ly_do || "—"}</td>
                 </tr>
               </tbody>
             </table>
@@ -231,7 +276,7 @@ export default function ChiTietPhieuKiemHang() {
             </div>
             <div>
               <span>CHÊNH LỆCH TỒN KHO</span>
-              <strong className={difference !== 0 ? 'is-red' : ''}>
+              <strong className={difference !== 0 ? "is-red" : ""}>
                 {difference > 0 ? `+${difference}` : difference}
               </strong>
             </div>
@@ -249,7 +294,9 @@ export default function ChiTietPhieuKiemHang() {
                 <span
                   className={`stock-check-status stock-check-status--${statusClass(check.trang_thai)}`}
                 >
-                  {STOCK_CHECK_LABELS[check.trang_thai]?.toLocaleUpperCase('vi')}
+                  {STOCK_CHECK_LABELS[check.trang_thai]?.toLocaleUpperCase(
+                    "vi",
+                  )}
                 </span>
               </dd>
               <dt>NGÀY TẠO</dt>
@@ -257,26 +304,75 @@ export default function ChiTietPhieuKiemHang() {
               <dt>NGÀY KIỂM HÀNG</dt>
               <dd>{formatDate(check.ngay_cap_nhat || check.ngay_tao, true)}</dd>
               <dt>NGƯỜI KIỂM</dt>
-              <dd>{check.nguoi_kiem?.ho_ten || `ID: ${check.nguoi_kiem?.id}`}</dd>
+              <dd>
+                {check.nguoi_kiem?.ho_ten || `ID: ${check.nguoi_kiem?.id}`}
+              </dd>
               <dt>KHO</dt>
               <dd>KHO CỬA HÀNG</dd>
             </dl>
           </section>
-          <p className="stock-lock-note">Sản phẩm và kho không thể thay đổi sau khi tạo phiếu.</p>
+          <p className="stock-lock-note">
+            Sản phẩm và kho không thể thay đổi sau khi tạo phiếu.
+          </p>
         </aside>
       </div>
+
+      {check.quan_ly_serial && (
+        <section className="stock-flow-card inventory-count-card">
+          <h2>KẾT QUẢ KIỂM SERIAL</h2>
+
+          {check.kiem_serial ? (
+            <>
+              <p>
+                Đã kiểm: {(check.kiem_serial.da_kiem ?? []).length}
+                {" · "}
+                Thiếu: {(check.kiem_serial.thieu ?? []).length}
+                {" · "}
+                Ngoài danh sách:{" "}
+                {(check.kiem_serial.ngoai_danh_sach ?? []).length}
+              </p>
+
+              <details>
+                <summary>Danh sách đã kiểm</summary>
+                <p>
+                  {(check.kiem_serial.da_kiem ?? []).join(", ") || "Chưa có mã"}
+                </p>
+              </details>
+
+              {(check.kiem_serial.thieu ?? []).length > 0 && (
+                <p className="stock-duplicate-warning">
+                  Thiếu: {check.kiem_serial.thieu.join(", ")}
+                </p>
+              )}
+
+              {(check.kiem_serial.ngoai_danh_sach ?? []).length > 0 && (
+                <p className="stock-duplicate-warning">
+                  Ngoài danh sách:{" "}
+                  {check.kiem_serial.ngoai_danh_sach.join(", ")}
+                </p>
+              )}
+            </>
+          ) : (
+            <p>
+              Phiếu cũ chưa có danh sách serial. Chọn chỉnh sửa để kiểm từng mã.
+            </p>
+          )}
+        </section>
+      )}
 
       {balanceModal && (
         <div
           className="stock-modal-backdrop"
           role="presentation"
           onMouseDown={(event) =>
-            event.target === event.currentTarget && !isSubmitting && setBalanceModal(false)
+            event.target === event.currentTarget &&
+            !isSubmitting &&
+            setBalanceModal(false)
           }
         >
           <section className="stock-modal" role="dialog" aria-modal="true">
             <h2>
-              XÁC NHẬN CÂN BẰNG KHO{' '}
+              XÁC NHẬN CÂN BẰNG KHO{" "}
               {!isSubmitting && (
                 <button type="button" onClick={() => setBalanceModal(false)}>
                   ×
@@ -298,11 +394,11 @@ export default function ChiTietPhieuKiemHang() {
                 <dt>CHÊNH LỆCH</dt>
                 <dd>{difference > 0 ? `+${difference}` : difference}</dd>
                 <dt>LÝ DO</dt>
-                <dd>{check.ly_do || '—'}</dd>
+                <dd>{check.ly_do || "—"}</dd>
               </dl>
               <p className="stock-modal-note">
-                Cân bằng kho sẽ cập nhật tồn thực tế theo số lượng đã kiểm. Sau khi chốt, phiếu
-                không thể sửa hoặc hủy.
+                Cân bằng kho sẽ cập nhật tồn thực tế theo số lượng đã kiểm. Sau
+                khi chốt, phiếu không thể sửa hoặc hủy.
               </p>
               <footer>
                 <button
@@ -319,7 +415,7 @@ export default function ChiTietPhieuKiemHang() {
                   disabled={isSubmitting}
                   onClick={confirmBalance}
                 >
-                  {isSubmitting ? 'ĐANG XỬ LÝ...' : 'XÁC NHẬN CÂN BẰNG'}
+                  {isSubmitting ? "ĐANG XỬ LÝ..." : "XÁC NHẬN CÂN BẰNG"}
                 </button>
               </footer>
             </div>
@@ -332,12 +428,14 @@ export default function ChiTietPhieuKiemHang() {
           className="stock-modal-backdrop"
           role="presentation"
           onMouseDown={(event) =>
-            event.target === event.currentTarget && !isSubmitting && setCancelModal(false)
+            event.target === event.currentTarget &&
+            !isSubmitting &&
+            setCancelModal(false)
           }
         >
           <section className="stock-modal" role="dialog" aria-modal="true">
             <h2>
-              XÁC NHẬN HỦY PHIẾU{' '}
+              XÁC NHẬN HỦY PHIẾU{" "}
               {!isSubmitting && (
                 <button type="button" onClick={() => setCancelModal(false)}>
                   ×
@@ -361,11 +459,14 @@ export default function ChiTietPhieuKiemHang() {
                   placeholder="Nhập lý do hủy phiếu kiểm..."
                 />
                 {cancelError && (
-                  <small style={{ color: 'red' }}>Vui lòng nhập lý do hủy phiếu.</small>
+                  <small style={{ color: "red" }}>
+                    Vui lòng nhập lý do hủy phiếu.
+                  </small>
                 )}
               </label>
               <p className="stock-modal-note">
-                Hủy phiếu không điều chỉnh tồn kho. Thao tác này không thể hoàn tác.
+                Hủy phiếu không điều chỉnh tồn kho. Thao tác này không thể hoàn
+                tác.
               </p>
               <footer>
                 <button
@@ -382,7 +483,7 @@ export default function ChiTietPhieuKiemHang() {
                   disabled={isSubmitting}
                   onClick={confirmCancel}
                 >
-                  {isSubmitting ? 'ĐANG XỬ LÝ...' : 'XÁC NHẬN HỦY'}
+                  {isSubmitting ? "ĐANG XỬ LÝ..." : "XÁC NHẬN HỦY"}
                 </button>
               </footer>
             </div>

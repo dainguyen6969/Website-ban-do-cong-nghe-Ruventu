@@ -1,15 +1,10 @@
-import { apiRequest as request } from '../../../../../auth/backendAuth';
+import { apiRequest as request } from "../../../../../auth/backendAuth";
 
 const TRANSACTION_LABELS = {
-  NHAP_HANG: 'Nhập hàng',
-  XUAT_BAN: 'Xuất bán',
-  KHACH_TRA: 'Khách trả',
-  TRA_NCC: 'Trả NCC',
-  KIEM_KHO: 'Kiểm kho',
+  NHAP_HANG: 'Nhập hàng', XUAT_BAN: 'Xuất bán', KHACH_TRA: 'Khách trả',
+  TRA_NCC: 'Trả NCC', KIEM_KHO: 'Kiểm kho',
 };
-const TRANSACTION_CODES = Object.fromEntries(
-  Object.entries(TRANSACTION_LABELS).map(([code, label]) => [label, code])
-);
+const TRANSACTION_CODES = Object.fromEntries(Object.entries(TRANSACTION_LABELS).map(([code, label]) => [label, code]));
 
 let token = '';
 let loginPromise = null;
@@ -23,11 +18,7 @@ function storeToken(value) {
 async function parseResponse(response) {
   const text = await response.text();
   if (!text) return null;
-  try {
-    return JSON.parse(text);
-  } catch {
-    throw new Error('Backend trả về dữ liệu không hợp lệ.');
-  }
+  try { return JSON.parse(text); } catch { throw new Error('Backend trả về dữ liệu không hợp lệ.'); }
 }
 
 async function login() {
@@ -35,15 +26,12 @@ async function login() {
   const password = import.meta.env.VITE_RUVENTU_ADMIN_PASSWORD;
   if (!username || !password) throw new Error('Chưa có phiên đăng nhập backend.');
   const response = await fetch(`${API_BASE_URL}/api/v1/auth/login`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    credentials: 'include',
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include',
     body: JSON.stringify({ tai_khoan: username, mat_khau: password, ghi_nho_dang_nhap: false }),
   });
   const payload = await parseResponse(response);
   const accessToken = payload?.data?.access_token;
-  if (!response.ok || !accessToken)
-    throw new Error(payload?.message || 'Không thể đăng nhập backend.');
+  if (!response.ok || !accessToken) throw new Error(payload?.message || 'Không thể đăng nhập backend.');
   storeToken(accessToken);
   return accessToken;
 }
@@ -63,38 +51,65 @@ async function allPages(path, params, signal) {
 
 export async function getWarehouses(signal) {
   return (await allPages('/api/v1/admin/warehouses', {}, signal)).map((item) => ({
-    id: Number(item.id),
-    code: item.ma_kho || '',
-    name: item.ten_kho || '',
+    id: Number(item.id), code: item.ma_kho || '', name: item.ten_kho || '',
   }));
 }
 
-export async function getAllVersions(warehouseId, signal, includeCombos = true) {
+export async function getAllVersions(
+  warehouseId,
+  signal,
+  includeCombos = true,
+  warning = '',
+) {
   const [warehouses, items] = await Promise.all([
     getWarehouses(signal),
-    allPages(
-      '/api/v1/admin/inventory/items',
-      {
-        loai_doi_tuong: includeCombos ? 'ALL' : 'PHIEN_BAN',
-        ...(warehouseId ? { kho_hang_id: String(warehouseId) } : {}),
-      },
-      signal
-    ),
+    allPages('/api/v1/admin/inventory/items', {
+      loai_doi_tuong: includeCombos && !warning ? 'ALL' : 'PHIEN_BAN',
+      ...(warehouseId
+        ? { kho_hang_id: String(warehouseId) }
+        : {}),
+    }, signal),
   ]);
 
-  const selectedWarehouse = warehouses.find((item) => item.id === Number(warehouseId));
+  let matchedItems = items;
+  if (warning) {
+    const candidates = items.filter(item => warning === 'HET_HANG' ? Number(item.ton_co_the_ban) <= 0 : item.canh_bao);
+    matchedItems = [];
+    const products = new Map();
+    // ponytail: DTO danh sách thiếu mức tối thiểu/trạng thái; đọc chi tiết 10 mục/lượt cho bộ lọc cảnh báo, bỏ khi BE trả đủ field.
+    for (let start = 0; start < candidates.length; start += 10) {
+      const batch = await Promise.all(candidates.slice(start, start + 10).map(async item => {
+        const detail = await request(`/api/v1/admin/inventory/items/${item.doi_tuong_id}?loai_doi_tuong=PHIEN_BAN`, { signal });
+        const productId = detail.phien_ban.san_pham_id;
+        if (!products.has(productId)) products.set(productId, request(`/api/v1/admin/products/${productId}`, { signal }));
+        const product = await products.get(productId);
+        const below = detail.ton_kho_theo_kho.some(stock => (!warehouseId || String(stock.kho_hang_id) === String(warehouseId)) && stock.muc_ton_toi_thieu != null && Number(stock.ton_co_the_ban) < Number(stock.muc_ton_toi_thieu));
+        return Number(detail.phien_ban.trang_thai) === 1 && Number(product.trang_thai) === 1 && (warning === 'HET_HANG' || below) ? item : null;
+      }));
+      matchedItems.push(...batch.filter(Boolean));
+    }
+  }
 
-  const nullableNumber = (value) => (value == null ? null : Number(value));
+  const selectedWarehouse = warehouses.find(
+    (item) => item.id === Number(warehouseId),
+  );
+
+  const nullableNumber = (value) =>
+    value == null ? null : Number(value);
 
   return {
     warehouses,
-    versions: items.map((item) => {
+    versions: matchedItems.map((item) => {
       const combo = item.loai_doi_tuong === 'COMBO';
 
       return {
-        id: combo ? `combo:${item.doi_tuong_id}` : Number(item.doi_tuong_id),
+        id: combo
+          ? `combo:${item.doi_tuong_id}`
+          : Number(item.doi_tuong_id),
 
-        comboId: combo ? Number(item.doi_tuong_id) : null,
+        comboId: combo
+          ? Number(item.doi_tuong_id)
+          : null,
 
         barcode: combo ? '' : item.ma_hien_thi || '',
         sku: item.ma_hien_thi || '',
@@ -102,11 +117,17 @@ export async function getAllVersions(warehouseId, signal, includeCombos = true) 
         displayName: item.ten_hien_thi || '',
         type: combo ? 'Combo' : 'Phiên bản',
 
-        available: combo ? null : nullableNumber(item.ton_co_the_ban),
+        available: combo
+          ? null
+          : nullableNumber(item.ton_co_the_ban),
 
-        actual: combo ? null : nullableNumber(item.ton_thuc_te),
+        actual: combo
+          ? null
+          : nullableNumber(item.ton_thuc_te),
 
-        assemblyCapacity: combo ? nullableNumber(item.so_bo_co_the_lap) : null,
+        assemblyCapacity: combo
+          ? nullableNumber(item.so_bo_co_the_lap)
+          : null,
 
         warehouse: selectedWarehouse?.name || 'Tất cả kho',
         location: item.vi_tri_luu_kho || '—',
@@ -118,105 +139,80 @@ export async function getAllVersions(warehouseId, signal, includeCombos = true) 
 const allocation = (item, warehouses) => {
   const warehouse = warehouses.find((entry) => entry.id === Number(item.kho_hang_id));
   return {
-    id: Number(item.kho_hang_id),
-    code: warehouse?.code || String(item.kho_hang_id),
-    name: item.ten_kho || warehouse?.name || 'Kho hàng',
-    location: item.vi_tri_luu_kho || '—',
-    actual: Number(item.ton_thuc_te || 0),
-    available: Number(item.ton_co_the_ban || 0),
+    id: Number(item.kho_hang_id), code: warehouse?.code || String(item.kho_hang_id),
+    name: item.ten_kho || warehouse?.name || 'Kho hàng', location: item.vi_tri_luu_kho || '—',
+    actual: Number(item.ton_thuc_te || 0), available: Number(item.ton_co_the_ban || 0),
   };
 };
 
 export async function getVersionDetail(variantId, signal) {
   const [item, warehouses] = await Promise.all([
-    request(
-      `/api/v1/admin/inventory/items/${encodeURIComponent(variantId)}?loai_doi_tuong=PHIEN_BAN`,
-      { signal }
-    ),
+    request(`/api/v1/admin/inventory/items/${encodeURIComponent(variantId)}?loai_doi_tuong=PHIEN_BAN`, { signal }),
     getWarehouses(signal),
   ]);
   const product = await request(`/api/v1/admin/products/${item.phien_ban.san_pham_id}`, { signal });
-  const versions = await Promise.all(
-    (product.danh_sach_phien_ban || []).map(async (variant) => {
-      const stock = await request(
-        `/api/v1/admin/inventory/items/${variant.id}?loai_doi_tuong=PHIEN_BAN`,
-        { signal }
-      );
-      const allocations = (stock.ton_kho_theo_kho || []).map((entry) =>
-        allocation(entry, warehouses)
-      );
-      return {
-        id: Number(variant.id),
-        name: variant.ten_phien_ban || 'Mặc định',
-        sku: variant.ma_vach || '',
-        actual: allocations.reduce((sum, entry) => sum + entry.actual, 0),
-        available: allocations.reduce((sum, entry) => sum + entry.available, 0),
-        status: Number(variant.trang_thai) === 1,
-        allocations,
-      };
-    })
-  );
+  const versions = await Promise.all((product.danh_sach_phien_ban || []).map(async (variant) => {
+    const stock = await request(`/api/v1/admin/inventory/items/${variant.id}?loai_doi_tuong=PHIEN_BAN`, { signal });
+    const allocations = (stock.ton_kho_theo_kho || []).map((entry) => allocation(entry, warehouses));
+    return {
+      id: Number(variant.id), name: variant.ten_phien_ban || 'Mặc định', sku: variant.ma_vach || '',
+      actual: allocations.reduce((sum, entry) => sum + entry.actual, 0),
+      available: allocations.reduce((sum, entry) => sum + entry.available, 0),
+      status: Number(variant.trang_thai) === 1, allocations,
+    };
+  }));
   const images = product.anh_san_pham || [];
   return {
-    id: Number(product.id),
-    name: product.ten_san_pham || '',
-    productCode: product.ma_san_pham || '',
-    brand: product.thuong_hieu?.ten_thuong_hieu || '—',
-    category: product.danh_muc?.ten_danh_muc || '—',
-    unit: '—',
-    productType: 'Có phiên bản',
-    status: Number(product.trang_thai) === 1 ? 'Đang kinh doanh' : 'Ngừng kinh doanh',
-    image:
-      images.find((entry) => entry.la_anh_chinh)?.duong_dan_anh || images[0]?.duong_dan_anh || '',
+    id: Number(product.id), name: product.ten_san_pham || '', productCode: product.ma_san_pham || '',
+    brand: product.thuong_hieu?.ten_thuong_hieu || '—', category: product.danh_muc?.ten_danh_muc || '—',
+    unit: '—', productType: 'Có phiên bản', status: Number(product.trang_thai) === 1 ? 'Đang kinh doanh' : 'Ngừng kinh doanh',
+    image: images.find((entry) => entry.la_anh_chinh)?.duong_dan_anh || images[0]?.duong_dan_anh || '',
     stats: {
       actual: versions.reduce((sum, version) => sum + version.actual, 0),
-      available: versions.reduce((sum, version) => sum + version.available, 0),
-      versionCount: versions.length,
+      available: versions.reduce((sum, version) => sum + version.available, 0), versionCount: versions.length,
     },
-    versions,
-    warehouses,
+    versions, warehouses,
   };
 }
 
 export async function getVersionLedger(filters, signal) {
   const params = { phien_ban_id: String(filters.variantId) };
   if (filters.warehouseId) params.kho_hang_id = String(filters.warehouseId);
-  if (filters.transactionType && filters.transactionType !== 'Tất cả')
-    params.loai_giao_dich = TRANSACTION_CODES[filters.transactionType];
+  if (filters.transactionType && filters.transactionType !== 'Tất cả') params.loai_giao_dich = TRANSACTION_CODES[filters.transactionType];
   if (filters.fromDate) params.tu_ngay = filters.fromDate;
   if (filters.toDate) params.den_ngay = filters.toDate;
   const [items, warehouses] = await Promise.all([
-    allPages('/api/v1/admin/inventory/ledger', params, signal),
-    getWarehouses(signal),
+    allPages('/api/v1/admin/inventory/ledger', params, signal), getWarehouses(signal),
   ]);
   return items.map((item) => ({
-    id: Number(item.id),
-    date: item.ngay_tao,
-    transactionType: TRANSACTION_LABELS[item.loai_giao_dich] || item.loai_giao_dich,
-    documentCode: String(item.ma_chung_tu_goc ?? '—'),
-    user: '—',
-    change: Number(item.so_luong_thay_doi || 0),
-    closing: Number(item.ton_cuoi || 0),
-    note: item.ghi_chu || '—',
+    id: Number(item.id), date: item.ngay_tao, transactionType: TRANSACTION_LABELS[item.loai_giao_dich] || item.loai_giao_dich,
+    documentCode: String(item.ma_chung_tu_goc ?? '—'), user: '—', change: Number(item.so_luong_thay_doi || 0),
+    closing: Number(item.ton_cuoi || 0), note: item.ghi_chu || '—',
     warehouse: warehouses.find((entry) => entry.id === Number(item.kho_hang_id))?.name || '—',
   }));
 }
 
 export async function getEditableVersions(productId, signal) {
-  const item = await request(`/api/v1/admin/products/${encodeURIComponent(productId)}`, { signal });
-  return (item.danh_sach_phien_ban || []).map((variant) => ({
+  const item = await request(
+    `/api/v1/admin/products/${encodeURIComponent(productId)}`,
+    { signal },
+  );
+
+  return (item.danh_sach_phien_ban || []).map(variant => ({
     id: Number(variant.id),
-    name: variant.ten_phien_ban || 'Mặc định',
+    name: variant.ten_phien_ban || '',
     sku: variant.ma_vach || '',
-    giaBanLe: Number(variant.gia_ban_le || 0),
-    giaNhap: Number(variant.gia_nhap || 0),
+    giaBanLe: Number(variant.gia_ban_le ?? 0),
+    giaNhap: Number(variant.gia_nhap ?? 0),
     khoiLuong: variant.khoi_luong == null ? '' : String(variant.khoi_luong),
     trangThai: Number(variant.trang_thai),
+    serialMode: variant.co_quan_ly_serial,
+    serialModeLocked: Boolean(variant.che_do_serial_bi_khoa),
+    attributes: variant.thuoc_tinh_phien_ban || [],
   }));
 }
 
-export const updateVersion = (productId, variantId, payload) =>
-  request(
-    `/api/v1/admin/products/${encodeURIComponent(productId)}/variants/${encodeURIComponent(variantId)}`,
-    { method: 'PUT', body: JSON.stringify(payload) }
-  );
+export const updateVersion = (productId, variantId, payload) => request(
+  `/api/v1/admin/products/${encodeURIComponent(productId)}/variants/${encodeURIComponent(variantId)}`,
+  { method: 'PUT', body: JSON.stringify(payload) },
+);

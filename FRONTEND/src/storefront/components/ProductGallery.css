@@ -61,6 +61,12 @@
   height: 100%;
 }
 
+.gallery-empty {
+  padding: 20px;
+  color: #aaa;
+  text-align: center;
+}
+
 .nav-arrow {
   position: absolute;
   top: 50%;

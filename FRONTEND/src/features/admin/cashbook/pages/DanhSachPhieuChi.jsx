@@ -1,9 +1,20 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { Check, X } from 'lucide-react';
-import { disbursementService } from '../../../../shared/services/disbursementService';
-import DetailTablePagination from '../../../../shared/components/ui/DetailTablePagination';
-import './DanhSachPhieuThu.css'; // Reuse CSS
+import React, { useState, useEffect, useCallback, useRef } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
+import { Check, X } from "lucide-react";
+import { disbursementService } from "../../../../shared/services/disbursementService";
+import DetailTablePagination from "../../../../shared/components/ui/DetailTablePagination";
+import {
+  CashSourceFilters,
+  CashSourceInfo,
+  useCashSourceFilters,
+} from "../components/CashbookEnhancements";
+import CashbookSourceFilters from "../components/CashbookSourceFilters";
+
+import {
+  createCashbookSourceFilters,
+  cashbookSourceParams,
+} from "../api/cashbookFilterParams";
+import "./DanhSachPhieuThu.css"; // Reuse CSS
 
 export default function DanhSachPhieuChi() {
   const navigate = useNavigate();
@@ -13,27 +24,30 @@ export default function DanhSachPhieuChi() {
   const [totalElements, setTotalElements] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
 
-  const [searchQuery, setSearchQuery] = useState('');
-  const [debouncedSearch, setDebouncedSearch] = useState('');
-  const [filterStatus, setFilterStatus] = useState('ALL');
-  const [fromDate, setFromDate] = useState('');
-  const [toDate, setToDate] = useState('');
-  const [filterGroup, setFilterGroup] = useState('ALL');
-  const [filterMethod, setFilterMethod] = useState('ALL');
-  const [filterSource, setFilterSource] = useState('ALL');
+  const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [filterStatus, setFilterStatus] = useState("ALL");
+  const [fromDate, setFromDate] = useState("");
+  const [toDate, setToDate] = useState("");
+  const [filterGroup, setFilterGroup] = useState("ALL");
+  const [filterMethod, setFilterMethod] = useState("ALL");
+  const [filterSource, setFilterSource] = useState("ALL");
   const [showAdvanced, setShowAdvanced] = useState(false);
 
   const [page, setPage] = useState(1);
+  const [sourceFilters, setSourceFilters] = useState(
+    createCashbookSourceFilters,
+  );
   const pageSize = 10;
 
-  const [toastMessage, setToastMessage] = useState('');
+  const [toastMessage, setToastMessage] = useState("");
   const searchTimeoutRef = useRef(null);
 
   useEffect(() => {
     if (location.state?.successMessage) {
       setToastMessage(location.state.successMessage);
       window.history.replaceState({}, document.title);
-      setTimeout(() => setToastMessage(''), 3000);
+      setTimeout(() => setToastMessage(""), 3000);
     }
   }, [location]);
 
@@ -42,22 +56,25 @@ export default function DanhSachPhieuChi() {
     try {
       const params = {
         keyword: debouncedSearch.trim() || undefined,
-        trang_thai: filterStatus !== 'ALL' ? filterStatus : undefined,
-        nhom_nguoi_nop_nhan: filterGroup !== 'ALL' ? filterGroup : undefined,
-        phuong_thuc_thanh_toan: filterMethod !== 'ALL' ? filterMethod : undefined,
-        nguon_tao: filterSource !== 'ALL' ? filterSource : undefined,
+        trang_thai: filterStatus !== "ALL" ? filterStatus : undefined,
+        nhom_nguoi_nop_nhan: filterGroup !== "ALL" ? filterGroup : undefined,
+        phuong_thuc_thanh_toan:
+          filterMethod !== "ALL" ? filterMethod : undefined,
+        nguon_tao: filterSource !== "ALL" ? filterSource : undefined,
         tu_ngay: fromDate || undefined,
         den_ngay: toDate || undefined,
         page: Math.max(0, page - 1),
         limit: pageSize,
+        ...cashbookSourceParams(sourceFilters),
       };
+
       const response = await disbursementService.getDisbursements(params);
       if (response.data?.data) {
         setDisbursements(response.data.data.items || []);
         setTotalElements(response.data.data.pagination?.total_elements || 0);
       }
     } catch (error) {
-      console.error('Lỗi khi tải danh sách phiếu chi:', error);
+      console.error("Lỗi khi tải danh sách phiếu chi:", error);
       setDisbursements([]);
     } finally {
       setIsLoading(false);
@@ -71,6 +88,8 @@ export default function DanhSachPhieuChi() {
     fromDate,
     toDate,
     page,
+    pageSize,
+    sourceFilters,
   ]);
 
   useEffect(() => {
@@ -88,70 +107,70 @@ export default function DanhSachPhieuChi() {
   };
 
   const formatMoney = (amount) => {
-    return (amount || 0).toLocaleString('vi-VN') + 'đ';
+    return (amount || 0).toLocaleString("vi-VN") + "đ";
   };
 
   const mapStatusToText = (status) => {
     switch (status) {
-      case 'DA_GHI_NHAN':
-        return 'ĐÃ GHI NHẬN';
-      case 'HUY':
-        return 'ĐÃ HỦY';
+      case "DA_GHI_NHAN":
+        return "ĐÃ GHI NHẬN";
+      case "HUY":
+        return "ĐÃ HỦY";
       default:
-        return status || '—';
+        return status || "—";
     }
   };
 
   const mapSourceToText = (source) => {
     switch (source) {
-      case 'THU_CONG':
-        return 'THỦ CÔNG';
-      case 'TU_DONG':
-        return 'TỰ ĐỘNG';
+      case "THU_CONG":
+        return "THỦ CÔNG";
+      case "TU_DONG":
+        return "TỰ ĐỘNG";
       default:
-        return source || '—';
+        return source || "—";
     }
   };
 
   const mapGroupToText = (group) => {
     switch (group) {
-      case 'KHACH_HANG':
-        return 'KHÁCH HÀNG';
-      case 'NHAN_VIEN':
-        return 'NHÂN VIÊN';
-      case 'NHA_CUNG_CAP':
-        return 'NHÀ CUNG CẤP';
-      case 'DOI_TAC_GIAO_HANG':
-        return 'ĐỐI TÁC GIAO HÀNG';
-      case 'KHAC':
-        return 'KHÁC';
+      case "KHACH_HANG":
+        return "KHÁCH HÀNG";
+      case "NHAN_VIEN":
+        return "NHÂN VIÊN";
+      case "NHA_CUNG_CAP":
+        return "NHÀ CUNG CẤP";
+      case "DOI_TAC_GIAO_HANG":
+        return "ĐỐI TÁC GIAO HÀNG";
+      case "KHAC":
+        return "KHÁC";
       default:
-        return group || '—';
+        return group || "—";
     }
   };
 
   const mapPaymentMethodToText = (method) => {
     switch (method) {
-      case 'TIEN_MAT':
-        return 'TIỀN MẶT';
-      case 'CHUYEN_KHOAN':
-        return 'CHUYỂN KHOẢN';
-      case 'THE':
-        return 'QUẸT THẺ';
+      case "TIEN_MAT":
+        return "TIỀN MẶT";
+      case "CHUYEN_KHOAN":
+        return "CHUYỂN KHOẢN";
+      case "THE":
+        return "QUẸT THẺ";
       default:
-        return method || '—';
+        return method || "—";
     }
   };
 
   const formatDateDisplay = (dateStr) => {
-    if (!dateStr) return '—';
+    if (!dateStr) return "—";
     try {
-      return new Date(dateStr).toLocaleString('vi-VN', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
+      return new Date(dateStr).toLocaleString("vi-VN", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
       });
     } catch {
       return dateStr;
@@ -167,7 +186,7 @@ export default function DanhSachPhieuChi() {
               <Check size={20} color="#fff" strokeWidth={3} />
             </div>
             <div className="toast-text">{toastMessage}</div>
-            <button className="toast-close" onClick={() => setToastMessage('')}>
+            <button className="toast-close" onClick={() => setToastMessage("")}>
               <X size={18} strokeWidth={2.5} />
             </button>
           </div>
@@ -178,7 +197,7 @@ export default function DanhSachPhieuChi() {
         <div className="pt-breadcrumb">SỔ QUỸ TIỀN MẶT / PHIẾU CHI</div>
         <button
           className="pt-btn-create"
-          onClick={() => navigate('/admin/so-quy-tien-mat/tao-phieu-chi')}
+          onClick={() => navigate("/admin/so-quy-tien-mat/tao-phieu-chi")}
         >
           + TẠO PHIẾU CHI
         </button>
@@ -189,7 +208,10 @@ export default function DanhSachPhieuChi() {
         <p>QUẢN LÝ CÁC KHOẢN TIỀN ĐÃ CHI RA KHỎI QUỸ</p>
       </div>
 
-      <div className="pt-filter-bar" style={{ borderBottom: showAdvanced ? 'none' : undefined }}>
+      <div
+        className="pt-filter-bar"
+        style={{ borderBottom: showAdvanced ? "none" : undefined }}
+      >
         <input
           type="text"
           placeholder="TÌM MÃ PHIẾU / NGƯỜI NHẬN / CHỨNG TỪ..."
@@ -233,14 +255,17 @@ export default function DanhSachPhieuChi() {
         <button
           className="pt-btn-dark"
           onClick={() => setShowAdvanced(!showAdvanced)}
-          style={{ minHeight: '38px', padding: '0 12px' }}
+          style={{ minHeight: "38px", padding: "0 12px" }}
         >
-          BỘ LỌC NÂNG CAO {showAdvanced ? '▲' : '▼'}
+          BỘ LỌC NÂNG CAO {showAdvanced ? "▲" : "▼"}
         </button>
       </div>
 
       {showAdvanced && (
-        <div className="pt-filter-bar" style={{ paddingTop: 0, paddingBottom: '16px' }}>
+        <div
+          className="pt-filter-bar"
+          style={{ paddingTop: 0, paddingBottom: "16px" }}
+        >
           <select
             value={filterGroup}
             onChange={(e) => {
@@ -281,6 +306,14 @@ export default function DanhSachPhieuChi() {
         </div>
       )}
 
+      <CashbookSourceFilters
+        value={sourceFilters}
+        onChange={(nextFilters) => {
+          setSourceFilters(nextFilters);
+          setPage(1);
+        }}
+      />
+
       <div className="pt-table-container">
         <table className="promo-table pt-table">
           <thead>
@@ -301,7 +334,10 @@ export default function DanhSachPhieuChi() {
           <tbody>
             {isLoading ? (
               <tr>
-                <td colSpan="11" style={{ textAlign: 'center', padding: '24px' }}>
+                <td
+                  colSpan="11"
+                  style={{ textAlign: "center", padding: "24px" }}
+                >
                   Đang tải dữ liệu...
                 </td>
               </tr>
@@ -317,7 +353,9 @@ export default function DanhSachPhieuChi() {
                       <span>{mapGroupToText(row.nhom_nguoi_nop_nhan)}</span>
                     </div>
                   </td>
-                  <td className="text-muted">{mapGroupToText(row.nhom_nguoi_nop_nhan)}</td>
+                  <td className="text-muted">
+                    {mapGroupToText(row.nhom_nguoi_nop_nhan)}
+                  </td>
                   <td>
                     <div className="type-col">
                       <span className="type-code">{row.ma_loai}</span>
@@ -329,15 +367,23 @@ export default function DanhSachPhieuChi() {
                       {mapPaymentMethodToText(row.phuong_thuc_thanh_toan)}
                     </span>
                   </td>
-                  <td className="text-muted">{row.ten_nguoi_tao || 'HỆ THỐNG'}</td>
-                  <td>
-                    <strong style={{ color: '#dc2626' }}>{formatMoney(row.so_tien)}</strong>
+                  <td className="text-muted">
+                    {row.ten_nguoi_tao || "HỆ THỐNG"}
                   </td>
-                  <td className="text-muted">{formatDateDisplay(row.ngay_ghi_nhan)}</td>
-                  <td className="text-muted">{mapSourceToText(row.nguon_tao)}</td>
+                  <td>
+                    <strong style={{ color: "#dc2626" }}>
+                      {formatMoney(row.so_tien)}
+                    </strong>
+                  </td>
+                  <td className="text-muted">
+                    {formatDateDisplay(row.ngay_ghi_nhan)}
+                  </td>
+                  <td className="text-muted">
+                    {mapSourceToText(row.nguon_tao)}
+                  </td>
                   <td>
                     <span
-                      className={`status-outline ${row.trang_thai === 'HUY' ? 'status-danger' : 'status-success'}`}
+                      className={`status-outline ${row.trang_thai === "HUY" ? "status-danger" : "status-success"}`}
                     >
                       {mapStatusToText(row.trang_thai)}
                     </span>
@@ -345,7 +391,9 @@ export default function DanhSachPhieuChi() {
                   <td>
                     <button
                       className="pt-btn-detail"
-                      onClick={() => navigate(`/admin/so-quy-tien-mat/phieu-chi/${row.id}`)}
+                      onClick={() =>
+                        navigate(`/admin/so-quy-tien-mat/phieu-chi/${row.id}`)
+                      }
                     >
                       XEM CHI TIẾT
                     </button>
@@ -359,7 +407,9 @@ export default function DanhSachPhieuChi() {
                     <p>KHÔNG TÌM THẤY PHIẾU CHI PHÙ HỢP</p>
                     <button
                       className="pt-btn-dark"
-                      onClick={() => navigate('/admin/so-quy-tien-mat/tao-phieu-chi')}
+                      onClick={() =>
+                        navigate("/admin/so-quy-tien-mat/tao-phieu-chi")
+                      }
                     >
                       TẠO PHIẾU CHI
                     </button>

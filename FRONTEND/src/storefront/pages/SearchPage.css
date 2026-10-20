@@ -18,9 +18,17 @@
   font-weight: 700;
 }
 
+.search-page-wrapper .catalog-listing-title {
+  margin: 0;
+  color: #fff;
+  font-size: 18px;
+  font-weight: 800;
+  line-height: 1.5;
+}
+
 .search-main {
   display: grid;
-  grid-template-columns: 280px 1fr;
+  grid-template-columns: 280px minmax(0, 1fr);
   gap: 30px;
   flex: 1;
   width: 100%;
@@ -42,12 +50,16 @@
   align-items: center;
 }
 
-.filter-title {
+.search-page-wrapper .filter-title {
   margin: 0;
   font-size: 16px;
   font-weight: 800;
   text-transform: uppercase;
+  padding: 0;
+  border: 0;
 }
+
+.search-page-wrapper .filter-title::after { content: none; }
 
 .clear-all-btn {
   background: none;
@@ -104,6 +116,9 @@
   border: 1px solid #ddd;
   font-size: 13px;
   width: 100%;
+  min-width: 0;
+  border-radius: 0;
+  font-family: inherit;
 }
 
 .price-separator {
@@ -323,7 +338,7 @@
   padding: 5px 10px;
   font-size: 12px;
   font-weight: 600;
-  border-radius: 3px;
+  border-radius: 0;
 }
 
 .chip-close {
@@ -340,7 +355,7 @@
 
 .search-product-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 20px;
 }
 

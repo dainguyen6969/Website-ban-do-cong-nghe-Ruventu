@@ -1,5 +1,5 @@
-import React from 'react';
-import { Line } from 'react-chartjs-2';
+import React from "react";
+import { Line } from "react-chartjs-2";
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -10,7 +10,7 @@ import {
   Tooltip,
   Legend,
   Filler,
-} from 'chart.js';
+} from "chart.js";
 
 ChartJS.register(
   CategoryScale,
@@ -20,20 +20,26 @@ ChartJS.register(
   Title,
   Tooltip,
   Legend,
-  Filler
+  Filler,
 );
 
 /**
  * Financial Line Chart Component powered by Chart.js
  * Cleaned: Legend items (TỔNG THU & TỔNG CHI) and corner status badge removed.
  */
-export default function WebGL2LineChart({ labels = [], datasets = [], title = '' }) {
+export default function WebGL2LineChart({
+  labels = [],
+  datasets = [],
+  title = "",
+}) {
   const chartData = {
     labels: labels,
     datasets: datasets.map((ds, idx) => {
-      const isChi = ds.label.includes('CHI') || ds.dashed;
-      const mainColor = isChi ? '#dc2626' : '#111111';
-      const bgColor = isChi ? 'rgba(220, 38, 38, 0.08)' : 'rgba(17, 17, 17, 0.08)';
+      const isChi = ds.label.includes("CHI") || ds.dashed;
+      const mainColor = isChi ? "#dc2626" : "#111111";
+      const bgColor = isChi
+        ? "rgba(220, 38, 38, 0.08)"
+        : "rgba(17, 17, 17, 0.08)";
 
       return {
         label: ds.label,
@@ -48,7 +54,7 @@ export default function WebGL2LineChart({ labels = [], datasets = [], title = ''
         pointRadius: 4,
         pointHoverRadius: 6,
         pointBackgroundColor: mainColor,
-        pointBorderColor: '#ffffff',
+        pointBorderColor: "#ffffff",
         pointBorderWidth: 1.5,
       };
     }),
@@ -71,21 +77,21 @@ export default function WebGL2LineChart({ labels = [], datasets = [], title = ''
       },
       tooltip: {
         enabled: true,
-        backgroundColor: '#0f172a',
-        titleColor: '#94a3b8',
-        bodyColor: '#ffffff',
-        borderColor: '#334155',
+        backgroundColor: "#0f172a",
+        titleColor: "#94a3b8",
+        bodyColor: "#ffffff",
+        borderColor: "#334155",
         borderWidth: 1,
         padding: 12,
         boxPadding: 6,
         usePointStyle: true,
         callbacks: {
           label: function (context) {
-            const label = context.dataset.label || '';
+            const label = context.dataset.label || "";
             const rawVal = context.dataset.rawAmounts
               ? context.dataset.rawAmounts[context.dataIndex]
               : (context.parsed.y || 0) * 1000000;
-            return ` ${label}: ${Math.round(rawVal).toLocaleString('vi-VN')}đ`;
+            return ` ${label}: ${Math.round(rawVal).toLocaleString("vi-VN")}đ`;
           },
           footer: function (tooltipItems) {
             if (tooltipItems.length >= 2) {
@@ -98,9 +104,9 @@ export default function WebGL2LineChart({ labels = [], datasets = [], title = ''
                 ? item1.dataset.rawAmounts[item1.dataIndex]
                 : (item1.parsed.y || 0) * 1000000;
               const chenhLech = thu - chi;
-              return `CHÊNH LỆCH: ${Math.round(chenhLech).toLocaleString('vi-VN')}đ`;
+              return `CHÊNH LỆCH: ${Math.round(chenhLech).toLocaleString("vi-VN")}đ`;
             }
-            return '';
+            return "";
           },
         },
       },
@@ -109,13 +115,13 @@ export default function WebGL2LineChart({ labels = [], datasets = [], title = ''
       y: {
         beginAtZero: true,
         grid: {
-          color: '#e2e8f0',
+          color: "#e2e8f0",
         },
         ticks: {
-          font: { size: 10, weight: '700' },
-          color: '#64748b',
+          font: { size: 10, weight: "700" },
+          color: "#64748b",
           callback: function (value) {
-            return value + 'M';
+            return value + "M";
           },
         },
       },
@@ -124,8 +130,8 @@ export default function WebGL2LineChart({ labels = [], datasets = [], title = ''
           display: false,
         },
         ticks: {
-          font: { size: 10, weight: '700' },
-          color: '#64748b',
+          font: { size: 10, weight: "700" },
+          color: "#64748b",
         },
       },
     },
@@ -134,7 +140,12 @@ export default function WebGL2LineChart({ labels = [], datasets = [], title = ''
   return (
     <div
       className="chartjs-wrapper"
-      style={{ position: 'relative', width: '100%', height: '100%', minHeight: '340px' }}
+      style={{
+        position: "relative",
+        width: "100%",
+        height: "100%",
+        minHeight: "340px",
+      }}
     >
       <Line data={chartData} options={chartOptions} />
     </div>

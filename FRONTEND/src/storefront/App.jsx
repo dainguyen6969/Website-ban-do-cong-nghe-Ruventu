@@ -18,6 +18,7 @@ import SearchPage from './pages/SearchPage';
 import NotFoundPage from './pages/NotFoundPage';
 import PromotionsPage from './pages/PromotionsPage';
 import ToastContainer from './components/ToastContainer';
+import BackToTop from './components/BackToTop';
 import FontPreferenceContext from '../typography/FontPreferenceContext';
 import usePersistentFontPreference from '../typography/usePersistentFontPreference';
 import './App.css';
@@ -50,6 +51,7 @@ function StorefrontApp() {
           {/* Redirect unknown routes to 404 Not Found Page */}
           <Route path="*" element={<NotFoundPage />} />
         </Routes>
+        <BackToTop />
       </div>
     </FontPreferenceContext.Provider>
   );

@@ -1,11 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, ZoomIn } from 'lucide-react';
 import './ProductGallery.css';
-import productImg from '../assets/imgg.png'; // Mock image
 
 const ProductGallery = ({ images = [], discountPercent, isFullBuild = false }) => {
-  // If no images are provided, use an array of mock images
-  const galleryImages = images.length > 0 ? images : Array(6).fill(productImg);
+  const galleryImages = images;
   const [currentIndex, setCurrentIndex] = useState(0);
 
   useEffect(() => {
@@ -20,42 +18,39 @@ const ProductGallery = ({ images = [], discountPercent, isFullBuild = false }) =
     setCurrentIndex((prevIndex) => (prevIndex === 0 ? galleryImages.length - 1 : prevIndex - 1));
   };
 
-  const badgeDiscount = discountPercent > 0 ? discountPercent : 13;
-
   return (
     <div className="product-gallery-container">
       {/* Top badges */}
       <div className="gallery-badges">
-        <div className="discount-badge">-{badgeDiscount}%</div>
-        <div className="variant-model-badge">ROG STRIX STANDARD</div>
+        {discountPercent > 0 && <div className="discount-badge">-{discountPercent}%</div>}
       </div>
 
       {/* Main Image */}
       <div className="main-image-wrapper">
-        <button className="nav-arrow left-arrow" onClick={prevImage}>
+        {galleryImages.length > 1 && <button className="nav-arrow left-arrow" onClick={prevImage}>
           <ChevronLeft size={24} />
-        </button>
-
-        <img
-          src={galleryImages[currentIndex]}
-          alt={`Product view ${currentIndex + 1}`}
+        </button>}
+        
+        {galleryImages.length > 0 ? <img
+          src={galleryImages[currentIndex]} 
+          alt={`Product view ${currentIndex + 1}`} 
           className="main-gallery-image"
-        />
+        /> : <p className="gallery-empty">Chưa có ảnh sản phẩm</p>}
 
-        <button className="nav-arrow right-arrow" onClick={nextImage}>
+        {galleryImages.length > 1 && <button className="nav-arrow right-arrow" onClick={nextImage}>
           <ChevronRight size={24} />
-        </button>
+        </button>}
 
-        <button className="zoom-btn">
+        {galleryImages.length > 0 && <button className="zoom-btn">
           <ZoomIn size={18} /> PHÓNG TO
-        </button>
+        </button>}
       </div>
 
       {/* Thumbnails */}
       <div className="thumbnail-strip">
         {galleryImages.map((img, index) => (
-          <div
-            key={index}
+          <div 
+            key={index} 
             className={`thumbnail-item ${index === currentIndex ? 'active' : ''}`}
             onClick={() => setCurrentIndex(index)}
           >

@@ -239,8 +239,7 @@
   gap: 20px;
 }
 
-.coupon-box,
-.summary-box {
+.coupon-box, .summary-box {
   background-color: white;
   border: 1px solid #ddd;
   padding: 20px;
@@ -359,62 +358,76 @@
   gap: 5px;
 }
 
-/* ================= RESPONSIVE CART PAGE ================= */
-@media (max-width: 992px) {
-  .cart-page-content {
-    flex-direction: column;
-    margin: 20px auto;
-    gap: 20px;
-  }
-
-  .cart-sidebar {
-    width: 100%;
-  }
-
-  .cart-page-title {
-    font-size: 15px;
-  }
+.cart-pricing-note {
+  color: #64748b;
+  font-size: 12px;
+  line-height: 1.6;
 }
 
-@media (max-width: 600px) {
-  .cart-page-header .container {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 8px;
-  }
+.cart-pricing-error {
+  padding: 12px;
+  border: 1px solid #fecaca;
+  background: #fff7f7;
+  color: #b91c1c;
+  font-size: 13px;
+  line-height: 1.6;
+}
 
-  .cart-table-header {
-    display: none;
-  }
+.cart-applied-promotion {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 10px;
+  padding: 12px;
+  border: 1px solid #fecaca;
+  background: #fff7f7;
+}
 
-  .cart-item {
-    flex-direction: column;
-    align-items: flex-start;
-    padding: 12px;
-    gap: 12px;
-    position: relative;
-  }
+.cart-promotion-name {
+  margin-top: 5px;
+  color: #64748b;
+  font-size: 12px;
+}
 
-  .col-checkbox {
-    width: 100%;
-  }
+.cart-applied-promotion > button {
+  align-self: flex-start;
+  border: 0;
+  background: transparent;
+  color: #b91c1c;
+  cursor: pointer;
+}
 
-  .cart-item-price,
-  .cart-item-total {
-    font-size: 13px;
-  }
+.cart-discount-row {
+  color: #dc2626;
+}
 
-  .cart-item-actions {
-    width: 100%;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    border-top: 1px dashed #eee;
-    padding-top: 10px;
-  }
+.cart-gifts {
+  margin-top: 16px;
+  padding: 16px;
+  border: 1px solid #bbdfc3;
+  background: #f3faf5;
+}
 
-  .trust-badges {
-    flex-direction: column;
-    gap: 8px;
-  }
+.cart-gifts h3 {
+  margin: 0 0 12px;
+  color: #237331;
+  font-size: 13px;
+}
+
+.cart-gift-item {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 10px 0;
+}
+
+.cart-gift-item small {
+  display: block;
+  margin-top: 4px;
+  color: #64748b;
+}
+
+.btn-checkout-full:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }

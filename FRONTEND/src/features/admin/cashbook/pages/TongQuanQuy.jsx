@@ -1,46 +1,57 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { LineChart, X } from 'lucide-react';
-import { cashbookService } from '../../../../shared/services/cashbookService';
-import { getEmployeePage } from '../../organization/api/employeeApi';
-import WebGL2LineChart from '../components/WebGL2LineChart';
-import './TongQuanQuy.css';
+import React, { useState, useEffect, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
+import { LineChart, X } from "lucide-react";
+import { cashbookService } from "../../../../shared/services/cashbookService";
+import { getEmployeePage } from "../../organization/api/employeeApi";
+import WebGL2LineChart from "../components/WebGL2LineChart";
+import {
+  CashSourceFilters,
+  CashSourceInfo,
+  useCashSourceFilters,
+} from "../components/CashbookEnhancements";
+import CashbookSourceFilters from "../components/CashbookSourceFilters";
+
+import {
+  createCashbookSourceFilters,
+  cashbookSourceParams,
+} from "../api/cashbookFilterParams";
+import "./TongQuanQuy.css";
 
 // Default dates: First day of current month to today
 const getFirstDayOfMonth = () => {
   const d = new Date();
   const year = d.getFullYear();
-  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const month = String(d.getMonth() + 1).padStart(2, "0");
   return `${year}-${month}-01`;
 };
 
 const getToday = () => {
   const d = new Date();
   const year = d.getFullYear();
-  const month = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
   return `${year}-${month}-${day}`;
 };
 
 const formatCurrency = (amount) => {
-  return (Number(amount) || 0).toLocaleString('vi-VN') + 'đ';
+  return (Number(amount) || 0).toLocaleString("vi-VN") + "đ";
 };
 
 const formatBucketLabel = (item, mode) => {
-  if (!item.tu_ngay) return '';
-  const [y1, m1, d1] = item.tu_ngay.split('-');
+  if (!item.tu_ngay) return "";
+  const [y1, m1, d1] = item.tu_ngay.split("-");
 
-  if (mode === 'THEO NGÀY') {
+  if (mode === "THEO NGÀY") {
     return `${d1}/${m1}`;
   }
 
-  if (mode === 'THEO TUẦN') {
+  if (mode === "THEO TUẦN") {
     if (!item.den_ngay) return `${d1}/${m1}`;
-    const [, m2, d2] = item.den_ngay.split('-');
+    const [, m2, d2] = item.den_ngay.split("-");
     return `${d1}/${m1}-${d2}/${m2}`;
   }
 
-  if (mode === 'THEO THÁNG') {
+  if (mode === "THEO THÁNG") {
     return `T${m1}/${y1}`;
   }
 
@@ -49,53 +60,43 @@ const formatBucketLabel = (item, mode) => {
 
 const modeToGrouping = (mode) => {
   switch (mode) {
-    case 'THEO TUẦN':
-      return 'TUAN';
-    case 'THEO THÁNG':
-      return 'THANG';
-    case 'THEO NGÀY':
+    case "THEO TUẦN":
+      return "TUAN";
+    case "THEO THÁNG":
+      return "THANG";
+    case "THEO NGÀY":
     default:
-      return 'NGAY';
+      return "NGAY";
   }
 };
 
 const buildQueryParams = (filters) => {
-  const params = {
-    tu_ngay: filters.fromDate,
-    den_ngay: filters.toDate,
+  const paymentMethods = {
+    "TIỀN MẶT": "TIEN_MAT",
+    "CHUYỂN KHOẢN": "CHUYEN_KHOAN",
+    THẺ: "THE",
   };
 
-  if (filters.filterType === 'THU' || filters.filterType === 'CHI') {
-    params.loai_phieu = filters.filterType;
-  }
+  const groups = {
+    "KHÁCH HÀNG": "KHACH_HANG",
+    "NHÂN VIÊN": "NHAN_VIEN",
+    "NHÀ CUNG CẤP": "NHA_CUNG_CAP",
+    "ĐỐI TÁC GIAO HÀNG": "DOI_TAC_GIAO_HANG",
+    KHÁC: "KHAC",
+  };
 
-  if (filters.filterMethod === 'TIỀN MẶT') {
-    params.phuong_thuc_thanh_toan = 'TIEN_MAT';
-  } else if (filters.filterMethod === 'CHUYỂN KHOẢN') {
-    params.phuong_thuc_thanh_toan = 'CHUYEN_KHOAN';
-  } else if (filters.filterMethod === 'THẺ') {
-    params.phuong_thuc_thanh_toan = 'THE';
-  }
-
-  if (filters.filterGroup === 'KHÁCH HÀNG') {
-    params.nhom_nguoi_nop_nhan = 'KHACH_HANG';
-  } else if (filters.filterGroup === 'NHÂN VIÊN') {
-    params.nhom_nguoi_nop_nhan = 'NHAN_VIEN';
-  } else if (filters.filterGroup === 'NHÀ CUNG CẤP') {
-    params.nhom_nguoi_nop_nhan = 'NHA_CUNG_CAP';
-  } else if (filters.filterGroup === 'ĐỐI TÁC GIAO HÀNG') {
-    params.nhom_nguoi_nop_nhan = 'DOI_TAC_GIAO_HANG';
-  }
-
-  if (filters.searchPerson && filters.searchPerson.trim()) {
-    params.ten_nguoi_nop_nhan = filters.searchPerson.trim();
-  }
-
-  if (filters.employeeId && filters.employeeId.trim()) {
-    params.nguoi_tao_id = filters.employeeId.trim();
-  }
-
-  return params;
+  return {
+    tu_ngay: filters.fromDate,
+    den_ngay: filters.toDate,
+    loai_phieu: ["THU", "CHI"].includes(filters.filterType)
+      ? filters.filterType
+      : undefined,
+    phuong_thuc_thanh_toan: paymentMethods[filters.filterMethod],
+    nhom_nguoi_nop_nhan: groups[filters.filterGroup],
+    ten_nguoi_nop_nhan: filters.searchPerson?.trim() || undefined,
+    nguoi_tao_id: String(filters.employeeId ?? "").trim() || undefined,
+    ...cashbookSourceParams(filters.sourceFilters),
+  };
 };
 
 export default function TongQuanQuy() {
@@ -107,11 +108,14 @@ export default function TongQuanQuy() {
   // Top Filter States
   const [fromDate, setFromDate] = useState(defaultFrom);
   const [toDate, setToDate] = useState(defaultTo);
-  const [filterType, setFilterType] = useState('TẤT CẢ');
-  const [filterMethod, setFilterMethod] = useState('TẤT CẢ');
-  const [searchPerson, setSearchPerson] = useState('');
-  const [filterGroup, setFilterGroup] = useState('TẤT CẢ NHÓM');
-  const [employeeId, setEmployeeId] = useState('');
+  const [filterType, setFilterType] = useState("TẤT CẢ");
+  const [filterMethod, setFilterMethod] = useState("TẤT CẢ");
+  const [searchPerson, setSearchPerson] = useState("");
+  const [filterGroup, setFilterGroup] = useState("TẤT CẢ NHÓM");
+  const [employeeId, setEmployeeId] = useState("");
+  const [sourceFilters, setSourceFilters] = useState(
+    createCashbookSourceFilters,
+  );
 
   // Employee Options List
   const [employees, setEmployees] = useState([]);
@@ -120,15 +124,16 @@ export default function TongQuanQuy() {
   const [appliedFilters, setAppliedFilters] = useState({
     fromDate: defaultFrom,
     toDate: defaultTo,
-    filterType: 'TẤT CẢ',
-    filterMethod: 'TẤT CẢ',
-    searchPerson: '',
-    filterGroup: 'TẤT CẢ NHÓM',
-    employeeId: '',
+    filterType: "TẤT CẢ",
+    filterMethod: "TẤT CẢ",
+    searchPerson: "",
+    filterGroup: "TẤT CẢ NHÓM",
+    employeeId: "",
+    sourceFilters: createCashbookSourceFilters(),
   });
 
   // Time Mode State: 'THEO NGÀY' | 'THEO TUẦN' | 'THEO THÁNG'
-  const [timeMode, setTimeMode] = useState('THEO NGÀY');
+  const [timeMode, setTimeMode] = useState("THEO NGÀY");
 
   // Overview Stats State
   const [overviewData, setOverviewData] = useState({
@@ -148,8 +153,8 @@ export default function TongQuanQuy() {
   // Status States
   const [isLoading, setIsLoading] = useState(true);
   const [isChartLoading, setIsChartLoading] = useState(false);
-  const [dateError, setDateError] = useState('');
-  const [errorMessage, setErrorMessage] = useState('');
+  const [dateError, setDateError] = useState("");
+  const [errorMessage, setErrorMessage] = useState("");
 
   // Fetch employee list for filter
   useEffect(() => {
@@ -161,7 +166,7 @@ export default function TongQuanQuy() {
         }
       })
       .catch((err) => {
-        console.warn('Không thể tải danh sách nhân viên:', err);
+        console.warn("Không thể tải danh sách nhân viên:", err);
       });
     return () => {
       isMounted = false;
@@ -171,16 +176,18 @@ export default function TongQuanQuy() {
   // Main Data Fetcher
   const fetchAllData = useCallback(async (filters, mode) => {
     if (!filters.fromDate || !filters.toDate) {
-      setDateError('Vui lòng chọn ngày bắt đầu và ngày kết thúc');
+      setDateError("Vui lòng chọn ngày bắt đầu và ngày kết thúc");
       return;
     }
     if (filters.fromDate > filters.toDate) {
-      setDateError('Khoảng thời gian không hợp lệ (ngày bắt đầu lớn hơn ngày kết thúc)');
+      setDateError(
+        "Khoảng thời gian không hợp lệ (ngày bắt đầu lớn hơn ngày kết thúc)",
+      );
       return;
     }
 
-    setDateError('');
-    setErrorMessage('');
+    setDateError("");
+    setErrorMessage("");
     setIsLoading(true);
 
     const baseParams = buildQueryParams(filters);
@@ -196,7 +203,7 @@ export default function TongQuanQuy() {
       ]);
 
       // Process Overview Response
-      if (overviewRes.status === 'fulfilled' && overviewRes.value.data?.data) {
+      if (overviewRes.status === "fulfilled" && overviewRes.value.data?.data) {
         const data = overviewRes.value.data.data;
         setOverviewData({
           soDuDauKy: Number(data.so_du_dau_ky || 0),
@@ -204,18 +211,21 @@ export default function TongQuanQuy() {
           tongChi: Number(data.tong_chi || 0),
           tonQuy: Number(data.ton_quy || 0),
         });
-      } else if (overviewRes.status === 'rejected') {
+      } else if (overviewRes.status === "rejected") {
         const error = overviewRes.reason;
-        console.error('Lỗi khi lấy dữ liệu tổng quan quỹ:', error);
+        console.error("Lỗi khi lấy dữ liệu tổng quan quỹ:", error);
         if (error.response?.status === 403) {
-          setErrorMessage('Bạn không có quyền truy cập dữ liệu Tổng Quan Quỹ');
+          setErrorMessage("Bạn không có quyền truy cập dữ liệu Tổng Quan Quỹ");
         } else {
-          setErrorMessage(error.response?.data?.message || 'Có lỗi khi lấy số liệu tổng quan quỹ');
+          setErrorMessage(
+            error.response?.data?.message ||
+              "Có lỗi khi lấy số liệu tổng quan quỹ",
+          );
         }
       }
 
       // Process Cash Flow Chart Response (Luồng ngoại lệ 4: vẫn hiển thị overview nếu chart thất bại)
-      if (flowRes.status === 'fulfilled' && flowRes.value.data?.data) {
+      if (flowRes.status === "fulfilled" && flowRes.value.data?.data) {
         const flowData = flowRes.value.data.data;
         const items = flowData.items || [];
         const labels = items.map((item) => formatBucketLabel(item, mode));
@@ -223,18 +233,18 @@ export default function TongQuanQuy() {
         const chiValues = items.map((item) => Number(item.tong_chi || 0));
 
         const datasets = [];
-        if (filters.filterType !== 'CHI') {
+        if (filters.filterType !== "CHI") {
           datasets.push({
-            label: 'TỔNG THU',
+            label: "TỔNG THU",
             data: thuValues.map((v) => Number((v / 1000000).toFixed(4))),
             rawAmounts: thuValues,
             color: [0.07, 0.07, 0.07, 1.0],
             dashed: false,
           });
         }
-        if (filters.filterType !== 'THU') {
+        if (filters.filterType !== "THU") {
           datasets.push({
-            label: 'TỔNG CHI',
+            label: "TỔNG CHI",
             data: chiValues.map((v) => Number((v / 1000000).toFixed(4))),
             rawAmounts: chiValues,
             color: [0.86, 0.15, 0.15, 1.0],
@@ -247,8 +257,8 @@ export default function TongQuanQuy() {
           datasets,
           hasData: Boolean(flowData.co_du_lieu && items.length > 0),
         });
-      } else if (flowRes.status === 'rejected') {
-        console.error('Lỗi khi lấy dữ liệu biểu đồ dòng tiền:', flowRes.reason);
+      } else if (flowRes.status === "rejected") {
+        console.error("Lỗi khi lấy dữ liệu biểu đồ dòng tiền:", flowRes.reason);
         setChartData({
           labels: [],
           datasets: [],
@@ -256,8 +266,8 @@ export default function TongQuanQuy() {
         });
       }
     } catch (err) {
-      console.error('Lỗi tổng hợp dữ liệu:', err);
-      setErrorMessage('Không thể tải dữ liệu tổng quan quỹ');
+      console.error("Lỗi tổng hợp dữ liệu:", err);
+      setErrorMessage("Không thể tải dữ liệu tổng quan quỹ");
     } finally {
       setIsLoading(false);
     }
@@ -295,18 +305,18 @@ export default function TongQuanQuy() {
         const chiValues = items.map((item) => Number(item.tong_chi || 0));
 
         const datasets = [];
-        if (appliedFilters.filterType !== 'CHI') {
+        if (appliedFilters.filterType !== "CHI") {
           datasets.push({
-            label: 'TỔNG THU',
+            label: "TỔNG THU",
             data: thuValues.map((v) => Number((v / 1000000).toFixed(4))),
             rawAmounts: thuValues,
             color: [0.07, 0.07, 0.07, 1.0],
             dashed: false,
           });
         }
-        if (appliedFilters.filterType !== 'THU') {
+        if (appliedFilters.filterType !== "THU") {
           datasets.push({
-            label: 'TỔNG CHI',
+            label: "TỔNG CHI",
             data: chiValues.map((v) => Number((v / 1000000).toFixed(4))),
             rawAmounts: chiValues,
             color: [0.86, 0.15, 0.15, 1.0],
@@ -321,7 +331,7 @@ export default function TongQuanQuy() {
         });
       }
     } catch (err) {
-      console.error('Lỗi khi đổi mốc thời gian biểu đồ:', err);
+      console.error("Lỗi khi đổi mốc thời gian biểu đồ:", err);
     } finally {
       setIsChartLoading(false);
     }
@@ -330,11 +340,13 @@ export default function TongQuanQuy() {
   // Apply Filters Click Handler
   const handleApplyFilters = () => {
     if (!fromDate || !toDate) {
-      setDateError('Vui lòng chọn ngày bắt đầu và ngày kết thúc');
+      setDateError("Vui lòng chọn ngày bắt đầu và ngày kết thúc");
       return;
     }
     if (fromDate > toDate) {
-      setDateError('Khoảng thời gian không hợp lệ (ngày bắt đầu lớn hơn ngày kết thúc)');
+      setDateError(
+        "Khoảng thời gian không hợp lệ (ngày bắt đầu lớn hơn ngày kết thúc)",
+      );
       return;
     }
 
@@ -346,7 +358,9 @@ export default function TongQuanQuy() {
       searchPerson,
       filterGroup,
       employeeId,
+      sourceFilters: { ...sourceFilters },
     };
+
     setAppliedFilters(newFilters);
     fetchAllData(newFilters, timeMode);
   };
@@ -355,30 +369,48 @@ export default function TongQuanQuy() {
   const handleClearFilters = () => {
     const defaultStart = getFirstDayOfMonth();
     const defaultEnd = getToday();
+    const resetSources = createCashbookSourceFilters();
 
     setFromDate(defaultStart);
     setToDate(defaultEnd);
-    setFilterType('TẤT CẢ');
-    setFilterMethod('TẤT CẢ');
-    setSearchPerson('');
-    setFilterGroup('TẤT CẢ NHÓM');
-    setEmployeeId('');
-    setTimeMode('THEO NGÀY');
-    setDateError('');
-    setErrorMessage('');
+    setFilterType("TẤT CẢ");
+    setFilterMethod("TẤT CẢ");
+    setSearchPerson("");
+    setFilterGroup("TẤT CẢ NHÓM");
+    setEmployeeId("");
+    setSourceFilters(resetSources);
+    setTimeMode("THEO NGÀY");
+    setDateError("");
+    setErrorMessage("");
 
     const resetFilters = {
       fromDate: defaultStart,
       toDate: defaultEnd,
-      filterType: 'TẤT CẢ',
-      filterMethod: 'TẤT CẢ',
-      searchPerson: '',
-      filterGroup: 'TẤT CẢ NHÓM',
-      employeeId: '',
+      filterType: "TẤT CẢ",
+      filterMethod: "TẤT CẢ",
+      searchPerson: "",
+      filterGroup: "TẤT CẢ NHÓM",
+      employeeId: "",
+      sourceFilters: resetSources,
     };
 
     setAppliedFilters(resetFilters);
-    fetchAllData(resetFilters, 'THEO NGÀY');
+    fetchAllData(resetFilters, "THEO NGÀY");
+  };
+
+  const handleOpenCashbook = () => {
+    const values = buildQueryParams(appliedFilters);
+
+    const query = new URLSearchParams(
+      Object.entries(values)
+        .filter(([, value]) => value != null && String(value).trim() !== "")
+        .map(([key, value]) => [key, String(value).trim()]),
+    );
+
+    navigate({
+      pathname: "/admin/so-quy-tien-mat/so-quy",
+      search: `?${query.toString()}`,
+    });
   };
 
   const isNegative = overviewData.tonQuy < 0;
@@ -392,8 +424,9 @@ export default function TongQuanQuy() {
           <p>THEO DÕI NHANH TÌNH HÌNH THU CHI VÀ TỒN QUỸ CỦA CỬA HÀNG</p>
         </div>
         <button
+          type="button"
           className="cb-btn-secondary"
-          onClick={() => navigate('/admin/so-quy-tien-mat/so-quy')}
+          onClick={handleOpenCashbook}
         >
           XEM SỔ QUỸ &rarr;
         </button>
@@ -406,8 +439,8 @@ export default function TongQuanQuy() {
           <button
             className="cb-error-dismiss"
             onClick={() => {
-              setDateError('');
-              setErrorMessage('');
+              setDateError("");
+              setErrorMessage("");
             }}
             aria-label="Đóng thông báo"
           >
@@ -420,15 +453,26 @@ export default function TongQuanQuy() {
       <div className="cb-filter-bar">
         <div className="cb-filter-item">
           <label>TỪ NGÀY</label>
-          <input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} />
+          <input
+            type="date"
+            value={fromDate}
+            onChange={(e) => setFromDate(e.target.value)}
+          />
         </div>
         <div className="cb-filter-item">
           <label>ĐẾN NGÀY</label>
-          <input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} />
+          <input
+            type="date"
+            value={toDate}
+            onChange={(e) => setToDate(e.target.value)}
+          />
         </div>
         <div className="cb-filter-item">
           <label>LOẠI PHIẾU</label>
-          <select value={filterType} onChange={(e) => setFilterType(e.target.value)}>
+          <select
+            value={filterType}
+            onChange={(e) => setFilterType(e.target.value)}
+          >
             <option value="TẤT CẢ">TẤT CẢ</option>
             <option value="THU">PHIẾU THU</option>
             <option value="CHI">PHIẾU CHI</option>
@@ -436,7 +480,10 @@ export default function TongQuanQuy() {
         </div>
         <div className="cb-filter-item">
           <label>PHƯƠNG THỨC</label>
-          <select value={filterMethod} onChange={(e) => setFilterMethod(e.target.value)}>
+          <select
+            value={filterMethod}
+            onChange={(e) => setFilterMethod(e.target.value)}
+          >
             <option value="TẤT CẢ">TẤT CẢ</option>
             <option value="TIỀN MẶT">TIỀN MẶT</option>
             <option value="CHUYỂN KHOẢN">CHUYỂN KHOẢN</option>
@@ -454,7 +501,10 @@ export default function TongQuanQuy() {
         </div>
         <div className="cb-filter-item">
           <label>NHÓM ĐỐI TƯỢNG</label>
-          <select value={filterGroup} onChange={(e) => setFilterGroup(e.target.value)}>
+          <select
+            value={filterGroup}
+            onChange={(e) => setFilterGroup(e.target.value)}
+          >
             <option value="TẤT CẢ NHÓM">TẤT CẢ NHÓM</option>
             <option value="KHÁCH HÀNG">KHÁCH HÀNG</option>
             <option value="NHÂN VIÊN">NHÂN VIÊN</option>
@@ -464,7 +514,10 @@ export default function TongQuanQuy() {
         </div>
         <div className="cb-filter-item">
           <label>NHÂN VIÊN (TẠO PHIẾU)</label>
-          <select value={employeeId} onChange={(e) => setEmployeeId(e.target.value)}>
+          <select
+            value={employeeId}
+            onChange={(e) => setEmployeeId(e.target.value)}
+          >
             <option value="">TẤT CẢ NHÂN VIÊN</option>
             {employees.map((emp) => (
               <option key={emp.id} value={emp.id}>
@@ -483,28 +536,36 @@ export default function TongQuanQuy() {
         </div>
       </div>
 
+      <CashbookSourceFilters
+        value={sourceFilters}
+        onChange={setSourceFilters}
+        applyRequired
+      />
+
       {/* Summary Stat Boxes */}
       <div className="cb-stats-row">
         <div className="cb-stat-box">
           <label>SỐ DƯ ĐẦU KỲ</label>
-          <div className="val">{isLoading ? '...' : formatCurrency(overviewData.soDuDauKy)}</div>
+          <div className="val">
+            {isLoading ? "..." : formatCurrency(overviewData.soDuDauKy)}
+          </div>
         </div>
         <div className="cb-stat-box">
           <label>TỔNG THU</label>
           <div className="val text-green">
-            {isLoading ? '...' : formatCurrency(overviewData.tongThu)}
+            {isLoading ? "..." : formatCurrency(overviewData.tongThu)}
           </div>
         </div>
         <div className="cb-stat-box">
           <label>TỔNG CHI</label>
           <div className="val text-red">
-            {isLoading ? '...' : formatCurrency(overviewData.tongChi)}
+            {isLoading ? "..." : formatCurrency(overviewData.tongChi)}
           </div>
         </div>
         <div className="cb-stat-box bg-dark">
           <label>TỒN QUỸ</label>
-          <div className={`val ${isNegative ? 'text-red' : 'text-green'}`}>
-            {isLoading ? '...' : formatCurrency(overviewData.tonQuy)}
+          <div className={`val ${isNegative ? "text-red" : "text-green"}`}>
+            {isLoading ? "..." : formatCurrency(overviewData.tonQuy)}
           </div>
           {isNegative && <span className="sub">TỒN QUỸ ÂM</span>}
         </div>
@@ -512,10 +573,10 @@ export default function TongQuanQuy() {
 
       {/* Calculation Formula Row */}
       <div className="cb-calculation-row">
-        {formatCurrency(overviewData.soDuDauKy)} <span>+</span>{' '}
-        {formatCurrency(overviewData.tongThu)} <span>-</span> {formatCurrency(overviewData.tongChi)}{' '}
-        <span>=</span>{' '}
-        <strong className={isNegative ? 'text-red' : 'text-green'}>
+        {formatCurrency(overviewData.soDuDauKy)} <span>+</span>{" "}
+        {formatCurrency(overviewData.tongThu)} <span>-</span>{" "}
+        {formatCurrency(overviewData.tongChi)} <span>=</span>{" "}
+        <strong className={isNegative ? "text-red" : "text-green"}>
           {formatCurrency(overviewData.tonQuy)}
         </strong>
       </div>
@@ -525,26 +586,28 @@ export default function TongQuanQuy() {
         <div className="cb-chart-header">
           <div className="cb-chart-title">
             <h2>DÒNG TIỀN THEO THỜI GIAN</h2>
-            <p>SO SÁNH TIỀN THU VÀ TIỀN CHI TRONG PHẠM VI ĐANG XEM ({timeMode})</p>
+            <p>
+              SO SÁNH TIỀN THU VÀ TIỀN CHI TRONG PHẠM VI ĐANG XEM ({timeMode})
+            </p>
           </div>
           <div className="cb-chart-tabs">
             <button
-              className={timeMode === 'THEO NGÀY' ? 'active' : ''}
-              onClick={() => handleTimeModeChange('THEO NGÀY')}
+              className={timeMode === "THEO NGÀY" ? "active" : ""}
+              onClick={() => handleTimeModeChange("THEO NGÀY")}
               disabled={isChartLoading}
             >
               THEO NGÀY
             </button>
             <button
-              className={timeMode === 'THEO TUẦN' ? 'active' : ''}
-              onClick={() => handleTimeModeChange('THEO TUẦN')}
+              className={timeMode === "THEO TUẦN" ? "active" : ""}
+              onClick={() => handleTimeModeChange("THEO TUẦN")}
               disabled={isChartLoading}
             >
               THEO TUẦN
             </button>
             <button
-              className={timeMode === 'THEO THÁNG' ? 'active' : ''}
-              onClick={() => handleTimeModeChange('THEO THÁNG')}
+              className={timeMode === "THEO THÁNG" ? "active" : ""}
+              onClick={() => handleTimeModeChange("THEO THÁNG")}
               disabled={isChartLoading}
             >
               THEO THÁNG

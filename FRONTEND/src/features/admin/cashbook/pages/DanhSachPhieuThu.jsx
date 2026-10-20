@@ -1,9 +1,20 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { Check, X } from 'lucide-react';
-import { receiptService } from '../../../../shared/services/receiptService';
-import DetailTablePagination from '../../../../shared/components/ui/DetailTablePagination';
-import './DanhSachPhieuThu.css';
+import React, { useState, useEffect, useCallback, useRef } from "react";
+
+import { useNavigate, useLocation } from "react-router-dom";
+import { Check, X } from "lucide-react";
+
+import { receiptService } from "../../../../shared/services/receiptService";
+
+import DetailTablePagination from "../../../../shared/components/ui/DetailTablePagination";
+
+import CashbookSourceFilters from "../components/CashbookSourceFilters";
+
+import {
+  createCashbookSourceFilters,
+  cashbookSourceParams,
+} from "../api/cashbookFilterParams";
+
+import "./DanhSachPhieuThu.css";
 
 export default function DanhSachPhieuThu() {
   const navigate = useNavigate();
@@ -13,22 +24,25 @@ export default function DanhSachPhieuThu() {
   const [totalElements, setTotalElements] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
 
-  const [searchQuery, setSearchQuery] = useState('');
-  const [debouncedSearch, setDebouncedSearch] = useState('');
-  const [filterStatus, setFilterStatus] = useState('ALL');
-  const [fromDate, setFromDate] = useState('');
-  const [toDate, setToDate] = useState('');
+  const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [filterStatus, setFilterStatus] = useState("ALL");
+  const [fromDate, setFromDate] = useState("");
+  const [toDate, setToDate] = useState("");
   const [page, setPage] = useState(1);
+  const [sourceFilters, setSourceFilters] = useState(
+    createCashbookSourceFilters,
+  );
   const pageSize = 10;
 
-  const [toastMessage, setToastMessage] = useState('');
+  const [toastMessage, setToastMessage] = useState("");
   const searchTimeoutRef = useRef(null);
 
   useEffect(() => {
     if (location.state?.successMessage) {
       setToastMessage(location.state.successMessage);
       window.history.replaceState({}, document.title);
-      setTimeout(() => setToastMessage(''), 3000);
+      setTimeout(() => setToastMessage(""), 3000);
     }
   }, [location]);
 
@@ -37,24 +51,34 @@ export default function DanhSachPhieuThu() {
     try {
       const params = {
         keyword: debouncedSearch.trim() || undefined,
-        trang_thai: filterStatus !== 'ALL' ? filterStatus : undefined,
+        trang_thai: filterStatus !== "ALL" ? filterStatus : undefined,
         tu_ngay: fromDate || undefined,
         den_ngay: toDate || undefined,
         page: Math.max(0, page - 1),
         limit: pageSize,
+        ...cashbookSourceParams(sourceFilters),
       };
+
       const response = await receiptService.getReceipts(params);
       if (response.data?.data) {
         setReceipts(response.data.data.items || []);
         setTotalElements(response.data.data.pagination?.total_elements || 0);
       }
     } catch (error) {
-      console.error('Lỗi khi tải danh sách phiếu thu:', error);
+      console.error("Lỗi khi tải danh sách phiếu thu:", error);
       setReceipts([]);
     } finally {
       setIsLoading(false);
     }
-  }, [debouncedSearch, filterStatus, fromDate, toDate, page]);
+  }, [
+    debouncedSearch,
+    filterStatus,
+    fromDate,
+    toDate,
+    page,
+    pageSize,
+    sourceFilters,
+  ]);
 
   useEffect(() => {
     fetchReceipts();
@@ -71,15 +95,15 @@ export default function DanhSachPhieuThu() {
   };
 
   const formatMoney = (amount) => {
-    return (amount || 0).toLocaleString('vi-VN') + 'đ';
+    return (amount || 0).toLocaleString("vi-VN") + "đ";
   };
 
   const mapStatusToText = (status) => {
     switch (status) {
-      case 'DA_GHI_NHAN':
-        return 'ĐÃ GHI NHẬN';
-      case 'HUY':
-        return 'ĐÃ HỦY';
+      case "DA_GHI_NHAN":
+        return "ĐÃ GHI NHẬN";
+      case "HUY":
+        return "ĐÃ HỦY";
       default:
         return status;
     }
@@ -87,10 +111,10 @@ export default function DanhSachPhieuThu() {
 
   const mapSourceToText = (source) => {
     switch (source) {
-      case 'THU_CONG':
-        return 'THỦ CÔNG';
-      case 'TU_DONG':
-        return 'TỰ ĐỘNG';
+      case "THU_CONG":
+        return "THỦ CÔNG";
+      case "TU_DONG":
+        return "TỰ ĐỘNG";
       default:
         return source;
     }
@@ -98,16 +122,16 @@ export default function DanhSachPhieuThu() {
 
   const mapGroupToText = (group) => {
     switch (group) {
-      case 'KHACH_HANG':
-        return 'KHÁCH HÀNG';
-      case 'NHAN_VIEN':
-        return 'NHÂN VIÊN';
-      case 'NHA_CUNG_CAP':
-        return 'NHÀ CUNG CẤP';
-      case 'DOI_TAC_GIAO_HANG':
-        return 'ĐỐI TÁC GIAO HÀNG';
-      case 'KHAC':
-        return 'KHÁC';
+      case "KHACH_HANG":
+        return "KHÁCH HÀNG";
+      case "NHAN_VIEN":
+        return "NHÂN VIÊN";
+      case "NHA_CUNG_CAP":
+        return "NHÀ CUNG CẤP";
+      case "DOI_TAC_GIAO_HANG":
+        return "ĐỐI TÁC GIAO HÀNG";
+      case "KHAC":
+        return "KHÁC";
       default:
         return group;
     }
@@ -115,12 +139,12 @@ export default function DanhSachPhieuThu() {
 
   const mapPaymentMethodToText = (method) => {
     switch (method) {
-      case 'TIEN_MAT':
-        return 'TIỀN MẶT';
-      case 'CHUYEN_KHOAN':
-        return 'CHUYỂN KHOẢN';
-      case 'THE':
-        return 'QUẸT THẺ';
+      case "TIEN_MAT":
+        return "TIỀN MẶT";
+      case "CHUYEN_KHOAN":
+        return "CHUYỂN KHOẢN";
+      case "THE":
+        return "QUẸT THẺ";
       default:
         return method;
     }
@@ -135,7 +159,7 @@ export default function DanhSachPhieuThu() {
               <Check size={20} color="#fff" strokeWidth={3} />
             </div>
             <div className="toast-text">{toastMessage}</div>
-            <button className="toast-close" onClick={() => setToastMessage('')}>
+            <button className="toast-close" onClick={() => setToastMessage("")}>
               <X size={18} strokeWidth={2.5} />
             </button>
           </div>
@@ -146,7 +170,7 @@ export default function DanhSachPhieuThu() {
         <div className="pt-breadcrumb">SỔ QUỸ TIỀN MẶT / PHIẾU THU</div>
         <button
           className="pt-btn-create"
-          onClick={() => navigate('/admin/so-quy-tien-mat/tao-phieu-thu')}
+          onClick={() => navigate("/admin/so-quy-tien-mat/tao-phieu-thu")}
         >
           + TẠO PHIẾU THU
         </button>
@@ -200,6 +224,14 @@ export default function DanhSachPhieuThu() {
         </div>
       </div>
 
+      <CashbookSourceFilters
+        value={sourceFilters}
+        onChange={(nextFilters) => {
+          setSourceFilters(nextFilters);
+          setPage(1);
+        }}
+      />
+
       <div className="pt-table-container">
         <table className="promo-table pt-table">
           <thead>
@@ -220,7 +252,10 @@ export default function DanhSachPhieuThu() {
           <tbody>
             {isLoading ? (
               <tr>
-                <td colSpan="11" style={{ textAlign: 'center', padding: '20px' }}>
+                <td
+                  colSpan="11"
+                  style={{ textAlign: "center", padding: "20px" }}
+                >
                   Đang tải dữ liệu...
                 </td>
               </tr>
@@ -236,7 +271,9 @@ export default function DanhSachPhieuThu() {
                       <span>{mapGroupToText(row.nhom_nguoi_nop_nhan)}</span>
                     </div>
                   </td>
-                  <td className="text-muted">{mapGroupToText(row.nhom_nguoi_nop_nhan)}</td>
+                  <td className="text-muted">
+                    {mapGroupToText(row.nhom_nguoi_nop_nhan)}
+                  </td>
                   <td>
                     <div className="type-col">
                       <span className="type-code">{row.ma_loai}</span>
@@ -252,11 +289,15 @@ export default function DanhSachPhieuThu() {
                   <td>
                     <strong>{formatMoney(row.so_tien)}</strong>
                   </td>
-                  <td className="text-muted">{new Date(row.ngay_ghi_nhan).toLocaleString()}</td>
-                  <td className="text-muted">{mapSourceToText(row.nguon_tao)}</td>
+                  <td className="text-muted">
+                    {new Date(row.ngay_ghi_nhan).toLocaleString()}
+                  </td>
+                  <td className="text-muted">
+                    {mapSourceToText(row.nguon_tao)}
+                  </td>
                   <td>
                     <span
-                      className={`status-outline ${row.trang_thai === 'HUY' ? 'status-danger' : 'status-success'}`}
+                      className={`status-outline ${row.trang_thai === "HUY" ? "status-danger" : "status-success"}`}
                     >
                       {mapStatusToText(row.trang_thai)}
                     </span>
@@ -264,7 +305,9 @@ export default function DanhSachPhieuThu() {
                   <td>
                     <button
                       className="pt-btn-detail"
-                      onClick={() => navigate(`/admin/so-quy-tien-mat/phieu-thu/${row.id}`)}
+                      onClick={() =>
+                        navigate(`/admin/so-quy-tien-mat/phieu-thu/${row.id}`)
+                      }
                     >
                       XEM CHI TIẾT
                     </button>
@@ -278,7 +321,9 @@ export default function DanhSachPhieuThu() {
                     <p>KHÔNG TÌM THẤY PHIẾU THU PHÙ HỢP</p>
                     <button
                       className="pt-btn-dark"
-                      onClick={() => navigate('/admin/so-quy-tien-mat/tao-phieu-thu')}
+                      onClick={() =>
+                        navigate("/admin/so-quy-tien-mat/tao-phieu-thu")
+                      }
                     >
                       TẠO PHIẾU THU
                     </button>

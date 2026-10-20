@@ -12,56 +12,12 @@ export default function PaymentSuccessModal({ receipt, onDismiss }) {
     return () => element.close();
   }, []);
 
-  return (
-    <dialog
-      ref={dialog}
-      className="pos-payment-modal"
-      aria-labelledby="pos-payment-title"
-      onCancel={(event) => {
-        event.preventDefault();
-        onDismiss();
-      }}
-    >
-      <header>
-        <HiOutlineCheck aria-hidden="true" />
-        <h2 id="pos-payment-title">THANH TOÁN THÀNH CÔNG</h2>
-      </header>
-      <div className="pos-payment-body">
-        <dl>
-          <div>
-            <dt>Mã đơn hàng</dt>
-            <dd>{receipt.ma_don_hang}</dd>
-          </div>
-          <div>
-            <dt>Tổng tiền</dt>
-            <dd className="pos-payment-total">{money(receipt.tong_thanh_toan)}</dd>
-          </div>
-          {receipt.tien_thua != null && (
-            <div>
-              <dt>Tiền thối</dt>
-              <dd className="pos-payment-change">{money(receipt.tien_thua)}</dd>
-            </div>
-          )}
-          {receipt.phieu_thu && (
-            <div>
-              <dt>Phiếu thu</dt>
-              <dd>{receipt.phieu_thu.ma_phieu}</dd>
-            </div>
-          )}
-        </dl>
-        <p>
-          <HiOutlineInformationCircle aria-hidden="true" />
-          <span>Trạng thái đơn: Hoàn thành — kho đã xuất tự động.</span>
-        </p>
-      </div>
-      <footer>
-        <button type="button" onClick={() => onDismiss(true)}>
-          IN HOÁ ĐƠN
-        </button>
-        <button type="button" autoFocus onClick={() => onDismiss()}>
-          ĐÓNG
-        </button>
-      </footer>
-    </dialog>
-  );
+  return <dialog ref={dialog} className="pos-payment-modal" aria-labelledby="pos-payment-title" onCancel={(event) => { event.preventDefault(); onDismiss(); }}>
+    <header><HiOutlineCheck aria-hidden="true" /><h2 id="pos-payment-title">THANH TOÁN THÀNH CÔNG</h2></header>
+    <div className="pos-payment-body">
+      <dl><div><dt>Mã đơn hàng</dt><dd>{receipt.ma_don_hang}</dd></div><div><dt>Chiết khấu khuyến mại</dt><dd>{money(receipt.tien_chiet_khau)}</dd></div><div><dt>Tổng tiền</dt><dd className="pos-payment-total">{money(receipt.tong_thanh_toan)}</dd></div>{receipt.tien_thua != null && <div><dt>Tiền thối</dt><dd className="pos-payment-change">{money(receipt.tien_thua)}</dd></div>}{receipt.phieu_thu && <div><dt>Phiếu thu</dt><dd>{receipt.phieu_thu.ma_phieu}</dd></div>}</dl>
+      <p><HiOutlineInformationCircle aria-hidden="true" /><span>Trạng thái đơn: Hoàn thành — kho đã xuất tự động.</span></p>
+    </div>
+    <footer><button type="button" onClick={() => onDismiss(true)}>IN HOÁ ĐƠN</button><button type="button" autoFocus onClick={() => onDismiss()}>ĐÓNG</button></footer>
+  </dialog>;
 }

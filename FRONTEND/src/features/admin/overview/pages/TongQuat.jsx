@@ -1,1328 +1,1725 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import {
   Chart as ChartJS,
   CategoryScale,
   LinearScale,
   PointElement,
   LineElement,
-  Title,
   Tooltip,
   Legend,
-  Filler,
-} from 'chart.js';
-import { Line } from 'react-chartjs-2';
-import '../styles/tongquat.css';
+} from "chart.js";
+import { Line } from "react-chartjs-2";
+import { apiRequest } from "../../../../auth/backendAuth";
+import { formatDateTimeVN } from "../../../../shared/services/mutationUtils";
+import {
+  PERIODS,
+  CHANNELS,
+  dateRange,
+  validateDates,
+  queryString,
+  cashbookQuery,
+  businessChartData,
+} from "../dashboardModel";
+import "../styles/tongquat.css";
 
 ChartJS.register(
   CategoryScale,
   LinearScale,
   PointElement,
   LineElement,
-  Title,
   Tooltip,
   Legend,
-  Filler
 );
-
-const chartDataByTab = {
-  'DOANH THU THUẦN': {
-    labels: ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'],
-    datasets: [
-      {
-        label: 'KỲ HIỆN TẠI',
-        data: [120, 190, 150, 220, 180, 250, 240],
-        borderColor: '#E31E24',
-        backgroundColor: '#E31E24',
-        tension: 0.4,
-        pointBackgroundColor: '#fff',
-        pointBorderColor: '#E31E24',
-        pointBorderWidth: 2,
-        pointRadius: 4,
-      },
-      {
-        label: 'KỲ TRƯỚC',
-        data: [100, 150, 120, 180, 140, 200, 180],
-        borderColor: '#ccc',
-        borderDash: [5, 5],
-        tension: 0.4,
-        pointRadius: 0,
-      },
-    ],
-  },
-  'SỐ ĐƠN': {
-    labels: ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'],
-    datasets: [
-      {
-        label: 'KỲ HIỆN TẠI',
-        data: [15, 25, 20, 30, 28, 40, 35],
-        borderColor: '#E31E24',
-        backgroundColor: '#E31E24',
-        tension: 0.4,
-        pointBackgroundColor: '#fff',
-        pointBorderColor: '#E31E24',
-        pointBorderWidth: 2,
-        pointRadius: 4,
-      },
-      {
-        label: 'KỲ TRƯỚC',
-        data: [12, 20, 18, 25, 22, 30, 28],
-        borderColor: '#ccc',
-        borderDash: [5, 5],
-        tension: 0.4,
-        pointRadius: 0,
-      },
-    ],
-  },
-  'SỐ LƯỢNG BÁN': {
-    labels: ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'],
-    datasets: [
-      {
-        label: 'KỲ HIỆN TẠI',
-        data: [30, 45, 38, 55, 50, 70, 65],
-        borderColor: '#E31E24',
-        backgroundColor: '#E31E24',
-        tension: 0.4,
-        pointBackgroundColor: '#fff',
-        pointBorderColor: '#E31E24',
-        pointBorderWidth: 2,
-        pointRadius: 4,
-      },
-      {
-        label: 'KỲ TRƯỚC',
-        data: [25, 35, 30, 45, 40, 55, 50],
-        borderColor: '#ccc',
-        borderDash: [5, 5],
-        tension: 0.4,
-        pointRadius: 0,
-      },
-    ],
-  },
-  'LỢI NHUẬN GỘP': {
-    labels: ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'],
-    datasets: [
-      {
-        label: 'KỲ HIỆN TẠI',
-        data: [25, 40, 30, 45, 35, 55, 50],
-        borderColor: '#E31E24',
-        backgroundColor: '#E31E24',
-        tension: 0.4,
-        pointBackgroundColor: '#fff',
-        pointBorderColor: '#E31E24',
-        pointBorderWidth: 2,
-        pointRadius: 4,
-      },
-      {
-        label: 'KỲ TRƯỚC',
-        data: [20, 30, 25, 35, 28, 40, 38],
-        borderColor: '#ccc',
-        borderDash: [5, 5],
-        tension: 0.4,
-        pointRadius: 0,
-      },
-    ],
-  },
+const ORDER_PATH = "/admin/don-hang/danh-sach-don-hang";
+const INVENTORY_PATH = "/kho-hang/quan-ly-phien-ban";
+const CASH_PATH = "/admin/so-quy-tien-mat/so-quy";
+const RETURN_PATH = "/admin/don-hang/khach-tra-hang";
+const PURCHASE_PATH = "/kho-hang/nhap-hang";
+const CUSTOMER_PATH = "/admin/khach-hang-doi-tac/khach-hang";
+const STATUS = {
+  CHO_DUYET: "Chờ duyệt",
+  CHO_THANH_TOAN: "Chờ thanh toán",
+  CHO_DONG_GOI: "Chờ đóng gói",
+  CHO_LAY_HANG: "Chờ giao / chờ lấy hàng",
+  DANG_GIAO_HANG: "Đang giao",
+  GIAO_THAT_BAI: "Giao thất bại",
+  CHO_HOAN_HANG: "Chờ hoàn hàng",
+  TIEP_NHAN: "Tiếp nhận",
+  DANG_KIEM_TRA: "Đang kiểm tra",
+  DA_GUI_BAO_HANH: "Đã gửi bảo hành",
+  DANG_BAO_HANH: "Đang bảo hành",
+  DA_NHAN_LAI: "Đã nhận lại",
+  HOAN_TAT: "Hoàn tất",
+  HET_HANG: "Hết hàng",
+  DUOI_TOI_THIEU: "Dưới mức tối thiểu",
+  BINH_THUONG: "Bình thường",
+  TIEN_MAT: "Tiền mặt",
+  CHUYEN_KHOAN: "Chuyển khoản",
+  THE: "Thẻ",
+  KHAC: "Khác",
+};
+const CHART_FIELDS = {
+  doanh_thu_thuan: "Doanh thu thuần",
+  so_don: "Số đơn",
+  so_luong_ban: "Số lượng bán",
+  loi_nhuan_gop_uoc_tinh: "Lợi nhuận gộp ước tính",
 };
 
-const chartOptions = {
-  responsive: true,
-  maintainAspectRatio: false,
-  plugins: {
-    legend: {
-      display: false,
-    },
-  },
-  scales: {
-    y: {
-      display: false,
-      beginAtZero: true,
-    },
-    x: {
-      grid: {
-        display: false,
-        drawBorder: false,
-      },
-      ticks: {
-        display: false,
-      },
-    },
-  },
+const number = (value) => {
+  if (value == null || value === "" || !Number.isFinite(Number(value))) {
+    return "—";
+  }
+
+  return Number(value).toLocaleString("vi-VN");
 };
 
-const topProductsData = [
-  {
-    id: 1,
-    name: 'Samsung 990 Pro NVMe',
-    variant: '2TB',
-    sold: 41,
-    revenue: 147559000,
-    revenueStr: '147.559.000đ',
-    stock: 18,
-    status: 'BÌNH THƯỜNG',
-    statusColor: '#888',
-  },
-  {
-    id: 2,
-    name: 'Corsair Vengeance DDR5',
-    variant: '32GB 6000MHz',
-    sold: 37,
-    revenue: 125763000,
-    revenueStr: '125.763.000đ',
-    stock: 9,
-    status: 'BÌNH THƯỜNG',
-    statusColor: '#888',
-  },
-  {
-    id: 3,
-    name: 'ASUS ROG STRIX RTX 4090',
-    variant: 'OC 24GB',
-    sold: 28,
-    revenue: 1119720000,
-    revenueStr: '1.119.720.000đ',
-    stock: 2,
-    status: 'GẦN HẾT',
-    statusColor: '#E31E24',
-  },
-  {
-    id: 4,
-    name: 'AMD Ryzen 9 7950X3D',
-    variant: 'Box chính hãng',
-    sold: 24,
-    revenue: 525600000,
-    revenueStr: '525.600.000đ',
-    stock: 5,
-    status: 'BÌNH THƯỜNG',
-    statusColor: '#888',
-  },
-];
+const money = (value) => {
+  if (value == null || value === "" || !Number.isFinite(Number(value))) {
+    return "—";
+  }
 
-const MockBarChart = () => (
-  <svg width="100%" height="80" viewBox="0 0 800 100" preserveAspectRatio="none">
-    {/* T1 */}
-    <rect x="50" y="20" width="12" height="80" fill="#000" />
-    <rect x="65" y="50" width="12" height="50" fill="#E31E24" />
-    <text x="85" y="95" fontSize="11" fill="#888" fontWeight="800">
-      T1
-    </text>
-    {/* T2 */}
-    <rect x="180" y="10" width="12" height="90" fill="#000" />
-    <rect x="195" y="40" width="12" height="60" fill="#E31E24" />
-    <text x="215" y="95" fontSize="11" fill="#888" fontWeight="800">
-      T2
-    </text>
-    {/* T3 */}
-    <rect x="310" y="30" width="12" height="70" fill="#000" />
-    <rect x="325" y="45" width="12" height="55" fill="#E31E24" />
-    <text x="345" y="95" fontSize="11" fill="#888" fontWeight="800">
-      T3
-    </text>
-    {/* T4 */}
-    <rect x="440" y="5" width="12" height="95" fill="#000" />
-    <rect x="455" y="55" width="12" height="45" fill="#E31E24" />
-    <text x="475" y="95" fontSize="11" fill="#888" fontWeight="800">
-      T4
-    </text>
-    {/* T5 */}
-    <rect x="570" y="15" width="12" height="85" fill="#000" />
-    <rect x="585" y="35" width="12" height="65" fill="#E31E24" />
-    <text x="605" y="95" fontSize="11" fill="#888" fontWeight="800">
-      T5
-    </text>
-    {/* T6 */}
-    <rect x="700" y="0" width="12" height="100" fill="#000" />
-    <rect x="715" y="40" width="12" height="60" fill="#E31E24" />
-    <text x="735" y="95" fontSize="11" fill="#888" fontWeight="800">
-      T6
-    </text>
-  </svg>
-);
+  return new Intl.NumberFormat("vi-VN", {
+    style: "currency",
+    currency: "VND",
+    maximumFractionDigits: 0,
+  }).format(Number(value));
+};
+const date = (value) => (value ? value.split("-").reverse().join("/") : "—");
+const apiPath = (endpoint, params = {}) =>
+  `/api/v1/admin/dashboard/${endpoint}?${queryString(params)}`;
 
-const TongQuat = () => {
-  const navigate = useNavigate();
-
-  const [timeFilter, setTimeFilter] = useState('THÁNG NÀY');
-  const [channelFilter, setChannelFilter] = useState('TẤT CẢ');
-
-  const [tempTime, setTempTime] = useState('THÁNG NÀY');
-  const [tempChannel, setTempChannel] = useState('TẤT CẢ');
-
-  const [fromDate, setFromDate] = useState('');
-  const [toDate, setToDate] = useState('');
-
-  const [chartTab, setChartTab] = useState('DOANH THU THUẦN');
-  const [topProductsTab, setTopProductsTab] = useState('SỐ LƯỢNG BÁN');
-
-  const sortedTopProducts = [...topProductsData].sort((a, b) => {
-    if (topProductsTab === 'SỐ LƯỢNG BÁN') {
-      return b.sold - a.sold;
-    } else {
-      return b.revenue - a.revenue;
-    }
+const filteredTo = (path, params) => `${path}?${queryString(params)}`;
+const inventoryTo = (data, warning) =>
+  filteredTo(INVENTORY_PATH, {
+    canh_bao: warning,
+    kho_hang_id: data.kho_hang_id,
+    loai_doi_tuong: "PHIEN_BAN",
   });
+const returnTo = (status) =>
+  filteredTo(RETURN_PATH, { trang_thai_tra_hang: status });
 
-  const handleApply = () => {
-    setTimeFilter(tempTime);
-    setChannelFilter(tempChannel);
+// Mỗi vùng tải độc lập; hủy request cũ khi đổi bộ lọc để không trộn hai kỳ.
+function useSection(path, refresh) {
+  const [result, setResult] = useState({});
+  const [attempt, setAttempt] = useState(0);
+  const key = `${path}|${refresh}|${attempt}`;
+  useEffect(() => {
+    const controller = new AbortController();
+    apiRequest(path, { signal: controller.signal })
+      .then((data) => {
+        if (!data || typeof data !== "object")
+          throw new Error("Hệ thống trả về dữ liệu không hợp lệ.");
+        if (!controller.signal.aborted) setResult({ key, data });
+      })
+      .catch((error) => {
+        if (!controller.signal.aborted)
+          setResult({ key, error: error.message, status: error.status });
+      });
+    return () => controller.abort();
+  }, [path, key]);
+  return {
+    ...(result.key === key ? result : { loading: true }),
+    retry: () => setAttempt((value) => value + 1),
   };
+}
 
-  const handleClear = () => {
-    setTempTime('THÁNG NÀY');
-    setTempChannel('TẤT CẢ');
-    setTimeFilter('THÁNG NÀY');
-    setChannelFilter('TẤT CẢ');
-    setFromDate('');
-    setToDate('');
-  };
+function DashboardDataQuality({ data }) {
+  const qualityWarnings = data?.chat_luong_du_lieu?.canh_bao;
+
+  const warnings = Array.isArray(qualityWarnings)
+    ? qualityWarnings
+    : Array.isArray(data?.canh_bao)
+      ? data.canh_bao
+      : [];
+
+  if (!warnings.length) {
+    return null;
+  }
 
   return (
-    <div className="tq-page">
+    <details className="tq-v6-quality" open>
+      <summary>Có dữ liệu cần đối soát</summary>
+
+      <ul>
+        {warnings.map((warning, index) => (
+          <li key={`${warning.code}:${index}`}>{warning.message}</li>
+        ))}
+      </ul>
+
+      <p>Dấu — thể hiện chỉ số chưa đủ căn cứ hoặc không áp dụng.</p>
+    </details>
+  );
+}
+
+function Content({ resource, children }) {
+  if (resource.error) {
+    return (
+      <div className="tq-status tq-error" role="alert">
+        {resource.error}
+
+        <button
+          type="button"
+          className="btn-black-outline"
+          onClick={resource.retry}
+        >
+          Thử lại
+        </button>
+      </div>
+    );
+  }
+
+  if (resource.loading || !resource.data) {
+    return (
+      <p className="tq-status" role="status">
+        Đang tải dữ liệu…
+      </p>
+    );
+  }
+
+  return (
+    <>
+      <DashboardDataQuality data={resource.data} />
+
+      {children(resource.data)}
+    </>
+  );
+}
+
+function Section({ title, note, to, resource, children, controls }) {
+  return (
+    <section className="tq-card" aria-label={title}>
+      <div className="tq-card-header">
+        <div>
+          <h2 className="tq-card-title">{title}</h2>
+          {note && <p className="tq-note">{note}</p>}
+        </div>
+        {controls}
+        {to && (
+          <Link className="tq-card-header-link" to={to}>
+            Xem chi tiết →
+          </Link>
+        )}
+      </div>
+      <Content resource={resource}>{children}</Content>
+    </section>
+  );
+}
+function Stat({ label, value, currency = false, note, to }) {
+  const content = (
+    <>
+      <div className="tq-sub-label">{label}</div>
+      <div className="tq-sub-val">
+        {currency ? money(value) : number(value)}
+      </div>
+      {note && <p className="tq-note">{note}</p>}
+    </>
+  );
+  return to ? (
+    <Link className="tq-sub-box tq-stat-link" to={to}>
+      {content}
+    </Link>
+  ) : (
+    <div className="tq-sub-box">{content}</div>
+  );
+}
+function Table({ headers, items, children, empty }) {
+  return (
+    <div className="tq-table-scroll">
+      <table className="tq-table">
+        <thead>
+          <tr>
+            {headers.map((header) => (
+              <th key={header} scope="col">
+                {header}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {items.length ? (
+            items.map(children)
+          ) : (
+            <tr>
+              <td colSpan={headers.length}>{empty}</td>
+            </tr>
+          )}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+async function download(path, filename) {
+  const blob = await apiRequest(path, {
+    responseType: "blob",
+    headers: {
+      Accept:
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    },
+  });
+  if (!blob.size) throw new Error("File báo cáo trống.");
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  link.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+function CashFilters({ draft, onChange, onApply, error, busy }) {
+  const input = (key, label, options) => (
+    <label key={key}>
+      {label}
+      {options ? (
+        <select
+          value={draft[key] || ""}
+          onChange={(event) => onChange(key, event.target.value)}
+        >
+          <option value="">Tất cả</option>
+          {Object.entries(options).map(([value, text]) => (
+            <option key={value} value={value}>
+              {text}
+            </option>
+          ))}
+        </select>
+      ) : (
+        <input
+          type="text"
+          inputMode={key.endsWith("_id") ? "numeric" : undefined}
+          value={draft[key] || ""}
+          onChange={(event) => onChange(key, event.target.value)}
+        />
+      )}
+    </label>
+  );
+  return (
+    <details className="tq-cash-filters">
+      <summary>Bộ lọc riêng của Sổ quỹ</summary>
+      <p className="tq-note">
+        Dùng khoảng ngày đang áp dụng. Bộ lọc này chỉ ảnh hưởng số dư cuối kỳ và
+        bốn số tổng quan quỹ. Không lọc theo kênh bán.
+      </p>
+      <form onSubmit={onApply}>
+        <div className="tq-input-grid">
+          {input("keyword", "Từ khóa")}
+          {input("loai_phieu", "Loại phiếu", { THU: "Thu", CHI: "Chi" })}
+          {input("loai_thu_chi_id", "Mã định danh loại thu / chi")}
+          {input("phuong_thuc_thanh_toan", "Phương thức thanh toán", {
+            TIEN_MAT: "Tiền mặt",
+            CHUYEN_KHOAN: "Chuyển khoản",
+            THE: "Thẻ",
+          })}
+          {input("nhom_nguoi_nop_nhan", "Nhóm người nộp / nhận", {
+            KHACH_HANG: "Khách hàng",
+            NHAN_VIEN: "Nhân viên",
+            NHA_CUNG_CAP: "Nhà cung cấp",
+            DOI_TAC_GIAO_HANG: "Đối tác giao hàng",
+            KHAC: "Khác",
+          })}
+          {input("nguoi_nop_nhan_id", "Mã định danh khách hàng / nhân viên")}
+          {input("nha_cung_cap_id", "Mã định danh nhà cung cấp")}
+          {input("doi_tac_van_chuyen_id", "Mã định danh đối tác vận chuyển")}
+          {input("ten_nguoi_nop_nhan", "Tên người nộp / nhận")}
+          {input("nguoi_tao_id", "Mã định danh người tạo")}
+          {input("nguon_tao", "Nguồn tạo", {
+            THU_CONG: "Thủ công",
+            TU_DONG: "Tự động",
+          })}
+          {input("hoa_don_bao_hanh_id", "ID hóa đơn bảo hành")}
+
+          {input("phieu_bao_hanh_id", "ID phiếu bảo hành")}
+
+          {input("phieu_tra_hang_id", "ID phiếu trả hàng")}
+
+          {input("nghiep_vu_nguon", "Nghiệp vụ nguồn", {
+            THU_KHACH_BAO_HANH: "Thu khách bảo hành",
+            HOAN_KHACH_BAO_HANH: "Hoàn khách bảo hành",
+            CHI_DON_VI_BAO_HANH: "Chi đơn vị bảo hành",
+            THU_HOAN_DON_VI_BAO_HANH: "Nhận đơn vị bảo hành hoàn",
+            HOAN_TIEN_TRA_HANG: "Hoàn tiền trả hàng",
+          })}
+        </div>
+        {error && (
+          <p className="tq-error" role="alert">
+            {error}
+          </p>
+        )}
+        <button className="btn-black-excel" disabled={busy}>
+          Áp dụng bộ lọc quỹ
+        </button>
+      </form>
+    </details>
+  );
+}
+
+export default function TongQuat() {
+  const initial = () => ({
+    ...dateRange("THANG_NAY"),
+    ky: "THANG_NAY",
+    kenh_ban: "TAT_CA",
+    nhom_theo: "NGAY",
+  });
+  const [draft, setDraft] = useState(initial);
+  const [filters, setFilters] = useState(initial);
+  const [filterError, setFilterError] = useState("");
+  const [refresh, setRefresh] = useState(0);
+  const [ranking, setRanking] = useState("SO_LUONG_BAN");
+  const [cashDraft, setCashDraft] = useState({});
+  const [cashFilters, setCashFilters] = useState({});
+  const [cashError, setCashError] = useState("");
+  const [exporting, setExporting] = useState("");
+  const [exportError, setExportError] = useState("");
+  const [chartField, setChartField] = useState("doanh_thu_thuan");
+  const period = {
+    ky: "TUY_CHINH",
+    tu_ngay: filters.tu_ngay,
+    den_ngay: filters.den_ngay,
+    kenh_ban: filters.kenh_ban,
+  };
+  const channel = { kenh_ban: filters.kenh_ban };
+  const summary = useSection(apiPath("summary", period), refresh);
+  const tasks = useSection(apiPath("tasks", { ...channel, limit: 5 }), refresh);
+  const chart = useSection(
+    apiPath("business-chart", { ...period, nhom_theo: filters.nhom_theo }),
+    refresh,
+  );
+  const products = useSection(
+    apiPath("top-products", { ...period, xep_hang_theo: ranking, limit: 5 }),
+    refresh,
+  );
+  const inventory = useSection(apiPath("inventory", { limit: 5 }), refresh);
+  const slow = useSection(
+    apiPath("slow-moving-products", { so_ngay_khong_ban: 30, limit: 5 }),
+    refresh,
+  );
+  const purchases = useSection(apiPath("purchases"), refresh);
+  const customers = useSection(apiPath("customers", period), refresh);
+  const cashflow = useSection(
+    apiPath("cashflow", { ...period, nhom_theo: filters.nhom_theo }),
+    refresh,
+  );
+  const afterSales = useSection(apiPath("after-sales", channel), refresh);
+  const promotions = useSection(apiPath("promotions", period), refresh);
+  const cashQuery = cashbookQuery({
+    ...cashFilters,
+    tu_ngay: filters.tu_ngay,
+    den_ngay: filters.den_ngay,
+  });
+  const cash = useSection(
+    `/api/v1/admin/cashbook/overview?${cashQuery}`,
+    refresh,
+  );
+  function apply(event) {
+    event.preventDefault();
+    try {
+      validateDates(draft.tu_ngay, draft.den_ngay);
+      setFilterError("");
+      setFilters({ ...draft });
+      setRefresh((value) => value + 1);
+      setExportError("");
+    } catch (error) {
+      setFilterError(error.message);
+    }
+  }
+  function choosePeriod(ky) {
+    setDraft((current) => ({
+      ...current,
+      ky,
+      ...(ky === "TUY_CHINH" ? {} : dateRange(ky)),
+      nhom_theo: ky === "NAM_NAY" ? "THANG" : "NGAY",
+    }));
+  }
+  function applyCash(event) {
+    event.preventDefault();
+    const values = Object.fromEntries(
+      Object.entries(cashDraft).map(([key, value]) => [key, value.trim()]),
+    );
+    if (
+      Object.entries(values).some(
+        ([key, value]) =>
+          key.endsWith("_id") &&
+          value &&
+          (!/^[1-9]\d*$/.test(value) || BigInt(value) > 9223372036854775807n),
+      )
+    ) {
+      setCashError("Mã định danh phải là số nguyên dương hợp lệ.");
+      return;
+    }
+    setCashError("");
+    setCashFilters(values);
+    cash.retry();
+    setExportError("");
+  }
+  async function exportFile(kind) {
+    setExporting(kind);
+    setExportError("");
+    try {
+      const path =
+        kind === "cash"
+          ? `/api/v1/admin/cashbook/export?${cashQuery}`
+          : apiPath("export", {
+              ...period,
+              nhom_theo: filters.nhom_theo,
+              xep_hang_theo: ranking,
+              so_ngay_khong_ban: 30,
+              limit: 5,
+            });
+      await download(
+        path,
+        `${kind === "cash" ? "So_quy" : "Tong_quat"}_${filters.tu_ngay}_${filters.den_ngay}.xlsx`,
+      );
+    } catch (error) {
+      setExportError(
+        `Xuất báo cáo không thành công, vui lòng thử lại. ${error.message}`,
+      );
+    } finally {
+      setExporting("");
+    }
+  }
+  const cashTo = `${CASH_PATH}?${cashQuery}`;
+  const currentNote = `Hiện tại · ${CHANNELS[filters.kenh_ban]} · không phụ thuộc khoảng ngày`;
+  const orderTo = (status) =>
+    filteredTo(ORDER_PATH, {
+      trang_thai_don_hang: status,
+      loai_don_hang: filters.kenh_ban === "TAT_CA" ? "" : filters.kenh_ban,
+    });
+  const deliveryTo = (status) =>
+    filteredTo("/admin/don-hang/quan-ly-giao-hang", {
+      trang_thai_giao_hang: status,
+    });
+
+  if (summary.status === 403)
+    return (
+      <main className="tq-page">
+        <div className="tq-status tq-error" role="alert">
+          <h1>Bạn không có quyền xem Tổng quát.</h1>
+          <p>{summary.error}</p>
+        </div>
+      </main>
+    );
+
+  return (
+    <main className="tq-page">
       <div className="tq-header-section">
         <div>
-          <div className="tq-subtitle" style={{ marginBottom: 5 }}>
-            TỔNG QUÁT
-          </div>
-          <h1 className="tq-title">TỔNG QUÁT</h1>
-          <div className="tq-subtitle">
-            TỔNG HỢP HOẠT ĐỘNG KINH DOANH
-            <br />
-            VÀ VẬN HÀNH HỆ THỐNG
-          </div>
+          <h1 className="tq-title">Tổng quát</h1>
+          <p className="tq-subtitle">
+            Tổng hợp hoạt động kinh doanh và vận hành hệ thống
+          </p>
         </div>
         <div className="tq-header-right">
           <div className="tq-update-time">
-            CẬP NHẬT: 19/03/2026 14:30
-            <br />
+            {summary.data && !summary.loading && (
+              <>
+                Cập nhật: {formatDateTimeVN(summary.data.cap_nhat_luc)}
+                <br />
+              </>
+            )}
             <strong>
-              {timeFilter} - KÊNH {channelFilter}
+              {date(filters.tu_ngay)} – {date(filters.den_ngay)} ·{" "}
+              {CHANNELS[filters.kenh_ban]}
             </strong>
           </div>
-          <button className="btn-black-excel">XUẤT EXCEL</button>
+          <div className="tq-filter-actions">
+            <button
+              className="btn-black-outline"
+              onClick={() => setRefresh((value) => value + 1)}
+            >
+              Tải lại
+            </button>
+            <button
+              className="btn-black-excel"
+              disabled={Boolean(exporting)}
+              onClick={() => exportFile("dashboard")}
+            >
+              {exporting === "dashboard"
+                ? "Đang xuất…"
+                : "Xuất Excel Tổng quát"}
+            </button>
+          </div>
         </div>
       </div>
-
-      <div className="tq-card tq-filters-card">
-        <div>
-          <div className="tq-filter-row">
-            <div className="tq-filter-label">KHOẢNG THỜI GIAN</div>
-            <div className="tq-btn-group">
-              {['HÔM NAY', 'HÔM QUA', 'TUẦN NÀY', 'THÁNG NÀY', 'NĂM NAY', 'TÙY CHỈNH'].map((t) => (
-                <button
-                  key={t}
-                  className={`tq-btn-filter ${tempTime === t ? 'active-black' : ''}`}
-                  onClick={() => setTempTime(t)}
-                >
-                  {t}
-                </button>
-              ))}
-            </div>
+      {exportError && (
+        <p className="tq-error tq-status" role="alert">
+          {exportError}
+        </p>
+      )}
+      <form className="tq-card tq-filters-card" onSubmit={apply}>
+        <div className="tq-filter-row">
+          <span className="tq-filter-label">Khoảng thời gian</span>
+          <div className="tq-btn-group">
+            {Object.entries(PERIODS).map(([key, label]) => (
+              <button
+                type="button"
+                key={key}
+                className={`tq-btn-filter ${draft.ky === key ? "active-black" : ""}`}
+                aria-pressed={draft.ky === key}
+                onClick={() => choosePeriod(key)}
+              >
+                {label}
+              </button>
+            ))}
           </div>
-          {tempTime === 'TÙY CHỈNH' && (
-            <div className="tq-custom-date" style={{ marginLeft: 135 }}>
-              <div>
-                <div className="tq-sub-label">TỪ NGÀY</div>
-                <input
-                  type="date"
-                  className="tq-date-input"
-                  value={fromDate}
-                  onChange={(e) => setFromDate(e.target.value)}
-                />
-              </div>
-              <div>
-                <div className="tq-sub-label">ĐẾN NGÀY</div>
-                <input
-                  type="date"
-                  className="tq-date-input"
-                  value={toDate}
-                  onChange={(e) => setToDate(e.target.value)}
-                />
-              </div>
-            </div>
-          )}
         </div>
         <div className="tq-filter-row">
-          <div className="tq-filter-label">KÊNH BÁN</div>
+          <label>
+            Từ ngày
+            <input
+              className="tq-date-input"
+              type="date"
+              value={draft.tu_ngay}
+              onChange={(event) =>
+                setDraft({
+                  ...draft,
+                  ky: "TUY_CHINH",
+                  tu_ngay: event.target.value,
+                })
+              }
+              required
+            />
+          </label>
+          <label>
+            Đến ngày
+            <input
+              className="tq-date-input"
+              type="date"
+              value={draft.den_ngay}
+              onChange={(event) =>
+                setDraft({
+                  ...draft,
+                  ky: "TUY_CHINH",
+                  den_ngay: event.target.value,
+                })
+              }
+              required
+            />
+          </label>
+          <label>
+            Nhóm biểu đồ
+            <select
+              value={draft.nhom_theo}
+              onChange={(event) =>
+                setDraft({ ...draft, nhom_theo: event.target.value })
+              }
+            >
+              <option value="NGAY">Theo ngày</option>
+              <option value="THANG">Theo tháng</option>
+            </select>
+          </label>
+        </div>
+        <div className="tq-filter-row">
+          <span className="tq-filter-label">Kênh bán</span>
           <div className="tq-btn-group">
-            {['TẤT CẢ', 'ONLINE', 'TẠI QUẦY'].map((c) => (
+            {Object.entries(CHANNELS).map(([key, label]) => (
               <button
-                key={c}
-                className={`tq-btn-filter ${tempChannel === c ? 'active-red' : ''}`}
-                onClick={() => setTempChannel(c)}
+                type="button"
+                key={key}
+                className={`tq-btn-filter ${draft.kenh_ban === key ? "active-red" : ""}`}
+                aria-pressed={draft.kenh_ban === key}
+                onClick={() => setDraft({ ...draft, kenh_ban: key })}
               >
-                {c}
+                {label}
               </button>
             ))}
           </div>
           <div className="tq-filter-actions">
-            <button className="btn-black-excel" onClick={handleApply}>
-              ÁP DỤNG
-            </button>
-            <button className="btn-black-outline" onClick={handleClear}>
-              XÓA BỘ LỌC
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <div className="tq-card">
-        <div className="tq-kpi-grid">
-          <div className="tq-kpi-box">
-            <div className="tq-kpi-label">DOANH THU THUẦN</div>
-            <div className="tq-kpi-value">
-              428.500.000 <span className="tq-kpi-currency">đ</span>
-            </div>
-            <div className="tq-kpi-change">
-              <span className="tq-text-green">↑ 12,8%</span> SO VỚI KỲ TRƯỚC (TRONG KỲ)
-            </div>
-          </div>
-          <div className="tq-kpi-box">
-            <div className="tq-kpi-label">SỐ ĐƠN</div>
-            <div className="tq-kpi-value">186</div>
-            <div className="tq-kpi-change">
-              <span className="tq-text-green">↑ 8,1%</span> SO VỚI KỲ TRƯỚC (TRONG KỲ)
-            </div>
-          </div>
-          <div className="tq-kpi-box">
-            <div className="tq-kpi-label">SỐ LƯỢNG BÁN</div>
-            <div className="tq-kpi-value">342</div>
-            <div className="tq-kpi-change">
-              <span className="tq-text-green">↑ 14,2%</span> SO VỚI KỲ TRƯỚC (TRONG KỲ)
-            </div>
-          </div>
-          <div className="tq-kpi-box">
-            <div className="tq-kpi-label">THỰC THU</div>
-            <div className="tq-kpi-value">
-              397.800.000 <span className="tq-kpi-currency">đ</span>
-            </div>
-            <div className="tq-kpi-change">
-              <span className="tq-text-red">↓ 5,4%</span> SO VỚI KỲ TRƯỚC (TRONG KỲ)
-            </div>
-          </div>
-          <div className="tq-kpi-box">
-            <div className="tq-kpi-label">SỐ DƯ QUỸ</div>
-            <div className="tq-kpi-value">
-              847.250.000 <span className="tq-kpi-currency">đ</span>
-            </div>
-            <div className="tq-kpi-change">
-              <span className="tq-text-green">↑ 3,7%</span> SO VỚI KỲ TRƯỚC (HIỆN TẠI)
-            </div>
-          </div>
-        </div>
-        <div className="tq-kpi-sub-grid">
-          <div className="tq-sub-box">
-            <div className="tq-sub-label">DOANH THU BÁN HÀNG</div>
-            <div className="tq-sub-val">472.800.000 đ</div>
-            <div className="tq-sub-label" style={{ textTransform: 'none', marginTop: 3 }}>
-              TRONG KỲ
-            </div>
-          </div>
-          <div className="tq-sub-box">
-            <div className="tq-sub-label">TRẢ HÀNG / HOÀN TIỀN</div>
-            <div className="tq-sub-val">18.600.000 đ</div>
-            <div className="tq-sub-label" style={{ textTransform: 'none', marginTop: 3 }}>
-              TRONG KỲ
-            </div>
-          </div>
-          <div className="tq-sub-box">
-            <div className="tq-sub-label">TỔNG GIẢM GIÁ</div>
-            <div className="tq-sub-val">25.700.000 đ</div>
-            <div className="tq-sub-label" style={{ textTransform: 'none', marginTop: 3 }}>
-              TRONG KỲ
-            </div>
-          </div>
-          <div className="tq-sub-box">
-            <div className="tq-sub-label">GIÁ TRỊ TB / ĐƠN</div>
-            <div className="tq-sub-val">2.303.763 đ</div>
-            <div className="tq-sub-label" style={{ textTransform: 'none', marginTop: 3 }}>
-              TRONG KỲ
-            </div>
-          </div>
-          <div className="tq-sub-box">
-            <div className="tq-sub-label">LỢI NHUẬN GỘP</div>
-            <div className="tq-sub-val">93.400.000 đ</div>
-            <div className="tq-sub-label" style={{ textTransform: 'none', marginTop: 3 }}>
-              TRONG KỲ
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="tq-2col">
-        <div className="tq-card">
-          <div className="tq-card-header" style={{ display: 'block' }}>
-            <h3 className="tq-card-title">VIỆC CẦN XỬ LÝ</h3>
-            <div className="tq-sub-label" style={{ marginLeft: 14, textTransform: 'none' }}>
-              64 công việc đang chờ
-            </div>
-          </div>
-          <div className="tq-todo-grid">
-            <div className="tq-todo-box">
-              <div className="tq-todo-num">6</div>
-              <div className="tq-todo-label">CHỜ DUYỆT</div>
-              <div className="tq-todo-alert">2 ĐƠN CHỜ &gt; 2 GIỜ</div>
-            </div>
-            <div className="tq-todo-box">
-              <div className="tq-todo-num">9</div>
-              <div className="tq-todo-label">CHỜ THANH TOÁN</div>
-            </div>
-            <div className="tq-todo-box">
-              <div className="tq-todo-num">12</div>
-              <div className="tq-todo-label">CHỜ ĐÓNG GÓI</div>
-              <div className="tq-todo-alert">3 ĐƠN CHỜ &gt; 2 GIỜ</div>
-            </div>
-            <div className="tq-todo-box">
-              <div className="tq-todo-num">8</div>
-              <div className="tq-todo-label">CHỜ GIAO / CHỜ LẤY HÀNG</div>
-            </div>
-            <div className="tq-todo-box" style={{ borderBottom: 'none' }}>
-              <div className="tq-todo-num">17</div>
-              <div className="tq-todo-label">ĐANG GIAO</div>
-            </div>
-            <div className="tq-todo-box" style={{ borderBottom: 'none' }}>
-              <div className="tq-todo-num">3</div>
-              <div className="tq-todo-label">GIAO THẤT BẠI</div>
-            </div>
-            <div className="tq-todo-box" style={{ borderBottom: 'none' }}>
-              <div className="tq-todo-num">4</div>
-              <div className="tq-todo-label">YÊU CẦU HỦY</div>
-            </div>
-            <div className="tq-todo-box" style={{ borderBottom: 'none' }}>
-              <div className="tq-todo-num">5</div>
-              <div className="tq-todo-label">TRẢ HÀNG / HOÀN TIỀN</div>
-            </div>
-          </div>
-          <div className="tq-priority-list" style={{ borderTop: '1px solid #ddd' }}>
-            <div className="tq-priority-label">CẦN ƯU TIÊN</div>
-            <div className="tq-priority-row">
-              <div className="tq-priority-id">RUV-1042</div>
-              <div className="tq-priority-type">CHỜ DUYỆT</div>
-              <div className="tq-priority-time">3 GIỜ 20 PHÚT</div>
-            </div>
-            <div className="tq-priority-row">
-              <div className="tq-priority-id">RUV-1031</div>
-              <div className="tq-priority-type">CHỜ ĐÓNG GÓI</div>
-              <div className="tq-priority-time">2 GIỜ 45 PHÚT</div>
-            </div>
-            <div className="tq-priority-row">
-              <div className="tq-priority-id">RUV-1027</div>
-              <div className="tq-priority-type">GIAO THẤT BẠI</div>
-              <div className="tq-priority-time">1 NGÀY</div>
-            </div>
-          </div>
-        </div>
-
-        <div className="tq-card tq-alert-card">
-          <div className="tq-card-header">
-            <h3 className="tq-card-title">CẢNH BÁO QUAN TRỌNG</h3>
-          </div>
-          <div className="tq-alert-list">
-            <div className="tq-alert-row">
-              <div>
-                <div className="tq-alert-name">HẾT HÀNG</div>
-                <div className="tq-alert-val">4 SKU</div>
-              </div>
-              <a className="tq-alert-btn" onClick={() => navigate('/kho-hang/quan-ly-phien-ban')}>
-                XEM
-              </a>
-            </div>
-            <div className="tq-alert-row">
-              <div>
-                <div className="tq-alert-name">DƯỚI TỒN TỐI THIỂU</div>
-                <div className="tq-alert-val">11 SKU</div>
-              </div>
-              <a className="tq-alert-btn" onClick={() => navigate('/kho-hang/quan-ly-phien-ban')}>
-                XEM
-              </a>
-            </div>
-            <div className="tq-alert-row">
-              <div>
-                <div className="tq-alert-name">ĐƠN CHỜ QUÁ LÂU</div>
-                <div className="tq-alert-val">5 ĐƠN</div>
-              </div>
-              <a
-                className="tq-alert-btn"
-                onClick={() => navigate('/admin/don-hang/danh-sach-don-hang')}
-              >
-                XEM
-              </a>
-            </div>
-            <div className="tq-alert-row">
-              <div>
-                <div className="tq-alert-name">GIAO HÀNG THẤT BẠI</div>
-                <div className="tq-alert-val">3 ĐƠN</div>
-              </div>
-              <a
-                className="tq-alert-btn"
-                onClick={() => navigate('/admin/don-hang/danh-sach-don-hang')}
-              >
-                XEM
-              </a>
-            </div>
-            <div className="tq-alert-row">
-              <div>
-                <div className="tq-alert-name">NỢ NHÀ CUNG CẤP</div>
-                <div className="tq-alert-val">286,5 TR đ</div>
-              </div>
-              <a
-                className="tq-alert-btn"
-                onClick={() => navigate('/admin/khach-hang-doi-tac/nha-cung-cap')}
-              >
-                XEM
-              </a>
-            </div>
-            <div className="tq-alert-row">
-              <div>
-                <div className="tq-alert-name">YÊU CẦU HOÀN TIỀN</div>
-                <div className="tq-alert-val">4 YÊU CẦU</div>
-              </div>
-              <a
-                className="tq-alert-btn"
-                onClick={() => navigate('/admin/don-hang/khach-tra-hang')}
-              >
-                XEM
-              </a>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="tq-card">
-        <div className="tq-card-header" style={{ display: 'block' }}>
-          <h3 className="tq-card-title">KINH DOANH</h3>
-          <div className="tq-sub-label" style={{ marginLeft: 14, textTransform: 'none' }}>
-            {timeFilter} - so sánh kỳ trước
-          </div>
-        </div>
-        <div className="tq-business-cols">
-          <div className="tq-chart-area">
-            <div className="tq-chart-tabs">
-              {['DOANH THU THUẦN', 'SỐ ĐƠN', 'SỐ LƯỢNG BÁN', 'LỢI NHUẬN GỘP'].map((tab) => (
-                <div
-                  key={tab}
-                  className={`tq-chart-tab ${chartTab === tab ? 'active' : ''}`}
-                  onClick={() => setChartTab(tab)}
-                >
-                  {tab}
-                </div>
-              ))}
-            </div>
-            <div className="tq-chart-legend">
-              <div style={{ display: 'flex', gap: 20 }}>
-                <div className="tq-legend-item">
-                  <div className="tq-legend-line-red"></div> KỲ HIỆN TẠI
-                </div>
-                <div className="tq-legend-item">
-                  <div className="tq-legend-line-dash"></div> KỲ TRƯỚC
-                </div>
-              </div>
-              <div>
-                ĐƠN VỊ:{' '}
-                {chartTab === 'DOANH THU THUẦN' || chartTab === 'LỢI NHUẬN GỘP'
-                  ? 'TRIỆU ĐỒNG'
-                  : chartTab === 'SỐ ĐƠN'
-                    ? 'ĐƠN'
-                    : 'SẢN PHẨM'}
-              </div>
-            </div>
-            <div className="tq-mock-chart" style={{ height: 250 }}>
-              <Line data={chartDataByTab[chartTab]} options={chartOptions} />
-            </div>
-          </div>
-          <div className="tq-channel-area">
-            <div className="tq-channel-title">CƠ CẤU KÊNH BÁN</div>
-            <div className="tq-progress-bar">
-              <div className="tq-progress-red" style={{ width: '64%' }}>
-                ONLINE 64%
-              </div>
-              <div className="tq-progress-black">36%</div>
-            </div>
-            <div className="tq-channel-stats">
-              <div>
-                <div className="tq-cs-label">DOANH THU ONLINE</div>
-                <div className="tq-cs-val">274.240.000 đ</div>
-              </div>
-              <div>
-                <div className="tq-cs-label">DOANH THU TẠI QUẦY</div>
-                <div className="tq-cs-val">154.260.000 đ</div>
-              </div>
-              <div>
-                <div className="tq-cs-label">SỐ ĐƠN ONLINE</div>
-                <div className="tq-cs-val">119</div>
-              </div>
-              <div>
-                <div className="tq-cs-label">SỐ ĐƠN TẠI QUẦY</div>
-                <div className="tq-cs-val">67</div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="tq-2col">
-        <div className="tq-card">
-          <div className="tq-card-header">
-            <h3 className="tq-card-title">SẢN PHẨM BÁN CHẠY</h3>
-            <div className="tq-header-tabs">
-              <span className="tq-tab-label">XẾP HẠNG THEO:</span>
-              <div style={{ display: 'flex' }}>
-                <button
-                  className={`tq-tab-btn ${topProductsTab === 'SỐ LƯỢNG BÁN' ? 'active' : ''}`}
-                  onClick={() => setTopProductsTab('SỐ LƯỢNG BÁN')}
-                >
-                  SỐ LƯỢNG BÁN
-                </button>
-                <button
-                  className={`tq-tab-btn ${topProductsTab === 'DOANH THU' ? 'active' : ''}`}
-                  onClick={() => setTopProductsTab('DOANH THU')}
-                >
-                  DOANH THU
-                </button>
-              </div>
-            </div>
-          </div>
-          <table className="tq-table">
-            <thead>
-              <tr>
-                <th style={{ width: 40 }}>#</th>
-                <th>SẢN PHẨM / PHIÊN BẢN</th>
-                <th style={{ textAlign: 'center' }}>ĐÃ BÁN</th>
-                <th style={{ textAlign: 'center' }}>DOANH THU</th>
-                <th style={{ textAlign: 'center' }}>TỒN HIỆN TẠI</th>
-                <th>CẢNH BÁO</th>
-              </tr>
-            </thead>
-            <tbody>
-              {sortedTopProducts.map((product, index) => {
-                const isLast = index === sortedTopProducts.length - 1;
-                return (
-                  <tr key={product.id}>
-                    <td className="tq-rank" style={isLast ? { borderBottom: 'none' } : {}}>
-                      {index + 1}
-                    </td>
-                    <td style={isLast ? { borderBottom: 'none' } : {}}>
-                      <div className="tq-prod-name">{product.name}</div>
-                      <div className="tq-prod-var">{product.variant}</div>
-                    </td>
-                    <td
-                      style={{
-                        textAlign: 'center',
-                        fontWeight: 800,
-                        ...(isLast ? { borderBottom: 'none' } : {}),
-                      }}
-                    >
-                      {product.sold}
-                    </td>
-                    <td
-                      style={{
-                        textAlign: 'center',
-                        fontWeight: 800,
-                        ...(isLast ? { borderBottom: 'none' } : {}),
-                      }}
-                    >
-                      {product.revenueStr}
-                    </td>
-                    <td
-                      style={{
-                        textAlign: 'center',
-                        fontWeight: 800,
-                        ...(isLast ? { borderBottom: 'none' } : {}),
-                      }}
-                    >
-                      {product.stock}
-                    </td>
-                    <td
-                      style={{
-                        color: product.statusColor,
-                        fontWeight: 700,
-                        fontSize: 10,
-                        textTransform: 'uppercase',
-                        textAlign: 'right',
-                        ...(isLast ? { borderBottom: 'none' } : {}),
-                      }}
-                    >
-                      {product.status}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-
-        <div className="tq-card">
-          <div className="tq-card-header">
-            <h3 className="tq-card-title">TỒN KHO & CẢNH BÁO</h3>
-            <a
-              className="tq-card-header-link"
-              onClick={() => navigate('/kho-hang/quan-ly-phien-ban')}
+            <button className="btn-black-excel">Áp dụng</button>
+            <button
+              type="button"
+              className="btn-black-outline"
+              onClick={() => {
+                const value = initial();
+                setDraft(value);
+                setFilters(value);
+                setCashDraft({});
+                setCashFilters({});
+                setCashError("");
+                setFilterError("");
+                setExportError("");
+                setRefresh((value) => value + 1);
+              }}
             >
-              XEM CHI TIẾT →
-            </a>
-          </div>
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: '1fr 1fr',
-              padding: '15px 20px',
-              gap: '20px 0',
-              borderBottom: '1px solid #ddd',
-            }}
-          >
-            <div>
-              <div className="tq-sub-label">TỔNG SỐ LƯỢNG TỒN</div>
-              <div className="tq-sub-val" style={{ fontSize: 16 }}>
-                1.842
-              </div>
-              <div className="tq-sub-label" style={{ textTransform: 'none', marginTop: 3 }}>
-                HIỆN TẠI
-              </div>
-            </div>
-            <div>
-              <div className="tq-sub-label">CÓ THỂ BÁN</div>
-              <div className="tq-sub-val" style={{ fontSize: 16 }}>
-                1.694
-              </div>
-              <div className="tq-sub-label" style={{ textTransform: 'none', marginTop: 3 }}>
-                HIỆN TẠI
-              </div>
-            </div>
-            <div>
-              <div className="tq-sub-label">HẾT HÀNG</div>
-              <div className="tq-sub-val tq-text-red" style={{ fontSize: 16 }}>
-                4 SKU
-              </div>
-            </div>
-            <div>
-              <div className="tq-sub-label">DƯỚI MỨC TỒN TỐI THIỂU</div>
-              <div className="tq-sub-val tq-text-red" style={{ fontSize: 16 }}>
-                11 SKU
-              </div>
-            </div>
-            <div>
-              <div className="tq-sub-label">GIÁ TRỊ TỒN KHO THEO GIÁ VỐN</div>
-              <div className="tq-sub-val" style={{ fontSize: 16 }}>
-                3.286.400.000 đ
-              </div>
-              <div className="tq-sub-label" style={{ textTransform: 'none', marginTop: 3 }}>
-                MẶT KHO HÀNG
-              </div>
-            </div>
-            <div>
-              <div className="tq-sub-label">SẢN PHẨM ĐANG KINH DOANH</div>
-              <div className="tq-sub-val" style={{ fontSize: 16 }}>
-                286
-              </div>
-              <div className="tq-sub-label" style={{ textTransform: 'none', marginTop: 3 }}>
-                HIỆN TẠI
-              </div>
-            </div>
-            <div>
-              <div className="tq-sub-label">SỐ PHIÊN BẢN</div>
-              <div className="tq-sub-val" style={{ fontSize: 16 }}>
-                742
-              </div>
-              <div className="tq-sub-label" style={{ textTransform: 'none', marginTop: 3 }}>
-                HIỆN TẠI
-              </div>
-            </div>
-            <div>
-              <div className="tq-sub-label">SỐ LƯỢNG ĐÃ BÁN TRONG KỲ</div>
-              <div className="tq-sub-val" style={{ fontSize: 16 }}>
-                342
-              </div>
-              <div className="tq-sub-label" style={{ textTransform: 'none', marginTop: 3 }}>
-                TRONG KỲ
-              </div>
-            </div>
+              Xóa bộ lọc
+            </button>
           </div>
         </div>
+        {filterError && (
+          <p className="tq-error" role="alert">
+            {filterError}
+          </p>
+        )}
+      </form>
+
+      <section className="tq-card" aria-label="Chỉ số chính">
+        <div className="tq-kpi-main">
+          <div className="tq-sales-kpis">
+            <Content resource={summary}>
+              {(data) => (
+                <>
+                  <div className="tq-kpi-grid">
+                    {Object.entries({
+                      doanh_thu_thuan: "Doanh thu thuần",
+                      so_don: "Số đơn",
+                      so_luong_ban: "Số lượng bán",
+                      thuc_thu: "Thực thu",
+                    }).map(([key, label]) => {
+                      const metric = data.kpi[key];
+                      const rate = metric.ty_le_thay_doi;
+                      return (
+                        <div className="tq-kpi-box" key={key}>
+                          <div className="tq-kpi-label">{label}</div>
+                          <div className="tq-kpi-value">
+                            {key === "so_don" || key === "so_luong_ban"
+                              ? number(metric.gia_tri)
+                              : money(metric.gia_tri)}
+                          </div>
+                          <div className="tq-kpi-change">
+                            {rate == null ? (
+                              "Không có dữ liệu so sánh"
+                            ) : (
+                              <span
+                                className={
+                                  Number(rate) < 0
+                                    ? "tq-text-red"
+                                    : "tq-text-green"
+                                }
+                              >
+                                {Number(rate) > 0
+                                  ? "↑ "
+                                  : Number(rate) < 0
+                                    ? "↓ "
+                                    : ""}
+                                {number(Math.abs(Number(rate)))}% so với kỳ
+                                trước
+                              </span>
+                            )}
+                          </div>
+                          <p className="tq-note">
+                            {key === "thuc_thu"
+                              ? "Trong kỳ · toàn cửa hàng · thu đã ghi nhận"
+                              : "Trong kỳ · kênh đang chọn"}
+                          </p>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <p className="tq-note tq-scope">
+                    Kỳ trước: {date(data.ky_truoc.tu_ngay)} –{" "}
+                    {date(data.ky_truoc.den_ngay)}
+                    {data.bo_loc.ky_chua_ket_thuc &&
+                      " · Kỳ hiện tại chưa kết thúc"}
+                    . Doanh thu dựa trên đơn hoàn thành, đã thanh toán và đã
+                    xuất/hoàn kho theo quy tắc hệ thống.
+                  </p>
+                </>
+              )}
+            </Content>
+          </div>
+          <div className="tq-cash-kpi">
+            <Content resource={cash}>
+              {(data) => (
+                <Link className="tq-kpi-box tq-stat-link" to={cashTo}>
+                  <div className="tq-kpi-label">Số dư quỹ cuối kỳ</div>
+                  <div className="tq-kpi-value">{money(data.ton_quy)}</div>
+                  <p className="tq-note">
+                    Cuối ngày {date(data.bo_loc.den_ngay)} · bộ lọc Sổ quỹ ·
+                    toàn cửa hàng
+                  </p>
+                </Link>
+              )}
+            </Content>
+          </div>
+        </div>
+        <Content resource={summary}>
+          {(data) => (
+            <div className="tq-kpi-sub-grid">
+              <Stat
+                label="Doanh thu bán hàng"
+                value={data.kinh_doanh.doanh_thu_ban_hang}
+                currency
+              />
+              <Stat
+                label="Giá trị hàng trả"
+                value={data.kinh_doanh.gia_tri_hang_tra}
+                currency
+              />
+              <Stat
+                label="Tổng giảm giá"
+                value={data.kinh_doanh.tong_giam_gia}
+                currency
+              />
+              <Stat
+                label="Giá trị trung bình / đơn"
+                value={data.kinh_doanh.gia_tri_trung_binh_don}
+                currency
+              />
+              <Stat
+                label="Lợi nhuận gộp ước tính"
+                value={data.kinh_doanh.loi_nhuan_gop_uoc_tinh}
+                currency
+                note="Theo giá nhập hiện tại; chưa phải giá vốn lịch sử."
+              />
+            </div>
+          )}
+        </Content>
+      </section>
+
+      <div className="tq-2col">
+        <Section
+          title="Việc cần xử lý"
+          note={currentNote}
+          to={orderTo()}
+          resource={tasks}
+        >
+          {(data) => (
+            <>
+              <p className="tq-scope">
+                {number(data.so_don_can_xu_ly)} đơn cần xử lý ·{" "}
+                {number(data.tra_hang.tong_phieu_can_xu_ly)} phiếu trả hàng /
+                hoàn tiền
+              </p>
+              <div className="tq-todo-grid">
+                {Object.entries(data.don_hang).map(([key, value]) => (
+                  <Stat
+                    key={key}
+                    label={STATUS[key]}
+                    value={value}
+                    to={orderTo(key)}
+                  />
+                ))}
+                {Object.entries(data.giao_hang).map(([key, value]) => (
+                  <Stat
+                    key={key}
+                    label={STATUS[key]}
+                    value={value}
+                    to={deliveryTo(key)}
+                  />
+                ))}
+                <Stat
+                  label="Trả hàng / hoàn tiền"
+                  value={data.tra_hang.tong_phieu_can_xu_ly}
+                  to={returnTo("CAN_XU_LY")}
+                />
+              </div>
+
+              <DashboardWarrantyWork data={data.bao_hanh} />
+
+              <div className="tq-priority-list">
+                <h3 className="tq-priority-label">
+                  Cần ưu tiên · chờ từ {number(data.nguong_cho_phut)} phút
+                </h3>
+                {data.can_uu_tien.length ? (
+                  data.can_uu_tien.map((item) => (
+                    <Link
+                      key={item.don_hang_id}
+                      className="tq-priority-row tq-stat-link"
+                      to={`${ORDER_PATH}/${item.don_hang_id}`}
+                    >
+                      <span className="tq-priority-id">{item.ma_don_hang}</span>
+                      <span className="tq-priority-type">
+                        {STATUS[item.trang_thai_don_hang]}
+                      </span>
+                      <span className="tq-priority-time">
+                        {number(item.so_phut_tu_khi_tao)} phút
+                      </span>
+                    </Link>
+                  ))
+                ) : (
+                  <p>Không có đơn chờ quá ngưỡng.</p>
+                )}
+              </div>
+            </>
+          )}
+        </Section>
+        <section
+          className="tq-card tq-alert-card"
+          aria-label="Cảnh báo quan trọng"
+        >
+          <div className="tq-card-header">
+            <div>
+              <h2 className="tq-card-title">Cảnh báo quan trọng</h2>
+              <p className="tq-note">Giá trị hiện tại</p>
+            </div>
+          </div>
+          <Content resource={inventory}>
+            {(data) => (
+              <div className="tq-alert-list">
+                <Stat
+                  label="Hết hàng"
+                  value={data.so_sku_het_hang}
+                  note="Phiên bản đang kinh doanh · kho mặc định"
+                  to={inventoryTo(data, "HET_HANG")}
+                />
+                <Stat
+                  label="Dưới mức tồn tối thiểu"
+                  value={data.so_sku_duoi_toi_thieu}
+                  to={inventoryTo(data, "DUOI_TOI_THIEU")}
+                />
+              </div>
+            )}
+          </Content>
+          <Content resource={tasks}>
+            {(data) => (
+              <div className="tq-alert-list">
+                <Stat
+                  label="Đơn chờ quá lâu"
+                  value={data.so_don_cho_lau}
+                  to={filteredTo(ORDER_PATH, {
+                    cho_lau_phut: data.nguong_cho_phut,
+                    loai_don_hang:
+                      filters.kenh_ban === "TAT_CA" ? "" : filters.kenh_ban,
+                  })}
+                />
+                <Stat
+                  label="Giao hàng thất bại"
+                  value={data.giao_hang.GIAO_THAT_BAI}
+                  note="Số phiếu giao hàng"
+                  to={deliveryTo("GIAO_THAT_BAI")}
+                />
+                <Stat
+                  label="Chờ hoàn tiền"
+                  value={data.tra_hang.cho_hoan_tien}
+                  to={returnTo("CHO_HOAN_TIEN")}
+                />
+              </div>
+            )}
+          </Content>
+        </section>
+      </div>
+
+      <div className="tq-2col">
+        <Section
+          title="Kinh doanh"
+          note="Trong kỳ · so sánh kỳ trước có cùng số ngày"
+          resource={chart}
+        >
+          {(data) => (
+            <div className="tq-chart-area">
+              <div className="tq-chart-tabs">
+                {Object.entries(CHART_FIELDS).map(([key, label]) => (
+                  <button
+                    type="button"
+                    key={key}
+                    className={`tq-chart-tab ${chartField === key ? "active" : ""}`}
+                    aria-pressed={chartField === key}
+                    onClick={() => setChartField(key)}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+              <p className="tq-note">
+                Đơn vị:{" "}
+                {chartField === "so_don"
+                  ? "đơn"
+                  : chartField === "so_luong_ban"
+                    ? "sản phẩm"
+                    : "đồng"}
+                {chartField === "loi_nhuan_gop_uoc_tinh" &&
+                  " · ước tính theo giá nhập hiện tại"}
+                . Các mốc hai kỳ được ghép theo thứ tự.
+              </p>
+              <div className="tq-chart">
+                <Line
+                  role="img"
+                  aria-label={`Biểu đồ ${CHART_FIELDS[chartField]}`}
+                  data={businessChartData(data, chartField)}
+                  options={{
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                      tooltip: {
+                        callbacks: {
+                          title: (points) => {
+                            const point = points[0];
+                            const row = (
+                              point.datasetIndex === 0
+                                ? data.ky_hien_tai
+                                : data.ky_truoc
+                            )[point.dataIndex];
+                            return row
+                              ? `${date(row.tu_ngay)} – ${date(row.den_ngay)}`
+                              : "Không có mốc tương ứng";
+                          },
+                        },
+                      },
+                    },
+                    scales: {
+                      y: { ticks: { callback: number } },
+                      x: { ticks: { maxTicksLimit: 8 } },
+                    },
+                  }}
+                />
+              </div>
+              <details>
+                <summary>Xem dữ liệu biểu đồ</summary>
+                <Table
+                  headers={[
+                    "Kỳ",
+                    "Từ ngày",
+                    "Đến ngày",
+                    CHART_FIELDS[chartField],
+                  ]}
+                  items={[
+                    ...data.ky_hien_tai.map((item) => ({
+                      ...item,
+                      label: "Hiện tại",
+                    })),
+                    ...data.ky_truoc.map((item) => ({
+                      ...item,
+                      label: "Kỳ trước",
+                    })),
+                  ]}
+                  empty="Không có dữ liệu biểu đồ."
+                >
+                  {(item, i) => (
+                    <tr key={i}>
+                      <td>{item.label}</td>
+                      <td>{date(item.tu_ngay)}</td>
+                      <td>{date(item.den_ngay)}</td>
+                      <td>{number(item[chartField])}</td>
+                    </tr>
+                  )}
+                </Table>
+              </details>
+            </div>
+          )}
+        </Section>
+        <Section
+          title="Cơ cấu kênh bán"
+          note="Trong kỳ · kênh đang chọn"
+          resource={summary}
+        >
+          {(data) => (
+            <div className="tq-channel-area">
+              {data.co_cau_kenh.length ? (
+                data.co_cau_kenh.map((item) => (
+                  <div className="tq-channel-item" key={item.kenh_ban}>
+                    <h3>{CHANNELS[item.kenh_ban]}</h3>
+                    <Stat
+                      label="Doanh thu thuần"
+                      value={item.doanh_thu_thuan}
+                      currency
+                    />
+                    <Stat label="Số đơn" value={item.so_don} />
+                    <Stat
+                      label="Tỷ trọng doanh thu (%)"
+                      value={item.ty_trong_doanh_thu}
+                    />
+                  </div>
+                ))
+              ) : (
+                <p>Không có đơn đủ điều kiện trong kỳ.</p>
+              )}
+            </div>
+          )}
+        </Section>
       </div>
 
       <div className="tq-2col-equal">
-        <div className="tq-card">
-          <div className="tq-card-header" style={{ borderBottom: '1px solid #ddd' }}>
-            <h3 className="tq-card-title">CẢNH BÁO TỒN KHO</h3>
-          </div>
-          <table className="tq-table" style={{ marginBottom: 10 }}>
-            <thead>
-              <tr>
-                <th>SẢN PHẨM / PHIÊN BẢN</th>
-                <th style={{ textAlign: 'center' }}>TỒN THỰC TẾ</th>
-                <th style={{ textAlign: 'center' }}>CÓ THỂ BÁN</th>
-                <th style={{ textAlign: 'center' }}>MỨC TỐI THIỂU</th>
-                <th>TRẠNG THÁI</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td style={{ padding: '10px 15px' }}>
-                  <div className="tq-prod-name">ASUS ROG STRIX RTX 4090</div>
-                  <div className="tq-prod-var">OC 24GB</div>
-                </td>
-                <td style={{ textAlign: 'center', fontWeight: 800 }}>2</td>
-                <td style={{ textAlign: 'center', fontWeight: 800 }}>1</td>
-                <td style={{ textAlign: 'center', fontWeight: 800 }}>4</td>
-                <td
-                  style={{
-                    color: '#E31E24',
-                    fontWeight: 800,
-                    fontSize: 9,
-                    textTransform: 'uppercase',
-                    textAlign: 'right',
-                  }}
-                >
-                  DƯỚI MỨC TỒN TỐI THIỂU
-                </td>
-              </tr>
-              <tr>
-                <td style={{ padding: '10px 15px' }}>
-                  <div className="tq-prod-name">Corsair H150i Elite LCD</div>
-                  <div className="tq-prod-var">360mm</div>
-                </td>
-                <td style={{ textAlign: 'center', fontWeight: 800 }}>0</td>
-                <td style={{ textAlign: 'center', fontWeight: 800 }}>0</td>
-                <td style={{ textAlign: 'center', fontWeight: 800 }}>3</td>
-                <td
-                  style={{
-                    color: '#E31E24',
-                    fontWeight: 800,
-                    fontSize: 9,
-                    textTransform: 'uppercase',
-                    textAlign: 'right',
-                  }}
-                >
-                  HẾT HÀNG
-                </td>
-              </tr>
-              <tr>
-                <td style={{ padding: '10px 15px', borderBottom: 'none' }}>
-                  <div className="tq-prod-name">EVGA SuperNOVA G6</div>
-                  <div className="tq-prod-var">1000W</div>
-                </td>
-                <td style={{ textAlign: 'center', fontWeight: 800, borderBottom: 'none' }}>3</td>
-                <td style={{ textAlign: 'center', fontWeight: 800, borderBottom: 'none' }}>2</td>
-                <td style={{ textAlign: 'center', fontWeight: 800, borderBottom: 'none' }}>5</td>
-                <td
-                  style={{
-                    color: '#E31E24',
-                    fontWeight: 800,
-                    fontSize: 9,
-                    textTransform: 'uppercase',
-                    textAlign: 'right',
-                    borderBottom: 'none',
-                  }}
-                >
-                  DƯỚI MỨC TỒN TỐI THIỂU
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+        <Section
+          title="Sản phẩm bán chạy"
+          note="Trong kỳ · 5 phiên bản đứng đầu · tồn hiện tại"
+          resource={products}
+          controls={
+            <label>
+              Xếp hạng theo
+              <select
+                value={ranking}
+                onChange={(event) => setRanking(event.target.value)}
+              >
+                <option value="SO_LUONG_BAN">Số lượng bán</option>
+                <option value="DOANH_THU_THUAN">Doanh thu thuần</option>
+              </select>
+            </label>
+          }
+        >
+          {(data) => (
+            <>
+              <Table
+                headers={[
+                  "Hạng",
+                  "Sản phẩm / phiên bản",
+                  "Đã bán",
+                  "Doanh thu thuần",
+                  "Có thể bán / lắp",
+                  "Cảnh báo",
+                ]}
+                items={data.items}
+                empty="Không có sản phẩm bán chạy trong kỳ."
+              >
+                {(item) => (
+                  <tr key={item.phien_ban_id}>
+                    <td className="tq-rank">{number(item.hang)}</td>
 
-        <div className="tq-card">
-          <div className="tq-card-header" style={{ borderBottom: '1px solid #ddd' }}>
-            <h3 className="tq-card-title">TỒN LÂU / CHƯA PHÁT SINH BÁN</h3>
-          </div>
-          <table className="tq-table">
-            <thead>
-              <tr>
-                <th>SẢN PHẨM / PHIÊN BẢN</th>
-                <th style={{ textAlign: 'center' }}>TỒN HIỆN TẠI</th>
-                <th style={{ textAlign: 'center' }}>LẦN BÁN GẦN NHẤT</th>
-                <th>SỐ NGÀY KHÔNG BÁN</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td style={{ padding: '10px 15px' }}>
-                  <div className="tq-prod-name">Lian Li O11D EVO</div>
-                  <div className="tq-prod-var">Trắng</div>
-                </td>
-                <td style={{ textAlign: 'center', fontWeight: 800 }}>11</td>
-                <td style={{ textAlign: 'center', fontWeight: 800, color: '#666' }}>18/02/2026</td>
-                <td style={{ color: '#E31E24', fontWeight: 800, fontSize: 11, textAlign: 'right' }}>
-                  28 NGÀY
-                </td>
-              </tr>
-              <tr>
-                <td style={{ padding: '10px 15px' }}>
-                  <div className="tq-prod-name">Noctua NH-D15</div>
-                  <div className="tq-prod-var">Chromax Black</div>
-                </td>
-                <td style={{ textAlign: 'center', fontWeight: 800 }}>8</td>
-                <td style={{ textAlign: 'center', fontWeight: 800, color: '#666' }}>25/02/2026</td>
-                <td style={{ color: '#E31E24', fontWeight: 800, fontSize: 11, textAlign: 'right' }}>
-                  21 NGÀY
-                </td>
-              </tr>
-              <tr>
-                <td style={{ padding: '10px 15px', borderBottom: 'none' }}>
-                  <div className="tq-prod-name">ASUS ROG Thor</div>
-                  <div className="tq-prod-var">1200W Platinum</div>
-                </td>
-                <td style={{ textAlign: 'center', fontWeight: 800, borderBottom: 'none' }}>5</td>
-                <td
-                  style={{
-                    textAlign: 'center',
-                    fontWeight: 800,
-                    color: '#666',
-                    borderBottom: 'none',
-                  }}
-                >
-                  01/03/2026
-                </td>
-                <td
-                  style={{
-                    color: '#E31E24',
-                    fontWeight: 800,
-                    fontSize: 11,
-                    textAlign: 'right',
-                    borderBottom: 'none',
-                  }}
-                >
-                  17 NGÀY
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+                    <td>
+                      <span className="tq-prod-name">{item.ten_san_pham}</span>
+
+                      <div className="tq-prod-var">
+                        {item.ten_phien_ban} · {item.ma_vach}
+                      </div>
+                    </td>
+
+                    <td>
+                      {number(item.so_luong_ban)}
+
+                      <div className="tq-note">
+                        Đã nhận trả: {number(item.so_luong_da_nhan_tra)}
+                      </div>
+
+                      <div className="tq-note">
+                        Quà đã giao: {number(item.so_luong_qua_da_giao)}
+                      </div>
+                    </td>
+
+                    <td>{money(item.doanh_thu_thuan)}</td>
+
+                    <td>
+                      {number(
+                        item.loai_san_pham === "BO_PC"
+                          ? item.so_bo_co_the_lap
+                          : item.ton_co_the_ban,
+                      )}
+
+                      <div className="tq-note">
+                        {item.loai_san_pham === "BO_PC"
+                          ? "Số bộ có thể lắp"
+                          : `Tồn thực tế: ${number(item.ton_thuc_te)}`}
+                      </div>
+                    </td>
+
+                    <td>{STATUS[item.canh_bao] || "—"}</td>
+                  </tr>
+                )}
+              </Table>
+              <p className="tq-note tq-scope">
+                Hiển thị {data.items.length} / {number(data.tong_so)} phiên bản.
+              </p>
+            </>
+          )}
+        </Section>
+        <Section
+          title="Tồn kho & cảnh báo"
+          note="Hiện tại · kho mặc định · không phụ thuộc thời gian/kênh bán"
+          resource={inventory}
+          to={INVENTORY_PATH}
+        >
+          {(data) => (
+            <>
+              <div className="tq-kpi-sub-grid">
+                <Stat label="Tổng tồn thực tế" value={data.tong_ton_thuc_te} />
+                <Stat label="Có thể bán" value={data.tong_ton_co_the_ban} />
+                <Stat label="Hết hàng" value={data.so_sku_het_hang} />
+                <Stat
+                  label="Dưới mức tối thiểu"
+                  value={data.so_sku_duoi_toi_thieu}
+                />
+
+                <Stat
+                  label="Giữ cho bảo hành"
+                  value={data.tong_so_luong_giu_cho_bao_hanh}
+                />
+
+                <Stat label="Hàng lỗi" value={data.tong_hang_loi} />
+
+                <Stat
+                  label="Giá trị tồn theo giá nhập hiện tại"
+                  value={data.gia_tri_ton_theo_gia_nhap_hien_tai}
+                  currency
+                />
+                <Stat
+                  label="Sản phẩm đang kinh doanh"
+                  value={data.so_san_pham_dang_kinh_doanh}
+                />
+                <Stat
+                  label="Phiên bản đang kinh doanh"
+                  value={data.so_phien_ban_dang_kinh_doanh}
+                />
+              </div>
+              <Table
+                headers={[
+                  "Sản phẩm / phiên bản",
+                  "Tồn thực tế",
+                  "Có thể bán",
+                  "Mức tối thiểu",
+                  "Cảnh báo",
+                ]}
+                items={data.canh_bao.items}
+                empty="Không có cảnh báo tồn kho."
+              >
+                {(item) => (
+                  <tr key={item.phien_ban_id}>
+                    <td>
+                      {item.ten_san_pham}
+                      <div className="tq-prod-var">{item.ten_phien_ban}</div>
+                    </td>
+                    <td>{number(item.ton_thuc_te)}</td>
+                    <td>
+                      {number(item.ton_co_the_ban)}
+
+                      <div className="tq-note">
+                        Giữ bảo hành: {number(item.so_luong_giu_cho_bao_hanh)}
+                      </div>
+                    </td>
+                    <td>{number(item.muc_ton_toi_thieu)}</td>
+                    <td>{STATUS[item.canh_bao]}</td>
+                  </tr>
+                )}
+              </Table>
+              <p className="tq-note tq-scope">
+                Hiển thị {data.canh_bao.items.length} /{" "}
+                {number(data.canh_bao.tong_so)} cảnh báo.
+              </p>
+            </>
+          )}
+        </Section>
       </div>
+      <Section
+        title="Tồn lâu / chưa phát sinh bán"
+        note="Hiện tại · kho mặc định · ngưỡng 30 ngày · 5 phiên bản đứng đầu"
+        resource={slow}
+      >
+        {(data) => (
+          <>
+            <Table
+              headers={[
+                "Sản phẩm / phiên bản",
+                "Tồn thực tế",
+                "Lần xuất bán gần nhất",
+                "Số ngày không bán",
+              ]}
+              items={data.items}
+              empty="Không có sản phẩm tồn lâu theo ngưỡng này."
+            >
+              {(item) => (
+                <tr key={item.phien_ban_id}>
+                  <td>
+                    {item.ten_san_pham}
+                    <div className="tq-prod-var">{item.ten_phien_ban}</div>
+                  </td>
+                  <td>{number(item.ton_thuc_te)}</td>
+                  <td>
+                    {item.lan_xuat_ban_gan_nhat
+                      ? formatDateTimeVN(item.lan_xuat_ban_gan_nhat)
+                      : "Chưa có lịch sử xuất bán"}
+                  </td>
+                  <td>{number(item.so_ngay_khong_ban)}</td>
+                </tr>
+              )}
+            </Table>
+            <p className="tq-note tq-scope">
+              Hiển thị {data.items.length} / {number(data.tong_so)} phiên bản.
+            </p>
+          </>
+        )}
+      </Section>
 
       <div className="tq-bottom-grid">
-        <div className="tq-b-card">
-          <div className="tq-card-header" style={{ padding: '0 0 15px 0' }}>
-            <h3 className="tq-card-title">NHẬP HÀNG & NHÀ CUNG CẤP</h3>
-            <a className="tq-card-header-link" onClick={() => navigate('/kho-hang/nhap-hang')}>
-              XEM CHI TIẾT →
-            </a>
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 15, paddingTop: 15 }}>
-            <div>
-              <div className="tq-sub-label">ĐƠN NHẬP CHỜ DUYỆT</div>
-              <div className="tq-sub-val" style={{ fontSize: 16 }}>
-                6
-              </div>
-            </div>
-            <div>
-              <div className="tq-sub-label">CHỜ NHẬP KHO</div>
-              <div className="tq-sub-val" style={{ fontSize: 16 }}>
-                4
-              </div>
-            </div>
-            <div>
-              <div className="tq-sub-label">NHẬP CHƯA ĐỦ</div>
-              <div className="tq-sub-val tq-text-red" style={{ fontSize: 16 }}>
-                3
-              </div>
-            </div>
-            <div>
-              <div className="tq-sub-label">CÒN PHẢI TRẢ NCC</div>
-              <div className="tq-sub-val" style={{ fontSize: 16 }}>
-                286.500.000 đ
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="tq-b-card">
-          <div className="tq-card-header" style={{ padding: '0 0 15px 0' }}>
-            <h3 className="tq-card-title">KHÁCH HÀNG</h3>
-            <a
-              className="tq-card-header-link"
-              onClick={() => navigate('/admin/khach-hang-doi-tac/khach-hang')}
-            >
-              XEM CHI TIẾT →
-            </a>
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 15, paddingTop: 15 }}>
-            <div>
-              <div className="tq-sub-label">TỔNG KHÁCH HÀNG</div>
-              <div className="tq-sub-val" style={{ fontSize: 16 }}>
-                3.842
-              </div>
-            </div>
-            <div>
-              <div className="tq-sub-label">KHÁCH MỚI TRONG KỲ</div>
-              <div className="tq-sub-val" style={{ fontSize: 16 }}>
-                126
-              </div>
-            </div>
-            <div>
-              <div className="tq-sub-label">CÓ MUA HÀNG TRONG KỲ</div>
-              <div className="tq-sub-val" style={{ fontSize: 16 }}>
-                164
-              </div>
-            </div>
-            <div>
-              <div className="tq-sub-label">KHÁCH QUAY LẠI</div>
-              <div className="tq-sub-val" style={{ fontSize: 16 }}>
-                58
-              </div>
-            </div>
-            <div style={{ gridColumn: '1 / span 2', borderTop: '1px solid #eee', paddingTop: 10 }}>
-              <div className="tq-sub-label">KHÁCH HÀNG GIÁ TRỊ CAO NHẤT</div>
-              <div
-                style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
-              >
-                <div className="tq-sub-val">NGUYỄN VĂN AN</div>
-                <div style={{ fontSize: 10, fontWeight: 800 }}>86.500.000 đ - 6 ĐƠN</div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="tq-b-card">
-          <div className="tq-card-header" style={{ padding: '0 0 15px 0' }}>
-            <h3 className="tq-card-title">NHÂN VIÊN</h3>
-            <a
-              className="tq-card-header-link"
-              onClick={() => navigate('/admin/nhan-vien/danh-sach')}
-            >
-              XEM CHI TIẾT →
-            </a>
-          </div>
-          <div style={{ paddingTop: 15 }}>
-            <div className="tq-sub-label">NHÂN VIÊN ĐANG LÀM VIỆC</div>
-            <div className="tq-sub-val" style={{ fontSize: 24 }}>
-              12
-            </div>
-            <div className="tq-sub-label" style={{ textTransform: 'none', marginTop: 5 }}>
-              TÀI KHOẢN HOẠT ĐỘNG - HIỆN TẠI
-            </div>
-          </div>
-        </div>
-
-        <div
-          className="tq-b-card"
-          style={{ gridColumn: '1 / span 2', padding: 0, overflow: 'hidden' }}
+        <Section
+          title="Nhập hàng & nhà cung cấp"
+          note="Giá trị hiện tại"
+          to={PURCHASE_PATH}
+          resource={purchases}
         >
-          <div className="tq-card-header">
-            <h3 className="tq-card-title">SỔ QUỸ & THANH TOÁN</h3>
-            <a
-              className="tq-card-header-link"
-              onClick={() => navigate('/admin/so-quy-tien-mat/tong-quan')}
-            >
-              XEM CHI TIẾT →
-            </a>
-          </div>
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(4, 1fr)',
-              padding: '15px 0',
-              borderBottom: '1px solid #eee',
-            }}
-          >
-            <div style={{ padding: '0 20px', borderRight: '1px solid #eee' }}>
-              <div className="tq-sub-label">SỐ DƯ QUỸ</div>
-              <div className="tq-sub-val" style={{ fontSize: 16 }}>
-                847.250.000 đ
+          {(data) => (
+            <>
+              <div className="tq-kpi-sub-grid">
+                <Stat label="Đơn nhập chờ duyệt" value={data.cho_duyet} />
+                <Stat label="Chờ nhập kho" value={data.cho_nhap_kho} />
+                <Stat label="Nhập chưa đủ" value={data.nhap_chua_du} />
+                <Stat label="Đơn chưa trả" value={data.don_chua_tra} />
+                <Stat label="Đơn trả một phần" value={data.don_tra_mot_phan} />
               </div>
-              <div className="tq-sub-label" style={{ textTransform: 'none', marginTop: 3 }}>
-                HIỆN TẠI
+              <p className="tq-note tq-scope">
+                Số tiền công nợ chính xác chưa có hệ thống hỗ trợ.
+              </p>
+            </>
+          )}
+        </Section>
+        <Section
+          title="Khách hàng"
+          note="Theo khoảng ngày/kênh đang chọn, trừ các giá trị ghi rõ phạm vi"
+          to={CUSTOMER_PATH}
+          resource={customers}
+        >
+          {(data) => (
+            <>
+              <div className="tq-kpi-sub-grid">
+                <Stat
+                  label="Tổng khách hàng"
+                  value={data.tong_khach_hang_hien_tai}
+                  note="Hiện tại · toàn cửa hàng"
+                />
+                <Stat
+                  label="Khách mới trong kỳ"
+                  value={data.khach_moi_trong_ky}
+                  note="Toàn cửa hàng · không lọc theo kênh"
+                />
+                <Stat
+                  label="Có mua trong kỳ"
+                  value={data.khach_co_mua_trong_ky}
+                />
+                <Stat
+                  label="Khách quay lại"
+                  value={data.khach_quay_lai}
+                  note="Có từ 2 đơn hợp lệ trong lịch sử đến cuối kỳ"
+                />
+                <Stat label="Số đơn khách lẻ" value={data.so_don_khach_le} />
               </div>
-            </div>
-            <div style={{ padding: '0 20px', borderRight: '1px solid #eee' }}>
-              <div className="tq-sub-label">TỔNG THU TRONG KỲ</div>
-              <div className="tq-sub-val" style={{ fontSize: 16 }}>
-                397.800.000 đ
+              <div className="tq-scope">
+                <h3 className="tq-sub-label">
+                  Khách giá trị cao nhất trong kỳ
+                </h3>
+                {data.khach_gia_tri_cao_nhat ? (
+                  <Link
+                    to={`${CUSTOMER_PATH}/${data.khach_gia_tri_cao_nhat.khach_hang_id}`}
+                  >
+                    {data.khach_gia_tri_cao_nhat.ho_ten} ·{" "}
+                    {money(data.khach_gia_tri_cao_nhat.gia_tri_mua_thuan)} ·{" "}
+                    {number(data.khach_gia_tri_cao_nhat.so_don)} đơn
+                  </Link>
+                ) : data.khach_co_mua_trong_ky > 0 ? (
+                  "Chưa đủ căn cứ để xếp hạng giá trị mua."
+                ) : (
+                  "Không có khách mua hàng đủ điều kiện trong kỳ."
+                )}
               </div>
-            </div>
-            <div style={{ padding: '0 20px', borderRight: '1px solid #eee' }}>
-              <div className="tq-sub-label">TỔNG CHI TRONG KỲ</div>
-              <div className="tq-sub-val" style={{ fontSize: 16 }}>
-                241.600.000 đ
-              </div>
-            </div>
-            <div style={{ padding: '0 20px' }}>
-              <div className="tq-sub-label">CHÊNH LỆCH THU - CHI</div>
-              <div className="tq-sub-val" style={{ fontSize: 16 }}>
-                156.200.000 đ
-              </div>
-            </div>
-          </div>
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: '1fr 1fr',
-              padding: '15px 0',
-              borderBottom: '1px solid #eee',
-            }}
-          >
-            <div
-              style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                padding: '0 20px',
-                borderRight: '1px solid #eee',
-              }}
-            >
-              <span className="tq-sub-label">TIỀN MẶT</span>
-              <span className="tq-sub-val">128.400.000 đ</span>
-            </div>
-            <div
-              style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                padding: '0 20px',
-              }}
-            >
-              <span className="tq-sub-label">CHUYỂN KHOẢN</span>
-              <span className="tq-sub-val">269.400.000 đ</span>
-            </div>
-          </div>
-          <div style={{ padding: '20px', height: 120 }}>
-            <MockBarChart />
-          </div>
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: '1fr 1fr',
-              background: '#f5f5f5',
-              padding: '15px 0',
-            }}
-          >
-            <div style={{ padding: '0 20px', borderRight: '1px solid #ddd' }}>
-              <div className="tq-sub-label" style={{ color: '#111', fontWeight: 900 }}>
-                CHƯA THU TỪ ĐƠN HÀNG
-              </div>
-              <div className="tq-sub-val" style={{ fontSize: 16 }}>
-                74.200.000 đ
-              </div>
-            </div>
-            <div style={{ padding: '0 20px' }}>
-              <div className="tq-sub-label" style={{ color: '#111', fontWeight: 900 }}>
-                COD CHỜ ĐỐI SOÁT
-              </div>
-              <div className="tq-sub-val" style={{ fontSize: 16 }}>
-                51.800.000 đ
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="tq-b-card">
-          <div className="tq-card-header" style={{ padding: '0 0 15px 0' }}>
-            <h3 className="tq-card-title">BẢO HÀNH & TRẢ HÀNG</h3>
-          </div>
-          <div style={{ paddingTop: 15 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 10 }}>
-              <span className="tq-sub-label">CHỜ TIẾP NHẬN</span>
-              <span className="tq-sub-val">5</span>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 10 }}>
-              <span className="tq-sub-label">ĐANG XỬ LÝ</span>
-              <span className="tq-sub-val">12</span>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 15 }}>
-              <span className="tq-sub-label">HOÀN TẤT</span>
-              <span className="tq-sub-val">38</span>
-            </div>
-            <div style={{ borderTop: '1px solid #eee', paddingTop: 15 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 10 }}>
-                <span className="tq-sub-label">YÊU CẦU TRẢ HÀNG</span>
-                <span className="tq-sub-val">5</span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 10 }}>
-                <span className="tq-sub-label">CHỜ NHẬN HÀNG TRẢ</span>
-                <span className="tq-sub-val">3</span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span className="tq-sub-label">CHỜ HOÀN TIỀN</span>
-                <span className="tq-sub-val">4</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="tq-b-card" style={{ display: 'flex', flexDirection: 'column' }}>
-          <div className="tq-card-header" style={{ padding: '0 0 15px 0' }}>
-            <h3 className="tq-card-title">KHUYẾN MẠI</h3>
-            <a
-              className="tq-card-header-link"
-              onClick={() => navigate('/admin/khuyen-mai/danh-sach-khuyen-mai')}
-            >
-              XEM CHI TIẾT →
-            </a>
-          </div>
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: '1fr 1fr',
-              gap: 15,
-              paddingTop: 15,
-              flex: 1,
-            }}
-          >
-            <div>
-              <div className="tq-sub-label">ĐANG ÁP DỤNG</div>
-              <div className="tq-sub-val" style={{ fontSize: 16 }}>
-                8
-              </div>
-            </div>
-            <div>
-              <div className="tq-sub-label">SẮP BẮT ĐẦU</div>
-              <div className="tq-sub-val" style={{ fontSize: 16 }}>
-                3
-              </div>
-            </div>
-            <div>
-              <div className="tq-sub-label">SẮP KẾT THÚC</div>
-              <div className="tq-sub-val tq-text-red" style={{ fontSize: 16 }}>
-                2
-              </div>
-            </div>
-            <div>
-              <div className="tq-sub-label">ĐƠN SỬ DỤNG KM</div>
-              <div className="tq-sub-val" style={{ fontSize: 16 }}>
-                64
-              </div>
-            </div>
-          </div>
-          <div
-            style={{
-              background: '#000',
-              color: '#fff',
-              padding: '15px 20px',
-              margin: '0 -20px -15px -20px',
-            }}
-          >
-            <div className="tq-sub-label" style={{ color: '#aaa' }}>
-              TỔNG GIÁ TRỊ GIẢM GIÁ
-            </div>
-            <div className="tq-sub-val" style={{ color: '#fff', fontSize: 18 }}>
-              25.700.000 đ
-            </div>
-          </div>
-        </div>
+            </>
+          )}
+        </Section>
+        <Section
+          title="Nhân viên"
+          note="Hiện tại · toàn cửa hàng"
+          to="/admin/nhan-vien/danh-sach"
+          resource={summary}
+        >
+          {(data) => (
+            <Stat
+              label="Nhân viên đang hoạt động"
+              value={data.hien_tai.nhan_vien_dang_hoat_dong}
+              note="Tài khoản hoạt động; không phải số nhân viên theo ca."
+            />
+          )}
+        </Section>
       </div>
 
-      <div className="tq-quick-access">
-        <h3 className="tq-qa-title">TRUY CẬP NHANH</h3>
+      <section className="tq-card" aria-label="Sổ quỹ & thanh toán">
+        <div className="tq-card-header">
+          <div>
+            <h2 className="tq-card-title">Sổ quỹ & thanh toán</h2>
+            <p className="tq-note">
+              Quỹ toàn cửa hàng · chỉ phiếu đã ghi nhận · ngày tiền là ngày ghi
+              nhận
+            </p>
+          </div>
+          <Link className="tq-card-header-link" to={cashTo}>
+            Xem Sổ quỹ →
+          </Link>
+        </div>
+        <CashFilters
+          draft={cashDraft}
+          onChange={(key, value) =>
+            setCashDraft({ ...cashDraft, [key]: value })
+          }
+          onApply={applyCash}
+          error={cashError}
+          busy={cash.loading}
+        />
+        <Content resource={cash}>
+          {(data) => (
+            <>
+              <div className="tq-kpi-sub-grid">
+                <Stat label="Số dư đầu kỳ" value={data.so_du_dau_ky} currency />
+                <Stat
+                  label="Tổng thu trong kỳ"
+                  value={data.tong_thu}
+                  currency
+                />
+                <Stat
+                  label="Tổng chi trong kỳ"
+                  value={data.tong_chi}
+                  currency
+                />
+                <Stat label="Số dư cuối kỳ" value={data.ton_quy} currency />
+              </div>
+              <p className="tq-note tq-scope">
+                {date(data.bo_loc.tu_ngay)} – {date(data.bo_loc.den_ngay)} · Đầu
+                kỳ + thu − chi = cuối kỳ. Thu không đồng nghĩa doanh thu; COD
+                chưa nộp không vào quỹ.
+              </p>
+              <div className="tq-scope">
+                <button
+                  className="btn-black-outline"
+                  disabled={Boolean(exporting)}
+                  onClick={() => exportFile("cash")}
+                >
+                  {exporting === "cash"
+                    ? "Đang xuất…"
+                    : "Xuất Excel Sổ quỹ theo bộ lọc riêng"}
+                </button>
+              </div>
+            </>
+          )}
+        </Content>
+        <div className="tq-card-header">
+          <h3 className="tq-card-title">Thanh toán toàn cửa hàng</h3>
+        </div>
+        <Content resource={cashflow}>
+          {(data) => (
+            <>
+              <p className="tq-note tq-scope">
+                Phần này dùng khoảng ngày chung; bộ lọc riêng Sổ quỹ không áp
+                dụng. Tiền đơn chưa thu/COD là hiện tại, theo kênh đang chọn.
+              </p>
+              <div className="tq-kpi-sub-grid">
+                <Stat
+                  label="Số dư quỹ hiện tại"
+                  value={data.so_du_quy_hien_tai}
+                  currency
+                />
+                <Stat
+                  label="Chênh lệch thu − chi trong kỳ"
+                  value={data.trong_ky.chenh_lech}
+                  currency
+                />
+                {data.thu_theo_phuong_thuc.map((item) => (
+                  <Stat
+                    key={item.phuong_thuc}
+                    label={`Thu trong kỳ · ${STATUS[item.phuong_thuc] || "Phương thức khác"}`}
+                    value={item.so_tien}
+                    currency
+                  />
+                ))}
+                <Stat
+                  label="Giá trị đơn chưa thanh toán"
+                  value={data.don_hang_hien_tai.gia_tri_chua_thanh_toan}
+                  currency
+                  note="Hiện tại · chưa phải tiền đã vào quỹ"
+                />
+                <Stat
+                  label="COD đang vận chuyển"
+                  value={data.don_hang_hien_tai.cod_dang_van_chuyen}
+                  currency
+                  note="Hiện tại · chưa phải tiền đã vào quỹ"
+                />
+              </div>
+
+              <DashboardCashBreakdown
+                data={data.trong_ky.phan_tich_bao_hanh_tra_hang}
+                from={filters.tu_ngay}
+                to={filters.den_ngay}
+              />
+
+              <details className="tq-scope">
+                <summary>Dòng tiền trong kỳ</summary>
+                <Table
+                  headers={["Từ ngày", "Đến ngày", "Tổng thu", "Tổng chi"]}
+                  items={data.bieu_do}
+                  empty="Không có dữ liệu dòng tiền."
+                >
+                  {(item) => (
+                    <tr key={item.tu_ngay}>
+                      <td>{date(item.tu_ngay)}</td>
+                      <td>{date(item.den_ngay)}</td>
+                      <td>{money(item.tong_thu)}</td>
+                      <td>{money(item.tong_chi)}</td>
+                    </tr>
+                  )}
+                </Table>
+              </details>
+            </>
+          )}
+        </Content>
+        <p className="tq-note tq-scope">
+          Excel Tổng quát dùng bộ lọc thời gian/kênh và số dư quỹ hiện tại. Để
+          xuất bốn số quỹ và bộ lọc riêng, chọn Xuất Excel Sổ quỹ.
+        </p>
+      </section>
+      <div className="tq-2col-equal">
+        <Section
+          title="Bảo hành & trả hàng"
+          note={currentNote}
+          resource={afterSales}
+        >
+          {(data) => <DashboardAfterSales data={data} />}
+        </Section>
+
+        <Section
+          title="Khuyến mại"
+          note="Hiện tại và nhóm đơn chốt ưu đãi trong kỳ"
+          to="/admin/khuyen-mai/danh-sach-khuyen-mai"
+          resource={promotions}
+        >
+          {(data) => <DashboardPromotions data={data} />}
+        </Section>
+      </div>
+      <nav className="tq-quick-access" aria-label="Truy cập nhanh">
+        <h2 className="tq-qa-title">Truy cập nhanh</h2>
         <div className="tq-qa-links">
-          <a className="tq-qa-link" onClick={() => navigate('/admin/don-hang/tao-don-hang')}>
-            TẠO ĐƠN ONLINE
-          </a>
-          <a className="tq-qa-link" onClick={() => navigate('/kho-hang/nhap-hang/tao-moi')}>
-            TẠO ĐƠN NHẬP
-          </a>
-          <a
+          <Link className="tq-qa-link" to="/admin/don-hang/dat-hang-online">
+            Tạo đơn Online →
+          </Link>
+          <Link className="tq-qa-link" to={`${PURCHASE_PATH}/tao-moi`}>
+            Tạo đơn nhập →
+          </Link>
+          <Link
             className="tq-qa-link"
-            onClick={() => navigate('/admin/so-quy-tien-mat/tao-phieu-thu')}
+            to="/admin/so-quy-tien-mat/tao-phieu-thu"
           >
-            TẠO PHIẾU THU
-          </a>
-          <a
+            Tạo phiếu thu →
+          </Link>
+          <Link
             className="tq-qa-link"
-            onClick={() => navigate('/admin/so-quy-tien-mat/tao-phieu-chi')}
+            to="/admin/so-quy-tien-mat/tao-phieu-chi"
           >
-            TẠO PHIẾU CHI
-          </a>
+            Tạo phiếu chi →
+          </Link>
         </div>
-      </div>
-    </div>
+      </nav>
+    </main>
   );
-};
+}
 
-export default TongQuat;
+function DashboardAfterSales({ data }) {
+  const warrantyLabels = {
+    TIEP_NHAN: "Tiếp nhận",
+    DANG_KIEM_TRA: "Đang kiểm tra",
+    DA_GUI_BAO_HANH: "Đã gửi bảo hành",
+    DANG_BAO_HANH: "Đang bảo hành",
+    DA_NHAN_LAI: "Đã nhận lại",
+    CHO_DOI_SAN_PHAM: "Chờ đổi sản phẩm",
+    CHO_TRA_KHACH: "Chờ trả khách",
+    HOAN_TAT: "Hoàn tất",
+  };
+
+  const returnLabels = {
+    CHO_TIEP_NHAN: "Chờ tiếp nhận",
+    DA_NHAN_HANG: "Đã nhận hàng",
+    HOAN_TAT: "Hoàn tất",
+    CHO_TRA_KHACH: "Chờ trả khách",
+    HUY: "Đã hủy",
+    TU_CHOI: "Từ chối",
+  };
+
+  const finance = data.tai_chinh_bao_hanh || {};
+
+  return (
+    <>
+      <h3 className="tq-v6-subtitle">Bảo hành</h3>
+
+      <div className="tq-kpi-sub-grid">
+        {Object.entries(warrantyLabels).map(([key, label]) => (
+          <Stat
+            key={key}
+            label={label}
+            value={data.bao_hanh?.[key]}
+            to={filteredTo("/admin/bao-hanh", {
+              trang_thai: key,
+            })}
+          />
+        ))}
+      </div>
+
+      <h3 className="tq-v6-subtitle">Nghĩa vụ tài chính bảo hành</h3>
+
+      <p className="tq-note tq-scope">
+        Các nhóm có thể trùng phiếu. Nghĩa vụ còn mở vẫn được hiển thị khi phiếu
+        xử lý đã hoàn tất.
+      </p>
+
+      <div className="tq-kpi-sub-grid">
+        <Stat
+          label="Báo giá chờ phản hồi"
+          value={finance.bao_gia_cho_phan_hoi}
+        />
+
+        <Stat
+          label="Hóa đơn còn phải thu"
+          value={finance.hoa_don_con_phai_thu}
+        />
+
+        <Stat
+          label="Tiền còn phải thu"
+          value={finance.tong_con_phai_thu}
+          currency
+        />
+
+        <Stat label="Phiếu còn phải hoàn" value={finance.phieu_con_phai_hoan} />
+
+        <Stat
+          label="Tiền còn phải hoàn"
+          value={finance.tong_con_phai_hoan}
+          currency
+        />
+
+        <Stat
+          label="Phiếu còn nghĩa vụ NCC"
+          value={finance.phieu_con_nghia_vu_ncc}
+        />
+      </div>
+
+      <h3 className="tq-v6-subtitle">Trả hàng</h3>
+
+      <div className="tq-kpi-sub-grid">
+        {Object.entries(returnLabels).map(([key, label]) => (
+          <Stat
+            key={key}
+            label={label}
+            value={data.tra_hang?.[key]}
+            to={returnTo(key)}
+          />
+        ))}
+
+        <Stat
+          label="Chờ hoàn tiền"
+          value={data.tra_hang?.cho_hoan_tien}
+          to={returnTo("CHO_HOAN_TIEN")}
+        />
+
+        <Stat
+          label="Giá trị chờ hoàn tiền"
+          value={data.tra_hang?.gia_tri_cho_hoan_tien}
+          currency
+        />
+      </div>
+    </>
+  );
+}
+
+function DashboardPromotions({ data }) {
+  return (
+    <>
+      <h3 className="tq-v6-subtitle">Hiện tại · toàn cửa hàng</h3>
+
+      <div className="tq-kpi-sub-grid">
+        <Stat
+          label="Trong thời gian áp dụng"
+          value={data.dang_trong_thoi_gian_ap_dung}
+        />
+
+        <Stat
+          label="Còn lượt áp dụng"
+          value={data.con_luot_ap_dung}
+          note="Đã tính cả lượt đang giữ"
+        />
+
+        <Stat
+          label="Sắp bắt đầu"
+          value={data.sap_bat_dau}
+          note="Trong 7 ngày tới"
+        />
+
+        <Stat
+          label="Sắp kết thúc"
+          value={data.sap_ket_thuc}
+          note="Trong 7 ngày tới"
+        />
+
+        <Stat
+          label="Lượt đã dùng lũy kế"
+          value={data.tong_luot_da_dung_luy_ke}
+        />
+
+        <Stat label="Lượt đang giữ" value={data.tong_luot_dang_giu_hien_tai} />
+
+        <Stat
+          label="Lượt đã giải phóng"
+          value={data.tong_luot_da_giai_phong_hien_tai}
+        />
+      </div>
+
+      <h3 className="tq-v6-subtitle">Nhóm đơn chốt ưu đãi trong kỳ</h3>
+
+      <p className="tq-note tq-scope">
+        {date(data.bo_loc?.tu_ngay)}
+        {" – "}
+        {date(data.bo_loc?.den_ngay)}
+        {" · "}
+        {CHANNELS[data.bo_loc?.kenh_ban] || "Tất cả"}. Nhóm theo ngày chốt ưu
+        đãi và xét trạng thái hiện tại.
+      </p>
+
+      <div className="tq-kpi-sub-grid">
+        <Stat
+          label="Đơn đã sử dụng ưu đãi"
+          value={data.so_don_su_dung_trong_ky}
+        />
+
+        <Stat
+          label="Giảm giá đã chốt"
+          value={data.gia_tri_giam_theo_chuong_trinh_trong_ky}
+          currency
+        />
+
+        <Stat
+          label="Quà đã giao"
+          value={data.so_qua_da_giao_cua_don_chot_trong_ky}
+        />
+      </div>
+    </>
+  );
+}
+
+function DashboardWarrantyWork({ data = {} }) {
+  const fields = {
+    tong_phieu_chua_hoan_tat: "Phiếu bảo hành chưa hoàn tất",
+    cho_doi_san_pham: "Chờ đổi sản phẩm",
+    cho_tra_khach: "Chờ trả khách",
+    bao_gia_cho_phan_hoi: "Báo giá chờ phản hồi",
+    hoa_don_con_phai_thu: "Hóa đơn còn phải thu",
+    phieu_con_phai_hoan_tien: "Phiếu còn phải hoàn tiền",
+    phieu_con_nghia_vu_ncc: "Phiếu còn nghĩa vụ NCC",
+  };
+
+  return (
+    <>
+      <h3 className="tq-v6-subtitle">Việc bảo hành cần theo dõi</h3>
+
+      <div className="tq-kpi-sub-grid">
+        {Object.entries(fields).map(([key, label]) => (
+          <Stat key={key} label={label} value={data[key]} />
+        ))}
+      </div>
+
+      <p className="tq-note tq-scope">
+        Các nhóm có thể cùng nằm trên một phiếu.
+      </p>
+    </>
+  );
+}
+
+function DashboardCashBreakdown({ data = {}, from, to }) {
+  const fields = {
+    thu_khach_bao_hanh: "Thu khách bảo hành",
+    hoan_khach_bao_hanh: "Hoàn khách bảo hành",
+    chi_don_vi_bao_hanh: "Chi đơn vị bảo hành",
+    thu_hoan_don_vi_bao_hanh: "Nhận đơn vị bảo hành hoàn",
+    hoan_tien_tra_hang: "Hoàn tiền trả hàng",
+  };
+
+  return (
+    <>
+      <h3 className="tq-v6-subtitle">Phân tích tiền hậu mãi trong kỳ</h3>
+
+      <p className="tq-note tq-scope">
+        Các khoản dưới đây đã nằm trong tổng thu/chi, không cộng thêm lần nữa.
+      </p>
+
+      <div className="tq-kpi-sub-grid">
+        {Object.entries(fields).map(([key, label]) => (
+          <Stat
+            key={key}
+            label={label}
+            value={data[key]}
+            currency
+            to={filteredTo(CASH_PATH, {
+              tu_ngay: from,
+              den_ngay: to,
+              nghiep_vu_nguon: key.toUpperCase(),
+            })}
+          />
+        ))}
+      </div>
+    </>
+  );
+}

@@ -144,6 +144,10 @@ public class AdminReceiptService {
                       payerPageable(pageNumber, pageSize, "tenDoiTac"))
                   .map(this::toPayerSuggestion);
           case KHAC -> Page.empty(PageRequest.of(pageNumber, pageSize));
+          case HE_THONG_TU_DONG ->
+              throw new AppException(
+                  ErrorCode.INVALID_RECEIPT_PAYER_SEARCH,
+                  "Nhóm HE_THONG_TU_DONG không dùng để chọn người nộp/nhận cho phiếu thủ công.");
         };
 
     return PayerSuggestionListResponse.builder()
@@ -296,6 +300,24 @@ public class AdminReceiptService {
   }
 
   @Transactional
+  public AdminReceiptCancelResponse cancelReceipt(
+      String rawId, AdminReceiptCancelRequest request, NguoiDung actor, String requestKey) {
+
+    Long id = parseReceiptId(rawId);
+
+    if (request == null || !Boolean.TRUE.equals(request.getXacNhan())) {
+      throw new AppException(ErrorCode.INVALID_RECEIPT_CANCEL_CONFIRMATION);
+    }
+
+    return cashbookService.executeOnce(
+        CashbookService.uuidKey("PT-CAN-", requestKey),
+        actor,
+        java.util.List.of(id, request),
+        AdminReceiptCancelResponse.class,
+        () -> cancelReceipt(rawId, request));
+  }
+
+  @Transactional
   public AdminReceiptCancelResponse cancelReceipt(String rawId, AdminReceiptCancelRequest request) {
     Long id = parseReceiptId(rawId);
 
@@ -308,7 +330,7 @@ public class AdminReceiptService {
             .findByIdAndLoaiPhieuForUpdate(id, LoaiPhieuThuChi.THU)
             .orElseThrow(() -> new AppException(ErrorCode.RECEIPT_CANCEL_NOT_FOUND));
 
-    if (receipt.getNguonTao() == NguonTaoPhieuThuChi.TU_DONG) {
+    if (CashbookService.protectedVoucher(receipt)) {
       throw new AppException(ErrorCode.AUTOMATIC_RECEIPT_CANNOT_BE_CANCELLED);
     }
 

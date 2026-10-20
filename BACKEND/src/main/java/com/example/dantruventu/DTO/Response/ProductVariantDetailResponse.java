@@ -1,5 +1,6 @@
 package com.example.dantruventu.DTO.Response;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import java.math.BigDecimal;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -21,7 +22,19 @@ public class ProductVariantDetailResponse {
   private BigDecimal giaBanLe;
   private BigDecimal khoiLuong;
   private Short trangThai;
+
+  @JsonInclude(JsonInclude.Include.ALWAYS)
   private Long tonThucTe;
+
+  @JsonInclude(JsonInclude.Include.ALWAYS)
   private Long tonCoTheBan;
+
   private Boolean conHang;
+
+  @JsonInclude(JsonInclude.Include.ALWAYS)
+  private Long soBoCoTheLap;
+
+  private Boolean coTheBan;
+
+  private String lyDoChuaTheBan;
 }

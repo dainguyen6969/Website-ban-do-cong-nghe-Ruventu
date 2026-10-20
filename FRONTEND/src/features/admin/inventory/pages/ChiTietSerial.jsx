@@ -1,14 +1,14 @@
-// Admin inventory screen: ChiTietSerial.
-import { useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
-import { HiOutlineArrowLeft, HiOutlinePencilAlt, HiX } from 'react-icons/hi';
+import { useEffect, useRef, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import { HiOutlineArrowLeft, HiOutlinePencilAlt, HiX } from "react-icons/hi";
 import {
   getSerialDetail,
   nextWarehouseStatus,
   SERIAL_STATUS_META,
   updateSerialStatus,
-} from '../api/serialApi';
-import './SerialPages.css';
+} from "../api/serialApi";
+import { withIdempotency } from "../../../../shared/services/mutationUtils";
+import "./SerialPages.css";
 
 function StatusBadge({ status }) {
   const meta = SERIAL_STATUS_META[status];
@@ -23,22 +23,26 @@ function StatusBadge({ status }) {
 export default function ChiTietSerial() {
   const { serialId } = useParams();
   const navigate = useNavigate();
+
+  const statusBusy = useRef(false);
+  const statusAttempt = useRef(null);
+
   const [serial, setSerial] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
-  const [reason, setReason] = useState('');
+  const [reason, setReason] = useState("");
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     const controller = new AbortController();
     setLoading(true);
-    setError('');
+    setError("");
     getSerialDetail(serialId, controller.signal)
       .then(setSerial)
       .catch((cause) => {
-        if (cause.name !== 'AbortError')
-          setError(cause.message || 'Không thể tải chi tiết serial.');
+        if (cause.name !== "AbortError")
+          setError(cause.message || "Không thể tải chi tiết serial.");
       })
       .finally(() => {
         if (!controller.signal.aborted) setLoading(false);
@@ -49,18 +53,22 @@ export default function ChiTietSerial() {
   useEffect(() => {
     if (!modalOpen) return undefined;
     const closeOnEscape = (event) => {
-      if (event.key === 'Escape') setModalOpen(false);
+      if (event.key === "Escape") setModalOpen(false);
     };
-    document.addEventListener('keydown', closeOnEscape);
-    return () => document.removeEventListener('keydown', closeOnEscape);
+    document.addEventListener("keydown", closeOnEscape);
+    return () => document.removeEventListener("keydown", closeOnEscape);
   }, [modalOpen]);
 
-  if (loading || error || !serial) {
+  if (loading || !serial) {
     return (
       <main className="serial-page">
         <div className="serial-not-found">
-          <h1>{loading ? 'ĐANG TẢI SERIAL...' : error || 'SERIAL KHÔNG TỒN TẠI'}</h1>
-          <button onClick={() => navigate('/kho-hang/danh-sach-serial')}>← QUAY LẠI</button>
+          <h1>
+            {loading ? "ĐANG TẢI SERIAL..." : error || "SERIAL KHÔNG TỒN TẠI"}
+          </h1>
+          <button onClick={() => navigate("/kho-hang/danh-sach-serial")}>
+            ← QUAY LẠI
+          </button>
         </div>
       </main>
     );
@@ -71,21 +79,43 @@ export default function ChiTietSerial() {
   const canEdit = Boolean(nextStatus);
   const nextMeta = nextStatus ? SERIAL_STATUS_META[nextStatus] : null;
   const openModal = () => {
-    setReason('');
-    setError('');
+    if (!statusAttempt.current) {
+      setReason("");
+    }
+
+    setError("");
     setModalOpen(true);
   };
   const saveStatus = async () => {
-    if (!canEdit || !reason.trim()) return;
+    if (statusBusy.current || !canEdit || !reason.trim()) {
+      return;
+    }
+
+    statusBusy.current = true;
     setSaving(true);
-    setError('');
+    setError("");
+
     try {
-      await updateSerialStatus(serial.id, nextStatus, reason);
-      setSerial((current) => ({ ...current, status: nextStatus }));
+      const result = await withIdempotency(
+        statusAttempt,
+        `serial:${serial.id}:status`,
+        {
+          trang_thai: nextStatus,
+          ly_do: reason.trim(),
+        },
+        (key, body) => updateSerialStatus(serial.id, key, body),
+      );
+
+      setSerial((current) => ({
+        ...current,
+        status: result.trang_thai,
+      }));
+
       setModalOpen(false);
     } catch (cause) {
-      setError(cause.message || 'Không thể cập nhật trạng thái serial.');
+      setError(cause.message || "Không thể cập nhật trạng thái serial.");
     } finally {
+      statusBusy.current = false;
       setSaving(false);
     }
   };
@@ -93,7 +123,10 @@ export default function ChiTietSerial() {
   return (
     <main className="serial-page" role="main">
       <div className="serial-page__inner">
-        <nav className="serial-secondary-breadcrumb" aria-label="Breadcrumb nội dung">
+        <nav
+          className="serial-secondary-breadcrumb"
+          aria-label="Breadcrumb nội dung"
+        >
           <span>Sản phẩm</span>
           <span>›</span>
           <span>Quản lý kho</span>
@@ -111,7 +144,7 @@ export default function ChiTietSerial() {
             <button
               type="button"
               className="serial-back"
-              onClick={() => navigate('/kho-hang/danh-sach-serial')}
+              onClick={() => navigate("/kho-hang/danh-sach-serial")}
             >
               <HiOutlineArrowLeft /> QUAY LẠI
             </button>
@@ -130,7 +163,7 @@ export default function ChiTietSerial() {
         <div className={`serial-banner serial-banner--${meta.key}`}>
           <span className="serial-banner__square" aria-hidden="true" />
           <div>
-            <strong>{meta.label.toLocaleUpperCase('vi')}</strong>
+            <strong>{meta.label.toLocaleUpperCase("vi")}</strong>
             <p>{meta.description}</p>
           </div>
         </div>
@@ -175,7 +208,9 @@ export default function ChiTietSerial() {
                 </div>
                 <div>
                   <dt>Mã vạch/SKU</dt>
-                  <dd className={`serial-status-text--${meta.key}`}>{serial.barcode}</dd>
+                  <dd className={`serial-status-text--${meta.key}`}>
+                    {serial.barcode}
+                  </dd>
                 </div>
                 <div>
                   <dt>ID phiên bản</dt>
@@ -199,8 +234,8 @@ export default function ChiTietSerial() {
             <section className="serial-note">
               <h2>GHI CHÚ HỆ THỐNG</h2>
               <p>
-                Dữ liệu Serial là hồ sơ lưu trữ vĩnh viễn. Chỉ serial trong kho hoặc lỗi mới được
-                chuyển đổi trạng thái tại đây.
+                Dữ liệu Serial là hồ sơ lưu trữ vĩnh viễn. Chỉ serial trong kho
+                hoặc lỗi mới được chuyển đổi trạng thái tại đây.
               </p>
             </section>
           </aside>
@@ -214,7 +249,11 @@ export default function ChiTietSerial() {
             if (event.target === event.currentTarget) setModalOpen(false);
           }}
         >
-          <section role="dialog" aria-modal="true" aria-labelledby="status-modal-title">
+          <section
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="status-modal-title"
+          >
             <header>
               <div>
                 <span aria-hidden="true" />
@@ -223,7 +262,11 @@ export default function ChiTietSerial() {
                   <p>{serial.serial}</p>
                 </div>
               </div>
-              <button type="button" onClick={() => setModalOpen(false)} aria-label="Đóng">
+              <button
+                type="button"
+                onClick={() => setModalOpen(false)}
+                aria-label="Đóng"
+              >
                 <HiX size={21} />
               </button>
             </header>
@@ -239,6 +282,7 @@ export default function ChiTietSerial() {
               </select>
               <label htmlFor="serial-status-reason">Lý do</label>
               <input
+                disabled={saving || statusAttempt.current !== null}
                 id="serial-status-reason"
                 value={reason}
                 maxLength="150"
@@ -260,7 +304,7 @@ export default function ChiTietSerial() {
                 disabled={saving || !reason.trim()}
                 onClick={saveStatus}
               >
-                {saving ? 'ĐANG LƯU...' : 'LƯU TRẠNG THÁI'}
+                {saving ? "ĐANG LƯU..." : "LƯU TRẠNG THÁI"}
               </button>
             </footer>
           </section>

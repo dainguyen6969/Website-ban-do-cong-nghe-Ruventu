@@ -48,6 +48,18 @@
   color: #666;
 }
 
+.selected-variant-name {
+  margin: 0 0 12px;
+  color: #555;
+  font-size: 13px;
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+}
+
 .sku-label {
   text-transform: uppercase;
 }
@@ -320,4 +332,21 @@
 
 .qty-input:disabled {
   color: #999;
+}
+
+.stock-status-box .stock-dot--muted {
+  background-color: #666;
+}
+
+.stock-status-box .stock-in-cart {
+  margin-left: 8px;
+  color: #ffb3b3;
+  font-size: 11px;
+}
+
+.purchase-stock-message {
+  margin: 8px 0 16px;
+  color: #666;
+  font-size: 12px;
+  line-height: 1.5;
 }

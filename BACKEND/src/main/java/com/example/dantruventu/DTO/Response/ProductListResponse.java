@@ -1,5 +1,7 @@
 package com.example.dantruventu.DTO.Response;
 
+import com.example.dantruventu.DTO.catalog.CatalogFields;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -55,9 +57,17 @@ public class ProductListResponse {
 
     private BigDecimal giaCaoNhat;
 
+    @JsonInclude(JsonInclude.Include.ALWAYS)
     private Long tonKhoKhaDung;
 
+    @JsonInclude(JsonInclude.Include.ALWAYS)
+    private Long soBoCoTheLap;
+
     private Boolean conHang;
+
+    private Boolean coTheBan;
+
+    @Builder.Default private List<CatalogFields.ComboPart> thanhPhan = List.of();
 
     private LocalDateTime ngayTao;
   }

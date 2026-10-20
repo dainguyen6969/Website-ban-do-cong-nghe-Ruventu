@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import './HeroBanner.css';
 
 const HeroBanner = () => {
@@ -7,78 +8,53 @@ const HeroBanner = () => {
       <div className="hero-grid">
         {/* Main Banner */}
         <div className="main-banner">
-          <img
-            src="https://images.unsplash.com/photo-1587202372634-32705e3bf49c?auto=format&fit=crop&q=80&w=1200&h=600"
-            alt="PC Gaming"
-            className="banner-img"
-          />
+          <img src="https://images.unsplash.com/photo-1587202372634-32705e3bf49c?auto=format&fit=crop&q=80&w=1200&h=600" alt="PC Gaming" className="banner-img" />
           <div className="banner-overlay"></div>
           <div className="banner-content">
             <div className="badge-container">
-              <span className="badge new-badge">
-                <span className="play-icon">▶</span> NEW SEASON
-              </span>
+              <span className="badge new-badge"><span className="play-icon">▶</span> NEW SEASON</span>
               <span className="badge date-badge">THU - ĐÔNG 2025</span>
             </div>
             <h1 className="hero-title">
-              DOMINATE
-              <br />
-              <span className="text-red">EVERY</span>
-              <br />
+              DOMINATE<br />
+              <span className="text-red">EVERY</span><br />
               BATTLEFIELD
             </h1>
-            <p className="hero-desc">
-              PC Gaming chuyên dụng, linh kiện cao cấp chính hãng. Bảo hành 36 tháng. Giao hàng toàn
-              quốc.
-            </p>
+            <p className="hero-desc">PC Gaming chuyên dụng, linh kiện cao cấp chính hãng. Bảo hành 36 tháng. Giao hàng toàn quốc.</p>
             <div className="hero-actions">
-              <button className="btn-primary">XEM PC BUILD SẴN</button>
-              <button className="btn-outline">MUA LINH KIỆN</button>
+              <a className="hero-button hero-button--primary" href="#pc-build-san">XEM PC BUILD SẴN</a>
+              <Link className="hero-button hero-button--outline" to="/category/linh-kien">MUA LINH KIỆN</Link>
             </div>
           </div>
         </div>
 
         {/* Side Banners */}
         <div className="side-banners">
-          <div className="side-banner">
-            <img
-              src="https://images.unsplash.com/photo-1587202372775-e229f172b9d7?auto=format&fit=crop&q=80&w=600&h=300"
-              alt="RTX 4090"
-              className="banner-img"
-            />
-            <div className="banner-overlay"></div>
+          <Link className="side-banner" to="/search?q=RTX%204090" aria-label="Xem sản phẩm RTX 4090">
+            <img src="https://images.unsplash.com/photo-1587202372775-e229f172b9d7?auto=format&fit=crop&q=80&w=600&h=300" alt="RTX 4090" className="banner-img" />
             <div className="banner-content small-content">
-              <div style={{ display: 'flex', marginBottom: '8px' }}>
+              <div style={{display: 'flex', marginBottom: '8px'}}>
                 <span className="small-label-badge">VGA - FLAGSHIP</span>
               </div>
-              <h3 className="side-title">
-                RTX 4090
-                <br />
-                ROG STRIX OC
-              </h3>
-              <p className="side-price">24.990.000đ</p>
-              <span className="arrow-link">XEM &rarr;</span>
+              <h3 className="side-title">RTX 4090<br/>ROG STRIX OC</h3>
+              <div className="side-banner-footer">
+                <p className="side-price">24.990.000đ</p>
+                <span className="arrow-link">XEM &rarr;</span>
+              </div>
             </div>
-          </div>
-          <div className="side-banner">
+          </Link>
+          <a className="side-banner" href="#pc-build-san" aria-label="Xem các bộ PC build sẵn">
             <div className="banner-red-stripe">⚡ KHUYẾN MÃI TUẦN NÀY</div>
-            <img
-              src="https://images.unsplash.com/photo-1593640408182-31c70c8268f5?auto=format&fit=crop&q=80&w=600&h=300"
-              alt="PC Build Sẵn"
-              className="banner-img"
-            />
-            <div className="banner-overlay"></div>
+            <img src="https://images.unsplash.com/photo-1593640408182-31c70c8268f5?auto=format&fit=crop&q=80&w=600&h=300" alt="PC Build Sẵn" className="banner-img" />
             <div className="banner-content small-content">
               <span className="small-label">PC BUILD SẴN</span>
-              <h3 className="side-title">
-                RUVENTU
-                <br />
-                WARLORD PRO
-              </h3>
-              <p className="side-price">54.900.000đ</p>
-              <span className="arrow-link">XEM &rarr;</span>
+              <h3 className="side-title">RUVENTU<br/>WARLORD PRO</h3>
+              <div className="side-banner-footer">
+                <p className="side-price">54.900.000đ</p>
+                <span className="arrow-link">XEM &rarr;</span>
+              </div>
             </div>
-          </div>
+          </a>
         </div>
       </div>
     </section>

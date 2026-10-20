@@ -3,6 +3,7 @@ package com.example.dantruventu.Services;
 import com.example.dantruventu.DTO.Request.warehouse.AdminInventoryCheckCancelRequest;
 import com.example.dantruventu.DTO.Request.warehouse.AdminInventoryCheckCreateRequest;
 import com.example.dantruventu.DTO.Request.warehouse.AdminInventoryCheckUpdateRequest;
+import com.example.dantruventu.DTO.Request.warehouse.InventoryCountData;
 import com.example.dantruventu.DTO.Response.PaginationResponse;
 import com.example.dantruventu.DTO.Response.warehouse.AdminInventoryCheckBalanceResponse;
 import com.example.dantruventu.DTO.Response.warehouse.AdminInventoryCheckCancelResponse;
@@ -19,6 +20,7 @@ import com.example.dantruventu.Entity.PhieuKiemKho;
 import com.example.dantruventu.Entity.TheKho;
 import com.example.dantruventu.Entity.TonKho;
 import com.example.dantruventu.Enum.LoaiGiaoDichKho;
+import com.example.dantruventu.Enum.LoaiSanPham;
 import com.example.dantruventu.Enum.TrangThaiCoBanEnum;
 import com.example.dantruventu.Enum.TrangThaiPhieuKiemKho;
 import com.example.dantruventu.Error.AppException;
@@ -30,14 +32,15 @@ import com.example.dantruventu.Repository.warehouse.PhieuKiemKhoRepository;
 import com.example.dantruventu.Repository.warehouse.SoSerialSanPhamRepository;
 import com.example.dantruventu.Repository.warehouse.TheKhoRepository;
 import com.example.dantruventu.Repository.warehouse.TonKhoRepository;
+import com.example.dantruventu.Services.catalog.CatalogSupport;
+import com.example.dantruventu.Services.warehouse.InventoryCountSupport;
+import com.example.dantruventu.Services.warehouse.WarehouseSupport;
 import com.example.dantruventu.Specification.PhieuKiemKhoSpecification;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
-import java.util.List;
-import java.util.Locale;
-import java.util.UUID;
+import java.util.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.PageRequest;
@@ -59,6 +62,8 @@ public class AdminInventoryCheckService {
   private final NguoiDungRepository userRepository;
   private final SoSerialSanPhamRepository serialRepository;
   private final TheKhoRepository stockCardRepository;
+  private final WarehouseSupport warehouseSupport;
+  private final InventoryCountSupport countSupport;
 
   @Value("${ruventu.inventory.time-zone:Asia/Ho_Chi_Minh}")
   private String inventoryTimeZone;
@@ -90,6 +95,7 @@ public class AdminInventoryCheckService {
                             .tenPhienBan(item.getTenPhienBan())
                             .maVach(item.getMaVach())
                             .tonHeThong(item.getTonHeThong() == null ? 0L : item.getTonHeThong())
+                            .loaiSanPham(item.getLoaiSanPham())
                             .build())
                 .toList())
         .pagination(toPagination(result))
@@ -173,6 +179,20 @@ public class AdminInventoryCheckService {
             .findByIdForInventoryCheckUpdate(id)
             .orElseThrow(() -> notFound("Không tìm thấy phiếu kiểm hàng"));
 
+    var variant = warehouseSupport.lockVariant(inventoryCheck.getPhienBan().getId());
+
+    var stock = countSupport.stock(variant, true);
+
+    if (!Objects.equals(stock.getTonThucTe(), inventoryCheck.getTonHeThong())) {
+      throw conflict("Tồn kho đã thay đổi; cần tạo lại phiếu kiểm");
+    }
+
+    var audit =
+        countSupport.draft(
+            variant, actualStock, request.getSerialsDaKiem(), inventoryCheck.getDuLieuKiemSerial());
+
+    inventoryCheck.setDuLieuKiemSerial(countSupport.write(audit));
+
     ensureEditable(inventoryCheck);
 
     int difference;
@@ -239,7 +259,14 @@ public class AdminInventoryCheckService {
     ensureBalanceable(inventoryCheck);
 
     Long variantId = inventoryCheck.getPhienBan().getId();
-    List<TonKho> stockRows = stockRepository.findAllByPhienBanIdForInventoryCheckUpdate(variantId);
+
+    PhienBanSanPham lockedVariant = warehouseSupport.lockVariant(variantId);
+
+    List<TonKho> stockRows = List.of(countSupport.stock(lockedVariant, true));
+
+    if (lockedVariant.getCoQuanLySerial() == null) {
+      throw conflict("Phiên bản chưa có cấu hình quản lý serial");
+    }
 
     if (stockRows.isEmpty()) {
       throw conflict("Dữ liệu tồn kho của phiên bản không còn tồn tại");
@@ -268,9 +295,8 @@ public class AdminInventoryCheckService {
       throw conflict("Số lượng chênh lệch trên phiếu kiểm hàng không nhất quán");
     }
 
-    if (difference != 0 && serialRepository.countByPhienBanId(variantId) > 0) {
-      throw conflict(
-          "Phiên bản đang quản lý serial, cần đối chiếu serial trước khi cân bằng chênh lệch");
+    if (CatalogSupport.serialManaged(lockedVariant)) {
+      countSupport.assertReady(inventoryCheck, lockedVariant, stock);
     }
 
     if (stockCardRepository.existsByMaChungTuGocAndLoaiGiaoDich(
@@ -278,21 +304,21 @@ public class AdminInventoryCheckService {
       throw conflict("Phiếu kiểm hàng đã được ghi nhận vào thẻ kho");
     }
 
-    int available = requiredStock(stock.getTonCoTheBan(), "Tồn có thể bán hiện tại không hợp lệ");
-    int damaged = requiredStock(stock.getHangLoi(), "Số lượng hàng lỗi hiện tại không hợp lệ");
-    long held = (long) oldPhysical - damaged - available;
+    var stockNumbers = WarehouseSupport.numbers(stock);
 
-    if (damaged > oldPhysical || held < 0) {
-      throw conflict("Số liệu tồn kho hiện tại không nhất quán, cần đối soát trước khi cân bằng");
+    long calculatedAvailable =
+        (long) newPhysical
+            - stockNumbers.damaged()
+            - stockNumbers.orderHeld()
+            - stockNumbers.warrantyHeld();
+
+    if (calculatedAvailable < 0 || calculatedAvailable > Integer.MAX_VALUE) {
+
+      throw conflict(
+          "Tồn sau kiểm kê không đủ bảo toàn hàng lỗi, " + "hàng giữ cho đơn và hàng giữ bảo hành");
     }
 
-    long calculatedAvailable = (long) newPhysical - damaged - held;
-    int newAvailable =
-        calculatedAvailable <= 0
-            ? 0
-            : calculatedAvailable > Integer.MAX_VALUE
-                ? Integer.MAX_VALUE
-                : (int) calculatedAvailable;
+    int newAvailable = (int) calculatedAvailable;
 
     stock.setTonThucTe(newPhysical);
     stock.setTonCoTheBan(newAvailable);
@@ -354,21 +380,18 @@ public class AdminInventoryCheckService {
             .orElseThrow(
                 () -> new AppException(ErrorCode.UNAUTHORIZED, "Không tìm thấy người thao tác"));
 
-    PhienBanSanPham variant =
-        variantRepository
-            .findById(variantId)
-            .orElseThrow(() -> notFound("Phiên bản sản phẩm không tồn tại"));
+    PhienBanSanPham variant = warehouseSupport.lockVariant(variantId);
+
+    if (variant.getSanPham().getLoaiSanPham() != LoaiSanPham.DON) {
+      throw conflict("Bộ PC phải kiểm theo các phiên bản linh kiện");
+    }
 
     if (variant.getTrangThai() != TrangThaiCoBanEnum.HOAT_DONG
         || variant.getSanPham().getTrangThai() != TrangThaiCoBanEnum.HOAT_DONG) {
-      throw notFound("Phiên bản sản phẩm không tồn tại hoặc đã ngừng hoạt động");
+      throw notFound("Phiên bản không tồn tại hoặc đã ngừng hoạt động");
     }
 
-    List<TonKho> stockRows = stockRepository.findAllByPhienBanIdForInventoryCheckUpdate(variantId);
-
-    if (stockRows.isEmpty()) {
-      throw notFound("Chưa có dữ liệu tồn kho của phiên bản sản phẩm");
-    }
+    List<TonKho> stockRows = List.of(countSupport.stock(variant, true));
 
     if (inventoryCheckRepository.existsByPhienBan_IdAndTrangThai(
         variantId, TrangThaiPhieuKiemKho.DANG_KIEM)) {
@@ -376,6 +399,13 @@ public class AdminInventoryCheckService {
     }
 
     int systemStock = sumSystemStock(stockRows);
+
+    if (request.getTonHeThongXacNhan() != null && request.getTonHeThongXacNhan() != systemStock) {
+      throw conflict("Tồn kho đã thay đổi; hãy tải lại trước khi tạo phiếu");
+    }
+
+    var serialAudit = countSupport.draft(variant, actualStock, request.getSerialsDaKiem(), null);
+
     int difference;
 
     try {
@@ -394,6 +424,7 @@ public class AdminInventoryCheckService {
             .soLuongChenhLech(difference)
             .lyDo(reason)
             .trangThai(TrangThaiPhieuKiemKho.DANG_KIEM)
+            .duLieuKiemSerial(countSupport.write(serialAudit))
             .build();
 
     inventoryCheck = inventoryCheckRepository.saveAndFlush(inventoryCheck);
@@ -475,6 +506,8 @@ public class AdminInventoryCheckService {
         .lyDo(inventoryCheck.getLyDo())
         .trangThai(inventoryCheck.getTrangThai())
         .ngayTao(inventoryCheck.getNgayTao())
+        .quanLySerial(CatalogSupport.serialManaged(variant))
+        .kiemSerial(countSupport.read(inventoryCheck.getDuLieuKiemSerial()))
         .build();
   }
 
@@ -489,6 +522,56 @@ public class AdminInventoryCheckService {
         .trangThai(inventoryCheck.getTrangThai())
         .ngayTao(inventoryCheck.getNgayTao())
         .build();
+  }
+
+  public InventoryCountData.Requirements requirements(Long sourceId) {
+    return countSupport.requirements(sourceId);
+  }
+
+  @Transactional
+  public InventoryCountData.BatchResult createBatch(
+      String key, InventoryCountData.BatchRequest request, Long actorId) {
+
+    return warehouseSupport.once(
+        "INVENTORY_CREATE_BATCH",
+        request.sourceId(),
+        key,
+        request,
+        actorId,
+        InventoryCountData.BatchResult.class,
+        () -> {
+          warehouseSupport.lockVariant(request.sourceId());
+
+          var expectedIds = countSupport.physicalIds(request.sourceId());
+          var inputIds = new HashSet<Long>();
+
+          for (var item : request.items()) {
+            if (item == null
+                || item.getPhienBanId() == null
+                || item.getTonHeThongXacNhan() == null
+                || !inputIds.add(item.getPhienBanId())) {
+              throw invalid("Dòng kiểm bị thiếu, trùng hoặc thiếu tồn xác nhận");
+            }
+          }
+
+          if (!inputIds.equals(expectedIds)) {
+            throw conflict("Danh sách kiểm không khớp cấu hình sản phẩm");
+          }
+
+          List<AdminInventoryCheckCreateResponse> results = new ArrayList<>();
+
+          for (AdminInventoryCheckCreateRequest item :
+              request.items().stream()
+                  .sorted(Comparator.comparing(AdminInventoryCheckCreateRequest::getPhienBanId))
+                  .toList()) {
+
+            AdminInventoryCheckCreateResponse created = create(item, actorId);
+
+            results.add(created);
+          }
+
+          return new InventoryCountData.BatchResult(request.sourceId(), List.copyOf(results));
+        });
   }
 
   private void ensureEditable(PhieuKiemKho inventoryCheck) {

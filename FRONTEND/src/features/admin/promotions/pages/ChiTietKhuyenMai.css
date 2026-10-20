@@ -496,6 +496,13 @@
   color: #111111;
 }
 
+.promo-detail-page .product-code-link {
+    padding: 0; border: 0; background: none; color: inherit; font: inherit;
+    display: inline; width: auto; text-align: left;
+    cursor: pointer; text-decoration: underline; text-underline-offset: 3px;
+}
+.promo-detail-page .product-code-link:hover { color: #e31e24; }
+
 /* Edit Mode Form Components */
 .edit-form-block {
   display: flex;
