@@ -12,8 +12,19 @@ const SkeletonCard = () => (
   </div>
 );
 
-const ProductSection = ({ title, subtitle, linkText, linkUrl, products, darkTheme, categories, loading }) => {
-  const [activeTab, setActiveTab] = useState(() => (categories && categories.length > 0 ? categories[0] : null));
+const ProductSection = ({
+  title,
+  subtitle,
+  linkText,
+  linkUrl,
+  products,
+  darkTheme,
+  categories,
+  loading,
+}) => {
+  const [activeTab, setActiveTab] = useState(() =>
+    categories && categories.length > 0 ? categories[0] : null
+  );
 
   useEffect(() => {
     if (categories && categories.length > 0) {
@@ -23,26 +34,38 @@ const ProductSection = ({ title, subtitle, linkText, linkUrl, products, darkThem
     }
   }, [categories]);
 
-  const isAllTab = !activeTab || activeTab.toLowerCase() === 'tất cả' || activeTab.toLowerCase() === 'all';
+  const isAllTab =
+    !activeTab || activeTab.toLowerCase() === 'tất cả' || activeTab.toLowerCase() === 'all';
 
   const filteredProducts = isAllTab
     ? products
-    : products.filter(p => {
+    : products.filter((p) => {
         const productCat = (p.category || '').toLowerCase();
         const parentCat = (p.parentCategory || '').toLowerCase();
         const tabCat = activeTab.toLowerCase();
 
         if (tabCat === 'gpu' || tabCat === 'vga') {
-          return productCat.includes('gpu') || productCat.includes('vga') || parentCat.includes('gpu') || parentCat.includes('vga');
+          return (
+            productCat.includes('gpu') ||
+            productCat.includes('vga') ||
+            parentCat.includes('gpu') ||
+            parentCat.includes('vga')
+          );
         }
         if (tabCat === 'mainboard' || tabCat === 'bo mạch') {
-          return productCat.includes('mainboard') || productCat.includes('bo mạch') || productCat.includes('main');
+          return (
+            productCat.includes('mainboard') ||
+            productCat.includes('bo mạch') ||
+            productCat.includes('main')
+          );
         }
         if (tabCat === 'psu' || tabCat === 'nguồn') {
           return productCat.includes('psu') || productCat.includes('nguồn');
         }
         if (tabCat === 'case' || tabCat === 'vỏ case') {
-          return productCat.includes('case') || productCat.includes('vỏ') || parentCat.includes('case');
+          return (
+            productCat.includes('case') || productCat.includes('vỏ') || parentCat.includes('case')
+          );
         }
 
         return productCat.includes(tabCat) || parentCat.includes(tabCat);
@@ -83,9 +106,7 @@ const ProductSection = ({ title, subtitle, linkText, linkUrl, products, darkThem
           {loading ? (
             Array.from({ length: 4 }).map((_, i) => <SkeletonCard key={i} />)
           ) : filteredProducts.length > 0 ? (
-            filteredProducts.map((product, index) => (
-              <ProductCard key={index} product={product} />
-            ))
+            filteredProducts.map((product, index) => <ProductCard key={index} product={product} />)
           ) : (
             <div
               className="empty-products"

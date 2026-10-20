@@ -9,7 +9,7 @@ import {
   Title,
   Tooltip,
   Legend,
-  Filler
+  Filler,
 } from 'chart.js';
 
 ChartJS.register(
@@ -51,7 +51,7 @@ export default function WebGL2LineChart({ labels = [], datasets = [], title = ''
         pointBorderColor: '#ffffff',
         pointBorderWidth: 1.5,
       };
-    })
+    }),
   };
 
   const chartOptions = {
@@ -62,12 +62,12 @@ export default function WebGL2LineChart({ labels = [], datasets = [], title = ''
         top: 15,
         right: 15,
         bottom: 10,
-        left: 10
-      }
+        left: 10,
+      },
     },
     plugins: {
       legend: {
-        display: false // Removed Legend items (TỔNG THU & TỔNG CHI) completely
+        display: false, // Removed Legend items (TỔNG THU & TỔNG CHI) completely
       },
       tooltip: {
         enabled: true,
@@ -80,24 +80,30 @@ export default function WebGL2LineChart({ labels = [], datasets = [], title = ''
         boxPadding: 6,
         usePointStyle: true,
         callbacks: {
-          label: function(context) {
+          label: function (context) {
             const label = context.dataset.label || '';
-            const rawVal = context.dataset.rawAmounts ? context.dataset.rawAmounts[context.dataIndex] : (context.parsed.y || 0) * 1000000;
+            const rawVal = context.dataset.rawAmounts
+              ? context.dataset.rawAmounts[context.dataIndex]
+              : (context.parsed.y || 0) * 1000000;
             return ` ${label}: ${Math.round(rawVal).toLocaleString('vi-VN')}đ`;
           },
-          footer: function(tooltipItems) {
+          footer: function (tooltipItems) {
             if (tooltipItems.length >= 2) {
               const item0 = tooltipItems[0];
               const item1 = tooltipItems[1];
-              const thu = item0.dataset.rawAmounts ? item0.dataset.rawAmounts[item0.dataIndex] : (item0.parsed.y || 0) * 1000000;
-              const chi = item1.dataset.rawAmounts ? item1.dataset.rawAmounts[item1.dataIndex] : (item1.parsed.y || 0) * 1000000;
+              const thu = item0.dataset.rawAmounts
+                ? item0.dataset.rawAmounts[item0.dataIndex]
+                : (item0.parsed.y || 0) * 1000000;
+              const chi = item1.dataset.rawAmounts
+                ? item1.dataset.rawAmounts[item1.dataIndex]
+                : (item1.parsed.y || 0) * 1000000;
               const chenhLech = thu - chi;
               return `CHÊNH LỆCH: ${Math.round(chenhLech).toLocaleString('vi-VN')}đ`;
             }
             return '';
-          }
-        }
-      }
+          },
+        },
+      },
     },
     scales: {
       y: {
@@ -108,10 +114,10 @@ export default function WebGL2LineChart({ labels = [], datasets = [], title = ''
         ticks: {
           font: { size: 10, weight: '700' },
           color: '#64748b',
-          callback: function(value) {
+          callback: function (value) {
             return value + 'M';
-          }
-        }
+          },
+        },
       },
       x: {
         grid: {
@@ -119,14 +125,17 @@ export default function WebGL2LineChart({ labels = [], datasets = [], title = ''
         },
         ticks: {
           font: { size: 10, weight: '700' },
-          color: '#64748b'
-        }
-      }
-    }
+          color: '#64748b',
+        },
+      },
+    },
   };
 
   return (
-    <div className="chartjs-wrapper" style={{ position: 'relative', width: '100%', height: '100%', minHeight: '340px' }}>
+    <div
+      className="chartjs-wrapper"
+      style={{ position: 'relative', width: '100%', height: '100%', minHeight: '340px' }}
+    >
       <Line data={chartData} options={chartOptions} />
     </div>
   );

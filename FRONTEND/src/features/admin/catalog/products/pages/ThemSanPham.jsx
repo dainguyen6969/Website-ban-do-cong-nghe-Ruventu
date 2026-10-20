@@ -1,10 +1,7 @@
 // Existing product add/edit form; image files resolve to Cloudinary URLs before local form save.
 import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import {
-  HiOutlineX,
-  HiOutlineSearch,
-} from 'react-icons/hi';
+import { HiOutlineX, HiOutlineSearch } from 'react-icons/hi';
 import FormCard from '../../../../../shared/components/ui/FormCard';
 import ImageUploader from '../../../../../shared/components/ui/ImageUploader';
 import FilterDropdown from '../../../../../shared/components/ui/FilterDropdown';
@@ -96,8 +93,14 @@ export default function ThemSanPham() {
   const [formErrors, setFormErrors] = useState({});
   const [catalog, setCatalog] = useState({ categories: [], brands: [] });
   const [saving, setSaving] = useState(false);
-  const categoryOptions = useMemo(() => ['Danh mục', ...catalog.categories.map((item) => item.name)], [catalog.categories]);
-  const brandOptions = useMemo(() => ['Thương hiệu', ...catalog.brands.map((item) => item.name)], [catalog.brands]);
+  const categoryOptions = useMemo(
+    () => ['Danh mục', ...catalog.categories.map((item) => item.name)],
+    [catalog.categories]
+  );
+  const brandOptions = useMemo(
+    () => ['Thương hiệu', ...catalog.brands.map((item) => item.name)],
+    [catalog.brands]
+  );
 
   // Combo creation is handled by the real combo form; these values only keep the legacy branch inert.
   const [comboSearch, setComboSearch] = useState('');
@@ -109,9 +112,21 @@ export default function ThemSanPham() {
   const [editAttributes, setAttributes] = useState([]);
   const [attributeRows, setAttributeRows] = useState([{ id: 1, name: '', values: '' }]);
   const attributeRowCounter = useRef(1);
-  const attributes = useMemo(() => isEditing ? editAttributes : attributeRows
-    .map((row) => ({ name: row.name.trim(), values: row.values.split(',').map((value) => value.trim()).filter(Boolean) }))
-    .filter((attribute) => attribute.name && attribute.values.length), [isEditing, editAttributes, attributeRows]);
+  const attributes = useMemo(
+    () =>
+      isEditing
+        ? editAttributes
+        : attributeRows
+            .map((row) => ({
+              name: row.name.trim(),
+              values: row.values
+                .split(',')
+                .map((value) => value.trim())
+                .filter(Boolean),
+            }))
+            .filter((attribute) => attribute.name && attribute.values.length),
+    [isEditing, editAttributes, attributeRows]
+  );
   const [newAttrName, setNewAttrName] = useState('');
   const [newAttrValues, setNewAttrValues] = useState('');
 
@@ -119,9 +134,12 @@ export default function ThemSanPham() {
   const [manualVariants, setManualVariants] = useState([{ name: 'Mặc định' }]);
   const manualVariantCounter = useRef(1);
   const variants = useMemo(
-    () => isEditing && existingProduct
-      ? existingProduct.variants.map((variant) => ({ name: variant.name }))
-      : attributes.length > 0 ? generateVariants(attributes) : manualVariants,
+    () =>
+      isEditing && existingProduct
+        ? existingProduct.variants.map((variant) => ({ name: variant.name }))
+        : attributes.length > 0
+          ? generateVariants(attributes)
+          : manualVariants,
     [attributes, existingProduct, isEditing, manualVariants]
   );
   const [variantData, setVariantData] = useState({});
@@ -134,7 +152,15 @@ export default function ThemSanPham() {
   const updateVariant = useCallback((name, field, value) => {
     setVariantData((prev) => ({
       ...prev,
-      [name]: { ...prev[name], sku: '', giaBanLe: '', giaNhap: '', khoiLuong: '', ...prev[name], [field]: value },
+      [name]: {
+        ...prev[name],
+        sku: '',
+        giaBanLe: '',
+        giaNhap: '',
+        khoiLuong: '',
+        ...prev[name],
+        [field]: value,
+      },
     }));
   }, []);
 
@@ -159,7 +185,9 @@ export default function ThemSanPham() {
         setSelectedBrand(product.thuongHieu || 'Thương hiệu');
         setTrangThai(product.trangThaiBan);
         setVat(product.vat);
-        setVariantData(Object.fromEntries(product.variants.map((variant) => [variant.name, variant])));
+        setVariantData(
+          Object.fromEntries(product.variants.map((variant) => [variant.name, variant]))
+        );
         specIdCounter.current = product.specs.length + 1;
         descriptionInitializedRef.current = false;
       })
@@ -186,12 +214,15 @@ export default function ThemSanPham() {
       .catch(() => setCatalog({ categories: [], brands: [] }));
   }, []);
 
-  const versionName = useCallback((variant) => {
-    const customName = getVariant(variant.name).name;
-    return customName === undefined
-      ? defaultVariantName(tenSanPham, variant.name, isEditing ? 1 : variants.length)
-      : customName;
-  }, [getVariant, isEditing, tenSanPham, variants.length]);
+  const versionName = useCallback(
+    (variant) => {
+      const customName = getVariant(variant.name).name;
+      return customName === undefined
+        ? defaultVariantName(tenSanPham, variant.name, isEditing ? 1 : variants.length)
+        : customName;
+    },
+    [getVariant, isEditing, tenSanPham, variants.length]
+  );
 
   // ── Summary computations ──
   const totalVariants = variants.length;
@@ -201,7 +232,10 @@ export default function ThemSanPham() {
   const handleAddSpec = () => {
     if (!newSpecName.trim() || !newSpecValue.trim()) return;
     specIdCounter.current += 1;
-    setSpecs((prev) => [...prev, { id: specIdCounter.current, name: newSpecName.trim(), value: newSpecValue.trim() }]);
+    setSpecs((prev) => [
+      ...prev,
+      { id: specIdCounter.current, name: newSpecName.trim(), value: newSpecValue.trim() },
+    ]);
     setNewSpecName('');
     setNewSpecValue('');
   };
@@ -212,7 +246,10 @@ export default function ThemSanPham() {
 
   const handleAddAttribute = () => {
     if (!newAttrName.trim() || !newAttrValues.trim()) return;
-    const vals = newAttrValues.split(',').map((v) => v.trim()).filter(Boolean);
+    const vals = newAttrValues
+      .split(',')
+      .map((v) => v.trim())
+      .filter(Boolean);
     if (vals.length === 0) return;
     setAttributes((prev) => [...prev, { name: newAttrName.trim(), values: vals }]);
     setNewAttrName('');
@@ -220,7 +257,9 @@ export default function ThemSanPham() {
   };
 
   const updateAttributeRow = (id, field, value) => {
-    setAttributeRows((prev) => prev.map((row) => row.id === id ? { ...row, [field]: value } : row));
+    setAttributeRows((prev) =>
+      prev.map((row) => (row.id === id ? { ...row, [field]: value } : row))
+    );
   };
 
   const addAttributeRow = () => {
@@ -251,10 +290,14 @@ export default function ThemSanPham() {
     setComboItems((prev) => [...prev, { ...product, qty: 1 }]);
     setComboSearch('');
   };
-  const updateComboQuantity = (id, change) => setComboItems((prev) => prev.map((item) => item.id === id
-    ? { ...item, qty: Math.max(1, (item.qty || 1) + change) }
-    : item));
-  const handleRemoveComboItem = (id) => setComboItems((prev) => prev.filter((item) => item.id !== id));
+  const updateComboQuantity = (id, change) =>
+    setComboItems((prev) =>
+      prev.map((item) =>
+        item.id === id ? { ...item, qty: Math.max(1, (item.qty || 1) + change) } : item
+      )
+    );
+  const handleRemoveComboItem = (id) =>
+    setComboItems((prev) => prev.filter((item) => item.id !== id));
 
   // ── Rich text commands ──
   const execCmd = (cmd, value) => {
@@ -263,7 +306,8 @@ export default function ThemSanPham() {
   };
 
   const handleInsertTable = () => {
-    const html = '<table border="1" style="border-collapse:collapse;width:100%"><tr><td>&nbsp;</td><td>&nbsp;</td></tr><tr><td>&nbsp;</td><td>&nbsp;</td></tr></table><br>';
+    const html =
+      '<table border="1" style="border-collapse:collapse;width:100%"><tr><td>&nbsp;</td><td>&nbsp;</td></tr><tr><td>&nbsp;</td><td>&nbsp;</td></tr></table><br>';
     document.execCommand('insertHTML', false, html);
     richTextRef.current?.focus();
   };
@@ -301,14 +345,22 @@ export default function ThemSanPham() {
     if (!validateForm()) {
       if (!tenSanPham.trim()) {
         document.getElementById('input-ten-san-pham')?.focus();
-        document.getElementById('input-ten-san-pham')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        document
+          .getElementById('input-ten-san-pham')
+          ?.scrollIntoView({ behavior: 'smooth', block: 'center' });
       } else if (!maSanPham.trim()) {
         document.getElementById('input-ma-san-pham')?.focus();
-        document.getElementById('input-ma-san-pham')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        document
+          .getElementById('input-ma-san-pham')
+          ?.scrollIntoView({ behavior: 'smooth', block: 'center' });
       } else if (!selectedCategory || selectedCategory === 'Danh mục') {
-        document.getElementById('filter-add-danh-muc')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        document
+          .getElementById('filter-add-danh-muc')
+          ?.scrollIntoView({ behavior: 'smooth', block: 'center' });
       } else if (!selectedBrand || selectedBrand === 'Thương hiệu') {
-        document.getElementById('filter-add-thuong-hieu')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        document
+          .getElementById('filter-add-thuong-hieu')
+          ?.scrollIntoView({ behavior: 'smooth', block: 'center' });
       }
       return;
     }
@@ -321,7 +373,9 @@ export default function ThemSanPham() {
 
     if (productType !== 'single') {
       if (comboItems.length === 0) {
-        alert('Sản phẩm Combo cần có ít nhất 1 sản phẩm thành phần! Vui lòng chọn sản phẩm thành phần.');
+        alert(
+          'Sản phẩm Combo cần có ít nhất 1 sản phẩm thành phần! Vui lòng chọn sản phẩm thành phần.'
+        );
         return;
       }
     }
@@ -339,7 +393,7 @@ export default function ThemSanPham() {
       }
     }
 
-    const hinhAnh = images.length > 0 ? (images[0].url || images[0].preview) : null;
+    const hinhAnh = images.length > 0 ? images[0].url || images[0].preview : null;
 
     const newProduct = {
       id: code,
@@ -404,32 +458,34 @@ export default function ThemSanPham() {
         };
         if (isEditing) {
           await updateProduct(existingProduct.id, payload);
-          await Promise.all(variants.map((variant) => {
-            const data = getVariant(variant.name);
-            return saveVersion(existingProduct.id, data.id, {
-              ten_phien_ban: versionName(variant).trim(),
-              ma_vach: data.sku,
-              gia_ban_le: Number(String(data.giaBanLe).replace(/[^0-9]/g, '')),
-              gia_nhap: Number(String(data.giaNhap).replace(/[^0-9]/g, '')),
-              khoi_luong: data.khoiLuong ? Number(data.khoiLuong) : 0,
-              trang_thai: data.trangThai ?? 1,
-            });
-          }));
+          await Promise.all(
+            variants.map((variant) => {
+              const data = getVariant(variant.name);
+              return saveVersion(existingProduct.id, data.id, {
+                ten_phien_ban: versionName(variant).trim(),
+                ma_vach: data.sku,
+                gia_ban_le: Number(String(data.giaBanLe).replace(/[^0-9]/g, '')),
+                gia_nhap: Number(String(data.giaNhap).replace(/[^0-9]/g, '')),
+                khoi_luong: data.khoiLuong ? Number(data.khoiLuong) : 0,
+                trang_thai: data.trangThai ?? 1,
+              });
+            })
+          );
         } else {
           await createProduct({
             ...payload,
             loai_san_pham: 'DON',
             danh_sach_phien_ban: variants.map((variant) => {
-            const data = getVariant(variant.name);
-            return {
-              ten_phien_ban: versionName(variant).trim(),
-              ma_vach: data.sku,
-              gia_ban_le: Number(String(data.giaBanLe).replace(/[^0-9]/g, '')),
-              gia_nhap: Number(String(data.giaNhap).replace(/[^0-9]/g, '')),
-              khoi_luong: data.khoiLuong ? Number(data.khoiLuong) : null,
-              trang_thai: 1,
-            };
-          }),
+              const data = getVariant(variant.name);
+              return {
+                ten_phien_ban: versionName(variant).trim(),
+                ma_vach: data.sku,
+                gia_ban_le: Number(String(data.giaBanLe).replace(/[^0-9]/g, '')),
+                gia_nhap: Number(String(data.giaNhap).replace(/[^0-9]/g, '')),
+                khoi_luong: data.khoiLuong ? Number(data.khoiLuong) : null,
+                trang_thai: 1,
+              };
+            }),
           });
         }
       } catch (error) {
@@ -449,7 +505,12 @@ export default function ThemSanPham() {
   // ══════════════════════════════════════════
   // RENDER
   // ══════════════════════════════════════════
-  if (loading) return <main className="add-product-page"><p>Đang tải sản phẩm...</p></main>;
+  if (loading)
+    return (
+      <main className="add-product-page">
+        <p>Đang tải sản phẩm...</p>
+      </main>
+    );
 
   return (
     <main className={`add-product-page${isEditing ? '' : ' add-product-page--create'}`} role="main">
@@ -457,19 +518,42 @@ export default function ThemSanPham() {
       <div className="add-product-topbar">
         <div className="add-product-topbar__left">
           <nav className="add-product-breadcrumb" aria-label="Breadcrumb">
-            <span className="add-product-breadcrumb__item add-product-breadcrumb__item--muted">SẢN PHẨM</span>
-            <span className="add-product-breadcrumb__sep" aria-hidden="true">›</span>
-            <span className="add-product-breadcrumb__item add-product-breadcrumb__item--muted">DANH SÁCH</span>
-            <span className="add-product-breadcrumb__sep" aria-hidden="true">›</span>
-            <span className="add-product-breadcrumb__item add-product-breadcrumb__item--current">{isEditing ? 'CHỈNH SỬA' : 'THÊM MỚI'}</span>
+            <span className="add-product-breadcrumb__item add-product-breadcrumb__item--muted">
+              SẢN PHẨM
+            </span>
+            <span className="add-product-breadcrumb__sep" aria-hidden="true">
+              ›
+            </span>
+            <span className="add-product-breadcrumb__item add-product-breadcrumb__item--muted">
+              DANH SÁCH
+            </span>
+            <span className="add-product-breadcrumb__sep" aria-hidden="true">
+              ›
+            </span>
+            <span className="add-product-breadcrumb__item add-product-breadcrumb__item--current">
+              {isEditing ? 'CHỈNH SỬA' : 'THÊM MỚI'}
+            </span>
           </nav>
-          <h1 className="add-product-title">{isEditing ? 'CHỈNH SỬA SẢN PHẨM' : 'THÊM SẢN PHẨM MỚI'}</h1>
+          <h1 className="add-product-title">
+            {isEditing ? 'CHỈNH SỬA SẢN PHẨM' : 'THÊM SẢN PHẨM MỚI'}
+          </h1>
         </div>
         <div className="add-product-topbar__right">
-          <button type="button" className="btn-add-product btn-add-product--outline" onClick={() => navigate('/admin/san-pham/danh-sach-san-pham')} id="btn-cancel-add">
+          <button
+            type="button"
+            className="btn-add-product btn-add-product--outline"
+            onClick={() => navigate('/admin/san-pham/danh-sach-san-pham')}
+            id="btn-cancel-add"
+          >
             HỦY
           </button>
-          <button type="button" className="btn-add-product btn-add-product--red" onClick={handleSave} id="btn-save-product" disabled={saving}>
+          <button
+            type="button"
+            className="btn-add-product btn-add-product--red"
+            onClick={handleSave}
+            id="btn-save-product"
+            disabled={saving}
+          >
             {isEditing ? 'CẬP NHẬT SẢN PHẨM' : 'LƯU SẢN PHẨM'}
           </button>
         </div>
@@ -484,7 +568,9 @@ export default function ThemSanPham() {
           {/* 1. Thông tin chung */}
           <FormCard title="Thông tin chung" id="card-thong-tin-chung">
             <div className="form-group">
-              <label className="form-label">Tên sản phẩm <span className="form-required">*</span></label>
+              <label className="form-label">
+                Tên sản phẩm <span className="form-required">*</span>
+              </label>
               <input
                 type="text"
                 className={`form-input ${formErrors.tenSanPham ? 'form-input--error' : ''}`}
@@ -496,11 +582,15 @@ export default function ThemSanPham() {
                 }}
                 id="input-ten-san-pham"
               />
-              {formErrors.tenSanPham && <span className="form-error-text">{formErrors.tenSanPham}</span>}
+              {formErrors.tenSanPham && (
+                <span className="form-error-text">{formErrors.tenSanPham}</span>
+              )}
             </div>
             <div className="form-row-2col">
               <div className="form-group">
-                <label className="form-label">Mã sản phẩm (SKU Parent) <span className="form-required">*</span></label>
+                <label className="form-label">
+                  Mã sản phẩm (SKU Parent) <span className="form-required">*</span>
+                </label>
                 <input
                   type="text"
                   className={`form-input ${formErrors.maSanPham ? 'form-input--error' : ''}`}
@@ -512,11 +602,20 @@ export default function ThemSanPham() {
                   }}
                   id="input-ma-san-pham"
                 />
-                {formErrors.maSanPham && <span className="form-error-text">{formErrors.maSanPham}</span>}
+                {formErrors.maSanPham && (
+                  <span className="form-error-text">{formErrors.maSanPham}</span>
+                )}
               </div>
               <div className="form-group">
                 <label className="form-label">Đơn vị tính</label>
-                <FilterDropdown id="filter-don-vi-tinh" options={unitOptions} value={donViTinh} onSelect={setDonViTinh} className="form-dropdown-full" direction="down" />
+                <FilterDropdown
+                  id="filter-don-vi-tinh"
+                  options={unitOptions}
+                  value={donViTinh}
+                  onSelect={setDonViTinh}
+                  className="form-dropdown-full"
+                  direction="down"
+                />
               </div>
             </div>
           </FormCard>
@@ -533,15 +632,93 @@ export default function ThemSanPham() {
               <label className="form-label">Mô tả sản phẩm</label>
               <div className="richtext-wrapper">
                 <div className="richtext-toolbar">
-                  <button type="button" className="richtext-btn" title="Bold" onMouseDown={(e) => { e.preventDefault(); execCmd('bold'); }}><strong>B</strong></button>
-                  <button type="button" className="richtext-btn" title="Italic" onMouseDown={(e) => { e.preventDefault(); execCmd('italic'); }}><em>I</em></button>
-                  <button type="button" className="richtext-btn" title="Underline" onMouseDown={(e) => { e.preventDefault(); execCmd('underline'); }}><u>U</u></button>
-                  <button type="button" className="richtext-btn" title="Block Quote" onMouseDown={(e) => { e.preventDefault(); execCmd('formatBlock', 'blockquote'); }}>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 21c3 0 7-1 7-8V5c0-1.25-.76-2-1.76-2H3v11c0 .57.07 1.18.76 2a4.84 4.84 0 0 1-.76 3m14 0c3 0 7-1 7-8V5c0-1.25-.76-2-1.76-2H17v11c0 .57.07 1.18.76 2a4.84 4.84 0 0 1-.76 3" /></svg>
+                  <button
+                    type="button"
+                    className="richtext-btn"
+                    title="Bold"
+                    onMouseDown={(e) => {
+                      e.preventDefault();
+                      execCmd('bold');
+                    }}
+                  >
+                    <strong>B</strong>
                   </button>
-                  <button type="button" className="richtext-btn" title="Heading" onMouseDown={(e) => { e.preventDefault(); execCmd('formatBlock', 'h3'); }}><strong>H</strong></button>
-                  <button type="button" className="richtext-btn" title="Chèn bảng" onMouseDown={(e) => { e.preventDefault(); handleInsertTable(); }}>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="18" height="18" /><line x1="3" y1="9" x2="21" y2="9" /><line x1="3" y1="15" x2="21" y2="15" /><line x1="9" y1="3" x2="9" y2="21" /><line x1="15" y1="3" x2="15" y2="21" /></svg>
+                  <button
+                    type="button"
+                    className="richtext-btn"
+                    title="Italic"
+                    onMouseDown={(e) => {
+                      e.preventDefault();
+                      execCmd('italic');
+                    }}
+                  >
+                    <em>I</em>
+                  </button>
+                  <button
+                    type="button"
+                    className="richtext-btn"
+                    title="Underline"
+                    onMouseDown={(e) => {
+                      e.preventDefault();
+                      execCmd('underline');
+                    }}
+                  >
+                    <u>U</u>
+                  </button>
+                  <button
+                    type="button"
+                    className="richtext-btn"
+                    title="Block Quote"
+                    onMouseDown={(e) => {
+                      e.preventDefault();
+                      execCmd('formatBlock', 'blockquote');
+                    }}
+                  >
+                    <svg
+                      width="14"
+                      height="14"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                    >
+                      <path d="M3 21c3 0 7-1 7-8V5c0-1.25-.76-2-1.76-2H3v11c0 .57.07 1.18.76 2a4.84 4.84 0 0 1-.76 3m14 0c3 0 7-1 7-8V5c0-1.25-.76-2-1.76-2H17v11c0 .57.07 1.18.76 2a4.84 4.84 0 0 1-.76 3" />
+                    </svg>
+                  </button>
+                  <button
+                    type="button"
+                    className="richtext-btn"
+                    title="Heading"
+                    onMouseDown={(e) => {
+                      e.preventDefault();
+                      execCmd('formatBlock', 'h3');
+                    }}
+                  >
+                    <strong>H</strong>
+                  </button>
+                  <button
+                    type="button"
+                    className="richtext-btn"
+                    title="Chèn bảng"
+                    onMouseDown={(e) => {
+                      e.preventDefault();
+                      handleInsertTable();
+                    }}
+                  >
+                    <svg
+                      width="14"
+                      height="14"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                    >
+                      <rect x="3" y="3" width="18" height="18" />
+                      <line x1="3" y1="9" x2="21" y2="9" />
+                      <line x1="3" y1="15" x2="21" y2="15" />
+                      <line x1="9" y1="3" x2="9" y2="21" />
+                      <line x1="15" y1="3" x2="15" y2="21" />
+                    </svg>
                   </button>
                 </div>
                 <div
@@ -562,7 +739,9 @@ export default function ThemSanPham() {
             {/* Thông số kỹ thuật */}
             <div className="form-group">
               <div className="spec-header">
-                <label className="form-label" style={{ marginBottom: 0 }}>Thông số kỹ thuật</label>
+                <label className="form-label" style={{ marginBottom: 0 }}>
+                  Thông số kỹ thuật
+                </label>
                 <span className="spec-helper-text">Không dùng để sinh phiên bản</span>
               </div>
               <table className="spec-table">
@@ -579,7 +758,12 @@ export default function ThemSanPham() {
                       <td className="spec-table__td">{spec.name}</td>
                       <td className="spec-table__td">{spec.value}</td>
                       <td className="spec-table__td spec-table__td--action">
-                        <button type="button" className="spec-remove-btn" onClick={() => handleRemoveSpec(spec.id)} aria-label="Xóa thông số">
+                        <button
+                          type="button"
+                          className="spec-remove-btn"
+                          onClick={() => handleRemoveSpec(spec.id)}
+                          aria-label="Xóa thông số"
+                        >
                           <HiOutlineX size={14} />
                         </button>
                       </td>
@@ -588,9 +772,30 @@ export default function ThemSanPham() {
                 </tbody>
               </table>
               <div className="spec-add-row">
-                <input type="text" className="form-input form-input--sm" placeholder="Tên thông số kỹ thuật" value={newSpecName} onChange={(e) => setNewSpecName(e.target.value)} id="input-spec-name" />
-                <input type="text" className="form-input form-input--sm" placeholder="Giá trị" value={newSpecValue} onChange={(e) => setNewSpecValue(e.target.value)} id="input-spec-value" />
-                <button type="button" className="btn-add-spec" onClick={handleAddSpec} id="btn-add-spec">THÊM</button>
+                <input
+                  type="text"
+                  className="form-input form-input--sm"
+                  placeholder="Tên thông số kỹ thuật"
+                  value={newSpecName}
+                  onChange={(e) => setNewSpecName(e.target.value)}
+                  id="input-spec-name"
+                />
+                <input
+                  type="text"
+                  className="form-input form-input--sm"
+                  placeholder="Giá trị"
+                  value={newSpecValue}
+                  onChange={(e) => setNewSpecValue(e.target.value)}
+                  id="input-spec-value"
+                />
+                <button
+                  type="button"
+                  className="btn-add-spec"
+                  onClick={handleAddSpec}
+                  id="btn-add-spec"
+                >
+                  THÊM
+                </button>
               </div>
             </div>
           </FormCard>
@@ -600,56 +805,155 @@ export default function ThemSanPham() {
             <>
               {/* Thuộc tính sản phẩm */}
               <FormCard title="Thuộc tính sản phẩm" id="card-thuoc-tinh">
-                {isEditing ? <>
-                  {attributes.length === 0 && <p className="empty-hint">Chưa có thuộc tính — hệ thống sẽ tạo một phiên bản &lsquo;Mặc định&rsquo;.</p>}
+                {isEditing ? (
+                  <>
+                    {attributes.length === 0 && (
+                      <p className="empty-hint">
+                        Chưa có thuộc tính — hệ thống sẽ tạo một phiên bản &lsquo;Mặc định&rsquo;.
+                      </p>
+                    )}
 
-                  {attributes.length > 0 && (
-                    <div className="attr-list">
-                      {attributes.map((attr, idx) => (
-                        <div key={idx} className="attr-tag-row">
-                          <span className="attr-tag-name">{attr.name}:</span>
-                          <div className="attr-tag-values">
-                            {attr.values.map((v, vi) => (
-                              <span key={vi} className="attr-tag">{v}</span>
-                            ))}
+                    {attributes.length > 0 && (
+                      <div className="attr-list">
+                        {attributes.map((attr, idx) => (
+                          <div key={idx} className="attr-tag-row">
+                            <span className="attr-tag-name">{attr.name}:</span>
+                            <div className="attr-tag-values">
+                              {attr.values.map((v, vi) => (
+                                <span key={vi} className="attr-tag">
+                                  {v}
+                                </span>
+                              ))}
+                            </div>
+                            <button
+                              type="button"
+                              className="attr-remove-btn"
+                              onClick={() => handleRemoveAttribute(idx)}
+                              aria-label="Xóa thuộc tính"
+                            >
+                              <HiOutlineX size={14} />
+                            </button>
                           </div>
-                          <button type="button" className="attr-remove-btn" onClick={() => handleRemoveAttribute(idx)} aria-label="Xóa thuộc tính">
-                            <HiOutlineX size={14} />
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
+                        ))}
+                      </div>
+                    )}
 
-                  <div className="attr-add-row">
-                    <input type="text" className="form-input form-input--sm" placeholder="Tên thuộc tính" value={newAttrName} onChange={(e) => setNewAttrName(e.target.value)} id="input-attr-name" />
-                    <input type="text" className="form-input form-input--sm" placeholder="Giá trị (Cách nhau bởi dấu phẩy)" value={newAttrValues} onChange={(e) => setNewAttrValues(e.target.value)} id="input-attr-values" />
-                    <button type="button" className="btn-add-spec" onClick={handleAddAttribute} id="btn-add-attr">THÊM</button>
-                  </div>
-                </> : <>
-                  <table className="product-attribute-table">
-                    <thead><tr><th>TÊN THUỘC TÍNH</th><th>GIÁ TRỊ</th><th aria-label="Thao tác" /></tr></thead>
-                    <tbody>
-                      {attributeRows.map((row, index) => <tr key={row.id}>
-                        <td><input type="text" className="form-input form-input--sm" placeholder="Nhập tên thuộc tính" aria-label={`Tên thuộc tính ${index + 1}`} value={row.name} onChange={(e) => updateAttributeRow(row.id, 'name', e.target.value)} /></td>
-                        <td><input type="text" className="form-input form-input--sm product-attribute-values" placeholder="Nhập giá trị..." aria-label={`Giá trị thuộc tính ${index + 1}`} title="Các giá trị cách nhau bởi dấu phẩy" value={row.values} onChange={(e) => updateAttributeRow(row.id, 'values', e.target.value)} /></td>
-                        <td><button type="button" className="product-attribute-delete" aria-label={`Xóa thuộc tính ${index + 1}`} onClick={() => setAttributeRows((prev) => prev.filter((item) => item.id !== row.id))}>XÓA</button></td>
-                      </tr>)}
-                    </tbody>
-                  </table>
-                  <button type="button" className="attr-open-btn" onClick={addAttributeRow}>⊕ THÊM THUỘC TÍNH KHÁC</button>
-                </>}
-                <p className="attr-helper">{isEditing ? 'Hệ thống tự động sinh phiên bản từ tổ hợp các giá trị thuộc tính bên dưới.' : 'Thuộc tính dùng để sinh phiên bản. Thông số kỹ thuật phía trên không sinh phiên bản.'}</p>
+                    <div className="attr-add-row">
+                      <input
+                        type="text"
+                        className="form-input form-input--sm"
+                        placeholder="Tên thuộc tính"
+                        value={newAttrName}
+                        onChange={(e) => setNewAttrName(e.target.value)}
+                        id="input-attr-name"
+                      />
+                      <input
+                        type="text"
+                        className="form-input form-input--sm"
+                        placeholder="Giá trị (Cách nhau bởi dấu phẩy)"
+                        value={newAttrValues}
+                        onChange={(e) => setNewAttrValues(e.target.value)}
+                        id="input-attr-values"
+                      />
+                      <button
+                        type="button"
+                        className="btn-add-spec"
+                        onClick={handleAddAttribute}
+                        id="btn-add-attr"
+                      >
+                        THÊM
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <table className="product-attribute-table">
+                      <thead>
+                        <tr>
+                          <th>TÊN THUỘC TÍNH</th>
+                          <th>GIÁ TRỊ</th>
+                          <th aria-label="Thao tác" />
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {attributeRows.map((row, index) => (
+                          <tr key={row.id}>
+                            <td>
+                              <input
+                                type="text"
+                                className="form-input form-input--sm"
+                                placeholder="Nhập tên thuộc tính"
+                                aria-label={`Tên thuộc tính ${index + 1}`}
+                                value={row.name}
+                                onChange={(e) => updateAttributeRow(row.id, 'name', e.target.value)}
+                              />
+                            </td>
+                            <td>
+                              <input
+                                type="text"
+                                className="form-input form-input--sm product-attribute-values"
+                                placeholder="Nhập giá trị..."
+                                aria-label={`Giá trị thuộc tính ${index + 1}`}
+                                title="Các giá trị cách nhau bởi dấu phẩy"
+                                value={row.values}
+                                onChange={(e) =>
+                                  updateAttributeRow(row.id, 'values', e.target.value)
+                                }
+                              />
+                            </td>
+                            <td>
+                              <button
+                                type="button"
+                                className="product-attribute-delete"
+                                aria-label={`Xóa thuộc tính ${index + 1}`}
+                                onClick={() =>
+                                  setAttributeRows((prev) =>
+                                    prev.filter((item) => item.id !== row.id)
+                                  )
+                                }
+                              >
+                                XÓA
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                    <button type="button" className="attr-open-btn" onClick={addAttributeRow}>
+                      ⊕ THÊM THUỘC TÍNH KHÁC
+                    </button>
+                  </>
+                )}
+                <p className="attr-helper">
+                  {isEditing
+                    ? 'Hệ thống tự động sinh phiên bản từ tổ hợp các giá trị thuộc tính bên dưới.'
+                    : 'Thuộc tính dùng để sinh phiên bản. Thông số kỹ thuật phía trên không sinh phiên bản.'}
+                </p>
               </FormCard>
 
               {/* Chi tiết phiên bản & khởi tạo kho */}
-              <FormCard title={`${isEditing ? 'Chi tiết phiên bản & khởi tạo kho' : 'Chi tiết phiên bản'} (${totalVariants} phiên bản)`} id="card-phien-ban">
-                {!isEditing && <div className="variant-generation-summary">
-                  <strong>SẼ TẠO</strong>
-                  {attributes.length ? attributes.map((attribute, index) => <span className="variant-generation-tag" key={index}>{attribute.name} · {attribute.values.length} giá trị</span>) :
-                    <span className="variant-generation-tag">{totalVariants === 1 ? 'Mặc định' : 'Thủ công'} · {totalVariants} giá trị</span>}
-                  <span>=</span><strong className="variant-generation-total">{totalVariants} PHIÊN BẢN</strong>
-                </div>}
+              <FormCard
+                title={`${isEditing ? 'Chi tiết phiên bản & khởi tạo kho' : 'Chi tiết phiên bản'} (${totalVariants} phiên bản)`}
+                id="card-phien-ban"
+              >
+                {!isEditing && (
+                  <div className="variant-generation-summary">
+                    <strong>SẼ TẠO</strong>
+                    {attributes.length ? (
+                      attributes.map((attribute, index) => (
+                        <span className="variant-generation-tag" key={index}>
+                          {attribute.name} · {attribute.values.length} giá trị
+                        </span>
+                      ))
+                    ) : (
+                      <span className="variant-generation-tag">
+                        {totalVariants === 1 ? 'Mặc định' : 'Thủ công'} · {totalVariants} giá trị
+                      </span>
+                    )}
+                    <span>=</span>
+                    <strong className="variant-generation-total">{totalVariants} PHIÊN BẢN</strong>
+                  </div>
+                )}
                 <div className="variant-table-wrapper">
                   <table className="variant-table">
                     <thead>
@@ -666,9 +970,37 @@ export default function ThemSanPham() {
                         const d = getVariant(v.name);
                         return (
                           <tr key={v.name} className="variant-table__tr">
-                            <td className="variant-table__td variant-table__td--name"><div className="variant-name-field"><input type="text" className="form-input form-input--xs" value={versionName(v)} onChange={(e) => updateVariant(v.name, 'name', e.target.value)} placeholder="Tên phiên bản" />{!isEditing && attributes.length === 0 && manualVariants.length > 1 && <button type="button" className="attr-remove-btn" onClick={() => handleRemoveManualVariant(v.name)} aria-label="Xóa phiên bản"><HiOutlineX size={14} /></button>}</div></td>
+                            <td className="variant-table__td variant-table__td--name">
+                              <div className="variant-name-field">
+                                <input
+                                  type="text"
+                                  className="form-input form-input--xs"
+                                  value={versionName(v)}
+                                  onChange={(e) => updateVariant(v.name, 'name', e.target.value)}
+                                  placeholder="Tên phiên bản"
+                                />
+                                {!isEditing &&
+                                  attributes.length === 0 &&
+                                  manualVariants.length > 1 && (
+                                    <button
+                                      type="button"
+                                      className="attr-remove-btn"
+                                      onClick={() => handleRemoveManualVariant(v.name)}
+                                      aria-label="Xóa phiên bản"
+                                    >
+                                      <HiOutlineX size={14} />
+                                    </button>
+                                  )}
+                              </div>
+                            </td>
                             <td className="variant-table__td">
-                              <input type="text" className="form-input form-input--xs" value={d.sku} onChange={(e) => updateVariant(v.name, 'sku', e.target.value)} placeholder="SKU" />
+                              <input
+                                type="text"
+                                className="form-input form-input--xs"
+                                value={d.sku}
+                                onChange={(e) => updateVariant(v.name, 'sku', e.target.value)}
+                                placeholder="SKU"
+                              />
                             </td>
                             <td className="variant-table__td">
                               <div className="price-input-wrap">
@@ -694,10 +1026,16 @@ export default function ThemSanPham() {
                             </td>
                             <td className="variant-table__td">
                               <div className="price-input-wrap">
-                                <input type="text" className="form-input form-input--xs" value={d.khoiLuong} onChange={(e) => {
-                                  const val = e.target.value.replace(/[^0-9.]/g, '');
-                                  updateVariant(v.name, 'khoiLuong', val);
-                                }} placeholder="0.00" />
+                                <input
+                                  type="text"
+                                  className="form-input form-input--xs"
+                                  value={d.khoiLuong}
+                                  onChange={(e) => {
+                                    const val = e.target.value.replace(/[^0-9.]/g, '');
+                                    updateVariant(v.name, 'khoiLuong', val);
+                                  }}
+                                  placeholder="0.00"
+                                />
                                 <span className="price-unit">kg</span>
                               </div>
                             </td>
@@ -707,7 +1045,15 @@ export default function ThemSanPham() {
                     </tbody>
                   </table>
                 </div>
-                {!isEditing && attributes.length === 0 && <button type="button" className="btn-add-spec variant-add-btn" onClick={handleAddManualVariant}>THÊM PHIÊN BẢN</button>}
+                {!isEditing && attributes.length === 0 && (
+                  <button
+                    type="button"
+                    className="btn-add-spec variant-add-btn"
+                    onClick={handleAddManualVariant}
+                  >
+                    THÊM PHIÊN BẢN
+                  </button>
+                )}
               </FormCard>
             </>
           ) : (
@@ -731,9 +1077,15 @@ export default function ThemSanPham() {
                   {comboSearchFocused && comboSearchResults.length > 0 && (
                     <ul className="combo-search-results">
                       {comboSearchResults.map((p) => (
-                        <li key={p.id} className="combo-search-result-item" onMouseDown={() => handleAddComboItem(p)}>
+                        <li
+                          key={p.id}
+                          className="combo-search-result-item"
+                          onMouseDown={() => handleAddComboItem(p)}
+                        >
                           <span className="combo-result-name">{p.tenSanPham}</span>
-                          <span className="combo-result-category">{p.danhMuc || 'Chưa phân loại'}</span>
+                          <span className="combo-result-category">
+                            {p.danhMuc || 'Chưa phân loại'}
+                          </span>
                         </li>
                       ))}
                     </ul>
@@ -741,22 +1093,54 @@ export default function ThemSanPham() {
                 </div>
 
                 {comboItems.length === 0 ? (
-                  <p className="empty-hint" style={{ marginTop: 16 }}>Chưa có sản phẩm thành phần – tìm kiếm và thêm ở trên.</p>
+                  <p className="empty-hint" style={{ marginTop: 16 }}>
+                    Chưa có sản phẩm thành phần – tìm kiếm và thêm ở trên.
+                  </p>
                 ) : (
                   <div className="combo-items-list">
                     <table className="combo-items-table">
-                      <thead><tr><th>SẢN PHẨM</th><th>SKU</th><th>SỐ LƯỢNG</th></tr></thead>
-                      <tbody>{comboItems.map((item) => (
-                        <tr key={item.id}>
-                          <td>{item.tenSanPham}</td><td>{item.maSanPham}</td>
-                          <td><div className="combo-quantity-control">
-                            <button type="button" onClick={() => updateComboQuantity(item.id, -1)} aria-label="Giảm số lượng">−</button>
-                            <span>{item.qty || 1}</span>
-                            <button type="button" onClick={() => updateComboQuantity(item.id, 1)} aria-label="Tăng số lượng">+</button>
-                            <button type="button" className="combo-item-remove" onClick={() => handleRemoveComboItem(item.id)} aria-label="Xóa sản phẩm">×</button>
-                          </div></td>
+                      <thead>
+                        <tr>
+                          <th>SẢN PHẨM</th>
+                          <th>SKU</th>
+                          <th>SỐ LƯỢNG</th>
                         </tr>
-                      ))}</tbody>
+                      </thead>
+                      <tbody>
+                        {comboItems.map((item) => (
+                          <tr key={item.id}>
+                            <td>{item.tenSanPham}</td>
+                            <td>{item.maSanPham}</td>
+                            <td>
+                              <div className="combo-quantity-control">
+                                <button
+                                  type="button"
+                                  onClick={() => updateComboQuantity(item.id, -1)}
+                                  aria-label="Giảm số lượng"
+                                >
+                                  −
+                                </button>
+                                <span>{item.qty || 1}</span>
+                                <button
+                                  type="button"
+                                  onClick={() => updateComboQuantity(item.id, 1)}
+                                  aria-label="Tăng số lượng"
+                                >
+                                  +
+                                </button>
+                                <button
+                                  type="button"
+                                  className="combo-item-remove"
+                                  onClick={() => handleRemoveComboItem(item.id)}
+                                  aria-label="Xóa sản phẩm"
+                                >
+                                  ×
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
                     </table>
                   </div>
                 )}
@@ -792,7 +1176,9 @@ export default function ThemSanPham() {
               disabled={isEditing}
               id="opt-type-single"
             >
-              <span className={`square-checkbox ${productType === 'single' ? 'square-checkbox--checked' : ''}`}>
+              <span
+                className={`square-checkbox ${productType === 'single' ? 'square-checkbox--checked' : ''}`}
+              >
                 {productType === 'single' && <span className="square-checkbox__inner" />}
               </span>
               <div className="type-option__content">
@@ -807,7 +1193,9 @@ export default function ThemSanPham() {
               disabled={isEditing}
               id="opt-type-combo"
             >
-              <span className={`square-checkbox ${productType === 'combo' ? 'square-checkbox--checked' : ''}`}>
+              <span
+                className={`square-checkbox ${productType === 'combo' ? 'square-checkbox--checked' : ''}`}
+              >
                 {productType === 'combo' && <span className="square-checkbox__inner" />}
               </span>
               <div className="type-option__content">
@@ -820,7 +1208,9 @@ export default function ThemSanPham() {
           {/* 2. Phân loại */}
           <FormCard title="Phân loại" id="card-phan-loai">
             <div className="form-group">
-              <label className="form-label">Danh mục <span className="form-required">*</span></label>
+              <label className="form-label">
+                Danh mục <span className="form-required">*</span>
+              </label>
               <FilterDropdown
                 id="filter-add-danh-muc"
                 options={categoryOptions}
@@ -839,7 +1229,9 @@ export default function ThemSanPham() {
               )}
             </div>
             <div className="form-group">
-              <label className="form-label">Thương hiệu <span className="form-required">*</span></label>
+              <label className="form-label">
+                Thương hiệu <span className="form-required">*</span>
+              </label>
               <FilterDropdown
                 id="filter-add-thuong-hieu"
                 options={brandOptions}
@@ -916,19 +1308,34 @@ export default function ThemSanPham() {
             <FormCard title="Tóm tắt phiên bản" id="card-tom-tat">
               <div className={isEditing ? 'summary-rows' : 'product-variant-summary'}>
                 <div className={isEditing ? 'summary-row' : 'product-variant-summary__row'}>
-                  <span className={isEditing ? 'summary-label' : 'product-variant-summary__label'}>Số phiên bản:</span>
-                  <span className={isEditing ? 'summary-value' : 'product-variant-summary__value'}>{totalVariants}</span>
+                  <span className={isEditing ? 'summary-label' : 'product-variant-summary__label'}>
+                    Số phiên bản:
+                  </span>
+                  <span className={isEditing ? 'summary-value' : 'product-variant-summary__value'}>
+                    {totalVariants}
+                  </span>
                 </div>
-                {!isEditing && <>
-                  <div className="product-variant-summary__row"><span className="product-variant-summary__label">Tổng tồn đầu kỳ:</span><span className="product-variant-summary__value product-variant-summary__value--red">0</span></div>
-                  <div className="product-variant-summary__row"><span className="product-variant-summary__label">Serial khai báo:</span><span className="product-variant-summary__value product-variant-summary__value--green">0 / 0</span></div>
-                </>}
+                {!isEditing && (
+                  <>
+                    <div className="product-variant-summary__row">
+                      <span className="product-variant-summary__label">Tổng tồn đầu kỳ:</span>
+                      <span className="product-variant-summary__value product-variant-summary__value--red">
+                        0
+                      </span>
+                    </div>
+                    <div className="product-variant-summary__row">
+                      <span className="product-variant-summary__label">Serial khai báo:</span>
+                      <span className="product-variant-summary__value product-variant-summary__value--green">
+                        0 / 0
+                      </span>
+                    </div>
+                  </>
+                )}
               </div>
             </FormCard>
           )}
         </div>
       </div>
-
     </main>
   );
 }

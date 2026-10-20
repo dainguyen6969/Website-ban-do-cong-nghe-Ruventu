@@ -49,17 +49,9 @@ const brandOptions = [
   'Lian Li',
 ];
 
-const productTypeOptions = [
-  'Loại sản phẩm',
-  'Sản phẩm đơn',
-  'Theo bộ (Combo)',
-];
+const productTypeOptions = ['Loại sản phẩm', 'Sản phẩm đơn', 'Theo bộ (Combo)'];
 
-const statusOptions = [
-  'Trạng thái bán',
-  'Đang kinh doanh',
-  'Ngừng kinh doanh',
-];
+const statusOptions = ['Trạng thái bán', 'Đang kinh doanh', 'Ngừng kinh doanh'];
 
 const tableColumns = [
   { id: 'checkbox', label: '', isCheckbox: true },
@@ -143,22 +135,29 @@ export default function DanhSachSanPham() {
 
   const categoryId = categoryLookup.find((item) => item.name === selectedCategory)?.id;
   const brandId = brandLookup.find((item) => item.name === selectedBrand)?.id;
-  const productType = selectedProductType === 'Sản phẩm đơn'
-    ? 'DON'
-    : selectedProductType === 'Theo bộ (Combo)' ? 'BO_PC' : '';
-  const status = selectedStatus === 'Đang kinh doanh'
-    ? 1
-    : selectedStatus === 'Ngừng kinh doanh' ? 0 : null;
+  const productType =
+    selectedProductType === 'Sản phẩm đơn'
+      ? 'DON'
+      : selectedProductType === 'Theo bộ (Combo)'
+        ? 'BO_PC'
+        : '';
+  const status =
+    selectedStatus === 'Đang kinh doanh' ? 1 : selectedStatus === 'Ngừng kinh doanh' ? 0 : null;
 
   // Load lookup IDs without replacing the existing visible dropdown labels or options.
   useEffect(() => {
     let active = true;
     Promise.all([getAllCategories(), getAllBrands()])
       .then(([categories, brands]) => {
-        if (active) { setCategoryLookup(categories); setBrandLookup(brands); }
+        if (active) {
+          setCategoryLookup(categories);
+          setBrandLookup(brands);
+        }
       })
       .catch(() => {});
-    return () => { active = false; };
+    return () => {
+      active = false;
+    };
   }, []);
 
   // Server-side pagination/search/filtering keeps counts and page boundaries authoritative.
@@ -168,15 +167,18 @@ export default function DanhSachSanPham() {
       setLoading(true);
       setError('');
       try {
-        const result = await getProductPage({
-          keyword: searchTerm,
-          categoryId: isCategoryActive ? categoryId : null,
-          brandId: isBrandActive ? brandId : null,
-          productType,
-          status,
-          page: currentPage,
-          limit: PAGE_SIZE,
-        }, controller.signal);
+        const result = await getProductPage(
+          {
+            keyword: searchTerm,
+            categoryId: isCategoryActive ? categoryId : null,
+            brandId: isBrandActive ? brandId : null,
+            productType,
+            status,
+            page: currentPage,
+            limit: PAGE_SIZE,
+          },
+          controller.signal
+        );
         setProductsList(result.items);
         setTotalFilteredCount(result.totalItems);
         setTotalPages(result.totalPages);
@@ -191,16 +193,28 @@ export default function DanhSachSanPham() {
         if (!controller.signal.aborted) setLoading(false);
       }
     }, 250);
-    return () => { window.clearTimeout(timer); controller.abort(); };
-  }, [searchTerm, categoryId, brandId, productType, status, currentPage, reloadKey, isCategoryActive, isBrandActive]);
+    return () => {
+      window.clearTimeout(timer);
+      controller.abort();
+    };
+  }, [
+    searchTerm,
+    categoryId,
+    brandId,
+    productType,
+    status,
+    currentPage,
+    reloadKey,
+    isCategoryActive,
+    isBrandActive,
+  ]);
 
   const safeCurrentPage = Math.min(currentPage, Math.max(1, totalPages));
   const currentProducts = productsList;
 
   // Checkbox handling
   const allCurrentPageSelected =
-    currentProducts.length > 0 &&
-    currentProducts.every((p) => selectedIds.includes(p.id));
+    currentProducts.length > 0 && currentProducts.every((p) => selectedIds.includes(p.id));
 
   const handleToggleSelectAll = () => {
     if (allCurrentPageSelected) {
@@ -226,8 +240,8 @@ export default function DanhSachSanPham() {
             <HiOutlineUpload size={16} />
             <span>NHẬP EXCEL</span>
           </button>
-          <button 
-            className="btn-product-band btn-product-band--red" 
+          <button
+            className="btn-product-band btn-product-band--red"
             id="btn-add-product-band"
             onClick={() => navigate('/admin/san-pham/them-san-pham')}
           >
@@ -240,10 +254,10 @@ export default function DanhSachSanPham() {
       {/* 3. Breadcrumb row (SẢN PHẨM › DANH SÁCH SẢN PHẨM) */}
       <div className="product-breadcrumb-row">
         <nav className="product-breadcrumb" aria-label="Breadcrumb nội dung">
-          <span className="product-breadcrumb__item product-breadcrumb__item--muted">
-            SẢN PHẨM
+          <span className="product-breadcrumb__item product-breadcrumb__item--muted">SẢN PHẨM</span>
+          <span className="product-breadcrumb__sep" aria-hidden="true">
+            ›
           </span>
-          <span className="product-breadcrumb__sep" aria-hidden="true">›</span>
           <span className="product-breadcrumb__item product-breadcrumb__item--current">
             DANH SÁCH SẢN PHẨM
           </span>
@@ -393,12 +407,29 @@ export default function DanhSachSanPham() {
                     role={error ? 'button' : undefined}
                     tabIndex={error ? 0 : undefined}
                     onClick={error ? () => setReloadKey((value) => value + 1) : undefined}
-                    onKeyDown={error ? (event) => event.key === 'Enter' && setReloadKey((value) => value + 1) : undefined}
+                    onKeyDown={
+                      error
+                        ? (event) => event.key === 'Enter' && setReloadKey((value) => value + 1)
+                        : undefined
+                    }
                   >
                     <div className="product-table__empty-icon" aria-hidden="true">
                       <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
-                        <rect x="6" y="10" width="36" height="30" stroke="#d1d5db" strokeWidth="2" fill="none" />
-                        <path d="M6 18h36M24 18v22M18 10l6-6 6 6" stroke="#d1d5db" strokeWidth="2" strokeLinecap="square" />
+                        <rect
+                          x="6"
+                          y="10"
+                          width="36"
+                          height="30"
+                          stroke="#d1d5db"
+                          strokeWidth="2"
+                          fill="none"
+                        />
+                        <path
+                          d="M6 18h36M24 18v22M18 10l6-6 6 6"
+                          stroke="#d1d5db"
+                          strokeWidth="2"
+                          strokeLinecap="square"
+                        />
                       </svg>
                     </div>
                     <span className="product-table__empty-text">
@@ -440,7 +471,14 @@ export default function DanhSachSanPham() {
                             className="product-thumb__img"
                           />
                         ) : (
-                          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="1.5">
+                          <svg
+                            width="22"
+                            height="22"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="#9ca3af"
+                            strokeWidth="1.5"
+                          >
                             <rect x="3" y="3" width="18" height="18" rx="0" />
                             <circle cx="8.5" cy="8.5" r="1.5" />
                             <path d="M21 15l-5-5L5 21" />
@@ -506,9 +544,13 @@ export default function DanhSachSanPham() {
                         <button
                           type="button"
                           className="btn-product-action"
-                          onClick={() => navigate(product.isCombo
-                            ? `/kho-hang/combo-san-pham/chi-tiet/${encodeURIComponent(product.id)}`
-                            : `/admin/san-pham/chi-tiet-san-pham/${encodeURIComponent(product.id)}`)}
+                          onClick={() =>
+                            navigate(
+                              product.isCombo
+                                ? `/kho-hang/combo-san-pham/chi-tiet/${encodeURIComponent(product.id)}`
+                                : `/admin/san-pham/chi-tiet-san-pham/${encodeURIComponent(product.id)}`
+                            )
+                          }
                           title="Xem chi tiết"
                           aria-label="Xem chi tiết"
                         >
@@ -517,9 +559,13 @@ export default function DanhSachSanPham() {
                         <button
                           type="button"
                           className="btn-product-action"
-                          onClick={() => navigate(product.isCombo
-                            ? `/kho-hang/combo-san-pham/them-moi?id=${encodeURIComponent(product.id)}`
-                            : `/admin/san-pham/them-san-pham/${encodeURIComponent(product.id)}`)}
+                          onClick={() =>
+                            navigate(
+                              product.isCombo
+                                ? `/kho-hang/combo-san-pham/them-moi?id=${encodeURIComponent(product.id)}`
+                                : `/admin/san-pham/them-san-pham/${encodeURIComponent(product.id)}`
+                            )
+                          }
                           title="Chỉnh sửa"
                           aria-label="Chỉnh sửa"
                         >

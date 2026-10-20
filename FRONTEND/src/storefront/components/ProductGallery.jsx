@@ -35,10 +35,10 @@ const ProductGallery = ({ images = [], discountPercent, isFullBuild = false }) =
         <button className="nav-arrow left-arrow" onClick={prevImage}>
           <ChevronLeft size={24} />
         </button>
-        
-        <img 
-          src={galleryImages[currentIndex]} 
-          alt={`Product view ${currentIndex + 1}`} 
+
+        <img
+          src={galleryImages[currentIndex]}
+          alt={`Product view ${currentIndex + 1}`}
           className="main-gallery-image"
         />
 
@@ -54,8 +54,8 @@ const ProductGallery = ({ images = [], discountPercent, isFullBuild = false }) =
       {/* Thumbnails */}
       <div className="thumbnail-strip">
         {galleryImages.map((img, index) => (
-          <div 
-            key={index} 
+          <div
+            key={index}
             className={`thumbnail-item ${index === currentIndex ? 'active' : ''}`}
             onClick={() => setCurrentIndex(index)}
           >

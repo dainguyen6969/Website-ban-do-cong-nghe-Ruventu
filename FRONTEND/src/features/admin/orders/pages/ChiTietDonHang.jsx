@@ -1,7 +1,7 @@
-import { useNavigate, useParams } from "react-router-dom";
-import { HiOutlineArrowLeft } from "react-icons/hi";
-import DetailTablePagination from "../../../../shared/components/ui/DetailTablePagination";
-import useDetailTablePagination from "../../../../hooks/useDetailTablePagination";
+import { useNavigate, useParams } from 'react-router-dom';
+import { HiOutlineArrowLeft } from 'react-icons/hi';
+import DetailTablePagination from '../../../../shared/components/ui/DetailTablePagination';
+import useDetailTablePagination from '../../../../hooks/useDetailTablePagination';
 import {
   approveOrder,
   cancelOrder,
@@ -20,20 +20,20 @@ import {
   setPackingStatus,
   startFulfillment,
   startOrderDelivery,
-} from "../api/orderApi";
+} from '../api/orderApi';
 
-import { OrderStateBadge } from "./DanhSachDonHang";
-import "./ChiTietDonHang.css";
-import OrderModal from "../components/OrderModal";
-import ExportOrderDialog from "../components/ExportOrderDialog";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { OrderStateBadge } from './DanhSachDonHang';
+import './ChiTietDonHang.css';
+import OrderModal from '../components/OrderModal';
+import ExportOrderDialog from '../components/ExportOrderDialog';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   errorMessage,
   inputFromApiTime,
   nowLocalInput,
   toApiDateTime,
   withIdempotency,
-} from "../../../../shared/services/mutationUtils";
+} from '../../../../shared/services/mutationUtils';
 
 export default function ChiTietDonHang() {
   const actionBusy = useRef(false);
@@ -43,10 +43,10 @@ export default function ChiTietDonHang() {
   const [order, setOrder] = useState(null);
   const [history, setHistory] = useState([]);
   const [isCancelOpen, setIsCancelOpen] = useState(false);
-  const [cancelReason, setCancelReason] = useState("");
+  const [cancelReason, setCancelReason] = useState('');
   const [dialog, setDialog] = useState(null);
   const [options, setOptions] = useState({ warehouses: [], partners: [] });
-  const [state, setState] = useState({ loading: true, busy: false, error: "" });
+  const [state, setState] = useState({ loading: true, busy: false, error: '' });
   const load = useCallback(
     async (signal) => {
       try {
@@ -57,13 +57,13 @@ export default function ChiTietDonHang() {
         if (signal?.aborted) return;
         setOrder(detail);
         setHistory(events);
-        setState((s) => ({ ...s, loading: false, error: "" }));
+        setState((s) => ({ ...s, loading: false, error: '' }));
       } catch (error) {
-        if (error.name !== "AbortError")
+        if (error.name !== 'AbortError')
           setState((s) => ({ ...s, loading: false, error: error.message }));
       }
     },
-    [orderId],
+    [orderId]
   );
   useEffect(() => {
     const controller = new AbortController();
@@ -81,7 +81,7 @@ export default function ChiTietDonHang() {
     setState((current) => ({
       ...current,
       busy: true,
-      error: "",
+      error: '',
     }));
 
     try {
@@ -106,10 +106,10 @@ export default function ChiTietDonHang() {
   useEffect(() => {
     if (!isCancelOpen) return undefined;
     const close = (event) => {
-      if (event.key === "Escape") setIsCancelOpen(false);
+      if (event.key === 'Escape') setIsCancelOpen(false);
     };
-    document.addEventListener("keydown", close);
-    return () => document.removeEventListener("keydown", close);
+    document.addEventListener('keydown', close);
+    return () => document.removeEventListener('keydown', close);
   }, [isCancelOpen]);
 
   if (state.loading)
@@ -123,43 +123,40 @@ export default function ChiTietDonHang() {
       <section className="admin-order-detail admin-order-not-found">
         <h1>KHÔNG THỂ TẢI ĐƠN HÀNG</h1>
         <p>{state.error}</p>
-        <button
-          type="button"
-          onClick={() => navigate("/admin/don-hang/danh-sach-don-hang")}
-        >
+        <button type="button" onClick={() => navigate('/admin/don-hang/danh-sach-don-hang')}>
           QUAY LẠI DANH SÁCH
         </button>
       </section>
     );
 
   const open = (type, title, fields = {}) => {
-    setState((s) => ({ ...s, error: "" }));
+    setState((s) => ({ ...s, error: '' }));
     setDialog({ type, title, confirmed: false, ...fields });
   };
-  const approve = () => open("approve", "DUYỆT ĐƠN");
-  const fulfillment = () => open("fulfillment", "BẮT ĐẦU ĐÓNG GÓI");
+  const approve = () => open('approve', 'DUYỆT ĐƠN');
+  const fulfillment = () => open('fulfillment', 'BẮT ĐẦU ĐÓNG GÓI');
 
   const cancel = () =>
     run(async () => {
       await cancelOrder(order.id, cancelReason);
       setIsCancelOpen(false);
-      setCancelReason("");
+      setCancelReason('');
     });
 
   const warehouseExport = async () => {
     try {
-      setState((s) => ({ ...s, busy: true, error: "" }));
+      setState((s) => ({ ...s, busy: true, error: '' }));
       const requirements = await getSerialRequirements(order.id);
       const variants = new Map(
         await Promise.all(
           [
             ...new Set(
               (requirements.items || []).flatMap((line) =>
-                line.serial_requirements.map((item) => item.phien_ban_id),
-              ),
+                line.serial_requirements.map((item) => item.phien_ban_id)
+              )
             ),
-          ].map(async (id) => [id, (await getExportVariant(id)).phien_ban]),
-        ),
+          ].map(async (id) => [id, (await getExportVariant(id)).phien_ban])
+        )
       );
       const groups = (requirements.items || []).flatMap((line) =>
         line.serial_requirements.map((requirement) => ({
@@ -170,10 +167,10 @@ export default function ChiTietDonHang() {
             `Phiên bản ${requirement.phien_ban_id}`,
           barcode: variants.get(requirement.phien_ban_id)?.ma_vach,
           selected: [],
-        })),
+        }))
       );
-      open("export", "XUẤT KHO ĐƠN HÀNG", {
-        warehouseId: options.warehouses[0]?.id || "",
+      open('export', 'XUẤT KHO ĐƠN HÀNG', {
+        warehouseId: options.warehouses[0]?.id || '',
         requirements: requirements.items || [],
         groups,
       });
@@ -184,81 +181,69 @@ export default function ChiTietDonHang() {
   };
 
   const canStartDelivery =
-    order.loai_don_hang === "ONLINE" &&
-    order.hinh_thuc_nhan_hang === "GIAO_HANG" &&
-    order.trang_thai_don_hang === "CHO_LAY_HANG" &&
-    order.trang_thai_dong_goi === "DA_DONG_GOI" &&
-    order.trang_thai_xuat_kho === "DA_XUAT_KHO";
+    order.loai_don_hang === 'ONLINE' &&
+    order.hinh_thuc_nhan_hang === 'GIAO_HANG' &&
+    order.trang_thai_don_hang === 'CHO_LAY_HANG' &&
+    order.trang_thai_dong_goi === 'DA_DONG_GOI' &&
+    order.trang_thai_xuat_kho === 'DA_XUAT_KHO';
 
   const beginDelivery = () =>
-    open("startDelivery", "BẮT ĐẦU GIAO HÀNG", {
-      partner: "",
-      fee: "0",
+    open('startDelivery', 'BẮT ĐẦU GIAO HÀNG', {
+      partner: '',
+      fee: '0',
     });
 
   const deliveries = order.phieu_giao_hang || [];
 
   const customerPaymentAllowed =
-    order.loai_don_hang === "ONLINE" &&
-    order.trang_thai_thanh_toan === "CHUA_THANH_TOAN" &&
-    ["CHO_THANH_TOAN", "CHO_DONG_GOI", "CHO_LAY_HANG"].includes(
-      order.trang_thai_don_hang,
-    ) &&
-    (order.hinh_thuc_nhan_hang === "NHAN_TAI_CUA_HANG" ||
+    order.loai_don_hang === 'ONLINE' &&
+    order.trang_thai_thanh_toan === 'CHUA_THANH_TOAN' &&
+    ['CHO_THANH_TOAN', 'CHO_DONG_GOI', 'CHO_LAY_HANG'].includes(order.trang_thai_don_hang) &&
+    (order.hinh_thuc_nhan_hang === 'NHAN_TAI_CUA_HANG' ||
       deliveries.every((delivery) =>
-        ["CHO_GIAO", "HUY_GIAO_HANG"].includes(delivery.trang_thai_giao_hang),
+        ['CHO_GIAO', 'HUY_GIAO_HANG'].includes(delivery.trang_thai_giao_hang)
       ));
 
   const canPay = customerPaymentAllowed;
 
   const canCollectCod = (delivery) =>
-    order.trang_thai_thanh_toan === "DA_THANH_TOAN" &&
-    delivery.trang_thai_giao_hang === "GIAO_THANH_CONG" &&
+    order.trang_thai_thanh_toan === 'DA_THANH_TOAN' &&
+    delivery.trang_thai_giao_hang === 'GIAO_THANH_CONG' &&
     Number(delivery.tien_thu_ho_cod) > 0;
 
   const payment = (delivery = null) => {
-    const scope = delivery
-      ? `order:${order.id}:cod:${delivery.id}`
-      : `order:${order.id}:payment`;
+    const scope = delivery ? `order:${order.id}:cod:${delivery.id}` : `order:${order.id}:payment`;
 
     const pending = cashAttempt.current;
 
     if (pending && pending.scope !== scope) {
       setState((current) => ({
         ...current,
-        error: "Hãy hoàn tất thao tác tiền đang chờ kết quả trước.",
+        error: 'Hãy hoàn tất thao tác tiền đang chờ kết quả trước.',
       }));
       return;
     }
 
     const previous = pending?.body;
 
-    open(
-      "payment",
-      delivery ? "GHI NHẬN ĐỐI TÁC NỘP COD" : "XÁC NHẬN NHẬN TIỀN KHÁCH HÀNG",
-      {
-        scope,
-        source: delivery ? "DOI_TAC_GIAO_HANG" : "KHACH_HANG",
-        deliveryId: delivery?.id || null,
-        amount:
-          previous?.so_tien_thanh_toan ??
-          (delivery ? delivery.tien_thu_ho_cod : order.tong_thanh_toan),
-        method:
-          previous?.phuong_thuc_thanh_toan ||
-          (delivery
-            ? "CHUYEN_KHOAN"
-            : ["TIEN_MAT", "CHUYEN_KHOAN", "THE"].includes(
-                  order.phuong_thuc_thanh_toan,
-                )
-              ? order.phuong_thuc_thanh_toan
-              : "CHUYEN_KHOAN"),
-        occurredAt: previous
-          ? inputFromApiTime(previous.ngay_thanh_toan)
-          : nowLocalInput(),
-        transaction: previous?.ma_giao_dich_thanh_toan || "",
-        confirmed: Boolean(previous?.xac_nhan_da_nhan_tien),
-      },
-    );
+    open('payment', delivery ? 'GHI NHẬN ĐỐI TÁC NỘP COD' : 'XÁC NHẬN NHẬN TIỀN KHÁCH HÀNG', {
+      scope,
+      source: delivery ? 'DOI_TAC_GIAO_HANG' : 'KHACH_HANG',
+      deliveryId: delivery?.id || null,
+      amount:
+        previous?.so_tien_thanh_toan ??
+        (delivery ? delivery.tien_thu_ho_cod : order.tong_thanh_toan),
+      method:
+        previous?.phuong_thuc_thanh_toan ||
+        (delivery
+          ? 'CHUYEN_KHOAN'
+          : ['TIEN_MAT', 'CHUYEN_KHOAN', 'THE'].includes(order.phuong_thuc_thanh_toan)
+            ? order.phuong_thuc_thanh_toan
+            : 'CHUYEN_KHOAN'),
+      occurredAt: previous ? inputFromApiTime(previous.ngay_thanh_toan) : nowLocalInput(),
+      transaction: previous?.ma_giao_dich_thanh_toan || '',
+      confirmed: Boolean(previous?.xac_nhan_da_nhan_tien),
+    });
   };
 
   const refund = () => {
@@ -268,20 +253,18 @@ export default function ChiTietDonHang() {
     if (pending && pending.scope !== scope) {
       setState((current) => ({
         ...current,
-        error: "Hãy hoàn tất thao tác tiền đang chờ kết quả trước.",
+        error: 'Hãy hoàn tất thao tác tiền đang chờ kết quả trước.',
       }));
       return;
     }
 
     const previous = pending?.body;
 
-    open("refund", "GHI NHẬN ĐÃ HOÀN TIỀN", {
+    open('refund', 'GHI NHẬN ĐÃ HOÀN TIỀN', {
       scope,
-      method: previous?.phuong_thuc_hoan || "CHUYEN_KHOAN",
-      occurredAt: previous
-        ? inputFromApiTime(previous.ngay_hoan_tien)
-        : nowLocalInput(),
-      transaction: previous?.ma_giao_dich || "",
+      method: previous?.phuong_thuc_hoan || 'CHUYEN_KHOAN',
+      occurredAt: previous ? inputFromApiTime(previous.ngay_hoan_tien) : nowLocalInput(),
+      transaction: previous?.ma_giao_dich || '',
       confirmed: Boolean(previous?.xac_nhan_da_hoan_tien),
     });
   };
@@ -292,14 +275,13 @@ export default function ChiTietDonHang() {
     run(() => {
       const { type, method, transaction } = dialog;
 
-      if (type === "payment") {
+      if (type === 'payment') {
         const body = {
           nguon_thu: dialog.source,
           phuong_thuc_thanh_toan: method,
           so_tien_thanh_toan: Number(dialog.amount),
           ngay_thanh_toan: toApiDateTime(dialog.occurredAt),
-          ma_giao_dich_thanh_toan:
-            method === "TIEN_MAT" ? null : transaction.trim(),
+          ma_giao_dich_thanh_toan: method === 'TIEN_MAT' ? null : transaction.trim(),
           xac_nhan_da_nhan_tien: true,
           ...(dialog.deliveryId
             ? {
@@ -308,71 +290,61 @@ export default function ChiTietDonHang() {
             : {}),
         };
 
-        return withIdempotency(
-          cashAttempt,
-          dialog.scope,
-          body,
-          (key, payload) => confirmOrderPayment(order.id, key, payload),
+        return withIdempotency(cashAttempt, dialog.scope, body, (key, payload) =>
+          confirmOrderPayment(order.id, key, payload)
         );
       }
 
-      if (type === "refund") {
+      if (type === 'refund') {
         const body = {
           xac_nhan_da_hoan_tien: true,
           phuong_thuc_hoan: method,
           ngay_hoan_tien: toApiDateTime(dialog.occurredAt),
-          ma_giao_dich: method === "TIEN_MAT" ? null : transaction.trim(),
+          ma_giao_dich: method === 'TIEN_MAT' ? null : transaction.trim(),
         };
 
-        return withIdempotency(
-          cashAttempt,
-          dialog.scope,
-          body,
-          (key, payload) => refundOrder(order.id, key, payload),
+        return withIdempotency(cashAttempt, dialog.scope, body, (key, payload) =>
+          refundOrder(order.id, key, payload)
         );
       }
 
-      if (type === "approve") {
+      if (type === 'approve') {
         return approveOrder(order.id);
       }
 
-      if (type === "pickup") {
+      if (type === 'pickup') {
         return confirmPickup(order.id);
       }
 
-      if (type === "packed" || type === "cancelPacking") {
-        return setPackingStatus(
-          order.id,
-          type === "packed" ? "DA_DONG_GOI" : "HUY_DONG_GOI",
-        );
+      if (type === 'packed' || type === 'cancelPacking') {
+        return setPackingStatus(order.id, type === 'packed' ? 'DA_DONG_GOI' : 'HUY_DONG_GOI');
       }
 
-      if (type === "fulfillment") {
+      if (type === 'fulfillment') {
         return startFulfillment(order.id);
       }
 
-      if (type === "startDelivery") {
+      if (type === 'startDelivery') {
         const partnerId = Number(dialog.partner);
         const fee = Number(dialog.fee);
 
         if (!Number.isSafeInteger(partnerId) || partnerId <= 0) {
-          throw new Error("Vui lòng chọn đối tác giao hàng.");
+          throw new Error('Vui lòng chọn đối tác giao hàng.');
         }
 
-        if (dialog.fee === "" || !Number.isFinite(fee) || fee < 0) {
-          throw new Error("Phí trả đối tác không hợp lệ.");
+        if (dialog.fee === '' || !Number.isFinite(fee) || fee < 0) {
+          throw new Error('Phí trả đối tác không hợp lệ.');
         }
 
         return startOrderDelivery(order.id, partnerId, fee);
       }
 
-      throw new Error("Thao tác không hợp lệ.");
+      throw new Error('Thao tác không hợp lệ.');
     });
   };
 
   const beforeExport =
-    order.trang_thai_xuat_kho === "CHUA_XUAT_KHO" &&
-    order.trang_thai_don_hang !== "HUY_HANG";
+    order.trang_thai_xuat_kho === 'CHUA_XUAT_KHO' && order.trang_thai_don_hang !== 'HUY_HANG';
 
   return (
     <section className="admin-order-detail" aria-busy={state.busy}>
@@ -403,55 +375,45 @@ export default function ChiTietDonHang() {
               BẮT ĐẦU GIAO HÀNG
             </Action>
           )}
-          {order.loai_don_hang === "ONLINE" &&
-            order.trang_thai_don_hang === "CHO_DUYET" && (
-              <Action disabled={state.busy} click={approve}>
-                DUYỆT ĐƠN
-              </Action>
-            )}
-          {order.hinh_thuc_nhan_hang === "NHAN_TAI_CUA_HANG" &&
-            order.trang_thai_don_hang === "CHO_LAY_HANG" &&
-            order.trang_thai_xuat_kho === "DA_XUAT_KHO" &&
-            order.trang_thai_thanh_toan === "DA_THANH_TOAN" && (
-              <Action
-                disabled={state.busy}
-                click={() => open("pickup", "XÁC NHẬN ĐÃ NHẬN")}
-              >
+          {order.loai_don_hang === 'ONLINE' && order.trang_thai_don_hang === 'CHO_DUYET' && (
+            <Action disabled={state.busy} click={approve}>
+              DUYỆT ĐƠN
+            </Action>
+          )}
+          {order.hinh_thuc_nhan_hang === 'NHAN_TAI_CUA_HANG' &&
+            order.trang_thai_don_hang === 'CHO_LAY_HANG' &&
+            order.trang_thai_xuat_kho === 'DA_XUAT_KHO' &&
+            order.trang_thai_thanh_toan === 'DA_THANH_TOAN' && (
+              <Action disabled={state.busy} click={() => open('pickup', 'XÁC NHẬN ĐÃ NHẬN')}>
                 XÁC NHẬN ĐÃ NHẬN
               </Action>
             )}
           {beforeExport &&
-            order.loai_don_hang === "ONLINE" &&
-            ["CHO_DUYET", "CHO_THANH_TOAN", "CHO_DONG_GOI"].includes(
-              order.trang_thai_don_hang,
-            ) && (
+            order.loai_don_hang === 'ONLINE' &&
+            ['CHO_DUYET', 'CHO_THANH_TOAN', 'CHO_DONG_GOI'].includes(order.trang_thai_don_hang) && (
               <Action
                 danger
                 disabled={state.busy}
                 click={() => {
-                  setState((s) => ({ ...s, error: "" }));
+                  setState((s) => ({ ...s, error: '' }));
                   setIsCancelOpen(true);
                 }}
               >
                 HỦY ĐƠN HÀNG
               </Action>
             )}
-          {order.loai_don_hang === "ONLINE" &&
-            order.trang_thai_xuat_kho === "DA_XUAT_KHO" &&
-            ["CHO_DONG_GOI", "CHO_LAY_HANG", "DANG_GIAO_HANG"].includes(
-              order.trang_thai_don_hang,
+          {order.loai_don_hang === 'ONLINE' &&
+            order.trang_thai_xuat_kho === 'DA_XUAT_KHO' &&
+            ['CHO_DONG_GOI', 'CHO_LAY_HANG', 'DANG_GIAO_HANG'].includes(
+              order.trang_thai_don_hang
             ) && (
-              <button
-                className="order-action order-action--back"
-                type="button"
-                disabled
-              >
+              <button className="order-action order-action--back" type="button" disabled>
                 ĐƠN ĐÃ XUẤT KHO - KHÔNG THỂ HỦY TRỰC TIẾP
               </button>
             )}
-          {order.trang_thai_don_hang === "HUY_HANG" &&
-            order.trang_thai_xuat_kho === "CHUA_XUAT_KHO" &&
-            order.trang_thai_thanh_toan === "DA_THANH_TOAN" && (
+          {order.trang_thai_don_hang === 'HUY_HANG' &&
+            order.trang_thai_xuat_kho === 'CHUA_XUAT_KHO' &&
+            order.trang_thai_thanh_toan === 'DA_THANH_TOAN' && (
               <Action disabled={state.busy} click={refund}>
                 HOÀN TIỀN
               </Action>
@@ -459,7 +421,7 @@ export default function ChiTietDonHang() {
           <button
             type="button"
             className="order-action order-action--back"
-            onClick={() => navigate("/admin/don-hang/danh-sach-don-hang")}
+            onClick={() => navigate('/admin/don-hang/danh-sach-don-hang')}
           >
             <HiOutlineArrowLeft size={14} /> QUAY LẠI DANH SÁCH
           </button>
@@ -491,7 +453,7 @@ export default function ChiTietDonHang() {
                       <td>—</td>
                       <td>
                         <strong>{item.ten_san_pham}</strong>
-                        <span>{item.ten_phien_ban || "—"}</span>
+                        <span>{item.ten_phien_ban || '—'}</span>
                       </td>
                       <td>—</td>
                       <td className="align-right">{money(item.don_gia)}</td>
@@ -513,15 +475,11 @@ export default function ChiTietDonHang() {
           </Panel>
           <Panel title="THANH TOÁN">
             <dl className="order-detail-kv">
-              <Info text="PHƯƠNG THỨC">
-                {label(order.phuong_thuc_thanh_toan)}
-              </Info>
+              <Info text="PHƯƠNG THỨC">{label(order.phuong_thuc_thanh_toan)}</Info>
               <Info text="TRẠNG THÁI">
                 <OrderStateBadge value={order.trang_thai_thanh_toan} />
               </Info>
-              <Info text="MÃ GIAO DỊCH">
-                {order.ma_giao_dich_thanh_toan || "—"}
-              </Info>
+              <Info text="MÃ GIAO DỊCH">{order.ma_giao_dich_thanh_toan || '—'}</Info>
             </dl>
             {canPay && (
               <div className="order-panel-actions">
@@ -543,35 +501,30 @@ export default function ChiTietDonHang() {
               </div>
             </div>
             {beforeExport &&
-              order.loai_don_hang === "ONLINE" &&
-              order.trang_thai_don_hang === "CHO_DONG_GOI" &&
-              ["CHUA_DONG_GOI", "HUY_DONG_GOI"].includes(
-                order.trang_thai_dong_goi,
-              ) && (
+              order.loai_don_hang === 'ONLINE' &&
+              order.trang_thai_don_hang === 'CHO_DONG_GOI' &&
+              ['CHUA_DONG_GOI', 'HUY_DONG_GOI'].includes(order.trang_thai_dong_goi) && (
                 <div className="order-panel-actions">
                   <Action disabled={state.busy} click={fulfillment}>
                     BẮT ĐẦU ĐÓNG GÓI
                   </Action>
                 </div>
               )}
-            {beforeExport && order.trang_thai_dong_goi === "DANG_DONG_GOI" && (
+            {beforeExport && order.trang_thai_dong_goi === 'DANG_DONG_GOI' && (
               <div className="order-panel-actions">
-                <Action
-                  disabled={state.busy}
-                  click={() => open("packed", "HOÀN TẤT ĐÓNG GÓI")}
-                >
+                <Action disabled={state.busy} click={() => open('packed', 'HOÀN TẤT ĐÓNG GÓI')}>
                   HOÀN TẤT ĐÓNG GÓI
                 </Action>
                 <Action
                   secondary
                   disabled={state.busy}
-                  click={() => open("cancelPacking", "HỦY ĐÓNG GÓI")}
+                  click={() => open('cancelPacking', 'HỦY ĐÓNG GÓI')}
                 >
                   HỦY ĐÓNG GÓI
                 </Action>
               </div>
             )}
-            {beforeExport && order.trang_thai_dong_goi === "DA_DONG_GOI" && (
+            {beforeExport && order.trang_thai_dong_goi === 'DA_DONG_GOI' && (
               <div className="order-panel-actions">
                 <Action disabled={state.busy} click={warehouseExport}>
                   CHUẨN BỊ XUẤT KHO
@@ -579,7 +532,7 @@ export default function ChiTietDonHang() {
                 <Action
                   secondary
                   disabled={state.busy}
-                  click={() => open("cancelPacking", "HỦY ĐÓNG GÓI")}
+                  click={() => open('cancelPacking', 'HỦY ĐÓNG GÓI')}
                 >
                   HỦY ĐÓNG GÓI
                 </Action>
@@ -595,11 +548,7 @@ export default function ChiTietDonHang() {
                       <button
                         type="button"
                         className="order-shipment-link"
-                        onClick={() =>
-                          navigate(
-                            `/admin/don-hang/quan-ly-giao-hang/${item.id}`,
-                          )
-                        }
+                        onClick={() => navigate(`/admin/don-hang/quan-ly-giao-hang/${item.id}`)}
                       >
                         {item.ma_phieu_giao_hang || `Phiếu #${item.id}`}
                       </button>
@@ -607,19 +556,16 @@ export default function ChiTietDonHang() {
                   )}
                   <Info text="ĐƠN VỊ VẬN CHUYỂN">
                     {item.ten_doi_tac_van_chuyen ||
-                      options.partners.find(
-                        (partner) => partner.id === item.doi_tac_van_chuyen_id,
-                      )?.ten_doi_tac ||
-                      "—"}
+                      options.partners.find((partner) => partner.id === item.doi_tac_van_chuyen_id)
+                        ?.ten_doi_tac ||
+                      '—'}
                   </Info>
                   <Info text="MÃ VẬN ĐƠN">
-                    <span className={item.ma_van_don ? "" : "order-alert-text"}>
-                      {item.ma_van_don || "CHƯA CÓ MÃ VẬN ĐƠN"}
+                    <span className={item.ma_van_don ? '' : 'order-alert-text'}>
+                      {item.ma_van_don || 'CHƯA CÓ MÃ VẬN ĐƠN'}
                     </span>
                   </Info>
-                  <Info text="TRẠNG THÁI">
-                    {label(item.trang_thai_giao_hang)}
-                  </Info>
+                  <Info text="TRẠNG THÁI">{label(item.trang_thai_giao_hang)}</Info>
                   <Info text="PHÍ GIAO HÀNG">{money(order.phi_giao_hang)}</Info>
                 </dl>
               ))
@@ -637,7 +583,7 @@ export default function ChiTietDonHang() {
                 {history.map((event) => (
                   <li className="order-timeline__item" key={event.id}>
                     <time dateTime={event.ngay_thuc_hien}>
-                      {dateTime(event.ngay_thuc_hien, "medium")}
+                      {dateTime(event.ngay_thuc_hien, 'medium')}
                     </time>
                     <strong>{event.mo_ta}</strong>
                     <p>{event.nguoi_thuc_hien}</p>
@@ -657,28 +603,23 @@ export default function ChiTietDonHang() {
         <aside className="order-detail-sidebar">
           <Panel title="KHÁCH HÀNG">
             <dl className="order-sidebar-kv">
-              <Info text="HỌ TÊN">{order.ten_khach_hang || "—"}</Info>
-              <Info text="SỐ ĐIỆN THOẠI">
-                {order.so_dien_thoai_khach_hang || "—"}
-              </Info>
+              <Info text="HỌ TÊN">{order.ten_khach_hang || '—'}</Info>
+              <Info text="SỐ ĐIỆN THOẠI">{order.so_dien_thoai_khach_hang || '—'}</Info>
             </dl>
           </Panel>
           <Panel title="NGƯỜI NHẬN">
             <dl className="order-sidebar-kv">
-              <Info text="TÊN NGƯỜI NHẬN">{order.ten_nguoi_nhan || "—"}</Info>
-              <Info text="SỐ ĐIỆN THOẠI">{order.sdt_nguoi_nhan || "—"}</Info>
-              <Info text="ĐỊA CHỈ GIAO HÀNG">
-                {order.dia_chi_giao_hang || "—"}
-              </Info>
+              <Info text="TÊN NGƯỜI NHẬN">{order.ten_nguoi_nhan || '—'}</Info>
+              <Info text="SỐ ĐIỆN THOẠI">{order.sdt_nguoi_nhan || '—'}</Info>
+              <Info text="ĐỊA CHỈ GIAO HÀNG">{order.dia_chi_giao_hang || '—'}</Info>
             </dl>
           </Panel>
           <Panel title="TỔNG KẾT">
             <dl className="order-summary">
               <Info text="TIỀN HÀNG">{money(order.tong_tien_hang)}</Info>
               <Info text="CHIẾT KHẤU">
-                {order.tien_chiet_khau == null ||
-                Number(order.tien_chiet_khau) === 0
-                  ? "—"
+                {order.tien_chiet_khau == null || Number(order.tien_chiet_khau) === 0
+                  ? '—'
                   : money(order.tien_chiet_khau)}
               </Info>
               <Info text="PHÍ GIAO HÀNG">{money(order.phi_giao_hang)}</Info>
@@ -692,7 +633,7 @@ export default function ChiTietDonHang() {
             <p className="order-note">—</p>
           </Panel>
           <Panel title="GHI CHÚ">
-            <p className="order-note">{order.ghi_chu || "Không có ghi chú."}</p>
+            <p className="order-note">{order.ghi_chu || 'Không có ghi chú.'}</p>
           </Panel>
         </aside>
       </div>
@@ -726,10 +667,7 @@ export default function ChiTietDonHang() {
               />
             </div>
             {state.error && (
-              <p
-                className="order-api-message order-api-message--error"
-                role="alert"
-              >
+              <p className="order-api-message order-api-message--error" role="alert">
                 {state.error}
               </p>
             )}
@@ -754,7 +692,7 @@ export default function ChiTietDonHang() {
           </section>
         </div>
       )}
-      {dialog?.type === "export" ? (
+      {dialog?.type === 'export' ? (
         <ExportOrderDialog
           order={order}
           dialog={dialog}
@@ -781,18 +719,12 @@ export default function ChiTietDonHang() {
   );
 }
 
-function Action({
-  children,
-  click,
-  danger = false,
-  secondary = false,
-  disabled = false,
-}) {
+function Action({ children, click, danger = false, secondary = false, disabled = false }) {
   return (
     <button
       type="button"
       disabled={disabled}
-      className={`order-action ${danger ? "order-action--danger" : secondary ? "order-action--secondary" : "order-action--black"}`}
+      className={`order-action ${danger ? 'order-action--danger' : secondary ? 'order-action--secondary' : 'order-action--black'}`}
       onClick={click}
     >
       {children}
@@ -819,31 +751,23 @@ function Info({ text, children }) {
   );
 }
 
-function OrderActionDialog({
-  dialog,
-  setDialog,
-  order,
-  options,
-  busy,
-  error,
-  submit,
-}) {
+function OrderActionDialog({ dialog, setDialog, order, options, busy, error, submit }) {
   const change = (key, value) =>
     setDialog((current) => ({
       ...current,
       [key]: value,
     }));
 
-  const receiving = dialog.type === "payment";
-  const refunding = dialog.type === "refund";
+  const receiving = dialog.type === 'payment';
+  const refunding = dialog.type === 'refund';
   const monetary = receiving || refunding;
 
-  const field = (caption, key, type = "text", extra = {}) => (
+  const field = (caption, key, type = 'text', extra = {}) => (
     <label className="order-operation-field">
       <span>{caption}</span>
       <input
         type={type}
-        value={dialog[key] ?? ""}
+        value={dialog[key] ?? ''}
         onChange={(event) => change(key, event.target.value)}
         {...extra}
       />
@@ -859,18 +783,18 @@ function OrderActionDialog({
       error={error}
       disabled={
         !dialog.confirmed ||
-        (dialog.type === "startDelivery" &&
+        (dialog.type === 'startDelivery' &&
           (!dialog.partner ||
-            dialog.fee === "" ||
+            dialog.fee === '' ||
             !Number.isFinite(Number(dialog.fee)) ||
             Number(dialog.fee) < 0))
       }
     >
-      {dialog.type === "startDelivery" && (
+      {dialog.type === 'startDelivery' && (
         <>
           <p className="order-delivery-description">
-            Chọn đối tác và xác nhận đã bàn giao hàng. Phí trả đối tác là khoản
-            cửa hàng trả cho người giao.
+            Chọn đối tác và xác nhận đã bàn giao hàng. Phí trả đối tác là khoản cửa hàng trả cho
+            người giao.
           </p>
 
           <label className="order-operation-field">
@@ -880,7 +804,7 @@ function OrderActionDialog({
               required
               disabled={busy}
               value={dialog.partner}
-              onChange={(event) => change("partner", event.target.value)}
+              onChange={(event) => change('partner', event.target.value)}
             >
               <option value="">— Chọn đối tác —</option>
 
@@ -892,24 +816,24 @@ function OrderActionDialog({
             </select>
           </label>
 
-          {field("PHÍ TRẢ ĐỐI TÁC (đ) *", "fee", "number", {
+          {field('PHÍ TRẢ ĐỐI TÁC (đ) *', 'fee', 'number', {
             required: true,
             min: 0,
-            step: "0.01",
+            step: '0.01',
             disabled: busy,
           })}
         </>
       )}
       <p>{order.ma_don_hang}</p>
 
-      {dialog.type === "startDelivery" && (
+      {dialog.type === 'startDelivery' && (
         <>
           <label className="order-operation-field">
             <span>ĐỐI TÁC VẬN CHUYỂN</span>
             <select
               required
               value={dialog.partner}
-              onChange={(event) => change("partner", event.target.value)}
+              onChange={(event) => change('partner', event.target.value)}
             >
               <option value="">— Chọn đối tác —</option>
               {options.partners.map((partner) => (
@@ -920,7 +844,7 @@ function OrderActionDialog({
             </select>
           </label>
 
-          {field("PHÍ TRẢ ĐỐI TÁC (đ)", "fee", "number", {
+          {field('PHÍ TRẢ ĐỐI TÁC (đ)', 'fee', 'number', {
             min: 0,
             step: 1,
             required: true,
@@ -933,30 +857,25 @@ function OrderActionDialog({
           {receiving && (
             <>
               <p>
-                Nguồn thu:{" "}
-                {dialog.source === "KHACH_HANG"
-                  ? "Khách hàng"
-                  : "Đối tác giao hàng"}
+                Nguồn thu: {dialog.source === 'KHACH_HANG' ? 'Khách hàng' : 'Đối tác giao hàng'}
               </p>
 
-              {field("SỐ TIỀN NHẬN (đ)", "amount", "number", {
+              {field('SỐ TIỀN NHẬN (đ)', 'amount', 'number', {
                 readOnly: true,
               })}
             </>
           )}
 
-          {refunding && (
-            <p>Số tiền hoàn do hệ thống xác định từ khoản đã thu.</p>
-          )}
+          {refunding && <p>Số tiền hoàn do hệ thống xác định từ khoản đã thu.</p>}
 
           <label className="order-operation-field">
             <span>PHƯƠNG THỨC</span>
             <select
               required
               value={dialog.method}
-              onChange={(event) => change("method", event.target.value)}
+              onChange={(event) => change('method', event.target.value)}
             >
-              {["TIEN_MAT", "CHUYEN_KHOAN", "THE"].map((method) => (
+              {['TIEN_MAT', 'CHUYEN_KHOAN', 'THE'].map((method) => (
                 <option key={method} value={method}>
                   {label(method)}
                 </option>
@@ -965,17 +884,17 @@ function OrderActionDialog({
           </label>
 
           {field(
-            refunding ? "THỜI ĐIỂM HOÀN TIỀN" : "THỜI ĐIỂM NHẬN TIỀN",
-            "occurredAt",
-            "datetime-local",
-            { required: true },
+            refunding ? 'THỜI ĐIỂM HOÀN TIỀN' : 'THỜI ĐIỂM NHẬN TIỀN',
+            'occurredAt',
+            'datetime-local',
+            { required: true }
           )}
 
-          {dialog.method !== "TIEN_MAT" &&
-            field("MÃ GIAO DỊCH", "transaction", "text", {
+          {dialog.method !== 'TIEN_MAT' &&
+            field('MÃ GIAO DỊCH', 'transaction', 'text', {
               required: true,
               maxLength: 255,
-              pattern: ".*\\S.*",
+              pattern: '.*\\S.*',
             })}
         </>
       )}
@@ -984,13 +903,13 @@ function OrderActionDialog({
         <input
           type="checkbox"
           checked={dialog.confirmed}
-          onChange={(event) => change("confirmed", event.target.checked)}
+          onChange={(event) => change('confirmed', event.target.checked)}
         />
         {refunding
-          ? "Xác nhận đã hoàn tiền cho khách"
+          ? 'Xác nhận đã hoàn tiền cho khách'
           : receiving
-            ? "Xác nhận cửa hàng đã thực nhận số tiền trên"
-            : "Xác nhận thực hiện thao tác"}
+            ? 'Xác nhận cửa hàng đã thực nhận số tiền trên'
+            : 'Xác nhận thực hiện thao tác'}
       </label>
     </OrderModal>
   );

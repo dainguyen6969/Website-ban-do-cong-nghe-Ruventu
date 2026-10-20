@@ -1,24 +1,21 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 
-import Header from "../components/Header";
-import Footer from "../components/Footer";
+import Header from '../components/Header';
+import Footer from '../components/Footer';
 
-import OrderModal from "../../features/admin/orders/components/OrderModal";
-import { label, money } from "../../features/admin/orders/api/orderApi";
+import OrderModal from '../../features/admin/orders/components/OrderModal';
+import { label, money } from '../../features/admin/orders/api/orderApi';
 
-import { orderService } from "../../shared/services/orderService";
-import {
-  errorMessage,
-  formatDateTimeVN,
-} from "../../shared/services/mutationUtils";
+import { orderService } from '../../shared/services/orderService';
+import { errorMessage, formatDateTimeVN } from '../../shared/services/mutationUtils';
 
-import "./OrderDetailPage.css";
+import './OrderDetailPage.css';
 
 const returnLabels = {
-  CHO_TIEP_NHAN: "Chờ tiếp nhận",
-  DA_NHAN_HANG: "Đã nhận hàng",
-  DA_HOAN_TIEN: "Đã hoàn tiền",
+  CHO_TIEP_NHAN: 'Chờ tiếp nhận',
+  DA_NHAN_HANG: 'Đã nhận hàng',
+  DA_HOAN_TIEN: 'Đã hoàn tiền',
 };
 
 export default function OrderDetailPage() {
@@ -28,8 +25,8 @@ export default function OrderDetailPage() {
   const [order, setOrder] = useState(null);
   const [returns, setReturns] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [returnsError, setReturnsError] = useState("");
+  const [error, setError] = useState('');
+  const [returnsError, setReturnsError] = useState('');
   const [busy, setBusy] = useState(false);
   const [dialog, setDialog] = useState(null);
 
@@ -44,20 +41,20 @@ export default function OrderDetailPage() {
             page: 0,
             limit: 100,
           },
-          signal,
+          signal
         );
 
         if (signal?.aborted) return;
 
         setReturns(response.data.data?.items || []);
-        setReturnsError("");
+        setReturnsError('');
       } catch (reason) {
         if (!signal?.aborted) {
           setReturnsError(errorMessage(reason));
         }
       }
     },
-    [id],
+    [id]
   );
 
   const load = useCallback(
@@ -68,7 +65,7 @@ export default function OrderDetailPage() {
         if (signal?.aborted) return;
 
         setOrder(response.data.data);
-        setError("");
+        setError('');
       } catch (reason) {
         if (!signal?.aborted) {
           setError(errorMessage(reason));
@@ -77,7 +74,7 @@ export default function OrderDetailPage() {
         if (!signal?.aborted) setLoading(false);
       }
     },
-    [id],
+    [id]
   );
 
   useEffect(() => {
@@ -99,7 +96,7 @@ export default function OrderDetailPage() {
 
     busyRef.current = true;
     setBusy(true);
-    setError("");
+    setError('');
 
     try {
       await request();
@@ -115,36 +112,33 @@ export default function OrderDetailPage() {
   };
 
   const canCancel =
-    order?.loai_don_hang === "ONLINE" &&
-    order?.trang_thai_xuat_kho === "CHUA_XUAT_KHO" &&
-    ["CHO_DUYET", "CHO_THANH_TOAN", "CHO_DONG_GOI"].includes(
-      order?.trang_thai_don_hang,
-    );
+    order?.loai_don_hang === 'ONLINE' &&
+    order?.trang_thai_xuat_kho === 'CHUA_XUAT_KHO' &&
+    ['CHO_DUYET', 'CHO_THANH_TOAN', 'CHO_DONG_GOI'].includes(order?.trang_thai_don_hang);
 
   const canReturn =
-    order?.trang_thai_don_hang === "HOAN_THANH" &&
-    order?.trang_thai_thanh_toan === "DA_THANH_TOAN" &&
-    order?.trang_thai_xuat_kho === "DA_XUAT_KHO";
+    order?.trang_thai_don_hang === 'HOAN_THANH' &&
+    order?.trang_thai_thanh_toan === 'DA_THANH_TOAN' &&
+    order?.trang_thai_xuat_kho === 'DA_XUAT_KHO';
 
-  const updateDialog = (key, value) =>
-    setDialog((current) => ({ ...current, [key]: value }));
+  const updateDialog = (key, value) => setDialog((current) => ({ ...current, [key]: value }));
 
   const openReturn = () => {
-    setError("");
+    setError('');
 
     setDialog({
-      type: "return",
-      reason: "",
-      note: "",
-      method: "CHUYEN_KHOAN",
+      type: 'return',
+      reason: '',
+      note: '',
+      method: 'CHUYEN_KHOAN',
       quantities: Object.fromEntries(
-        (order.san_pham || []).map((item) => [item.chi_tiet_don_hang_id, 0]),
+        (order.san_pham || []).map((item) => [item.chi_tiet_don_hang_id, 0])
       ),
     });
   };
 
   const submitDialog = () => {
-    if (dialog.type === "cancel") {
+    if (dialog.type === 'cancel') {
       return run(() => orderService.cancelOrder(order.id, dialog.reason));
     }
 
@@ -163,25 +157,19 @@ export default function OrderDetailPage() {
         hinh_thuc_hoan_tien: dialog.method,
         ghi_chu: dialog.note.trim() || null,
         chi_tiet_tra: lines,
-      }),
+      })
     );
   };
 
   const returnQuantityValid =
-    dialog?.type !== "return" ||
+    dialog?.type !== 'return' ||
     ((order?.san_pham || []).some(
-      (item) => Number(dialog.quantities[item.chi_tiet_don_hang_id]) > 0,
+      (item) => Number(dialog.quantities[item.chi_tiet_don_hang_id]) > 0
     ) &&
       (order?.san_pham || []).every((item) => {
-        const quantity = Number(
-          dialog.quantities[item.chi_tiet_don_hang_id] || 0,
-        );
+        const quantity = Number(dialog.quantities[item.chi_tiet_don_hang_id] || 0);
 
-        return (
-          Number.isInteger(quantity) &&
-          quantity >= 0 &&
-          quantity <= Number(item.so_luong)
-        );
+        return Number.isInteger(quantity) && quantity >= 0 && quantity <= Number(item.so_luong);
       }));
 
   return (
@@ -193,7 +181,7 @@ export default function OrderDetailPage() {
           <button
             type="button"
             className="back-btn-outline"
-            onClick={() => navigate("/profile?tab=orders")}
+            onClick={() => navigate('/profile?tab=orders')}
           >
             QUAY LẠI
           </button>
@@ -202,11 +190,7 @@ export default function OrderDetailPage() {
           {error && <p role="alert">{error}</p>}
 
           {!loading && !order && (
-            <button
-              type="button"
-              className="btn-outline"
-              onClick={() => navigate("/login")}
-            >
+            <button type="button" className="btn-outline" onClick={() => navigate('/login')}>
               ĐĂNG NHẬP LẠI
             </button>
           )}
@@ -228,8 +212,8 @@ export default function OrderDetailPage() {
                     className="btn-outline"
                     disabled={busy}
                     onClick={() => {
-                      setError("");
-                      setDialog({ type: "cancel", reason: "" });
+                      setError('');
+                      setDialog({ type: 'cancel', reason: '' });
                     }}
                   >
                     HỦY ĐƠN
@@ -251,7 +235,7 @@ export default function OrderDetailPage() {
               <section className="order-card">
                 <h2>SẢN PHẨM</h2>
 
-                <table style={{ width: "100%" }}>
+                <table style={{ width: '100%' }}>
                   <thead>
                     <tr>
                       <th>Sản phẩm</th>
@@ -265,7 +249,7 @@ export default function OrderDetailPage() {
                     {(order.san_pham || []).map((item) => (
                       <tr key={item.chi_tiet_don_hang_id}>
                         <td>{item.ten_san_pham}</td>
-                        <td>{item.ten_phien_ban || "—"}</td>
+                        <td>{item.ten_phien_ban || '—'}</td>
                         <td>{item.so_luong}</td>
                         <td>{money(item.don_gia)}</td>
                         <td>{money(item.thanh_tien)}</td>
@@ -280,8 +264,8 @@ export default function OrderDetailPage() {
                 <p>{order.ten_nguoi_nhan}</p>
                 <p>{order.sdt_nguoi_nhan}</p>
                 <p>
-                  {order.hinh_thuc_nhan_hang === "NHAN_TAI_CUA_HANG"
-                    ? "Nhận tại cửa hàng"
+                  {order.hinh_thuc_nhan_hang === 'NHAN_TAI_CUA_HANG'
+                    ? 'Nhận tại cửa hàng'
                     : order.dia_chi_giao_hang}
                 </p>
               </section>
@@ -303,17 +287,14 @@ export default function OrderDetailPage() {
                 {returns.map((item) => (
                   <p key={item.id}>
                     {item.ma_tra_hang}
-                    {" · "}
-                    {returnLabels[item.trang_thai_tra_hang] ||
-                      item.trang_thai_tra_hang}
-                    {" · "}
+                    {' · '}
+                    {returnLabels[item.trang_thai_tra_hang] || item.trang_thai_tra_hang}
+                    {' · '}
                     {money(item.tong_tien_hoan)}
                   </p>
                 ))}
 
-                {!returnsError && returns.length === 0 && (
-                  <p>Chưa có yêu cầu trả hàng.</p>
-                )}
+                {!returnsError && returns.length === 0 && <p>Chưa có yêu cầu trả hàng.</p>}
               </section>
             </>
           )}
@@ -322,20 +303,17 @@ export default function OrderDetailPage() {
 
       {dialog && (
         <OrderModal
-          title={dialog.type === "cancel" ? "HỦY ĐƠN HÀNG" : "YÊU CẦU TRẢ HÀNG"}
+          title={dialog.type === 'cancel' ? 'HỦY ĐƠN HÀNG' : 'YÊU CẦU TRẢ HÀNG'}
           busy={busy}
           close={() => setDialog(null)}
           submit={submitDialog}
           error={error}
           disabled={!dialog.reason.trim() || !returnQuantityValid}
         >
-          {dialog.type === "return" && (
+          {dialog.type === 'return' && (
             <>
               {(order.san_pham || []).map((item) => (
-                <label
-                  className="order-operation-field"
-                  key={item.chi_tiet_don_hang_id}
-                >
+                <label className="order-operation-field" key={item.chi_tiet_don_hang_id}>
                   <span>
                     {item.ten_san_pham} · {item.ten_phien_ban}
                   </span>
@@ -346,7 +324,7 @@ export default function OrderDetailPage() {
                     step="1"
                     value={dialog.quantities[item.chi_tiet_don_hang_id]}
                     onChange={(event) =>
-                      updateDialog("quantities", {
+                      updateDialog('quantities', {
                         ...dialog.quantities,
                         [item.chi_tiet_don_hang_id]: event.target.value,
                       })
@@ -359,9 +337,7 @@ export default function OrderDetailPage() {
                 <span>HÌNH THỨC HOÀN TIỀN</span>
                 <select
                   value={dialog.method}
-                  onChange={(event) =>
-                    updateDialog("method", event.target.value)
-                  }
+                  onChange={(event) => updateDialog('method', event.target.value)}
                 >
                   <option value="CHUYEN_KHOAN">Chuyển khoản</option>
                   <option value="TIEN_MAT">Tiền mặt</option>
@@ -372,14 +348,11 @@ export default function OrderDetailPage() {
                 <span>GHI CHÚ</span>
                 <textarea
                   value={dialog.note}
-                  onChange={(event) => updateDialog("note", event.target.value)}
+                  onChange={(event) => updateDialog('note', event.target.value)}
                 />
               </label>
 
-              <p>
-                Số lượng còn được trả và điều kiện trả hàng sẽ được kiểm tra khi
-                gửi yêu cầu.
-              </p>
+              <p>Số lượng còn được trả và điều kiện trả hàng sẽ được kiểm tra khi gửi yêu cầu.</p>
             </>
           )}
 
@@ -389,7 +362,7 @@ export default function OrderDetailPage() {
               required
               maxLength={255}
               value={dialog.reason}
-              onChange={(event) => updateDialog("reason", event.target.value)}
+              onChange={(event) => updateDialog('reason', event.target.value)}
             />
           </label>
         </OrderModal>

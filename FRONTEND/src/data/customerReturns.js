@@ -16,7 +16,8 @@ export const RETURN_STATUS = {
   REFUNDED: 'DA_HOAN_TIEN',
 };
 
-const asGuest = (order) => !order?.customerId || /khách vãng lai|khách lẻ/i.test(order?.customerName || '');
+const asGuest = (order) =>
+  !order?.customerId || /khách vãng lai|khách lẻ/i.test(order?.customerName || '');
 
 export function orderCustomerName(order) {
   return asGuest(order) ? '' : order?.customerName || order?.recipient?.name || '';
@@ -27,11 +28,17 @@ export function orderPhone(order) {
 }
 
 export function orderLineRef(product, index) {
-  return product.barcode || product.id || `${product.name || 'san-pham'}::${product.variant || 'mac-dinh'}::${index}`;
+  return (
+    product.barcode ||
+    product.id ||
+    `${product.name || 'san-pham'}::${product.variant || 'mac-dinh'}::${index}`
+  );
 }
 
 export function readCustomerReturns(orders = []) {
-  return readSharedState(CUSTOMER_RETURNS_STORAGE_KEY, seedCustomerReturns(orders)).map((record) => ({ ...record, trangThai: record.trangThai?.toUpperCase() }));
+  return readSharedState(CUSTOMER_RETURNS_STORAGE_KEY, seedCustomerReturns(orders)).map(
+    (record) => ({ ...record, trangThai: record.trangThai?.toUpperCase() })
+  );
 }
 
 export function saveCustomerReturns(records, action = 'updated', entityId = null) {
@@ -68,7 +75,7 @@ export function returnTotals(record) {
 
 function snapshotLine(order, product, index) {
   const quantity = Math.max(1, Number(product.quantity || 1));
-  const unitPrice = Number(product.unitPrice ?? ((Number(product.subtotal || 0) / quantity) || 0));
+  const unitPrice = Number(product.unitPrice ?? (Number(product.subtotal || 0) / quantity || 0));
   return {
     lineItemRef: orderLineRef(product, index),
     sanPham: product.name || 'Sản phẩm',
@@ -82,11 +89,26 @@ function snapshotLine(order, product, index) {
 }
 
 function seedCustomerReturns(orders) {
-  const paidOrders = orders.filter((order) => order.payment === 'Đã thanh toán' && order.products?.length).slice(-4).reverse();
-  const reasons = ['Không phù hợp nhu cầu', 'Giao nhầm phiên bản', 'Sản phẩm lỗi màn hình', 'Khách không dùng được sản phẩm'];
-  const statuses = [RETURN_STATUS.WAITING, RETURN_STATUS.WAITING, RETURN_STATUS.RECEIVED, RETURN_STATUS.REFUNDED];
+  const paidOrders = orders
+    .filter((order) => order.payment === 'Đã thanh toán' && order.products?.length)
+    .slice(-4)
+    .reverse();
+  const reasons = [
+    'Không phù hợp nhu cầu',
+    'Giao nhầm phiên bản',
+    'Sản phẩm lỗi màn hình',
+    'Khách không dùng được sản phẩm',
+  ];
+  const statuses = [
+    RETURN_STATUS.WAITING,
+    RETURN_STATUS.WAITING,
+    RETURN_STATUS.RECEIVED,
+    RETURN_STATUS.REFUNDED,
+  ];
   return paidOrders.map((order, index) => {
-    const lineItems = order.products.slice(0, 1).map((product, productIndex) => snapshotLine(order, product, productIndex));
+    const lineItems = order.products
+      .slice(0, 1)
+      .map((product, productIndex) => snapshotLine(order, product, productIndex));
     const status = statuses[index] || RETURN_STATUS.WAITING;
     const created = new Date(2026, 8, 15 - index, 9, 0, 0);
     const record = {
@@ -103,7 +125,11 @@ function seedCustomerReturns(orders) {
       createdAt: created.toISOString(),
     };
     if (status !== RETURN_STATUS.WAITING) {
-      record.receiveResult = lineItems.map((item) => ({ lineItemRef: item.lineItemRef, slNguyenVen: item.slTra, slLoi: 0 }));
+      record.receiveResult = lineItems.map((item) => ({
+        lineItemRef: item.lineItemRef,
+        slNguyenVen: item.slTra,
+        slLoi: 0,
+      }));
     }
     if (status === RETURN_STATUS.REFUNDED) {
       record.refund = { phuongThuc: 'Tiền mặt', ngayHoanTien: '2026-09-15', xacNhanDuTien: true };

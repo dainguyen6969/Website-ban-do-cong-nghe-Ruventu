@@ -1,8 +1,6 @@
 import axios from 'axios';
 
-const BASE_URL =
-  (import.meta.env.VITE_RUVENTU_API_URL || '')
-    .replace(/\/$/, '');
+const BASE_URL = (import.meta.env.VITE_RUVENTU_API_URL || '').replace(/\/$/, '');
 
 const orderAxios = axios.create({
   baseURL: `${BASE_URL}/api/v1/orders`,
@@ -45,22 +43,21 @@ orderAxios.interceptors.response.use(
 
     try {
       if (!refreshPromise) {
-        refreshPromise = axios.post(
-          `${BASE_URL}/api/v1/auth/refresh`,
-          {},
-          { withCredentials: true },
-        ).then((response) => {
-          const token = response.data?.data?.access_token;
+        refreshPromise = axios
+          .post(`${BASE_URL}/api/v1/auth/refresh`, {}, { withCredentials: true })
+          .then((response) => {
+            const token = response.data?.data?.access_token;
 
-          if (!token) {
-            throw new Error('Không thể làm mới phiên đăng nhập.');
-          }
+            if (!token) {
+              throw new Error('Không thể làm mới phiên đăng nhập.');
+            }
 
-          localStorage.setItem('accessToken', token);
-          return token;
-        }).finally(() => {
-          refreshPromise = null;
-        });
+            localStorage.setItem('accessToken', token);
+            return token;
+          })
+          .finally(() => {
+            refreshPromise = null;
+          });
       }
 
       await refreshPromise;
@@ -70,14 +67,13 @@ orderAxios.interceptors.response.use(
     } catch {
       return Promise.reject(error);
     }
-  },
+  }
 );
 
 const id = (value) => encodeURIComponent(value);
 
 export const orderService = {
-  previewCheckout: (body, signal) =>
-    orderAxios.post('/checkout/preview', body, { signal }),
+  previewCheckout: (body, signal) => orderAxios.post('/checkout/preview', body, { signal }),
 
   submitCheckout: (body, key) =>
     orderAxios.post('/checkout', body, {
@@ -86,22 +82,18 @@ export const orderService = {
       },
     }),
 
-  getOrders: (params, signal) =>
-    orderAxios.get('', { params, signal }),
+  getOrders: (params, signal) => orderAxios.get('', { params, signal }),
 
-  getOrder: (orderId, signal) =>
-    orderAxios.get(`/${id(orderId)}`, { signal }),
+  getOrder: (orderId, signal) => orderAxios.get(`/${id(orderId)}`, { signal }),
 
   cancelOrder: (orderId, reason) =>
     orderAxios.post(`/${id(orderId)}/cancel`, {
       ly_do: reason.trim(),
     }),
 
-  requestReturn: (orderId, body) =>
-    orderAxios.post(`/${id(orderId)}/returns`, body),
+  requestReturn: (orderId, body) => orderAxios.post(`/${id(orderId)}/returns`, body),
 
-  getReturns: (params, signal) =>
-    orderAxios.get('/returns', { params, signal }),
+  getReturns: (params, signal) => orderAxios.get('/returns', { params, signal }),
 
   trackOrder: (orderCode, recipientPhone) =>
     orderAxios.get('/tracking', {

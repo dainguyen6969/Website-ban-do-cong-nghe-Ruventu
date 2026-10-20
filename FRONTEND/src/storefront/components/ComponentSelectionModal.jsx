@@ -11,23 +11,80 @@ const SLOT_CRITERIA = {
   cpu: {
     categoryIds: [7], // category 7 in DB is "CPU"
     categoryNames: ['cpu', 'bộ vi xử lý', 'vi xử lý', 'processor'],
-    keywords: ['cpu', 'intel', 'core i3', 'core i5', 'core i7', 'core i9', 'ryzen', 'amd ryzen', 'xeon'],
+    keywords: [
+      'cpu',
+      'intel',
+      'core i3',
+      'core i5',
+      'core i7',
+      'core i9',
+      'ryzen',
+      'amd ryzen',
+      'xeon',
+    ],
   },
   mainboard: {
     categoryNames: ['mainboard', 'bo mạch chủ', 'motherboard', 'main'],
-    keywords: ['mainboard', 'bo mạch', 'motherboard', 'b760', 'b650', 'z790', 'z890', 'x670', 'x870', 'h610', 'a620', 'asrock', 'gigabyte', 'asus', 'msi'],
+    keywords: [
+      'mainboard',
+      'bo mạch',
+      'motherboard',
+      'b760',
+      'b650',
+      'z790',
+      'z890',
+      'x670',
+      'x870',
+      'h610',
+      'a620',
+      'asrock',
+      'gigabyte',
+      'asus',
+      'msi',
+    ],
   },
   ram: {
     categoryNames: ['ram', 'bộ nhớ trong', 'bộ nhớ ram', 'memory'],
-    keywords: ['ram', 'ddr4', 'ddr5', 'bộ nhớ trong', 'fury', 'trident', 'vengeance', 'kingston fury'],
+    keywords: [
+      'ram',
+      'ddr4',
+      'ddr5',
+      'bộ nhớ trong',
+      'fury',
+      'trident',
+      'vengeance',
+      'kingston fury',
+    ],
   },
   ssd1: {
     categoryNames: ['ssd', 'ổ cứng ssd', 'ổ cứng thể rắn', 'ổ cứng'],
-    keywords: ['ssd', 'nvme', 'm.2', 'pcie', '980 pro', '990 pro', 'sn850', 'sn770', 'kingston', 'ổ cứng ssd'],
+    keywords: [
+      'ssd',
+      'nvme',
+      'm.2',
+      'pcie',
+      '980 pro',
+      '990 pro',
+      'sn850',
+      'sn770',
+      'kingston',
+      'ổ cứng ssd',
+    ],
   },
   ssd2: {
     categoryNames: ['ssd', 'ổ cứng ssd', 'ổ cứng thể rắn', 'ổ cứng'],
-    keywords: ['ssd', 'nvme', 'm.2', 'pcie', '980 pro', '990 pro', 'sn850', 'sn770', 'kingston', 'ổ cứng ssd'],
+    keywords: [
+      'ssd',
+      'nvme',
+      'm.2',
+      'pcie',
+      '980 pro',
+      '990 pro',
+      'sn850',
+      'sn770',
+      'kingston',
+      'ổ cứng ssd',
+    ],
   },
   hdd: {
     categoryNames: ['hdd', 'ổ cứng hdd', 'ổ cứng', 'hard drive'],
@@ -35,24 +92,79 @@ const SLOT_CRITERIA = {
   },
   vga: {
     categoryNames: ['vga', 'card màn hình', 'gpu', 'graphics card'],
-    keywords: ['vga', 'card màn hình', 'rtx', 'gtx', 'geforce', 'radeon', 'rx 7', 'rx 6', '4060', '4070', '4080', '4090', '3060', '3070', '3080'],
+    keywords: [
+      'vga',
+      'card màn hình',
+      'rtx',
+      'gtx',
+      'geforce',
+      'radeon',
+      'rx 7',
+      'rx 6',
+      '4060',
+      '4070',
+      '4080',
+      '4090',
+      '3060',
+      '3070',
+      '3080',
+    ],
   },
   psu: {
     categoryNames: ['psu', 'nguồn', 'nguồn máy tính', 'power supply'],
-    keywords: ['psu', 'nguồn', 'power supply', 'gold', 'bronze', 'platinum', 'cooler master', 'corsair', 'seasonic', 'deepcool'],
+    keywords: [
+      'psu',
+      'nguồn',
+      'power supply',
+      'gold',
+      'bronze',
+      'platinum',
+      'cooler master',
+      'corsair',
+      'seasonic',
+      'deepcool',
+    ],
   },
   case: {
     categoryIds: [6], // category 6 in DB is "Case"
     categoryNames: ['case', 'vỏ máy tính', 'thùng máy', 'vỏ case'],
-    keywords: ['case', 'vỏ case', 'vỏ máy tính', 'thùng máy', 'chos', 'nzxt', 'antec', 'xigmatek', 'montech', 'lian li'],
+    keywords: [
+      'case',
+      'vỏ case',
+      'vỏ máy tính',
+      'thùng máy',
+      'chos',
+      'nzxt',
+      'antec',
+      'xigmatek',
+      'montech',
+      'lian li',
+    ],
   },
   cooler_air: {
     categoryNames: ['tản nhiệt', 'tản nhiệt khí', 'quạt tản nhiệt'],
-    keywords: ['tản nhiệt khí', 'air cooler', 'cpu cooler', 'cr-1000', 'peerless assassin', 'deepcool ak', 'noctua'],
+    keywords: [
+      'tản nhiệt khí',
+      'air cooler',
+      'cpu cooler',
+      'cr-1000',
+      'peerless assassin',
+      'deepcool ak',
+      'noctua',
+    ],
   },
   cooler_aio: {
     categoryNames: ['tản nhiệt', 'tản nhiệt nước', 'tản nhiệt aio'],
-    keywords: ['aio', 'tản nhiệt nước', 'liquid cooler', '240', '360', 'kraken', 'galahad', 'corsair nautico'],
+    keywords: [
+      'aio',
+      'tản nhiệt nước',
+      'liquid cooler',
+      '240',
+      '360',
+      'kraken',
+      'galahad',
+      'corsair nautico',
+    ],
   },
   fan: {
     categoryNames: ['fan', 'quạt', 'fan tản nhiệt', 'fan case'],
@@ -61,21 +173,67 @@ const SLOT_CRITERIA = {
   monitor1: {
     categoryIds: [2, 5], // category 2 is Màn hình, 5 is Màn hình đồ họa
     categoryNames: ['màn hình', 'màn hình đồ họa', 'monitor', 'display'],
-    keywords: ['màn hình', 'monitor', 'display', 'ips', 'oled', '144hz', '165hz', '240hz', '24 inch', '27 inch', '32 inch', 'hello', 'sanphamne'],
+    keywords: [
+      'màn hình',
+      'monitor',
+      'display',
+      'ips',
+      'oled',
+      '144hz',
+      '165hz',
+      '240hz',
+      '24 inch',
+      '27 inch',
+      '32 inch',
+      'hello',
+      'sanphamne',
+    ],
   },
   monitor2: {
     categoryIds: [2, 5],
     categoryNames: ['màn hình', 'màn hình đồ họa', 'monitor', 'display'],
-    keywords: ['màn hình', 'monitor', 'display', 'ips', 'oled', '144hz', '165hz', '240hz', '24 inch', '27 inch', '32 inch', 'hello', 'sanphamne'],
+    keywords: [
+      'màn hình',
+      'monitor',
+      'display',
+      'ips',
+      'oled',
+      '144hz',
+      '165hz',
+      '240hz',
+      '24 inch',
+      '27 inch',
+      '32 inch',
+      'hello',
+      'sanphamne',
+    ],
   },
   keyboard: {
     categoryIds: [4], // category 4 in DB is "Bàn phím cơ"
     categoryNames: ['bàn phím', 'bàn phím cơ', 'keyboard'],
-    keywords: ['bàn phím', 'bàn phím cơ', 'keyboard', 'akko', 'keychron', 'dareu', 'logitech', 'rk'],
+    keywords: [
+      'bàn phím',
+      'bàn phím cơ',
+      'keyboard',
+      'akko',
+      'keychron',
+      'dareu',
+      'logitech',
+      'rk',
+    ],
   },
   mouse: {
     categoryNames: ['chuột', 'chuột gaming', 'mouse'],
-    keywords: ['chuột', 'mouse', 'logitech g', 'razer', 'superlight', 'pulsar', 'dareu', 'chuột gaming'],
+    keywords: [
+      'chuột',
+      'mouse',
+      'logitech g',
+      'razer',
+      'superlight',
+      'pulsar',
+      'dareu',
+      'chuột gaming',
+    ],
   },
   pad: {
     categoryNames: ['pad', 'bàn di chuột', 'lót chuột', 'mousepad'],
@@ -135,19 +293,26 @@ function matchesSlotCriteria(product, slot) {
 
   // 2. By Category Name or filterCategory
   const filterCat = (slot.filterCategory || '').toLowerCase();
-  if (filterCat && (pCat.includes(filterCat) || pParentCat.includes(filterCat) || pSlug.includes(filterCat))) {
+  if (
+    filterCat &&
+    (pCat.includes(filterCat) || pParentCat.includes(filterCat) || pSlug.includes(filterCat))
+  ) {
     return true;
   }
 
   if (criteria?.categoryNames) {
-    if (criteria.categoryNames.some(c => pCat.includes(c) || pParentCat.includes(c) || pSlug.includes(c))) {
+    if (
+      criteria.categoryNames.some(
+        (c) => pCat.includes(c) || pParentCat.includes(c) || pSlug.includes(c)
+      )
+    ) {
       return true;
     }
   }
 
   // 3. By Keywords in product title
   if (criteria?.keywords) {
-    if (criteria.keywords.some(kw => pName.includes(kw))) {
+    if (criteria.keywords.some((kw) => pName.includes(kw))) {
       return true;
     }
   }
@@ -168,7 +333,7 @@ const ComponentSelectionModal = ({ slot, onClose, onSelect }) => {
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [activeTab, setActiveTab] = useState('matched'); // 'matched' | 'all'
-  
+
   // Filters
   const [selectedBrand, setSelectedBrand] = useState('TẤT CẢ');
   const [selectedPrice, setSelectedPrice] = useState('TẤT CẢ');
@@ -206,26 +371,34 @@ const ComponentSelectionModal = ({ slot, onClose, onSelect }) => {
             let parsedSpecs = {};
             if (detail?.thongSoKyThuat) {
               try {
-                parsedSpecs = typeof detail.thongSoKyThuat === 'string'
-                  ? JSON.parse(detail.thongSoKyThuat)
-                  : detail.thongSoKyThuat;
+                parsedSpecs =
+                  typeof detail.thongSoKyThuat === 'string'
+                    ? JSON.parse(detail.thongSoKyThuat)
+                    : detail.thongSoKyThuat;
               } catch (e) {
                 parsedSpecs = {};
               }
             }
 
-            const price = defaultVariant.giaBanLe != null
-              ? Number(defaultVariant.giaBanLe)
-              : Number(p.giaThapNhat ?? 0);
+            const price =
+              defaultVariant.giaBanLe != null
+                ? Number(defaultVariant.giaBanLe)
+                : Number(p.giaThapNhat ?? 0);
 
-            const stock = defaultVariant.tonCoTheBan != null
-              ? Number(defaultVariant.tonCoTheBan)
-              : (p.tonKhoKhaDung != null ? Number(p.tonKhoKhaDung) : (p.conHang ? 10 : 0));
+            const stock =
+              defaultVariant.tonCoTheBan != null
+                ? Number(defaultVariant.tonCoTheBan)
+                : p.tonKhoKhaDung != null
+                  ? Number(p.tonKhoKhaDung)
+                  : p.conHang
+                    ? 10
+                    : 0;
 
-            const image = detail?.anhSanPham?.find(img => img.laAnhChinh)?.duongDanAnh
-              || detail?.anhSanPham?.[0]?.duongDanAnh
-              || p.anhChinh
-              || 'https://via.placeholder.com/150';
+            const image =
+              detail?.anhSanPham?.find((img) => img.laAnhChinh)?.duongDanAnh ||
+              detail?.anhSanPham?.[0]?.duongDanAnh ||
+              p.anhChinh ||
+              'https://via.placeholder.com/150';
 
             return {
               id: p.id,
@@ -244,7 +417,7 @@ const ComponentSelectionModal = ({ slot, onClose, onSelect }) => {
               inStock: Boolean(p.conHang && stock > 0),
               specs: parsedSpecs,
               phienBanId: defaultVariant.id || null,
-              danhSachPhienBan: detail?.danhSachPhienBan || []
+              danhSachPhienBan: detail?.danhSachPhienBan || [],
             };
           })
         );
@@ -253,7 +426,7 @@ const ComponentSelectionModal = ({ slot, onClose, onSelect }) => {
           setAllProducts(enriched);
 
           // Decide initial active tab
-          const matched = enriched.filter(p => matchesSlotCriteria(p, slot));
+          const matched = enriched.filter((p) => matchesSlotCriteria(p, slot));
           if (matched.length > 0) {
             setActiveTab('matched');
           } else {
@@ -261,7 +434,7 @@ const ComponentSelectionModal = ({ slot, onClose, onSelect }) => {
           }
         }
       } catch (e) {
-        console.error("Lỗi fetch sản phẩm thật:", e);
+        console.error('Lỗi fetch sản phẩm thật:', e);
       } finally {
         if (isMounted) {
           setLoading(false);
@@ -278,7 +451,7 @@ const ComponentSelectionModal = ({ slot, onClose, onSelect }) => {
 
   // Derived: matched products according to slot criteria
   const slotMatchedProducts = useMemo(() => {
-    return allProducts.filter(p => matchesSlotCriteria(p, slot));
+    return allProducts.filter((p) => matchesSlotCriteria(p, slot));
   }, [allProducts, slot]);
 
   // Products under current tab
@@ -286,20 +459,24 @@ const ComponentSelectionModal = ({ slot, onClose, onSelect }) => {
 
   // Extract unique brands for current list
   const uniqueBrands = useMemo(() => {
-    return [...new Set(tabProducts.map(p => p.brand).filter(b => b && b !== 'Chưa rõ'))];
+    return [...new Set(tabProducts.map((p) => p.brand).filter((b) => b && b !== 'Chưa rõ'))];
   }, [tabProducts]);
 
   // Filter & Sort
   const filteredProducts = useMemo(() => {
-    let result = tabProducts.filter(p => {
+    let result = tabProducts.filter((p) => {
       // Search keyword
       if (searchTerm.trim()) {
         const query = searchTerm.toLowerCase().trim();
         const matchTitle = (p.title || '').toLowerCase().includes(query);
-        const matchCode = String(p.code || '').toLowerCase().includes(query);
+        const matchCode = String(p.code || '')
+          .toLowerCase()
+          .includes(query);
         const matchBrand = (p.brand || '').toLowerCase().includes(query);
         const matchCat = (p.category || '').toLowerCase().includes(query);
-        const matchSpecs = Object.values(p.specs || {}).some(val => String(val).toLowerCase().includes(query));
+        const matchSpecs = Object.values(p.specs || {}).some((val) =>
+          String(val).toLowerCase().includes(query)
+        );
         if (!matchTitle && !matchCode && !matchBrand && !matchCat && !matchSpecs) return false;
       }
 
@@ -308,7 +485,8 @@ const ComponentSelectionModal = ({ slot, onClose, onSelect }) => {
 
       // Price filter
       if (selectedPrice === 'DƯỚI 5 TRIỆU' && p.price >= 5000000) return false;
-      if (selectedPrice === '5 - 15 TRIỆU' && (p.price < 5000000 || p.price > 15000000)) return false;
+      if (selectedPrice === '5 - 15 TRIỆU' && (p.price < 5000000 || p.price > 15000000))
+        return false;
       if (selectedPrice === 'TRÊN 15 TRIỆU' && p.price <= 15000000) return false;
 
       // Stock filter
@@ -336,9 +514,13 @@ const ComponentSelectionModal = ({ slot, onClose, onSelect }) => {
   };
 
   return (
-    <div className="build-modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+    <div
+      className="build-modal-overlay"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
       <div className="build-modal-content">
-        
         {/* Header */}
         <div className="build-modal-header">
           <div className="build-modal-header-left">
@@ -354,7 +536,7 @@ const ComponentSelectionModal = ({ slot, onClose, onSelect }) => {
 
         {/* Tab switcher: Matched category vs All products */}
         <div className="build-modal-tabs-bar">
-          <button 
+          <button
             type="button"
             className={`build-modal-tab-btn ${activeTab === 'matched' ? 'active' : ''}`}
             onClick={() => setActiveTab('matched')}
@@ -362,7 +544,7 @@ const ComponentSelectionModal = ({ slot, onClose, onSelect }) => {
             <CheckCircle2 size={16} />
             HẠNG MỤC: {slot.title} ({slotMatchedProducts.length})
           </button>
-          <button 
+          <button
             type="button"
             className={`build-modal-tab-btn ${activeTab === 'all' ? 'active' : ''}`}
             onClick={() => setActiveTab('all')}
@@ -376,7 +558,10 @@ const ComponentSelectionModal = ({ slot, onClose, onSelect }) => {
         {activeTab === 'all' && slotMatchedProducts.length === 0 && (
           <div className="build-modal-notice-banner">
             <AlertCircle size={16} />
-            <span>Chưa có sản phẩm gán danh mục riêng cho <strong>{slot.title}</strong>. Đang hiển thị toàn bộ sản phẩm thực tế trong kho để bạn dễ dàng lựa chọn.</span>
+            <span>
+              Chưa có sản phẩm gán danh mục riêng cho <strong>{slot.title}</strong>. Đang hiển thị
+              toàn bộ sản phẩm thực tế trong kho để bạn dễ dàng lựa chọn.
+            </span>
           </div>
         )}
 
@@ -384,9 +569,9 @@ const ComponentSelectionModal = ({ slot, onClose, onSelect }) => {
         <div className="build-modal-search-bar">
           <div className="search-input-wrapper">
             <Search size={18} className="search-icon" />
-            <input 
-              type="text" 
-              placeholder="Tìm theo tên sản phẩm, mã SP, thương hiệu, thông số..." 
+            <input
+              type="text"
+              placeholder="Tìm theo tên sản phẩm, mã SP, thương hiệu, thông số..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
@@ -403,21 +588,21 @@ const ComponentSelectionModal = ({ slot, onClose, onSelect }) => {
           <div className="build-modal-sidebar">
             <div className="build-modal-filter-group">
               <div className="build-modal-filter-title">BỘ LỌC TÌM KIẾM</div>
-              
+
               {/* Brand filter */}
               <div className="build-modal-filter-section">
                 <div className="build-modal-filter-label">THƯƠNG HIỆU</div>
                 <div className="build-modal-filter-options">
-                  <div 
-                    className={`build-modal-filter-option ${selectedBrand === 'TẤT CẢ' ? 'active' : ''}`} 
+                  <div
+                    className={`build-modal-filter-option ${selectedBrand === 'TẤT CẢ' ? 'active' : ''}`}
                     onClick={() => setSelectedBrand('TẤT CẢ')}
                   >
                     TẤT CẢ
                   </div>
-                  {uniqueBrands.map(b => (
-                    <div 
-                      key={b} 
-                      className={`build-modal-filter-option ${selectedBrand === b ? 'active' : ''}`} 
+                  {uniqueBrands.map((b) => (
+                    <div
+                      key={b}
+                      className={`build-modal-filter-option ${selectedBrand === b ? 'active' : ''}`}
                       onClick={() => setSelectedBrand(b)}
                     >
                       {b}
@@ -430,10 +615,30 @@ const ComponentSelectionModal = ({ slot, onClose, onSelect }) => {
               <div className="build-modal-filter-section">
                 <div className="build-modal-filter-label">KHOẢNG GIÁ</div>
                 <div className="build-modal-filter-options">
-                  <div className={`build-modal-filter-option ${selectedPrice === 'TẤT CẢ' ? 'active' : ''}`} onClick={() => setSelectedPrice('TẤT CẢ')}>TẤT CẢ</div>
-                  <div className={`build-modal-filter-option ${selectedPrice === 'DƯỚI 5 TRIỆU' ? 'active' : ''}`} onClick={() => setSelectedPrice('DƯỚI 5 TRIỆU')}>DƯỚI 5 TRIỆU</div>
-                  <div className={`build-modal-filter-option ${selectedPrice === '5 - 15 TRIỆU' ? 'active' : ''}`} onClick={() => setSelectedPrice('5 - 15 TRIỆU')}>5 - 15 TRIỆU</div>
-                  <div className={`build-modal-filter-option ${selectedPrice === 'TRÊN 15 TRIỆU' ? 'active' : ''}`} onClick={() => setSelectedPrice('TRÊN 15 TRIỆU')}>TRÊN 15 TRIỆU</div>
+                  <div
+                    className={`build-modal-filter-option ${selectedPrice === 'TẤT CẢ' ? 'active' : ''}`}
+                    onClick={() => setSelectedPrice('TẤT CẢ')}
+                  >
+                    TẤT CẢ
+                  </div>
+                  <div
+                    className={`build-modal-filter-option ${selectedPrice === 'DƯỚI 5 TRIỆU' ? 'active' : ''}`}
+                    onClick={() => setSelectedPrice('DƯỚI 5 TRIỆU')}
+                  >
+                    DƯỚI 5 TRIỆU
+                  </div>
+                  <div
+                    className={`build-modal-filter-option ${selectedPrice === '5 - 15 TRIỆU' ? 'active' : ''}`}
+                    onClick={() => setSelectedPrice('5 - 15 TRIỆU')}
+                  >
+                    5 - 15 TRIỆU
+                  </div>
+                  <div
+                    className={`build-modal-filter-option ${selectedPrice === 'TRÊN 15 TRIỆU' ? 'active' : ''}`}
+                    onClick={() => setSelectedPrice('TRÊN 15 TRIỆU')}
+                  >
+                    TRÊN 15 TRIỆU
+                  </div>
                 </div>
               </div>
 
@@ -441,8 +646,18 @@ const ComponentSelectionModal = ({ slot, onClose, onSelect }) => {
               <div className="build-modal-filter-section">
                 <div className="build-modal-filter-label">TÌNH TRẠNG KHO</div>
                 <div className="build-modal-filter-options">
-                  <div className={`build-modal-filter-option ${selectedStock === 'TẤT CẢ' ? 'active' : ''}`} onClick={() => setSelectedStock('TẤT CẢ')}>TẤT CẢ</div>
-                  <div className={`build-modal-filter-option ${selectedStock === 'CÒN HÀNG' ? 'active' : ''}`} onClick={() => setSelectedStock('CÒN HÀNG')}>CÒN HÀNG</div>
+                  <div
+                    className={`build-modal-filter-option ${selectedStock === 'TẤT CẢ' ? 'active' : ''}`}
+                    onClick={() => setSelectedStock('TẤT CẢ')}
+                  >
+                    TẤT CẢ
+                  </div>
+                  <div
+                    className={`build-modal-filter-option ${selectedStock === 'CÒN HÀNG' ? 'active' : ''}`}
+                    onClick={() => setSelectedStock('CÒN HÀNG')}
+                  >
+                    CÒN HÀNG
+                  </div>
                 </div>
               </div>
 
@@ -450,12 +665,26 @@ const ComponentSelectionModal = ({ slot, onClose, onSelect }) => {
               <div className="build-modal-filter-section">
                 <div className="build-modal-filter-label">SẮP XẾP</div>
                 <div className="build-modal-filter-options">
-                  <div className={`build-modal-filter-option ${selectedSort === 'NỔI BẬT' ? 'active' : ''}`} onClick={() => setSelectedSort('NỔI BẬT')}>MẶC ĐỊNH</div>
-                  <div className={`build-modal-filter-option ${selectedSort === 'GIÁ THẤP ĐẾN CAO' ? 'active' : ''}`} onClick={() => setSelectedSort('GIÁ THẤP ĐẾN CAO')}>GIÁ THẤP ➔ CAO</div>
-                  <div className={`build-modal-filter-option ${selectedSort === 'GIÁ CAO ĐẾN THẤP' ? 'active' : ''}`} onClick={() => setSelectedSort('GIÁ CAO ĐẾN THẤP')}>GIÁ CAO ➔ THẤP</div>
+                  <div
+                    className={`build-modal-filter-option ${selectedSort === 'NỔI BẬT' ? 'active' : ''}`}
+                    onClick={() => setSelectedSort('NỔI BẬT')}
+                  >
+                    MẶC ĐỊNH
+                  </div>
+                  <div
+                    className={`build-modal-filter-option ${selectedSort === 'GIÁ THẤP ĐẾN CAO' ? 'active' : ''}`}
+                    onClick={() => setSelectedSort('GIÁ THẤP ĐẾN CAO')}
+                  >
+                    GIÁ THẤP ➔ CAO
+                  </div>
+                  <div
+                    className={`build-modal-filter-option ${selectedSort === 'GIÁ CAO ĐẾN THẤP' ? 'active' : ''}`}
+                    onClick={() => setSelectedSort('GIÁ CAO ĐẾN THẤP')}
+                  >
+                    GIÁ CAO ➔ THẤP
+                  </div>
                 </div>
               </div>
-
             </div>
           </div>
 
@@ -481,8 +710,8 @@ const ComponentSelectionModal = ({ slot, onClose, onSelect }) => {
                   <AlertCircle size={40} className="empty-icon" />
                   <p className="empty-title">Không tìm thấy sản phẩm phù hợp</p>
                   <p className="empty-desc">
-                    {activeTab === 'matched' 
-                      ? 'Chưa có sản phẩm nào thuộc hạng mục này.' 
+                    {activeTab === 'matched'
+                      ? 'Chưa có sản phẩm nào thuộc hạng mục này.'
                       : 'Không có sản phẩm nào thỏa mãn điều kiện tìm kiếm hoặc bộ lọc.'}
                   </p>
                   {activeTab === 'matched' && allProducts.length > 0 && (
@@ -492,18 +721,13 @@ const ComponentSelectionModal = ({ slot, onClose, onSelect }) => {
                   )}
                 </div>
               ) : (
-                filteredProducts.map(p => (
-                  <ProductRow 
-                    key={p.id} 
-                    product={p} 
-                    onSelect={(qty) => onSelect(p, qty)} 
-                  />
+                filteredProducts.map((p) => (
+                  <ProductRow key={p.id} product={p} onSelect={(qty) => onSelect(p, qty)} />
                 ))
               )}
             </div>
           </div>
         </div>
-
       </div>
     </div>
   );
@@ -513,8 +737,8 @@ const ProductRow = ({ product, onSelect }) => {
   const [qty, setQty] = useState(1);
   const maxStock = Math.max(1, product.stock || 1);
 
-  const increase = () => setQty(prev => (prev < maxStock ? prev + 1 : prev));
-  const decrease = () => setQty(prev => (prev > 1 ? prev - 1 : 1));
+  const increase = () => setQty((prev) => (prev < maxStock ? prev + 1 : prev));
+  const decrease = () => setQty((prev) => (prev > 1 ? prev - 1 : 1));
 
   const specsEntries = Object.entries(product.specs || {}).slice(0, 3);
 
@@ -522,11 +746,13 @@ const ProductRow = ({ product, onSelect }) => {
     <div className={`build-product-row ${product.stock <= 0 ? 'out-of-stock-row' : ''}`}>
       <div className="build-product-info">
         <div className="build-product-img-wrapper">
-          <img 
-            src={product.image} 
-            alt={product.title} 
-            className="build-product-img" 
-            onError={(e) => { e.target.src = 'https://via.placeholder.com/150'; }}
+          <img
+            src={product.image}
+            alt={product.title}
+            className="build-product-img"
+            onError={(e) => {
+              e.target.src = 'https://via.placeholder.com/150';
+            }}
           />
           {product.category && (
             <span className="build-product-category-tag">{product.category}</span>
@@ -537,11 +763,19 @@ const ProductRow = ({ product, onSelect }) => {
             {product.title}
           </div>
           <div className="build-product-specs">
-            <span className="spec-item"><strong>MÃ SP:</strong> {product.code}</span>
-            <span className="spec-item"><strong>THƯƠNG HIỆU:</strong> {product.brand}</span>
-            <span className="spec-item"><strong>BẢO HÀNH:</strong> 36 THÁNG</span>
+            <span className="spec-item">
+              <strong>MÃ SP:</strong> {product.code}
+            </span>
+            <span className="spec-item">
+              <strong>THƯƠNG HIỆU:</strong> {product.brand}
+            </span>
+            <span className="spec-item">
+              <strong>BẢO HÀNH:</strong> 36 THÁNG
+            </span>
             {specsEntries.map(([k, v]) => (
-              <span key={k} className="spec-item"><strong>{k}:</strong> {String(v)}</span>
+              <span key={k} className="spec-item">
+                <strong>{k}:</strong> {String(v)}
+              </span>
             ))}
           </div>
         </div>
@@ -549,7 +783,8 @@ const ProductRow = ({ product, onSelect }) => {
 
       <div className="build-product-action">
         <div className="build-product-stock">
-          TÌNH TRẠNG<br/>
+          TÌNH TRẠNG
+          <br />
           {product.stock > 0 ? (
             <strong className="stock-in">CÒN {product.stock} SP</strong>
           ) : (
@@ -557,22 +792,28 @@ const ProductRow = ({ product, onSelect }) => {
           )}
         </div>
 
-        <div className="build-product-price">
-          {Number(product.price).toLocaleString('vi-VN')}đ
-        </div>
+        <div className="build-product-price">{Number(product.price).toLocaleString('vi-VN')}đ</div>
 
         <div className="build-product-qty">
           <div className="qty-label">SỐ LƯỢNG</div>
           <div className="qty-controls">
-            <button type="button" onClick={decrease} disabled={product.stock <= 0 || qty <= 1}>-</button>
+            <button type="button" onClick={decrease} disabled={product.stock <= 0 || qty <= 1}>
+              -
+            </button>
             <input type="text" value={qty} readOnly />
-            <button type="button" onClick={increase} disabled={product.stock <= 0 || qty >= maxStock}>+</button>
+            <button
+              type="button"
+              onClick={increase}
+              disabled={product.stock <= 0 || qty >= maxStock}
+            >
+              +
+            </button>
           </div>
         </div>
 
-        <button 
+        <button
           type="button"
-          className="btn-add-config" 
+          className="btn-add-config"
           onClick={() => onSelect(qty)}
           disabled={product.stock <= 0}
         >

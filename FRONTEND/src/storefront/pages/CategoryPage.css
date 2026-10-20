@@ -275,7 +275,8 @@
   transition: all 0.2s;
 }
 
-.sort-select:focus, .sort-select:hover {
+.sort-select:focus,
+.sort-select:hover {
   border-color: #ff0000;
 }
 
@@ -327,27 +328,47 @@
 
 /* Responsive */
 @media (max-width: 992px) {
+  .category-banner {
+    padding: 40px 0;
+    margin-bottom: 24px;
+  }
+
+  .category-title {
+    font-size: 28px;
+  }
+
   .category-main {
     grid-template-columns: 1fr;
+    gap: 20px;
+    margin-bottom: 30px;
   }
-  
+
   .category-sidebar {
-    display: none; /* In a real app, this would be a collapsible drawer */
+    display: none;
   }
-  
+
   .category-product-grid {
     grid-template-columns: repeat(2, 1fr);
   }
 }
 
 @media (max-width: 576px) {
-  .category-product-grid {
-    grid-template-columns: 1fr;
+  .category-banner {
+    padding: 30px 0;
   }
-  
+
+  .category-title {
+    font-size: 22px;
+  }
+
+  .category-product-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0;
+  }
+
   .category-toolbar {
     flex-direction: column;
-    gap: 15px;
+    gap: 10px;
     align-items: flex-start;
   }
 }
@@ -418,7 +439,9 @@
 }
 
 @keyframes cat-spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 /* ── Empty state ────────────────────────────────────────────── */

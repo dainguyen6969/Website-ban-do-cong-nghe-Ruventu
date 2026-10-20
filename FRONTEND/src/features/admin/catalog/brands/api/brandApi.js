@@ -16,10 +16,11 @@ export class BrandApiError extends Error {
 
 function readToken() {
   if (inMemoryToken) return inMemoryToken;
-  inMemoryToken = localStorage.getItem(ACCESS_TOKEN_KEY)
-    || localStorage.getItem('access_token')
-    || localStorage.getItem('accessToken')
-    || '';
+  inMemoryToken =
+    localStorage.getItem(ACCESS_TOKEN_KEY) ||
+    localStorage.getItem('access_token') ||
+    localStorage.getItem('accessToken') ||
+    '';
   return inMemoryToken;
 }
 
@@ -32,8 +33,11 @@ function storeToken(token) {
 async function parseResponse(response) {
   const text = await response.text();
   if (!text) return null;
-  try { return JSON.parse(text); }
-  catch { throw new BrandApiError('Backend trả về dữ liệu không hợp lệ.', response.status); }
+  try {
+    return JSON.parse(text);
+  } catch {
+    throw new BrandApiError('Backend trả về dữ liệu không hợp lệ.', response.status);
+  }
 }
 
 async function login() {
@@ -50,18 +54,26 @@ async function login() {
   });
   const payload = await parseResponse(response);
   const token = payload?.data?.access_token;
-  if (!response.ok || !token) throw new BrandApiError(payload?.message || 'Không thể đăng nhập backend.', response.status, payload);
+  if (!response.ok || !token)
+    throw new BrandApiError(
+      payload?.message || 'Không thể đăng nhập backend.',
+      response.status,
+      payload
+    );
   storeToken(token);
   return token;
 }
 
 async function getToken(force = false) {
   if (!force && readToken()) return readToken();
-  if (!loginPromise) loginPromise = login().finally(() => { loginPromise = null; });
+  if (!loginPromise)
+    loginPromise = login().finally(() => {
+      loginPromise = null;
+    });
   return loginPromise;
 }
 
-const normalizeStatus = (value) => Number(value) === 1 ? 'active' : 'inactive';
+const normalizeStatus = (value) => (Number(value) === 1 ? 'active' : 'inactive');
 
 function normalizeBrand(item) {
   return {
@@ -86,18 +98,23 @@ function normalizeProduct(item) {
   };
 }
 
-const mutationBody = (brand) => JSON.stringify({
-  ten_thuong_hieu: brand.name.trim(),
-  logo: brand.logo || null,
-  trang_thai: brand.status === 'active' ? 1 : 0,
-});
+const mutationBody = (brand) =>
+  JSON.stringify({
+    ten_thuong_hieu: brand.name.trim(),
+    logo: brand.logo || null,
+    trang_thai: brand.status === 'active' ? 1 : 0,
+  });
 
 export async function getAllBrands() {
   const first = await request(`${BRAND_PATH}?page=0&limit=100`);
   const raw = [...(first?.items || [])];
   const totalPages = Number(first?.pagination?.total_pages || 1);
   if (totalPages > 1) {
-    const pages = await Promise.all(Array.from({ length: totalPages - 1 }, (_, index) => request(`${BRAND_PATH}?page=${index + 1}&limit=100`)));
+    const pages = await Promise.all(
+      Array.from({ length: totalPages - 1 }, (_, index) =>
+        request(`${BRAND_PATH}?page=${index + 1}&limit=100`)
+      )
+    );
     pages.forEach((page) => raw.push(...(page?.items || [])));
   }
   return raw.map(normalizeBrand);
@@ -108,7 +125,9 @@ export async function getBrandDetail(id) {
   return { ...normalizeBrand(item), products: (item?.san_pham || []).map(normalizeProduct) };
 }
 
-export const createBrand = (brand) => request(BRAND_PATH, { method: 'POST', body: mutationBody(brand) });
-export const updateBrand = (id, brand) => request(`${BRAND_PATH}/${id}`, { method: 'PUT', body: mutationBody(brand) });
+export const createBrand = (brand) =>
+  request(BRAND_PATH, { method: 'POST', body: mutationBody(brand) });
+export const updateBrand = (id, brand) =>
+  request(`${BRAND_PATH}/${id}`, { method: 'PUT', body: mutationBody(brand) });
 export const deactivateBrand = (id) => request(`${BRAND_PATH}/${id}`, { method: 'DELETE' });
 export const reactivateBrand = (brand) => updateBrand(brand.id, { ...brand, status: 'active' });

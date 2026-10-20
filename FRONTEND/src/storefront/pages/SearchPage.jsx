@@ -38,12 +38,14 @@ const SearchPage = () => {
         const res = await productService.getProducts({ ton_kho: true, limit: 4, sort: 'moi_nhat' });
         if (res?.data?.danhSachSanPham) {
           setFeaturedProducts(
-            res.data.danhSachSanPham.slice(0, 4).map(p => ({
+            res.data.danhSachSanPham.slice(0, 4).map((p) => ({
               id: p.id,
               title: p.tenSanPham,
               name: p.tenSanPham,
               image: p.anhChinh || 'https://via.placeholder.com/300',
-              price: new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(p.giaThapNhat || 0),
+              price: new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(
+                p.giaThapNhat || 0
+              ),
               category: p.tenDanhMuc,
               outOfStock: !p.conHang,
             }))
@@ -67,8 +69,8 @@ const SearchPage = () => {
           const brandMap = {};
           const catMap = {};
           response.data.danhSachSanPham
-            .filter(p => p.conHang)
-            .forEach(p => {
+            .filter((p) => p.conHang)
+            .forEach((p) => {
               const brand = p.tenThuongHieu || '';
               const cat = p.tenDanhMuc || '';
               if (brand) brandMap[brand] = (brandMap[brand] || 0) + 1;
@@ -108,26 +110,30 @@ const SearchPage = () => {
         const response = await productService.getProducts(params);
         if (response?.data?.danhSachSanPham) {
           const mapped = response.data.danhSachSanPham
-            .map(p => ({
+            .map((p) => ({
               id: p.id,
               title: p.tenSanPham,
               name: p.tenSanPham,
               image: p.anhChinh || 'https://via.placeholder.com/300',
-              price: new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(p.giaThapNhat || 0),
+              price: new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(
+                p.giaThapNhat || 0
+              ),
               category: p.tenDanhMuc || '',
               brand: p.tenThuongHieu || '',
               outOfStock: !p.conHang,
             }))
-            .filter(p => !p.outOfStock);
+            .filter((p) => !p.outOfStock);
 
           // Apply client-side brand & category filters
           let results = mapped;
           if (selectedBrands.length > 0) {
-            results = results.filter(p => selectedBrands.includes(p.brand));
+            results = results.filter((p) => selectedBrands.includes(p.brand));
           }
           if (selectedCategories.length > 0) {
-            results = results.filter(p =>
-              selectedCategories.some(cat => (p.category || '').toLowerCase().includes(cat.toLowerCase()))
+            results = results.filter((p) =>
+              selectedCategories.some((cat) =>
+                (p.category || '').toLowerCase().includes(cat.toLowerCase())
+              )
             );
           }
 
@@ -152,25 +158,40 @@ const SearchPage = () => {
     { value: 'bestseller', label: 'Bán chạy nhất' },
   ];
 
-  const suggestedKeywords = ['RTX 4090', 'Ryzen 9', 'Mainboard Z790', 'Chuột gaming', 'Bàn phím cơ'];
+  const suggestedKeywords = [
+    'RTX 4090',
+    'Ryzen 9',
+    'Mainboard Z790',
+    'Chuột gaming',
+    'Bàn phím cơ',
+  ];
 
   const handleBrandChange = (brandName) => {
-    setSelectedBrands(prev =>
-      prev.includes(brandName) ? prev.filter(b => b !== brandName) : [...prev, brandName]
+    setSelectedBrands((prev) =>
+      prev.includes(brandName) ? prev.filter((b) => b !== brandName) : [...prev, brandName]
     );
   };
 
   const handleCategoryChange = (catName) => {
-    setSelectedCategories(prev =>
-      prev.includes(catName) ? prev.filter(c => c !== catName) : [...prev, catName]
+    setSelectedCategories((prev) =>
+      prev.includes(catName) ? prev.filter((c) => c !== catName) : [...prev, catName]
     );
   };
 
   const handlePricePreset = (preset) => {
-    if (preset === '<5') { setMinPrice(''); setMaxPrice('5000000'); }
-    else if (preset === '5-15') { setMinPrice('5000000'); setMaxPrice('15000000'); }
-    else if (preset === '15-25') { setMinPrice('15000000'); setMaxPrice('25000000'); }
-    else if (preset === '>25') { setMinPrice('25000000'); setMaxPrice(''); }
+    if (preset === '<5') {
+      setMinPrice('');
+      setMaxPrice('5000000');
+    } else if (preset === '5-15') {
+      setMinPrice('5000000');
+      setMaxPrice('15000000');
+    } else if (preset === '15-25') {
+      setMinPrice('15000000');
+      setMaxPrice('25000000');
+    } else if (preset === '>25') {
+      setMinPrice('25000000');
+      setMaxPrice('');
+    }
   };
 
   const clearAllFilters = () => {
@@ -211,30 +232,54 @@ const SearchPage = () => {
           <div className="filter-header-block">
             <h3 className="filter-title">BỘ LỌC TÌM KIẾM</h3>
             {hasActiveFilters && (
-              <button className="clear-all-btn" onClick={clearAllFilters}>XÓA TẤT CẢ</button>
+              <button className="clear-all-btn" onClick={clearAllFilters}>
+                XÓA TẤT CẢ
+              </button>
             )}
           </div>
 
           <div className="filter-block-content">
             {/* Price Filter */}
             <div className="filter-section">
-              <h4 className="filter-section-title"><span>|</span> KHOẢNG GIÁ</h4>
+              <h4 className="filter-section-title">
+                <span>|</span> KHOẢNG GIÁ
+              </h4>
               <div className="price-inputs">
-                <input type="text" placeholder="Tối thiểu" value={minPrice} onChange={e => setMinPrice(e.target.value)} />
+                <input
+                  type="text"
+                  placeholder="Tối thiểu"
+                  value={minPrice}
+                  onChange={(e) => setMinPrice(e.target.value)}
+                />
                 <span className="price-separator">-</span>
-                <input type="text" placeholder="Tối đa" value={maxPrice} onChange={e => setMaxPrice(e.target.value)} />
+                <input
+                  type="text"
+                  placeholder="Tối đa"
+                  value={maxPrice}
+                  onChange={(e) => setMaxPrice(e.target.value)}
+                />
               </div>
               <div className="price-presets">
-                <button onClick={() => handlePricePreset('<5')} className="price-preset-btn">&lt; 5 triệu</button>
-                <button onClick={() => handlePricePreset('5-15')} className="price-preset-btn">5-15 triệu</button>
-                <button onClick={() => handlePricePreset('15-25')} className="price-preset-btn">15-25 triệu</button>
-                <button onClick={() => handlePricePreset('>25')} className="price-preset-btn">&gt; 25 triệu</button>
+                <button onClick={() => handlePricePreset('<5')} className="price-preset-btn">
+                  &lt; 5 triệu
+                </button>
+                <button onClick={() => handlePricePreset('5-15')} className="price-preset-btn">
+                  5-15 triệu
+                </button>
+                <button onClick={() => handlePricePreset('15-25')} className="price-preset-btn">
+                  15-25 triệu
+                </button>
+                <button onClick={() => handlePricePreset('>25')} className="price-preset-btn">
+                  &gt; 25 triệu
+                </button>
               </div>
             </div>
 
             {/* Stock Status Filter */}
             <div className="filter-section">
-              <h4 className="filter-section-title"><span>|</span> TÌNH TRẠNG</h4>
+              <h4 className="filter-section-title">
+                <span>|</span> TÌNH TRẠNG
+              </h4>
               <div className="status-buttons">
                 <button
                   className={`status-btn ${stockStatus === 'all' ? 'active' : ''}`}
@@ -254,9 +299,11 @@ const SearchPage = () => {
             {/* Brands Filter - DYNAMIC from API */}
             {brands.length > 0 && (
               <div className="filter-section">
-                <h4 className="filter-section-title"><span>|</span> THƯƠNG HIỆU</h4>
+                <h4 className="filter-section-title">
+                  <span>|</span> THƯƠNG HIỆU
+                </h4>
                 <div className="checkbox-list brand-list">
-                  {brands.map(brand => (
+                  {brands.map((brand) => (
                     <label key={brand.name} className="checkbox-item">
                       <div className="checkbox-wrap">
                         <input
@@ -277,9 +324,11 @@ const SearchPage = () => {
             {/* Categories Filter - DYNAMIC from API */}
             {categories.length > 0 && (
               <div className="filter-section">
-                <h4 className="filter-section-title"><span>|</span> DANH MỤC</h4>
+                <h4 className="filter-section-title">
+                  <span>|</span> DANH MỤC
+                </h4>
                 <div className="checkbox-list category-list">
-                  {categories.map(cat => (
+                  {categories.map((cat) => (
                     <label key={cat.name} className="checkbox-item">
                       <div className="checkbox-wrap">
                         <input
@@ -304,7 +353,9 @@ const SearchPage = () => {
           <div className="search-toolbar">
             <div className="toolbar-left">
               {totalProducts > 0 ? (
-                <span><strong>{totalProducts}</strong> sản phẩm tìm thấy</span>
+                <span>
+                  <strong>{totalProducts}</strong> sản phẩm tìm thấy
+                </span>
               ) : (
                 <span>Không có kết quả</span>
               )}
@@ -316,13 +367,15 @@ const SearchPage = () => {
                   onClick={() => setIsSortDropdownOpen(!isSortDropdownOpen)}
                 >
                   <span className="sort-label">SẮP XẾP: </span>
-                  <span className="sort-current">{sortOptions.find(opt => opt.value === sortBy)?.label}</span>
+                  <span className="sort-current">
+                    {sortOptions.find((opt) => opt.value === sortBy)?.label}
+                  </span>
                   {isSortDropdownOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
                 </button>
 
                 {isSortDropdownOpen && (
                   <div className="custom-sort-dropdown">
-                    {sortOptions.map(option => (
+                    {sortOptions.map((option) => (
                       <div
                         key={option.value}
                         className={`sort-option ${sortBy === option.value ? 'active' : ''}`}
@@ -343,16 +396,20 @@ const SearchPage = () => {
           {/* Active Filter Chips */}
           {hasActiveFilters && (
             <div className="active-filters">
-              {selectedBrands.map(brand => (
+              {selectedBrands.map((brand) => (
                 <div key={brand} className="filter-chip">
                   <span className="chip-text">{brand}</span>
-                  <button className="chip-close" onClick={() => handleBrandChange(brand)}><X size={14} /></button>
+                  <button className="chip-close" onClick={() => handleBrandChange(brand)}>
+                    <X size={14} />
+                  </button>
                 </div>
               ))}
-              {selectedCategories.map(cat => (
+              {selectedCategories.map((cat) => (
                 <div key={cat} className="filter-chip">
                   <span className="chip-text">{cat}</span>
-                  <button className="chip-close" onClick={() => handleCategoryChange(cat)}><X size={14} /></button>
+                  <button className="chip-close" onClick={() => handleCategoryChange(cat)}>
+                    <X size={14} />
+                  </button>
                 </div>
               ))}
             </div>
@@ -380,11 +437,20 @@ const SearchPage = () => {
                     <Search size={16} />
                     <span>"{query}"</span>
                   </div>
-                  <p>Hệ thống không tìm thấy sản phẩm nào phù hợp. Thử kiểm tra lại chính tả, dùng từ khóa ngắn hơn, hoặc tìm theo tên thương hiệu / danh mục.</p>
+                  <p>
+                    Hệ thống không tìm thấy sản phẩm nào phù hợp. Thử kiểm tra lại chính tả, dùng từ
+                    khóa ngắn hơn, hoặc tìm theo tên thương hiệu / danh mục.
+                  </p>
 
                   <div className="suggested-keywords">
-                    {suggestedKeywords.map(k => (
-                      <button key={k} className="keyword-btn" onClick={() => handleSuggestKeyword(k)}>{k}</button>
+                    {suggestedKeywords.map((k) => (
+                      <button
+                        key={k}
+                        className="keyword-btn"
+                        onClick={() => handleSuggestKeyword(k)}
+                      >
+                        {k}
+                      </button>
                     ))}
                   </div>
 
@@ -400,7 +466,9 @@ const SearchPage = () => {
               {featuredProducts.length > 0 && (
                 <div className="recommended-section">
                   <div className="recommended-header">
-                    <h3><span>|</span> SẢN PHẨM NỔI BẬT</h3>
+                    <h3>
+                      <span>|</span> SẢN PHẨM NỔI BẬT
+                    </h3>
                     <span className="recommended-subtitle">GỢI Ý CHO BẠN</span>
                   </div>
                   <div className="search-product-grid">

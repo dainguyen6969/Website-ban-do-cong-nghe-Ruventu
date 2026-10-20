@@ -3,9 +3,8 @@ export { nextWarehouseStatus, SERIAL_STATUS_META } from './serialStatus.js';
 
 import { SERIAL_STATUS_META } from './serialStatus.js';
 
-const formatDate = (value) => value
-  ? new Intl.DateTimeFormat('vi-VN').format(new Date(value))
-  : '—';
+const formatDate = (value) =>
+  value ? new Intl.DateTimeFormat('vi-VN').format(new Date(value)) : '—';
 
 const normalize = (item) => ({
   id: Number(item.id),
@@ -39,15 +38,21 @@ export async function getSerialPage(filters, signal) {
 }
 
 export async function getSerialCounts(signal) {
-  const entries = await Promise.all(Object.keys(SERIAL_STATUS_META).map(async (status) => {
-    const data = await adminRequest(`/api/v1/admin/serials?trang_thai=${status}&page=0&limit=1`, { signal });
-    return [status, Number(data?.pagination?.total_elements || 0)];
-  }));
+  const entries = await Promise.all(
+    Object.keys(SERIAL_STATUS_META).map(async (status) => {
+      const data = await adminRequest(`/api/v1/admin/serials?trang_thai=${status}&page=0&limit=1`, {
+        signal,
+      });
+      return [status, Number(data?.pagination?.total_elements || 0)];
+    })
+  );
   return Object.fromEntries(entries);
 }
 
 export async function getSerialDetail(id, signal) {
-  return normalize(await adminRequest(`/api/v1/admin/serials/${encodeURIComponent(id)}`, { signal }));
+  return normalize(
+    await adminRequest(`/api/v1/admin/serials/${encodeURIComponent(id)}`, { signal })
+  );
 }
 
 export async function updateSerialStatus(id, status, reason) {

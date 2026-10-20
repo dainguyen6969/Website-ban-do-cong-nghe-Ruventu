@@ -246,7 +246,7 @@
   background-color: #111;
   color: #fff;
   z-index: 100;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
 }
 
 .dropdown-header {
@@ -323,7 +323,7 @@
   min-width: 250px;
   background-color: #181818;
   border-top: 2px solid #ff0000;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
   opacity: 0;
   visibility: hidden;
   transform: translateY(10px);
@@ -333,11 +333,21 @@
 }
 
 /* Mega menu for items that need more space (like Linh Kien PC with 3 columns) */
-.nav-links li:nth-child(1) .mega-menu { width: 750px; }
-.nav-links li:nth-child(2) .mega-menu { width: 500px; }
-.nav-links li:nth-child(3) .mega-menu { width: 250px; }
-.nav-links li:nth-child(4) .mega-menu { width: 500px; }
-.nav-links li:nth-child(5) .mega-menu { width: 250px; }
+.nav-links li:nth-child(1) .mega-menu {
+  width: 750px;
+}
+.nav-links li:nth-child(2) .mega-menu {
+  width: 500px;
+}
+.nav-links li:nth-child(3) .mega-menu {
+  width: 250px;
+}
+.nav-links li:nth-child(4) .mega-menu {
+  width: 500px;
+}
+.nav-links li:nth-child(5) .mega-menu {
+  width: 250px;
+}
 
 .has-mega-menu:hover .mega-menu {
   opacity: 1;
@@ -440,7 +450,7 @@
   background: white;
   border: 1px solid var(--border-color);
   border-top: none;
-  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
   z-index: 1000;
   max-height: 400px;
   overflow-y: auto;
@@ -487,4 +497,124 @@
   font-size: 12px;
   color: var(--primary-red);
   font-weight: 700;
+}
+
+/* ================= RESPONSIVE HEADER ================= */
+@media (max-width: 992px) {
+  .top-banner {
+    font-size: 11px;
+    padding: 6px 12px;
+    text-align: center;
+    line-height: 1.4;
+  }
+
+  .top-banner p {
+    white-space: normal;
+  }
+
+  .header-container {
+    height: auto;
+    flex-wrap: wrap;
+    padding: 10px 16px;
+    gap: 8px;
+  }
+
+  .logo-container {
+    width: 150px;
+  }
+
+  .logo-image {
+    max-height: 48px;
+  }
+
+  .header-actions {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .action-item {
+    width: auto;
+    min-width: 54px;
+    height: 52px;
+    font-size: 10px;
+    padding: 0 8px;
+    border-left: none;
+  }
+
+  .action-item svg {
+    width: 20px;
+    height: 20px;
+  }
+
+  .cart-action {
+    border-right: none;
+  }
+
+  .search-bar {
+    order: 3;
+    width: 100%;
+    max-width: 100%;
+    margin: 6px 0 0 0;
+    height: 38px;
+  }
+
+  .navbar .nav-container {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+
+  .navbar .nav-container::-webkit-scrollbar {
+    display: none;
+  }
+
+  .nav-links {
+    flex-wrap: nowrap;
+    gap: 0;
+    min-width: max-content;
+  }
+
+  .nav-links li a {
+    padding: 0 14px;
+    font-size: 12px;
+    white-space: nowrap;
+  }
+
+  .nav-hotline {
+    display: none;
+  }
+}
+
+@media (max-width: 576px) {
+  .top-banner {
+    font-size: 10px;
+    padding: 5px 8px;
+  }
+
+  .logo-container {
+    width: 120px;
+  }
+
+  .logo-image {
+    max-height: 38px;
+  }
+
+  .action-item span {
+    display: none;
+  }
+
+  .action-item {
+    min-width: 40px;
+    height: 42px;
+    padding: 0 4px;
+  }
+
+  .search-btn span {
+    display: none;
+  }
+
+  .search-btn {
+    padding: 0 14px;
+  }
 }

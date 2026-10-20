@@ -13,21 +13,64 @@ const CATEGORY_MAP = {
   },
   'linh-kien': {
     title: 'LINH KIỆN KHỦNG',
-    keywords: ['linh kiện', 'cpu', 'mainboard', 'bo mạch', 'ram', 'vga', 'card màn hình', 'gpu', 'ssd', 'hdd', 'ổ cứng', 'nguồn', 'psu', 'case', 'vỏ máy tính', 'tản nhiệt'],
+    keywords: [
+      'linh kiện',
+      'cpu',
+      'mainboard',
+      'bo mạch',
+      'ram',
+      'vga',
+      'card màn hình',
+      'gpu',
+      'ssd',
+      'hdd',
+      'ổ cứng',
+      'nguồn',
+      'psu',
+      'case',
+      'vỏ máy tính',
+      'tản nhiệt',
+    ],
   },
   'gaming-gear': {
     title: 'GAMING GEAR',
-    keywords: ['gaming gear', 'gamming gear', 'bàn phím', 'chuột', 'tai nghe', 'lót chuột', 'pad', 'headset', 'keyboard', 'mouse', 'ghế', 'bàn gaming'],
+    keywords: [
+      'gaming gear',
+      'gamming gear',
+      'bàn phím',
+      'chuột',
+      'tai nghe',
+      'lót chuột',
+      'pad',
+      'headset',
+      'keyboard',
+      'mouse',
+      'ghế',
+      'bàn gaming',
+    ],
   },
   'gamming-gear': {
     title: 'GAMING GEAR',
-    keywords: ['gaming gear', 'gamming gear', 'bàn phím', 'chuột', 'tai nghe', 'lót chuột', 'pad', 'headset', 'keyboard', 'mouse', 'ghế', 'bàn gaming'],
+    keywords: [
+      'gaming gear',
+      'gamming gear',
+      'bàn phím',
+      'chuột',
+      'tai nghe',
+      'lót chuột',
+      'pad',
+      'headset',
+      'keyboard',
+      'mouse',
+      'ghế',
+      'bàn gaming',
+    ],
   },
   'man-hinh': {
     title: 'MÀN HÌNH',
     keywords: ['màn hình', 'monitor', 'display'],
   },
-  'laptop': {
+  laptop: {
     title: 'LAPTOP',
     keywords: ['laptop', 'máy tính xách tay', 'notebook'],
   },
@@ -51,7 +94,10 @@ function matchesCategory(product, slug) {
   const targetSlug = slug.toLowerCase().trim();
   const catName = (product.category || '').toLowerCase().trim();
   const parentName = (product.parentCategory || '').toLowerCase().trim();
-  const catSlug = (product.categorySlug || slugify(product.category)).toLowerCase().trim().replace(/^\//, '');
+  const catSlug = (product.categorySlug || slugify(product.category))
+    .toLowerCase()
+    .trim()
+    .replace(/^\//, '');
   const parentSlug = slugify(parentName);
 
   // 1. Khớp chính xác slug hoặc tên danh mục
@@ -62,20 +108,26 @@ function matchesCategory(product, slug) {
   const def = CATEGORY_MAP[targetSlug];
   if (def) {
     return def.keywords.some(
-      kw => catName.includes(kw) || parentName.includes(kw) || catSlug.includes(slugify(kw)) || parentSlug.includes(slugify(kw))
+      (kw) =>
+        catName.includes(kw) ||
+        parentName.includes(kw) ||
+        catSlug.includes(slugify(kw)) ||
+        parentSlug.includes(slugify(kw))
     );
   }
 
   // 3. Khớp một phần slug với tên danh mục
-  return catSlug.includes(targetSlug) || parentSlug.includes(targetSlug) || catName.includes(targetSlug);
+  return (
+    catSlug.includes(targetSlug) || parentSlug.includes(targetSlug) || catName.includes(targetSlug)
+  );
 }
 
 // Dải giá preset
 const PRICE_PRESETS = [
-  { label: 'Dưới 5 triệu',   min: 0,          max: 5_000_000 },
-  { label: '5 - 10 triệu',   min: 5_000_000,  max: 10_000_000 },
-  { label: '10 - 20 triệu',  min: 10_000_000, max: 20_000_000 },
-  { label: 'Trên 20 triệu',  min: 20_000_000, max: Infinity },
+  { label: 'Dưới 5 triệu', min: 0, max: 5_000_000 },
+  { label: '5 - 10 triệu', min: 5_000_000, max: 10_000_000 },
+  { label: '10 - 20 triệu', min: 10_000_000, max: 20_000_000 },
+  { label: 'Trên 20 triệu', min: 20_000_000, max: Infinity },
 ];
 
 const formatVND = (amount) =>
@@ -91,7 +143,7 @@ const CategoryPage = () => {
   // ── Filter state ───────────────────────────────────────────────────────────
   const [selectedBrands, setSelectedBrands] = useState([]);
   const [selectedCategories, setSelectedCategories] = useState([]);
-  const [selectedPrices, setSelectedPrices] = useState([]);   // array of preset indices
+  const [selectedPrices, setSelectedPrices] = useState([]); // array of preset indices
   const [stockOnly, setStockOnly] = useState(false);
   const [sortBy, setSortBy] = useState('newest');
 
@@ -110,7 +162,7 @@ const CategoryPage = () => {
         const response = await productService.getProducts({ ton_kho: true, limit: 100 });
         if (response?.data?.danhSachSanPham) {
           const mapped = response.data.danhSachSanPham
-            .map(p => ({
+            .map((p) => ({
               id: p.id,
               title: p.tenSanPham,
               name: p.tenSanPham,
@@ -124,7 +176,7 @@ const CategoryPage = () => {
               parentCategoryId: p.danhMucChaId || null,
               outOfStock: !p.conHang,
             }))
-            .filter(p => !p.outOfStock);
+            .filter((p) => !p.outOfStock);
           setAllProducts(mapped);
         }
       } catch (error) {
@@ -138,7 +190,7 @@ const CategoryPage = () => {
 
   // ── Lọc sản phẩm thuộc danh mục của trang hiện tại ─────────────────────────
   const categoryProducts = useMemo(() => {
-    return allProducts.filter(p => matchesCategory(p, slug));
+    return allProducts.filter((p) => matchesCategory(p, slug));
   }, [allProducts, slug]);
 
   // ── Tiêu đề trang tương ứng với slug ───────────────────────────────────────
@@ -147,8 +199,10 @@ const CategoryPage = () => {
     if (CATEGORY_MAP[slug]?.title) return CATEGORY_MAP[slug].title;
 
     const matched = allProducts.find(
-      p => slugify(p.category) === slugify(slug) || slugify(p.parentCategory) === slugify(slug) ||
-           slugify(p.categorySlug || '') === slugify(slug)
+      (p) =>
+        slugify(p.category) === slugify(slug) ||
+        slugify(p.parentCategory) === slugify(slug) ||
+        slugify(p.categorySlug || '') === slugify(slug)
     );
     if (matched) {
       if (slugify(matched.parentCategory) === slugify(slug)) {
@@ -163,7 +217,7 @@ const CategoryPage = () => {
   // ── Danh sách thương hiệu và danh mục con nằm trong danh mục hiện tại ──────
   const brandList = useMemo(() => {
     const map = {};
-    categoryProducts.forEach(p => {
+    categoryProducts.forEach((p) => {
       if (p.brand) map[p.brand] = (map[p.brand] || 0) + 1;
     });
     return Object.entries(map)
@@ -173,7 +227,7 @@ const CategoryPage = () => {
 
   const categoryList = useMemo(() => {
     const map = {};
-    categoryProducts.forEach(p => {
+    categoryProducts.forEach((p) => {
       if (p.category) map[p.category] = (map[p.category] || 0) + 1;
     });
     return Object.entries(map)
@@ -187,13 +241,13 @@ const CategoryPage = () => {
 
     // Brand filter
     if (selectedBrands.length > 0) {
-      result = result.filter(p => selectedBrands.includes(p.brand));
+      result = result.filter((p) => selectedBrands.includes(p.brand));
     }
 
     // Subcategory filter
     if (selectedCategories.length > 0) {
-      result = result.filter(p =>
-        selectedCategories.some(cat =>
+      result = result.filter((p) =>
+        selectedCategories.some((cat) =>
           (p.category || '').toLowerCase().includes(cat.toLowerCase())
         )
       );
@@ -201,8 +255,8 @@ const CategoryPage = () => {
 
     // Price filter (union of selected presets)
     if (selectedPrices.length > 0) {
-      result = result.filter(p =>
-        selectedPrices.some(idx => {
+      result = result.filter((p) =>
+        selectedPrices.some((idx) => {
           const { min, max } = PRICE_PRESETS[idx];
           return p.priceRaw >= min && p.priceRaw < max;
         })
@@ -211,7 +265,7 @@ const CategoryPage = () => {
 
     // Stock filter
     if (stockOnly) {
-      result = result.filter(p => !p.outOfStock);
+      result = result.filter((p) => !p.outOfStock);
     }
 
     // Sort
@@ -225,18 +279,18 @@ const CategoryPage = () => {
 
   // ── Toggle helpers ─────────────────────────────────────────────────────────
   const toggleBrand = (name) =>
-    setSelectedBrands(prev =>
-      prev.includes(name) ? prev.filter(b => b !== name) : [...prev, name]
+    setSelectedBrands((prev) =>
+      prev.includes(name) ? prev.filter((b) => b !== name) : [...prev, name]
     );
 
   const toggleCategory = (name) =>
-    setSelectedCategories(prev =>
-      prev.includes(name) ? prev.filter(c => c !== name) : [...prev, name]
+    setSelectedCategories((prev) =>
+      prev.includes(name) ? prev.filter((c) => c !== name) : [...prev, name]
     );
 
   const togglePrice = (idx) =>
-    setSelectedPrices(prev =>
-      prev.includes(idx) ? prev.filter(i => i !== idx) : [...prev, idx]
+    setSelectedPrices((prev) =>
+      prev.includes(idx) ? prev.filter((i) => i !== idx) : [...prev, idx]
     );
 
   const clearAll = () => {
@@ -276,14 +330,15 @@ const CategoryPage = () => {
 
       {/* Main Content */}
       <div className="category-main container">
-
         {/* Sidebar Filters */}
         <aside className="category-sidebar">
           <div className="filter-block">
             <div className="filter-title-row">
               <h3 className="filter-title">LỌC SẢN PHẨM</h3>
               {hasActiveFilters && (
-                <button className="filter-clear-btn" onClick={clearAll}>Xóa tất cả</button>
+                <button className="filter-clear-btn" onClick={clearAll}>
+                  Xóa tất cả
+                </button>
               )}
             </div>
 
@@ -356,7 +411,7 @@ const CategoryPage = () => {
                     type="checkbox"
                     className="filter-checkbox"
                     checked={stockOnly}
-                    onChange={() => setStockOnly(prev => !prev)}
+                    onChange={() => setStockOnly((prev) => !prev)}
                   />
                   <span className="filter-text">Chỉ còn hàng</span>
                 </label>
@@ -376,8 +431,8 @@ const CategoryPage = () => {
                   Hiển thị <strong>{displayedProducts.length}</strong>
                   {hasActiveFilters && allProducts.length !== displayedProducts.length
                     ? ` / ${allProducts.length}`
-                    : ''
-                  } sản phẩm
+                    : ''}{' '}
+                  sản phẩm
                 </span>
               )}
             </div>
@@ -399,17 +454,17 @@ const CategoryPage = () => {
           {/* Active filter chips */}
           {hasActiveFilters && (
             <div className="cat-active-filters">
-              {selectedBrands.map(b => (
+              {selectedBrands.map((b) => (
                 <span key={b} className="cat-chip">
                   {b} <button onClick={() => toggleBrand(b)}>×</button>
                 </span>
               ))}
-              {selectedCategories.map(c => (
+              {selectedCategories.map((c) => (
                 <span key={c} className="cat-chip">
                   {c} <button onClick={() => toggleCategory(c)}>×</button>
                 </span>
               ))}
-              {selectedPrices.map(idx => (
+              {selectedPrices.map((idx) => (
                 <span key={idx} className="cat-chip">
                   {PRICE_PRESETS[idx].label} <button onClick={() => togglePrice(idx)}>×</button>
                 </span>
@@ -431,7 +486,9 @@ const CategoryPage = () => {
             <div className="cat-empty">
               <p>Không có sản phẩm phù hợp với bộ lọc đã chọn.</p>
               {hasActiveFilters && (
-                <button className="cat-reset-btn" onClick={clearAll}>Xóa bộ lọc</button>
+                <button className="cat-reset-btn" onClick={clearAll}>
+                  Xóa bộ lọc
+                </button>
               )}
             </div>
           ) : (

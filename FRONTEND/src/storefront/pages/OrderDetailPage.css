@@ -193,7 +193,8 @@
   background-color: #f11919;
 }
 
-.card-header h2, .card-header h3 {
+.card-header h2,
+.card-header h3 {
   font-size: 15px;
   font-weight: 900;
   color: #111;
@@ -225,10 +226,25 @@
   vertical-align: middle;
 }
 
-.col-product { width: 50%; }
-.col-price { width: 20%; font-size: 14px; color: #666; }
-.col-qty { width: 10%; font-size: 14px; font-weight: 700; color: #111; }
-.col-total { width: 20%; font-size: 14px; font-weight: 900; }
+.col-product {
+  width: 50%;
+}
+.col-price {
+  width: 20%;
+  font-size: 14px;
+  color: #666;
+}
+.col-qty {
+  width: 10%;
+  font-size: 14px;
+  font-weight: 700;
+  color: #111;
+}
+.col-total {
+  width: 20%;
+  font-size: 14px;
+  font-weight: 900;
+}
 
 .col-total.highlight {
   color: #f11919;

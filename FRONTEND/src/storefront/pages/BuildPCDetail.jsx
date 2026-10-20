@@ -30,7 +30,7 @@ const BuildPCDetail = () => {
   return (
     <div className="build-pc-detail-page">
       <Header />
-      
+
       {/* Breadcrumbs */}
       <div className="breadcrumb-container">
         <div className="breadcrumb">
@@ -46,7 +46,7 @@ const BuildPCDetail = () => {
       <div className="product-main-container">
         {/* Left Sidebar - Components */}
         <div className="components-sidebar-column">
-          <PCComponentList 
+          <PCComponentList
             selectedComponent={selectedComponent}
             onSelectComponent={setSelectedComponent}
           />
@@ -59,7 +59,7 @@ const BuildPCDetail = () => {
 
         {/* Right Sidebar - Purchase Info */}
         <div className="purchase-sidebar-column">
-          <ProductPurchaseSidebar 
+          <ProductPurchaseSidebar
             selectedComponent={selectedComponent}
             onClearSelection={() => setSelectedComponent(null)}
           />

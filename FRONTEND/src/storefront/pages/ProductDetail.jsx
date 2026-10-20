@@ -23,8 +23,11 @@ const ProductDetail = () => {
         const response = await productService.getProductDetail(id);
         if (response && response.data) {
           const backendData = response.data;
-          const mainVariant = backendData.danhSachPhienBan && backendData.danhSachPhienBan[0] ? backendData.danhSachPhienBan[0] : null;
-          
+          const mainVariant =
+            backendData.danhSachPhienBan && backendData.danhSachPhienBan[0]
+              ? backendData.danhSachPhienBan[0]
+              : null;
+
           let parsedSpecs = {};
           if (backendData.thongSoKyThuat) {
             if (typeof backendData.thongSoKyThuat === 'string') {
@@ -39,7 +42,10 @@ const ProductDetail = () => {
             }
           }
 
-          const specEntries = Object.keys(parsedSpecs).map(k => ({ label: k, value: String(parsedSpecs[k]) }));
+          const specEntries = Object.keys(parsedSpecs).map((k) => ({
+            label: k,
+            value: String(parsedSpecs[k]),
+          }));
 
           const mappedProduct = {
             id: backendData.id,
@@ -50,16 +56,16 @@ const ProductDetail = () => {
             originalPrice: mainVariant ? mainVariant.giaBanLe : 0,
             stock: mainVariant ? mainVariant.tonCoTheBan : 0,
             discountPercent: 0,
-            images: backendData.anhSanPham?.map(img => img.duongDanAnh) || [],
+            images: backendData.anhSanPham?.map((img) => img.duongDanAnh) || [],
             specsSummary: specEntries,
             fullSpecs: specEntries,
             tags: [],
             policies: [
-              { title: "MIỄN PHÍ VẬN CHUYỂN", desc: "Đơn từ 5tr", icon: "truck" },
-              { title: "CAM KẾT GIÁ", desc: "Tốt nhất", icon: "tag" }
+              { title: 'MIỄN PHÍ VẬN CHUYỂN', desc: 'Đơn từ 5tr', icon: 'truck' },
+              { title: 'CAM KẾT GIÁ', desc: 'Tốt nhất', icon: 'tag' },
             ],
             description: backendData.moTa,
-            variants: backendData.danhSachPhienBan || []
+            variants: backendData.danhSachPhienBan || [],
           };
           setProduct(mappedProduct);
           if (mappedProduct.variants && mappedProduct.variants.length > 0) {
@@ -69,7 +75,7 @@ const ProductDetail = () => {
           setProduct(null);
         }
       } catch (err) {
-        console.error("Lỗi fetch chi tiết sản phẩm:", err);
+        console.error('Lỗi fetch chi tiết sản phẩm:', err);
         setProduct(null);
       } finally {
         setLoading(false);
@@ -78,15 +84,30 @@ const ProductDetail = () => {
     fetchProduct();
   }, [id]);
 
-  if (loading) return <div style={{textAlign: 'center', padding: '50px'}}>Đang tải thông tin sản phẩm...</div>;
+  if (loading)
+    return (
+      <div style={{ textAlign: 'center', padding: '50px' }}>Đang tải thông tin sản phẩm...</div>
+    );
   if (!product) {
     return (
       <div className="product-detail-page">
         <Header />
         <div style={{ textAlign: 'center', padding: '80px 20px' }}>
           <h2>Sản phẩm không tồn tại hoặc đã ngừng kinh doanh</h2>
-          <p style={{ margin: '20px 0', color: '#666' }}>Vui lòng kiểm tra lại liên kết hoặc quay về trang chủ.</p>
-          <Link to="/" style={{ display: 'inline-block', padding: '10px 20px', background: '#e30019', color: '#fff', textDecoration: 'none', fontWeight: 600 }}>
+          <p style={{ margin: '20px 0', color: '#666' }}>
+            Vui lòng kiểm tra lại liên kết hoặc quay về trang chủ.
+          </p>
+          <Link
+            to="/"
+            style={{
+              display: 'inline-block',
+              padding: '10px 20px',
+              background: '#e30019',
+              color: '#fff',
+              textDecoration: 'none',
+              fontWeight: 600,
+            }}
+          >
             QUAY VỀ TRANG CHỦ
           </Link>
         </div>
@@ -98,7 +119,7 @@ const ProductDetail = () => {
   return (
     <div className="product-detail-page">
       <Header />
-      
+
       {/* Breadcrumbs */}
       <div className="breadcrumb-container">
         <div className="breadcrumb">
@@ -114,8 +135,8 @@ const ProductDetail = () => {
       <div className="product-main-container">
         {/* Left Sidebar - Specs summary and thumbnail */}
         <div className="info-sidebar-column">
-          <ProductInfoSidebar 
-            product={product} 
+          <ProductInfoSidebar
+            product={product}
             selectedVariantId={selectedVariantId}
             setSelectedVariantId={setSelectedVariantId}
           />
@@ -123,19 +144,16 @@ const ProductDetail = () => {
 
         {/* Center - Gallery */}
         <div className="gallery-column">
-          <ProductGallery 
-            images={product.images || []} 
-            discountPercent={product.discountPercent} 
-            isFullBuild={false} 
+          <ProductGallery
+            images={product.images || []}
+            discountPercent={product.discountPercent}
+            isFullBuild={false}
           />
         </div>
 
         {/* Right Sidebar - Purchase Info */}
         <div className="purchase-right-sidebar-column">
-          <ProductPurchaseRightSidebar 
-            product={product} 
-            selectedVariantId={selectedVariantId}
-          />
+          <ProductPurchaseRightSidebar product={product} selectedVariantId={selectedVariantId} />
         </div>
       </div>
 

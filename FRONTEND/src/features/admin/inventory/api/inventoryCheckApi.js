@@ -63,7 +63,7 @@ export async function searchInventoryCheckProducts(keyword, page = 1, limit = 20
     limit: String(limit),
   });
   if (keyword?.trim()) params.set('keyword', keyword.trim());
-  
+
   const data = await adminRequest(`/api/v1/admin/inventory-checks/products?${params}`, { signal });
   return {
     items: data?.items || [],

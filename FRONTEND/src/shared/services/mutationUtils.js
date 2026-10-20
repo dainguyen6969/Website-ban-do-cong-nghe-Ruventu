@@ -1,7 +1,5 @@
 export const errorMessage = (error) =>
-  error.response?.data?.message ||
-  error.message ||
-  'Không thể thực hiện thao tác.';
+  error.response?.data?.message || error.message || 'Không thể thực hiện thao tác.';
 
 export function createRequestKey() {
   const cryptoApi = globalThis.crypto;
@@ -18,9 +16,7 @@ export function createRequestKey() {
   bytes[6] = (bytes[6] & 0x0f) | 0x40;
   bytes[8] = (bytes[8] & 0x3f) | 0x80;
 
-  const hex = Array.from(bytes, (value) =>
-    value.toString(16).padStart(2, '0'),
-  ).join('');
+  const hex = Array.from(bytes, (value) => value.toString(16).padStart(2, '0')).join('');
 
   return [
     hex.slice(0, 8),
@@ -60,9 +56,7 @@ function localInputValue(date) {
     hourCycle: 'h23',
   }).formatToParts(date);
 
-  const values = Object.fromEntries(
-    parts.map((part) => [part.type, part.value]),
-  );
+  const values = Object.fromEntries(parts.map((part) => [part.type, part.value]));
 
   return `${values.year}-${values.month}-${values.day}T${values.hour}:${values.minute}`;
 }
@@ -113,12 +107,9 @@ export async function withIdempotency(slot, scope, body, send) {
   const signature = JSON.stringify(body);
   let attempt = slot.current;
 
-  if (attempt && (
-    attempt.scope !== scope ||
-    attempt.signature !== signature
-  )) {
+  if (attempt && (attempt.scope !== scope || attempt.signature !== signature)) {
     throw new Error(
-      'Yêu cầu trước chưa xác định kết quả. Hãy giữ nguyên dữ liệu để thử lại hoặc kiểm tra kết quả trước.',
+      'Yêu cầu trước chưa xác định kết quả. Hãy giữ nguyên dữ liệu để thử lại hoặc kiểm tra kết quả trước.'
     );
   }
 

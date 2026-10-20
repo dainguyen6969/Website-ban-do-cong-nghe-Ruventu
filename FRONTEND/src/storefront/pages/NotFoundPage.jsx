@@ -21,7 +21,11 @@ const NotFoundPage = () => {
     const fetchSuggested = async () => {
       setIsLoading(true);
       try {
-        const response = await productService.getProducts({ ton_kho: true, limit: 8, sort: 'moi_nhat' });
+        const response = await productService.getProducts({
+          ton_kho: true,
+          limit: 8,
+          sort: 'moi_nhat',
+        });
         const list = response?.data?.danhSachSanPham || [];
         setSuggestedProducts(
           list.slice(0, 4).map((p) => ({
@@ -46,44 +50,50 @@ const NotFoundPage = () => {
   }, []);
 
   const searchKeywords = [
-    'RTX 4090', 'Ryzen 9 7950X', 'DDR5 RAM', 'SSD PCIe 5.0', 
-    'Bàn phím cơ', 'Chuột gaming', 'Mainboard Z790', 'PC Build Sẵn'
+    'RTX 4090',
+    'Ryzen 9 7950X',
+    'DDR5 RAM',
+    'SSD PCIe 5.0',
+    'Bàn phím cơ',
+    'Chuột gaming',
+    'Mainboard Z790',
+    'PC Build Sẵn',
   ];
 
   return (
     <div className="not-found-page">
       <Header />
-      
+
       <div className="not-found-banner">
         <div className="container nf-banner-content">
           <div className="error-left">
             <div className="error-code-outline">404</div>
           </div>
-          
+
           <div className="error-right">
             <div className="error-badge">
               <div className="white-square"></div>
               <span>TRANG KHÔNG TỒN TẠI</span>
             </div>
-            
+
             <h1 className="error-title">
-              {isAccountNotFound ? 'TÀI KHOẢN KHÔNG TỒN TẠI' : 'SẢN PHẨM KHÔNG TỒN TẠI'}<br />
+              {isAccountNotFound ? 'TÀI KHOẢN KHÔNG TỒN TẠI' : 'SẢN PHẨM KHÔNG TỒN TẠI'}
+              <br />
               {!isAccountNotFound && <span className="text-red">HOẶC ĐÃ NGỪNG KINH DOANH</span>}
             </h1>
-            
+
             <p className="error-description">
               {isAccountNotFound
                 ? 'Tài khoản của bạn đã bị khóa hoặc không còn tồn tại trên hệ thống. Vui lòng liên hệ quản trị viên để biết thêm chi tiết.'
-                : 'Sản phẩm bạn đang tìm kiếm có thể đã bị xóa, ẩn khỏi danh mục, hoặc liên kết không còn hợp lệ. Vui lòng kiểm tra lại hoặc tìm sản phẩm thay thế bên dưới.'
-              }
+                : 'Sản phẩm bạn đang tìm kiếm có thể đã bị xóa, ẩn khỏi danh mục, hoặc liên kết không còn hợp lệ. Vui lòng kiểm tra lại hoặc tìm sản phẩm thay thế bên dưới.'}
             </p>
-            
+
             <div className="error-actions">
               <Link to="/" className="btn-back-home">
                 <ArrowLeft size={16} />
                 <span>QUAY VỀ TRANG CHỦ</span>
               </Link>
-              <button 
+              <button
                 className="btn-search-trigger"
                 onClick={() => {
                   const searchInput = document.querySelector('.search-bar input');
@@ -100,7 +110,7 @@ const NotFoundPage = () => {
           </div>
         </div>
       </div>
-      
+
       <div className="error-details-wrapper">
         <div className="container details-grid">
           <div className="detail-item">
@@ -109,7 +119,9 @@ const NotFoundPage = () => {
           </div>
           <div className="detail-item">
             <span className="detail-label">NGUYÊN NHÂN</span>
-            <span className="detail-value">{isAccountNotFound ? 'Tài khoản không hoạt động' : 'Sản phẩm không tồn tại'}</span>
+            <span className="detail-value">
+              {isAccountNotFound ? 'Tài khoản không hoạt động' : 'Sản phẩm không tồn tại'}
+            </span>
           </div>
           <div className="detail-item">
             <span className="detail-label">TRẠNG THÁI</span>
@@ -124,32 +136,38 @@ const NotFoundPage = () => {
 
       <div className="container suggested-section">
         <div className="section-header">
-          <h2 className="section-title"><span>|</span> SẢN PHẨM NỔI BẬT</h2>
-          <Link to="/category/linh-kien" className="view-all-link">XEM TẤT CẢ &rarr;</Link>
+          <h2 className="section-title">
+            <span>|</span> SẢN PHẨM NỔI BẬT
+          </h2>
+          <Link to="/category/linh-kien" className="view-all-link">
+            XEM TẤT CẢ &rarr;
+          </Link>
         </div>
-        
+
         <div className="products-grid">
           {isLoading ? (
-            <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '30px', color: '#888' }}>
+            <div
+              style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '30px', color: '#888' }}
+            >
               Đang tải sản phẩm nổi bật...
             </div>
           ) : suggestedProducts.length > 0 ? (
-            suggestedProducts.map((product) => (
-              <ProductCard key={product.id} product={product} />
-            ))
+            suggestedProducts.map((product) => <ProductCard key={product.id} product={product} />)
           ) : (
-            <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '30px', color: '#888' }}>
+            <div
+              style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '30px', color: '#888' }}
+            >
               Chưa có sản phẩm nổi bật nào.
             </div>
           )}
         </div>
-        
+
         <div className="quick-search-box">
           <h3 className="quick-search-title">TÌM KIẾM NHANH</h3>
           <div className="keyword-tags">
             {searchKeywords.map((keyword, index) => (
-              <button 
-                key={index} 
+              <button
+                key={index}
                 className="keyword-tag"
                 onClick={() => navigate(`/search?q=${encodeURIComponent(keyword)}`)}
               >

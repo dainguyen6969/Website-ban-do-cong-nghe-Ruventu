@@ -11,13 +11,24 @@ const MockAuthContext = (await vite.ssrLoadModule('/src/auth/mockAuthContext.js'
 after(() => vite.close());
 
 const roles = [{ id: 'sales', permissions: { don_hang: ['xem'] } }];
-const renderFooter = (currentAccount) => renderToStaticMarkup(
-  React.createElement(MemoryRouter, null,
-    React.createElement(MockAuthContext.Provider, { value: { currentAccount, roles } }, React.createElement(Footer))),
-);
+const renderFooter = (currentAccount) =>
+  renderToStaticMarkup(
+    React.createElement(
+      MemoryRouter,
+      null,
+      React.createElement(
+        MockAuthContext.Provider,
+        { value: { currentAccount, roles } },
+        React.createElement(Footer)
+      )
+    )
+  );
 
 test('Admin link is absent from guest and customer DOM, and present for authorized staff', () => {
   assert.doesNotMatch(renderFooter(null), /class="admin-link"/);
   assert.doesNotMatch(renderFooter({ role: 'user', trangThai: 'hoat_dong' }), /class="admin-link"/);
-  assert.match(renderFooter({ employeeId: 'NV #2', vaiTro: 'sales', trangThai: 'hoat_dong' }), /class="admin-link"/);
+  assert.match(
+    renderFooter({ employeeId: 'NV #2', vaiTro: 'sales', trangThai: 'hoat_dong' }),
+    /class="admin-link"/
+  );
 });

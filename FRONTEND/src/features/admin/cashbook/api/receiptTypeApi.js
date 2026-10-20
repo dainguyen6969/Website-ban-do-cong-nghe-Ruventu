@@ -7,7 +7,8 @@ export const RECEIPT_TYPE_STATUS = {
   inactive: 'NGỪNG HOẠT ĐỘNG',
 };
 
-const statusFromApi = (value) => Number(value) === 1 ? RECEIPT_TYPE_STATUS.active : RECEIPT_TYPE_STATUS.inactive;
+const statusFromApi = (value) =>
+  Number(value) === 1 ? RECEIPT_TYPE_STATUS.active : RECEIPT_TYPE_STATUS.inactive;
 
 export function normalizeReceiptType(item = {}) {
   return {
@@ -25,7 +26,7 @@ export async function getReceiptTypes(filters = {}, signal) {
     page: String(Math.max(0, Number(filters.page || 1) - 1)),
     limit: String(filters.limit || 10),
   });
-  
+
   if (filters.keyword?.trim()) params.set('keyword', filters.keyword.trim());
   if (filters.status === RECEIPT_TYPE_STATUS.active) params.set('trang_thai', '1');
   if (filters.status === RECEIPT_TYPE_STATUS.inactive) params.set('trang_thai', '0');
@@ -43,23 +44,24 @@ export async function getReceiptTypeDetail(id, signal) {
   return normalizeReceiptType(data);
 }
 
-export const createReceiptType = async (form) => normalizeReceiptType(
-  await adminRequest(PATH, { 
-    method: 'POST', 
-    body: JSON.stringify({
-      ma_loai: form.code.trim(),
-      ten_loai: form.name.trim(),
-      ghi_chu: form.note.trim() || null
-    }) 
-  })
-);
+export const createReceiptType = async (form) =>
+  normalizeReceiptType(
+    await adminRequest(PATH, {
+      method: 'POST',
+      body: JSON.stringify({
+        ma_loai: form.code.trim(),
+        ten_loai: form.name.trim(),
+        ghi_chu: form.note.trim() || null,
+      }),
+    })
+  );
 
 export const updateReceiptTypeStatus = async (id, isActive) => {
   const response = await adminRequest(`${PATH}/${encodeURIComponent(id)}/status`, {
-    method: 'PATCH', 
+    method: 'PATCH',
     body: JSON.stringify({
-      trang_thai: isActive ? 1 : 0
-    })
+      trang_thai: isActive ? 1 : 0,
+    }),
   });
   return response;
 };

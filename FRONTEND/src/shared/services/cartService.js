@@ -57,5 +57,5 @@ export const cartService = {
   // Remove applied promotion
   removePromotion: async () => {
     return await cartAxios.delete('/promotions');
-  }
+  },
 };

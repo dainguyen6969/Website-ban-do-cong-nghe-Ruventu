@@ -11,5 +11,5 @@ export const categoryService = {
       console.error('Error fetching categories:', error);
       throw error;
     }
-  }
+  },
 };

@@ -5,18 +5,18 @@ import { apiRequest as request } from '../../../../../auth/backendAuth';
 
 const COMBO_PATH = '/api/v1/admin/combos';
 const TAGS_KEY = '__combo_tags';
-const nullableNumber = (value) =>
-  value == null ? null : Number(value);
+const nullableNumber = (value) => (value == null ? null : Number(value));
 
 let inMemoryToken = '';
 let loginPromise = null;
 
 function readToken() {
   if (inMemoryToken) return inMemoryToken;
-  inMemoryToken = localStorage.getItem(ACCESS_TOKEN_KEY)
-    || localStorage.getItem('access_token')
-    || localStorage.getItem('accessToken')
-    || '';
+  inMemoryToken =
+    localStorage.getItem(ACCESS_TOKEN_KEY) ||
+    localStorage.getItem('access_token') ||
+    localStorage.getItem('accessToken') ||
+    '';
   return inMemoryToken;
 }
 
@@ -29,8 +29,11 @@ function storeToken(token) {
 async function parseResponse(response) {
   const text = await response.text();
   if (!text) return null;
-  try { return JSON.parse(text); }
-  catch { throw new Error('Backend trả về dữ liệu không hợp lệ.'); }
+  try {
+    return JSON.parse(text);
+  } catch {
+    throw new Error('Backend trả về dữ liệu không hợp lệ.');
+  }
 }
 
 async function login() {
@@ -50,7 +53,7 @@ async function login() {
   return token;
 }
 
-const statusText = (value) => Number(value) === 1 ? 'Đang kinh doanh' : 'Ngưng kinh doanh';
+const statusText = (value) => (Number(value) === 1 ? 'Đang kinh doanh' : 'Ngưng kinh doanh');
 
 function normalizeComponent(item) {
   const qty = Number(item.so_luong || 1);
@@ -71,9 +74,10 @@ function normalizeComponent(item) {
 }
 
 function normalizeDetail(item) {
-  const rawSpecs = item.thong_so_ky_thuat && typeof item.thong_so_ky_thuat === 'object'
-    ? item.thong_so_ky_thuat
-    : {};
+  const rawSpecs =
+    item.thong_so_ky_thuat && typeof item.thong_so_ky_thuat === 'object'
+      ? item.thong_so_ky_thuat
+      : {};
   const tags = Array.isArray(rawSpecs[TAGS_KEY]) ? rawSpecs[TAGS_KEY] : [];
   const specs = Object.entries(rawSpecs)
     .filter(([name]) => name !== TAGS_KEY)
@@ -118,15 +122,20 @@ function normalizeDetail(item) {
 }
 
 async function enrichComponentImages(components, signal) {
-  return Promise.all(components.map(async (component) => {
-    try {
-      const page = await getProductPage({ page: 1, limit: 10, keyword: component.productCode }, signal);
-      const product = page.items.find((item) => item.maSanPham === component.productCode);
-      return { ...component, image: product?.hinhAnh || '' };
-    } catch {
-      return component;
-    }
-  }));
+  return Promise.all(
+    components.map(async (component) => {
+      try {
+        const page = await getProductPage(
+          { page: 1, limit: 10, keyword: component.productCode },
+          signal
+        );
+        const product = page.items.find((item) => item.maSanPham === component.productCode);
+        return { ...component, image: product?.hinhAnh || '' };
+      } catch {
+        return component;
+      }
+    })
+  );
 }
 
 export async function getComboPage(filters, signal) {
@@ -139,22 +148,31 @@ export async function getComboPage(filters, signal) {
     params.set('trang_thai', String(filters.status));
   }
   const data = await request(`${COMBO_PATH}?${params}`, { signal });
-  const items = await Promise.all((data?.items || []).map(async (item) => {
-    let image = '';
-    try { image = normalizeDetail(await request(`${COMBO_PATH}/${item.id}`, { signal })).image; }
-    catch { /* A missing thumbnail must not hide a valid list row. */ }
-    return {
-      id: Number(item.id), code: item.ma_san_pham || '', name: item.ten_san_pham || '', image,
-assemblyCapacity: nullableNumber(item.so_bo_co_the_lap),
+  const items = await Promise.all(
+    (data?.items || []).map(async (item) => {
+      let image = '';
+      try {
+        image = normalizeDetail(await request(`${COMBO_PATH}/${item.id}`, { signal })).image;
+      } catch {
+        /* A missing thumbnail must not hide a valid list row. */
+      }
+      return {
+        id: Number(item.id),
+        code: item.ma_san_pham || '',
+        name: item.ten_san_pham || '',
+        image,
+        assemblyCapacity: nullableNumber(item.so_bo_co_the_lap),
 
-// Giữ tên sellable để các chỗ chưa đổi vẫn đọc cùng giá trị.
-sellable: nullableNumber(item.so_bo_co_the_lap),
+        // Giữ tên sellable để các chỗ chưa đổi vẫn đọc cùng giá trị.
+        sellable: nullableNumber(item.so_bo_co_the_lap),
 
-stock: null,      price: Number(item.gia_ban || 0),
- status: statusText(item.trang_thai),
-      components: (item.thanh_phan || []).map(normalizeComponent),
-    };
-  }));
+        stock: null,
+        price: Number(item.gia_ban || 0),
+        status: statusText(item.trang_thai),
+        components: (item.thanh_phan || []).map(normalizeComponent),
+      };
+    })
+  );
   return {
     items,
     page: Number(data?.pagination?.page || 0) + 1,
@@ -177,7 +195,9 @@ export async function getComboStats(signal) {
 }
 
 export async function getComboDetail(id, signal) {
-  const combo = normalizeDetail(await request(`${COMBO_PATH}/${encodeURIComponent(id)}`, { signal }));
+  const combo = normalizeDetail(
+    await request(`${COMBO_PATH}/${encodeURIComponent(id)}`, { signal })
+  );
   const [categories, brands, components] = await Promise.all([
     getAllCategories(),
     getAllBrands(),
@@ -198,25 +218,33 @@ export async function getComboFormOptions(keyword = '') {
     getAllCategories(),
     getAllBrands(),
   ]);
-  const products = await Promise.all((data?.items || []).map(async (item) => {
-    let image = '';
-    try { image = (await getProductDetail(item.san_pham_id)).hinhAnh; } catch { /* optional image */ }
-    return {
-      id: Number(item.phien_ban_id),
-      productId: Number(item.san_pham_id),
-      hinhAnh: image,
-      tenSanPham: item.ten_san_pham || '',
-      maSanPham: item.ma_san_pham || '',
-      coTheBan: Number(item.ton_co_the_ban || 0),
-      trangThaiBan: 'Đang kinh doanh',
-      variants: [{
+  const products = await Promise.all(
+    (data?.items || []).map(async (item) => {
+      let image = '';
+      try {
+        image = (await getProductDetail(item.san_pham_id)).hinhAnh;
+      } catch {
+        /* optional image */
+      }
+      return {
         id: Number(item.phien_ban_id),
-        name: item.ten_phien_ban || 'Mặc định',
-        sku: item.ma_vach || item.ma_san_pham || '',
-        giaBanLe: Number(item.gia_ban_le || 0),
-      }],
-    };
-  }));
+        productId: Number(item.san_pham_id),
+        hinhAnh: image,
+        tenSanPham: item.ten_san_pham || '',
+        maSanPham: item.ma_san_pham || '',
+        coTheBan: Number(item.ton_co_the_ban || 0),
+        trangThaiBan: 'Đang kinh doanh',
+        variants: [
+          {
+            id: Number(item.phien_ban_id),
+            name: item.ten_phien_ban || 'Mặc định',
+            sku: item.ma_vach || item.ma_san_pham || '',
+            giaBanLe: Number(item.gia_ban_le || 0),
+          },
+        ],
+      };
+    })
+  );
   return { products, categories, brands };
 }
 
@@ -246,6 +274,12 @@ function mutationBody(combo) {
   };
 }
 
-export const createCombo = (combo) => request(COMBO_PATH, { method: 'POST', body: JSON.stringify(mutationBody(combo)) });
-export const updateCombo = (id, combo) => request(`${COMBO_PATH}/${encodeURIComponent(id)}`, { method: 'PUT', body: JSON.stringify(mutationBody(combo)) });
-export const deactivateCombo = (id) => request(`${COMBO_PATH}/${encodeURIComponent(id)}`, { method: 'DELETE' });
+export const createCombo = (combo) =>
+  request(COMBO_PATH, { method: 'POST', body: JSON.stringify(mutationBody(combo)) });
+export const updateCombo = (id, combo) =>
+  request(`${COMBO_PATH}/${encodeURIComponent(id)}`, {
+    method: 'PUT',
+    body: JSON.stringify(mutationBody(combo)),
+  });
+export const deactivateCombo = (id) =>
+  request(`${COMBO_PATH}/${encodeURIComponent(id)}`, { method: 'DELETE' });

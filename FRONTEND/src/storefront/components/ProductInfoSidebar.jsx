@@ -13,13 +13,16 @@ const ProductInfoSidebar = ({ product, selectedVariantId, setSelectedVariantId }
   if (!hasMultipleVariants) {
     return (
       <div className="product-info-sidebar old-layout">
-        <div className="info-sidebar-header old-header">
-          THÔNG SỐ SẢN PHẨM
-        </div>
-        
+        <div className="info-sidebar-header old-header">THÔNG SỐ SẢN PHẨM</div>
+
         <div className="info-sidebar-thumbnail-box">
           {product.images && product.images.length > 0 ? (
-            <img src={product.images[0]} alt={product.category} className="thumbnail-image" style={{width: '100%', border: '1px solid #ff0000'}} />
+            <img
+              src={product.images[0]}
+              alt={product.category}
+              className="thumbnail-image"
+              style={{ width: '100%', border: '1px solid #ff0000' }}
+            />
           ) : (
             <div className="thumbnail-placeholder"></div>
           )}
@@ -30,12 +33,13 @@ const ProductInfoSidebar = ({ product, selectedVariantId, setSelectedVariantId }
           <div className="specs-title-bar">THÔNG SỐ KỸ THUẬT</div>
           <table className="info-specs-table old-specs-table">
             <tbody>
-              {product.specsSummary && product.specsSummary.map((spec, index) => (
-                <tr key={index}>
-                  <td>{spec.label}</td>
-                  <td>{spec.value}</td>
-                </tr>
-              ))}
+              {product.specsSummary &&
+                product.specsSummary.map((spec, index) => (
+                  <tr key={index}>
+                    <td>{spec.label}</td>
+                    <td>{spec.value}</td>
+                  </tr>
+                ))}
             </tbody>
           </table>
         </div>
@@ -43,7 +47,9 @@ const ProductInfoSidebar = ({ product, selectedVariantId, setSelectedVariantId }
     );
   }
 
-  const inStockVariantsCount = product.variants ? product.variants.filter(v => (v.tonCoTheBan || v.stock || 0) > 0).length : 0;
+  const inStockVariantsCount = product.variants
+    ? product.variants.filter((v) => (v.tonCoTheBan || v.stock || 0) > 0).length
+    : 0;
   const totalVariantsCount = product.variants ? product.variants.length : 0;
 
   return (
@@ -54,7 +60,7 @@ const ProductInfoSidebar = ({ product, selectedVariantId, setSelectedVariantId }
           {inStockVariantsCount}/{totalVariantsCount} còn hàng
         </div>
       </div>
-      
+
       <div className="info-sidebar-content">
         {/* PHIÊN BẢN SECTION */}
         {product.variants && product.variants.length > 0 && (
@@ -65,12 +71,13 @@ const ProductInfoSidebar = ({ product, selectedVariantId, setSelectedVariantId }
             <div className="variant-list">
               {product.variants.map((variant) => {
                 const isSelected = selectedVariantId === variant.id;
-                const stockQty = variant.tonCoTheBan !== undefined ? variant.tonCoTheBan : (variant.stock || 0);
+                const stockQty =
+                  variant.tonCoTheBan !== undefined ? variant.tonCoTheBan : variant.stock || 0;
                 const isOutOfStock = stockQty === 0;
 
                 return (
-                  <div 
-                    key={variant.id} 
+                  <div
+                    key={variant.id}
                     className={`variant-item ${isSelected ? 'selected' : ''} ${isOutOfStock ? 'disabled' : ''}`}
                     onClick={() => !isOutOfStock && setSelectedVariantId(variant.id)}
                   >
@@ -78,11 +85,17 @@ const ProductInfoSidebar = ({ product, selectedVariantId, setSelectedVariantId }
                       {isSelected && <div className="checked-inner"></div>}
                     </div>
                     <div className="variant-details">
-                      <div className="variant-name">{variant.tenPhienBan || variant.name || 'Mặc định'}</div>
-                      <div className="variant-sku">SKU: {variant.sku || variant.maVach || 'N/A'}</div>
+                      <div className="variant-name">
+                        {variant.tenPhienBan || variant.name || 'Mặc định'}
+                      </div>
+                      <div className="variant-sku">
+                        SKU: {variant.sku || variant.maVach || 'N/A'}
+                      </div>
                     </div>
                     <div className="variant-price-stock">
-                      <div className="v-price">{formatPrice(variant.giaBanLe || variant.currentPrice || 0)}</div>
+                      <div className="v-price">
+                        {formatPrice(variant.giaBanLe || variant.currentPrice || 0)}
+                      </div>
                       <div className="v-stock">{stockQty > 0 ? `còn ${stockQty}` : 'Hết hàng'}</div>
                     </div>
                   </div>
@@ -101,7 +114,8 @@ const ProductInfoSidebar = ({ product, selectedVariantId, setSelectedVariantId }
               </div>
               <div className="attribute-options">
                 <button className="attr-btn selected">
-                  {product.specsSummary?.find(s => s.label?.toLowerCase().includes('vram'))?.value || '24 GB GDDR6X'}
+                  {product.specsSummary?.find((s) => s.label?.toLowerCase().includes('vram'))
+                    ?.value || '24 GB GDDR6X'}
                 </button>
               </div>
             </div>

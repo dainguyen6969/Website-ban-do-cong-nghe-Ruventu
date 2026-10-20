@@ -9,10 +9,11 @@ let loginPromise = null;
 /** API adapter for the real IntelliJ/Spring product-list endpoint only. */
 function readToken() {
   if (inMemoryToken) return inMemoryToken;
-  inMemoryToken = localStorage.getItem(ACCESS_TOKEN_KEY)
-    || localStorage.getItem('access_token')
-    || localStorage.getItem('accessToken')
-    || '';
+  inMemoryToken =
+    localStorage.getItem(ACCESS_TOKEN_KEY) ||
+    localStorage.getItem('access_token') ||
+    localStorage.getItem('accessToken') ||
+    '';
   return inMemoryToken;
 }
 
@@ -25,8 +26,11 @@ function storeToken(token) {
 async function parseResponse(response) {
   const text = await response.text();
   if (!text) return null;
-  try { return JSON.parse(text); }
-  catch { throw new Error('Backend trả về dữ liệu không hợp lệ.'); }
+  try {
+    return JSON.parse(text);
+  } catch {
+    throw new Error('Backend trả về dữ liệu không hợp lệ.');
+  }
 }
 
 async function login() {
@@ -119,14 +123,17 @@ export async function getProductPage(filters, signal) {
   if (filters.categoryId) params.set('danh_muc_id', String(filters.categoryId));
   if (filters.brandId) params.set('thuong_hieu_id', String(filters.brandId));
   if (filters.productType) params.set('loai_san_pham', filters.productType);
-  if (filters.status !== undefined && filters.status !== null) params.set('trang_thai', String(filters.status));
+  if (filters.status !== undefined && filters.status !== null)
+    params.set('trang_thai', String(filters.status));
   const data = await request(`${PRODUCT_PATH}?${params}`, { signal });
-  const items = await Promise.all((data?.items || []).map(async (item) => {
-    const product = normalizeProduct(item);
-    if (!product.isCombo) return product;
-    const combo = await request(`${COMBO_PATH}/${product.id}`, { signal });
-    return { ...product, soThanhPhan: (combo?.thanh_phan || []).length };
-  }));
+  const items = await Promise.all(
+    (data?.items || []).map(async (item) => {
+      const product = normalizeProduct(item);
+      if (!product.isCombo) return product;
+      const combo = await request(`${COMBO_PATH}/${product.id}`, { signal });
+      return { ...product, soThanhPhan: (combo?.thanh_phan || []).length };
+    })
+  );
   return {
     items,
     page: Number(data?.pagination?.page || 0) + 1,
@@ -135,15 +142,17 @@ export async function getProductPage(filters, signal) {
   };
 }
 
-export const createProduct = (product) => request(PRODUCT_PATH, {
-  method: 'POST',
-  body: JSON.stringify(product),
-});
+export const createProduct = (product) =>
+  request(PRODUCT_PATH, {
+    method: 'POST',
+    body: JSON.stringify(product),
+  });
 
 export const getProductDetail = async (id, signal) =>
   normalizeProductDetail(await request(`${PRODUCT_PATH}/${encodeURIComponent(id)}`, { signal }));
 
-export const updateProduct = (id, product) => request(`${PRODUCT_PATH}/${encodeURIComponent(id)}`, {
-  method: 'PUT',
-  body: JSON.stringify(product),
-});
+export const updateProduct = (id, product) =>
+  request(`${PRODUCT_PATH}/${encodeURIComponent(id)}`, {
+    method: 'PUT',
+    body: JSON.stringify(product),
+  });

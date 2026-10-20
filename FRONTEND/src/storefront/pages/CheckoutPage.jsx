@@ -1,42 +1,39 @@
-import { Link, useNavigate, useLocation } from "react-router-dom";
-import { VIETNAM_LOCATIONS, matchProvince, matchDistrict } from "../../data/vietnamLocations";
-import { ArrowLeft, ShieldCheck, Truck, MapPin, Navigation, Loader2 } from "lucide-react";
-import Header from "../components/Header";
-import Footer from "../components/Footer";
-import { orderService } from "../../shared/services/orderService";
-import { cartService } from "../../shared/services/cartService";
-import "./CheckoutPage.css";
-import React, { useState, useEffect, useMemo, useRef } from "react";
-import {
-  errorMessage,
-  withIdempotency,
-} from "../../shared/services/mutationUtils";
+import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { VIETNAM_LOCATIONS, matchProvince, matchDistrict } from '../../data/vietnamLocations';
+import { ArrowLeft, ShieldCheck, Truck, MapPin, Navigation, Loader2 } from 'lucide-react';
+import Header from '../components/Header';
+import Footer from '../components/Footer';
+import { orderService } from '../../shared/services/orderService';
+import { cartService } from '../../shared/services/cartService';
+import './CheckoutPage.css';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { errorMessage, withIdempotency } from '../../shared/services/mutationUtils';
 
 const formatPrice = (price) => {
   const num = Number(price);
-  if (isNaN(num)) return "0đ";
-  return new Intl.NumberFormat("vi-VN").format(num) + "đ";
+  if (isNaN(num)) return '0đ';
+  return new Intl.NumberFormat('vi-VN').format(num) + 'đ';
 };
 
 const CheckoutPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const [deliveryMethod, setDeliveryMethod] = useState("GIAO_HANG");
-  const [paymentMethod, setPaymentMethod] = useState("TIEN_MAT");
+  const [deliveryMethod, setDeliveryMethod] = useState('GIAO_HANG');
+  const [paymentMethod, setPaymentMethod] = useState('TIEN_MAT');
 
   const [cartItemIds, setCartItemIds] = useState([]);
   const [cartItemsData, setCartItemsData] = useState([]);
   const [preview, setPreview] = useState(null);
   const [previewLoading, setPreviewLoading] = useState(false);
-  const [previewError, setPreviewError] = useState("");
+  const [previewError, setPreviewError] = useState('');
   const [previewRevision, setPreviewRevision] = useState(0);
 
   const [placing, setPlacing] = useState(false);
-  const [checkoutError, setCheckoutError] = useState("");
+  const [checkoutError, setCheckoutError] = useState('');
 
   const checkoutAttempt = useRef(null);
   const placingRef = useRef(false);
-  const GOONG_API_KEY = "w6ddDpyabJSpcJXqsZB9FPLFv6dgaIrL9WfTYvAS";
+  const GOONG_API_KEY = 'w6ddDpyabJSpcJXqsZB9FPLFv6dgaIrL9WfTYvAS';
 
   const [addressSuggestions, setAddressSuggestions] = useState([]);
   const [showAddressDropdown, setShowAddressDropdown] = useState(false);
@@ -47,13 +44,13 @@ const CheckoutPage = () => {
   const LOCATION_DATA = VIETNAM_LOCATIONS;
 
   const [formData, setFormData] = useState({
-    name: "",
-    phone: "",
-    email: "",
-    province: "Hà Nội",
-    ward: "Quận Cầu Giấy",
-    address: "",
-    note: "",
+    name: '',
+    phone: '',
+    email: '',
+    province: 'Hà Nội',
+    ward: 'Quận Cầu Giấy',
+    address: '',
+    note: '',
   });
 
   const checkoutDraft = useMemo(
@@ -63,16 +60,12 @@ const CheckoutPage = () => {
       dia_chi_id: null,
       thong_tin_nguoi_nhan: {
         ten_nguoi_nhan: formData.name.trim(),
-        sdt_nguoi_nhan: formData.phone.replace(/[\s.-]/g, ""),
+        sdt_nguoi_nhan: formData.phone.replace(/[\s.-]/g, ''),
         dia_chi_giao_hang:
-          deliveryMethod === "GIAO_HANG"
-            ? [
-                formData.address.trim(),
-                formData.ward.trim(),
-                formData.province.trim(),
-              ]
+          deliveryMethod === 'GIAO_HANG'
+            ? [formData.address.trim(), formData.ward.trim(), formData.province.trim()]
                 .filter(Boolean)
-                .join(", ")
+                .join(', ')
             : null,
       },
       phuong_thuc_thanh_toan: paymentMethod,
@@ -90,22 +83,18 @@ const CheckoutPage = () => {
       formData.province,
       formData.note,
       location.state?.voucherCode,
-    ],
+    ]
   );
 
   const draftSignature = JSON.stringify(checkoutDraft);
 
-  const previewData =
-    preview?.signature === draftSignature ? preview.data : null;
+  const previewData = preview?.signature === draftSignature ? preview.data : null;
 
   const draftReady =
     cartItemIds.length > 0 &&
     Boolean(checkoutDraft.thong_tin_nguoi_nhan.ten_nguoi_nhan) &&
-    /^(?:\+84|0)\d{9,10}$/.test(
-      checkoutDraft.thong_tin_nguoi_nhan.sdt_nguoi_nhan,
-    ) &&
-    (deliveryMethod === "NHAN_TAI_CUA_HANG" ||
-      Boolean(formData.address.trim()));
+    /^(?:\+84|0)\d{9,10}$/.test(checkoutDraft.thong_tin_nguoi_nhan.sdt_nguoi_nhan) &&
+    (deliveryMethod === 'NHAN_TAI_CUA_HANG' || Boolean(formData.address.trim()));
 
   const [errors, setErrors] = useState({});
 
@@ -113,11 +102,14 @@ const CheckoutPage = () => {
   const tempSubtotal = useMemo(() => {
     return cartItemsData
       .filter((c) => cartItemIds.includes(c.cartItemId))
-      .reduce((sum, item) => sum + (Number(item.donGia ?? item.giaBan) || 0) * (item.soLuong || 1), 0);
+      .reduce(
+        (sum, item) => sum + (Number(item.donGia ?? item.giaBan) || 0) * (item.soLuong || 1),
+        0
+      );
   }, [cartItemsData, cartItemIds]);
 
   const tempShippingFee = useMemo(() => {
-    if (deliveryMethod === "NHAN_TAI_CUA_HANG") return 0;
+    if (deliveryMethod === 'NHAN_TAI_CUA_HANG') return 0;
     if (tempSubtotal > 5000000 || tempSubtotal === 0) return 0;
     return 30000;
   }, [deliveryMethod, tempSubtotal]);
@@ -127,7 +119,7 @@ const CheckoutPage = () => {
   useEffect(() => {
     // Check if user is logged in to prefill data
     try {
-      const userStr = localStorage.getItem("user");
+      const userStr = localStorage.getItem('user');
       if (userStr) {
         const user = JSON.parse(userStr);
         setFormData((prev) => ({
@@ -151,10 +143,10 @@ const CheckoutPage = () => {
             setCartItemsData(res.data.data.items);
           }
         })
-        .catch((err) => console.error("Lỗi fetch giỏ hàng ở checkout:", err));
+        .catch((err) => console.error('Lỗi fetch giỏ hàng ở checkout:', err));
     } else {
       // If no item selected, return to cart
-      navigate("/cart");
+      navigate('/cart');
     }
   }, [location.state, navigate]);
 
@@ -162,7 +154,7 @@ const CheckoutPage = () => {
     const controller = new AbortController();
 
     setPreview(null);
-    setPreviewError("");
+    setPreviewError('');
 
     if (!draftReady) {
       setPreviewLoading(false);
@@ -173,10 +165,7 @@ const CheckoutPage = () => {
 
     const timer = setTimeout(async () => {
       try {
-        const response = await orderService.previewCheckout(
-          checkoutDraft,
-          controller.signal,
-        );
+        const response = await orderService.previewCheckout(checkoutDraft, controller.signal);
 
         if (controller.signal.aborted) return;
 
@@ -202,9 +191,9 @@ const CheckoutPage = () => {
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    
-    if (name === "province") {
-      const defaultWard = LOCATION_DATA[value]?.[0] || "";
+
+    if (name === 'province') {
+      const defaultWard = LOCATION_DATA[value]?.[0] || '';
       setFormData((prev) => ({
         ...prev,
         province: value,
@@ -218,7 +207,7 @@ const CheckoutPage = () => {
       setErrors((prev) => ({ ...prev, [name]: null }));
     }
 
-    if (name === "address") {
+    if (name === 'address') {
       if (value.trim().length >= 3) {
         searchGoongPlaces(value.trim());
       } else {
@@ -240,7 +229,7 @@ const CheckoutPage = () => {
         setShowAddressDropdown(true);
       }
     } catch (err) {
-      console.error("Lỗi tìm kiếm địa chỉ Goong:", err);
+      console.error('Lỗi tìm kiếm địa chỉ Goong:', err);
     } finally {
       setAddressSearchLoading(false);
     }
@@ -249,11 +238,11 @@ const CheckoutPage = () => {
   // Chọn địa chỉ từ danh sách gợi ý của Goong
   const handleSelectSuggestion = (place) => {
     const compound = place.compound || {};
-    const fullAddress = place.description || "";
+    const fullAddress = place.description || '';
 
-    const matchedProvince = matchProvince(compound.province || "");
+    const matchedProvince = matchProvince(compound.province || '');
     const availableWards = LOCATION_DATA[matchedProvince] || [];
-    const matchedWard = matchDistrict(compound.district || compound.commune || "", availableWards);
+    const matchedWard = matchDistrict(compound.district || compound.commune || '', availableWards);
 
     setFormData((prev) => ({
       ...prev,
@@ -273,7 +262,7 @@ const CheckoutPage = () => {
   // Lấy vị trí GPS hiện tại của người dùng qua Geolocation + Goong Reverse Geocoding
   const handleGetCurrentLocation = () => {
     if (!navigator.geolocation) {
-      alert("Trình duyệt của bạn không hỗ trợ định vị GPS.");
+      alert('Trình duyệt của bạn không hỗ trợ định vị GPS.');
       return;
     }
 
@@ -288,11 +277,14 @@ const CheckoutPage = () => {
           if (data?.results && data.results.length > 0) {
             const first = data.results[0];
             const compound = first.compound || {};
-            const fullAddress = first.formatted_address || first.address || "";
+            const fullAddress = first.formatted_address || first.address || '';
 
-            const matchedProvince = matchProvince(compound.province || "");
+            const matchedProvince = matchProvince(compound.province || '');
             const availableWards = LOCATION_DATA[matchedProvince] || [];
-            const matchedWard = matchDistrict(compound.district || compound.commune || "", availableWards);
+            const matchedWard = matchDistrict(
+              compound.district || compound.commune || '',
+              availableWards
+            );
 
             setFormData((prev) => ({
               ...prev,
@@ -306,16 +298,18 @@ const CheckoutPage = () => {
             }
           }
         } catch (err) {
-          console.error("Lỗi lấy thông tin vị trí:", err);
-          alert("Không thể chuyển đổi tọa độ thành địa chỉ. Vui lòng nhập tay.");
+          console.error('Lỗi lấy thông tin vị trí:', err);
+          alert('Không thể chuyển đổi tọa độ thành địa chỉ. Vui lòng nhập tay.');
         } finally {
           setLocatingUser(false);
         }
       },
       (err) => {
-        console.error("Lỗi Geolocation:", err);
+        console.error('Lỗi Geolocation:', err);
         setLocatingUser(false);
-        alert("Không thể truy cập vị trí hiện tại. Vui lòng cho phép quyền định vị trên trình duyệt.");
+        alert(
+          'Không thể truy cập vị trí hiện tại. Vui lòng cho phép quyền định vị trên trình duyệt.'
+        );
       },
       { timeout: 10000, enableHighAccuracy: true }
     );
@@ -328,8 +322,8 @@ const CheckoutPage = () => {
         setShowAddressDropdown(false);
       }
     };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
   const handlePlaceOrder = async () => {
@@ -338,24 +332,21 @@ const CheckoutPage = () => {
     const newErrors = {};
 
     if (!formData.name.trim()) {
-      newErrors.name = "Vui lòng nhập họ và tên.";
+      newErrors.name = 'Vui lòng nhập họ và tên.';
     }
 
-    if (!/^(?:\+84|0)\d{9,10}$/.test(formData.phone.replace(/[\s.-]/g, ""))) {
-      newErrors.phone = "Số điện thoại không hợp lệ.";
+    if (!/^(?:\+84|0)\d{9,10}$/.test(formData.phone.replace(/[\s.-]/g, ''))) {
+      newErrors.phone = 'Số điện thoại không hợp lệ.';
     }
 
-    if (deliveryMethod === "GIAO_HANG" && !formData.address.trim()) {
-      newErrors.address = "Vui lòng nhập địa chỉ cụ thể.";
+    if (deliveryMethod === 'GIAO_HANG' && !formData.address.trim()) {
+      newErrors.address = 'Vui lòng nhập địa chỉ cụ thể.';
     }
 
     // Email không thuộc body checkout mới.
     // Nếu giữ ô email trên UI thì để tùy chọn.
-    if (
-      formData.email.trim() &&
-      !/^\S+@\S+\.\S+$/.test(formData.email.trim())
-    ) {
-      newErrors.email = "Email không hợp lệ.";
+    if (formData.email.trim() && !/^\S+@\S+\.\S+$/.test(formData.email.trim())) {
+      newErrors.email = 'Email không hợp lệ.';
     }
 
     setErrors(newErrors);
@@ -363,29 +354,22 @@ const CheckoutPage = () => {
 
     placingRef.current = true;
     setPlacing(true);
-    setCheckoutError("");
+    setCheckoutError('');
 
     try {
       let payload;
 
       if (checkoutAttempt.current) {
-        const { tong_thanh_toan_xac_nhan: _total, ...previousDraft } =
-          checkoutAttempt.current.body;
+        const { tong_thanh_toan_xac_nhan: _total, ...previousDraft } = checkoutAttempt.current.body;
 
         if (JSON.stringify(previousDraft) !== draftSignature) {
-          throw new Error(
-            "Đơn trước chưa xác định kết quả. Hãy giữ nguyên thông tin để thử lại.",
-          );
+          throw new Error('Đơn trước chưa xác định kết quả. Hãy giữ nguyên thông tin để thử lại.');
         }
 
         payload = checkoutAttempt.current.body;
       } else {
-        if (
-          !previewData ||
-          previewLoading ||
-          previewData.tong_thanh_toan == null
-        ) {
-          throw new Error("Vui lòng chờ tính lại tổng tiền.");
+        if (!previewData || previewLoading || previewData.tong_thanh_toan == null) {
+          throw new Error('Vui lòng chờ tính lại tổng tiền.');
         }
 
         payload = {
@@ -396,16 +380,16 @@ const CheckoutPage = () => {
 
       const response = await withIdempotency(
         checkoutAttempt,
-        "customer:checkout",
+        'customer:checkout',
         payload,
-        (key, body) => orderService.submitCheckout(body, key),
+        (key, body) => orderService.submitCheckout(body, key)
       );
 
       const order = response.data.data;
 
-      window.dispatchEvent(new CustomEvent("cartUpdated"));
+      window.dispatchEvent(new CustomEvent('cartUpdated'));
 
-      navigate("/success", {
+      navigate('/success', {
         state: {
           orderCode: order.ma_don_hang,
         },
@@ -434,24 +418,23 @@ const CheckoutPage = () => {
             <Link
               to="/cart"
               style={{
-                color: "white",
-                textDecoration: "none",
-                display: "flex",
-                alignItems: "center",
+                color: 'white',
+                textDecoration: 'none',
+                display: 'flex',
+                alignItems: 'center',
               }}
             >
-              <ArrowLeft size={18} style={{ marginRight: "8px" }} /> THÔNG TIN
-              THANH TOÁN
+              <ArrowLeft size={18} style={{ marginRight: '8px' }} /> THÔNG TIN THANH TOÁN
             </Link>
           </div>
           <div className="checkout-breadcrumb">
-            <Link to="/cart" style={{ color: "#888", textDecoration: "none" }}>
+            <Link to="/cart" style={{ color: '#888', textDecoration: 'none' }}>
               GIỎ HÀNG
             </Link>
             <span>&gt;</span>
             <span className="current">THANH TOÁN</span>
             <span>&gt;</span>
-            <span style={{ color: "#888" }}>XÁC NHẬN</span>
+            <span style={{ color: '#888' }}>XÁC NHẬN</span>
           </div>
         </div>
       </div>
@@ -468,7 +451,7 @@ const CheckoutPage = () => {
                 name="name"
                 value={formData.name}
                 onChange={handleInputChange}
-                className={`form-input ${errors.name ? "input-error" : ""}`}
+                className={`form-input ${errors.name ? 'input-error' : ''}`}
                 placeholder="Nhập họ và tên..."
               />
               {errors.name && <span className="error-text">{errors.name}</span>}
@@ -481,12 +464,10 @@ const CheckoutPage = () => {
                   name="phone"
                   value={formData.phone}
                   onChange={handleInputChange}
-                  className={`form-input ${errors.phone ? "input-error" : ""}`}
+                  className={`form-input ${errors.phone ? 'input-error' : ''}`}
                   placeholder="09xx xxx xxx"
                 />
-                {errors.phone && (
-                  <span className="error-text">{errors.phone}</span>
-                )}
+                {errors.phone && <span className="error-text">{errors.phone}</span>}
               </div>
               <div className="form-group">
                 <label className="form-label">EMAIL</label>
@@ -495,12 +476,10 @@ const CheckoutPage = () => {
                   name="email"
                   value={formData.email}
                   onChange={handleInputChange}
-                  className={`form-input ${errors.email ? "input-error" : ""}`}
+                  className={`form-input ${errors.email ? 'input-error' : ''}`}
                   placeholder="ten@email.com"
                 />
-                {errors.email && (
-                  <span className="error-text">{errors.email}</span>
-                )}
+                {errors.email && <span className="error-text">{errors.email}</span>}
               </div>
             </div>
           </div>
@@ -510,8 +489,8 @@ const CheckoutPage = () => {
             <h3 className="section-title">PHƯƠNG THỨC NHẬN HÀNG</h3>
             <div className="selection-boxes">
               <div
-                className={`selection-box ${deliveryMethod === "GIAO_HANG" ? "active" : ""}`}
-                onClick={() => setDeliveryMethod("GIAO_HANG")}
+                className={`selection-box ${deliveryMethod === 'GIAO_HANG' ? 'active' : ''}`}
+                onClick={() => setDeliveryMethod('GIAO_HANG')}
               >
                 <div className="radio-custom"></div>
                 <div className="selection-content">
@@ -521,21 +500,19 @@ const CheckoutPage = () => {
                 </div>
               </div>
               <div
-                className={`selection-box ${deliveryMethod === "NHAN_TAI_CUA_HANG" ? "active" : ""}`}
-                onClick={() => setDeliveryMethod("NHAN_TAI_CUA_HANG")}
+                className={`selection-box ${deliveryMethod === 'NHAN_TAI_CUA_HANG' ? 'active' : ''}`}
+                onClick={() => setDeliveryMethod('NHAN_TAI_CUA_HANG')}
               >
                 <div className="radio-custom"></div>
                 <div className="selection-content">
                   <h4>Nhận tại cửa hàng</h4>
                   <p>Sẵn sàng sau 2-4 giờ</p>
-                  <span className="badge-free badge-green">
-                    MIỄN PHÍ VẬN CHUYỂN
-                  </span>
+                  <span className="badge-free badge-green">MIỄN PHÍ VẬN CHUYỂN</span>
                 </div>
               </div>
             </div>
 
-            {deliveryMethod === "GIAO_HANG" && (
+            {deliveryMethod === 'GIAO_HANG' && (
               <>
                 <div className="form-row">
                   <div className="form-group">
@@ -569,23 +546,36 @@ const CheckoutPage = () => {
                     </select>
                   </div>
                 </div>
-                <div className="form-group" ref={addressWrapperRef} style={{ position: "relative" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
-                    <label className="form-label" style={{ margin: 0 }}>ĐỊA CHỈ CỤ THỂ</label>
+                <div
+                  className="form-group"
+                  ref={addressWrapperRef}
+                  style={{ position: 'relative' }}
+                >
+                  <div
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      marginBottom: '6px',
+                    }}
+                  >
+                    <label className="form-label" style={{ margin: 0 }}>
+                      ĐỊA CHỈ CỤ THỂ
+                    </label>
                     <button
                       type="button"
                       onClick={handleGetCurrentLocation}
                       disabled={locatingUser}
                       style={{
-                        background: "transparent",
-                        border: "none",
-                        color: "#f11919",
-                        fontSize: "12px",
+                        background: 'transparent',
+                        border: 'none',
+                        color: '#f11919',
+                        fontSize: '12px',
                         fontWeight: 600,
-                        cursor: locatingUser ? "not-allowed" : "pointer",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "4px",
+                        cursor: locatingUser ? 'not-allowed' : 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px',
                         padding: 0,
                       }}
                       title="Lấy vị trí hiện tại của bạn"
@@ -604,7 +594,7 @@ const CheckoutPage = () => {
                     </button>
                   </div>
 
-                  <div style={{ position: "relative" }}>
+                  <div style={{ position: 'relative' }}>
                     <input
                       type="text"
                       name="address"
@@ -613,20 +603,26 @@ const CheckoutPage = () => {
                       onFocus={() => {
                         if (addressSuggestions.length > 0) setShowAddressDropdown(true);
                       }}
-                      className={`form-input ${errors.address ? "input-error" : ""}`}
+                      className={`form-input ${errors.address ? 'input-error' : ''}`}
                       placeholder="Nhập địa chỉ hoặc tên địa điểm (Goong Maps)..."
                       autoComplete="off"
                     />
                     {addressSearchLoading && (
-                      <div style={{ position: "absolute", right: "12px", top: "50%", transform: "translateY(-50%)", color: "#888" }}>
+                      <div
+                        style={{
+                          position: 'absolute',
+                          right: '12px',
+                          top: '50%',
+                          transform: 'translateY(-50%)',
+                          color: '#888',
+                        }}
+                      >
                         <Loader2 size={16} className="spin-animate" />
                       </div>
                     )}
                   </div>
 
-                  {errors.address && (
-                    <span className="error-text">{errors.address}</span>
-                  )}
+                  {errors.address && <span className="error-text">{errors.address}</span>}
 
                   {showAddressDropdown && addressSuggestions.length > 0 && (
                     <div className="goong-autocomplete-dropdown">
@@ -659,14 +655,11 @@ const CheckoutPage = () => {
           {/* Payment Method */}
           <div className="checkout-section">
             <h3 className="section-title">PHƯƠNG THỨC THANH TOÁN</h3>
-            <div
-              className="selection-boxes"
-              style={{ flexDirection: "column", gap: "10px" }}
-            >
+            <div className="selection-boxes" style={{ flexDirection: 'column', gap: '10px' }}>
               <div
-                className={`selection-box ${paymentMethod === "TIEN_MAT" ? "active" : ""}`}
-                onClick={() => setPaymentMethod("TIEN_MAT")}
-                style={{ padding: "15px 20px" }}
+                className={`selection-box ${paymentMethod === 'TIEN_MAT' ? 'active' : ''}`}
+                onClick={() => setPaymentMethod('TIEN_MAT')}
+                style={{ padding: '15px 20px' }}
               >
                 <div className="radio-custom"></div>
                 <div className="selection-content">
@@ -675,9 +668,9 @@ const CheckoutPage = () => {
                 </div>
               </div>
               <div
-                className={`selection-box ${paymentMethod === "CHUYEN_KHOAN" ? "active" : ""}`}
-                onClick={() => setPaymentMethod("CHUYEN_KHOAN")}
-                style={{ padding: "15px 20px" }}
+                className={`selection-box ${paymentMethod === 'CHUYEN_KHOAN' ? 'active' : ''}`}
+                onClick={() => setPaymentMethod('CHUYEN_KHOAN')}
+                style={{ padding: '15px 20px' }}
               >
                 <div className="radio-custom"></div>
                 <div className="selection-content">
@@ -699,7 +692,7 @@ const CheckoutPage = () => {
                 className="form-input"
                 rows="3"
                 placeholder="Ghi chú thêm cho đơn hàng (ví dụ: giao ngoài giờ hành chính, gọi trước khi giao...)"
-                style={{ resize: "vertical" }}
+                style={{ resize: 'vertical' }}
               ></textarea>
             </div>
           </div>
@@ -710,53 +703,45 @@ const CheckoutPage = () => {
           <div className="sidebar-header">ĐƠN HÀNG CỦA BẠN</div>
 
           <div className="sidebar-items">
-            {previewData?.san_pham ? (
-              previewData.san_pham.map((item) => {
-                const cartInfo =
-                  cartItemsData.find(
-                    (c) => c.phienBanId === item.phien_ban_id,
-                  ) || {};
-                return (
-                  <div key={item.phien_ban_id} className="sidebar-item">
-                    <img
-                      src={cartInfo.anh || "https://via.placeholder.com/60"}
-                      alt={cartInfo.tenSanPham || "Sản phẩm"}
-                    />
-                    <div className="sidebar-item-details">
-                      <h4>{cartInfo.tenSanPham || "Đang tải..."}</h4>
-                      <p>{cartInfo.tenPhienBan || "Tiêu chuẩn"}</p>
-                      <div className="sidebar-item-price">
-                        <span className="qty">x{item.so_luong}</span>
-                        <span className="price">
-                          {formatPrice(item.don_gia)}
-                        </span>
+            {previewData?.san_pham
+              ? previewData.san_pham.map((item) => {
+                  const cartInfo =
+                    cartItemsData.find((c) => c.phienBanId === item.phien_ban_id) || {};
+                  return (
+                    <div key={item.phien_ban_id} className="sidebar-item">
+                      <img
+                        src={cartInfo.anh || 'https://via.placeholder.com/60'}
+                        alt={cartInfo.tenSanPham || 'Sản phẩm'}
+                      />
+                      <div className="sidebar-item-details">
+                        <h4>{cartInfo.tenSanPham || 'Đang tải...'}</h4>
+                        <p>{cartInfo.tenPhienBan || 'Tiêu chuẩn'}</p>
+                        <div className="sidebar-item-price">
+                          <span className="qty">x{item.so_luong}</span>
+                          <span className="price">{formatPrice(item.don_gia)}</span>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                );
-              })
-            ) : (
-              cartItemsData
-                .filter((c) => cartItemIds.includes(c.cartItemId))
-                .map((item) => (
-                  <div key={item.cartItemId} className="sidebar-item">
-                    <img
-                      src={item.anh || "https://via.placeholder.com/60"}
-                      alt={item.tenSanPham || "Sản phẩm"}
-                    />
-                    <div className="sidebar-item-details">
-                      <h4>{item.tenSanPham}</h4>
-                      <p>{item.tenPhienBan || "Tiêu chuẩn"}</p>
-                      <div className="sidebar-item-price">
-                        <span className="qty">x{item.soLuong}</span>
-                        <span className="price">
-                          {formatPrice(item.donGia ?? item.giaBan)}
-                        </span>
+                  );
+                })
+              : cartItemsData
+                  .filter((c) => cartItemIds.includes(c.cartItemId))
+                  .map((item) => (
+                    <div key={item.cartItemId} className="sidebar-item">
+                      <img
+                        src={item.anh || 'https://via.placeholder.com/60'}
+                        alt={item.tenSanPham || 'Sản phẩm'}
+                      />
+                      <div className="sidebar-item-details">
+                        <h4>{item.tenSanPham}</h4>
+                        <p>{item.tenPhienBan || 'Tiêu chuẩn'}</p>
+                        <div className="sidebar-item-price">
+                          <span className="qty">x{item.soLuong}</span>
+                          <span className="price">{formatPrice(item.donGia ?? item.giaBan)}</span>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))
-            )}
+                  ))}
           </div>
 
           <div className="sidebar-summary">
@@ -767,7 +752,7 @@ const CheckoutPage = () => {
                   <span>{formatPrice(previewData.tong_tien_hang)}</span>
                 </div>
                 {previewData.tien_chiet_khau > 0 && (
-                  <div className="summary-row" style={{ color: "#ff0000" }}>
+                  <div className="summary-row" style={{ color: '#ff0000' }}>
                     <span>Khuyến mãi</span>
                     <span>-{formatPrice(previewData.tien_chiet_khau)}</span>
                   </div>
@@ -777,11 +762,11 @@ const CheckoutPage = () => {
                   {previewData.phi_giao_hang === 0 ? (
                     <span
                       style={{
-                        backgroundColor: "#111",
-                        color: "white",
-                        padding: "2px 6px",
-                        fontSize: "10px",
-                        fontWeight: "bold",
+                        backgroundColor: '#111',
+                        color: 'white',
+                        padding: '2px 6px',
+                        fontSize: '10px',
+                        fontWeight: 'bold',
                       }}
                     >
                       MIỄN PHÍ
@@ -792,9 +777,7 @@ const CheckoutPage = () => {
                 </div>
                 <div className="summary-row total">
                   <span>TỔNG TIỀN</span>
-                  <span className="price">
-                    {formatPrice(previewData.tong_thanh_toan)}
-                  </span>
+                  <span className="price">{formatPrice(previewData.tong_thanh_toan)}</span>
                 </div>
               </>
             ) : (
@@ -808,11 +791,11 @@ const CheckoutPage = () => {
                   {tempShippingFee === 0 ? (
                     <span
                       style={{
-                        backgroundColor: "#111",
-                        color: "white",
-                        padding: "2px 6px",
-                        fontSize: "10px",
-                        fontWeight: "bold",
+                        backgroundColor: '#111',
+                        color: 'white',
+                        padding: '2px 6px',
+                        fontSize: '10px',
+                        fontWeight: 'bold',
                       }}
                     >
                       MIỄN PHÍ
@@ -823,28 +806,42 @@ const CheckoutPage = () => {
                 </div>
                 <div className="summary-row total">
                   <span>TỔNG TIỀN</span>
-                  <span className="price">
-                    {formatPrice(tempTotal)}
-                  </span>
+                  <span className="price">{formatPrice(tempTotal)}</span>
                 </div>
-                <div style={{ textAlign: "center", padding: "10px 0 4px", color: "#666", fontSize: "12px" }}>
+                <div
+                  style={{
+                    textAlign: 'center',
+                    padding: '10px 0 4px',
+                    color: '#666',
+                    fontSize: '12px',
+                  }}
+                >
                   {previewLoading
-                    ? "Đang cập nhật phí vận chuyển và khuyến mãi..."
-                    : (!formData.phone || (deliveryMethod === "GIAO_HANG" && !formData.address.trim()))
-                    ? "Vui lòng nhập SĐT & địa chỉ cụ thể để tính chính xác phí ship"
-                    : ""}
+                    ? 'Đang cập nhật phí vận chuyển và khuyến mãi...'
+                    : !formData.phone ||
+                        (deliveryMethod === 'GIAO_HANG' && !formData.address.trim())
+                      ? 'Vui lòng nhập SĐT & địa chỉ cụ thể để tính chính xác phí ship'
+                      : ''}
                 </div>
               </>
             )}
 
             {previewError && (
-              <p className="error-text" role="alert" style={{ marginTop: "12px", textAlign: "center" }}>
+              <p
+                className="error-text"
+                role="alert"
+                style={{ marginTop: '12px', textAlign: 'center' }}
+              >
                 {previewError}
               </p>
             )}
 
             {checkoutError && (
-              <p className="error-text" role="alert" style={{ marginTop: "12px", textAlign: "center" }}>
+              <p
+                className="error-text"
+                role="alert"
+                style={{ marginTop: '12px', textAlign: 'center' }}
+              >
                 {checkoutError}
               </p>
             )}
@@ -855,15 +852,14 @@ const CheckoutPage = () => {
               onClick={handlePlaceOrder}
               disabled={
                 placing ||
-                (!checkoutAttempt.current &&
-                  (!previewData || previewLoading || !draftReady))
+                (!checkoutAttempt.current && (!previewData || previewLoading || !draftReady))
               }
             >
               {placing
-                ? "ĐANG ĐẶT HÀNG..."
+                ? 'ĐANG ĐẶT HÀNG...'
                 : checkoutAttempt.current
-                  ? "THỬ LẠI YÊU CẦU"
-                  : "XÁC NHẬN ĐẶT HÀNG →"}
+                  ? 'THỬ LẠI YÊU CẦU'
+                  : 'XÁC NHẬN ĐẶT HÀNG →'}
             </button>
           </div>
 

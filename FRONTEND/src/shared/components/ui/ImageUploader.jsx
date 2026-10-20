@@ -72,9 +72,19 @@ export default function ImageUploader({
             try {
               const result = await uploadImage(image.file, folder);
               URL.revokeObjectURL(image.url);
-              return { ...image, url: result.url, publicId: result.public_id, file: null, uploading: false };
+              return {
+                ...image,
+                url: result.url,
+                publicId: result.public_id,
+                file: null,
+                uploading: false,
+              };
             } catch (error) {
-              return { ...image, uploading: false, error: error?.message || 'Không thể tải ảnh lên.' };
+              return {
+                ...image,
+                uploading: false,
+                error: error?.message || 'Không thể tải ảnh lên.',
+              };
             }
           })
         );
@@ -168,9 +178,7 @@ export default function ImageUploader({
                   <div className="image-uploader__spinner" />
                 </div>
               )}
-              {img.error && (
-                <div className="image-uploader__error-badge">!</div>
-              )}
+              {img.error && <div className="image-uploader__error-badge">!</div>}
               <button
                 type="button"
                 className="image-uploader__thumb-remove"

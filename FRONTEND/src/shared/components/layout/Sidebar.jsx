@@ -11,7 +11,16 @@ import {
 import './Sidebar.css';
 
 const IconTongQuat = ({ size }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="square" strokeLinejoin="miter">
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.5"
+    strokeLinecap="square"
+    strokeLinejoin="miter"
+  >
     <rect x="4" y="4" width="6" height="6" />
     <rect x="14" y="4" width="6" height="6" />
     <rect x="4" y="14" width="6" height="6" />
@@ -20,19 +29,46 @@ const IconTongQuat = ({ size }) => (
 );
 
 const IconBanHang = ({ size }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="square" strokeLinejoin="miter">
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2.5"
+    strokeLinecap="square"
+    strokeLinejoin="miter"
+  >
     <path d="M12 2v20M16 6H9a3 3 0 0 0 0 6h6a3 3 0 0 1 0 6H8" />
   </svg>
 );
 
 const IconSanPham = ({ size }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="square" strokeLinejoin="miter">
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.5"
+    strokeLinecap="square"
+    strokeLinejoin="miter"
+  >
     <polygon points="12 2 22 7.5 22 16.5 12 22 2 16.5 2 7.5" />
   </svg>
 );
 
 const IconDonHang = ({ size }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="square" strokeLinejoin="miter">
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.5"
+    strokeLinecap="square"
+    strokeLinejoin="miter"
+  >
     <path d="M5 2h10l4 4v16H5V2z" />
     <path d="M14 2v5h5" />
     <line x1="9" y1="12" x2="15" y2="12" />
@@ -41,7 +77,16 @@ const IconDonHang = ({ size }) => (
 );
 
 const IconKhachHangDoiTac = ({ size }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="square" strokeLinejoin="miter">
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.5"
+    strokeLinecap="square"
+    strokeLinejoin="miter"
+  >
     <circle cx="8" cy="7" r="4" />
     <path d="M2 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2" />
     <path d="M16 4l4 3-4 3" />
@@ -50,21 +95,48 @@ const IconKhachHangDoiTac = ({ size }) => (
 );
 
 const IconNhanVien = ({ size }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="square" strokeLinejoin="miter">
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.5"
+    strokeLinecap="square"
+    strokeLinejoin="miter"
+  >
     <rect x="9" y="4" width="6" height="6" />
     <path d="M5 21v-4l3-4h8l3 4v4" />
   </svg>
 );
 
 const IconKhuyenMai = ({ size }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="square" strokeLinejoin="miter">
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.5"
+    strokeLinecap="square"
+    strokeLinejoin="miter"
+  >
     <path d="M2 2l9 0 11 11-9 9L2 11V2z" />
     <line x1="7" y1="7" x2="7.01" y2="7" />
   </svg>
 );
 
 const IconSoQuyTienMat = ({ size }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="square" strokeLinejoin="miter">
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.5"
+    strokeLinecap="square"
+    strokeLinejoin="miter"
+  >
     <rect x="2" y="3" width="20" height="14" />
     <path d="M8 21h8" />
     <path d="M12 17v4" />
@@ -72,7 +144,16 @@ const IconSoQuyTienMat = ({ size }) => (
 );
 
 const IconBaoCao = ({ size }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="square" strokeLinejoin="miter">
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.5"
+    strokeLinecap="square"
+    strokeLinejoin="miter"
+  >
     <rect x="4" y="12" width="4" height="8" />
     <rect x="10" y="4" width="4" height="16" />
     <rect x="16" y="8" width="4" height="12" />
@@ -81,13 +162,31 @@ const IconBaoCao = ({ size }) => (
 );
 
 const IconBaoHanh = ({ size }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="square" strokeLinejoin="miter">
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.5"
+    strokeLinecap="square"
+    strokeLinejoin="miter"
+  >
     <path d="M12 2L3 6v6c0 5 9 10 9 10s9-5 9-10V6L12 2z" />
   </svg>
 );
 
 const IconDanhMuc = ({ size }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="square" strokeLinejoin="miter">
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.5"
+    strokeLinecap="square"
+    strokeLinejoin="miter"
+  >
     <rect x="4" y="5" width="3" height="3" />
     <rect x="4" y="11" width="3" height="3" />
     <rect x="4" y="17" width="3" height="3" />
@@ -119,14 +218,27 @@ const menuItems = [
     path: '/admin/san-pham',
     expandable: true,
     subItems: [
-      { id: 'danh-sach-san-pham', label: 'Danh sách sản phẩm', path: '/admin/san-pham/danh-sach-san-pham' },
-      { id: 'quan-ly-kho', label: 'Quản lý kho', expandable: true, children: [
-        { id: 'toan-bo-phien-ban', label: 'Quản lý phiên bản', path: '/kho-hang/quan-ly-phien-ban' },
-        { id: 'danh-sach-serial', label: 'Danh sách Serial', path: '/kho-hang/danh-sach-serial' },
-        { id: 'combo-san-pham', label: 'Combo sản phẩm', path: '/kho-hang/combo-san-pham' },
-        { id: 'nhap-hang', label: 'Nhập hàng', path: '/admin/san-pham/nhap-hang' },
-        { id: 'kiem-hang', label: 'Kiểm hàng', path: '/admin/san-pham/kiem-hang' },
-      ] },
+      {
+        id: 'danh-sach-san-pham',
+        label: 'Danh sách sản phẩm',
+        path: '/admin/san-pham/danh-sach-san-pham',
+      },
+      {
+        id: 'quan-ly-kho',
+        label: 'Quản lý kho',
+        expandable: true,
+        children: [
+          {
+            id: 'toan-bo-phien-ban',
+            label: 'Quản lý phiên bản',
+            path: '/kho-hang/quan-ly-phien-ban',
+          },
+          { id: 'danh-sach-serial', label: 'Danh sách Serial', path: '/kho-hang/danh-sach-serial' },
+          { id: 'combo-san-pham', label: 'Combo sản phẩm', path: '/kho-hang/combo-san-pham' },
+          { id: 'nhap-hang', label: 'Nhập hàng', path: '/admin/san-pham/nhap-hang' },
+          { id: 'kiem-hang', label: 'Kiểm hàng', path: '/admin/san-pham/kiem-hang' },
+        ],
+      },
     ],
   },
   {
@@ -137,9 +249,18 @@ const menuItems = [
     expandable: true,
     badge: '0',
     subItems: [
-      { id: 'danh-sach-don-hang', label: 'Danh sách đơn hàng', path: '/admin/don-hang/danh-sach-don-hang' },
+      {
+        id: 'danh-sach-don-hang',
+        label: 'Danh sách đơn hàng',
+        path: '/admin/don-hang/danh-sach-don-hang',
+      },
       { id: 'dat-hang-online', label: 'Đặt hàng online', path: '/admin/don-hang/dat-hang-online' },
-      { id: 'quan-ly-giao-hang', label: 'Quản lý giao hàng', path: '/admin/don-hang/quan-ly-giao-hang', badge: '0' },
+      {
+        id: 'quan-ly-giao-hang',
+        label: 'Quản lý giao hàng',
+        path: '/admin/don-hang/quan-ly-giao-hang',
+        badge: '0',
+      },
       { id: 'khach-tra-hang', label: 'Khách trả hàng', path: '/admin/don-hang/khach-tra-hang' },
     ],
   },
@@ -152,7 +273,11 @@ const menuItems = [
     subItems: [
       { id: 'khach-hang', label: 'Khách hàng', path: '/admin/khach-hang-doi-tac/khach-hang' },
       { id: 'nha-cung-cap', label: 'Nhà cung cấp', path: '/admin/khach-hang-doi-tac/nha-cung-cap' },
-      { id: 'doi-tac-van-chuyen', label: 'Đối tác vận chuyển', path: '/admin/khach-hang-doi-tac/doi-tac-van-chuyen' },
+      {
+        id: 'doi-tac-van-chuyen',
+        label: 'Đối tác vận chuyển',
+        path: '/admin/khach-hang-doi-tac/doi-tac-van-chuyen',
+      },
     ],
   },
   {
@@ -162,7 +287,11 @@ const menuItems = [
     path: '/admin/nhan-vien',
     expandable: true,
     subItems: [
-      { id: 'danh-sach-nhan-vien', label: 'Danh sách nhân viên', path: '/admin/nhan-vien/danh-sach' },
+      {
+        id: 'danh-sach-nhan-vien',
+        label: 'Danh sách nhân viên',
+        path: '/admin/nhan-vien/danh-sach',
+      },
       { id: 'vai-tro-nhan-vien', label: 'Vai trò', path: '/admin/nhan-vien/vai-tro' },
     ],
   },
@@ -173,7 +302,11 @@ const menuItems = [
     path: '/admin/khuyen-mai',
     expandable: true,
     subItems: [
-      { id: 'danh-sach-khuyen-mai', label: 'Danh sách khuyến mại', path: '/admin/khuyen-mai/danh-sach-khuyen-mai' },
+      {
+        id: 'danh-sach-khuyen-mai',
+        label: 'Danh sách khuyến mại',
+        path: '/admin/khuyen-mai/danh-sach-khuyen-mai',
+      },
       { id: 'tao-khuyen-mai', label: 'Tạo khuyến mại', path: '/admin/khuyen-mai/tao-khuyen-mai' },
     ],
   },
@@ -186,9 +319,17 @@ const menuItems = [
     subItems: [
       { id: 'tong-quan-quy', label: 'Tổng quan', path: '/admin/so-quy-tien-mat/tong-quan' },
       { id: 'phieu-thu', label: 'Phiếu thu', path: '/admin/so-quy-tien-mat/phieu-thu' },
-      { id: 'loai-phieu-thu', label: 'Loại phiếu thu', path: '/admin/so-quy-tien-mat/loai-phieu-thu' },
+      {
+        id: 'loai-phieu-thu',
+        label: 'Loại phiếu thu',
+        path: '/admin/so-quy-tien-mat/loai-phieu-thu',
+      },
       { id: 'phieu-chi', label: 'Phiếu chi', path: '/admin/so-quy-tien-mat/phieu-chi' },
-      { id: 'loai-phieu-chi', label: 'Loại phiếu chi', path: '/admin/so-quy-tien-mat/loai-phieu-chi' },
+      {
+        id: 'loai-phieu-chi',
+        label: 'Loại phiếu chi',
+        path: '/admin/so-quy-tien-mat/loai-phieu-chi',
+      },
       { id: 'so-quy', label: 'Sổ quỹ', path: '/admin/so-quy-tien-mat/so-quy' },
     ],
   },
@@ -206,7 +347,11 @@ const menuItems = [
     path: '/admin/bao-hanh',
     expandable: true,
     subItems: [
-      { id: 'danh-sach-phieu-bao-hanh', label: 'Danh sách phiếu bảo hành', path: '/admin/bao-hanh/danh-sach' },
+      {
+        id: 'danh-sach-phieu-bao-hanh',
+        label: 'Danh sách phiếu bảo hành',
+        path: '/admin/bao-hanh/danh-sach',
+      },
       { id: 'lap-phieu-bao-hanh', label: 'Lập phiếu bảo hành', path: '/admin/bao-hanh/tao-moi' },
     ],
   },
@@ -218,7 +363,11 @@ const menuItems = [
     expandable: true,
     subItems: [
       { id: 'tags', label: 'Tags', path: '/admin/danh-muc/tags' },
-      { id: 'danh-muc-san-pham', label: 'Danh mục sản phẩm', path: '/admin/danh-muc/danh-muc-san-pham' },
+      {
+        id: 'danh-muc-san-pham',
+        label: 'Danh mục sản phẩm',
+        path: '/admin/danh-muc/danh-muc-san-pham',
+      },
       { id: 'thuong-hieu', label: 'Thương hiệu', path: '/admin/danh-muc/thuong-hieu' },
     ],
   },
@@ -234,7 +383,8 @@ const shouldShowBadge = (badge) => {
 };
 
 const hasActivePath = (item, pathname) =>
-  (item.path ? pathname.startsWith(item.path) : false) || item.children?.some((child) => hasActivePath(child, pathname));
+  (item.path ? pathname.startsWith(item.path) : false) ||
+  item.children?.some((child) => hasActivePath(child, pathname));
 
 import useMockAuth from '../../../auth/useMockAuth';
 
@@ -249,7 +399,9 @@ export default function Sidebar({ collapsed, mobileOpen = false, onToggle, onNav
   useEffect(() => {
     menuItems.forEach((item) => {
       if (item.subItems && item.subItems.length > 0) {
-        const isSubActive = item.subItems.some((sub) => hasActivePath(sub, location.pathname)) || location.pathname.startsWith(item.path);
+        const isSubActive =
+          item.subItems.some((sub) => hasActivePath(sub, location.pathname)) ||
+          location.pathname.startsWith(item.path);
         if (isSubActive) {
           setExpandedMenus((prev) => (prev.includes(item.id) ? prev : [...prev, item.id]));
         }
@@ -264,9 +416,7 @@ export default function Sidebar({ collapsed, mobileOpen = false, onToggle, onNav
 
   const toggleMenu = (menuId) => {
     setExpandedMenus((prev) =>
-      prev.includes(menuId)
-        ? prev.filter((id) => id !== menuId)
-        : [...prev, menuId]
+      prev.includes(menuId) ? prev.filter((id) => id !== menuId) : [...prev, menuId]
     );
   };
 
@@ -292,7 +442,10 @@ export default function Sidebar({ collapsed, mobileOpen = false, onToggle, onNav
   };
 
   return (
-    <aside id="admin-sidebar" className={`sidebar ${collapsed ? 'sidebar--collapsed' : ''} ${mobileOpen ? 'sidebar--mobile-open' : ''}`}>
+    <aside
+      id="admin-sidebar"
+      className={`sidebar ${collapsed ? 'sidebar--collapsed' : ''} ${mobileOpen ? 'sidebar--mobile-open' : ''}`}
+    >
       {/* Sidebar Header */}
       <div className="sidebar__header">
         <button
@@ -318,7 +471,9 @@ export default function Sidebar({ collapsed, mobileOpen = false, onToggle, onNav
             const Icon = item.icon;
             // Check active parent item based on URL route
             const isDirectActive = location.pathname === item.path;
-            const isChildActive = item.subItems?.some((sub) => hasActivePath(sub, location.pathname));
+            const isChildActive = item.subItems?.some((sub) =>
+              hasActivePath(sub, location.pathname)
+            );
             const isActive = isDirectActive || isChildActive;
             const isMenuExpanded = isExpanded(item.id);
 
@@ -341,9 +496,7 @@ export default function Sidebar({ collapsed, mobileOpen = false, onToggle, onNav
                     <>
                       <span className="sidebar__menu-label">{item.label}</span>
                       {shouldShowBadge(item.badge) && (
-                        <span className="sidebar__badge sidebar__badge--red">
-                          {item.badge}
-                        </span>
+                        <span className="sidebar__badge sidebar__badge--red">{item.badge}</span>
                       )}
                       {item.expandable && (
                         <span className="sidebar__chevron">
@@ -369,7 +522,10 @@ export default function Sidebar({ collapsed, mobileOpen = false, onToggle, onNav
                         const isSubActive = hasActivePath(sub, location.pathname);
                         const isSubExpanded = isExpanded(sub.id);
                         return (
-                          <li key={sub.id} className={`sidebar__submenu-item ${isSubExpanded ? 'sidebar__submenu-item--expanded' : ''}`}>
+                          <li
+                            key={sub.id}
+                            className={`sidebar__submenu-item ${isSubExpanded ? 'sidebar__submenu-item--expanded' : ''}`}
+                          >
                             <button
                               className={`sidebar__submenu-btn ${isSubActive ? 'sidebar__submenu-btn--active' : ''}`}
                               onClick={() => {
@@ -383,7 +539,15 @@ export default function Sidebar({ collapsed, mobileOpen = false, onToggle, onNav
                             >
                               <span className="sidebar__submenu-bullet">—</span>
                               <span className="sidebar__submenu-label">{sub.label}</span>
-                              {sub.children && <span className="sidebar__submenu-chevron">{isSubExpanded ? <HiOutlineChevronUp size={14} /> : <HiOutlineChevronDown size={14} />}</span>}
+                              {sub.children && (
+                                <span className="sidebar__submenu-chevron">
+                                  {isSubExpanded ? (
+                                    <HiOutlineChevronUp size={14} />
+                                  ) : (
+                                    <HiOutlineChevronDown size={14} />
+                                  )}
+                                </span>
+                              )}
                               {shouldShowBadge(sub.badge) && (
                                 <span className="sidebar__badge sidebar__badge--red sidebar__badge--sm">
                                   {sub.badge}
@@ -392,7 +556,17 @@ export default function Sidebar({ collapsed, mobileOpen = false, onToggle, onNav
                             </button>
                             {sub.children && isSubExpanded && (
                               <ul className="sidebar__nested-submenu">
-                                {sub.children.map((child) => <li key={child.id}><button className={`sidebar__nested-submenu-btn ${location.pathname.startsWith(child.path) ? 'sidebar__nested-submenu-btn--active' : ''}`} onClick={() => handleSubClick(child.path)}><span>—</span>{child.label}</button></li>)}
+                                {sub.children.map((child) => (
+                                  <li key={child.id}>
+                                    <button
+                                      className={`sidebar__nested-submenu-btn ${location.pathname.startsWith(child.path) ? 'sidebar__nested-submenu-btn--active' : ''}`}
+                                      onClick={() => handleSubClick(child.path)}
+                                    >
+                                      <span>—</span>
+                                      {child.label}
+                                    </button>
+                                  </li>
+                                ))}
                               </ul>
                             )}
                           </li>
@@ -414,12 +588,23 @@ export default function Sidebar({ collapsed, mobileOpen = false, onToggle, onNav
           </div>
           {showDetails && (
             <div className="sidebar__user-info">
-              <span className="sidebar__user-name">{currentAccount?.name || currentAccount?.ho_ten || currentAccount?.hoTen || 'Người dùng'}</span>
+              <span className="sidebar__user-name">
+                {currentAccount?.name ||
+                  currentAccount?.ho_ten ||
+                  currentAccount?.hoTen ||
+                  'Người dùng'}
+              </span>
               <span className="sidebar__user-email">{currentAccount?.email || ''}</span>
             </div>
           )}
         </div>
-        <button type="button" className="sidebar__exit-btn" id="exit-to-portal" title="Về cổng khách hàng" onClick={() => navigate('/')}>
+        <button
+          type="button"
+          className="sidebar__exit-btn"
+          id="exit-to-portal"
+          title="Về cổng khách hàng"
+          onClick={() => navigate('/')}
+        >
           <HiOutlineLogout size={18} />
           {showDetails && <span>Về cổng khách hàng</span>}
         </button>

@@ -18,7 +18,11 @@ const PromotionsPage = () => {
     const fetchProducts = async () => {
       setIsLoading(true);
       try {
-        const response = await productService.getProducts({ ton_kho: true, limit: 100, sort: 'moi_nhat' });
+        const response = await productService.getProducts({
+          ton_kho: true,
+          limit: 100,
+          sort: 'moi_nhat',
+        });
         if (response?.data?.danhSachSanPham) {
           const mapped = response.data.danhSachSanPham
             .map((p) => ({
@@ -58,7 +62,7 @@ const PromotionsPage = () => {
   return (
     <div className="storefront-category-page">
       <Header />
-      
+
       {/* Breadcrumb */}
       <div className="breadcrumb-wrapper">
         <div className="container">
@@ -71,9 +75,14 @@ const PromotionsPage = () => {
       </div>
 
       {/* Banner */}
-      <div className="category-banner" style={{ background: 'linear-gradient(90deg, #8b0000, #ff0000)' }}>
+      <div
+        className="category-banner"
+        style={{ background: 'linear-gradient(90deg, #8b0000, #ff0000)' }}
+      >
         <div className="container">
-          <h1 className="category-title" style={{ color: '#fff', textTransform: 'uppercase' }}>CHƯƠNG TRÌNH KHUYẾN MÃI</h1>
+          <h1 className="category-title" style={{ color: '#fff', textTransform: 'uppercase' }}>
+            CHƯƠNG TRÌNH KHUYẾN MÃI
+          </h1>
         </div>
       </div>
 
@@ -83,11 +92,17 @@ const PromotionsPage = () => {
         <div className="category-content">
           <div className="category-toolbar">
             <div className="toolbar-left">
-              <span>Hiển thị <strong>{sortedProducts.length}</strong> sản phẩm</span>
+              <span>
+                Hiển thị <strong>{sortedProducts.length}</strong> sản phẩm
+              </span>
             </div>
             <div className="toolbar-right">
               <label>Sắp xếp theo:</label>
-              <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} className="sort-select">
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+                className="sort-select"
+              >
                 <option value="newest">Mới nhất</option>
                 <option value="price-asc">Giá tăng dần</option>
                 <option value="price-desc">Giá giảm dần</option>
@@ -97,20 +112,32 @@ const PromotionsPage = () => {
 
           <div className="category-product-grid" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
             {isLoading ? (
-              <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '40px', color: '#888' }}>
+              <div
+                style={{
+                  gridColumn: '1 / -1',
+                  textAlign: 'center',
+                  padding: '40px',
+                  color: '#888',
+                }}
+              >
                 Đang tải sản phẩm...
               </div>
             ) : sortedProducts.length > 0 ? (
-              sortedProducts.map((product) => (
-                <ProductCard key={product.id} product={product} />
-              ))
+              sortedProducts.map((product) => <ProductCard key={product.id} product={product} />)
             ) : (
-              <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '40px', color: '#888' }}>
+              <div
+                style={{
+                  gridColumn: '1 / -1',
+                  textAlign: 'center',
+                  padding: '40px',
+                  color: '#888',
+                }}
+              >
                 Chưa có sản phẩm nào.
               </div>
             )}
           </div>
-          
+
           {/* Pagination UI */}
           <div className="category-pagination">
             <button className="page-btn active">1</button>

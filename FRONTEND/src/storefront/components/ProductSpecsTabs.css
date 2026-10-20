@@ -34,7 +34,8 @@
   background-color: #0a0a0a;
 }
 
-.specs-content, .desc-content {
+.specs-content,
+.desc-content {
   max-width: 1200px;
   margin: 0 auto;
   padding: 0 20px;
