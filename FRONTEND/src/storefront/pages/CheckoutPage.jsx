@@ -499,34 +499,34 @@ const CheckoutPage = () => {
       setHasPendingAttempt(Boolean(checkoutAttempt.current));
       setPlacing(false);
     }
+  };
 
-    const removeCheckoutPromotion = async () => {
-      if (
-        placingRef.current ||
-        checkoutAttempt.current ||
-        promotionRemoving ||
-        !promotionCode
-      ) {
-        return;
-      }
+  const removeCheckoutPromotion = async () => {
+    if (
+      placingRef.current ||
+      checkoutAttempt.current ||
+      promotionRemoving ||
+      !promotionCode
+    ) {
+      return;
+    }
 
-      setPromotionRemoving(true);
-      setCheckoutError("");
+    setPromotionRemoving(true);
+    setCheckoutError("");
 
-      try {
-        await cartService.removePromotion();
+    try {
+      await cartService.removePromotion();
 
-        setPromotionCode(null);
-        setPreview(null);
-        setPreviewRevision((value) => value + 1);
+      setPromotionCode(null);
+      setPreview(null);
+      setPreviewRevision((value) => value + 1);
 
-        window.dispatchEvent(new CustomEvent("cartUpdated"));
-      } catch (error) {
-        setCheckoutError(errorMessage(error));
-      } finally {
-        setPromotionRemoving(false);
-      }
-    };
+      window.dispatchEvent(new CustomEvent("cartUpdated"));
+    } catch (error) {
+      setCheckoutError(errorMessage(error));
+    } finally {
+      setPromotionRemoving(false);
+    }
   };
 
   return (
