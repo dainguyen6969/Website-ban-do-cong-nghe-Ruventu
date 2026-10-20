@@ -5,6 +5,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.time.temporal.TemporalAccessor;
+import java.util.Collection;
 import java.util.Map;
 import org.apache.poi.ss.usermodel.BorderStyle;
 import org.apache.poi.ss.usermodel.Cell;
@@ -54,6 +55,136 @@ public class DashboardExcelExporter {
     } catch (IOException exception) {
       throw new IllegalStateException("Không thể tạo file Dashboard", exception);
     }
+  }
+
+  public byte[] exportSnapshot(Map<String, Object> snapshots) {
+
+    try (XSSFWorkbook workbook = new XSSFWorkbook();
+        ByteArrayOutputStream output = new ByteArrayOutputStream()) {
+
+      Styles styles = styles(workbook);
+
+      for (var entry : snapshots.entrySet()) {
+        Sheet target =
+            sheet(
+                workbook,
+                entry.getKey(),
+                styles,
+                entry.getKey().toUpperCase(java.util.Locale.ROOT),
+                2);
+
+        int row = header(target, 2, styles, "Chỉ tiêu / dữ liệu", "Giá trị");
+
+        snapshotRows(target, row, "", entry.getValue(), styles);
+
+        finish(target, 2);
+      }
+
+      workbook.write(output);
+      return output.toByteArray();
+
+    } catch (IOException exception) {
+      throw new IllegalStateException("Không tạo được báo cáo Dashboard", exception);
+    }
+  }
+
+  private int snapshotRows(Sheet sheet, int row, String name, Object value, Styles styles) {
+
+    if (row >= 1_048_570) {
+      throw new IllegalStateException("Báo cáo vượt giới hạn dòng XLSX");
+    }
+
+    if (value instanceof Map<?, ?> fields) {
+      if (!name.isBlank()) {
+        row = section(sheet, row, snapshotLabel(name), styles);
+      }
+
+      for (var field : fields.entrySet()) {
+        row = snapshotRows(sheet, row, field.getKey().toString(), field.getValue(), styles);
+      }
+
+      return row;
+    }
+
+    if (value instanceof Collection<?> items) {
+      row = section(sheet, row, snapshotLabel(name), styles);
+
+      if (items.isEmpty()) {
+        return info(sheet, row, "Dữ liệu", "Không phát sinh", styles);
+      }
+
+      int index = 1;
+
+      for (Object item : items) {
+        row = snapshotRows(sheet, row, "Dòng " + index++, item, styles);
+      }
+
+      return row;
+    }
+
+    Object displayed =
+        value instanceof Number && ("id".equals(name) || name.endsWith("_id"))
+            ? value.toString()
+            : value;
+
+    return info(sheet, row, snapshotLabel(name), displayed, styles);
+  }
+
+  private String snapshotLabel(String key) {
+    return switch (key) {
+      case "cap_nhat_luc" -> "Cập nhật lúc";
+      case "bo_loc" -> "Bộ lọc";
+      case "tu_ngay" -> "Từ ngày";
+      case "den_ngay" -> "Đến ngày";
+      case "kenh_ban" -> "Kênh bán";
+      case "ky_truoc" -> "Kỳ trước";
+      case "ky_hien_tai" -> "Kỳ hiện tại";
+      case "kinh_doanh" -> "Kinh doanh";
+      case "hien_tai" -> "Hiện tại";
+      case "gia_tri" -> "Giá trị";
+      case "ty_le_thay_doi" -> "Tỷ lệ thay đổi (%)";
+      case "doanh_thu_thuan" -> "Doanh thu thuần trước VAT";
+      case "doanh_thu_ban_hang" -> "Tiền hàng trước VAT";
+      case "tong_giam_gia" -> "Giảm giá đã chốt";
+      case "gia_tri_hang_tra" -> "Hàng nhận trả trước VAT";
+      case "gia_tri_trung_binh_don" -> "Giá trị trung bình đơn";
+      case "gia_von_uoc_tinh" -> "Giá vốn ước tính theo giá nhập hiện tại";
+      case "loi_nhuan_gop_uoc_tinh" -> "Lợi nhuận gộp ước tính";
+      case "so_don" -> "Số đơn";
+      case "so_luong_ban" -> "Số lượng hàng mua";
+      case "so_luong_da_nhan_tra" -> "Số lượng hàng mua đã nhận trả";
+      case "so_luong_qua_da_giao" -> "Số lượng quà đã giao";
+      case "thuc_thu" -> "Thực thu toàn cửa hàng";
+      case "co_cau_kenh" -> "Cơ cấu kênh bán";
+      case "tong_thu" -> "Tổng thu";
+      case "tong_chi" -> "Tổng chi";
+      case "chenh_lech" -> "Chênh lệch thu chi";
+      case "trong_ky" -> "Trong kỳ";
+      case "so_du_quy_hien_tai", "so_du_quy" -> "Số dư quỹ hiện tại";
+      case "bao_hanh" -> "Trạng thái bảo hành";
+      case "tra_hang" -> "Trạng thái trả hàng";
+      case "tai_chinh_bao_hanh" -> "Nghĩa vụ tài chính bảo hành";
+      case "phan_tich_bao_hanh_tra_hang" -> "Phần thu chi hậu mãi nằm trong tổng";
+      case "chat_luong_du_lieu" -> "Chất lượng dữ liệu";
+      case "canh_bao" -> "Cảnh báo";
+      case "message" -> "Nội dung cảnh báo";
+      case "code" -> "Mã cảnh báo";
+      case "items" -> "Danh sách";
+      case "ban_chay" -> "Nhóm sản phẩm đứng đầu theo giới hạn";
+      case "ton_lau" -> "Nhóm tồn lâu theo giới hạn";
+      case "ten_san_pham" -> "Tên sản phẩm";
+      case "ten_phien_ban" -> "Tên phiên bản";
+      case "ton_thuc_te" -> "Tồn thực tế";
+      case "ton_co_the_ban" -> "Tồn có thể bán";
+      case "so_bo_co_the_lap" -> "Số bộ có thể lắp";
+      case "so_luong_giu_cho_bao_hanh" -> "Giữ cho bảo hành";
+      case "tong_hang_loi" -> "Tổng hàng lỗi";
+      case "moc_thoi_gian_kinh_doanh" -> "Mốc thời gian kinh doanh";
+      case "moc_thoi_gian_so_quy" -> "Mốc thời gian sổ quỹ";
+      case "moc_thoi_gian_thong_ke_ky" -> "Mốc thời gian ưu đãi";
+      case "phuong_phap_doanh_thu" -> "Phương pháp doanh thu";
+      default -> key.replace('_', ' ');
+    };
   }
 
   private void summarySheet(Workbook workbook, Styles styles, AdminDashboardResponse.Summary data) {
