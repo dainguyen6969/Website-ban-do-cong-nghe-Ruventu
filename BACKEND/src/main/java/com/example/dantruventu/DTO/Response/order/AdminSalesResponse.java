@@ -1,6 +1,7 @@
 package com.example.dantruventu.DTO.Response.order;
 
 import com.example.dantruventu.DTO.Response.PaginationResponse;
+import com.example.dantruventu.DTO.catalog.CatalogFields;
 import com.example.dantruventu.Enum.*;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -88,10 +89,10 @@ public final class AdminSalesResponse {
     private Boolean baoHanhTheoLinhKien;
 
     @JsonProperty("thuoc_tinh_phien_ban")
-    private List<com.example.dantruventu.DTO.catalog.CatalogFields.AttributeData> thuocTinhPhienBan;
+    private List<CatalogFields.AttributeData> thuocTinhPhienBan;
 
     @JsonProperty("thanh_phan")
-    private List<com.example.dantruventu.DTO.catalog.CatalogFields.ComboPart> thanhPhan;
+    private List<CatalogFields.ComboPart> thanhPhan;
   }
 
   public record SerialRequirement(

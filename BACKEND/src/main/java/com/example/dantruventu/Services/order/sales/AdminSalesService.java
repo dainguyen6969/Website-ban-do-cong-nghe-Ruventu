@@ -198,10 +198,27 @@ public class AdminSalesService {
         managedSerial |= Boolean.TRUE.equals(serialModes.get(unit.getKey()));
       }
 
-      response.setTonThucTe(actual == Long.MAX_VALUE ? 0 : actual);
-      response.setTonCoTheBan(available == Long.MAX_VALUE ? 0 : available);
-      response.setQuanLySerial(managedSerial);
+      boolean combo = variant.getSanPham().getLoaiSanPham() == LoaiSanPham.BO_PC;
+
+      long actualQuantity = actual == Long.MAX_VALUE ? 0 : actual;
+      long availableQuantity = available == Long.MAX_VALUE ? 0 : available;
+
+      response.setTonThucTe(combo ? null : actualQuantity);
+      response.setTonCoTheBan(combo ? null : availableQuantity);
+      response.setSoBoCoTheLap(combo ? availableQuantity : null);
+
+      response.setQuanLySerial(Boolean.TRUE.equals(variant.getCoQuanLySerial()));
+
       response.setDonGia(money(variant.getGiaBanLe()));
+
+      response.setThoiHanBaoHanhThang(combo ? null : variant.getSanPham().getThoiHanBaoHanhThang());
+
+      response.setBaoHanhTheoLinhKien(combo);
+
+      response.setThuocTinhPhienBan(attributes.getOrDefault(variant.getId(), List.of()));
+
+      response.setThanhPhan(
+          combo ? parts.getOrDefault(variant.getSanPham().getId(), List.of()) : List.of());
 
       response.setAnhDaiDien(
           imageRepository
