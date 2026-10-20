@@ -39,13 +39,13 @@ export default function ProductSection({
   // Khi danh mục thay đổi, tab cũ không còn tồn tại sẽ về Tất cả.
   const selectedTab = tabs.includes(activeTab) ? activeTab : "";
 
-  const visibleProducts = selectedTab
+  const visibleProducts = (selectedTab
     ? items.filter(
         (product) =>
           categoryKey(product.category || "Chưa phân loại") ===
           categoryKey(selectedTab),
       )
-    : items;
+    : items).slice(0, 8);
 
   return (
     <section className={`product-section ${darkTheme ? "dark-theme" : ""}`}>

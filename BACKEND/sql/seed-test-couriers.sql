@@ -3,11 +3,11 @@ SET NAMES utf8mb4;
 START TRANSACTION;
 INSERT INTO doi_tac_van_chuyen
   (ma_doi_tac, ten_doi_tac, so_dien_thoai, loai_doi_tac, trang_thai, ghi_chu, ngay_tao, ngay_cap_nhat)
-SELECT 'TEST-SHIP-01', 'Nguyễn Văn An (test)', '0900000001', 'SHIP_CA_NHAN', 'DANG_HOAT_DONG', 'Dữ liệu test giao hàng theo yêu cầu', NOW(), NOW()
+SELECT 'TEST-SHIP-01', 'Nguyễn Văn An (test)', '0900000001', 'SHIP_CA_NHAN', 1, 'Dữ liệu test giao hàng theo yêu cầu', NOW(), NOW()
 WHERE NOT EXISTS (SELECT 1 FROM doi_tac_van_chuyen WHERE ma_doi_tac = 'TEST-SHIP-01');
 INSERT INTO doi_tac_van_chuyen
   (ma_doi_tac, ten_doi_tac, so_dien_thoai, loai_doi_tac, trang_thai, ghi_chu, ngay_tao, ngay_cap_nhat)
-SELECT 'TEST-SHIP-02', 'Trần Văn Bình (test)', '0900000002', 'SHIP_CA_NHAN', 'DANG_HOAT_DONG', 'Dữ liệu test giao hàng theo yêu cầu', NOW(), NOW()
+SELECT 'TEST-SHIP-02', 'Trần Văn Bình (test)', '0900000002', 'SHIP_CA_NHAN', 1, 'Dữ liệu test giao hàng theo yêu cầu', NOW(), NOW()
 WHERE NOT EXISTS (SELECT 1 FROM doi_tac_van_chuyen WHERE ma_doi_tac = 'TEST-SHIP-02');
 
 -- Seeded order 13 was already packed/exported but had no delivery record.

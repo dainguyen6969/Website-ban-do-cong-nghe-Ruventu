@@ -38,13 +38,17 @@ public interface ChiTietTraHangRepository extends JpaRepository<ChiTietTraHang, 
 
   @Query(
       """
-      SELECT c.chiTietDonHang.id AS chiTietDonHangId,
-             SUM(c.soLuong) AS soLuongDaYeuCauTra,
-             SUM(c.thanhTienHoan) AS tongTienDaYeuCauTra
-      FROM ChiTietTraHang c
-      WHERE c.chiTietDonHang.donHang.id = :orderId
-      GROUP BY c.chiTietDonHang.id
-      """)
+            SELECT c.chiTietDonHang.id AS chiTietDonHangId,
+                   SUM(c.soLuong) AS soLuongDaYeuCauTra,
+                   SUM(c.thanhTienHoan) AS tongTienDaYeuCauTra
+            FROM ChiTietTraHang c
+            WHERE c.chiTietDonHang.donHang.id = :orderId
+              AND c.phieuTraHang.trangThaiTraHang NOT IN (
+                com.example.dantruventu.Enum.TrangThaiTraHang.HUY,
+                com.example.dantruventu.Enum.TrangThaiTraHang.TU_CHOI
+              )
+            GROUP BY c.chiTietDonHang.id
+            """)
   List<ReturnedQuantityProjection> sumReturnedQuantityByOrder(@Param("orderId") Long orderId);
 
   @Query(

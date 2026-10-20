@@ -96,7 +96,7 @@ function WarrantyDetail({ id }) {
             ['THỜI ĐIỂM NHẬN THỰC TẾ', data.receivedAt], ['ĐIỀU KIỆN MIỄN PHÍ', data.eligibility],
             ['CĂN CỨ XÁC MINH', data.verification], ['ĐƠN VỊ DỰ KIẾN', data.receptionUnit],
             ['DẤU HIỆU NHẬN DẠNG', data.identification], ['GHI CHÚ', data.receptionNote],
-          ]} /><div className="w-shell-subsection w-shell-evidence"><div><h3>PHỤ KIỆN</h3>{data.accessories?.length ? <ul>{data.accessories.map(item => <li key={item}>{item}</li>)}</ul> : '—'}</div><div><h3>ẢNH / BẰNG CHỨNG</h3><p className="w-shell-note">Không có ảnh đã lưu.</p></div></div></WarrantyPanel>
+          ]} /><div className="w-shell-subsection w-shell-evidence"><div><h3>PHỤ KIỆN</h3>{data.accessories?.length ? <ul>{data.accessories.map(item => <li key={item}>{item}</li>)}</ul> : '—'}</div><div><h3>ẢNH / BẰNG CHỨNG</h3>{data.photos?.length ? <div className="w-intake-photos">{data.photos.map((photo, index) => <figure key={index}><img src={photo.url} alt={photo.name} /><figcaption>{photo.name}</figcaption></figure>)}</div> : <p className="w-shell-note">Không có ảnh đã lưu.</p>}</div></div></WarrantyPanel>
           <WarrantyPanel title="CÁC SỰ KIỆN ĐÃ TẢI" note="Tối đa ba sự kiện trên trang lịch sử hiện tại; không suy diễn từ trạng thái." action={action('XEM TOÀN BỘ LỊCH SỬ', () => setTab(4))}>{emptyHistory(history.slice(0, 3), 'Chưa có sự kiện đã tải.')}</WarrantyPanel>
         </>}
 

@@ -292,6 +292,24 @@ public class AdminDisbursementService {
 
   @Transactional
   public AdminDisbursementCancelResponse cancelDisbursement(
+      String rawId, AdminDisbursementCancelRequest request, NguoiDung actor, String requestKey) {
+
+    Long id = parseCancelId(rawId);
+
+    if (request == null || !Boolean.TRUE.equals(request.getXacNhan())) {
+      throw new AppException(ErrorCode.INVALID_DISBURSEMENT_CANCEL_REQUEST);
+    }
+
+    return cashbookService.executeOnce(
+        CashbookService.uuidKey("PC-CAN-", requestKey),
+        actor,
+        java.util.List.of(id, request),
+        AdminDisbursementCancelResponse.class,
+        () -> cancelDisbursement(rawId, request));
+  }
+
+  @Transactional
+  public AdminDisbursementCancelResponse cancelDisbursement(
       String rawId, AdminDisbursementCancelRequest request) {
     Long id = parseCancelId(rawId);
 
@@ -304,7 +322,7 @@ public class AdminDisbursementService {
             .findByIdAndLoaiPhieuForUpdate(id, LoaiPhieuThuChi.CHI)
             .orElseThrow(() -> new AppException(ErrorCode.DISBURSEMENT_CANCEL_NOT_FOUND));
 
-    if (disbursement.getNguonTao() == NguonTaoPhieuThuChi.TU_DONG) {
+    if (CashbookService.protectedVoucher(disbursement)) {
       throw new AppException(ErrorCode.AUTOMATIC_DISBURSEMENT_CANNOT_BE_CANCELLED);
     }
 

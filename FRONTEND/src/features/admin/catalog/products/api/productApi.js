@@ -1,4 +1,5 @@
 import { apiRequest as request } from '../../../../../auth/backendAuth';
+import { toSpecRows } from '../../../../../shared/services/productSpecifications';
 
 const PATH = '/api/v1/admin/products';
 const nullableNumber = value => value == null ? null : Number(value);
@@ -69,10 +70,10 @@ function normalizeProductDetail(item) {
     phanLoai: isCombo ? 'Theo bộ (Combo)' : 'Sản phẩm đơn',
     isCombo,
     moTa: item.mo_ta || '',
-    specs: Object.entries(item.thong_so_ky_thuat || {}).map(([name, value], index) => ({
+    specs: toSpecRows(item.thong_so_ky_thuat).map(({ label, value }, index) => ({
       id: index + 1,
-      name,
-      value: typeof value === 'string' ? value : JSON.stringify(value),
+      name: label,
+      value,
     })),
     vat: `${Number(item.thue_vat ?? 0)}%`,
     trangThaiBan: Number(item.trang_thai) === 1

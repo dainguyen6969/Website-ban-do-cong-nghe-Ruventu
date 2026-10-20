@@ -647,3 +647,25 @@
   .custom-build-page .action-buttons-stacked { flex-direction: row; }
   .custom-build-page .selected-price-row, .custom-build-page .selected-total-row { flex-wrap: wrap; gap: 4px; }
 }
+
+.btn-export-build {
+  width: 100%;
+  margin-top: 10px;
+  padding: 13px 16px;
+  border: 1px solid #111;
+  background: #111;
+  color: #fff;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.btn-export-build:hover:not(:disabled) {
+  background: #333;
+}
+
+.btn-export-build:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}

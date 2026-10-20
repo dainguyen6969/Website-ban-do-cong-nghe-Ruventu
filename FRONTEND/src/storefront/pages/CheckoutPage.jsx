@@ -1,6 +1,17 @@
 import { Link, useNavigate, useLocation } from "react-router-dom";
-import { VIETNAM_LOCATIONS, matchProvince, matchDistrict } from "../../data/vietnamLocations";
-import { ArrowLeft, ShieldCheck, Truck, MapPin, Navigation, Loader2 } from "lucide-react";
+import {
+  VIETNAM_LOCATIONS,
+  matchProvince,
+  matchDistrict,
+} from "../../data/vietnamLocations";
+import {
+  ArrowLeft,
+  ShieldCheck,
+  Truck,
+  MapPin,
+  Navigation,
+  Loader2,
+} from "lucide-react";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 import { orderService } from "../../shared/services/orderService";
@@ -11,6 +22,7 @@ import {
   errorMessage,
   withIdempotency,
 } from "../../shared/services/mutationUtils";
+import { priceConfirmation } from "../../shared/services/saleQuote";
 
 const formatPrice = (price) => {
   const num = Number(price);
@@ -26,6 +38,9 @@ const CheckoutPage = () => {
 
   const [cartItemIds, setCartItemIds] = useState([]);
   const [cartItemsData, setCartItemsData] = useState([]);
+  const [cartReady, setCartReady] = useState(false);
+  const [promotionCode, setPromotionCode] = useState(null);
+  const [promotionRemoving, setPromotionRemoving] = useState(false);
   const [preview, setPreview] = useState(null);
   const [previewLoading, setPreviewLoading] = useState(false);
   const [previewError, setPreviewError] = useState("");
@@ -77,7 +92,7 @@ const CheckoutPage = () => {
             : null,
       },
       phuong_thuc_thanh_toan: paymentMethod,
-      ma_chuong_trinh: location.state?.voucherCode || null,
+      ma_chuong_trinh: promotionCode,
       ghi_chu: formData.note.trim() || null,
     }),
     [
@@ -90,7 +105,7 @@ const CheckoutPage = () => {
       formData.ward,
       formData.province,
       formData.note,
-      location.state?.voucherCode,
+      promotionCode,
     ],
   );
 
@@ -100,6 +115,7 @@ const CheckoutPage = () => {
     preview?.signature === draftSignature ? preview.data : null;
 
   const draftReady =
+    cartReady &&
     cartItemIds.length > 0 &&
     Boolean(checkoutDraft.thong_tin_nguoi_nhan.ten_nguoi_nhan) &&
     /^(?:\+84|0)\d{9,10}$/.test(
@@ -114,49 +130,91 @@ const CheckoutPage = () => {
   const tempSubtotal = useMemo(() => {
     return cartItemsData
       .filter((c) => cartItemIds.includes(c.cartItemId))
-      .reduce((sum, item) => sum + (Number(item.donGia ?? item.giaBan) || 0) * (item.soLuong || 1), 0);
+      .reduce(
+        (sum, item) =>
+          sum + (Number(item.donGia ?? item.giaBan) || 0) * (item.soLuong || 1),
+        0,
+      );
   }, [cartItemsData, cartItemIds]);
 
-  const tempShippingFee = useMemo(() => {
-    if (deliveryMethod === "NHAN_TAI_CUA_HANG") return 0;
-    if (tempSubtotal > 5000000 || tempSubtotal === 0) return 0;
-    return 30000;
-  }, [deliveryMethod, tempSubtotal]);
-
-  const tempTotal = tempSubtotal + tempShippingFee;
-
   useEffect(() => {
-    // Check if user is logged in to prefill data
+    let active = true;
+
     try {
       const userStr = localStorage.getItem("user");
+
       if (userStr) {
         const user = JSON.parse(userStr);
-        setFormData((prev) => ({
-          ...prev,
-          name: user.ho_ten || user.name || user.hoTen || prev.name,
-          phone: user.so_dien_thoai || user.soDienThoai || prev.phone,
-          email: user.email || prev.email,
+
+        setFormData((previous) => ({
+          ...previous,
+          name: user.ho_ten || user.name || user.hoTen || previous.name,
+          phone: user.so_dien_thoai || user.soDienThoai || previous.phone,
+          email: user.email || previous.email,
         }));
       }
-    } catch (e) {
-      console.error(e);
+    } catch (error) {
+      console.error(error);
     }
 
-    if (location.state?.cartItemIds && location.state.cartItemIds.length > 0) {
-      setCartItemIds(location.state.cartItemIds);
-      // Lấy thông tin giỏ hàng để hiển thị tên và ảnh sản phẩm
-      cartService
-        .getCurrentCart()
-        .then((res) => {
-          if (res?.data?.data?.items) {
-            setCartItemsData(res.data.data.items);
-          }
-        })
-        .catch((err) => console.error("Lỗi fetch giỏ hàng ở checkout:", err));
-    } else {
-      // If no item selected, return to cart
-      navigate("/cart");
+    const selectedIds = (location.state?.cartItemIds || []).map(Number);
+
+    if (!selectedIds.length) {
+      navigate("/cart", { replace: true });
+
+      return () => {
+        active = false;
+      };
     }
+
+    setCartReady(false);
+    setCartItemIds(selectedIds);
+    setCheckoutError("");
+
+    cartService
+      .getCurrentCart()
+      .then((response) => {
+        if (!active) return;
+
+        const cart = response.data?.data;
+
+        if (!cart || !Array.isArray(cart.items)) {
+          throw new Error("Dữ liệu giỏ hàng không hợp lệ.");
+        }
+
+        const availableIds = new Set(
+          cart.items.map((item) => Number(item.cartItemId)),
+        );
+
+        if (selectedIds.some((id) => !availableIds.has(id))) {
+          throw new Error(
+            "Giỏ hàng đã thay đổi. Vui lòng trở lại giỏ hàng để chọn lại.",
+          );
+        }
+
+        const promotion = cart.khuyen_mai || cart.khuyenMai;
+
+        setCartItemsData(cart.items);
+
+        setPromotionCode(
+          promotion?.ma_chuong_trinh ||
+            promotion?.maChuongTrinh ||
+            promotion?.maKhuyenMai ||
+            null,
+        );
+
+        setCartReady(true);
+      })
+      .catch((error) => {
+        if (!active) return;
+
+        setCartReady(false);
+        setCheckoutError(errorMessage(error));
+      });
+
+    return () => {
+      active = false;
+    };
   }, [location.state, navigate]);
 
   useEffect(() => {
@@ -203,7 +261,7 @@ const CheckoutPage = () => {
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    
+
     if (name === "province") {
       const defaultWard = LOCATION_DATA[value]?.[0] || "";
       setFormData((prev) => ({
@@ -254,7 +312,10 @@ const CheckoutPage = () => {
 
     const matchedProvince = matchProvince(compound.province || "");
     const availableWards = LOCATION_DATA[matchedProvince] || [];
-    const matchedWard = matchDistrict(compound.district || compound.commune || "", availableWards);
+    const matchedWard = matchDistrict(
+      compound.district || compound.commune || "",
+      availableWards,
+    );
 
     setFormData((prev) => ({
       ...prev,
@@ -293,7 +354,10 @@ const CheckoutPage = () => {
 
             const matchedProvince = matchProvince(compound.province || "");
             const availableWards = LOCATION_DATA[matchedProvince] || [];
-            const matchedWard = matchDistrict(compound.district || compound.commune || "", availableWards);
+            const matchedWard = matchDistrict(
+              compound.district || compound.commune || "",
+              availableWards,
+            );
 
             setFormData((prev) => ({
               ...prev,
@@ -308,7 +372,9 @@ const CheckoutPage = () => {
           }
         } catch (err) {
           console.error("Lỗi lấy thông tin vị trí:", err);
-          alert("Không thể chuyển đổi tọa độ thành địa chỉ. Vui lòng nhập tay.");
+          alert(
+            "Không thể chuyển đổi tọa độ thành địa chỉ. Vui lòng nhập tay.",
+          );
         } finally {
           setLocatingUser(false);
         }
@@ -316,24 +382,30 @@ const CheckoutPage = () => {
       (err) => {
         console.error("Lỗi Geolocation:", err);
         setLocatingUser(false);
-        alert("Không thể truy cập vị trí hiện tại. Vui lòng cho phép quyền định vị trên trình duyệt.");
+        alert(
+          "Không thể truy cập vị trí hiện tại. Vui lòng cho phép quyền định vị trên trình duyệt.",
+        );
       },
-      { timeout: 10000, enableHighAccuracy: true }
+      { timeout: 10000, enableHighAccuracy: true },
     );
   };
 
   // Đóng dropdown gợi ý địa chỉ khi click ra ngoài
   useEffect(() => {
     const handleClickOutside = (e) => {
-      if (addressWrapperRef.current && !addressWrapperRef.current.contains(e.target)) {
+      if (
+        addressWrapperRef.current &&
+        !addressWrapperRef.current.contains(e.target)
+      ) {
         setShowAddressDropdown(false);
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
   const handlePlaceOrder = async () => {
-    if (placingRef.current) return;
+    if (placingRef.current || promotionRemoving) return;
 
     const newErrors = {};
 
@@ -369,8 +441,11 @@ const CheckoutPage = () => {
       let payload;
 
       if (checkoutAttempt.current) {
-        const { tong_thanh_toan_xac_nhan: _total, ...previousDraft } =
-          checkoutAttempt.current.body;
+        const {
+          ma_xac_nhan_gia: _quote,
+          tong_thanh_toan_xac_nhan: _total,
+          ...previousDraft
+        } = checkoutAttempt.current.body;
 
         if (JSON.stringify(previousDraft) !== draftSignature) {
           throw new Error(
@@ -390,7 +465,7 @@ const CheckoutPage = () => {
 
         payload = {
           ...checkoutDraft,
-          tong_thanh_toan_xac_nhan: previewData.tong_thanh_toan,
+          ...priceConfirmation(previewData),
         };
       }
 
@@ -413,7 +488,9 @@ const CheckoutPage = () => {
     } catch (error) {
       setCheckoutError(errorMessage(error));
 
-      if ([400, 409, 422].includes(error.response?.status)) {
+      const status = Number(error.status || error.response?.status);
+
+      if ([400, 404, 409, 422].includes(status)) {
         setPreview(null);
         setPreviewRevision((current) => current + 1);
       }
@@ -421,6 +498,34 @@ const CheckoutPage = () => {
       placingRef.current = false;
       setHasPendingAttempt(Boolean(checkoutAttempt.current));
       setPlacing(false);
+    }
+  };
+
+  const removeCheckoutPromotion = async () => {
+    if (
+      placingRef.current ||
+      checkoutAttempt.current ||
+      promotionRemoving ||
+      !promotionCode
+    ) {
+      return;
+    }
+
+    setPromotionRemoving(true);
+    setCheckoutError("");
+
+    try {
+      await cartService.removePromotion();
+
+      setPromotionCode(null);
+      setPreview(null);
+      setPreviewRevision((value) => value + 1);
+
+      window.dispatchEvent(new CustomEvent("cartUpdated"));
+    } catch (error) {
+      setCheckoutError(errorMessage(error));
+    } finally {
+      setPromotionRemoving(false);
     }
   };
 
@@ -458,7 +563,10 @@ const CheckoutPage = () => {
       </div>
 
       <div className="checkout-page-content container">
-        <div className="checkout-main">
+        <div
+          className="checkout-main"
+          inert={placing || hasPendingAttempt || promotionRemoving}
+        >
           {/* Contact Info */}
           <div className="checkout-section">
             <h3 className="section-title">THÔNG TIN LIÊN HỆ</h3>
@@ -570,9 +678,22 @@ const CheckoutPage = () => {
                     </select>
                   </div>
                 </div>
-                <div className="form-group" ref={addressWrapperRef} style={{ position: "relative" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
-                    <label className="form-label" style={{ margin: 0 }}>ĐỊA CHỈ CỤ THỂ</label>
+                <div
+                  className="form-group"
+                  ref={addressWrapperRef}
+                  style={{ position: "relative" }}
+                >
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      marginBottom: "6px",
+                    }}
+                  >
+                    <label className="form-label" style={{ margin: 0 }}>
+                      ĐỊA CHỈ CỤ THỂ
+                    </label>
                     <button
                       type="button"
                       onClick={handleGetCurrentLocation}
@@ -612,14 +733,23 @@ const CheckoutPage = () => {
                       value={formData.address}
                       onChange={handleInputChange}
                       onFocus={() => {
-                        if (addressSuggestions.length > 0) setShowAddressDropdown(true);
+                        if (addressSuggestions.length > 0)
+                          setShowAddressDropdown(true);
                       }}
                       className={`form-input ${errors.address ? "input-error" : ""}`}
                       placeholder="Nhập địa chỉ hoặc tên địa điểm (Goong Maps)..."
                       autoComplete="off"
                     />
                     {addressSearchLoading && (
-                      <div style={{ position: "absolute", right: "12px", top: "50%", transform: "translateY(-50%)", color: "#888" }}>
+                      <div
+                        style={{
+                          position: "absolute",
+                          right: "12px",
+                          top: "50%",
+                          transform: "translateY(-50%)",
+                          color: "#888",
+                        }}
+                      >
                         <Loader2 size={16} className="spin-animate" />
                       </div>
                     )}
@@ -640,7 +770,8 @@ const CheckoutPage = () => {
                           <MapPin size={16} className="goong-icon" />
                           <div className="goong-item-text">
                             <span className="goong-main">
-                              {item.structured_formatting?.main_text || item.description}
+                              {item.structured_formatting?.main_text ||
+                                item.description}
                             </span>
                             {item.structured_formatting?.secondary_text && (
                               <span className="goong-secondary">
@@ -711,159 +842,171 @@ const CheckoutPage = () => {
           <div className="sidebar-header">ĐƠN HÀNG CỦA BẠN</div>
 
           <div className="sidebar-items">
-            {previewData?.san_pham ? (
-              previewData.san_pham.map((item) => {
-                const cartInfo =
-                  cartItemsData.find(
-                    (c) => c.phienBanId === item.phien_ban_id,
-                  ) || {};
-                return (
-                  <div key={item.phien_ban_id} className="sidebar-item">
-                    <img
-                      src={cartInfo.anh || "https://via.placeholder.com/60"}
-                      alt={cartInfo.tenSanPham || "Sản phẩm"}
-                    />
-                    <div className="sidebar-item-details">
-                      <h4>{cartInfo.tenSanPham || "Đang tải..."}</h4>
-                      <p>{cartInfo.tenPhienBan || "Tiêu chuẩn"}</p>
-                      <div className="sidebar-item-price">
-                        <span className="qty">x{item.so_luong}</span>
-                        <span className="price">
-                          {formatPrice(item.don_gia)}
-                        </span>
+            {previewData?.san_pham
+              ? previewData.san_pham.map((item) => {
+                  const cartInfo =
+                    cartItemsData.find(
+                      (c) => c.phienBanId === item.phien_ban_id,
+                    ) || {};
+                  return (
+                    <div key={item.ma_dong} className="sidebar-item">
+                      <img
+                        src={cartInfo.anh || "https://via.placeholder.com/60"}
+                        alt={cartInfo.tenSanPham || "Sản phẩm"}
+                      />
+                      <div className="sidebar-item-details">
+                        <h4>
+                          {item.ten_san_pham ||
+                            cartInfo.tenSanPham ||
+                            `Phiên bản #${item.phien_ban_id}`}
+                        </h4>
+
+                        <p>
+                          {item.ten_phien_ban ||
+                            cartInfo.tenPhienBan ||
+                            "Tiêu chuẩn"}
+                        </p>
+
+                        {item.la_qua_tang && (
+                          <span className="checkout-gift-badge">QUÀ TẶNG</span>
+                        )}
+
+                        <div className="sidebar-item-price">
+                          <span className="qty">x{item.so_luong}</span>
+
+                          <span className="price">
+                            {item.don_gia_da_gom_vat == null
+                              ? "—"
+                              : formatPrice(item.don_gia_da_gom_vat)}
+                          </span>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                );
-              })
-            ) : (
-              cartItemsData
-                .filter((c) => cartItemIds.includes(c.cartItemId))
-                .map((item) => (
-                  <div key={item.cartItemId} className="sidebar-item">
-                    <img
-                      src={item.anh || "https://via.placeholder.com/60"}
-                      alt={item.tenSanPham || "Sản phẩm"}
-                    />
-                    <div className="sidebar-item-details">
-                      <h4>{item.tenSanPham}</h4>
-                      <p>{item.tenPhienBan || "Tiêu chuẩn"}</p>
-                      <div className="sidebar-item-price">
-                        <span className="qty">x{item.soLuong}</span>
-                        <span className="price">
-                          {formatPrice(item.donGia ?? item.giaBan)}
-                        </span>
+                  );
+                })
+              : cartItemsData
+                  .filter((c) => cartItemIds.includes(c.cartItemId))
+                  .map((item) => (
+                    <div key={item.cartItemId} className="sidebar-item">
+                      <img
+                        src={item.anh || "https://via.placeholder.com/60"}
+                        alt={item.tenSanPham || "Sản phẩm"}
+                      />
+                      <div className="sidebar-item-details">
+                        <h4>{item.tenSanPham}</h4>
+                        <p>{item.tenPhienBan || "Tiêu chuẩn"}</p>
+                        <div className="sidebar-item-price">
+                          <span className="qty">x{item.soLuong}</span>
+                          <span className="price">
+                            {formatPrice(item.donGia ?? item.giaBan)}
+                          </span>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))
-            )}
+                  ))}
           </div>
 
           <div className="sidebar-summary">
-            {previewData ? (
-              <>
-                <div className="summary-row">
-                  <span>Tạm tính</span>
-                  <span>{formatPrice(previewData.tong_tien_hang)}</span>
-                </div>
-                {previewData.tien_chiet_khau > 0 && (
-                  <div className="summary-row" style={{ color: "#ff0000" }}>
-                    <span>Khuyến mãi</span>
-                    <span>-{formatPrice(previewData.tien_chiet_khau)}</span>
-                  </div>
+            {promotionCode && (
+              <div className="checkout-promotion">
+                <span>
+                  Khuyến mại: <strong>{promotionCode}</strong>
+                </span>
+
+                <button
+                  type="button"
+                  disabled={placing || hasPendingAttempt || promotionRemoving}
+                  onClick={removeCheckoutPromotion}
+                >
+                  {promotionRemoving
+                    ? "ĐANG BỎ ƯU ĐÃI..."
+                    : "BỎ ƯU ĐÃI VÀ TÍNH LẠI"}
+                </button>
+              </div>
+            )}
+
+            {hasPendingAttempt && (
+              <p className="checkout-summary-message" role="status">
+                Chưa xác định được kết quả đặt hàng. Giữ nguyên thông tin và thử
+                lại cùng yêu cầu.
+              </p>
+            )}
+            <div className="summary-row">
+              <span>Tạm tính</span>
+
+              <span>
+                {formatPrice(
+                  previewData
+                    ? previewData.tong_tien_hang_da_gom_vat
+                    : tempSubtotal,
                 )}
-                <div className="summary-row">
-                  <span>Phí vận chuyển</span>
-                  {previewData.phi_giao_hang === 0 ? (
-                    <span
-                      style={{
-                        backgroundColor: "#111",
-                        color: "white",
-                        padding: "2px 6px",
-                        fontSize: "10px",
-                        fontWeight: "bold",
-                      }}
-                    >
-                      MIỄN PHÍ
-                    </span>
-                  ) : (
-                    <span>{formatPrice(previewData.phi_giao_hang)}</span>
-                  )}
-                </div>
-                <div className="summary-row total">
-                  <span>TỔNG TIỀN</span>
-                  <span className="price">
-                    {formatPrice(previewData.tong_thanh_toan)}
-                  </span>
-                </div>
-              </>
-            ) : (
-              <>
-                <div className="summary-row">
-                  <span>Tạm tính</span>
-                  <span>{formatPrice(tempSubtotal)}</span>
-                </div>
-                <div className="summary-row">
-                  <span>Phí vận chuyển</span>
-                  {tempShippingFee === 0 ? (
-                    <span
-                      style={{
-                        backgroundColor: "#111",
-                        color: "white",
-                        padding: "2px 6px",
-                        fontSize: "10px",
-                        fontWeight: "bold",
-                      }}
-                    >
-                      MIỄN PHÍ
-                    </span>
-                  ) : (
-                    <span>{formatPrice(tempShippingFee)}</span>
-                  )}
-                </div>
-                <div className="summary-row total">
-                  <span>TỔNG TIỀN</span>
-                  <span className="price">
-                    {formatPrice(tempTotal)}
-                  </span>
-                </div>
-                <div style={{ textAlign: "center", padding: "10px 0 4px", color: "#666", fontSize: "12px" }}>
-                  {previewLoading
-                    ? "Đang cập nhật phí vận chuyển và khuyến mãi..."
-                    : (!formData.phone || (deliveryMethod === "GIAO_HANG" && !formData.address.trim()))
-                    ? "Vui lòng nhập SĐT & địa chỉ cụ thể để tính chính xác phí ship"
-                    : ""}
-                </div>
-              </>
+              </span>
+            </div>
+
+            {previewData && Number(previewData.tien_giam_da_gom_vat) > 0 && (
+              <div className="summary-row summary-row--discount">
+                <span>Khuyến mại</span>
+
+                <span>−{formatPrice(previewData.tien_giam_da_gom_vat)}</span>
+              </div>
+            )}
+
+            <div className="summary-row">
+              <span>Phí vận chuyển</span>
+
+              {!previewData ? (
+                <span>Chờ xác nhận</span>
+              ) : Number(previewData.phi_giao_hang) === 0 ? (
+                <span className="checkout-shipping-badge">MIỄN PHÍ</span>
+              ) : (
+                <span>{formatPrice(previewData.phi_giao_hang)}</span>
+              )}
+            </div>
+
+            <p className="checkout-vat-note">Giá sản phẩm đã bao gồm VAT.</p>
+
+            <div className="summary-row total">
+              <span>TỔNG THANH TOÁN</span>
+
+              <span className="price">
+                {previewData
+                  ? formatPrice(previewData.tong_thanh_toan)
+                  : "Chờ xác nhận"}
+              </span>
+            </div>
+
+            {!previewData && (
+              <p className="checkout-summary-message">
+                {previewLoading
+                  ? "Đang cập nhật tổng tiền..."
+                  : "Vui lòng hoàn tất thông tin nhận hàng để xác nhận tổng tiền."}
+              </p>
             )}
 
             {previewError && (
-              <p className="error-text" role="alert" style={{ marginTop: "12px", textAlign: "center" }}>
+              <p className="error-text checkout-summary-error" role="alert">
                 {previewError}
               </p>
             )}
 
             {checkoutError && (
-              <p className="error-text" role="alert" style={{ marginTop: "12px", textAlign: "center" }}>
+              <p className="error-text checkout-summary-error" role="alert">
                 {checkoutError}
               </p>
             )}
 
-            {previewError && (
-              <p className="error-text" role="alert">{previewError}</p>
-            )}
-            {checkoutError && (
-              <p className="error-text" role="alert">{checkoutError}</p>
-            )}
             <button
               type="button"
               className="btn-confirm-order"
               onClick={handlePlaceOrder}
               disabled={
                 placing ||
+                promotionRemoving ||
                 (!checkoutAttempt.current &&
-                  (!previewData || previewLoading || !draftReady))
+                  (!previewData?.ma_xac_nhan_gia ||
+                    previewData.co_the_thanh_toan === false ||
+                    previewLoading ||
+                    !draftReady))
               }
             >
               {placing

@@ -5,11 +5,11 @@ import useDetailTablePagination from "../../../../hooks/useDetailTablePagination
 import {
   approveOrder,
   cancelOrder,
+  canEditOnlineOrder,
   confirmOrderPayment,
   confirmPickup,
   dateTime,
   exportOrder,
-  getExportVariant,
   getOrder,
   getOrderHistory,
   getOrderOptions,
@@ -36,11 +36,32 @@ import {
   toApiDateTime,
   withIdempotency,
 } from "../../../../shared/services/mutationUtils";
+import {
+  OrderLineAmount,
+  OrderLineNotice,
+  OrderPromotionSummary,
+} from "../../../../shared/components/ui/OrderSaleDetails";
+import SoldDevices from "../../../../shared/components/ui/SoldDevices";
 import ComboContents from "../../../../shared/components/ui/ComboContents";
+
+function OrderProductImage({ item }) {
+  const [failedUrl, setFailedUrl] = useState(null);
+  return item.anh_dai_dien && failedUrl !== item.anh_dai_dien ? (
+    <img
+      src={item.anh_dai_dien}
+      alt={item.ten_phien_ban || item.ten_san_pham}
+      loading="lazy"
+      onError={() => setFailedUrl(item.anh_dai_dien)}
+    />
+  ) : (
+    <span className="order-product-no-image">Chưa có ảnh</span>
+  );
+}
 
 export default function ChiTietDonHang() {
   const actionBusy = useRef(false);
   const cashAttempt = useRef(null);
+  const orderAttempt = useRef(null);
   const { orderId } = useParams();
   const navigate = useNavigate();
   const [order, setOrder] = useState(null);
@@ -142,47 +163,110 @@ export default function ChiTietDonHang() {
   const approve = () => open("approve", "DUYỆT ĐƠN");
   const fulfillment = () => open("fulfillment", "BẮT ĐẦU ĐÓNG GÓI");
 
+  const sendOrderOperation = (kind, body) => {
+    const scope = `order:${order.id}:${kind}`;
+
+    return withIdempotency(orderAttempt, scope, body, (key, payload) => {
+      switch (kind) {
+        case "fulfillment":
+          return startFulfillment(order.id, key, payload);
+
+        case "export":
+          return exportOrder(order.id, key, payload);
+
+        case "cancel":
+          return cancelOrder(order.id, key, payload);
+
+        case "pickup":
+          return confirmPickup(order.id, key, payload);
+
+        case "deliveryStatus":
+          return setDeliveryStatus(payload.deliveryId, key, payload.request);
+
+        default:
+          throw new Error("Thao tác không hợp lệ.");
+      }
+    });
+  };
+
+  const retryOrderOperation = () => {
+    const pending = orderAttempt.current;
+
+    if (!pending) return;
+
+    const kind = pending.scope.split(":").at(-1);
+
+    return run(() => sendOrderOperation(kind, pending.body));
+  };
+
   const cancel = () =>
     run(async () => {
-      await cancelOrder(order.id, cancelReason);
+      if (orderAttempt.current) {
+        const pending = orderAttempt.current;
+
+        if (pending.scope !== `order:${order.id}:cancel`) {
+          throw new Error("Hãy xử lý yêu cầu đang chờ kết quả trước.");
+        }
+
+        await sendOrderOperation("cancel", pending.body);
+      } else {
+        await sendOrderOperation("cancel", {
+          ly_do: cancelReason.trim(),
+        });
+      }
+
       setIsCancelOpen(false);
       setCancelReason("");
     });
 
   const warehouseExport = async () => {
     try {
-      setState((s) => ({ ...s, busy: true, error: "" }));
+      setState((current) => ({
+        ...current,
+        busy: true,
+        error: "",
+      }));
+
       const requirements = await getSerialRequirements(order.id);
-      const variants = new Map(
-        await Promise.all(
-          [
-            ...new Set(
-              (requirements.items || []).flatMap((line) =>
-                line.serial_requirements.map((item) => item.phien_ban_id),
-              ),
-            ),
-          ].map(async (id) => [id, (await getExportVariant(id)).phien_ban]),
-        ),
-      );
-      const groups = (requirements.items || []).flatMap((line) =>
-        line.serial_requirements.map((requirement) => ({
-          lineId: line.chi_tiet_don_hang_id,
+      const warehouseId = Number(requirements.kho_hang_id);
+
+      if (!Number.isSafeInteger(warehouseId) || warehouseId <= 0) {
+        throw new Error("Chưa xác định được kho xuất của đơn hàng.");
+      }
+
+      const lines = requirements.items || [];
+
+      if (!lines.length) {
+        throw new Error("Đơn chưa có căn cứ hàng vật lý để xuất.");
+      }
+
+      const groups = lines.flatMap((line) =>
+        (line.serial_requirements || []).map((requirement) => ({
           ...requirement,
+          lineId: line.chi_tiet_don_hang_id,
           name:
-            variants.get(requirement.phien_ban_id)?.ten_phien_ban ||
-            `Phiên bản ${requirement.phien_ban_id}`,
-          barcode: variants.get(requirement.phien_ban_id)?.ma_vach,
+            [requirement.ten_san_pham, requirement.ten_phien_ban]
+              .filter(Boolean)
+              .join(" · ") || `Phiên bản #${requirement.phien_ban_id}`,
           selected: [],
         })),
       );
+
       open("export", "XUẤT KHO ĐƠN HÀNG", {
-        warehouseId: options.warehouses[0]?.id || "",
-        requirements: requirements.items || [],
+        warehouseId,
+        requirements: lines,
         groups,
       });
-      setState((s) => ({ ...s, busy: false }));
     } catch (error) {
-      setState((s) => ({ ...s, busy: false, error: error.message }));
+      setState((current) => ({
+        ...current,
+        error: errorMessage(error),
+      }));
+    } finally {
+      setState((current) => ({
+        ...current,
+        busy: false,
+      }));
     }
   };
 
@@ -220,7 +304,8 @@ export default function ChiTietDonHang() {
 
   const pickupReasons = [
     ...handoverReasons,
-    order.trang_thai_thanh_toan !== "DA_THANH_TOAN" &&
+    Number(order.tong_thanh_toan) > 0 &&
+      order.trang_thai_thanh_toan !== "DA_THANH_TOAN" &&
       "Khách chưa thanh toán đủ.",
     activeDeliveries.length > 0 && "Đơn đang có phiếu giao hàng hiệu lực.",
   ].filter(Boolean);
@@ -334,6 +419,10 @@ export default function ChiTietDonHang() {
   };
 
   const submitAction = () => {
+    if (orderAttempt.current) {
+      return retryOrderOperation();
+    }
+
     if (!dialog?.confirmed) return;
 
     run(() => {
@@ -391,7 +480,9 @@ export default function ChiTietDonHang() {
       }
 
       if (type === "pickup") {
-        return confirmPickup(order.id);
+        return sendOrderOperation("pickup", {
+          xac_nhan_da_nhan_hang: true,
+        });
       }
 
       if (type === "packed" || type === "cancelPacking") {
@@ -402,7 +493,9 @@ export default function ChiTietDonHang() {
       }
 
       if (type === "fulfillment") {
-        return startFulfillment(order.id);
+        return sendOrderOperation("fulfillment", {
+          xac_nhan: true,
+        });
       }
 
       if (type === "startDelivery") {
@@ -433,11 +526,19 @@ export default function ChiTietDonHang() {
           throw new Error("Phải xác nhận người giao đã thu đủ COD từ khách.");
         }
 
-        return setDeliveryStatus(
-          dialog.deliveryId,
-          dialog.target,
-          requiresCod ? true : undefined,
-        );
+        return sendOrderOperation("deliveryStatus", {
+          deliveryId: dialog.deliveryId,
+
+          request: {
+            trang_thai_giao_hang: dialog.target,
+
+            ...(requiresCod
+              ? {
+                  xac_nhan_da_thu_cod: true,
+                }
+              : {}),
+          },
+        });
       }
 
       throw new Error("Thao tác không hợp lệ.");
@@ -481,6 +582,17 @@ export default function ChiTietDonHang() {
           </div>
         </div>
         <div className="order-detail-hero__actions">
+          {canEditOnlineOrder(order) && (
+            <Action
+              disabled={state.busy}
+              click={() =>
+                navigate(`/admin/don-hang/dat-hang-online/${order.id}`)
+              }
+            >
+              SỬA ĐƠN HÀNG
+            </Action>
+          )}
+
           {openOnlineOrder &&
             isShipping &&
             (!activeDelivery ||
@@ -598,6 +710,27 @@ export default function ChiTietDonHang() {
           {state.error}
         </p>
       )}
+
+      {orderAttempt.current && (
+        <div className="order-pending-operation" role="status">
+          <div>
+            <strong>YÊU CẦU ĐANG CHỜ XÁC ĐỊNH KẾT QUẢ</strong>
+
+            <p>
+              Dữ liệu gửi được giữ nguyên. Bấm thử lại để gửi cùng mã yêu cầu.
+            </p>
+          </div>
+
+          <button
+            type="button"
+            disabled={state.busy}
+            onClick={retryOrderOperation}
+          >
+            THỬ LẠI YÊU CẦU CŨ
+          </button>
+        </div>
+      )}
+
       <div className="order-detail-content">
         <div className="order-detail-main">
           <Panel title="SẢN PHẨM TRONG ĐƠN">
@@ -616,10 +749,16 @@ export default function ChiTietDonHang() {
                 <tbody>
                   {products.visibleItems.map((item) => (
                     <tr key={item.chi_tiet_don_hang_id}>
-                      <td>—</td>
                       <td>
-                        <strong>{item.ten_san_pham}</strong>
+                        <OrderProductImage item={item} />
+                      </td>
+                      <td>
+                        <strong>
+                          {item.ten_san_pham ||
+                            `Phiên bản #${item.phien_ban_id}`}
+                        </strong>
 
+                        <OrderLineNotice item={item} />
                         <span>
                           {item.loai_san_pham === "BO_PC"
                             ? "Bộ PC"
@@ -638,7 +777,7 @@ export default function ChiTietDonHang() {
                       <td className="align-right">{money(item.don_gia)}</td>
                       <td className="align-center">{item.so_luong}</td>
                       <td className="align-right">
-                        <strong>{money(item.thanh_tien)}</strong>
+                        <OrderLineAmount item={item} />{" "}
                       </td>
                     </tr>
                   ))}
@@ -652,6 +791,11 @@ export default function ChiTietDonHang() {
               idPrefix="order-products"
             />
           </Panel>
+
+          <Panel title="THIẾT BỊ VÀ BẢO HÀNH">
+            <SoldDevices order={order} />
+          </Panel>
+
           <Panel title="THANH TOÁN">
             <dl className="order-detail-kv">
               <Info text="PHƯƠNG THỨC">
@@ -841,6 +985,11 @@ export default function ChiTietDonHang() {
                   ? "—"
                   : money(order.tien_chiet_khau)}
               </Info>
+
+              <Info text="VAT">
+                {order.tong_tien_vat == null ? "—" : money(order.tong_tien_vat)}
+              </Info>
+
               <Info text="PHÍ GIAO HÀNG">{money(order.phi_giao_hang)}</Info>
               <div className="order-summary-total">
                 <dt>KHÁCH PHẢI TRẢ</dt>
@@ -849,7 +998,7 @@ export default function ChiTietDonHang() {
             </dl>
           </Panel>
           <Panel title="KHUYẾN MẠI / ƯU ĐÃI">
-            <p className="order-note">—</p>
+            <OrderPromotionSummary order={order} showUsage />
           </Panel>
           <Panel title="GHI CHÚ">
             <p className="order-note">{order.ghi_chu || "Không có ghi chú."}</p>
@@ -878,7 +1027,7 @@ export default function ChiTietDonHang() {
                 id="cancel-reason"
                 required
                 maxLength={255}
-                disabled={state.busy}
+                disabled={state.busy || Boolean(orderAttempt.current)}
                 value={cancelReason}
                 onChange={(event) => setCancelReason(event.target.value)}
                 placeholder="Nhập lý do hủy đơn..."
@@ -922,7 +1071,13 @@ export default function ChiTietDonHang() {
           warehouses={options.warehouses}
           busy={state.busy}
           error={state.error}
-          submit={(body) => run(() => exportOrder(order.id, body))}
+          submit={(body) => {
+            if (orderAttempt.current) {
+              return retryOrderOperation();
+            }
+
+            return run(() => sendOrderOperation("export", body));
+          }}
         />
       ) : (
         dialog && (
@@ -1060,33 +1215,8 @@ function OrderActionDialog({
           })}
         </>
       )}
+
       <p>{order.ma_don_hang}</p>
-
-      {dialog.type === "startDelivery" && (
-        <>
-          <label className="order-operation-field">
-            <span>ĐỐI TÁC VẬN CHUYỂN</span>
-            <select
-              required
-              value={dialog.partner}
-              onChange={(event) => change("partner", event.target.value)}
-            >
-              <option value="">— Chọn đối tác —</option>
-              {options.partners.map((partner) => (
-                <option key={partner.id} value={partner.id}>
-                  {partner.ten_doi_tac}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          {field("PHÍ TRẢ ĐỐI TÁC (đ)", "fee", "number", {
-            min: 0,
-            step: 1,
-            required: true,
-          })}
-        </>
-      )}
 
       {monetary && (
         <>
@@ -1142,6 +1272,24 @@ function OrderActionDialog({
             })}
         </>
       )}
+
+      {dialog.type === "deliveryStatus" &&
+        dialog.target === "GIAO_THANH_CONG" &&
+        Number(dialog.cod) > 0 && (
+          <label className="order-operation-confirm">
+            <input
+              type="checkbox"
+              disabled={busy}
+              checked={Boolean(dialog.codConfirmed)}
+              onChange={(event) => change("codConfirmed", event.target.checked)}
+            />
+
+            <span>
+              Xác nhận người giao đã thu đủ <strong>{money(dialog.cod)}</strong>{" "}
+              từ khách hàng.
+            </span>
+          </label>
+        )}
 
       <label className="order-operation-confirm">
         <input

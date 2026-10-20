@@ -29,7 +29,6 @@ import com.example.dantruventu.Specification.SalesSpecification;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
-import java.time.LocalDateTime;
 import java.util.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -69,7 +68,12 @@ public class AdminSalesService {
   private final OrderEvents orderEvents;
   private final SoQuyThuChiRepository cashRepository;
 
+  private final OrderSaleSnapshotService saleSnapshots;
+  private final SalesQuoteService saleQuotes;
+  private final SoldDeviceService soldDevices;
   private final CatalogSupport catalogSupport;
+
+  private final OrderDeviceHistoryService deviceHistory;
 
   public AdminSalesResponse.Options options() {
 
@@ -162,6 +166,18 @@ public class AdminSalesService {
 
     List<AdminSalesResponse.Product> items = new ArrayList<>();
 
+    var attributes =
+        catalogSupport.attributes(
+            result.getContent().stream().map(PhienBanSanPham::getId).toList());
+
+    var parts =
+        catalogSupport.comboParts(
+            result.getContent().stream()
+                .filter(v -> v.getSanPham().getLoaiSanPham() == LoaiSanPham.BO_PC)
+                .map(v -> v.getSanPham().getId())
+                .distinct()
+                .toList());
+
     for (PhienBanSanPham variant : result.getContent()) {
 
       var response = mapper.toProduct(variant);
@@ -182,10 +198,27 @@ public class AdminSalesService {
         managedSerial |= Boolean.TRUE.equals(serialModes.get(unit.getKey()));
       }
 
-      response.setTonThucTe(actual == Long.MAX_VALUE ? 0 : actual);
-      response.setTonCoTheBan(available == Long.MAX_VALUE ? 0 : available);
-      response.setQuanLySerial(managedSerial);
+      boolean combo = variant.getSanPham().getLoaiSanPham() == LoaiSanPham.BO_PC;
+
+      long actualQuantity = actual == Long.MAX_VALUE ? 0 : actual;
+      long availableQuantity = available == Long.MAX_VALUE ? 0 : available;
+
+      response.setTonThucTe(combo ? null : actualQuantity);
+      response.setTonCoTheBan(combo ? null : availableQuantity);
+      response.setSoBoCoTheLap(combo ? availableQuantity : null);
+
+      response.setQuanLySerial(Boolean.TRUE.equals(variant.getCoQuanLySerial()));
+
       response.setDonGia(money(variant.getGiaBanLe()));
+
+      response.setThoiHanBaoHanhThang(combo ? null : variant.getSanPham().getThoiHanBaoHanhThang());
+
+      response.setBaoHanhTheoLinhKien(combo);
+
+      response.setThuocTinhPhienBan(attributes.getOrDefault(variant.getId(), List.of()));
+
+      response.setThanhPhan(
+          combo ? parts.getOrDefault(variant.getSanPham().getId(), List.of()) : List.of());
 
       response.setAnhDaiDien(
           imageRepository
@@ -202,14 +235,32 @@ public class AdminSalesService {
 
   public AdminSalesResponse.Preview preview(AdminSalesRequest.Preview request) {
 
+    var actor = context.actor();
     context.customer(request.getKhachHangId(), false);
+
+    String scope;
+
+    if (request.getLoaiDonHang() == LoaiDonHang.TAI_QUAY) {
+      if (request.getDonHangId() != null) {
+        throw invalid("Preview POS không nhận don_hang_id");
+      }
+      scope = SalesQuoteService.POS;
+    } else if (request.getLoaiDonHang() == LoaiDonHang.ONLINE) {
+      scope =
+          request.getDonHangId() == null
+              ? SalesQuoteService.ADMIN_CREATE
+              : SalesQuoteService.editScope(request.getDonHangId());
+    } else {
+      throw invalid("Loại đơn hàng không hợp lệ");
+    }
 
     var plan = calculation.calculate(request, request.getLoaiDonHang(), false);
 
     plan.data()
         .setKhuyenMaiKhaDung(calculation.availablePromotions(request, request.getLoaiDonHang()));
 
-    return plan.data();
+    return saleQuotes.issue(
+        plan.data(), SalesQuoteService.identity(actor, null), scope, request, plan);
   }
 
   @Transactional(isolation = Isolation.READ_COMMITTED)
@@ -218,7 +269,7 @@ public class AdminSalesService {
 
     NguoiDung actor = context.actor();
 
-    String key = requestKey("ORD", idempotencyKey, false);
+    String key = requestKey("ORD", idempotencyKey, true);
 
     var entry = idempotencyRepository.acquire(key, actor.getId(), hash(actor.getId(), request));
 
@@ -228,7 +279,7 @@ public class AdminSalesService {
       return decode(entry.responseJson(), AdminSalesResponse.Order.class);
     }
 
-    NguoiDung customer = context.customer(request.getKhachHangId(), true);
+    NguoiDung customer = context.customer(request.getKhachHangId(), false);
 
     String address = text(request.getThongTinNguoiNhan().getDiaChiGiaoHang());
     BigDecimal shipping = inputMoney(request.getPhiGiaoHang());
@@ -244,6 +295,13 @@ public class AdminSalesService {
     }
 
     var plan = calculation.calculate(request, LoaiDonHang.ONLINE, true);
+
+    saleQuotes.require(
+        request.getMaXacNhanGia(),
+        SalesQuoteService.identity(actor, null),
+        SalesQuoteService.ADMIN_CREATE,
+        request,
+        plan);
 
     confirmTotal(request.getTongThanhToanXacNhan(), plan.data().getTongThanhToan());
 
@@ -263,8 +321,9 @@ public class AdminSalesService {
 
     order = orderRepository.saveAndFlush(order);
 
-    saveLines(order, plan);
-    consumePromotion(plan);
+    saleSnapshots.saveLines(order, plan, request);
+    saleSnapshots.recordUnpaidCreationEvidence(order);
+    saleSnapshots.recordPromotion(order, plan, request, actor);
 
     orderRepository.flush();
 
@@ -300,6 +359,13 @@ public class AdminSalesService {
 
     var plan = calculation.calculate(request, LoaiDonHang.TAI_QUAY, true);
 
+    saleQuotes.require(
+        request.getMaXacNhanGia(),
+        SalesQuoteService.identity(actor, null),
+        SalesQuoteService.POS,
+        request,
+        plan);
+
     BigDecimal total = plan.data().getTongThanhToan();
 
     confirmTotal(request.getTongThanhToanXacNhan(), total);
@@ -326,16 +392,30 @@ public class AdminSalesService {
 
     order = orderRepository.saveAndFlush(order);
 
-    saveLines(order, plan);
-
-    LocalDateTime activationTime = LocalDateTime.now(properties.zone());
+    var savedLines = saleSnapshots.saveLines(order, plan, request);
 
     for (SoSerialSanPham serial : selectedSerials.values()) {
       serial.setTrangThai(TrangThaiSerial.DA_BAN);
       serial.setDonHang(order);
-      serial.setNgayKichHoat(activationTime);
-      // Không tự suy ra hoặc đặt thêm thời hạn bảo hành.
     }
+
+    Map<String, Long> lineIds = new HashMap<>();
+
+    for (var line : savedLines) {
+      lineIds.put(saleSnapshots.requireSnapshot(line).lineKey(), line.getId());
+    }
+
+    Map<SoldDeviceService.Key, List<SoSerialSanPham>> bindings = new HashMap<>();
+
+    for (var allocation : request.getPhanBoSerial()) {
+      bindings.put(
+          new SoldDeviceService.Key(
+              lineIds.get(allocation.getMaDong()), allocation.getPhienBanId()),
+          allocation.getSerialIds().stream().map(selectedSerials::get).toList());
+    }
+
+    soldDevices.prepare(order, savedLines, bindings);
+    soldDevices.handover(order);
 
     for (var requirement : plan.quantities().entrySet()) {
 
@@ -357,7 +437,7 @@ public class AdminSalesService {
               .build());
     }
 
-    consumePromotion(plan);
+    saleSnapshots.recordPromotion(order, plan, request, actor);
 
     SoQuyThuChi receipt = createCashReceipt(order, actor, request.getThanhToan());
 
@@ -432,32 +512,6 @@ public class AdminSalesService {
         .trangThaiXuatKho(TrangThaiXuatKho.CHUA_XUAT_KHO)
         .ghiChu(text(note))
         .build();
-  }
-
-  private void saveLines(DonHang order, SalesCalculationService.Plan plan) {
-
-    for (var line : plan.lines()) {
-
-      orderLineRepository.save(
-          ChiTietDonHang.builder()
-              .donHang(order)
-              .phienBan(line.variant())
-              .soLuong(line.quantity())
-              .donGia(line.unitPrice())
-              .thanhTien(line.amount())
-              .build());
-    }
-  }
-
-  private void consumePromotion(SalesCalculationService.Plan plan) {
-
-    if (plan.promotion() == null) {
-      return;
-    }
-
-    Integer used = plan.promotion().getSoLuongDaDung();
-
-    plan.promotion().setSoLuongDaDung((used == null ? 0 : used) + 1);
   }
 
   private void confirmTotal(BigDecimal confirmed, BigDecimal actual) {
@@ -613,11 +667,9 @@ public class AdminSalesService {
 
     var lines = orderLineRepository.findByDonHang_IdOrderByIdAsc(order.getId());
 
-    var comboParts =
-        catalogSupport.comboParts(
+    var images =
+        catalogSupport.primaryImages(
             lines.stream()
-                .filter(
-                    line -> line.getPhienBan().getSanPham().getLoaiSanPham() == LoaiSanPham.BO_PC)
                 .map(line -> line.getPhienBan().getSanPham().getId())
                 .distinct()
                 .toList());
@@ -626,31 +678,31 @@ public class AdminSalesService {
         lines.stream()
             .map(
                 line -> {
-                  var item = deliveryMapper.toProduct(line);
-
-                  item.setQuanLySerial(
-                      line.getPhienBan().getSanPham().getLoaiSanPham() == LoaiSanPham.DON
-                          ? calculation.usesSerial(line.getPhienBan().getId())
-                          : usesComboSerial(line.getPhienBan()));
-
-                  item.setThanhPhan(
-                      catalogSupport.partsForQuantity(
-                          comboParts.getOrDefault(
-                              line.getPhienBan().getSanPham().getId(), List.of()),
-                          line.getSoLuong()));
-
-                  item.setThueVat(null);
-                  item.setTienChietKhau(null);
-                  item.setTienVat(null);
-
+                  var item = saleSnapshots.product(line);
+                  item.setAnhDaiDien(images.get(line.getPhienBan().getSanPham().getId()));
                   return item;
                 })
             .toList());
 
-    response.setSerials(
-        serialRepository.findByDonHang_IdOrderByIdAsc(order.getId()).stream()
-            .map(mapper::toSerial)
-            .toList());
+    response.setKhuyenMai(saleSnapshots.appliedPromotion(order.getId()));
+
+    response.setSerials(soldDevices.originalSerials(order.getId()));
+
+    response.setThietBiDaGiao(soldDevices.details(order.getId()));
+
+    var historyView = deviceHistory.read(order);
+
+    response.setThietBiDaBan(historyView.originals());
+    response.setThietBiHienHanh(historyView.current());
+    response.setCanXacMinhLichSu(historyView.needsVerification());
+    response.setCanhBao(historyView.warnings());
+
+    response.setCanhBaoThietBi(soldDevices.warning(order));
+
+    response.setNgayHoanThanh(
+        order.getNgayHoanThanh() == null
+            ? null
+            : order.getNgayHoanThanh().atZone(properties.zone()).toOffsetDateTime());
 
     response.setPhieuGiaoHang(
         deliveryRepository.findByDonHang_IdOrderByIdAsc(order.getId()).stream()

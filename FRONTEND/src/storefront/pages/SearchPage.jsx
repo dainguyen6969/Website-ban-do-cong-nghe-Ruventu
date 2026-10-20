@@ -1,34 +1,30 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { useSearchParams, Link, useNavigate } from "react-router-dom";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import { Search, X, ChevronDown, ChevronUp } from "lucide-react";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 import ProductCard from "../components/ProductCard";
 import {
-  mockPcBuildProducts,
-  mockLinhKien,
-  mockGamingGear,
-} from "../data/categoryData";
-import {
   productService,
   toProductCard,
 } from "../../shared/services/productService";
+import TablePagination from "../../shared/components/ui/TablePagination";
+import { catalogScopes, inCatalogScope } from './catalogModel';
 import "./SearchPage.css";
 
-const allProducts = [
-  ...mockPcBuildProducts,
-  ...mockLinhKien,
-  ...mockGamingGear,
-];
-
-const SearchPage = () => {
+const SearchPage = ({ categorySlug } = {}) => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const query = searchParams.get("q") || "";
+  const isCategory = categorySlug != null;
+  const categoryTitle = catalogScopes[categorySlug]?.title || 'Không tìm thấy danh mục';
 
-  const [filteredProducts, setFilteredProducts] = useState([]);
-  const [totalProducts, setTotalProducts] = useState(0);
-  const [sortBy, setSortBy] = useState("relevance");
+  const [searchProducts, setSearchProducts] = useState([]);
+  const [suggestedProducts, setSuggestedProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [page, setPage] = useState(1);
+  const [sortBy, setSortBy] = useState(isCategory ? "newest" : "relevance");
   const [isSortDropdownOpen, setIsSortDropdownOpen] = useState(false);
 
   // Filter states
@@ -39,7 +35,9 @@ const SearchPage = () => {
   const [selectedCategories, setSelectedCategories] = useState([]);
 
   useEffect(() => {
+    let active = true;
     const loadProducts = async () => {
+      setLoading(true); setError('');
       try {
         const params = { keyword: query };
 
@@ -57,86 +55,40 @@ const SearchPage = () => {
           params.sort = "ban_chay";
         }
 
-        const response = await productService.getProducts(params);
-        if (response && response.data && response.data.danhSachSanPham) {
-          const mappedProducts =
-            response.data.danhSachSanPham.map(toProductCard);
-
-          let results = mappedProducts;
-          if (selectedBrands.length > 0) {
-            results = results.filter((p) =>
-              selectedBrands.some((brand) =>
-                (p.title || p.name || "")
-                  .toLowerCase()
-                  .includes(brand.toLowerCase()),
-              ),
-            );
-          }
-          if (selectedCategories.length > 0) {
-            results = results.filter((p) =>
-              selectedCategories.some((cat) =>
-                (p.category || "").toLowerCase().includes(cat.toLowerCase()),
-              ),
-            );
-          }
-
-          setFilteredProducts(results);
-          setTotalProducts(results.length);
-        } else {
-          setFilteredProducts([]);
-          setTotalProducts(0);
-        }
-      } catch (error) {
-        console.error("Lỗi fetch sản phẩm:", error);
-      }
+        const catalog = await productService.getAllProducts(params);
+        const products = isCategory ? catalog.filter(product => inCatalogScope(product, categorySlug)) : catalog;
+        const recommended = products.length || isCategory ? [] : (await productService.getProducts({ limit: 4, sort: 'moi_nhat' })).data.danhSachSanPham.map(toProductCard);
+        if (active) { setSearchProducts(products); setSuggestedProducts(recommended); setPage(1); }
+      } catch (reason) {
+        if (active) { setSearchProducts([]); setSuggestedProducts([]); setError(reason.response?.data?.message || reason.message || 'Không tải được sản phẩm.'); }
+      } finally { if (active) setLoading(false); }
     };
     loadProducts();
-  }, [
-    query,
-    sortBy,
-    minPrice,
-    maxPrice,
-    stockStatus,
-    selectedBrands,
-    selectedCategories,
-  ]);
+    return () => { active = false; };
+  }, [query, sortBy, minPrice, maxPrice, stockStatus, categorySlug, isCategory]);
+
+  const filteredProducts = useMemo(() => {
+    const products = searchProducts.filter(product =>
+      (!selectedBrands.length || selectedBrands.includes(product.brand)) &&
+      (!selectedCategories.length || selectedCategories.includes(product.category)));
+    if (sortBy === 'name-asc') products.sort((a, b) => a.title.localeCompare(b.title, 'vi'));
+    return products;
+  }, [searchProducts, selectedBrands, selectedCategories, sortBy]);
+  const totalProducts = filteredProducts.length;
+  const currentPage = Math.min(page, Math.max(1, Math.ceil(totalProducts / 20)));
+  const facets = field => [...new Set(searchProducts.map(product => product[field]).filter(Boolean))].sort((a,b) => a.localeCompare(b,'vi')).map(name => ({ name, count: searchProducts.filter(product => product[field] === name).length }));
 
   const sortOptions = [
     { value: "relevance", label: "Liên quan nhất" },
     { value: "price-asc", label: "Giá thấp → cao" },
     { value: "price-desc", label: "Giá cao → thấp" },
     { value: "newest", label: "Mới nhất" },
+    { value: "name-asc", label: "Tên A–Z" },
     { value: "bestseller", label: "Bán chạy nhất" },
   ];
 
-  // Mock data for filters
-  const brands = [
-    { name: "AMD", count: 2 },
-    { name: "ASUS ROG", count: 3 },
-    { name: "BE QUIET!", count: 1 },
-    { name: "CORSAIR", count: 2 },
-    { name: "G.SKILL", count: 1 },
-    { name: "GIGABYTE", count: 1 },
-    { name: "INTEL", count: 2 },
-    { name: "KEYCHRON", count: 1 },
-    { name: "LG", count: 1 },
-    { name: "MSI", count: 2 },
-    { name: "RAZER", count: 1 },
-    { name: "SAMSUNG", count: 2 },
-    { name: "WD", count: 1 },
-  ];
-
-  const categories = [
-    { name: "Bàn phím", count: 2 },
-    { name: "CPU", count: 4 },
-    { name: "Mainboard", count: 2 },
-    { name: "Màn hình", count: 2 },
-    { name: "PSU", count: 1 },
-    { name: "RAM", count: 2 },
-    { name: "SSD", count: 2 },
-    { name: "Tản nhiệt", count: 1 },
-    { name: "VGA", count: 4 },
-  ];
+  const brands = facets('brand');
+  const categories = facets('category');
 
   const suggestedKeywords = [
     "RTX 4090",
@@ -147,6 +99,7 @@ const SearchPage = () => {
   ];
 
   const handleBrandChange = (brandName) => {
+    setPage(1);
     setSelectedBrands((prev) =>
       prev.includes(brandName)
         ? prev.filter((b) => b !== brandName)
@@ -155,6 +108,7 @@ const SearchPage = () => {
   };
 
   const handleCategoryChange = (catName) => {
+    setPage(1);
     setSelectedCategories((prev) =>
       prev.includes(catName)
         ? prev.filter((c) => c !== catName)
@@ -199,11 +153,8 @@ const SearchPage = () => {
     maxPrice ||
     stockStatus !== "all";
 
-  const suggestedProducts = useMemo(() => {
-    return mockPcBuildProducts.slice(0, 4);
-  }, []);
-
-  const handleSuggestKeyword = (k) => {
+const handleSuggestKeyword = (k) => {
+    clearAllFilters();
     navigate(`/search?q=${encodeURIComponent(k)}`);
   };
 
@@ -214,10 +165,10 @@ const SearchPage = () => {
       {/* Search Header Banner */}
       <div className="search-banner">
         <div className="container">
-          <div className="search-query-info">
+          {isCategory ? <h1 className="catalog-listing-title">{categoryTitle}</h1> : <div className="search-query-info">
             Kết quả cho: <strong>"{query}"</strong> - {filteredProducts.length}{" "}
             sản phẩm
-          </div>
+          </div>}
         </div>
       </div>
 
@@ -225,7 +176,7 @@ const SearchPage = () => {
         {/* Sidebar Filters */}
         <aside className="search-sidebar">
           <div className="filter-header-block">
-            <h3 className="filter-title">BỘ LỌC TÌM KIẾM</h3>
+            <h3 className="filter-title">{isCategory ? 'BỘ LỌC SẢN PHẨM' : 'BỘ LỌC TÌM KIẾM'}</h3>
             {hasActiveFilters && (
               <button className="clear-all-btn" onClick={clearAllFilters}>
                 XÓA TẤT CẢ
@@ -242,6 +193,8 @@ const SearchPage = () => {
               <div className="price-inputs">
                 <input
                   type="text"
+                  inputMode="numeric"
+                  aria-label="Giá tối thiểu"
                   placeholder="Tối thiểu"
                   value={minPrice}
                   onChange={(e) => setMinPrice(e.target.value)}
@@ -249,6 +202,8 @@ const SearchPage = () => {
                 <span className="price-separator">-</span>
                 <input
                   type="text"
+                  inputMode="numeric"
+                  aria-label="Giá tối đa"
                   placeholder="Tối đa"
                   value={maxPrice}
                   onChange={(e) => setMaxPrice(e.target.value)}
@@ -357,7 +312,7 @@ const SearchPage = () => {
             <div className="toolbar-left">
               {totalProducts > 0 ? (
                 <span>
-                  <strong>{totalProducts}</strong> sản phẩm tìm thấy
+                  <strong>{totalProducts}</strong> {isCategory ? 'sản phẩm' : 'sản phẩm tìm thấy'}
                 </span>
               ) : (
                 <span>Không có kết quả</span>
@@ -418,12 +373,12 @@ const SearchPage = () => {
             </div>
           )}
 
-          {filteredProducts.length > 0 ? (
-            <div className="search-product-grid">
-              {filteredProducts.map((product, index) => (
-                <ProductCard key={index} product={product} />
+          {loading ? <p role="status">Đang tải sản phẩm...</p> : error ? <p role="alert">{error}</p> : filteredProducts.length > 0 ? (
+            <><div className="search-product-grid">
+              {filteredProducts.slice((currentPage - 1) * 20, currentPage * 20).map(product => (
+                <ProductCard key={product.id} product={product} />
               ))}
-            </div>
+            </div><TablePagination totalItems={totalProducts} pageSize={20} currentPage={currentPage} onPageChange={setPage} idPrefix="store-search" /></>
           ) : (
             <div className="no-results-area">
               <div className="no-results-header">
@@ -435,18 +390,16 @@ const SearchPage = () => {
                   <Search size={40} />
                 </div>
                 <div className="no-results-content">
-                  <h2>KHÔNG TÌM THẤY KẾT QUẢ NÀO PHÙ HỢP VỚI TỪ KHÓA</h2>
-                  <div className="keyword-badge">
+                  <h2>{isCategory ? 'KHÔNG CÓ SẢN PHẨM PHÙ HỢP VỚI BỘ LỌC' : 'KHÔNG TÌM THẤY KẾT QUẢ NÀO PHÙ HỢP VỚI TỪ KHÓA'}</h2>
+                  {!isCategory && <div className="keyword-badge">
                     <Search size={16} />
                     <span>"{query}"</span>
-                  </div>
+                  </div>}
                   <p>
-                    Hệ thống không tìm thấy sản phẩm nào phù hợp. Thử kiểm tra
-                    lại chính tả, dùng từ khóa ngắn hơn, hoặc tìm theo tên
-                    thương hiệu / danh mục.
+                    {isCategory ? 'Thử thay đổi khoảng giá, thương hiệu hoặc xóa bộ lọc để xem thêm sản phẩm trong danh mục.' : 'Hệ thống không tìm thấy sản phẩm nào phù hợp. Thử kiểm tra lại chính tả, dùng từ khóa ngắn hơn, hoặc tìm theo tên thương hiệu / danh mục.'}
                   </p>
 
-                  <div className="suggested-keywords">
+                  {!isCategory && <div className="suggested-keywords">
                     {suggestedKeywords.map((k) => (
                       <button
                         key={k}
@@ -456,7 +409,7 @@ const SearchPage = () => {
                         {k}
                       </button>
                     ))}
-                  </div>
+                  </div>}
 
                   {hasActiveFilters && (
                     <button
@@ -470,7 +423,7 @@ const SearchPage = () => {
               </div>
 
               {/* Recommended Products when no results */}
-              <div className="recommended-section">
+              {suggestedProducts.length > 0 && <div className="recommended-section">
                 <div className="recommended-header">
                   <h3>
                     <span>|</span> SẢN PHẨM NỔI BẬT
@@ -482,7 +435,7 @@ const SearchPage = () => {
                     <ProductCard key={index} product={product} />
                   ))}
                 </div>
-              </div>
+              </div>}
             </div>
           )}
         </div>

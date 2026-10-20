@@ -8,19 +8,14 @@ import {
   Settings,
   ClipboardList,
 } from "lucide-react";
-import axios from "axios";
 
 import "./Header.css";
 import logo from "../assets/reventu.png";
 import CartDrawer from "./CartDrawer";
+import NavMenu from "./NavMenu";
 import FontSwitcher from "../../shared/components/ui/FontSwitcher";
-import { productService } from "../../shared/services/productService";
+import { productService, toProductCard } from "../../shared/services/productService";
 import { cartService } from "../../shared/services/cartService";
-
-const API_BASE_URL = (import.meta.env.VITE_RUVENTU_API_URL || "").replace(
-  /\/$/,
-  "",
-);
 
 const Header = () => {
   const navigate = useNavigate();
@@ -53,7 +48,7 @@ const Header = () => {
         if (res?.data?.data?.tongSoLuong) {
           setCartCount(res.data.data.tongSoLuong);
         }
-      } catch (err) {
+      } catch {
         setCartCount(0);
       }
     };
@@ -95,7 +90,7 @@ const Header = () => {
         try {
           const response = await productService.getProducts({ keyword: searchQuery.trim(), limit: 5 });
           if (response && response.data && response.data.danhSachSanPham) {
-            setSuggestions(response.data.danhSachSanPham);
+            setSuggestions(response.data.danhSachSanPham.map(toProductCard));
             setShowSuggestions(true);
           }
         } catch (error) {
@@ -210,11 +205,11 @@ const Header = () => {
                         setSearchQuery("");
                       }}
                     >
-                      <img src={p.anhChinh || "https://via.placeholder.com/40"} alt={p.tenSanPham} className="suggestion-img" />
+                      {p.image && <img src={p.image} alt={p.title} className="suggestion-img" />}
                       <div className="suggestion-info">
-                        <span className="suggestion-name">{p.tenSanPham}</span>
+                        <span className="suggestion-name">{p.title}</span>
                         <span className="suggestion-price">
-                          {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(p.giaThapNhat)}
+                          {p.priceFrom && "Từ "}{p.price}
                         </span>
                       </div>
                     </Link>
@@ -248,7 +243,16 @@ const Header = () => {
                   onMouseEnter={() => setIsDropdownOpen(true)}
                   onMouseLeave={() => setIsDropdownOpen(false)}
                 >
-                  <div className="user-profile-trigger">
+                  <div className="user-profile-trigger" role="button" tabIndex={0}
+                    aria-label="Mở menu tài khoản" aria-expanded={isDropdownOpen}
+                    onClick={() => setIsDropdownOpen(true)}
+                    onKeyDown={event => {
+                      if (event.key === 'Enter' || event.key === ' ') {
+                        event.preventDefault();
+                        setIsDropdownOpen(true);
+                      }
+                      if (event.key === 'Escape') setIsDropdownOpen(false);
+                    }}>
                     <div className="user-avatar">{avatarLetter}</div>
 
                     <div className="user-greeting">
@@ -327,7 +331,16 @@ const Header = () => {
               {/* Cart */}
               <div
                 className="action-item cart-action"
+                role="button"
+                tabIndex={0}
+                aria-label="Mở giỏ hàng"
                 onClick={() => setIsCartOpen(true)}
+                onKeyDown={event => {
+                  if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    setIsCartOpen(true);
+                  }
+                }}
                 style={{
                   cursor: "pointer",
                 }}
@@ -373,24 +386,14 @@ const Header = () => {
           <div className="container nav-container">
             <ul className="nav-links">
               {/* ================= LINH KIỆN ================= */}
-              <li className="has-mega-menu">
-                <NavLink
-                  to="/category/linh-kien"
-                  className={({ isActive }) => (isActive ? "active" : "")}
-                >
-                  Linh Kiện PC
-                </NavLink>
-
-                <div className="mega-menu">
+              <NavMenu label="Linh Kiện PC" to="/category/linh-kien">
                   <div className="mega-menu-content">
                     <div className="mega-col">
                       <h4 className="mega-title">Xử lý & Bo mạch</h4>
 
                       <div className="mega-sub-category">
                         <h5 className="mega-sub-title">
-                          <Link to="/category/linh-kien">
-                            CPU - Bộ vi xử lý
-                          </Link>
+                          CPU - Bộ vi xử lý
                         </h5>
 
                         <ul>
@@ -406,9 +409,7 @@ const Header = () => {
 
                       <div className="mega-sub-category">
                         <h5 className="mega-sub-title">
-                          <Link to="/category/linh-kien">
-                            Mainboard - Bo mạch chủ
-                          </Link>
+                          Mainboard - Bo mạch chủ
                         </h5>
 
                         <ul>
@@ -428,9 +429,7 @@ const Header = () => {
 
                       <div className="mega-sub-category">
                         <h5 className="mega-sub-title">
-                          <Link to="/category/linh-kien">
-                            RAM - Bộ nhớ trong
-                          </Link>
+                          RAM - Bộ nhớ trong
                         </h5>
 
                         <ul>
@@ -450,9 +449,7 @@ const Header = () => {
 
                       <div className="mega-sub-category">
                         <h5 className="mega-sub-title">
-                          <Link to="/category/linh-kien">
-                            VGA - Card màn hình
-                          </Link>
+                          VGA - Card màn hình
                         </h5>
 
                         <ul>
@@ -461,34 +458,30 @@ const Header = () => {
                           </li>
 
                           <li>
-                            <Link to="/search?q=AMD">VGA AMD</Link>
+                            <Link to="/search?q=VGA AMD">VGA AMD</Link>
                           </li>
                         </ul>
                       </div>
 
                       <div className="mega-sub-category">
                         <h5 className="mega-sub-title">
-                          <Link to="/category/linh-kien">
-                            PSU - Nguồn máy tính
-                          </Link>
+                          PSU - Nguồn máy tính
                         </h5>
 
                         <ul>
                           <li>
-                            <Link to="/search?q=Corsair">Nguồn Corsair</Link>
+                            <Link to="/search?q=PSU Corsair">Nguồn Corsair</Link>
                           </li>
 
                           <li>
-                            <Link to="/search?q=MSI">Nguồn MSI</Link>
+                            <Link to="/search?q=PSU MSI">Nguồn MSI</Link>
                           </li>
                         </ul>
                       </div>
 
                       <div className="mega-sub-category">
                         <h5 className="mega-sub-title">
-                          <Link to="/category/linh-kien">
-                            Case - Vỏ máy tính
-                          </Link>
+                          Case - Vỏ máy tính
                         </h5>
 
                         <ul>
@@ -510,7 +503,7 @@ const Header = () => {
 
                       <div className="mega-sub-category">
                         <h5 className="mega-sub-title">
-                          <Link to="/category/linh-kien">Ổ cứng SSD/HDD</Link>
+                          Ổ cứng SSD/HDD
                         </h5>
 
                         <ul>
@@ -526,9 +519,7 @@ const Header = () => {
 
                       <div className="mega-sub-category">
                         <h5 className="mega-sub-title">
-                          <Link to="/category/linh-kien">
-                            Tản nhiệt máy tính
-                          </Link>
+                          Tản nhiệt máy tính
                         </h5>
 
                         <ul>
@@ -545,19 +536,10 @@ const Header = () => {
                       </div>
                     </div>
                   </div>
-                </div>
-              </li>
+              </NavMenu>
 
               {/* ================= GAMING GEAR ================= */}
-              <li className="has-mega-menu">
-                <NavLink
-                  to="/category/gaming-gear"
-                  className={({ isActive }) => (isActive ? "active" : "")}
-                >
-                  Gaming Gear
-                </NavLink>
-
-                <div className="mega-menu">
+              <NavMenu label="Gaming Gear" to="/category/gaming-gear">
                   <div className="mega-menu-content">
                     <div className="mega-col">
                       <ul>
@@ -599,19 +581,10 @@ const Header = () => {
                       </ul>
                     </div>
                   </div>
-                </div>
-              </li>
+              </NavMenu>
 
               {/* ================= MÀN HÌNH ================= */}
-              <li className="has-mega-menu">
-                <NavLink
-                  to="/category/man-hinh"
-                  className={({ isActive }) => (isActive ? "active" : "")}
-                >
-                  Màn Hình
-                </NavLink>
-
-                <div className="mega-menu">
+              <NavMenu label="Màn Hình" to="/category/man-hinh">
                   <div className="mega-menu-content">
                     <div className="mega-col">
                       <ul>
@@ -641,19 +614,10 @@ const Header = () => {
                       </ul>
                     </div>
                   </div>
-                </div>
-              </li>
+              </NavMenu>
 
               {/* ================= LAPTOP ================= */}
-              <li className="has-mega-menu">
-                <NavLink
-                  to="/category/laptop"
-                  className={({ isActive }) => (isActive ? "active" : "")}
-                >
-                  Laptop
-                </NavLink>
-
-                <div className="mega-menu">
+              <NavMenu label="Laptop" to="/category/laptop">
                   <div className="mega-menu-content">
                     <div className="mega-col">
                       <ul>
@@ -695,50 +659,34 @@ const Header = () => {
                       </ul>
                     </div>
                   </div>
-                </div>
-              </li>
+              </NavMenu>
 
               {/* ================= BUILD PC ================= */}
-              <li className="has-mega-menu">
-                <NavLink
-                  to="/build-pc"
-                  className={({ isActive }) => (isActive ? "active" : "")}
-                >
-                  Build PC
-                </NavLink>
-
-                <div className="mega-menu">
+              <NavMenu label="Build PC" to="/build-pc">
                   <div className="mega-menu-content">
                     <div className="mega-col">
                       <ul>
                         <li>
-                          <Link to="/build-pc?type=budget">
-                            Build PC theo Ngân sách
+                          <span aria-disabled="true" title="Chưa có chế độ gợi ý theo ngân sách">Build PC theo Ngân sách</span>
+                        </li>
+
+                        <li>
+                          <span aria-disabled="true" title="Chưa có chế độ gợi ý theo nhu cầu">Build PC theo Nhu cầu</span>
+                        </li>
+
+                        <li>
+                          <Link to="/category/pc-build">
+                            PC build sẵn
                           </Link>
                         </li>
 
                         <li>
-                          <Link to="/build-pc?type=need">
-                            Build PC theo Nhu cầu
-                          </Link>
-                        </li>
-
-                        <li>
-                          <Link to="/category/pc-gaming">
-                            PC Gaming lắp ráp sẵn
-                          </Link>
-                        </li>
-
-                        <li>
-                          <Link to="/category/pc-van-phong">
-                            PC Văn phòng lắp ráp sẵn
-                          </Link>
+                          <span aria-disabled="true" title="Chưa có danh mục PC văn phòng riêng">PC Văn phòng lắp ráp sẵn</span>
                         </li>
                       </ul>
                     </div>
                   </div>
-                </div>
-              </li>
+              </NavMenu>
 
               {/* ================= KHÁC ================= */}
               <li>
@@ -763,7 +711,7 @@ const Header = () => {
             </ul>
 
             <div className="hotline">
-              Hotline: <span>1900 9999</span>
+              Hotline: <a href="tel:19009999">1900 9999</a>
             </div>
           </div>
         </nav>

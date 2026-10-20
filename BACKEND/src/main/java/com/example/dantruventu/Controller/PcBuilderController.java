@@ -1,12 +1,18 @@
 package com.example.dantruventu.Controller;
 
+import com.example.dantruventu.DTO.Request.CartPcBuildRequest;
 import com.example.dantruventu.DTO.Request.PcBuilderPreviewRequest;
 import com.example.dantruventu.DTO.Response.ApiResponse;
 import com.example.dantruventu.DTO.Response.PcBuilderOptionsResponse;
 import com.example.dantruventu.DTO.Response.PcBuilderPreviewResponse;
 import com.example.dantruventu.DTO.Response.PcBuilderProductsResponse;
+import com.example.dantruventu.Services.PcBuilderExportService;
 import com.example.dantruventu.Services.PcBuilderService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -18,7 +24,9 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/v1/pc-builder")
 @RequiredArgsConstructor
 public class PcBuilderController {
+
   private final PcBuilderService service;
+  private final PcBuilderExportService exportService;
 
   @PostMapping("/preview")
   public ApiResponse<PcBuilderPreviewResponse> preview(
@@ -69,5 +77,21 @@ public class PcBuilderController {
         .message("Lấy tùy chọn Build PC thành công")
         .data(service.getOptions())
         .build();
+  }
+
+  @PostMapping("/export")
+  public ResponseEntity<byte[]> export(@RequestBody(required = false) CartPcBuildRequest request) {
+
+    var file = exportService.export(request);
+
+    return ResponseEntity.ok()
+        .contentType(
+            MediaType.parseMediaType(
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
+        .header(
+            HttpHeaders.CONTENT_DISPOSITION,
+            ContentDisposition.attachment().filename(file.filename()).build().toString())
+        .contentLength(file.content().length)
+        .body(file.content());
   }
 }

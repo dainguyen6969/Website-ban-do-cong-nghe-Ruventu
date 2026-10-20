@@ -14,6 +14,19 @@ import DetailTablePagination from "../../../../shared/components/ui/DetailTableP
 
 import { DETAIL_TABLE_PAGE_SIZE } from "../../../../hooks/useDetailTablePagination";
 
+import {
+  CashSourceFilters,
+  CashSourceInfo,
+  useCashSourceFilters,
+} from "../components/CashbookEnhancements";
+
+import CashbookSourceFilters from "../components/CashbookSourceFilters";
+
+import {
+  createCashbookSourceFilters,
+  cashbookSourceParams,
+} from "../api/cashbookFilterParams";
+
 import "./SoQuy.css";
 
 function getDefaultDateRange() {
@@ -61,12 +74,16 @@ export default function SoQuy() {
   });
 
   const [searchPerson, setSearchPerson] = useState(
-    () => params.get("ten_nguoi_nop_nhan") || params.get("keyword") || "",
+    () => params.get("ten_nguoi_nop_nhan") || "",
   );
 
   const [debouncedPerson, setDebouncedPerson] = useState(searchPerson);
 
   const [page, setPage] = useState(1);
+
+  const [sourceFilters, setSourceFilters] = useState(() =>
+    createCashbookSourceFilters(params),
+  );
 
   // Khớp với component DetailTablePagination đang dùng.
   const pageSize = DETAIL_TABLE_PAGE_SIZE;
@@ -100,16 +117,23 @@ export default function SoQuy() {
     toDate !== defaultToDate ||
     filterType !== "ALL" ||
     filterMethod !== "ALL" ||
-    searchPerson.trim() !== "",
+    searchPerson.trim() !== "" ||
+    Object.keys(cashbookSourceParams(sourceFilters)).length > 0,
   );
 
   const handleClearFilters = () => {
+    if (searchTimeoutRef.current !== null) {
+      clearTimeout(searchTimeoutRef.current);
+      searchTimeoutRef.current = null;
+    }
+
     setFromDate(defaultFromDate);
     setToDate(defaultToDate);
     setFilterType("ALL");
     setFilterMethod("ALL");
     setSearchPerson("");
     setDebouncedPerson("");
+    setSourceFilters(createCashbookSourceFilters());
     setDateError("");
     setPage(1);
   };
@@ -143,6 +167,7 @@ export default function SoQuy() {
         ten_nguoi_nop_nhan: debouncedPerson.trim() || undefined,
         page: Math.max(0, page - 1),
         limit: pageSize,
+        ...cashbookSourceParams(sourceFilters),
       };
 
       const response = await cashbookService.getCashbook(params);
@@ -165,7 +190,16 @@ export default function SoQuy() {
     } finally {
       setIsLoading(false);
     }
-  }, [fromDate, toDate, filterType, filterMethod, debouncedPerson, page]);
+  }, [
+    fromDate,
+    toDate,
+    filterType,
+    filterMethod,
+    debouncedPerson,
+    page,
+    pageSize,
+    sourceFilters,
+  ]);
 
   useEffect(() => {
     fetchCashbookData();
@@ -192,6 +226,7 @@ export default function SoQuy() {
         phuong_thuc_thanh_toan:
           filterMethod !== "ALL" ? filterMethod : undefined,
         ten_nguoi_nop_nhan: debouncedPerson.trim() || undefined,
+        ...cashbookSourceParams(sourceFilters),
       };
 
       const response = await cashbookService.exportCashbook(params);
@@ -429,6 +464,15 @@ export default function SoQuy() {
           ⚠ {dateError}
         </div>
       )}
+
+      <CashbookSourceFilters
+        extended
+        value={sourceFilters}
+        onChange={(nextFilters) => {
+          setSourceFilters(nextFilters);
+          setPage(1);
+        }}
+      />
 
       {/* 4 Stats Cards */}
       <div className="sq-stats-row">

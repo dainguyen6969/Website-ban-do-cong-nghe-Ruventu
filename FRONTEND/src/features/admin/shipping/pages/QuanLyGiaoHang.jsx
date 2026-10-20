@@ -9,8 +9,14 @@ import { OrderStateBadge } from "../../orders/pages/DanhSachDonHang";
 import TablePagination from "../../../../shared/components/ui/TablePagination";
 import DetailTablePagination from "../../../../shared/components/ui/DetailTablePagination";
 import useDetailTablePagination from "../../../../hooks/useDetailTablePagination";
+import ImageUploader from "../../../../shared/components/ui/ImageUploader";
 
-import { requireBasicStatus } from "../../../../shared/services/mutationUtils";
+import {
+  requireBasicStatus,
+  withIdempotency,
+  nowLocalInput,
+  toApiDateTime,
+} from "../../../../shared/services/mutationUtils";
 
 import "./QuanLyGiaoHang.css";
 
@@ -526,6 +532,7 @@ function ShipmentDetail({ id }) {
   const navigate = useNavigate();
   const operationBusy = useRef(false);
   const mounted = useRef(true);
+  const deliveryAttempt = useRef(null);
 
   const [delivery, setDelivery] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -565,6 +572,7 @@ function ShipmentDetail({ id }) {
         }
 
         setDelivery(data);
+        setReturnDocument(data.phieu_tra_hang || null);
       })
       .catch((error) => {
         if (!controller.signal.aborted) {
@@ -581,7 +589,9 @@ function ShipmentDetail({ id }) {
   }, [id, revision]);
 
   const open = (kind) => {
-    if (operationBusy.current || loading) return;
+    if (operationBusy.current || loading || deliveryAttempt.current) {
+      return;
+    }
 
     setOperationError("");
     setNotice("");
@@ -602,20 +612,51 @@ function ShipmentDetail({ id }) {
     setBusy(true);
     setOperationError("");
 
-    try {
-      const path = `${API}/${encodeURIComponent(id)}${
-        suffix ? `/${suffix}` : ""
-      }`;
+    const command = {
+      method,
+      suffix,
+      body,
+      message,
+    };
 
-      const result = await apiRequest(path, {
-        method,
-        body: JSON.stringify(body),
-      });
+    try {
+      const send = async (key, payload) => {
+        const path =
+          `${API}/${encodeURIComponent(id)}` +
+          (payload.suffix ? `/${payload.suffix}` : "");
+
+        return apiRequest(path, {
+          method: payload.method,
+
+          ...(key
+            ? {
+                headers: {
+                  "Idempotency-Key": key,
+                },
+              }
+            : {}),
+
+          body: JSON.stringify(payload.body),
+        });
+      };
+
+      const usesIdempotency = ["status", "return-receipt"].includes(suffix);
+
+      const result = usesIdempotency
+        ? await withIdempotency(
+            deliveryAttempt,
+            `delivery:${id}:${suffix}`,
+            command,
+            send,
+          )
+        : await send(null, command);
 
       if (!mounted.current) return;
 
-      // Action chỉ trả một phần dữ liệu; giữ lại sản phẩm và người nhận.
-      setDelivery((current) => ({ ...current, ...result }));
+      setDelivery((current) => ({
+        ...current,
+        ...result,
+      }));
 
       if (result?.phieu_tra_hang) {
         setReturnDocument(result.phieu_tra_hang);
@@ -635,6 +676,18 @@ function ShipmentDetail({ id }) {
         setBusy(false);
       }
     }
+  };
+
+  const retryDeliveryOperation = () => {
+    const pending = deliveryAttempt.current;
+
+    if (!pending || operationBusy.current) {
+      return;
+    }
+
+    const command = pending.body;
+
+    return save(command.method, command.suffix, command.body, command.message);
   };
 
   if (!delivery) {
@@ -725,6 +778,23 @@ function ShipmentDetail({ id }) {
       </header>
 
       <div className="delivery-detail-inner">
+        {deliveryAttempt.current && (
+          <div className="delivery-feedback is-warning" role="status">
+            <span>
+              Chưa xác định được kết quả. Dữ liệu đang được giữ nguyên để thử
+              lại.
+            </span>
+
+            <button
+              type="button"
+              disabled={busy}
+              onClick={retryDeliveryOperation}
+            >
+              THỬ LẠI YÊU CẦU CŨ
+            </button>
+          </div>
+        )}
+
         {loadError && (
           <div className="delivery-feedback is-error" role="alert">
             <span>{loadError}</span>
@@ -1052,7 +1122,7 @@ function ShipmentDetail({ id }) {
         </div>
       </div>
 
-      {modal === "edit" && (
+      {!deliveryAttempt.current && modal === "edit" && (
         <ShipmentEditDialog
           delivery={delivery}
           busy={busy}
@@ -1062,7 +1132,7 @@ function ShipmentDetail({ id }) {
         />
       )}
 
-      {modal === "return" && (
+      {!deliveryAttempt.current && modal === "return" && (
         <ShipmentReturnDialog
           delivery={delivery}
           busy={busy}
@@ -1072,19 +1142,20 @@ function ShipmentDetail({ id }) {
         />
       )}
 
-      {["handoff", "transit", "success", "failure", "cancel"].includes(
-        modal,
-      ) && (
-        <ShipmentStatusDialog
-          key={modal}
-          kind={modal}
-          delivery={delivery}
-          busy={busy}
-          error={operationError}
-          close={close}
-          submit={save}
-        />
-      )}
+      {!deliveryAttempt.current &&
+        ["handoff", "transit", "success", "failure", "cancel"].includes(
+          modal,
+        ) && (
+          <ShipmentStatusDialog
+            key={modal}
+            kind={modal}
+            delivery={delivery}
+            busy={busy}
+            error={operationError}
+            close={close}
+            submit={save}
+          />
+        )}
     </section>
   );
 }
@@ -1360,16 +1431,20 @@ function ShipmentReturnDialog({ delivery, busy, error, close, submit }) {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
   const [revision, setRevision] = useState(0);
+
   const [reason, setReason] = useState("");
-  const [note, setNote] = useState("");
   const [refundMethod, setRefundMethod] = useState("CHUYEN_KHOAN");
   const [confirmed, setConfirmed] = useState(false);
+  const [evidence, setEvidence] = useState([]);
+  const [receivedAt, setReceivedAt] = useState(receiptInputNow);
 
   useEffect(() => {
     const controller = new AbortController();
 
     setLoading(true);
     setLoadError("");
+    setRequirements(null);
+    setRows([]);
 
     apiRequest(
       `${API}/${encodeURIComponent(delivery.id)}/return-requirements`,
@@ -1378,156 +1453,173 @@ function ShipmentReturnDialog({ delivery, busy, error, close, submit }) {
       .then((data) => {
         if (controller.signal.aborted) return;
 
-        if (
-          !data?.kho_hang_id ||
-          !Array.isArray(data.items) ||
-          !data.items.length
-        ) {
-          throw new Error("Không có danh sách hàng cần nhận hoàn.");
+        if (!data?.kho_nhan?.id || !Array.isArray(data.hang_phai_nhan)) {
+          throw new Error("Dữ liệu yêu cầu nhận hoàn không hợp lệ.");
         }
 
-        const receivedRows = data.items.map((item) => {
-          // Đọc đúng trường backend đang trả.
-          const quantity = Number(item.so_luong_can_nhan);
+        const nextRows = data.hang_phai_nhan.map((item) => {
+          const quantity = Number(item.so_luong_da_xuat);
 
-          if (
-            item.so_luong_can_nhan == null ||
-            !Number.isSafeInteger(quantity) ||
-            quantity <= 0
-          ) {
-            throw new Error(
-              `Số lượng cần nhận không hợp lệ của sản phẩm ${
-                item.ten_san_pham || item.phien_ban_id
-              }.`,
-            );
+          if (!Number.isSafeInteger(quantity) || quantity <= 0) {
+            throw new Error("Số lượng xuất gốc chưa có đủ căn cứ.");
           }
 
           return {
             ...item,
-
-            // Chuẩn hóa sang tên đang dùng trong form:
-            // max, updateQuantity và validReturnRow.
             so_luong_da_xuat: quantity,
-
             good: String(quantity),
             bad: "0",
-            serials: (item.serials || []).map((serial) => ({
-              ...serial,
-              trang_thai_sau_nhan: "",
-            })),
+            resale: "",
+            inspectionNote: "",
+            serials: (item.thiet_bi || [])
+              .filter((device) => device.so_serial_id != null)
+              .map((device) => ({
+                ...device,
+                resale: "",
+              })),
           };
         });
 
         setRequirements(data);
-        setRows(receivedRows);
+        setRows(nextRows);
         setConfirmed(false);
       })
-      .catch((exception) => {
+      .catch((failure) => {
         if (!controller.signal.aborted) {
           setLoadError(
-            exception.message || "Không tải được hàng cần nhận hoàn.",
+            failure.message || "Không tải được căn cứ nhận hàng hoàn.",
           );
         }
       })
       .finally(() => {
-        if (!controller.signal.aborted) setLoading(false);
+        if (!controller.signal.aborted) {
+          setLoading(false);
+        }
       });
 
     return () => controller.abort();
   }, [delivery.id, revision]);
 
-  const updateQuantity = (index, field, rawValue) => {
-    setRows((current) =>
-      current.map((row, rowIndex) => {
-        if (rowIndex !== index || row.quan_ly_serial) {
-          return row;
-        }
-
-        const limit = Number(row.so_luong_da_xuat);
-
-        if (!Number.isSafeInteger(limit) || limit <= 0) {
-          return row;
-        }
-
-        // Cho phép xóa để nhập lại; nút xác nhận vẫn bị khóa.
-        if (rawValue === "") {
-          return { ...row, [field]: "" };
-        }
-
-        // Chỉ nhận số nguyên không âm.
-        if (!/^\d+$/.test(rawValue)) {
-          return row;
-        }
-
-        const entered = Number(rawValue);
-
-        if (!Number.isSafeInteger(entered)) {
-          return row;
-        }
-
-        const quantity = Math.min(limit, entered);
-        const otherField = field === "good" ? "bad" : "good";
-
-        return {
-          ...row,
-          [field]: String(quantity),
-          [otherField]: String(limit - quantity),
-        };
-      }),
-    );
-  };
-
-  const updateSerial = (index, serialId, status) => {
+  const changeRow = (index, values) => {
     setRows((current) =>
       current.map((row, rowIndex) =>
-        rowIndex === index
-          ? {
-              ...row,
-              serials: row.serials.map((serial) =>
-                serial.so_serial_id === serialId
-                  ? { ...serial, trang_thai_sau_nhan: status }
-                  : serial,
-              ),
-            }
-          : row,
+        rowIndex === index ? { ...row, ...values } : row,
       ),
     );
   };
 
+  const changeQuantity = (index, field, rawValue) => {
+    setRows((current) =>
+      current.map((row, rowIndex) => {
+        if (rowIndex !== index) return row;
+
+        if (rawValue === "") {
+          return {
+            ...row,
+            [field]: "",
+          };
+        }
+
+        if (!/^\d+$/.test(rawValue)) return row;
+
+        const limit = row.so_luong_da_xuat;
+        const parsed = Number(rawValue);
+
+        if (!Number.isSafeInteger(parsed)) return row;
+
+        const quantity = Math.min(limit, Math.max(0, parsed));
+
+        return {
+          ...row,
+          good: field === "good" ? String(quantity) : String(limit - quantity),
+          bad: field === "bad" ? String(quantity) : String(limit - quantity),
+        };
+      }),
+    );
+  };
+
+  const changeSerial = (rowIndex, serialId, value) => {
+    setRows((current) =>
+      current.map((row, index) =>
+        index !== rowIndex
+          ? row
+          : {
+              ...row,
+              serials: row.serials.map((serial) =>
+                Number(serial.so_serial_id) === Number(serialId)
+                  ? { ...serial, resale: value }
+                  : serial,
+              ),
+            },
+      ),
+    );
+  };
+
+  let timeError = "";
+
+  try {
+    receiptApiTime(receivedAt);
+  } catch (failure) {
+    timeError = failure.message;
+  }
+
+  const evidenceReady =
+    evidence.length > 0 &&
+    evidence.length <= 50 &&
+    evidence.every(
+      (image) =>
+        !image.uploading &&
+        !image.error &&
+        typeof image.url === "string" &&
+        (image.url.startsWith("https://") || image.url.startsWith("/uploads/")),
+    );
+
+  const reasons = requirements?.ly_do_chan || [];
+
   const valid =
     !loading &&
     !loadError &&
-    requirements &&
+    requirements?.co_the_nhan_hoan === true &&
     rows.length > 0 &&
     rows.every(validReturnRow) &&
+    !timeError &&
+    evidenceReady &&
     confirmed &&
     reason.trim().length > 0 &&
-    reason.trim().length <= 255 &&
-    note.trim().length <= 2000;
+    reason.trim().length <= 255;
 
   const save = () => {
+    if (!valid || busy) return;
+
     const body = {
       xac_nhan_da_nhan_du_hang: true,
       ly_do_tra: reason.trim(),
       hinh_thuc_hoan_tien: refundMethod,
-      ghi_chu: note.trim() || null,
-      hang_nhan: rows.map((row) => {
-        const counts = getReturnCounts(row);
+      thoi_diem_nhan: receiptApiTime(receivedAt),
 
-        return {
-          chi_tiet_don_hang_id: row.chi_tiet_don_hang_id,
-          phien_ban_id: row.phien_ban_id,
-          kho_hang_id: requirements.kho_hang_id,
-          so_luong_nguyen_ven: counts.good,
-          so_luong_loi: counts.bad,
-          serials: row.quan_ly_serial
-            ? row.serials.map((serial) => ({
-                so_serial_id: serial.so_serial_id,
-                trang_thai_sau_nhan: serial.trang_thai_sau_nhan,
-              }))
-            : [],
-        };
-      }),
+      hang_nhan: rows.map((row) => ({
+        chi_tiet_don_hang_id: row.chi_tiet_don_hang_id,
+        phien_ban_id: row.phien_ban_id,
+        so_luong_nguyen_ven: Number(row.good),
+        so_luong_loi: Number(row.bad),
+
+        serials: row.co_quan_ly_serial
+          ? row.serials.map((serial) => ({
+              so_serial_id: serial.so_serial_id,
+              du_dieu_kien_ban_lai: serial.resale === "true",
+            }))
+          : [],
+
+        ...(!row.co_quan_ly_serial
+          ? {
+              du_dieu_kien_ban_lai: row.resale === "true",
+            }
+          : {}),
+
+        ghi_chu_kiem_tra: row.inspectionNote.trim() || null,
+      })),
+
+      bang_chung_urls: evidence.map((image) => image.url),
     };
 
     return submit(
@@ -1537,6 +1629,9 @@ function ShipmentReturnDialog({ delivery, busy, error, close, submit }) {
       "Đã nhận đủ hàng hoàn và nhập lại kho.",
     );
   };
+
+  const moneyEvidence = requirements?.doi_soat_tien;
+  const moneyKnown = moneyEvidence?.co_du_can_cu === true;
 
   return (
     <OrderModal
@@ -1552,151 +1647,281 @@ function ShipmentReturnDialog({ delivery, busy, error, close, submit }) {
     >
       <p className="delivery-warning">
         Hàng hoàn được nhập về{" "}
-        <strong>{requirements?.ten_kho || "kho mặc định của cửa hàng"}</strong>.
-        Không chọn kho khác.
+        <strong>{requirements?.kho_nhan?.ten_kho || "kho cửa hàng"}</strong>.
       </p>
 
-      {loading && <p role="status">Đang tải hàng cần nhận hoàn...</p>}
+      {loading && <p role="status">Đang tải căn cứ nhận hàng hoàn...</p>}
 
       {loadError && (
         <button
           type="button"
           className="delivery-small-btn"
+          disabled={busy}
           onClick={() => setRevision((value) => value + 1)}
         >
-          TẢI LẠI HÀNG CẦN NHẬN
+          TẢI LẠI
         </button>
       )}
 
-      {!loading && !loadError && (
+      {!loading && requirements && (
         <>
-          <h3 className="delivery-form-heading">HÀNG NHẬN VỀ</h3>
+          {reasons.length > 0 && (
+            <div className="delivery-return-blocked" role="alert">
+              <strong>CHƯA THỂ NHẬN HOÀN</strong>
 
-          {rows.map((row, index) => {
-            const counts = getReturnCounts(row);
-            const managed = row.quan_ly_serial;
+              <ul>
+                {reasons.map((code) => (
+                  <li key={code}>{returnBlockReason(code)}</li>
+                ))}
+              </ul>
+            </div>
+          )}
 
-            return (
-              <section
-                className="delivery-return-row"
-                key={`${row.chi_tiet_don_hang_id}:${row.phien_ban_id}`}
-              >
-                <strong>{row.ten_san_pham}</strong>
-                <small>
-                  {row.ten_phien_ban} · Số lượng đã xuất: {row.so_luong_da_xuat}
-                </small>
+          <div className="delivery-return-finance">
+            <span>KHOẢN CẦN HOÀN CHO KHÁCH</span>
 
-                <div className="delivery-return-quantities">
-                  <label>
-                    <span>SỐ LƯỢNG NGUYÊN VẸN</span>
-                    <input
-                      type="number"
-                      min="0"
-                      max={row.so_luong_da_xuat}
-                      step="1"
-                      required
-                      readOnly={managed}
-                      value={managed ? counts.good : row.good}
-                      onChange={(event) =>
-                        updateQuantity(index, "good", event.target.value)
-                      }
-                    />
-                  </label>
+            <strong>
+              {moneyKnown
+                ? money(moneyEvidence.tong_tien_can_hoan)
+                : "Cần xác minh"}
+            </strong>
 
-                  <label>
-                    <span>SỐ LƯỢNG LỖI</span>
-                    <input
-                      type="number"
-                      min="0"
-                      max={row.so_luong_da_xuat}
-                      step="1"
-                      required
-                      readOnly={managed}
-                      value={managed ? counts.bad : row.bad}
-                      onChange={(event) =>
-                        updateQuantity(index, "bad", event.target.value)
-                      }
-                    />
-                  </label>
-                </div>
+            <p>
+              Khoản này được xác định từ tiền đã thực thu. Nhận hàng về kho chưa
+              thực hiện hoàn tiền.
+            </p>
+          </div>
 
-                {managed && (
-                  <div className="delivery-return-serials">
-                    <p>
-                      Chọn tình trạng từng serial. Số lượng phía trên được tính
-                      theo serial đã chọn.
-                    </p>
+          <label className="delivery-field">
+            <span>THỜI ĐIỂM THỰC NHẬN *</span>
 
-                    {row.serials.map((serial) => (
-                      <label key={serial.so_serial_id}>
-                        <span>{serial.so_serial}</span>
-                        <select
-                          required
-                          value={serial.trang_thai_sau_nhan}
-                          onChange={(event) =>
-                            updateSerial(
-                              index,
-                              serial.so_serial_id,
-                              event.target.value,
-                            )
-                          }
-                        >
-                          <option value="">Chọn tình trạng</option>
-                          <option value="TRONG_KHO">Nguyên vẹn</option>
-                          <option value="LOI">Hàng lỗi</option>
-                        </select>
-                      </label>
-                    ))}
+            <input
+              type="datetime-local"
+              step="1"
+              required
+              value={receivedAt}
+              onChange={(event) => setReceivedAt(event.target.value)}
+            />
+
+            {timeError && (
+              <small className="delivery-return-error">{timeError}</small>
+            )}
+          </label>
+
+          <div className="delivery-return-items">
+            {rows.map((row, index) => {
+              const managed = row.co_quan_ly_serial === true;
+
+              const sellable = managed
+                ? row.serials.filter((serial) => serial.resale === "true")
+                    .length
+                : row.resale === "true"
+                  ? Number(row.good || 0)
+                  : 0;
+
+              return (
+                <section
+                  className="delivery-return-item"
+                  key={`${row.chi_tiet_don_hang_id}:` + row.phien_ban_id}
+                >
+                  <header className="delivery-return-item-head">
+                    <div>
+                      <strong>
+                        {row.ten_san_pham || `Phiên bản #${row.phien_ban_id}`}
+                      </strong>
+
+                      <small>{row.ten_phien_ban || "—"}</small>
+
+                      {row.ten_dong_don_hang &&
+                        row.ten_dong_don_hang !== row.ten_san_pham && (
+                          <small>Thuộc: {row.ten_dong_don_hang}</small>
+                        )}
+                    </div>
+
+                    {row.la_qua_tang && (
+                      <span className="delivery-return-gift">QUÀ TẶNG</span>
+                    )}
+                  </header>
+
+                  <p className="delivery-return-quantity-note">
+                    Đã xuất: <strong>{row.so_luong_da_xuat}</strong>
+                    {" · "}Đủ điều kiện bán lại: <strong>{sellable}</strong>
+                  </p>
+
+                  <div className="delivery-return-count-grid">
+                    <label className="delivery-field">
+                      <span>SỐ LƯỢNG NGUYÊN VẸN *</span>
+
+                      <input
+                        type="number"
+                        inputMode="numeric"
+                        min="0"
+                        max={row.so_luong_da_xuat}
+                        step="1"
+                        required
+                        value={row.good}
+                        onChange={(event) =>
+                          changeQuantity(index, "good", event.target.value)
+                        }
+                      />
+                    </label>
+
+                    <label className="delivery-field">
+                      <span>SỐ LƯỢNG LỖI *</span>
+
+                      <input
+                        type="number"
+                        inputMode="numeric"
+                        min="0"
+                        max={row.so_luong_da_xuat}
+                        step="1"
+                        required
+                        value={row.bad}
+                        onChange={(event) =>
+                          changeQuantity(index, "bad", event.target.value)
+                        }
+                      />
+                    </label>
                   </div>
-                )}
 
-                {!validReturnRow(row) && (
-                  <em>
-                    {managed
-                      ? "Cần phân loại đủ tất cả serial đã xuất."
-                      : "Nguyên vẹn + lỗi phải bằng số lượng đã xuất."}
-                  </em>
-                )}
-              </section>
-            );
-          })}
+                  {managed ? (
+                    <div className="delivery-return-serial-list">
+                      {row.serials.map((serial) => (
+                        <label
+                          className="delivery-return-serial"
+                          key={serial.so_serial_id}
+                        >
+                          <span>
+                            <strong>
+                              {serial.so_serial ||
+                                `Serial #${serial.so_serial_id}`}
+                            </strong>
+
+                            <small>{serial.ma_theo_doi || ""}</small>
+                          </span>
+
+                          <select
+                            required
+                            value={serial.resale}
+                            onChange={(event) =>
+                              changeSerial(
+                                index,
+                                serial.so_serial_id,
+                                event.target.value,
+                              )
+                            }
+                          >
+                            <option value="">Kết luận kiểm tra</option>
+
+                            <option value="true">Đủ điều kiện bán lại</option>
+
+                            <option value="false">
+                              Không đủ điều kiện bán lại
+                            </option>
+                          </select>
+                        </label>
+                      ))}
+                    </div>
+                  ) : (
+                    <label className="delivery-field">
+                      <span>KẾT LUẬN HÀNG NGUYÊN VẸN *</span>
+
+                      <select
+                        required
+                        value={row.resale}
+                        onChange={(event) =>
+                          changeRow(index, {
+                            resale: event.target.value,
+                          })
+                        }
+                      >
+                        <option value="">Chọn kết luận kiểm tra</option>
+
+                        <option value="true">Đủ điều kiện bán lại</option>
+
+                        <option value="false">
+                          Không đủ điều kiện bán lại
+                        </option>
+                      </select>
+                    </label>
+                  )}
+
+                  <label className="delivery-field">
+                    <span>GHI CHÚ KIỂM TRA</span>
+
+                    <textarea
+                      rows={2}
+                      maxLength={2000}
+                      value={row.inspectionNote}
+                      onChange={(event) =>
+                        changeRow(index, {
+                          inspectionNote: event.target.value,
+                        })
+                      }
+                      placeholder="Tem, phụ kiện, bao bì, tình trạng thực tế..."
+                    />
+                  </label>
+
+                  {!validReturnRow(row) && (
+                    <p className="delivery-return-error">
+                      Cần nhận đủ số lượng đã xuất và kết luận điều kiện bán
+                      lại. Số đủ điều kiện bán lại không được vượt số nguyên
+                      vẹn.
+                    </p>
+                  )}
+                </section>
+              );
+            })}
+          </div>
 
           <label className="delivery-field">
             <span>LÝ DO TRẢ *</span>
+
             <textarea
               required
-              maxLength={255}
               rows={3}
+              maxLength={255}
               value={reason}
               onChange={(event) => setReason(event.target.value)}
               placeholder="Ví dụ: Khách không nhận, đối tác đã hoàn đủ hàng..."
             />
           </label>
 
-          <label className="delivery-field">
-            <span>GHI CHÚ</span>
-            <textarea
-              maxLength={2000}
-              rows={3}
-              value={note}
-              onChange={(event) => setNote(event.target.value)}
-              placeholder="Tình trạng hàng khi nhận lại..."
-            />
-          </label>
+          <div className="delivery-return-evidence">
+            <strong>ẢNH BẰNG CHỨNG *</strong>
+
+            <p>
+              Chụp hàng thực nhận, serial và tình trạng hàng. Tối đa 50 ảnh.
+            </p>
+
+            <div inert={busy}>
+              <ImageUploader
+                images={evidence}
+                onImagesChange={setEvidence}
+                folder="general"
+              />
+            </div>
+
+            {!evidenceReady && (
+              <small className="delivery-return-error">
+                Cần ít nhất một ảnh tải lên thành công. Hãy xóa ảnh lỗi hoặc ảnh
+                vượt giới hạn.
+              </small>
+            )}
+          </div>
 
           <label className="delivery-field">
-            <span>HÌNH THỨC HOÀN TIỀN DỰ KIẾN, NẾU CÓ *</span>
+            <span>HÌNH THỨC HOÀN TIỀN DỰ KIẾN *</span>
+
             <select
+              required
               value={refundMethod}
               onChange={(event) => setRefundMethod(event.target.value)}
             >
               <option value="CHUYEN_KHOAN">Chuyển khoản</option>
+
               <option value="TIEN_MAT">Tiền mặt</option>
             </select>
-            <small>
-              Thao tác này ghi nhận hàng hoàn. Việc hoàn tiền được xử lý ở
-              nghiệp vụ hoàn tiền.
-            </small>
           </label>
 
           <label className="delivery-checkbox">
@@ -1705,14 +1930,94 @@ function ShipmentReturnDialog({ delivery, busy, error, close, submit }) {
               checked={confirmed}
               onChange={(event) => setConfirmed(event.target.checked)}
             />
+
             <span>
-              Tôi xác nhận đã nhận đủ hàng và kiểm tra tình trạng hàng.
+              Tôi xác nhận đã thực nhận đủ hàng và hoàn tất kiểm tra tình trạng.
             </span>
           </label>
         </>
       )}
     </OrderModal>
   );
+}
+
+function validReturnRow(row) {
+  const expected = Number(row.so_luong_da_xuat);
+
+  if (!/^\d+$/.test(row.good) || !/^\d+$/.test(row.bad)) {
+    return false;
+  }
+
+  const good = Number(row.good);
+  const bad = Number(row.bad);
+
+  if (
+    !Number.isSafeInteger(expected) ||
+    expected <= 0 ||
+    !Number.isSafeInteger(good) ||
+    !Number.isSafeInteger(bad) ||
+    good < 0 ||
+    bad < 0 ||
+    good + bad !== expected
+  ) {
+    return false;
+  }
+
+  if (!row.co_quan_ly_serial) {
+    return row.serials.length === 0 && ["true", "false"].includes(row.resale);
+  }
+
+  const serialIds = row.serials.map((serial) => Number(serial.so_serial_id));
+
+  const sellable = row.serials.filter(
+    (serial) => serial.resale === "true",
+  ).length;
+
+  return (
+    serialIds.length === expected &&
+    serialIds.every((id) => Number.isSafeInteger(id) && id > 0) &&
+    new Set(serialIds).size === expected &&
+    row.serials.every((serial) => ["true", "false"].includes(serial.resale)) &&
+    sellable <= good
+  );
+}
+
+function receiptInputNow() {
+  const seconds = String(new Date().getSeconds()).padStart(2, "0");
+  return `${nowLocalInput()}:${seconds}`;
+}
+
+function receiptApiTime(value) {
+  if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:[0-5]\d)?$/.test(value || "")) {
+    throw new Error("Vui lòng nhập thời điểm thực nhận hợp lệ.");
+  }
+
+  // Dùng helper chung để kiểm tra phần ngày và giờ.
+  toApiDateTime(value.slice(0, 16));
+
+  const full = value.length === 16 ? `${value}:00` : value;
+
+  const result = `${full}+07:00`;
+  const parsed = new Date(result);
+
+  if (Number.isNaN(parsed.getTime()) || parsed.getTime() > Date.now()) {
+    throw new Error("Thời điểm thực nhận không được nằm trong tương lai.");
+  }
+
+  return result;
+}
+
+function returnBlockReason(code) {
+  const messages = {
+    EXPORT_HISTORY_UNVERIFIED:
+      "Chưa xác minh đủ hàng và nhận dạng của lần xuất gốc.",
+    PAYMENT_HISTORY_UNVERIFIED:
+      "Chưa đủ chứng từ xác định số tiền đã thu và cần hoàn.",
+    RETURN_ALREADY_EXISTS: "Đơn đã có phiếu trả; cần kiểm tra phiếu đã tạo.",
+    RECIPIENT_HISTORY_UNVERIFIED: "Thông tin liên hệ trên đơn chưa đầy đủ.",
+  };
+
+  return messages[code] || "Dữ liệu nguồn cần được kiểm tra lại.";
 }
 
 function getReturnCounts(row) {
@@ -1730,34 +2035,6 @@ function getReturnCounts(row) {
     good: /^\d+$/.test(row.good) ? Number(row.good) : NaN,
     bad: /^\d+$/.test(row.bad) ? Number(row.bad) : NaN,
   };
-}
-
-function validReturnRow(row) {
-  const expected = Number(row.so_luong_da_xuat);
-  const counts = getReturnCounts(row);
-
-  if (
-    !Number.isSafeInteger(expected) ||
-    expected <= 0 ||
-    !Number.isSafeInteger(counts.good) ||
-    !Number.isSafeInteger(counts.bad) ||
-    counts.good < 0 ||
-    counts.bad < 0 ||
-    counts.good + counts.bad !== expected
-  ) {
-    return false;
-  }
-
-  if (!row.quan_ly_serial) return true;
-
-  return (
-    row.serials.length === expected &&
-    new Set(row.serials.map((serial) => serial.so_serial_id)).size ===
-      expected &&
-    row.serials.every((serial) =>
-      ["TRONG_KHO", "LOI"].includes(serial.trang_thai_sau_nhan),
-    )
-  );
 }
 
 function ShipmentPanel({ title, tools, children }) {
