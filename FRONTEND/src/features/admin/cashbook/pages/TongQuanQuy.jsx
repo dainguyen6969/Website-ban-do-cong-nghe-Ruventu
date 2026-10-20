@@ -398,6 +398,21 @@ export default function TongQuanQuy() {
     fetchAllData(resetFilters, "THEO NGÀY");
   };
 
+  const handleOpenCashbook = () => {
+    const values = buildQueryParams(appliedFilters);
+
+    const query = new URLSearchParams(
+      Object.entries(values)
+        .filter(([, value]) => value != null && String(value).trim() !== "")
+        .map(([key, value]) => [key, String(value).trim()]),
+    );
+
+    navigate({
+      pathname: "/admin/so-quy-tien-mat/so-quy",
+      search: `?${query.toString()}`,
+    });
+  };
+
   const isNegative = overviewData.tonQuy < 0;
 
   return (
@@ -409,8 +424,9 @@ export default function TongQuanQuy() {
           <p>THEO DÕI NHANH TÌNH HÌNH THU CHI VÀ TỒN QUỸ CỦA CỬA HÀNG</p>
         </div>
         <button
+          type="button"
           className="cb-btn-secondary"
-          onClick={() => navigate("/admin/so-quy-tien-mat/so-quy")}
+          onClick={handleOpenCashbook}
         >
           XEM SỔ QUỸ &rarr;
         </button>
