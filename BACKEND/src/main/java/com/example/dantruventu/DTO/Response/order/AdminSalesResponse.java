@@ -74,10 +74,10 @@ public final class AdminSalesResponse {
     private boolean quanLySerial;
 
     @JsonProperty("ton_thuc_te")
-    private long tonThucTe;
+    private Long tonThucTe;
 
     @JsonProperty("ton_co_the_ban")
-    private long tonCoTheBan;
+    private Long tonCoTheBan;
 
     @JsonProperty("so_bo_co_the_lap")
     private Long soBoCoTheLap;
