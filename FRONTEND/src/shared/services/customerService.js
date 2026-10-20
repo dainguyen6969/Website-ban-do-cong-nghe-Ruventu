@@ -1,8 +1,6 @@
 import axios from 'axios';
 
-const BASE_URL =
-  (import.meta.env.VITE_RUVENTU_API_URL || '')
-    .replace(/\/$/, '');
+const BASE_URL = (import.meta.env.VITE_RUVENTU_API_URL || '').replace(/\/$/, '');
 
 const customerAxios = axios.create({
   baseURL: `${BASE_URL}/api/v1/admin/customers`,
@@ -44,22 +42,21 @@ customerAxios.interceptors.response.use(
 
     try {
       if (!refreshPromise) {
-        refreshPromise = axios.post(
-          `${BASE_URL}/api/v1/auth/refresh`,
-          {},
-          { withCredentials: true },
-        ).then((response) => {
-          const token = response.data?.data?.access_token;
+        refreshPromise = axios
+          .post(`${BASE_URL}/api/v1/auth/refresh`, {}, { withCredentials: true })
+          .then((response) => {
+            const token = response.data?.data?.access_token;
 
-          if (!token) {
-            throw new Error('Không thể làm mới phiên đăng nhập.');
-          }
+            if (!token) {
+              throw new Error('Không thể làm mới phiên đăng nhập.');
+            }
 
-          localStorage.setItem('accessToken', token);
-          return token;
-        }).finally(() => {
-          refreshPromise = null;
-        });
+            localStorage.setItem('accessToken', token);
+            return token;
+          })
+          .finally(() => {
+            refreshPromise = null;
+          });
       }
 
       await refreshPromise;
@@ -67,23 +64,20 @@ customerAxios.interceptors.response.use(
     } catch {
       return Promise.reject(error);
     }
-  },
+  }
 );
 
 const id = (value) => encodeURIComponent(value);
 
 export const customerService = {
-  getCustomers: (params, signal) =>
-    customerAxios.get('', { params, signal }),
+  getCustomers: (params, signal) => customerAxios.get('', { params, signal }),
 
-  getCustomerDetail: (customerId, signal) =>
-    customerAxios.get(`/${id(customerId)}`, { signal }),
+  getCustomerDetail: (customerId, signal) => customerAxios.get(`/${id(customerId)}`, { signal }),
 
   getCustomerOrders: (customerId, params, signal) =>
     customerAxios.get(`/${id(customerId)}/orders`, { params, signal }),
 
-  createCustomer: (body) =>
-    customerAxios.post('', body),
+  createCustomer: (body) => customerAxios.post('', body),
 
   updateCustomerStatus: (customerId, status) =>
     customerAxios.patch(`/${id(customerId)}/status`, { trang_thai: status }),

@@ -1,17 +1,14 @@
-import React, { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import useMockAuth from "../../auth/useMockAuth";
-import { Eye, EyeOff, AlertCircle, Check, Loader2 } from "lucide-react";
+import React, { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import useMockAuth from '../../auth/useMockAuth';
+import { Eye, EyeOff, AlertCircle, Check, Loader2 } from 'lucide-react';
 
-import axios from "axios";
+import axios from 'axios';
 
-import AuthLayout from "../components/AuthLayout";
-import "./Auth.css";
+import AuthLayout from '../components/AuthLayout';
+import './Auth.css';
 
-const API_BASE_URL = (import.meta.env.VITE_RUVENTU_API_URL || "").replace(
-  /\/$/,
-  "",
-);
+const API_BASE_URL = (import.meta.env.VITE_RUVENTU_API_URL || '').replace(/\/$/, '');
 
 const Login = () => {
   const navigate = useNavigate();
@@ -21,34 +18,32 @@ const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
 
   const [formData, setFormData] = useState({
-    account: "",
-    password: "",
+    account: '',
+    password: '',
     remember: false,
   });
 
   const [errors, setErrors] = useState({});
   const [loginFailed, setLoginFailed] = useState(false);
 
-  const [errorMessage, setErrorMessage] = useState(
-    "Tài khoản hoặc mật khẩu không chính xác.",
-  );
+  const [errorMessage, setErrorMessage] = useState('Tài khoản hoặc mật khẩu không chính xác.');
 
   const [isLoginSuccess, setIsLoginSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [userName, setUserName] = useState("");
+  const [userName, setUserName] = useState('');
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
 
     setFormData((prev) => ({
       ...prev,
-      [name]: type === "checkbox" ? checked : value,
+      [name]: type === 'checkbox' ? checked : value,
     }));
 
     if (errors[name]) {
       setErrors((prev) => ({
         ...prev,
-        [name]: "",
+        [name]: '',
       }));
     }
 
@@ -59,11 +54,11 @@ const Login = () => {
     const newErrors = {};
 
     if (!formData.account.trim()) {
-      newErrors.account = "Vui lòng nhập email hoặc số điện thoại";
+      newErrors.account = 'Vui lòng nhập email hoặc số điện thoại';
     }
 
     if (!formData.password) {
-      newErrors.password = "Vui lòng nhập mật khẩu";
+      newErrors.password = 'Vui lòng nhập mật khẩu';
     }
 
     return newErrors;
@@ -71,11 +66,7 @@ const Login = () => {
 
   const getDisplayName = (account) => {
     return (
-      account?.name ||
-      account?.ho_ten ||
-      account?.fullName ||
-      account?.email ||
-      formData.account
+      account?.name || account?.ho_ten || account?.fullName || account?.email || formData.account
     );
   };
 
@@ -87,7 +78,7 @@ const Login = () => {
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
       setLoginFailed(true);
-      setErrorMessage("Vui lòng điền đầy đủ thông tin.");
+      setErrorMessage('Vui lòng điền đầy đủ thông tin.');
       return;
     }
 
@@ -104,21 +95,14 @@ const Login = () => {
         },
         {
           withCredentials: true,
-        },
+        }
       );
 
       const result = response.data;
 
-      if (
-        result?.status !== 200 ||
-        !result?.data?.access_token ||
-        !result?.data?.user
-      ) {
+      if (result?.status !== 200 || !result?.data?.access_token || !result?.data?.user) {
         setLoginFailed(true);
-        setErrorMessage(
-          result?.message || "Không nhận được dữ liệu đăng nhập hợp lệ.",
-
-        );
+        setErrorMessage(result?.message || 'Không nhận được dữ liệu đăng nhập hợp lệ.');
         return;
       }
 
@@ -126,23 +110,23 @@ const Login = () => {
       // Xóa toàn bộ đoạn tự lưu localStorage/normalizedUser cũ.
       const account = login(result.data, formData.account.trim());
 
-      if (account.role === "admin") {
-        navigate("/admin", { replace: true });
+      if (account.role === 'admin') {
+        navigate('/admin', { replace: true });
         return;
       }
 
       setUserName(account.name);
       setIsLoginSuccess(true);
     } catch (error) {
-      console.error("Lỗi đăng nhập:", error);
+      console.error('Lỗi đăng nhập:', error);
 
       /*
        * Tài khoản bị khóa / không có quyền
        */
       if (error.response?.status === 403) {
-        navigate("/404", {
+        navigate('/404', {
           state: {
-            type: "account",
+            type: 'account',
           },
         });
 
@@ -151,10 +135,7 @@ const Login = () => {
 
       setLoginFailed(true);
 
-      setErrorMessage(
-        error.response?.data?.message ||
-          "Tài khoản hoặc mật khẩu không chính xác.",
-      );
+      setErrorMessage(error.response?.data?.message || 'Tài khoản hoặc mật khẩu không chính xác.');
     } finally {
       setLoading(false);
     }
@@ -169,12 +150,12 @@ const Login = () => {
     return (
       <div
         style={{
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-          minHeight: "100vh",
-          backgroundColor: "#fff",
-          padding: "20px",
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          minHeight: '100vh',
+          backgroundColor: '#fff',
+          padding: '20px',
         }}
       >
         <div className="login-success-box">
@@ -191,7 +172,7 @@ const Login = () => {
               Xin chào <b>{userName}</b>, chúc bạn mua sắm vui vẻ!
             </div>
 
-            <button className="btn-home" onClick={() => navigate("/")}>
+            <button className="btn-home" onClick={() => navigate('/')}>
               VỀ TRANG CHỦ
             </button>
           </div>
@@ -216,8 +197,7 @@ const Login = () => {
       </h1>
 
       <p className="auth-left-desc">
-        Đăng nhập để theo dõi đơn hàng, nhận ưu đãi thành viên và truy cập lịch
-        sử mua sắm.
+        Đăng nhập để theo dõi đơn hàng, nhận ưu đãi thành viên và truy cập lịch sử mua sắm.
       </p>
     </>
   );
@@ -257,13 +237,11 @@ const Login = () => {
               name="account"
               value={formData.account}
               onChange={handleChange}
-              className={`form-input ${errors.account ? "error" : ""}`}
+              className={`form-input ${errors.account ? 'error' : ''}`}
               placeholder="Email hoặc số điện thoại"
             />
 
-            {errors.account && (
-              <span className="form-error">{errors.account}</span>
-            )}
+            {errors.account && <span className="form-error">{errors.account}</span>}
           </div>
 
           {/* PASSWORD */}
@@ -278,32 +256,22 @@ const Login = () => {
 
             <div className="password-input-wrapper">
               <input
-                type={showPassword ? "text" : "password"}
+                type={showPassword ? 'text' : 'password'}
                 name="password"
                 value={formData.password}
                 onChange={handleChange}
-                className={`form-input ${errors.password ? "error" : ""}`}
+                className={`form-input ${errors.password ? 'error' : ''}`}
                 placeholder="Nhập mật khẩu"
               />
 
               {showPassword ? (
-                <EyeOff
-                  className="eye-icon"
-                  size={18}
-                  onClick={() => setShowPassword(false)}
-                />
+                <EyeOff className="eye-icon" size={18} onClick={() => setShowPassword(false)} />
               ) : (
-                <Eye
-                  className="eye-icon"
-                  size={18}
-                  onClick={() => setShowPassword(true)}
-                />
+                <Eye className="eye-icon" size={18} onClick={() => setShowPassword(true)} />
               )}
             </div>
 
-            {errors.password && (
-              <span className="form-error">{errors.password}</span>
-            )}
+            {errors.password && <span className="form-error">{errors.password}</span>}
           </div>
 
           {/* REMEMBER */}
@@ -326,17 +294,17 @@ const Login = () => {
             {loading ? (
               <span
                 style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  gap: "8px",
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px',
                 }}
               >
                 <Loader2 className="spinner" size={18} />
                 ĐANG ĐĂNG NHẬP...
               </span>
             ) : (
-              "ĐĂNG NHẬP"
+              'ĐĂNG NHẬP'
             )}
           </button>
 
@@ -345,15 +313,15 @@ const Login = () => {
           <Link
             to="/register"
             style={{
-              textDecoration: "none",
-              display: "block",
+              textDecoration: 'none',
+              display: 'block',
             }}
           >
             <button
               type="button"
               className="btn-secondary"
               style={{
-                width: "100%",
+                width: '100%',
               }}
             >
               TẠO TÀI KHOẢN MỚI
@@ -363,12 +331,11 @@ const Login = () => {
           <p
             className="terms-text"
             style={{
-              textAlign: "center",
-              marginTop: "20px",
+              textAlign: 'center',
+              marginTop: '20px',
             }}
           >
-            Bằng cách đăng nhập, bạn đồng ý với{" "}
-            <a href="#">Điều khoản sử dụng</a> và{" "}
+            Bằng cách đăng nhập, bạn đồng ý với <a href="#">Điều khoản sử dụng</a> và{' '}
             <a href="#">Chính sách bảo mật</a>.
           </p>
         </form>

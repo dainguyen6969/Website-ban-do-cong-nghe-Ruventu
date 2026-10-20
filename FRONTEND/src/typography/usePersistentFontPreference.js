@@ -12,15 +12,18 @@ function readStoredFont(storageKey) {
 export default function usePersistentFontPreference(storageKey) {
   const [font, setFont] = useState(() => readStoredFont(storageKey));
 
-  const selectFont = useCallback((name) => {
-    const nextFont = findFontOption(name);
-    setFont(nextFont);
-    try {
-      window.localStorage.setItem(storageKey, nextFont.name);
-    } catch {
-      // localStorage can be unavailable in privacy-restricted browser contexts.
-    }
-  }, [storageKey]);
+  const selectFont = useCallback(
+    (name) => {
+      const nextFont = findFontOption(name);
+      setFont(nextFont);
+      try {
+        window.localStorage.setItem(storageKey, nextFont.name);
+      } catch {
+        // localStorage can be unavailable in privacy-restricted browser contexts.
+      }
+    },
+    [storageKey]
+  );
 
   return useMemo(() => ({ font, selectFont }), [font, selectFont]);
 }

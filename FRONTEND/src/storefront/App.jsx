@@ -26,7 +26,7 @@ import './index.css';
 
 function StorefrontApp() {
   const fontPreference = usePersistentFontPreference('storefront_font_preference');
-  
+
   return (
     <FontPreferenceContext.Provider value={fontPreference}>
       <div className="app storefront-app" style={{ fontFamily: fontPreference.font.family }}>

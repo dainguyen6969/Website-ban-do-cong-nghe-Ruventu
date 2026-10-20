@@ -15,7 +15,9 @@
   width: 36px;
   height: 36px;
   color: var(--color-text-secondary);
-  transition: color var(--transition-fast), background-color var(--transition-fast);
+  transition:
+    color var(--transition-fast),
+    background-color var(--transition-fast);
 }
 
 .font-switcher--admin .font-switcher__trigger:hover,
@@ -50,7 +52,7 @@
   border: 2px solid #111;
   background: #fff;
   color: #111;
-  box-shadow: 0 12px 28px rgba(0, 0, 0, .18);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.18);
 }
 
 .font-switcher--homepage .font-switcher__menu {
@@ -62,7 +64,7 @@
   color: #8a8f96;
   font-size: 9px;
   font-weight: 800;
-  letter-spacing: .08em;
+  letter-spacing: 0.08em;
 }
 
 .font-switcher__option {

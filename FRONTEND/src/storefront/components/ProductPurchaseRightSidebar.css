@@ -317,7 +317,7 @@
 }
 
 /* Disabled States for Out of Stock */
-.sidebar-btn-buy-now:disabled, 
+.sidebar-btn-buy-now:disabled,
 .sidebar-btn-add-cart:disabled {
   background-color: #555;
   border-color: #555;

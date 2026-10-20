@@ -42,7 +42,9 @@ export default function MainContent() {
       {/* Secondary breadcrumb */}
       <nav className="content__breadcrumb" aria-label="Breadcrumb nội dung">
         <span className="content__breadcrumb-item">Đơn hàng</span>
-        <span className="content__breadcrumb-sep" aria-hidden="true">›</span>
+        <span className="content__breadcrumb-sep" aria-hidden="true">
+          ›
+        </span>
         <span className="content__breadcrumb-item content__breadcrumb-item--current">
           Quản lý đơn hàng
         </span>
@@ -154,11 +156,27 @@ export default function MainContent() {
                 <div className="data-table__empty-state">
                   <div className="data-table__empty-icon">
                     <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
-                      <rect x="4" y="8" width="40" height="32" rx="4" stroke="#d1d5db" strokeWidth="2" fill="none" />
+                      <rect
+                        x="4"
+                        y="8"
+                        width="40"
+                        height="32"
+                        rx="4"
+                        stroke="#d1d5db"
+                        strokeWidth="2"
+                        fill="none"
+                      />
                       <line x1="4" y1="18" x2="44" y2="18" stroke="#d1d5db" strokeWidth="2" />
                       <line x1="16" y1="8" x2="16" y2="40" stroke="#e5e7eb" strokeWidth="1" />
                       <line x1="32" y1="8" x2="32" y2="40" stroke="#e5e7eb" strokeWidth="1" />
-                      <circle cx="24" cy="30" r="4" stroke="#d1d5db" strokeWidth="1.5" fill="none" />
+                      <circle
+                        cx="24"
+                        cy="30"
+                        r="4"
+                        stroke="#d1d5db"
+                        strokeWidth="1.5"
+                        fill="none"
+                      />
                       <line x1="27" y1="33" x2="30" y2="36" stroke="#d1d5db" strokeWidth="1.5" />
                     </svg>
                   </div>
