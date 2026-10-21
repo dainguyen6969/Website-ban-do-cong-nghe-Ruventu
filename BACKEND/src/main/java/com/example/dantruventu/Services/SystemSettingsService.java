@@ -61,16 +61,10 @@ public class SystemSettingsService {
     if (isMaintenance() && !isAdmin(user)) throw maintenanceError();
   }
 
-  public Typography getTypography(Long userId) {
+  public Typography getTypography() {
     return jdbc.queryForObject(
-        "SELECT COALESCE(n.font_family, 'Inter'), s.font_size FROM nguoi_dung n CROSS JOIN cai_dat_he_thong s WHERE n.id = ? AND s.id = 1",
-        (row, index) -> new Typography(row.getString(1), row.getInt(2)),
-        userId);
-  }
-
-  public int getProjectFontSize() {
-    return jdbc.queryForObject(
-        "SELECT font_size FROM cai_dat_he_thong WHERE id = 1", Integer.class);
+        "SELECT font_family, font_size FROM cai_dat_he_thong WHERE id = 1",
+        (row, index) -> new Typography(row.getString(1), row.getInt(2)));
   }
 
   @Transactional
@@ -83,19 +77,17 @@ public class SystemSettingsService {
       throw new AppException(
           ErrorCode.INVALID_DATA, "Chọn phông chữ trong danh sách và cỡ chữ từ 12 đến 20 px.");
     }
-    if (!isAdmin(user) && value.fontSize() != getProjectFontSize()) {
+    if (!isAdmin(user)) {
       throw new AppException(
-          ErrorCode.FORBIDDEN, "Chỉ quản trị viên được thay đổi cỡ chữ toàn hệ thống.");
+          ErrorCode.FORBIDDEN,
+          "Chỉ quản trị viên được thay đổi phông chữ và cỡ chữ toàn hệ thống.");
     }
     if (jdbc.update(
-            "UPDATE nguoi_dung SET font_family = ? WHERE id = ?", value.fontFamily(), user.getId())
+            "UPDATE cai_dat_he_thong SET font_family = ?, font_size = ? WHERE id = 1",
+            value.fontFamily(),
+            value.fontSize())
         != 1) {
-      throw new AppException(ErrorCode.NOT_FOUND);
-    }
-    if (isAdmin(user)
-        && jdbc.update("UPDATE cai_dat_he_thong SET font_size = ? WHERE id = 1", value.fontSize())
-            != 1) {
-      throw new IllegalStateException("Thiếu dòng cấu hình hệ thống. Hãy chạy script SQL 008.");
+      throw new IllegalStateException("Thiếu dòng cấu hình hệ thống. Hãy chạy script SQL 009.");
     }
     return value;
   }

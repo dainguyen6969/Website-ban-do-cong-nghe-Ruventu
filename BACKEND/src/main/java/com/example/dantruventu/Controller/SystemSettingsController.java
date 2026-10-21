@@ -16,7 +16,7 @@ import org.springframework.web.bind.annotation.*;
 public class SystemSettingsController {
   private final SystemSettingsService settings;
 
-  public record Status(boolean maintenance, boolean canManage, int fontSize) {}
+  public record Status(boolean maintenance, boolean canManage, int fontSize, String fontFamily) {}
 
   public record MaintenanceRequest(@NotNull Boolean enabled) {}
 
@@ -24,26 +24,31 @@ public class SystemSettingsController {
   public ApiResponse<Status> status(Authentication authentication) {
     NguoiDung user =
         authentication != null && authentication.getPrincipal() instanceof NguoiDung n ? n : null;
+    var typography = settings.getTypography();
     return response(
         new Status(
             settings.isMaintenance(),
             SystemSettingsService.isAdmin(user),
-            settings.getProjectFontSize()));
+            typography.fontSize(),
+            typography.fontFamily()));
   }
 
   @PutMapping("/admin/system-settings/maintenance")
   @PreAuthorize("hasRole('ADMIN')")
   public ApiResponse<Status> maintenance(@Valid @RequestBody MaintenanceRequest request) {
     settings.setMaintenance(request.enabled());
-    return response(new Status(request.enabled(), true, settings.getProjectFontSize()));
+    var typography = settings.getTypography();
+    return response(
+        new Status(request.enabled(), true, typography.fontSize(), typography.fontFamily()));
   }
 
   @GetMapping("/users/me/typography")
-  public ApiResponse<SystemSettingsService.Typography> typography(Authentication authentication) {
-    return response(settings.getTypography(((NguoiDung) authentication.getPrincipal()).getId()));
+  public ApiResponse<SystemSettingsService.Typography> typography() {
+    return response(settings.getTypography());
   }
 
   @PutMapping("/users/me/typography")
+  @PreAuthorize("hasRole('ADMIN')")
   public ApiResponse<SystemSettingsService.Typography> typography(
       Authentication authentication, @RequestBody SystemSettingsService.Typography request) {
     return response(settings.saveTypography((NguoiDung) authentication.getPrincipal(), request));

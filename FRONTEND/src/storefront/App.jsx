@@ -20,12 +20,12 @@ import PromotionsPage from './pages/PromotionsPage';
 import ToastContainer from './components/ToastContainer';
 import BackToTop from './components/BackToTop';
 import FontPreferenceContext from '../typography/FontPreferenceContext';
-import usePersistentFontPreference from '../typography/usePersistentFontPreference';
+import useQaTypography from '../typography/useQaTypography';
 import './App.css';
 import './index.css';
 
 function StorefrontApp() {
-  const fontPreference = usePersistentFontPreference('storefront_font_preference');
+  const fontPreference = useQaTypography();
 
   return (
     <FontPreferenceContext.Provider value={fontPreference}>

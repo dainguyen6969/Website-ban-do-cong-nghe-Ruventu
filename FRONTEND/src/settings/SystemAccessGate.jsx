@@ -4,7 +4,8 @@ import { Wrench } from 'lucide-react';
 import useMockAuth from '../auth/useMockAuth';
 import { getSystemStatus, SETTINGS_CHANGED } from './settingsApi';
 import { isMaintenanceResponse } from './maintenanceState';
-import ProjectFontSizeContext from '../typography/ProjectFontSizeContext';
+import ProjectTypographyContext from '../typography/ProjectTypographyContext';
+import { findFontOption } from '../typography/fontOptions';
 import './SystemSettings.css';
 
 export default function SystemAccessGate({ children }) {
@@ -18,6 +19,11 @@ export default function SystemAccessGate({ children }) {
     document.documentElement.style.setProperty('--project-font-scale', String((status?.fontSize || 14) / 14));
     return () => document.documentElement.style.removeProperty('--project-font-scale');
   }, [status?.fontSize]);
+
+  useEffect(() => {
+    document.documentElement.style.setProperty('--project-font-family', findFontOption(status?.fontFamily).family);
+    return () => document.documentElement.style.removeProperty('--project-font-family');
+  }, [status?.fontFamily]);
 
   useEffect(() => {
     let active = true;
@@ -47,7 +53,7 @@ export default function SystemAccessGate({ children }) {
 
   const adminLogin = pathname === '/login' && new URLSearchParams(search).get('quan-tri') === '1';
   if (!error && status && (!status.maintenance || status.canManage || adminLogin)) {
-    return <ProjectFontSizeContext.Provider value={status.fontSize || 14}>{children}</ProjectFontSizeContext.Provider>;
+    return <ProjectTypographyContext.Provider value={{ fontSize: status.fontSize || 14, fontFamily: status.fontFamily || 'Inter' }}>{children}</ProjectTypographyContext.Provider>;
   }
 
   return (

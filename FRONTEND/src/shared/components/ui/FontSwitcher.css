@@ -78,8 +78,7 @@
 .font-switcher__families legend { padding:0; margin-bottom:10px; font-size:12px; font-weight:700; }
 .font-switcher__list { max-height:180px; overflow-y:auto; overscroll-behavior:contain; scrollbar-width:none; border:1px solid #ddd; }
 .font-switcher__menu::-webkit-scrollbar,.font-switcher__list::-webkit-scrollbar { display:none; }
-.font-switcher__preview { margin:16px 0; padding:12px; background:#f6f6f6; line-height:1.6; overflow-wrap:anywhere; }
-.font-switcher__reset { width:100%; padding:10px 12px; border:1px solid #111; border-radius:0; background:#fff; color:#111; font-size:12px; font-weight:700; cursor:pointer; }
+.font-switcher__reset { width:100%; margin-top:16px; padding:10px 12px; border:1px solid #111; border-radius:0; background:#fff; color:#111; font-size:12px; font-weight:700; cursor:pointer; }
 .font-switcher__reset:disabled { opacity:.5; cursor:default; }
 
 .font-switcher__option {

@@ -21,7 +21,7 @@ export async function saveTypography(value) {
   const saved = await apiRequest('/api/v1/users/me/typography', {
     method: 'PUT', body: JSON.stringify(value),
   });
-  window.dispatchEvent(new CustomEvent(TYPOGRAPHY_CHANGED, { detail: saved }));
+  window.dispatchEvent(new Event(TYPOGRAPHY_CHANGED));
   window.dispatchEvent(new Event(SETTINGS_CHANGED));
   return saved;
 }
