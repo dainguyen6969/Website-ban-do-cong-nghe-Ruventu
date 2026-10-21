@@ -26,6 +26,7 @@ import {
   orderDisplayStatus,
 } from '../api/orderApi';
 
+import OrderRefundPanel from '../components/OrderRefundPanel';
 import { OrderStateBadge } from './DanhSachDonHang';
 import './ChiTietDonHang.css';
 import OrderModal from '../components/OrderModal';
@@ -68,6 +69,7 @@ export default function ChiTietDonHang() {
   const navigate = useNavigate();
   const [order, setOrder] = useState(null);
   const [history, setHistory] = useState([]);
+  const [refundRevision, setRefundRevision] = useState(0);
   const [isCancelOpen, setIsCancelOpen] = useState(false);
   const [cancelReason, setCancelReason] = useState('');
   const [dialog, setDialog] = useState(null);
@@ -83,6 +85,7 @@ export default function ChiTietDonHang() {
         if (signal?.aborted) return;
         setOrder(detail);
         setHistory(events);
+        setRefundRevision((value) => value + 1);
         setState((s) => ({ ...s, loading: false, error: '' }));
       } catch (error) {
         if (error.name !== 'AbortError')
@@ -524,11 +527,14 @@ export default function ChiTietDonHang() {
             <span>›</span>
             <strong>{order.ma_don_hang}</strong>
           </nav>
+
           <div className="order-detail-heading">
             <h1>{order.ma_don_hang}</h1>
             <OrderStateBadge value={order.loai_don_hang} />
           </div>
+
           <p>{dateTime(order.ngay_tao)}</p>
+
           <p className="order-receive-method">
             {order.loai_don_hang === 'TAI_QUAY'
               ? 'BÁN TẠI QUẦY'
@@ -538,6 +544,7 @@ export default function ChiTietDonHang() {
                   ? 'KHÁCH NHẬN TẠI CỬA HÀNG'
                   : 'CHƯA XÁC ĐỊNH HÌNH THỨC NHẬN'}
           </p>
+
           <div className="order-detail-statuses">
             <OrderStateBadge value={orderDisplayStatus(order)} />
             <OrderStateBadge value={order.trang_thai_thanh_toan} />
@@ -648,6 +655,13 @@ export default function ChiTietDonHang() {
           </button>
         </div>
       </header>
+
+      <OrderRefundPanel
+        order={order}
+        busy={state.busy || Boolean(orderAttempt.current) || Boolean(cashAttempt.current)}
+        perform={run}
+        revision={refundRevision}
+      />
 
       {waitingCod && (
         <div className="order-cod-settlement" role="status">

@@ -97,6 +97,18 @@ export const refundOrder = (id, key, body) =>
     body: JSON.stringify(body),
   });
 
+export const getOrderRefundOptions = (id, signal) =>
+  adminRequest(`${PATH}/${encodeURIComponent(id)}/refund-options`, { signal });
+
+export const refundOrderReturn = (returnId, key, body) =>
+  adminRequest(`/api/v1/admin/returns/${encodeURIComponent(returnId)}/refund`, {
+    method: 'POST',
+    headers: {
+      'Idempotency-Key': key,
+    },
+    body: JSON.stringify(body),
+  });
+
 export const setDeliveryStatus = (id, key, body) =>
   adminRequest(`/api/v1/admin/deliveries/${encodeURIComponent(id)}/status`, {
     method: 'PATCH',

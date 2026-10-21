@@ -11,6 +11,7 @@ import com.example.dantruventu.Services.order.OrderWebSocket;
 import com.example.dantruventu.Services.order.sales.AdminSalesService;
 import jakarta.validation.Valid;
 import java.time.LocalDate;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
@@ -205,6 +206,16 @@ public class AdminOrderController {
 
     return ok(
         "Ghi nhận hoàn tiền đơn hàng thành công", orderService.refund(id, idempotencyKey, request));
+  }
+
+  @GetMapping("/{id}/refund-options")
+  public ApiResponse<Map<String, Object>> refundOptions(@PathVariable("id") Long id) {
+
+    return ApiResponse.<Map<String, Object>>builder()
+        .status(200)
+        .message("Lấy thông tin hoàn tiền của đơn hàng thành công")
+        .data(orderService.refundOptions(id))
+        .build();
   }
 
   private <T> ApiResponse<T> ok(String message, T data) {

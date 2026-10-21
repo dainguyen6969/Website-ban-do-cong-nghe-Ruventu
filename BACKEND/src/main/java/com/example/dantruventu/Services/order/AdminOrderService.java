@@ -14,10 +14,7 @@ import com.example.dantruventu.Mapper.order.AdminOrderMapper;
 import com.example.dantruventu.Mapper.order.AdminSalesMapper;
 import com.example.dantruventu.Repository.cashbook.LoaiThuChiRepository;
 import com.example.dantruventu.Repository.cashbook.SoQuyThuChiRepository;
-import com.example.dantruventu.Repository.order.ChiTietDonHangRepository;
-import com.example.dantruventu.Repository.order.DonHangRepository;
-import com.example.dantruventu.Repository.order.LichSuXuLyDonHangRepository;
-import com.example.dantruventu.Repository.order.PhieuGiaoHangRepository;
+import com.example.dantruventu.Repository.order.*;
 import com.example.dantruventu.Repository.partner.DoiTacVanChuyenRepository;
 import com.example.dantruventu.Repository.product.AnhSanPhamRepository;
 import com.example.dantruventu.Repository.product.PhienBanSanPhamRepository;
@@ -70,6 +67,7 @@ public class AdminOrderService {
   private final OrderSaleSnapshotService saleSnapshots;
   private final SalesQuoteService saleQuotes;
   private final SoldDeviceService soldDevices;
+  private final PhieuTraHangRepository returnRepository;
 
   public AdminSalesResponse.PageData<AdminOrderResponse.ListItem> list(
       String keyword,
@@ -1450,6 +1448,109 @@ public class AdminOrderService {
       delivery.setTrangThaiGiaoHang(TrangThaiGiaoHangEnum.HUY_GIAO_HANG);
       delivery.setNgayCapNhat(now());
     }
+  }
+
+  public Map<String, Object> refundOptions(Long id) {
+    context.actor();
+
+    DonHang order = findOrder(id);
+
+    Map<String, Object> result = new LinkedHashMap<>();
+    result.put("don_hang_id", order.getId());
+
+    boolean cancelledBeforeExport =
+        order.getTrangThaiDonHang() == TrangThaiDonHang.HUY_HANG
+            && order.getTrangThaiXuatKho() == TrangThaiXuatKho.CHUA_XUAT_KHO;
+
+    Map<String, Object> evidence = failedDeliveryMoney(order);
+
+    boolean moneyVerified = Boolean.TRUE.equals(evidence.get("co_du_can_cu"));
+
+    BigDecimal refundDue = null;
+
+    if (moneyVerified) {
+      Object value = evidence.get("tong_tien_can_hoan");
+
+      if (value instanceof BigDecimal amount) {
+        refundDue = amount;
+      }
+    }
+
+    boolean canRefundCancelledOrder =
+        cancelledBeforeExport
+            && order.getTrangThaiThanhToan() == TrangThaiThanhToanDonHang.DA_THANH_TOAN
+            && refundDue != null
+            && refundDue.signum() > 0;
+
+    Map<String, Object> cancelledRefund = new LinkedHashMap<>();
+    cancelledRefund.put("hien_thi", cancelledBeforeExport);
+    cancelledRefund.put("co_the_hoan", canRefundCancelledOrder);
+    cancelledRefund.put("so_tien_can_hoan", refundDue);
+
+    String unavailableReason = null;
+
+    if (cancelledBeforeExport && !canRefundCancelledOrder) {
+      if (!moneyVerified) {
+        unavailableReason = "Chưa đủ căn cứ đối soát tiền của đơn hàng.";
+      } else if (refundDue == null) {
+        unavailableReason = "Chưa xác định được số tiền còn phải hoàn.";
+      } else if (refundDue.signum() == 0) {
+        unavailableReason = "Đơn không còn khoản tiền chờ hoàn.";
+      } else {
+        unavailableReason = "Đơn chưa đủ điều kiện hoàn tiền qua luồng hủy trước xuất kho.";
+      }
+    }
+
+    cancelledRefund.put("ly_do", unavailableReason);
+    result.put("hoan_don_huy", cancelledRefund);
+
+    List<Map<String, Object>> returnRefunds = new ArrayList<>();
+
+    for (PhieuTraHang document : returnRepository.findByDonHang_IdOrderByIdAsc(order.getId())) {
+
+      BigDecimal amount = document.getTongTienHoan();
+
+      boolean received = document.getTrangThaiTraHang() == TrangThaiTraHang.DA_NHAN_HANG;
+
+      boolean finished =
+          document.getTrangThaiTraHang() == TrangThaiTraHang.HOAN_TAT
+              || document.getTrangThaiTraHang() == TrangThaiTraHang.DA_HOAN_TIEN;
+
+      boolean hasRefundVoucher =
+          cashRepository.findByMaPhieu("CHI-TH-" + document.getId()).isPresent();
+
+      boolean canRefund = received && amount != null && amount.signum() > 0 && !hasRefundVoucher;
+
+      Map<String, Object> item = new LinkedHashMap<>();
+      item.put("id", document.getId());
+      item.put("ma_tra_hang", document.getMaTraHang());
+      item.put("trang_thai_tra_hang", document.getTrangThaiTraHang());
+      item.put("tong_tien_hoan", amount);
+      item.put("hinh_thuc_hoan_tien", document.getHinhThucHoanTien());
+      item.put("co_the_hoan", canRefund);
+      item.put("da_ghi_nhan_hoan", finished || hasRefundVoucher);
+
+      String reason = null;
+
+      if (!canRefund) {
+        if (finished || hasRefundVoucher) {
+          reason = "Phiếu trả đã kết thúc hoặc đã ghi nhận hoàn tiền.";
+        } else if (!received) {
+          reason = "Phiếu trả chưa xác nhận nhận hàng.";
+        } else if (amount == null) {
+          reason = "Phiếu trả chưa có số tiền hoàn hợp lệ.";
+        } else if (amount.signum() == 0) {
+          reason = "Phiếu trả không phát sinh tiền hoàn.";
+        }
+      }
+
+      item.put("ly_do", reason);
+      returnRefunds.add(item);
+    }
+
+    result.put("phieu_tra_hang", List.copyOf(returnRefunds));
+
+    return result;
   }
 
   private DonHang lockOrder(Long id) {
