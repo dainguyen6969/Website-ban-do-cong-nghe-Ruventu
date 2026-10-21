@@ -286,13 +286,15 @@ public class CustomerOrderService {
     /*
      * Checkout chỉ tạo đơn CHO_DUYET.
      *
-     * Chưa giữ hàng, chưa xuất kho, chưa đổi serial
-     * và chưa tạo chứng từ thu/chi.
+     * Tạo đơn và giữ đủ hàng trong cùng transaction.
+     * Chưa xuất kho, chưa giữ serial cụ thể, chưa ghi nhận thu tiền.
      *
      * Tồn kho được kiểm tra lại khi bắt đầu chuẩn bị hàng.
      */
 
     saleSnapshots.recordPromotion(order, plan, salesRequest, user);
+
+    orderInventory.reserveForNewOrder(order);
 
     orderRepository.flush();
 

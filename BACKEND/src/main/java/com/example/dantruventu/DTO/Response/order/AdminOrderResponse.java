@@ -68,64 +68,43 @@ public final class AdminOrderResponse {
     private Long phieuGiaoHangGanNhatId;
   }
 
-    public record History(
-            Long id,
+  public record History(
+      Long id,
+      @JsonProperty("hanh_dong") String hanhDong,
+      @JsonProperty("mo_ta") String moTa,
+      @JsonProperty("nguoi_thuc_hien") String nguoiThucHien,
+      @JsonProperty("ngay_thuc_hien") OffsetDateTime ngayThucHien,
+      @JsonProperty("trang_thai_don_hang") TrangThaiDonHang trangThaiDonHang,
+      @JsonProperty("trang_thai_dong_goi") TrangThaiDongGoi trangThaiDongGoi,
+      @JsonProperty("trang_thai_xuat_kho") TrangThaiXuatKho trangThaiXuatKho,
+      @JsonProperty("phieu_giao_hang_id") Long phieuGiaoHangId,
+      @JsonProperty("ma_phieu_giao_hang") String maPhieuGiaoHang,
+      @JsonProperty("trang_thai_giao_hang") TrangThaiGiaoHangEnum trangThaiGiaoHang) {
 
-            @JsonProperty("hanh_dong")
-            String hanhDong,
+    public History(
+        Long id,
+        String hanhDong,
+        String moTa,
+        String nguoiThucHien,
+        OffsetDateTime ngayThucHien,
+        TrangThaiDonHang trangThaiDonHang,
+        TrangThaiDongGoi trangThaiDongGoi,
+        TrangThaiXuatKho trangThaiXuatKho) {
 
-            @JsonProperty("mo_ta")
-            String moTa,
-
-            @JsonProperty("nguoi_thuc_hien")
-            String nguoiThucHien,
-
-            @JsonProperty("ngay_thuc_hien")
-            OffsetDateTime ngayThucHien,
-
-            @JsonProperty("trang_thai_don_hang")
-            TrangThaiDonHang trangThaiDonHang,
-
-            @JsonProperty("trang_thai_dong_goi")
-            TrangThaiDongGoi trangThaiDongGoi,
-
-            @JsonProperty("trang_thai_xuat_kho")
-            TrangThaiXuatKho trangThaiXuatKho,
-
-            @JsonProperty("phieu_giao_hang_id")
-            Long phieuGiaoHangId,
-
-            @JsonProperty("ma_phieu_giao_hang")
-            String maPhieuGiaoHang,
-
-            @JsonProperty("trang_thai_giao_hang")
-            TrangThaiGiaoHangEnum trangThaiGiaoHang
-    ) {
-
-        public History(
-                Long id,
-                String hanhDong,
-                String moTa,
-                String nguoiThucHien,
-                OffsetDateTime ngayThucHien,
-                TrangThaiDonHang trangThaiDonHang,
-                TrangThaiDongGoi trangThaiDongGoi,
-                TrangThaiXuatKho trangThaiXuatKho) {
-
-            this(
-                    id,
-                    hanhDong,
-                    moTa,
-                    nguoiThucHien,
-                    ngayThucHien,
-                    trangThaiDonHang,
-                    trangThaiDongGoi,
-                    trangThaiXuatKho,
-                    null,
-                    null,
-                    null);
-        }
+      this(
+          id,
+          hanhDong,
+          moTa,
+          nguoiThucHien,
+          ngayThucHien,
+          trangThaiDonHang,
+          trangThaiDongGoi,
+          trangThaiXuatKho,
+          null,
+          null,
+          null);
     }
+  }
 
   @Getter
   @Setter

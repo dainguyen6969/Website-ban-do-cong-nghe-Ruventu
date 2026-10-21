@@ -74,4 +74,15 @@ public interface SoSerialSanPhamRepository
   List<SoSerialSanPham> findByOrderForUpdate(@Param("orderId") Long orderId);
 
   List<SoSerialSanPham> findByDonHang_IdOrderByIdAsc(Long donHangId);
+
+  @Query(
+      """
+            SELECT s
+            FROM SoSerialSanPham s
+            JOIN FETCH s.chiTietDongGoi c
+            JOIN FETCH c.donHang d
+            WHERE d.id = :orderId
+            ORDER BY s.id
+            """)
+  List<SoSerialSanPham> findPackingByOrderId(@Param("orderId") Long orderId);
 }
