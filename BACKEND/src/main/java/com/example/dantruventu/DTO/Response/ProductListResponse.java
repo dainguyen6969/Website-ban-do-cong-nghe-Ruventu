@@ -2,6 +2,7 @@ package com.example.dantruventu.DTO.Response;
 
 import com.example.dantruventu.DTO.catalog.CatalogFields;
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonRawValue;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -52,6 +53,10 @@ public class ProductListResponse {
     private String tenThuongHieu;
 
     private String anhChinh;
+
+    @JsonRawValue private String thongSoKyThuat;
+
+    private Long phienBanMacDinhId;
 
     private BigDecimal giaThapNhat;
 

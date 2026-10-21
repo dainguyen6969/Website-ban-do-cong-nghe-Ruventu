@@ -7,6 +7,7 @@ import com.example.dantruventu.Error.ErrorCode;
 import com.example.dantruventu.Repository.cashbook.LoaiThuChiRepository;
 import com.example.dantruventu.Repository.cashbook.SoQuyThuChiRepository;
 import com.example.dantruventu.Repository.order.SalesIdempotencyRepository;
+import com.example.dantruventu.Services.order.OrderEvents;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.nio.charset.StandardCharsets;
@@ -44,6 +45,7 @@ public class CashbookService {
   private final LoaiThuChiRepository cashTypeRepository;
   private final SalesIdempotencyRepository idempotencyRepository;
   private final ObjectMapper objectMapper;
+  private final OrderEvents orderEvents;
 
   /*
    * Command nội bộ.
@@ -152,7 +154,9 @@ public class CashbookService {
      * Không bắt lỗi rồi tiếp tục trong transaction đã thất bại.
      * GlobalExceptionHandler hiện có xử lý lỗi ràng buộc thành 409.
      */
-    return cashRepository.saveAndFlush(voucher);
+    voucher = cashRepository.saveAndFlush(voucher);
+    orderEvents.receipt(voucher);
+    return voucher;
   }
 
   /*

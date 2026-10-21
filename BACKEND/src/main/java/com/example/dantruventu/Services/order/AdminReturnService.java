@@ -205,6 +205,8 @@ public class AdminReturnService {
             .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "Đơn hàng không tồn tại"));
     ensureReturnEligible(order);
 
+    orderEvents.watchOrder(order);
+
     List<AdminReturnResponse.ReceivedItem> receivedItems =
         returnInventoryService.receive(returnSlip, order, request);
 

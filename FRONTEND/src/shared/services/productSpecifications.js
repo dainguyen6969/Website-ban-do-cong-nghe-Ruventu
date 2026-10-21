@@ -27,3 +27,19 @@ export function toSpecRows(value) {
   Object.entries(parseSpecifications(value)).forEach(([label,entry]) => add(label,entry));
   return rows;
 }
+
+export function selectHighlights(rows, category = '') {
+  const kind = normalize(category);
+  const patterns = /pc build|bo pc/.test(kind) ? [/^cpu$/,/card do hoa|^gpu$|^vga$/,/^ram$/,/ssd|o cung/,/mainboard/,/nguon|psu/]
+    : /laptop/.test(kind) ? [/^cpu$|bo xu ly/,/^ram$/,/ssd|o cung/,/man hinh/,/gpu|do hoa/,/he dieu han/]
+    : /man hinh/.test(kind) ? [/kich thuoc/,/tam nen/,/do phan giai/,/tan so quet/,/phan hoi|dap ung/,/do sang/]
+    : /psu|nguon/.test(kind) ? [/cong suat/,/chung nhan|hieu suat/,/chuan nguon|atx/,/modular/,/dien ap/,/bao ve/]
+    : /cpu/.test(kind) ? [/socket/,/nhan/,/luong/,/xung|tan so/,/cache/,/tdp|cong suat/]
+    : /mainboard/.test(kind) ? [/socket/,/chipset/,/ram/,/m\.2|luu tru/,/lan|wifi/,/kich thuoc/]
+    : /ram/.test(kind) ? [/dung luong/,/loai ram/,/bus|toc do/,/cas|do tre/,/dien ap/,/so thanh/]
+    : /ssd|hdd/.test(kind) ? [/dung luong/,/giao tiep/,/doc/,/ghi/,/kich thuoc/,/tbw/]
+    : /vga|do hoa/.test(kind) ? [/^gpu$|do hoa/,/vram|bo nho/,/xung/,/giao tiep|pci/,/cong ket noi/,/cong suat/] : [];
+  const score = row => { const index = patterns.findIndex(pattern => pattern.test(normalize(row.label))); return index < 0 ? 100 : index; };
+  return rows.filter(row => !/^(thuong hieu|hang san xuat|model|ma san pham|bao hanh)$/.test(normalize(row.label)))
+    .map((row,index) => ({row,index})).sort((a,b) => score(a.row)-score(b.row) || a.index-b.index).slice(0,6).map(item => item.row);
+}

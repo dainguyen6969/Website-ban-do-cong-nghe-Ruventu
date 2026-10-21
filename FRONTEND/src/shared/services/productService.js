@@ -1,4 +1,5 @@
 import axios from "axios";
+import { parseSpecifications, selectHighlights, toSpecRows } from './productSpecifications';
 
 const API_BASE_URL =
   (import.meta.env.VITE_RUVENTU_API_URL || "")
@@ -28,6 +29,12 @@ export function toProductCard(product) {
   const variants = [...(product.danhSachPhienBan || [])]
     .sort((a, b) => (a.giaBanLe ?? Infinity) - (b.giaBanLe ?? Infinity));
   const firstVariant = variants[0];
+  const defaultVariantId = product.phienBanMacDinhId ?? firstVariant?.id ?? null;
+  const category = product.tenDanhMuc ?? product.danhMuc?.tenDanhMuc ?? "Sản phẩm";
+  const specifications = parseSpecifications(product.thongSoKyThuat);
+  const selected = specifications.phien_ban?.[defaultVariantId];
+  const mainSpecs = toSpecRows(selected?.thong_so_chinh);
+  const specs = selectHighlights(mainSpecs.length ? mainSpecs : toSpecRows(selected?.thong_so_ky_thuat ?? specifications), category).slice(0, 4);
   const priceValue = Number(product.giaThapNhat ?? firstVariant?.giaBanLe ?? 0);
   const highestPrice = Number(product.giaCaoNhat ?? variants.at(-1)?.giaBanLe ?? priceValue);
   const images = [...(product.anhSanPham || [])]
@@ -46,10 +53,11 @@ export function toProductCard(product) {
     images,
     price: formatProductPrice(priceValue),
     priceFrom: highestPrice > priceValue,
-    category: product.tenDanhMuc ?? product.danhMuc?.tenDanhMuc ?? "Sản phẩm",
+    category,
     brand: product.tenThuongHieu ?? product.thuongHieu?.tenThuongHieu ?? "",
     priceValue,
-    defaultVariantId: firstVariant?.id ?? null,
+    defaultVariantId,
+    specs,
     loaiSanPham: product.loaiSanPham,
     soBoCoTheLap: product.soBoCoTheLap ?? firstVariant?.soBoCoTheLap ?? null,
     thanhPhan: product.thanhPhan ?? [],

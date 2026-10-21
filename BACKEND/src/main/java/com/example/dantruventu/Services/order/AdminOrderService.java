@@ -1420,10 +1420,15 @@ public class AdminOrderService {
         orderRepository.findByIdForUpdate(id).orElseThrow(() -> notFound("Đơn hàng không tồn tại"));
 
     entityManager.refresh(order);
+    watchStatuses(order);
 
     saleSnapshots.lockPromotionForOrder(order.getId());
 
     return order;
+  }
+
+  void watchStatuses(DonHang order) {
+    orderEvents.watchOrder(order);
   }
 
   private DonHang findOrder(Long id) {

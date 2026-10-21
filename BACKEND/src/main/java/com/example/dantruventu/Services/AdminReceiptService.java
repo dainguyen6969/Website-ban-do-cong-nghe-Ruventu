@@ -27,6 +27,7 @@ import com.example.dantruventu.Repository.cashbook.SoQuyThuChiRepository;
 import com.example.dantruventu.Repository.partner.DoiTacVanChuyenRepository;
 import com.example.dantruventu.Repository.partner.NhaCungCapRepository;
 import com.example.dantruventu.Services.cashbook.CashbookService;
+import com.example.dantruventu.Services.order.OrderEvents;
 import com.example.dantruventu.Specification.ReceiptSpecification;
 import java.math.BigDecimal;
 import java.time.DateTimeException;
@@ -60,6 +61,7 @@ public class AdminReceiptService {
   private final NhaCungCapRepository supplierRepository;
   private final DoiTacVanChuyenRepository shippingPartnerRepository;
   private final CashbookService cashbookService;
+  private final OrderEvents orderEvents;
 
   @Value("${ruventu.cashbook.time-zone:Asia/Ho_Chi_Minh}")
   private String cashbookTimeZone;
@@ -296,6 +298,7 @@ public class AdminReceiptService {
       throw exception;
     }
 
+    orderEvents.receipt(receipt);
     return toResponse(receipt);
   }
 

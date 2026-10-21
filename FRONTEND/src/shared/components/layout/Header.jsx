@@ -1,6 +1,7 @@
 // Shared admin layout component: Header.
 import { useLocation } from 'react-router-dom';
-import { HiOutlineBell, HiOutlineMenu, HiOutlineUser } from 'react-icons/hi';
+import { HiOutlineMenu, HiOutlineUser } from 'react-icons/hi';
+import NotificationBell from './NotificationBell';
 import FontSwitcher from '../ui/FontSwitcher';
 import './Header.css';
 
@@ -28,7 +29,7 @@ function getLiveDate() {
   return DAYS_VN[now.getDay()] + ', ' + d + '/' + m + '/' + now.getFullYear();
 }
 
-export default function Header({ notificationCount = 0, onMenuToggle, isMenuOpen = false }) {
+export default function Header({ onMenuToggle, isMenuOpen = false }) {
   const location = useLocation();
   const { currentAccount } = useMockAuth();
   
@@ -207,16 +208,7 @@ export default function Header({ notificationCount = 0, onMenuToggle, isMenuOpen
         {/* Font switcher and notification bell */}
         <div className="header__group header__utilities">
           <FontSwitcher variant="admin" />
-          <button
-            className="header__icon-btn"
-            id="notification-bell"
-            aria-label="Thông báo"
-          >
-            <HiOutlineBell size={20} />
-            {Number(notificationCount) > 0 && (
-              <span className="header__notification-badge">{notificationCount}</span>
-            )}
-          </button>
+          <NotificationBell key={currentAccount?.id} />
         </div>
 
         <div className="header__divider" aria-hidden="true" />

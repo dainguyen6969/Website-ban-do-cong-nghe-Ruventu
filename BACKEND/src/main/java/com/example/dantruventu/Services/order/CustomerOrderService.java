@@ -300,7 +300,7 @@ public class CustomerOrderService {
     }
 
     registerCartCleanupAfterCommit(user, guestCartId, cartLines);
-    orderEvents.changed(order.getId(), "CREATED");
+    orderEvents.created(order);
 
     return CustomerOrderResponse.Created.builder()
         .id(order.getId())
