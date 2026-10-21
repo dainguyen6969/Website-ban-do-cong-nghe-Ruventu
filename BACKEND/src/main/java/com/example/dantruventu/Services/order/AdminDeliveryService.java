@@ -326,18 +326,20 @@ public class AdminDeliveryService {
       if (target == TrangThaiGiaoHangEnum.GIAO_THANH_CONG) {
         confirmCustomerPayment(delivery, request.getXacNhanDaThuCod());
 
+        // Khách thực nhận hàng: ghi mốc giao nhận và kích hoạt bảo hành.
         soldDevices.handover(order);
 
         delivery.setTrangThaiGiaoHang(TrangThaiGiaoHangEnum.GIAO_THANH_CONG);
 
-        // Hoàn thành giao nhận là mốc khách đã thực nhận hàng.
-        // Thanh toán COD vẫn chờ đến khi cửa hàng thực nhận tiền đối tác.
-        order.setTrangThaiDonHang(TrangThaiDonHang.HOAN_THANH);
+        boolean storeReceivedPayment =
+            order.getTrangThaiThanhToan() == TrangThaiThanhToanDonHang.DA_THANH_TOAN;
+
+        order.setTrangThaiDonHang(
+            storeReceivedPayment ? TrangThaiDonHang.HOAN_THANH : TrangThaiDonHang.DANG_GIAO_HANG);
 
         saleSnapshots.onOrderStateChanged(order);
 
       } else {
-        // Báo giao thất bại, chờ nhận hàng hoàn.
         delivery.setTrangThaiGiaoHang(TrangThaiGiaoHangEnum.CHO_HOAN_HANG);
       }
     }
@@ -347,7 +349,10 @@ public class AdminDeliveryService {
         switch (target) {
           case DA_NHAN_HANG -> "Bàn giao hàng cho đối tác";
           case DANG_GIAO -> "Đối tác đang giao hàng";
-          case GIAO_THANH_CONG -> "Giao hàng thành công";
+          case GIAO_THANH_CONG ->
+              order.getTrangThaiThanhToan() == TrangThaiThanhToanDonHang.DA_THANH_TOAN
+                  ? "Giao hàng thành công, hoàn tất đơn hàng"
+                  : "Khách đã nhận hàng và trả COD; chờ đối tác nộp tiền cho cửa hàng";
           case GIAO_THAT_BAI -> "Giao hàng thất bại, chờ hoàn hàng";
           default -> throw invalid("Trạng thái giao hàng không hợp lệ");
         };

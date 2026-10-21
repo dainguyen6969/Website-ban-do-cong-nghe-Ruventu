@@ -1,6 +1,8 @@
 package com.example.dantruventu.Repository.warehouse;
 
 import com.example.dantruventu.Entity.SoSerialSanPham;
+import com.example.dantruventu.Enum.TrangThaiBaoHanh;
+import com.example.dantruventu.Enum.TrangThaiSerial;
 import jakarta.persistence.LockModeType;
 import java.util.Collection;
 import java.util.List;
@@ -74,4 +76,32 @@ public interface SoSerialSanPhamRepository
   List<SoSerialSanPham> findByOrderForUpdate(@Param("orderId") Long orderId);
 
   List<SoSerialSanPham> findByDonHang_IdOrderByIdAsc(Long donHangId);
+
+  /** Legacy fallback must not bring back a returned device or an old warranty serial. */
+  @Query(
+      """
+      SELECT serial
+      FROM SoSerialSanPham serial
+      JOIN FETCH serial.phienBan variant
+      JOIN FETCH variant.sanPham
+      WHERE serial.donHang.id = :orderId
+        AND serial.trangThai = :soldStatus
+        AND NOT EXISTS (
+          SELECT device.id
+          FROM ThietBiBaoHanh device
+          WHERE device.soSerial = serial
+        )
+        AND NOT EXISTS (
+          SELECT warranty.id
+          FROM PhieuBaoHanh warranty
+          WHERE warranty.soSerial = serial
+            AND warranty.thietBiThayThe IS NOT NULL
+            AND warranty.trangThaiXuLy = :completedStatus
+        )
+      ORDER BY serial.id
+      """)
+  List<SoSerialSanPham> findCurrentLegacyReturnSerials(
+      @Param("orderId") Long orderId,
+      @Param("soldStatus") TrangThaiSerial soldStatus,
+      @Param("completedStatus") TrangThaiBaoHanh completedStatus);
 }

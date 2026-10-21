@@ -15,13 +15,20 @@ class ErrorBoundary extends React.Component {
     return { hasError: true, error };
   }
   componentDidCatch(error, errorInfo) {
-    console.error("React Error Boundary caught an error:", error, errorInfo);
+    console.error('React Error Boundary caught an error:', error, errorInfo);
     this.setState({ errorInfo });
   }
   render() {
     if (this.state.hasError) {
       return (
-        <div style={{ padding: '20px', background: '#ffdddd', color: '#990000', fontFamily: 'monospace' }}>
+        <div
+          style={{
+            padding: '20px',
+            background: '#ffdddd',
+            color: '#990000',
+            fontFamily: 'monospace',
+          }}
+        >
           <h2>Oops! Đã xảy ra lỗi giao diện (Runtime Error)</h2>
           <details style={{ whiteSpace: 'pre-wrap' }}>
             <summary>{this.state.error && this.state.error.toString()}</summary>
@@ -44,5 +51,5 @@ createRoot(document.getElementById('root')).render(
         </MockAuthProvider>
       </BrowserRouter>
     </ErrorBoundary>
-  </StrictMode>,
-)
+  </StrictMode>
+);
