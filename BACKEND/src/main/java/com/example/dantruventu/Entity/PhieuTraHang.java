@@ -79,7 +79,7 @@ public class PhieuTraHang {
 
   @UpdateTimestamp
   @Column(
-      name = "ngay_cap_nhat",
+      name = "ngay_cap_nhap",
       nullable = false,
       columnDefinition = "DATETIME DEFAULT CURRENT_TIMESTAMP")
   private LocalDateTime ngayCapNhat;

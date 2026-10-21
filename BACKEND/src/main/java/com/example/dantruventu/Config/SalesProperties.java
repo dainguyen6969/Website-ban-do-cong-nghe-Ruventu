@@ -20,6 +20,9 @@ public class SalesProperties {
 
   private boolean cardEnabled = true;
 
+  /** Số ngày được yêu cầu trả, tính từ thời điểm khách thực nhận đơn. */
+  private int returnWindowDays = 30;
+
   private Map<Long, PromotionRule> promotionRules = new HashMap<>();
 
   public ZoneId zone() {
