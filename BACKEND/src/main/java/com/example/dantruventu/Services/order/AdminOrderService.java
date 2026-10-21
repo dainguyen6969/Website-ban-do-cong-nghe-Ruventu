@@ -534,22 +534,29 @@ public class AdminOrderService {
     return action(order);
   }
 
-  public List<AdminOrderResponse.History> history(Long id) {
-    findOrder(id);
-    return historyRepository.findByDonHang_IdOrderByNgayThucHienAscIdAsc(id).stream()
-        .map(
-            event ->
-                new AdminOrderResponse.History(
-                    event.getId(),
-                    event.getHanhDong(),
-                    event.getMoTa(),
-                    event.getNguoiThucHien().getHoTen(),
-                    event.getNgayThucHien().atZone(properties.zone()).toOffsetDateTime(),
-                    event.getTrangThaiDonHang(),
-                    event.getTrangThaiDongGoi(),
-                    event.getTrangThaiXuatKho()))
-        .toList();
-  }
+    public List<AdminOrderResponse.History> history(Long id) {
+        findOrder(id);
+
+        return historyRepository
+                .findByDonHang_IdOrderByNgayThucHienAscIdAsc(id)
+                .stream()
+                .map(event ->
+                        new AdminOrderResponse.History(
+                                event.getId(),
+                                event.getHanhDong(),
+                                event.getMoTa(),
+                                event.getNguoiThucHien().getHoTen(),
+                                event.getNgayThucHien()
+                                        .atZone(properties.zone())
+                                        .toOffsetDateTime(),
+                                event.getTrangThaiDonHang(),
+                                event.getTrangThaiDongGoi(),
+                                event.getTrangThaiXuatKho(),
+                                event.getPhieuGiaoHangId(),
+                                event.getMaPhieuGiaoHang(),
+                                event.getTrangThaiGiaoHang()))
+                .toList();
+    }
 
   private void recordPackingHistory(DonHang order) {
     switch (order.getTrangThaiDongGoi()) {
@@ -559,20 +566,60 @@ public class AdminOrderService {
     }
   }
 
-  void recordHistory(DonHang order, String action, String description) {
-    orderEvents.changed(order.getId(), action);
-    historyRepository.save(
-        LichSuXuLyDonHang.builder()
-            .donHang(order)
-            .nguoiThucHien(context.actor())
-            .hanhDong(action)
-            .moTa(description)
-            .ngayThucHien(now())
-            .trangThaiDonHang(order.getTrangThaiDonHang())
-            .trangThaiDongGoi(order.getTrangThaiDongGoi())
-            .trangThaiXuatKho(order.getTrangThaiXuatKho())
-            .build());
-  }
+    void recordHistory(
+            DonHang order,
+            String action,
+            String description) {
+
+        List<PhieuGiaoHang> deliveries =
+                deliveryRepository.findByDonHang_IdOrderByIdAsc(order.getId());
+
+        PhieuGiaoHang latestDelivery =
+                deliveries.isEmpty()
+                        ? null
+                        : deliveries.get(deliveries.size() - 1);
+
+        recordHistory(
+                order,
+                action,
+                description,
+                latestDelivery);
+    }
+
+    void recordHistory(
+            DonHang order,
+            String action,
+            String description,
+            PhieuGiaoHang delivery) {
+
+        if (delivery != null
+                && !Objects.equals(
+                delivery.getDonHang().getId(),
+                order.getId())) {
+
+            throw conflict("Phiếu giao hàng không thuộc đơn đang ghi lịch sử");
+        }
+
+        orderEvents.changed(order.getId(), action);
+
+        historyRepository.save(
+                LichSuXuLyDonHang.builder()
+                        .donHang(order)
+                        .nguoiThucHien(context.actor())
+                        .hanhDong(action)
+                        .moTa(description)
+                        .ngayThucHien(now())
+                        .trangThaiDonHang(order.getTrangThaiDonHang())
+                        .trangThaiDongGoi(order.getTrangThaiDongGoi())
+                        .trangThaiXuatKho(order.getTrangThaiXuatKho())
+                        .phieuGiaoHangId(
+                                delivery == null ? null : delivery.getId())
+                        .maPhieuGiaoHang(
+                                delivery == null ? null : delivery.getMaPhieuGiaoHang())
+                        .trangThaiGiaoHang(
+                                delivery == null ? null : delivery.getTrangThaiGiaoHang())
+                        .build());
+    }
 
   public AdminOrderResponse.Requirements requirements(Long id) {
     DonHang order = findOrder(id);

@@ -883,8 +883,18 @@ export default function ChiTietDonHang() {
                     <p>{event.nguoi_thuc_hien}</p>
                     <div className="order-detail-statuses">
                       <OrderStateBadge value={event.trang_thai_don_hang} />
+
                       <OrderStateBadge value={event.trang_thai_dong_goi} />
+
                       <OrderStateBadge value={event.trang_thai_xuat_kho} />
+
+                      {event.trang_thai_giao_hang && (
+                        <span className="order-history-delivery">
+                          <span className="order-history-delivery__label">Giao hàng</span>
+
+                          <OrderStateBadge value={event.trang_thai_giao_hang} />
+                        </span>
+                      )}
                     </div>
                   </li>
                 ))}
