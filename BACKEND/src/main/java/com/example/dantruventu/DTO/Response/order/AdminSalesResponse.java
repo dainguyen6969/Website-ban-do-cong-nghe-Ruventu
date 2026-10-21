@@ -209,6 +209,12 @@ public final class AdminSalesResponse {
     @JsonProperty("trang_thai_xuat_kho")
     private TrangThaiXuatKho trangThaiXuatKho;
 
+    @JsonProperty("da_giu_hang")
+    private Boolean daGiuHang;
+
+    @JsonProperty("han_giu_hang")
+    private OffsetDateTime hanGiuHang;
+
     @JsonProperty("tong_tien_hang")
     private BigDecimal tongTienHang;
 

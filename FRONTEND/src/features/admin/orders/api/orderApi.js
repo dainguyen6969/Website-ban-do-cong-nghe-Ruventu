@@ -197,11 +197,16 @@ export function paymentSource(order) {
     (item) => !['HUY_GIAO_HANG', 'DA_HOAN_HANG'].includes(item.trang_thai_giao_hang)
   );
 
+  const preliminaryOrder = ['CHO_DUYET', 'HUY_HANG'].includes(order.trang_thai_don_hang);
+
   const canReceiveFromCustomer =
     order.trang_thai_thanh_toan === 'CHUA_THANH_TOAN' &&
-    ['CHO_THANH_TOAN', 'CHO_DONG_GOI', 'CHO_LAY_HANG'].includes(order.trang_thai_don_hang) &&
+    ['CHO_DUYET', 'CHO_THANH_TOAN', 'CHO_DONG_GOI', 'CHO_LAY_HANG', 'HUY_HANG'].includes(
+      order.trang_thai_don_hang
+    ) &&
     order.trang_thai_xuat_kho !== 'DA_HOAN_KHO' &&
-    active.every((item) => item.trang_thai_giao_hang === 'CHO_GIAO');
+    active.every((item) => item.trang_thai_giao_hang === 'CHO_GIAO') &&
+    (!preliminaryOrder || (order.trang_thai_xuat_kho === 'CHUA_XUAT_KHO' && active.length === 0));
 
   if (canReceiveFromCustomer) {
     return { nguon_thu: 'KHACH_HANG' };

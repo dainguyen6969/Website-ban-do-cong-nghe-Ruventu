@@ -5,6 +5,7 @@ import com.example.dantruventu.Enum.TrangThaiDonHang;
 import jakarta.persistence.LockModeType;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -83,4 +84,39 @@ public interface DonHangRepository
   @Override
   @EntityGraph(attributePaths = {"khachHang"})
   Page<DonHang> findAll(Specification<DonHang> specification, Pageable pageable);
+
+  @Query(
+      """
+            SELECT d.id
+            FROM DonHang d
+            WHERE d.id > :afterId
+              AND d.loaiDonHang =
+                  com.example.dantruventu.Enum.LoaiDonHang.ONLINE
+              AND d.trangThaiDonHang =
+                  com.example.dantruventu.Enum.TrangThaiDonHang.CHO_DUYET
+              AND d.trangThaiDongGoi =
+                  com.example.dantruventu.Enum.TrangThaiDongGoi.CHUA_DONG_GOI
+              AND d.trangThaiXuatKho =
+                  com.example.dantruventu.Enum.TrangThaiXuatKho.CHUA_XUAT_KHO
+              AND (
+                  (
+                      d.daGiuHang = true
+                      AND d.hanGiuHang IS NOT NULL
+                      AND d.hanGiuHang <= :cutoff
+                  )
+                  OR d.trangThaiThanhToan =
+                      com.example.dantruventu.Enum.TrangThaiThanhToanDonHang.DA_THANH_TOAN
+              )
+            ORDER BY d.id
+            """)
+  List<Long> findPendingOrderLifecycleIds(
+      @Param("afterId") Long afterId, @Param("cutoff") LocalDateTime cutoff, Pageable pageable);
+
+  @Query(
+      """
+            SELECT d.id
+            FROM DonHang d
+            WHERE LOWER(d.maDonHang) = LOWER(:code)
+            """)
+  Optional<Long> findIdByMaDonHangIgnoreCase(@Param("code") String code);
 }

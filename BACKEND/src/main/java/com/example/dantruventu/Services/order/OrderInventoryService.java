@@ -132,7 +132,7 @@ public class OrderInventoryService {
     }
 
     // Tương thích đơn cũ, chưa có cờ giữ hàng.
-    return order.getLoaiDonHang() == LoaiDonHang.ONLINE.ONLINE
+    return order.getLoaiDonHang() == LoaiDonHang.ONLINE
         && Set.of(TrangThaiDonHang.CHO_DONG_GOI, TrangThaiDonHang.CHO_LAY_HANG)
             .contains(order.getTrangThaiDonHang())
         && Set.of(TrangThaiDongGoi.DANG_DONG_GOI, TrangThaiDongGoi.DA_DONG_GOI)
@@ -144,7 +144,9 @@ public class OrderInventoryService {
         && order.getHanGiuHang() != null
         && !order.getHanGiuHang().isAfter(LocalDateTime.now(properties.zone()))) {
 
-      throw conflict("Đã hết hạn giữ hàng của đơn. Vui lòng tải lại dữ liệu.");
+      throw conflict(
+          "Đơn đã quá hạn giữ hàng, chưa thể thực hiện thao tác này. "
+              + "Hệ thống cần kiểm tra chứng từ tiền và xử lý hết hạn.");
     }
   }
 

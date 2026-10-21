@@ -36,6 +36,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
@@ -69,6 +70,162 @@ public class AdminOrderService {
   private final SalesQuoteService saleQuotes;
   private final SoldDeviceService soldDevices;
   private final PhieuTraHangRepository returnRepository;
+
+  private List<SoQuyThuChi> orderMoneyDocuments(DonHang order) {
+    Map<Long, SoQuyThuChi> documents = new TreeMap<>();
+
+    for (var voucher : cashRepository.findByMaChungTuThamChieu(order.getMaDonHang())) {
+      documents.put(voucher.getId(), voucher);
+    }
+
+    // Kiểm tra thêm mã chứng từ cố định, kể cả khi tham chiếu bị lệch.
+    for (String code : List.of("THU-DH-" + order.getId(), "CHI-HUY-DH-" + order.getId())) {
+
+      cashRepository
+          .findByMaPhieu(code)
+          .ifPresent(voucher -> documents.put(voucher.getId(), voucher));
+    }
+
+    return List.copyOf(documents.values());
+  }
+
+  private void requireNoOrderMoneyDocuments(DonHang order) {
+    if (!orderMoneyDocuments(order).isEmpty()) {
+      throw conflict(
+          "Đơn đã có chứng từ tiền. " + "Cần đối soát chứng từ hiện có, không ghi nhận trùng.");
+    }
+  }
+
+  @Transactional(
+      readOnly = false,
+      isolation = Isolation.READ_COMMITTED,
+      propagation = Propagation.REQUIRES_NEW)
+  public void processPendingOrderLifecycle(Long id) {
+    if (id == null || id <= 0) {
+      return;
+    }
+
+    DonHang order = orderRepository.findByIdForUpdate(id).orElse(null);
+
+    if (order == null) {
+      return;
+    }
+
+    entityManager.refresh(order);
+
+    if (order.getLoaiDonHang() != LoaiDonHang.ONLINE
+        || order.getTrangThaiDonHang() != TrangThaiDonHang.CHO_DUYET
+        || order.getTrangThaiDongGoi() != TrangThaiDongGoi.CHUA_DONG_GOI
+        || order.getTrangThaiXuatKho() != TrangThaiXuatKho.CHUA_XUAT_KHO) {
+      return;
+    }
+
+    orderEvents.watchOrder(order);
+
+    var promotionUsage = saleSnapshots.lockPromotionForOrder(order.getId());
+
+    if (promotionUsage != null
+        && promotionUsage.getTrangThaiApDung() != TrangThaiApDungKhuyenMai.GIU_CHO) {
+      throw conflict("Lượt khuyến mại của đơn chờ duyệt không còn được giữ.");
+    }
+
+    if (!lockDeliveries(order).isEmpty()) {
+      throw conflict("Đơn chờ duyệt đã có lịch sử giao hàng, cần đối soát.");
+    }
+
+    inventory.requireNoExport(order);
+    validateStoredAmounts(order);
+
+    List<SoQuyThuChi> documents = orderMoneyDocuments(order);
+
+    /*
+     * Tiền đã được ghi nhận ở giao dịch riêng.
+     * Lỗi giữ hàng tại đây chỉ hoàn tác giao dịch tự duyệt.
+     */
+    if (order.getTrangThaiThanhToan() == TrangThaiThanhToanDonHang.DA_THANH_TOAN) {
+
+      BigDecimal total = money(order.getTongThanhToan());
+
+      if (total.signum() > 0) {
+        var evidence = failedDeliveryMoney(order);
+
+        if (documents.size() != 1
+            || !Objects.equals(documents.get(0).getMaPhieu(), "THU-DH-" + order.getId())
+            || !Boolean.TRUE.equals(evidence.get("co_du_can_cu"))
+            || ((BigDecimal) evidence.get("so_tien_thuc_thu")).compareTo(total) != 0
+            || ((BigDecimal) evidence.get("so_tien_da_hoan")).signum() != 0) {
+
+          throw conflict("Chứng từ thực thu chưa đủ căn cứ để tự duyệt đơn.");
+        }
+
+      } else if (!documents.isEmpty()) {
+        throw conflict("Đơn tổng tiền bằng 0 nhưng có chứng từ tiền cần đối soát.");
+      }
+
+      /*
+       * Đơn đã nhận đủ tiền được kiểm tra giữ hàng để thực hiện.
+       * Nếu không giữ được đủ hàng, transaction này rollback;
+       * phiếu thu đã commit vẫn còn nguyên.
+       */
+      order.setHanGiuHang(null);
+      inventory.reserve(order);
+
+      order.setTrangThaiDonHang(TrangThaiDonHang.CHO_DONG_GOI);
+
+      recordSystemHistory(
+          order, "TU_DUYET_DON_DA_THANH_TOAN", "Tự duyệt: đã nhận đủ tiền và giữ đủ hàng.");
+
+      return;
+    }
+
+    if (order.getTrangThaiThanhToan() != TrangThaiThanhToanDonHang.CHUA_THANH_TOAN
+        || !Boolean.TRUE.equals(order.getDaGiuHang())
+        || order.getHanGiuHang() == null
+        || order.getHanGiuHang().isAfter(now())) {
+      return;
+    }
+
+    /*
+     * Chỉ tự hủy khi không có chứng từ tiền.
+     * Có chứng từ, kể cả dữ liệu chưa nhất quán, thì dừng để đối soát.
+     */
+    if (!documents.isEmpty()) {
+      throw conflict("Đơn quá hạn có chứng từ tiền, không tự hủy.");
+    }
+
+    if (!saleSnapshots.hasUnpaidCreationEvidence(order.getId())) {
+      throw conflict("Chưa đủ căn cứ xác nhận đơn được tạo khi chưa thu tiền.");
+    }
+
+    LocalDateTime deadline = order.getHanGiuHang();
+
+    inventory.releaseQuantityReservation(order);
+
+    order.setTrangThaiDonHang(TrangThaiDonHang.HUY_HANG);
+    saleSnapshots.onOrderStateChanged(order);
+
+    recordSystemHistory(
+        order,
+        "HET_HAN_GIU_HANG",
+        "Hủy đơn do hết hạn giữ hàng lúc " + deadline + "; đã giải phóng hàng và lượt khuyến mại.");
+  }
+
+  private void recordSystemHistory(DonHang order, String action, String description) {
+
+    orderEvents.changed(order.getId(), action);
+
+    historyRepository.save(
+        LichSuXuLyDonHang.builder()
+            .donHang(order)
+            .nguoiThucHien(null)
+            .hanhDong(action)
+            .moTa(description)
+            .ngayThucHien(now())
+            .trangThaiDonHang(order.getTrangThaiDonHang())
+            .trangThaiDongGoi(order.getTrangThaiDongGoi())
+            .trangThaiXuatKho(order.getTrangThaiXuatKho())
+            .build());
+  }
 
   public AdminSalesResponse.PageData<AdminOrderResponse.ListItem> list(
       String keyword,
@@ -304,6 +461,7 @@ public class AdminOrderService {
     }
 
     inventory.requireNoExport(order);
+    requireNoOrderMoneyDocuments(order);
     requireNoCash(order);
     validateStoredAmounts(order);
     inventory.requireReservationNotExpired(order);
@@ -558,7 +716,9 @@ public class AdminOrderService {
                     event.getId(),
                     event.getHanhDong(),
                     event.getMoTa(),
-                    event.getNguoiThucHien().getHoTen(),
+                    event.getNguoiThucHien() == null
+                        ? "Hệ thống"
+                        : event.getNguoiThucHien().getHoTen(),
                     event.getNgayThucHien().atZone(properties.zone()).toOffsetDateTime(),
                     event.getTrangThaiDonHang(),
                     event.getTrangThaiDongGoi(),
@@ -846,16 +1006,28 @@ public class AdminOrderService {
 
       Set<TrangThaiDonHang> allowedStates =
           Set.of(
+              TrangThaiDonHang.CHO_DUYET,
               TrangThaiDonHang.CHO_THANH_TOAN,
               TrangThaiDonHang.CHO_DONG_GOI,
-              TrangThaiDonHang.CHO_LAY_HANG);
+              TrangThaiDonHang.CHO_LAY_HANG,
+              TrangThaiDonHang.HUY_HANG);
 
       if (!allowedStates.contains(order.getTrangThaiDonHang())) {
-        throw conflict("Chỉ thu tiền khách sau duyệt và trước khi hoàn tất bàn giao");
+        throw conflict("Không thể ghi nhận tiền khách ở trạng thái đơn hiện tại.");
+      }
+
+      if (order.getTrangThaiDonHang() == TrangThaiDonHang.CHO_DUYET
+          || order.getTrangThaiDonHang() == TrangThaiDonHang.HUY_HANG) {
+
+        requireUnexported(order);
+        inventory.requireNoExport(order);
+
+        if (!effective(deliveries).isEmpty()) {
+          throw conflict("Đơn chờ duyệt hoặc đã hủy không được có phiếu giao hiệu lực.");
+        }
       }
 
       if (order.getTrangThaiThanhToan() != TrangThaiThanhToanDonHang.CHUA_THANH_TOAN) {
-
         throw conflict("Đơn hàng đã được xác nhận thanh toán");
       }
 
@@ -875,6 +1047,7 @@ public class AdminOrderService {
         throw invalid("MVP phải thu đủ một lần, số tiền phải bằng tổng thanh toán");
       }
 
+      requireNoOrderMoneyDocuments(order);
       requireNoCash(order);
 
       receipt =
