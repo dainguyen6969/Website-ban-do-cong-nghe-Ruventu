@@ -1,6 +1,5 @@
 package com.example.dantruventu.Entity;
 
-import com.example.dantruventu.Config.TrangThaiCoBanConverter;
 import com.example.dantruventu.Enum.LoaiPhieuThuChi;
 import com.example.dantruventu.Enum.TrangThaiCoBanEnum;
 import jakarta.persistence.*;
@@ -35,7 +34,8 @@ public class LoaiThuChi {
   @Column(name = "ghi_chu", columnDefinition = "TEXT")
   private String ghiChu;
 
-  @Convert(converter = TrangThaiCoBanConverter.class)
-  @Column(name = "trang_thai", nullable = false, columnDefinition = "SMALLINT")
+  @Enumerated(EnumType.STRING)
+  @JdbcTypeCode(SqlTypes.VARCHAR)
+  @Column(name = "trang_thai", nullable = false, length = 30)
   private TrangThaiCoBanEnum trangThai;
 }

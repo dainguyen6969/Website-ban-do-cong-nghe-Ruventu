@@ -251,6 +251,8 @@ public class AdminReturnService {
 
     ensureReturnEligible(order);
 
+    orderEvents.watchOrder(order);
+
     OffsetDateTime actual = request.getNgayNhanHang();
 
     if (actual == null || actual.isAfter(OffsetDateTime.now(ZoneId.of("Asia/Ho_Chi_Minh")))) {

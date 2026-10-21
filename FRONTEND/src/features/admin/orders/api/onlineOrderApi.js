@@ -1,5 +1,7 @@
 import { adminRequest } from "../../catalog/products/api/versionApi.js";
 import { priceConfirmation } from "../../../../shared/services/saleQuote";
+import { posSerialGroups } from "../../sales/state/salesState.js";
+export { posSerialGroups } from "../../sales/state/salesState.js";
 
 const SALES_PATH = "/api/v1/admin/sales";
 
@@ -21,7 +23,7 @@ export const normalizeSalesProduct = (item = {}) => ({
     0,
     number(
       item.loai_san_pham === "BO_PC"
-        ? item.so_bo_co_the_lap
+        ? item.so_bo_co_the_lap ?? item.ton_co_the_ban
         : item.ton_co_the_ban,
     ),
   ),
@@ -142,22 +144,6 @@ export const buildPosPreviewBody = (order, options) => ({
 
 export const previewPosOrder = (order, options, signal) =>
   previewOnlineOrder(buildPosPreviewBody(order, options), signal);
-
-export function posSerialGroups(preview) {
-  return (preview?.san_pham || []).flatMap((line) =>
-    (line.serial_requirements || []).map((requirement) => ({
-      key: `${line.ma_dong}:${requirement.phien_ban_id}`,
-      lineKey: line.ma_dong,
-      variantId: Number(requirement.phien_ban_id),
-      quantity: Number(requirement.so_luong_can_serial),
-      gift: Boolean(line.la_qua_tang),
-      label:
-        [requirement.ten_san_pham, requirement.ten_phien_ban]
-          .filter(Boolean)
-          .join(" · ") || `Phiên bản #${requirement.phien_ban_id}`,
-    })),
-  );
-}
 
 export function buildPosCheckoutBody(
   order,

@@ -245,6 +245,8 @@ public class ProductService {
         .thuongHieuId(projection.getThuongHieuId())
         .tenThuongHieu(projection.getTenThuongHieu())
         .anhChinh(projection.getAnhChinh())
+        .thongSoKyThuat(projection.getThongSoKyThuat())
+        .phienBanMacDinhId(projection.getPhienBanMacDinhId())
         .giaThapNhat(projection.getGiaThapNhat())
         .giaCaoNhat(projection.getGiaCaoNhat())
         .tonKhoKhaDung(physicalStock)

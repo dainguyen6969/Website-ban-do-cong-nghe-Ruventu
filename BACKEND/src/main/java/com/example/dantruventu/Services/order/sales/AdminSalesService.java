@@ -332,7 +332,7 @@ public class AdminSalesService {
 
     idempotencyRepository.complete(key, encode(response));
 
-    orderEvents.changed(order.getId(), "CREATED");
+    orderEvents.created(order);
 
     return response;
   }
@@ -456,7 +456,7 @@ public class AdminSalesService {
 
     idempotencyRepository.complete(key, encode(response));
 
-    orderEvents.changed(order.getId(), "CREATED");
+    orderEvents.created(order);
 
     return response;
   }

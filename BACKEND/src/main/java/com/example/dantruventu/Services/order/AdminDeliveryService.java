@@ -625,6 +625,7 @@ public class AdminDeliveryService {
             .orElseThrow(() -> notFound("Đơn hàng không tồn tại"));
 
     entityManager.refresh(order);
+    orderService.watchStatuses(order);
 
     saleSnapshots.lockPromotionForOrder(order.getId());
 
