@@ -60,9 +60,9 @@ import PermissionGate from '../shared/components/ui/PermissionGate';
 import CustomerProvider from '../context/CustomerProvider';
 import OrderProvider from '../context/OrderProvider';
 import { CashbookProvider } from '../features/admin/cashbook/context/CashbookContext';
-import { ADMIN_FONT_STORAGE_KEY } from '../typography/fontOptions';
+import AccountPage from '../settings/AccountPage';
 import FontPreferenceContext from '../typography/FontPreferenceContext';
-import usePersistentFontPreference from '../typography/usePersistentFontPreference';
+import useAccountTypography from '../typography/useAccountTypography';
 import '../styles/index.css';
 import './App.css';
 import '../styles/responsive.css';
@@ -71,7 +71,7 @@ export default function AdminApp() {
   const { search } = useLocation();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
-  const fontPreference = usePersistentFontPreference(ADMIN_FONT_STORAGE_KEY);
+  const fontPreference = useAccountTypography();
 
   const toggleSidebar = () => {
     if (window.matchMedia('(max-width: 1024px)').matches) {
@@ -86,12 +86,14 @@ export default function AdminApp() {
       <CustomerProvider>
         <OrderProvider>
           <CashbookProvider>
-            <div className="app-layout admin-app" style={{ '--font-family-admin': fontPreference.font.family }}>
+            <div className="app-layout admin-app" style={{ '--font-family-admin': fontPreference.font.family, '--project-font-scale': fontPreference.fontSize / 14 }}>
             <Sidebar collapsed={sidebarCollapsed} mobileOpen={mobileSidebarOpen} onToggle={toggleSidebar} onNavigate={() => setMobileSidebarOpen(false)} />
             {mobileSidebarOpen && <button type="button" className="sidebar-backdrop" onClick={() => setMobileSidebarOpen(false)} aria-label="Đóng menu điều hướng" />}
         <div className="app-layout__main">
           <Header onMenuToggle={toggleSidebar} isMenuOpen={mobileSidebarOpen} />
+          {fontPreference.error && <p role="alert">{fontPreference.error}</p>}
           <PermissionGate><Routes>
+          <Route path="/admin/tai-khoan" element={<AccountPage />} />
           {/* Default redirect */}
           <Route path="/" element={<Navigate to="/admin/don-hang/danh-sach-don-hang" replace />} />
 

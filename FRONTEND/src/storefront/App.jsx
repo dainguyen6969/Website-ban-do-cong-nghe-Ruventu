@@ -29,13 +29,14 @@ function StorefrontApp() {
 
   return (
     <FontPreferenceContext.Provider value={fontPreference}>
-      <div className="app storefront-app" style={{ fontFamily: fontPreference.font.family }}>
+      <div className="app storefront-app" style={{ fontFamily: fontPreference.font.family, '--project-font-scale': fontPreference.fontSize / 14 }}>
         <ToastContainer />
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/search" element={<SearchPage />} />
           <Route path="/category/:slug" element={<CategoryPage />} />
           <Route path="/login" element={<Login />} />
+          <Route path="/bao-tri" element={<Navigate to="/login" replace />} />
           <Route path="/register" element={<Register />} />
           <Route path="/cart" element={<CartPage />} />
           <Route path="/checkout" element={<CheckoutPage />} />

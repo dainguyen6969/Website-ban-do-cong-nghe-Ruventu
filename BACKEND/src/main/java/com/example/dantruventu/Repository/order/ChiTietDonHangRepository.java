@@ -1,7 +1,9 @@
 package com.example.dantruventu.Repository.order;
 
 import com.example.dantruventu.Entity.ChiTietDonHang;
+import com.example.dantruventu.Enum.LoaiSanPham;
 import jakarta.persistence.LockModeType;
+import java.util.Collection;
 import java.util.List;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -56,6 +58,26 @@ public interface ChiTietDonHangRepository extends JpaRepository<ChiTietDonHang, 
             ORDER BY c.id
             """)
   List<ChiTietDonHang> findHeldLines();
+
+  @Query(
+      """
+      SELECT DISTINCT c.donHang.id
+      FROM ChiTietDonHang c
+      WHERE c.donHang.id IN :orderIds
+        AND (
+          c.laQuaTang = true
+          OR c.phienBan.sanPham.loaiSanPham = :comboType
+          OR EXISTS (
+            SELECT sibling.id
+            FROM ChiTietDonHang sibling
+            WHERE sibling.donHang = c.donHang
+              AND sibling.phienBan = c.phienBan
+              AND sibling.id <> c.id
+          )
+        )
+      """)
+  List<Long> findOrderIdsRequiringFullReturn(
+      @Param("orderIds") Collection<Long> orderIds, @Param("comboType") LoaiSanPham comboType);
 
   /*
    * MVP một kho.
@@ -152,6 +174,5 @@ public interface ChiTietDonHangRepository extends JpaRepository<ChiTietDonHang, 
         GROUP BY x.donHang.id
     )
     """)
-  List<ChiTietDonHang> findFirstLinesForOrders(
-      @Param("orderIds") java.util.Collection<Long> orderIds);
+  List<ChiTietDonHang> findFirstLinesForOrders(@Param("orderIds") Collection<Long> orderIds);
 }

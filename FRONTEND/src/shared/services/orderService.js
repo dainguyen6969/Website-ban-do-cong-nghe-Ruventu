@@ -1,4 +1,5 @@
 import axios from "axios";
+import { notifyMaintenance } from '../../settings/maintenanceState';
 
 const BASE_URL = (import.meta.env.VITE_RUVENTU_API_URL || "").replace(
   /\/$/,
@@ -31,6 +32,7 @@ let refreshPromise = null;
 orderAxios.interceptors.response.use(
   (response) => response,
   async (error) => {
+    notifyMaintenance(error.response?.status, error.response?.data);
     const config = error.config;
 
     if (
@@ -71,8 +73,9 @@ orderAxios.interceptors.response.use(
 
       // Giữ nguyên body và Idempotency-Key.
       return orderAxios.request(config);
-    } catch {
-      return Promise.reject(error);
+    } catch (refreshError) {
+      notifyMaintenance(refreshError.response?.status, refreshError.response?.data);
+      return Promise.reject(refreshError);
     }
   },
 );

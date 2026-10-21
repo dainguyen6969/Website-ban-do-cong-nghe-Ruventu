@@ -118,7 +118,11 @@ const Login = () => {
       setUserName(account.name);
       setIsLoginSuccess(true);
     } catch (error) {
-      console.error('Lỗi đăng nhập:', error);
+      if (error.response?.status === 503 && error.response?.data?.errors?.some((detail) => detail.code === 'SYSTEM_MAINTENANCE')) {
+        navigate('/bao-tri', { replace: true });
+        return;
+      }
+      console.error("Lỗi đăng nhập:", error);
 
       /*
        * Tài khoản bị khóa / không có quyền
