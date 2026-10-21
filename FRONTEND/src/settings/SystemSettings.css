@@ -1,4 +1,4 @@
-.maintenance-page { min-height:100vh; display:grid; place-items:center; padding:24px; background:#f5f6f8; color:#171717; font-family:'Inter',Arial,sans-serif; }
+.maintenance-page { min-height:100vh; display:grid; place-items:center; padding:24px; background:#f5f6f8; color:#171717; font-family:var(--project-font-family, 'Inter', Arial, sans-serif); }
 .maintenance-page__card { width:min(100%,560px); padding:40px; border:1px solid #ddd; border-top:4px solid #e31e24; background:white; text-align:center; }
 .maintenance-page__brand { margin-bottom:32px; padding:16px; background:#111; color:white; font-weight:900; letter-spacing:3px; }
 .maintenance-page h1 { margin:20px 0 12px; font-size:26px; }

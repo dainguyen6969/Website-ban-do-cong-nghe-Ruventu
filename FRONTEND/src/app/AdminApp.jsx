@@ -62,7 +62,7 @@ import OrderProvider from '../context/OrderProvider';
 import { CashbookProvider } from '../features/admin/cashbook/context/CashbookContext';
 import AccountPage from '../settings/AccountPage';
 import FontPreferenceContext from '../typography/FontPreferenceContext';
-import useAccountTypography from '../typography/useAccountTypography';
+import useQaTypography from '../typography/useQaTypography';
 import '../styles/index.css';
 import './App.css';
 import '../styles/responsive.css';
@@ -71,7 +71,7 @@ export default function AdminApp() {
   const { search } = useLocation();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
-  const fontPreference = useAccountTypography();
+  const fontPreference = useQaTypography();
 
   const toggleSidebar = () => {
     if (window.matchMedia('(max-width: 1024px)').matches) {
@@ -91,7 +91,6 @@ export default function AdminApp() {
             {mobileSidebarOpen && <button type="button" className="sidebar-backdrop" onClick={() => setMobileSidebarOpen(false)} aria-label="Đóng menu điều hướng" />}
         <div className="app-layout__main">
           <Header onMenuToggle={toggleSidebar} isMenuOpen={mobileSidebarOpen} />
-          {fontPreference.error && <p role="alert">{fontPreference.error}</p>}
           <PermissionGate><Routes>
           <Route path="/admin/tai-khoan" element={<AccountPage />} />
           {/* Default redirect */}

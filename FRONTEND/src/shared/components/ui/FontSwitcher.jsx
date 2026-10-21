@@ -60,7 +60,6 @@ export default function FontSwitcher({ variant = 'admin' }) {
             </label>
           ))}
           </div></fieldset>
-          <p className="font-switcher__preview" style={{ fontFamily: font.family, fontSize: `${fontSize}px` }}>Tiếng Việt rõ ràng — Đường phố, bảo trì hệ thống.</p>
           <button type="button" className="font-switcher__reset" onClick={resetQa} disabled={!qaOverride}>Dùng cài đặt đã lưu</button>
           </div>
         </div>

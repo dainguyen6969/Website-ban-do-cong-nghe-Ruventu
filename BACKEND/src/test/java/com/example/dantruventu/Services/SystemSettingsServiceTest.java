@@ -13,6 +13,7 @@ import com.example.dantruventu.Repository.NguoiDungRepository;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.RowMapper;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 class SystemSettingsServiceTest {
@@ -34,6 +35,21 @@ class SystemSettingsServiceTest {
   }
 
   @Test
+  void typographyReadsTheSharedConfigurationWithoutAnAccount() {
+    var saved = new SystemSettingsService.Typography("Asap Condensed", 16);
+    when(jdbc.queryForObject(
+            eq("SELECT font_family, font_size FROM cai_dat_he_thong WHERE id = 1"),
+            org.mockito.ArgumentMatchers.<RowMapper<SystemSettingsService.Typography>>any()))
+        .thenReturn(saved);
+    assertEquals(saved, settings.getTypography());
+    verify(jdbc)
+        .queryForObject(
+            eq("SELECT font_family, font_size FROM cai_dat_he_thong WHERE id = 1"),
+            org.mockito.ArgumentMatchers.<RowMapper<SystemSettingsService.Typography>>any());
+    verifyNoMoreInteractions(jdbc);
+  }
+
+  @Test
   void typographyRejectsUnknownFontsAndInvalidSizesBeforeWriting() {
     for (int size : new int[] {0, 11, 21, 100}) {
       assertThrows(
@@ -49,21 +65,21 @@ class SystemSettingsServiceTest {
                 user("ADMIN"), new SystemSettingsService.Typography("unknown", 14)));
     assertThrows(AppException.class, () -> settings.saveTypography(user("ADMIN"), null));
     verifyNoInteractions(jdbc);
-    when(jdbc.update("UPDATE nguoi_dung SET font_family = ? WHERE id = ?", "Inter", 5L))
+    when(jdbc.update(
+            "UPDATE cai_dat_he_thong SET font_family = ?, font_size = ? WHERE id = 1", "Inter", 20))
         .thenReturn(1);
-    when(jdbc.update("UPDATE cai_dat_he_thong SET font_size = ? WHERE id = 1", 20)).thenReturn(1);
     assertEquals(
         20,
         settings
             .saveTypography(user("ADMIN"), new SystemSettingsService.Typography("Inter", 20))
             .fontSize());
-    verify(jdbc).update("UPDATE cai_dat_he_thong SET font_size = ? WHERE id = 1", 20);
+    verify(jdbc)
+        .update(
+            "UPDATE cai_dat_he_thong SET font_family = ?, font_size = ? WHERE id = 1", "Inter", 20);
   }
 
   @Test
-  void ordinaryAccountCanChangeOnlyItsOwnFamilyAndCannotWriteProjectSize() {
-    when(jdbc.queryForObject("SELECT font_size FROM cai_dat_he_thong WHERE id = 1", Integer.class))
-        .thenReturn(18);
+  void ordinaryAccountCannotWriteProjectFontOrSize() {
     var denied =
         assertThrows(
             AppException.class,
@@ -71,14 +87,12 @@ class SystemSettingsServiceTest {
                 settings.saveTypography(
                     user("USER"), new SystemSettingsService.Typography("Archivo", 20)));
     assertEquals(403, denied.getErrorCode().getStatus().value());
-    verify(jdbc)
-        .queryForObject("SELECT font_size FROM cai_dat_he_thong WHERE id = 1", Integer.class);
-    verifyNoMoreInteractions(jdbc);
-    when(jdbc.update("UPDATE nguoi_dung SET font_family = ? WHERE id = ?", "Archivo", 5L))
-        .thenReturn(1);
-    settings.saveTypography(user("USER"), new SystemSettingsService.Typography("Archivo", 18));
-    verify(jdbc).update("UPDATE nguoi_dung SET font_family = ? WHERE id = ?", "Archivo", 5L);
-    verify(jdbc, never()).update("UPDATE cai_dat_he_thong SET font_size = ? WHERE id = 1", 18);
+    assertThrows(
+        AppException.class,
+        () ->
+            settings.saveTypography(
+                user("USER"), new SystemSettingsService.Typography("Archivo", 18)));
+    verifyNoInteractions(jdbc);
   }
 
   @Test

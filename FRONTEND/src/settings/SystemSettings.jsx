@@ -25,7 +25,7 @@ export default function SystemSettings() {
     const refresh = () => getSystemStatus().then((next) => {
       if (!active) return;
       setStatus(next);
-      if (!dirty.current && next.fontSize) setFont((current) => current && current.fontSize !== next.fontSize ? { ...current, fontSize: next.fontSize } : current);
+      if (!dirty.current && next.fontSize && next.fontFamily) setFont((current) => current && (current.fontSize !== next.fontSize || current.fontFamily !== next.fontFamily) ? { fontFamily: next.fontFamily, fontSize: next.fontSize } : current);
     }).catch(() => {});
     const timer = window.setInterval(refresh, 15000);
     window.addEventListener(SETTINGS_CHANGED, refresh);
@@ -47,7 +47,7 @@ export default function SystemSettings() {
       const saved = await saveTypography({ ...font, fontSize: Number(font.fontSize) });
       setFont(saved);
       dirty.current = false;
-      setNotice(status?.canManage ? 'Đã lưu phông chữ cho tài khoản và cỡ chữ chung cho toàn bộ hệ thống.' : 'Đã lưu phông chữ cho tài khoản của bạn.');
+      setNotice('Đã lưu phông chữ và cỡ chữ chung cho toàn bộ hệ thống.');
     } catch (e) { setError(e.message); }
     finally { setBusy(false); }
   };
@@ -66,10 +66,10 @@ export default function SystemSettings() {
         </div>}
         {font && <form onSubmit={saveFont} className="system-settings__typography">
           <h3>Phông chữ và cỡ chữ</h3>
-          <p>Cỡ chữ áp dụng chung cho mọi người trên cả trang quản trị và trang bán hàng. Phông chữ lưu riêng cho tài khoản của bạn trong giao diện quản trị.</p>
+          <p>Phông chữ và cỡ chữ áp dụng chung cho mọi người trên cả trang quản trị và trang bán hàng, kể cả khách chưa đăng nhập.</p>
           <FontSizeControl value={font.fontSize} onChange={(fontSize) => { dirty.current = true; setFont({ ...font, fontSize }); }} disabled={!status?.canManage || busy} />
-          {!status?.canManage && <p>Chỉ quản trị viên được thay đổi cỡ chữ chung.</p>}
-          <fieldset disabled={busy}><legend>Phông chữ</legend>
+          {!status?.canManage && <p>Chỉ quản trị viên được thay đổi phông chữ và cỡ chữ chung.</p>}
+          <fieldset disabled={busy || !status?.canManage}><legend>Phông chữ</legend>
             <div className="system-settings__fonts" tabIndex="0" aria-label="Danh sách phông chữ, cuộn để xem thêm">
               {FONT_OPTIONS.map((option) => <label key={option.name} style={{ fontFamily: option.family }}>
                 <input type="radio" name="font-family" value={option.name} checked={font.fontFamily === option.name} onChange={() => { dirty.current = true; setFont({ ...font, fontFamily: option.name }); }} />
@@ -78,7 +78,7 @@ export default function SystemSettings() {
             </div>
           </fieldset>
           <p className="system-settings__preview" style={{ fontFamily: FONT_OPTIONS.find((option) => option.name === font.fontFamily)?.family, fontSize: `${font.fontSize || 14}px` }}>Xem trước: Cài đặt hệ thống — Tiếng Việt rõ ràng, dễ đọc.</p>
-          <div className="system-settings__actions"><button className="system-settings__save" type="submit" disabled={busy}>{busy ? 'Đang lưu…' : 'Lưu phông chữ và cỡ chữ'}</button></div>
+          <div className="system-settings__actions"><button className="system-settings__save" type="submit" disabled={busy || !status?.canManage}>{busy ? 'Đang lưu…' : 'Lưu phông chữ và cỡ chữ'}</button></div>
         </form>}
       </div>
     </section>
