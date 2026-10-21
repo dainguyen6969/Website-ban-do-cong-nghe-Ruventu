@@ -22,6 +22,16 @@ public class AdminReturnCreateRequest {
   @JsonProperty("don_hang_id")
   private Long donHangId;
 
+  @NotBlank(message = "Tên người liên hệ không được để trống")
+  @Size(max = 100)
+  @JsonProperty("ten_nguoi_lien_he")
+  private String tenNguoiLienHe;
+
+  @NotBlank(message = "Số điện thoại liên hệ không được để trống")
+  @Size(max = 20)
+  @JsonProperty("sdt_nguoi_lien_he")
+  private String sdtNguoiLienHe;
+
   @NotBlank(message = "Lý do trả hàng không được để trống")
   @Size(max = 255, message = "Lý do trả hàng tối đa 255 ký tự")
   @JsonProperty("ly_do_tra")

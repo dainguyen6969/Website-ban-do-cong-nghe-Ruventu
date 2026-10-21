@@ -1,6 +1,7 @@
 package com.example.dantruventu.DTO.Response.order;
 
 import com.example.dantruventu.DTO.Response.PaginationResponse;
+import com.example.dantruventu.DTO.catalog.CatalogFields;
 import com.example.dantruventu.Enum.*;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -73,10 +74,10 @@ public final class AdminSalesResponse {
     private boolean quanLySerial;
 
     @JsonProperty("ton_thuc_te")
-    private long tonThucTe;
+    private Long tonThucTe;
 
     @JsonProperty("ton_co_the_ban")
-    private long tonCoTheBan;
+    private Long tonCoTheBan;
 
     @JsonProperty("so_bo_co_the_lap")
     private Long soBoCoTheLap;
@@ -88,10 +89,10 @@ public final class AdminSalesResponse {
     private Boolean baoHanhTheoLinhKien;
 
     @JsonProperty("thuoc_tinh_phien_ban")
-    private List<com.example.dantruventu.DTO.catalog.CatalogFields.AttributeData> thuocTinhPhienBan;
+    private List<CatalogFields.AttributeData> thuocTinhPhienBan;
 
     @JsonProperty("thanh_phan")
-    private List<com.example.dantruventu.DTO.catalog.CatalogFields.ComboPart> thanhPhan;
+    private List<CatalogFields.ComboPart> thanhPhan;
   }
 
   public record SerialRequirement(
@@ -269,6 +270,18 @@ public final class AdminSalesResponse {
 
     @JsonProperty("canh_bao_thiet_bi")
     private String canhBaoThietBi;
+
+    @JsonProperty("thiet_bi_da_ban")
+    private List<java.util.Map<String, Object>> thietBiDaBan;
+
+    @JsonProperty("thiet_bi_hien_hanh")
+    private List<java.util.Map<String, Object>> thietBiHienHanh;
+
+    @JsonProperty("can_xac_minh_lich_su")
+    private boolean canXacMinhLichSu;
+
+    @JsonProperty("canh_bao")
+    private List<String> canhBao;
   }
 
   @Getter

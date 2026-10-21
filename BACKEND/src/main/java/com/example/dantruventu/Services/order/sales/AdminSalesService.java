@@ -73,6 +73,8 @@ public class AdminSalesService {
   private final SoldDeviceService soldDevices;
   private final CatalogSupport catalogSupport;
 
+  private final OrderDeviceHistoryService deviceHistory;
+
   public AdminSalesResponse.Options options() {
 
     NguoiDung actor = context.actor();
@@ -196,10 +198,27 @@ public class AdminSalesService {
         managedSerial |= Boolean.TRUE.equals(serialModes.get(unit.getKey()));
       }
 
-      response.setTonThucTe(actual == Long.MAX_VALUE ? 0 : actual);
-      response.setTonCoTheBan(available == Long.MAX_VALUE ? 0 : available);
-      response.setQuanLySerial(managedSerial);
+      boolean combo = variant.getSanPham().getLoaiSanPham() == LoaiSanPham.BO_PC;
+
+      long actualQuantity = actual == Long.MAX_VALUE ? 0 : actual;
+      long availableQuantity = available == Long.MAX_VALUE ? 0 : available;
+
+      response.setTonThucTe(combo ? null : actualQuantity);
+      response.setTonCoTheBan(combo ? null : availableQuantity);
+      response.setSoBoCoTheLap(combo ? availableQuantity : null);
+
+      response.setQuanLySerial(Boolean.TRUE.equals(variant.getCoQuanLySerial()));
+
       response.setDonGia(money(variant.getGiaBanLe()));
+
+      response.setThoiHanBaoHanhThang(combo ? null : variant.getSanPham().getThoiHanBaoHanhThang());
+
+      response.setBaoHanhTheoLinhKien(combo);
+
+      response.setThuocTinhPhienBan(attributes.getOrDefault(variant.getId(), List.of()));
+
+      response.setThanhPhan(
+          combo ? parts.getOrDefault(variant.getSanPham().getId(), List.of()) : List.of());
 
       response.setAnhDaiDien(
           imageRepository
@@ -303,6 +322,7 @@ public class AdminSalesService {
     order = orderRepository.saveAndFlush(order);
 
     saleSnapshots.saveLines(order, plan, request);
+    saleSnapshots.recordUnpaidCreationEvidence(order);
     saleSnapshots.recordPromotion(order, plan, request, actor);
 
     orderRepository.flush();
@@ -669,6 +689,13 @@ public class AdminSalesService {
     response.setSerials(soldDevices.originalSerials(order.getId()));
 
     response.setThietBiDaGiao(soldDevices.details(order.getId()));
+
+    var historyView = deviceHistory.read(order);
+
+    response.setThietBiDaBan(historyView.originals());
+    response.setThietBiHienHanh(historyView.current());
+    response.setCanXacMinhLichSu(historyView.needsVerification());
+    response.setCanhBao(historyView.warnings());
 
     response.setCanhBaoThietBi(soldDevices.warning(order));
 

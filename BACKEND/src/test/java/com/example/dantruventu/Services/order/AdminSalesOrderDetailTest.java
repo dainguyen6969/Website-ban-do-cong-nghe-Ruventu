@@ -21,12 +21,14 @@ import com.example.dantruventu.Repository.order.PhieuGiaoHangRepository;
 import com.example.dantruventu.Repository.warehouse.SoSerialSanPhamRepository;
 import com.example.dantruventu.Services.catalog.CatalogSupport;
 import com.example.dantruventu.Services.order.sales.AdminSalesService;
+import com.example.dantruventu.Services.order.sales.OrderDeviceHistoryService;
 import com.example.dantruventu.Services.order.sales.OrderSaleSnapshotService;
 import com.example.dantruventu.Services.order.sales.SoldDeviceService;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -48,7 +50,14 @@ class AdminSalesOrderDetailTest {
   @Mock CatalogSupport catalogSupport;
   @Mock OrderSaleSnapshotService saleSnapshots;
   @Mock SoldDeviceService soldDevices;
+  @Mock OrderDeviceHistoryService deviceHistory;
   @InjectMocks AdminSalesService service;
+
+  @BeforeEach
+  void prepareDeviceHistory() {
+    when(deviceHistory.read(any()))
+        .thenReturn(new OrderDeviceHistoryService.View(List.of(), List.of(), false, List.of()));
+  }
 
   @ParameterizedTest
   @EnumSource(LoaiDonHang.class)

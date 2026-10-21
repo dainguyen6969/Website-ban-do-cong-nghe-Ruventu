@@ -49,12 +49,15 @@ public class AdminReturnController {
   public ApiResponse<AdminReturnResponse.ReceiveResponse> receive(
       @PathVariable("id") Long id,
       @Valid @RequestBody AdminReturnReceiveRequest request,
-      @AuthenticationPrincipal NguoiDung actor) {
+      @AuthenticationPrincipal NguoiDung actor,
+      @RequestHeader(name = "Idempotency-Key", required = false) String requestKey) {
 
     return ApiResponse.<AdminReturnResponse.ReceiveResponse>builder()
         .status(200)
         .message("Nhận hàng trả thành công")
-        .data(adminReturnService.receive(id, request, actor == null ? null : actor.getId()))
+        .data(
+            adminReturnService.receive(
+                id, request, actor == null ? null : actor.getId(), requestKey))
         .build();
   }
 
@@ -73,12 +76,13 @@ public class AdminReturnController {
   @ResponseStatus(HttpStatus.CREATED)
   public ApiResponse<AdminReturnResponse.CreateResponse> create(
       @Valid @RequestBody AdminReturnCreateRequest request,
-      @AuthenticationPrincipal NguoiDung actor) {
+      @AuthenticationPrincipal NguoiDung actor,
+      @RequestHeader(name = "Idempotency-Key", required = false) String requestKey) {
 
     return ApiResponse.<AdminReturnResponse.CreateResponse>builder()
         .status(HttpStatus.CREATED.value())
         .message("Tạo phiếu trả thành công")
-        .data(adminReturnService.create(request, actor == null ? null : actor.getId()))
+        .data(adminReturnService.create(request, actor == null ? null : actor.getId(), requestKey))
         .build();
   }
 

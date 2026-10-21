@@ -64,23 +64,44 @@ public class OrderInventoryService {
 
     for (var line : lines) {
       var snapshot = saleSnapshots.requireSnapshot(line);
+
       List<AdminOrderResponse.Requirement> groups = new ArrayList<>();
+      List<Map<String, Object>> physicalRows = new ArrayList<>();
 
       for (var physical : saleSnapshots.physical(line).values()) {
         totals.merge(physical.variantId(), physical.quantity(), (a, b) -> quantity((long) a + b));
+
+        Map<String, Object> row = new LinkedHashMap<>();
+        row.put("phien_ban_id", physical.variantId());
+        row.put("ten_san_pham", physical.productName());
+        row.put("ten_phien_ban", physical.variantName());
+        row.put("so_luong", physical.quantity());
+        row.put("quan_ly_serial", physical.serialManaged());
+        physicalRows.add(row);
 
         if (physical.serialManaged()) {
           serials.put(new Key(line.getId(), physical.variantId()), physical.quantity());
 
           groups.add(
               new AdminOrderResponse.Requirement(
-                  physical.variantId(), physical.perUnit(), physical.quantity()));
+                  physical.variantId(),
+                  physical.perUnit(),
+                  physical.quantity(),
+                  physical.productName(),
+                  physical.variantName()));
         }
       }
 
       requirements.add(
           new AdminOrderResponse.RequirementLine(
-              line.getId(), snapshot.productType(), line.getSoLuong(), groups));
+              line.getId(),
+              snapshot.productType(),
+              line.getSoLuong(),
+              List.copyOf(groups),
+              snapshot.lineKey(),
+              Boolean.TRUE.equals(line.getLaQuaTang()),
+              snapshot.productName(),
+              List.copyOf(physicalRows)));
     }
 
     return new Plan(lines, totals, serials, requirements);
@@ -247,6 +268,62 @@ public class OrderInventoryService {
     }
   }
 
+  public List<Map<String, Object>> reservationRows(DonHang order, boolean released) {
+
+    Plan plan = plan(order, false);
+    List<Map<String, Object>> result = new ArrayList<>();
+
+    if (!released) {
+      for (var line : plan.lines()) {
+        for (var item : saleSnapshots.physical(line).values()) {
+          Map<String, Object> row = new LinkedHashMap<>();
+          row.put("chi_tiet_don_hang_id", line.getId());
+          row.put("phien_ban_id", item.variantId());
+          row.put("so_luong", item.quantity());
+          row.put("la_qua_tang", Boolean.TRUE.equals(line.getLaQuaTang()));
+          result.add(row);
+        }
+      }
+    } else {
+      for (var entry : plan.quantities().entrySet()) {
+        TonKho stock = calculation.stock(context.defaultWarehouseId(), entry.getKey(), false);
+
+        if (stock == null) {
+          throw conflict("Không tìm thấy tồn sau giải phóng giữ hàng");
+        }
+
+        Map<String, Object> row = new LinkedHashMap<>();
+        row.put("phien_ban_id", entry.getKey());
+        row.put("so_luong_da_giu", entry.getValue());
+        row.put("ton_thuc_te_sau", stock.getTonThucTe());
+        row.put("ton_co_the_ban_sau", stock.getTonCoTheBan());
+        result.add(row);
+      }
+    }
+
+    return List.copyOf(result);
+  }
+
+  public long expectedHeld(Long variantId) {
+    long total = 0;
+
+    for (var line : lineRepository.findHeldLines()) {
+      // physical() bắt buộc có bản chụp hợp lệ.
+      // Không lấy cấu hình combo hiện tại để dựng lại đơn cũ.
+      var item = saleSnapshots.physical(line).get(variantId);
+
+      if (item != null) {
+        try {
+          total = Math.addExact(total, item.quantity());
+        } catch (ArithmeticException exception) {
+          throw conflict("Số lượng giữ hàng vượt giới hạn");
+        }
+      }
+    }
+
+    return total;
+  }
+
   private Map<Long, TonKho> lockStocks(Plan plan, boolean requireHeld) {
     Map<Long, TonKho> stocks = new TreeMap<>();
 
@@ -269,7 +346,7 @@ public class OrderInventoryService {
               - stock.getHangLoi()
               - stock.getSoLuongGiuChoBaoHanh()
               - stock.getTonCoTheBan();
-      Long expectedHeld = lineRepository.sumReservedQuantity(entry.getKey());
+      Long expectedHeld = expectedHeld(entry.getKey());
 
       if (expectedHeld == null || actualHeld != expectedHeld.longValue()) {
         throw conflict("Tồn giữ hàng không nhất quán tại phiên bản " + entry.getKey());

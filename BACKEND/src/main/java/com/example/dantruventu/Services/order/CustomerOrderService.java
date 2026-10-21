@@ -281,6 +281,8 @@ public class CustomerOrderService {
 
     List<ChiTietDonHang> savedLines = saleSnapshots.saveLines(order, plan, salesRequest);
 
+    saleSnapshots.recordUnpaidCreationEvidence(order);
+
     /*
      * Checkout chỉ tạo đơn CHO_DUYET.
      *
