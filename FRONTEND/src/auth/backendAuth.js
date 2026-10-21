@@ -1,4 +1,8 @@
-const API_BASE_URL = (import.meta.env.VITE_RUVENTU_API_URL || '').replace(/\/$/, '');
+import { notifyMaintenance } from '../settings/maintenanceState';
+
+const API_BASE_URL = (
+  import.meta.env.VITE_RUVENTU_API_URL || ''
+).replace(/\/$/, '');
 
 export const AUTH_CHANGED = 'ruventu:auth-changed';
 
@@ -190,6 +194,7 @@ export async function apiRequest(path, options = {}, retry = true) {
   const payload = await parseResponse(response);
 
   if (!response.ok) {
+    notifyMaintenance(response.status, payload);
     throw apiError(
       payload?.message || `Yêu cầu thất bại (${response.status}).`,
       response.status,
