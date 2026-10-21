@@ -3,7 +3,7 @@ USE dant_ruventu;
 
 ALTER TABLE phieu_tra_hang
     ADD COLUMN nguoi_tao_id BIGINT NULL,
-    ADD COLUMN ngay_cap_nhap DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    ADD COLUMN ngay_cap_nhat DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     ADD COLUMN du_lieu_nhan_hang JSON NULL,
     ADD CONSTRAINT fk_th05_phieu_tra_nguoi_tao
         FOREIGN KEY (nguoi_tao_id) REFERENCES nguoi_dung (id);

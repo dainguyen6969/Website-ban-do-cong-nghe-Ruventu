@@ -29,6 +29,6 @@ public class SalesIdempotency {
   @Column(name = "request_hash", length = 64)
   private String requestHash;
 
-  @Column(name = "response_json", columnDefinition = "LONGTEXT")
+  @Column(name = "response_json", columnDefinition = "TEXT")
   private String responseJson;
 }
