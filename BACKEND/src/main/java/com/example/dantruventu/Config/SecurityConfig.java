@@ -40,6 +40,7 @@ public class SecurityConfig {
         .authorizeHttpRequests(
             auth ->
                 auth.requestMatchers(
+                        "/api/v1/system-settings/status",
                         "/api/v1/auth/register",
                         "/api/v1/auth/otp/resend",
                         "/api/v1/auth/verify-otp",

@@ -15,6 +15,7 @@ public class RefreshService {
   private final JwtService jwtService;
   private final RefreshTokenSessionService refreshTokenSessionService;
   private final NguoiDungRepository nguoiDungRepository;
+  private final SystemSettingsService systemSettingsService;
 
   public RefreshResponse refresh(String refreshToken) {
 
@@ -45,6 +46,8 @@ public class RefreshService {
         nguoiDungRepository
             .findById(userId)
             .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND));
+
+    systemSettingsService.requireAccess(nguoiDung);
 
     String accessToken = jwtService.generateAccessToken(nguoiDung);
 

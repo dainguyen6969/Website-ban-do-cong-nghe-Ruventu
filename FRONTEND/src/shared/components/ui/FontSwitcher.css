@@ -41,12 +41,11 @@
   z-index: 1200;
   top: calc(100% + 6px);
   right: 0;
-  width: max-content;
-  min-width: 14em;
-  max-width: calc(100vw - 2em);
-  max-height: min(70dvh, 32em);
+  width: 344px;
+  max-width: calc(100vw - 24px);
+  max-height: calc(100dvh - 90px);
   overflow-y: auto;
-  padding: 6px;
+  scrollbar-width: none;
   border: 2px solid #111;
   background: #fff;
   color: #111;
@@ -58,12 +57,28 @@
 }
 
 .font-switcher__title {
-  padding: 7px 9px;
-  color: #8a8f96;
-  font-size: 9px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  padding:14px 16px;
+  border-left:4px solid #e31e24;
+  background:#111;
+  color:#fff;
+  font-size:12px;
   font-weight: 800;
   letter-spacing: .08em;
 }
+.font-switcher__title > span { color:#aaa; font-size:10px; font-weight:500; letter-spacing:0; }
+.font-switcher__body { padding:16px; }
+.font-switcher__hint { margin:0; color:#666; font-size:11px; line-height:1.6; }
+.font-switcher__families { margin:0; padding:0; border:0; min-width:0; }
+.font-switcher__families legend { padding:0; margin-bottom:10px; font-size:12px; font-weight:700; }
+.font-switcher__list { max-height:180px; overflow-y:auto; overscroll-behavior:contain; scrollbar-width:none; border:1px solid #ddd; }
+.font-switcher__menu::-webkit-scrollbar,.font-switcher__list::-webkit-scrollbar { display:none; }
+.font-switcher__preview { margin:16px 0; padding:12px; background:#f6f6f6; line-height:1.6; overflow-wrap:anywhere; }
+.font-switcher__reset { width:100%; padding:10px 12px; border:1px solid #111; border-radius:0; background:#fff; color:#111; font-size:12px; font-weight:700; cursor:pointer; }
+.font-switcher__reset:disabled { opacity:.5; cursor:default; }
 
 .font-switcher__option {
   width: 100%;
@@ -71,7 +86,7 @@
   padding: 7px 9px;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
   gap: 12px;
   color: #111;
   background: #fff;
@@ -79,11 +94,14 @@
   text-align: left;
   line-height: 1.5;
   overflow-wrap: anywhere;
+  border-bottom:1px solid #eee;
+  cursor:pointer;
 }
+.font-switcher__option input { accent-color:#e31e24; margin:0; }
 
 .font-switcher__option:hover,
 .font-switcher__option.is-active {
-  background: #f1f2f4;
+  background: #fff1f1;
 }
 
 .font-switcher__option.is-active {
@@ -91,11 +109,13 @@
 }
 
 .font-switcher__trigger:focus-visible,
-.font-switcher__option:focus-visible {
+.font-switcher__option:focus-within,
+.font-switcher__list:focus-visible,
+.font-switcher__reset:focus-visible {
   outline: 2px solid #e31e24;
   outline-offset: -2px;
 }
 
 @media (max-width: 576px) {
-  .font-switcher--homepage .font-switcher__menu { left: 0; right: auto; }
+  .font-switcher .font-switcher__menu { position:fixed; top:64px; left:12px; right:12px; width:auto; max-width:none; max-height:calc(100dvh - 80px); }
 }

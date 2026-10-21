@@ -2,6 +2,7 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { BrowserRouter } from 'react-router-dom'
 import App from './app/App.jsx'
+import SystemAccessGate from './settings/SystemAccessGate.jsx'
 import { MockAuthProvider } from './auth/MockAuthContext.jsx'
 import React from 'react';
 
@@ -39,7 +40,7 @@ createRoot(document.getElementById('root')).render(
     <ErrorBoundary>
       <BrowserRouter>
         <MockAuthProvider>
-          <App />
+          <SystemAccessGate><App /></SystemAccessGate>
         </MockAuthProvider>
       </BrowserRouter>
     </ErrorBoundary>

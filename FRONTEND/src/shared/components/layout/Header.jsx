@@ -1,11 +1,12 @@
 // Shared admin layout component: Header.
-import { useLocation } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { HiOutlineMenu, HiOutlineUser } from 'react-icons/hi';
 import NotificationBell from './NotificationBell';
 import FontSwitcher from '../ui/FontSwitcher';
 import './Header.css';
 
 const routeTitleMap = {
+  '/admin/tai-khoan': 'TRANG TÀI KHOẢN',
   '/admin/tong-quat': 'TỔNG QUÁT',
   '/admin/ban-hang': 'BÁN HÀNG',
   '/admin/san-pham': 'SẢN PHẨM',
@@ -221,12 +222,12 @@ export default function Header({ onMenuToggle, isMenuOpen = false }) {
           const displayName = user?.name || user?.ho_ten || user?.hoTen || user?.email || 'Admin';
           const userInitial = (displayName.trim().charAt(0) || 'A').toUpperCase();
           return (
-            <div className="header__group header__user">
+            <Link to="/admin/tai-khoan" className="header__group header__user" aria-label="Mở trang tài khoản">
               <div className="header__user-avatar" aria-label={`Tài khoản ${displayName}`} title={displayName}>
                 <span className="header__user-initial">{userInitial}</span>
               </div>
               <span className="header__user-name">{displayName}</span>
-            </div>
+            </Link>
           );
         })()}
 
