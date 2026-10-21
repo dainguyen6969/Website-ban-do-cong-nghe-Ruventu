@@ -114,6 +114,20 @@ public final class AdminOrderRequest {
 
   @Getter
   @Setter
+  public static class PackingSerials extends Export {
+
+    @NotNull
+    @Size(max = 10000)
+    @JsonProperty("serial_loi_ids")
+    private List<@NotNull @Positive Long> serialLoiIds = List.of();
+
+    @Size(max = 150)
+    @JsonProperty("ly_do_doi_serial")
+    private String lyDoDoiSerial;
+  }
+
+  @Getter
+  @Setter
   public static class Payment extends AdminSalesRequest.StrictRequest {
 
     @NotBlank

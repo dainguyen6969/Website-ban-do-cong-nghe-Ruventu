@@ -261,7 +261,8 @@ public class AdminDeliveryService {
     orderService.recordHistory(
         order,
         "CAP_NHAT_GIAO_VAN",
-        "Cập nhật đối tác, phí trả và mã vận đơn của phiếu " + delivery.getMaPhieuGiaoHang());
+        "Cập nhật đối tác, phí trả và mã vận đơn của phiếu " + delivery.getMaPhieuGiaoHang(),
+        delivery);
     deliveryRepository.flush();
 
     return mapper.toAction(delivery, zone());
@@ -356,10 +357,12 @@ public class AdminDeliveryService {
           case GIAO_THAT_BAI -> "Giao hàng thất bại, chờ hoàn hàng";
           default -> throw invalid("Trạng thái giao hàng không hợp lệ");
         };
+
     orderService.recordHistory(
         order,
         "GIAO_VAN_" + target.name(),
-        description + "; phiếu " + delivery.getMaPhieuGiaoHang());
+        description + "; phiếu " + delivery.getMaPhieuGiaoHang(),
+        delivery);
     deliveryRepository.flush();
 
     Action response = mapper.toAction(delivery, zone());
@@ -424,7 +427,7 @@ public class AdminDeliveryService {
       throw conflict("Đơn không ở giai đoạn đóng gói để hủy phiếu");
     }
 
-    inventoryService.releaseReservation(order);
+    inventoryService.releasePackingSerials(order);
 
     order.setTrangThaiDongGoi(TrangThaiDongGoi.HUY_DONG_GOI);
     order.setTrangThaiDonHang(TrangThaiDonHang.CHO_DONG_GOI);
@@ -441,7 +444,7 @@ public class AdminDeliveryService {
     delivery.setNgayCapNhat(now());
 
     orderService.recordHistory(
-        order, "HUY_PHIEU_GIAO", "Hủy phiếu giao hàng " + delivery.getMaPhieuGiaoHang());
+        order, "HUY_PHIEU_GIAO", "Hủy phiếu giao hàng " + delivery.getMaPhieuGiaoHang(), delivery);
     deliveryRepository.flush();
 
     return mapper.toAction(delivery, zone());
@@ -578,7 +581,10 @@ public class AdminDeliveryService {
     saleSnapshots.onOrderStateChanged(order);
 
     orderService.recordHistory(
-        order, "NHAN_HOAN_GIAO_HANG", "Nhận hoàn hàng từ phiếu " + delivery.getMaPhieuGiaoHang());
+        order,
+        "NHAN_HOAN_GIAO_HANG",
+        "Nhận hoàn hàng từ phiếu " + delivery.getMaPhieuGiaoHang(),
+        delivery);
 
     deliveryRepository.flush();
 

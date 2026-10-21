@@ -79,45 +79,11 @@ public class DeliveryInventoryService {
   }
 
   public void releaseReservation(DonHang order) {
-    requireWarehouse();
+    orderInventory.releaseQuantityReservation(order);
+  }
 
-    if (order.getTrangThaiDongGoi() != TrangThaiDongGoi.DANG_DONG_GOI
-        && order.getTrangThaiDongGoi() != TrangThaiDongGoi.DA_DONG_GOI) {
-      throw conflict("Đơn không ở trạng thái có giữ hàng để hủy đóng gói");
-    }
-
-    if (ledgerRepository.existsByMaChungTuGocAndLoaiGiaoDich(
-        order.getId(), LoaiGiaoDichKho.XUAT_BAN)) {
-      throw conflict("Đơn đã có chứng từ xuất bán, không được giải phóng giữ hàng");
-    }
-
-    Map<Long, Integer> quantities = totals(expected(order.getId()));
-
-    for (var entry : quantities.entrySet()) {
-      Long variantId = entry.getKey();
-      int quantity = entry.getValue();
-
-      TonKho stock = lockStock(variantId);
-      validateStock(stock);
-
-      long held =
-          (long) stock.getTonThucTe()
-              - stock.getHangLoi()
-              - stock.getSoLuongGiuChoBaoHanh()
-              - stock.getTonCoTheBan();
-      Long expectedHeld = orderInventory.expectedHeld(variantId);
-
-      if (expectedHeld == null || held != expectedHeld || held < quantity) {
-        throw conflict(
-            "Số lượng giữ hàng không khớp tại phiên bản "
-                + variantId
-                + ". Cần đối chiếu luồng giữ hàng trước khi hủy");
-      }
-
-      stock.setTonCoTheBan(bounded((long) stock.getTonCoTheBan() + quantity));
-    }
-
-    // Không đổi tồn thực tế, không sinh thẻ kho.
+  public void releasePackingSerials(DonHang order) {
+    orderInventory.releasePackingSerials(order);
   }
 
   public List<ReturnRequirement> getReturnRequirements(DonHang order) {

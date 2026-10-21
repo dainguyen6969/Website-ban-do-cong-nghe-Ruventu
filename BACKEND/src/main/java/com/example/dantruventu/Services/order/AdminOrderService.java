@@ -14,10 +14,7 @@ import com.example.dantruventu.Mapper.order.AdminOrderMapper;
 import com.example.dantruventu.Mapper.order.AdminSalesMapper;
 import com.example.dantruventu.Repository.cashbook.LoaiThuChiRepository;
 import com.example.dantruventu.Repository.cashbook.SoQuyThuChiRepository;
-import com.example.dantruventu.Repository.order.ChiTietDonHangRepository;
-import com.example.dantruventu.Repository.order.DonHangRepository;
-import com.example.dantruventu.Repository.order.LichSuXuLyDonHangRepository;
-import com.example.dantruventu.Repository.order.PhieuGiaoHangRepository;
+import com.example.dantruventu.Repository.order.*;
 import com.example.dantruventu.Repository.partner.DoiTacVanChuyenRepository;
 import com.example.dantruventu.Repository.product.AnhSanPhamRepository;
 import com.example.dantruventu.Repository.product.PhienBanSanPhamRepository;
@@ -27,6 +24,7 @@ import com.example.dantruventu.Services.order.sales.*;
 import com.example.dantruventu.Services.order.sales.SoldDeviceService;
 import com.example.dantruventu.Specification.OrderSpecification;
 import jakarta.persistence.EntityManager;
+import jakarta.persistence.criteria.JoinType;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -70,6 +68,7 @@ public class AdminOrderService {
   private final OrderSaleSnapshotService saleSnapshots;
   private final SalesQuoteService saleQuotes;
   private final SoldDeviceService soldDevices;
+  private final PhieuTraHangRepository returnRepository;
 
   public AdminSalesResponse.PageData<AdminOrderResponse.ListItem> list(
       String keyword,
@@ -192,6 +191,7 @@ public class AdminOrderService {
 
     requireNoCash(order);
     inventory.requireNoExport(order);
+    inventory.requireReservationNotExpired(order);
 
     String address = text(request.getThongTinNguoiNhan().getDiaChiGiaoHang());
 
@@ -235,6 +235,12 @@ public class AdminOrderService {
 
     var plan = calculation.calculate(request, LoaiDonHang.ONLINE, true);
 
+    LocalDateTime previousReservationDeadline = order.getHanGiuHang();
+
+    if (inventory.hasQuantityReservation(order)) {
+      inventory.releaseQuantityReservation(order);
+    }
+
     saleQuotes.require(
         request.getMaXacNhanGia(),
         SalesQuoteService.identity(context.actor(), null),
@@ -271,6 +277,11 @@ public class AdminOrderService {
       saleSnapshots.recordUnpaidCreationEvidence(order);
     }
 
+    inventory.reserve(order);
+
+    // Sửa đơn không tự kéo dài thời hạn giữ.
+    order.setHanGiuHang(previousReservationDeadline);
+
     recordHistory(order, "SUA_DON_HANG", "Cập nhật nội dung đơn hàng");
 
     return action(order);
@@ -295,7 +306,9 @@ public class AdminOrderService {
     inventory.requireNoExport(order);
     requireNoCash(order);
     validateStoredAmounts(order);
-    inventory.checkAvailable(order);
+    inventory.requireReservationNotExpired(order);
+    inventory.reserve(order);
+    order.setHanGiuHang(null);
 
     if (money(order.getTongThanhToan()).signum() == 0) {
       order.setTrangThaiThanhToan(TrangThaiThanhToanDonHang.DA_THANH_TOAN);
@@ -303,7 +316,7 @@ public class AdminOrderService {
 
     order.setTrangThaiDonHang(TrangThaiDonHang.CHO_DONG_GOI);
 
-    // Duyệt chưa giữ hàng và không tính lại giá danh mục.
+    // Đơn đã giữ hàng; duyệt khóa nội dung và bỏ hạn giữ chờ duyệt.
     recordHistory(order, "DUYET_DON", "Duyệt đơn hàng");
     return action(order);
   }
@@ -517,19 +530,18 @@ public class AdminOrderService {
         throw conflict("Chỉ hoàn tất khi đang đóng gói");
       }
 
+      inventory.requirePackingAllocation(order);
       order.setTrangThaiDongGoi(TrangThaiDongGoi.DA_DONG_GOI);
 
     } else if (target == TrangThaiDongGoi.HUY_DONG_GOI) {
-      if (!hasReservation(order)) {
-        throw conflict("Đơn không có phần giữ hàng để hủy");
+      if (order.getTrangThaiDongGoi() != TrangThaiDongGoi.DANG_DONG_GOI
+          && order.getTrangThaiDongGoi() != TrangThaiDongGoi.DA_DONG_GOI) {
+        throw conflict("Chỉ hủy khi đang hoặc đã đóng gói, chưa xuất kho");
       }
 
       cancelWaitingDeliveries(deliveries);
-      deliveryInventory.releaseReservation(order);
+      inventory.releasePackingSerials(order);
       order.setTrangThaiDongGoi(TrangThaiDongGoi.HUY_DONG_GOI);
-
-    } else {
-      throw invalid("Chỉ nhận DA_DONG_GOI hoặc HUY_DONG_GOI");
     }
 
     recordPackingHistory(order);
@@ -538,6 +550,7 @@ public class AdminOrderService {
 
   public List<AdminOrderResponse.History> history(Long id) {
     findOrder(id);
+
     return historyRepository.findByDonHang_IdOrderByNgayThucHienAscIdAsc(id).stream()
         .map(
             event ->
@@ -549,7 +562,10 @@ public class AdminOrderService {
                     event.getNgayThucHien().atZone(properties.zone()).toOffsetDateTime(),
                     event.getTrangThaiDonHang(),
                     event.getTrangThaiDongGoi(),
-                    event.getTrangThaiXuatKho()))
+                    event.getTrangThaiXuatKho(),
+                    event.getPhieuGiaoHangId(),
+                    event.getMaPhieuGiaoHang(),
+                    event.getTrangThaiGiaoHang()))
         .toList();
   }
 
@@ -562,7 +578,24 @@ public class AdminOrderService {
   }
 
   void recordHistory(DonHang order, String action, String description) {
+
+    List<PhieuGiaoHang> deliveries = deliveryRepository.findByDonHang_IdOrderByIdAsc(order.getId());
+
+    PhieuGiaoHang latestDelivery =
+        deliveries.isEmpty() ? null : deliveries.get(deliveries.size() - 1);
+
+    recordHistory(order, action, description, latestDelivery);
+  }
+
+  void recordHistory(DonHang order, String action, String description, PhieuGiaoHang delivery) {
+
+    if (delivery != null && !Objects.equals(delivery.getDonHang().getId(), order.getId())) {
+
+      throw conflict("Phiếu giao hàng không thuộc đơn đang ghi lịch sử");
+    }
+
     orderEvents.changed(order.getId(), action);
+
     historyRepository.save(
         LichSuXuLyDonHang.builder()
             .donHang(order)
@@ -573,7 +606,54 @@ public class AdminOrderService {
             .trangThaiDonHang(order.getTrangThaiDonHang())
             .trangThaiDongGoi(order.getTrangThaiDongGoi())
             .trangThaiXuatKho(order.getTrangThaiXuatKho())
+            .phieuGiaoHangId(delivery == null ? null : delivery.getId())
+            .maPhieuGiaoHang(delivery == null ? null : delivery.getMaPhieuGiaoHang())
+            .trangThaiGiaoHang(delivery == null ? null : delivery.getTrangThaiGiaoHang())
             .build());
+  }
+
+  public Map<String, Object> packingSerials(Long id) {
+    DonHang order = findOrder(id);
+    requireSerialPreparation(order);
+
+    var allocation = inventory.packingAllocation(order);
+
+    Map<String, Object> result = new LinkedHashMap<>();
+    result.put("kho_hang_id", allocation.getKhoHangId());
+    result.put("items", allocation.getItems());
+    result.put(
+        "serial_da_giu",
+        serialRepository.findPackingByOrderId(id).stream().map(salesMapper::toSerial).toList());
+
+    return result;
+  }
+
+  @Transactional(isolation = Isolation.READ_COMMITTED)
+  public AdminOrderResponse.Action savePackingSerials(
+      Long id, String idempotencyKey, AdminOrderRequest.PackingSerials request) {
+
+    validateId(id);
+
+    return cashbookService.executeOnce(
+        paymentRequestKey("DG-SN-", idempotencyKey),
+        context.actor(),
+        List.of(id, request),
+        AdminOrderResponse.Action.class,
+        () -> {
+          DonHang order = lockOrder(id);
+          requireOnline(order);
+          requireUnexported(order);
+          requireProcessing(order);
+
+          inventory.savePackingSerials(order, request);
+
+          recordHistory(
+              order,
+              "CHOT_SERIAL_DONG_GOI",
+              "Chốt serial đóng gói; số serial lỗi: " + request.getSerialLoiIds().size());
+
+          return action(order);
+        });
   }
 
   public AdminOrderResponse.Requirements requirements(Long id) {
@@ -633,11 +713,18 @@ public class AdminOrderService {
 
     Specification<SoSerialSanPham> specification =
         (root, query, cb) -> {
+          var packingLine = root.join("chiTietDongGoi", JoinType.LEFT);
+
+          var packingOrder = packingLine.join("donHang", JoinType.LEFT);
+
           var condition =
               cb.and(
                   cb.equal(root.get("phienBan").get("id"), variantId),
                   cb.equal(root.get("trangThai"), TrangThaiSerial.TRONG_KHO),
-                  cb.isNull(root.get("donHang")));
+                  cb.isNull(root.get("donHang")),
+                  cb.or(
+                      cb.isNull(packingLine.get("id")),
+                      cb.equal(packingOrder.get("id"), order.getId())));
 
           if (exact != null) {
             return cb.and(condition, cb.equal(root.get("soSerial"), exact));
@@ -961,8 +1048,13 @@ public class AdminOrderService {
     cancelWaitingDeliveries(deliveries);
 
     if (hadReservation) {
+      TrangThaiDongGoi previousPacking = order.getTrangThaiDongGoi();
+
       deliveryInventory.releaseReservation(order);
-      order.setTrangThaiDongGoi(TrangThaiDongGoi.HUY_DONG_GOI);
+
+      if (previousPacking != TrangThaiDongGoi.CHUA_DONG_GOI) {
+        order.setTrangThaiDongGoi(TrangThaiDongGoi.HUY_DONG_GOI);
+      }
     } else if (order.getTrangThaiDongGoi() != TrangThaiDongGoi.CHUA_DONG_GOI
         && order.getTrangThaiDongGoi() != TrangThaiDongGoi.HUY_DONG_GOI) {
       throw conflict("Trạng thái đóng gói không nhất quán");
@@ -1452,6 +1544,109 @@ public class AdminOrderService {
     }
   }
 
+  public Map<String, Object> refundOptions(Long id) {
+    context.actor();
+
+    DonHang order = findOrder(id);
+
+    Map<String, Object> result = new LinkedHashMap<>();
+    result.put("don_hang_id", order.getId());
+
+    boolean cancelledBeforeExport =
+        order.getTrangThaiDonHang() == TrangThaiDonHang.HUY_HANG
+            && order.getTrangThaiXuatKho() == TrangThaiXuatKho.CHUA_XUAT_KHO;
+
+    Map<String, Object> evidence = failedDeliveryMoney(order);
+
+    boolean moneyVerified = Boolean.TRUE.equals(evidence.get("co_du_can_cu"));
+
+    BigDecimal refundDue = null;
+
+    if (moneyVerified) {
+      Object value = evidence.get("tong_tien_can_hoan");
+
+      if (value instanceof BigDecimal amount) {
+        refundDue = amount;
+      }
+    }
+
+    boolean canRefundCancelledOrder =
+        cancelledBeforeExport
+            && order.getTrangThaiThanhToan() == TrangThaiThanhToanDonHang.DA_THANH_TOAN
+            && refundDue != null
+            && refundDue.signum() > 0;
+
+    Map<String, Object> cancelledRefund = new LinkedHashMap<>();
+    cancelledRefund.put("hien_thi", cancelledBeforeExport);
+    cancelledRefund.put("co_the_hoan", canRefundCancelledOrder);
+    cancelledRefund.put("so_tien_can_hoan", refundDue);
+
+    String unavailableReason = null;
+
+    if (cancelledBeforeExport && !canRefundCancelledOrder) {
+      if (!moneyVerified) {
+        unavailableReason = "Chưa đủ căn cứ đối soát tiền của đơn hàng.";
+      } else if (refundDue == null) {
+        unavailableReason = "Chưa xác định được số tiền còn phải hoàn.";
+      } else if (refundDue.signum() == 0) {
+        unavailableReason = "Đơn không còn khoản tiền chờ hoàn.";
+      } else {
+        unavailableReason = "Đơn chưa đủ điều kiện hoàn tiền qua luồng hủy trước xuất kho.";
+      }
+    }
+
+    cancelledRefund.put("ly_do", unavailableReason);
+    result.put("hoan_don_huy", cancelledRefund);
+
+    List<Map<String, Object>> returnRefunds = new ArrayList<>();
+
+    for (PhieuTraHang document : returnRepository.findByDonHang_IdOrderByIdAsc(order.getId())) {
+
+      BigDecimal amount = document.getTongTienHoan();
+
+      boolean received = document.getTrangThaiTraHang() == TrangThaiTraHang.DA_NHAN_HANG;
+
+      boolean finished =
+          document.getTrangThaiTraHang() == TrangThaiTraHang.HOAN_TAT
+              || document.getTrangThaiTraHang() == TrangThaiTraHang.DA_HOAN_TIEN;
+
+      boolean hasRefundVoucher =
+          cashRepository.findByMaPhieu("CHI-TH-" + document.getId()).isPresent();
+
+      boolean canRefund = received && amount != null && amount.signum() > 0 && !hasRefundVoucher;
+
+      Map<String, Object> item = new LinkedHashMap<>();
+      item.put("id", document.getId());
+      item.put("ma_tra_hang", document.getMaTraHang());
+      item.put("trang_thai_tra_hang", document.getTrangThaiTraHang());
+      item.put("tong_tien_hoan", amount);
+      item.put("hinh_thuc_hoan_tien", document.getHinhThucHoanTien());
+      item.put("co_the_hoan", canRefund);
+      item.put("da_ghi_nhan_hoan", finished || hasRefundVoucher);
+
+      String reason = null;
+
+      if (!canRefund) {
+        if (finished || hasRefundVoucher) {
+          reason = "Phiếu trả đã kết thúc hoặc đã ghi nhận hoàn tiền.";
+        } else if (!received) {
+          reason = "Phiếu trả chưa xác nhận nhận hàng.";
+        } else if (amount == null) {
+          reason = "Phiếu trả chưa có số tiền hoàn hợp lệ.";
+        } else if (amount.signum() == 0) {
+          reason = "Phiếu trả không phát sinh tiền hoàn.";
+        }
+      }
+
+      item.put("ly_do", reason);
+      returnRefunds.add(item);
+    }
+
+    result.put("phieu_tra_hang", List.copyOf(returnRefunds));
+
+    return result;
+  }
+
   private DonHang lockOrder(Long id) {
     validateId(id);
     context.actor();
@@ -1505,8 +1700,7 @@ public class AdminOrderService {
   }
 
   private boolean hasReservation(DonHang order) {
-    return order.getTrangThaiDongGoi() == TrangThaiDongGoi.DANG_DONG_GOI
-        || order.getTrangThaiDongGoi() == TrangThaiDongGoi.DA_DONG_GOI;
+    return inventory.hasQuantityReservation(order);
   }
 
   private boolean shipping(DonHang order) {

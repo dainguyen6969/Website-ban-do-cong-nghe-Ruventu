@@ -48,6 +48,17 @@ public class LichSuXuLyDonHang {
   @Column(name = "trang_thai_xuat_kho", nullable = false, length = 50)
   private TrangThaiXuatKho trangThaiXuatKho;
 
+  @Column(name = "phieu_giao_hang_id")
+  private Long phieuGiaoHangId;
+
+  @Column(name = "ma_phieu_giao_hang", length = 50)
+  private String maPhieuGiaoHang;
+
+  @Enumerated(EnumType.STRING)
+  @JdbcTypeCode(SqlTypes.VARCHAR)
+  @Column(name = "trang_thai_giao_hang", length = 50)
+  private TrangThaiGiaoHangEnum trangThaiGiaoHang;
+
   @Column(name = "ngay_thuc_hien", nullable = false, columnDefinition = "DATETIME(6)")
   private LocalDateTime ngayThucHien;
 }

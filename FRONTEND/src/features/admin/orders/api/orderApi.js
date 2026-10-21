@@ -65,6 +65,12 @@ export const setPackingStatus = (id, status) =>
 export const getSerialRequirements = (id) =>
   adminRequest(`${PATH}/${encodeURIComponent(id)}/warehouse/serial-requirements`);
 
+export const getPackingSerials = (id) =>
+  adminRequest(`${PATH}/${encodeURIComponent(id)}/packing/serials`);
+
+export const savePackingSerials = (id, key, body) =>
+  action(id, 'packing/serials', body, 'POST', key);
+
 export const getExportVariant = (id) =>
   adminRequest(`/api/v1/admin/inventory/items/${encodeURIComponent(id)}?loai_doi_tuong=PHIEN_BAN`);
 
@@ -90,6 +96,18 @@ export const confirmPickup = (id, key, body) => action(id, 'pickup/confirm', bod
 
 export const refundOrder = (id, key, body) =>
   adminRequest(`${PATH}/${encodeURIComponent(id)}/refund`, {
+    method: 'POST',
+    headers: {
+      'Idempotency-Key': key,
+    },
+    body: JSON.stringify(body),
+  });
+
+export const getOrderRefundOptions = (id, signal) =>
+  adminRequest(`${PATH}/${encodeURIComponent(id)}/refund-options`, { signal });
+
+export const refundOrderReturn = (returnId, key, body) =>
+  adminRequest(`/api/v1/admin/returns/${encodeURIComponent(returnId)}/refund`, {
     method: 'POST',
     headers: {
       'Idempotency-Key': key,

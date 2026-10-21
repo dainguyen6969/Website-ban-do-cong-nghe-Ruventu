@@ -24,8 +24,11 @@ import {
   paymentSource,
   isWaitingCodSettlement,
   orderDisplayStatus,
+  getPackingSerials,
+  savePackingSerials,
 } from '../api/orderApi';
 
+import OrderRefundPanel from '../components/OrderRefundPanel';
 import { OrderStateBadge } from './DanhSachDonHang';
 import './ChiTietDonHang.css';
 import OrderModal from '../components/OrderModal';
@@ -43,6 +46,7 @@ import {
   OrderLineNotice,
   OrderPromotionSummary,
 } from '../../../../shared/components/ui/OrderSaleDetails';
+import { canExport, exportPayload } from '../components/exportSelection';
 import SoldDevices from '../../../../shared/components/ui/SoldDevices';
 import ComboContents from '../../../../shared/components/ui/ComboContents';
 
@@ -68,6 +72,7 @@ export default function ChiTietDonHang() {
   const navigate = useNavigate();
   const [order, setOrder] = useState(null);
   const [history, setHistory] = useState([]);
+  const [refundRevision, setRefundRevision] = useState(0);
   const [isCancelOpen, setIsCancelOpen] = useState(false);
   const [cancelReason, setCancelReason] = useState('');
   const [dialog, setDialog] = useState(null);
@@ -83,6 +88,7 @@ export default function ChiTietDonHang() {
         if (signal?.aborted) return;
         setOrder(detail);
         setHistory(events);
+        setRefundRevision((value) => value + 1);
         setState((s) => ({ ...s, loading: false, error: '' }));
       } catch (error) {
         if (error.name !== 'AbortError')
@@ -170,6 +176,9 @@ export default function ChiTietDonHang() {
         case 'fulfillment':
           return startFulfillment(order.id, key, payload);
 
+        case 'packingSerials':
+          return savePackingSerials(order.id, key, payload);
+
         case 'export':
           return exportOrder(order.id, key, payload);
 
@@ -218,7 +227,7 @@ export default function ChiTietDonHang() {
       setCancelReason('');
     });
 
-  const warehouseExport = async () => {
+  const openSerialAllocation = async (type) => {
     try {
       setState((current) => ({
         ...current,
@@ -226,34 +235,78 @@ export default function ChiTietDonHang() {
         error: '',
       }));
 
-      const requirements = await getSerialRequirements(order.id);
+      const [requirements, saved] = await Promise.all([
+        getSerialRequirements(order.id),
+        getPackingSerials(order.id),
+      ]);
+
       const warehouseId = Number(requirements.kho_hang_id);
-
-      if (!Number.isSafeInteger(warehouseId) || warehouseId <= 0) {
-        throw new Error('Chưa xác định được kho xuất của đơn hàng.');
-      }
-
       const lines = requirements.items || [];
 
-      if (!lines.length) {
-        throw new Error('Đơn chưa có căn cứ hàng vật lý để xuất.');
+      if (!Number.isSafeInteger(warehouseId) || warehouseId <= 0) {
+        throw new Error('Chưa xác định được kho của đơn.');
       }
 
-      const groups = lines.flatMap((line) =>
-        (line.serial_requirements || []).map((requirement) => ({
-          ...requirement,
-          lineId: line.chi_tiet_don_hang_id,
-          name:
-            [requirement.ten_san_pham, requirement.ten_phien_ban].filter(Boolean).join(' · ') ||
-            `Phiên bản #${requirement.phien_ban_id}`,
-          selected: [],
-        }))
+      if (Number(saved.kho_hang_id) !== warehouseId) {
+        throw new Error('Kho của phân bổ đóng gói không khớp kho của đơn.');
+      }
+
+      if (!lines.length) {
+        throw new Error('Đơn chưa có căn cứ hàng vật lý.');
+      }
+
+      const savedGroups = new Map(
+        (saved.items || []).flatMap((line) =>
+          (line.serials || []).map((group) => [
+            `${line.chi_tiet_don_hang_id}:${group.phien_ban_id}`,
+            group.serial_ids || [],
+          ])
+        )
       );
 
-      open('export', 'XUẤT KHO ĐƠN HÀNG', {
+      const groups = lines.flatMap((line) =>
+        (line.serial_requirements || [])
+          .filter((requirement) => Number(requirement.so_luong_can_serial) > 0)
+          .map((requirement) => ({
+            ...requirement,
+            so_luong_can_serial: Number(requirement.so_luong_can_serial),
+            lineId: line.chi_tiet_don_hang_id,
+            name:
+              [requirement.ten_san_pham, requirement.ten_phien_ban].filter(Boolean).join(' · ') ||
+              `Phiên bản #${requirement.phien_ban_id}`,
+            selected:
+              savedGroups.get(`${line.chi_tiet_don_hang_id}:${requirement.phien_ban_id}`) || [],
+          }))
+      );
+
+      if (type === 'export') {
+        if (!canExport(warehouseId, groups)) {
+          throw new Error(
+            'Phân bổ serial đóng gói chưa đầy đủ. ' + 'Hãy kiểm tra lại phần đóng gói.'
+          );
+        }
+
+        open('export', 'XÁC NHẬN XUẤT KHO', {
+          exportBody: exportPayload(warehouseId, lines, groups),
+          serialCount: groups.reduce((total, group) => total + group.selected.length, 0),
+        });
+
+        return;
+      }
+
+      if (!groups.length) {
+        throw new Error(
+          'Đơn không có hàng quản lý serial. ' + 'Bạn có thể chọn HOÀN TẤT ĐÓNG GÓI.'
+        );
+      }
+
+      open('packingSerials', 'SERIAL ĐÓNG GÓI', {
         warehouseId,
         requirements: lines,
         groups,
+        savedSerials: saved.serial_da_giu || [],
+        defectIds: [],
+        defectReason: '',
       });
     } catch (error) {
       setState((current) => ({
@@ -267,6 +320,12 @@ export default function ChiTietDonHang() {
       }));
     }
   };
+
+  const packingSerials = () => openSerialAllocation('packingSerials');
+
+  const warehouseExport = () => openSerialAllocation('export');
+
+  const orderNeedsSerial = (order.san_pham || []).some((item) => item.quan_ly_serial === true);
 
   const deliveries = order.phieu_giao_hang || [];
 
@@ -524,11 +583,14 @@ export default function ChiTietDonHang() {
             <span>›</span>
             <strong>{order.ma_don_hang}</strong>
           </nav>
+
           <div className="order-detail-heading">
             <h1>{order.ma_don_hang}</h1>
             <OrderStateBadge value={order.loai_don_hang} />
           </div>
+
           <p>{dateTime(order.ngay_tao)}</p>
+
           <p className="order-receive-method">
             {order.loai_don_hang === 'TAI_QUAY'
               ? 'BÁN TẠI QUẦY'
@@ -538,6 +600,7 @@ export default function ChiTietDonHang() {
                   ? 'KHÁCH NHẬN TẠI CỬA HÀNG'
                   : 'CHƯA XÁC ĐỊNH HÌNH THỨC NHẬN'}
           </p>
+
           <div className="order-detail-statuses">
             <OrderStateBadge value={orderDisplayStatus(order)} />
             <OrderStateBadge value={order.trang_thai_thanh_toan} />
@@ -648,6 +711,13 @@ export default function ChiTietDonHang() {
           </button>
         </div>
       </header>
+
+      <OrderRefundPanel
+        order={order}
+        busy={state.busy || Boolean(orderAttempt.current) || Boolean(cashAttempt.current)}
+        perform={run}
+        revision={refundRevision}
+      />
 
       {waitingCod && (
         <div className="order-cod-settlement" role="status">
@@ -777,9 +847,16 @@ export default function ChiTietDonHang() {
               )}
             {beforeExport && order.trang_thai_dong_goi === 'DANG_DONG_GOI' && (
               <div className="order-panel-actions">
+                {orderNeedsSerial && (
+                  <Action disabled={state.busy} click={packingSerials}>
+                    CHỌN / ĐỔI SERIAL ĐÓNG GÓI
+                  </Action>
+                )}
+
                 <Action disabled={state.busy} click={() => open('packed', 'HOÀN TẤT ĐÓNG GÓI')}>
                   HOÀN TẤT ĐÓNG GÓI
                 </Action>
+
                 <Action
                   secondary
                   disabled={state.busy}
@@ -867,10 +944,21 @@ export default function ChiTietDonHang() {
                     </time>
                     <strong>{event.mo_ta}</strong>
                     <p>{event.nguoi_thuc_hien}</p>
+
                     <div className="order-detail-statuses">
                       <OrderStateBadge value={event.trang_thai_don_hang} />
+
                       <OrderStateBadge value={event.trang_thai_dong_goi} />
+
                       <OrderStateBadge value={event.trang_thai_xuat_kho} />
+
+                      {event.trang_thai_giao_hang && (
+                        <span className="order-history-delivery">
+                          <span className="order-history-delivery__label">Giao hàng</span>
+
+                          <OrderStateBadge value={event.trang_thai_giao_hang} />
+                        </span>
+                      )}
                     </div>
                   </li>
                 ))}
@@ -977,8 +1065,10 @@ export default function ChiTietDonHang() {
           </section>
         </div>
       )}
-      {dialog?.type === 'export' ? (
+
+      {dialog?.type === 'packingSerials' ? (
         <ExportOrderDialog
+          mode="packing"
           order={order}
           dialog={dialog}
           setDialog={setDialog}
@@ -990,9 +1080,63 @@ export default function ChiTietDonHang() {
               return retryOrderOperation();
             }
 
-            return run(() => sendOrderOperation('export', body));
+            return run(() => sendOrderOperation('packingSerials', body));
           }}
         />
+      ) : dialog?.type === 'export' ? (
+        <OrderModal
+          title="XÁC NHẬN XUẤT KHO"
+          subtitle="XUẤT THEO PHÂN BỔ ĐÃ CHỐT KHI ĐÓNG GÓI"
+          className="order-export-modal"
+          showClose
+          cancelLabel="HỦY"
+          confirmLabel="XÁC NHẬN XUẤT KHO"
+          close={() => setDialog(null)}
+          busy={state.busy}
+          error={state.error}
+          disabled={!dialog.confirmed || !dialog.exportBody}
+          submit={() => {
+            if (orderAttempt.current) {
+              return retryOrderOperation();
+            }
+
+            return run(() => sendOrderOperation('export', dialog.exportBody));
+          }}
+        >
+          <p>
+            Đơn hàng: <strong>{order.ma_don_hang}</strong>
+          </p>
+
+          <p>
+            Số dòng hàng: <strong>{dialog.exportBody.items.length}</strong>
+          </p>
+
+          {dialog.serialCount > 0 && (
+            <p>
+              Số serial đã chốt: <strong>{dialog.serialCount}</strong>
+            </p>
+          )}
+
+          <p>Hệ thống sử dụng phân bổ đã lưu khi đóng gói để xuất kho.</p>
+
+          <label className="order-operation-confirm">
+            <input
+              type="checkbox"
+              disabled={state.busy}
+              checked={Boolean(dialog.confirmed)}
+              onChange={(event) => {
+                const checked = event.target.checked;
+
+                setDialog((current) => ({
+                  ...current,
+                  confirmed: checked,
+                }));
+              }}
+            />
+
+            <span>Xác nhận xuất kho đơn hàng này.</span>
+          </label>
+        </OrderModal>
       ) : (
         dialog && (
           <OrderActionDialog
