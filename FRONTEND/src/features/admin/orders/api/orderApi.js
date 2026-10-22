@@ -45,11 +45,16 @@ export async function getOrders(filters, signal) {
     },
   };
 }
+
 export const getOrder = (id, signal) =>
   adminRequest(`${PATH}/${encodeURIComponent(id)}`, { signal });
 export const getOrderHistory = (id, signal) =>
   adminRequest(`${PATH}/${encodeURIComponent(id)}/history`, { signal });
 export const approveOrder = (id) => action(id, 'approve', { xac_nhan: true });
+export const counterExchangeOrder = (id, key, body) =>
+  action(id, 'counter-exchange', body, 'POST', key);
+export const completeCounterInspection = (id, key, body) =>
+  action(id, 'counter-inspection/complete', body, 'POST', key);
 export const retryOrderStock = (id) => action(id, 'stock/retry', { xac_nhan: true });
 export const reserveWaitingOrderStock = (id, key, body) =>
   action(id, 'stock/reserve', body, 'POST', key);

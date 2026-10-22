@@ -85,8 +85,8 @@ public interface DonHangRepository
   @EntityGraph(attributePaths = {"khachHang"})
   Page<DonHang> findAll(Specification<DonHang> specification, Pageable pageable);
 
-    @Query(
-            """
+  @Query(
+      """
             SELECT d.id
             FROM DonHang d
             WHERE d.id > :afterId
@@ -124,10 +124,8 @@ public interface DonHangRepository
               )
             ORDER BY d.id
             """)
-    List<Long> findPendingOrderLifecycleIds(
-            @Param("afterId") Long afterId,
-            @Param("cutoff") LocalDateTime cutoff,
-            Pageable pageable);
+  List<Long> findPendingOrderLifecycleIds(
+      @Param("afterId") Long afterId, @Param("cutoff") LocalDateTime cutoff, Pageable pageable);
 
   @Query(
       """

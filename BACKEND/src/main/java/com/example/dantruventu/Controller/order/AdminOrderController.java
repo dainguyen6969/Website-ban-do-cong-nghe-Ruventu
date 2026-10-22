@@ -31,6 +31,25 @@ public class AdminOrderController {
   private final OrderWebSocket orderWebSocket;
   private final AdminDeliveryService deliveryService;
 
+  @PostMapping("/{id}/counter-exchange")
+  public ApiResponse<AdminOrderResponse.Action> counterExchange(
+      @PathVariable("id") Long id,
+      @RequestHeader(name = "Idempotency-Key") String key,
+      @Valid @RequestBody AdminOrderRequest.CounterExchange request) {
+
+    return ok("Đổi 1-1 lỗi tại quầy thành công", orderService.counterExchange(id, key, request));
+  }
+
+  @PostMapping("/{id}/counter-inspection/complete")
+  public ApiResponse<AdminOrderResponse.Action> completeCounterInspection(
+      @PathVariable("id") Long id,
+      @RequestHeader(name = "Idempotency-Key") String key,
+      @Valid @RequestBody AdminOrderRequest.Confirm request) {
+
+    return ok(
+        "Đã kết thúc kiểm tra tại quầy", orderService.completeCounterInspection(id, key, request));
+  }
+
   @PostMapping("/realtime-ticket")
   public ApiResponse<java.util.Map<String, String>> realtimeTicket(
       @RequestHeader("Authorization") String authorization) {
@@ -118,17 +137,16 @@ public class AdminOrderController {
     return ok("Đã kiểm tra hàng", orderService.retryWaitingStock(id));
   }
 
-    @PostMapping("/{id}/stock/reserve")
-    public ApiResponse<AdminOrderResponse.Action> reserveWaitingStock(
-            @PathVariable("id") Long id,
-            @RequestHeader("Idempotency-Key") String idempotencyKey,
-            @Valid @RequestBody AdminOrderRequest.Confirm request) {
+  @PostMapping("/{id}/stock/reserve")
+  public ApiResponse<AdminOrderResponse.Action> reserveWaitingStock(
+      @PathVariable("id") Long id,
+      @RequestHeader("Idempotency-Key") String idempotencyKey,
+      @Valid @RequestBody AdminOrderRequest.Confirm request) {
 
-        return ok(
-                "Đã kiểm tra và cập nhật số lượng giữ cho đơn chờ hàng",
-                orderService.reserveWaitingStock(
-                        id, idempotencyKey, request));
-    }
+    return ok(
+        "Đã kiểm tra và cập nhật số lượng giữ cho đơn chờ hàng",
+        orderService.reserveWaitingStock(id, idempotencyKey, request));
+  }
 
   @PostMapping("/{id}/fulfillment")
   public ApiResponse<AdminOrderResponse.Action> fulfillment(

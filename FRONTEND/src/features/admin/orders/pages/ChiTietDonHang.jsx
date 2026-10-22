@@ -27,6 +27,8 @@ import {
   getPackingSerials,
   savePackingSerials,
   cancelBeforeHandover,
+  counterExchangeOrder,
+  completeCounterInspection,
 } from '../api/orderApi';
 
 import OrderRefundPanel from '../components/OrderRefundPanel';
@@ -199,11 +201,40 @@ export default function ChiTietDonHang() {
   const approve = () => open('approve', 'DUYỆT ĐƠN');
   const fulfillment = () => open('fulfillment', 'BẮT ĐẦU ĐÓNG GÓI');
 
+  const openCounterExchange = (device) => {
+    const original = (order.thiet_bi_da_giao || []).find(
+      (item) => String(item.thiet_bi_id) === String(device.thiet_bi_goc_id)
+    );
+
+    const exchangeCount = Array.isArray(device.chuoi_thay_the) ? device.chuoi_thay_the.length : 0;
+
+    open(
+      'counterExchange',
+      exchangeCount > 0 ? 'GHI NHẬN LỖI THIẾT BỊ THAY THẾ' : 'ĐỔI 1-1 LỖI TẠI QUẦY',
+      {
+        deviceId: device.thiet_bi_id,
+        deviceLabel: original?.ten_san_pham || 'Phiên bản #' + device.phien_ban_id,
+        oldTracking: device.ma_theo_doi,
+        oldSerial: device.so_serial,
+        serialManaged: device.so_serial_id != null,
+        exchangeCount,
+        newSerial: '',
+        newIdentification: '',
+        reason: '',
+        contactName: order.ten_khach_hang || '',
+        contactPhone: order.so_dien_thoai_khach_hang || order.sdt_nguoi_nhan || '',
+      }
+    );
+  };
+
   const sendOrderOperation = (kind, body) => {
     const scope = `order:${order.id}:${kind}`;
 
     return withIdempotency(orderAttempt, scope, body, (key, payload) => {
       switch (kind) {
+        case 'counterExchange':
+          return counterExchangeOrder(order.id, key, payload);
+
         case 'fulfillment':
           return startFulfillment(order.id, key, payload);
 
@@ -224,6 +255,9 @@ export default function ChiTietDonHang() {
 
         case 'cancelBeforeHandover':
           return cancelBeforeHandover(order.id, key, payload);
+
+        case 'completeCounterInspection':
+          return completeCounterInspection(order.id, key, payload);
 
         default:
           throw new Error('Thao tác không hợp lệ.');
@@ -544,6 +578,24 @@ export default function ChiTietDonHang() {
         );
       }
 
+      if (type === 'completeCounterInspection') {
+        return sendOrderOperation('completeCounterInspection', {
+          xac_nhan: true,
+        });
+      }
+
+      if (type === 'counterExchange') {
+        return sendOrderOperation('counterExchange', {
+          thiet_bi_id: Number(dialog.deviceId),
+          so_serial_moi: dialog.serialManaged ? dialog.newSerial.trim() : null,
+          dau_hieu_nhan_dang_moi: dialog.serialManaged ? null : dialog.newIdentification.trim(),
+          ly_do: dialog.reason.trim(),
+          ten_nguoi_lien_he: dialog.contactName.trim(),
+          sdt_nguoi_lien_he: dialog.contactPhone.trim(),
+          xac_nhan: true,
+        });
+      }
+
       if (type === 'approve') {
         return approveOrder(order.id);
       }
@@ -617,17 +669,22 @@ export default function ChiTietDonHang() {
     waitingRows.length > 0 &&
     waitingRows.every((item) => Number(item.so_luong_da_giu) === Number(item.so_luong_can));
 
-  const waitingHasReservation = waitingRows.some((item) => Number(item.so_luong_da_giu) > 0);
+  const counterDevices = Array.isArray(order.thiet_bi_hien_hanh) ? order.thiet_bi_hien_hanh : [];
 
-  const canHoldWaitingStock =
-    order.loai_don_hang === 'ONLINE' &&
-    order.trang_thai_don_hang === 'CHO_HANG' &&
-    order.trang_thai_dong_goi === 'CHUA_DONG_GOI' &&
-    order.trang_thai_xuat_kho === 'CHUA_XUAT_KHO' &&
-    waitingHasReceivedMoney &&
-    waitingRows.some(
-      (item) => Number(item.so_luong_con_can_giu) > 0 && Number(item.ton_co_the_ban) > 0
-    );
+  const counterInspectionClosed =
+    Array.isArray(order.thiet_bi_da_ban) &&
+    order.thiet_bi_da_ban.some((device) => device.kiem_tra_tai_quay_da_ket_thuc === true);
+
+  const canCounterExchange =
+    !counterInspectionClosed &&
+    (order.loai_don_hang === 'TAI_QUAY' ||
+      (order.loai_don_hang === 'ONLINE' && order.hinh_thuc_nhan_hang === 'NHAN_TAI_CUA_HANG')) &&
+    order.trang_thai_don_hang === 'HOAN_THANH' &&
+    order.trang_thai_thanh_toan === 'DA_THANH_TOAN' &&
+    order.trang_thai_dong_goi === 'DA_DONG_GOI' &&
+    order.trang_thai_xuat_kho === 'DA_XUAT_KHO' &&
+    Boolean(order.ngay_hoan_thanh) &&
+    order.can_xac_minh_lich_su !== true;
 
   const reservationExpired =
     order.da_giu_hang === true &&
@@ -982,7 +1039,88 @@ export default function ChiTietDonHang() {
           </Panel>
 
           <Panel title="THIẾT BỊ VÀ BẢO HÀNH">
+            <p>Thiết bị của lần xuất gốc:</p>
             <SoldDevices order={order} />
+
+            <DeviceExchangeHistory order={order} />
+
+            {counterInspectionClosed && (
+              <p className="order-note">
+                Đã kết thúc kiểm tra tại quầy. Lỗi phát sinh tiếp theo xử lý qua bảo hành.
+              </p>
+            )}
+
+            {canCounterExchange && counterDevices.length > 0 && (
+              <div className="order-panel-actions">
+                <Action
+                  secondary
+                  disabled={
+                    state.busy || Boolean(orderAttempt.current) || Boolean(cashAttempt.current)
+                  }
+                  click={() => open('completeCounterInspection', 'KẾT THÚC KIỂM TRA TẠI QUẦY')}
+                >
+                  KẾT THÚC KIỂM TRA TẠI QUẦY
+                </Action>
+              </div>
+            )}
+
+            {counterDevices.length > 0 && (
+              <>
+                <h3>THIẾT BỊ HIỆN HÀNH</h3>
+
+                <div className="sold-devices-scroll">
+                  <table className="sold-devices-table">
+                    <thead>
+                      <tr>
+                        <th>Mã theo dõi</th>
+                        <th>Serial / nhận dạng</th>
+                        <th>Số lần đã đổi</th>
+                        <th>Thao tác</th>
+                      </tr>
+                    </thead>
+
+                    <tbody>
+                      {counterDevices.map((device) => {
+                        const count = Array.isArray(device.chuoi_thay_the)
+                          ? device.chuoi_thay_the.length
+                          : 0;
+
+                        return (
+                          <tr key={device.thiet_bi_id}>
+                            <td>{device.ma_theo_doi}</td>
+
+                            <td>
+                              {device.so_serial ||
+                                device.dau_hieu_nhan_dang ||
+                                'Không quản lý serial'}
+                            </td>
+
+                            <td>{count}</td>
+
+                            <td>
+                              {canCounterExchange ? (
+                                <Action
+                                  disabled={
+                                    state.busy ||
+                                    Boolean(orderAttempt.current) ||
+                                    Boolean(cashAttempt.current)
+                                  }
+                                  click={() => openCounterExchange(device)}
+                                >
+                                  {count > 0 ? 'GHI NHẬN LỖI VÀ ĐỔI TIẾP' : 'ĐỔI 1-1 LỖI TẠI QUẦY'}
+                                </Action>
+                              ) : (
+                                '—'
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </>
+            )}
           </Panel>
 
           <Panel title="THANH TOÁN">
@@ -1403,6 +1541,93 @@ export default function ChiTietDonHang() {
   );
 }
 
+function DeviceExchangeHistory({ order }) {
+  const roots = (Array.isArray(order.thiet_bi_da_ban) ? order.thiet_bi_da_ban : []).filter(
+    (device) => Array.isArray(device.chuoi_thay_the) && device.chuoi_thay_the.length
+  );
+
+  const identity = (device) => (
+    <>
+      <strong>{device?.so_serial || device?.dau_hieu_nhan_dang || 'Không quản lý serial'}</strong>
+      <small>{device?.ma_theo_doi || '—'}</small>
+    </>
+  );
+
+  return (
+    <div>
+      {order.can_xac_minh_lich_su === true && (
+        <p role="alert" className="order-alert-text">
+          Lịch sử thiết bị cần đối soát. Chỉ hiển thị các chuỗi đã xác minh được.
+        </p>
+      )}
+
+      {roots.map((root) => (
+        <div key={root.thiet_bi_id}>
+          <h3>LỊCH SỬ ĐỔI — {root.so_serial || root.ma_theo_doi}</h3>
+
+          <div className="sold-devices-scroll">
+            <table className="sold-devices-table">
+              <thead>
+                <tr>
+                  <th>Lần</th>
+                  <th>Thiết bị được nhận lại</th>
+                  <th>Thiết bị thay thế</th>
+                  <th>Phiếu xử lý</th>
+                  <th>Bàn giao / nhân viên</th>
+                  <th>Lý do</th>
+                </tr>
+              </thead>
+
+              <tbody>
+                {root.chuoi_thay_the.map((edge, index) => {
+                  const isCurrent =
+                    root.thiet_bi_hien_hanh_id != null &&
+                    String(edge.thiet_bi_moi_id) === String(root.thiet_bi_hien_hanh_id);
+
+                  const isLast = index === root.chuoi_thay_the.length - 1;
+
+                  const status = isCurrent
+                    ? 'Thiết bị hiện hành'
+                    : isLast && root.thiet_bi_cuoi_chuoi_da_tra === true
+                      ? 'Đã nhận trả'
+                      : isLast
+                        ? 'Cần xác minh quyền hiện hành'
+                        : 'Đã thay thế ở lần tiếp theo';
+
+                  return (
+                    <tr key={edge.phieu_bao_hanh_id}>
+                      <td>{edge.lan_doi}</td>
+
+                      <td>{identity(edge.thiet_bi_cu)}</td>
+
+                      <td>
+                        {identity(edge.thiet_bi_moi)}
+                        <small>{status}</small>
+                      </td>
+
+                      <td>{edge.ma_phieu_bao_hanh || '#' + edge.phieu_bao_hanh_id}</td>
+
+                      <td>
+                        {edge.ngay_ban_giao
+                          ? dateTime(edge.ngay_ban_giao)
+                          : 'Chưa ghi nhận thời điểm'}
+
+                        <small>{edge.nguoi_thuc_hien || 'Chưa ghi nhận nhân viên'}</small>
+                      </td>
+
+                      <td>{edge.ly_do || 'Chưa ghi nhận lý do'}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function Action({ children, click, danger = false, secondary = false, disabled = false }) {
   return (
     <button
@@ -1515,6 +1740,62 @@ function OrderActionDialog({ dialog, setDialog, order, options, busy, error, sub
 
       <p>{order.ma_don_hang}</p>
 
+      {dialog.type === 'counterExchange' && dialog.exchangeCount > 0 && (
+        <p className="order-alert-text">
+          Thiết bị hiện hành đã qua {dialog.exchangeCount} lần đổi. Chỉ xác nhận khi chính thiết bị
+          này vừa được kiểm tra và phát hiện lỗi tại quầy. Nhập lý do của lần lỗi mới; thao tác sẽ
+          tạo thêm một phiếu và giữ lịch sử các lần cũ.
+        </p>
+      )}
+
+      {dialog.type === 'completeCounterInspection' && (
+        <p>
+          Xác nhận đã kiểm tra và bàn giao các thiết bị hiện hành của đơn cho khách. Sau bước này,
+          chức năng đổi lỗi tại quầy của đơn sẽ khóa; lỗi phát sinh tiếp theo xử lý qua bảo hành.
+        </p>
+      )}
+
+      {dialog.type === 'counterExchange' && (
+        <>
+          <p>
+            Thiết bị: <strong>{dialog.deviceLabel}</strong>
+            {' — '}
+            {dialog.oldTracking}
+            {dialog.oldSerial ? ` — Serial: ${dialog.oldSerial}` : ''}
+          </p>
+
+          {dialog.serialManaged
+            ? field('SERIAL THIẾT BỊ MỚI', 'newSerial', 'text', {
+                required: true,
+                maxLength: 100,
+              })
+            : field('DẤU HIỆU NHẬN DẠNG THIẾT BỊ MỚI', 'newIdentification', 'text', {
+                required: true,
+                maxLength: 255,
+              })}
+
+          {field('MÔ TẢ LỖI PHÁT HIỆN TẠI QUẦY', 'reason', 'text', {
+            required: true,
+            maxLength: 255,
+          })}
+
+          {field('TÊN NGƯỜI LIÊN HỆ', 'contactName', 'text', {
+            required: true,
+            maxLength: 100,
+          })}
+
+          {field('SỐ ĐIỆN THOẠI LIÊN HỆ', 'contactPhone', 'tel', {
+            required: true,
+            maxLength: 16,
+            pattern: '\\+?[0-9]{8,15}',
+          })}
+
+          <p>
+            Đơn và khoản thanh toán được giữ nguyên. Thiết bị mới tiếp tục mốc bảo hành của đơn gốc.
+          </p>
+        </>
+      )}
+
       {receiving && order.trang_thai_don_hang === 'HUY_HANG' && (
         <p role="status">
           Khoản tiền được ghi nhận để xử lý hoàn cho khách. Đơn hàng vẫn giữ trạng thái đã hủy.
@@ -1604,11 +1885,13 @@ function OrderActionDialog({ dialog, setDialog, order, options, busy, error, sub
           checked={dialog.confirmed}
           onChange={(event) => change('confirmed', event.target.checked)}
         />
-        {refunding
-          ? 'Xác nhận đã hoàn tiền cho khách'
-          : receiving
-            ? 'Xác nhận cửa hàng đã thực nhận số tiền trên'
-            : 'Xác nhận thực hiện thao tác'}
+        {dialog.type === 'counterExchange'
+          ? 'Xác nhận lỗi phát hiện tại quầy, khách đồng ý đổi, cửa hàng đã nhận thiết bị lỗi và giao thiết bị mới'
+          : refunding
+            ? 'Xác nhận đã hoàn tiền cho khách'
+            : receiving
+              ? 'Xác nhận cửa hàng đã thực nhận số tiền trên'
+              : 'Xác nhận thực hiện thao tác'}
       </label>
     </OrderModal>
   );
