@@ -4,7 +4,6 @@ import DetailTablePagination from '../../../../shared/components/ui/DetailTableP
 import useDetailTablePagination from '../../../../hooks/useDetailTablePagination';
 import {
   approveOrder,
-  retryOrderStock,
   cancelOrder,
   canEditOnlineOrder,
   confirmOrderPayment,
@@ -122,11 +121,14 @@ export default function ChiTietDonHang() {
 
     const controller = new AbortController();
 
-    const timer = setTimeout(() => {
-      if (!actionBusy.current) {
-        void load(controller.signal);
-      }
-    }, 10000);
+    const timer = setTimeout(
+      () => {
+        if (!actionBusy.current) {
+          void load(controller.signal);
+        }
+      },
+      order.trang_thai_don_hang === 'CHO_HANG' ? 5000 : 10000
+    );
 
     return () => {
       clearTimeout(timer);
@@ -603,6 +605,30 @@ export default function ChiTietDonHang() {
     });
   };
 
+  const waitingRows = Array.isArray(order.giu_hang_cho_hang) ? order.giu_hang_cho_hang : [];
+
+  const waitingHasReceivedMoney =
+    ['THANH_TOAN_MOT_PHAN', 'DA_THANH_TOAN'].includes(order.trang_thai_thanh_toan) &&
+    order.doi_soat_thanh_toan?.co_du_can_cu === true &&
+    Number(order.doi_soat_thanh_toan?.so_tien_thuc_thu) > 0 &&
+    Number(order.doi_soat_thanh_toan?.so_tien_da_hoan) === 0;
+
+  const waitingFullyReserved =
+    waitingRows.length > 0 &&
+    waitingRows.every((item) => Number(item.so_luong_da_giu) === Number(item.so_luong_can));
+
+  const waitingHasReservation = waitingRows.some((item) => Number(item.so_luong_da_giu) > 0);
+
+  const canHoldWaitingStock =
+    order.loai_don_hang === 'ONLINE' &&
+    order.trang_thai_don_hang === 'CHO_HANG' &&
+    order.trang_thai_dong_goi === 'CHUA_DONG_GOI' &&
+    order.trang_thai_xuat_kho === 'CHUA_XUAT_KHO' &&
+    waitingHasReceivedMoney &&
+    waitingRows.some(
+      (item) => Number(item.so_luong_con_can_giu) > 0 && Number(item.ton_co_the_ban) > 0
+    );
+
   const reservationExpired =
     order.da_giu_hang === true &&
     Boolean(order.han_giu_hang) &&
@@ -803,53 +829,63 @@ export default function ChiTietDonHang() {
 
       {order.loai_don_hang === 'ONLINE' && order.trang_thai_don_hang === 'CHO_HANG' && (
         <div className="order-cod-settlement" role="status">
-          <strong>ĐƠN ĐANG CHỜ BỔ SUNG HÀNG</strong>
+          <strong>THEO DÕI HÀNG CỦA ĐƠN CHỜ HÀNG</strong>
 
-          <p>
-            Đơn đang chờ nhân viên xử lý và chưa giữ số lượng. Các khoản tiền đã nhận vẫn được ghi
-            nhận trên đơn. Bấm KIỂM TRA HÀNG để cập nhật tồn; bấm DUYỆT ĐƠN để xác nhận thực hiện
-            đơn khi đủ toàn bộ hàng.
-          </p>
+          {waitingHasReceivedMoney ? (
+            waitingFullyReserved ? (
+              <p>
+                Đã giữ đủ hàng cho đơn. Nhân viên chọn DUYỆT ĐƠN để xác nhận thực hiện đơn hàng.
+              </p>
+            ) : (
+              <p>
+                Đơn đã nhận tiền. Hệ thống tự giữ số hàng đang có và tự giữ bổ sung khi hàng về. Đơn
+                tiếp tục ở trạng thái CHỜ HÀNG cho đến khi nhân viên duyệt.
+              </p>
+            )
+          ) : order.trang_thai_thanh_toan === 'CHUA_THANH_TOAN' ? (
+            <p>
+              Đơn chưa nhận tiền nên chưa tự giữ hàng. Sau khi ghi nhận thực nhận tiền cọc hoặc
+              thanh toán, hệ thống sẽ tự kiểm tra và giữ hàng cho đơn.
+            </p>
+          ) : (
+            <p>Chứng từ tiền cần được đối soát trước khi hệ thống tự giữ hàng cho đơn.</p>
+          )}
 
-          {Array.isArray(order.hang_con_thieu) && order.hang_con_thieu.length > 0 ? (
+          {waitingRows.length > 0 ? (
             <div style={{ overflowX: 'auto' }}>
               <table className="order-waiting-stock-table">
                 <thead>
                   <tr>
                     <th>Sản phẩm / linh kiện</th>
                     <th>Cần</th>
+                    <th>Đã giữ</th>
                     <th>Có thể bán</th>
-                    <th>Còn thiếu</th>
+                    <th>Chưa giữ</th>
+                    <th>Cần nhập thêm</th>
                   </tr>
                 </thead>
 
                 <tbody>
-                  {order.hang_con_thieu.map((item) => (
+                  {waitingRows.map((item) => (
                     <tr key={item.phien_ban_id}>
                       <td>
                         {item.ten_san_pham} · {item.ten_phien_ban}
                       </td>
-                      <td>{item.so_luong_can}</td>
-                      <td>{item.ton_co_the_ban}</td>
-                      <td>{item.so_luong_thieu}</td>
+                      <td>{item.so_luong_can ?? 0}</td>
+                      <td>{item.so_luong_da_giu ?? 0}</td>
+                      <td>{item.ton_co_the_ban ?? 0}</td>
+                      <td>{item.so_luong_con_can_giu ?? 0}</td>
+                      <td>{item.so_luong_thieu ?? 0}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
           ) : (
-            <p>
-              Bấm KIỂM TRA HÀNG để cập nhật tình trạng tồn. Khi đủ hàng, chọn DUYỆT ĐƠN để thực hiện
-              đơn. Hệ thống sẽ kiểm tra lại tồn tại thời điểm duyệt.
-            </p>
+            <p>Chưa tải được thông tin giữ hàng của đơn.</p>
           )}
 
-          <Action
-            disabled={state.busy || Boolean(orderAttempt.current) || Boolean(cashAttempt.current)}
-            click={() => run(() => retryOrderStock(order.id))}
-          >
-            KIỂM TRA HÀNG
-          </Action>
+          <p>Số liệu tự cập nhật định kỳ. Khi đủ hàng, chọn DUYỆT ĐƠN để xác nhận thực hiện đơn.</p>
         </div>
       )}
 

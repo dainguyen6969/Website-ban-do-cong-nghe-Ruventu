@@ -86,7 +86,14 @@ public interface ChiTietDonHangRepository extends JpaRepository<ChiTietDonHang, 
   @Query(
       value =
           """
-        SELECT COALESCE(SUM(x.quantity), 0)
+        SELECT COALESCE(SUM(x.quantity), 0) + (
+            SELECT COALESCE(SUM(g.so_luong), 0)
+            FROM giu_hang_tung_phan g
+            JOIN don_hang waiting_order
+                ON waiting_order.id = g.don_hang_id
+            WHERE g.phien_ban_id = :variantId
+              AND waiting_order.trang_thai_xuat_kho = 'CHUA_XUAT_KHO'
+        )
         FROM (
             SELECT
                 ct.don_hang_id AS order_id,

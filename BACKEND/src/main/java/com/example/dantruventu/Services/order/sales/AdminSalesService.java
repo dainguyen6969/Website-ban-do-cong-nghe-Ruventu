@@ -685,10 +685,21 @@ public class AdminSalesService {
 
   private void enrich(AdminSalesResponse.Order response, DonHang order) {
 
-    response.setHangConThieu(
-        order.getTrangThaiDonHang() == TrangThaiDonHang.CHO_HANG
-            ? orderInventory.shortages(order)
-            : null);
+      if (order.getTrangThaiDonHang() == TrangThaiDonHang.CHO_HANG) {
+          var rows = orderInventory.waitingStockRows(order);
+
+          response.setGiuHangChoHang(rows);
+
+          response.setHangConThieu(
+                  rows.stream()
+                          .filter(
+                                  row ->
+                                          ((Number) row.get("so_luong_thieu")).longValue() > 0)
+                          .toList());
+      } else {
+          response.setGiuHangChoHang(null);
+          response.setHangConThieu(null);
+      }
 
     response.setDaNhanLaiTruocBanGiao(saleSnapshots.hasReceivedBeforeHandover(order));
 

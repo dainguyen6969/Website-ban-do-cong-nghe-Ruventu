@@ -118,6 +118,18 @@ public class AdminOrderController {
     return ok("Đã kiểm tra hàng", orderService.retryWaitingStock(id));
   }
 
+    @PostMapping("/{id}/stock/reserve")
+    public ApiResponse<AdminOrderResponse.Action> reserveWaitingStock(
+            @PathVariable("id") Long id,
+            @RequestHeader("Idempotency-Key") String idempotencyKey,
+            @Valid @RequestBody AdminOrderRequest.Confirm request) {
+
+        return ok(
+                "Đã kiểm tra và cập nhật số lượng giữ cho đơn chờ hàng",
+                orderService.reserveWaitingStock(
+                        id, idempotencyKey, request));
+    }
+
   @PostMapping("/{id}/fulfillment")
   public ApiResponse<AdminOrderResponse.Action> fulfillment(
       @PathVariable("id") Long id,

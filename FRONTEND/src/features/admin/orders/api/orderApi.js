@@ -51,6 +51,8 @@ export const getOrderHistory = (id, signal) =>
   adminRequest(`${PATH}/${encodeURIComponent(id)}/history`, { signal });
 export const approveOrder = (id) => action(id, 'approve', { xac_nhan: true });
 export const retryOrderStock = (id) => action(id, 'stock/retry', { xac_nhan: true });
+export const reserveWaitingOrderStock = (id, key, body) =>
+  action(id, 'stock/reserve', body, 'POST', key);
 export const startFulfillment = (id, key, body) => action(id, 'fulfillment', body, 'POST', key);
 export const startOrderDelivery = (id, partnerId, fee, tracking = '') =>
   action(id, 'delivery/start', {
