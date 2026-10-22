@@ -452,7 +452,9 @@ export default function ChiTietDonHang() {
       deliveryId: delivery?.id || null,
       amount:
         previous?.so_tien_thanh_toan ??
-        (delivery ? delivery.tien_thu_ho_cod : order.tong_thanh_toan),
+        (delivery ? delivery.tien_thu_ho_cod : paymentContext?.so_tien_con_phai_thu),
+
+      maxAmount: Number(delivery ? delivery.tien_thu_ho_cod : paymentContext?.so_tien_con_phai_thu),
       method:
         previous?.phuong_thuc_thanh_toan ||
         (delivery
@@ -685,7 +687,9 @@ export default function ChiTietDonHang() {
 
           {order.loai_don_hang === 'ONLINE' &&
             order.trang_thai_don_hang === 'CHO_DUYET' &&
-            order.trang_thai_thanh_toan === 'CHUA_THANH_TOAN' && (
+            ['CHUA_THANH_TOAN', 'THANH_TOAN_MOT_PHAN', 'DA_THANH_TOAN'].includes(
+              order.trang_thai_thanh_toan
+            ) && (
               <Action disabled={state.busy || reservationExpired} click={approve}>
                 DUYỆT ĐƠN
               </Action>
@@ -893,21 +897,67 @@ export default function ChiTietDonHang() {
           <Panel title="THANH TOÁN">
             <dl className="order-detail-kv">
               <Info text="PHƯƠNG THỨC">{label(order.phuong_thuc_thanh_toan)}</Info>
+
               <Info text="TRẠNG THÁI">
                 <OrderStateBadge value={order.trang_thai_thanh_toan} />
               </Info>
-              <Info text="MÃ GIAO DỊCH">{order.ma_giao_dich_thanh_toan || '—'}</Info>
+
+              <Info text="MÃ GIAO DỊCH GẦN NHẤT">{order.ma_giao_dich_thanh_toan || '—'}</Info>
+
+              {order.loai_don_hang === 'ONLINE' && (
+                <>
+                  <Info text="ĐÃ THỰC THU">
+                    {money(order.doi_soat_thanh_toan?.so_tien_thuc_thu)}
+                  </Info>
+
+                  <Info text={waitingCod ? 'CHỜ ĐỐI TÁC NỘP COD' : 'CÒN PHẢI THU'}>
+                    {money(order.doi_soat_thanh_toan?.so_tien_con_phai_thu)}
+                  </Info>
+
+                  <Info text="ĐÃ HOÀN THEO ĐƠN HỦY">
+                    {money(order.doi_soat_thanh_toan?.so_tien_da_hoan)}
+                  </Info>
+                </>
+              )}
             </dl>
+
+            {order.loai_don_hang === 'ONLINE' &&
+              order.doi_soat_thanh_toan?.co_du_can_cu !== true && (
+                <p role="status">Chưa đủ căn cứ đối soát các khoản thu của đơn.</p>
+              )}
+
+            {order.doi_soat_thanh_toan?.co_du_can_cu === true &&
+              order.doi_soat_thanh_toan.phieu_thu?.length > 0 && (
+                <details>
+                  <summary>Lịch sử thu tiền ({order.doi_soat_thanh_toan.phieu_thu.length})</summary>
+
+                  <ul>
+                    {order.doi_soat_thanh_toan.phieu_thu.map((receipt) => (
+                      <li key={receipt.id}>
+                        <strong>{receipt.ma_phieu}</strong>
+                        {' · '}
+                        {money(receipt.so_tien)}
+                        {' · '}
+                        {label(receipt.phuong_thuc_thanh_toan)}
+                        {' · '}
+                        {dateTime(receipt.ngay_ghi_nhan)}
+                      </li>
+                    ))}
+                  </ul>
+                </details>
+              )}
+
             {canPay && (
               <div className="order-panel-actions">
                 <Action disabled={state.busy} click={() => payment()}>
                   {order.trang_thai_don_hang === 'HUY_HANG'
                     ? 'GHI NHẬN TIỀN ĐẾN MUỘN'
-                    : 'XÁC NHẬN THANH TOÁN'}
+                    : 'GHI NHẬN THU TIỀN'}
                 </Action>
               </div>
             )}
           </Panel>
+
           <Panel title="ĐÓNG GÓI VÀ XUẤT KHO">
             <div className="order-fulfillment-grid">
               <div>
@@ -1326,6 +1376,10 @@ function OrderActionDialog({ dialog, setDialog, order, options, busy, error, sub
       error={error}
       disabled={
         !dialog.confirmed ||
+        (receiving &&
+          (!Number.isSafeInteger(Number(dialog.amount)) ||
+            Number(dialog.amount) <= 0 ||
+            Number(dialog.amount) > Number(dialog.maxAmount))) ||
         (dialog.type === 'startDelivery' &&
           (!dialog.partner ||
             dialog.fee === '' ||
@@ -1384,11 +1438,21 @@ function OrderActionDialog({ dialog, setDialog, order, options, busy, error, sub
                 Nguồn thu: {dialog.source === 'KHACH_HANG' ? 'Khách hàng' : 'Đối tác giao hàng'}
               </p>
 
-              {field('SỐ TIỀN NHẬN (đ)', 'amount', 'number', {
+              <p>
+                {dialog.source === 'DOI_TAC_GIAO_HANG'
+                  ? 'COD cần ghi nhận: '
+                  : order.trang_thai_don_hang === 'HUY_HANG'
+                    ? 'Giới hạn ghi nhận tiền đến muộn: '
+                    : 'Còn phải thu: '}
+                <strong>{money(dialog.maxAmount)}</strong>
+              </p>
+
+              {field('SỐ TIỀN THỰC NHẬN LẦN NÀY (đ)', 'amount', 'number', {
                 required: true,
-                min: '0.01',
-                step: '0.01',
-                disabled: busy,
+                min: 1,
+                max: dialog.maxAmount,
+                step: 1,
+                disabled: busy || dialog.source === 'DOI_TAC_GIAO_HANG',
               })}
             </>
           )}
