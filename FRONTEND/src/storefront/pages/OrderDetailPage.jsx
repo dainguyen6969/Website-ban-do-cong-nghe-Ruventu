@@ -129,7 +129,9 @@ export default function OrderDetailPage() {
   const canCancel =
     order?.loai_don_hang === 'ONLINE' &&
     order?.trang_thai_xuat_kho === 'CHUA_XUAT_KHO' &&
-    ['CHO_DUYET', 'CHO_THANH_TOAN', 'CHO_DONG_GOI'].includes(order?.trang_thai_don_hang);
+    ['CHO_DUYET', 'CHO_HANG', 'CHO_THANH_TOAN', 'CHO_DONG_GOI'].includes(
+      order?.trang_thai_don_hang
+    );
 
   const canReturn =
     order?.trang_thai_don_hang === 'HOAN_THANH' &&

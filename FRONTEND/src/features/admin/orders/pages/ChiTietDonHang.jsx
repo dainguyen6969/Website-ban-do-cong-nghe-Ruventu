@@ -111,7 +111,7 @@ export default function ChiTietDonHang() {
   useEffect(() => {
     if (
       order?.loai_don_hang !== 'ONLINE' ||
-      order?.trang_thai_don_hang !== 'CHO_DUYET' ||
+      !['CHO_DUYET', 'CHO_HANG'].includes(order?.trang_thai_don_hang) ||
       state.busy ||
       dialog ||
       isCancelOpen
@@ -121,11 +121,14 @@ export default function ChiTietDonHang() {
 
     const controller = new AbortController();
 
-    const timer = setTimeout(() => {
-      if (!actionBusy.current) {
-        void load(controller.signal);
-      }
-    }, 10000);
+    const timer = setTimeout(
+      () => {
+        if (!actionBusy.current) {
+          void load(controller.signal);
+        }
+      },
+      order.trang_thai_don_hang === 'CHO_HANG' ? 5000 : 10000
+    );
 
     return () => {
       clearTimeout(timer);
@@ -602,6 +605,30 @@ export default function ChiTietDonHang() {
     });
   };
 
+  const waitingRows = Array.isArray(order.giu_hang_cho_hang) ? order.giu_hang_cho_hang : [];
+
+  const waitingHasReceivedMoney =
+    ['THANH_TOAN_MOT_PHAN', 'DA_THANH_TOAN'].includes(order.trang_thai_thanh_toan) &&
+    order.doi_soat_thanh_toan?.co_du_can_cu === true &&
+    Number(order.doi_soat_thanh_toan?.so_tien_thuc_thu) > 0 &&
+    Number(order.doi_soat_thanh_toan?.so_tien_da_hoan) === 0;
+
+  const waitingFullyReserved =
+    waitingRows.length > 0 &&
+    waitingRows.every((item) => Number(item.so_luong_da_giu) === Number(item.so_luong_can));
+
+  const waitingHasReservation = waitingRows.some((item) => Number(item.so_luong_da_giu) > 0);
+
+  const canHoldWaitingStock =
+    order.loai_don_hang === 'ONLINE' &&
+    order.trang_thai_don_hang === 'CHO_HANG' &&
+    order.trang_thai_dong_goi === 'CHUA_DONG_GOI' &&
+    order.trang_thai_xuat_kho === 'CHUA_XUAT_KHO' &&
+    waitingHasReceivedMoney &&
+    waitingRows.some(
+      (item) => Number(item.so_luong_con_can_giu) > 0 && Number(item.ton_co_the_ban) > 0
+    );
+
   const reservationExpired =
     order.da_giu_hang === true &&
     Boolean(order.han_giu_hang) &&
@@ -686,7 +713,7 @@ export default function ChiTietDonHang() {
             )}
 
           {order.loai_don_hang === 'ONLINE' &&
-            order.trang_thai_don_hang === 'CHO_DUYET' &&
+            ['CHO_DUYET', 'CHO_HANG'].includes(order.trang_thai_don_hang) &&
             ['CHUA_THANH_TOAN', 'THANH_TOAN_MOT_PHAN', 'DA_THANH_TOAN'].includes(
               order.trang_thai_thanh_toan
             ) && (
@@ -729,7 +756,9 @@ export default function ChiTietDonHang() {
 
           {beforeExport &&
             order.loai_don_hang === 'ONLINE' &&
-            ['CHO_DUYET', 'CHO_THANH_TOAN', 'CHO_DONG_GOI'].includes(order.trang_thai_don_hang) && (
+            ['CHO_DUYET', 'CHO_HANG', 'CHO_THANH_TOAN', 'CHO_DONG_GOI'].includes(
+              order.trang_thai_don_hang
+            ) && (
               <Action
                 danger
                 disabled={state.busy}
@@ -795,6 +824,68 @@ export default function ChiTietDonHang() {
           <p>
             Hệ thống sẽ duyệt khi kiểm tra được đầy đủ chứng từ và giữ đủ hàng để thực hiện đơn.
           </p>
+        </div>
+      )}
+
+      {order.loai_don_hang === 'ONLINE' && order.trang_thai_don_hang === 'CHO_HANG' && (
+        <div className="order-cod-settlement" role="status">
+          <strong>THEO DÕI HÀNG CỦA ĐƠN CHỜ HÀNG</strong>
+
+          {waitingHasReceivedMoney ? (
+            waitingFullyReserved ? (
+              <p>
+                Đã giữ đủ hàng cho đơn. Nhân viên chọn DUYỆT ĐƠN để xác nhận thực hiện đơn hàng.
+              </p>
+            ) : (
+              <p>
+                Đơn đã nhận tiền. Hệ thống tự giữ số hàng đang có và tự giữ bổ sung khi hàng về. Đơn
+                tiếp tục ở trạng thái CHỜ HÀNG cho đến khi nhân viên duyệt.
+              </p>
+            )
+          ) : order.trang_thai_thanh_toan === 'CHUA_THANH_TOAN' ? (
+            <p>
+              Đơn chưa nhận tiền nên chưa tự giữ hàng. Sau khi ghi nhận thực nhận tiền cọc hoặc
+              thanh toán, hệ thống sẽ tự kiểm tra và giữ hàng cho đơn.
+            </p>
+          ) : (
+            <p>Chứng từ tiền cần được đối soát trước khi hệ thống tự giữ hàng cho đơn.</p>
+          )}
+
+          {waitingRows.length > 0 ? (
+            <div style={{ overflowX: 'auto' }}>
+              <table className="order-waiting-stock-table">
+                <thead>
+                  <tr>
+                    <th>Sản phẩm / linh kiện</th>
+                    <th>Cần</th>
+                    <th>Đã giữ</th>
+                    <th>Có thể bán</th>
+                    <th>Chưa giữ</th>
+                    <th>Cần nhập thêm</th>
+                  </tr>
+                </thead>
+
+                <tbody>
+                  {waitingRows.map((item) => (
+                    <tr key={item.phien_ban_id}>
+                      <td>
+                        {item.ten_san_pham} · {item.ten_phien_ban}
+                      </td>
+                      <td>{item.so_luong_can ?? 0}</td>
+                      <td>{item.so_luong_da_giu ?? 0}</td>
+                      <td>{item.ton_co_the_ban ?? 0}</td>
+                      <td>{item.so_luong_con_can_giu ?? 0}</td>
+                      <td>{item.so_luong_thieu ?? 0}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <p>Chưa tải được thông tin giữ hàng của đơn.</p>
+          )}
+
+          <p>Số liệu tự cập nhật định kỳ. Khi đủ hàng, chọn DUYỆT ĐƠN để xác nhận thực hiện đơn.</p>
         </div>
       )}
 

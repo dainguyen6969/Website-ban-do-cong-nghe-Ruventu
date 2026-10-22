@@ -523,11 +523,15 @@ public class SalesCalculationService {
               input.gift()));
     }
 
+    boolean allowWaiting = Boolean.TRUE.equals(request.getChoPhepChoHang());
+
+    if (allowWaiting && type != LoaiDonHang.ONLINE) {
+      throw invalid("Chỉ đơn Online được chọn chờ hàng");
+    }
+
     Map<Long, TonKho> stocks = new TreeMap<>();
 
-    // Khóa tồn theo ID phiên bản tăng dần; serial được khóa ở bước chốt sau.
     for (var need : totalQuantities.entrySet()) {
-
       TonKho stock = stock(request.getKhoHangId(), need.getKey(), lock);
 
       long availableForThisOrder =
@@ -535,11 +539,14 @@ public class SalesCalculationService {
               ? 0L
               : (long) stock.getTonCoTheBan() + ownReservation.getOrDefault(need.getKey(), 0);
 
-      if (stock == null || availableForThisOrder < need.getValue()) {
+      if (!allowWaiting && (stock == null || availableForThisOrder < need.getValue())) {
+
         throw conflict("Không đủ tồn có thể bán của phiên bản " + need.getKey());
       }
 
-      stocks.put(need.getKey(), stock);
+      if (stock != null) {
+        stocks.put(need.getKey(), stock);
+      }
     }
 
     Map<Long, Boolean> serialModes = new HashMap<>();

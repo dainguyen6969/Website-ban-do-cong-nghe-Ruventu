@@ -29,6 +29,7 @@ const options = {
   trang_thai_don_hang: [
     [ALL, ''],
     ['Chờ duyệt', 'CHO_DUYET'],
+    ['Chờ hàng', 'CHO_HANG'],
     ['Chờ thanh toán', 'CHO_THANH_TOAN'],
     ['Chờ đóng gói', 'CHO_DONG_GOI'],
     ['Chờ lấy hàng', 'CHO_LAY_HANG'],
@@ -428,6 +429,7 @@ export function OrderStateBadge({ value }) {
         ? 'red'
         : [
               'CHO_DUYET',
+              'CHO_HANG',
               'CHO_THANH_TOAN',
               'CHUA_THANH_TOAN',
               'THANH_TOAN_MOT_PHAN',

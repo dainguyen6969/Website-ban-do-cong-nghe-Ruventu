@@ -85,32 +85,49 @@ public interface DonHangRepository
   @EntityGraph(attributePaths = {"khachHang"})
   Page<DonHang> findAll(Specification<DonHang> specification, Pageable pageable);
 
-  @Query(
-      """
+    @Query(
+            """
             SELECT d.id
             FROM DonHang d
             WHERE d.id > :afterId
               AND d.loaiDonHang =
                   com.example.dantruventu.Enum.LoaiDonHang.ONLINE
-              AND d.trangThaiDonHang =
-                  com.example.dantruventu.Enum.TrangThaiDonHang.CHO_DUYET
               AND d.trangThaiDongGoi =
                   com.example.dantruventu.Enum.TrangThaiDongGoi.CHUA_DONG_GOI
               AND d.trangThaiXuatKho =
                   com.example.dantruventu.Enum.TrangThaiXuatKho.CHUA_XUAT_KHO
               AND (
                   (
-                      d.daGiuHang = true
-                      AND d.hanGiuHang IS NOT NULL
-                      AND d.hanGiuHang <= :cutoff
+                      d.trangThaiDonHang =
+                          com.example.dantruventu.Enum.TrangThaiDonHang.CHO_DUYET
+                      AND (
+                          (
+                              d.daGiuHang = true
+                              AND d.hanGiuHang IS NOT NULL
+                              AND d.hanGiuHang <= :cutoff
+                          )
+                          OR d.trangThaiThanhToan IN (
+                              com.example.dantruventu.Enum.TrangThaiThanhToanDonHang.THANH_TOAN_MOT_PHAN,
+                              com.example.dantruventu.Enum.TrangThaiThanhToanDonHang.DA_THANH_TOAN
+                          )
+                      )
                   )
-                  OR d.trangThaiThanhToan =
-                      com.example.dantruventu.Enum.TrangThaiThanhToanDonHang.DA_THANH_TOAN
+                  OR (
+                      d.trangThaiDonHang =
+                          com.example.dantruventu.Enum.TrangThaiDonHang.CHO_HANG
+                      AND d.trangThaiThanhToan IN (
+                          com.example.dantruventu.Enum.TrangThaiThanhToanDonHang.THANH_TOAN_MOT_PHAN,
+                          com.example.dantruventu.Enum.TrangThaiThanhToanDonHang.DA_THANH_TOAN
+                      )
+                      AND (d.daGiuHang = false OR d.daGiuHang IS NULL)
+                  )
               )
             ORDER BY d.id
             """)
-  List<Long> findPendingOrderLifecycleIds(
-      @Param("afterId") Long afterId, @Param("cutoff") LocalDateTime cutoff, Pageable pageable);
+    List<Long> findPendingOrderLifecycleIds(
+            @Param("afterId") Long afterId,
+            @Param("cutoff") LocalDateTime cutoff,
+            Pageable pageable);
 
   @Query(
       """
