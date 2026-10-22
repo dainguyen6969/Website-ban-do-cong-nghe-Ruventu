@@ -160,8 +160,7 @@ export default function OrderRefundPanel({ order, busy, perform, revision }) {
   const cancelled = data?.hoan_don_huy;
   const documents = data?.phieu_tra_hang ?? [];
 
-  const showCancelled =
-    order.trang_thai_don_hang === 'HUY_HANG' && order.trang_thai_xuat_kho === 'CHUA_XUAT_KHO';
+  const showCancelled = cancelled?.hien_thi === true;
 
   const showPanel = showCancelled || documents.length > 0 || Boolean(readError) || Boolean(pending);
 
@@ -209,7 +208,11 @@ export default function OrderRefundPanel({ order, busy, perform, revision }) {
       {showCancelled && (
         <article className="order-refund-panel__item">
           <div>
-            <strong>ĐƠN HỦY TRƯỚC XUẤT KHO</strong>
+            <strong>
+              {order.trang_thai_xuat_kho === 'DA_HOAN_KHO'
+                ? 'ĐƠN HỦY ĐÃ NHẬN LẠI HÀNG'
+                : 'ĐƠN HỦY TRƯỚC XUẤT KHO'}
+            </strong>
 
             <p>
               {cancelled?.so_tien_can_hoan == null
@@ -234,11 +237,21 @@ export default function OrderRefundPanel({ order, busy, perform, revision }) {
       {documents.map((document) => (
         <article className="order-refund-panel__item" key={document.id}>
           <div>
-            <strong>PHIẾU TRẢ {document.ma_tra_hang}</strong>
+            <strong>
+              {document.ma_tra_hang === `TH-HUY-DH-${order.id}`
+                ? 'PHIẾU NHẬN LẠI HÀNG'
+                : 'PHIẾU TRẢ'}{' '}
+              {document.ma_tra_hang}
+            </strong>
 
             <p>
-              Tiền hoàn:{' '}
-              {document.tong_tien_hoan == null ? 'Chưa xác định' : money(document.tong_tien_hoan)}
+              {document.ma_tra_hang === `TH-HUY-DH-${order.id}`
+                ? 'Hàng đã được nhận lại. Khoản hoàn tiền được theo dõi theo đơn hủy.'
+                : `Tiền hoàn: ${
+                    document.tong_tien_hoan == null
+                      ? 'Chưa xác định'
+                      : money(document.tong_tien_hoan)
+                  }`}
             </p>
 
             {document.ly_do && <small>{document.ly_do}</small>}

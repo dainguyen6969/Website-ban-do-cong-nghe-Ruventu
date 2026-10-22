@@ -680,6 +680,8 @@ public class AdminSalesService {
 
   private void enrich(AdminSalesResponse.Order response, DonHang order) {
 
+    response.setDaNhanLaiTruocBanGiao(saleSnapshots.hasReceivedBeforeHandover(order));
+
     response.setTenKhachHang(
         order.getKhachHang() == null ? "Khách lẻ" : order.getKhachHang().getHoTen());
 

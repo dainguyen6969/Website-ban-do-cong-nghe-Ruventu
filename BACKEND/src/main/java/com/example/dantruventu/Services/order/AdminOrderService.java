@@ -1019,8 +1019,12 @@ public class AdminOrderService {
       if (order.getTrangThaiDonHang() == TrangThaiDonHang.CHO_DUYET
           || order.getTrangThaiDonHang() == TrangThaiDonHang.HUY_HANG) {
 
-        requireUnexported(order);
-        inventory.requireNoExport(order);
+        if (order.getTrangThaiDonHang() == TrangThaiDonHang.CHO_DUYET) {
+          requireUnexported(order);
+          inventory.requireNoExport(order);
+        } else {
+          requireCancelledStockResolved(order);
+        }
 
         if (!effective(deliveries).isEmpty()) {
           throw conflict("Đơn chờ duyệt hoặc đã hủy không được có phiếu giao hiệu lực.");
@@ -1031,8 +1035,9 @@ public class AdminOrderService {
         throw conflict("Đơn hàng đã được xác nhận thanh toán");
       }
 
-      if (order.getTrangThaiXuatKho() == TrangThaiXuatKho.DA_HOAN_KHO) {
-        throw conflict("Không thu tiền trực tiếp cho đơn đã hoàn kho");
+      if (order.getTrangThaiXuatKho() == TrangThaiXuatKho.DA_HOAN_KHO
+          && !saleSnapshots.hasReceivedBeforeHandover(order)) {
+        throw conflict("Không thu tiền trực tiếp cho đơn đã hoàn kho theo luồng này.");
       }
 
       for (PhieuGiaoHang delivery : effective(deliveries)) {
@@ -1326,14 +1331,32 @@ public class AdminOrderService {
         () -> doRefund(id, request, actor));
   }
 
+  private void requireCancelledStockResolved(DonHang order) {
+    if (order.getTrangThaiDonHang() != TrangThaiDonHang.HUY_HANG) {
+      throw conflict("Đơn hàng chưa được hủy.");
+    }
+
+    if (order.getTrangThaiXuatKho() == TrangThaiXuatKho.CHUA_XUAT_KHO) {
+      inventory.requireNoExport(order);
+      return;
+    }
+
+    if (saleSnapshots.hasReceivedBeforeHandover(order)) {
+      return;
+    }
+
+    throw conflict(
+        "Chưa có căn cứ nhận lại đủ hàng trước bàn giao; "
+            + "cần xử lý theo phiếu trả hoặc luồng giao hàng.");
+  }
+
   private AdminOrderResponse.Action doRefund(
       Long id, AdminOrderRequest.Refund request, NguoiDung actor) {
 
     DonHang order = lockOrder(id);
 
     requireOnline(order);
-    requireUnexported(order);
-    inventory.requireNoExport(order);
+    requireCancelledStockResolved(order);
 
     if (!Boolean.TRUE.equals(request.getXacNhanDaHoanTien())) {
       throw invalid("Phải xác nhận đã hoàn tiền thực tế cho khách");
@@ -1342,10 +1365,16 @@ public class AdminOrderService {
     if (order.getTrangThaiDonHang() != TrangThaiDonHang.HUY_HANG
         || order.getTrangThaiThanhToan() != TrangThaiThanhToanDonHang.DA_THANH_TOAN) {
 
-      throw conflict("Chỉ hoàn tiền đơn đã hủy, đã thanh toán và chưa xuất kho");
+      throw conflict("Chỉ hoàn tiền đơn đã hủy, đã thanh toán và đã đối soát hàng");
     }
 
     validatePaymentMethod(request.getPhuongThucHoan(), request.getMaGiaoDich());
+
+    var refundEvidence = failedDeliveryMoney(order);
+
+    if (!Boolean.TRUE.equals(refundEvidence.get("co_du_can_cu"))) {
+      throw conflict("Chứng từ tiền chưa đủ căn cứ để ghi nhận hoàn tiền.");
+    }
 
     SoQuyThuChi original =
         cashRepository
@@ -1399,7 +1428,7 @@ public class AdminOrderService {
             request.getPhuongThucHoan(),
             request.getNgayHoanTien(),
             request.getMaGiaoDich(),
-            "Ghi nhận đã hoàn tiền đơn hủy trước xuất kho");
+            "Ghi nhận đã hoàn tiền đơn hủy");
 
     /*
      * Giữ DA_THANH_TOAN để thể hiện lịch sử khách đã thanh toán.
@@ -1727,7 +1756,8 @@ public class AdminOrderService {
 
     boolean cancelledBeforeExport =
         order.getTrangThaiDonHang() == TrangThaiDonHang.HUY_HANG
-            && order.getTrangThaiXuatKho() == TrangThaiXuatKho.CHUA_XUAT_KHO;
+            && (order.getTrangThaiXuatKho() == TrangThaiXuatKho.CHUA_XUAT_KHO
+                || saleSnapshots.hasReceivedBeforeHandover(order));
 
     Map<String, Object> evidence = failedDeliveryMoney(order);
 

@@ -26,6 +26,7 @@ import {
   orderDisplayStatus,
   getPackingSerials,
   savePackingSerials,
+  cancelBeforeHandover,
 } from '../api/orderApi';
 
 import OrderRefundPanel from '../components/OrderRefundPanel';
@@ -49,6 +50,7 @@ import {
 import { canExport, exportPayload } from '../components/exportSelection';
 import SoldDevices from '../../../../shared/components/ui/SoldDevices';
 import ComboContents from '../../../../shared/components/ui/ComboContents';
+import { ShipmentReturnDialog } from '../../shipping/pages/QuanLyGiaoHang';
 
 function OrderProductImage({ item }) {
   const [failedUrl, setFailedUrl] = useState(null);
@@ -216,6 +218,9 @@ export default function ChiTietDonHang() {
 
         case 'deliveryStatus':
           return setDeliveryStatus(payload.deliveryId, key, payload.request);
+
+        case 'cancelBeforeHandover':
+          return cancelBeforeHandover(order.id, key, payload);
 
         default:
           throw new Error('Thao tác không hợp lệ.');
@@ -608,6 +613,14 @@ export default function ChiTietDonHang() {
   const beforeExport =
     order.trang_thai_xuat_kho === 'CHUA_XUAT_KHO' && order.trang_thai_don_hang !== 'HUY_HANG';
 
+  const canCancelBeforeHandover =
+    order.loai_don_hang === 'ONLINE' &&
+    order.trang_thai_don_hang === 'CHO_LAY_HANG' &&
+    order.trang_thai_dong_goi === 'DA_DONG_GOI' &&
+    order.trang_thai_xuat_kho === 'DA_XUAT_KHO' &&
+    !order.ngay_hoan_thanh &&
+    deliveries.every((item) => ['CHO_GIAO', 'HUY_GIAO_HANG'].includes(item.trang_thai_giao_hang));
+
   return (
     <section className="admin-order-detail" aria-busy={state.busy}>
       <header className="order-detail-hero">
@@ -724,7 +737,17 @@ export default function ChiTietDonHang() {
                 HỦY ĐƠN HÀNG
               </Action>
             )}
-          {order.loai_don_hang === 'ONLINE' &&
+
+          {canCancelBeforeHandover ? (
+            <Action
+              danger
+              disabled={state.busy || Boolean(orderAttempt.current)}
+              click={() => open('cancelBeforeHandover', 'HỦY ĐƠN VÀ NHẬN LẠI HÀNG')}
+            >
+              HỦY ĐƠN VÀ NHẬN LẠI HÀNG
+            </Action>
+          ) : (
+            order.loai_don_hang === 'ONLINE' &&
             order.trang_thai_xuat_kho === 'DA_XUAT_KHO' &&
             ['CHO_DONG_GOI', 'CHO_LAY_HANG', 'DANG_GIAO_HANG'].includes(
               order.trang_thai_don_hang
@@ -732,14 +755,9 @@ export default function ChiTietDonHang() {
               <button className="order-action order-action--back" type="button" disabled>
                 ĐƠN ĐÃ XUẤT KHO - KHÔNG THỂ HỦY TRỰC TIẾP
               </button>
-            )}
-          {order.trang_thai_don_hang === 'HUY_HANG' &&
-            order.trang_thai_xuat_kho === 'CHUA_XUAT_KHO' &&
-            order.trang_thai_thanh_toan === 'DA_THANH_TOAN' && (
-              <Action disabled={state.busy} click={refund}>
-                HOÀN TIỀN
-              </Action>
-            )}
+            )
+          )}
+
           <button
             type="button"
             className="order-action order-action--back"
@@ -937,6 +955,7 @@ export default function ChiTietDonHang() {
                 <Action disabled={state.busy} click={warehouseExport}>
                   CHUẨN BỊ XUẤT KHO
                 </Action>
+
                 <Action
                   secondary
                   disabled={state.busy}
@@ -1132,7 +1151,30 @@ export default function ChiTietDonHang() {
         </div>
       )}
 
-      {dialog?.type === 'packingSerials' ? (
+      {dialog?.type === 'cancelBeforeHandover' ? (
+        <ShipmentReturnDialog
+          delivery={{ id: order.id }}
+          beforeHandover
+          requirementsUrl={
+            `/api/v1/admin/orders/${encodeURIComponent(order.id)}` +
+            '/pre-handover-return-requirements'
+          }
+          busy={state.busy}
+          error={state.error}
+          close={() => {
+            if (!state.busy && !orderAttempt.current) {
+              setDialog(null);
+            }
+          }}
+          submit={(_method, _suffix, body) => {
+            if (orderAttempt.current) {
+              return retryOrderOperation();
+            }
+
+            return run(() => sendOrderOperation('cancelBeforeHandover', body));
+          }}
+        />
+      ) : dialog?.type === 'packingSerials' ? (
         <ExportOrderDialog
           mode="packing"
           order={order}
