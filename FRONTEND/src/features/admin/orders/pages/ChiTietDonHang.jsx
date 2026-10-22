@@ -758,15 +758,6 @@ export default function ChiTietDonHang() {
             )
           )}
 
-          {order.trang_thai_don_hang === 'HUY_HANG' &&
-            (order.trang_thai_xuat_kho === 'CHUA_XUAT_KHO' ||
-              (order.trang_thai_xuat_kho === 'DA_HOAN_KHO' &&
-                order.da_nhan_lai_truoc_ban_giao === true)) &&
-            order.trang_thai_thanh_toan === 'DA_THANH_TOAN' && (
-              <Action disabled={state.busy} click={refund}>
-                HOÀN TIỀN
-              </Action>
-            )}
           <button
             type="button"
             className="order-action order-action--back"
@@ -964,6 +955,7 @@ export default function ChiTietDonHang() {
                 <Action disabled={state.busy} click={warehouseExport}>
                   CHUẨN BỊ XUẤT KHO
                 </Action>
+
                 <Action
                   secondary
                   disabled={state.busy}
