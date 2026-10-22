@@ -104,8 +104,10 @@ public interface DonHangRepository
                       AND d.hanGiuHang IS NOT NULL
                       AND d.hanGiuHang <= :cutoff
                   )
-                  OR d.trangThaiThanhToan =
+                  OR d.trangThaiThanhToan IN (
+                      com.example.dantruventu.Enum.TrangThaiThanhToanDonHang.THANH_TOAN_MOT_PHAN,
                       com.example.dantruventu.Enum.TrangThaiThanhToanDonHang.DA_THANH_TOAN
+                  )
               )
             ORDER BY d.id
             """)

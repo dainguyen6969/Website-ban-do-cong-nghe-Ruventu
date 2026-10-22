@@ -243,7 +243,28 @@ public class AdminOrderService {
     }
 
     entityManager.refresh(order);
+    orderEvents.watchOrder(order);
 
+    processPendingOrder(order);
+  }
+
+  @Transactional(isolation = Isolation.READ_COMMITTED)
+  public AdminOrderResponse.Action retryWaitingStock(Long id) {
+    DonHang order = lockOrder(id);
+    requireOnline(order);
+
+    if (order.getTrangThaiDonHang() != TrangThaiDonHang.CHO_HANG
+        || order.getTrangThaiDongGoi() != TrangThaiDongGoi.CHUA_DONG_GOI) {
+
+      throw conflict("Chỉ kiểm tra hàng cho đơn đang chờ hàng, chưa đóng gói");
+    }
+
+    requireUnexported(order);
+
+    return action(order);
+  }
+
+  private void processPendingOrder(DonHang order) {
     if (order.getLoaiDonHang() != LoaiDonHang.ONLINE
         || order.getTrangThaiDonHang() != TrangThaiDonHang.CHO_DUYET
         || order.getTrangThaiDongGoi() != TrangThaiDongGoi.CHUA_DONG_GOI
@@ -251,92 +272,107 @@ public class AdminOrderService {
       return;
     }
 
-    orderEvents.watchOrder(order);
-
     var promotionUsage = saleSnapshots.lockPromotionForOrder(order.getId());
 
     if (promotionUsage != null
         && promotionUsage.getTrangThaiApDung() != TrangThaiApDungKhuyenMai.GIU_CHO) {
-      throw conflict("Lượt khuyến mại của đơn chờ duyệt không còn được giữ.");
+      throw conflict("Lượt khuyến mại của đơn chờ xử lý không còn được giữ");
     }
 
     if (!lockDeliveries(order).isEmpty()) {
-      throw conflict("Đơn chờ duyệt đã có lịch sử giao hàng, cần đối soát.");
+      throw conflict("Đơn chờ xử lý đã có lịch sử giao hàng, cần đối soát");
     }
 
     inventory.requireNoExport(order);
     validateStoredAmounts(order);
 
-    List<SoQuyThuChi> documents = orderMoneyDocuments(order);
+    var documents = orderMoneyDocuments(order);
 
-    /*
-     * Tiền đã được ghi nhận ở giao dịch riêng.
-     * Lỗi giữ hàng tại đây chỉ hoàn tác giao dịch tự duyệt.
-     */
-    if (order.getTrangThaiThanhToan() == TrangThaiThanhToanDonHang.DA_THANH_TOAN) {
+    if (order.getTrangThaiThanhToan() == TrangThaiThanhToanDonHang.CHUA_THANH_TOAN) {
 
-      BigDecimal total = money(order.getTongThanhToan());
-
-      if (total.signum() > 0) {
-        var evidence = failedDeliveryMoney(order);
-
-        if (!Boolean.TRUE.equals(evidence.get("co_du_can_cu"))
-            || ((BigDecimal) evidence.get("so_tien_thuc_thu")).compareTo(total) != 0
-            || ((BigDecimal) evidence.get("so_tien_da_hoan")).signum() != 0) {
-
-          throw conflict("Chứng từ thực thu chưa đủ căn cứ để tự duyệt đơn.");
-        }
-
-      } else if (!documents.isEmpty()) {
-        throw conflict("Đơn tổng tiền bằng 0 nhưng có chứng từ tiền cần đối soát.");
+      if (!Boolean.TRUE.equals(order.getDaGiuHang())
+          || order.getHanGiuHang() == null
+          || order.getHanGiuHang().isAfter(now())) {
+        return;
       }
 
-      /*
-       * Đơn đã nhận đủ tiền được kiểm tra giữ hàng để thực hiện.
-       * Nếu không giữ được đủ hàng, transaction này rollback;
-       * phiếu thu đã commit vẫn còn nguyên.
-       */
-      order.setHanGiuHang(null);
-      inventory.reserve(order);
+      if (!documents.isEmpty()) {
+        throw conflict("Đơn chưa thanh toán có chứng từ tiền, cần đối soát");
+      }
 
+      if (!saleSnapshots.hasUnpaidCreationEvidence(order.getId())) {
+        throw conflict("Chưa đủ căn cứ xác nhận đơn được tạo khi chưa thu tiền");
+      }
+
+      LocalDateTime deadline = order.getHanGiuHang();
+
+      inventory.releaseQuantityReservation(order);
+      order.setTrangThaiDonHang(TrangThaiDonHang.HUY_HANG);
+      saleSnapshots.onOrderStateChanged(order);
+
+      recordSystemHistory(
+          order,
+          "HET_HAN_GIU_HANG",
+          "Hủy đơn do hết hạn giữ hàng lúc "
+              + deadline
+              + "; đã giải phóng hàng và lượt khuyến mại.");
+
+      return;
+    }
+
+    if (!Set.of(
+            TrangThaiThanhToanDonHang.THANH_TOAN_MOT_PHAN, TrangThaiThanhToanDonHang.DA_THANH_TOAN)
+        .contains(order.getTrangThaiThanhToan())) {
+      throw conflict("Trạng thái thanh toán không hợp lệ");
+    }
+
+    var evidence = requireMoneyEvidence(order);
+
+    if (((BigDecimal) evidence.get("so_tien_da_hoan")).signum() != 0) {
+      throw conflict("Đơn chờ xử lý đã có hoàn tiền, cần đối soát");
+    }
+
+    order.setHanGiuHang(null);
+
+    boolean paid = order.getTrangThaiThanhToan() == TrangThaiThanhToanDonHang.DA_THANH_TOAN;
+
+    if (!paid && inventory.hasQuantityReservation(order)) {
+      return;
+    }
+
+    if (!inventory.tryReserve(order)) {
+      markWaitingForStock(order, true);
+      return;
+    }
+
+    if (paid) {
       order.setTrangThaiDonHang(TrangThaiDonHang.CHO_DONG_GOI);
 
       recordSystemHistory(
           order, "TU_DUYET_DON_DA_THANH_TOAN", "Tự duyệt: đã nhận đủ tiền và giữ đủ hàng.");
-
-      return;
+    } else {
+      recordSystemHistory(
+          order, "DU_HANG_CHO_DUYET", "Đã giữ đủ hàng cho đơn thu một phần; chờ nhân viên duyệt.");
     }
+  }
 
-    if (order.getTrangThaiThanhToan() != TrangThaiThanhToanDonHang.CHUA_THANH_TOAN
-        || !Boolean.TRUE.equals(order.getDaGiuHang())
-        || order.getHanGiuHang() == null
-        || order.getHanGiuHang().isAfter(now())) {
-      return;
+  private void markWaitingForStock(DonHang order, boolean system) {
+
+    boolean changed = order.getTrangThaiDonHang() != TrangThaiDonHang.CHO_HANG;
+
+    order.setDaGiuHang(false);
+    order.setHanGiuHang(null);
+    order.setTrangThaiDonHang(TrangThaiDonHang.CHO_HANG);
+
+    if (changed) {
+      if (system) {
+        recordSystemHistory(
+            order, "CHO_HANG", "Chưa đủ hàng để giữ toàn bộ đơn; tiếp tục chờ bổ sung hàng.");
+      } else {
+        recordHistory(
+            order, "CHO_HANG", "Chưa đủ hàng để giữ toàn bộ đơn; tiếp tục chờ bổ sung hàng.");
+      }
     }
-
-    /*
-     * Chỉ tự hủy khi không có chứng từ tiền.
-     * Có chứng từ, kể cả dữ liệu chưa nhất quán, thì dừng để đối soát.
-     */
-    if (!documents.isEmpty()) {
-      throw conflict("Đơn quá hạn có chứng từ tiền, không tự hủy.");
-    }
-
-    if (!saleSnapshots.hasUnpaidCreationEvidence(order.getId())) {
-      throw conflict("Chưa đủ căn cứ xác nhận đơn được tạo khi chưa thu tiền.");
-    }
-
-    LocalDateTime deadline = order.getHanGiuHang();
-
-    inventory.releaseQuantityReservation(order);
-
-    order.setTrangThaiDonHang(TrangThaiDonHang.HUY_HANG);
-    saleSnapshots.onOrderStateChanged(order);
-
-    recordSystemHistory(
-        order,
-        "HET_HAN_GIU_HANG",
-        "Hủy đơn do hết hạn giữ hàng lúc " + deadline + "; đã giải phóng hàng và lượt khuyến mại.");
   }
 
   private void recordSystemHistory(DonHang order, String action, String description) {
@@ -460,6 +496,10 @@ public class AdminOrderService {
 
   private AdminOrderResponse.Action doUpdate(Long id, AdminSalesRequest.Online request) {
 
+    if (Boolean.TRUE.equals(request.getChoPhepChoHang())) {
+      throw invalid("Chế độ chờ hàng chỉ áp dụng khi tạo đơn mới");
+    }
+
     DonHang order = lockOrder(id);
     requireOnline(order);
     requireUnexported(order);
@@ -580,25 +620,46 @@ public class AdminOrderService {
     requireOnline(order);
     requireUnexported(order);
 
-    if (order.getTrangThaiDonHang() != TrangThaiDonHang.CHO_DUYET
+    if (!Set.of(TrangThaiDonHang.CHO_DUYET, TrangThaiDonHang.CHO_HANG)
+            .contains(order.getTrangThaiDonHang())
         || order.getTrangThaiDongGoi() != TrangThaiDongGoi.CHUA_DONG_GOI) {
 
-      throw conflict("Đơn không còn ở trạng thái chờ duyệt hợp lệ");
+      throw conflict("Đơn không còn ở trạng thái chờ duyệt hoặc chờ hàng hợp lệ");
     }
 
     if (!lockDeliveries(order).isEmpty()) {
-      throw conflict("Đơn chờ duyệt không được có phiếu giao");
+      throw conflict("Đơn chờ xử lý không được có phiếu giao");
+    }
+
+    var promotionUsage = saleSnapshots.lockPromotionForOrder(order.getId());
+
+    if (promotionUsage != null
+        && promotionUsage.getTrangThaiApDung() != TrangThaiApDungKhuyenMai.GIU_CHO) {
+
+      throw conflict("Lượt khuyến mại của đơn không còn được giữ");
     }
 
     inventory.requireNoExport(order);
     validateStoredAmounts(order);
 
+    if (order.getTrangThaiDonHang() == TrangThaiDonHang.CHO_HANG
+        && (inventory.hasQuantityReservation(order) || order.getHanGiuHang() != null)) {
+
+      throw conflict("Đơn chờ hàng có dữ liệu giữ hàng không nhất quán");
+    }
+
     if (order.getTrangThaiThanhToan() == TrangThaiThanhToanDonHang.CHUA_THANH_TOAN) {
 
       requireNoOrderMoneyDocuments(order);
       requireNoCash(order);
+
+      if (order.getTrangThaiDonHang() == TrangThaiDonHang.CHO_HANG
+          && !saleSnapshots.hasUnpaidCreationEvidence(order.getId())) {
+
+        throw conflict("Chưa đủ căn cứ xác nhận đơn chờ hàng chưa thu tiền");
+      }
     } else {
-      Map<String, Object> evidence = requireMoneyEvidence(order);
+      var evidence = requireMoneyEvidence(order);
 
       if (((BigDecimal) evidence.get("so_tien_da_hoan")).signum() != 0) {
         throw conflict("Đơn đã có hoàn tiền, cần đối soát");
@@ -608,7 +669,12 @@ public class AdminOrderService {
     }
 
     inventory.requireReservationNotExpired(order);
-    inventory.reserve(order);
+
+    if (!inventory.tryReserve(order)) {
+      markWaitingForStock(order, false);
+      return action(order);
+    }
+
     order.setHanGiuHang(null);
 
     if (money(order.getTongThanhToan()).signum() == 0) {
@@ -617,7 +683,8 @@ public class AdminOrderService {
 
     order.setTrangThaiDonHang(TrangThaiDonHang.CHO_DONG_GOI);
 
-    recordHistory(order, "DUYET_DON", "Duyệt đơn hàng");
+    recordHistory(order, "DUYET_DON", "Duyệt đơn hàng, đã giữ đủ toàn bộ hàng");
+
     return action(order);
   }
 
@@ -1139,6 +1206,7 @@ public class AdminOrderService {
       Set<TrangThaiDonHang> allowedStates =
           Set.of(
               TrangThaiDonHang.CHO_DUYET,
+              TrangThaiDonHang.CHO_HANG,
               TrangThaiDonHang.CHO_THANH_TOAN,
               TrangThaiDonHang.CHO_DONG_GOI,
               TrangThaiDonHang.CHO_LAY_HANG,
@@ -1148,12 +1216,14 @@ public class AdminOrderService {
         throw conflict("Không thể ghi nhận tiền khách ở trạng thái đơn hiện tại");
       }
 
-      if (order.getTrangThaiDonHang() == TrangThaiDonHang.CHO_DUYET) {
+      if (Set.of(TrangThaiDonHang.CHO_DUYET, TrangThaiDonHang.CHO_HANG)
+          .contains(order.getTrangThaiDonHang())) {
+
         requireUnexported(order);
         inventory.requireNoExport(order);
 
         if (!activeDeliveries.isEmpty()) {
-          throw conflict("Đơn chờ duyệt có phiếu giao hiệu lực");
+          throw conflict("Đơn chờ xử lý có phiếu giao hiệu lực");
         }
       }
 
@@ -1233,7 +1303,9 @@ public class AdminOrderService {
       order.setMaGiaoDichThanhToan(text(request.getMaGiaoDichThanhToan()));
 
       // Đã nhận tiền: không tự hủy theo hạn giữ của đơn chưa trả tiền.
-      if (order.getTrangThaiDonHang() == TrangThaiDonHang.CHO_DUYET) {
+      if (Set.of(TrangThaiDonHang.CHO_DUYET, TrangThaiDonHang.CHO_HANG)
+          .contains(order.getTrangThaiDonHang())) {
+
         order.setHanGiuHang(null);
       }
 
@@ -1365,9 +1437,11 @@ public class AdminOrderService {
 
     if (!Set.of(
             TrangThaiDonHang.CHO_DUYET,
+            TrangThaiDonHang.CHO_HANG,
             TrangThaiDonHang.CHO_THANH_TOAN,
             TrangThaiDonHang.CHO_DONG_GOI)
         .contains(order.getTrangThaiDonHang())) {
+
       throw conflict("Đơn không còn được phép hủy trực tiếp");
     }
 

@@ -108,7 +108,14 @@ public class AdminOrderController {
   public ApiResponse<AdminOrderResponse.Action> approve(
       @PathVariable("id") Long id, @Valid @RequestBody AdminOrderRequest.Confirm request) {
 
-    return ok("Duyệt đơn hàng thành công", orderService.approve(id));
+    return ok("Đã kiểm tra hàng và cập nhật trạng thái đơn", orderService.approve(id));
+  }
+
+  @PostMapping("/{id}/stock/retry")
+  public ApiResponse<AdminOrderResponse.Action> retryWaitingStock(
+      @PathVariable("id") Long id, @Valid @RequestBody AdminOrderRequest.Confirm request) {
+
+    return ok("Đã kiểm tra hàng", orderService.retryWaitingStock(id));
   }
 
   @PostMapping("/{id}/fulfillment")

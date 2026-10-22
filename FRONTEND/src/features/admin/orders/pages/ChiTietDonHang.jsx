@@ -4,6 +4,7 @@ import DetailTablePagination from '../../../../shared/components/ui/DetailTableP
 import useDetailTablePagination from '../../../../hooks/useDetailTablePagination';
 import {
   approveOrder,
+  retryOrderStock,
   cancelOrder,
   canEditOnlineOrder,
   confirmOrderPayment,
@@ -111,7 +112,7 @@ export default function ChiTietDonHang() {
   useEffect(() => {
     if (
       order?.loai_don_hang !== 'ONLINE' ||
-      order?.trang_thai_don_hang !== 'CHO_DUYET' ||
+      !['CHO_DUYET', 'CHO_HANG'].includes(order?.trang_thai_don_hang) ||
       state.busy ||
       dialog ||
       isCancelOpen
@@ -686,7 +687,7 @@ export default function ChiTietDonHang() {
             )}
 
           {order.loai_don_hang === 'ONLINE' &&
-            order.trang_thai_don_hang === 'CHO_DUYET' &&
+            ['CHO_DUYET', 'CHO_HANG'].includes(order.trang_thai_don_hang) &&
             ['CHUA_THANH_TOAN', 'THANH_TOAN_MOT_PHAN', 'DA_THANH_TOAN'].includes(
               order.trang_thai_thanh_toan
             ) && (
@@ -729,7 +730,9 @@ export default function ChiTietDonHang() {
 
           {beforeExport &&
             order.loai_don_hang === 'ONLINE' &&
-            ['CHO_DUYET', 'CHO_THANH_TOAN', 'CHO_DONG_GOI'].includes(order.trang_thai_don_hang) && (
+            ['CHO_DUYET', 'CHO_HANG', 'CHO_THANH_TOAN', 'CHO_DONG_GOI'].includes(
+              order.trang_thai_don_hang
+            ) && (
               <Action
                 danger
                 disabled={state.busy}
@@ -795,6 +798,58 @@ export default function ChiTietDonHang() {
           <p>
             Hệ thống sẽ duyệt khi kiểm tra được đầy đủ chứng từ và giữ đủ hàng để thực hiện đơn.
           </p>
+        </div>
+      )}
+
+      {order.loai_don_hang === 'ONLINE' && order.trang_thai_don_hang === 'CHO_HANG' && (
+        <div className="order-cod-settlement" role="status">
+          <strong>ĐƠN ĐANG CHỜ BỔ SUNG HÀNG</strong>
+
+          <p>
+            Đơn đang chờ nhân viên xử lý và chưa giữ số lượng. Các khoản tiền đã nhận vẫn được ghi
+            nhận trên đơn. Bấm KIỂM TRA HÀNG để cập nhật tồn; bấm DUYỆT ĐƠN để xác nhận thực hiện
+            đơn khi đủ toàn bộ hàng.
+          </p>
+
+          {Array.isArray(order.hang_con_thieu) && order.hang_con_thieu.length > 0 ? (
+            <div style={{ overflowX: 'auto' }}>
+              <table className="order-waiting-stock-table">
+                <thead>
+                  <tr>
+                    <th>Sản phẩm / linh kiện</th>
+                    <th>Cần</th>
+                    <th>Có thể bán</th>
+                    <th>Còn thiếu</th>
+                  </tr>
+                </thead>
+
+                <tbody>
+                  {order.hang_con_thieu.map((item) => (
+                    <tr key={item.phien_ban_id}>
+                      <td>
+                        {item.ten_san_pham} · {item.ten_phien_ban}
+                      </td>
+                      <td>{item.so_luong_can}</td>
+                      <td>{item.ton_co_the_ban}</td>
+                      <td>{item.so_luong_thieu}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <p>
+              Bấm KIỂM TRA HÀNG để cập nhật tình trạng tồn. Khi đủ hàng, chọn DUYỆT ĐƠN để thực hiện
+              đơn. Hệ thống sẽ kiểm tra lại tồn tại thời điểm duyệt.
+            </p>
+          )}
+
+          <Action
+            disabled={state.busy || Boolean(orderAttempt.current) || Boolean(cashAttempt.current)}
+            click={() => run(() => retryOrderStock(order.id))}
+          >
+            KIỂM TRA HÀNG
+          </Action>
         </div>
       )}
 

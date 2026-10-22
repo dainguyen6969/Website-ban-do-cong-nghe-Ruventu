@@ -28,7 +28,7 @@ export async function getOrders(filters, signal) {
     items.push(
       ...data.items.filter(
         (item) =>
-          ['CHO_DUYET', 'CHO_THANH_TOAN', 'CHO_DONG_GOI', 'CHO_LAY_HANG'].includes(
+          ['CHO_DUYET', 'CHO_HANG', 'CHO_THANH_TOAN', 'CHO_DONG_GOI', 'CHO_LAY_HANG'].includes(
             item.trang_thai_don_hang
           ) && Date.parse(item.ngay_tao) <= cutoff
       )
@@ -50,6 +50,7 @@ export const getOrder = (id, signal) =>
 export const getOrderHistory = (id, signal) =>
   adminRequest(`${PATH}/${encodeURIComponent(id)}/history`, { signal });
 export const approveOrder = (id) => action(id, 'approve', { xac_nhan: true });
+export const retryOrderStock = (id) => action(id, 'stock/retry', { xac_nhan: true });
 export const startFulfillment = (id, key, body) => action(id, 'fulfillment', body, 'POST', key);
 export const startOrderDelivery = (id, partnerId, fee, tracking = '') =>
   action(id, 'delivery/start', {
@@ -209,15 +210,22 @@ export function paymentSource(order) {
     (item) => !['HUY_GIAO_HANG', 'DA_HOAN_HANG'].includes(item.trang_thai_giao_hang)
   );
 
-  const preliminaryOrder = ['CHO_DUYET', 'HUY_HANG'].includes(order.trang_thai_don_hang);
+  const preliminaryOrder = ['CHO_DUYET', 'CHO_HANG', 'HUY_HANG'].includes(
+    order.trang_thai_don_hang
+  );
 
   const canReceiveFromCustomer =
     Number.isFinite(remaining) &&
     remaining > 0 &&
     ['CHUA_THANH_TOAN', 'THANH_TOAN_MOT_PHAN'].includes(order.trang_thai_thanh_toan) &&
-    ['CHO_DUYET', 'CHO_THANH_TOAN', 'CHO_DONG_GOI', 'CHO_LAY_HANG', 'HUY_HANG'].includes(
-      order.trang_thai_don_hang
-    ) &&
+    [
+      'CHO_DUYET',
+      'CHO_HANG',
+      'CHO_THANH_TOAN',
+      'CHO_DONG_GOI',
+      'CHO_LAY_HANG',
+      'HUY_HANG',
+    ].includes(order.trang_thai_don_hang) &&
     (order.trang_thai_xuat_kho !== 'DA_HOAN_KHO' ||
       (order.trang_thai_don_hang === 'HUY_HANG' && order.da_nhan_lai_truoc_ban_giao === true)) &&
     active.every((item) => item.trang_thai_giao_hang === 'CHO_GIAO') &&
@@ -293,6 +301,7 @@ export const labels = {
   ONLINE: 'Online',
   TAI_QUAY: 'Tại quầy',
   CHO_DUYET: 'Chờ duyệt',
+  CHO_HANG: 'Chờ hàng',
   CHO_THANH_TOAN: 'Chờ thanh toán',
   CHO_DONG_GOI: 'Chờ đóng gói',
   CHO_LAY_HANG: 'Chờ lấy hàng',

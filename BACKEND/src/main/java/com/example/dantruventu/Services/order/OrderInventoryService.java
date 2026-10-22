@@ -159,46 +159,127 @@ public class OrderInventoryService {
   }
 
   public void reserve(DonHang order) {
+    if (!tryReserve(order)) {
+      throw conflict("Chưa đủ tồn có thể bán để giữ toàn bộ đơn hàng");
+    }
+  }
+
+  public boolean tryReserve(DonHang order) {
     requireUnexportedReservation(order);
     requireReservationNotExpired(order);
 
     boolean alreadyHeld = hasQuantityReservation(order);
 
     Plan plan = plan(order, true);
-    Map<Long, TonKho> stocks = lockStocks(plan, alreadyHeld);
+
+    Map<Long, TonKho> stocks = lockStocks(plan, alreadyHeld, !alreadyHeld);
 
     if (alreadyHeld) {
-      // Chuyển đơn cũ sang cách nhận diện tường minh, không trừ lần hai.
       order.setDaGiuHang(true);
-      return;
+      return true;
+    }
+
+    if (!serialRepository.findPackingByOrderId(order.getId()).isEmpty()) {
+      throw conflict("Đơn chưa giữ số lượng nhưng đang giữ serial, cần đối soát");
     }
 
     for (var need : plan.quantities().entrySet()) {
-      if (stocks.get(need.getKey()).getTonCoTheBan() < need.getValue()) {
-        throw conflict("Không đủ tồn có thể bán của phiên bản " + need.getKey());
+      TonKho stock = stocks.get(need.getKey());
+
+      if (stock == null || stock.getTonCoTheBan() < need.getValue()) {
+        return false;
       }
     }
 
+    // Chỉ trừ tồn khi đã kiểm tra đủ toàn bộ hàng của đơn.
     for (var need : plan.quantities().entrySet()) {
       TonKho stock = stocks.get(need.getKey());
       stock.setTonCoTheBan(stock.getTonCoTheBan() - need.getValue());
     }
 
     order.setDaGiuHang(true);
+    return true;
   }
 
   public void reserveForNewOrder(DonHang order) {
+    reserveForNewOrder(order, false);
+  }
+
+  public void reserveForNewOrder(DonHang order, boolean allowWaiting) {
     if (order.getLoaiDonHang() != LoaiDonHang.ONLINE
-        || order.getTrangThaiDonHang() != TrangThaiDonHang.CHO_DUYET) {
+        || order.getTrangThaiDonHang() != TrangThaiDonHang.CHO_DUYET
+        || order.getTrangThaiThanhToan() != TrangThaiThanhToanDonHang.CHUA_THANH_TOAN) {
+
       throw conflict("Không đúng trạng thái giữ hàng khi tạo đơn");
     }
 
+    if (!tryReserve(order)) {
+      if (!allowWaiting) {
+        throw conflict("Chưa đủ tồn có thể bán để giữ toàn bộ đơn hàng");
+      }
+
+      order.setDaGiuHang(false);
+      order.setHanGiuHang(null);
+      order.setTrangThaiDonHang(TrangThaiDonHang.CHO_HANG);
+      return;
+    }
+
+    startUnpaidReservationDeadline(order);
+  }
+
+  public void startUnpaidReservationDeadline(DonHang order) {
+    if (order.getTrangThaiDonHang() != TrangThaiDonHang.CHO_DUYET
+        || order.getTrangThaiThanhToan() != TrangThaiThanhToanDonHang.CHUA_THANH_TOAN
+        || !hasQuantityReservation(order)) {
+
+      throw conflict("Chỉ đặt hạn cho đơn chờ duyệt chưa thu tiền và đã giữ hàng");
+    }
+
     if (reservationTtl == null || reservationTtl.isZero() || reservationTtl.isNegative()) {
+
       throw new IllegalStateException("reservation-ttl phải lớn hơn 0");
     }
 
-    reserve(order);
     order.setHanGiuHang(LocalDateTime.now(properties.zone()).plus(reservationTtl));
+  }
+
+  public List<Map<String, Object>> shortages(DonHang order) {
+    Plan plan = plan(order, false);
+
+    Map<Long, OrderSaleSnapshotService.PhysicalItem> metadata = new TreeMap<>();
+
+    for (var line : plan.lines()) {
+      saleSnapshots.physical(line).forEach(metadata::putIfAbsent);
+    }
+
+    List<Map<String, Object>> result = new ArrayList<>();
+
+    boolean held = hasQuantityReservation(order);
+
+    for (var need : plan.quantities().entrySet()) {
+      TonKho stock = calculation.stock(context.defaultWarehouseId(), need.getKey(), false);
+
+      long available =
+          (stock == null ? 0L : stock.getTonCoTheBan()) + (held ? need.getValue() : 0L);
+
+      if (available >= need.getValue()) {
+        continue;
+      }
+
+      var item = metadata.get(need.getKey());
+
+      Map<String, Object> row = new LinkedHashMap<>();
+      row.put("phien_ban_id", need.getKey());
+      row.put("ten_san_pham", item.productName());
+      row.put("ten_phien_ban", item.variantName());
+      row.put("so_luong_can", need.getValue());
+      row.put("ton_co_the_ban", available);
+      row.put("so_luong_thieu", need.getValue() - available);
+
+      result.add(row);
+    }
+
+    return List.copyOf(result);
   }
 
   public void releaseQuantityReservation(DonHang order) {
@@ -770,19 +851,32 @@ public class OrderInventoryService {
   }
 
   private Map<Long, TonKho> lockStocks(Plan plan, boolean requireHeld) {
+    return lockStocks(plan, requireHeld, false);
+  }
+
+  private Map<Long, TonKho> lockStocks(Plan plan, boolean requireHeld, boolean allowMissing) {
+
     Map<Long, TonKho> stocks = new TreeMap<>();
 
     for (Long variantId : plan.quantities().keySet()) {
       TonKho stock = calculation.stock(context.defaultWarehouseId(), variantId, true);
 
       if (stock == null) {
+        if (allowMissing && !requireHeld) {
+          if (expectedHeld(variantId) != 0) {
+            throw conflict("Thiếu bản ghi tồn của phiên bản đang có hàng giữ: " + variantId);
+          }
+
+          continue;
+        }
+
         throw conflict("Chưa có tồn kho của phiên bản " + variantId);
       }
 
       stocks.put(variantId, stock);
     }
 
-    // Chạy khi chưa thay đổi tồn/trạng thái đơn.
+    // Kiểm tra khi chưa thay đổi tồn hoặc trạng thái đơn.
     for (var entry : stocks.entrySet()) {
       TonKho stock = entry.getValue();
 
@@ -791,13 +885,16 @@ public class OrderInventoryService {
               - stock.getHangLoi()
               - stock.getSoLuongGiuChoBaoHanh()
               - stock.getTonCoTheBan();
+
       Long expectedHeld = expectedHeld(entry.getKey());
 
       if (expectedHeld == null || actualHeld != expectedHeld.longValue()) {
+
         throw conflict("Tồn giữ hàng không nhất quán tại phiên bản " + entry.getKey());
       }
 
       if (requireHeld && actualHeld < plan.quantities().get(entry.getKey())) {
+
         throw conflict("Đơn chưa được giữ đủ hàng");
       }
     }

@@ -9,7 +9,11 @@ export function customerOrderProgress(order) {
 
   const stages = [
     'ĐẶT HÀNG',
-    order.trang_thai_don_hang === 'CHO_THANH_TOAN' ? 'CHỜ THANH TOÁN' : 'CHỜ XÁC NHẬN',
+    order.trang_thai_don_hang === 'CHO_HANG'
+      ? 'CHỜ HÀNG'
+      : order.trang_thai_don_hang === 'CHO_THANH_TOAN'
+        ? 'CHỜ THANH TOÁN'
+        : 'CHỜ XÁC NHẬN',
     'ĐÓNG GÓI',
     waitingCod ? 'ĐÃ NHẬN HÀNG' : pickup ? 'CHỜ NHẬN HÀNG' : 'GIAO HÀNG',
     waitingCod ? 'ĐANG HOÀN TẤT ĐƠN' : 'HOÀN THÀNH',
@@ -19,6 +23,7 @@ export function customerOrderProgress(order) {
     ? 4
     : {
         CHO_DUYET: 1,
+        CHO_HANG: 1,
         CHO_THANH_TOAN: 1,
         CHO_DONG_GOI: 2,
         CHO_LAY_HANG: 3,

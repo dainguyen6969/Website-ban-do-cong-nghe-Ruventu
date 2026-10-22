@@ -259,6 +259,10 @@ public class AdminSalesService {
     Map<Long, Integer> ownReservation = Map.of();
 
     if (request.getDonHangId() != null) {
+      if (Boolean.TRUE.equals(request.getChoPhepChoHang())) {
+        throw invalid("Chế độ chờ hàng chỉ áp dụng khi tạo đơn mới");
+      }
+
       DonHang editing =
           orderRepository
               .findById(request.getDonHangId())
@@ -269,6 +273,7 @@ public class AdminSalesService {
           || editing.getTrangThaiThanhToan() != TrangThaiThanhToanDonHang.CHUA_THANH_TOAN
           || editing.getTrangThaiDongGoi() != TrangThaiDongGoi.CHUA_DONG_GOI
           || editing.getTrangThaiXuatKho() != TrangThaiXuatKho.CHUA_XUAT_KHO) {
+
         throw conflict("Đơn không còn được phép sửa");
       }
 
@@ -350,7 +355,7 @@ public class AdminSalesService {
     saleSnapshots.recordUnpaidCreationEvidence(order);
     saleSnapshots.recordPromotion(order, plan, request, actor);
 
-    orderInventory.reserveForNewOrder(order);
+    orderInventory.reserveForNewOrder(order, Boolean.TRUE.equals(request.getChoPhepChoHang()));
 
     orderRepository.flush();
 
@@ -679,6 +684,11 @@ public class AdminSalesService {
   }
 
   private void enrich(AdminSalesResponse.Order response, DonHang order) {
+
+    response.setHangConThieu(
+        order.getTrangThaiDonHang() == TrangThaiDonHang.CHO_HANG
+            ? orderInventory.shortages(order)
+            : null);
 
     response.setDaNhanLaiTruocBanGiao(saleSnapshots.hasReceivedBeforeHandover(order));
 

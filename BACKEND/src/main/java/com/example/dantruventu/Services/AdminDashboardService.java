@@ -43,9 +43,15 @@ public class AdminDashboardService {
   private static final int MAX_LIMIT = 100;
   private static final LocalDate HISTORY_START = LocalDate.of(1900, 1, 1);
   private static final List<String> ORDER_TASK_STATUSES =
-      List.of("CHO_DUYET", "CHO_THANH_TOAN", "CHO_DONG_GOI", "CHO_LAY_HANG", "DANG_GIAO_HANG");
+      List.of(
+          "CHO_DUYET",
+          "CHO_HANG",
+          "CHO_THANH_TOAN",
+          "CHO_DONG_GOI",
+          "CHO_LAY_HANG",
+          "DANG_GIAO_HANG");
   private static final Set<String> LONG_WAIT_STATUSES =
-      Set.of("CHO_DUYET", "CHO_THANH_TOAN", "CHO_DONG_GOI", "CHO_LAY_HANG");
+      Set.of("CHO_DUYET", "CHO_HANG", "CHO_THANH_TOAN", "CHO_DONG_GOI", "CHO_LAY_HANG");
   private static final List<String> WARRANTY_STATUSES =
       List.of(
           "TIEP_NHAN",

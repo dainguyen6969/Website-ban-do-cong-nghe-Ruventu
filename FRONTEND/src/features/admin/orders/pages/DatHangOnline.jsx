@@ -59,6 +59,7 @@ export default function DatHangOnline() {
   const [productLoading, setProductLoading] = useState(false);
   const [items, setItems] = useState([]);
   const [stockNote, setStockNote] = useState('');
+  const [allowWaitingStock, setAllowWaitingStock] = useState(false);
   const [promotion, setPromotion] = useState('');
   const [payment, setPayment] = useState('');
   const [applyVat, setApplyVat] = useState(false);
@@ -228,6 +229,7 @@ export default function DatHangOnline() {
             vatMode,
             promotion,
             shippingFee,
+            allowWaitingStock: !editId && allowWaitingStock,
             items,
             recipient,
             payment,
@@ -244,6 +246,7 @@ export default function DatHangOnline() {
       vatMode,
       promotion,
       shippingFee,
+      allowWaitingStock,
       items,
       recipient,
       payment,
@@ -352,20 +355,28 @@ export default function DatHangOnline() {
     setRecipient({ name: '', phone: '', address: '' });
   };
   const updateRecipient = (key, value) => setRecipient((current) => ({ ...current, [key]: value }));
+
   const addProduct = (product) => {
-    if (!editId && !product.stock) {
+    if (!editId && !allowWaitingStock && !product.stock) {
       setStockNote('Sản phẩm đã hết hàng.');
       return;
     }
+
     setProductQuery('');
     setStockNote('');
+
     setItems((current) => {
       const existing = current.find((item) => item.id === product.id);
-      if (!existing) return [...current, { ...product, quantity: 1 }];
-      if (!editId && existing.quantity >= existing.stock) {
+
+      if (!existing) {
+        return [...current, { ...product, quantity: 1 }];
+      }
+
+      if (!editId && !allowWaitingStock && existing.quantity >= existing.stock) {
         setStockNote(`Chỉ còn ${existing.stock} sản phẩm trong kho.`);
         return current;
       }
+
       return current.map((item) =>
         item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item
       );
@@ -374,15 +385,22 @@ export default function DatHangOnline() {
 
   const changeQuantity = (id, value) => {
     setStockNote('');
+
     setItems((current) =>
       current.map((item) => {
         if (item.id !== id) return item;
+
         const requested = Number.parseInt(value, 10) || 1;
-        if (!editId && requested > item.stock) {
+
+        if (!editId && !allowWaitingStock && requested > item.stock) {
           setStockNote(`Chỉ còn ${item.stock} sản phẩm trong kho.`);
           return { ...item, quantity: item.stock };
         }
-        return { ...item, quantity: Math.max(1, requested) };
+
+        return {
+          ...item,
+          quantity: Math.min(100000, Math.max(1, requested)),
+        };
       })
     );
   };
@@ -611,6 +629,31 @@ export default function DatHangOnline() {
             </div>
           </Section>
           <Section n="3" title="SẢN PHẨM" disabled={financialLocked}>
+            {!editId && (
+              <>
+                <label className="check-row">
+                  <input
+                    type="checkbox"
+                    checked={allowWaitingStock}
+                    disabled={submitting || hasPendingSave}
+                    onChange={(event) => {
+                      setAllowWaitingStock(event.target.checked);
+                      setStockNote('');
+                    }}
+                  />
+                  Cho phép tạo đơn chờ hàng khi chưa đủ tồn
+                </label>
+
+                {allowWaitingStock && (
+                  <p className="stock-note">
+                    Đã thống nhất với khách việc chờ bổ sung hàng. Nếu thiếu bất kỳ sản phẩm, linh
+                    kiện hoặc quà tặng nào, đơn sẽ chờ hàng và chưa giữ số lượng. Nếu đủ toàn bộ
+                    hàng, đơn được giữ hàng như thông thường.
+                  </p>
+                )}
+              </>
+            )}
+
             <Search
               value={productQuery}
               onChange={setProductQuery}
@@ -643,6 +686,7 @@ export default function DatHangOnline() {
             ) : (
               <LineTable
                 editing={Boolean(editId)}
+                allowWaiting={allowWaitingStock}
                 items={items}
                 previewLines={data?.san_pham || []}
                 change={changeQuantity}
@@ -833,6 +877,7 @@ function Search({ value, onChange, placeholder, loading, children }) {
     </div>
   );
 }
+
 function Field({ label, value, change, blur, placeholder, error, wide }) {
   return (
     <label
@@ -849,6 +894,7 @@ function Field({ label, value, change, blur, placeholder, error, wide }) {
     </label>
   );
 }
+
 function Toggle({ active, click, children }) {
   return (
     <button type="button" className={`online-toggle ${active ? 'is-active' : ''}`} onClick={click}>
@@ -856,10 +902,12 @@ function Toggle({ active, click, children }) {
     </button>
   );
 }
+
 function InlineError({ children }) {
   return <p className="inline-error">{children}</p>;
 }
-function LineTable({ items, previewLines, change, remove, editing = false }) {
+
+function LineTable({ items, previewLines, change, remove, editing = false, allowWaiting = false }) {
   const byId = new Map(
     previewLines
       .filter((line) => !line.la_qua_tang)
@@ -898,7 +946,7 @@ function LineTable({ items, previewLines, change, remove, editing = false }) {
                       aria-label={`Số lượng ${item.name}`}
                       type="number"
                       min="1"
-                      max={editing ? undefined : item.stock}
+                      max={editing || allowWaiting ? 100000 : item.stock}
                       value={item.quantity}
                       onChange={(event) => change(item.id, event.target.value)}
                     />
