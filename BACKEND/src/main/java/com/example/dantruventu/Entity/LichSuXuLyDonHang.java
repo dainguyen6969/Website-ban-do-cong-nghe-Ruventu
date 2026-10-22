@@ -23,8 +23,8 @@ public class LichSuXuLyDonHang {
   @JoinColumn(name = "don_hang_id", nullable = false)
   private DonHang donHang;
 
-  @ManyToOne(fetch = FetchType.LAZY, optional = false)
-  @JoinColumn(name = "nguoi_thuc_hien_id", nullable = false)
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "nguoi_thuc_hien_id")
   private NguoiDung nguoiThucHien;
 
   @Column(name = "hanh_dong", nullable = false, length = 50)

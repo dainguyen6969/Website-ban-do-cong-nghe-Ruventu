@@ -87,7 +87,7 @@ public interface SoSerialSanPhamRepository
             ORDER BY s.id
             """)
   List<SoSerialSanPham> findPackingByOrderId(@Param("orderId") Long orderId);
-    
+
   /** Legacy fallback must not bring back a returned device or an old warranty serial. */
   @Query(
       """

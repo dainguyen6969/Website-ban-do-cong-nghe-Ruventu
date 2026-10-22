@@ -105,6 +105,32 @@ export default function ChiTietDonHang() {
       .catch(() => {});
     return () => controller.abort();
   }, [load]);
+
+  useEffect(() => {
+    if (
+      order?.loai_don_hang !== 'ONLINE' ||
+      order?.trang_thai_don_hang !== 'CHO_DUYET' ||
+      state.busy ||
+      dialog ||
+      isCancelOpen
+    ) {
+      return undefined;
+    }
+
+    const controller = new AbortController();
+
+    const timer = setTimeout(() => {
+      if (!actionBusy.current) {
+        void load(controller.signal);
+      }
+    }, 10000);
+
+    return () => {
+      clearTimeout(timer);
+      controller.abort();
+    };
+  }, [order, state.busy, dialog, isCancelOpen, load]);
+
   const products = useDetailTablePagination(order?.san_pham || []);
   const run = async (work) => {
     if (actionBusy.current) return;
@@ -569,6 +595,16 @@ export default function ChiTietDonHang() {
     });
   };
 
+  const reservationExpired =
+    order.da_giu_hang === true &&
+    Boolean(order.han_giu_hang) &&
+    new Date(order.han_giu_hang).getTime() <= Date.now();
+
+  const paidWaitingApproval =
+    order.loai_don_hang === 'ONLINE' &&
+    order.trang_thai_don_hang === 'CHO_DUYET' &&
+    order.trang_thai_thanh_toan === 'DA_THANH_TOAN';
+
   const beforeExport =
     order.trang_thai_xuat_kho === 'CHUA_XUAT_KHO' && order.trang_thai_don_hang !== 'HUY_HANG';
 
@@ -611,7 +647,7 @@ export default function ChiTietDonHang() {
         <div className="order-detail-hero__actions">
           {canEditOnlineOrder(order) && (
             <Action
-              disabled={state.busy}
+              disabled={state.busy || reservationExpired}
               click={() => navigate(`/admin/don-hang/dat-hang-online/${order.id}`)}
             >
               SỬA ĐƠN HÀNG
@@ -634,11 +670,13 @@ export default function ChiTietDonHang() {
               </div>
             )}
 
-          {order.loai_don_hang === 'ONLINE' && order.trang_thai_don_hang === 'CHO_DUYET' && (
-            <Action disabled={state.busy} click={approve}>
-              DUYỆT ĐƠN
-            </Action>
-          )}
+          {order.loai_don_hang === 'ONLINE' &&
+            order.trang_thai_don_hang === 'CHO_DUYET' &&
+            order.trang_thai_thanh_toan === 'CHUA_THANH_TOAN' && (
+              <Action disabled={state.busy || reservationExpired} click={approve}>
+                DUYỆT ĐƠN
+              </Action>
+            )}
 
           {openOnlineOrder && isPickup && (
             <div className="order-handover-action">
@@ -711,6 +749,32 @@ export default function ChiTietDonHang() {
           </button>
         </div>
       </header>
+
+      {order.loai_don_hang === 'ONLINE' &&
+        order.trang_thai_don_hang === 'CHO_DUYET' &&
+        order.trang_thai_thanh_toan === 'CHUA_THANH_TOAN' &&
+        order.da_giu_hang === true &&
+        order.han_giu_hang && (
+          <div className="order-cod-settlement" role="status">
+            <strong>{reservationExpired ? 'ĐÃ HẾT THỜI HẠN GIỮ HÀNG' : 'THỜI HẠN GIỮ HÀNG'}</strong>
+
+            <p>Giữ hàng đến: {dateTime(order.han_giu_hang)}.</p>
+
+            {reservationExpired && (
+              <p>Đơn đang chờ hệ thống kiểm tra chứng từ tiền và xử lý phần giữ hàng hết hạn.</p>
+            )}
+          </div>
+        )}
+
+      {paidWaitingApproval && (
+        <div className="order-cod-settlement" role="status">
+          <strong>ĐÃ GHI NHẬN THANH TOÁN — CHỜ DUYỆT</strong>
+
+          <p>
+            Hệ thống sẽ duyệt khi kiểm tra được đầy đủ chứng từ và giữ đủ hàng để thực hiện đơn.
+          </p>
+        </div>
+      )}
 
       <OrderRefundPanel
         order={order}
@@ -819,7 +883,9 @@ export default function ChiTietDonHang() {
             {canPay && (
               <div className="order-panel-actions">
                 <Action disabled={state.busy} click={() => payment()}>
-                  XÁC NHẬN THANH TOÁN
+                  {order.trang_thai_don_hang === 'HUY_HANG'
+                    ? 'GHI NHẬN TIỀN ĐẾN MUỘN'
+                    : 'XÁC NHẬN THANH TOÁN'}
                 </Action>
               </div>
             )}
@@ -1261,6 +1327,12 @@ function OrderActionDialog({ dialog, setDialog, order, options, busy, error, sub
       )}
 
       <p>{order.ma_don_hang}</p>
+
+      {receiving && order.trang_thai_don_hang === 'HUY_HANG' && (
+        <p role="status">
+          Khoản tiền được ghi nhận để xử lý hoàn cho khách. Đơn hàng vẫn giữ trạng thái đã hủy.
+        </p>
+      )}
 
       {monetary && (
         <>
