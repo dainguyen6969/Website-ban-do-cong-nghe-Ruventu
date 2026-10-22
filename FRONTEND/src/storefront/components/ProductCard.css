@@ -109,32 +109,63 @@
   white-space: nowrap;
 }
 
-.product-specs {
+.product-card .product-specs {
   margin-bottom: 16px;
-  flex: 1;
 }
 
-.specs-table {
+.storefront-app .product-card table.specs-table {
+  display: table;
   width: 100%;
+  table-layout: fixed;
   border-collapse: collapse;
-  font-size: 11px;
-}
-
-.specs-table td {
-  padding: 6px 8px;
   border: 1px solid #000;
+  border-radius: 0;
+  font-size: 12px;
+  line-height: 1.4;
 }
 
-.spec-label {
-  background-color: var(--bg-dark);
-  color: var(--text-light);
-  width: 60px;
+.storefront-app .product-card table.specs-table :is(th, td) {
+  height: 40px;
+  padding: 6px 8px;
+  border: 0;
+  border-bottom: 1px solid #e5e5e5;
+  vertical-align: middle;
+}
+
+.storefront-app .product-card .specs-table tr:last-child :is(th, td) {
+  border-bottom: 0;
+}
+
+.storefront-app .product-card .specs-table th.spec-label {
+  background-color: #000;
+  color: #fff;
+  width: 34%;
   font-weight: 700;
-  text-align: center;
+  text-align: left;
 }
 
-.spec-value {
-  color: var(--text-gray);
+.storefront-app .product-card .specs-table .spec-value {
+  background: #fff;
+  color: #333;
+}
+
+.product-card .specs-table span {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 576px) {
+  .storefront-app .product-card table.specs-table :is(th, td) {
+    padding-inline: 5px;
+    font-size: 11px;
+  }
+
+  .storefront-app .product-card .specs-table th.spec-label {
+    width: 40%;
+  }
 }
 
 .product-pricing {

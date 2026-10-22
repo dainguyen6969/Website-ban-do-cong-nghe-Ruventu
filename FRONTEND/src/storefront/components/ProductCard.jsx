@@ -14,6 +14,7 @@ export default function ProductCard({ product }) {
 
   const isCombo = product.loaiSanPham === "BO_PC";
   const outOfStock = product.outOfStock === true;
+  const specs = (product.specs || []).slice(0, 4);
 
   const handleViewDetails = () => {
     navigate(`/product/${encodeURIComponent(product.id)}`);
@@ -128,14 +129,14 @@ export default function ProductCard({ product }) {
           </details>
         )}
 
-        {product.specs && (
+        {specs.length > 0 && (
           <div className="product-specs">
-            <table className="specs-table">
+            <table className="specs-table" aria-label={`Thông số nổi bật của ${product.title}`}>
               <tbody>
-                {product.specs.map((spec, index) => (
+                {specs.map((spec, index) => (
                   <tr key={index}>
-                    <td className="spec-label">{spec.label}</td>
-                    <td className="spec-value">{spec.value}</td>
+                    <th scope="row" className="spec-label" title={spec.label}><span>{spec.label}</span></th>
+                    <td className="spec-value" title={spec.value}><span>{spec.value}</span></td>
                   </tr>
                 ))}
               </tbody>

@@ -72,6 +72,8 @@ export default function ProductDetail() {
     ...resolveProductContent(product.specifications,product.description,product.category,selectedVariantId),
   } : null;
 
+  const hasInfoSidebar = product && (product.loaiSanPham === "BO_PC" || product.variants.length > 1);
+
   return (
     <div className="product-detail-page">
       <Header />
@@ -99,8 +101,8 @@ export default function ProductDetail() {
             </div>
           </div>
 
-          <div className="product-main-container">
-            <div className="info-sidebar-column">
+          <div className={"product-main-container" + (hasInfoSidebar ? "" : " product-main-container--without-sidebar")}>
+            {hasInfoSidebar && <div className="info-sidebar-column">
               {product.loaiSanPham === "BO_PC" ? (
                 <ComboContents items={product.thanhPhan} scrollable />
               ) : (
@@ -110,7 +112,7 @@ export default function ProductDetail() {
                   setSelectedVariantId={setSelectedVariantId}
                 />
               )}
-            </div>
+            </div>}
 
             <div className="gallery-column">
               <ProductGallery

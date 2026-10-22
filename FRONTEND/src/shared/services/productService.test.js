@@ -103,3 +103,20 @@ test('missing data stays empty and combo availability uses assembly capacity ins
   assert.equal(combo.soBoCoTheLap, 8);
   assert.equal(combo.priceFrom, false);
 });
+
+test('cards show at most four real highlights from the same cheapest variant as the detail', () => {
+  const specs = { nguon_du_lieu: [{ url: 'https://example.com/source' }], phien_ban: {
+    541: { thong_so_ky_thuat: { GPU: 'RTX 3050', VRAM: '6 GB' } },
+    542: { thong_so_ky_thuat: { GPU: 'RX 6500 XT', VRAM: '4 GB', 'Xung nhịp': '2815 MHz', 'Giao tiếp': 'PCIe 4.0', 'Cổng kết nối': 'HDMI', 'Công suất nguồn đề xuất': '400 W' } },
+  } };
+  const list = toProductCard({ id: 459, tenDanhMuc: 'VGA', giaThapNhat: 4890000, phienBanMacDinhId: 542, thongSoKyThuat: specs });
+  const detail = toProductDetail({ id: 459, danhMuc: { tenDanhMuc: 'VGA' }, danhSachPhienBan: [{ id: 541, giaBanLe: 6190000 }, { id: 542, giaBanLe: 4890000 }], thongSoKyThuat: specs });
+  assert.equal(list.defaultVariantId, 542);
+  assert.deepEqual(list.specs, detail.specs);
+  assert.deepEqual(list.specs.map(row => row.label), ['GPU', 'VRAM', 'Xung nhịp', 'Giao tiếp']);
+  assert.equal(list.specs[1].value, '4 GB');
+  assert(!JSON.stringify(list.specs).includes('RTX 3050'));
+  assert.deepEqual(toProductCard({ thongSoKyThuat: { nguon_du_lieu: 'https://example.com' } }).specs, []);
+  assert.deepEqual(toProductCard({ thongSoKyThuat: '{broken' }).specs, []);
+  assert.deepEqual(toProductCard({ thongSoKyThuat: { LED: false, USB: 0 } }).specs, [{ label: 'LED', value: 'Không' }, { label: 'USB', value: '0' }]);
+});

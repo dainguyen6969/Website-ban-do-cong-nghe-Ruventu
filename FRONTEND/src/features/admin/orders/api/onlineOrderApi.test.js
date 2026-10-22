@@ -95,6 +95,13 @@ test('online order keeps backend sales inventory and serial metadata', () => {
   }).san_pham, [{ ma_dong: 'd42', phien_ban_id: 42, so_luong: 1 }]);
 });
 
+test('combo search uses sales availability when assembly count is absent and preserves explicit zero', () => {
+  assert.equal(normalizeSalesProduct({ loai_san_pham: 'BO_PC', so_bo_co_the_lap: null, ton_co_the_ban: 6 }).stock, 6);
+  assert.equal(normalizeSalesProduct({ loai_san_pham: 'BO_PC', ton_co_the_ban: 3 }).stock, 3);
+  assert.equal(normalizeSalesProduct({ loai_san_pham: 'BO_PC', so_bo_co_the_lap: 0, ton_co_the_ban: 6 }).stock, 0);
+  assert.equal(normalizeSalesProduct({ loai_san_pham: 'BO_PC', so_bo_co_the_lap: 2, ton_co_the_ban: 6 }).stock, 2);
+});
+
 test('one promotion reaches both previews and commits; gift allocations never become purchased lines', async () => {
   const options = { kho_mac_dinh_id: 1, bang_gia: ['BAN_LE'] };
   const order = { tax: false, promotion: ' SALE ', paymentMethod: 'cash', paid: 99000, paymentReceived: true,

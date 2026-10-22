@@ -9,7 +9,40 @@ const vite = await createServer({ cacheDir: 'node_modules/.vite-product-pricing-
 const Sidebar = (await vite.ssrLoadModule('/src/storefront/components/ProductPurchaseRightSidebar.jsx')).default;
 const Gallery = (await vite.ssrLoadModule('/src/storefront/components/ProductGallery.jsx')).default;
 const Card = (await vite.ssrLoadModule('/src/storefront/components/ProductCard.jsx')).default;
+const InfoSidebar = (await vite.ssrLoadModule('/src/storefront/components/ProductInfoSidebar.jsx')).default;
+const Highlights = (await vite.ssrLoadModule('/src/storefront/components/ProductHighlights.jsx')).default;
 after(() => vite.close());
+
+test('product cards render four accessible specification rows and omit empty tables', () => {
+  const product = { id: 459, title: 'Card màn hình', price: '4.890.000 ₫', specs: Array.from({ length: 6 }, (_, i) => ({ label: 'Thông số ' + i, value: 'Giá trị ' + i })) };
+  const render = props => renderToStaticMarkup(React.createElement(MemoryRouter, null, React.createElement(Card, { product: props })));
+  const html = render(product);
+  assert.equal((html.match(/scope="row"/g) || []).length, 4);
+  assert.match(html, /aria-label="Thông số nổi bật của Card màn hình"/);
+  assert.doesNotMatch(html, /Thông số 4|Thông số 5/);
+  assert.doesNotMatch(render({ ...product, specs: [] }), /<table/);
+});
+
+test('highlight cards never exceed six even when a caller supplies more rows', () => {
+  const rows = Array.from({ length: 10 }, (_, index) => ({ label: 'Thông số ' + index, value: String(index) }));
+  const html = renderToStaticMarkup(React.createElement(Highlights, { product: { name: 'GPU', mainSpecs: rows, fullSpecs: rows } }));
+  assert.equal((html.match(/class="product-highlights__item"/g) || []).length, 6);
+  assert.match(html, /Xem tất cả thông số/);
+  assert.doesNotMatch(html, /Thông số 6|Thông số 9/);
+});
+
+test('basic specs are removed and the left column only contains multiple variant choices', () => {
+  const variants = [{ id: 1, tenPhienBan: 'Phiên bản A', giaBanLe: 100, tonCoTheBan: 2 }, { id: 2, tenPhienBan: 'Phiên bản B', giaBanLe: 200, tonCoTheBan: 3 }];
+  const render = variants => renderToStaticMarkup(React.createElement(InfoSidebar, {
+    product: { variants, specsSummary: [{ label: 'Thông số cũ', value: 'Không hiển thị' }] }, selectedVariantId: 1,
+  }));
+  assert.equal(render([]), '');
+  assert.equal(render(variants.slice(0, 1)), '');
+  const html = render(variants);
+  assert.match(html, /Phiên bản A/);
+  assert.match(html, /Phiên bản B/);
+  assert.doesNotMatch(html, /THÔNG SỐ CƠ BẢN|Thông số cũ|<table|Chưa có thông số/);
+});
 
 test('detail keeps the actual price without inventing a discount or model label', () => {
   const product = { id: 583, name: 'PC thật', currentPrice: 100, originalPrice: 100, variants: [], policies: [], specsSummary: [] };

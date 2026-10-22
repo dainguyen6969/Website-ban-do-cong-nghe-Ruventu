@@ -1,28 +1,14 @@
-import { parseSpecifications, toSpecRows } from '../../shared/services/productSpecifications.js';
-export { parseSpecifications, toSpecRows } from '../../shared/services/productSpecifications.js';
+import { parseSpecifications, selectHighlights, toSpecRows } from '../../shared/services/productSpecifications.js';
+export { parseSpecifications, selectHighlights, toSpecRows } from '../../shared/services/productSpecifications.js';
 const normalize = value => String(value).normalize('NFD').replace(/\p{Diacritic}/gu, '').replace(/đ/g, 'd').replace(/Đ/g, 'D').toLowerCase().replace(/[_\s]+/g, ' ').trim();
-export function selectHighlights(rows, category = '') {
-  const kind = normalize(category);
-  const patterns = /pc build|bo pc/.test(kind) ? [/^cpu$/,/card do hoa|^gpu$|^vga$/,/^ram$/,/ssd|o cung/,/mainboard/,/nguon|psu/]
-    : /laptop/.test(kind) ? [/^cpu$|bo xu ly/,/^ram$/,/ssd|o cung/,/man hinh/,/gpu|do hoa/,/he dieu han/]
-    : /man hinh/.test(kind) ? [/kich thuoc/,/tam nen/,/do phan giai/,/tan so quet/,/phan hoi|dap ung/,/do sang/]
-    : /psu|nguon/.test(kind) ? [/cong suat/,/chung nhan|hieu suat/,/chuan nguon|atx/,/modular/,/dien ap/,/bao ve/]
-    : /cpu/.test(kind) ? [/socket/,/nhan/,/luong/,/xung|tan so/,/cache/,/tdp|cong suat/]
-    : /mainboard/.test(kind) ? [/socket/,/chipset/,/ram/,/m\.2|luu tru/,/lan|wifi/,/kich thuoc/]
-    : /ram/.test(kind) ? [/dung luong/,/loai ram/,/bus|toc do/,/cas|do tre/,/dien ap/,/so thanh/]
-    : /ssd|hdd/.test(kind) ? [/dung luong/,/giao tiep/,/doc/,/ghi/,/kich thuoc/,/tbw/]
-    : /vga|do hoa/.test(kind) ? [/^gpu$|do hoa/,/vram|bo nho/,/xung/,/giao tiep|pci/,/cong ket noi/,/cong suat/] : [];
-  const score = row => { const index = patterns.findIndex(pattern => pattern.test(normalize(row.label))); return index < 0 ? 100 : index; };
-  return rows.filter(row => !/^(thuong hieu|hang san xuat|model|ma san pham|bao hanh)$/.test(normalize(row.label)))
-    .map((row,index) => ({row,index})).sort((a,b) => score(a.row)-score(b.row) || a.index-b.index).slice(0,6).map(item => item.row);
-}
 export function resolveProductContent(specifications, description, category, variantId) {
   const root = parseSpecifications(specifications), selected = root.phien_ban?.[variantId];
   const fullSpecs = toSpecRows(selected?.thong_so_ky_thuat ?? root), explicitMain = toSpecRows(selected?.thong_so_chinh);
-  const mainSpecs = explicitMain.length ? explicitMain.slice(0,6) : selectHighlights(fullSpecs,category);
-  const basic = toSpecRows(selected?.thong_so_co_ban), text = selected?.mo_ta ?? description ?? '';
-  const placeholder = /^(Dữ liệu kiểm thử local|Bộ PC mẫu kiểm thử|Dữ liệu mẫu kiểm thử)/i.test(String(text).trim());
-  return {fullSpecs,mainSpecs,specsSummary:basic.length ? basic.slice(0,8) : mainSpecs,description:placeholder ? '' : String(text),descriptionTitle:selected?.ten_phien_ban || ''};
+  const mainSpecs = selectHighlights(explicitMain.length ? explicitMain : fullSpecs,category);
+  const text = String(selected?.mo_ta ?? description ?? '').trim();
+  // Remove only the demo introduction; editors may append real text and images after it.
+  const content = text.replace(/^(?:Dữ liệu kiểm thử local|Bộ PC mẫu kiểm thử|Dữ liệu mẫu kiểm thử)[^<.\r\n]*(?:\.|(?=<|\r|\n|$))/i,'').trim();
+  return {fullSpecs,mainSpecs,specsSummary:mainSpecs,description:content,descriptionTitle:selected?.ten_phien_ban || ''};
 }
 export function sanitizeDescription(html, title = '') {
   // Keep the API's article formatting without allowing executable markup.

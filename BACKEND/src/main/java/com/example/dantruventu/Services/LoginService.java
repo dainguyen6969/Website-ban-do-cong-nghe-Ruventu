@@ -17,6 +17,7 @@ public class LoginService {
   private final NguoiDungRepository nguoiDungRepository;
   private final PasswordEncoder passwordEncoder;
   private final AuthTokenService authTokenService;
+  private final SystemSettingsService systemSettingsService;
 
   public LoginResult login(LoginRequest request) {
 
@@ -62,6 +63,8 @@ public class LoginService {
 
       return new LoginResult(response, null);
     }
+
+    systemSettingsService.requireAccess(user);
 
     boolean ghiNhoDangNhap = Boolean.TRUE.equals(request.getGhiNhoDangNhap());
 

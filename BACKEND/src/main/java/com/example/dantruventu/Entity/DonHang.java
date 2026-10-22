@@ -88,6 +88,12 @@ public class DonHang {
   @Column(name = "trang_thai_xuat_kho", nullable = false, length = 50)
   private TrangThaiXuatKho trangThaiXuatKho = TrangThaiXuatKho.CHUA_XUAT_KHO;
 
+  @Column(name = "da_giu_hang")
+  private Boolean daGiuHang;
+
+  @Column(name = "han_giu_hang", columnDefinition = "DATETIME(6)")
+  private LocalDateTime hanGiuHang;
+
   @Enumerated(EnumType.STRING)
   @JdbcTypeCode(SqlTypes.VARCHAR)
   @Column(name = "trang_thai_don_hang", nullable = false, length = 50)

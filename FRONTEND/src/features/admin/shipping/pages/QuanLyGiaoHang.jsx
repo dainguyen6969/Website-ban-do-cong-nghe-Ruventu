@@ -1,47 +1,49 @@
-import { useEffect, useRef, useState } from "react";
-import { useNavigate, useParams, useSearchParams } from "react-router-dom";
-import { HiOutlineRefresh, HiOutlineSearch } from "react-icons/hi";
+import { useEffect, useRef, useState } from 'react';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { HiOutlineRefresh, HiOutlineSearch } from 'react-icons/hi';
 
-import { apiRequest } from "../../../../auth/backendAuth";
-import { dateTime, label, money } from "../../orders/api/orderApi";
-import OrderModal from "../../orders/components/OrderModal";
-import { OrderStateBadge } from "../../orders/pages/DanhSachDonHang";
-import TablePagination from "../../../../shared/components/ui/TablePagination";
-import DetailTablePagination from "../../../../shared/components/ui/DetailTablePagination";
-import useDetailTablePagination from "../../../../hooks/useDetailTablePagination";
-import ImageUploader from "../../../../shared/components/ui/ImageUploader";
+import { apiRequest } from '../../../../auth/backendAuth';
+import {
+  dateTime,
+  isWaitingCodSettlement,
+  label,
+  money,
+  orderDisplayStatus,
+} from '../../orders/api/orderApi';
+import OrderModal from '../../orders/components/OrderModal';
+import { OrderStateBadge } from '../../orders/pages/DanhSachDonHang';
+import TablePagination from '../../../../shared/components/ui/TablePagination';
+import DetailTablePagination from '../../../../shared/components/ui/DetailTablePagination';
+import useDetailTablePagination from '../../../../hooks/useDetailTablePagination';
+import ImageUploader from '../../../../shared/components/ui/ImageUploader';
 
 import {
   requireBasicStatus,
   withIdempotency,
   nowLocalInput,
   toApiDateTime,
-} from "../../../../shared/services/mutationUtils";
+} from '../../../../shared/services/mutationUtils';
 
-import "./QuanLyGiaoHang.css";
+import './QuanLyGiaoHang.css';
 
-const API = "/api/v1/admin/deliveries";
-const LIST = "/admin/don-hang/quan-ly-giao-hang";
+const API = '/api/v1/admin/deliveries';
+const LIST = '/admin/don-hang/quan-ly-giao-hang';
 
 const STATUSES = [
-  "CHO_GIAO",
-  "DA_NHAN_HANG",
-  "DANG_GIAO",
-  "GIAO_THANH_CONG",
-  "GIAO_THAT_BAI",
-  "CHO_HOAN_HANG",
-  "DA_HOAN_HANG",
-  "HUY_GIAO_HANG",
+  'CHO_GIAO',
+  'DA_NHAN_HANG',
+  'DANG_GIAO',
+  'GIAO_THANH_CONG',
+  'GIAO_THAT_BAI',
+  'CHO_HOAN_HANG',
+  'DA_HOAN_HANG',
+  'HUY_GIAO_HANG',
 ];
 
 export default function QuanLyGiaoHang() {
   const { deliveryId } = useParams();
 
-  return deliveryId ? (
-    <ShipmentDetail key={deliveryId} id={deliveryId} />
-  ) : (
-    <ShipmentList />
-  );
+  return deliveryId ? <ShipmentDetail key={deliveryId} id={deliveryId} /> : <ShipmentList />;
 }
 
 function ShipmentList() {
@@ -49,25 +51,23 @@ function ShipmentList() {
   const [params] = useSearchParams();
   const PAGE_SIZE = 20;
 
-  const [keyword, setKeyword] = useState("");
+  const [keyword, setKeyword] = useState('');
   const [status, setStatus] = useState(() =>
-    STATUSES.includes(params.get("trang_thai_giao_hang"))
-      ? params.get("trang_thai_giao_hang")
-      : "",
+    STATUSES.includes(params.get('trang_thai_giao_hang')) ? params.get('trang_thai_giao_hang') : ''
   );
-  const [partnerId, setPartnerId] = useState("");
+  const [partnerId, setPartnerId] = useState('');
   const [page, setPage] = useState(1);
   const [revision, setRevision] = useState(0);
 
   const [partners, setPartners] = useState({
     loading: true,
-    error: "",
+    error: '',
     items: [],
   });
 
   const [state, setState] = useState({
     loading: true,
-    error: "",
+    error: '',
     items: [],
     pagination: null,
     counts: null,
@@ -79,7 +79,7 @@ function ShipmentList() {
     setPartners((current) => ({
       ...current,
       loading: true,
-      error: "",
+      error: '',
     }));
 
     async function loadPartners() {
@@ -91,7 +91,7 @@ function ShipmentList() {
       while (nextPage < totalPages) {
         const data = await apiRequest(
           `/api/v1/admin/shipping-partners?page=${nextPage}&limit=100`,
-          { signal: controller.signal },
+          { signal: controller.signal }
         );
 
         if (controller.signal.aborted) return;
@@ -107,7 +107,7 @@ function ShipmentList() {
 
       setPartners({
         loading: false,
-        error: "",
+        error: '',
         items,
       });
     }
@@ -118,7 +118,7 @@ function ShipmentList() {
       setPartners((current) => ({
         ...current,
         loading: false,
-        error: error.message || "Không tải được danh sách đối tác.",
+        error: error.message || 'Không tải được danh sách đối tác.',
       }));
     });
 
@@ -131,7 +131,7 @@ function ShipmentList() {
     setState((current) => ({
       ...current,
       loading: true,
-      error: "",
+      error: '',
     }));
 
     const timer = setTimeout(async () => {
@@ -141,15 +141,15 @@ function ShipmentList() {
       });
 
       if (keyword.trim()) {
-        params.set("keyword", keyword.trim());
+        params.set('keyword', keyword.trim());
       }
 
       if (status) {
-        params.set("trang_thai_giao_hang", status);
+        params.set('trang_thai_giao_hang', status);
       }
 
       if (partnerId) {
-        params.set("doi_tac_van_chuyen_id", partnerId);
+        params.set('doi_tac_van_chuyen_id', partnerId);
       }
 
       try {
@@ -159,10 +159,7 @@ function ShipmentList() {
 
         if (controller.signal.aborted) return;
 
-        const lastPage = Math.max(
-          1,
-          Number(data?.pagination?.total_pages) || 1,
-        );
+        const lastPage = Math.max(1, Number(data?.pagination?.total_pages) || 1);
 
         if (page > lastPage) {
           setPage(lastPage);
@@ -171,7 +168,7 @@ function ShipmentList() {
 
         setState({
           loading: false,
-          error: "",
+          error: '',
           items: data?.items || [],
           pagination: data?.pagination || null,
           counts: data?.thong_ke_trang_thai || null,
@@ -181,7 +178,7 @@ function ShipmentList() {
 
         setState({
           loading: false,
-          error: error.message || "Không tải được phiếu giao hàng.",
+          error: error.message || 'Không tải được phiếu giao hàng.',
           items: [],
           pagination: null,
           counts: null,
@@ -252,20 +249,18 @@ function ShipmentList() {
             setPage(1);
           }}
         >
-          <option value="">
-            {partners.loading ? "Đang tải đối tác..." : "Tất cả đối tác"}
-          </option>
+          <option value="">{partners.loading ? 'Đang tải đối tác...' : 'Tất cả đối tác'}</option>
 
           {partners.items.map((partner) => (
             <option key={partner.id} value={String(partner.id)}>
               {partner.ten_doi_tac}
-              {Number(partner.trang_thai) === 0 ? " (Ngừng hoạt động)" : ""}
+              {Number(partner.trang_thai) === 0 ? ' (Ngừng hoạt động)' : ''}
             </option>
           ))}
         </select>
 
         <span className="delivery-count" aria-live="polite">
-          {state.loading || state.error ? "—" : total} PHIẾU
+          {state.loading || state.error ? '—' : total} PHIẾU
         </span>
 
         <button
@@ -293,10 +288,7 @@ function ShipmentList() {
       )}
 
       <div className="delivery-table-scroll">
-        <table
-          className="delivery-table"
-          aria-label="Danh sách phiếu giao hàng"
-        >
+        <table className="delivery-table" aria-label="Danh sách phiếu giao hàng">
           <colgroup>
             {Array.from({ length: 13 }, (_, index) => (
               <col key={index} />
@@ -359,9 +351,9 @@ function ShipmentList() {
                     <td>
                       <span
                         className="delivery-list-code delivery-list-ellipsis"
-                        title={item.ma_van_don || ""}
+                        title={item.ma_van_don || ''}
                       >
-                        {item.ma_van_don || "—"}
+                        {item.ma_van_don || '—'}
                       </span>
                     </td>
 
@@ -371,9 +363,7 @@ function ShipmentList() {
                         className="delivery-link delivery-list-ellipsis"
                         title={item.ma_don_hang}
                         onClick={() =>
-                          navigate(
-                            `/admin/don-hang/danh-sach-don-hang/${item.don_hang_id}`,
-                          )
+                          navigate(`/admin/don-hang/danh-sach-don-hang/${item.don_hang_id}`)
                         }
                       >
                         {item.ma_don_hang}
@@ -395,19 +385,14 @@ function ShipmentList() {
                           className="delivery-partner-link"
                           title={partner.ten_doi_tac}
                           onClick={() =>
-                            navigate(
-                              "/admin/khach-hang-doi-tac/doi-tac-van-chuyen",
-                              {
-                                state: {
-                                  partnerId: Number(partner.id),
-                                },
+                            navigate('/admin/khach-hang-doi-tac/doi-tac-van-chuyen', {
+                              state: {
+                                partnerId: Number(partner.id),
                               },
-                            )
+                            })
                           }
                         >
-                          <b className="delivery-list-ellipsis">
-                            {partner.ten_doi_tac}
-                          </b>
+                          <b className="delivery-list-ellipsis">{partner.ten_doi_tac}</b>
                           <small>{partner.ma_doi_tac}</small>
                         </button>
                       ) : (
@@ -417,39 +402,30 @@ function ShipmentList() {
 
                     <td>
                       {cod > 0 ? (
-                        <strong className="delivery-money-red">
-                          {money(cod)}
-                        </strong>
+                        <strong className="delivery-money-red">{money(cod)}</strong>
                       ) : (
                         <span className="delivery-muted">Không thu</span>
                       )}
                     </td>
 
                     <td>
-                      <strong className="delivery-money">
-                        {money(item.phi_tra_doi_tac ?? 0)}
-                      </strong>
+                      <strong className="delivery-money">{money(item.phi_tra_doi_tac ?? 0)}</strong>
                     </td>
 
                     <td>
-                      <span
-                        className="delivery-list-ellipsis"
-                        title={item.ten_nguoi_nhan || ""}
-                      >
-                        {item.ten_nguoi_nhan || "—"}
+                      <span className="delivery-list-ellipsis" title={item.ten_nguoi_nhan || ''}>
+                        {item.ten_nguoi_nhan || '—'}
                       </span>
                     </td>
 
-                    <td className="delivery-list-phone">
-                      {item.sdt_nguoi_nhan || "—"}
-                    </td>
+                    <td className="delivery-list-phone">{item.sdt_nguoi_nhan || '—'}</td>
 
                     <td>
                       <span
                         className="delivery-list-address delivery-list-ellipsis"
-                        title={item.dia_chi_giao_hang || ""}
+                        title={item.dia_chi_giao_hang || ''}
                       >
-                        {item.dia_chi_giao_hang || "—"}
+                        {item.dia_chi_giao_hang || '—'}
                       </span>
                     </td>
 
@@ -461,9 +437,7 @@ function ShipmentList() {
                       <button
                         type="button"
                         className="delivery-detail-btn"
-                        onClick={() =>
-                          navigate(`${LIST}/${encodeURIComponent(item.id)}`)
-                        }
+                        onClick={() => navigate(`${LIST}/${encodeURIComponent(item.id)}`)}
                       >
                         XEM CHI TIẾT
                       </button>
@@ -487,24 +461,22 @@ function ShipmentList() {
               key={value}
               type="button"
               className={[
-                "delivery-status-count",
+                'delivery-status-count',
                 `delivery-status--${value}`,
-                status === value ? "is-selected" : "",
+                status === value ? 'is-selected' : '',
               ]
                 .filter(Boolean)
-                .join(" ")}
+                .join(' ')}
               aria-pressed={status === value}
               disabled={state.loading}
               onClick={() => {
-                setStatus((current) => (current === value ? "" : value));
+                setStatus((current) => (current === value ? '' : value));
                 setPage(1);
               }}
             >
               <span>{label(value)}</span>
 
-              <strong>
-                {state.loading ? "—" : (state.counts?.[value] ?? "—")}
-              </strong>
+              <strong>{state.loading ? '—' : (state.counts?.[value] ?? '—')}</strong>
             </button>
           ))}
         </div>
@@ -536,11 +508,11 @@ function ShipmentDetail({ id }) {
 
   const [delivery, setDelivery] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState("");
-  const [operationError, setOperationError] = useState("");
+  const [loadError, setLoadError] = useState('');
+  const [operationError, setOperationError] = useState('');
   const [busy, setBusy] = useState(false);
-  const [modal, setModal] = useState("");
-  const [notice, setNotice] = useState("");
+  const [modal, setModal] = useState('');
+  const [notice, setNotice] = useState('');
   const [returnDocument, setReturnDocument] = useState(null);
   const [revision, setRevision] = useState(0);
 
@@ -559,7 +531,7 @@ function ShipmentDetail({ id }) {
     const controller = new AbortController();
 
     setLoading(true);
-    setLoadError("");
+    setLoadError('');
 
     apiRequest(`${API}/${encodeURIComponent(id)}`, {
       signal: controller.signal,
@@ -568,7 +540,7 @@ function ShipmentDetail({ id }) {
         if (controller.signal.aborted) return;
 
         if (!data?.id) {
-          throw new Error("Không nhận được dữ liệu phiếu giao hàng.");
+          throw new Error('Không nhận được dữ liệu phiếu giao hàng.');
         }
 
         setDelivery(data);
@@ -576,7 +548,7 @@ function ShipmentDetail({ id }) {
       })
       .catch((error) => {
         if (!controller.signal.aborted) {
-          setLoadError(error.message || "Không tải được phiếu giao hàng.");
+          setLoadError(error.message || 'Không tải được phiếu giao hàng.');
         }
       })
       .finally(() => {
@@ -593,15 +565,15 @@ function ShipmentDetail({ id }) {
       return;
     }
 
-    setOperationError("");
-    setNotice("");
+    setOperationError('');
+    setNotice('');
     setModal(kind);
   };
 
   const close = () => {
     if (!operationBusy.current) {
-      setModal("");
-      setOperationError("");
+      setModal('');
+      setOperationError('');
     }
   };
 
@@ -610,7 +582,7 @@ function ShipmentDetail({ id }) {
 
     operationBusy.current = true;
     setBusy(true);
-    setOperationError("");
+    setOperationError('');
 
     const command = {
       method,
@@ -622,8 +594,7 @@ function ShipmentDetail({ id }) {
     try {
       const send = async (key, payload) => {
         const path =
-          `${API}/${encodeURIComponent(id)}` +
-          (payload.suffix ? `/${payload.suffix}` : "");
+          `${API}/${encodeURIComponent(id)}` + (payload.suffix ? `/${payload.suffix}` : '');
 
         return apiRequest(path, {
           method: payload.method,
@@ -631,7 +602,7 @@ function ShipmentDetail({ id }) {
           ...(key
             ? {
                 headers: {
-                  "Idempotency-Key": key,
+                  'Idempotency-Key': key,
                 },
               }
             : {}),
@@ -640,15 +611,10 @@ function ShipmentDetail({ id }) {
         });
       };
 
-      const usesIdempotency = ["status", "return-receipt"].includes(suffix);
+      const usesIdempotency = ['status', 'return-receipt'].includes(suffix);
 
       const result = usesIdempotency
-        ? await withIdempotency(
-            deliveryAttempt,
-            `delivery:${id}:${suffix}`,
-            command,
-            send,
-          )
+        ? await withIdempotency(deliveryAttempt, `delivery:${id}:${suffix}`, command, send)
         : await send(null, command);
 
       if (!mounted.current) return;
@@ -663,11 +629,11 @@ function ShipmentDetail({ id }) {
       }
 
       setNotice(message);
-      setModal("");
+      setModal('');
       setRevision((value) => value + 1);
     } catch (error) {
       if (mounted.current) {
-        setOperationError(error.message || "Không thực hiện được thao tác.");
+        setOperationError(error.message || 'Không thực hiện được thao tác.');
       }
     } finally {
       operationBusy.current = false;
@@ -694,15 +660,10 @@ function ShipmentDetail({ id }) {
     return (
       <section className="delivery-page delivery-detail-page">
         <div className="delivery-not-found">
-          <p role={loadError ? "alert" : "status"}>
-            {loadError || "Đang tải phiếu giao hàng..."}
-          </p>
+          <p role={loadError ? 'alert' : 'status'}>{loadError || 'Đang tải phiếu giao hàng...'}</p>
 
           {loadError && (
-            <button
-              type="button"
-              onClick={() => setRevision((value) => value + 1)}
-            >
+            <button type="button" onClick={() => setRevision((value) => value + 1)}>
               THỬ LẠI
             </button>
           )}
@@ -721,39 +682,37 @@ function ShipmentDetail({ id }) {
   const totals = delivery.tong_tien || {};
   const status = delivery.trang_thai_giao_hang;
   const locked = busy || loading;
+  const waitingCod = isWaitingCodSettlement(order, delivery);
 
   const openOrder =
-    order.loai_don_hang === "ONLINE" &&
-    !["HUY_HANG", "HOAN_THANH"].includes(order.trang_thai_don_hang) &&
-    order.trang_thai_xuat_kho !== "DA_HOAN_KHO";
+    order.loai_don_hang === 'ONLINE' &&
+    !['HUY_HANG', 'HOAN_THANH'].includes(order.trang_thai_don_hang) &&
+    order.trang_thai_xuat_kho !== 'DA_HOAN_KHO';
 
   const packedAndExported =
-    order.trang_thai_dong_goi === "DA_DONG_GOI" &&
-    order.trang_thai_xuat_kho === "DA_XUAT_KHO";
+    order.trang_thai_dong_goi === 'DA_DONG_GOI' && order.trang_thai_xuat_kho === 'DA_XUAT_KHO';
 
   const inTransit =
-    openOrder &&
-    packedAndExported &&
-    order.trang_thai_don_hang === "DANG_GIAO_HANG";
+    openOrder && packedAndExported && order.trang_thai_don_hang === 'DANG_GIAO_HANG';
 
   const canHandoff =
-    status === "CHO_GIAO" &&
+    status === 'CHO_GIAO' &&
     openOrder &&
     packedAndExported &&
-    order.trang_thai_don_hang === "CHO_LAY_HANG";
+    order.trang_thai_don_hang === 'CHO_LAY_HANG';
 
   const canCancel =
-    status === "CHO_GIAO" &&
+    status === 'CHO_GIAO' &&
     openOrder &&
-    order.trang_thai_don_hang === "CHO_DONG_GOI" &&
-    order.trang_thai_xuat_kho === "CHUA_XUAT_KHO" &&
-    ["DANG_DONG_GOI", "DA_DONG_GOI"].includes(order.trang_thai_dong_goi);
+    order.trang_thai_don_hang === 'CHO_DONG_GOI' &&
+    order.trang_thai_xuat_kho === 'CHUA_XUAT_KHO' &&
+    ['DANG_DONG_GOI', 'DA_DONG_GOI'].includes(order.trang_thai_dong_goi);
 
   const stages = [
-    ["ĐƠN HÀNG", order.trang_thai_don_hang],
-    ["THANH TOÁN", order.trang_thai_thanh_toan],
-    ["ĐÓNG GÓI", order.trang_thai_dong_goi],
-    ["XUẤT KHO", order.trang_thai_xuat_kho],
+    ['ĐƠN HÀNG', orderDisplayStatus(order, delivery)],
+    ['THANH TOÁN', order.trang_thai_thanh_toan],
+    ['ĐÓNG GÓI', order.trang_thai_dong_goi],
+    ['XUẤT KHO', order.trang_thai_xuat_kho],
   ];
 
   return (
@@ -780,16 +739,9 @@ function ShipmentDetail({ id }) {
       <div className="delivery-detail-inner">
         {deliveryAttempt.current && (
           <div className="delivery-feedback is-warning" role="status">
-            <span>
-              Chưa xác định được kết quả. Dữ liệu đang được giữ nguyên để thử
-              lại.
-            </span>
+            <span>Chưa xác định được kết quả. Dữ liệu đang được giữ nguyên để thử lại.</span>
 
-            <button
-              type="button"
-              disabled={busy}
-              onClick={retryDeliveryOperation}
-            >
+            <button type="button" disabled={busy} onClick={retryDeliveryOperation}>
               THỬ LẠI YÊU CẦU CŨ
             </button>
           </div>
@@ -814,15 +766,30 @@ function ShipmentDetail({ id }) {
           </div>
         )}
 
+        {waitingCod && (
+          <div className="delivery-feedback is-warning" role="status">
+            <span>
+              Khách đã nhận hàng và trả đủ COD. Cửa hàng đang chờ đối tác nộp{' '}
+              {money(delivery.tien_thu_ho_cod)}. Đơn hàng chưa hoàn thành.
+            </span>
+
+            <button
+              type="button"
+              disabled={locked}
+              onClick={() => navigate(`/admin/don-hang/danh-sach-don-hang/${order.id}`)}
+            >
+              MỞ ĐƠN HÀNG
+            </button>
+          </div>
+        )}
+
         {returnDocument && (
           <div className="delivery-feedback">
             <span>
               Phiếu trả: <strong>{returnDocument.ma_tra_hang}</strong>.
               {returnDocument.can_hoan_tien
-                ? ` Khoản cần xử lý hoàn tiền: ${money(
-                    returnDocument.tong_tien_hoan,
-                  )}.`
-                : " Không phát sinh khoản hoàn tiền."}
+                ? ` Khoản cần xử lý hoàn tiền: ${money(returnDocument.tong_tien_hoan)}.`
+                : ' Không phát sinh khoản hoàn tiền.'}
             </span>
           </div>
         )}
@@ -846,19 +813,17 @@ function ShipmentDetail({ id }) {
             <ShipmentPanel
               title="THÔNG TIN GIAO HÀNG"
               tools={
-                status === "CHO_GIAO" && openOrder ? (
+                status === 'CHO_GIAO' && openOrder ? (
                   <button
                     type="button"
                     className="delivery-small-btn"
                     disabled={locked}
-                    onClick={() => open("edit")}
+                    onClick={() => open('edit')}
                   >
                     CHỈNH SỬA THÔNG TIN VẬN ĐƠN
                   </button>
                 ) : (
-                  <span className="delivery-lock-note">
-                    THÔNG TIN VẬN ĐƠN ĐÃ KHÓA
-                  </span>
+                  <span className="delivery-lock-note">THÔNG TIN VẬN ĐƠN ĐÃ KHÓA</span>
                 )
               }
             >
@@ -866,29 +831,19 @@ function ShipmentDetail({ id }) {
                 <ShipmentInfo title="MÃ PHIẾU GIAO HÀNG">
                   {delivery.ma_phieu_giao_hang}
                 </ShipmentInfo>
-                <ShipmentInfo title="MÃ VẬN ĐƠN">
-                  {delivery.ma_van_don || "—"}
-                </ShipmentInfo>
+                <ShipmentInfo title="MÃ VẬN ĐƠN">{delivery.ma_van_don || '—'}</ShipmentInfo>
                 <ShipmentInfo title="TRẠNG THÁI">{label(status)}</ShipmentInfo>
-                <ShipmentInfo title="NGÀY TẠO">
-                  {dateTime(delivery.ngay_tao)}
-                </ShipmentInfo>
-                <ShipmentInfo title="NGƯỜI NHẬN">
-                  {recipient.ten_nguoi_nhan || "—"}
-                </ShipmentInfo>
-                <ShipmentInfo title="SỐ ĐIỆN THOẠI">
-                  {recipient.sdt_nguoi_nhan || "—"}
-                </ShipmentInfo>
+                <ShipmentInfo title="NGÀY TẠO">{dateTime(delivery.ngay_tao)}</ShipmentInfo>
+                <ShipmentInfo title="NGƯỜI NHẬN">{recipient.ten_nguoi_nhan || '—'}</ShipmentInfo>
+                <ShipmentInfo title="SỐ ĐIỆN THOẠI">{recipient.sdt_nguoi_nhan || '—'}</ShipmentInfo>
                 <ShipmentInfo title="ĐỊA CHỈ GIAO HÀNG" wide>
-                  {recipient.dia_chi_giao_hang || "—"}
+                  {recipient.dia_chi_giao_hang || '—'}
                 </ShipmentInfo>
                 <ShipmentInfo title="MÃ ĐƠN HÀNG">
                   <button
                     type="button"
                     className="delivery-link"
-                    onClick={() =>
-                      navigate(`/admin/don-hang/danh-sach-don-hang/${order.id}`)
-                    }
+                    onClick={() => navigate(`/admin/don-hang/danh-sach-don-hang/${order.id}`)}
                   >
                     {order.ma_don_hang}
                   </button>
@@ -923,12 +878,10 @@ function ShipmentDetail({ id }) {
                           <strong>{item.ten_san_pham}</strong>
                           <small>{item.ma_san_pham}</small>
                         </td>
-                        <td>{item.ten_phien_ban || "—"}</td>
+                        <td>{item.ten_phien_ban || '—'}</td>
                         <td>{money(item.don_gia)}</td>
                         <td>{item.so_luong}</td>
-                        <td className="delivery-money-red">
-                          {money(item.thanh_tien)}
-                        </td>
+                        <td className="delivery-money-red">{money(item.thanh_tien)}</td>
                       </tr>
                     ))}
 
@@ -951,18 +904,10 @@ function ShipmentDetail({ id }) {
               />
 
               <dl className="delivery-summary">
-                <ShipmentInfo title="Tổng tiền hàng">
-                  {money(totals.tong_tien_hang)}
-                </ShipmentInfo>
-                <ShipmentInfo title="Chiết khấu">
-                  {money(totals.tien_chiet_khau)}
-                </ShipmentInfo>
-                <ShipmentInfo title="VAT">
-                  {money(totals.tong_tien_vat)}
-                </ShipmentInfo>
-                <ShipmentInfo title="Phí giao hàng">
-                  {money(totals.phi_giao_hang)}
-                </ShipmentInfo>
+                <ShipmentInfo title="Tổng tiền hàng">{money(totals.tong_tien_hang)}</ShipmentInfo>
+                <ShipmentInfo title="Chiết khấu">{money(totals.tien_chiet_khau)}</ShipmentInfo>
+                <ShipmentInfo title="VAT">{money(totals.tong_tien_vat)}</ShipmentInfo>
+                <ShipmentInfo title="Phí giao hàng">{money(totals.phi_giao_hang)}</ShipmentInfo>
                 <div className="delivery-total">
                   <dt>KHÁCH PHẢI TRẢ</dt>
                   <dd>{money(totals.tong_thanh_toan)}</dd>
@@ -980,35 +925,30 @@ function ShipmentDetail({ id }) {
                       type="button"
                       className="delivery-link"
                       onClick={() =>
-                        navigate(
-                          "/admin/khach-hang-doi-tac/doi-tac-van-chuyen",
-                          { state: { partnerId: Number(partner.id) } },
-                        )
+                        navigate('/admin/khach-hang-doi-tac/doi-tac-van-chuyen', {
+                          state: { partnerId: Number(partner.id) },
+                        })
                       }
                     >
                       {partner.ten_doi_tac}
                     </button>
                   ) : (
-                    "—"
+                    '—'
                   )}
                 </ShipmentInfo>
-                <ShipmentInfo title="MÃ ĐỐI TÁC">
-                  {partner.ma_doi_tac || "—"}
-                </ShipmentInfo>
+                <ShipmentInfo title="MÃ ĐỐI TÁC">{partner.ma_doi_tac || '—'}</ShipmentInfo>
                 <ShipmentInfo title="LOẠI ĐỐI TÁC">
-                  {partner.loai_doi_tac === "SHIP_CUA_HANG"
-                    ? "Ship cửa hàng"
-                    : partner.loai_doi_tac === "SHIP_CA_NHAN"
-                      ? "Ship cá nhân"
-                      : "—"}
+                  {partner.loai_doi_tac === 'SHIP_CUA_HANG'
+                    ? 'Ship cửa hàng'
+                    : partner.loai_doi_tac === 'SHIP_CA_NHAN'
+                      ? 'Ship cá nhân'
+                      : '—'}
                 </ShipmentInfo>
-                <ShipmentInfo title="MÃ VẬN ĐƠN">
-                  {delivery.ma_van_don || "—"}
-                </ShipmentInfo>
+                <ShipmentInfo title="MÃ VẬN ĐƠN">{delivery.ma_van_don || '—'}</ShipmentInfo>
                 <ShipmentInfo title="TIỀN THU HỘ COD">
                   {Number(delivery.tien_thu_ho_cod) > 0
                     ? money(delivery.tien_thu_ho_cod)
-                    : "Không thu COD"}
+                    : 'Không thu COD'}
                 </ShipmentInfo>
                 <ShipmentInfo title="PHÍ TRẢ ĐỐI TÁC">
                   {money(delivery.phi_tra_doi_tac)}
@@ -1028,30 +968,30 @@ function ShipmentDetail({ id }) {
                     type="button"
                     className="delivery-action black"
                     disabled={locked}
-                    onClick={() => open("handoff")}
+                    onClick={() => open('handoff')}
                   >
                     XÁC NHẬN ĐỐI TÁC ĐÃ NHẬN HÀNG
                   </button>
                 )}
 
-                {status === "DA_NHAN_HANG" && inTransit && (
+                {status === 'DA_NHAN_HANG' && inTransit && (
                   <button
                     type="button"
                     className="delivery-action black"
                     disabled={locked}
-                    onClick={() => open("transit")}
+                    onClick={() => open('transit')}
                   >
                     CẬP NHẬT ĐANG GIAO
                   </button>
                 )}
 
-                {status === "DANG_GIAO" && inTransit && (
+                {status === 'DANG_GIAO' && inTransit && (
                   <>
                     <button
                       type="button"
                       className="delivery-action success"
                       disabled={locked}
-                      onClick={() => open("success")}
+                      onClick={() => open('success')}
                     >
                       GIAO THÀNH CÔNG
                     </button>
@@ -1060,14 +1000,14 @@ function ShipmentDetail({ id }) {
                       type="button"
                       className="delivery-action danger"
                       disabled={locked}
-                      onClick={() => open("failure")}
+                      onClick={() => open('failure')}
                     >
                       GIAO THẤT BẠI
                     </button>
                   </>
                 )}
 
-                {status === "CHO_HOAN_HANG" && (
+                {status === 'CHO_HOAN_HANG' && (
                   <>
                     <p className="delivery-action waiting">
                       ĐANG CHỜ ĐỐI TÁC HOÀN HÀNG VỀ CỬA HÀNG
@@ -1077,7 +1017,7 @@ function ShipmentDetail({ id }) {
                       type="button"
                       className="delivery-action return"
                       disabled={locked || !inTransit}
-                      onClick={() => open("return")}
+                      onClick={() => open('return')}
                     >
                       XÁC NHẬN ĐÃ NHẬN HÀNG HOÀN
                     </button>
@@ -1089,29 +1029,25 @@ function ShipmentDetail({ id }) {
                     type="button"
                     className="delivery-action danger"
                     disabled={locked}
-                    onClick={() => open("cancel")}
+                    onClick={() => open('cancel')}
                   >
                     HỦY PHIẾU GIAO HÀNG
                   </button>
                 )}
 
-                {status === "GIAO_THANH_CONG" && (
-                  <p className="delivery-terminal">
-                    ĐƠN HÀNG ĐÃ GIAO THÀNH CÔNG
-                  </p>
+                {status === 'GIAO_THANH_CONG' && (
+                  <p className="delivery-terminal">ĐƠN HÀNG ĐÃ GIAO THÀNH CÔNG</p>
                 )}
 
-                {status === "DA_HOAN_HANG" && (
-                  <p className="delivery-terminal">
-                    ĐÃ NHẬN HÀNG HOÀN VÀ NHẬP LẠI KHO
-                  </p>
+                {status === 'DA_HOAN_HANG' && (
+                  <p className="delivery-terminal">ĐÃ NHẬN HÀNG HOÀN VÀ NHẬP LẠI KHO</p>
                 )}
 
-                {status === "HUY_GIAO_HANG" && (
+                {status === 'HUY_GIAO_HANG' && (
                   <p className="delivery-terminal">PHIẾU GIAO HÀNG ĐÃ HỦY</p>
                 )}
 
-                {status === "CHO_GIAO" && !canHandoff && !canCancel && (
+                {status === 'CHO_GIAO' && !canHandoff && !canCancel && (
                   <p className="delivery-terminal">
                     Hoàn tất đóng gói và xuất kho trước khi bàn giao hàng.
                   </p>
@@ -1122,7 +1058,7 @@ function ShipmentDetail({ id }) {
         </div>
       </div>
 
-      {!deliveryAttempt.current && modal === "edit" && (
+      {!deliveryAttempt.current && modal === 'edit' && (
         <ShipmentEditDialog
           delivery={delivery}
           busy={busy}
@@ -1132,7 +1068,7 @@ function ShipmentDetail({ id }) {
         />
       )}
 
-      {!deliveryAttempt.current && modal === "return" && (
+      {!deliveryAttempt.current && modal === 'return' && (
         <ShipmentReturnDialog
           delivery={delivery}
           busy={busy}
@@ -1143,9 +1079,7 @@ function ShipmentDetail({ id }) {
       )}
 
       {!deliveryAttempt.current &&
-        ["handoff", "transit", "success", "failure", "cancel"].includes(
-          modal,
-        ) && (
+        ['handoff', 'transit', 'success', 'failure', 'cancel'].includes(modal) && (
           <ShipmentStatusDialog
             key={modal}
             kind={modal}
@@ -1161,14 +1095,12 @@ function ShipmentDetail({ id }) {
 }
 
 function ShipmentEditDialog({ delivery, busy, error, close, submit }) {
-  const [partnerId, setPartnerId] = useState(
-    String(delivery.doi_tac_van_chuyen?.id || ""),
-  );
-  const [tracking, setTracking] = useState(delivery.ma_van_don || "");
+  const [partnerId, setPartnerId] = useState(String(delivery.doi_tac_van_chuyen?.id || ''));
+  const [tracking, setTracking] = useState(delivery.ma_van_don || '');
   const [fee, setFee] = useState(String(delivery.phi_tra_doi_tac ?? 0));
   const [partners, setPartners] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState("");
+  const [loadError, setLoadError] = useState('');
   const [revision, setRevision] = useState(0);
 
   useEffect(() => {
@@ -1176,7 +1108,7 @@ function ShipmentEditDialog({ delivery, busy, error, close, submit }) {
 
     const load = async () => {
       setLoading(true);
-      setLoadError("");
+      setLoadError('');
 
       try {
         const items = [];
@@ -1185,27 +1117,22 @@ function ShipmentEditDialog({ delivery, busy, error, close, submit }) {
         for (let page = 0; page < totalPages; page++) {
           const result = await apiRequest(
             `/api/v1/admin/shipping-partners?trang_thai=1&page=${page}&limit=100`,
-            { signal: controller.signal },
+            { signal: controller.signal }
           );
 
           if (controller.signal.aborted) return;
 
           items.push(...(result?.items || []));
 
-          totalPages = Math.max(
-            1,
-            Number(result?.pagination?.total_pages) || 1,
-          );
+          totalPages = Math.max(1, Number(result?.pagination?.total_pages) || 1);
         }
 
-        const activePartners = items.filter(
-          (item) => requireBasicStatus(item.trang_thai) === 1,
-        );
+        const activePartners = items.filter((item) => requireBasicStatus(item.trang_thai) === 1);
 
         setPartners(activePartners);
       } catch (exception) {
         if (!controller.signal.aborted) {
-          setLoadError(exception.message || "Không tải được đối tác.");
+          setLoadError(exception.message || 'Không tải được đối tác.');
         }
       } finally {
         if (!controller.signal.aborted) {
@@ -1238,14 +1165,14 @@ function ShipmentEditDialog({ delivery, busy, error, close, submit }) {
       confirmLabel="LƯU THÔNG TIN"
       submit={() =>
         submit(
-          "PUT",
-          "",
+          'PUT',
+          '',
           {
             doi_tac_van_chuyen_id: Number(partnerId),
             ma_van_don: tracking.trim() || null,
             phi_tra_doi_tac: Number(fee),
           },
-          "Đã cập nhật thông tin vận đơn.",
+          'Đã cập nhật thông tin vận đơn.'
         )
       }
     >
@@ -1257,9 +1184,7 @@ function ShipmentEditDialog({ delivery, busy, error, close, submit }) {
           disabled={loading}
           onChange={(event) => setPartnerId(event.target.value)}
         >
-          <option value="">
-            {loading ? "Đang tải đối tác..." : "Chọn đối tác"}
-          </option>
+          <option value="">{loading ? 'Đang tải đối tác...' : 'Chọn đối tác'}</option>
           {partners.map((item) => (
             <option key={item.id} value={String(item.id)}>
               {item.ten_doi_tac} — {item.ma_doi_tac}
@@ -1305,72 +1230,70 @@ function ShipmentEditDialog({ delivery, busy, error, close, submit }) {
 
 function ShipmentStatusDialog({ kind, delivery, busy, error, close, submit }) {
   const [confirmed, setConfirmed] = useState(false);
-  const [reason, setReason] = useState("");
+  const [reason, setReason] = useState('');
   const cod = Number(delivery.tien_thu_ho_cod || 0);
 
   const configurations = {
     handoff: {
-      title: "XÁC NHẬN ĐỐI TÁC ĐÃ NHẬN HÀNG",
-      target: "DA_NHAN_HANG",
-      confirmLabel: "XÁC NHẬN BÀN GIAO",
-      confirmation: "Tôi xác nhận đã bàn giao hàng cho đối tác.",
-      message: "Đã xác nhận đối tác nhận hàng.",
-      tone: "",
+      title: 'XÁC NHẬN ĐỐI TÁC ĐÃ NHẬN HÀNG',
+      target: 'DA_NHAN_HANG',
+      confirmLabel: 'XÁC NHẬN BÀN GIAO',
+      confirmation: 'Tôi xác nhận đã bàn giao hàng cho đối tác.',
+      message: 'Đã xác nhận đối tác nhận hàng.',
+      tone: '',
     },
     transit: {
-      title: "CẬP NHẬT ĐANG GIAO HÀNG",
-      target: "DANG_GIAO",
-      confirmLabel: "XÁC NHẬN ĐANG GIAO",
-      confirmation: "Tôi xác nhận đối tác đang vận chuyển đơn hàng.",
-      message: "Đã cập nhật trạng thái đang giao hàng.",
-      tone: "",
+      title: 'CẬP NHẬT ĐANG GIAO HÀNG',
+      target: 'DANG_GIAO',
+      confirmLabel: 'XÁC NHẬN ĐANG GIAO',
+      confirmation: 'Tôi xác nhận đối tác đang vận chuyển đơn hàng.',
+      message: 'Đã cập nhật trạng thái đang giao hàng.',
+      tone: '',
     },
     success: {
-      title: "XÁC NHẬN GIAO THÀNH CÔNG",
-      target: "GIAO_THANH_CONG",
-      confirmLabel: "XÁC NHẬN ĐÃ GIAO",
+      title: 'XÁC NHẬN GIAO THÀNH CÔNG',
+      target: 'GIAO_THANH_CONG',
+      confirmLabel: 'XÁC NHẬN ĐÃ GIAO',
       confirmation:
         cod > 0
-          ? "Xác nhận shipper đã thu đủ tiền COD từ khách."
-          : "Tôi xác nhận khách hàng đã nhận đủ hàng.",
-      message: "Đã xác nhận giao hàng thành công.",
-      tone: "is-success",
+          ? 'Xác nhận shipper đã thu đủ tiền COD từ khách.'
+          : 'Tôi xác nhận khách hàng đã nhận đủ hàng.',
+      message: 'Đã xác nhận giao hàng thành công.',
+      tone: 'is-success',
     },
     failure: {
-      title: "XÁC NHẬN GIAO HÀNG THẤT BẠI",
-      target: "GIAO_THAT_BAI",
-      confirmLabel: "XÁC NHẬN THẤT BẠI",
-      confirmation: "Tôi xác nhận đơn hàng giao không thành công.",
-      message: "Đã ghi nhận giao thất bại và chuyển sang chờ hoàn hàng.",
-      tone: "is-danger",
+      title: 'XÁC NHẬN GIAO HÀNG THẤT BẠI',
+      target: 'GIAO_THAT_BAI',
+      confirmLabel: 'XÁC NHẬN THẤT BẠI',
+      confirmation: 'Tôi xác nhận đơn hàng giao không thành công.',
+      message: 'Đã ghi nhận giao thất bại và chuyển sang chờ hoàn hàng.',
+      tone: 'is-danger',
     },
     cancel: {
-      title: "HỦY PHIẾU GIAO HÀNG",
-      confirmLabel: "XÁC NHẬN HỦY",
-      confirmation: "Tôi xác nhận hủy phiếu giao hàng.",
-      message: "Đã hủy phiếu giao hàng.",
-      tone: "is-danger",
+      title: 'HỦY PHIẾU GIAO HÀNG',
+      confirmLabel: 'XÁC NHẬN HỦY',
+      confirmation: 'Tôi xác nhận hủy phiếu giao hàng.',
+      message: 'Đã hủy phiếu giao hàng.',
+      tone: 'is-danger',
     },
   };
 
   const config = configurations[kind];
-  const valid =
-    confirmed &&
-    (kind !== "cancel" || (reason.trim() && reason.trim().length <= 255));
+  const valid = confirmed && (kind !== 'cancel' || (reason.trim() && reason.trim().length <= 255));
 
   const save = () => {
-    if (kind === "cancel") {
-      return submit("POST", "cancel", { ly_do: reason.trim() }, config.message);
+    if (kind === 'cancel') {
+      return submit('POST', 'cancel', { ly_do: reason.trim() }, config.message);
     }
 
     return submit(
-      "PATCH",
-      "status",
+      'PATCH',
+      'status',
       {
         trang_thai_giao_hang: config.target,
-        ...(kind === "success" && cod > 0 ? { xac_nhan_da_thu_cod: true } : {}),
+        ...(kind === 'success' && cod > 0 ? { xac_nhan_da_thu_cod: true } : {}),
       },
-      config.message,
+      config.message
     );
   };
 
@@ -1386,21 +1309,21 @@ function ShipmentStatusDialog({ kind, delivery, busy, error, close, submit }) {
       disabled={!valid}
       confirmLabel={config.confirmLabel}
     >
-      {kind === "success" && (
+      {kind === 'success' && (
         <div className="delivery-cod">
           <span>TIỀN COD CẦN THU</span>
           <strong>{money(cod)}</strong>
         </div>
       )}
 
-      {kind === "failure" && (
+      {kind === 'failure' && (
         <p className="delivery-warning">
-          Hàng sẽ chuyển sang trạng thái CHỜ HOÀN VỀ CỬA HÀNG. Xác nhận nhận
-          hàng hoàn khi hàng đã về kho.
+          Hàng sẽ chuyển sang trạng thái CHỜ HOÀN VỀ CỬA HÀNG. Xác nhận nhận hàng hoàn khi hàng đã
+          về kho.
         </p>
       )}
 
-      {kind === "cancel" && (
+      {kind === 'cancel' && (
         <label className="delivery-field">
           <span>LÝ DO HỦY *</span>
           <textarea
@@ -1425,15 +1348,23 @@ function ShipmentStatusDialog({ kind, delivery, busy, error, close, submit }) {
   );
 }
 
-function ShipmentReturnDialog({ delivery, busy, error, close, submit }) {
+export function ShipmentReturnDialog({
+  delivery,
+  busy,
+  error,
+  close,
+  submit,
+  requirementsUrl = null,
+  beforeHandover = false,
+}) {
   const [requirements, setRequirements] = useState(null);
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState("");
+  const [loadError, setLoadError] = useState('');
   const [revision, setRevision] = useState(0);
 
-  const [reason, setReason] = useState("");
-  const [refundMethod, setRefundMethod] = useState("CHUYEN_KHOAN");
+  const [reason, setReason] = useState('');
+  const [refundMethod, setRefundMethod] = useState('CHUYEN_KHOAN');
   const [confirmed, setConfirmed] = useState(false);
   const [evidence, setEvidence] = useState([]);
   const [receivedAt, setReceivedAt] = useState(receiptInputNow);
@@ -1442,40 +1373,39 @@ function ShipmentReturnDialog({ delivery, busy, error, close, submit }) {
     const controller = new AbortController();
 
     setLoading(true);
-    setLoadError("");
+    setLoadError('');
     setRequirements(null);
     setRows([]);
 
-    apiRequest(
-      `${API}/${encodeURIComponent(delivery.id)}/return-requirements`,
-      { signal: controller.signal },
-    )
+    apiRequest(requirementsUrl || `${API}/${encodeURIComponent(delivery.id)}/return-requirements`, {
+      signal: controller.signal,
+    })
       .then((data) => {
         if (controller.signal.aborted) return;
 
         if (!data?.kho_nhan?.id || !Array.isArray(data.hang_phai_nhan)) {
-          throw new Error("Dữ liệu yêu cầu nhận hoàn không hợp lệ.");
+          throw new Error('Dữ liệu yêu cầu nhận hoàn không hợp lệ.');
         }
 
         const nextRows = data.hang_phai_nhan.map((item) => {
           const quantity = Number(item.so_luong_da_xuat);
 
           if (!Number.isSafeInteger(quantity) || quantity <= 0) {
-            throw new Error("Số lượng xuất gốc chưa có đủ căn cứ.");
+            throw new Error('Số lượng xuất gốc chưa có đủ căn cứ.');
           }
 
           return {
             ...item,
             so_luong_da_xuat: quantity,
             good: String(quantity),
-            bad: "0",
-            resale: "",
-            inspectionNote: "",
+            bad: '0',
+            resale: '',
+            inspectionNote: '',
             serials: (item.thiet_bi || [])
               .filter((device) => device.so_serial_id != null)
               .map((device) => ({
                 ...device,
-                resale: "",
+                resale: '',
               })),
           };
         });
@@ -1486,9 +1416,7 @@ function ShipmentReturnDialog({ delivery, busy, error, close, submit }) {
       })
       .catch((failure) => {
         if (!controller.signal.aborted) {
-          setLoadError(
-            failure.message || "Không tải được căn cứ nhận hàng hoàn.",
-          );
+          setLoadError(failure.message || 'Không tải được căn cứ nhận hàng hoàn.');
         }
       })
       .finally(() => {
@@ -1498,13 +1426,11 @@ function ShipmentReturnDialog({ delivery, busy, error, close, submit }) {
       });
 
     return () => controller.abort();
-  }, [delivery.id, revision]);
+  }, [delivery.id, revision, requirementsUrl]);
 
   const changeRow = (index, values) => {
     setRows((current) =>
-      current.map((row, rowIndex) =>
-        rowIndex === index ? { ...row, ...values } : row,
-      ),
+      current.map((row, rowIndex) => (rowIndex === index ? { ...row, ...values } : row))
     );
   };
 
@@ -1513,10 +1439,10 @@ function ShipmentReturnDialog({ delivery, busy, error, close, submit }) {
       current.map((row, rowIndex) => {
         if (rowIndex !== index) return row;
 
-        if (rawValue === "") {
+        if (rawValue === '') {
           return {
             ...row,
-            [field]: "",
+            [field]: '',
           };
         }
 
@@ -1531,10 +1457,10 @@ function ShipmentReturnDialog({ delivery, busy, error, close, submit }) {
 
         return {
           ...row,
-          good: field === "good" ? String(quantity) : String(limit - quantity),
-          bad: field === "bad" ? String(quantity) : String(limit - quantity),
+          good: field === 'good' ? String(quantity) : String(limit - quantity),
+          bad: field === 'bad' ? String(quantity) : String(limit - quantity),
         };
-      }),
+      })
     );
   };
 
@@ -1548,14 +1474,14 @@ function ShipmentReturnDialog({ delivery, busy, error, close, submit }) {
               serials: row.serials.map((serial) =>
                 Number(serial.so_serial_id) === Number(serialId)
                   ? { ...serial, resale: value }
-                  : serial,
+                  : serial
               ),
-            },
-      ),
+            }
+      )
     );
   };
 
-  let timeError = "";
+  let timeError = '';
 
   try {
     receiptApiTime(receivedAt);
@@ -1570,8 +1496,8 @@ function ShipmentReturnDialog({ delivery, busy, error, close, submit }) {
       (image) =>
         !image.uploading &&
         !image.error &&
-        typeof image.url === "string" &&
-        (image.url.startsWith("https://") || image.url.startsWith("/uploads/")),
+        typeof image.url === 'string' &&
+        (image.url.startsWith('https://') || image.url.startsWith('/uploads/'))
     );
 
   const reasons = requirements?.ly_do_chan || [];
@@ -1606,13 +1532,13 @@ function ShipmentReturnDialog({ delivery, busy, error, close, submit }) {
         serials: row.co_quan_ly_serial
           ? row.serials.map((serial) => ({
               so_serial_id: serial.so_serial_id,
-              du_dieu_kien_ban_lai: serial.resale === "true",
+              du_dieu_kien_ban_lai: serial.resale === 'true',
             }))
           : [],
 
         ...(!row.co_quan_ly_serial
           ? {
-              du_dieu_kien_ban_lai: row.resale === "true",
+              du_dieu_kien_ban_lai: row.resale === 'true',
             }
           : {}),
 
@@ -1623,19 +1549,21 @@ function ShipmentReturnDialog({ delivery, busy, error, close, submit }) {
     };
 
     return submit(
-      "POST",
-      "return-receipt",
+      'POST',
+      beforeHandover ? 'cancel-before-handover' : 'return-receipt',
       body,
-      "Đã nhận đủ hàng hoàn và nhập lại kho.",
+      beforeHandover ? 'Đã hủy đơn và nhận lại đủ hàng.' : 'Đã nhận đủ hàng hoàn và nhập lại kho.'
     );
   };
 
   const moneyEvidence = requirements?.doi_soat_tien;
   const moneyKnown = moneyEvidence?.co_du_can_cu === true;
 
+  const hasRefund = moneyKnown && Number(moneyEvidence.tong_tien_can_hoan) > 0;
+
   return (
     <OrderModal
-      title="XÁC NHẬN HÀNG HOÀN VỀ KHO"
+      title={beforeHandover ? 'HỦY ĐƠN VÀ NHẬN LẠI HÀNG' : 'XÁC NHẬN HÀNG HOÀN VỀ KHO'}
       className="delivery-operation-dialog delivery-return-dialog is-return"
       showClose
       busy={busy}
@@ -1646,8 +1574,7 @@ function ShipmentReturnDialog({ delivery, busy, error, close, submit }) {
       confirmLabel="XÁC NHẬN ĐÃ NHẬN HÀNG HOÀN"
     >
       <p className="delivery-warning">
-        Hàng hoàn được nhập về{" "}
-        <strong>{requirements?.kho_nhan?.ten_kho || "kho cửa hàng"}</strong>.
+        Hàng hoàn được nhập về <strong>{requirements?.kho_nhan?.ten_kho || 'kho cửa hàng'}</strong>.
       </p>
 
       {loading && <p role="status">Đang tải căn cứ nhận hàng hoàn...</p>}
@@ -1680,15 +1607,11 @@ function ShipmentReturnDialog({ delivery, busy, error, close, submit }) {
           <div className="delivery-return-finance">
             <span>KHOẢN CẦN HOÀN CHO KHÁCH</span>
 
-            <strong>
-              {moneyKnown
-                ? money(moneyEvidence.tong_tien_can_hoan)
-                : "Cần xác minh"}
-            </strong>
+            <strong>{moneyKnown ? money(moneyEvidence.tong_tien_can_hoan) : 'Cần xác minh'}</strong>
 
             <p>
-              Khoản này được xác định từ tiền đã thực thu. Nhận hàng về kho chưa
-              thực hiện hoàn tiền.
+              Khoản này được xác định từ tiền đã thực thu. Nhận hàng về kho chưa thực hiện hoàn
+              tiền.
             </p>
           </div>
 
@@ -1703,9 +1626,7 @@ function ShipmentReturnDialog({ delivery, busy, error, close, submit }) {
               onChange={(event) => setReceivedAt(event.target.value)}
             />
 
-            {timeError && (
-              <small className="delivery-return-error">{timeError}</small>
-            )}
+            {timeError && <small className="delivery-return-error">{timeError}</small>}
           </label>
 
           <div className="delivery-return-items">
@@ -1713,9 +1634,8 @@ function ShipmentReturnDialog({ delivery, busy, error, close, submit }) {
               const managed = row.co_quan_ly_serial === true;
 
               const sellable = managed
-                ? row.serials.filter((serial) => serial.resale === "true")
-                    .length
-                : row.resale === "true"
+                ? row.serials.filter((serial) => serial.resale === 'true').length
+                : row.resale === 'true'
                   ? Number(row.good || 0)
                   : 0;
 
@@ -1726,26 +1646,21 @@ function ShipmentReturnDialog({ delivery, busy, error, close, submit }) {
                 >
                   <header className="delivery-return-item-head">
                     <div>
-                      <strong>
-                        {row.ten_san_pham || `Phiên bản #${row.phien_ban_id}`}
-                      </strong>
+                      <strong>{row.ten_san_pham || `Phiên bản #${row.phien_ban_id}`}</strong>
 
-                      <small>{row.ten_phien_ban || "—"}</small>
+                      <small>{row.ten_phien_ban || '—'}</small>
 
-                      {row.ten_dong_don_hang &&
-                        row.ten_dong_don_hang !== row.ten_san_pham && (
-                          <small>Thuộc: {row.ten_dong_don_hang}</small>
-                        )}
+                      {row.ten_dong_don_hang && row.ten_dong_don_hang !== row.ten_san_pham && (
+                        <small>Thuộc: {row.ten_dong_don_hang}</small>
+                      )}
                     </div>
 
-                    {row.la_qua_tang && (
-                      <span className="delivery-return-gift">QUÀ TẶNG</span>
-                    )}
+                    {row.la_qua_tang && <span className="delivery-return-gift">QUÀ TẶNG</span>}
                   </header>
 
                   <p className="delivery-return-quantity-note">
                     Đã xuất: <strong>{row.so_luong_da_xuat}</strong>
-                    {" · "}Đủ điều kiện bán lại: <strong>{sellable}</strong>
+                    {' · '}Đủ điều kiện bán lại: <strong>{sellable}</strong>
                   </p>
 
                   <div className="delivery-return-count-grid">
@@ -1760,9 +1675,7 @@ function ShipmentReturnDialog({ delivery, busy, error, close, submit }) {
                         step="1"
                         required
                         value={row.good}
-                        onChange={(event) =>
-                          changeQuantity(index, "good", event.target.value)
-                        }
+                        onChange={(event) => changeQuantity(index, 'good', event.target.value)}
                       />
                     </label>
 
@@ -1777,9 +1690,7 @@ function ShipmentReturnDialog({ delivery, busy, error, close, submit }) {
                         step="1"
                         required
                         value={row.bad}
-                        onChange={(event) =>
-                          changeQuantity(index, "bad", event.target.value)
-                        }
+                        onChange={(event) => changeQuantity(index, 'bad', event.target.value)}
                       />
                     </label>
                   </div>
@@ -1787,37 +1698,25 @@ function ShipmentReturnDialog({ delivery, busy, error, close, submit }) {
                   {managed ? (
                     <div className="delivery-return-serial-list">
                       {row.serials.map((serial) => (
-                        <label
-                          className="delivery-return-serial"
-                          key={serial.so_serial_id}
-                        >
+                        <label className="delivery-return-serial" key={serial.so_serial_id}>
                           <span>
-                            <strong>
-                              {serial.so_serial ||
-                                `Serial #${serial.so_serial_id}`}
-                            </strong>
+                            <strong>{serial.so_serial || `Serial #${serial.so_serial_id}`}</strong>
 
-                            <small>{serial.ma_theo_doi || ""}</small>
+                            <small>{serial.ma_theo_doi || ''}</small>
                           </span>
 
                           <select
                             required
                             value={serial.resale}
                             onChange={(event) =>
-                              changeSerial(
-                                index,
-                                serial.so_serial_id,
-                                event.target.value,
-                              )
+                              changeSerial(index, serial.so_serial_id, event.target.value)
                             }
                           >
                             <option value="">Kết luận kiểm tra</option>
 
                             <option value="true">Đủ điều kiện bán lại</option>
 
-                            <option value="false">
-                              Không đủ điều kiện bán lại
-                            </option>
+                            <option value="false">Không đủ điều kiện bán lại</option>
                           </select>
                         </label>
                       ))}
@@ -1839,9 +1738,7 @@ function ShipmentReturnDialog({ delivery, busy, error, close, submit }) {
 
                         <option value="true">Đủ điều kiện bán lại</option>
 
-                        <option value="false">
-                          Không đủ điều kiện bán lại
-                        </option>
+                        <option value="false">Không đủ điều kiện bán lại</option>
                       </select>
                     </label>
                   )}
@@ -1864,9 +1761,8 @@ function ShipmentReturnDialog({ delivery, busy, error, close, submit }) {
 
                   {!validReturnRow(row) && (
                     <p className="delivery-return-error">
-                      Cần nhận đủ số lượng đã xuất và kết luận điều kiện bán
-                      lại. Số đủ điều kiện bán lại không được vượt số nguyên
-                      vẹn.
+                      Cần nhận đủ số lượng đã xuất và kết luận điều kiện bán lại. Số đủ điều kiện
+                      bán lại không được vượt số nguyên vẹn.
                     </p>
                   )}
                 </section>
@@ -1875,7 +1771,7 @@ function ShipmentReturnDialog({ delivery, busy, error, close, submit }) {
           </div>
 
           <label className="delivery-field">
-            <span>LÝ DO TRẢ *</span>
+            <span>{beforeHandover ? 'LÝ DO HỦY ĐƠN *' : 'LÝ DO TRẢ *'}</span>
 
             <textarea
               required
@@ -1883,46 +1779,44 @@ function ShipmentReturnDialog({ delivery, busy, error, close, submit }) {
               maxLength={255}
               value={reason}
               onChange={(event) => setReason(event.target.value)}
-              placeholder="Ví dụ: Khách không nhận, đối tác đã hoàn đủ hàng..."
+              placeholder={
+                beforeHandover
+                  ? 'Lý do hủy đơn khi hàng chưa bàn giao...'
+                  : 'Ví dụ: Khách không nhận, đối tác đã hoàn đủ hàng...'
+              }
             />
           </label>
 
           <div className="delivery-return-evidence">
             <strong>ẢNH BẰNG CHỨNG *</strong>
 
-            <p>
-              Chụp hàng thực nhận, serial và tình trạng hàng. Tối đa 50 ảnh.
-            </p>
+            <p>Chụp hàng thực nhận, serial và tình trạng hàng. Tối đa 50 ảnh.</p>
 
             <div inert={busy}>
-              <ImageUploader
-                images={evidence}
-                onImagesChange={setEvidence}
-                folder="general"
-              />
+              <ImageUploader images={evidence} onImagesChange={setEvidence} folder="general" />
             </div>
 
             {!evidenceReady && (
               <small className="delivery-return-error">
-                Cần ít nhất một ảnh tải lên thành công. Hãy xóa ảnh lỗi hoặc ảnh
-                vượt giới hạn.
+                Cần ít nhất một ảnh tải lên thành công. Hãy xóa ảnh lỗi hoặc ảnh vượt giới hạn.
               </small>
             )}
           </div>
 
-          <label className="delivery-field">
-            <span>HÌNH THỨC HOÀN TIỀN DỰ KIẾN *</span>
+          {hasRefund && (
+            <label className="delivery-field">
+              <span>HÌNH THỨC HOÀN TIỀN DỰ KIẾN *</span>
 
-            <select
-              required
-              value={refundMethod}
-              onChange={(event) => setRefundMethod(event.target.value)}
-            >
-              <option value="CHUYEN_KHOAN">Chuyển khoản</option>
-
-              <option value="TIEN_MAT">Tiền mặt</option>
-            </select>
-          </label>
+              <select
+                required
+                value={refundMethod}
+                onChange={(event) => setRefundMethod(event.target.value)}
+              >
+                <option value="CHUYEN_KHOAN">Chuyển khoản</option>
+                <option value="TIEN_MAT">Tiền mặt</option>
+              </select>
+            </label>
+          )}
 
           <label className="delivery-checkbox">
             <input
@@ -1931,9 +1825,7 @@ function ShipmentReturnDialog({ delivery, busy, error, close, submit }) {
               onChange={(event) => setConfirmed(event.target.checked)}
             />
 
-            <span>
-              Tôi xác nhận đã thực nhận đủ hàng và hoàn tất kiểm tra tình trạng.
-            </span>
+            <span>Tôi xác nhận đã thực nhận đủ hàng và hoàn tất kiểm tra tình trạng.</span>
           </label>
         </>
       )}
@@ -1964,32 +1856,30 @@ function validReturnRow(row) {
   }
 
   if (!row.co_quan_ly_serial) {
-    return row.serials.length === 0 && ["true", "false"].includes(row.resale);
+    return row.serials.length === 0 && ['true', 'false'].includes(row.resale);
   }
 
   const serialIds = row.serials.map((serial) => Number(serial.so_serial_id));
 
-  const sellable = row.serials.filter(
-    (serial) => serial.resale === "true",
-  ).length;
+  const sellable = row.serials.filter((serial) => serial.resale === 'true').length;
 
   return (
     serialIds.length === expected &&
     serialIds.every((id) => Number.isSafeInteger(id) && id > 0) &&
     new Set(serialIds).size === expected &&
-    row.serials.every((serial) => ["true", "false"].includes(serial.resale)) &&
+    row.serials.every((serial) => ['true', 'false'].includes(serial.resale)) &&
     sellable <= good
   );
 }
 
 function receiptInputNow() {
-  const seconds = String(new Date().getSeconds()).padStart(2, "0");
+  const seconds = String(new Date().getSeconds()).padStart(2, '0');
   return `${nowLocalInput()}:${seconds}`;
 }
 
 function receiptApiTime(value) {
-  if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:[0-5]\d)?$/.test(value || "")) {
-    throw new Error("Vui lòng nhập thời điểm thực nhận hợp lệ.");
+  if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:[0-5]\d)?$/.test(value || '')) {
+    throw new Error('Vui lòng nhập thời điểm thực nhận hợp lệ.');
   }
 
   // Dùng helper chung để kiểm tra phần ngày và giờ.
@@ -2001,7 +1891,7 @@ function receiptApiTime(value) {
   const parsed = new Date(result);
 
   if (Number.isNaN(parsed.getTime()) || parsed.getTime() > Date.now()) {
-    throw new Error("Thời điểm thực nhận không được nằm trong tương lai.");
+    throw new Error('Thời điểm thực nhận không được nằm trong tương lai.');
   }
 
   return result;
@@ -2009,25 +1899,20 @@ function receiptApiTime(value) {
 
 function returnBlockReason(code) {
   const messages = {
-    EXPORT_HISTORY_UNVERIFIED:
-      "Chưa xác minh đủ hàng và nhận dạng của lần xuất gốc.",
-    PAYMENT_HISTORY_UNVERIFIED:
-      "Chưa đủ chứng từ xác định số tiền đã thu và cần hoàn.",
-    RETURN_ALREADY_EXISTS: "Đơn đã có phiếu trả; cần kiểm tra phiếu đã tạo.",
-    RECIPIENT_HISTORY_UNVERIFIED: "Thông tin liên hệ trên đơn chưa đầy đủ.",
+    EXPORT_HISTORY_UNVERIFIED: 'Chưa xác minh đủ hàng và nhận dạng của lần xuất gốc.',
+    PAYMENT_HISTORY_UNVERIFIED: 'Chưa đủ chứng từ xác định số tiền đã thu và cần hoàn.',
+    RETURN_ALREADY_EXISTS: 'Đơn đã có phiếu trả; cần kiểm tra phiếu đã tạo.',
+    RECIPIENT_HISTORY_UNVERIFIED: 'Thông tin liên hệ trên đơn chưa đầy đủ.',
   };
 
-  return messages[code] || "Dữ liệu nguồn cần được kiểm tra lại.";
+  return messages[code] || 'Dữ liệu nguồn cần được kiểm tra lại.';
 }
 
 function getReturnCounts(row) {
   if (row.quan_ly_serial) {
     return {
-      good: row.serials.filter(
-        (serial) => serial.trang_thai_sau_nhan === "TRONG_KHO",
-      ).length,
-      bad: row.serials.filter((serial) => serial.trang_thai_sau_nhan === "LOI")
-        .length,
+      good: row.serials.filter((serial) => serial.trang_thai_sau_nhan === 'TRONG_KHO').length,
+      bad: row.serials.filter((serial) => serial.trang_thai_sau_nhan === 'LOI').length,
     };
   }
 
@@ -2054,7 +1939,7 @@ function ShipmentPanel({ title, tools, children }) {
 
 function ShipmentInfo({ title, wide = false, children }) {
   return (
-    <div className={wide ? "wide" : undefined}>
+    <div className={wide ? 'wide' : undefined}>
       <dt>{title}</dt>
       <dd>{children}</dd>
     </div>
@@ -2063,8 +1948,6 @@ function ShipmentInfo({ title, wide = false, children }) {
 
 function ShipmentBadge({ value }) {
   return (
-    <span className={`delivery-badge delivery-badge--${value}`}>
-      {label(value).toUpperCase()}
-    </span>
+    <span className={`delivery-badge delivery-badge--${value}`}>{label(value).toUpperCase()}</span>
   );
 }

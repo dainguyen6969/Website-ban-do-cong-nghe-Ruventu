@@ -59,7 +59,7 @@
     gap: 24px;
     padding: 24px;
   }
-  
+
   .info-item {
     flex: 0 0 calc(50% - 24px);
   }

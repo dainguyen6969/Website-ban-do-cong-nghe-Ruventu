@@ -1,22 +1,22 @@
-import { useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { getOrder, startOrderDelivery } from "../api/orderApi";
-import StartDeliveryDialog from "./StartDeliveryDialog";
+import { useEffect, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { getOrder, startOrderDelivery } from '../api/orderApi';
+import StartDeliveryDialog from './StartDeliveryDialog';
 
 export function canStartOrderDelivery(order) {
   return (
-    order?.loai_don_hang === "ONLINE" &&
-    order?.hinh_thuc_nhan_hang === "GIAO_HANG" &&
-    order?.trang_thai_don_hang === "CHO_LAY_HANG" &&
-    order?.trang_thai_dong_goi === "DA_DONG_GOI" &&
-    order?.trang_thai_xuat_kho === "DA_XUAT_KHO"
+    order?.loai_don_hang === 'ONLINE' &&
+    order?.hinh_thuc_nhan_hang === 'GIAO_HANG' &&
+    order?.trang_thai_don_hang === 'CHO_LAY_HANG' &&
+    order?.trang_thai_dong_goi === 'DA_DONG_GOI' &&
+    order?.trang_thai_xuat_kho === 'DA_XUAT_KHO'
   );
 }
 
 export default function OrderDeliveryButton({
   order,
   disabled = false,
-  className = "order-detail-button order-delivery-button",
+  className = 'order-detail-button order-delivery-button',
   onCompleted,
 }) {
   const navigate = useNavigate();
@@ -26,7 +26,7 @@ export default function OrderDeliveryButton({
 
   const [dialogOrder, setDialogOrder] = useState(null);
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState("");
+  const [error, setError] = useState('');
 
   useEffect(() => {
     alive.current = true;
@@ -42,7 +42,7 @@ export default function OrderDeliveryButton({
 
     locked.current = true;
     setBusy(true);
-    setError("");
+    setError('');
 
     const controller = new AbortController();
     reading.current = controller;
@@ -55,14 +55,14 @@ export default function OrderDeliveryButton({
 
       if (!canStartOrderDelivery(latest)) {
         throw new Error(
-          "Đơn chưa đủ điều kiện bàn giao hoặc trạng thái đã thay đổi. Hãy tải lại đơn.",
+          'Đơn chưa đủ điều kiện bàn giao hoặc trạng thái đã thay đổi. Hãy tải lại đơn.'
         );
       }
 
       setDialogOrder(latest);
     } catch (failure) {
       if (alive.current && !controller.signal.aborted) {
-        setError(failure.message || "Không tải được đơn hàng.");
+        setError(failure.message || 'Không tải được đơn hàng.');
       }
     } finally {
       locked.current = false;
@@ -76,15 +76,10 @@ export default function OrderDeliveryButton({
 
     locked.current = true;
     setBusy(true);
-    setError("");
+    setError('');
 
     try {
-      const result = await startOrderDelivery(
-        dialogOrder.id,
-        partnerId,
-        fee,
-        tracking,
-      );
+      const result = await startOrderDelivery(dialogOrder.id, partnerId, fee, tracking);
 
       if (!alive.current) return;
 
@@ -94,18 +89,18 @@ export default function OrderDeliveryButton({
         await onCompleted(result);
       } else {
         const delivery = result?.phieu_giao_hang?.find(
-          (item) => item.trang_thai_giao_hang === "DA_NHAN_HANG",
+          (item) => item.trang_thai_giao_hang === 'DA_NHAN_HANG'
         );
 
         if (delivery?.id) {
           navigate(`/admin/don-hang/quan-ly-giao-hang/${delivery.id}`);
         } else {
-          navigate("/admin/don-hang/quan-ly-giao-hang");
+          navigate('/admin/don-hang/quan-ly-giao-hang');
         }
       }
     } catch (failure) {
       if (alive.current) {
-        setError(failure.message || "Không thể bàn giao đơn hàng.");
+        setError(failure.message || 'Không thể bàn giao đơn hàng.');
       }
     } finally {
       locked.current = false;
@@ -117,20 +112,15 @@ export default function OrderDeliveryButton({
   function close() {
     if (locked.current) return;
     setDialogOrder(null);
-    setError("");
+    setError('');
   }
 
   if (!canStartOrderDelivery(order) && !dialogOrder) return null;
 
   return (
     <>
-      <button
-        type="button"
-        className={className}
-        disabled={disabled || busy}
-        onClick={openDialog}
-      >
-        {busy && !dialogOrder ? "ĐANG TẢI..." : "BẮT ĐẦU GIAO HÀNG"}
+      <button type="button" className={className} disabled={disabled || busy} onClick={openDialog}>
+        {busy && !dialogOrder ? 'ĐANG TẢI...' : 'BẮT ĐẦU GIAO HÀNG'}
       </button>
 
       {error && !dialogOrder && (

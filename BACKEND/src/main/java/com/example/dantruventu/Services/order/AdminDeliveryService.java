@@ -261,7 +261,8 @@ public class AdminDeliveryService {
     orderService.recordHistory(
         order,
         "CAP_NHAT_GIAO_VAN",
-        "Cập nhật đối tác, phí trả và mã vận đơn của phiếu " + delivery.getMaPhieuGiaoHang());
+        "Cập nhật đối tác, phí trả và mã vận đơn của phiếu " + delivery.getMaPhieuGiaoHang(),
+        delivery);
     deliveryRepository.flush();
 
     return mapper.toAction(delivery, zone());
@@ -326,18 +327,20 @@ public class AdminDeliveryService {
       if (target == TrangThaiGiaoHangEnum.GIAO_THANH_CONG) {
         confirmCustomerPayment(delivery, request.getXacNhanDaThuCod());
 
+        // Khách thực nhận hàng: ghi mốc giao nhận và kích hoạt bảo hành.
         soldDevices.handover(order);
 
         delivery.setTrangThaiGiaoHang(TrangThaiGiaoHangEnum.GIAO_THANH_CONG);
 
-        // Hoàn thành giao nhận là mốc khách đã thực nhận hàng.
-        // Thanh toán COD vẫn chờ đến khi cửa hàng thực nhận tiền đối tác.
-        order.setTrangThaiDonHang(TrangThaiDonHang.HOAN_THANH);
+        boolean storeReceivedPayment =
+            order.getTrangThaiThanhToan() == TrangThaiThanhToanDonHang.DA_THANH_TOAN;
+
+        order.setTrangThaiDonHang(
+            storeReceivedPayment ? TrangThaiDonHang.HOAN_THANH : TrangThaiDonHang.DANG_GIAO_HANG);
 
         saleSnapshots.onOrderStateChanged(order);
 
       } else {
-        // Báo giao thất bại, chờ nhận hàng hoàn.
         delivery.setTrangThaiGiaoHang(TrangThaiGiaoHangEnum.CHO_HOAN_HANG);
       }
     }
@@ -347,14 +350,19 @@ public class AdminDeliveryService {
         switch (target) {
           case DA_NHAN_HANG -> "Bàn giao hàng cho đối tác";
           case DANG_GIAO -> "Đối tác đang giao hàng";
-          case GIAO_THANH_CONG -> "Giao hàng thành công";
+          case GIAO_THANH_CONG ->
+              order.getTrangThaiThanhToan() == TrangThaiThanhToanDonHang.DA_THANH_TOAN
+                  ? "Giao hàng thành công, hoàn tất đơn hàng"
+                  : "Khách đã nhận hàng và trả COD; chờ đối tác nộp tiền cho cửa hàng";
           case GIAO_THAT_BAI -> "Giao hàng thất bại, chờ hoàn hàng";
           default -> throw invalid("Trạng thái giao hàng không hợp lệ");
         };
+
     orderService.recordHistory(
         order,
         "GIAO_VAN_" + target.name(),
-        description + "; phiếu " + delivery.getMaPhieuGiaoHang());
+        description + "; phiếu " + delivery.getMaPhieuGiaoHang(),
+        delivery);
     deliveryRepository.flush();
 
     Action response = mapper.toAction(delivery, zone());
@@ -389,7 +397,7 @@ public class AdminDeliveryService {
     settlement.put(
         "can_doi_soat_doi_tac",
         customerCodCollected
-            && order.getTrangThaiThanhToan() == TrangThaiThanhToanDonHang.CHUA_THANH_TOAN);
+            && order.getTrangThaiThanhToan() != TrangThaiThanhToanDonHang.DA_THANH_TOAN);
 
     response.setThanhToanGiaoHang(settlement);
     return response;
@@ -419,7 +427,7 @@ public class AdminDeliveryService {
       throw conflict("Đơn không ở giai đoạn đóng gói để hủy phiếu");
     }
 
-    inventoryService.releaseReservation(order);
+    inventoryService.releasePackingSerials(order);
 
     order.setTrangThaiDongGoi(TrangThaiDongGoi.HUY_DONG_GOI);
     order.setTrangThaiDonHang(TrangThaiDonHang.CHO_DONG_GOI);
@@ -436,7 +444,7 @@ public class AdminDeliveryService {
     delivery.setNgayCapNhat(now());
 
     orderService.recordHistory(
-        order, "HUY_PHIEU_GIAO", "Hủy phiếu giao hàng " + delivery.getMaPhieuGiaoHang());
+        order, "HUY_PHIEU_GIAO", "Hủy phiếu giao hàng " + delivery.getMaPhieuGiaoHang(), delivery);
     deliveryRepository.flush();
 
     return mapper.toAction(delivery, zone());
@@ -573,7 +581,10 @@ public class AdminDeliveryService {
     saleSnapshots.onOrderStateChanged(order);
 
     orderService.recordHistory(
-        order, "NHAN_HOAN_GIAO_HANG", "Nhận hoàn hàng từ phiếu " + delivery.getMaPhieuGiaoHang());
+        order,
+        "NHAN_HOAN_GIAO_HANG",
+        "Nhận hoàn hàng từ phiếu " + delivery.getMaPhieuGiaoHang(),
+        delivery);
 
     deliveryRepository.flush();
 
@@ -625,6 +636,7 @@ public class AdminDeliveryService {
             .orElseThrow(() -> notFound("Đơn hàng không tồn tại"));
 
     entityManager.refresh(order);
+    orderService.watchStatuses(order);
 
     saleSnapshots.lockPromotionForOrder(order.getId());
 
@@ -697,15 +709,7 @@ public class AdminDeliveryService {
   }
 
   private BigDecimal calculateCod(DonHang order) {
-    if (order.getTrangThaiThanhToan() == TrangThaiThanhToanDonHang.DA_THANH_TOAN) {
-      return BigDecimal.ZERO.setScale(2);
-    }
-
-    if (order.getTrangThaiThanhToan() != TrangThaiThanhToanDonHang.CHUA_THANH_TOAN) {
-      throw conflict("Trạng thái thanh toán không hợp lệ");
-    }
-
-    return money(order.getTongThanhToan());
+    return orderService.remainingForCod(order);
   }
 
   private void confirmCustomerPayment(PhieuGiaoHang delivery, Boolean confirmedCod) {
@@ -713,38 +717,22 @@ public class AdminDeliveryService {
     DonHang order = delivery.getDonHang();
 
     BigDecimal cod = money(delivery.getTienThuHoCod());
-    BigDecimal total = money(order.getTongThanhToan());
+    BigDecimal expectedCod = calculateCod(order);
+
+    if (cod.compareTo(expectedCod) != 0) {
+      throw conflict("COD không khớp số tiền còn phải thu của đơn hàng");
+    }
 
     if (cod.signum() > 0) {
-      if (order.getTrangThaiThanhToan() != TrangThaiThanhToanDonHang.CHUA_THANH_TOAN
-          || cod.compareTo(total) != 0) {
-
-        throw conflict("Dữ liệu COD không khớp trạng thái hoặc tổng tiền đơn");
-      }
-
       if (!Boolean.TRUE.equals(confirmedCod)) {
         throw conflict("Phải xác nhận shipper đã thu đủ COD từ khách");
       }
 
-      // Shipper đã thu tiền khách, cửa hàng chưa thực nhận COD.
-      // Giữ CHUA_THANH_TOAN đến khi ghi nhận phiếu thu từ đối tác.
+      // Chưa ghi nhận cửa hàng thực thu cho đến khi đối tác nộp COD.
       return;
     }
 
-    if (order.getTrangThaiThanhToan() == TrangThaiThanhToanDonHang.DA_THANH_TOAN) {
-      return;
-    }
-
-    // Đơn bằng 0 không phát sinh khoản tiền cần thu.
-    if (order.getTrangThaiThanhToan() == TrangThaiThanhToanDonHang.CHUA_THANH_TOAN
-        && total.signum() == 0) {
-
-      order.setTrangThaiThanhToan(TrangThaiThanhToanDonHang.DA_THANH_TOAN);
-
-      return;
-    }
-
-    throw conflict("Đơn chưa thanh toán nhưng phiếu không có COD hợp lệ");
+    order.setTrangThaiThanhToan(TrangThaiThanhToanDonHang.DA_THANH_TOAN);
   }
 
   private boolean validReturnContact(DonHang order) {
@@ -1022,6 +1010,246 @@ public class AdminDeliveryService {
         List.of(id, request),
         Action.class,
         () -> receiveReturn(id, request));
+  }
+
+  @Transactional(readOnly = true)
+  public Map<String, Object> preHandoverReturnRequirements(Long id) {
+    validateId(id);
+    salesContext.actor();
+
+    DonHang order =
+        orderRepository.findById(id).orElseThrow(() -> notFound("Đơn hàng không tồn tại"));
+
+    requireBeforeHandover(order, false);
+
+    Map<String, Object> result = new LinkedHashMap<>();
+    result.put("id", order.getId());
+    result.put("ma_don_hang", order.getMaDonHang());
+    result.put("nguon_yeu_cau", "HUY_TRUOC_BAN_GIAO");
+    result.put("kho_nhan", inventoryService.returnWarehouse());
+    result.put("co_the_nhan_hoan", true);
+    result.put("ly_do_chan", List.of());
+    result.put("hang_phai_nhan", inventoryService.getReturnRequirements(order));
+    result.put("doi_soat_tien", orderService.failedDeliveryMoney(order));
+
+    return result;
+  }
+
+  @SuppressWarnings("unchecked")
+  @Transactional(readOnly = false, isolation = Isolation.READ_COMMITTED)
+  public Map<String, Object> cancelBeforeHandover(
+      Long id, String idempotencyKey, AdminDeliveryReturnRequest request) {
+
+    validateId(id);
+
+    return cashbookService.executeOnce(
+        deliveryRequestKey("HCBG-", idempotencyKey),
+        salesContext.actor(),
+        List.of(id, request),
+        Map.class,
+        () -> doCancelBeforeHandover(id, request));
+  }
+
+  private Map<String, Object> doCancelBeforeHandover(Long id, AdminDeliveryReturnRequest request) {
+
+    NguoiDung actor = salesContext.actor();
+
+    DonHang order =
+        orderRepository.findByIdForUpdate(id).orElseThrow(() -> notFound("Đơn hàng không tồn tại"));
+
+    entityManager.refresh(order);
+    orderService.watchStatuses(order);
+
+    var promotionUsage = saleSnapshots.lockPromotionForOrder(order.getId());
+
+    if (promotionUsage != null
+        && promotionUsage.getTrangThaiApDung() != TrangThaiApDungKhuyenMai.GIU_CHO) {
+      throw conflict("Lượt khuyến mại không còn ở trạng thái giữ chỗ.");
+    }
+
+    orderLineRepository.findByDonHangIdForUpdate(order.getId());
+
+    List<PhieuGiaoHang> deliveries = requireBeforeHandover(order, true);
+
+    if (!Boolean.TRUE.equals(request.getXacNhanDaNhanDuHang())) {
+      throw invalid("Phải xác nhận đã kiểm và nhận đủ hàng.");
+    }
+
+    validateReturnEvidence(request.getBangChungUrls());
+
+    LocalDateTime receivedAt = validateReceivedAt(order, request.getThoiDiemNhan());
+
+    var warehouse = inventoryService.returnWarehouse();
+    var originals = inventoryService.getReturnRequirements(order);
+    var moneyEvidence = orderService.failedDeliveryMoney(order);
+
+    /*
+     * Phiếu này ghi nhận hàng về kho.
+     * Hoàn tiền được thực hiện theo đơn hủy bằng luồng đang có.
+     */
+    PhieuTraHang document =
+        PhieuTraHang.builder()
+            .maTraHang("TH-HUY-DH-" + order.getId())
+            .donHang(order)
+            .khachHang(order.getKhachHang())
+            .tenNguoiLienHe(order.getTenNguoiNhan().strip())
+            .sdtNguoiLienHe(order.getSdtNguoiNhan().strip())
+            .nguoiTao(actor)
+            .tongTienHoan(BigDecimal.ZERO)
+            .hinhThucHoanTien(request.getHinhThucHoanTien())
+            .trangThaiTraHang(TrangThaiTraHang.HOAN_TAT)
+            .lyDoTra(request.getLyDoTra().strip())
+            .ngayTiepNhanThucTe(receivedAt)
+            .ngayNhanHang(receivedAt)
+            .ngayKetThuc(receivedAt)
+            .build();
+
+    returnRepository.saveAndFlush(document);
+
+    var movements = inventoryService.receiveAll(order, document, request);
+    var returnLines = saveReturnLines(order, document);
+
+    soldDevices.markReturned(order, returnLines);
+
+    Map<String, Object> source = new LinkedHashMap<>();
+    source.put("phien_ban", 1);
+    source.put("nguon", "HUY_TRUOC_BAN_GIAO");
+    source.put("don_hang_id", order.getId());
+    source.put("phieu_tra_hang_id", document.getId());
+    source.put("xac_nhan_da_nhan_du_hang", true);
+    source.put("kho_nhan", warehouse);
+    source.put("nguoi_nhan_hang_id", actor.getId());
+    source.put("thoi_diem_nhan", request.getThoiDiemNhan());
+    source.put("hang_da_xuat", originals);
+    source.put("hang_nhan", request.getHangNhan());
+    source.put("bang_chung_urls", request.getBangChungUrls());
+    source.put("doi_soat_tien", moneyEvidence);
+    source.put("bien_dong_kho", movements);
+    source.put("hoan_tien_theo", "DON_HUY");
+
+    document.setDuLieuNhanHang(objectMapper.writeValueAsString(source));
+
+    order.setTrangThaiDonHang(TrangThaiDonHang.HUY_HANG);
+    order.setTrangThaiXuatKho(TrangThaiXuatKho.DA_HOAN_KHO);
+    order.setDaGiuHang(false);
+    order.setHanGiuHang(null);
+
+    String note = "[Hủy trước bàn giao] " + request.getLyDoTra().strip();
+
+    order.setGhiChu(
+        order.getGhiChu() == null || order.getGhiChu().isBlank()
+            ? note
+            : order.getGhiChu() + "\n" + note);
+
+    for (PhieuGiaoHang delivery : deliveries) {
+      if (delivery.getTrangThaiGiaoHang() == TrangThaiGiaoHangEnum.CHO_GIAO) {
+        delivery.setTrangThaiGiaoHang(TrangThaiGiaoHangEnum.HUY_GIAO_HANG);
+        delivery.setNgayCapNhat(now());
+
+        orderService.recordHistory(
+            order,
+            "HUY_PHIEU_GIAO_TRUOC_BAN_GIAO",
+            "Hủy phiếu giao khi nhận lại hàng tại cửa hàng",
+            delivery);
+      }
+    }
+
+    saleSnapshots.onOrderStateChanged(order);
+
+    orderService.recordHistory(
+        order,
+        "HUY_TRUOC_BAN_GIAO",
+        "Hủy đơn và nhận lại đủ hàng theo phiếu " + document.getMaTraHang());
+
+    entityManager.flush();
+
+    Map<String, Object> response = new LinkedHashMap<>();
+    response.put("id", order.getId());
+    response.put("ma_don_hang", order.getMaDonHang());
+    response.put("trang_thai_don_hang", order.getTrangThaiDonHang());
+    response.put("trang_thai_xuat_kho", order.getTrangThaiXuatKho());
+    response.put("phieu_nhan_lai_id", document.getId());
+    response.put("ma_phieu_nhan_lai", document.getMaTraHang());
+    response.put("kho_nhan", warehouse);
+    response.put("bien_dong_kho", movements);
+    response.put(
+        "tien_can_doi_soat_hoan",
+        Boolean.TRUE.equals(moneyEvidence.get("co_du_can_cu"))
+            ? moneyEvidence.get("tong_tien_can_hoan")
+            : null);
+
+    return response;
+  }
+
+  private List<PhieuGiaoHang> requireBeforeHandover(DonHang order, boolean lock) {
+
+    if (order.getLoaiDonHang() != LoaiDonHang.ONLINE
+        || order.getTrangThaiDonHang() != TrangThaiDonHang.CHO_LAY_HANG
+        || order.getTrangThaiDongGoi() != TrangThaiDongGoi.DA_DONG_GOI
+        || order.getTrangThaiXuatKho() != TrangThaiXuatKho.DA_XUAT_KHO
+        || order.getNgayHoanThanh() != null) {
+
+      throw conflict("Chỉ nhận lại đơn Online đã xuất kho, chờ lấy hàng và chưa bàn giao.");
+    }
+
+    if (!validReturnContact(order)) {
+      throw conflict("Thiếu thông tin người liên hệ của đơn hàng.");
+    }
+
+    if (returnRepository.existsByDonHang_Id(order.getId())) {
+      throw conflict("Đơn đã có phiếu trả hoặc phiếu nhận lại, cần đối soát.");
+    }
+
+    List<PhieuGiaoHang> deliveries = new ArrayList<>();
+
+    for (var item : deliveryRepository.findByDonHang_IdOrderByIdAsc(order.getId())) {
+      PhieuGiaoHang delivery = item;
+
+      if (lock) {
+        delivery =
+            deliveryRepository
+                .findByIdForUpdate(item.getId())
+                .orElseThrow(() -> conflict("Phiếu giao hàng đã thay đổi"));
+
+        entityManager.refresh(delivery);
+      }
+
+      if (delivery.getTrangThaiGiaoHang() != TrangThaiGiaoHangEnum.CHO_GIAO
+          && delivery.getTrangThaiGiaoHang() != TrangThaiGiaoHangEnum.HUY_GIAO_HANG) {
+
+        throw conflict("Đã có phiếu bàn giao đối tác; phải dùng luồng xử lý giao hàng.");
+      }
+
+      deliveries.add(delivery);
+    }
+
+    Long handedOverHistory =
+        entityManager
+            .createQuery(
+                """
+                                select count(h)
+                                from LichSuXuLyDonHang h
+                                where h.donHang.id = :orderId
+                                  and h.trangThaiGiaoHang in :states
+                                """,
+                Long.class)
+            .setParameter("orderId", order.getId())
+            .setParameter(
+                "states",
+                EnumSet.of(
+                    TrangThaiGiaoHangEnum.DA_NHAN_HANG,
+                    TrangThaiGiaoHangEnum.DANG_GIAO,
+                    TrangThaiGiaoHangEnum.GIAO_THANH_CONG,
+                    TrangThaiGiaoHangEnum.GIAO_THAT_BAI,
+                    TrangThaiGiaoHangEnum.CHO_HOAN_HANG,
+                    TrangThaiGiaoHangEnum.DA_HOAN_HANG))
+            .getSingleResult();
+
+    if (handedOverHistory > 0) {
+      throw conflict("Lịch sử cho thấy hàng đã bàn giao; không được hủy theo luồng này.");
+    }
+
+    return List.copyOf(deliveries);
   }
 
   private String deliveryRequestKey(String prefix, String value) {

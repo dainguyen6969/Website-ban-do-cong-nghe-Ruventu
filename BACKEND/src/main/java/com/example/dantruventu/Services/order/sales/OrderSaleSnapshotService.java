@@ -10,10 +10,7 @@ import com.example.dantruventu.DTO.Response.order.AdminDeliveryResponse;
 import com.example.dantruventu.DTO.Response.order.AdminSalesResponse;
 import com.example.dantruventu.DTO.catalog.CatalogFields;
 import com.example.dantruventu.Entity.*;
-import com.example.dantruventu.Enum.LoaiApDungKhuyenMai;
-import com.example.dantruventu.Enum.LoaiSanPham;
-import com.example.dantruventu.Enum.TrangThaiApDungKhuyenMai;
-import com.example.dantruventu.Enum.TrangThaiDonHang;
+import com.example.dantruventu.Enum.*;
 import com.example.dantruventu.Error.AppException;
 import com.example.dantruventu.Error.ErrorCode;
 import com.example.dantruventu.Services.catalog.CatalogSupport;
@@ -642,6 +639,58 @@ public class OrderSaleSnapshotService {
     result.setCanhBaoDuLieu(warnings.isEmpty() ? null : String.join(" ", warnings));
 
     return result;
+  }
+
+  public boolean hasReceivedBeforeHandover(DonHang order) {
+    if (order == null
+        || order.getId() == null
+        || order.getLoaiDonHang() != LoaiDonHang.ONLINE
+        || order.getTrangThaiDonHang() != TrangThaiDonHang.HUY_HANG
+        || order.getTrangThaiXuatKho() != TrangThaiXuatKho.DA_HOAN_KHO
+        || order.getNgayHoanThanh() != null) {
+      return false;
+    }
+
+    var documents =
+        entityManager
+            .createQuery(
+                """
+                                select p
+                                from PhieuTraHang p
+                                where p.donHang.id = :orderId
+                                  and p.maTraHang = :code
+                                """,
+                PhieuTraHang.class)
+            .setParameter("orderId", order.getId())
+            .setParameter("code", "TH-HUY-DH-" + order.getId())
+            .getResultList();
+
+    if (documents.size() != 1) {
+      return false;
+    }
+
+    var document = documents.get(0);
+
+    if (document.getTrangThaiTraHang() != TrangThaiTraHang.HOAN_TAT
+        || document.getTongTienHoan() == null
+        || document.getTongTienHoan().signum() != 0
+        || document.getNgayNhanHang() == null
+        || document.getNgayKetThuc() == null) {
+      return false;
+    }
+
+    var source = parse(document.getDuLieuNhanHang());
+
+    return source != null
+        && source.path("phien_ban").asInt(-1) == 1
+        && "HUY_TRUOC_BAN_GIAO".equals(source.path("nguon").asString())
+        && source.path("don_hang_id").asLong(-1) == order.getId().longValue()
+        && source.path("phieu_tra_hang_id").asLong(-1) == document.getId().longValue()
+        && source.path("xac_nhan_da_nhan_du_hang").asBoolean(false)
+        && source.path("hang_nhan").isArray()
+        && !source.path("hang_nhan").isEmpty()
+        && source.path("bien_dong_kho").isArray()
+        && !source.path("bien_dong_kho").isEmpty();
   }
 
   private LineSnapshot readLine(ChiTietDonHang line) {

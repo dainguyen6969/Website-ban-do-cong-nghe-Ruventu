@@ -5,9 +5,9 @@
 .admin-app main,
 .admin-app section,
 .admin-app form,
-.admin-app [class$="-page"],
-.admin-app [class$="-content"],
-.admin-app [class$="-grid"] {
+.admin-app [class$='-page'],
+.admin-app [class$='-content'],
+.admin-app [class$='-grid'] {
   min-width: 0;
   max-width: 100%;
 }
@@ -23,15 +23,16 @@
   max-width: 100%;
 }
 
-.admin-app :is(
-  [class*="table-wrap"],
-  [class*="table-scroll"],
-  [class*="table-shell"],
-  .content__table-wrapper,
-  .selected-components,
-  .detail-components,
-  .line-table-wrap
-) {
+.admin-app
+  :is(
+    [class*='table-wrap'],
+    [class*='table-scroll'],
+    [class*='table-shell'],
+    .content__table-wrapper,
+    .selected-components,
+    .detail-components,
+    .line-table-wrap
+  ) {
   min-width: 0;
   max-width: 100%;
   overflow-x: auto;
@@ -99,14 +100,15 @@
     left: 0;
   }
 
-  .admin-app :is(
-    .purchase-create-grid,
-    .purchase-detail-grid,
-    .stock-create-grid,
-    .stock-detail-grid,
-    .online-order-grid,
-    .combo-create-grid
-  ) {
+  .admin-app
+    :is(
+      .purchase-create-grid,
+      .purchase-detail-grid,
+      .stock-create-grid,
+      .stock-detail-grid,
+      .online-order-grid,
+      .combo-create-grid
+    ) {
     grid-template-columns: minmax(0, 1fr);
   }
 }
@@ -117,7 +119,7 @@
     padding: 14px;
   }
 
-  .admin-app :is(.content__tabs, [class*="-tabs"]) {
+  .admin-app :is(.content__tabs, [class*='-tabs']) {
     max-width: 100%;
     overflow-x: auto;
     scrollbar-width: thin;
@@ -139,36 +141,32 @@
     flex-wrap: wrap;
   }
 
-  .admin-app :is(
-    .supplier-modal,
-    .partner-modal,
-    .stock-modal,
-    .serial-modal,
-    [role="dialog"]
-  ) {
+  .admin-app :is(.supplier-modal, .partner-modal, .stock-modal, .serial-modal, [role='dialog']) {
     width: min(100%, calc(100vw - 20px));
     max-width: calc(100vw - 20px);
     max-height: calc(100dvh - 20px);
     overflow: auto;
   }
 
-  .admin-app :is(
-    .supplier-modal-backdrop,
-    .partner-modal-backdrop,
-    .stock-modal-backdrop,
-    .serial-modal-backdrop
-  ) {
+  .admin-app
+    :is(
+      .supplier-modal-backdrop,
+      .partner-modal-backdrop,
+      .stock-modal-backdrop,
+      .serial-modal-backdrop
+    ) {
     padding: 10px;
   }
 
-  .admin-app :is(
-    .supplier-form-grid,
-    .recipient-grid,
-    .combo-two-cols,
-    .variant-fields,
-    .detail-grid,
-    .promotion-layout
-  ) {
+  .admin-app
+    :is(
+      .supplier-form-grid,
+      .recipient-grid,
+      .combo-two-cols,
+      .variant-fields,
+      .detail-grid,
+      .promotion-layout
+    ) {
     grid-template-columns: minmax(0, 1fr);
   }
 
@@ -213,12 +211,15 @@
     flex-wrap: wrap;
   }
 
-  .admin-app :is(.modal-footer, .supplier-modal-footer, .partner-modal-footer, .stock-modal-body footer) {
+  .admin-app
+    :is(.modal-footer, .supplier-modal-footer, .partner-modal-footer, .stock-modal-body footer) {
     flex-direction: column;
     align-items: stretch;
   }
 
-  .admin-app :is(.modal-footer, .supplier-modal-footer, .partner-modal-footer, .stock-modal-body footer) button {
+  .admin-app
+    :is(.modal-footer, .supplier-modal-footer, .partner-modal-footer, .stock-modal-body footer)
+    button {
     width: 100%;
   }
 }

@@ -15,6 +15,7 @@ import com.example.dantruventu.Repository.partner.NhaCungCapRepository;
 import com.example.dantruventu.Repository.product.PhienBanSanPhamRepository;
 import com.example.dantruventu.Repository.warehouse.*;
 import com.example.dantruventu.Services.cashbook.CashbookService;
+import com.example.dantruventu.Services.order.OrderEvents;
 import com.example.dantruventu.Services.warehouse.WarehouseSupport;
 import com.example.dantruventu.Specification.PurchaseOrderSpecification;
 import jakarta.persistence.EntityManager;
@@ -66,6 +67,7 @@ public class AdminPurchaseOrderService {
 
   private final AdminPurchaseOrderMapper mapper;
   private final CashbookService cashbookService;
+  private final OrderEvents orderEvents;
   private final WarehouseSupport warehouseSupport;
 
   private final EntityManager entityManager;
@@ -248,6 +250,7 @@ public class AdminPurchaseOrderService {
 
     saveDetails(order, request.getItems(), variants);
 
+    orderEvents.createdPurchase(order);
     return getDetail(order.getId());
   }
 
@@ -1232,9 +1235,12 @@ public class AdminPurchaseOrderService {
 
   private DonNhapHang requireOrderForUpdate(Long id) {
 
-    return donNhapHangRepository
-        .findByIdForUpdate(id)
-        .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "Đơn nhập không tồn tại"));
+    DonNhapHang order =
+        donNhapHangRepository
+            .findByIdForUpdate(id)
+            .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "Đơn nhập không tồn tại"));
+    orderEvents.watchPurchase(order);
+    return order;
   }
 
   private NhaCungCap requireActiveSupplier(Long id) {
@@ -1669,6 +1675,7 @@ public class AdminPurchaseOrderService {
             serial ->
                 serial.getTrangThai() == TrangThaiSerial.TRONG_KHO
                     || serial.getTrangThai() == TrangThaiSerial.LOI)
+        .filter(serial -> serial.getChiTietDongGoi() == null)
         .map(
             serial ->
                 AdminPurchaseOrderReceiveResponse.SerialData.builder()
@@ -1729,7 +1736,10 @@ public class AdminPurchaseOrderService {
           serial.getTrangThai() == TrangThaiSerial.TRONG_KHO
               || serial.getTrangThai() == TrangThaiSerial.LOI;
 
-      if (!correctSource || serial.getDonHang() != null || !warehouseState) {
+      if (!correctSource
+          || serial.getDonHang() != null
+          || serial.getChiTietDongGoi() != null
+          || !warehouseState) {
 
         throw new AppException(
             ErrorCode.CONFLICT,
