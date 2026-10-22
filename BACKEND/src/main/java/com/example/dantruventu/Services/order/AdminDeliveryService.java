@@ -397,7 +397,7 @@ public class AdminDeliveryService {
     settlement.put(
         "can_doi_soat_doi_tac",
         customerCodCollected
-            && order.getTrangThaiThanhToan() == TrangThaiThanhToanDonHang.CHUA_THANH_TOAN);
+            && order.getTrangThaiThanhToan() != TrangThaiThanhToanDonHang.DA_THANH_TOAN);
 
     response.setThanhToanGiaoHang(settlement);
     return response;
@@ -709,15 +709,7 @@ public class AdminDeliveryService {
   }
 
   private BigDecimal calculateCod(DonHang order) {
-    if (order.getTrangThaiThanhToan() == TrangThaiThanhToanDonHang.DA_THANH_TOAN) {
-      return BigDecimal.ZERO.setScale(2);
-    }
-
-    if (order.getTrangThaiThanhToan() != TrangThaiThanhToanDonHang.CHUA_THANH_TOAN) {
-      throw conflict("Trạng thái thanh toán không hợp lệ");
-    }
-
-    return money(order.getTongThanhToan());
+    return orderService.remainingForCod(order);
   }
 
   private void confirmCustomerPayment(PhieuGiaoHang delivery, Boolean confirmedCod) {
@@ -725,38 +717,22 @@ public class AdminDeliveryService {
     DonHang order = delivery.getDonHang();
 
     BigDecimal cod = money(delivery.getTienThuHoCod());
-    BigDecimal total = money(order.getTongThanhToan());
+    BigDecimal expectedCod = calculateCod(order);
+
+    if (cod.compareTo(expectedCod) != 0) {
+      throw conflict("COD không khớp số tiền còn phải thu của đơn hàng");
+    }
 
     if (cod.signum() > 0) {
-      if (order.getTrangThaiThanhToan() != TrangThaiThanhToanDonHang.CHUA_THANH_TOAN
-          || cod.compareTo(total) != 0) {
-
-        throw conflict("Dữ liệu COD không khớp trạng thái hoặc tổng tiền đơn");
-      }
-
       if (!Boolean.TRUE.equals(confirmedCod)) {
         throw conflict("Phải xác nhận shipper đã thu đủ COD từ khách");
       }
 
-      // Shipper đã thu tiền khách, cửa hàng chưa thực nhận COD.
-      // Giữ CHUA_THANH_TOAN đến khi ghi nhận phiếu thu từ đối tác.
+      // Chưa ghi nhận cửa hàng thực thu cho đến khi đối tác nộp COD.
       return;
     }
 
-    if (order.getTrangThaiThanhToan() == TrangThaiThanhToanDonHang.DA_THANH_TOAN) {
-      return;
-    }
-
-    // Đơn bằng 0 không phát sinh khoản tiền cần thu.
-    if (order.getTrangThaiThanhToan() == TrangThaiThanhToanDonHang.CHUA_THANH_TOAN
-        && total.signum() == 0) {
-
-      order.setTrangThaiThanhToan(TrangThaiThanhToanDonHang.DA_THANH_TOAN);
-
-      return;
-    }
-
-    throw conflict("Đơn chưa thanh toán nhưng phiếu không có COD hợp lệ");
+    order.setTrangThaiThanhToan(TrangThaiThanhToanDonHang.DA_THANH_TOAN);
   }
 
   private boolean validReturnContact(DonHang order) {

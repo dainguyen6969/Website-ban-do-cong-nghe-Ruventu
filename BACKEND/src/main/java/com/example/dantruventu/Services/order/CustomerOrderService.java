@@ -546,7 +546,7 @@ public class CustomerOrderService {
           var shared = new AdminOrderRequest.Cancel();
           shared.setLyDo(request.getLyDo());
 
-          adminOrderService.cancel(orderId, shared);
+          var cancellation = adminOrderService.cancel(orderId, shared);
 
           return CustomerOrderResponse.Cancelled.builder()
               .id(order.getId())
@@ -557,10 +557,7 @@ public class CustomerOrderService {
               .trangThaiThanhToan(order.getTrangThaiThanhToan())
               .khuyenMai(saleSnapshots.appliedPromotion(orderId))
               .giaiPhongGiuKho(released)
-              .tienCanDoiSoatHoan(
-                  order.getTrangThaiThanhToan() == TrangThaiThanhToanDonHang.DA_THANH_TOAN
-                      ? money(order.getTongThanhToan())
-                      : BigDecimal.ZERO)
+              .tienCanDoiSoatHoan(cancellation.getTienCanDoiSoatHoan())
               .build();
         });
   }

@@ -92,7 +92,7 @@ public class AdminOrderController {
   @PreAuthorize("hasAnyRole('ADMIN','QUAN_LY','NHAN_VIEN_BAN_HANG')")
   public ApiResponse<AdminSalesResponse.Order> detail(@PathVariable("id") Long id) {
 
-    return ok("Lấy chi tiết đơn hàng thành công", salesService.getOrder(id));
+    return ok("Lấy chi tiết đơn hàng thành công", orderService.detail(id));
   }
 
   @PutMapping("/{id}")
