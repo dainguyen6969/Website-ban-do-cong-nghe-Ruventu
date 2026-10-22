@@ -114,6 +114,13 @@ public class AdminOrderController {
     return ok("Lấy chi tiết đơn hàng thành công", orderService.detail(id));
   }
 
+  @GetMapping("/{id}/screen")
+  @PreAuthorize("hasAnyRole('ADMIN','QUAN_LY','NHAN_VIEN_BAN_HANG')")
+  public ApiResponse<Map<String, Object>> screen(@PathVariable("id") Long id) {
+
+    return ok("Lấy dữ liệu màn hình đơn hàng thành công", orderService.screen(id));
+  }
+
   @PutMapping("/{id}")
   public ApiResponse<AdminOrderResponse.Action> update(
       @PathVariable("id") Long id,

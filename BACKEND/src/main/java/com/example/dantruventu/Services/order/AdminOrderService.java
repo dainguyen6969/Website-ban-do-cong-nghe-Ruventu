@@ -724,6 +724,29 @@ public class AdminOrderService {
     return result;
   }
 
+  @Transactional(readOnly = true, isolation = Isolation.REPEATABLE_READ)
+  public Map<String, Object> screen(Long id) {
+    validateId(id);
+    NguoiDung actor = context.actor();
+
+    Map<String, Object> result = new LinkedHashMap<>();
+
+    var detail = detail(id);
+
+    if (detail.getDoiSoatThanhToan() == null) {
+      detail.setDoiSoatThanhToan(paymentSummary(findOrder(id)));
+    }
+
+    result.put("don_hang", detail);
+    result.put("lich_su", history(id));
+
+    boolean admin = actor.getVaiTro() != null && "ADMIN".equals(actor.getVaiTro().getTenVaiTro());
+
+    result.put("hoan_tien", admin ? refundOptions(id) : null);
+
+    return result;
+  }
+
   public AdminSalesResponse.Order detail(Long id) {
     context.actor();
 

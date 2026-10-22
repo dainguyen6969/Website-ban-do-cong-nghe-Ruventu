@@ -1056,3 +1056,180 @@
   border-bottom: 1px solid #e5e7eb;
   text-align: left;
 }
+
+/* Các nghiệp vụ mới sử dụng giao diện gốc. */
+.admin-order-detail {
+  font-family: 'Barlow Condensed', sans-serif;
+}
+
+.admin-order-detail .order-detail-hero,
+.admin-order-detail .order-detail-panel,
+.admin-order-detail .order-action,
+.admin-order-detail .order-refund-panel,
+.admin-order-detail .order-state-badge {
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.admin-order-detail .order-inline-warning,
+.admin-order-detail .order-cod-settlement,
+.admin-order-detail .order-pending-operation {
+  margin: 12px 24px;
+  padding: 10px 12px;
+  border: 1px solid #d7d7d7;
+  border-left: 3px solid #e1141c;
+  background: #fff;
+  color: #222;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.admin-order-detail .order-cod-settlement > strong,
+.admin-order-detail .order-pending-operation strong {
+  color: #111;
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.admin-order-detail .order-cod-settlement > p,
+.admin-order-detail .order-pending-operation p {
+  margin: 5px 0 0;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.admin-order-detail .order-sync-error {
+  color: #b91c1c;
+}
+
+.admin-order-detail .order-pending-operation button {
+  padding: 8px 12px;
+  border: 1px solid #111;
+  border-radius: 0;
+  background: #fff;
+  color: #111;
+  font: inherit;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.admin-order-detail .order-detail-panel > details {
+  margin: 0 14px 14px;
+  padding: 10px;
+  border: 1px solid #dedede;
+  background: #fff;
+  font-size: 11px;
+}
+
+.admin-order-detail .order-detail-panel > details > summary {
+  cursor: pointer;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.admin-order-detail .order-detail-panel > details p {
+  margin: 8px 0;
+  line-height: 1.5;
+}
+
+.admin-order-detail .order-detail-panel > details ul {
+  margin: 10px 0 0;
+  padding-left: 16px;
+}
+
+.admin-order-detail .order-detail-panel > details li + li {
+  margin-top: 6px;
+}
+
+.admin-order-detail .order-waiting-stock-table {
+  margin: 10px 0;
+  background: #fff;
+  font-size: 11px;
+}
+
+.admin-order-detail .order-waiting-stock-table th,
+.admin-order-detail .order-waiting-stock-table td {
+  padding: 7px 10px;
+  border-bottom: 1px solid #dedede;
+}
+
+.admin-order-detail .order-waiting-stock-table th {
+  color: #777;
+  font-size: 9px;
+  font-weight: 800;
+}
+
+.admin-order-detail .order-refund-panel {
+  margin: 12px 14px 14px;
+  border: 1px solid #111;
+}
+
+.admin-order-detail .order-refund-panel__heading {
+  min-height: 38px;
+  padding: 7px 12px;
+  background: #0b0b0b;
+}
+
+.admin-order-detail .order-refund-panel__heading h2 {
+  padding-left: 8px;
+  border-left: 3px solid #f00c13;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0;
+}
+
+.admin-order-detail .order-refund-panel__heading .order-action {
+  min-height: 26px;
+  padding: 0 10px !important;
+  font-size: 9px;
+}
+
+.admin-order-detail .order-refund-panel__item {
+  gap: 12px;
+  padding: 12px;
+}
+
+.admin-order-detail .order-refund-panel__item strong,
+.admin-order-detail .order-refund-panel__item p,
+.admin-order-detail .order-refund-panel__item a {
+  font-size: 11px;
+}
+
+.admin-order-detail .order-refund-panel__item p {
+  margin: 5px 0;
+}
+
+.admin-order-detail .order-refund-panel__item small,
+.admin-order-detail .order-refund-panel__note,
+.admin-order-detail .order-refund-panel__error {
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+.admin-order-detail .order-refund-panel__completed {
+  border-radius: 0;
+  font-size: 9px;
+}
+
+.admin-order-detail .order-refund-panel__pending {
+  margin: 10px 12px;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-left: 3px solid #e1141c;
+  background: #fff;
+}
+
+.admin-order-detail .order-refund-panel__pending p {
+  color: #333;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+@media (max-width: 700px) {
+  .admin-order-detail .order-inline-warning,
+  .admin-order-detail .order-cod-settlement,
+  .admin-order-detail .order-pending-operation {
+    margin: 10px 14px;
+  }
+}

@@ -1,4 +1,4 @@
-import { useNavigate, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { HiOutlineArrowLeft } from 'react-icons/hi';
 import DetailTablePagination from '../../../../shared/components/ui/DetailTablePagination';
 import useDetailTablePagination from '../../../../hooks/useDetailTablePagination';
@@ -10,8 +10,7 @@ import {
   confirmPickup,
   dateTime,
   exportOrder,
-  getOrder,
-  getOrderHistory,
+  getOrderScreen,
   getOrderOptions,
   getSerialRequirements,
   label,
@@ -31,6 +30,7 @@ import {
   completeCounterInspection,
 } from '../api/orderApi';
 
+import { subscribeAdminRealtime } from '../api/orderRealtime';
 import OrderRefundPanel from '../components/OrderRefundPanel';
 import { OrderStateBadge } from './DanhSachDonHang';
 import './ChiTietDonHang.css';
@@ -68,97 +68,324 @@ function OrderProductImage({ item }) {
   );
 }
 
+function createOrderScreenReader({ fetchScreen, canApply, onData, onStatus }) {
+  let disposed = false;
+  let controller = null;
+  let sequence = 0;
+  let timer;
+  let queued = false;
+  let signature = '';
+
+  const status = {
+    refreshing: false,
+    pending: false,
+    error: '',
+    updatedAt: null,
+  };
+
+  const publish = (patch) => {
+    if (disposed) return;
+    Object.assign(status, patch);
+    onStatus({ ...status });
+  };
+
+  const schedule = () => {
+    clearTimeout(timer);
+    timer = setTimeout(() => void refresh(), 250);
+  };
+
+  async function refresh({ force = false } = {}) {
+    if (disposed) return false;
+
+    if (!force && !canApply()) {
+      queued = true;
+      publish({ pending: true });
+      return false;
+    }
+
+    if (controller && !force) {
+      queued = true;
+      publish({ pending: true });
+      return false;
+    }
+
+    controller?.abort();
+    clearTimeout(timer);
+    queued = false;
+
+    const current = new AbortController();
+    controller = current;
+    const ticket = ++sequence;
+
+    publish({
+      refreshing: true,
+      pending: false,
+      error: '',
+    });
+
+    try {
+      const next = await fetchScreen(current.signal);
+
+      if (disposed || current.signal.aborted || ticket !== sequence) {
+        return false;
+      }
+
+      if (!force && !canApply()) {
+        queued = true;
+        publish({ pending: true });
+        return false;
+      }
+
+      const nextSignature = JSON.stringify(next, (_key, value) =>
+        value && typeof value === 'object' && !Array.isArray(value)
+          ? Object.fromEntries(
+              Object.keys(value)
+                .sort()
+                .map((key) => [key, value[key]])
+            )
+          : value
+      );
+
+      if (nextSignature !== signature) {
+        onData(next);
+        signature = nextSignature;
+      }
+
+      publish({
+        updatedAt: Date.now(),
+        error: '',
+        pending: queued,
+      });
+
+      return true;
+    } catch (error) {
+      if (!disposed && !current.signal.aborted && ticket === sequence) {
+        publish({ error: errorMessage(error) });
+      }
+
+      return false;
+    } finally {
+      if (!disposed && ticket === sequence) {
+        controller = null;
+        publish({ refreshing: false });
+
+        if (queued && canApply()) schedule();
+      }
+    }
+  }
+
+  return {
+    refresh,
+
+    request() {
+      if (disposed) return;
+      queued = true;
+      publish({ pending: true });
+      schedule();
+    },
+
+    resume() {
+      if (!disposed && queued && canApply() && !controller) {
+        schedule();
+      }
+    },
+
+    cancel() {
+      clearTimeout(timer);
+      ++sequence;
+      controller?.abort();
+      controller = null;
+      queued = false;
+
+      publish({
+        refreshing: false,
+        pending: false,
+      });
+    },
+
+    dispose() {
+      disposed = true;
+      ++sequence;
+      clearTimeout(timer);
+      controller?.abort();
+      controller = null;
+    },
+  };
+}
+
 export default function ChiTietDonHang() {
+  const { orderId } = useParams();
+
+  return <OrderDetailView key={orderId} orderId={orderId} />;
+}
+
+function OrderDetailView({ orderId }) {
   const actionBusy = useRef(false);
   const cashAttempt = useRef(null);
   const orderAttempt = useRef(null);
-  const { orderId } = useParams();
+  const readerRef = useRef(null);
+  const editingRef = useRef(false);
+  const refundEditing = useRef(false);
   const navigate = useNavigate();
-  const [order, setOrder] = useState(null);
-  const [history, setHistory] = useState([]);
-  const [refundRevision, setRefundRevision] = useState(0);
+
+  const [screen, setScreen] = useState({
+    don_hang: null,
+    lich_su: [],
+    hoan_tien: null,
+  });
+
+  const order = screen.don_hang;
+  const history = screen.lich_su;
+
   const [isCancelOpen, setIsCancelOpen] = useState(false);
   const [cancelReason, setCancelReason] = useState('');
   const [dialog, setDialog] = useState(null);
-  const [options, setOptions] = useState({ warehouses: [], partners: [] });
-  const [state, setState] = useState({ loading: true, busy: false, error: '' });
-  const load = useCallback(
-    async (signal) => {
-      try {
-        const [detail, events] = await Promise.all([
-          getOrder(orderId, signal),
-          getOrderHistory(orderId, signal),
-        ]);
-        if (signal?.aborted) return;
-        setOrder(detail);
-        setHistory(events);
-        setRefundRevision((value) => value + 1);
-        setState((s) => ({ ...s, loading: false, error: '' }));
-      } catch (error) {
-        if (error.name !== 'AbortError')
-          setState((s) => ({ ...s, loading: false, error: error.message }));
-      }
-    },
-    [orderId]
-  );
-  useEffect(() => {
-    const controller = new AbortController();
-    load(controller.signal);
-    getOrderOptions(controller.signal)
-      .then(setOptions)
-      .catch(() => {});
-    return () => controller.abort();
-  }, [load]);
 
-  useEffect(() => {
-    if (
-      order?.loai_don_hang !== 'ONLINE' ||
-      !['CHO_DUYET', 'CHO_HANG'].includes(order?.trang_thai_don_hang) ||
-      state.busy ||
-      dialog ||
-      isCancelOpen
-    ) {
-      return undefined;
+  const [options, setOptions] = useState({
+    warehouses: [],
+    partners: [],
+  });
+
+  const [state, setState] = useState({
+    loading: true,
+    busy: false,
+    error: '',
+    notice: '',
+  });
+
+  const [sync, setSync] = useState({
+    refreshing: false,
+    pending: false,
+    error: '',
+    updatedAt: null,
+  });
+
+  editingRef.current = Boolean(dialog || isCancelOpen);
+
+  const load = useCallback(() => readerRef.current?.refresh(), []);
+
+  const onRefundEditing = useCallback((value) => {
+    refundEditing.current = value;
+
+    if (!value) {
+      readerRef.current?.resume();
     }
+  }, []);
 
-    const controller = new AbortController();
+  useEffect(() => {
+    const optionsController = new AbortController();
 
-    const timer = setTimeout(
-      () => {
-        if (!actionBusy.current) {
-          void load(controller.signal);
+    const reader = createOrderScreenReader({
+      fetchScreen: async (signal) => {
+        const value = await getOrderScreen(orderId, signal);
+
+        if (String(value?.don_hang?.id) !== String(orderId) || !Array.isArray(value?.lich_su)) {
+          throw new Error('Dữ liệu chi tiết đơn hàng không hợp lệ.');
+        }
+
+        return value;
+      },
+
+      canApply: () => !actionBusy.current && !editingRef.current && !refundEditing.current,
+
+      onData: (value) => {
+        setScreen(value);
+        setState((current) => ({
+          ...current,
+          loading: false,
+        }));
+      },
+
+      onStatus: (value) => {
+        setSync(value);
+
+        if (value.error) {
+          setState((current) => ({
+            ...current,
+            loading: false,
+          }));
         }
       },
-      order.trang_thai_don_hang === 'CHO_HANG' ? 5000 : 10000
-    );
+    });
+
+    readerRef.current = reader;
+    void reader.refresh();
+
+    getOrderOptions(optionsController.signal)
+      .then(setOptions)
+      .catch(() => {});
+
+    const unsubscribe = subscribeAdminRealtime((event) => {
+      if (event.type === 'ready') {
+        reader.request();
+      } else if (event.type === 'order-changed' && String(event.orderId) === String(orderId)) {
+        reader.request();
+      }
+    });
+
+    const refreshVisible = () => {
+      if (document.visibilityState === 'visible') {
+        reader.request();
+      }
+    };
+
+    const poll = setInterval(refreshVisible, 30000);
+
+    window.addEventListener('focus', refreshVisible);
+    document.addEventListener('visibilitychange', refreshVisible);
 
     return () => {
-      clearTimeout(timer);
-      controller.abort();
+      reader.dispose();
+      unsubscribe();
+      optionsController.abort();
+      clearInterval(poll);
+
+      window.removeEventListener('focus', refreshVisible);
+      document.removeEventListener('visibilitychange', refreshVisible);
+
+      if (readerRef.current === reader) {
+        readerRef.current = null;
+      }
     };
-  }, [order, state.busy, dialog, isCancelOpen, load]);
+  }, [orderId]);
+
+  useEffect(() => {
+    readerRef.current?.resume();
+  }, [dialog, isCancelOpen, state.busy]);
 
   const products = useDetailTablePagination(order?.san_pham || []);
+
   const run = async (work) => {
     if (actionBusy.current) return;
 
+    const reader = readerRef.current;
     actionBusy.current = true;
+    reader?.cancel();
+
     setState((current) => ({
       ...current,
       busy: true,
       error: '',
+      notice: '',
     }));
 
     try {
       await work();
-
       setDialog(null);
-      await load();
+
+      await reader?.refresh({ force: true });
+
+      setState((current) => ({
+        ...current,
+        notice: 'Thao tác đã được ghi nhận.',
+      }));
     } catch (error) {
       setState((current) => ({
         ...current,
         error: errorMessage(error),
       }));
+
+      reader?.request();
     } finally {
       actionBusy.current = false;
 
@@ -166,8 +393,11 @@ export default function ChiTietDonHang() {
         ...current,
         busy: false,
       }));
+
+      reader?.resume();
     }
   };
+
   useEffect(() => {
     if (!isCancelOpen) return undefined;
     const close = (event) => {
@@ -187,7 +417,11 @@ export default function ChiTietDonHang() {
     return (
       <section className="admin-order-detail admin-order-not-found">
         <h1>KHÔNG THỂ TẢI ĐƠN HÀNG</h1>
-        <p>{state.error}</p>
+        <p>{state.error || sync.error}</p>
+
+        <button type="button" disabled={sync.refreshing} onClick={load}>
+          THỬ LẠI
+        </button>
         <button type="button" onClick={() => navigate('/admin/don-hang/danh-sach-don-hang')}>
           QUAY LẠI DANH SÁCH
         </button>
@@ -195,9 +429,13 @@ export default function ChiTietDonHang() {
     );
 
   const open = (type, title, fields = {}) => {
-    setState((s) => ({ ...s, error: '' }));
+    if (refundEditing.current) return;
+
+    setState((current) => ({ ...current, error: '' }));
+    editingRef.current = true;
     setDialog({ type, title, confirmed: false, ...fields });
   };
+
   const approve = () => open('approve', 'DUYỆT ĐƠN');
   const fulfillment = () => open('fulfillment', 'BẮT ĐẦU ĐÓNG GÓI');
 
@@ -296,6 +534,19 @@ export default function ChiTietDonHang() {
     });
 
   const openSerialAllocation = async (type) => {
+    if (
+      actionBusy.current ||
+      refundEditing.current ||
+      orderAttempt.current ||
+      cashAttempt.current
+    ) {
+      return;
+    }
+
+    const reader = readerRef.current;
+    actionBusy.current = true;
+    reader?.cancel();
+
     try {
       setState((current) => ({
         ...current,
@@ -382,10 +633,14 @@ export default function ChiTietDonHang() {
         error: errorMessage(error),
       }));
     } finally {
+      actionBusy.current = false;
+
       setState((current) => ({
         ...current,
         busy: false,
       }));
+
+      reader?.resume();
     }
   };
 
@@ -505,6 +760,19 @@ export default function ChiTietDonHang() {
     });
   };
 
+  const retryCashOperation = () => {
+    const pending = cashAttempt.current;
+    if (!pending || actionBusy.current) return;
+
+    return run(() =>
+      withIdempotency(cashAttempt, pending.scope, pending.body, (key, payload) =>
+        pending.scope === 'order:' + order.id + ':refund'
+          ? refundOrder(order.id, key, payload)
+          : confirmOrderPayment(order.id, key, payload)
+      )
+    );
+  };
+
   const refund = () => {
     const scope = `order:${order.id}:refund`;
     const pending = cashAttempt.current;
@@ -555,14 +823,7 @@ export default function ChiTietDonHang() {
 
         return withIdempotency(cashAttempt, dialog.scope, body, (key, payload) =>
           confirmOrderPayment(order.id, key, payload)
-        ).then((updatedOrder) => {
-          setOrder((current) => ({
-            ...current,
-            ...updatedOrder,
-          }));
-
-          return updatedOrder;
-        });
+        );
       }
 
       if (type === 'refund') {
@@ -667,7 +928,19 @@ export default function ChiTietDonHang() {
 
   const waitingFullyReserved =
     waitingRows.length > 0 &&
-    waitingRows.every((item) => Number(item.so_luong_da_giu) === Number(item.so_luong_can));
+    waitingRows.every((item) => {
+      const needed = Number(item.so_luong_can);
+      const held = Number(item.so_luong_da_giu);
+
+      return (
+        item.so_luong_can != null &&
+        item.so_luong_da_giu != null &&
+        Number.isSafeInteger(needed) &&
+        needed > 0 &&
+        Number.isSafeInteger(held) &&
+        held === needed
+      );
+    });
 
   const counterDevices = Array.isArray(order.thiet_bi_hien_hanh) ? order.thiet_bi_hien_hanh : [];
 
@@ -743,6 +1016,7 @@ export default function ChiTietDonHang() {
             <OrderStateBadge value={order.trang_thai_xuat_kho} />
           </div>
         </div>
+
         <div className="order-detail-hero__actions">
           {canEditOnlineOrder(order) && (
             <Action
@@ -787,11 +1061,12 @@ export default function ChiTietDonHang() {
               >
                 XÁC NHẬN KHÁCH ĐÃ NHẬN
               </Action>
+
               {!canConfirmPickup && (
                 <small className="order-handover-warning" role="status">
                   {pickupReasons.join(' ')}
                 </small>
-              )}{' '}
+              )}
             </div>
           )}
 
@@ -821,6 +1096,7 @@ export default function ChiTietDonHang() {
                 disabled={state.busy}
                 click={() => {
                   setState((s) => ({ ...s, error: '' }));
+                  editingRef.current = true;
                   setIsCancelOpen(true);
                 }}
               >
@@ -857,6 +1133,23 @@ export default function ChiTietDonHang() {
           </button>
         </div>
       </header>
+
+      {sync.error && (
+        <p className="order-inline-warning order-sync-error" role="alert">
+          Chưa đồng bộ được dữ liệu mới. Đang giữ thông tin của lần đọc trước. {sync.error}
+        </p>
+      )}
+
+      {canCancelBeforeHandover && (
+        <div className="order-cod-settlement">
+          <strong>ĐÃ XUẤT KHO · CHƯA BÀN GIAO</strong>
+
+          <p>
+            Nếu khách hủy, dùng HỦY ĐƠN VÀ NHẬN LẠI HÀNG để kiểm tra và nhập lại hàng. Khoản hoàn
+            tiền được xác định từ thực thu và ghi nhận riêng sau khi đã hoàn cho khách.
+          </p>
+        </div>
+      )}
 
       {order.loai_don_hang === 'ONLINE' &&
         order.trang_thai_don_hang === 'CHO_DUYET' &&
@@ -928,11 +1221,11 @@ export default function ChiTietDonHang() {
                       <td>
                         {item.ten_san_pham} · {item.ten_phien_ban}
                       </td>
-                      <td>{item.so_luong_can ?? 0}</td>
-                      <td>{item.so_luong_da_giu ?? 0}</td>
-                      <td>{item.ton_co_the_ban ?? 0}</td>
-                      <td>{item.so_luong_con_can_giu ?? 0}</td>
-                      <td>{item.so_luong_thieu ?? 0}</td>
+                      <td>{item.so_luong_can ?? '—'}</td>
+                      <td>{item.so_luong_da_giu ?? '—'}</td>
+                      <td>{item.ton_co_the_ban ?? '—'}</td>
+                      <td>{item.so_luong_con_can_giu ?? '—'}</td>
+                      <td>{item.so_luong_thieu ?? '—'}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -945,13 +1238,6 @@ export default function ChiTietDonHang() {
           <p>Số liệu tự cập nhật định kỳ. Khi đủ hàng, chọn DUYỆT ĐƠN để xác nhận thực hiện đơn.</p>
         </div>
       )}
-
-      <OrderRefundPanel
-        order={order}
-        busy={state.busy || Boolean(orderAttempt.current) || Boolean(cashAttempt.current)}
-        perform={run}
-        revision={refundRevision}
-      />
 
       {waitingCod && (
         <div className="order-cod-settlement" role="status">
@@ -982,6 +1268,19 @@ export default function ChiTietDonHang() {
 
           <button type="button" disabled={state.busy} onClick={retryOrderOperation}>
             THỬ LẠI YÊU CẦU CŨ
+          </button>
+        </div>
+      )}
+
+      {cashAttempt.current && (
+        <div className="order-pending-operation" role="status">
+          <div>
+            <strong>GIAO DỊCH TIỀN ĐANG CHỜ XÁC ĐỊNH KẾT QUẢ</strong>
+            <p>Bấm thử lại để kiểm tra cùng yêu cầu đã gửi.</p>
+          </div>
+
+          <button type="button" disabled={state.busy} onClick={retryCashOperation}>
+            THỬ LẠI YÊU CẦU TIỀN
           </button>
         </div>
       )}
@@ -1038,91 +1337,6 @@ export default function ChiTietDonHang() {
             />
           </Panel>
 
-          <Panel title="THIẾT BỊ VÀ BẢO HÀNH">
-            <p>Thiết bị của lần xuất gốc:</p>
-            <SoldDevices order={order} />
-
-            <DeviceExchangeHistory order={order} />
-
-            {counterInspectionClosed && (
-              <p className="order-note">
-                Đã kết thúc kiểm tra tại quầy. Lỗi phát sinh tiếp theo xử lý qua bảo hành.
-              </p>
-            )}
-
-            {canCounterExchange && counterDevices.length > 0 && (
-              <div className="order-panel-actions">
-                <Action
-                  secondary
-                  disabled={
-                    state.busy || Boolean(orderAttempt.current) || Boolean(cashAttempt.current)
-                  }
-                  click={() => open('completeCounterInspection', 'KẾT THÚC KIỂM TRA TẠI QUẦY')}
-                >
-                  KẾT THÚC KIỂM TRA TẠI QUẦY
-                </Action>
-              </div>
-            )}
-
-            {counterDevices.length > 0 && (
-              <>
-                <h3>THIẾT BỊ HIỆN HÀNH</h3>
-
-                <div className="sold-devices-scroll">
-                  <table className="sold-devices-table">
-                    <thead>
-                      <tr>
-                        <th>Mã theo dõi</th>
-                        <th>Serial / nhận dạng</th>
-                        <th>Số lần đã đổi</th>
-                        <th>Thao tác</th>
-                      </tr>
-                    </thead>
-
-                    <tbody>
-                      {counterDevices.map((device) => {
-                        const count = Array.isArray(device.chuoi_thay_the)
-                          ? device.chuoi_thay_the.length
-                          : 0;
-
-                        return (
-                          <tr key={device.thiet_bi_id}>
-                            <td>{device.ma_theo_doi}</td>
-
-                            <td>
-                              {device.so_serial ||
-                                device.dau_hieu_nhan_dang ||
-                                'Không quản lý serial'}
-                            </td>
-
-                            <td>{count}</td>
-
-                            <td>
-                              {canCounterExchange ? (
-                                <Action
-                                  disabled={
-                                    state.busy ||
-                                    Boolean(orderAttempt.current) ||
-                                    Boolean(cashAttempt.current)
-                                  }
-                                  click={() => openCounterExchange(device)}
-                                >
-                                  {count > 0 ? 'GHI NHẬN LỖI VÀ ĐỔI TIẾP' : 'ĐỔI 1-1 LỖI TẠI QUẦY'}
-                                </Action>
-                              ) : (
-                                '—'
-                              )}
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              </>
-            )}
-          </Panel>
-
           <Panel title="THANH TOÁN">
             <dl className="order-detail-kv">
               <Info text="PHƯƠNG THỨC">{label(order.phuong_thuc_thanh_toan)}</Info>
@@ -1133,27 +1347,35 @@ export default function ChiTietDonHang() {
 
               <Info text="MÃ GIAO DỊCH GẦN NHẤT">{order.ma_giao_dich_thanh_toan || '—'}</Info>
 
-              {order.loai_don_hang === 'ONLINE' && (
-                <>
-                  <Info text="ĐÃ THỰC THU">
-                    {money(order.doi_soat_thanh_toan?.so_tien_thuc_thu)}
-                  </Info>
+              <Info text="ĐÃ THỰC THU">
+                {order.doi_soat_thanh_toan?.co_du_can_cu === true &&
+                order.doi_soat_thanh_toan.so_tien_thuc_thu != null
+                  ? money(order.doi_soat_thanh_toan.so_tien_thuc_thu)
+                  : 'Chưa xác minh'}
+              </Info>
 
-                  <Info text={waitingCod ? 'CHỜ ĐỐI TÁC NỘP COD' : 'CÒN PHẢI THU'}>
-                    {money(order.doi_soat_thanh_toan?.so_tien_con_phai_thu)}
-                  </Info>
-
-                  <Info text="ĐÃ HOÀN THEO ĐƠN HỦY">
-                    {money(order.doi_soat_thanh_toan?.so_tien_da_hoan)}
-                  </Info>
-                </>
+              {order.trang_thai_don_hang !== 'HUY_HANG' && (
+                <Info text={waitingCod ? 'CHỜ ĐỐI TÁC NỘP COD' : 'CÒN PHẢI THU'}>
+                  {order.doi_soat_thanh_toan?.co_du_can_cu === true &&
+                  order.doi_soat_thanh_toan.so_tien_con_phai_thu != null
+                    ? money(order.doi_soat_thanh_toan.so_tien_con_phai_thu)
+                    : 'Chưa xác minh'}
+                </Info>
               )}
+
+              <Info text="ĐÃ HOÀN THEO ĐƠN HỦY">
+                {order.doi_soat_thanh_toan?.co_du_can_cu === true &&
+                order.doi_soat_thanh_toan.so_tien_da_hoan != null
+                  ? money(order.doi_soat_thanh_toan.so_tien_da_hoan)
+                  : 'Chưa xác minh'}
+              </Info>
             </dl>
 
-            {order.loai_don_hang === 'ONLINE' &&
-              order.doi_soat_thanh_toan?.co_du_can_cu !== true && (
-                <p role="status">Chưa đủ căn cứ đối soát các khoản thu của đơn.</p>
-              )}
+            {order.doi_soat_thanh_toan?.co_du_can_cu !== true && (
+              <p className="order-inline-warning" role="status">
+                Chưa đủ căn cứ đối soát các khoản thu của đơn.
+              </p>
+            )}
 
             {order.doi_soat_thanh_toan?.co_du_can_cu === true &&
               order.doi_soat_thanh_toan.phieu_thu?.length > 0 && (
@@ -1163,7 +1385,9 @@ export default function ChiTietDonHang() {
                   <ul>
                     {order.doi_soat_thanh_toan.phieu_thu.map((receipt) => (
                       <li key={receipt.id}>
-                        <strong>{receipt.ma_phieu}</strong>
+                        <Link to={'/admin/so-quy-tien-mat/phieu-thu/' + receipt.id}>
+                          {receipt.ma_phieu}
+                        </Link>
                         {' · '}
                         {money(receipt.so_tien)}
                         {' · '}
@@ -1176,15 +1400,45 @@ export default function ChiTietDonHang() {
                 </details>
               )}
 
-            {canPay && (
-              <div className="order-panel-actions">
-                <Action disabled={state.busy} click={() => payment()}>
-                  {order.trang_thai_don_hang === 'HUY_HANG'
-                    ? 'GHI NHẬN TIỀN ĐẾN MUỘN'
-                    : 'GHI NHẬN THU TIỀN'}
-                </Action>
-              </div>
-            )}
+            {canPay &&
+              (order.trang_thai_don_hang === 'HUY_HANG' ? (
+                <details>
+                  <summary>Khách đã chuyển tiền nhưng cửa hàng ghi nhận khi đơn đã hủy?</summary>
+
+                  <p>
+                    Chỉ dùng khi đã đối chiếu và xác nhận thực nhận tiền. Đơn tiếp tục giữ trạng
+                    thái hủy; khoản cần hoàn được theo dõi ở bên dưới.
+                  </p>
+
+                  <Action
+                    disabled={
+                      state.busy || Boolean(orderAttempt.current) || Boolean(cashAttempt.current)
+                    }
+                    click={() => payment()}
+                  >
+                    GHI NHẬN TIỀN ĐẾN MUỘN
+                  </Action>
+                </details>
+              ) : (
+                <div className="order-panel-actions">
+                  <Action
+                    disabled={
+                      state.busy || Boolean(orderAttempt.current) || Boolean(cashAttempt.current)
+                    }
+                    click={() => payment()}
+                  >
+                    GHI NHẬN THU TIỀN
+                  </Action>
+                </div>
+              ))}
+
+            <OrderRefundPanel
+              order={order}
+              data={screen.hoan_tien}
+              busy={state.busy || Boolean(orderAttempt.current) || Boolean(cashAttempt.current)}
+              perform={run}
+              onEditingChange={onRefundEditing}
+            />
           </Panel>
 
           <Panel title="ĐÓNG GÓI VÀ XUẤT KHO">
@@ -1298,6 +1552,101 @@ export default function ChiTietDonHang() {
               </dl>
             )}
           </Panel>
+
+          {(counterDevices.length > 0 ||
+            (order.thiet_bi_da_giao || []).length > 0 ||
+            (order.thiet_bi_da_ban || []).length > 0 ||
+            order.can_xac_minh_lich_su === true) && (
+            <Panel title="THIẾT BỊ VÀ BẢO HÀNH">
+              {counterInspectionClosed && (
+                <p className="order-note">
+                  Đã kết thúc kiểm tra tại quầy. Lỗi phát sinh tiếp theo xử lý qua bảo hành.
+                </p>
+              )}
+
+              {canCounterExchange && counterDevices.length > 0 && (
+                <div className="order-panel-actions">
+                  <Action
+                    secondary
+                    disabled={
+                      state.busy || Boolean(orderAttempt.current) || Boolean(cashAttempt.current)
+                    }
+                    click={() => open('completeCounterInspection', 'KẾT THÚC KIỂM TRA TẠI QUẦY')}
+                  >
+                    KẾT THÚC KIỂM TRA TẠI QUẦY
+                  </Action>
+                </div>
+              )}
+
+              {counterDevices.length > 0 && (
+                <>
+                  <h3>THIẾT BỊ HIỆN HÀNH</h3>
+
+                  <div className="sold-devices-scroll">
+                    <table className="sold-devices-table">
+                      <thead>
+                        <tr>
+                          <th>Mã theo dõi</th>
+                          <th>Serial / nhận dạng</th>
+                          <th>Số lần đã đổi</th>
+                          <th>Thao tác</th>
+                        </tr>
+                      </thead>
+
+                      <tbody>
+                        {counterDevices.map((device) => {
+                          const count = Array.isArray(device.chuoi_thay_the)
+                            ? device.chuoi_thay_the.length
+                            : 0;
+
+                          return (
+                            <tr key={device.thiet_bi_id}>
+                              <td>{device.ma_theo_doi}</td>
+
+                              <td>
+                                {device.so_serial ||
+                                  device.dau_hieu_nhan_dang ||
+                                  'Không quản lý serial'}
+                              </td>
+
+                              <td>{count}</td>
+
+                              <td>
+                                {canCounterExchange ? (
+                                  <Action
+                                    disabled={
+                                      state.busy ||
+                                      Boolean(orderAttempt.current) ||
+                                      Boolean(cashAttempt.current)
+                                    }
+                                    click={() => openCounterExchange(device)}
+                                  >
+                                    {count > 0
+                                      ? 'GHI NHẬN LỖI VÀ ĐỔI TIẾP'
+                                      : 'ĐỔI 1-1 LỖI TẠI QUẦY'}
+                                  </Action>
+                                ) : (
+                                  '—'
+                                )}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </>
+              )}
+
+              <details>
+                <summary>THIẾT BỊ CỦA LẦN XUẤT GỐC</summary>
+                <SoldDevices order={order} />
+              </details>
+
+              <DeviceExchangeHistory order={order} />
+            </Panel>
+          )}
+
           <Panel title="LỊCH SỬ XỬ LÝ">
             {history.length ? (
               <ol className="order-timeline">
@@ -1361,7 +1710,11 @@ export default function ChiTietDonHang() {
 
               <Info text="PHÍ GIAO HÀNG">{money(order.phi_giao_hang)}</Info>
               <div className="order-summary-total">
-                <dt>KHÁCH PHẢI TRẢ</dt>
+                <dt>
+                  {order.trang_thai_don_hang === 'HUY_HANG'
+                    ? 'GIÁ TRỊ ĐƠN TRƯỚC KHI HỦY'
+                    : 'TỔNG GIÁ TRỊ ĐƠN'}
+                </dt>
                 <dd>{money(order.tong_thanh_toan)}</dd>
               </div>
             </dl>
@@ -1605,7 +1958,11 @@ function DeviceExchangeHistory({ order }) {
                         <small>{status}</small>
                       </td>
 
-                      <td>{edge.ma_phieu_bao_hanh || '#' + edge.phieu_bao_hanh_id}</td>
+                      <td>
+                        <Link to={'/admin/bao-hanh/chi-tiet/' + edge.phieu_bao_hanh_id}>
+                          {edge.ma_phieu_bao_hanh || '#' + edge.phieu_bao_hanh_id}
+                        </Link>
+                      </td>
 
                       <td>
                         {edge.ngay_ban_giao

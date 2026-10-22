@@ -48,6 +48,8 @@ export async function getOrders(filters, signal) {
 
 export const getOrder = (id, signal) =>
   adminRequest(`${PATH}/${encodeURIComponent(id)}`, { signal });
+export const getOrderScreen = (id, signal) =>
+  adminRequest(`${PATH}/${encodeURIComponent(id)}/screen`, { signal });
 export const getOrderHistory = (id, signal) =>
   adminRequest(`${PATH}/${encodeURIComponent(id)}/history`, { signal });
 export const approveOrder = (id) => action(id, 'approve', { xac_nhan: true });
