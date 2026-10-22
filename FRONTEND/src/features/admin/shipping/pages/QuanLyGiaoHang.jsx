@@ -1348,7 +1348,15 @@ function ShipmentStatusDialog({ kind, delivery, busy, error, close, submit }) {
   );
 }
 
-function ShipmentReturnDialog({ delivery, busy, error, close, submit }) {
+export function ShipmentReturnDialog({
+  delivery,
+  busy,
+  error,
+  close,
+  submit,
+  requirementsUrl = null,
+  beforeHandover = false,
+}) {
   const [requirements, setRequirements] = useState(null);
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -1369,7 +1377,7 @@ function ShipmentReturnDialog({ delivery, busy, error, close, submit }) {
     setRequirements(null);
     setRows([]);
 
-    apiRequest(`${API}/${encodeURIComponent(delivery.id)}/return-requirements`, {
+    apiRequest(requirementsUrl || `${API}/${encodeURIComponent(delivery.id)}/return-requirements`, {
       signal: controller.signal,
     })
       .then((data) => {
@@ -1418,7 +1426,7 @@ function ShipmentReturnDialog({ delivery, busy, error, close, submit }) {
       });
 
     return () => controller.abort();
-  }, [delivery.id, revision]);
+  }, [delivery.id, revision, requirementsUrl]);
 
   const changeRow = (index, values) => {
     setRows((current) =>
@@ -1540,15 +1548,22 @@ function ShipmentReturnDialog({ delivery, busy, error, close, submit }) {
       bang_chung_urls: evidence.map((image) => image.url),
     };
 
-    return submit('POST', 'return-receipt', body, 'Đã nhận đủ hàng hoàn và nhập lại kho.');
+    return submit(
+      'POST',
+      beforeHandover ? 'cancel-before-handover' : 'return-receipt',
+      body,
+      beforeHandover ? 'Đã hủy đơn và nhận lại đủ hàng.' : 'Đã nhận đủ hàng hoàn và nhập lại kho.'
+    );
   };
 
   const moneyEvidence = requirements?.doi_soat_tien;
   const moneyKnown = moneyEvidence?.co_du_can_cu === true;
 
+  const hasRefund = moneyKnown && Number(moneyEvidence.tong_tien_can_hoan) > 0;
+
   return (
     <OrderModal
-      title="XÁC NHẬN HÀNG HOÀN VỀ KHO"
+      title={beforeHandover ? 'HỦY ĐƠN VÀ NHẬN LẠI HÀNG' : 'XÁC NHẬN HÀNG HOÀN VỀ KHO'}
       className="delivery-operation-dialog delivery-return-dialog is-return"
       showClose
       busy={busy}
@@ -1756,7 +1771,7 @@ function ShipmentReturnDialog({ delivery, busy, error, close, submit }) {
           </div>
 
           <label className="delivery-field">
-            <span>LÝ DO TRẢ *</span>
+            <span>{beforeHandover ? 'LÝ DO HỦY ĐƠN *' : 'LÝ DO TRẢ *'}</span>
 
             <textarea
               required
@@ -1764,7 +1779,11 @@ function ShipmentReturnDialog({ delivery, busy, error, close, submit }) {
               maxLength={255}
               value={reason}
               onChange={(event) => setReason(event.target.value)}
-              placeholder="Ví dụ: Khách không nhận, đối tác đã hoàn đủ hàng..."
+              placeholder={
+                beforeHandover
+                  ? 'Lý do hủy đơn khi hàng chưa bàn giao...'
+                  : 'Ví dụ: Khách không nhận, đối tác đã hoàn đủ hàng...'
+              }
             />
           </label>
 
@@ -1784,19 +1803,20 @@ function ShipmentReturnDialog({ delivery, busy, error, close, submit }) {
             )}
           </div>
 
-          <label className="delivery-field">
-            <span>HÌNH THỨC HOÀN TIỀN DỰ KIẾN *</span>
+          {hasRefund && (
+            <label className="delivery-field">
+              <span>HÌNH THỨC HOÀN TIỀN DỰ KIẾN *</span>
 
-            <select
-              required
-              value={refundMethod}
-              onChange={(event) => setRefundMethod(event.target.value)}
-            >
-              <option value="CHUYEN_KHOAN">Chuyển khoản</option>
-
-              <option value="TIEN_MAT">Tiền mặt</option>
-            </select>
-          </label>
+              <select
+                required
+                value={refundMethod}
+                onChange={(event) => setRefundMethod(event.target.value)}
+              >
+                <option value="CHUYEN_KHOAN">Chuyển khoản</option>
+                <option value="TIEN_MAT">Tiền mặt</option>
+              </select>
+            </label>
+          )}
 
           <label className="delivery-checkbox">
             <input

@@ -1,11 +1,13 @@
 package com.example.dantruventu.Controller.order;
 
+import com.example.dantruventu.DTO.Request.order.AdminDeliveryReturnRequest;
 import com.example.dantruventu.DTO.Request.order.AdminOrderRequest;
 import com.example.dantruventu.DTO.Request.order.AdminSalesRequest;
 import com.example.dantruventu.DTO.Response.ApiResponse;
 import com.example.dantruventu.DTO.Response.order.AdminOrderResponse;
 import com.example.dantruventu.DTO.Response.order.AdminSalesResponse;
 import com.example.dantruventu.Enum.*;
+import com.example.dantruventu.Services.order.AdminDeliveryService;
 import com.example.dantruventu.Services.order.AdminOrderService;
 import com.example.dantruventu.Services.order.OrderWebSocket;
 import com.example.dantruventu.Services.order.sales.AdminSalesService;
@@ -27,6 +29,7 @@ public class AdminOrderController {
   private final AdminSalesService salesService;
   private final AdminOrderService orderService;
   private final OrderWebSocket orderWebSocket;
+  private final AdminDeliveryService deliveryService;
 
   @PostMapping("/realtime-ticket")
   public ApiResponse<java.util.Map<String, String>> realtimeTicket(
@@ -235,5 +238,24 @@ public class AdminOrderController {
 
   private <T> ApiResponse<T> ok(String message, T data) {
     return ApiResponse.<T>builder().status(200).message(message).data(data).build();
+  }
+
+  @GetMapping("/{id}/pre-handover-return-requirements")
+  public ApiResponse<Map<String, Object>> preHandoverReturnRequirements(
+      @PathVariable("id") Long id) {
+
+    return ok(
+        "Lấy yêu cầu nhận lại hàng trước bàn giao thành công",
+        deliveryService.preHandoverReturnRequirements(id));
+  }
+
+  @PostMapping("/{id}/cancel-before-handover")
+  public ApiResponse<Map<String, Object>> cancelBeforeHandover(
+      @PathVariable("id") Long id,
+      @RequestHeader(name = "Idempotency-Key", required = false) String key,
+      @Valid @RequestBody AdminDeliveryReturnRequest request) {
+
+    return ok(
+        "Đã hủy đơn và nhận lại đủ hàng", deliveryService.cancelBeforeHandover(id, key, request));
   }
 }

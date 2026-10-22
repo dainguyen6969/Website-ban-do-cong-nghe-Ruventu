@@ -92,6 +92,9 @@ export const confirmOrderPayment = (id, key, body) =>
 
 export const cancelOrder = (id, key, body) => action(id, 'cancel', body, 'POST', key);
 
+export const cancelBeforeHandover = (id, key, body) =>
+  action(id, 'cancel-before-handover', body, 'POST', key);
+
 export const confirmPickup = (id, key, body) => action(id, 'pickup/confirm', body, 'POST', key);
 
 export const refundOrder = (id, key, body) =>
@@ -204,9 +207,15 @@ export function paymentSource(order) {
     ['CHO_DUYET', 'CHO_THANH_TOAN', 'CHO_DONG_GOI', 'CHO_LAY_HANG', 'HUY_HANG'].includes(
       order.trang_thai_don_hang
     ) &&
-    order.trang_thai_xuat_kho !== 'DA_HOAN_KHO' &&
+    (order.trang_thai_xuat_kho !== 'DA_HOAN_KHO' ||
+      (order.trang_thai_don_hang === 'HUY_HANG' && order.da_nhan_lai_truoc_ban_giao === true)) &&
     active.every((item) => item.trang_thai_giao_hang === 'CHO_GIAO') &&
-    (!preliminaryOrder || (order.trang_thai_xuat_kho === 'CHUA_XUAT_KHO' && active.length === 0));
+    (!preliminaryOrder ||
+      (active.length === 0 &&
+        (order.trang_thai_xuat_kho === 'CHUA_XUAT_KHO' ||
+          (order.trang_thai_don_hang === 'HUY_HANG' &&
+            order.trang_thai_xuat_kho === 'DA_HOAN_KHO' &&
+            order.da_nhan_lai_truoc_ban_giao === true))));
 
   if (canReceiveFromCustomer) {
     return { nguon_thu: 'KHACH_HANG' };

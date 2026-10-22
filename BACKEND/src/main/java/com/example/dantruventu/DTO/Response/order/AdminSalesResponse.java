@@ -215,6 +215,9 @@ public final class AdminSalesResponse {
     @JsonProperty("han_giu_hang")
     private OffsetDateTime hanGiuHang;
 
+    @JsonProperty("da_nhan_lai_truoc_ban_giao")
+    private Boolean daNhanLaiTruocBanGiao;
+
     @JsonProperty("tong_tien_hang")
     private BigDecimal tongTienHang;
 
