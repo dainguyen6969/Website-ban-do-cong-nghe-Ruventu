@@ -23,6 +23,56 @@ test('product cards render four accessible specification rows and omit empty tab
   assert.doesNotMatch(render({ ...product, specs: [] }), /<table/);
 });
 
+test('combo cards match standalone cards and keep assembly availability in the detail', () => {
+  const product = { id: 581, title: 'PC thật', name: 'PC thật', price: '18.390.000 ₫',
+    specs: [{ label: 'CPU', value: 'Intel Core i5' }], policies: [] };
+  const render = component => renderToStaticMarkup(React.createElement(MemoryRouter, null, component));
+  const combo = { ...product, loaiSanPham: 'BO_PC', soBoCoTheLap: 3,
+    thanhPhan: [{ phien_ban_id: 1, ten_san_pham: 'Linh kiện cấu hình', so_luong_trong_bo: 1 }],
+    variants: [{ id: 4, giaBanLe: 18390000, soBoCoTheLap: 3, coTheBan: true }] };
+  const card = render(React.createElement(Card, { product: combo }));
+  assert.equal(card, render(React.createElement(Card, { product: { ...product, loaiSanPham: 'DON' } })));
+  assert.doesNotMatch(card, /Có thể lắp|XEM CẤU HÌNH|Linh kiện cấu hình|<details/);
+  assert.match(card, /Intel Core i5/);
+  assert.match(card, /XEM CHI TIẾT/);
+  const detail = render(React.createElement(Sidebar, { product: combo, selectedVariantId: 4 }));
+  assert.match(detail, /CÒN HÀNG — 3 BỘ/);
+});
+
+test('standalone demo pricing is labeled, accurate and leaves the actual price unchanged', () => {
+  const product = Object.freeze({ id: 1, title: 'CPU demo', loaiSanPham: 'DON', priceValue: 900000, price: '900.000 ₫' });
+  const render = props => renderToStaticMarkup(React.createElement(MemoryRouter, null, React.createElement(Card, { product: props })));
+  const html = render(product);
+  assert.match(html, /Dữ liệu demo · không phải ưu đãi thật/);
+  assert.match(html, /<s class="product-card__demo-reference">1\.000\.000/);
+  assert.match(html, /Tiết kiệm 10%/);
+  assert.match(html, /Tiết kiệm mô phỏng 100\.000/);
+  assert.match(html, /class="sale-price">900\.000/);
+  assert.equal(product.priceValue, 900000);
+  assert.equal(product.originalPrice, undefined);
+  assert.match(render({ ...product, priceFrom: true }), /demo-reference">Từ 1\.000\.000/);
+  for (const props of [
+    { ...product, loaiSanPham: undefined },
+    { ...product, loaiSanPham: 'UNKNOWN' },
+    ...[0, -1, NaN, Infinity, undefined, '900000', Number.MAX_SAFE_INTEGER].map(priceValue => ({ ...product, priceValue })),
+  ]) assert.doesNotMatch(render(props), /product-card__demo-pricing|Tiết kiệm 10%/);
+});
+
+test('PC build demo pricing uses the combo price independently of component discounts', () => {
+  const combo = Object.freeze({ id: 590, title: 'PC combo demo', loaiSanPham: 'BO_PC', priceValue: 9000000, price: '9.000.000 ₫',
+    thanhPhan: [{ phien_ban_id: 1, giaBanLe: 1000000, originalPrice: 2000000, discountPercent: 50, so_luong_trong_bo: 2 }] });
+  const render = product => renderToStaticMarkup(React.createElement(MemoryRouter, null, React.createElement(Card, { product })));
+  const html = render(combo);
+  assert.match(html, /Dữ liệu demo · không phải ưu đãi thật/);
+  assert.match(html, /demo-reference">10\.000\.000/);
+  assert.match(html, /Tiết kiệm 10%/);
+  assert.match(html, /Tiết kiệm mô phỏng 1\.000\.000/);
+  assert.match(html, /class="sale-price">9\.000\.000/);
+  assert.equal(html, render({ ...combo, thanhPhan: [{ phien_ban_id: 1, giaBanLe: 8000000, originalPrice: 9000000, discountPercent: 90 }] }));
+  assert.equal(combo.priceValue, 9000000);
+  assert.equal(combo.originalPrice, undefined);
+});
+
 test('highlight cards never exceed six even when a caller supplies more rows', () => {
   const rows = Array.from({ length: 10 }, (_, index) => ({ label: 'Thông số ' + index, value: String(index) }));
   const html = renderToStaticMarkup(React.createElement(Highlights, { product: { name: 'GPU', mainSpecs: rows, fullSpecs: rows } }));

@@ -103,3 +103,17 @@
   margin-left: auto;
   color: #71717a;
 }
+
+/* Keep dropdowns outside the table's scrolling container. */
+.purchase-create-grid > * { min-width: 0; }
+.purchase-create-page .purchase-card .form-card__body { overflow: visible; }
+.purchase-form-table-wrap { max-width: 100%; overflow-x: auto; }
+.purchase-create-page .purchase-autocomplete { min-width: 0; }
+.purchase-create-page .purchase-search { width: 100%; min-width: 0; height: 44px; }
+.purchase-create-page .purchase-search svg { flex-shrink: 0; width: 18px; height: 18px; }
+.purchase-create-page .purchase-search input { flex: 1; min-width: 0; font-size: 14px; color: #111; }
+.purchase-create-page .purchase-search:focus-within { border-color: #e31e24; }
+.purchase-create-page .purchase-results { top: calc(100% + 4px); max-height: min(360px, 45vh); overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; }
+.purchase-create-page .purchase-results button { padding: 12px 14px; white-space: normal; overflow-wrap: anywhere; }
+.purchase-create-page .purchase-results strong { font-size: 14px; line-height: 1.4; }
+.purchase-create-page .purchase-results small { font-size: 12px; line-height: 1.4; color: #666; }

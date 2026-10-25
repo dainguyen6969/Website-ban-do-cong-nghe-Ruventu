@@ -78,6 +78,8 @@ export default function TablePagination({
           </button>
         ))}
         {totalPages > 3 &&
+          <label className="product-pagination-jump-label">
+          <span>Đến trang</span>
           <input
             className="product-pagination-jump"
             type="number"
@@ -92,7 +94,8 @@ export default function TablePagination({
             onBlur={commitJump}
             aria-label="Đi đến trang"
             id={`${idPrefix}-pagination-jump`}
-          />}
+          />
+          </label>}
         {safePage < totalPages && <button
           type="button"
           className="product-pagination-btn product-pagination-btn--nav"
