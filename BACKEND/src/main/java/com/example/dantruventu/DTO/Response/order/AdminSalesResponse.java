@@ -8,6 +8,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.Map;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
@@ -209,6 +210,15 @@ public final class AdminSalesResponse {
     @JsonProperty("trang_thai_xuat_kho")
     private TrangThaiXuatKho trangThaiXuatKho;
 
+    @JsonProperty("da_giu_hang")
+    private Boolean daGiuHang;
+
+    @JsonProperty("han_giu_hang")
+    private OffsetDateTime hanGiuHang;
+
+    @JsonProperty("da_nhan_lai_truoc_ban_giao")
+    private Boolean daNhanLaiTruocBanGiao;
+
     @JsonProperty("tong_tien_hang")
     private BigDecimal tongTienHang;
 
@@ -272,16 +282,28 @@ public final class AdminSalesResponse {
     private String canhBaoThietBi;
 
     @JsonProperty("thiet_bi_da_ban")
-    private List<java.util.Map<String, Object>> thietBiDaBan;
+    private List<Map<String, Object>> thietBiDaBan;
 
     @JsonProperty("thiet_bi_hien_hanh")
-    private List<java.util.Map<String, Object>> thietBiHienHanh;
+    private List<Map<String, Object>> thietBiHienHanh;
 
     @JsonProperty("can_xac_minh_lich_su")
     private boolean canXacMinhLichSu;
 
     @JsonProperty("canh_bao")
     private List<String> canhBao;
+
+    @JsonProperty("doi_soat_thanh_toan")
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    private Map<String, Object> doiSoatThanhToan;
+
+    @JsonProperty("hang_con_thieu")
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    private List<Map<String, Object>> hangConThieu;
+
+      @JsonProperty("giu_hang_cho_hang")
+      @JsonInclude(JsonInclude.Include.NON_NULL)
+      private List<Map<String, Object>> giuHangChoHang;
   }
 
   @Getter

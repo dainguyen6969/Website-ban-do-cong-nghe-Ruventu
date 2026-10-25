@@ -29,6 +29,7 @@ const options = {
   trang_thai_don_hang: [
     [ALL, ''],
     ['Chờ duyệt', 'CHO_DUYET'],
+    ['Chờ hàng', 'CHO_HANG'],
     ['Chờ thanh toán', 'CHO_THANH_TOAN'],
     ['Chờ đóng gói', 'CHO_DONG_GOI'],
     ['Chờ lấy hàng', 'CHO_LAY_HANG'],
@@ -40,6 +41,7 @@ const options = {
     [ALL, ''],
     ['Chưa thanh toán', 'CHUA_THANH_TOAN'],
     ['Đã thanh toán', 'DA_THANH_TOAN'],
+    ['Đã thanh toán một phần', 'THANH_TOAN_MOT_PHAN'],
   ],
   trang_thai_dong_goi: [
     [ALL, ''],
@@ -425,7 +427,14 @@ export function OrderStateBadge({ value }) {
       ? 'purple'
       : ['HUY_HANG', 'HUY_DONG_GOI'].includes(value)
         ? 'red'
-        : ['CHO_DUYET', 'CHO_THANH_TOAN', 'CHUA_THANH_TOAN', 'CHO_DOI_SOAT_COD'].includes(value)
+        : [
+              'CHO_DUYET',
+              'CHO_HANG',
+              'CHO_THANH_TOAN',
+              'CHUA_THANH_TOAN',
+              'THANH_TOAN_MOT_PHAN',
+              'CHO_DOI_SOAT_COD',
+            ].includes(value)
           ? 'amber'
           : ['HOAN_THANH', 'DA_THANH_TOAN', 'DA_DONG_GOI', 'DA_XUAT_KHO'].includes(value)
             ? 'green'

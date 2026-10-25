@@ -28,7 +28,7 @@ export async function getOrders(filters, signal) {
     items.push(
       ...data.items.filter(
         (item) =>
-          ['CHO_DUYET', 'CHO_THANH_TOAN', 'CHO_DONG_GOI', 'CHO_LAY_HANG'].includes(
+          ['CHO_DUYET', 'CHO_HANG', 'CHO_THANH_TOAN', 'CHO_DONG_GOI', 'CHO_LAY_HANG'].includes(
             item.trang_thai_don_hang
           ) && Date.parse(item.ngay_tao) <= cutoff
       )
@@ -50,6 +50,9 @@ export const getOrder = (id, signal) =>
 export const getOrderHistory = (id, signal) =>
   adminRequest(`${PATH}/${encodeURIComponent(id)}/history`, { signal });
 export const approveOrder = (id) => action(id, 'approve', { xac_nhan: true });
+export const retryOrderStock = (id) => action(id, 'stock/retry', { xac_nhan: true });
+export const reserveWaitingOrderStock = (id, key, body) =>
+  action(id, 'stock/reserve', body, 'POST', key);
 export const startFulfillment = (id, key, body) => action(id, 'fulfillment', body, 'POST', key);
 export const startOrderDelivery = (id, partnerId, fee, tracking = '') =>
   action(id, 'delivery/start', {
@@ -64,6 +67,12 @@ export const setPackingStatus = (id, status) =>
 
 export const getSerialRequirements = (id) =>
   adminRequest(`${PATH}/${encodeURIComponent(id)}/warehouse/serial-requirements`);
+
+export const getPackingSerials = (id) =>
+  adminRequest(`${PATH}/${encodeURIComponent(id)}/packing/serials`);
+
+export const savePackingSerials = (id, key, body) =>
+  action(id, 'packing/serials', body, 'POST', key);
 
 export const getExportVariant = (id) =>
   adminRequest(`/api/v1/admin/inventory/items/${encodeURIComponent(id)}?loai_doi_tuong=PHIEN_BAN`);
@@ -86,10 +95,25 @@ export const confirmOrderPayment = (id, key, body) =>
 
 export const cancelOrder = (id, key, body) => action(id, 'cancel', body, 'POST', key);
 
+export const cancelBeforeHandover = (id, key, body) =>
+  action(id, 'cancel-before-handover', body, 'POST', key);
+
 export const confirmPickup = (id, key, body) => action(id, 'pickup/confirm', body, 'POST', key);
 
 export const refundOrder = (id, key, body) =>
   adminRequest(`${PATH}/${encodeURIComponent(id)}/refund`, {
+    method: 'POST',
+    headers: {
+      'Idempotency-Key': key,
+    },
+    body: JSON.stringify(body),
+  });
+
+export const getOrderRefundOptions = (id, signal) =>
+  adminRequest(`${PATH}/${encodeURIComponent(id)}/refund-options`, { signal });
+
+export const refundOrderReturn = (returnId, key, body) =>
+  adminRequest(`/api/v1/admin/returns/${encodeURIComponent(returnId)}/refund`, {
     method: 'POST',
     headers: {
       'Idempotency-Key': key,
@@ -130,7 +154,7 @@ export function isWaitingCodSettlement(order, delivery = null) {
   if (
     order?.loai_don_hang !== 'ONLINE' ||
     !['DANG_GIAO_HANG', 'HOAN_THANH'].includes(order.trang_thai_don_hang) ||
-    order.trang_thai_thanh_toan !== 'CHUA_THANH_TOAN' ||
+    !['CHUA_THANH_TOAN', 'THANH_TOAN_MOT_PHAN'].includes(order.trang_thai_thanh_toan) ||
     order.trang_thai_dong_goi !== 'DA_DONG_GOI' ||
     order.trang_thai_xuat_kho !== 'DA_XUAT_KHO' ||
     order.hinh_thuc_nhan_hang === 'NHAN_TAI_CUA_HANG' ||
@@ -175,28 +199,62 @@ export function paymentSource(order) {
     return null;
   }
 
+  const balance = order.doi_soat_thanh_toan;
+  const verified = balance?.co_du_can_cu === true;
+
+  const remaining = verified
+    ? Number(balance.gioi_han_thu)
+    : order.trang_thai_thanh_toan === 'CHUA_THANH_TOAN'
+      ? total
+      : NaN;
+
   const active = (order.phieu_giao_hang || []).filter(
     (item) => !['HUY_GIAO_HANG', 'DA_HOAN_HANG'].includes(item.trang_thai_giao_hang)
   );
 
+  const preliminaryOrder = ['CHO_DUYET', 'CHO_HANG', 'HUY_HANG'].includes(
+    order.trang_thai_don_hang
+  );
+
   const canReceiveFromCustomer =
-    order.trang_thai_thanh_toan === 'CHUA_THANH_TOAN' &&
-    ['CHO_THANH_TOAN', 'CHO_DONG_GOI', 'CHO_LAY_HANG'].includes(order.trang_thai_don_hang) &&
-    order.trang_thai_xuat_kho !== 'DA_HOAN_KHO' &&
-    active.every((item) => item.trang_thai_giao_hang === 'CHO_GIAO');
+    Number.isFinite(remaining) &&
+    remaining > 0 &&
+    ['CHUA_THANH_TOAN', 'THANH_TOAN_MOT_PHAN'].includes(order.trang_thai_thanh_toan) &&
+    [
+      'CHO_DUYET',
+      'CHO_HANG',
+      'CHO_THANH_TOAN',
+      'CHO_DONG_GOI',
+      'CHO_LAY_HANG',
+      'HUY_HANG',
+    ].includes(order.trang_thai_don_hang) &&
+    (order.trang_thai_xuat_kho !== 'DA_HOAN_KHO' ||
+      (order.trang_thai_don_hang === 'HUY_HANG' && order.da_nhan_lai_truoc_ban_giao === true)) &&
+    active.every((item) => item.trang_thai_giao_hang === 'CHO_GIAO') &&
+    (!preliminaryOrder ||
+      (active.length === 0 &&
+        (order.trang_thai_xuat_kho === 'CHUA_XUAT_KHO' ||
+          (order.trang_thai_don_hang === 'HUY_HANG' &&
+            order.trang_thai_xuat_kho === 'DA_HOAN_KHO' &&
+            order.da_nhan_lai_truoc_ban_giao === true))));
 
   if (canReceiveFromCustomer) {
-    return { nguon_thu: 'KHACH_HANG' };
+    return {
+      nguon_thu: 'KHACH_HANG',
+      so_tien_con_phai_thu: remaining,
+    };
   }
 
   const delivery = active.length === 1 ? active[0] : null;
 
   const pendingCod =
-    order.trang_thai_thanh_toan === 'CHUA_THANH_TOAN' &&
+    ['CHUA_THANH_TOAN', 'THANH_TOAN_MOT_PHAN'].includes(order.trang_thai_thanh_toan) &&
     ['DANG_GIAO_HANG', 'HOAN_THANH'].includes(order.trang_thai_don_hang);
 
   const legacyCod =
     order.trang_thai_thanh_toan === 'DA_THANH_TOAN' && order.trang_thai_don_hang === 'HOAN_THANH';
+
+  const cod = Number(delivery?.tien_thu_ho_cod);
 
   const canReceiveCod =
     (pendingCod || legacyCod) &&
@@ -206,12 +264,15 @@ export function paymentSource(order) {
     order.trang_thai_xuat_kho === 'DA_XUAT_KHO' &&
     delivery?.trang_thai_giao_hang === 'GIAO_THANH_CONG' &&
     Number(delivery?.doi_tac_van_chuyen_id) > 0 &&
-    Number(delivery?.tien_thu_ho_cod) === total;
+    Number.isFinite(cod) &&
+    cod > 0 &&
+    cod <= total;
 
   if (canReceiveCod) {
     return {
       nguon_thu: 'DOI_TAC_GIAO_HANG',
       phieu_giao_hang_id: delivery.id,
+      so_tien_con_phai_thu: cod,
     };
   }
 
@@ -242,6 +303,7 @@ export const labels = {
   ONLINE: 'Online',
   TAI_QUAY: 'Tại quầy',
   CHO_DUYET: 'Chờ duyệt',
+  CHO_HANG: 'Chờ hàng',
   CHO_THANH_TOAN: 'Chờ thanh toán',
   CHO_DONG_GOI: 'Chờ đóng gói',
   CHO_LAY_HANG: 'Chờ lấy hàng',
@@ -271,6 +333,7 @@ export const labels = {
   TIEN_MAT: 'Tiền mặt',
   CHUYEN_KHOAN: 'Chuyển khoản',
   THE: 'Thẻ',
+  THANH_TOAN_MOT_PHAN: 'Đã thanh toán một phần',
 };
 
 export const label = (value) => labels[value] || value || '—';

@@ -1675,6 +1675,7 @@ public class AdminPurchaseOrderService {
             serial ->
                 serial.getTrangThai() == TrangThaiSerial.TRONG_KHO
                     || serial.getTrangThai() == TrangThaiSerial.LOI)
+        .filter(serial -> serial.getChiTietDongGoi() == null)
         .map(
             serial ->
                 AdminPurchaseOrderReceiveResponse.SerialData.builder()
@@ -1735,7 +1736,10 @@ public class AdminPurchaseOrderService {
           serial.getTrangThai() == TrangThaiSerial.TRONG_KHO
               || serial.getTrangThai() == TrangThaiSerial.LOI;
 
-      if (!correctSource || serial.getDonHang() != null || !warehouseState) {
+      if (!correctSource
+          || serial.getDonHang() != null
+          || serial.getChiTietDongGoi() != null
+          || !warehouseState) {
 
         throw new AppException(
             ErrorCode.CONFLICT,

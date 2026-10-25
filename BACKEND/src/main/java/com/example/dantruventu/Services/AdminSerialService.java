@@ -248,6 +248,12 @@ public class AdminSerialService {
       throw conflict("Phiên bản của serial vừa thay đổi, vui lòng tải lại dữ liệu");
     }
 
+    if (serial.getChiTietDongGoi() != null) {
+      throw conflict(
+          "Serial đang giữ để đóng gói. "
+              + "Hãy đổi mã hoặc hủy đóng gói trước khi sửa trạng thái.");
+    }
+
     if (serial.getDonHang() != null) {
       throw conflict(
           "Serial đang liên kết với đơn hàng, "

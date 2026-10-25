@@ -4,6 +4,7 @@ import com.example.dantruventu.Entity.PhieuTraHang;
 import jakarta.persistence.LockModeType;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -33,6 +34,8 @@ public interface PhieuTraHangRepository
   Optional<PhieuTraHang> findByMaTraHang(String maTraHang);
 
   boolean existsByDonHang_Id(Long orderId);
+
+  List<PhieuTraHang> findByDonHang_IdOrderByIdAsc(Long orderId);
 
   interface RefundExpenseProjection {
 

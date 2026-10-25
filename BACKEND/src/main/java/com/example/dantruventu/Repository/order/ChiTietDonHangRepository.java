@@ -35,22 +35,28 @@ public interface ChiTietDonHangRepository extends JpaRepository<ChiTietDonHang, 
   @EntityGraph(attributePaths = {"phienBan", "phienBan.sanPham", "donHang"})
   @Query(
       """
-    SELECT c
-    FROM ChiTietDonHang c
-    WHERE c.donHang.loaiDonHang =
-        com.example.dantruventu.Enum.LoaiDonHang.ONLINE
-      AND c.donHang.trangThaiDonHang IN (
-        com.example.dantruventu.Enum.TrangThaiDonHang.CHO_DONG_GOI,
-        com.example.dantruventu.Enum.TrangThaiDonHang.CHO_LAY_HANG
-      )
-      AND c.donHang.trangThaiDongGoi IN (
-        com.example.dantruventu.Enum.TrangThaiDongGoi.DANG_DONG_GOI,
-        com.example.dantruventu.Enum.TrangThaiDongGoi.DA_DONG_GOI
-      )
-      AND c.donHang.trangThaiXuatKho =
-        com.example.dantruventu.Enum.TrangThaiXuatKho.CHUA_XUAT_KHO
-    ORDER BY c.id
-    """)
+            SELECT c
+            FROM ChiTietDonHang c
+            WHERE c.donHang.trangThaiXuatKho =
+                com.example.dantruventu.Enum.TrangThaiXuatKho.CHUA_XUAT_KHO
+              AND (
+                c.donHang.daGiuHang = true
+                OR (
+                  c.donHang.daGiuHang IS NULL
+                  AND c.donHang.loaiDonHang =
+                      com.example.dantruventu.Enum.LoaiDonHang.ONLINE
+                  AND c.donHang.trangThaiDonHang IN (
+                      com.example.dantruventu.Enum.TrangThaiDonHang.CHO_DONG_GOI,
+                      com.example.dantruventu.Enum.TrangThaiDonHang.CHO_LAY_HANG
+                  )
+                  AND c.donHang.trangThaiDongGoi IN (
+                      com.example.dantruventu.Enum.TrangThaiDongGoi.DANG_DONG_GOI,
+                      com.example.dantruventu.Enum.TrangThaiDongGoi.DA_DONG_GOI
+                  )
+                )
+              )
+            ORDER BY c.id
+            """)
   List<ChiTietDonHang> findHeldLines();
 
   @Query(
@@ -80,7 +86,14 @@ public interface ChiTietDonHangRepository extends JpaRepository<ChiTietDonHang, 
   @Query(
       value =
           """
-        SELECT COALESCE(SUM(x.quantity), 0)
+        SELECT COALESCE(SUM(x.quantity), 0) + (
+            SELECT COALESCE(SUM(g.so_luong), 0)
+            FROM giu_hang_tung_phan g
+            JOIN don_hang waiting_order
+                ON waiting_order.id = g.don_hang_id
+            WHERE g.phien_ban_id = :variantId
+              AND waiting_order.trang_thai_xuat_kho = 'CHUA_XUAT_KHO'
+        )
         FROM (
             SELECT
                 ct.don_hang_id AS order_id,
@@ -134,14 +147,24 @@ public interface ChiTietDonHangRepository extends JpaRepository<ChiTietDonHang, 
               AND JSON_EXTRACT(
                   ct.cau_hinh_da_ban, '$.phien_ban_snapshot'
               ) IS NULL
-        ) x
-        JOIN don_hang d ON d.id = x.order_id
-        WHERE x.variant_id = :variantId
-          AND d.loai_don_hang = 'ONLINE'
-          AND d.trang_thai_don_hang IN ('CHO_DONG_GOI', 'CHO_LAY_HANG')
-          AND d.trang_thai_dong_goi IN ('DANG_DONG_GOI', 'DA_DONG_GOI')
-          AND d.trang_thai_xuat_kho = 'CHUA_XUAT_KHO'
-        """,
+      ) x
+      JOIN don_hang d ON d.id = x.order_id
+      WHERE x.variant_id = :variantId
+        AND d.trang_thai_xuat_kho = 'CHUA_XUAT_KHO'
+        AND (
+            d.da_giu_hang = 1
+            OR (
+                d.da_giu_hang IS NULL
+                AND d.loai_don_hang = 'ONLINE'
+                AND d.trang_thai_don_hang IN (
+                    'CHO_DONG_GOI', 'CHO_LAY_HANG'
+                )
+                AND d.trang_thai_dong_goi IN (
+                    'DANG_DONG_GOI', 'DA_DONG_GOI'
+                )
+            )
+        )
+      """,
       nativeQuery = true)
   Long sumReservedQuantity(@Param("variantId") Long variantId);
 
