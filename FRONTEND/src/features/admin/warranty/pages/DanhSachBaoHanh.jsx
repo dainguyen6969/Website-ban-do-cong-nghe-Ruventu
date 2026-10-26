@@ -4,6 +4,7 @@ import { Search, SlidersHorizontal, Plus } from 'lucide-react';
 import { mockWarrantyData, warrantyStatusLabels } from '../data/mockData';
 import { filterWarranties, statusLabels, quoteStatuses, paymentStatuses, refundStatuses, quickFilters } from '../data/warrantyModel';
 import { WarrantyBadge } from '../components/WarrantyShell';
+import FilterDropdown from '../../../../shared/components/ui/FilterDropdown';
 import '../styles/warrantyShell.css';
 
 const emptyFilters = { search: '', status: '', quick: 'TẤT CẢ', quoteStatus: '', paymentStatus: '', refundStatus: '', fromDate: '', toDate: '' };
@@ -44,14 +45,14 @@ export default function DanhSachBaoHanh() {
       {samples && <section className="w-shell-samples" aria-label="Tình huống bảo hành mẫu"><header><div><h2>TÌNH HUỐNG BẢO HÀNH MẪU</h2><p>Mở phiếu hiện có để thử thao tác. Không khởi tạo lại dữ liệu hoặc xóa sự kiện đã ghi. Toàn bộ dữ liệu chỉ tồn tại trong phiên mock.</p></div><button type="button" className="w-shell-button" onClick={() => setSamples(false)}>ĐÓNG</button></header><div>{mockWarrantyData.filter(item => item.id >= 'BH-101' && item.id <= 'BH-114').map(item => <article key={item.id}><strong>{item.id}</strong><WarrantyBadge>{statusLabels[item.status]}</WarrantyBadge><p>{item.productName} · {item.productVariant}</p><p className="w-shell-note">Hiện tại: {statusLabels[item.status]}</p><p>{item.receptionReason}</p><button type="button" className="w-shell-button" aria-label={`Mở phiếu mẫu ${item.id}`} onClick={() => navigate(`/admin/bao-hanh/chi-tiet/${item.id}`)}>XEM PHIẾU</button></article>)}</div></section>}
       <div className="w-shell-filter-primary">
         <label className="w-shell-search"><Search size={16} /><input aria-label="Tìm phiếu bảo hành" placeholder="Tìm mã phiếu / serial / mã theo dõi / tên / SĐT..." value={filters.search} onChange={event => update('search', event.target.value)} /></label>
-        <select aria-label="Trạng thái xử lý" value={filters.status} onChange={event => update('status', event.target.value)}><option value="">Trạng thái xử lý — Tất cả</option>{Object.entries(statusLabels).map(([value, text]) => <option key={value} value={value}>{text}</option>)}</select>
+        <FilterDropdown aria-label="Trạng thái xử lý" value={filters.status} onChange={event => update('status', event.target.value)} selectedDark><option value="">Trạng thái xử lý — Tất cả</option>{Object.entries(statusLabels).map(([value, text]) => <option key={value} value={value}>{text}</option>)}</FilterDropdown>
         <label className="w-shell-date">TỪ NGÀY<input aria-label="TỪ NGÀY" type="date" value={filters.fromDate} onChange={event => update('fromDate', event.target.value)} /></label>
         <label className="w-shell-date">ĐẾN NGÀY<input aria-label="ĐẾN NGÀY" type="date" value={filters.toDate} onChange={event => update('toDate', event.target.value)} /></label>
         <button type="button" className="w-shell-button" onClick={() => { setFilters({ ...emptyFilters }); setPage(1); }}>XÓA BỘ LỌC</button>
         <button type="button" className={`w-shell-button ${advanced ? 'w-shell-button--black' : ''}`} aria-expanded={advanced} onClick={() => setAdvanced(value => !value)}><SlidersHorizontal size={14} /> BỘ LỌC KHÁC</button>
       </div>
       {advanced && <div className="w-shell-filter-advanced">
-        {[[ 'BÁO GIÁ', 'quoteStatus', quoteStatuses ], [ 'THANH TOÁN', 'paymentStatus', paymentStatuses ], [ 'HOÀN TIỀN', 'refundStatus', refundStatuses ]].map(([label, field, options]) => <label key={field}>{label}<select aria-label={label} value={filters[field]} onChange={event => update(field, event.target.value)}><option value="">Tất cả</option>{options.map(value => <option key={value}>{value}</option>)}</select></label>)}
+        {[[ 'BÁO GIÁ', 'quoteStatus', quoteStatuses ], [ 'THANH TOÁN', 'paymentStatus', paymentStatuses ], [ 'HOÀN TIỀN', 'refundStatus', refundStatuses ]].map(([label, field, options]) => <label key={field}>{label}<FilterDropdown aria-label={label} value={filters[field]} onChange={event => update(field, event.target.value)} selectedDark><option value="">Tất cả</option>{options.map(value => <option key={value}>{value}</option>)}</FilterDropdown></label>)}
       </div>}
       {invalidDates && <p className="w-shell-error" role="alert">Từ ngày phải nhỏ hơn hoặc bằng đến ngày.</p>}
     </section>

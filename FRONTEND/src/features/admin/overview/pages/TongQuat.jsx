@@ -12,6 +12,7 @@ import {
 import { Line } from "react-chartjs-2";
 import { apiRequest } from "../../../../auth/backendAuth";
 import { formatDateTimeVN } from "../../../../shared/services/mutationUtils";
+import FilterDropdown from "../../../../shared/components/ui/FilterDropdown";
 import {
   PERIODS,
   CHANNELS,
@@ -271,9 +272,10 @@ function CashFilters({ draft, onChange, onApply, error, busy }) {
     <label key={key}>
       {label}
       {options ? (
-        <select
+        <FilterDropdown
           value={draft[key] || ""}
           onChange={(event) => onChange(key, event.target.value)}
+          selectedDark
         >
           <option value="">Tất cả</option>
           {Object.entries(options).map(([value, text]) => (
@@ -281,7 +283,7 @@ function CashFilters({ draft, onChange, onApply, error, busy }) {
               {text}
             </option>
           ))}
-        </select>
+        </FilterDropdown>
       ) : (
         <input
           type="text"
@@ -596,15 +598,16 @@ export default function TongQuat() {
           </label>
           <label>
             Nhóm biểu đồ
-            <select
+            <FilterDropdown
               value={draft.nhom_theo}
               onChange={(event) =>
                 setDraft({ ...draft, nhom_theo: event.target.value })
               }
+              selectedDark
             >
               <option value="NGAY">Theo ngày</option>
               <option value="THANG">Theo tháng</option>
-            </select>
+            </FilterDropdown>
           </label>
         </div>
         <div className="tq-filter-row">
@@ -1024,13 +1027,14 @@ export default function TongQuat() {
           controls={
             <label>
               Xếp hạng theo
-              <select
+              <FilterDropdown
                 value={ranking}
                 onChange={(event) => setRanking(event.target.value)}
+                selectedDark
               >
                 <option value="SO_LUONG_BAN">Số lượng bán</option>
                 <option value="DOANH_THU_THUAN">Doanh thu thuần</option>
-              </select>
+              </FilterDropdown>
             </label>
           }
         >

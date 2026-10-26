@@ -11,6 +11,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { cashbookService } from "../../../../shared/services/cashbookService";
 
 import DetailTablePagination from "../../../../shared/components/ui/DetailTablePagination";
+import FilterDropdown from "../../../../shared/components/ui/FilterDropdown";
 
 import { DETAIL_TABLE_PAGE_SIZE } from "../../../../hooks/useDetailTablePagination";
 
@@ -340,34 +341,34 @@ export default function SoQuy() {
         </div>
         <div className="cb-filter-item">
           <label>LOẠI PHIẾU</label>
-          <select
+          <FilterDropdown
             value={filterType}
-            className={filterType !== "ALL" ? "active-filter" : ""}
             onChange={(e) => {
               setFilterType(e.target.value);
               setPage(1);
             }}
+            selectedDark
           >
             <option value="ALL">Tất cả</option>
             <option value="THU">Phiếu thu</option>
             <option value="CHI">Phiếu chi</option>
-          </select>
+          </FilterDropdown>
         </div>
         <div className="cb-filter-item">
           <label>PHƯƠNG THỨC</label>
-          <select
+          <FilterDropdown
             value={filterMethod}
-            className={filterMethod !== "ALL" ? "active-filter" : ""}
             onChange={(e) => {
               setFilterMethod(e.target.value);
               setPage(1);
             }}
+            selectedDark
           >
             <option value="ALL">Tất cả</option>
             <option value="TIEN_MAT">Tiền mặt</option>
             <option value="CHUYEN_KHOAN">Chuyển khoản</option>
             <option value="THE">Quẹt thẻ</option>
-          </select>
+          </FilterDropdown>
         </div>
         <div className="cb-filter-item">
           <label>NGƯỜI NỘP / NHẬN</label>

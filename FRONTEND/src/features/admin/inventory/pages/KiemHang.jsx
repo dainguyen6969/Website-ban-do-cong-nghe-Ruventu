@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { HiOutlineChevronDown, HiOutlineChevronUp, HiOutlinePlus, HiOutlineSearch } from 'react-icons/hi';
 import TablePagination from '../../../../shared/components/ui/TablePagination';
+import FilterDropdown from '../../../../shared/components/ui/FilterDropdown';
 import { getInventoryCheckPage } from '../api/inventoryCheckApi';
 import './KiemHang.css';
 
@@ -75,7 +76,7 @@ export default function KiemHang() {
       <section className="stock-check-filters" aria-label="Bộ lọc phiếu kiểm hàng">
         <div className="stock-check-toolbar">
           <label className="stock-check-search"><HiOutlineSearch aria-hidden="true" /><span className="sr-only">Tìm phiếu kiểm hàng</span><input type="search" value={draftFilters.keyword} onChange={updateDraft('keyword')} placeholder="Tìm mã phiếu..." /></label>
-          <select aria-label="Trạng thái" value={draftFilters.status} onChange={updateDraft('status')}><option value="">TRẠNG THÁI</option><option value="DANG_KIEM">Đang kiểm</option><option value="DA_CAN_BANG">Đã cân bằng</option><option value="DA_HUY">Đã hủy</option></select>
+          <FilterDropdown aria-label="Trạng thái" value={draftFilters.status} onChange={updateDraft('status')} selectedDark><option value="">TRẠNG THÁI</option><option value="DANG_KIEM">Đang kiểm</option><option value="DA_CAN_BANG">Đã cân bằng</option><option value="DA_HUY">Đã hủy</option></FilterDropdown>
           <button type="button" className={`stock-check-button stock-check-filter-toggle ${showMoreFilters ? 'is-active' : ''}`} aria-expanded={showMoreFilters} aria-controls="stock-check-extra-filters" onClick={() => setShowMoreFilters((current) => !current)}>{showMoreFilters ? <>ÍT BỘ LỌC <HiOutlineChevronUp /></> : <>BỘ LỌC <HiOutlineChevronDown /></>}</button>
           <button type="button" className="stock-check-button stock-check-button--primary" onClick={applyFilters}>ÁP DỤNG</button>
         </div>

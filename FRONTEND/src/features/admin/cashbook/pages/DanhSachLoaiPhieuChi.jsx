@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import './DanhSachLoaiPhieuThu.css'; // Reuse CSS
 import TablePagination from '../../../../shared/components/ui/TablePagination';
+import FilterDropdown from '../../../../shared/components/ui/FilterDropdown';
 import { getDisbursementTypes, createDisbursementType, DISBURSEMENT_TYPE_STATUS } from '../api/disbursementTypeApi';
 
 export default function DanhSachLoaiPhieuChi() {
@@ -121,11 +122,11 @@ export default function DanhSachLoaiPhieuChi() {
                     value={searchQuery}
                     onChange={e => setSearchQuery(e.target.value)}
                 />
-                <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)}>
+                <FilterDropdown value={filterStatus} onChange={e => setFilterStatus(e.target.value)} selectedDark>
                     <option value="TẤT CẢ TRẠNG THÁI">TẤT CẢ TRẠNG THÁI</option>
                     <option value="HOẠT ĐỘNG">HOẠT ĐỘNG</option>
                     <option value="NGỪNG HOẠT ĐỘNG">NGỪNG HOẠT ĐỘNG</option>
-                </select>
+                </FilterDropdown>
             </div>
 
             <div className="pt-table-container">

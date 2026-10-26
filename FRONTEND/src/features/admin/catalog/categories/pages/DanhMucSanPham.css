@@ -124,8 +124,11 @@
 .category-table code,
 .category-detail-page code { color: #777; font-size: 11px; }
 
-.category-name-cell { width: 100%; display: flex; align-items: center; gap: 12px; text-align: left; }
-.category-name-cell--child { padding-left: 22px; cursor: default !important; }
+.category-name-cell { width: 100%; display: flex; align-items: center; gap: 10px; text-align: left; }
+.category-name-cell__indent-wrapper { display: inline-flex; align-items: center; justify-content: center; flex: 0 0 24px; min-width: 24px; }
+.category-toggle-expand { display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; border: 1px solid #d0d0d0; background: #fff; cursor: pointer; color: #111; padding: 0; flex: 0 0 22px; transition: all var(--transition-fast); }
+.category-toggle-expand:hover { border-color: #111; background: #f0f0f0; }
+.category-tree-indent { display: inline-flex; align-items: center; justify-content: center; width: 22px; color: #888; font-weight: 700; flex: 0 0 22px; }
 .category-name-copy { display: flex; min-width: 0; flex-direction: column; }
 .category-name-copy strong { display: flex; align-items: center; gap: 5px; font-size: 13px; }
 .category-name-copy strong svg { flex: 0 0 auto; }
@@ -133,6 +136,8 @@
 .category-image { width: 42px; height: 42px; flex: 0 0 42px; display: grid; place-items: center; overflow: hidden; border: 1px solid #d7d7d7; background: #e9e9e9; color: #999; font-size: 11px; font-weight: 900; }
 .category-image img { width: 100%; height: 100%; object-fit: cover; }
 .category-image--large { width: 80px; height: 80px; flex-basis: 80px; font-size: 16px; }
+.category-image-preview { width: 90px; height: 90px; margin-top: 10px; border: 1px solid #ddd; background: #fafafa; display: grid; place-items: center; overflow: hidden; }
+.category-image-preview img { width: 100%; height: 100%; object-fit: cover; }
 .category-structure,
 .category-status { display: inline-flex; align-items: center; min-height: 21px; padding: 3px 8px; border: 1px solid #d3d3d3; background: #fff; color: #333; font-size: 9px; font-weight: 900; white-space: nowrap; }
 .category-structure--root,

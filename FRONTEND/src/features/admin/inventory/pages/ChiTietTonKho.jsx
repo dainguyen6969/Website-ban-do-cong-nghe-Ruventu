@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { HiOutlineArrowLeft, HiOutlineHome } from 'react-icons/hi';
 import DetailTablePagination from '../../../../shared/components/ui/DetailTablePagination';
+import FilterDropdown from '../../../../shared/components/ui/FilterDropdown';
 import useDetailTablePagination from '../../../../hooks/useDetailTablePagination';
 import { getVersionDetail, getVersionLedger } from '../../catalog/products/api/versionApi';
 import './ChiTietTonKho.css';
@@ -193,8 +194,8 @@ export default function ChiTietTonKho() {
             <label><span className="sr-only">Từ ngày</span><input type="date" value={fromDate} onChange={(event) => setFromDate(event.target.value)} /></label>
             <span className="inventory-date-separator" aria-hidden="true">—</span>
             <label><span className="sr-only">Đến ngày</span><input type="date" value={toDate} onChange={(event) => setToDate(event.target.value)} /></label>
-            <label><span className="sr-only">Loại giao dịch</span><select value={transactionType} onChange={(event) => setTransactionType(event.target.value)}>{transactionOptions.map((option) => <option key={option}>{option}</option>)}</select></label>
-            <label><span className="sr-only">Kho hàng</span><select value={warehouse} onChange={(event) => setWarehouse(event.target.value)}><option value="">Tất cả kho</option>{detail.warehouses.map((option) => <option key={option.id} value={option.id}>{option.name}</option>)}</select></label>
+            <label><span className="sr-only">Loại giao dịch</span><FilterDropdown value={transactionType} onChange={(event) => setTransactionType(event.target.value)} selectedDark>{transactionOptions.map((option) => <option key={option}>{option}</option>)}</FilterDropdown></label>
+            <label><span className="sr-only">Kho hàng</span><FilterDropdown value={warehouse} onChange={(event) => setWarehouse(event.target.value)} selectedDark><option value="">Tất cả kho</option>{detail.warehouses.map((option) => <option key={option.id} value={option.id}>{option.name}</option>)}</FilterDropdown></label>
             {filtersChanged && <button type="button" className="inventory-reset" onClick={resetFilters}>ĐẶT LẠI</button>}
             <strong className="inventory-history-count">{filteredHistory.length} bản ghi</strong>
           </div>

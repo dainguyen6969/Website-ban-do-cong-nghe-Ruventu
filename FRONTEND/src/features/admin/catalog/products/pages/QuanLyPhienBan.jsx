@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { HiOutlineDownload, HiOutlineSearch } from "react-icons/hi";
 import TablePagination from "../../../../../shared/components/ui/TablePagination";
+import FilterDropdown from "../../../../../shared/components/ui/FilterDropdown";
 import { getAllVersions } from "../api/versionApi";
 import "./QuanLyPhienBan.css";
 
@@ -182,13 +183,14 @@ export default function QuanLyPhienBan() {
 
           <label className="version-select-wrap">
             <span className="sr-only">Lọc theo kho</span>
-            <select
+            <FilterDropdown
               id="warehouse-filter"
               value={warehouse}
               onChange={(event) => {
                 setWarehouse(event.target.value);
                 setCurrentPage(1);
               }}
+              selectedDark
             >
               <option value="">Tất cả kho</option>
               {warehouses.map((option) => (
@@ -196,26 +198,39 @@ export default function QuanLyPhienBan() {
                   {option.name}
                 </option>
               ))}
-            </select>
+            </FilterDropdown>
           </label>
 
           <label className="version-select-wrap">
             <span className="sr-only">Lọc theo phân loại</span>
-            <select
+            <FilterDropdown
               id="type-filter"
               value={type}
               onChange={(event) => {
                 setType(event.target.value);
                 setCurrentPage(1);
               }}
+              selectedDark
             >
               {typeOptions.map((option) => (
                 <option key={option}>{option}</option>
               ))}
-            </select>
+            </FilterDropdown>
           </label>
 
-          <label className="version-select-wrap"><span className="sr-only">Lọc cảnh báo tồn kho</span><select aria-label="Lọc cảnh báo tồn kho" value={warning} onChange={event => { setWarning(event.target.value); setCurrentPage(1); }}><option value="">Tất cả cảnh báo</option><option value="HET_HANG">Hết hàng</option><option value="DUOI_TOI_THIEU">Dưới mức tối thiểu</option></select></label>
+          <label className="version-select-wrap">
+            <span className="sr-only">Lọc cảnh báo tồn kho</span>
+            <FilterDropdown
+              aria-label="Lọc cảnh báo tồn kho"
+              value={warning}
+              onChange={event => { setWarning(event.target.value); setCurrentPage(1); }}
+              selectedDark
+            >
+              <option value="">Tất cả cảnh báo</option>
+              <option value="HET_HANG">Hết hàng</option>
+              <option value="DUOI_TOI_THIEU">Dưới mức tối thiểu</option>
+            </FilterDropdown>
+          </label>
 
           <button
             type="button"

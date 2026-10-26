@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { HiOutlinePlus, HiOutlineSearch } from 'react-icons/hi';
 import TablePagination from '../../../../shared/components/ui/TablePagination';
+import FilterDropdown from '../../../../shared/components/ui/FilterDropdown';
 import { getPurchaseOrderPage, getSupplierOptions, IMPORT_STATUS, PAYMENT_STATUS } from '../api/purchaseOrderApi';
 import { money, PageCrumb, StatusBadge } from './PurchaseShared';
 import './NhapHang.css';
@@ -24,9 +25,9 @@ export default function DanhSachNhapHang() {
     <div className="purchase-heading"><div><PageCrumb /><h1>DANH SÁCH ĐƠN NHẬP HÀNG</h1></div><button className="purchase-btn black" onClick={() => navigate('/kho-hang/nhap-hang/tao-moi')}><HiOutlinePlus /> TẠO ĐƠN NHẬP HÀNG</button></div>
     <div className="purchase-toolbar">
       <label className="purchase-search"><HiOutlineSearch /><input value={filters.keyword} onChange={update('keyword')} placeholder="TÌM MÃ ĐƠN NHẬP / NHÀ CUNG CẤP..." /></label>
-      <select aria-label="Nhà cung cấp" value={filters.supplierId} onChange={update('supplierId')}><option value="">NHÀ CUNG CẤP</option>{suppliers.map((item) => <option value={item.id} key={item.id}>{item.name}</option>)}</select>
-      <select aria-label="Trạng thái nhập" value={filters.importStatus} onChange={update('importStatus')}><option value="">TRẠNG THÁI NHẬP</option>{Object.entries(IMPORT_STATUS).map(([code, label]) => <option value={code} key={code}>{label}</option>)}</select>
-      <select aria-label="Thanh toán" value={filters.paymentStatus} onChange={update('paymentStatus')}><option value="">THANH TOÁN</option>{Object.entries(PAYMENT_STATUS).map(([code, label]) => <option value={code} key={code}>{label}</option>)}</select>
+      <FilterDropdown aria-label="Nhà cung cấp" value={filters.supplierId} onChange={update('supplierId')} selectedDark><option value="">NHÀ CUNG CẤP</option>{suppliers.map((item) => <option value={item.id} key={item.id}>{item.name}</option>)}</FilterDropdown>
+      <FilterDropdown aria-label="Trạng thái nhập" value={filters.importStatus} onChange={update('importStatus')} selectedDark><option value="">TRẠNG THÁI NHẬP</option>{Object.entries(IMPORT_STATUS).map(([code, label]) => <option value={code} key={code}>{label}</option>)}</FilterDropdown>
+      <FilterDropdown aria-label="Thanh toán" value={filters.paymentStatus} onChange={update('paymentStatus')} selectedDark><option value="">THANH TOÁN</option>{Object.entries(PAYMENT_STATUS).map(([code, label]) => <option value={code} key={code}>{label}</option>)}</FilterDropdown>
       {hasFilters && <button className="clear-filters" onClick={() => setFilters((old) => ({ ...old, supplierId: '', importStatus: '', paymentStatus: '', page: 1 }))}>XÓA BỘ LỌC</button>}
     </div>
     {error && <p className="purchase-message error">{error}</p>}

@@ -1,10 +1,10 @@
 .cashbook-page {
-    flex: 1; min-width: 0; overflow: auto; display: flex; flex-direction: column; background: #fff;
-    min-height: calc(100vh - 60px);
+    flex: 1; min-width: 0; max-width: 100%; overflow-x: hidden; overflow-y: auto; display: flex; flex-direction: column; background: #fff;
+    min-height: calc(100vh - 60px); box-sizing: border-box;
 }
 
 .cb-header {
-    min-height: 112px; padding: 18px 28px; display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; border-bottom: 2px solid #111; background: #fff;
+    min-height: 112px; padding: 18px 28px; display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; border-bottom: 2px solid #111; background: #fff; box-sizing: border-box;
 }
 
 .cb-title-area .cb-breadcrumb {
@@ -28,7 +28,7 @@
 }
 
 .cb-filter-bar {
-    display: flex; gap: 12px; padding: 16px 28px; border-bottom: 2px solid #111; align-items: flex-end; background: #fff; flex-wrap: wrap;
+    display: flex; gap: 12px; padding: 16px 28px; border-bottom: 2px solid #111; align-items: flex-end; background: #fff; flex-wrap: wrap; box-sizing: border-box; max-width: 100%;
 }
 
 .cb-filter-item {
@@ -40,7 +40,7 @@
 }
 
 .cb-filter-item input, .cb-filter-item select {
-    height: 38px; padding: 0 12px; border: 2px solid #dedede; font-size: 10px; font-weight: 700; color: #111; outline: none; background: #fff; min-width: 140px;
+    height: 38px; padding: 0 12px; border: 2px solid #dedede; font-size: 10px; font-weight: 700; color: #111; outline: none; background: #fff; min-width: 140px; box-sizing: border-box;
 }
 
 .cb-filter-actions {
@@ -58,11 +58,11 @@
 .cb-btn-primary:hover { background: #333; }
 
 .cb-stats-row {
-    display: flex; border-bottom: 2px solid #111;
+    display: flex; border-bottom: 2px solid #111; box-sizing: border-box;
 }
 
 .cb-stat-box {
-    flex: 1; padding: 24px 28px; border-right: 2px solid #111; display: flex; flex-direction: column; justify-content: center;
+    flex: 1; padding: 24px 28px; border-right: 2px solid #111; display: flex; flex-direction: column; justify-content: center; box-sizing: border-box;
 }
 
 .cb-stat-box:last-child {
@@ -97,7 +97,7 @@
 }
 
 .cb-calculation-row {
-    padding: 12px 28px; font-size: 11px; font-weight: 700; color: #858c95; border-bottom: 2px solid #111; background: #fafafa;
+    padding: 12px 28px; font-size: 11px; font-weight: 700; color: #858c95; border-bottom: 2px solid #111; background: #fafafa; box-sizing: border-box;
 }
 
 .cb-calculation-row span {
@@ -109,7 +109,7 @@
 }
 
 .cb-chart-container {
-    padding: 24px 28px; display: flex; flex-direction: column; flex: 1; min-height: 400px;
+    padding: 24px 28px; display: flex; flex-direction: column; flex: 1; min-height: 400px; box-sizing: border-box;
 }
 
 .cb-chart-header {
@@ -145,7 +145,7 @@
 }
 
 .cb-error-banner {
-    padding: 12px 28px; background: #fef2f2; border-bottom: 2px solid #ef4444; color: #b91c1c; font-size: 11px; font-weight: 800; display: flex; align-items: center; justify-content: space-between; text-transform: uppercase;
+    padding: 12px 28px; background: #fef2f2; border-bottom: 2px solid #ef4444; color: #b91c1c; font-size: 11px; font-weight: 800; display: flex; align-items: center; justify-content: space-between; text-transform: uppercase; box-sizing: border-box;
 }
 
 .cb-error-dismiss {
@@ -180,3 +180,115 @@
     font-size: 10px; font-weight: 700; color: #858c95; text-transform: uppercase;
 }
 
+/* ========================================
+   Mobile & Responsive Adaptations
+   ======================================== */
+@media (max-width: 900px) {
+    .cb-stats-row {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+    }
+    .cb-stat-box {
+        border-right: none;
+        border-bottom: 2px solid #111;
+        padding: 16px;
+    }
+    .cb-stat-box:nth-child(odd) {
+        border-right: 2px solid #111;
+    }
+    .cb-stat-box:nth-last-child(-n+2) {
+        border-bottom: none;
+    }
+}
+
+@media (max-width: 768px) {
+    .cb-header {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 14px;
+        padding: 16px;
+        min-height: auto;
+    }
+    .cb-btn-secondary {
+        width: 100%;
+        justify-content: center;
+    }
+    .cb-filter-bar {
+        padding: 14px 16px;
+        gap: 10px;
+    }
+    .cb-filter-item {
+        flex: 1 1 calc(50% - 6px);
+        min-width: 130px;
+    }
+    .cb-filter-item input,
+    .cb-filter-item select {
+        width: 100%;
+        min-width: 0;
+        box-sizing: border-box;
+    }
+    .cb-filter-actions {
+        width: 100%;
+        margin-left: 0;
+        height: auto;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+    .cb-filter-actions button {
+        flex: 1 1 100%;
+        width: 100%;
+        justify-content: center;
+    }
+    .cb-calculation-row {
+        padding: 12px 16px;
+        font-size: 9.5px;
+        line-height: 1.6;
+        word-break: break-word;
+    }
+    .cb-chart-container {
+        padding: 16px;
+        min-height: 320px;
+    }
+    .cb-chart-header {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 12px;
+        margin-bottom: 16px;
+    }
+    .cb-chart-tabs {
+        width: 100%;
+    }
+    .cb-chart-tabs button {
+        flex: 1;
+        padding: 0 8px;
+        font-size: 8.5px;
+    }
+    .cb-chart-body {
+        height: 280px;
+        min-height: 280px;
+    }
+    .cb-error-banner {
+        padding: 10px 16px;
+        font-size: 10px;
+    }
+}
+
+@media (max-width: 520px) {
+    .cb-stats-row {
+        grid-template-columns: 1fr;
+    }
+    .cb-stat-box {
+        border-right: none !important;
+        border-bottom: 2px solid #111;
+    }
+    .cb-stat-box:last-child {
+        border-bottom: none;
+    }
+}
+
+@media (max-width: 480px) {
+    .cb-filter-item {
+        flex: 1 1 100%;
+        width: 100%;
+    }
+}

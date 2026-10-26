@@ -1,6 +1,6 @@
 .pt-page {
-    flex: 1; min-width: 0; overflow: auto; display: flex; flex-direction: column; background: #fff;
-    min-height: calc(100vh - 60px);
+    flex: 1; min-width: 0; max-width: 100%; overflow-x: hidden; overflow-y: auto; display: flex; flex-direction: column; background: #fff;
+    min-height: calc(100vh - 60px); box-sizing: border-box;
 }
 
 .pt-header-top {
@@ -30,7 +30,7 @@
 }
 
 .pt-filter-bar {
-    display: flex; gap: 12px; padding: 16px 28px; border-bottom: 2px solid #111; align-items: center;
+    display: flex; gap: 12px; padding: 16px 28px; border-bottom: 2px solid #111; align-items: center; flex-wrap: wrap; box-sizing: border-box; max-width: 100%;
 }
 
 .pt-search-input {
@@ -54,7 +54,11 @@
 }
 
 .pt-table-container {
-    flex: 1; min-height: 0; overflow: auto;
+    flex: 1; min-height: 0; min-width: 0; max-width: 100%; width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; box-sizing: border-box;
+}
+
+.pt-table {
+    min-width: 900px;
 }
 
 .pt-table td {
@@ -197,5 +201,87 @@
     to {
         transform: translateY(0);
         opacity: 1;
+    }
+}
+
+/* ========================================
+   Mobile & Responsive Adaptations
+   ======================================== */
+@media (max-width: 768px) {
+    .pt-header-top {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 12px;
+        padding: 14px 16px 0;
+    }
+    .pt-btn-create {
+        width: 100%;
+        justify-content: center;
+    }
+    .pt-header-main {
+        padding: 12px 16px 16px;
+    }
+    .pt-header-main h1 {
+        font-size: 20px;
+    }
+    .pt-filter-bar {
+        padding: 12px 16px;
+        gap: 10px;
+    }
+    .pt-search-input {
+        width: 100%;
+        max-width: 100%;
+        box-sizing: border-box;
+    }
+    .pt-filter-bar select {
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        box-sizing: border-box;
+    }
+    .pt-date-filter {
+        flex: 1 1 calc(50% - 6px);
+        min-width: 130px;
+        box-sizing: border-box;
+    }
+    .pt-date-filter input {
+        width: 100%;
+        min-width: 0;
+        box-sizing: border-box;
+    }
+    .pt-filter-bar .pt-btn-dark {
+        width: 100%;
+        justify-content: center;
+    }
+    .pt-pagination {
+        padding: 12px 16px;
+        flex-direction: column;
+        gap: 12px;
+        align-items: stretch;
+        text-align: center;
+    }
+    .pt-pagination-controls {
+        width: 100%;
+        justify-content: center;
+    }
+    .pt-pagination-controls button {
+        flex: 1;
+    }
+    .pt-toast {
+        left: 16px;
+        right: 16px;
+        bottom: 16px;
+    }
+    .pt-toast-content {
+        min-width: 0;
+        width: 100%;
+        box-sizing: border-box;
+    }
+}
+
+@media (max-width: 480px) {
+    .pt-date-filter {
+        flex: 1 1 100%;
+        width: 100%;
     }
 }
