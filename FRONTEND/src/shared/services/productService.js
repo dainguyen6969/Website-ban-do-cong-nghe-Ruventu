@@ -54,6 +54,7 @@ export function toProductCard(product) {
     price: formatProductPrice(priceValue),
     priceFrom: highestPrice > priceValue,
     category,
+    categoryId: product.danhMucId ?? product.danhMuc?.id ?? null,
     brand: product.tenThuongHieu ?? product.thuongHieu?.tenThuongHieu ?? "",
     priceValue,
     defaultVariantId,

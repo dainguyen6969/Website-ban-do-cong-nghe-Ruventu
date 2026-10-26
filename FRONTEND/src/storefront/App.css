@@ -7,7 +7,7 @@
 
 .storefront-app .header { height: auto; padding: 0; }
 .storefront-app .header-container { height: auto; min-height: 80px; gap: 1em; flex-wrap: wrap; }
-.storefront-app .logo-container { flex: 0 1 200px; }
+.storefront-app .logo-container { flex: 0 0 200px; }
 .storefront-app .search-bar { min-width: 0; margin-inline: 0; height: auto; min-height: 40px; }
 .storefront-app .search-bar input { min-width: 0; width: 100%; }
 .storefront-app .search-btn { flex-shrink: 0; }

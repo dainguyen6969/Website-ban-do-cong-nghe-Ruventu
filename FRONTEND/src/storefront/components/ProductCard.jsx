@@ -1,8 +1,7 @@
 import { useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { cartService } from "../../shared/services/cartService";
-import { productService } from "../../shared/services/productService";
-import ComboContents from "../../shared/components/ui/ComboContents";
+import { formatProductPrice, productService } from "../../shared/services/productService";
 import "./ProductCard.css";
 
 export default function ProductCard({ product }) {
@@ -12,9 +11,12 @@ export default function ProductCard({ product }) {
   const [isAdding, setIsAdding] = useState(false);
   const [error, setError] = useState("");
 
-  const isCombo = product.loaiSanPham === "BO_PC";
   const outOfStock = product.outOfStock === true;
   const specs = (product.specs || []).slice(0, 4);
+  const demoReferencePrice = ["DON", "BO_PC"].includes(product.loaiSanPham) && Number.isSafeInteger(product.priceValue) && product.priceValue > 0
+    ? Math.ceil(product.priceValue / 0.9 / 1000) * 1000 : 0;
+  const demoSavings = Number.isSafeInteger(demoReferencePrice) && demoReferencePrice > 0 && demoReferencePrice > product.priceValue
+    ? demoReferencePrice - product.priceValue : 0;
 
   const handleViewDetails = () => {
     navigate(`/product/${encodeURIComponent(product.id)}`);
@@ -113,22 +115,6 @@ export default function ProductCard({ product }) {
           )}
         </div>
 
-        {isCombo && product.soBoCoTheLap != null && (
-          <p className="product-card__capacity">
-            Có thể lắp: {product.soBoCoTheLap} bộ
-          </p>
-        )}
-
-        {isCombo && (
-          <details className="product-card__configuration">
-            <summary>
-              XEM CẤU HÌNH ({product.thanhPhan?.length || 0} linh kiện)
-            </summary>
-
-            <ComboContents items={product.thanhPhan || []} compact />
-          </details>
-        )}
-
         {specs.length > 0 && (
           <div className="product-specs">
             <table className="specs-table" aria-label={`Thông số nổi bật của ${product.title}`}>
@@ -145,6 +131,17 @@ export default function ProductCard({ product }) {
         )}
 
         <div className="product-pricing">
+          {demoSavings > 0 && (
+            <div className="product-card__demo-pricing" aria-label="Giá mô phỏng, không áp dụng thanh toán">
+              <span className="product-card__demo-label">Dữ liệu demo · không phải ưu đãi thật</span>
+              <div className="product-card__demo-offer">
+                <s className="product-card__demo-reference">{product.priceFrom && "Từ "}{formatProductPrice(demoReferencePrice)}</s>
+                <span className="product-card__demo-saving" title={`Tiết kiệm mô phỏng ${formatProductPrice(demoSavings)}`}>
+                  Tiết kiệm {Math.round(demoSavings / demoReferencePrice * 100)}%
+                </span>
+              </div>
+            </div>
+          )}
           {(product.originalPrice || product.soldCount) && (
             <div className="price-row">
               {product.originalPrice && (

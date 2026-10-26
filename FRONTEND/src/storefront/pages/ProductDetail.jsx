@@ -7,6 +7,7 @@ import ProductGallery from "../components/ProductGallery";
 import ProductInfoSidebar from "../components/ProductInfoSidebar";
 import ProductPurchaseRightSidebar from "../components/ProductPurchaseRightSidebar";
 import ProductSpecsTabs from "../components/ProductSpecsTabs";
+import ProductRecommendations from "../components/ProductRecommendations";
 
 import ComboContents from "../../shared/components/ui/ComboContents";
 import { productService, toProductDetail } from "../../shared/services/productService";
@@ -133,6 +134,7 @@ export default function ProductDetail() {
               <ProductSpecsTabs product={displayProduct} />
             </div>
           </div>
+          <ProductRecommendations key={product.id} product={product} />
         </>
       )}
 

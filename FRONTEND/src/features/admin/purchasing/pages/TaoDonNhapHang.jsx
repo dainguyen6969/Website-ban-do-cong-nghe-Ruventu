@@ -143,6 +143,7 @@ export default function TaoDonNhapHang() {
                 <label className="purchase-search bordered">
                   <HiOutlineSearch />
                   <input
+                    aria-label="Tìm sản phẩm hoặc phiên bản nhập hàng"
                     value={productQuery}
                     onFocus={() => setProductOpen(true)}
                     onChange={(event) => {
@@ -153,7 +154,7 @@ export default function TaoDonNhapHang() {
                   />
                 </label>
                 {productOpen && (
-                  <div className="purchase-results">
+                  <div className="purchase-results" role="region" aria-label="Kết quả tìm sản phẩm">
                     {filteredProducts.map((product) => (
                       <button
                         key={product.id}
@@ -179,6 +180,7 @@ export default function TaoDonNhapHang() {
                   CHƯA CÓ SẢN PHẨM — TÌM VÀ CHỌN PHIÊN BẢN Ở TRÊN.
                 </div>
               ) : (
+                <div className="purchase-form-table-wrap">
                 <table className="purchase-form-table">
                   <thead>
                     <tr>
@@ -253,6 +255,7 @@ export default function TaoDonNhapHang() {
                     ))}
                   </tbody>
                 </table>
+                </div>
               )}
             </PurchaseCard>
           </div>
@@ -285,6 +288,7 @@ export default function TaoDonNhapHang() {
                   <label className="purchase-search bordered">
                     <HiOutlineSearch />
                     <input
+                      aria-label="Tìm nhà cung cấp nhập hàng"
                       value={supplierQuery}
                       onFocus={() => setSupplierOpen(true)}
                       onChange={(event) => {
@@ -295,7 +299,7 @@ export default function TaoDonNhapHang() {
                     />
                   </label>
                   {supplierOpen && (
-                    <div className="purchase-results supplier-results">
+                    <div className="purchase-results supplier-results" role="region" aria-label="Kết quả tìm nhà cung cấp">
                       {filteredSuppliers.map((item) => (
                         <button
                           key={item.id}
