@@ -5,9 +5,9 @@
 .admin-app main,
 .admin-app section,
 .admin-app form,
-.admin-app [class$="-page"],
-.admin-app [class$="-content"],
-.admin-app [class$="-grid"] {
+.admin-app [class$='-page'],
+.admin-app [class$='-content'],
+.admin-app [class$='-grid'] {
   min-width: 0;
   max-width: 100%;
 }
@@ -23,27 +23,40 @@
   max-width: 100%;
 }
 
-/* Universal CBO / Select styling matching DanhSachSanPham */
+/* ========================================
+   Universal CBO / Select Styling
+   ======================================== */
+
 .admin-app select {
   height: 42px;
   min-height: 42px;
   padding: 0 34px 0 14px;
+
   font-size: 13px;
   font-weight: 500;
   color: #111111;
+
   background-color: #ffffff;
   border: 1px solid #111111;
   border-radius: 0;
+
   appearance: none;
   -webkit-appearance: none;
+
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 20 20' fill='none' stroke='%23111111' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+
   background-repeat: no-repeat;
   background-position: right 12px center;
   background-size: 14px 14px;
+
   cursor: pointer;
   transition: all 0.15s ease;
   box-sizing: border-box;
 }
+
+/* ========================================
+   Select Focus
+   ======================================== */
 
 .admin-app select:focus,
 .admin-app select:focus-visible {
@@ -52,23 +65,36 @@
   outline-offset: -1px;
 }
 
+/* ========================================
+   Select Hover
+   ======================================== */
+
 .admin-app select:hover {
   background-color: #f9fafb;
 }
+
+/* ========================================
+   Active Select Filter
+   ======================================== */
 
 .admin-app select.active-filter,
 .admin-app select[data-active="true"] {
   background-color: #000000 !important;
   color: #ffffff !important;
   border-color: #000000 !important;
+
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 20 20' fill='none' stroke='%23ffffff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E") !important;
 }
 
+/* ========================================
+   Shared Table Responsive
+   ======================================== */
+
 .admin-app :is(
-  [class*="table-wrap"],
-  [class*="table-scroll"],
-  [class*="table-shell"],
-  [class*="table-container"],
+  [class*='table-wrap'],
+  [class*='table-scroll'],
+  [class*='table-shell'],
+  [class*='table-container'],
   .content__table-wrapper,
   .selected-components,
   .detail-components,
@@ -80,8 +106,10 @@
   min-width: 0;
   max-width: 100%;
   width: 100%;
+
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
+
   box-sizing: border-box;
 }
 
@@ -175,14 +203,15 @@
     left: 0;
   }
 
-  .admin-app :is(
-    .purchase-create-grid,
-    .purchase-detail-grid,
-    .stock-create-grid,
-    .stock-detail-grid,
-    .online-order-grid,
-    .combo-create-grid
-  ) {
+  .admin-app
+    :is(
+      .purchase-create-grid,
+      .purchase-detail-grid,
+      .stock-create-grid,
+      .stock-detail-grid,
+      .online-order-grid,
+      .combo-create-grid
+    ) {
     grid-template-columns: minmax(0, 1fr);
   }
 }
@@ -225,7 +254,7 @@
     padding: 14px;
   }
 
-  .admin-app :is(.content__tabs, [class*="-tabs"]) {
+  .admin-app :is(.content__tabs, [class*='-tabs']) {
     max-width: 100%;
     overflow-x: auto;
     scrollbar-width: thin;
@@ -247,36 +276,32 @@
     flex-wrap: wrap;
   }
 
-  .admin-app :is(
-    .supplier-modal,
-    .partner-modal,
-    .stock-modal,
-    .serial-modal,
-    [role="dialog"]
-  ) {
+  .admin-app :is(.supplier-modal, .partner-modal, .stock-modal, .serial-modal, [role='dialog']) {
     width: min(100%, calc(100vw - 20px));
     max-width: calc(100vw - 20px);
     max-height: calc(100dvh - 20px);
     overflow: auto;
   }
 
-  .admin-app :is(
-    .supplier-modal-backdrop,
-    .partner-modal-backdrop,
-    .stock-modal-backdrop,
-    .serial-modal-backdrop
-  ) {
+  .admin-app
+    :is(
+      .supplier-modal-backdrop,
+      .partner-modal-backdrop,
+      .stock-modal-backdrop,
+      .serial-modal-backdrop
+    ) {
     padding: 10px;
   }
 
-  .admin-app :is(
-    .supplier-form-grid,
-    .recipient-grid,
-    .combo-two-cols,
-    .variant-fields,
-    .detail-grid,
-    .promotion-layout
-  ) {
+  .admin-app
+    :is(
+      .supplier-form-grid,
+      .recipient-grid,
+      .combo-two-cols,
+      .variant-fields,
+      .detail-grid,
+      .promotion-layout
+    ) {
     grid-template-columns: minmax(0, 1fr);
   }
 
@@ -321,12 +346,15 @@
     flex-wrap: wrap;
   }
 
-  .admin-app :is(.modal-footer, .supplier-modal-footer, .partner-modal-footer, .stock-modal-body footer) {
+  .admin-app
+    :is(.modal-footer, .supplier-modal-footer, .partner-modal-footer, .stock-modal-body footer) {
     flex-direction: column;
     align-items: stretch;
   }
 
-  .admin-app :is(.modal-footer, .supplier-modal-footer, .partner-modal-footer, .stock-modal-body footer) button {
+  .admin-app
+    :is(.modal-footer, .supplier-modal-footer, .partner-modal-footer, .stock-modal-body footer)
+    button {
     width: 100%;
   }
 }

@@ -25,6 +25,7 @@ import com.example.dantruventu.Repository.warehouse.TheKhoRepository;
 import com.example.dantruventu.Services.cashbook.CashbookService;
 import com.example.dantruventu.Services.catalog.CatalogSupport;
 import com.example.dantruventu.Services.order.OrderEvents;
+import com.example.dantruventu.Services.order.OrderInventoryService;
 import com.example.dantruventu.Specification.SalesSpecification;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
@@ -74,6 +75,7 @@ public class AdminSalesService {
   private final CatalogSupport catalogSupport;
 
   private final OrderDeviceHistoryService deviceHistory;
+  private final OrderInventoryService orderInventory;
 
   public AdminSalesResponse.Options options() {
 
@@ -254,7 +256,35 @@ public class AdminSalesService {
       throw invalid("Loại đơn hàng không hợp lệ");
     }
 
-    var plan = calculation.calculate(request, request.getLoaiDonHang(), false);
+    Map<Long, Integer> ownReservation = Map.of();
+
+    if (request.getDonHangId() != null) {
+      if (Boolean.TRUE.equals(request.getChoPhepChoHang())) {
+        throw invalid("Chế độ chờ hàng chỉ áp dụng khi tạo đơn mới");
+      }
+
+      DonHang editing =
+          orderRepository
+              .findById(request.getDonHangId())
+              .orElseThrow(() -> notFound("Đơn hàng không tồn tại"));
+
+      if (editing.getLoaiDonHang() != LoaiDonHang.ONLINE
+          || editing.getTrangThaiDonHang() != TrangThaiDonHang.CHO_DUYET
+          || editing.getTrangThaiThanhToan() != TrangThaiThanhToanDonHang.CHUA_THANH_TOAN
+          || editing.getTrangThaiDongGoi() != TrangThaiDongGoi.CHUA_DONG_GOI
+          || editing.getTrangThaiXuatKho() != TrangThaiXuatKho.CHUA_XUAT_KHO) {
+
+        throw conflict("Đơn không còn được phép sửa");
+      }
+
+      orderInventory.requireReservationNotExpired(editing);
+
+      if (orderInventory.hasQuantityReservation(editing)) {
+        ownReservation = orderInventory.plan(editing, false).quantities();
+      }
+    }
+
+    var plan = calculation.calculate(request, request.getLoaiDonHang(), false, ownReservation);
 
     plan.data()
         .setKhuyenMaiKhaDung(calculation.availablePromotions(request, request.getLoaiDonHang()));
@@ -325,6 +355,8 @@ public class AdminSalesService {
     saleSnapshots.recordUnpaidCreationEvidence(order);
     saleSnapshots.recordPromotion(order, plan, request, actor);
 
+    orderInventory.reserveForNewOrder(order, Boolean.TRUE.equals(request.getChoPhepChoHang()));
+
     orderRepository.flush();
 
     var response = mapper.toOrder(order, properties.zone());
@@ -332,7 +364,7 @@ public class AdminSalesService {
 
     idempotencyRepository.complete(key, encode(response));
 
-    orderEvents.changed(order.getId(), "CREATED");
+    orderEvents.created(order);
 
     return response;
   }
@@ -456,7 +488,7 @@ public class AdminSalesService {
 
     idempotencyRepository.complete(key, encode(response));
 
-    orderEvents.changed(order.getId(), "CREATED");
+    orderEvents.created(order);
 
     return response;
   }
@@ -611,7 +643,8 @@ public class AdminSalesService {
 
       if (!Objects.equals(serial.getPhienBan().getId(), entry.getValue())
           || serial.getTrangThai() != TrangThaiSerial.TRONG_KHO
-          || serial.getDonHang() != null) {
+          || serial.getDonHang() != null
+          || serial.getChiTietDongGoi() != null) {
         throw conflict(
             "Serial sai phiên bản, đã bán hoặc không còn khả dụng: " + serial.getSoSerial());
       }
@@ -651,6 +684,22 @@ public class AdminSalesService {
   }
 
   private void enrich(AdminSalesResponse.Order response, DonHang order) {
+
+    if (order.getTrangThaiDonHang() == TrangThaiDonHang.CHO_HANG) {
+      var rows = orderInventory.waitingStockRows(order);
+
+      response.setGiuHangChoHang(rows);
+
+      response.setHangConThieu(
+          rows.stream()
+              .filter(row -> ((Number) row.get("so_luong_thieu")).longValue() > 0)
+              .toList());
+    } else {
+      response.setGiuHangChoHang(null);
+      response.setHangConThieu(null);
+    }
+
+    response.setDaNhanLaiTruocBanGiao(saleSnapshots.hasReceivedBeforeHandover(order));
 
     response.setTenKhachHang(
         order.getKhachHang() == null ? "Khách lẻ" : order.getKhachHang().getHoTen());

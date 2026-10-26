@@ -16,6 +16,7 @@ import NavMenu from "./NavMenu";
 import FontSwitcher from "../../shared/components/ui/FontSwitcher";
 import { productService, toProductCard } from "../../shared/services/productService";
 import { cartService } from "../../shared/services/cartService";
+import { isRecommendationQuery } from '../services/recommendationService';
 
 const Header = () => {
   const navigate = useNavigate();
@@ -85,11 +86,17 @@ const Header = () => {
 
   // Debounce gọi API tìm kiếm
   useEffect(() => {
+    let active = true;
     const fetchSuggestions = async () => {
+      if (isRecommendationQuery(searchQuery)) {
+        setSuggestions([]);
+        setShowSuggestions(false);
+        return;
+      }
       if (searchQuery.trim().length >= 2) {
         try {
           const response = await productService.getProducts({ keyword: searchQuery.trim(), limit: 5 });
-          if (response && response.data && response.data.danhSachSanPham) {
+          if (active && response && response.data && response.data.danhSachSanPham) {
             setSuggestions(response.data.danhSachSanPham.map(toProductCard));
             setShowSuggestions(true);
           }
@@ -106,7 +113,7 @@ const Header = () => {
       fetchSuggestions();
     }, 500);
 
-    return () => clearTimeout(timer);
+    return () => { active = false; clearTimeout(timer); };
   }, [searchQuery]);
 
   const handleLogout = async () => {
@@ -137,7 +144,8 @@ const Header = () => {
       return;
     }
 
-    navigate(`/search?q=${encodeURIComponent(keyword)}`);
+    setShowSuggestions(false);
+    navigate(`/search?q=${encodeURIComponent(keyword)}${isRecommendationQuery(keyword) ? '&mode=recommended' : ''}`);
   };
 
   const displayName = user?.name || user?.ho_ten || user?.email || "Người dùng";
@@ -160,8 +168,11 @@ const Header = () => {
           <div className="container header-container">
             {/* Logo */}
             <div className="logo-container">
-              <Link to="/">
-                <img src={logo} alt="Ruventu Logo" className="logo-image" />
+              <Link to="/" className="header-brand" aria-label="Ruventu - Trang chủ">
+                <svg className="logo-image" viewBox="150 125 190 190" aria-hidden="true" focusable="false">
+                  <image href={logo} width="500" height="500" />
+                </svg>
+                <span className="header-brand-name">RUVENTU</span>
               </Link>
             </div>
 
@@ -193,7 +204,7 @@ const Header = () => {
                 </button>
               </form>
 
-              {showSuggestions && suggestions.length > 0 && (
+              {showSuggestions && suggestions.length > 0 && !isRecommendationQuery(searchQuery) && (
                 <div className="search-suggestions">
                   {suggestions.map((p) => (
                     <Link

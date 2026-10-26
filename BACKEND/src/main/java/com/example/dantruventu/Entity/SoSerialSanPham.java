@@ -35,6 +35,10 @@ public class SoSerialSanPham {
   private DonHang donHang;
 
   @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "chi_tiet_dong_goi_id")
+  private ChiTietDonHang chiTietDongGoi;
+
+  @ManyToOne(fetch = FetchType.LAZY)
   @JoinColumn(name = "don_nhap_hang_id")
   private DonNhapHang donNhapHang;
 

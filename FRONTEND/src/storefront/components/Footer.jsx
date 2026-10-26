@@ -54,7 +54,12 @@ const Footer = () => {
       <div className="footer-bottom">
         <div className="container bottom-container">
           <div className="copyright">
-            <img src={logoTransparent} alt="Ruventu Logo" className="footer-logo-image" />
+            <div className="footer-brand" role="img" aria-label="Ruventu">
+              <svg className="footer-logo-image" viewBox="150 125 190 190" aria-hidden="true" focusable="false">
+                <image href={logoTransparent} width="500" height="500" />
+              </svg>
+              <span aria-hidden="true">RUVENTU</span>
+            </div>
             <p>&copy; 2024 Ruventu Technology. Tất cả quyền được bảo lưu.</p>
           </div>
           <div className="bottom-links">

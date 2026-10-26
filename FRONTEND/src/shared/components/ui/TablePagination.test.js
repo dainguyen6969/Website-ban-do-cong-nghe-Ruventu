@@ -30,6 +30,7 @@ test('current page, hidden edge arrows, five-row tables and jump input render co
   assert.equal((middle.match(/aria-current="page"/g)||[]).length,1);
   assert.match(middle,/id="table-pagination-page-6"/);
   assert.match(middle,/aria-label="Đi đến trang"/);
+  assert.match(middle,/<label class="product-pagination-jump-label"><span>Đến trang<\/span><input/);
   assert.match(middle,/value="6"/);
   assert.doesNotMatch(render({currentPage:1}),/aria-label="Trang trước"/);
   assert.doesNotMatch(render({currentPage:20}),/aria-label="Trang sau"/);

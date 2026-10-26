@@ -1,6 +1,10 @@
 /* Filter Dropdown / CustomSelect Component
    Matching exact Ruventu Admin design from DanhSachSanPham */
 
+/* ========================================
+   Dropdown Container
+   ======================================== */
+
 .filter-dropdown-container {
   position: relative;
   display: inline-flex;
@@ -9,6 +13,10 @@
   min-width: 0;
   box-sizing: border-box;
 }
+
+/* ========================================
+   Dropdown Trigger
+   ======================================== */
 
 .filter__dropdown {
   width: 100%;
@@ -38,7 +46,10 @@
   background-color: #f9fafb;
 }
 
-/* Open & Focus State: Red Outline */
+/* ========================================
+   Open & Focus State
+   ======================================== */
+
 .filter__dropdown--open,
 .filter__dropdown:focus-visible {
   border-color: var(--color-brand-red, #dc2626) !important;
@@ -49,6 +60,10 @@
 .filter-dropdown-container--open {
   z-index: 2200;
 }
+
+/* ========================================
+   Dropdown Label
+   ======================================== */
 
 .filter__dropdown-label {
   overflow: hidden;
@@ -64,6 +79,10 @@
   color: inherit;
 }
 
+/* ========================================
+   Dropdown Chevron
+   ======================================== */
+
 .filter__dropdown-chevron {
   flex-shrink: 0;
   color: inherit;
@@ -74,7 +93,10 @@
   transform: rotate(180deg);
 }
 
-/* Dropdown Menu Popup */
+/* ========================================
+   Dropdown Menu Popup
+   ======================================== */
+
 .filter__dropdown-menu {
   position: absolute;
   top: calc(100% - 1px);
@@ -83,6 +105,7 @@
   min-width: 100%;
   max-height: 280px;
   overflow-y: auto;
+  overflow-x: hidden;
   background: #ffffff;
   border: 1px solid #111111;
   border-radius: 0;
@@ -95,13 +118,20 @@
   animation: dropdownFadeIn 0.15s ease-out;
 }
 
-/* Upward menu */
+/* ========================================
+   Upward Dropdown Menu
+   ======================================== */
+
 .filter__dropdown-menu--up {
   top: auto;
   bottom: calc(100% - 1px);
   box-shadow: 0 -4px 14px rgba(0, 0, 0, 0.15);
   animation: dropdownFadeInUp 0.15s ease-out;
 }
+
+/* ========================================
+   Dropdown Items
+   ======================================== */
 
 .filter__dropdown-item {
   min-height: 38px;
@@ -110,21 +140,36 @@
   color: #111111;
   cursor: pointer;
   white-space: nowrap;
+
+  /* Responsive: chống tràn nội dung */
   overflow: hidden;
   text-overflow: ellipsis;
+
   display: flex;
   align-items: center;
-  transition: background var(--transition-fast, 150ms ease), color var(--transition-fast, 150ms ease);
+
+  transition:
+    background var(--transition-fast, 150ms ease),
+    color var(--transition-fast, 150ms ease);
+
   box-sizing: border-box;
 }
 
-/* Hovered option: RED background with white text */
+/* ========================================
+   Hovered Option
+   RED background with white text
+   ======================================== */
+
 .filter__dropdown-item:hover {
   background: var(--color-brand-red, #dc2626) !important;
   color: #ffffff !important;
 }
 
-/* Selected option: BLACK background with white text */
+/* ========================================
+   Selected Option
+   BLACK background with white text
+   ======================================== */
+
 .filter__dropdown-item--selected {
   font-weight: 600;
   color: #ffffff !important;
@@ -136,13 +181,20 @@
   color: #ffffff !important;
 }
 
+/* ========================================
+   Disabled Dropdown Item
+   ======================================== */
+
 .filter__dropdown-item--disabled {
   opacity: 0.4;
   cursor: not-allowed;
   pointer-events: none;
 }
 
-/* Selected Dark State for Trigger (like "Thương hiệu: 123" in Image 1) */
+/* ========================================
+   Selected Dark State for Trigger
+   ======================================== */
+
 .filter__dropdown--selected-dark {
   background-color: #000000 !important;
   color: #ffffff !important;
@@ -162,6 +214,10 @@
   background-color: #1a1a1a !important;
 }
 
+/* ========================================
+   Disabled Dropdown
+   ======================================== */
+
 .filter-dropdown-container--disabled .filter__dropdown {
   background: #f3f4f6;
   border-color: #d1d5db;
@@ -169,11 +225,16 @@
   cursor: not-allowed;
 }
 
+/* ========================================
+   Dropdown Animations
+   ======================================== */
+
 @keyframes dropdownFadeIn {
   from {
     opacity: 0;
     transform: translateY(-4px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -185,6 +246,7 @@
     opacity: 0;
     transform: translateY(4px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);

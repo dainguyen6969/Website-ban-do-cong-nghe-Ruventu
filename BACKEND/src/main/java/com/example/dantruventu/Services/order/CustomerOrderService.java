@@ -286,13 +286,15 @@ public class CustomerOrderService {
     /*
      * Checkout chỉ tạo đơn CHO_DUYET.
      *
-     * Chưa giữ hàng, chưa xuất kho, chưa đổi serial
-     * và chưa tạo chứng từ thu/chi.
+     * Tạo đơn và giữ đủ hàng trong cùng transaction.
+     * Chưa xuất kho, chưa giữ serial cụ thể, chưa ghi nhận thu tiền.
      *
      * Tồn kho được kiểm tra lại khi bắt đầu chuẩn bị hàng.
      */
 
     saleSnapshots.recordPromotion(order, plan, salesRequest, user);
+
+    orderInventory.reserveForNewOrder(order);
 
     orderRepository.flush();
 
@@ -302,7 +304,7 @@ public class CustomerOrderService {
     }
 
     registerCartCleanupAfterCommit(user, guestCartId, cartLines);
-    orderEvents.changed(order.getId(), "CREATED");
+    orderEvents.created(order);
 
     return CustomerOrderResponse.Created.builder()
         .id(order.getId())
@@ -527,24 +529,17 @@ public class CustomerOrderService {
                   .findCustomerOrderForUpdate(orderId, customer.getId())
                   .orElseThrow(() -> notFound("Đơn không tồn tại hoặc không thuộc khách hàng"));
 
-          boolean held =
-              order.getTrangThaiDongGoi() == TrangThaiDongGoi.DANG_DONG_GOI
-                  || order.getTrangThaiDongGoi() == TrangThaiDongGoi.DA_DONG_GOI;
-
           List<CustomerOrderResponse.ReleasedStock> released =
-              held
-                  ? orderInventory.plan(order, true).quantities().entrySet().stream()
-                      .map(
-                          entry ->
-                              new CustomerOrderResponse.ReleasedStock(
-                                  entry.getKey(), entry.getValue()))
-                      .toList()
-                  : List.of();
+              orderInventory.reservedQuantities(order).entrySet().stream()
+                  .map(
+                      entry ->
+                          new CustomerOrderResponse.ReleasedStock(entry.getKey(), entry.getValue()))
+                  .toList();
 
           var shared = new AdminOrderRequest.Cancel();
           shared.setLyDo(request.getLyDo());
 
-          adminOrderService.cancel(orderId, shared);
+          var cancellation = adminOrderService.cancel(orderId, shared);
 
           return CustomerOrderResponse.Cancelled.builder()
               .id(order.getId())
@@ -555,10 +550,7 @@ public class CustomerOrderService {
               .trangThaiThanhToan(order.getTrangThaiThanhToan())
               .khuyenMai(saleSnapshots.appliedPromotion(orderId))
               .giaiPhongGiuKho(released)
-              .tienCanDoiSoatHoan(
-                  order.getTrangThaiThanhToan() == TrangThaiThanhToanDonHang.DA_THANH_TOAN
-                      ? money(order.getTongThanhToan())
-                      : BigDecimal.ZERO)
+              .tienCanDoiSoatHoan(cancellation.getTienCanDoiSoatHoan())
               .build();
         });
   }

@@ -26,6 +26,39 @@ public final class AdminOrderRequest {
 
   @Getter
   @Setter
+  public static class CounterExchange extends Confirm {
+
+    @NotNull
+    @Positive
+    @JsonProperty("thiet_bi_id")
+    private Long thietBiId;
+
+    @Size(max = 100)
+    @JsonProperty("so_serial_moi")
+    private String soSerialMoi;
+
+    @Size(max = 255)
+    @JsonProperty("dau_hieu_nhan_dang_moi")
+    private String dauHieuNhanDangMoi;
+
+    @NotBlank
+    @Size(max = 255)
+    @JsonProperty("ly_do")
+    private String lyDo;
+
+    @NotBlank
+    @Size(max = 100)
+    @JsonProperty("ten_nguoi_lien_he")
+    private String tenNguoiLienHe;
+
+    @NotBlank
+    @Pattern(regexp = "\\+?[0-9]{8,15}")
+    @JsonProperty("sdt_nguoi_lien_he")
+    private String sdtNguoiLienHe;
+  }
+
+  @Getter
+  @Setter
   public static class Fulfillment extends Confirm {
 
     @Positive
@@ -110,6 +143,20 @@ public final class AdminOrderRequest {
     @Valid
     @Size(max = 1000)
     private List<@NotNull ExportItem> items;
+  }
+
+  @Getter
+  @Setter
+  public static class PackingSerials extends Export {
+
+    @NotNull
+    @Size(max = 10000)
+    @JsonProperty("serial_loi_ids")
+    private List<@NotNull @Positive Long> serialLoiIds = List.of();
+
+    @Size(max = 150)
+    @JsonProperty("ly_do_doi_serial")
+    private String lyDoDoiSerial;
   }
 
   @Getter

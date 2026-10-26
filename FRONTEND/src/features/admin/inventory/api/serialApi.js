@@ -54,6 +54,19 @@ export async function getSerialPage(filters, signal) {
   };
 }
 
+export async function getAvailableSerials(versionId, serial, signal) {
+  // shortcut: load one variant's serials in full; use incremental loading for very large variant inventories.
+  const items = [];
+  let totalItems = 0;
+  for (let page = 1, totalPages = 1; page <= totalPages; page += 1) {
+    const data = await getSerialPage({ versionId, serial, status: 'TRONG_KHO', page, limit: 100 }, signal);
+    items.push(...data.items);
+    totalItems = data.totalItems;
+    totalPages = data.totalPages;
+  }
+  return { items, totalItems };
+}
+
 export async function getSerialCounts(signal) {
   const entries = await Promise.all(Object.keys(SERIAL_STATUS_META).map(async (status) => {
     const data = await adminRequest(`/api/v1/admin/serials?trang_thai=${status}&page=0&limit=1`, { signal });
