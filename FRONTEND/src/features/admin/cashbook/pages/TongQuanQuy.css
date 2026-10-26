@@ -1,11 +1,14 @@
 .cashbook-page {
   flex: 1;
   min-width: 0;
-  overflow: auto;
+  max-width: 100%;
+  overflow-x: hidden;
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
   background: #fff;
   min-height: calc(100vh - 60px);
+  box-sizing: border-box;
 }
 
 .cb-header {
@@ -17,6 +20,7 @@
   gap: 20px;
   border-bottom: 2px solid #111;
   background: #fff;
+  box-sizing: border-box;
 }
 
 .cb-title-area .cb-breadcrumb {
@@ -66,6 +70,10 @@
   background: #111 !important;
 }
 
+/* ========================================
+   Filter Bar
+   ======================================== */
+
 .cb-filter-bar {
   display: flex;
   gap: 12px;
@@ -74,6 +82,8 @@
   align-items: flex-end;
   background: #fff;
   flex-wrap: wrap;
+  box-sizing: border-box;
+  max-width: 100%;
 }
 
 .cb-filter-item {
@@ -100,6 +110,7 @@
   outline: none;
   background: #fff;
   min-width: 140px;
+  box-sizing: border-box;
 }
 
 .cb-filter-actions {
@@ -120,6 +131,7 @@
   cursor: pointer;
   text-transform: uppercase;
 }
+
 .cb-btn-outline:hover {
   background: #f1f1f1;
 }
@@ -135,13 +147,19 @@
   cursor: pointer;
   text-transform: uppercase;
 }
+
 .cb-btn-primary:hover {
   background: #333;
 }
 
+/* ========================================
+   Statistics
+   ======================================== */
+
 .cb-stats-row {
   display: flex;
   border-bottom: 2px solid #111;
+  box-sizing: border-box;
 }
 
 .cb-stat-box {
@@ -151,6 +169,7 @@
   display: flex;
   flex-direction: column;
   justify-content: center;
+  box-sizing: border-box;
 }
 
 .cb-stat-box:last-child {
@@ -186,6 +205,7 @@
 .text-green {
   color: #0d8425 !important;
 }
+
 .text-red {
   color: #dc2626 !important;
 }
@@ -198,6 +218,10 @@
   text-transform: uppercase;
 }
 
+/* ========================================
+   Calculation Row
+   ======================================== */
+
 .cb-calculation-row {
   padding: 12px 28px;
   font-size: 11px;
@@ -205,6 +229,7 @@
   color: #858c95;
   border-bottom: 2px solid #111;
   background: #fafafa;
+  box-sizing: border-box;
 }
 
 .cb-calculation-row span {
@@ -217,12 +242,17 @@
   font-weight: 900;
 }
 
+/* ========================================
+   Chart Container
+   ======================================== */
+
 .cb-chart-container {
   padding: 24px 28px;
   display: flex;
   flex-direction: column;
   flex: 1;
   min-height: 400px;
+  box-sizing: border-box;
 }
 
 .cb-chart-header {
@@ -285,6 +315,10 @@
   box-sizing: border-box;
 }
 
+/* ========================================
+   Error Banner
+   ======================================== */
+
 .cb-error-banner {
   padding: 12px 28px;
   background: #fef2f2;
@@ -296,6 +330,7 @@
   align-items: center;
   justify-content: space-between;
   text-transform: uppercase;
+  box-sizing: border-box;
 }
 
 .cb-error-dismiss {
@@ -307,6 +342,10 @@
   cursor: pointer;
   padding: 0 4px;
 }
+
+/* ========================================
+   Loading State
+   ======================================== */
 
 .cb-loading-state {
   height: 100%;
@@ -336,6 +375,10 @@
     transform: rotate(360deg);
   }
 }
+
+/* ========================================
+   Empty Chart
+   ======================================== */
 
 .cb-empty-chart {
   height: 100%;
@@ -377,4 +420,153 @@
   font-weight: 700;
   color: #858c95;
   text-transform: uppercase;
+}
+
+/* ========================================
+   Tablet Responsive - 900px
+   ======================================== */
+
+@media (max-width: 900px) {
+  .cb-stats-row {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .cb-stat-box {
+    min-width: 0;
+    border-right: none;
+    border-bottom: 2px solid #111;
+    padding: 16px;
+  }
+
+  .cb-stat-box:nth-child(odd) {
+    border-right: 2px solid #111;
+  }
+
+  .cb-stat-box:nth-last-child(-n + 2) {
+    border-bottom: none;
+  }
+}
+
+/* ========================================
+   Mobile Responsive - 768px
+   ======================================== */
+
+@media (max-width: 768px) {
+  .cb-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 14px;
+    padding: 16px;
+    min-height: auto;
+  }
+
+  .cb-btn-secondary {
+    width: 100%;
+    justify-content: center;
+    box-sizing: border-box;
+  }
+
+  .cb-filter-bar {
+    padding: 14px 16px;
+    gap: 10px;
+  }
+
+  .cb-filter-item {
+    flex: 1 1 calc(50% - 6px);
+    min-width: 130px;
+  }
+
+  .cb-filter-item input,
+  .cb-filter-item select {
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+  }
+
+  .cb-filter-actions {
+    width: 100%;
+    margin-left: 0;
+    height: auto;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .cb-filter-actions button {
+    flex: 1 1 100%;
+    width: 100%;
+    justify-content: center;
+    box-sizing: border-box;
+  }
+
+  .cb-calculation-row {
+    padding: 12px 16px;
+    font-size: 9.5px;
+    line-height: 1.6;
+    word-break: break-word;
+  }
+
+  .cb-chart-container {
+    padding: 16px;
+    min-height: 320px;
+  }
+
+  .cb-chart-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+
+  .cb-chart-tabs {
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .cb-chart-tabs button {
+    flex: 1;
+    min-width: 0;
+    padding: 0 8px;
+    font-size: 8.5px;
+  }
+
+  .cb-chart-body {
+    height: 280px;
+    min-height: 280px;
+  }
+
+  .cb-error-banner {
+    padding: 10px 16px;
+    font-size: 10px;
+  }
+}
+
+/* ========================================
+   Small Mobile Responsive - 520px
+   ======================================== */
+
+@media (max-width: 520px) {
+  .cb-stats-row {
+    grid-template-columns: 1fr;
+  }
+
+  .cb-stat-box {
+    border-right: none !important;
+    border-bottom: 2px solid #111;
+  }
+
+  .cb-stat-box:last-child {
+    border-bottom: none;
+  }
+}
+
+/* ========================================
+   Extra Small Mobile - 480px
+   ======================================== */
+
+@media (max-width: 480px) {
+  .cb-filter-item {
+    flex: 1 1 100%;
+    width: 100%;
+  }
 }

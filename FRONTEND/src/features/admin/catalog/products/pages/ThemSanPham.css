@@ -1539,7 +1539,7 @@ body:has(.admin-app .add-product-page--create),
   line-height: 1.5;
 }
 
-.product-editor input:not([type="radio"]):not([type="checkbox"]),
+.product-editor input:not([type="radio"]):not([type="checkbox"]):not([type="file"]),
 .product-editor select {
   display: block;
   width: 100%;

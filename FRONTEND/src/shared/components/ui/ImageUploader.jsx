@@ -1,6 +1,6 @@
 // Shared uploader UI used by every admin image field in the project.
 import { useRef, useState, useCallback } from 'react';
-import { HiOutlineCloudUpload, HiOutlineX } from 'react-icons/hi';
+import { HiOutlineCloudUpload, HiOutlineUpload, HiOutlineX } from 'react-icons/hi';
 import { uploadImage } from '../../../features/media/api/imageUploadApi';
 import './ImageUploader.css';
 
@@ -151,6 +151,21 @@ export default function ImageUploader({
         <HiOutlineCloudUpload size={36} className="image-uploader__icon" />
         <span className="image-uploader__text">Kéo thả ảnh hoặc click để tải lên</span>
         <span className="image-uploader__hint">JPG, PNG, WEBP – Tối đa {maxSizeMB}MB / ảnh</span>
+      </div>
+
+      {/* Styled control bar with branded red button */}
+      <div className="image-uploader__footer">
+        <button
+          type="button"
+          className="image-uploader__browse-btn"
+          onClick={handleClick}
+        >
+          <HiOutlineUpload size={16} />
+          <span>CHỌN TỆP</span>
+        </button>
+        <span className="image-uploader__status-text">
+          {images.length > 0 ? `Đã chọn ${images.length} ảnh` : 'Chưa có tệp nào được chọn'}
+        </span>
       </div>
 
       <input

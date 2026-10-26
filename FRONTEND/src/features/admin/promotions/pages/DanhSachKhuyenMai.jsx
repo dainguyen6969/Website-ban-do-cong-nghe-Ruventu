@@ -4,6 +4,7 @@ import { HiOutlineSearch } from 'react-icons/hi';
 import { getPromotions } from '../api/promotionApi.js';
 import { normalizePromotion, PROMOTION_STATUS } from '../promotionModel.js';
 import TablePagination from '../../../../shared/components/ui/TablePagination';
+import FilterDropdown from '../../../../shared/components/ui/FilterDropdown';
 import './DanhSachKhuyenMai.css';
 
 export default function DanhSachKhuyenMai() {
@@ -125,15 +126,15 @@ export default function DanhSachKhuyenMai() {
                     />
                 </div>
                 <div className="filter-selects">
-                    <select value={methodFilter} onChange={(e) => { setMethodFilter(e.target.value); setCurrentPage(1); }}>
+                    <FilterDropdown value={methodFilter} onChange={(e) => { setMethodFilter(e.target.value); setCurrentPage(1); }} selectedDark>
                         <option value="ALL">TẤT CẢ PHƯƠNG THỨC</option>
                         <option value="CHIET_KHAU">CHIẾT KHẤU</option>
                         <option value="TANG_SAN_PHAM">TẶNG SẢN PHẨM</option>
-                    </select>
-                    <select value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(1); }}>
+                    </FilterDropdown>
+                    <FilterDropdown value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(1); }} selectedDark>
                         <option value="ALL">TẤT CẢ TRẠNG THÁI</option>
                         {Object.entries(PROMOTION_STATUS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
-                    </select>
+                    </FilterDropdown>
                 </div>
             </div>
 

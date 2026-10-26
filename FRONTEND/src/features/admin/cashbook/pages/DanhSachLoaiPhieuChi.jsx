@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import './DanhSachLoaiPhieuThu.css'; // Reuse CSS
 import TablePagination from '../../../../shared/components/ui/TablePagination';
+import FilterDropdown from '../../../../shared/components/ui/FilterDropdown';
 import {
   getDisbursementTypes,
   createDisbursementType,
@@ -114,33 +115,59 @@ export default function DanhSachLoaiPhieuChi() {
   };
 
   return (
-    <div className="lpt-page">
-      <div className="pt-header-top">
-        <div className="pt-breadcrumb">SỔ QUỸ TIỀN MẶT / LOẠI PHIẾU CHI</div>
-        <button className="pt-btn-create" onClick={handleOpenModal}>
-          + THÊM LOẠI PHIẾU CHI
-        </button>
+  <div className="lpt-page">
+    <div className="pt-header-top">
+      <div className="pt-breadcrumb">
+        SỔ QUỸ TIỀN MẶT / LOẠI PHIẾU CHI
       </div>
 
-      <div className="pt-header-main">
-        <h1>LOẠI PHIẾU CHI</h1>
-        <p>QUẢN LÝ CÁC NHÓM MỤC ĐÍCH DÙNG ĐỂ PHÂN LOẠI KHOẢN TIỀN CHI</p>
-      </div>
+      <button
+        className="pt-btn-create"
+        onClick={handleOpenModal}
+      >
+        + THÊM LOẠI PHIẾU CHI
+      </button>
+    </div>
 
-      <div className="pt-filter-bar">
-        <input
-          type="text"
-          placeholder="TÌM MÃ LOẠI / TÊN LOẠI..."
-          className="pt-search-input"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-        />
-        <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}>
-          <option value="TẤT CẢ TRẠNG THÁI">TẤT CẢ TRẠNG THÁI</option>
-          <option value="HOẠT ĐỘNG">HOẠT ĐỘNG</option>
-          <option value="NGỪNG HOẠT ĐỘNG">NGỪNG HOẠT ĐỘNG</option>
-        </select>
-      </div>
+    {/* Giữ tiêu đề từ main-test */}
+    <div className="pt-header-main">
+      <h1>LOẠI PHIẾU CHI</h1>
+      <p>
+        QUẢN LÝ CÁC NHÓM MỤC ĐÍCH DÙNG ĐỂ PHÂN LOẠI KHOẢN TIỀN CHI
+      </p>
+    </div>
+
+    {/* Giữ FilterDropdown từ responsive */}
+    <div className="pt-filter-bar">
+      <input
+        type="text"
+        placeholder="TÌM MÃ LOẠI / TÊN LOẠI..."
+        className="pt-search-input"
+        value={searchQuery}
+        onChange={(e) => setSearchQuery(e.target.value)}
+      />
+
+      <FilterDropdown
+        value={filterStatus}
+        onChange={(e) => setFilterStatus(e.target.value)}
+        selectedDark
+        aria-label="Lọc trạng thái"
+      >
+        <option value="TẤT CẢ TRẠNG THÁI">
+          TẤT CẢ TRẠNG THÁI
+        </option>
+
+        <option value="HOẠT ĐỘNG">
+          HOẠT ĐỘNG
+        </option>
+
+        <option value="NGỪNG HOẠT ĐỘNG">
+          NGỪNG HOẠT ĐỘNG
+        </option>
+      </FilterDropdown>
+    </div>
+
+    {/* Giữ nguyên phần bảng bên dưới */}
 
       <div className="pt-table-container">
         <table className="promo-table pt-table">

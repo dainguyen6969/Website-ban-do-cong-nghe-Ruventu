@@ -3,6 +3,7 @@ import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { HiOutlineRefresh, HiOutlineSearch } from 'react-icons/hi';
 
 import { apiRequest } from '../../../../auth/backendAuth';
+
 import {
   dateTime,
   isWaitingCodSettlement,
@@ -10,10 +11,14 @@ import {
   money,
   orderDisplayStatus,
 } from '../../orders/api/orderApi';
+
 import OrderModal from '../../orders/components/OrderModal';
 import { OrderStateBadge } from '../../orders/pages/DanhSachDonHang';
+
 import TablePagination from '../../../../shared/components/ui/TablePagination';
+import FilterDropdown from '../../../../shared/components/ui/FilterDropdown';
 import DetailTablePagination from '../../../../shared/components/ui/DetailTablePagination';
+
 import useDetailTablePagination from '../../../../hooks/useDetailTablePagination';
 import ImageUploader from '../../../../shared/components/ui/ImageUploader';
 
@@ -221,7 +226,7 @@ function ShipmentList() {
           />
         </label>
 
-        <select
+        <FilterDropdown
           className="delivery-list-select"
           aria-label="Trạng thái giao hàng"
           value={status}
@@ -229,6 +234,7 @@ function ShipmentList() {
             setStatus(event.target.value);
             setPage(1);
           }}
+          selectedDark
         >
           <option value="">Tất cả trạng thái</option>
 
@@ -237,9 +243,9 @@ function ShipmentList() {
               {label(value)}
             </option>
           ))}
-        </select>
+        </FilterDropdown>
 
-        <select
+        <FilterDropdown
           className="delivery-list-select"
           aria-label="Đối tác vận chuyển"
           value={partnerId}
@@ -248,6 +254,7 @@ function ShipmentList() {
             setPartnerId(event.target.value);
             setPage(1);
           }}
+          selectedDark
         >
           <option value="">{partners.loading ? 'Đang tải đối tác...' : 'Tất cả đối tác'}</option>
 
@@ -257,7 +264,7 @@ function ShipmentList() {
               {Number(partner.trang_thai) === 0 ? ' (Ngừng hoạt động)' : ''}
             </option>
           ))}
-        </select>
+        </FilterDropdown>
 
         <span className="delivery-count" aria-live="polite">
           {state.loading || state.error ? '—' : total} PHIẾU
