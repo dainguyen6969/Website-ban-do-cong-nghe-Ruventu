@@ -1027,24 +1027,19 @@ public class AdminOrderService {
 
     boolean paid = order.getTrangThaiThanhToan() == TrangThaiThanhToanDonHang.DA_THANH_TOAN;
 
-    if (!paid && inventory.hasQuantityReservation(order)) {
-      return;
-    }
-
     if (!inventory.tryReserve(order)) {
       markWaitingForStock(order, true);
       return;
     }
 
-    if (paid) {
-      order.setTrangThaiDonHang(TrangThaiDonHang.CHO_DONG_GOI);
+    order.setTrangThaiDonHang(TrangThaiDonHang.CHO_DONG_GOI);
 
-      recordSystemHistory(
-          order, "TU_DUYET_DON_DA_THANH_TOAN", "Tự duyệt: đã nhận đủ tiền và giữ đủ hàng.");
-    } else {
-      recordSystemHistory(
-          order, "DU_HANG_CHO_DUYET", "Đã giữ đủ hàng cho đơn thu một phần; chờ nhân viên duyệt.");
-    }
+    recordSystemHistory(
+        order,
+        paid ? "TU_DUYET_DON_DA_THANH_TOAN" : "TU_DUYET_DON_DA_DAT_COC",
+        paid
+            ? "Tự duyệt: đã nhận đủ tiền và giữ đủ hàng."
+            : "Tự duyệt: đã nhận một phần tiền và giữ đủ hàng.");
   }
 
   private void markWaitingForStock(DonHang order, boolean system) {

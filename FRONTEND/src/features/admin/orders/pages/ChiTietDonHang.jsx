@@ -967,7 +967,7 @@ function OrderDetailView({ orderId }) {
   const paidWaitingApproval =
     order.loai_don_hang === 'ONLINE' &&
     order.trang_thai_don_hang === 'CHO_DUYET' &&
-    order.trang_thai_thanh_toan === 'DA_THANH_TOAN';
+    ['THANH_TOAN_MOT_PHAN', 'DA_THANH_TOAN'].includes(order.trang_thai_thanh_toan);
 
   const beforeExport =
     order.trang_thai_xuat_kho === 'CHUA_XUAT_KHO' && order.trang_thai_don_hang !== 'HUY_HANG';
