@@ -39,7 +39,7 @@ public class OrderInventoryService {
   private final EntityManager entityManager;
   private final OrderSaleSnapshotService saleSnapshots;
   private final SoldDeviceService soldDevices;
-    private final GiuHangTungPhanRepository partialReservationRepository;
+  private final GiuHangTungPhanRepository partialReservationRepository;
 
   @Value("${ruventu.sales.reservation-ttl}")
   private Duration reservationTtl;
@@ -141,229 +141,198 @@ public class OrderInventoryService {
             .contains(order.getTrangThaiDongGoi());
   }
 
-    public boolean hasAnyQuantityReservation(DonHang order) {
-        return hasQuantityReservation(order)
-                || partialReservationRepository.existsByDonHangId(order.getId());
+  public boolean hasAnyQuantityReservation(DonHang order) {
+    return hasQuantityReservation(order)
+        || partialReservationRepository.existsByDonHangId(order.getId());
+  }
+
+  private Map<Long, GiuHangTungPhan> partialReservations(DonHang order, Plan plan) {
+
+    Map<Long, GiuHangTungPhan> result = new TreeMap<>();
+
+    for (var row :
+        partialReservationRepository.findByDonHangIdOrderByPhienBanIdAsc(order.getId())) {
+
+      Integer required = plan.quantities().get(row.getPhienBanId());
+
+      if (!Objects.equals(row.getKhoHangId(), context.defaultWarehouseId())
+          || required == null
+          || row.getSoLuong() == null
+          || row.getSoLuong() <= 0
+          || row.getSoLuong() > required
+          || result.putIfAbsent(row.getPhienBanId(), row) != null) {
+
+        throw conflict("Dữ liệu giữ hàng từng phần không khớp yêu cầu của đơn");
+      }
     }
 
-    private Map<Long, GiuHangTungPhan> partialReservations(
-            DonHang order, Plan plan) {
+    if (!result.isEmpty()
+        && (hasQuantityReservation(order)
+            || order.getTrangThaiDonHang() != TrangThaiDonHang.CHO_HANG
+            || order.getTrangThaiXuatKho() != TrangThaiXuatKho.CHUA_XUAT_KHO)) {
 
-        Map<Long, GiuHangTungPhan> result = new TreeMap<>();
-
-        for (var row :
-                partialReservationRepository
-                        .findByDonHangIdOrderByPhienBanIdAsc(order.getId())) {
-
-            Integer required = plan.quantities().get(row.getPhienBanId());
-
-            if (!Objects.equals(row.getKhoHangId(), context.defaultWarehouseId())
-                    || required == null
-                    || row.getSoLuong() == null
-                    || row.getSoLuong() <= 0
-                    || row.getSoLuong() > required
-                    || result.putIfAbsent(row.getPhienBanId(), row) != null) {
-
-                throw conflict(
-                        "Dữ liệu giữ hàng từng phần không khớp yêu cầu của đơn");
-            }
-        }
-
-        if (!result.isEmpty()
-                && (hasQuantityReservation(order)
-                || order.getTrangThaiDonHang() != TrangThaiDonHang.CHO_HANG
-                || order.getTrangThaiXuatKho()
-                != TrangThaiXuatKho.CHUA_XUAT_KHO)) {
-
-            throw conflict(
-                    "Phần giữ hàng không khớp trạng thái đơn, cần đối soát");
-        }
-
-        return result;
+      throw conflict("Phần giữ hàng không khớp trạng thái đơn, cần đối soát");
     }
 
-    private Map<Long, Integer> reservedQuantities(
-            DonHang order,
-            Plan plan,
-            Map<Long, GiuHangTungPhan> partial) {
+    return result;
+  }
 
-        if (hasQuantityReservation(order)) {
-            return new TreeMap<>(plan.quantities());
-        }
+  private Map<Long, Integer> reservedQuantities(
+      DonHang order, Plan plan, Map<Long, GiuHangTungPhan> partial) {
 
-        Map<Long, Integer> result = new TreeMap<>();
-
-        partial.forEach(
-                (variantId, row) -> result.put(variantId, row.getSoLuong()));
-
-        return result;
+    if (hasQuantityReservation(order)) {
+      return new TreeMap<>(plan.quantities());
     }
 
-    public Map<Long, Integer> reservedQuantities(DonHang order) {
-        Plan plan = plan(order, false);
+    Map<Long, Integer> result = new TreeMap<>();
 
-        return reservedQuantities(
-                order, plan, partialReservations(order, plan));
+    partial.forEach((variantId, row) -> result.put(variantId, row.getSoLuong()));
+
+    return result;
+  }
+
+  public Map<Long, Integer> reservedQuantities(DonHang order) {
+    Plan plan = plan(order, false);
+
+    return reservedQuantities(order, plan, partialReservations(order, plan));
+  }
+
+  public Map<Long, Integer> reserveWaitingStock(DonHang order) {
+    requireUnexportedReservation(order);
+
+    if (order.getLoaiDonHang() != LoaiDonHang.ONLINE
+        || order.getTrangThaiDonHang() != TrangThaiDonHang.CHO_HANG
+        || order.getTrangThaiDongGoi() != TrangThaiDongGoi.CHUA_DONG_GOI
+        || order.getHanGiuHang() != null
+        || !Set.of(
+                TrangThaiThanhToanDonHang.THANH_TOAN_MOT_PHAN,
+                TrangThaiThanhToanDonHang.DA_THANH_TOAN)
+            .contains(order.getTrangThaiThanhToan())) {
+
+      throw conflict("Chỉ giữ hàng cho đơn chờ hàng đã ghi nhận tiền hợp lệ");
     }
 
-    public Map<Long, Integer> reserveWaitingStock(DonHang order) {
-        requireUnexportedReservation(order);
+    Plan plan = plan(order, true);
+    var partial = partialReservations(order, plan);
+    var held = reservedQuantities(order, plan, partial);
 
-        if (order.getLoaiDonHang() != LoaiDonHang.ONLINE
-                || order.getTrangThaiDonHang() != TrangThaiDonHang.CHO_HANG
-                || order.getTrangThaiDongGoi()
-                != TrangThaiDongGoi.CHUA_DONG_GOI
-                || order.getHanGiuHang() != null
-                || !Set.of(
-                        TrangThaiThanhToanDonHang.THANH_TOAN_MOT_PHAN,
-                        TrangThaiThanhToanDonHang.DA_THANH_TOAN)
-                .contains(order.getTrangThaiThanhToan())) {
+    boolean full = hasQuantityReservation(order);
+    var stocks = lockStocks(plan, full, !full);
 
-            throw conflict(
-                    "Chỉ giữ hàng cho đơn chờ hàng đã ghi nhận tiền hợp lệ");
-        }
-
-        Plan plan = plan(order, true);
-        var partial = partialReservations(order, plan);
-        var held = reservedQuantities(order, plan, partial);
-
-        boolean full = hasQuantityReservation(order);
-        var stocks = lockStocks(plan, full, !full);
-
-        if (full) {
-            return Map.of();
-        }
-
-        if (!serialRepository.findPackingByOrderId(order.getId()).isEmpty()) {
-            throw conflict(
-                    "Đơn chờ hàng chưa được phân bổ serial đóng gói");
-        }
-
-        Map<Long, Integer> added = new TreeMap<>();
-
-        for (var need : plan.quantities().entrySet()) {
-            TonKho stock = stocks.get(need.getKey());
-            int previous = held.getOrDefault(need.getKey(), 0);
-
-            int amount =
-                    stock == null
-                            ? 0
-                            : Math.min(
-                            need.getValue() - previous,
-                            stock.getTonCoTheBan());
-
-            if (amount > 0) {
-                added.put(need.getKey(), amount);
-                held.put(need.getKey(), previous + amount);
-            }
-        }
-
-        for (var entry : added.entrySet()) {
-            TonKho stock = stocks.get(entry.getKey());
-
-            stock.setTonCoTheBan(
-                    stock.getTonCoTheBan() - entry.getValue());
-        }
-
-        if (held.equals(plan.quantities())) {
-            partialReservationRepository.deleteAll(partial.values());
-            order.setDaGiuHang(true);
-        } else {
-            for (var entry : held.entrySet()) {
-                var row = partial.get(entry.getKey());
-
-                if (row == null) {
-                    row =
-                            GiuHangTungPhan.builder()
-                                    .donHangId(order.getId())
-                                    .khoHangId(context.defaultWarehouseId())
-                                    .phienBanId(entry.getKey())
-                                    .build();
-                }
-
-                row.setSoLuong(entry.getValue());
-                partialReservationRepository.save(row);
-            }
-
-            order.setDaGiuHang(false);
-        }
-
-        return Map.copyOf(added);
+    if (full) {
+      return Map.of();
     }
 
-    public List<Map<String, Object>> waitingStockRows(DonHang order) {
-        Plan plan = plan(order, false);
-
-        var held =
-                reservedQuantities(
-                        order, plan, partialReservations(order, plan));
-
-        Map<Long, OrderSaleSnapshotService.PhysicalItem> metadata =
-                new TreeMap<>();
-
-        for (var line : plan.lines()) {
-            saleSnapshots.physical(line).forEach(metadata::putIfAbsent);
-        }
-
-        List<Map<String, Object>> result = new ArrayList<>();
-
-        for (var need : plan.quantities().entrySet()) {
-            TonKho stock =
-                    calculation.stock(
-                            context.defaultWarehouseId(), need.getKey(), false);
-
-            int free = stock == null ? 0 : stock.getTonCoTheBan();
-            int reserved = held.getOrDefault(need.getKey(), 0);
-            var item = metadata.get(need.getKey());
-
-            Map<String, Object> row = new LinkedHashMap<>();
-
-            row.put("phien_ban_id", need.getKey());
-            row.put("ten_san_pham", item.productName());
-            row.put("ten_phien_ban", item.variantName());
-            row.put("so_luong_can", need.getValue());
-            row.put("so_luong_da_giu", reserved);
-            row.put("ton_co_the_ban", free);
-            row.put("so_luong_con_can_giu", need.getValue() - reserved);
-            row.put(
-                    "so_luong_thieu",
-                    Math.max(
-                            0L,
-                            (long) need.getValue() - reserved - free));
-
-            result.add(row);
-        }
-
-        return List.copyOf(result);
+    if (!serialRepository.findPackingByOrderId(order.getId()).isEmpty()) {
+      throw conflict("Đơn chờ hàng chưa được phân bổ serial đóng gói");
     }
 
-    public List<Map<String, Object>> releasedReservationRows(
-            Map<Long, Integer> released) {
+    Map<Long, Integer> added = new TreeMap<>();
 
-        List<Map<String, Object>> result = new ArrayList<>();
+    for (var need : plan.quantities().entrySet()) {
+      TonKho stock = stocks.get(need.getKey());
+      int previous = held.getOrDefault(need.getKey(), 0);
 
-        for (var entry : released.entrySet()) {
-            TonKho stock =
-                    calculation.stock(
-                            context.defaultWarehouseId(), entry.getKey(), false);
+      int amount = stock == null ? 0 : Math.min(need.getValue() - previous, stock.getTonCoTheBan());
 
-            if (stock == null) {
-                throw conflict(
-                        "Không tìm thấy tồn sau giải phóng giữ hàng");
-            }
+      if (amount > 0) {
+        added.put(need.getKey(), amount);
+        held.put(need.getKey(), previous + amount);
+      }
+    }
 
-            Map<String, Object> row = new LinkedHashMap<>();
+    for (var entry : added.entrySet()) {
+      TonKho stock = stocks.get(entry.getKey());
 
-            row.put("phien_ban_id", entry.getKey());
-            row.put("so_luong_da_giu", entry.getValue());
-            row.put("ton_thuc_te_sau", stock.getTonThucTe());
-            row.put("ton_co_the_ban_sau", stock.getTonCoTheBan());
+      stock.setTonCoTheBan(stock.getTonCoTheBan() - entry.getValue());
+    }
 
-            result.add(row);
+    if (held.equals(plan.quantities())) {
+      partialReservationRepository.deleteAll(partial.values());
+      order.setDaGiuHang(true);
+    } else {
+      for (var entry : held.entrySet()) {
+        var row = partial.get(entry.getKey());
+
+        if (row == null) {
+          row =
+              GiuHangTungPhan.builder()
+                  .donHangId(order.getId())
+                  .khoHangId(context.defaultWarehouseId())
+                  .phienBanId(entry.getKey())
+                  .build();
         }
 
-        return List.copyOf(result);
+        row.setSoLuong(entry.getValue());
+        partialReservationRepository.save(row);
+      }
+
+      order.setDaGiuHang(false);
     }
+
+    return Map.copyOf(added);
+  }
+
+  public List<Map<String, Object>> waitingStockRows(DonHang order) {
+    Plan plan = plan(order, false);
+
+    var held = reservedQuantities(order, plan, partialReservations(order, plan));
+
+    Map<Long, OrderSaleSnapshotService.PhysicalItem> metadata = new TreeMap<>();
+
+    for (var line : plan.lines()) {
+      saleSnapshots.physical(line).forEach(metadata::putIfAbsent);
+    }
+
+    List<Map<String, Object>> result = new ArrayList<>();
+
+    for (var need : plan.quantities().entrySet()) {
+      TonKho stock = calculation.stock(context.defaultWarehouseId(), need.getKey(), false);
+
+      int free = stock == null ? 0 : stock.getTonCoTheBan();
+      int reserved = held.getOrDefault(need.getKey(), 0);
+      var item = metadata.get(need.getKey());
+
+      Map<String, Object> row = new LinkedHashMap<>();
+
+      row.put("phien_ban_id", need.getKey());
+      row.put("ten_san_pham", item.productName());
+      row.put("ten_phien_ban", item.variantName());
+      row.put("so_luong_can", need.getValue());
+      row.put("so_luong_da_giu", reserved);
+      row.put("ton_co_the_ban", free);
+      row.put("so_luong_con_can_giu", need.getValue() - reserved);
+      row.put("so_luong_thieu", Math.max(0L, (long) need.getValue() - reserved - free));
+
+      result.add(row);
+    }
+
+    return List.copyOf(result);
+  }
+
+  public List<Map<String, Object>> releasedReservationRows(Map<Long, Integer> released) {
+
+    List<Map<String, Object>> result = new ArrayList<>();
+
+    for (var entry : released.entrySet()) {
+      TonKho stock = calculation.stock(context.defaultWarehouseId(), entry.getKey(), false);
+
+      if (stock == null) {
+        throw conflict("Không tìm thấy tồn sau giải phóng giữ hàng");
+      }
+
+      Map<String, Object> row = new LinkedHashMap<>();
+
+      row.put("phien_ban_id", entry.getKey());
+      row.put("so_luong_da_giu", entry.getValue());
+      row.put("ton_thuc_te_sau", stock.getTonThucTe());
+      row.put("ton_co_the_ban_sau", stock.getTonCoTheBan());
+
+      result.add(row);
+    }
+
+    return List.copyOf(result);
+  }
 
   public void requireReservationNotExpired(DonHang order) {
     if (hasQuantityReservation(order)
@@ -390,53 +359,49 @@ public class OrderInventoryService {
     }
   }
 
-    public boolean tryReserve(DonHang order) {
-        requireUnexportedReservation(order);
-        requireReservationNotExpired(order);
+  public boolean tryReserve(DonHang order) {
+    requireUnexportedReservation(order);
+    requireReservationNotExpired(order);
 
-        Plan plan = plan(order, true);
-        var partial = partialReservations(order, plan);
-        var held = reservedQuantities(order, plan, partial);
+    Plan plan = plan(order, true);
+    var partial = partialReservations(order, plan);
+    var held = reservedQuantities(order, plan, partial);
 
-        boolean full = hasQuantityReservation(order);
-        var stocks = lockStocks(plan, full, !full);
+    boolean full = hasQuantityReservation(order);
+    var stocks = lockStocks(plan, full, !full);
 
-        if (full) {
-            order.setDaGiuHang(true);
-            return true;
-        }
-
-        if (!serialRepository.findPackingByOrderId(order.getId()).isEmpty()) {
-            throw conflict(
-                    "Đơn chưa giữ đủ số lượng nhưng đang giữ serial, cần đối soát");
-        }
-
-        for (var need : plan.quantities().entrySet()) {
-            TonKho stock = stocks.get(need.getKey());
-
-            int remaining =
-                    need.getValue() - held.getOrDefault(need.getKey(), 0);
-
-            if (stock == null || stock.getTonCoTheBan() < remaining) {
-                return false;
-            }
-        }
-
-        for (var need : plan.quantities().entrySet()) {
-            TonKho stock = stocks.get(need.getKey());
-
-            int remaining =
-                    need.getValue() - held.getOrDefault(need.getKey(), 0);
-
-            stock.setTonCoTheBan(
-                    stock.getTonCoTheBan() - remaining);
-        }
-
-        partialReservationRepository.deleteAll(partial.values());
-        order.setDaGiuHang(true);
-
-        return true;
+    if (full) {
+      order.setDaGiuHang(true);
+      return true;
     }
+
+    if (!serialRepository.findPackingByOrderId(order.getId()).isEmpty()) {
+      throw conflict("Đơn chưa giữ đủ số lượng nhưng đang giữ serial, cần đối soát");
+    }
+
+    for (var need : plan.quantities().entrySet()) {
+      TonKho stock = stocks.get(need.getKey());
+
+      int remaining = need.getValue() - held.getOrDefault(need.getKey(), 0);
+
+      if (stock == null || stock.getTonCoTheBan() < remaining) {
+        return false;
+      }
+    }
+
+    for (var need : plan.quantities().entrySet()) {
+      TonKho stock = stocks.get(need.getKey());
+
+      int remaining = need.getValue() - held.getOrDefault(need.getKey(), 0);
+
+      stock.setTonCoTheBan(stock.getTonCoTheBan() - remaining);
+    }
+
+    partialReservationRepository.deleteAll(partial.values());
+    order.setDaGiuHang(true);
+
+    return true;
+  }
 
   public void reserveForNewOrder(DonHang order) {
     reserveForNewOrder(order, false);
@@ -480,50 +445,45 @@ public class OrderInventoryService {
     order.setHanGiuHang(LocalDateTime.now(properties.zone()).plus(reservationTtl));
   }
 
-    public List<Map<String, Object>> shortages(DonHang order) {
-        return waitingStockRows(order).stream()
-                .filter(
-                        row ->
-                                ((Number) row.get("so_luong_thieu")).longValue() > 0)
-                .toList();
+  public List<Map<String, Object>> shortages(DonHang order) {
+    return waitingStockRows(order).stream()
+        .filter(row -> ((Number) row.get("so_luong_thieu")).longValue() > 0)
+        .toList();
+  }
+
+  public void releaseQuantityReservation(DonHang order) {
+    requireUnexportedReservation(order);
+
+    Plan plan = plan(order, true);
+    var partial = partialReservations(order, plan);
+    var held = reservedQuantities(order, plan, partial);
+
+    if (held.isEmpty()) {
+      if (!serialRepository.findPackingByOrderId(order.getId()).isEmpty()) {
+        throw conflict("Đơn không giữ số lượng nhưng vẫn giữ serial, cần đối soát");
+      }
+
+      order.setDaGiuHang(false);
+      order.setHanGiuHang(null);
+      return;
     }
 
-    public void releaseQuantityReservation(DonHang order) {
-        requireUnexportedReservation(order);
+    boolean full = hasQuantityReservation(order);
+    var stocks = lockStocks(plan, full, !full);
 
-        Plan plan = plan(order, true);
-        var partial = partialReservations(order, plan);
-        var held = reservedQuantities(order, plan, partial);
+    releasePackingSerials(order);
 
-        if (held.isEmpty()) {
-            if (!serialRepository.findPackingByOrderId(order.getId()).isEmpty()) {
-                throw conflict(
-                        "Đơn không giữ số lượng nhưng vẫn giữ serial, cần đối soát");
-            }
+    for (var entry : held.entrySet()) {
+      TonKho stock = stocks.get(entry.getKey());
 
-            order.setDaGiuHang(false);
-            order.setHanGiuHang(null);
-            return;
-        }
-
-        boolean full = hasQuantityReservation(order);
-        var stocks = lockStocks(plan, full, !full);
-
-        releasePackingSerials(order);
-
-        for (var entry : held.entrySet()) {
-            TonKho stock = stocks.get(entry.getKey());
-
-            stock.setTonCoTheBan(
-                    quantity(
-                            (long) stock.getTonCoTheBan() + entry.getValue()));
-        }
-
-        partialReservationRepository.deleteAll(partial.values());
-
-        order.setDaGiuHang(false);
-        order.setHanGiuHang(null);
+      stock.setTonCoTheBan(quantity((long) stock.getTonCoTheBan() + entry.getValue()));
     }
+
+    partialReservationRepository.deleteAll(partial.values());
+
+    order.setDaGiuHang(false);
+    order.setHanGiuHang(null);
+  }
 
   private boolean heldForOrder(SoSerialSanPham serial, DonHang order) {
     return serial.getChiTietDongGoi() != null
@@ -1047,8 +1007,7 @@ public class OrderInventoryService {
   }
 
   public long expectedHeld(Long variantId) {
-      long total =
-              partialReservationRepository.sumReservedQuantity(variantId);
+    long total = partialReservationRepository.sumReservedQuantity(variantId);
 
     for (var line : lineRepository.findHeldLines()) {
       // physical() bắt buộc có bản chụp hợp lệ.

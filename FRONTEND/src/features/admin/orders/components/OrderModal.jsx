@@ -18,8 +18,17 @@ export default function OrderModal({
   const ref = useRef(null);
   useEffect(() => {
     const previous = document.activeElement;
-    ref.current.querySelector('input, select, textarea, button')?.focus();
-    return () => previous?.focus();
+    ref.current.querySelector('input, select, textarea, button')?.focus({ preventScroll: true });
+
+    return () => {
+      if (
+        previous instanceof HTMLElement &&
+        previous.isConnected &&
+        !previous.matches(':disabled')
+      ) {
+        previous.focus({ preventScroll: true });
+      }
+    };
   }, []);
   const keys = (event) => {
     if (event.key === 'Escape' && !busy) close();

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
 
-import { getOrderRefundOptions, money, refundOrder, refundOrderReturn } from '../api/orderApi';
+import { money, refundOrder, refundOrderReturn } from '../api/orderApi';
 
 import {
   errorMessage,
@@ -13,62 +14,36 @@ import OrderModal from './OrderModal';
 
 import './OrderRefundPanel.css';
 
-export default function OrderRefundPanel({ order, busy, perform, revision }) {
+export default function OrderRefundPanel({ order, busy, perform, data, onEditingChange }) {
   const attempt = useRef(null);
 
-  const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [readError, setReadError] = useState('');
   const [operationError, setOperationError] = useState('');
-  const [reload, setReload] = useState(0);
   const [dialog, setDialog] = useState(null);
 
-  useEffect(() => {
-    const controller = new AbortController();
+  useEffect(() => () => onEditingChange(false), [onEditingChange]);
 
-    setLoading(true);
-    setReadError('');
-
-    getOrderRefundOptions(order.id, controller.signal)
-      .then((result) => {
-        if (!controller.signal.aborted) {
-          setData(result);
-        }
-      })
-      .catch((error) => {
-        if (!controller.signal.aborted) {
-          setReadError(errorMessage(error));
-        }
-      })
-      .finally(() => {
-        if (!controller.signal.aborted) {
-          setLoading(false);
-        }
-      });
-
-    return () => controller.abort();
-  }, [
-    order.id,
-    order.trang_thai_don_hang,
-    order.trang_thai_xuat_kho,
-    order.trang_thai_thanh_toan,
-    revision,
-    reload,
-  ]);
-
-  const locked = busy || loading;
   const pending = attempt.current;
+  const locked = busy || Boolean(pending) || Boolean(dialog);
 
   const openRefund = (kind, document = null) => {
-    if (locked || pending) return;
+    if (locked) return;
+
+    const amount =
+      kind === 'return' ? document?.tong_tien_hoan : data?.hoan_don_huy?.so_tien_can_hoan;
+
+    if (amount == null || !Number.isFinite(Number(amount)) || Number(amount) <= 0) {
+      setOperationError('Chưa xác định được khoản tiền có thể hoàn. Hãy kiểm tra lại dữ liệu.');
+      return;
+    }
 
     setOperationError('');
+    onEditingChange(true);
 
     setDialog({
       kind,
       returnId: document?.id ?? null,
       code: document?.ma_tra_hang ?? order.ma_don_hang,
-      amount: kind === 'return' ? document.tong_tien_hoan : data?.hoan_don_huy?.so_tien_can_hoan,
+      amount,
       method: 'CHUYEN_KHOAN',
       occurredAt: nowLocalInput(),
       transaction: '',
@@ -104,7 +79,7 @@ export default function OrderRefundPanel({ order, busy, perform, revision }) {
         await send(scope, body);
 
         setDialog(null);
-        setReload((value) => value + 1);
+        onEditingChange(false);
       } catch (error) {
         setOperationError(errorMessage(error));
         throw error;
@@ -120,10 +95,7 @@ export default function OrderRefundPanel({ order, busy, perform, revision }) {
   };
 
   const submit = () => {
-    if (attempt.current) {
-      return retry();
-    }
-
+    if (attempt.current) return retry();
     if (!dialog || busy) return;
 
     if (!dialog.confirmed) {
@@ -152,46 +124,42 @@ export default function OrderRefundPanel({ order, busy, perform, revision }) {
       ma_giao_dich: dialog.method === 'TIEN_MAT' ? null : dialog.transaction.trim(),
     };
 
-    const scope = dialog.kind === 'return' ? `return:${dialog.returnId}` : `cancelled:${order.id}`;
+    const scope = dialog.kind === 'return' ? 'return:' + dialog.returnId : 'cancelled:' + order.id;
 
     return execute(scope, body);
   };
+
+  const close = () => {
+    if (busy || attempt.current) return;
+
+    setDialog(null);
+    setOperationError('');
+    onEditingChange(false);
+  };
+
+  const change = (key, value) =>
+    setDialog((current) => ({
+      ...current,
+      [key]: value,
+    }));
 
   const cancelled = data?.hoan_don_huy;
   const documents = data?.phieu_tra_hang ?? [];
 
   const showCancelled = cancelled?.hien_thi === true;
 
-  const showPanel = showCancelled || documents.length > 0 || Boolean(readError) || Boolean(pending);
+  const noRefundDue =
+    cancelled?.so_tien_can_hoan != null && Number(cancelled.so_tien_can_hoan) === 0;
 
-  if (!showPanel && !loading) return null;
+  if (!showCancelled && !documents.length && !pending && !dialog && !operationError) {
+    return null;
+  }
 
   return (
-    <section className="order-refund-panel" aria-busy={busy || loading}>
+    <section className="order-refund-panel" aria-busy={busy}>
       <header className="order-refund-panel__heading">
-        <h2>HOÀN TIỀN KHÁCH HÀNG</h2>
-
-        <button
-          type="button"
-          className="order-action"
-          disabled={locked}
-          onClick={() => setReload((value) => value + 1)}
-        >
-          TẢI LẠI
-        </button>
+        <h2>KHOẢN HOÀN VÀ PHIẾU NHẬN LẠI</h2>
       </header>
-
-      {loading && (
-        <p className="order-refund-panel__note" role="status">
-          Đang kiểm tra các khoản hoàn tiền...
-        </p>
-      )}
-
-      {readError && (
-        <p className="order-refund-panel__error" role="alert">
-          {readError}
-        </p>
-      )}
 
       {pending && (
         <div className="order-refund-panel__pending" role="status">
@@ -215,62 +183,74 @@ export default function OrderRefundPanel({ order, busy, perform, revision }) {
             </strong>
 
             <p>
-              {cancelled?.so_tien_can_hoan == null
+              {cancelled.so_tien_can_hoan == null
                 ? 'Chưa xác định được số tiền cần hoàn.'
-                : `Còn phải hoàn: ${money(cancelled.so_tien_can_hoan)}`}
+                : 'Còn phải hoàn: ' + money(cancelled.so_tien_can_hoan)}
             </p>
 
-            {cancelled?.ly_do && <small>{cancelled.ly_do}</small>}
+            {cancelled.ly_do && <small>{cancelled.ly_do}</small>}
           </div>
 
-          <button
-            type="button"
-            className="order-action order-action--black"
-            disabled={locked || Boolean(pending) || !cancelled?.co_the_hoan}
-            onClick={() => openRefund('cancelled')}
-          >
-            HOÀN TIỀN ĐƠN HỦY
-          </button>
-        </article>
-      )}
-
-      {documents.map((document) => (
-        <article className="order-refund-panel__item" key={document.id}>
-          <div>
-            <strong>
-              {document.ma_tra_hang === `TH-HUY-DH-${order.id}`
-                ? 'PHIẾU NHẬN LẠI HÀNG'
-                : 'PHIẾU TRẢ'}{' '}
-              {document.ma_tra_hang}
-            </strong>
-
-            <p>
-              {document.ma_tra_hang === `TH-HUY-DH-${order.id}`
-                ? 'Hàng đã được nhận lại. Khoản hoàn tiền được theo dõi theo đơn hủy.'
-                : `Tiền hoàn: ${
-                    document.tong_tien_hoan == null
-                      ? 'Chưa xác định'
-                      : money(document.tong_tien_hoan)
-                  }`}
-            </p>
-
-            {document.ly_do && <small>{document.ly_do}</small>}
-          </div>
-
-          {document.da_ghi_nhan_hoan ? (
-            <span className="order-refund-panel__completed">ĐÃ KẾT THÚC</span>
-          ) : (
+          {cancelled.co_the_hoan === true ? (
             <button
               type="button"
               className="order-action order-action--black"
-              disabled={locked || Boolean(pending) || !document.co_the_hoan}
-              onClick={() => openRefund('return', document)}
+              disabled={locked}
+              onClick={() => openRefund('cancelled')}
             >
-              HOÀN TIỀN THEO PHIẾU TRẢ
+              GHI NHẬN ĐÃ HOÀN TIỀN
             </button>
+          ) : (
+            <span
+              className={
+                noRefundDue ? 'order-refund-panel__completed' : 'order-refund-panel__error'
+              }
+            >
+              {noRefundDue ? 'KHÔNG CÒN KHOẢN HOÀN' : 'CẦN ĐỐI SOÁT'}
+            </span>
           )}
         </article>
-      ))}
+      )}
+
+      {documents.map((document) => {
+        const cancellationReturn = document.ma_tra_hang === 'TH-HUY-DH-' + order.id;
+
+        return (
+          <article className="order-refund-panel__item" key={document.id}>
+            <div>
+              <strong>{cancellationReturn ? 'PHIẾU NHẬN LẠI HÀNG' : 'PHIẾU TRẢ'}</strong>{' '}
+              <Link to={'/admin/don-hang/khach-tra-hang/' + document.id}>
+                {document.ma_tra_hang}
+              </Link>
+              <p>
+                {cancellationReturn
+                  ? 'Hàng đã được nhận lại. Khoản hoàn tiền được theo dõi theo đơn hủy.'
+                  : document.tong_tien_hoan == null
+                    ? 'Chưa xác định được tiền hoàn.'
+                    : 'Tiền hoàn: ' + money(document.tong_tien_hoan)}
+              </p>
+              {document.ly_do && <small>{document.ly_do}</small>}
+            </div>
+
+            {cancellationReturn ? (
+              <span className="order-refund-panel__completed">ĐÃ NHẬN LẠI HÀNG</span>
+            ) : document.da_ghi_nhan_hoan === true ? (
+              <span className="order-refund-panel__completed">ĐÃ KẾT THÚC</span>
+            ) : document.co_the_hoan === true ? (
+              <button
+                type="button"
+                className="order-action order-action--black"
+                disabled={locked}
+                onClick={() => openRefund('return', document)}
+              >
+                GHI NHẬN ĐÃ HOÀN THEO PHIẾU
+              </button>
+            ) : (
+              <span className="order-refund-panel__note">CHƯA ĐỦ ĐIỀU KIỆN HOÀN</span>
+            )}
+          </article>
+        );
+      })}
 
       {operationError && !dialog && (
         <p className="order-refund-panel__error" role="alert">
@@ -288,13 +268,8 @@ export default function OrderRefundPanel({ order, busy, perform, revision }) {
           confirmLabel="XÁC NHẬN ĐÃ HOÀN TIỀN"
           busy={busy}
           error={operationError}
-          disabled={!dialog.confirmed || Boolean(attempt.current)}
-          close={() => {
-            if (!busy && !attempt.current) {
-              setDialog(null);
-              setOperationError('');
-            }
-          }}
+          disabled={!dialog.confirmed || Boolean(pending)}
+          close={close}
           submit={submit}
         >
           <div className="order-refund-panel__amount">
@@ -302,24 +277,15 @@ export default function OrderRefundPanel({ order, busy, perform, revision }) {
             <strong>{money(dialog.amount)}</strong>
           </div>
 
-          <fieldset
-            className="order-refund-panel__fields"
-            disabled={busy || Boolean(attempt.current)}
-          >
+          <fieldset className="order-refund-panel__fields" disabled={busy || Boolean(pending)}>
             <label>
               <span>PHƯƠNG THỨC HOÀN</span>
 
               <select
                 value={dialog.method}
-                onChange={(event) =>
-                  setDialog((current) => ({
-                    ...current,
-                    method: event.target.value,
-                  }))
-                }
+                onChange={(event) => change('method', event.target.value)}
               >
                 <option value="CHUYEN_KHOAN">Chuyển khoản</option>
-
                 <option value="TIEN_MAT">Tiền mặt</option>
               </select>
             </label>
@@ -329,13 +295,9 @@ export default function OrderRefundPanel({ order, busy, perform, revision }) {
 
               <input
                 type="datetime-local"
+                required
                 value={dialog.occurredAt}
-                onChange={(event) =>
-                  setDialog((current) => ({
-                    ...current,
-                    occurredAt: event.target.value,
-                  }))
-                }
+                onChange={(event) => change('occurredAt', event.target.value)}
               />
             </label>
 
@@ -345,14 +307,10 @@ export default function OrderRefundPanel({ order, busy, perform, revision }) {
 
                 <input
                   type="text"
+                  required
                   maxLength={255}
                   value={dialog.transaction}
-                  onChange={(event) =>
-                    setDialog((current) => ({
-                      ...current,
-                      transaction: event.target.value,
-                    }))
-                  }
+                  onChange={(event) => change('transaction', event.target.value)}
                 />
               </label>
             )}
@@ -361,19 +319,14 @@ export default function OrderRefundPanel({ order, busy, perform, revision }) {
               <input
                 type="checkbox"
                 checked={dialog.confirmed}
-                onChange={(event) =>
-                  setDialog((current) => ({
-                    ...current,
-                    confirmed: event.target.checked,
-                  }))
-                }
+                onChange={(event) => change('confirmed', event.target.checked)}
               />
 
               <span>Cửa hàng đã hoàn số tiền trên cho khách.</span>
             </label>
           </fieldset>
 
-          {attempt.current && (
+          {pending && (
             <button type="button" className="order-action" disabled={busy} onClick={retry}>
               THỬ LẠI YÊU CẦU CŨ
             </button>

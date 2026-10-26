@@ -529,14 +529,12 @@ public class CustomerOrderService {
                   .findCustomerOrderForUpdate(orderId, customer.getId())
                   .orElseThrow(() -> notFound("Đơn không tồn tại hoặc không thuộc khách hàng"));
 
-            List<CustomerOrderResponse.ReleasedStock> released =
-                    orderInventory.reservedQuantities(order).entrySet().stream()
-                            .map(
-                                    entry ->
-                                            new CustomerOrderResponse.ReleasedStock(
-                                                    entry.getKey(),
-                                                    entry.getValue()))
-                            .toList();
+          List<CustomerOrderResponse.ReleasedStock> released =
+              orderInventory.reservedQuantities(order).entrySet().stream()
+                  .map(
+                      entry ->
+                          new CustomerOrderResponse.ReleasedStock(entry.getKey(), entry.getValue()))
+                  .toList();
 
           var shared = new AdminOrderRequest.Cancel();
           shared.setLyDo(request.getLyDo());

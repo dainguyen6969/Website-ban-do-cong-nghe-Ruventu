@@ -301,9 +301,9 @@ public final class AdminSalesResponse {
     @JsonInclude(JsonInclude.Include.NON_NULL)
     private List<Map<String, Object>> hangConThieu;
 
-      @JsonProperty("giu_hang_cho_hang")
-      @JsonInclude(JsonInclude.Include.NON_NULL)
-      private List<Map<String, Object>> giuHangChoHang;
+    @JsonProperty("giu_hang_cho_hang")
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    private List<Map<String, Object>> giuHangChoHang;
   }
 
   @Getter
