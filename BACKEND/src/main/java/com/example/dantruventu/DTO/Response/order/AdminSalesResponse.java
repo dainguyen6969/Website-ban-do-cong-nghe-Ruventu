@@ -304,6 +304,9 @@ public final class AdminSalesResponse {
     @JsonProperty("giu_hang_cho_hang")
     @JsonInclude(JsonInclude.Include.NON_NULL)
     private List<Map<String, Object>> giuHangChoHang;
+
+    @JsonProperty("tiep_nhan")
+    private Map<String, Object> tiepNhan;
   }
 
   @Getter

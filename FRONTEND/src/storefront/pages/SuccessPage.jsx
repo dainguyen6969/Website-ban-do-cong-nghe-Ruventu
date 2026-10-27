@@ -8,6 +8,7 @@ import './SuccessPage.css';
 const SuccessPage = () => {
   const location = useLocation();
   const orderCode = location.state?.orderCode || 'RV-XXXXXX';
+  const intake = location.state?.intake;
 
   return (
     <div className="success-page-wrapper">
@@ -29,9 +30,15 @@ const SuccessPage = () => {
             </div>
 
             <p className="success-message">
-              Cảm ơn bạn đã đặt hàng tại <strong>Ruventu Tech</strong>. Chúng tôi sẽ liên hệ xác
-              nhận qua số điện thoại trong vòng 30 phút.
+              Cảm ơn bạn đã đặt hàng tại <strong>Ruventu Tech</strong>. Cửa hàng sẽ liên hệ xác nhận
+              theo lịch làm việc trong vòng 30 phút.
             </p>
+
+            {intake?.thong_bao && (
+              <p className="success-message" role="status">
+                {intake.thong_bao}
+              </p>
+            )}
 
             <div className="divider-line"></div>
 

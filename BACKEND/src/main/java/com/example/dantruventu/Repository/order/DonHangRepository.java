@@ -96,30 +96,40 @@ public interface DonHangRepository
                   com.example.dantruventu.Enum.TrangThaiDongGoi.CHUA_DONG_GOI
               AND d.trangThaiXuatKho =
                   com.example.dantruventu.Enum.TrangThaiXuatKho.CHUA_XUAT_KHO
+              AND d.trangThaiDonHang IN (
+                  com.example.dantruventu.Enum.TrangThaiDonHang.CHO_DUYET,
+                  com.example.dantruventu.Enum.TrangThaiDonHang.CHO_HANG
+              )
               AND (
                   (
-                      d.trangThaiDonHang =
-                          com.example.dantruventu.Enum.TrangThaiDonHang.CHO_DUYET
-                      AND (
-                          (
-                              d.daGiuHang = true
-                              AND d.hanGiuHang IS NOT NULL
-                              AND d.hanGiuHang <= :cutoff
-                          )
-                          OR d.trangThaiThanhToan IN (
-                              com.example.dantruventu.Enum.TrangThaiThanhToanDonHang.THANH_TOAN_MOT_PHAN,
-                              com.example.dantruventu.Enum.TrangThaiThanhToanDonHang.DA_THANH_TOAN
-                          )
-                      )
-                  )
-                  OR (
-                      d.trangThaiDonHang =
-                          com.example.dantruventu.Enum.TrangThaiDonHang.CHO_HANG
-                      AND d.trangThaiThanhToan IN (
+                      d.trangThaiThanhToan IN (
                           com.example.dantruventu.Enum.TrangThaiThanhToanDonHang.THANH_TOAN_MOT_PHAN,
                           com.example.dantruventu.Enum.TrangThaiThanhToanDonHang.DA_THANH_TOAN
                       )
-                      AND (d.daGiuHang = false OR d.daGiuHang IS NULL)
+                      AND (
+                          d.trangThaiDonHang =
+                              com.example.dantruventu.Enum.TrangThaiDonHang.CHO_DUYET
+                          OR d.daGiuHang = false
+                          OR d.daGiuHang IS NULL
+                      )
+                  )
+                  OR (
+                      d.trangThaiThanhToan =
+                          com.example.dantruventu.Enum.TrangThaiThanhToanDonHang.CHUA_THANH_TOAN
+                      AND (
+                          d.hanGiuHang <= :cutoff
+                          OR d.hanGiuUuDai <= :cutoff
+                          OR (
+                              d.hanGiuUuDai IS NULL
+                              AND EXISTS (
+                                  SELECT u.id
+                                  FROM KhuyenMaiDonHang u
+                                  WHERE u.donHang.id = d.id
+                                    AND u.trangThaiApDung =
+                                        com.example.dantruventu.Enum.TrangThaiApDungKhuyenMai.GIU_CHO
+                              )
+                          )
+                      )
                   )
               )
             ORDER BY d.id
@@ -134,4 +144,37 @@ public interface DonHangRepository
             WHERE LOWER(d.maDonHang) = LOWER(:code)
             """)
   Optional<Long> findIdByMaDonHangIgnoreCase(@Param("code") String code);
+
+  @Query(
+      """
+            SELECT COUNT(d)
+            FROM DonHang d
+            WHERE d.khachHang.id = :customerId
+              AND d.trangThaiDonHang =
+                  com.example.dantruventu.Enum.TrangThaiDonHang.HOAN_THANH
+              AND d.trangThaiThanhToan =
+                  com.example.dantruventu.Enum.TrangThaiThanhToanDonHang.DA_THANH_TOAN
+              AND d.trangThaiXuatKho =
+                  com.example.dantruventu.Enum.TrangThaiXuatKho.DA_XUAT_KHO
+              AND d.ngayHoanThanh IS NOT NULL
+            """)
+  long countCompletedForIntake(@Param("customerId") Long customerId);
+
+  @Query(
+      """
+            SELECT COUNT(d)
+            FROM DonHang d
+            WHERE d.khachHang.id = :customerId
+              AND d.loaiDonHang =
+                  com.example.dantruventu.Enum.LoaiDonHang.ONLINE
+              AND d.trangThaiDonHang =
+                  com.example.dantruventu.Enum.TrangThaiDonHang.CHO_DUYET
+              AND d.trangThaiThanhToan =
+                  com.example.dantruventu.Enum.TrangThaiThanhToanDonHang.CHUA_THANH_TOAN
+              AND d.trangThaiXuatKho =
+                  com.example.dantruventu.Enum.TrangThaiXuatKho.CHUA_XUAT_KHO
+              AND d.daGiuHang = true
+              AND d.hanGiuHang IS NOT NULL
+            """)
+  long countTemporaryReservations(@Param("customerId") Long customerId);
 }

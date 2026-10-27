@@ -132,4 +132,13 @@ public class DonHang {
 
   @Column(name = "ngay_hoan_thanh", columnDefinition = "DATETIME")
   private LocalDateTime ngayHoanThanh;
+
+  @Column(name = "ly_do_cho_xac_minh", length = 50)
+  private String lyDoChoXacMinh;
+
+  @Column(name = "han_xu_ly", columnDefinition = "DATETIME(6)")
+  private LocalDateTime hanXuLy;
+
+  @Column(name = "han_giu_uu_dai", columnDefinition = "DATETIME(6)")
+  private LocalDateTime hanGiuUuDai;
 }
