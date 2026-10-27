@@ -120,3 +120,16 @@ test('cards show at most four real highlights from the same cheapest variant as 
   assert.deepEqual(toProductCard({ thongSoKyThuat: '{broken' }).specs, []);
   assert.deepEqual(toProductCard({ thongSoKyThuat: { LED: false, USB: 0 } }).specs, [{ label: 'LED', value: 'Không' }, { label: 'USB', value: '0' }]);
 });
+
+test('preview variant selection uses its explicit highlights without leaking other variants or source metadata', () => {
+  const product = { tenDanhMuc: 'Laptop', thongSoKyThuat: { phien_ban: {
+    1: { thong_so_chinh: { CPU: 'Core i5', RAM: '16 GB', SSD: '512 GB', 'Màn hình': '14 inch', GPU: 'Iris Xe' } },
+    2: { thong_so_chinh: { CPU: 'Core i7', RAM: '32 GB', SSD: '1 TB', 'Màn hình': '16 inch', source: 'https://example.com' },
+      thong_so_ky_thuat: { 'Cổng kết nối đầy đủ': 'Không đưa vào bản xem nhanh' } },
+  } }, danhSachPhienBan: [{ id: 1, giaBanLe: 100 }, { id: 2, giaBanLe: 200 }] };
+  const first = toProductCard({ ...product, phienBanMacDinhId: 1 });
+  const second = toProductCard({ ...product, phienBanMacDinhId: 2 });
+  assert.deepEqual(first.specs.map(row => row.value), ['Core i5', '16 GB', '512 GB', '14 inch']);
+  assert.deepEqual(second.specs.map(row => row.value), ['Core i7', '32 GB', '1 TB', '16 inch']);
+  assert.doesNotMatch(JSON.stringify(second.specs), /Core i5|16 GB|512 GB|Cổng kết nối|example\.com/);
+});

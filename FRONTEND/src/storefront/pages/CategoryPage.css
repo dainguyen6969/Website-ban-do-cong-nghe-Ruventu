@@ -352,7 +352,7 @@
   }
 }
 
-@media (max-width: 576px) {
+@media (max-width: 639px) {
   .category-banner {
     padding: 30px 0;
   }
@@ -362,7 +362,7 @@
   }
 
   .category-product-grid {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .category-toolbar {

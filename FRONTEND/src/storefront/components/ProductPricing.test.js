@@ -11,7 +11,32 @@ const Gallery = (await vite.ssrLoadModule('/src/storefront/components/ProductGal
 const Card = (await vite.ssrLoadModule('/src/storefront/components/ProductCard.jsx')).default;
 const InfoSidebar = (await vite.ssrLoadModule('/src/storefront/components/ProductInfoSidebar.jsx')).default;
 const Highlights = (await vite.ssrLoadModule('/src/storefront/components/ProductHighlights.jsx')).default;
+const Preview = (await vite.ssrLoadModule('/src/storefront/components/ProductCardPreview.jsx')).default;
 after(() => vite.close());
+
+test('catalog cards expose an accessible preview without changing regular cards', () => {
+  const product = { id: 7, title: 'CPU thật', price: '1.000.000 ₫', specs: [{ label: 'Socket', value: 'AM5' }] };
+  const render = showPreview => renderToStaticMarkup(React.createElement(MemoryRouter, null, React.createElement(Card, { product, showPreview })));
+  assert.doesNotMatch(render(false), /product-card__preview-toggle|product-card-preview/);
+  const html = render(true);
+  assert.match(html, /aria-expanded="false" aria-controls="([^"]+)"/);
+  assert.match(html, /class="product-card-preview" hidden=""/);
+  assert.equal((html.match(/<table/g) || []).length, 1);
+  assert.match(html, /THÔNG SỐ &amp; PHIÊN BẢN/);
+  assert.match(html, /XEM CHI TIẾT/);
+  assert.match(html, /THÊM VÀO GIỎ HÀNG/);
+});
+
+test('preview only shows four highlights, exposes loading and explains missing specifications', () => {
+  const render = specs => renderToStaticMarkup(React.createElement(Preview, {
+    product: { id: 7, title: 'CPU thật', specs }, open: true, panelId: 'preview-7',
+  }));
+  const html = render(Array.from({ length: 6 }, (_, id) => ({ label: `Field ${id}`, value: `Value ${id}` })));
+  assert.match(html, /role="status">Đang tải phiên bản/);
+  assert.equal((html.match(/scope="row"/g) || []).length, 4);
+  assert.doesNotMatch(html, /Field 4|Field 5|hidden=""/);
+  assert.match(render([]), /Chưa có thông số nổi bật cho phiên bản này/);
+});
 
 test('product cards render four accessible specification rows and omit empty tables', () => {
   const product = { id: 459, title: 'Card màn hình', price: '4.890.000 ₫', specs: Array.from({ length: 6 }, (_, i) => ({ label: 'Thông số ' + i, value: 'Giá trị ' + i })) };

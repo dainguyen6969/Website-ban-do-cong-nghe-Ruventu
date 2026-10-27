@@ -18,7 +18,8 @@
 .recommendation-rail__more:hover, .recommendation-rail__controls button:enabled:hover { background: var(--primary-red); color: #fff; }
 .recommendation-rail__viewport { overflow-x: auto; overscroll-behavior: contain; padding-top: 6px; padding-bottom: 10px; scrollbar-width: none; }
 .recommendation-rail__viewport::-webkit-scrollbar { display: none; }
-.recommendation-rail__products { display: grid; grid-auto-flow: column; grid-auto-columns: max(calc((100% - 64px) / 5), 200px); gap: 16px; }
+.recommendation-rail__products { display: grid; grid-auto-flow: column; grid-auto-columns: max(25%, 280px); gap: 0; }
+.recommendation-rail__products > .product-card { border-block-width: 2px; }
 
 @media (max-width: 768px) {
   .product-recommendations { padding-inline: 20px; }
