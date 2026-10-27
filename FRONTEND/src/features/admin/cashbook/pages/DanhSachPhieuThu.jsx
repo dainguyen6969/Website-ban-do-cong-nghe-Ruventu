@@ -6,6 +6,7 @@ import { Check, X } from "lucide-react";
 import { receiptService } from "../../../../shared/services/receiptService";
 
 import DetailTablePagination from "../../../../shared/components/ui/DetailTablePagination";
+import FilterDropdown from "../../../../shared/components/ui/FilterDropdown";
 
 import CashbookSourceFilters from "../components/CashbookSourceFilters";
 
@@ -189,17 +190,18 @@ export default function DanhSachPhieuThu() {
           value={searchQuery}
           onChange={handleSearchChange}
         />
-        <select
+        <FilterDropdown
           value={filterStatus}
           onChange={(e) => {
             setFilterStatus(e.target.value);
             setPage(1);
           }}
+          selectedDark
         >
           <option value="ALL">TẤT CẢ TRẠNG THÁI</option>
           <option value="DA_GHI_NHAN">ĐÃ GHI NHẬN</option>
           <option value="HUY">ĐÃ HỦY</option>
-        </select>
+        </FilterDropdown>
         <div className="pt-date-filter">
           <label>TỪ NGÀY</label>
           <input

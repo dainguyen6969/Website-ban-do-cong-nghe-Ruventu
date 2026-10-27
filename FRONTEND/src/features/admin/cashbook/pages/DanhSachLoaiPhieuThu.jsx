@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import './DanhSachLoaiPhieuThu.css';
 import TablePagination from '../../../../shared/components/ui/TablePagination';
+import FilterDropdown from '../../../../shared/components/ui/FilterDropdown';
 import { getReceiptTypes, createReceiptType, RECEIPT_TYPE_STATUS } from '../api/receiptTypeApi';
 
 export default function DanhSachLoaiPhieuThu() {
@@ -109,34 +110,60 @@ export default function DanhSachLoaiPhieuThu() {
     }
   };
 
-  return (
-    <div className="lpt-page">
-      <div className="pt-header-top">
-        <div className="pt-breadcrumb">SỔ QUỸ TIỀN MẶT / LOẠI PHIẾU THU</div>
-        <button className="pt-btn-create" onClick={handleOpenModal}>
-          + THÊM LOẠI PHIẾU THU
-        </button>
+return (
+  <div className="lpt-page">
+    <div className="pt-header-top">
+      <div className="pt-breadcrumb">
+        SỔ QUỸ TIỀN MẶT / LOẠI PHIẾU THU
       </div>
 
-      <div className="pt-header-main">
-        <h1>LOẠI PHIẾU THU</h1>
-        <p>QUẢN LÝ CÁC NHÓM MỤC ĐÍCH DÙNG ĐỂ PHÂN LOẠI KHOẢN THU</p>
-      </div>
+      <button
+        className="pt-btn-create"
+        onClick={handleOpenModal}
+      >
+        + THÊM LOẠI PHIẾU THU
+      </button>
+    </div>
 
-      <div className="pt-filter-bar">
-        <input
-          type="text"
-          placeholder="TÌM MÃ LOẠI / TÊN LOẠI..."
-          className="pt-search-input"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-        />
-        <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}>
-          <option value="TẤT CẢ TRẠNG THÁI">TẤT CẢ TRẠNG THÁI</option>
-          <option value="HOẠT ĐỘNG">HOẠT ĐỘNG</option>
-          <option value="NGỪNG HOẠT ĐỘNG">NGỪNG HOẠT ĐỘNG</option>
-        </select>
-      </div>
+    {/* Tiêu đề từ main-test */}
+    <div className="pt-header-main">
+      <h1>LOẠI PHIẾU THU</h1>
+      <p>
+        QUẢN LÝ CÁC NHÓM MỤC ĐÍCH DÙNG ĐỂ PHÂN LOẠI KHOẢN THU
+      </p>
+    </div>
+
+    {/* Bộ lọc từ feat/responsive-capnhat */}
+    <div className="pt-filter-bar">
+      <input
+        type="text"
+        placeholder="TÌM MÃ LOẠI / TÊN LOẠI..."
+        className="pt-search-input"
+        value={searchQuery}
+        onChange={(e) => setSearchQuery(e.target.value)}
+      />
+
+      <FilterDropdown
+        value={filterStatus}
+        onChange={(e) => setFilterStatus(e.target.value)}
+        selectedDark
+        aria-label="Lọc trạng thái"
+      >
+        <option value="TẤT CẢ TRẠNG THÁI">
+          TẤT CẢ TRẠNG THÁI
+        </option>
+
+        <option value="HOẠT ĐỘNG">
+          HOẠT ĐỘNG
+        </option>
+
+        <option value="NGỪNG HOẠT ĐỘNG">
+          NGỪNG HOẠT ĐỘNG
+        </option>
+      </FilterDropdown>
+    </div>
+
+    {/* Phần bảng bên dưới được giữ nguyên */}
 
       <div className="pt-table-container">
         <table className="promo-table pt-table">

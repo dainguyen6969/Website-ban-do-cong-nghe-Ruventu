@@ -12,6 +12,7 @@ import {
 import { Line } from 'react-chartjs-2';
 import { apiRequest } from '../../../../auth/backendAuth';
 import { formatDateTimeVN } from '../../../../shared/services/mutationUtils';
+import FilterDropdown from '../../../../shared/components/ui/FilterDropdown';
 import {
   PERIODS,
   CHANNELS,
@@ -253,28 +254,56 @@ async function download(path, filename) {
 }
 
 function CashFilters({ draft, onChange, onApply, error, busy }) {
-  const input = (key, label, options) => (
-    <label key={key}>
-      {label}
-      {options ? (
-        <select value={draft[key] || ''} onChange={(event) => onChange(key, event.target.value)}>
-          <option value="">Tất cả</option>
-          {Object.entries(options).map(([value, text]) => (
-            <option key={value} value={value}>
-              {text}
-            </option>
-          ))}
-        </select>
-      ) : (
-        <input
-          type="text"
-          inputMode={key.endsWith('_id') ? 'numeric' : undefined}
-          value={draft[key] || ''}
-          onChange={(event) => onChange(key, event.target.value)}
-        />
-      )}
-    </label>
-  );
+  const input = (key, label, options) => {
+    const entries = options ? Object.entries(options) : [];
+
+    const selectedValue = draft[key] || '';
+
+    const selectedLabel =
+      entries.find(([value]) => value === selectedValue)?.[1] ||
+      'Tất cả';
+
+    return (
+      <label key={key}>
+        {label}
+
+        {options ? (
+          <FilterDropdown
+            options={[
+              'Tất cả',
+              ...entries.map(([, text]) => text),
+            ]}
+            value={selectedLabel}
+            defaultValue="Tất cả"
+            selectedDark
+            onSelect={(selected) => {
+              const selectedOption = entries.find(
+                ([, text]) => text === selected
+              );
+
+              onChange(
+                key,
+                selectedOption?.[0] ?? ''
+              );
+            }}
+          />
+        ) : (
+          <input
+            type="text"
+            inputMode={
+              key.endsWith('_id')
+                ? 'numeric'
+                : undefined
+            }
+            value={draft[key] || ''}
+            onChange={(event) =>
+              onChange(key, event.target.value)
+            }
+          />
+        )}
+      </label>
+    );
+  };
   return (
     <details className="tq-cash-filters">
       <summary>Bộ lọc riêng của Sổ quỹ</summary>
@@ -566,13 +595,18 @@ export default function TongQuat() {
           </label>
           <label>
             Nhóm biểu đồ
-            <select
-              value={draft.nhom_theo}
-              onChange={(event) => setDraft({ ...draft, nhom_theo: event.target.value })}
-            >
-              <option value="NGAY">Theo ngày</option>
-              <option value="THANG">Theo tháng</option>
-            </select>
+            <FilterDropdown
+              options={['Theo ngày', 'Theo tháng']}
+              value={draft.nhom_theo === 'THANG' ? 'Theo tháng' : 'Theo ngày'}
+              defaultValue="Theo ngày"
+              selectedDark
+              onSelect={(selected) =>
+                setDraft((current) => ({
+                  ...current,
+                  nhom_theo: selected === 'Theo tháng' ? 'THANG' : 'NGAY',
+                }))
+              }
+            />
           </label>
         </div>
         <div className="tq-filter-row">
@@ -928,10 +962,15 @@ export default function TongQuat() {
           controls={
             <label>
               Xếp hạng theo
-              <select value={ranking} onChange={(event) => setRanking(event.target.value)}>
-                <option value="SO_LUONG_BAN">Số lượng bán</option>
-                <option value="DOANH_THU_THUAN">Doanh thu thuần</option>
-              </select>
+              <FilterDropdown
+                options={['Số lượng bán', 'Doanh thu thuần']}
+                value={ranking === 'DOANH_THU_THUAN' ? 'Doanh thu thuần' : 'Số lượng bán'}
+                defaultValue="Số lượng bán"
+                selectedDark
+                onSelect={(selected) =>
+                  setRanking(selected === 'Doanh thu thuần' ? 'DOANH_THU_THUAN' : 'SO_LUONG_BAN')
+                }
+              />
             </label>
           }
         >

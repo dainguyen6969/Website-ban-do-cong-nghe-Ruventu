@@ -8,6 +8,7 @@ import {
   HiOutlineX,
 } from "react-icons/hi";
 import FormCard from "../../../../../shared/components/ui/FormCard";
+import FilterDropdown from "../../../../../shared/components/ui/FilterDropdown";
 import PriceInput from "../../../../../shared/components/ui/PriceInput";
 import { uploadImage } from "../../../../media/api/imageUploadApi";
 import {
@@ -768,10 +769,11 @@ export default function ThemComboSanPham() {
               <label>
                 DANH MỤC <i>*</i>
               </label>
-              <select
+              <FilterDropdown
                 className={fieldClass(errors.category)}
                 value={form.category}
                 onChange={(e) => update("category", e.target.value)}
+                selectedDark
               >
                 <option value="">— Chọn —</option>
                 {categories.map((item) => (
@@ -779,15 +781,16 @@ export default function ThemComboSanPham() {
                     {item.name}
                   </option>
                 ))}
-              </select>
+              </FilterDropdown>
               {errors.category && <small>{errors.category}</small>}
             </div>
             <div className="combo-field">
               <label>THƯƠNG HIỆU</label>
-              <select
+              <FilterDropdown
                 className="combo-form-input"
                 value={form.brand}
                 onChange={(e) => update("brand", e.target.value)}
+                selectedDark
               >
                 <option value="">— Chọn —</option>
                 {brands.map((item) => (
@@ -795,7 +798,7 @@ export default function ThemComboSanPham() {
                     {item.name}
                   </option>
                 ))}
-              </select>
+              </FilterDropdown>
             </div>
             <div className="combo-field">
               <label>LOẠI SẢN PHẨM</label>
