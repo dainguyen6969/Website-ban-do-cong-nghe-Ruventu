@@ -2,6 +2,7 @@ package com.example.dantruventu.DTO.Request.warehouse;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.*;
+import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import lombok.*;
 
@@ -11,6 +12,11 @@ import lombok.*;
 @AllArgsConstructor
 @Builder
 public class AdminPurchaseOrderRefundRequest {
+
+  @JsonProperty("so_tien_nhan")
+  @DecimalMin("0.01")
+  @Digits(integer = 13, fraction = 2)
+  private BigDecimal soTienNhan;
 
   @JsonProperty("xac_nhan_da_nhan_tien")
   @NotNull(message = "Phải xác nhận đã nhận tiền NCC hoàn")

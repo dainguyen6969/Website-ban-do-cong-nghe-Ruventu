@@ -2,24 +2,24 @@ import {
   adminRequest,
   getAllVersions,
   getWarehouses,
-} from "../../catalog/products/api/versionApi.js";
+} from '../../catalog/products/api/versionApi.js';
 
-const PATH = "/api/v1/admin/purchase-orders";
+const PATH = '/api/v1/admin/purchase-orders';
 const nullableNumber = (value) => (value == null ? null : Number(value));
 
 export const IMPORT_STATUS = {
-  DAT_HANG: "Đặt hàng",
-  DA_DUYET: "Đã duyệt",
-  NHAP_MOT_PHAN: "Nhập một phần",
-  DA_NHAP_KHO: "Đã nhập kho",
-  HOAN_TRA_MOT_PHAN: "Hoàn trả một phần",
-  HOAN_TRA_TOAN_BO: "Hoàn trả toàn bộ",
-  HUY: "Đã hủy",
+  DAT_HANG: 'Đặt hàng',
+  DA_DUYET: 'Đã duyệt',
+  NHAP_MOT_PHAN: 'Nhập một phần',
+  DA_NHAP_KHO: 'Đã nhập kho',
+  HOAN_TRA_MOT_PHAN: 'Hoàn trả một phần',
+  HOAN_TRA_TOAN_BO: 'Hoàn trả toàn bộ',
+  HUY: 'Đã hủy',
 };
 export const PAYMENT_STATUS = {
-  CHUA_TRA: "Chưa trả",
-  TRA_MOT_PHAN: "Trả một phần",
-  DA_TRA: "Đã trả",
+  CHUA_TRA: 'Chưa trả',
+  TRA_MOT_PHAN: 'Trả một phần',
+  DA_TRA: 'Đã trả',
 };
 
 export const getPurchaseReturnSerials = (id, detailId, signal) =>
@@ -28,40 +28,38 @@ export const getPurchaseReturnSerials = (id, detailId, signal) =>
       new URLSearchParams({
         chi_tiet_don_nhap_id: String(detailId),
       }),
-    { signal },
+    { signal }
   );
 
 export const formatDate = (value) =>
-  value ? new Intl.DateTimeFormat("vi-VN").format(new Date(value)) : "—";
+  value ? new Intl.DateTimeFormat('vi-VN').format(new Date(value)) : '—';
 const number = (value) => Number(value || 0);
 const supplier = (item = {}) => ({
   id: number(item.id),
-  code: item.ma_nha_cung_cap || "",
-  name: item.ten_nha_cung_cap || "",
-  phone: item.so_dien_thoai || "",
-  email: item.email || "",
-  address: item.dia_chi || "",
+  code: item.ma_nha_cung_cap || '',
+  name: item.ten_nha_cung_cap || '',
+  phone: item.so_dien_thoai || '',
+  email: item.email || '',
+  address: item.dia_chi || '',
 });
 const warehouse = (item = {}) => ({
   id: number(item.id),
-  code: item.ma_kho || "",
-  name: item.ten_kho || "",
+  code: item.ma_kho || '',
+  name: item.ten_kho || '',
 });
 
 export function normalizePurchaseOrder(item) {
   return {
     id: number(item.id),
-    code: item.ma_don_nhap || "",
+    code: item.ma_don_nhap || '',
     supplier: supplier(item.nha_cung_cap),
     warehouse: warehouse(item.kho_hang),
 
     importStatus: item.trang_thai_nhap,
-    importStatusLabel:
-      IMPORT_STATUS[item.trang_thai_nhap] || item.trang_thai_nhap,
+    importStatusLabel: IMPORT_STATUS[item.trang_thai_nhap] || item.trang_thai_nhap,
 
     paymentStatus: item.trang_thai_thanh_toan,
-    paymentStatusLabel:
-      PAYMENT_STATUS[item.trang_thai_thanh_toan] || item.trang_thai_thanh_toan,
+    paymentStatusLabel: PAYMENT_STATUS[item.trang_thai_thanh_toan] || item.trang_thai_thanh_toan,
 
     applyTax: Boolean(item.ap_dung_thue),
     taxRate: number(item.thue_vat),
@@ -73,6 +71,7 @@ export function normalizePurchaseOrder(item) {
     debt: nullableNumber(item.so_tien_con_no),
 
     returnedValue: nullableNumber(item.gia_tri_hang_tra),
+    nccAdjustment: nullableNumber(item.gia_tri_dieu_chinh_ncc),
     netOrderValue: nullableNumber(item.gia_tri_sau_tra),
 
     refunded: nullableNumber(item.so_tien_da_nhan_hoan),
@@ -85,7 +84,7 @@ export function normalizePurchaseOrder(item) {
     items: (item.items || []).map((line) => ({
       id: number(line.id),
       versionId: number(line.phien_ban_id),
-      name: line.ten_phien_ban || "",
+      name: line.ten_phien_ban || '',
 
       qty: number(line.so_luong),
       unitPrice: number(line.gia_nhap),
@@ -93,6 +92,7 @@ export function normalizePurchaseOrder(item) {
 
       received: number(line.so_luong_da_nhap_kho),
       returned: number(line.so_luong_da_tra),
+      legacyReturnLimit: nullableNumber(line.so_luong_tra_theo_luong_cu_toi_da),
 
       serialManaged: line.quan_ly_serial,
       serialModeEstablished: Boolean(line.che_do_serial_da_xac_lap),
@@ -103,13 +103,12 @@ export function normalizePurchaseOrder(item) {
 export async function getPurchaseOrderPage(filters, signal) {
   const params = new URLSearchParams({
     page: String(Math.max(0, Number(filters.page || 1) - 1)),
-    limit: "10",
+    limit: '10',
   });
-  if (filters.keyword?.trim()) params.set("keyword", filters.keyword.trim());
-  if (filters.supplierId) params.set("nha_cung_cap_id", filters.supplierId);
-  if (filters.importStatus) params.set("trang_thai_nhap", filters.importStatus);
-  if (filters.paymentStatus)
-    params.set("trang_thai_thanh_toan", filters.paymentStatus);
+  if (filters.keyword?.trim()) params.set('keyword', filters.keyword.trim());
+  if (filters.supplierId) params.set('nha_cung_cap_id', filters.supplierId);
+  if (filters.importStatus) params.set('trang_thai_nhap', filters.importStatus);
+  if (filters.paymentStatus) params.set('trang_thai_thanh_toan', filters.paymentStatus);
   const data = await adminRequest(`${PATH}?${params}`, { signal });
   return {
     items: (data?.items || []).map(normalizePurchaseOrder),
@@ -119,47 +118,44 @@ export async function getPurchaseOrderPage(filters, signal) {
 }
 
 export const getPurchaseOrder = async (id, signal) =>
-  normalizePurchaseOrder(
-    await adminRequest(`${PATH}/${encodeURIComponent(id)}`, { signal }),
-  );
+  normalizePurchaseOrder(await adminRequest(`${PATH}/${encodeURIComponent(id)}`, { signal }));
 export const createPurchaseOrder = (body) =>
-  adminRequest(PATH, { method: "POST", body: JSON.stringify(body) });
+  adminRequest(PATH, { method: 'POST', body: JSON.stringify(body) });
 export const updatePurchaseOrder = (id, body) =>
-  adminRequest(`${PATH}/${id}`, { method: "PUT", body: JSON.stringify(body) });
+  adminRequest(`${PATH}/${id}`, { method: 'PUT', body: JSON.stringify(body) });
 export const approvePurchaseOrder = (id) =>
-  adminRequest(`${PATH}/${id}/approve`, { method: "POST" });
-export const cancelPurchaseOrder = (id) =>
-  adminRequest(`${PATH}/${id}/cancel`, { method: "POST" });
+  adminRequest(`${PATH}/${id}/approve`, { method: 'POST' });
+export const cancelPurchaseOrder = (id) => adminRequest(`${PATH}/${id}/cancel`, { method: 'POST' });
 export const payPurchaseOrder = (id, key, body) =>
   adminRequest(`${PATH}/${encodeURIComponent(id)}/payments`, {
-    method: "POST",
+    method: 'POST',
     headers: {
-      "Idempotency-Key": key,
+      'Idempotency-Key': key,
     },
     body: JSON.stringify(body),
   });
 export const receivePurchaseOrder = (id, key, body) =>
   adminRequest(`${PATH}/${encodeURIComponent(id)}/receive`, {
-    method: "POST",
+    method: 'POST',
     headers: {
-      "Idempotency-Key": key,
+      'Idempotency-Key': key,
     },
     body: JSON.stringify(body),
   });
 export const returnPurchaseOrder = (id, key, body) =>
   adminRequest(`${PATH}/${encodeURIComponent(id)}/returns`, {
-    method: "POST",
+    method: 'POST',
     headers: {
-      "Idempotency-Key": key,
+      'Idempotency-Key': key,
     },
     body: JSON.stringify(body),
   });
 
 export const receivePurchaseRefund = (id, key, body) =>
   adminRequest(`${PATH}/${encodeURIComponent(id)}/refunds`, {
-    method: "POST",
+    method: 'POST',
     headers: {
-      "Idempotency-Key": key,
+      'Idempotency-Key': key,
     },
     body: JSON.stringify(body),
   });
@@ -170,7 +166,7 @@ async function allPages(path, params, signal) {
     const query = new URLSearchParams({
       ...params,
       page: String(page),
-      limit: "100",
+      limit: '100',
     });
     const data = await adminRequest(`${path}?${query}`, { signal });
     items.push(...(data?.items || []));
@@ -180,16 +176,13 @@ async function allPages(path, params, signal) {
 }
 
 export async function getSupplierOptions(signal) {
-  return (
-    await allPages("/api/v1/admin/suppliers", { trang_thai: "1" }, signal)
-  ).map(supplier);
+  return (await allPages('/api/v1/admin/suppliers', { trang_thai: '1' }, signal)).map(supplier);
 }
 export const getSupplierDetail = async (id, signal) =>
   supplier(
-    await adminRequest(
-      `/api/v1/admin/suppliers/${encodeURIComponent(id)}?page=0&limit=1`,
-      { signal },
-    ),
+    await adminRequest(`/api/v1/admin/suppliers/${encodeURIComponent(id)}?page=0&limit=1`, {
+      signal,
+    })
   );
 export async function getPurchaseOptions(signal) {
   const [warehouses, versionData] = await Promise.all([
@@ -216,3 +209,23 @@ export const saveBody = ({ supplierId, warehouseId, applyTax, items }) => ({
     gia_nhap: number(item.unitPrice),
   })),
 });
+
+export const getSupplierCases = (poId, signal) =>
+  adminRequest(`${PATH}/${encodeURIComponent(poId)}/supplier-cases`, { signal });
+
+export const openSupplierCase = (poId, key, body) =>
+  adminRequest(`${PATH}/${encodeURIComponent(poId)}/supplier-cases`, {
+    method: 'POST',
+    headers: { 'Idempotency-Key': key },
+    body: JSON.stringify(body),
+  });
+
+export const sendSupplierCaseEvent = (poId, caseId, key, body) =>
+  adminRequest(
+    `${PATH}/${encodeURIComponent(poId)}/supplier-cases/${encodeURIComponent(caseId)}/events`,
+    {
+      method: 'POST',
+      headers: { 'Idempotency-Key': key },
+      body: JSON.stringify(body),
+    }
+  );

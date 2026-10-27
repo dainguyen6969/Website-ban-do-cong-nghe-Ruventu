@@ -1,0 +1,392 @@
+.ncc-panel {
+  color: #191919;
+}
+
+.ncc-toolbar,
+.ncc-case__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.ncc-toolbar p {
+  margin: 0;
+  max-width: 650px;
+  color: #666;
+  line-height: 1.6;
+}
+
+.ncc-btn {
+  padding: 9px 12px;
+  border: 1px solid #191919;
+  border-radius: 0;
+  background: #fff;
+  color: #191919;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.ncc-btn:hover:not(:disabled) {
+  background: #191919;
+  color: #fff;
+}
+
+.ncc-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.ncc-summary {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin: 20px 0;
+  border-top: 1px solid #dedede;
+  border-left: 1px solid #dedede;
+}
+
+.ncc-summary > div {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px;
+  border-right: 1px solid #dedede;
+  border-bottom: 1px solid #dedede;
+}
+
+.ncc-summary span {
+  color: #666;
+  font-size: 12px;
+}
+
+.ncc-summary b {
+  font-size: 19px;
+}
+
+.ncc-case {
+  margin-top: 20px;
+  border: 1px solid #d8d8d8;
+  border-top: 3px solid #191919;
+}
+
+.ncc-case__header {
+  padding: 18px;
+}
+
+.ncc-case__header strong {
+  overflow-wrap: anywhere;
+}
+
+.ncc-case__header p {
+  margin: 8px 0;
+  line-height: 1.5;
+}
+
+.ncc-case__header small,
+.ncc-muted {
+  color: #666;
+  line-height: 1.6;
+}
+
+.ncc-status {
+  display: inline-block;
+  padding: 7px 10px;
+  background: #f1f1f1;
+  font-size: 11px;
+  font-weight: 750;
+  white-space: nowrap;
+}
+
+.ncc-status--error {
+  color: #b71923;
+  background: #fff0f0;
+}
+
+.ncc-case__totals,
+.ncc-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 12px 18px;
+  border-top: 1px solid #e8e8e8;
+}
+
+.ncc-case__totals {
+  font-size: 12px;
+  gap: 18px;
+  background: #fafafa;
+}
+
+.ncc-actions--column {
+  flex-direction: column;
+  align-items: stretch;
+  border: 0;
+  padding: 0;
+}
+
+.ncc-table-wrap {
+  overflow-x: auto;
+}
+
+.ncc-table {
+  width: 100%;
+  min-width: 760px;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.ncc-table th,
+.ncc-table td {
+  padding: 14px;
+  border-top: 1px solid #e4e4e4;
+  text-align: left;
+  vertical-align: top;
+}
+
+.ncc-table th {
+  color: #666;
+  font-size: 10px;
+  background: #fafafa;
+  text-transform: uppercase;
+}
+
+.ncc-table td p {
+  margin: 7px 0;
+}
+
+.ncc-table td small {
+  color: #666;
+  line-height: 1.6;
+}
+
+.ncc-history {
+  padding: 16px 18px;
+  border-top: 1px solid #ddd;
+}
+
+.ncc-history summary {
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 750;
+}
+
+.ncc-history article {
+  padding: 16px 0;
+  border-bottom: 1px solid #eee;
+}
+
+.ncc-history article > small {
+  display: block;
+  margin-top: 6px;
+  color: #666;
+}
+
+.ncc-history pre {
+  max-height: 240px;
+  overflow: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  background: #f7f7f7;
+  padding: 12px;
+}
+
+.ncc-error {
+  color: #b71923;
+  line-height: 1.6;
+}
+
+.ncc-notice {
+  padding: 12px;
+  border-left: 3px solid #191919;
+  background: #f5f5f5;
+}
+
+.ncc-modal {
+  width: min(720px, calc(100vw - 32px));
+}
+
+.ncc-fields {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.ncc-fields > label {
+  display: grid;
+  gap: 8px;
+}
+
+.ncc-fields > label > span {
+  font-size: 11px;
+  font-weight: 750;
+  line-height: 1.6;
+}
+
+.ncc-fields input:not([type='checkbox']),
+.ncc-fields select,
+.ncc-fields textarea {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  border: 1px solid #ccc;
+  border-radius: 0;
+  padding: 11px;
+  background: #fff;
+  color: #191919;
+  font: inherit;
+  font-size: 13px;
+}
+
+.ncc-fields textarea {
+  min-height: 96px;
+  resize: vertical;
+  line-height: 1.6;
+}
+
+.ncc-fields input:focus,
+.ncc-fields select:focus,
+.ncc-fields textarea:focus {
+  outline: 1px solid #191919;
+  outline-offset: 1px;
+}
+
+.ncc-fields input:disabled,
+.ncc-fields select:disabled,
+.ncc-fields textarea:disabled {
+  background: #f5f5f5;
+  color: #777;
+  cursor: not-allowed;
+}
+
+.ncc-fields > p {
+  margin: 0;
+  line-height: 1.6;
+}
+
+.ncc-fields .ncc-check {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.ncc-check input {
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  margin: 3px 0 0;
+  accent-color: #191919;
+}
+
+.ncc-check span {
+  flex: 1;
+  min-width: 0;
+}
+
+.ncc-serials {
+  max-height: 250px;
+  overflow: auto;
+  border: 1px solid #ddd;
+  background: #fff;
+}
+
+.ncc-serials > label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px;
+  border-bottom: 1px solid #eee;
+  cursor: pointer;
+}
+
+.ncc-serials > label:last-child {
+  border-bottom: 0;
+}
+
+.ncc-serials > label:hover {
+  background: #fafafa;
+}
+
+.ncc-serials input[type='checkbox'] {
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  accent-color: #191919;
+}
+
+.ncc-serials > label > span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.ncc-serials small {
+  flex-shrink: 0;
+  margin-left: auto;
+  color: #666;
+  font-size: 11px;
+}
+
+.ncc-serials > p {
+  margin: 0;
+  padding: 14px;
+  color: #666;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.ncc-btn:focus-visible,
+.ncc-history summary:focus-visible {
+  outline: 2px solid #191919;
+  outline-offset: 3px;
+}
+
+@media (max-width: 680px) {
+  .ncc-toolbar,
+  .ncc-case__header {
+    flex-direction: column;
+  }
+
+  .ncc-toolbar > .ncc-btn {
+    width: 100%;
+  }
+
+  .ncc-summary {
+    grid-template-columns: 1fr;
+  }
+
+  .ncc-summary b {
+    overflow-wrap: anywhere;
+  }
+
+  .ncc-case__totals {
+    gap: 10px 16px;
+  }
+
+  .ncc-actions > .ncc-btn {
+    flex: 1 1 160px;
+  }
+
+  .ncc-actions--column > .ncc-btn {
+    flex: initial;
+  }
+
+  .ncc-status {
+    max-width: 100%;
+    box-sizing: border-box;
+    white-space: normal;
+    line-height: 1.5;
+  }
+
+  .ncc-serials > label {
+    flex-wrap: wrap;
+  }
+
+  .ncc-serials small {
+    margin-left: 26px;
+  }
+}

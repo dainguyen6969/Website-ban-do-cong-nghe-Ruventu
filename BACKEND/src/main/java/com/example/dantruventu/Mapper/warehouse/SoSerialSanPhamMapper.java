@@ -31,6 +31,7 @@ public interface SoSerialSanPhamMapper {
   @Mapping(target = "tenPhienBan", source = "phienBan.tenPhienBan")
   @Mapping(target = "maVach", source = "phienBan.maVach")
   @Mapping(target = "donHang", expression = "java(visibleOrder(entity))")
+  @Mapping(target = "xuLyNcc", ignore = true)
   AdminSerialDetailResponse toDetail(SoSerialSanPham entity, @Context ZoneId timeZone);
 
   @Mapping(target = "donHangId", ignore = true)
