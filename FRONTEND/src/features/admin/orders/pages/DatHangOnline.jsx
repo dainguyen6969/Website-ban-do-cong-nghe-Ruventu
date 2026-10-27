@@ -1022,12 +1022,23 @@ function Summary({
           <strong>KHÁCH PHẢI TRẢ</strong>
           <b>{data ? formatMoney(data.tong_thanh_toan) : '—'}</b>
         </div>
+
+        {!edit && data?.tiep_nhan?.thong_bao && (
+          <p className="summary-note">{data.tiep_nhan.thong_bao}</p>
+        )}
+
+        {!edit && data?.tiep_nhan?.luu_y_uu_dai && (
+          <p className="summary-note">{data.tiep_nhan.luu_y_uu_dai}</p>
+        )}
+
         {loading && <p className="summary-note">Đang tính lại từ backend...</p>}
+
         {error && (
           <p className="summary-error" role="alert">
             - {error}
           </p>
         )}
+
         {missing.length > 0 && (
           <ul className="missing-list">
             {missing.map((item) => (
@@ -1035,7 +1046,9 @@ function Summary({
             ))}
           </ul>
         )}
+
         {phoneError && <p className="summary-error">- Số điện thoại chưa hợp lệ</p>}
+
         <button type="button" className="submit-order" disabled={!canSubmit} onClick={submit}>
           {submitting
             ? 'ĐANG LƯU...'

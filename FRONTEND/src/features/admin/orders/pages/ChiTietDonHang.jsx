@@ -1020,7 +1020,7 @@ function OrderDetailView({ orderId }) {
         <div className="order-detail-hero__actions">
           {canEditOnlineOrder(order) && (
             <Action
-              disabled={state.busy || reservationExpired}
+              disabled={state.busy}
               click={() => navigate(`/admin/don-hang/dat-hang-online/${order.id}`)}
             >
               SỬA ĐƠN HÀNG
@@ -1048,7 +1048,7 @@ function OrderDetailView({ orderId }) {
             ['CHUA_THANH_TOAN', 'THANH_TOAN_MOT_PHAN', 'DA_THANH_TOAN'].includes(
               order.trang_thai_thanh_toan
             ) && (
-              <Action disabled={state.busy || reservationExpired} click={approve}>
+              <Action disabled={state.busy} click={approve}>
                 DUYỆT ĐƠN
               </Action>
             )}
@@ -1151,29 +1151,33 @@ function OrderDetailView({ orderId }) {
         </div>
       )}
 
-      {order.loai_don_hang === 'ONLINE' &&
-        order.trang_thai_don_hang === 'CHO_DUYET' &&
-        order.trang_thai_thanh_toan === 'CHUA_THANH_TOAN' &&
-        order.da_giu_hang === true &&
-        order.han_giu_hang && (
-          <div className="order-cod-settlement" role="status">
-            <strong>{reservationExpired ? 'ĐÃ HẾT THỜI HẠN GIỮ HÀNG' : 'THỜI HẠN GIỮ HÀNG'}</strong>
-
-            <p>Giữ hàng đến: {dateTime(order.han_giu_hang)}.</p>
-
-            {reservationExpired && (
-              <p>Đơn đang chờ hệ thống kiểm tra chứng từ tiền và xử lý phần giữ hàng hết hạn.</p>
-            )}
-          </div>
-        )}
-
-      {paidWaitingApproval && (
+      {order.tiep_nhan?.thong_bao && (
         <div className="order-cod-settlement" role="status">
-          <strong>ĐÃ GHI NHẬN THANH TOÁN — CHỜ DUYỆT</strong>
+          <strong>
+            {reservationExpired
+              ? 'ĐÃ HẾT HẠN GIỮ TẠM'
+              : paidWaitingApproval
+                ? 'ĐÃ GHI NHẬN TIỀN — ĐANG XỬ LÝ'
+                : order.tiep_nhan.nhan_giu_hang || 'TIẾP NHẬN VÀ GIỮ HÀNG'}
+          </strong>
 
-          <p>
-            Hệ thống sẽ duyệt khi kiểm tra được đầy đủ chứng từ và giữ đủ hàng để thực hiện đơn.
-          </p>
+          <p>{order.tiep_nhan.thong_bao}</p>
+
+          {order.han_giu_hang && <p>Giữ tạm đến: {dateTime(order.han_giu_hang)}.</p>}
+
+          {order.tiep_nhan.han_xu_ly && (
+            <p>
+              {order.tiep_nhan.nhan_han_xu_ly}: {dateTime(order.tiep_nhan.han_xu_ly)}
+              {order.tiep_nhan.qua_han_xu_ly && <strong> · QUÁ HẠN — CẦN NHÂN VIÊN XỬ LÝ</strong>}
+            </p>
+          )}
+
+          {order.khuyen_mai?.trang_thai_ap_dung === 'DA_GIAI_PHONG' && (
+            <p>
+              Lượt ưu đãi cũ đã được giải phóng. Khi duyệt, hệ thống kiểm tra lại khả năng áp dụng;
+              giá và quà của đơn chưa bị tự thay đổi.
+            </p>
+          )}
         </div>
       )}
 
@@ -2060,6 +2064,13 @@ function OrderActionDialog({ dialog, setDialog, order, options, busy, error, sub
             Number(dialog.fee) < 0))
       }
     >
+      {dialog.type === 'approve' && (
+        <p className="order-delivery-description">
+          Xác nhận đã kiểm tra nhu cầu của khách và đồng ý thực hiện đơn. Hệ thống kiểm tra lại ưu
+          đãi và tồn kho; đủ hàng thì giữ để đóng gói, thiếu hàng thì chuyển chờ hàng.
+        </p>
+      )}
+
       {dialog.type === 'startDelivery' && (
         <>
           <p className="order-delivery-description">

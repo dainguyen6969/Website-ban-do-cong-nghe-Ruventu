@@ -90,6 +90,7 @@ public class CustomerOrderService {
   private final CartPromotionService cartPromotionService;
   private final SoldDeviceService soldDevices;
   private final OrderInventoryService orderInventory;
+  private final OrderIntakePolicy intakePolicy;
 
   @Value("${ruventu.order.delivery-fee:30000}")
   private BigDecimal deliveryFee;
@@ -165,6 +166,8 @@ public class CustomerOrderService {
             .thongTinNguoiNhan(recipient)
             .build();
 
+    response.setTiepNhan(intakePolicy.preview(user, plan.quantities(), false));
+
     return saleQuotes.issue(
         response,
         SalesQuoteService.identity(user, guestCartId),
@@ -179,6 +182,17 @@ public class CustomerOrderService {
       String guestCartId,
       String idempotencyKey,
       CustomerCheckoutRequest.Checkout request) {
+
+    return checkout(user, guestCartId, idempotencyKey, request, null);
+  }
+
+  @Transactional(isolation = Isolation.READ_COMMITTED)
+  public CustomerOrderResponse.Created checkout(
+      NguoiDung user,
+      String guestCartId,
+      String idempotencyKey,
+      CustomerCheckoutRequest.Checkout request,
+      String remoteAddress) {
 
     if (idempotencyKey == null
         || !idempotencyKey.matches(
@@ -228,11 +242,16 @@ public class CustomerOrderService {
         actorId,
         identityAndRequestHash,
         CustomerOrderResponse.Created.class,
-        () -> createOrder(user, guestCartId, request));
+        () -> createOrder(user, guestCartId, request, remoteAddress));
   }
 
   private CustomerOrderResponse.Created createOrder(
-      NguoiDung user, String guestCartId, CustomerCheckoutRequest.Checkout request) {
+      NguoiDung user,
+      String guestCartId,
+      CustomerCheckoutRequest.Checkout request,
+      String remoteAddress) {
+
+    intakePolicy.checkCheckoutRate(user, guestCartId, remoteAddress);
 
     cartPromotionService.requireSelectedPromotion(user, guestCartId, request.getMaChuongTrinh());
 
@@ -294,7 +313,10 @@ public class CustomerOrderService {
 
     saleSnapshots.recordPromotion(order, plan, salesRequest, user);
 
-    orderInventory.reserveForNewOrder(order);
+    orderInventory.reserveForNewOrder(
+        order, false, intakePolicy.temporaryReason(user, plan.quantities()));
+
+    saleSnapshots.configureUnpaidPromotion(order);
 
     orderRepository.flush();
 
@@ -323,6 +345,7 @@ public class CustomerOrderService {
         .thongTinNguoiNhan(recipient)
         .sanPham(savedLines.stream().map(saleSnapshots::product).toList())
         .khuyenMai(saleSnapshots.appliedPromotion(order.getId()))
+        .tiepNhan(intakePolicy.describe(order))
         .build();
   }
 
@@ -508,6 +531,7 @@ public class CustomerOrderService {
             order.getNgayHoanThanh() == null
                 ? null
                 : order.getNgayHoanThanh().atZone(salesProperties.zone()).toOffsetDateTime())
+        .tiepNhan(intakePolicy.describe(order))
         .build();
   }
 

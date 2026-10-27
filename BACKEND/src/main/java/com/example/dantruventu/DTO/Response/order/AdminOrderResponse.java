@@ -8,6 +8,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.Map;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -66,6 +67,9 @@ public final class AdminOrderResponse {
 
     @JsonProperty("phieu_giao_hang_gan_nhat_id")
     private Long phieuGiaoHangGanNhatId;
+
+    @JsonProperty("tiep_nhan")
+    private Map<String, Object> tiepNhan;
   }
 
   public record History(
