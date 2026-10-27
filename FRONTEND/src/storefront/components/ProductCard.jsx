@@ -1,11 +1,15 @@
-import { useRef, useState } from "react";
+import { useId, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { cartService } from "../../shared/services/cartService";
 import { formatProductPrice, productService } from "../../shared/services/productService";
+import ProductCardPreview from './ProductCardPreview';
 import "./ProductCard.css";
 
-export default function ProductCard({ product }) {
+export default function ProductCard({ product, showPreview = false }) {
   const navigate = useNavigate();
+  const previewId = useId();
+  const previewToggle = useRef(null);
+  const [previewOpen, setPreviewOpen] = useState(false);
 
   const addingRef = useRef(false);
   const [isAdding, setIsAdding] = useState(false);
@@ -79,7 +83,19 @@ export default function ProductCard({ product }) {
   };
 
   return (
-    <div className={`product-card ${outOfStock ? "out-of-stock" : ""}`}>
+    <div
+      className={`product-card ${outOfStock ? "out-of-stock" : ""}${previewOpen ? ' product-card--preview-open' : ''}`}
+      onPointerEnter={showPreview ? event => { if (event.pointerType === 'mouse' && window.matchMedia('(hover: hover)').matches) setPreviewOpen(true); } : undefined}
+      onPointerLeave={showPreview ? event => { if (event.pointerType === 'mouse' && !event.currentTarget.querySelector(':focus-visible')) setPreviewOpen(false); } : undefined}
+      onBlur={showPreview ? event => { if (!event.currentTarget.contains(event.relatedTarget)) setPreviewOpen(false); } : undefined}
+      onKeyDown={showPreview ? event => {
+        if (event.key === 'Escape' && previewOpen) {
+          event.preventDefault();
+          setPreviewOpen(false);
+          previewToggle.current?.focus();
+        }
+      } : undefined}
+    >
       <div className="product-image-container" onClick={handleViewDetails}>
         {product.discount && (
           <span className="product-badge badge-discount">
@@ -115,7 +131,7 @@ export default function ProductCard({ product }) {
           )}
         </div>
 
-        {specs.length > 0 && (
+        {!showPreview && specs.length > 0 && (
           <div className="product-specs">
             <table className="specs-table" aria-label={`Thông số nổi bật của ${product.title}`}>
               <tbody>
@@ -164,6 +180,10 @@ export default function ProductCard({ product }) {
         )}
       </div>
 
+      {showPreview && <button ref={previewToggle} type="button" className="product-card__preview-toggle" aria-expanded={previewOpen} aria-controls={previewId} onClick={() => setPreviewOpen(value => !value)}>
+        THÔNG SỐ & PHIÊN BẢN <span aria-hidden="true">{previewOpen ? '−' : '+'}</span>
+      </button>}
+
       <div className="product-actions">
         <button
           type="button"
@@ -186,6 +206,7 @@ export default function ProductCard({ product }) {
               : "THÊM VÀO GIỎ HÀNG"}
         </button>
       </div>
+      {showPreview && <ProductCardPreview product={product} open={previewOpen} panelId={previewId} />}
     </div>
   );
 }

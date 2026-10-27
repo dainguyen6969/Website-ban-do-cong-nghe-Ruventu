@@ -392,7 +392,7 @@ const handleSuggestKeyword = (k) => {
           {loading ? <p role="status">Đang tải sản phẩm...</p> : error ? <p role="alert">{error}</p> : filteredProducts.length > 0 ? (
             <><div className="search-product-grid">
               {filteredProducts.slice((currentPage - 1) * 20, currentPage * 20).map(product => (
-                <ProductCard key={product.id} product={product} />
+                <ProductCard key={product.id} product={product} showPreview />
               ))}
             </div><TablePagination totalItems={totalProducts} pageSize={20} currentPage={currentPage} onPageChange={nextPage => {
               if (nextPage === currentPage) return;
@@ -451,8 +451,8 @@ const handleSuggestKeyword = (k) => {
                   <span className="recommended-subtitle">GỢI Ý CHO BẠN</span>
                 </div>
                 <div className="search-product-grid">
-                  {suggestedProducts.map((product, index) => (
-                    <ProductCard key={index} product={product} />
+                  {suggestedProducts.map(product => (
+                    <ProductCard key={product.id} product={product} showPreview />
                   ))}
                 </div>
               </div>}

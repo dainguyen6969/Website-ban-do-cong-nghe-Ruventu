@@ -110,7 +110,7 @@ const PromotionsPage = () => {
             </div>
           </div>
 
-          <div className="category-product-grid" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
+          <div className="category-product-grid">
             {isLoading ? (
               <div
                 style={{
