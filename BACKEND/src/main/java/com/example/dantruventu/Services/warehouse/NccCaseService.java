@@ -1496,26 +1496,43 @@ public class NccCaseService {
       Long caseId = id(c.get("id"));
 
       c.put(
-          "units",
+          "events",
           jdbc.queryForList(
               """
-                            SELECT
-                              u.*,
-                              v.ten_phien_ban AS variant_name,
-                              v.co_quan_ly_serial AS serial_managed,
-                              target.ten_phien_ban AS expected_variant_name,
-                              target.co_quan_ly_serial AS expected_serial_managed,
-                              s.so_serial,
-                              s.trang_thai AS live_serial_status,
-                              EXISTS(SELECT 1 FROM ncc_unit child WHERE child.parent_id = u.id)
-                                AS has_child
-                            FROM ncc_unit u
-                            JOIN phien_ban_san_pham v ON v.id = u.variant_id
-                            JOIN phien_ban_san_pham target ON target.id = u.expected_variant_id
-                            LEFT JOIN so_serial_san_pham s ON s.id = u.serial_id
-                            WHERE u.case_id = ?
-                            ORDER BY u.id
-                            """,
+                        SELECT
+                          e.id,
+                          e.unit_id,
+                          e.action,
+                          e.document,
+                          e.note,
+                          CAST(e.payload AS CHAR) AS payload,
+                          e.occurred_at,
+                          e.voucher_id,
+                          n.ho_ten AS actor_name,
+                          old_s.so_serial AS old_serial,
+                          new_s.so_serial AS new_serial,
+                          a.kind AS adjustment_kind,
+                          a.old_value,
+                          a.credit AS settled_credit,
+                          a.new_value,
+                          a.fee AS service_fee,
+                          a.delta,
+                          voucher.ma_phieu AS voucher_code,
+                          voucher.so_tien AS cash_amount,
+                          voucher.phuong_thuc_thanh_toan AS cash_method
+                        FROM ncc_event e
+                        JOIN nguoi_dung n ON n.id = e.actor_id
+                        LEFT JOIN so_serial_san_pham old_s
+                          ON old_s.id = e.old_serial_id
+                        LEFT JOIN so_serial_san_pham new_s
+                          ON new_s.id = e.new_serial_id
+                        LEFT JOIN ncc_adjustment a
+                          ON a.event_id = e.id
+                        LEFT JOIN so_quy_thu_chi voucher
+                          ON voucher.id = e.voucher_id
+                        WHERE e.case_id = ?
+                        ORDER BY e.id
+                        """,
               caseId));
 
       c.put(

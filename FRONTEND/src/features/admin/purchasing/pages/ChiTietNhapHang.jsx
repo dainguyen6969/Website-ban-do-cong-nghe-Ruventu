@@ -7,6 +7,7 @@ import { money, Modal, PageCrumb, PurchaseCard, StatusBadge } from './PurchaseSh
 import './NhapHang.css';
 
 import OrderModal from '../../orders/components/OrderModal';
+import SupplierCasePanel from '../components/SupplierCasePanel';
 
 import {
   errorMessage,
@@ -44,7 +45,12 @@ export default function ChiTietNhapHang() {
   const [order, setOrder] = useState(null);
   const [modal, setModal] = useState('');
   const [loading, setLoading] = useState(true);
-  const [busy, setBusy] = useState(false);
+
+  const [pageBusy, setBusy] = useState(false);
+  const [nccLocked, setNccLocked] = useState(false);
+
+  const busy = pageBusy || nccLocked;
+
   const [error, setError] = useState('');
   const [serialValues, setSerialValues] = useState({});
   const pagination = useDetailTablePagination(order?.items);
@@ -83,7 +89,7 @@ export default function ChiTietNhapHang() {
   }, [order]);
 
   const run = async (request) => {
-    if (operationBusy.current) return;
+    if (operationBusy.current || nccLocked) return;
 
     operationBusy.current = true;
     setBusy(true);
@@ -222,7 +228,9 @@ export default function ChiTietNhapHang() {
       );
     });
 
-  const returnable = order.items.filter((item) => item.received > item.returned);
+  const returnable = order.items.filter(
+    (item) => (item.legacyReturnLimit ?? item.received - item.returned) > 0
+  );
 
   const savePurchaseOperation = (kind, buildBody) =>
     run(() => {
@@ -378,6 +386,15 @@ export default function ChiTietNhapHang() {
               idPrefix="purchase-order-items"
             />
           </PurchaseCard>
+
+          <SupplierCasePanel
+            key={order.id}
+            order={order}
+            locked={pageBusy || Boolean(modal) || Boolean(purchaseAttempt.current)}
+            onRefresh={load}
+            onLockChange={setNccLocked}
+          />
+
           <PurchaseCard title="TIẾN ĐỘ NHẬP KHO">
             <div className="progress-line">
               <div style={{ width: `${totals.progress}%` }} />
@@ -407,10 +424,13 @@ export default function ChiTietNhapHang() {
               <span>GIÁ TRỊ ĐƠN BAN ĐẦU</span>
               <b>{money(order.total)}</b>
 
-              <span>GIÁ TRỊ HÀNG ĐÃ TRẢ</span>
+              <span>GIÁ TRỊ TRẢ THEO LẦN CŨ</span>
               <b>{order.returnedValue == null ? '—' : money(order.returnedValue)}</b>
 
-              <span>GIÁ TRỊ ĐƠN SAU TRẢ</span>
+              <span>ĐIỀU CHỈNH QUA HỒ SƠ NHÀ CUNG CẤP</span>
+              <b>{order.nccAdjustment == null ? '—' : money(order.nccAdjustment)}</b>
+
+              <span>NGHĨA VỤ SAU ĐIỀU CHỈNH</span>
               <b>{order.netOrderValue == null ? '—' : money(order.netOrderValue)}</b>
 
               <span>TỔNG TIỀN ĐÃ CHI</span>
@@ -815,7 +835,7 @@ function PurchaseOperationDialog({ kind, order, returnable, attempt, busy, error
       const candidates = serialCandidates[item.id] || [];
 
       return (
-        ids.length <= item.received - item.returned &&
+        ids.length <= (item.legacyReturnLimit ?? item.received - item.returned) &&
         new Set(ids).size === ids.length &&
         ids.every((id) => candidates.some((serial) => Number(serial.id) === id))
       );
@@ -828,7 +848,7 @@ function PurchaseOperationDialog({ kind, order, returnable, attempt, busy, error
       Number.isSafeInteger(quantity) &&
       Number.isSafeInteger(defect) &&
       quantity >= 0 &&
-      quantity <= item.received - item.returned &&
+      quantity <= (item.legacyReturnLimit ?? item.received - item.returned) &&
       defect >= 0 &&
       defect <= quantity
     );
@@ -949,7 +969,9 @@ function PurchaseOperationDialog({ kind, order, returnable, attempt, busy, error
             return (
               <div className="purchase-return-line" key={item.id}>
                 <strong>{item.name}</strong>
-                <small>Còn có thể trả: {item.received - item.returned}</small>
+                <small>
+                  Còn có thể trả: {item.legacyReturnLimit ?? item.received - item.returned}
+                </small>
 
                 {item.serialManaged ? (
                   <>
@@ -1004,7 +1026,7 @@ function PurchaseOperationDialog({ kind, order, returnable, attempt, busy, error
                       <input
                         type="number"
                         min="0"
-                        max={item.received - item.returned}
+                        max={item.legacyReturnLimit ?? item.received - item.returned}
                         step="1"
                         disabled={busy || Boolean(previous)}
                         value={form.quantities[item.id]}
