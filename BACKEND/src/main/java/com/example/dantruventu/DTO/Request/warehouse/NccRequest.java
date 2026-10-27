@@ -10,10 +10,11 @@ public final class NccRequest {
   private NccRequest() {}
 
   public record Open(
+      @NotBlank String purpose,
       @NotBlank @Size(max = 500) String reason,
       Long employeeId,
       OffsetDateTime deadline,
-      @NotBlank @Size(max = 100) String document,
+      @Size(max = 100) String document,
       @NotNull @PastOrPresent OffsetDateTime at,
       @NotNull @AssertTrue Boolean confirmed) {}
 
@@ -39,7 +40,7 @@ public final class NccRequest {
       @Size(max = 255) String transactionId,
       Long employeeId,
       OffsetDateTime deadline,
-      @NotBlank @Size(max = 100) String document,
+      @Size(max = 100) String document,
       @NotBlank @Size(max = 1000) String note,
       @NotNull @PastOrPresent OffsetDateTime at,
       @NotNull @AssertTrue Boolean confirmed) {}

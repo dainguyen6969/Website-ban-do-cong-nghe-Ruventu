@@ -13,30 +13,30 @@ import {
 import './SupplierCasePanel.css';
 
 const ACTIONS = {
-  OPEN: 'MỞ HỒ SƠ NHÀ CUNG CẤP',
-  GUI: 'GỬI HÀNG CHO NHÀ CUNG CẤP',
-  PHUONG_AN: 'CHỐT PHƯƠNG ÁN',
-  NHAN: 'NHẬN HÀNG TỪ NHÀ CUNG CẤP',
-  GUI_LAI: 'GỬI LẠI HÀNG CÒN LỖI',
-  CHOT_TRA: 'NHÀ CUNG CẤP ĐÃ CHẤP NHẬN TRẢ HÀNG',
-  CHAP_NHAN_LOI: 'KẾT THÚC ĐỐI SOÁT HÀNG LỖI',
-  NHAN_BO_SUNG: 'NHẬN BỔ SUNG ĐÃ THỐNG NHẤT',
-  PHI: 'GHI NHẬN ĐIỀU CHỈNH PHÍ',
-  THU_TIEN: 'ĐÃ NHẬN TIỀN NHÀ CUNG CẤP HOÀN',
-  CHI_TIEN: 'ĐÃ TRẢ TIỀN CHO NHÀ CUNG CẤP',
-  THEO_DOI: 'NGƯỜI PHỤ TRÁCH VÀ HẠN XỬ LÝ',
-  GHI_CHU: 'GHI NHẬN ĐỐI SOÁT',
-  KET_THUC: 'KẾT THÚC HỒ SƠ',
-  MO_LAI: 'MỞ LẠI ĐỂ ĐỐI SOÁT',
-  MO_HO_SO: 'MỞ HỒ SƠ',
+  OPEN: 'Tạo hồ sơ',
+  MO_HO_SO: 'Tạo hồ sơ',
+  GUI: 'Gửi hàng cho Nhà Cung Cấp',
+  PHUONG_AN: 'Chốt phương án',
+  NHAN: 'Nhận hàng từ Nhà Cung Cấp',
+  GUI_LAI: 'Gửi lại hàng còn lỗi',
+  CHOT_TRA: 'Xác nhận Nhà Cung Cấp nhận trả',
+  CHAP_NHAN_LOI: 'Chấp nhận giữ hàng lỗi',
+  NHAN_BO_SUNG: 'Nhận mua bổ sung',
+  PHI: 'Điều chỉnh phí',
+  THU_TIEN: 'Ghi nhận tiền Nhà Cung Cấp hoàn',
+  CHI_TIEN: 'Ghi nhận tiền trả Nhà Cung Cấp',
+  THEO_DOI: 'Phụ trách và hạn xử lý',
+  GHI_CHU: 'Ghi nhận đối soát',
+  KET_THUC: 'Kết thúc hồ sơ',
+  MO_LAI: 'Mở lại hồ sơ',
 };
 
 const STATES = {
-  DANG_O_NCC: 'Đang ở NHÀ CUNG CẤP',
-  DA_NHAN_LOI: 'Nhận lại nhưng còn lỗi',
+  DANG_O_NCC: 'Đang ở NCC',
+  DA_NHAN_LOI: 'Nhận lại còn lỗi',
   DA_NHAN_DAT: 'Đã nhận đạt',
-  DA_TRA_NCC: 'Đã trả NHÀ CUNG CẤP',
-  CHAP_NHAN_LOI: 'Đã đối soát, giữ ở hàng lỗi',
+  DA_TRA_NCC: 'Đã trả NCC',
+  CHAP_NHAN_LOI: 'Đã đối soát hàng lỗi',
   DANG_XU_LY: 'Đang xử lý',
   HOAN_TAT: 'Hoàn tất',
   KET_THUC_DOI_SOAT: 'Kết thúc có đối soát',
@@ -53,6 +53,24 @@ const METHODS = {
   SUA_CHUA: 'Sửa chữa',
   DOI_HANG: 'Đổi hàng',
   TRA_HANG: 'Trả hàng',
+};
+
+const NCC_PURPOSES = {
+  GUI_HANG_XU_LY: 'Gửi hàng xử lý',
+  NHAN_MUA_BO_SUNG: 'Nhận mua bổ sung',
+  LEGACY: 'Hồ sơ cũ — tổng hợp',
+};
+
+const NCC_DOCUMENT_LABELS = {
+  GUI: 'Mã phiếu giao hàng cho Nhà Cung Cấp',
+  PHUONG_AN: 'Mã thỏa thuận xử lý',
+  NHAN: 'Mã phiếu nhận hàng',
+  GUI_LAI: 'Mã phiếu gửi lại hàng',
+  CHOT_TRA: 'Mã xác nhận nhận trả hàng',
+  NHAN_BO_SUNG: 'Mã thỏa thuận mua bổ sung',
+  PHI: 'Mã thỏa thuận điều chỉnh phí',
+  THU_TIEN: 'Mã chứng từ nhận tiền',
+  CHI_TIEN: 'Mã chứng từ chi tiền',
 };
 
 const bool = (value) => value === true || value === 1 || value === '1';
@@ -84,78 +102,78 @@ function deadlineValue(value) {
 
 const NCC_HELP = {
   OPEN: {
-    title: 'MỞ HỒ SƠ XỬ LÝ',
-    text: 'Ghi lý do, người phụ trách và hạn xử lý. Sau khi mở hồ sơ, chọn gửi hàng hoặc nhận bổ sung bên trong hồ sơ.',
+    title: 'Tạo hồ sơ',
+    text: 'Chọn một mục đích cho hồ sơ. Tạo hồ sơ chưa làm thay đổi tồn kho hoặc tiền.',
     confirm: 'TẠO HỒ SƠ',
   },
   GUI: {
-    title: 'GỬI HÀNG CHO NHÀ CUNG CẤP',
-    text: 'Chọn đúng hàng cửa hàng đã giao cho nhà cung cấp để sửa, đổi hoặc trả. Xác nhận bước này sẽ đưa hàng ra khỏi tồn kho.',
+    title: 'Gửi hàng cho Nhà Cung Cấp',
+    text: 'Chỉ xác nhận khi đã giao hàng thực tế. Hệ thống đưa lượng hàng tương ứng ra khỏi kho.',
     confirm: 'XÁC NHẬN ĐÃ GỬI HÀNG',
   },
   PHUONG_AN: {
-    title: 'CHỐT PHƯƠNG ÁN ĐÃ THỐNG NHẤT',
-    text: 'Ghi đúng thỏa thuận với nhà cung cấp: sửa thiết bị cũ, đổi hàng khác hoặc trả hẳn. Với đổi/trả, cần nhập giá trị hai bên đã chấp nhận.',
+    title: 'Chốt phương án',
+    text: 'Ghi phương án và giá trị đã thống nhất. Chốt phương án chưa tạo phiếu thu hoặc phiếu chi.',
     confirm: 'LƯU PHƯƠNG ÁN',
   },
   NHAN: {
-    title: 'NHẬN HÀNG TỪ NHÀ CUNG CẤP',
-    text: 'Kiểm tra đúng hàng, serial và chất lượng thực nhận. Chỉ đánh dấu kiểm tra đạt khi hàng đủ điều kiện đưa vào tồn có thể bán.',
+    title: 'Nhận hàng từ Nhà Cung Cấp',
+    text: 'Đối chiếu phiên bản, serial và kết quả kiểm tra thực tế trước khi xác nhận.',
     confirm: 'XÁC NHẬN ĐÃ NHẬN HÀNG',
   },
   GUI_LAI: {
-    title: 'GỬI LẠI HÀNG CÒN LỖI',
-    text: 'Dùng khi hàng vừa nhận về vẫn lỗi và cửa hàng đã giao lại cho nhà cung cấp. Hàng được lấy ra khỏi tồn thực tế và hàng lỗi.',
+    title: 'Gửi lại hàng còn lỗi',
+    text: 'Gửi lại đúng thiết bị vừa nhận nhưng chưa đạt. Hàng được lấy ra khỏi kho lỗi.',
     confirm: 'XÁC NHẬN ĐÃ GỬI LẠI',
   },
   CHOT_TRA: {
-    title: 'NHÀ CUNG CẤP ĐÃ CHẤP NHẬN TRẢ HÀNG',
-    text: 'Dùng khi nhà cung cấp đã nhận trả hẳn và chấp nhận giá trị đã chốt. Bước này ghi giảm nghĩa vụ thanh toán theo thỏa thuận.',
-    confirm: 'XÁC NHẬN NCC ĐÃ NHẬN TRẢ',
+    title: 'Xác nhận Nhà Cung Cấp nhận trả',
+    text: 'Ghi nhận trả hẳn theo giá trị đã thỏa thuận. Hàng đã được đưa ra khỏi kho ở lần gửi.',
+    confirm: 'XÁC NHẬN ĐÃ NHẬN TRẢ',
   },
   CHAP_NHAN_LOI: {
-    title: 'CHẤP NHẬN GIỮ HÀNG Ở KHO LỖI',
-    text: 'Ghi rõ căn cứ kết thúc đối soát. Thiết bị vẫn nằm trong hàng lỗi và chưa được đưa vào tồn có thể bán.',
-    confirm: 'XÁC NHẬN GIỮ Ở HÀNG LỖI',
+    title: 'Chấp nhận giữ hàng lỗi',
+    text: 'Thiết bị vẫn nằm trong hàng lỗi và không tăng tồn có thể bán. Ghi rõ căn cứ chấp nhận.',
+    confirm: 'XÁC NHẬN GIỮ HÀNG LỖI',
   },
   NHAN_BO_SUNG: {
-    title: 'NHẬN BỔ SUNG ĐÃ THỐNG NHẤT MUA',
-    text: 'Dùng khi nhà cung cấp giao thêm và cửa hàng đã đồng ý nhận mua với giá cụ thể. Mỗi sản phẩm nhận thêm có giá trị gồm thuế đã chốt.',
+    title: 'Nhận mua bổ sung',
+    text: 'Dùng cho phần giao thêm đã thống nhất mua. Giá nhập bổ sung là giá gồm thuế cho mỗi sản phẩm.',
     confirm: 'XÁC NHẬN NHẬN BỔ SUNG',
   },
   PHI: {
-    title: 'ĐIỀU CHỈNH PHÍ ĐÃ THỐNG NHẤT',
-    text: 'Nhập số dương để tăng phí, số âm để giảm phần phí đã chốt. Đây là điều chỉnh nghĩa vụ thanh toán; tiền thực tế được ghi nhận riêng.',
-    confirm: 'GHI NHẬN ĐIỀU CHỈNH PHÍ',
+    title: 'Điều chỉnh phí',
+    text: 'Số dương tăng phí, số âm giảm phần phí đã chốt. Tiền thực tế được ghi nhận riêng.',
+    confirm: 'LƯU ĐIỀU CHỈNH PHÍ',
   },
   CHI_TIEN: {
-    title: 'GHI NHẬN ĐÃ TRẢ TIỀN CHO NCC',
-    text: 'Nhập đúng số tiền cửa hàng đã thực sự trả. Có thể ghi nhiều lần; mỗi lần tạo một phiếu chi theo đơn nhập.',
+    title: 'Ghi nhận tiền trả Nhà Cung Cấp',
+    text: 'Chỉ ghi nhận số tiền cửa hàng đã thực sự trả. Khoản tiền thuộc công nợ chung của đơn nhập.',
     confirm: 'XÁC NHẬN ĐÃ CHI TIỀN',
   },
   THU_TIEN: {
-    title: 'GHI NHẬN ĐÃ NHẬN TIỀN NCC HOÀN',
-    text: 'Nhập đúng số tiền cửa hàng đã thực sự nhận lại. Có thể nhận nhiều lần trong phạm vi nhà cung cấp còn phải hoàn.',
+    title: 'Ghi nhận tiền Nhà Cung Cấp hoàn',
+    text: 'Chỉ ghi nhận số tiền cửa hàng đã thực sự nhận lại trong khoản còn phải hoàn.',
     confirm: 'XÁC NHẬN ĐÃ NHẬN TIỀN',
   },
   THEO_DOI: {
-    title: 'PHỤ TRÁCH VÀ HẠN XỬ LÝ',
-    text: 'Chọn người chịu trách nhiệm theo dõi và thời hạn liên hệ, nhận hàng hoặc đối soát với nhà cung cấp.',
+    title: 'Phụ trách và hạn xử lý',
+    text: 'Cập nhật người phụ trách và hạn xử lý. Không làm thay đổi hàng hoặc tiền.',
     confirm: 'LƯU PHÂN CÔNG',
   },
   GHI_CHU: {
-    title: 'GHI NHẬN KẾT QUẢ ĐỐI SOÁT',
-    text: 'Lưu phản hồi của nhà cung cấp, sai lệch hoặc căn cứ xử lý. Thao tác ghi chú không tự phát sinh giao nhận hàng hay tiền.',
-    confirm: 'LƯU NỘI DUNG ĐỐI SOÁT',
+    title: 'Ghi nhận đối soát',
+    text: 'Lưu phản hồi, sai lệch hoặc nội dung trao đổi. Không tự phát sinh giao nhận.',
+    confirm: 'LƯU NỘI DUNG',
   },
   KET_THUC: {
-    title: 'KẾT THÚC HỒ SƠ',
-    text: 'Kết thúc khi các thiết bị đã được xử lý và các khoản cần đối chiếu đã đủ điều kiện. Toàn bộ chứng từ, serial và lịch sử vẫn được lưu.',
+    title: 'Kết thúc hồ sơ',
+    text: 'Đóng hồ sơ khi đã xử lý xong hàng và đáp ứng điều kiện đối chiếu tiền. Lịch sử được giữ nguyên.',
     confirm: 'KẾT THÚC HỒ SƠ',
   },
   MO_LAI: {
-    title: 'MỞ LẠI HỒ SƠ ĐỂ XỬ LÝ TIẾP',
-    text: 'Ghi rõ lý do cần mở lại. Các sự kiện đã ghi nhận trước đó được giữ để tiếp tục đối chiếu.',
+    title: 'Mở lại hồ sơ',
+    text: 'Ghi rõ lý do cần xử lý tiếp. Không được mở lại khi đang có hồ sơ xung đột.',
     confirm: 'MỞ LẠI HỒ SƠ',
   },
 };
@@ -191,73 +209,34 @@ function nccPayload(value) {
   }
 }
 
-function nccCaseState(record, balance = {}) {
+function nccCaseState(record) {
   if (record.status === 'HOAN_TAT') {
-    return {
-      tone: 'green',
-      label: 'ĐÃ HOÀN TẤT',
-      hint: 'Hồ sơ đã kết thúc. Bạn có thể xem lại toàn bộ chứng từ bên dưới.',
-    };
+    return { tone: 'green', label: 'Hoàn tất' };
   }
 
   if (record.status === 'KET_THUC_DOI_SOAT') {
-    return {
-      tone: 'amber',
-      label: 'ĐÃ KẾT THÚC ĐỐI SOÁT',
-      hint: 'Hồ sơ đã kết thúc và có thiết bị được chấp nhận giữ ở hàng lỗi.',
-    };
+    return { tone: 'amber', label: 'Kết thúc có đối soát' };
   }
 
   const units = record.units ?? [];
 
   if (units.some((item) => item.status === 'DA_NHAN_LOI')) {
-    return {
-      tone: 'red',
-      label: 'CẦN XỬ LÝ HÀNG LỖI',
-      hint: 'Chọn “Gửi NCC xử lý lại” hoặc “Chấp nhận giữ hàng lỗi” tại thiết bị tương ứng.',
-    };
+    return { tone: 'red', label: 'Còn hàng lỗi cần xử lý' };
   }
 
   if (units.some((item) => item.status === 'DANG_O_NCC' && !bool(item.planned))) {
-    return {
-      tone: 'amber',
-      label: 'CHỜ CHỐT PHƯƠNG ÁN',
-      hint: 'Nhà cung cấp đang giữ hàng. Chốt phương án đổi hoặc trả tại từng thiết bị.',
-    };
+    return { tone: 'amber', label: 'Chờ chốt phương án' };
   }
 
   if (units.some((item) => item.status === 'DANG_O_NCC')) {
-    return {
-      tone: 'blue',
-      label: 'CHỜ NCC XỬ LÝ / TRẢ HÀNG',
-      hint: 'Khi hàng về, dùng nút nhận hàng tại thiết bị. Với trả hẳn, xác nhận khi NCC đã chấp nhận nhận trả.',
-    };
+    return { tone: 'blue', label: 'Chờ NCC xử lý' };
   }
 
-  if (
-    Number(record.adjustment) !== 0 &&
-    (Number(balance.debt) > 0 || Number(balance.refundDue) > 0)
-  ) {
-    return {
-      tone: 'amber',
-      label: 'CHỜ ĐỐI CHIẾU TIỀN',
-      hint: 'Mở nhóm “Tiền, phí và quản lý hồ sơ” để ghi nhận tiền thực tế theo đơn nhập.',
-    };
+  if (bool(record.can_close)) {
+    return { tone: 'green', label: 'Có thể kết thúc' };
   }
 
-  if (!units.length) {
-    return {
-      tone: 'amber',
-      label: 'ĐANG XỬ LÝ',
-      hint: 'Hồ sơ đã mở. Chọn gửi hàng đang có hoặc nhận bổ sung đã thống nhất mua.',
-    };
-  }
-
-  return {
-    tone: 'green',
-    label: 'CÓ THỂ KẾT THÚC',
-    hint: 'Các thiết bị đã được xử lý. Bạn có thể kết thúc hồ sơ trong nhóm quản lý bên dưới.',
-  };
+  return { tone: 'blue', label: 'Đang xử lý' };
 }
 
 function NccEvidence({ event, data }) {
@@ -304,12 +283,12 @@ function NccEvidence({ event, data }) {
     if (event.action === 'PHUONG_AN') {
       if (payload.method === 'DOI_HANG') {
         add('Phiên bản đã thống nhất nhận', variantName(payload.variantId));
-        add('Giá trị NCC chấp nhận cho hàng gửi', cash(payload.credit));
+        add('Giá trị Nhà Cung Cấp chấp nhận cho hàng gửi', cash(payload.credit));
         add('Giá trị hàng đổi sẽ nhận', cash(payload.value));
       }
 
       if (payload.method === 'TRA_HANG') {
-        add('Giá trị NCC chấp nhận nhận trả', cash(payload.credit));
+        add('Giá trị Nhà Cung Cấp chấp nhận nhận trả', cash(payload.credit));
       }
     }
 
@@ -397,7 +376,7 @@ function NccHistory({ record, data }) {
   return (
     <details className="ncc-history">
       <summary>
-        CHỨNG TỪ VÀ LỊCH SỬ
+        Chứng từ và lịch sử
         <span className="ncc-count">{events.length}</span>
       </summary>
 
@@ -420,8 +399,12 @@ function NccHistory({ record, data }) {
               </header>
 
               <div className="ncc-document">
-                <span>CHỨNG TỪ / THỎA THUẬN</span>
-                <strong>{event.document || 'Chưa có mã'}</strong>
+                <span>
+                  {String(event.document || '').startsWith('NB-HS-')
+                    ? 'Mã ghi nhận nội bộ'
+                    : 'Mã tham chiếu'}
+                </span>
+                <strong>{event.document || 'Không có mã'}</strong>
               </div>
 
               {(event.old_serial || event.new_serial) && (
@@ -450,7 +433,7 @@ function NccHistory({ record, data }) {
               )}
 
               <details className="ncc-proof">
-                <summary>NỘI DUNG ĐÃ XÁC NHẬN</summary>
+                <summary>Nội dung đã xác nhận</summary>
                 <NccEvidence event={event} data={data} />
               </details>
             </article>
@@ -472,83 +455,64 @@ function NccUnitCard({ item, record, renderButton, onOpen }) {
   const active = record.status === 'DANG_XU_LY' && !historical;
   const outside = item.status === 'DANG_O_NCC';
   const planned = bool(item.planned);
-
   const tone = historical ? 'neutral' : NCC_UNIT_TONES[item.status] || 'neutral';
-
-  let guidance = '';
-
-  if (active && outside && !planned) {
-    guidance = 'Bước tiếp theo: chốt phương án với nhà cung cấp.';
-  } else if (active && outside && item.method === 'TRA_HANG') {
-    guidance =
-      'Khi NCC đồng ý nhận trả, chọn xác nhận nhận trả. Nếu NCC gửi hàng về do từ chối, chọn nhận lại hàng.';
-  } else if (active && outside) {
-    guidance = 'Khi hàng về cửa hàng, chọn nhận hàng và kiểm tra chất lượng.';
-  } else if (active && item.status === 'DA_NHAN_LOI') {
-    guidance =
-      'Hàng đang nằm ở kho lỗi. Chọn gửi lại NCC hoặc ghi rõ căn cứ chấp nhận giữ hàng lỗi.';
-  }
 
   return (
     <article className={`ncc-unit ncc-unit--${tone}`}>
       <header className="ncc-unit__header">
         <div>
           <small>
-            THIẾT BỊ #{item.id}
-            {item.parent_id ? ` · TIẾP NỐI #${item.parent_id}` : ''}
+            Thiết bị #{item.id}
+            {item.parent_id ? ` · Tiếp nối #${item.parent_id}` : ''}
           </small>
 
           <h4>{item.variant_name}</h4>
 
           <div className="ncc-unit__serial">
-            {item.so_serial ? (
-              <code>{item.so_serial}</code>
-            ) : (
-              <span>Hàng không quản lý serial</span>
-            )}
+            {item.so_serial ? <code>{item.so_serial}</code> : <span>Không quản lý serial</span>}
           </div>
         </div>
 
         <span className={`ncc-badge ncc-badge--${tone}`}>
-          {historical ? 'LƯỢT TRƯỚC — ĐÃ CHUYỂN TIẾP' : STATES[item.status] || 'Đang theo dõi'}
+          {historical ? 'Đã chuyển sang lượt tiếp theo' : STATES[item.status]}
         </span>
       </header>
 
       <dl className="ncc-unit__facts">
         <div>
-          <dt>Mục đích xử lý</dt>
+          <dt>Phương án</dt>
           <dd>{METHODS[item.method]}</dd>
         </div>
         <div>
-          <dt>Hình thức thiết bị</dt>
+          <dt>Tình trạng hàng</dt>
           <dd>{CONDITIONS[item.condition_code] || 'Chưa xác định'}</dd>
         </div>
         <div>
           <dt>Nguồn hàng</dt>
-          <dd>{item.origin === 'ORIGINAL' ? 'Theo đơn nhập gốc' : 'Hàng nhận bổ sung'}</dd>
+          <dd>{item.origin === 'ORIGINAL' ? 'Đơn nhập gốc' : 'Mua bổ sung'}</dd>
         </div>
       </dl>
 
       {outside && planned && (
         <div className="ncc-agreement">
-          <strong>PHƯƠNG ÁN ĐÃ CHỐT</strong>
+          <strong>Phương án đã chốt</strong>
           <p>
             {item.method === 'DOI_HANG'
               ? `Nhận đổi: ${item.expected_variant_name}`
               : item.method === 'TRA_HANG'
-                ? 'Trả hẳn hàng cho nhà cung cấp'
-                : 'Sửa chữa và nhận lại đúng thiết bị đã gửi'}
+                ? 'Trả hẳn cho Nhà Cung Cấp'
+                : 'Sửa chữa và nhận lại thiết bị đã gửi'}
           </p>
 
           {item.method !== 'SUA_CHUA' && (
             <div>
               <span>
-                NCC chấp nhận hàng gửi: <b>{cash(item.credit)}</b>
+                Giá trị hàng gửi được chấp nhận: <b>{cash(item.credit)}</b>
               </span>
 
               {item.method === 'DOI_HANG' && (
                 <span>
-                  Hàng đổi nhận về: <b>{cash(item.receive_value)}</b>
+                  Giá trị hàng đổi: <b>{cash(item.receive_value)}</b>
                 </span>
               )}
             </div>
@@ -556,14 +520,12 @@ function NccUnitCard({ item, record, renderButton, onOpen }) {
         </div>
       )}
 
-      {guidance && <p className="ncc-unit__next">{guidance}</p>}
-
       {active && (
         <div className="ncc-unit__actions">
           {outside &&
             !planned &&
             renderButton(
-              'CHỐT PHƯƠNG ÁN',
+              'Chốt phương án',
               () => onOpen('PHUONG_AN', record, item),
               false,
               'primary'
@@ -573,7 +535,7 @@ function NccUnitCard({ item, record, renderButton, onOpen }) {
             planned &&
             item.method !== 'TRA_HANG' &&
             renderButton(
-              item.method === 'DOI_HANG' ? 'NHẬN HÀNG ĐỔI' : 'NHẬN LẠI HÀNG SỬA',
+              item.method === 'DOI_HANG' ? 'Nhận hàng đổi' : 'Nhận lại hàng sửa',
               () => onOpen('NHAN', record, item),
               false,
               'primary'
@@ -582,29 +544,29 @@ function NccUnitCard({ item, record, renderButton, onOpen }) {
           {outside && planned && item.method === 'TRA_HANG' && (
             <>
               {renderButton(
-                'NCC ĐÃ CHẤP NHẬN NHẬN TRẢ',
+                'Xác nhận Nhà Cung Cấp nhận trả',
                 () => onOpen('CHOT_TRA', record, item),
                 false,
                 'primary'
               )}
-              {renderButton('NHẬN LẠI HÀNG NCC TỪ CHỐI', () => onOpen('NHAN', record, item))}
+              {renderButton('Nhận lại hàng bị từ chối', () => onOpen('NHAN', record, item))}
             </>
           )}
 
           {outside &&
             planned &&
-            renderButton('SỬA PHƯƠNG ÁN', () => onOpen('PHUONG_AN', record, item))}
+            renderButton('Sửa phương án', () => onOpen('PHUONG_AN', record, item))}
 
           {item.status === 'DA_NHAN_LOI' && (
             <>
               {renderButton(
-                'GỬI NCC XỬ LÝ LẠI',
+                'Gửi Nhà Cung Cấp xử lý lại',
                 () => onOpen('GUI_LAI', record, item),
                 false,
                 'primary'
               )}
               {renderButton(
-                'CHẤP NHẬN GIỮ HÀNG LỖI',
+                'Chấp nhận giữ hàng lỗi',
                 () => onOpen('CHAP_NHAN_LOI', record, item),
                 false,
                 'warning'
@@ -613,7 +575,7 @@ function NccUnitCard({ item, record, renderButton, onOpen }) {
           )}
 
           {['DA_NHAN_DAT', 'CHAP_NHAN_LOI'].includes(item.status) &&
-            renderButton('PHÁT SINH CẦN GỬI TIẾP', () => onOpen('GUI', record, item, true))}
+            renderButton('Gửi xử lý tiếp thiết bị này', () => onOpen('GUI', record, item, true))}
         </div>
       )}
     </article>
@@ -621,110 +583,116 @@ function NccUnitCard({ item, record, renderButton, onOpen }) {
 }
 
 function NccCaseView({ record, data, renderButton, onOpen }) {
+  const [tab, setTab] = useState('units');
+
   const active = record.status === 'DANG_XU_LY';
   const units = record.units ?? [];
   const current = units.filter((item) => !bool(item.has_child));
   const previous = units.filter((item) => bool(item.has_child));
-  const state = nccCaseState(record, data.balance);
+  const state = nccCaseState(record);
 
-  const pending = units.some((item) => ['DANG_O_NCC', 'DA_NHAN_LOI'].includes(item.status));
-
-  const moneyPending =
-    Number(record.adjustment) !== 0 &&
-    (Number(data.balance.debt) > 0 || Number(data.balance.refundDue) > 0);
+  const canSend = record.purpose !== 'NHAN_MUA_BO_SUNG';
+  const canReceiveExtra = record.purpose !== 'GUI_HANG_XU_LY';
 
   const overdue = active && record.deadline && new Date(record.deadline).getTime() < Date.now();
-
-  const closeHint = pending
-    ? 'Còn thiết bị đang ở NCC hoặc chưa xử lý xong hàng lỗi.'
-    : moneyPending
-      ? 'Đơn nhập còn khoản tiền cần đối chiếu trước khi kết thúc hồ sơ.'
-      : 'Hồ sơ đủ điều kiện để gửi yêu cầu kết thúc.';
 
   return (
     <article className="ncc-case" id={`ncc-case-${record.id}`}>
       <header className="ncc-case__header">
-        <div>
-          <span className="ncc-eyebrow">HỒ SƠ #{record.id}</span>
+        <div className="ncc-case__identity">
+          <small>
+            Hồ sơ #{record.id}
+            {' · '}
+            {NCC_PURPOSES[record.purpose] || 'Hồ sơ cũ'}
+          </small>
           <h4>{record.reason}</h4>
           <p className="ncc-case__code">{record.code}</p>
-          <p className="ncc-case__owner">
-            Phụ trách: <strong>{record.employee_name}</strong>
-            {' · '}Hạn xử lý:{' '}
-            <strong>{record.deadline ? formatDateTimeVN(record.deadline) : 'Chưa đặt hạn'}</strong>
-          </p>
         </div>
 
-        <div className="ncc-case__badges">
+        <div className="ncc-case__header-actions">
           <span className={`ncc-badge ncc-badge--${state.tone}`}>{state.label}</span>
 
-          {overdue && <span className="ncc-badge ncc-badge--red">QUÁ HẠN XỬ LÝ</span>}
+          {active
+            ? renderButton(
+                'KẾT THÚC HỒ SƠ',
+                () => onOpen('KET_THUC', record),
+                !bool(record.can_close),
+                'dark',
+                record.close_blocker
+              )
+            : renderButton(
+                'MỞ LẠI HỒ SƠ',
+                () => onOpen('MO_LAI', record),
+                !bool(record.can_reopen),
+                'dark',
+                record.reopen_blocker
+              )}
         </div>
       </header>
 
-      <div className={`ncc-next ncc-next--${state.tone}`}>
-        <strong>VIỆC CẦN LÀM</strong>
-        <p>{state.hint}</p>
+      <div className="ncc-case__meta">
+        <span>
+          Phụ trách: <strong>{record.employee_name}</strong>
+        </span>
+        <span>
+          Hạn xử lý:{' '}
+          <strong>{record.deadline ? formatDateTimeVN(record.deadline) : 'Không đặt hạn'}</strong>
+        </span>
+        <span>
+          Điều chỉnh: <strong>{nccSignedCash(record.adjustment)}</strong>
+        </span>
+        {overdue && <span className="ncc-badge ncc-badge--red">Quá hạn</span>}
       </div>
 
-      <div className="ncc-case__stats">
-        <div>
-          <span>Đang ở NCC</span>
-          <b>{current.filter((u) => u.status === 'DANG_O_NCC').length}</b>
-        </div>
-        <div>
-          <span>Nhận chưa đạt</span>
-          <b>{current.filter((u) => u.status === 'DA_NHAN_LOI').length}</b>
-        </div>
-        <div>
-          <span>Đã nhận đạt</span>
-          <b>{current.filter((u) => u.status === 'DA_NHAN_DAT').length}</b>
-        </div>
-        <div>
-          <span>Điều chỉnh qua hồ sơ</span>
-          <b>{nccSignedCash(record.adjustment)}</b>
-        </div>
-      </div>
-
-      {active && (
-        <div className="ncc-action-group">
-          <div>
-            <strong>GIAO NHẬN HÀNG</strong>
-            <p>Chọn đúng tình huống phát sinh trong hồ sơ này.</p>
-          </div>
-
-          <div className="ncc-action-group__buttons">
-            {renderButton('GỬI HÀNG ĐANG CÓ', () => onOpen('GUI', record), false, 'dark')}
-            {renderButton('MUA THÊM / NHẬN BỔ SUNG', () => onOpen('NHAN_BO_SUNG', record))}
-          </div>
-        </div>
+      {active && record.close_blocker && (
+        <p className="ncc-blocker" role="status">
+          Chưa thể kết thúc: {record.close_blocker}
+        </p>
       )}
 
-      <div className="ncc-unit-list">
-        {current.map((item) => (
-          <NccUnitCard
-            key={item.id}
-            item={item}
-            record={record}
-            renderButton={renderButton}
-            onOpen={onOpen}
-          />
+      {!active && record.reopen_blocker && (
+        <p className="ncc-blocker" role="status">
+          Chưa thể mở lại: {record.reopen_blocker}
+        </p>
+      )}
+
+      <div className="ncc-tabs" role="group" aria-label="Nội dung hồ sơ">
+        {[
+          ['units', `Thiết bị (${current.length})`],
+          ['history', 'Chứng từ và lịch sử'],
+          ['manage', 'Tiền và quản lý hồ sơ'],
+        ].map(([value, label]) => (
+          <button
+            key={value}
+            type="button"
+            className={tab === value ? 'is-active' : ''}
+            aria-pressed={tab === value}
+            onClick={() => setTab(value)}
+          >
+            {label}
+          </button>
         ))}
+      </div>
 
-        {!units.length && (
-          <div className="ncc-empty">
-            <strong>Hồ sơ chưa có thiết bị.</strong>
-            <p>
-              Chọn “Gửi hàng đang có” để gửi sửa, đổi hoặc trả. Chọn “Mua thêm / nhận bổ sung” khi
-              đã thống nhất mua phần giao thêm.
-            </p>
-          </div>
-        )}
+      {tab === 'units' && (
+        <div className="ncc-tab-body">
+          {active && (
+            <div className="ncc-section-actions">
+              {canSend &&
+                renderButton('Gửi hàng đang có', () => onOpen('GUI', record), false, 'primary')}
 
-        {previous.length > 0 && (
-          <details className="ncc-previous">
-            <summary>THIẾT BỊ CỦA CÁC LƯỢT TRƯỚC ({previous.length})</summary>
-            {previous.map((item) => (
+              {canReceiveExtra &&
+                renderButton(
+                  'Nhận mua bổ sung',
+                  () => onOpen('NHAN_BO_SUNG', record),
+                  false,
+                  'primary'
+                )}
+            </div>
+          )}
+
+          <div className="ncc-unit-list">
+            {current.map((item) => (
               <NccUnitCard
                 key={item.id}
                 item={item}
@@ -733,74 +701,79 @@ function NccCaseView({ record, data, renderButton, onOpen }) {
                 onOpen={onOpen}
               />
             ))}
-          </details>
-        )}
-      </div>
 
-      <details className="ncc-case-tools">
-        <summary>TIỀN, PHÍ VÀ QUẢN LÝ HỒ SƠ</summary>
+            {!units.length && <p className="ncc-empty">Chưa có thiết bị.</p>}
 
-        {active && (
-          <>
-            <div className="ncc-tool-group">
-              <div>
-                <strong>ĐỐI CHIẾU TIỀN THEO ĐƠN NHẬP</strong>
-                <p>Chỉ ghi nhận khi đã thực sự giao nhận tiền.</p>
-              </div>
+            {previous.length > 0 && (
+              <details className="ncc-previous">
+                <summary>Các lượt xử lý trước ({previous.length})</summary>
 
-              <div className="ncc-action-group__buttons">
-                {renderButton(
-                  'ĐÃ TRẢ TIỀN CHO NCC',
-                  () => onOpen('CHI_TIEN', record),
-                  Number(data.balance.debt) <= 0,
-                  'dark',
-                  'Ghi nhận số tiền thực tế đã trả trong khoản còn nợ.'
-                )}
-                {renderButton(
-                  'ĐÃ NHẬN TIỀN NCC HOÀN',
-                  () => onOpen('THU_TIEN', record),
-                  Number(data.balance.refundDue) <= 0,
-                  'dark',
-                  'Ghi nhận số tiền thực tế đã nhận lại trong khoản NCC phải hoàn.'
-                )}
-                {renderButton('ĐIỀU CHỈNH PHÍ', () => onOpen('PHI', record))}
-              </div>
-            </div>
-
-            <div className="ncc-tool-group">
-              <div>
-                <strong>THEO DÕI VÀ KẾT THÚC</strong>
-                <p>{closeHint}</p>
-              </div>
-
-              <div className="ncc-action-group__buttons">
-                {renderButton('PHỤ TRÁCH / HẠN XỬ LÝ', () => onOpen('THEO_DOI', record))}
-                {renderButton(
-                  'KẾT THÚC HỒ SƠ',
-                  () => onOpen('KET_THUC', record),
-                  pending || moneyPending,
-                  'dark',
-                  closeHint
-                )}
-              </div>
-            </div>
-          </>
-        )}
-
-        <div className="ncc-tool-group">
-          <div>
-            <strong>GHI NHẬN PHẢN HỒI</strong>
-            <p>Lưu căn cứ, sai lệch hoặc nội dung trao đổi với NCC.</p>
-          </div>
-
-          <div className="ncc-action-group__buttons">
-            {renderButton('GHI NHẬN ĐỐI SOÁT', () => onOpen('GHI_CHU', record))}
-            {!active && renderButton('MỞ LẠI HỒ SƠ', () => onOpen('MO_LAI', record))}
+                {previous.map((item) => (
+                  <NccUnitCard
+                    key={item.id}
+                    item={item}
+                    record={record}
+                    renderButton={renderButton}
+                    onOpen={onOpen}
+                  />
+                ))}
+              </details>
+            )}
           </div>
         </div>
-      </details>
+      )}
 
-      <NccHistory record={record} data={data} />
+      {tab === 'history' && (
+        <div className="ncc-tab-body">
+          <NccHistory record={record} data={data} />
+        </div>
+      )}
+
+      {tab === 'manage' && (
+        <div className="ncc-tab-body">
+          {active && (
+            <>
+              <section className="ncc-management-section">
+                <h5>Tiền theo đơn nhập</h5>
+                <p className="ncc-muted">
+                  Các khoản tiền được đối chiếu chung theo đơn nhập, không tách công nợ riêng cho hồ
+                  sơ.
+                </p>
+
+                <div className="ncc-section-actions">
+                  {bool(data.balance.canPay) &&
+                    renderButton(
+                      'Đã trả tiền cho Nhà Cung Cấp',
+                      () => onOpen('CHI_TIEN', record),
+                      false,
+                      'dark'
+                    )}
+
+                  {bool(data.balance.canRefund) &&
+                    renderButton(
+                      'Đã nhận tiền Nhà Cung Cấp hoàn',
+                      () => onOpen('THU_TIEN', record),
+                      false,
+                      'dark'
+                    )}
+
+                  {renderButton('Điều chỉnh phí', () => onOpen('PHI', record))}
+                </div>
+              </section>
+
+              <section className="ncc-management-section">
+                <h5>Phụ trách hồ sơ</h5>
+                {renderButton('Phụ trách và hạn xử lý', () => onOpen('THEO_DOI', record))}
+              </section>
+            </>
+          )}
+
+          <section className="ncc-management-section">
+            <h5>Nội dung đối soát</h5>
+            {renderButton('Ghi nhận đối soát', () => onOpen('GHI_CHU', record))}
+          </section>
+        </div>
+      )}
     </article>
   );
 }
@@ -816,55 +789,32 @@ function NccWorkspace({
   onRetry,
   onOpen,
   renderButton,
+  selectedCaseId,
+  onSelectCase,
 }) {
+  const cases = data?.cases ?? [];
+  const selected = cases.find((record) => Number(record.id) === Number(selectedCaseId));
+
+  const canCreate = (data?.case_types ?? []).some((item) => bool(item.can_create));
+
   return (
     <>
-      <div className="ncc-hero">
-        <div>
-          <span className="ncc-eyebrow">GỬI HÀNG · NHẬN HÀNG · ĐỐI CHIẾU TIỀN</span>
-          <h4>Chọn hồ sơ và xử lý theo từng thiết bị</h4>
-          <p>Mỗi lần gửi, nhận hoặc chốt giá trị đều có chứng từ và lịch sử riêng.</p>
-        </div>
+      <div className="ncc-workspace-toolbar">
+        <span>Đơn nhập {order.code}</span>
 
-        {renderButton(
-          '+ MỞ HỒ SƠ XỬ LÝ',
-          () => onOpen('OPEN'),
-          ['DAT_HANG', 'HUY'].includes(order.importStatus) || !data,
-          'primary'
-        )}
+        {renderButton('TẠO HỒ SƠ', () => onOpen('OPEN'), !data || !canCreate, 'primary')}
       </div>
-
-      <details className="ncc-guide">
-        <summary>BẮT ĐẦU TỪ ĐÂU?</summary>
-        <div className="ncc-guide__steps">
-          <div>
-            <b>01</b>
-            <strong>MỞ HỒ SƠ</strong>
-            <p>Ghi lý do, người phụ trách và thời hạn cần theo dõi.</p>
-          </div>
-          <div>
-            <b>02</b>
-            <strong>CHỌN VIỆC PHÁT SINH</strong>
-            <p>Gửi hàng đang có để sửa/đổi/trả, hoặc nhận phần hàng đã đồng ý mua thêm.</p>
-          </div>
-          <div>
-            <b>03</b>
-            <strong>LÀM THEO TỪNG THIẾT BỊ</strong>
-            <p>Chốt phương án, nhận hàng, xử lý hàng lỗi và đối chiếu tiền theo hướng dẫn.</p>
-          </div>
-        </div>
-      </details>
 
       {loading && !data && (
         <p className="ncc-message" role="status">
-          Đang tải hồ sơ NCC...
+          Đang tải hồ sơ Nhà Cung Cấp...
         </p>
       )}
 
       {readError && (
         <div className="ncc-message ncc-message--error" role="alert">
           <p>{readError}</p>
-          {renderButton('THỬ TẢI LẠI', onRetry)}
+          {renderButton('Thử tải lại', onRetry)}
         </div>
       )}
 
@@ -882,43 +832,74 @@ function NccWorkspace({
 
       {data && (
         <>
-          <div className="ncc-balance-heading">ĐỐI CHIẾU CHUNG CỦA ĐƠN NHẬP {order.code}</div>
-
           <div className="ncc-summary">
             <div>
               <span>Giá trị sau điều chỉnh</span>
               <b>{cash(data.balance.effective)}</b>
             </div>
             <div>
-              <span>Chênh lệch qua hồ sơ NCC</span>
+              <span>Điều chỉnh qua hồ sơ</span>
               <b>{nccSignedCash(data.balance.adjustment)}</b>
             </div>
-            <div className={Number(data.balance.debt) > 0 ? 'ncc-kpi--debt' : ''}>
-              <span>Cửa hàng cần trả NCC</span>
+            <div className={bool(data.balance.canPay) ? 'ncc-kpi--debt' : ''}>
+              <span>Còn trả Nhà Cung Cấp</span>
               <b>{cash(data.balance.debt)}</b>
             </div>
-            <div className={Number(data.balance.refundDue) > 0 ? 'ncc-kpi--refund' : ''}>
-              <span>NCC cần hoàn cửa hàng</span>
+            <div className={bool(data.balance.canRefund) ? 'ncc-kpi--refund' : ''}>
+              <span>Nhà Cung Cấp còn hoàn</span>
               <b>{cash(data.balance.refundDue)}</b>
             </div>
           </div>
 
-          {data.cases?.length === 0 && (
-            <div className="ncc-empty">
-              <strong>Đơn nhập chưa có hồ sơ xử lý.</strong>
-              <p>Bấm “Mở hồ sơ xử lý” để bắt đầu.</p>
-            </div>
+          {!canCreate && (
+            <p className="ncc-muted">
+              Chưa thể tạo hồ sơ mới: đơn nhập chưa đủ điều kiện hoặc đã có hồ sơ đang xử lý.
+            </p>
           )}
 
-          {(data.cases ?? []).map((record) => (
+          <div className="ncc-case-picker">
+            {cases.map((record) => {
+              const state = nccCaseState(record);
+              const isSelected = Number(record.id) === Number(selectedCaseId);
+
+              return (
+                <div key={record.id} className={`ncc-case-row${isSelected ? ' is-selected' : ''}`}>
+                  <div>
+                    <small>
+                      #{record.id}
+                      {' · '}
+                      {NCC_PURPOSES[record.purpose] || 'Hồ sơ cũ'}
+                    </small>
+                    <strong>{record.reason}</strong>
+                  </div>
+
+                  <span className={`ncc-badge ncc-badge--${state.tone}`}>{state.label}</span>
+
+                  <button
+                    type="button"
+                    className="ncc-btn"
+                    aria-controls={`ncc-case-${record.id}`}
+                    aria-expanded={isSelected}
+                    onClick={() => onSelectCase(record.id)}
+                  >
+                    XEM HỒ SƠ
+                  </button>
+                </div>
+              );
+            })}
+
+            {!cases.length && <p className="ncc-empty">Chưa có hồ sơ.</p>}
+          </div>
+
+          {selected && (
             <NccCaseView
-              key={record.id}
-              record={record}
+              key={selected.id}
+              record={selected}
               data={data}
               renderButton={renderButton}
               onOpen={onOpen}
             />
-          ))}
+          )}
         </>
       )}
     </>
@@ -927,19 +908,11 @@ function NccWorkspace({
 
 function NccActionHelp({ action, unit, form }) {
   const help = NCC_HELP[action];
-  const receiving = action === 'NHAN' || (action === 'NHAN_BO_SUNG' && !form.alreadyInStock);
 
   const hasCredit =
-    form.credit !== '' &&
-    form.credit !== null &&
-    form.credit !== undefined &&
-    Number.isFinite(Number(form.credit));
+    form.credit !== '' && form.credit != null && Number.isFinite(Number(form.credit));
 
-  const hasValue =
-    form.value !== '' &&
-    form.value !== null &&
-    form.value !== undefined &&
-    Number.isFinite(Number(form.value));
+  const hasValue = form.value !== '' && form.value != null && Number.isFinite(Number(form.value));
 
   const canPreview =
     action === 'PHUONG_AN' &&
@@ -949,46 +922,31 @@ function NccActionHelp({ action, unit, form }) {
   const delta =
     form.method === 'TRA_HANG' ? -Number(form.credit) : Number(form.value) - Number(form.credit);
 
+  const receiving = action === 'NHAN' || (action === 'NHAN_BO_SUNG' && !form.alreadyInStock);
+
   return (
-    <div className="ncc-dialog-help">
+    <div className="ncc-dialog-notes">
       {help && (
-        <div className="ncc-callout ncc-callout--blue">
-          <strong>Ý NGHĨA THAO TÁC</strong>
+        <details className="ncc-mini-help">
+          <summary>Ghi chú thao tác</summary>
           <p>{help.text}</p>
 
           {action === 'NHAN' && unit?.method === 'TRA_HANG' && (
-            <p>
-              Bạn đang nhận lại thiết bị NCC không chấp nhận nhận trả. Cần kiểm tra đúng thiết bị
-              thực tế được gửi về.
-            </p>
+            <p>Đây là nhận lại hàng Nhà Cung Cấp từ chối nhận trả.</p>
           )}
-        </div>
+        </details>
       )}
 
       {canPreview && (
-        <div className="ncc-callout ncc-callout--amber">
-          <strong>CHÊNH LỆCH DỰ KIẾN KHI CHỐT GIAO NHẬN</strong>
-          <p className="ncc-preview-value">{nccSignedCash(delta)}</p>
-          <p>
-            {delta > 0
-              ? 'Giá trị đơn nhập sẽ tăng theo phần chênh lệch này.'
-              : delta < 0
-                ? 'Giá trị đơn nhập sẽ giảm theo phần chênh lệch này.'
-                : 'Hai giá trị bằng nhau, phần đổi hàng không làm tăng hoặc giảm nghĩa vụ thanh toán.'}
-          </p>
-          <p>Tiền thực tế được ghi nhận bằng thao tác thu/chi riêng.</p>
-        </div>
+        <p className="ncc-impact">
+          Điều chỉnh giá trị dự kiến: <strong>{nccSignedCash(delta)}</strong>
+        </p>
       )}
 
       {receiving && (
-        <div className={`ncc-callout ncc-callout--${form.passed ? 'green' : 'amber'}`}>
-          <strong>{form.passed ? 'ĐÃ CHỌN: HÀNG ĐẠT KIỂM TRA' : 'CHƯA CHỌN KIỂM TRA ĐẠT'}</strong>
-          <p>
-            {form.passed
-              ? 'Hàng nhận sẽ tăng tồn thực tế và tồn có thể bán.'
-              : 'Với lựa chọn hiện tại, hàng nhận sẽ tăng tồn thực tế và hàng lỗi. Nếu hàng đã kiểm tra đạt, đánh dấu xác nhận đạt ở phần bên dưới.'}
-          </p>
-        </div>
+        <p className={`ncc-impact${form.passed ? ' is-passed' : ''}`}>
+          Hàng nhận vào: <strong>{form.passed ? 'Tồn có thể bán' : 'Kho hàng lỗi'}</strong>
+        </p>
       )}
     </div>
   );
@@ -1003,7 +961,7 @@ export default function SupplierCasePanel({ order, locked = false, onRefresh, on
   const [busy, setBusy] = useState(false);
   const [dialog, setDialog] = useState(null);
   const [form, setForm] = useState({});
-
+  const [selectedCaseId, setSelectedCaseId] = useState(null);
   const attempt = useRef(null);
   const writing = useRef(false);
   const readSequence = useRef(0);
@@ -1063,8 +1021,10 @@ export default function SupplierCasePanel({ order, locked = false, onRefresh, on
     });
 
     const first = data?.sources?.[0];
+    const firstPurpose = data?.case_types?.find((item) => bool(item.can_create));
 
     setForm({
+      purpose: firstPurpose?.code ?? '',
       detailId: String(first?.id ?? ''),
       previousUnitId: followUp ? unit.id : null,
       quantity: 1,
@@ -1142,9 +1102,14 @@ export default function SupplierCasePanel({ order, locked = false, onRefresh, on
     setOperationError('');
 
     try {
-      await send(scope, body);
+      const result = await send(scope, body);
+
+      if (Number.isSafeInteger(Number(result?.id)) && Number(result.id) > 0) {
+        setSelectedCaseId(Number(result.id));
+      }
+
       setDialog(null);
-      setNotice('Đã ghi nhận thao tác và đồng bộ dữ liệu.');
+      setNotice(scope === 'open' ? 'Đã tạo hồ sơ.' : 'Đã cập nhật hồ sơ.');
       await Promise.all([refresh(), onRefresh?.()]);
     } catch (error) {
       setOperationError(errorMessage(error));
@@ -1173,8 +1138,22 @@ export default function SupplierCasePanel({ order, locked = false, onRefresh, on
         throw new Error('Chỉ xác nhận khi sự việc thực tế đã xảy ra hoặc đã được chốt.');
       }
 
-      if (!form.document.trim() || !form.note.trim()) {
-        throw new Error('Cần mã chứng từ/thỏa thuận và nội dung đối soát.');
+      if (!form.note.trim()) {
+        throw new Error(
+          action === 'OPEN' ? 'Nhập lý do tạo hồ sơ.' : 'Nhập nội dung hoặc căn cứ xác nhận.'
+        );
+      }
+
+      if (NCC_DOCUMENT_LABELS[action] && !form.document.trim()) {
+        throw new Error(`Nhập ${NCC_DOCUMENT_LABELS[action].toLowerCase()}.`);
+      }
+
+      if (action === 'OPEN') {
+        const selectedType = data?.case_types?.find((item) => item.code === form.purpose);
+
+        if (!selectedType || !bool(selectedType.can_create)) {
+          throw new Error('Loại hồ sơ chưa được chọn hoặc đang có hồ sơ cùng loại chưa kết thúc.');
+        }
       }
 
       if (action === 'PHUONG_AN' && ['DOI_HANG', 'TRA_HANG'].includes(form.method)) {
@@ -1206,10 +1185,11 @@ export default function SupplierCasePanel({ order, locked = false, onRefresh, on
 
       if (action === 'OPEN') {
         return execute('open', {
+          purpose: form.purpose,
           reason: form.note.trim(),
           employeeId: optionalId(form.employeeId),
           deadline: deadlineValue(form.deadline),
-          document: form.document.trim(),
+          document: form.document.trim() || null,
           at,
           confirmed: true,
         });
@@ -1258,7 +1238,7 @@ export default function SupplierCasePanel({ order, locked = false, onRefresh, on
         transactionId: form.transactionId.trim(),
         employeeId: optionalId(form.employeeId),
         deadline: deadlineValue(form.deadline),
-        document: form.document.trim(),
+        document: form.document.trim() || null,
         note: form.note.trim(),
         at,
         confirmed: true,
@@ -1356,6 +1336,8 @@ export default function SupplierCasePanel({ order, locked = false, onRefresh, on
           onRetry={refresh}
           onOpen={open}
           renderButton={button}
+          selectedCaseId={selectedCaseId}
+          onSelectCase={setSelectedCaseId}
         />
 
         {dialog && (
@@ -1384,6 +1366,30 @@ export default function SupplierCasePanel({ order, locked = false, onRefresh, on
             <NccActionHelp action={action} unit={unit} form={form} />
 
             <fieldset className="ncc-fields" disabled={frozen}>
+              {action === 'OPEN' && (
+                <label className="ncc-field-wide">
+                  <span>Loại hồ sơ</span>
+
+                  <select
+                    required
+                    value={form.purpose}
+                    onChange={(event) => {
+                      change('purpose', event.target.value);
+                      change('confirmed', false);
+                    }}
+                  >
+                    <option value="">Chọn loại hồ sơ</option>
+
+                    {(data?.case_types ?? []).map((item) => (
+                      <option key={item.code} value={item.code} disabled={!bool(item.can_create)}>
+                        {item.label}
+                        {!bool(item.can_create) ? ' — chưa thể tạo' : ''}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              )}
+
               {isSourceAction && (
                 <label className="ncc-field-wide">
                   <span>DÒNG ĐƠN NHẬP</span>
@@ -1742,17 +1748,21 @@ export default function SupplierCasePanel({ order, locked = false, onRefresh, on
                 <p>Hàng vẫn thuộc hàng lỗi trong kho; thao tác này không làm hàng có thể bán.</p>
               )}
 
-              <label>
-                <span>CHỨNG TỪ / MÃ THỎA THUẬN / MÃ ĐỐI SOÁT</span>
-                <input
-                  maxLength="100"
-                  value={form.document}
-                  onChange={(event) => change('document', event.target.value)}
-                />
-              </label>
+              {NCC_DOCUMENT_LABELS[action] && (
+                <label className="ncc-field-wide">
+                  <span>{NCC_DOCUMENT_LABELS[action]}</span>
 
-              <label>
-                <span>NỘI DUNG VÀ CĂN CỨ XÁC NHẬN</span>
+                  <input
+                    required
+                    maxLength="100"
+                    value={form.document}
+                    onChange={(event) => change('document', event.target.value)}
+                  />
+                </label>
+              )}
+
+              <label className="ncc-field-wide">
+                <span>{action === 'OPEN' ? 'Lý do tạo hồ sơ' : 'Nội dung và căn cứ xác nhận'}</span>
                 <textarea
                   rows="3"
                   maxLength={action === 'OPEN' ? 500 : 1000}

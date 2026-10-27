@@ -454,8 +454,8 @@ export default function ChiTietNhapHang() {
           <PurchaseCard title="NHÀ CUNG CẤP">
             <InfoRows
               rows={[
-                ['MÃ NCC', order.supplier.code],
-                ['TÊN NCC', order.supplier.name],
+                ['MÃ NHÀ CUNG CẤP', order.supplier.code],
+                ['TÊN NHÀ CUNG CẤP', order.supplier.name],
                 ['SỐ ĐIỆN THOẠI', order.supplier.phone],
                 ['EMAIL', order.supplier.email],
                 ['ĐỊA CHỈ', order.supplier.address],
@@ -491,7 +491,7 @@ export default function ChiTietNhapHang() {
           <InfoRows
             rows={[
               ['MÃ ĐƠN', order.code],
-              ['NCC', order.supplier.name],
+              ['NHÀ CUNG CẤP', order.supplier.name],
               ['KHO', order.warehouse.name],
               ['TỔNG', money(order.total)],
             ]}

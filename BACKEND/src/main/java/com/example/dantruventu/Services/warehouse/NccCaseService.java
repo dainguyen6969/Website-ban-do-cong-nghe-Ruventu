@@ -57,6 +57,133 @@ public class NccCaseService {
 
   public record Result(Long id, String code, String action) {}
 
+  private static final String PURPOSE_SEND = "GUI_HANG_XU_LY";
+  private static final String PURPOSE_EXTRA = "NHAN_MUA_BO_SUNG";
+  private static final String PURPOSE_LEGACY = "LEGACY";
+
+  private static final Set<String> DOCUMENT_REQUIRED =
+      Set.of(
+          "GUI",
+          "PHUONG_AN",
+          "NHAN",
+          "GUI_LAI",
+          "CHOT_TRA",
+          "NHAN_BO_SUNG",
+          "PHI",
+          "THU_TIEN",
+          "CHI_TIEN");
+
+  private String casePurpose(Map<String, Object> supplierCase) {
+    String purpose = text(supplierCase.get("purpose"));
+
+    require(
+        Set.of(PURPOSE_SEND, PURPOSE_EXTRA, PURPOSE_LEGACY).contains(purpose),
+        "Loại hồ sơ không hợp lệ; cần đối soát dữ liệu.");
+
+    return purpose;
+  }
+
+  private boolean hasActiveCaseConflict(Long poId, Long excludedCaseId, String purpose) {
+
+    Integer count =
+        jdbc.queryForObject(
+            """
+                        SELECT COUNT(*)
+                        FROM ncc_case
+                        WHERE source_po_id = ?
+                          AND id <> ?
+                          AND status = 'DANG_XU_LY'
+                          AND (
+                                purpose = ?
+                                OR purpose = 'LEGACY'
+                                OR ? = 'LEGACY'
+                              )
+                        """,
+            Integer.class,
+            poId,
+            excludedCaseId == null ? 0L : excludedCaseId,
+            purpose,
+            purpose);
+
+    return count != null && count > 0;
+  }
+
+  private void requireAvailableCaseSlot(Long poId, Long excludedCaseId, String purpose) {
+
+    require(
+        !hasActiveCaseConflict(poId, excludedCaseId, purpose),
+        "Đơn nhập đang có hồ sơ cùng loại hoặc hồ sơ cũ chưa kết thúc. "
+            + "Hãy tiếp tục hồ sơ đang có.");
+  }
+
+  private void validateCaseAction(Map<String, Object> supplierCase, NccRequest.Command request) {
+
+    String purpose = casePurpose(supplierCase);
+
+    if (PURPOSE_SEND.equals(purpose)) {
+      require(
+          !"NHAN_BO_SUNG".equals(request.action()),
+          "Hồ sơ gửi hàng xử lý không dùng để nhận mua bổ sung.");
+    }
+
+    if (PURPOSE_EXTRA.equals(purpose) && "GUI".equals(request.action())) {
+      require(
+          request.previousUnitId() != null,
+          "Hồ sơ nhận mua bổ sung chỉ được gửi xử lý " + "thiết bị đã nhận trong chính hồ sơ này.");
+    }
+  }
+
+  private String documentReference(Long caseId, String action, String document, long revision) {
+
+    String value = document == null ? "" : document.strip();
+
+    require(value.length() <= 100, "Mã tham chiếu tối đa 100 ký tự.");
+
+    if (!value.isBlank()) {
+      return value;
+    }
+
+    require(
+        !DOCUMENT_REQUIRED.contains(action),
+        "Thao tác này cần mã chứng từ hoặc mã thỏa thuận đã đối chiếu.");
+
+    return "NB-HS-" + caseId + "-" + action + "-" + revision;
+  }
+
+  private String closeBlocker(Long poId, Long caseId) {
+    Integer pending =
+        jdbc.queryForObject(
+            """
+                        SELECT COUNT(*)
+                        FROM ncc_unit
+                        WHERE case_id = ?
+                          AND status IN ('DANG_O_NCC', 'DA_NHAN_LOI')
+                        """,
+            Integer.class,
+            caseId);
+
+    if (pending != null && pending > 0) {
+      return "Còn hàng đang ở Nhà Cung Cấp hoặc hàng nhận về chưa xử lý xong.";
+    }
+
+    /*
+     * Giữ nguyên điều kiện tiền của bản hiện tại:
+     * hồ sơ có điều chỉnh giá trị thì công nợ chung của đơn nhập
+     * phải được đối chiếu xong trước khi kết thúc.
+     */
+    if (accounting.caseAdjustments(caseId).signum() != 0) {
+      var balance = purchases.getDetail(poId);
+
+      if (balance.getSoTienConNo().signum() != 0
+          || balance.getSoTienNccConPhaiHoan().signum() != 0) {
+
+        return "Đơn nhập còn khoản phải trả hoặc khoản Nhà Cung Cấp phải hoàn.";
+      }
+    }
+
+    return "";
+  }
+
   private ZoneId zone() {
     return ZoneId.of(timeZone);
   }
@@ -598,7 +725,19 @@ public class NccCaseService {
           DonNhapHang order = lockOrder(poId);
           LocalDateTime at = actual(request.at(), order);
 
-          require(Boolean.TRUE.equals(request.confirmed()), "Chưa xác nhận mở hồ sơ.");
+          require(Boolean.TRUE.equals(request.confirmed()), "Chưa xác nhận tạo hồ sơ.");
+
+          String purpose = request.purpose();
+
+          require(
+              purpose != null && Set.of(PURPOSE_SEND, PURPOSE_EXTRA).contains(purpose),
+              "Chọn loại hồ sơ gửi hàng xử lý hoặc nhận mua bổ sung.");
+
+          /*
+           * Đơn nhập đã được khóa bởi lockOrder().
+           * Kiểm tra giới hạn ngay trong giao dịch, không chỉ dựa vào FE.
+           */
+          requireAvailableCaseSlot(poId, null, purpose);
 
           Long employeeId = context.employee(request.employeeId(), actor).getId();
 
@@ -608,13 +747,14 @@ public class NccCaseService {
               insert(
                   """
                                     INSERT INTO ncc_case (
-                                      source_po_id, warehouse_id, code, status,
+                                      source_po_id, warehouse_id, code, status, purpose,
                                       reason, employee_id, deadline, revision, created_at
-                                    ) VALUES (?, ?, ?, 'DANG_XU_LY', ?, ?, ?, 0, ?)
+                                    ) VALUES (?, ?, ?, 'DANG_XU_LY', ?, ?, ?, ?, 0, ?)
                                     """,
                   poId,
                   context.defaultWarehouseId(),
                   code,
+                  purpose,
                   request.reason().strip(),
                   employeeId,
                   request.deadline() == null
@@ -629,7 +769,7 @@ public class NccCaseService {
               null,
               null,
               null,
-              request.document().strip(),
+              documentReference(caseId, "MO_HO_SO", request.document(), 0L),
               request.reason().strip(),
               request,
               actor.getId(),
@@ -668,6 +808,10 @@ public class NccCaseService {
               "Hồ sơ đã kết thúc.");
 
           LocalDateTime at = actual(request.at(), order);
+
+          validateCaseAction(c, request);
+
+          documentReference(caseId, action, request.document(), id(c.get("revision")) + 1L);
 
           switch (action) {
             case "GUI" -> send(order, c, request, actor, at);
@@ -709,43 +853,32 @@ public class NccCaseService {
 
             case "MO_LAI" -> {
               require(!"DANG_XU_LY".equals(state), "Hồ sơ đang được xử lý.");
+
+              requireAvailableCaseSlot(poId, caseId, casePurpose(c));
+
               jdbc.update("UPDATE ncc_case SET status = 'DANG_XU_LY' WHERE id = ?", caseId);
+
               log(c, null, request, actor, at, null, null, null);
             }
 
             case "KET_THUC" -> {
-              int pending =
+              String blocker = closeBlocker(poId, caseId);
+              require(blocker.isEmpty(), blocker);
+
+              Integer acceptedFault =
                   jdbc.queryForObject(
                       """
-                                            SELECT COUNT(*) FROM ncc_unit
-                                            WHERE case_id = ? AND status IN ('DANG_O_NCC', 'DA_NHAN_LOI')
-                                            """,
-                      Integer.class,
-                      caseId);
-
-              require(
-                  pending == 0, "Còn hàng đang ở Nhà Cung Cấp hoặc hàng nhận về chưa xử lý xong.");
-
-              if (accounting.caseAdjustments(caseId).signum() != 0) {
-                var balance = purchases.getDetail(poId);
-                require(
-                    balance.getSoTienConNo().signum() == 0
-                        && balance.getSoTienNccConPhaiHoan().signum() == 0,
-                    "Đơn nhập còn khoản tiền chưa đối chiếu xong.");
-              }
-
-              int acceptedFault =
-                  jdbc.queryForObject(
-                      """
-                                            SELECT COUNT(*) FROM ncc_unit
-                                            WHERE case_id = ? AND status = 'CHAP_NHAN_LOI'
-                                            """,
+                                    SELECT COUNT(*)
+                                    FROM ncc_unit
+                                    WHERE case_id = ?
+                                      AND status = 'CHAP_NHAN_LOI'
+                                    """,
                       Integer.class,
                       caseId);
 
               jdbc.update(
                   "UPDATE ncc_case SET status = ? WHERE id = ?",
-                  acceptedFault > 0 ? "KET_THUC_DOI_SOAT" : "HOAN_TAT",
+                  acceptedFault != null && acceptedFault > 0 ? "KET_THUC_DOI_SOAT" : "HOAN_TAT",
                   caseId);
 
               log(c, null, request, actor, at, null, null, null);
@@ -779,7 +912,8 @@ public class NccCaseService {
         oldSerial,
         newSerial,
         voucherId,
-        request.document().strip(),
+        documentReference(
+            id(c.get("id")), request.action(), request.document(), id(c.get("revision")) + 1L),
         request.note().strip(),
         request,
         actor.getId(),
@@ -832,6 +966,13 @@ public class NccCaseService {
       require(
           !at.isBefore(timestamp(previous.get("last_moved_at"))),
           "Thời điểm gửi nằm trước lần nhận gần nhất.");
+
+      if (PURPOSE_EXTRA.equals(casePurpose(c))) {
+        require(
+            Objects.equals(id(previous.get("case_id")), caseId)
+                && Set.of("EXTRA", "LEGACY_EXTRA").contains(text(previous.get("origin"))),
+            "Chỉ được gửi xử lý hàng bổ sung thuộc chính hồ sơ này.");
+      }
 
       detailId = id(previous.get("source_line_id"));
     }
@@ -1398,7 +1539,8 @@ public class NccCaseService {
     String note =
         c.get("code")
             + " | "
-            + request.document()
+            + documentReference(
+                id(c.get("id")), request.action(), request.document(), id(c.get("revision")) + 1L)
             + " | "
             + request.note()
             + (reference.isBlank() ? "" : " | GD: " + reference);
@@ -1496,66 +1638,89 @@ public class NccCaseService {
       Long caseId = id(c.get("id"));
 
       c.put(
-          "events",
+          "units",
           jdbc.queryForList(
               """
-                        SELECT
-                          e.id,
-                          e.unit_id,
-                          e.action,
-                          e.document,
-                          e.note,
-                          CAST(e.payload AS CHAR) AS payload,
-                          e.occurred_at,
-                          e.voucher_id,
-                          n.ho_ten AS actor_name,
-                          old_s.so_serial AS old_serial,
-                          new_s.so_serial AS new_serial,
-                          a.kind AS adjustment_kind,
-                          a.old_value,
-                          a.credit AS settled_credit,
-                          a.new_value,
-                          a.fee AS service_fee,
-                          a.delta,
-                          voucher.ma_phieu AS voucher_code,
-                          voucher.so_tien AS cash_amount,
-                          voucher.phuong_thuc_thanh_toan AS cash_method
-                        FROM ncc_event e
-                        JOIN nguoi_dung n ON n.id = e.actor_id
-                        LEFT JOIN so_serial_san_pham old_s
-                          ON old_s.id = e.old_serial_id
-                        LEFT JOIN so_serial_san_pham new_s
-                          ON new_s.id = e.new_serial_id
-                        LEFT JOIN ncc_adjustment a
-                          ON a.event_id = e.id
-                        LEFT JOIN so_quy_thu_chi voucher
-                          ON voucher.id = e.voucher_id
-                        WHERE e.case_id = ?
-                        ORDER BY e.id
-                        """,
+                          SELECT
+                            u.*,
+                            v.ten_phien_ban AS variant_name,
+                            v.co_quan_ly_serial AS serial_managed,
+                            target.ten_phien_ban AS expected_variant_name,
+                            target.co_quan_ly_serial AS expected_serial_managed,
+                            s.so_serial,
+                            s.trang_thai AS live_serial_status,
+                            EXISTS(
+                              SELECT 1
+                              FROM ncc_unit child
+                              WHERE child.parent_id = u.id
+                            ) AS has_child
+                          FROM ncc_unit u
+                          JOIN phien_ban_san_pham v
+                            ON v.id = u.variant_id
+                          JOIN phien_ban_san_pham target
+                            ON target.id = u.expected_variant_id
+                          LEFT JOIN so_serial_san_pham s
+                            ON s.id = u.serial_id
+                          WHERE u.case_id = ?
+                          ORDER BY u.id
+                          """,
               caseId));
 
       c.put(
           "events",
           jdbc.queryForList(
               """
-                            SELECT
-                              e.id, e.unit_id, e.action, e.document, e.note,
-                              CAST(e.payload AS CHAR) AS payload,
-                              e.occurred_at, e.voucher_id,
-                              n.ho_ten AS actor_name,
-                              old_s.so_serial AS old_serial,
-                              new_s.so_serial AS new_serial
-                            FROM ncc_event e
-                            JOIN nguoi_dung n ON n.id = e.actor_id
-                            LEFT JOIN so_serial_san_pham old_s ON old_s.id = e.old_serial_id
-                            LEFT JOIN so_serial_san_pham new_s ON new_s.id = e.new_serial_id
-                            WHERE e.case_id = ?
-                            ORDER BY e.id
-                            """,
+                          SELECT
+                            e.id,
+                            e.unit_id,
+                            e.action,
+                            e.document,
+                            e.note,
+                            CAST(e.payload AS CHAR) AS payload,
+                            e.occurred_at,
+                            e.voucher_id,
+                            n.ho_ten AS actor_name,
+                            old_s.so_serial AS old_serial,
+                            new_s.so_serial AS new_serial,
+                            a.kind AS adjustment_kind,
+                            a.old_value,
+                            a.credit AS settled_credit,
+                            a.new_value,
+                            a.fee AS service_fee,
+                            a.delta,
+                            voucher.ma_phieu AS voucher_code,
+                            voucher.so_tien AS cash_amount,
+                            voucher.phuong_thuc_thanh_toan AS cash_method
+                          FROM ncc_event e
+                          JOIN nguoi_dung n
+                            ON n.id = e.actor_id
+                          LEFT JOIN so_serial_san_pham old_s
+                            ON old_s.id = e.old_serial_id
+                          LEFT JOIN so_serial_san_pham new_s
+                            ON new_s.id = e.new_serial_id
+                          LEFT JOIN ncc_adjustment a
+                            ON a.event_id = e.id
+                          LEFT JOIN so_quy_thu_chi voucher
+                            ON voucher.id = e.voucher_id
+                          WHERE e.case_id = ?
+                          ORDER BY e.id
+                          """,
               caseId));
 
       c.put("adjustment", accounting.caseAdjustments(caseId));
+
+      boolean active = "DANG_XU_LY".equals(text(c.get("status")));
+      String blocker = active ? closeBlocker(poId, caseId) : "";
+
+      c.put("can_close", active && blocker.isEmpty());
+      c.put("close_blocker", blocker);
+
+      boolean reopenConflict = !active && hasActiveCaseConflict(poId, caseId, casePurpose(c));
+
+      c.put("can_reopen", !active && !reopenConflict);
+      c.put(
+          "reopen_blocker",
+          reopenConflict ? "Đang có hồ sơ cùng loại hoặc hồ sơ cũ chưa kết thúc." : "");
     }
 
     List<Map<String, Object>> variants =
@@ -1597,14 +1762,48 @@ public class NccCaseService {
     result.put("sources", sources);
     result.put("variants", variants);
     result.put("employees", employees);
+
+    boolean eligible =
+        order.getTrangThaiNhap() != TrangThaiNhapHang.DAT_HANG
+            && order.getTrangThaiNhap() != TrangThaiNhapHang.HUY;
+
+    List<Map<String, Object>> caseTypes = new ArrayList<>();
+
+    for (String purpose : List.of(PURPOSE_SEND, PURPOSE_EXTRA)) {
+      boolean conflict = hasActiveCaseConflict(poId, null, purpose);
+
+      caseTypes.add(
+          Map.of(
+              "code",
+              purpose,
+              "label",
+              PURPOSE_SEND.equals(purpose) ? "Gửi hàng xử lý" : "Nhận mua bổ sung",
+              "can_create",
+              eligible && !conflict,
+              "blocker",
+              !eligible
+                  ? "Đơn nhập chưa được duyệt hoặc đã bị hủy."
+                  : conflict ? "Đang có hồ sơ cùng loại hoặc hồ sơ cũ chưa kết thúc." : ""));
+    }
+
+    result.put("case_types", caseTypes);
+
     result.put("cases", cases);
     result.put(
         "balance",
         Map.of(
-            "effective", order.getGiaTriSauTra(),
-            "adjustment", accounting.adjustments(poId),
-            "debt", order.getSoTienConNo(),
-            "refundDue", order.getSoTienNccConPhaiHoan()));
+            "effective",
+            order.getGiaTriSauTra(),
+            "adjustment",
+            accounting.adjustments(poId),
+            "debt",
+            order.getSoTienConNo(),
+            "refundDue",
+            order.getSoTienNccConPhaiHoan(),
+            "canPay",
+            order.getSoTienConNo().signum() > 0,
+            "canRefund",
+            order.getSoTienNccConPhaiHoan().signum() > 0));
 
     return safe(result);
   }

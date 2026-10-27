@@ -33,7 +33,7 @@ public class NccCaseController {
 
     return ApiResponse.<NccCaseService.Result>builder()
         .status(200)
-        .message("Mở hồ sơ xử lý Nhà Cung Cấp thành công")
+        .message("Tạo hồ sơ xử lý Nhà Cung Cấp thành công")
         .data(service.open(poId, key, request))
         .build();
   }
