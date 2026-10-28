@@ -25,6 +25,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -37,6 +38,7 @@ public class AdminInventoryService {
   private final KhoHangRepository khoHangRepository;
   private final TheKhoRepository theKhoRepository;
   private final TonKhoMapper tonKhoMapper;
+  private final JdbcTemplate recallJdbc;
 
   @Value("${ruventu.inventory.time-zone:Asia/Ho_Chi_Minh}")
   private String inventoryTimeZone;
@@ -110,6 +112,15 @@ public class AdminInventoryService {
         .loaiDoiTuong("PHIEN_BAN")
         .doiTuongId(id)
         .phienBan(tonKhoMapper.toPhienBan(phienBan))
+        .cachLyThuHoi(
+            recallJdbc.queryForList(
+                """
+                            SELECT kho_hang_id, so_luong_cach_ly_thu_hoi
+                            FROM ton_kho
+                            WHERE phien_ban_id = ?
+                            ORDER BY kho_hang_id
+                            """,
+                id))
         .tonKhoTheoKho(stocks)
         .build();
   }

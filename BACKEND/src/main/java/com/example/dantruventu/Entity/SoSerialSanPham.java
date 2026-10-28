@@ -37,6 +37,10 @@ public class SoSerialSanPham {
   @Column(name = "tinh_trang_hang", nullable = false, length = 40)
   private String tinhTrangHang = "CHUA_XAC_DINH";
 
+  @Builder.Default
+  @Column(name = "bi_thu_hoi", nullable = false)
+  private Boolean biThuHoi = false;
+
   @ManyToOne(fetch = FetchType.LAZY)
   @JoinColumn(name = "don_hang_id")
   private DonHang donHang;

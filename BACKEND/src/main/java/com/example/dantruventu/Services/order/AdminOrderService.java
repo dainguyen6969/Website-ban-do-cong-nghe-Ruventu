@@ -22,6 +22,7 @@ import com.example.dantruventu.Repository.warehouse.SoSerialSanPhamRepository;
 import com.example.dantruventu.Services.cashbook.CashbookService;
 import com.example.dantruventu.Services.order.sales.*;
 import com.example.dantruventu.Services.order.sales.SoldDeviceService;
+import com.example.dantruventu.Services.warehouse.RecallSafety;
 import com.example.dantruventu.Services.warranty.WarrantyDeviceResolver;
 import com.example.dantruventu.Specification.OrderSpecification;
 import jakarta.persistence.EntityManager;
@@ -77,6 +78,7 @@ public class AdminOrderService {
   private final WarrantyDeviceResolver warrantyDeviceResolver;
   private final ObjectMapper objectMapper;
   private final OrderIntakePolicy intakePolicy;
+  private final RecallSafety recallSafety;
 
   @Transactional(isolation = Isolation.READ_COMMITTED)
   public AdminOrderResponse.Action counterExchange(
@@ -224,6 +226,7 @@ public class AdminOrderService {
         (long) stock.getTonThucTe()
             - stock.getHangLoi()
             - stock.getSoLuongGiuChoBaoHanh()
+            - stock.getSoLuongCachLyThuHoi()
             - stock.getTonCoTheBan();
 
     if (held != inventory.expectedHeld(variantId)) {
@@ -310,6 +313,8 @@ public class AdminOrderService {
                 + "; thiết bị="
                 + oldDevice.getHanBaoHanh());
       }
+
+      recallSafety.requireSerialClear(replacementSerial);
 
       if (!Objects.equals(replacementSerial.getSoSerial(), newSerialText)
           || !Objects.equals(replacementSerial.getPhienBan().getId(), variantId)
@@ -1667,6 +1672,8 @@ public class AdminOrderService {
       throw conflict("Mã vận đơn đã được sử dụng");
     }
 
+    recallSafety.requireOrderClear(order.getId());
+
     BigDecimal codToCollect = remainingForCod(order);
 
     if (delivery == null) {
@@ -1907,6 +1914,7 @@ public class AdminOrderService {
               cb.and(
                   cb.equal(root.get("phienBan").get("id"), variantId),
                   cb.equal(root.get("trangThai"), TrangThaiSerial.TRONG_KHO),
+                  cb.isFalse(root.get("biThuHoi")),
                   cb.isNull(root.get("donHang")),
                   cb.or(
                       cb.isNull(packingLine.get("id")),

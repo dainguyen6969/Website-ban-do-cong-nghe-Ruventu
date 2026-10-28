@@ -51,6 +51,8 @@ public class NccCaseService {
   private final NccAccountingService accounting;
   private final EntityManager entityManager;
   private final ObjectMapper json;
+  private final RecallSafety recallSafety;
+  private final SourceTraceService sourceTraceService;
 
   @Value("${ruventu.inventory.time-zone:Asia/Ho_Chi_Minh}")
   private String timeZone;
@@ -388,6 +390,8 @@ public class NccCaseService {
   }
 
   private Map<String, Object> stock(Long warehouseId, Long variantId) {
+    recallSafety.reconcileJdbc(warehouseId, variantId);
+
     List<Map<String, Object>> rows =
         jdbc.queryForList(
             """
@@ -426,17 +430,24 @@ public class NccCaseService {
     return s;
   }
 
-  private long held(Map<String, Object> s) {
-    int actual = integer(s.get("ton_thuc_te"));
-    int available = integer(s.get("ton_co_the_ban"));
-    int damaged = integer(s.get("hang_loi"));
-    int warranty = integer(s.get("so_luong_giu_cho_bao_hanh"));
+  private long held(Map<String, Object> stock) {
+    int actual = integer(stock.get("ton_thuc_te"));
+    int available = integer(stock.get("ton_co_the_ban"));
+    int damaged = integer(stock.get("hang_loi"));
+    int warranty = integer(stock.get("so_luong_giu_cho_bao_hanh"));
+    int quarantine = integer(stock.get("so_luong_cach_ly_thu_hoi"));
 
-    long held = (long) actual - available - damaged - warranty;
+    long held = (long) actual - available - damaged - warranty - quarantine;
 
     require(
-        actual >= 0 && available >= 0 && damaged >= 0 && warranty >= 0 && held >= 0,
+        actual >= 0
+            && available >= 0
+            && damaged >= 0
+            && warranty >= 0
+            && quarantine >= 0
+            && held >= 0,
         "Tồn kho không nhất quán; cần đối soát.");
+
     return held;
   }
 
@@ -450,43 +461,70 @@ public class NccCaseService {
       Long caseId,
       LocalDateTime at) {
 
-    Map<String, Object> s = stock(warehouseId, variantId);
-    long beforeHeld = held(s);
+    moveStock(
+        warehouseId, variantId, actualDelta, availableDelta, damagedDelta, 0, type, caseId, at);
+  }
+
+  private void moveStock(
+      Long warehouseId,
+      Long variantId,
+      int actualDelta,
+      int availableDelta,
+      int damagedDelta,
+      int quarantineDelta,
+      String type,
+      Long caseId,
+      LocalDateTime at) {
+
+    Map<String, Object> stock = stock(warehouseId, variantId);
+    long beforeHeld = held(stock);
 
     int actual;
     int available;
     int damaged;
+    int quarantine;
+
     try {
-      actual = Math.addExact(integer(s.get("ton_thuc_te")), actualDelta);
-      available = Math.addExact(integer(s.get("ton_co_the_ban")), availableDelta);
-      damaged = Math.addExact(integer(s.get("hang_loi")), damagedDelta);
+      actual = Math.addExact(integer(stock.get("ton_thuc_te")), actualDelta);
+      available = Math.addExact(integer(stock.get("ton_co_the_ban")), availableDelta);
+      damaged = Math.addExact(integer(stock.get("hang_loi")), damagedDelta);
+      quarantine = Math.addExact(integer(stock.get("so_luong_cach_ly_thu_hoi")), quarantineDelta);
     } catch (ArithmeticException exception) {
       throw conflict("Số lượng tồn vượt giới hạn.");
     }
 
-    require(actual >= 0 && available >= 0 && damaged >= 0, "Không đủ tồn đúng loại để thực hiện.");
+    require(
+        actual >= 0 && available >= 0 && damaged >= 0 && quarantine >= 0,
+        "Không đủ tồn đúng loại để thực hiện.");
 
     long afterHeld =
-        (long) actual - available - damaged - integer(s.get("so_luong_giu_cho_bao_hanh"));
+        (long) actual
+            - available
+            - damaged
+            - integer(stock.get("so_luong_giu_cho_bao_hanh"))
+            - quarantine;
 
     require(beforeHeld == afterHeld, "Thao tác làm thay đổi lượng đang giữ cho đơn.");
 
     jdbc.update(
         """
                 UPDATE ton_kho
-                SET ton_thuc_te = ?, ton_co_the_ban = ?, hang_loi = ?
+                SET ton_thuc_te = ?, ton_co_the_ban = ?,
+                    hang_loi = ?, so_luong_cach_ly_thu_hoi = ?
                 WHERE id = ?
                 """,
         actual,
         available,
         damaged,
-        id(s.get("id")));
+        quarantine,
+        id(stock.get("id")));
 
     jdbc.update(
         """
                 INSERT INTO the_kho (
                   kho_hang_id, phien_ban_id, loai_giao_dich,
-                  ma_chung_tu_goc, so_luong_thay_doi, ton_cuoi, ghi_chu, ngay_tao
+                  ma_chung_tu_goc, so_luong_thay_doi,
+                  ton_cuoi, ghi_chu, ngay_tao
                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                 """,
         warehouseId,
@@ -495,7 +533,7 @@ public class NccCaseService {
         caseId,
         actualDelta,
         actual,
-        "Hồ sơ xử lý NCC #" + caseId,
+        "Xử lý Nhà Cung Cấp #" + caseId,
         Timestamp.valueOf(at));
   }
 
@@ -889,6 +927,20 @@ public class NccCaseService {
 
           jdbc.update("UPDATE ncc_case SET revision = revision + 1 WHERE id = ?", caseId);
 
+          for (Long variantId :
+              jdbc.queryForList(
+                  """
+                            SELECT DISTINCT variant_id
+                            FROM ncc_unit
+                            WHERE case_id = ?
+                            ORDER BY variant_id
+                            """,
+                  Long.class,
+                  caseId)) {
+
+            recallSafety.reconcileJdbc(context.defaultWarehouseId(), variantId);
+          }
+
           purchases.synchronizeNcc(poId);
 
           return new Result(caseId, text(c.get("code")), action);
@@ -905,19 +957,31 @@ public class NccCaseService {
       Long newSerial,
       Long voucherId) {
 
-    return event(
+    long eventId =
+        event(
+            id(c.get("id")),
+            unitId,
+            request.action(),
+            oldSerial,
+            newSerial,
+            voucherId,
+            documentReference(
+                id(c.get("id")), request.action(), request.document(), id(c.get("revision")) + 1L),
+            request.note().strip(),
+            request,
+            actor.getId(),
+            at);
+
+    sourceTraceService.recordNccReceipt(
+        eventId,
         id(c.get("id")),
         unitId,
         request.action(),
-        oldSerial,
         newSerial,
-        voucherId,
-        documentReference(
-            id(c.get("id")), request.action(), request.document(), id(c.get("revision")) + 1L),
-        request.note().strip(),
-        request,
-        actor.getId(),
-        at);
+        request.document(),
+        Boolean.TRUE.equals(request.alreadyInStock()));
+
+    return eventId;
   }
 
   private void send(
@@ -1061,12 +1125,17 @@ public class NccCaseService {
               ? previous == null ? "CHUA_XAC_DINH" : text(previous.get("condition_code"))
               : text(s.get("tinh_trang_hang"));
 
-      move(
+      boolean quarantined =
+          !faulty
+              && (s == null ? recallSafety.variantBlocked(variantId) : bool(s.get("bi_thu_hoi")));
+
+      moveStock(
           warehouseId,
           variantId,
           -1,
-          faulty ? 0 : -1,
+          faulty || quarantined ? 0 : -1,
           faulty ? -1 : 0,
+          quarantined ? -1 : 0,
           "GUI_XU_LY_NCC",
           caseId,
           at);
@@ -1195,7 +1264,9 @@ public class NccCaseService {
           "Số lượng hàng lỗi trong kho không đủ để đối chiếu.");
 
       require(
-          integer(inventory.get("ton_co_the_ban")) >= normalQuantity,
+          (long) integer(inventory.get("ton_co_the_ban"))
+                  + integer(inventory.get("so_luong_cach_ly_thu_hoi"))
+              >= normalQuantity,
           "Không đủ hàng tự do trong kho để đối chiếu phần hàng thừa. "
               + "Cần kiểm tra hàng đã bán hoặc đang được giữ.");
     }

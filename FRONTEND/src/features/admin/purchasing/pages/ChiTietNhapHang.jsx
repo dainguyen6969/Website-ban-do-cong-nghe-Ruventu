@@ -8,6 +8,7 @@ import './NhapHang.css';
 
 import OrderModal from '../../orders/components/OrderModal';
 import SupplierCasePanel from '../components/SupplierCasePanel';
+import PurchaseSourcePanel from '../../inventory/recall/PurchaseSourcePanel';
 
 import {
   errorMessage,
@@ -21,6 +22,7 @@ import {
   approvePurchaseOrder,
   cancelPurchaseOrder,
   getPurchaseOrder,
+  getPurchaseReturnSerials,
   payPurchaseOrder,
   receivePurchaseOrder,
   receivePurchaseRefund,
@@ -48,13 +50,18 @@ export default function ChiTietNhapHang() {
 
   const [pageBusy, setBusy] = useState(false);
   const [nccLocked, setNccLocked] = useState(false);
+  const [sourceLocked, setSourceLocked] = useState(false);
 
-  const busy = pageBusy || nccLocked;
+  const busy = pageBusy || nccLocked || sourceLocked;
 
   const [error, setError] = useState('');
   const [serialValues, setSerialValues] = useState({});
   const pagination = useDetailTablePagination(order?.items);
   const [receiptQuantities, setReceiptQuantities] = useState({});
+
+  const [supplierReceiptDocument, setSupplierReceiptDocument] = useState('');
+  const [supplierLots, setSupplierLots] = useState({});
+
   const load = useCallback(
     async (signal) => {
       try {
@@ -89,7 +96,7 @@ export default function ChiTietNhapHang() {
   }, [order]);
 
   const run = async (request) => {
-    if (operationBusy.current || nccLocked) return;
+    if (operationBusy.current || nccLocked || sourceLocked) return;
 
     operationBusy.current = true;
     setBusy(true);
@@ -171,6 +178,18 @@ export default function ChiTietNhapHang() {
       )
     );
 
+    setSupplierReceiptDocument(pending?.body.ma_phieu_xuat_ncc || '');
+
+    setSupplierLots(
+      Object.fromEntries(
+        waitingReceipt.map((item) => [
+          item.id,
+          pending?.body.items.find((row) => Number(row.chi_tiet_don_nhap_id) === item.id)
+            ?.ma_lo_ncc || '',
+        ])
+      )
+    );
+
     setError('');
     setModal('receipt');
   };
@@ -213,10 +232,12 @@ export default function ChiTietNhapHang() {
           ? pending.body
           : {
               kho_hang_id: order.warehouse.id,
+              ma_phieu_xuat_ncc: supplierReceiptDocument.trim() || null,
               items: receiptItems
                 .filter(({ quantity }) => quantity > 0)
                 .map(({ item, quantity, codes }) => ({
                   chi_tiet_don_nhap_id: item.id,
+                  ma_lo_ncc: (supplierLots[item.id] || '').trim() || null,
                   so_luong_nhap_kho: quantity,
                   quan_ly_serial: item.serialManaged,
                   so_serials: codes,
@@ -325,7 +346,7 @@ export default function ChiTietNhapHang() {
                   setModal('return');
                 }}
               >
-                HOÀN TRẢ NHÀ CUNG CẤP
+                TRẢ HÀNG TRỰC TIẾP
               </button>
             )}
 
@@ -387,10 +408,16 @@ export default function ChiTietNhapHang() {
             />
           </PurchaseCard>
 
+          <PurchaseSourcePanel
+            order={order}
+            locked={pageBusy || nccLocked || Boolean(modal)}
+            onLockChange={setSourceLocked}
+          />
+
           <SupplierCasePanel
             key={order.id}
             order={order}
-            locked={pageBusy || Boolean(modal) || Boolean(purchaseAttempt.current)}
+            locked={pageBusy || sourceLocked || Boolean(modal) || Boolean(purchaseAttempt.current)}
             onRefresh={load}
             onLockChange={setNccLocked}
           />
@@ -535,6 +562,18 @@ export default function ChiTietNhapHang() {
             {order.code} · Kho: <strong>{order.warehouse.name}</strong>
           </p>
 
+          <div className="recall-receipt-metadata">
+            <label>
+              <span>Mã phiếu xuất/giao hàng của Nhà Cung Cấp</span>
+              <input
+                maxLength={100}
+                disabled={receiptLocked}
+                value={supplierReceiptDocument}
+                onChange={(event) => setSupplierReceiptDocument(event.target.value)}
+              />
+            </label>
+          </div>
+
           <p className="receipt-config-note">
             Có thể nhập từng phần. Để số lượng bằng 0 đối với dòng chưa nhận.
           </p>
@@ -567,6 +606,21 @@ export default function ChiTietNhapHang() {
                     <tr key={item.id}>
                       <td>
                         <strong>{item.name}</strong>
+
+                        <label className="recall-lot-field">
+                          <span>Mã lô Nhà Cung Cấp</span>
+                          <input
+                            maxLength={100}
+                            disabled={receiptLocked || quantity === 0}
+                            value={supplierLots[item.id] || ''}
+                            onChange={(event) =>
+                              setSupplierLots((current) => ({
+                                ...current,
+                                [item.id]: event.target.value,
+                              }))
+                            }
+                          />
+                        </label>
                       </td>
                       <td>{item.qty}</td>
                       <td>{item.received}</td>

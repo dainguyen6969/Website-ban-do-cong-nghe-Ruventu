@@ -17,6 +17,8 @@ import com.example.dantruventu.Repository.warehouse.*;
 import com.example.dantruventu.Services.cashbook.CashbookService;
 import com.example.dantruventu.Services.order.OrderEvents;
 import com.example.dantruventu.Services.warehouse.NccAccountingService;
+import com.example.dantruventu.Services.warehouse.RecallSafety;
+import com.example.dantruventu.Services.warehouse.SourceTraceService;
 import com.example.dantruventu.Services.warehouse.WarehouseSupport;
 import com.example.dantruventu.Specification.PurchaseOrderSpecification;
 import jakarta.persistence.EntityManager;
@@ -48,23 +50,14 @@ public class AdminPurchaseOrderService {
   private static final BigDecimal ZERO = BigDecimal.ZERO.setScale(2);
 
   private final DonNhapHangRepository donNhapHangRepository;
-
   private final ChiTietDonNhapRepository chiTietDonNhapRepository;
-
   private final NhaCungCapRepository nhaCungCapRepository;
-
   private final PhienBanSanPhamRepository phienBanSanPhamRepository;
-
   private final KhoHangRepository khoHangRepository;
-
   private final TonKhoRepository tonKhoRepository;
-
   private final TheKhoRepository theKhoRepository;
-
   private final SoSerialSanPhamRepository soSerialSanPhamRepository;
-
   private final SoQuyThuChiRepository soQuyThuChiRepository;
-
   private final NguoiDungRepository nguoiDungRepository;
 
   private final AdminPurchaseOrderMapper mapper;
@@ -72,6 +65,9 @@ public class AdminPurchaseOrderService {
   private final OrderEvents orderEvents;
   private final WarehouseSupport warehouseSupport;
   private final NccAccountingService nccAccounting;
+
+  private final SourceTraceService sourceTraceService;
+  private final RecallSafety recallSafety;
 
   private final EntityManager entityManager;
 
@@ -564,6 +560,9 @@ public class AdminPurchaseOrderService {
     }
 
     theKhoRepository.flush();
+    entityManager.flush();
+
+    sourceTraceService.recordPurchaseReceipt(order.getId(), request, responseItems);
 
     refreshImportStatus(order, details);
     donNhapHangRepository.save(order);
@@ -1591,16 +1590,24 @@ public class AdminPurchaseOrderService {
     }
 
     if (!rows.isEmpty()) {
-      return rows.get(0);
+      TonKho stock = rows.get(0);
+      recallSafety.track(stock);
+      return stock;
     }
 
-    return TonKho.builder()
-        .khoHang(warehouse)
-        .phienBan(variant)
-        .tonThucTe(0)
-        .tonCoTheBan(0)
-        .hangLoi(0)
-        .build();
+    TonKho created =
+        TonKho.builder()
+            .khoHang(warehouse)
+            .phienBan(variant)
+            .tonThucTe(0)
+            .tonCoTheBan(0)
+            .hangLoi(0)
+            .build();
+
+    created = tonKhoRepository.saveAndFlush(created);
+    recallSafety.track(created);
+
+    return created;
   }
 
   private TonKho lockExistingInventory(KhoHang warehouse, PhienBanSanPham variant) {
@@ -1617,7 +1624,9 @@ public class AdminPurchaseOrderService {
       throw new AppException(ErrorCode.CONFLICT, "Dữ liệu tồn kho bị trùng");
     }
 
-    return rows.get(0);
+    TonKho stock = rows.get(0);
+    recallSafety.track(stock);
+    return stock;
   }
 
   private void updatePaymentStatus(DonNhapHang order) {
@@ -1680,6 +1689,7 @@ public class AdminPurchaseOrderService {
                     || serial.getTrangThai() == TrangThaiSerial.LOI)
         .filter(serial -> serial.getChiTietDongGoi() == null)
         .filter(serial -> !nccAccounting.trackedSerial(serial.getId()))
+        .filter(serial -> !Boolean.TRUE.equals(serial.getBiThuHoi()))
         .map(
             serial ->
                 AdminPurchaseOrderReceiveResponse.SerialData.builder()
@@ -1731,6 +1741,7 @@ public class AdminPurchaseOrderService {
     int defects = 0;
 
     for (var serial : serials) {
+      recallSafety.requireSerialClear(serial);
       if (nccAccounting.trackedSerial(serial.getId())) {
         throw new AppException(
             ErrorCode.CONFLICT,

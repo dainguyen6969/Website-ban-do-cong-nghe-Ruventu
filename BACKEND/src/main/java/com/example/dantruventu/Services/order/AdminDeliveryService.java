@@ -18,6 +18,7 @@ import com.example.dantruventu.Services.catalog.CatalogSupport;
 import com.example.dantruventu.Services.order.sales.OrderSaleSnapshotService;
 import com.example.dantruventu.Services.order.sales.SalesContext;
 import com.example.dantruventu.Services.order.sales.SoldDeviceService;
+import com.example.dantruventu.Services.warehouse.RecallSafety;
 import com.example.dantruventu.Specification.DeliverySpecification;
 import jakarta.persistence.EntityManager;
 import java.math.BigDecimal;
@@ -60,6 +61,7 @@ public class AdminDeliveryService {
   private final CashbookService cashbookService;
   private final SalesContext salesContext;
   private final ObjectMapper objectMapper;
+  private final RecallSafety recallSafety;
 
   @Value("${ruventu.shipping.time-zone:Asia/Ho_Chi_Minh}")
   private String shippingTimeZone;
@@ -303,6 +305,7 @@ public class AdminDeliveryService {
       }
 
       requirePackedAndExported(order);
+      recallSafety.requireOrderClear(order.getId());
       requireActivePartner(delivery.getDoiTacVanChuyen().getId());
 
       delivery.setTienThuHoCod(calculateCod(order));

@@ -17,6 +17,8 @@ import com.example.dantruventu.Repository.warehouse.SoSerialSanPhamRepository;
 import com.example.dantruventu.Repository.warehouse.ThanhPhanComboRepository;
 import com.example.dantruventu.Repository.warehouse.TonKhoRepository;
 import com.example.dantruventu.Services.catalog.CatalogSupport;
+import com.example.dantruventu.Services.warehouse.RecallSafety;
+import com.example.dantruventu.Services.warehouse.WarehouseSupport;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.LockModeType;
 import java.math.BigDecimal;
@@ -43,6 +45,7 @@ public class SalesCalculationService {
   private final SalesPromotionRepository promotionRepository;
   private final SalesPromotionDetailRepository promotionDetailRepository;
   private final EntityManager entityManager;
+  private final RecallSafety recallSafety;
 
   public record SerialKey(String lineKey, Long variantId) {}
 
@@ -296,6 +299,7 @@ public class SalesCalculationService {
 
     if (lock) {
       entityManager.refresh(stock);
+      recallSafety.track(stock);
     }
 
     if (stock.getTonThucTe() == null
@@ -311,6 +315,8 @@ public class SalesCalculationService {
 
       throw conflict("Dữ liệu tồn kho không nhất quán tại phiên bản " + variantId);
     }
+
+    WarehouseSupport.numbers(stock);
 
     return stock;
   }

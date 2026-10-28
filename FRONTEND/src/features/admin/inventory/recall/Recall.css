@@ -1,0 +1,393 @@
+.recall-page,
+.recall-source-card,
+.recall-trace,
+.recall-modal,
+.recall-receipt-metadata,
+.recall-lot-field {
+  --recall-red: var(--color-brand-red, #e31e24);
+  --recall-text: var(--color-text-primary, #1a1d23);
+  --recall-muted: var(--color-text-secondary, #6b7280);
+  --recall-line: var(--border-color, #e5e7eb);
+  font-family: inherit;
+  color: var(--recall-text);
+  line-height: 1.55;
+}
+
+.recall-heading,
+.recall-toolbar,
+.recall-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.recall-heading,
+.recall-toolbar {
+  justify-content: space-between;
+}
+.recall-toolbar {
+  margin-bottom: 16px;
+}
+.recall-toolbar > div {
+  min-width: 0;
+}
+.recall-toolbar p {
+  margin: 5px 0 0;
+}
+.recall-body {
+  padding: 18px;
+  min-width: 0;
+}
+.recall-case,
+.recall-source-card,
+.recall-trace {
+  margin-top: 20px;
+}
+
+.recall-page button,
+.recall-source-card button,
+.recall-modal button,
+.recall-trace button {
+  font-family: inherit;
+  font-weight: 500;
+  letter-spacing: normal;
+}
+
+.recall-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 38px;
+  padding: 9px 13px;
+  border: 1px solid #c9cdd3;
+  border-radius: 0;
+  background: #fff;
+  color: var(--recall-text);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.recall-button:hover:not(:disabled) {
+  border-color: #191919;
+  background: #f5f6f8;
+}
+
+.recall-button.is-dark {
+  background: #191919;
+  border-color: #191919;
+  color: #fff;
+}
+
+.recall-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.recall-link-button {
+  background: transparent;
+  border: 0;
+  color: #235f97;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.recall-badge {
+  display: inline-block;
+  padding: 5px 8px;
+  border: 1px solid #dde1e7;
+  border-radius: 0;
+  background: #f4f5f7;
+  color: #5d6672;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.4;
+}
+
+.recall-badge.is-active {
+  border-color: #d2e1f6;
+  background: #edf4fe;
+  color: #235f97;
+}
+
+.recall-badge.is-done {
+  border-color: #cce5d4;
+  background: #edf8f1;
+  color: #247244;
+}
+
+.recall-badge.is-pending {
+  border-color: #ead6b1;
+  background: #fff7e9;
+  color: #885b0e;
+}
+
+.recall-badge.is-blocked {
+  border-color: #efcccc;
+  background: #fff1f1;
+  color: #a92a32;
+}
+
+.recall-facts {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px 20px;
+  margin: 0;
+}
+
+.recall-facts > div {
+  min-width: 0;
+}
+.recall-facts dt {
+  color: var(--recall-muted);
+  font-size: 12px;
+}
+.recall-facts dd {
+  margin: 5px 0 0;
+  overflow-wrap: anywhere;
+}
+
+.recall-facts a,
+.recall-table a,
+.recall-history-line a {
+  color: #235f97;
+  text-decoration: underline;
+}
+
+.recall-table-scroll {
+  overflow-x: auto;
+  min-width: 0;
+}
+.recall-table {
+  width: 100%;
+  min-width: 660px;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.recall-table th,
+.recall-table td {
+  padding: 13px 15px;
+  border-bottom: 1px solid var(--recall-line);
+  text-align: left;
+  vertical-align: top;
+}
+
+.recall-table th {
+  background: #fafbfc;
+  color: var(--recall-muted);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.recall-table td small,
+.recall-page .serial-table td small {
+  display: block;
+  margin-top: 5px;
+  color: var(--recall-muted);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.recall-section {
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--recall-line);
+}
+
+.recall-section summary {
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+}
+.recall-history-line {
+  padding: 14px 0;
+  border-bottom: 1px solid var(--recall-line);
+}
+.recall-history-line small {
+  display: block;
+  margin-top: 5px;
+  color: var(--recall-muted);
+}
+.recall-history-line p {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.recall-muted {
+  color: var(--recall-muted);
+  font-size: 13px;
+}
+
+.recall-notice,
+.recall-error,
+.recall-success {
+  margin: 12px 0;
+  padding: 11px 13px;
+  border-left: 3px solid;
+  font-size: 13px;
+}
+
+.recall-notice {
+  border-color: #c28e31;
+  background: #fff8ec;
+  color: #77521b;
+}
+.recall-error {
+  border-color: #bd343e;
+  background: #fff1f1;
+  color: #a2252e;
+}
+.recall-success {
+  border-color: #328052;
+  background: #f0f8f3;
+  color: #286a44;
+}
+
+.order-operation-modal.recall-modal {
+  width: min(780px, calc(100vw - 32px));
+  max-height: calc(100dvh - 32px);
+  padding: 0;
+  overflow-y: auto;
+  border-radius: 0;
+}
+
+.order-operation-modal.recall-modal > header {
+  min-height: 72px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 17px 20px;
+  background: #191919;
+  color: #fff;
+}
+
+.order-operation-modal.recall-modal > header h2 {
+  margin: 0;
+  padding-left: 10px;
+  border-left: 3px solid var(--recall-red);
+  color: #fff;
+  font-size: 17px;
+  font-weight: 500;
+  letter-spacing: normal;
+}
+
+.order-operation-modal.recall-modal > header p {
+  margin: 5px 0 0 13px;
+  color: #d0d4db;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.order-operation-modal.recall-modal > header > button {
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  padding: 0;
+  border: 1px solid #565d68;
+  background: transparent;
+  color: #fff;
+  font-size: 24px;
+}
+
+.order-operation-modal.recall-modal > .order-operation-fields {
+  display: block;
+  padding: 18px 20px;
+}
+
+.order-operation-modal.recall-modal > footer {
+  position: sticky;
+  bottom: 0;
+  padding: 14px 20px;
+  background: #fff;
+  border-top: 1px solid var(--recall-line);
+}
+
+.order-operation-modal.recall-modal > .order-api-message {
+  margin: 0 20px 16px;
+}
+
+.recall-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.recall-fields > label {
+  display: grid;
+  align-content: start;
+  gap: 7px;
+  min-width: 0;
+}
+.recall-fields > label > span {
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.recall-fields input:not([type='checkbox']),
+.recall-fields select,
+.recall-fields textarea,
+.recall-receipt-metadata input,
+.recall-lot-field input {
+  width: 100%;
+  min-width: 0;
+  min-height: 40px;
+  padding: 9px 11px;
+  border: 1px solid #cbd0d7;
+  border-radius: 0;
+  background: #fff;
+  color: var(--recall-text);
+  font: inherit;
+  font-size: 14px;
+}
+
+.recall-wide {
+  grid-column: 1 / -1;
+}
+.recall-fields > .recall-check {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+}
+.recall-check input {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  margin-top: 3px;
+}
+.recall-receipt-metadata {
+  margin: 16px 0;
+}
+.recall-receipt-metadata label,
+.recall-lot-field {
+  display: grid;
+  gap: 7px;
+}
+.recall-lot-field {
+  margin-top: 10px;
+}
+.recall-lot-field > span {
+  color: var(--recall-muted);
+  font-size: 12px;
+}
+
+@media (max-width: 850px) {
+  .recall-facts {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 600px) {
+  .recall-facts,
+  .recall-fields {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .recall-body {
+    padding: 15px;
+  }
+}
