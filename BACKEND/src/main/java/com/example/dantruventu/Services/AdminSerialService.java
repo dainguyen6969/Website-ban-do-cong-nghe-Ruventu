@@ -19,6 +19,7 @@ import com.example.dantruventu.Error.ErrorCode;
 import com.example.dantruventu.Mapper.warehouse.SoSerialSanPhamMapper;
 import com.example.dantruventu.Repository.NguoiDungRepository;
 import com.example.dantruventu.Repository.warehouse.*;
+import com.example.dantruventu.Services.warehouse.NccAccountingService;
 import com.example.dantruventu.Services.warehouse.WarehouseSupport;
 import com.example.dantruventu.Specification.SoSerialSanPhamSpecification;
 import jakarta.persistence.EntityManager;
@@ -45,6 +46,7 @@ public class AdminSerialService {
   private final SoSerialSanPhamMapper serialMapper;
   private final KhoHangRepository khoHangRepository;
   private final WarehouseSupport warehouseSupport;
+  private final NccAccountingService nccAccounting;
 
   private final EntityManager entityManager;
 
@@ -184,6 +186,8 @@ public class AdminSerialService {
     response.setHanBaoHanh(
         warranty.expiresAt() == null ? null : warranty.expiresAt().atZone(zone).toOffsetDateTime());
 
+    response.setXuLyNcc(nccAccounting.serialHistory(id));
+
     return response;
   }
 
@@ -258,6 +262,12 @@ public class AdminSerialService {
       throw conflict(
           "Serial đang liên kết với đơn hàng, "
               + "không được sửa bằng nghiệp vụ hàng lỗi trong kho");
+    }
+
+    if (nccAccounting.pendingSerial(serial.getId())) {
+      throw conflict(
+          "Serial còn đang xử lý trong hồ sơ Nhà Cung Cấp. "
+              + "Hãy hoàn tất kiểm tra hoặc đối soát trong hồ sơ.");
     }
 
     TrangThaiSerial source = serial.getTrangThai();

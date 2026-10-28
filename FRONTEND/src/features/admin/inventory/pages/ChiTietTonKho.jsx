@@ -8,7 +8,18 @@ import useDetailTablePagination from '../../../../hooks/useDetailTablePagination
 import { getVersionDetail, getVersionLedger } from '../../catalog/products/api/versionApi';
 import './ChiTietTonKho.css';
 
-const transactionOptions = ['Tất cả', 'Nhập hàng', 'Xuất bán', 'Khách trả', 'Trả NCC', 'Kiểm kho'];
+const transactionOptions = [
+  'Tất cả',
+  'Nhập hàng',
+  'Xuất bán',
+  'Khách trả',
+  'Trả NCC',
+  'Kiểm kho',
+  'Gửi xử lý NCC',
+  'Nhận lại từ NCC',
+  'Nhập bổ sung đã thống nhất',
+];
+
 function formatDateTime(value) {
   const date = new Date(value);
   return new Intl.DateTimeFormat('vi-VN', {
@@ -22,9 +33,18 @@ function formatDateTime(value) {
 }
 
 function transactionClass(type) {
-  if (type === 'Nhập hàng' || type === 'Khách trả') return 'is-green';
-  if (type === 'Xuất bán') return 'is-blue';
-  if (type === 'Trả NCC') return 'is-red';
+  if (['Nhập hàng', 'Khách trả', 'Nhận lại từ NCC', 'Nhập bổ sung đã thống nhất'].includes(type)) {
+    return 'is-green';
+  }
+
+  if (type === 'Xuất bán') {
+    return 'is-blue';
+  }
+
+  if (['Trả Nhà Cung Cấp', 'Gửi xử lý Nhà Cung Cấp'].includes(type)) {
+    return 'is-red';
+  }
+
   return 'is-neutral';
 }
 
@@ -359,93 +379,80 @@ export default function ChiTietTonKho() {
               — {selectedVersion.name} · {filteredHistory.length} bản ghi
             </small>
           </header>
-<div className="inventory-history-filters">
-  {/* Từ ngày */}
-  <label>
-    <span className="sr-only">Từ ngày</span>
-    <input
-      type="date"
-      value={fromDate}
-      onChange={(event) => setFromDate(event.target.value)}
-    />
-  </label>
+          <div className="inventory-history-filters">
+            {/* Từ ngày */}
+            <label>
+              <span className="sr-only">Từ ngày</span>
+              <input
+                type="date"
+                value={fromDate}
+                onChange={(event) => setFromDate(event.target.value)}
+              />
+            </label>
 
-  <span
-    className="inventory-date-separator"
-    aria-hidden="true"
-  >
-    —
-  </span>
+            <span className="inventory-date-separator" aria-hidden="true">
+              —
+            </span>
 
-  {/* Đến ngày */}
-  <label>
-    <span className="sr-only">Đến ngày</span>
-    <input
-      type="date"
-      value={toDate}
-      onChange={(event) => setToDate(event.target.value)}
-    />
-  </label>
+            {/* Đến ngày */}
+            <label>
+              <span className="sr-only">Đến ngày</span>
+              <input
+                type="date"
+                value={toDate}
+                onChange={(event) => setToDate(event.target.value)}
+              />
+            </label>
 
-  {/* Loại giao dịch */}
-  <label>
-    <span className="sr-only">Loại giao dịch</span>
+            {/* Loại giao dịch */}
+            <label>
+              <span className="sr-only">Loại giao dịch</span>
 
-    <FilterDropdown
-      value={transactionType}
-      onChange={(event) =>
-        setTransactionType(event.target.value)
-      }
-      selectedDark
-      aria-label="Loại giao dịch"
-    >
-      {transactionOptions.map((option) => (
-        <option key={option} value={option}>
-          {option}
-        </option>
-      ))}
-    </FilterDropdown>
-  </label>
+              <FilterDropdown
+                value={transactionType}
+                onChange={(event) => setTransactionType(event.target.value)}
+                selectedDark
+                aria-label="Loại giao dịch"
+              >
+                {transactionOptions.map((option) => (
+                  <option key={option} value={option}>
+                    {option}
+                  </option>
+                ))}
+              </FilterDropdown>
+            </label>
 
-  {/* Kho hàng */}
-  <label>
-    <span className="sr-only">Kho hàng</span>
+            {/* Kho hàng */}
+            <label>
+              <span className="sr-only">Kho hàng</span>
 
-    <FilterDropdown
-      value={warehouse}
-      onChange={(event) =>
-        setWarehouse(event.target.value)
-      }
-      selectedDark
-      aria-label="Kho hàng"
-    >
-      <option value="">Tất cả kho</option>
+              <FilterDropdown
+                value={warehouse}
+                onChange={(event) => setWarehouse(event.target.value)}
+                selectedDark
+                aria-label="Kho hàng"
+              >
+                <option value="">Tất cả kho</option>
 
-      {detail.warehouses.map((option) => (
-        <option key={option.id} value={option.id}>
-          {option.name}
-        </option>
-      ))}
-    </FilterDropdown>
-  </label>
+                {detail.warehouses.map((option) => (
+                  <option key={option.id} value={option.id}>
+                    {option.name}
+                  </option>
+                ))}
+              </FilterDropdown>
+            </label>
 
-  {/* Đặt lại bộ lọc */}
-  {filtersChanged && (
-    <button
-      type="button"
-      className="inventory-reset"
-      onClick={resetFilters}
-    >
-      ĐẶT LẠI
-    </button>
-  )}
+            {/* Đặt lại bộ lọc */}
+            {filtersChanged && (
+              <button type="button" className="inventory-reset" onClick={resetFilters}>
+                ĐẶT LẠI
+              </button>
+            )}
 
-  {/* Tổng số bản ghi */}
-  <strong className="inventory-history-count">
-    {filteredHistory.length} bản ghi
-  </strong>
-</div>
-          
+            {/* Tổng số bản ghi */}
+            <strong className="inventory-history-count">{filteredHistory.length} bản ghi</strong>
+          </div>
+
           <div className="inventory-table-wrap">
             <table className="inventory-table inventory-history-table">
               <thead>

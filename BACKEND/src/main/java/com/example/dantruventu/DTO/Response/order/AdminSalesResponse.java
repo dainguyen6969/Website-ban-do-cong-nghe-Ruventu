@@ -155,7 +155,13 @@ public final class AdminSalesResponse {
       Long id,
       @JsonProperty("phien_ban_id") Long phienBanId,
       @JsonProperty("so_serial") String soSerial,
-      @JsonProperty("trang_thai") TrangThaiSerial trangThai) {}
+      @JsonProperty("trang_thai") TrangThaiSerial trangThai,
+      @JsonProperty("tinh_trang_hang") String tinhTrangHang) {
+
+    public Serial(Long id, Long phienBanId, String soSerial, TrangThaiSerial trangThai) {
+      this(id, phienBanId, soSerial, trangThai, "CHUA_XAC_DINH");
+    }
+  }
 
   public record CashReceipt(
       @JsonProperty("ma_phieu") String maPhieu,
