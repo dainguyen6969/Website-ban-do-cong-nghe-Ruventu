@@ -125,12 +125,6 @@ const EVENT_META = {
     confirmation: 'Tôi đã có căn cứ hợp lệ cho phép gỡ phạm vi thu hồi của đợt này.',
     submit: 'Xác nhận gỡ phạm vi',
   },
-  GHI_CHU: {
-    noteLabel: 'Nội dung ghi chú',
-    placeholder: 'Ví dụ: Nhà Cung Cấp hẹn gửi xác nhận phương án xử lý vào...',
-    confirmation: 'Thông tin ghi chú phản ánh đúng nội dung đã kiểm tra.',
-    submit: 'Lưu ghi chú',
-  },
   KET_THUC: {
     noteLabel: 'Nội dung kết thúc',
     placeholder: '',
@@ -223,7 +217,7 @@ function recallEventForm(action, item, campaign) {
 }
 
 function recallDefaultAction(item) {
-  if (!item) return 'GHI_CHU';
+  if (!item) return 'TRA_NCC';
 
   if (item.ncc_return_options?.length) {
     return 'TRA_NCC';
@@ -256,8 +250,6 @@ function recallItemActions(item) {
   if (item.order_id && !item.chi_tiet_tra_hang_id) {
     actions.push('LIEN_HE', 'CHO_NHAN_LAI');
   }
-
-  actions.push('GHI_CHU');
 
   if (!item.serial_id) {
     actions.push('GAN_THIET_BI');
@@ -306,7 +298,7 @@ export default function ThuHoiHang() {
 
   const actions = currentItem ? recallItemActions(currentItem) : [form.action];
 
-  const eventMeta = EVENT_META[form.action] || EVENT_META.GHI_CHU;
+  const eventMeta = EVENT_META[form.action] || EVENT_META.LIEN_HE;
 
   const vendorAction = ['TRA_NCC', 'DOI_NCC'].includes(form.action);
 
@@ -483,13 +475,30 @@ export default function ThuHoiHang() {
   const selectedLine = sourceLines.find((line) => Number(line.id) === Number(form.receiptLineId));
 
   const openCreate = () => {
-    if (frozen) return;
+    if (frozen || (recallId && !detail)) return;
+
+    const source = recallId ? detail : null;
+
     setError('');
     setNotice('');
-    setSourceQuery('');
     setSourceError('');
+    setSourceQuery(source?.ma_don_nhap || '');
+    setReceipts([]);
+
+    setSourceOptions(
+      source
+        ? [
+            {
+              id: source.purchase_id,
+              ma_don_nhap: source.ma_don_nhap,
+              ten_nha_cung_cap: source.ten_nha_cung_cap,
+            },
+          ]
+        : []
+    );
+
     setForm({
-      purchaseId: '',
+      purchaseId: source ? String(source.purchase_id) : '',
       mode: 'serials',
       serials: '',
       receiptLineId: '',
@@ -500,6 +509,7 @@ export default function ThuHoiHang() {
       deadline: '',
       confirmed: false,
     });
+
     setDialog({ kind: 'create' });
   };
 
@@ -637,25 +647,28 @@ export default function ThuHoiHang() {
       <div className="serial-page__inner">
         <div className="serial-heading-row recall-heading">
           <h1>{recallId ? 'CHI TIẾT THU HỒI' : 'THU HỒI HÀNG'}</h1>
-          {recallId ? (
-            <button
-              type="button"
-              className="recall-button"
-              disabled={frozen}
-              onClick={() => navigate('/kho-hang/thu-hoi')}
-            >
-              Danh sách
-            </button>
-          ) : (
+
+          <div className="recall-actions">
+            {recallId && (
+              <button
+                type="button"
+                className="recall-button"
+                disabled={frozen}
+                onClick={() => navigate('/kho-hang/thu-hoi')}
+              >
+                Danh sách
+              </button>
+            )}
+
             <button
               type="button"
               className="recall-button is-dark"
-              disabled={frozen}
+              disabled={frozen || Boolean(recallId && !detail)}
               onClick={openCreate}
             >
-              Tạo đợt thu hồi
+              {recallId ? 'Tạo đợt thu hồi mới' : 'Tạo đợt thu hồi'}
             </button>
-          )}
+          </div>
         </div>
 
         {error && !dialog && (
@@ -926,14 +939,6 @@ export default function ThuHoiHang() {
             <section className="serial-info-card recall-case">
               <h2>CHỨNG TỪ VÀ LỊCH SỬ</h2>
               <div className="recall-body">
-                <button
-                  type="button"
-                  className="recall-button"
-                  disabled={frozen}
-                  onClick={() => openAction('GHI_CHU')}
-                >
-                  Thêm ghi chú
-                </button>
                 {detail.events.map((event) => (
                   <article className="recall-history-line" key={event.id}>
                     <strong>
@@ -1040,11 +1045,19 @@ export default function ThuHoiHang() {
                       <Field label="Dòng nguồn nhận" wide>
                         <select
                           required
-                          disabled={sourceLoading}
+                          disabled={sourceLoading || !form.purchaseId || !sourceLines.length}
                           value={form.receiptLineId}
                           onChange={(event) => change('receiptLineId', event.target.value)}
                         >
-                          <option value="">Chọn nguồn và phiên bản</option>
+                          <option value="">
+                            {sourceLoading
+                              ? 'Đang tải nguồn nhận...'
+                              : !form.purchaseId
+                                ? 'Chọn đơn nhập nguồn trước'
+                                : !sourceLines.length
+                                  ? 'Chưa có dữ liệu nguồn nhận để chọn'
+                                  : 'Chọn nguồn và phiên bản'}
+                          </option>
                           {sourceLines.map((line) => (
                             <option key={line.id} value={line.id}>
                               Nguồn #{line.receiptId}
@@ -1124,7 +1137,7 @@ export default function ThuHoiHang() {
                         {[
                           {
                             title: 'Theo dõi trao đổi',
-                            values: ['LIEN_HE', 'CHO_NHAN_LAI', 'GHI_CHU'],
+                            values: ['LIEN_HE', 'CHO_NHAN_LAI'],
                           },
                           {
                             title: 'Xác định thiết bị',
@@ -1278,31 +1291,32 @@ export default function ThuHoiHang() {
                     </Field>
                   )}
 
-                  {needsDocument(form.action) && (
-                    <Field
-                      label={
-                        vendorAction || form.action === 'DOI_BAO_HANH'
-                          ? 'Chứng từ được liên kết'
-                          : form.action === 'LOAI_TRU'
-                            ? 'Mã xác nhận cho phép gỡ phạm vi thu hồi'
-                            : 'Mã phiếu hoặc biên bản xác định nguồn'
-                      }
-                      wide
-                    >
-                      <input
-                        required
-                        maxLength={100}
-                        readOnly={vendorAction || form.action === 'DOI_BAO_HANH'}
-                        placeholder={
-                          form.action === 'LOAI_TRU'
-                            ? 'Mã văn bản, email hoặc biên bản xác nhận thực tế'
-                            : ''
+                  {needsDocument(form.action) &&
+                    (!(vendorAction || form.action === 'DOI_BAO_HANH') || referenceReady) && (
+                      <Field
+                        label={
+                          vendorAction || form.action === 'DOI_BAO_HANH'
+                            ? 'Chứng từ được liên kết'
+                            : form.action === 'LOAI_TRU'
+                              ? 'Mã xác nhận cho phép gỡ phạm vi thu hồi'
+                              : 'Mã phiếu hoặc biên bản xác định nguồn'
                         }
-                        value={form.document}
-                        onChange={(event) => change('document', event.target.value)}
-                      />
-                    </Field>
-                  )}
+                        wide
+                      >
+                        <input
+                          required
+                          maxLength={100}
+                          readOnly={vendorAction || form.action === 'DOI_BAO_HANH'}
+                          placeholder={
+                            form.action === 'LOAI_TRU'
+                              ? 'Mã văn bản, email hoặc biên bản xác nhận thực tế'
+                              : ''
+                          }
+                          value={form.document}
+                          onChange={(event) => change('document', event.target.value)}
+                        />
+                      </Field>
+                    )}
 
                   {form.action === 'KET_THUC' && (
                     <div className="recall-dialog-summary recall-wide">

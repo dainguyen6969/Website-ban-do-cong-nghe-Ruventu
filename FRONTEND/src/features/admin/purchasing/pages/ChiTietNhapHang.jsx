@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import DetailTablePagination from '../../../../shared/components/ui/DetailTablePagination';
 import useDetailTablePagination from '../../../../hooks/useDetailTablePagination';
 
@@ -33,6 +33,19 @@ const METHODS = [
   ['CHUYEN_KHOAN', 'Chuyển khoản'],
   ['TIEN_MAT', 'Tiền mặt'],
 ];
+
+const RECEIVED_SERIAL_LABELS = {
+  TRONG_KHO: 'Trong kho',
+  DA_BAN: 'Đã bán',
+  DANG_BAO_HANH: 'Đang bảo hành',
+  LOI: 'Hàng lỗi',
+  GIU_CHO_BAO_HANH: 'Giữ cho bảo hành',
+  DA_THAY_THE_BAO_HANH: 'Đã thay thế bảo hành',
+  DA_TRA_NCC: 'Đã trả Nhà Cung Cấp',
+  DANG_GUI_NCC: 'Đang gửi Nhà Cung Cấp',
+  DA_DOI_NCC: 'Đã đổi Nhà Cung Cấp',
+};
+
 const serialCodes = (value = '') =>
   value
     .split(/[\n,]+/)
@@ -407,6 +420,60 @@ export default function ChiTietNhapHang() {
               idPrefix="purchase-order-items"
             />
           </PurchaseCard>
+
+          {(order.receivedSerials.length > 0 ||
+            order.items.some((item) => item.serialManaged === true)) && (
+            <PurchaseCard title="SERIAL ĐÃ NHẬN THEO ĐƠN NHẬP">
+              <p className="purchase-received-serials__count">
+                {order.receivedSerials.length} mã serial đã tiếp nhận
+              </p>
+
+              <div className="purchase-received-serials">
+                <table className="purchase-received-serial-table">
+                  <thead>
+                    <tr>
+                      <th>STT</th>
+                      <th>PHIÊN BẢN</th>
+                      <th>SERIAL</th>
+                      <th>TRẠNG THÁI HIỆN TẠI</th>
+                    </tr>
+                  </thead>
+
+                  <tbody>
+                    {!order.receivedSerials.length ? (
+                      <tr>
+                        <td colSpan={4}>Chưa có serial đã nhận.</td>
+                      </tr>
+                    ) : (
+                      order.receivedSerials.map((serial, index) => (
+                        <tr key={serial.id}>
+                          <td>{index + 1}</td>
+
+                          <td>{serial.name}</td>
+
+                          <td>
+                            <Link to={`/kho-hang/danh-sach-serial/${serial.id}`}>
+                              {serial.code}
+                            </Link>
+                          </td>
+
+                          <td>
+                            <span>{RECEIVED_SERIAL_LABELS[serial.status] || 'Chưa xác định'}</span>
+
+                            {serial.packingHeld && <small>Đang phân bổ đóng gói</small>}
+
+                            {serial.recallBlocked && (
+                              <small className="is-recall-blocked">Thuộc phạm vi thu hồi</small>
+                            )}
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </PurchaseCard>
+          )}
 
           <PurchaseSourcePanel
             order={order}

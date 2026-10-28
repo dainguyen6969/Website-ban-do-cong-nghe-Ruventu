@@ -217,7 +217,38 @@ public class AdminPurchaseOrderService {
         .soTienNccConPhaiHoan(netPaid.subtract(adjustedTotal).max(BigDecimal.ZERO))
         .ngayTao(order.getNgayTao())
         .items(responseItems)
+        .serialDaNhan(readReceivedSerialsForPurchase(order.getId()))
         .build();
+  }
+
+  private List<AdminPurchaseOrderDetailResponse.ReceivedSerial> readReceivedSerialsForPurchase(
+      Long purchaseId) {
+
+    return entityManager
+        .createQuery(
+            """
+                        SELECT s
+                        FROM SoSerialSanPham s
+                        JOIN FETCH s.phienBan v
+                        WHERE s.donNhapHang.id = :purchaseId
+                        ORDER BY v.id, s.id
+                        """,
+            SoSerialSanPham.class)
+        .setParameter("purchaseId", purchaseId)
+        .getResultList()
+        .stream()
+        .map(
+            serial ->
+                AdminPurchaseOrderDetailResponse.ReceivedSerial.builder()
+                    .id(serial.getId())
+                    .phienBanId(serial.getPhienBan().getId())
+                    .tenPhienBan(serial.getPhienBan().getTenPhienBan())
+                    .soSerial(serial.getSoSerial())
+                    .trangThai(serial.getTrangThai() == null ? null : serial.getTrangThai().name())
+                    .biThuHoi(Boolean.TRUE.equals(serial.getBiThuHoi()))
+                    .dangDongGoi(serial.getChiTietDongGoi() != null)
+                    .build())
+        .toList();
   }
 
   // =========================================================

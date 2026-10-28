@@ -349,8 +349,7 @@ public class SupplierRecallService {
           String action = request.action();
           boolean active = "DANG_XU_LY".equals(campaign.get("status"));
 
-          require(
-              active || Set.of("GHI_CHU", "MO_LAI").contains(action), "Đợt thu hồi đã kết thúc.");
+          require(active || "MO_LAI".equals(action), "Đợt thu hồi đã kết thúc.");
 
           var variants =
               jdbc.queryForList(
@@ -551,8 +550,6 @@ public class SupplierRecallService {
                   recallId);
             }
 
-            case "GHI_CHU" -> {}
-
             default ->
                 throw new AppException(ErrorCode.INVALID_DATA, "Thao tác thu hồi không hợp lệ.");
           }
@@ -574,9 +571,9 @@ public class SupplierRecallService {
         });
   }
 
-    private List<Map<String, Object>> recallNccEvidence(Long purchaseId) {
-        return jdbc.queryForList(
-                """
+  private List<Map<String, Object>> recallNccEvidence(Long purchaseId) {
+    return jdbc.queryForList(
+        """
                 SELECT u.id, u.case_id, u.source_line_id, u.status,
                        c.code, v.ten_phien_ban,
                        e.id AS event_id,
@@ -603,152 +600,135 @@ public class SupplierRecallService {
                   AND e.action IN ('CHOT_TRA', 'NHAN')
                 ORDER BY e.id DESC
                 """,
-                purchaseId);
-    }
+        purchaseId);
+  }
 
-    private Map<Long, Set<Long>> recallUsedNccUnits(Long recallId) {
-        Map<Long, Set<Long>> result = new HashMap<>();
+  private Map<Long, Set<Long>> recallUsedNccUnits(Long recallId) {
+    Map<Long, Set<Long>> result = new HashMap<>();
 
-        for (var item :
-                jdbc.queryForList(
-                        """
+    for (var item :
+        jdbc.queryForList(
+            """
                         SELECT id, ncc_unit_id
                         FROM rv_recall_item
                         WHERE recall_id = ?
                           AND ncc_unit_id IS NOT NULL
                         """,
-                        recallId)) {
+            recallId)) {
 
-            result
-                    .computeIfAbsent(id(item.get("ncc_unit_id")), ignored -> new HashSet<>())
-                    .add(id(item.get("id")));
-        }
-
-        return result;
+      result
+          .computeIfAbsent(id(item.get("ncc_unit_id")), ignored -> new HashSet<>())
+          .add(id(item.get("id")));
     }
 
-    private List<Map<String, Object>> recallNccOptions(
-            Map<String, Object> item,
-            String action,
-            List<Map<String, Object>> evidence,
-            Map<Long, Set<Long>> usedUnits) {
+    return result;
+  }
 
-        boolean returning = "TRA_NCC".equals(action);
-        Long serialId = id(item.get("serial_id"));
-        Long sourceLineId = id(item.get("source_line_id"));
+  private List<Map<String, Object>> recallNccOptions(
+      Map<String, Object> item,
+      String action,
+      List<Map<String, Object>> evidence,
+      Map<Long, Set<Long>> usedUnits) {
 
-        if (serialId == null
-                && sourceLineId == null
-                && item.get("receipt_line_id") != null) {
+    boolean returning = "TRA_NCC".equals(action);
+    Long serialId = id(item.get("serial_id"));
+    Long sourceLineId = id(item.get("source_line_id"));
 
-            sourceLineId =
-                    jdbc.queryForObject(
-                            """
+    if (serialId == null && sourceLineId == null && item.get("receipt_line_id") != null) {
+
+      sourceLineId =
+          jdbc.queryForObject(
+              """
                             SELECT purchase_line_id
                             FROM rv_receipt_line
                             WHERE id = ?
                             """,
-                            Long.class,
-                            item.get("receipt_line_id"));
-        }
-
-        Map<Long, Map<String, Object>> options = new LinkedHashMap<>();
-
-        for (var proof : evidence) {
-            if (!(returning ? "DA_TRA_NCC" : "DA_NHAN_DAT")
-                    .equals(proof.get("status"))) {
-                continue;
-            }
-
-            if (!(returning ? "CHOT_TRA" : "NHAN")
-                    .equals(proof.get("event_action"))) {
-                continue;
-            }
-
-            if (!returning && !yes(proof.get("was_exchanged"))) {
-                continue;
-            }
-
-            if (serialId != null) {
-                if (!Objects.equals(serialId, id(proof.get("old_serial_id")))) {
-                    continue;
-                }
-            } else {
-                if (sourceLineId == null
-                        || !Objects.equals(
-                        sourceLineId, id(proof.get("source_line_id")))) {
-                    continue;
-                }
-
-                Set<Long> usedBy =
-                        usedUnits.getOrDefault(id(proof.get("id")), Set.of());
-
-                if (usedBy.stream()
-                        .anyMatch(otherId -> !Objects.equals(otherId, id(item.get("id"))))) {
-                    continue;
-                }
-            }
-
-            // evidence đã được sắp xếp mới nhất trước.
-            options.putIfAbsent(id(proof.get("id")), proof);
-        }
-
-        return new ArrayList<>(options.values());
+              Long.class,
+              item.get("receipt_line_id"));
     }
 
-    private boolean recallWarrantyReady(Long ticketId) {
-        try {
-            PhieuBaoHanh ticket =
-                    entityManager.find(PhieuBaoHanh.class, ticketId);
+    Map<Long, Map<String, Object>> options = new LinkedHashMap<>();
 
-            if (ticket == null
-                    || ticket.getThietBi() == null
-                    || ticket.getThietBiThayThe() == null) {
-                return false;
-            }
+    for (var proof : evidence) {
+      if (!(returning ? "DA_TRA_NCC" : "DA_NHAN_DAT").equals(proof.get("status"))) {
+        continue;
+      }
 
-            var replacement = ticket.getThietBiThayThe();
+      if (!(returning ? "CHOT_TRA" : "NHAN").equals(proof.get("event_action"))) {
+        continue;
+      }
 
-            if (replacement.getSoSerial() != null
-                    && Boolean.TRUE.equals(
-                    replacement.getSoSerial().getBiThuHoi())) {
-                return false;
-            }
+      if (!returning && !yes(proof.get("was_exchanged"))) {
+        continue;
+      }
 
-            return resolver.hasHandoverEvidence(ticket, replacement);
-        } catch (AppException exception) {
-            // Phiếu cũ chưa đủ căn cứ không được đưa vào danh sách lựa chọn.
-            // verifyWarranty() vẫn kiểm tra lại khi ghi dữ liệu.
-            return false;
+      if (serialId != null) {
+        if (!Objects.equals(serialId, id(proof.get("old_serial_id")))) {
+          continue;
         }
+      } else {
+        if (sourceLineId == null
+            || !Objects.equals(sourceLineId, id(proof.get("source_line_id")))) {
+          continue;
+        }
+
+        Set<Long> usedBy = usedUnits.getOrDefault(id(proof.get("id")), Set.of());
+
+        if (usedBy.stream().anyMatch(otherId -> !Objects.equals(otherId, id(item.get("id"))))) {
+          continue;
+        }
+      }
+
+      // evidence đã được sắp xếp mới nhất trước.
+      options.putIfAbsent(id(proof.get("id")), proof);
     }
 
-    private void verifyNcc(
-            Map<String, Object> campaign,
-            Map<String, Object> item,
-            SupplierRecallRequest.Command request) {
+    return new ArrayList<>(options.values());
+  }
 
-        require(
-                request.nccUnitId() != null,
-                "Chọn phiếu xử lý Nhà Cung Cấp.");
+  private boolean recallWarrantyReady(Long ticketId) {
+    try {
+      PhieuBaoHanh ticket = entityManager.find(PhieuBaoHanh.class, ticketId);
 
-        List<Map<String, Object>> options =
-                recallNccOptions(
-                        item,
-                        request.action(),
-                        recallNccEvidence(id(campaign.get("purchase_id"))),
-                        recallUsedNccUnits(id(campaign.get("id"))));
+      if (ticket == null || ticket.getThietBi() == null || ticket.getThietBiThayThe() == null) {
+        return false;
+      }
 
-        require(
-                options.stream()
-                        .anyMatch(
-                                option ->
-                                        Objects.equals(
-                                                id(option.get("id")),
-                                                request.nccUnitId())),
-                "Chưa có kết quả trả/đổi hoàn tất khớp thiết bị này. "
-                        + "Hãy xử lý tại đơn nhập nguồn rồi quay lại liên kết phiếu.");
+      var replacement = ticket.getThietBiThayThe();
+
+      if (replacement.getSoSerial() != null
+          && Boolean.TRUE.equals(replacement.getSoSerial().getBiThuHoi())) {
+        return false;
+      }
+
+      return resolver.hasHandoverEvidence(ticket, replacement);
+    } catch (AppException exception) {
+      // Phiếu cũ chưa đủ căn cứ không được đưa vào danh sách lựa chọn.
+      // verifyWarranty() vẫn kiểm tra lại khi ghi dữ liệu.
+      return false;
     }
+  }
+
+  private void verifyNcc(
+      Map<String, Object> campaign,
+      Map<String, Object> item,
+      SupplierRecallRequest.Command request) {
+
+    require(request.nccUnitId() != null, "Chọn phiếu xử lý Nhà Cung Cấp.");
+
+    List<Map<String, Object>> options =
+        recallNccOptions(
+            item,
+            request.action(),
+            recallNccEvidence(id(campaign.get("purchase_id"))),
+            recallUsedNccUnits(id(campaign.get("id"))));
+
+    require(
+        options.stream()
+            .anyMatch(option -> Objects.equals(id(option.get("id")), request.nccUnitId())),
+        "Chưa có kết quả trả/đổi hoàn tất khớp thiết bị này. "
+            + "Hãy xử lý tại đơn nhập nguồn rồi quay lại liên kết phiếu.");
+  }
 
   private void verifyWarranty(Map<String, Object> item, SupplierRecallRequest.Command request) {
 
@@ -1022,9 +1002,9 @@ public class SupplierRecallService {
                         """,
             recallId));
 
-      var warrantyOptions =
-              jdbc.queryForList(
-                      """
+    var warrantyOptions =
+        jdbc.queryForList(
+            """
                       SELECT p.id, p.ma_phieu,
                              t.id AS old_device_id,
                              t.so_serial_id AS old_serial_id
@@ -1044,58 +1024,56 @@ public class SupplierRecallService {
                       ORDER BY p.id DESC
                       LIMIT 1000
                       """,
-                      recallId);
+            recallId);
 
-      campaign.put("warranty_options", warrantyOptions);
+    campaign.put("warranty_options", warrantyOptions);
 
-      var nccEvidence =
-              recallNccEvidence(id(campaign.get("purchase_id")));
+    var nccEvidence = recallNccEvidence(id(campaign.get("purchase_id")));
 
-      var usedNccUnits = recallUsedNccUnits(recallId);
+    var usedNccUnits = recallUsedNccUnits(recallId);
 
-      var readyWarranty =
-              warrantyOptions.stream()
-                      .filter(option -> recallWarrantyReady(id(option.get("id"))))
-                      .toList();
+    var readyWarranty =
+        warrantyOptions.stream()
+            .filter(option -> recallWarrantyReady(id(option.get("id"))))
+            .toList();
 
-      for (var item : items) {
-          item.put(
-                  "ncc_return_options",
-                  recallNccOptions(
-                          item, "TRA_NCC", nccEvidence, usedNccUnits));
+    for (var item : items) {
+      item.put("ncc_return_options", recallNccOptions(item, "TRA_NCC", nccEvidence, usedNccUnits));
 
-          item.put(
-                  "ncc_exchange_options",
-                  recallNccOptions(
-                          item, "DOI_NCC", nccEvidence, usedNccUnits));
+      item.put(
+          "ncc_exchange_options", recallNccOptions(item, "DOI_NCC", nccEvidence, usedNccUnits));
 
-          item.put(
-                  "warranty_options",
-                  readyWarranty.stream()
-                          .filter(
-                                  option ->
-                                          item.get("serial_id") != null
-                                                  ? Objects.equals(
-                                                  id(item.get("serial_id")),
-                                                  id(option.get("old_serial_id")))
-                                                  : item.get("device_id") != null
-                                                  && Objects.equals(
-                                                  id(item.get("device_id")),
-                                                  id(option.get("old_device_id"))))
-                          .toList());
-      }
+      item.put(
+          "warranty_options",
+          readyWarranty.stream()
+              .filter(
+                  option ->
+                      item.get("serial_id") != null
+                          ? Objects.equals(
+                              id(item.get("serial_id")), id(option.get("old_serial_id")))
+                          : item.get("device_id") != null
+                              && Objects.equals(
+                                  id(item.get("device_id")), id(option.get("old_device_id"))))
+              .toList());
+    }
 
     campaign.put(
         "events",
         jdbc.queryForList(
             """
-                        SELECT e.id, e.item_id, e.action, e.document,
-                               e.note, e.occurred_at, n.ho_ten AS actor_name
-                        FROM rv_recall_event e
-                        JOIN nguoi_dung n ON n.id = e.actor_id
-                        WHERE e.recall_id = ?
-                        ORDER BY e.id DESC
-                        """,
+                      SELECT e.id,
+                             e.item_id,
+                             e.action,
+                             e.document,
+                             e.note,
+                             e.occurred_at,
+                             n.ho_ten AS actor_name
+                      FROM rv_recall_event e
+                      JOIN nguoi_dung n ON n.id = e.actor_id
+                      WHERE e.recall_id = ?
+                        AND e.action <> 'GHI_CHU'
+                      ORDER BY e.id DESC
+                      """,
             recallId));
 
     boolean complete = items.stream().allMatch(item -> "DA_GIAI_QUYET".equals(item.get("status")));

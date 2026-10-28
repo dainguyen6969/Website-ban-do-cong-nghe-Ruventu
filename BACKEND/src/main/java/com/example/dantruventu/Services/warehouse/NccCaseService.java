@@ -841,9 +841,7 @@ public class NccCaseService {
           String action = request.action();
           String state = text(c.get("status"));
 
-          require(
-              "DANG_XU_LY".equals(state) || Set.of("GHI_CHU", "MO_LAI").contains(action),
-              "Hồ sơ đã kết thúc.");
+          require("DANG_XU_LY".equals(state) || "MO_LAI".equals(action), "Hồ sơ đã kết thúc.");
 
           LocalDateTime at = actual(request.at(), order);
 
@@ -886,8 +884,6 @@ public class NccCaseService {
 
               log(c, null, request, actor, at, null, null, null);
             }
-
-            case "GHI_CHU" -> log(c, null, request, actor, at, null, null, null);
 
             case "MO_LAI" -> {
               require(!"DANG_XU_LY".equals(state), "Hồ sơ đang được xử lý.");
@@ -1740,7 +1736,7 @@ public class NccCaseService {
       c.put(
           "events",
           jdbc.queryForList(
-              """
+"""
                           SELECT
                             e.id,
                             e.unit_id,
@@ -1773,8 +1769,9 @@ public class NccCaseService {
                             ON a.event_id = e.id
                           LEFT JOIN so_quy_thu_chi voucher
                             ON voucher.id = e.voucher_id
-                          WHERE e.case_id = ?
-                          ORDER BY e.id
+WHERE e.case_id = ?
+  AND e.action <> 'GHI_CHU'
+ORDER BY e.id
                           """,
               caseId));
 

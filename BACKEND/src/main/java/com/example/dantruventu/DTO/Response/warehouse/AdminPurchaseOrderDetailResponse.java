@@ -76,6 +76,37 @@ public class AdminPurchaseOrderDetailResponse {
 
   private List<Item> items;
 
+  @JsonProperty("serial_da_nhan")
+  private List<ReceivedSerial> serialDaNhan;
+
+  @Getter
+  @Setter
+  @NoArgsConstructor
+  @AllArgsConstructor
+  @Builder
+  public static class ReceivedSerial {
+
+    private Long id;
+
+    @JsonProperty("phien_ban_id")
+    private Long phienBanId;
+
+    @JsonProperty("ten_phien_ban")
+    private String tenPhienBan;
+
+    @JsonProperty("so_serial")
+    private String soSerial;
+
+    @JsonProperty("trang_thai")
+    private String trangThai;
+
+    @JsonProperty("bi_thu_hoi")
+    private Boolean biThuHoi;
+
+    @JsonProperty("dang_dong_goi")
+    private Boolean dangDongGoi;
+  }
+
   @Getter
   @Setter
   @NoArgsConstructor
