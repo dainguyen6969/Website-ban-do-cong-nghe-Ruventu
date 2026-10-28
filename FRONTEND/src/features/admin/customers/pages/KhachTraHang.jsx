@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { HiOutlineArrowLeft, HiOutlineSearch, HiOutlineX } from 'react-icons/hi';
 import TablePagination from '../../../../shared/components/ui/TablePagination';
+import FilterDropdown from '../../../../shared/components/ui/FilterDropdown';
 import DetailTablePagination from '../../../../shared/components/ui/DetailTablePagination';
 import useDetailTablePagination from '../../../../hooks/useDetailTablePagination';
 import useOrders from '../../../../context/useOrders';
@@ -56,7 +57,7 @@ function ReturnList({ orders, returns }) {
   const visible = filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
   return <div className="returns-page">
     <PageHero breadcrumb={['ĐƠN HÀNG', 'KHÁCH TRẢ HÀNG']} title="KHÁCH TRẢ HÀNG" subtitle="Quản lý phiếu trả, thu hồi hàng về kho và hoàn tiền cho khách"><button className="return-btn return-btn--black" onClick={() => setSelecting(true)}>+ CHỌN TRẢ HÀNG</button></PageHero>
-    <div className="returns-toolbar"><label className="returns-search"><HiOutlineSearch /><input value={query} onChange={(event) => { setQuery(event.target.value); setPage(1); }} placeholder="Tìm mã trả / mã đơn / tên / SĐT khách hàng..." /></label><select value={status} onChange={(event) => { setStatus(event.target.value); setPage(1); }} aria-label="Lọc trạng thái">{STATUS_OPTIONS.map((item) => <option key={item}>{item}</option>)}</select></div>
+    <div className="returns-toolbar"><label className="returns-search"><HiOutlineSearch /><input value={query} onChange={(event) => { setQuery(event.target.value); setPage(1); }} placeholder="Tìm mã trả / mã đơn / tên / SĐT khách hàng..." /></label><FilterDropdown value={status} onChange={(event) => { setStatus(event.target.value); setPage(1); }} aria-label="Lọc trạng thái" selectedDark>{STATUS_OPTIONS.map((item) => <option key={item}>{item}</option>)}</FilterDropdown></div>
     <section className="returns-list-card"><div className="returns-table-scroll"><table className="returns-table returns-table--list"><thead><tr><th>MÃ TRẢ HÀNG</th><th>ĐƠN HÀNG GỐC</th><th>KHÁCH HÀNG</th><th>SỐ ĐIỆN THOẠI</th><th>TỔNG TIỀN HOÀN</th><th>HÌNH THỨC HOÀN</th><th>LÝ DO TRẢ</th><th>TRẠNG THÁI</th><th>NGÀY TẠO</th><th>THAO TÁC</th></tr></thead><tbody>
       {visible.map((record) => <tr key={record.id}><td><strong>{record.id}</strong></td><td><strong>{record.orderId}</strong></td><td className={!record.khachHang ? 'returns-guest' : ''}>{guestName(record.khachHang)}</td><td>{record.soDienThoai || '—'}</td><td className="returns-money">{money(returnTotals(record).amount)}</td><td>{record.hinhThucHoanTienDuKien}</td><td>{record.lyDoTra}</td><td><StatusBadge status={record.trangThai} /></td><td>{dateOnly(record.createdAt)}</td><td><button className="return-row-btn" onClick={() => navigate(`${LIST_ROUTE}/${record.id}`)}>XEM CHI TIẾT</button></td></tr>)}
       {!visible.length && <tr><td className="returns-empty" colSpan="10">Không tìm thấy phiếu trả hàng phù hợp.</td></tr>}

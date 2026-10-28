@@ -1,11 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, ZoomIn } from 'lucide-react';
 import './ProductGallery.css';
-import productImg from '../assets/imgg.png'; // Mock image
 
 const ProductGallery = ({ images = [], discountPercent, isFullBuild = false }) => {
-  // If no images are provided, use an array of mock images
-  const galleryImages = images.length > 0 ? images : Array(6).fill(productImg);
+  const galleryImages = images;
   const [currentIndex, setCurrentIndex] = useState(0);
 
   useEffect(() => {
@@ -25,28 +23,27 @@ const ProductGallery = ({ images = [], discountPercent, isFullBuild = false }) =
       {/* Top badges */}
       <div className="gallery-badges">
         {discountPercent > 0 && <div className="discount-badge">-{discountPercent}%</div>}
-        {isFullBuild && <div className="full-build-badge">FULL BUILD</div>}
       </div>
 
       {/* Main Image */}
       <div className="main-image-wrapper">
-        <button className="nav-arrow left-arrow" onClick={prevImage}>
+        {galleryImages.length > 1 && <button className="nav-arrow left-arrow" onClick={prevImage}>
           <ChevronLeft size={24} />
-        </button>
+        </button>}
         
-        <img 
+        {galleryImages.length > 0 ? <img
           src={galleryImages[currentIndex]} 
           alt={`Product view ${currentIndex + 1}`} 
           className="main-gallery-image"
-        />
+        /> : <p className="gallery-empty">Chưa có ảnh sản phẩm</p>}
 
-        <button className="nav-arrow right-arrow" onClick={nextImage}>
+        {galleryImages.length > 1 && <button className="nav-arrow right-arrow" onClick={nextImage}>
           <ChevronRight size={24} />
-        </button>
+        </button>}
 
-        <button className="zoom-btn">
+        {galleryImages.length > 0 && <button className="zoom-btn">
           <ZoomIn size={18} /> PHÓNG TO
-        </button>
+        </button>}
       </div>
 
       {/* Thumbnails */}

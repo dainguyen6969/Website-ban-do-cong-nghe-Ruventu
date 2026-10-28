@@ -1,10 +1,12 @@
 // Shared admin layout component: Header.
-import { useLocation } from 'react-router-dom';
-import { HiOutlineBell, HiOutlineMenu, HiOutlineUser } from 'react-icons/hi';
+import { Link, useLocation } from 'react-router-dom';
+import { HiOutlineMenu, HiOutlineUser } from 'react-icons/hi';
+import NotificationBell from './NotificationBell';
 import FontSwitcher from '../ui/FontSwitcher';
 import './Header.css';
 
 const routeTitleMap = {
+  '/admin/tai-khoan': 'TRANG TÀI KHOẢN',
   '/admin/tong-quat': 'TỔNG QUÁT',
   '/admin/ban-hang': 'BÁN HÀNG',
   '/admin/san-pham': 'SẢN PHẨM',
@@ -28,14 +30,14 @@ function getLiveDate() {
   return DAYS_VN[now.getDay()] + ', ' + d + '/' + m + '/' + now.getFullYear();
 }
 
-export default function Header({ notificationCount = 0, onMenuToggle, isMenuOpen = false }) {
+export default function Header({ onMenuToggle, isMenuOpen = false }) {
   const location = useLocation();
   const { currentAccount } = useMockAuth();
   
   // Find current top-level route title
   const currentPath = location.pathname;
-  const isWarrantyCreate = currentPath === '/admin/bao-hanh/lap-phieu';
-  const isWarrantyDetail = !isWarrantyCreate && /^\/admin\/bao-hanh\/[^/]+$/.test(currentPath);
+  const isWarrantyCreate = ['/admin/bao-hanh/lap-phieu', '/admin/bao-hanh/tao-moi'].includes(currentPath);
+  const isWarrantyDetail = !isWarrantyCreate && currentPath !== '/admin/bao-hanh/danh-sach' && /^\/admin\/bao-hanh\/(?:chi-tiet\/)?[^/]+$/.test(currentPath);
   const isInventoryDetail = currentPath.startsWith('/kho-hang/quan-ly-phien-ban/chi-tiet/');
   const isVersionManagement = currentPath === '/kho-hang/quan-ly-phien-ban';
   const isSerialDetail = currentPath.startsWith('/kho-hang/danh-sach-serial/');
@@ -207,16 +209,7 @@ export default function Header({ notificationCount = 0, onMenuToggle, isMenuOpen
         {/* Font switcher and notification bell */}
         <div className="header__group header__utilities">
           <FontSwitcher variant="admin" />
-          <button
-            className="header__icon-btn"
-            id="notification-bell"
-            aria-label="Thông báo"
-          >
-            <HiOutlineBell size={20} />
-            {Number(notificationCount) > 0 && (
-              <span className="header__notification-badge">{notificationCount}</span>
-            )}
-          </button>
+          <NotificationBell key={currentAccount?.id} />
         </div>
 
         <div className="header__divider" aria-hidden="true" />
@@ -229,12 +222,12 @@ export default function Header({ notificationCount = 0, onMenuToggle, isMenuOpen
           const displayName = user?.name || user?.ho_ten || user?.hoTen || user?.email || 'Admin';
           const userInitial = (displayName.trim().charAt(0) || 'A').toUpperCase();
           return (
-            <div className="header__group header__user">
+            <Link to="/admin/tai-khoan" className="header__group header__user" aria-label="Mở trang tài khoản">
               <div className="header__user-avatar" aria-label={`Tài khoản ${displayName}`} title={displayName}>
                 <span className="header__user-initial">{userInitial}</span>
               </div>
               <span className="header__user-name">{displayName}</span>
-            </div>
+            </Link>
           );
         })()}
 

@@ -3,6 +3,8 @@ import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { HiOutlineSearch } from 'react-icons/hi';
 import { getPromotions } from '../api/promotionApi.js';
 import { normalizePromotion, PROMOTION_STATUS } from '../promotionModel.js';
+import TablePagination from '../../../../shared/components/ui/TablePagination';
+import FilterDropdown from '../../../../shared/components/ui/FilterDropdown';
 import './DanhSachKhuyenMai.css';
 
 export default function DanhSachKhuyenMai() {
@@ -13,7 +15,6 @@ export default function DanhSachKhuyenMai() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [totalItems, setTotalItems] = useState(0);
-    const [totalPages, setTotalPages] = useState(1);
     const [searchQuery, setSearchQuery] = useState('');
     const [methodFilter, setMethodFilter] = useState('ALL');
     const [statusFilter, setStatusFilter] = useState('ALL');
@@ -42,7 +43,6 @@ export default function DanhSachKhuyenMai() {
                 const pages = Math.max(1, data.pagination.total_pages);
                 setPromotions(data.items.map(normalizePromotion));
                 setTotalItems(data.pagination.total_elements);
-                setTotalPages(pages);
                 if (currentPage > pages) setCurrentPage(pages);
             } catch (error) {
                 if (!controller.signal.aborted) setError(error.message);
@@ -54,8 +54,6 @@ export default function DanhSachKhuyenMai() {
         return () => { clearTimeout(timer); controller.abort(); };
     }, [searchQuery, methodFilter, statusFilter, currentPage]);
 
-    const startIndex = totalItems === 0 ? 0 : (currentPage - 1) * ITEMS_PER_PAGE + 1;
-    const endIndex = Math.min(currentPage * ITEMS_PER_PAGE, totalItems);
 
     const getStatusStyle = (status) => {
         switch (status) {
@@ -128,15 +126,15 @@ export default function DanhSachKhuyenMai() {
                     />
                 </div>
                 <div className="filter-selects">
-                    <select value={methodFilter} onChange={(e) => { setMethodFilter(e.target.value); setCurrentPage(1); }}>
+                    <FilterDropdown value={methodFilter} onChange={(e) => { setMethodFilter(e.target.value); setCurrentPage(1); }} selectedDark>
                         <option value="ALL">TẤT CẢ PHƯƠNG THỨC</option>
                         <option value="CHIET_KHAU">CHIẾT KHẤU</option>
                         <option value="TANG_SAN_PHAM">TẶNG SẢN PHẨM</option>
-                    </select>
-                    <select value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(1); }}>
+                    </FilterDropdown>
+                    <FilterDropdown value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(1); }} selectedDark>
                         <option value="ALL">TẤT CẢ TRẠNG THÁI</option>
                         {Object.entries(PROMOTION_STATUS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
-                    </select>
+                    </FilterDropdown>
                 </div>
             </div>
 
@@ -203,38 +201,7 @@ export default function DanhSachKhuyenMai() {
             </div>
             </div>
 
-            {!loading && !error && totalItems > 0 && (
-                <div className="promo-pagination">
-                    <div className="promo-pagination-info">
-                        HIỂN THỊ {startIndex}-{endIndex} TRÊN TỔNG SỐ {totalItems} CHƯƠNG TRÌNH
-                    </div>
-                    <div className="promo-pagination-controls">
-                        <button 
-                            disabled={currentPage === 1} 
-                            onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                        >
-                            &larr;
-                        </button>
-
-                        {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
-                            <button 
-                                key={p} 
-                                className={currentPage === p ? 'active' : ''}
-                                onClick={() => setCurrentPage(p)}
-                            >
-                                {p}
-                            </button>
-                        ))}
-
-                        <button 
-                            disabled={currentPage === totalPages} 
-                            onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                        >
-                            &rarr;
-                        </button>
-                    </div>
-                </div>
-            )}
+            {!loading && !error && <TablePagination totalItems={totalItems} pageSize={ITEMS_PER_PAGE} currentPage={currentPage} onPageChange={setCurrentPage} idPrefix="promotion" />}
         </div>
     );
 }

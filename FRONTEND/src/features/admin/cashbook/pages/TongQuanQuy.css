@@ -1,182 +1,572 @@
 .cashbook-page {
-    flex: 1; min-width: 0; overflow: auto; display: flex; flex-direction: column; background: #fff;
-    min-height: calc(100vh - 60px);
+  flex: 1;
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: hidden;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+  min-height: calc(100vh - 60px);
+  box-sizing: border-box;
 }
 
 .cb-header {
-    min-height: 112px; padding: 18px 28px; display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; border-bottom: 2px solid #111; background: #fff;
+  min-height: 112px;
+  padding: 18px 28px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  border-bottom: 2px solid #111;
+  background: #fff;
+  box-sizing: border-box;
 }
 
 .cb-title-area .cb-breadcrumb {
-    color: #9298a0; font-size: 10px; font-weight: 700; margin-bottom: 10px; text-transform: uppercase;
+  color: #9298a0;
+  font-size: 10px;
+  font-weight: 700;
+  margin-bottom: 10px;
+  text-transform: uppercase;
 }
 
 .cb-title-area h1 {
-    color: #090909; font-size: 23px; line-height: 1.1; font-weight: 900; margin: 0; text-transform: uppercase;
+  color: #090909;
+  font-size: 23px;
+  line-height: 1.1;
+  font-weight: 900;
+  margin: 0;
+  text-transform: uppercase;
 }
 
 .cb-title-area p {
-    margin-top: 8px; color: #9298a0; font-size: 10px; font-weight: 700; text-transform: uppercase; margin-bottom: 0;
+  margin-top: 8px;
+  color: #9298a0;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  margin-bottom: 0;
 }
 
 .cb-btn-secondary {
-    min-height: 41px; padding: 0 18px; display: inline-flex; align-items: center; gap: 7px; color: #111; background: #fff !important; font-size: 11px; font-weight: 900; white-space: nowrap; border: 2px solid #111; cursor: pointer; text-transform: uppercase;
+  min-height: 41px;
+  padding: 0 18px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: #111;
+  background: #fff !important;
+  font-size: 11px;
+  font-weight: 900;
+  white-space: nowrap;
+  border: 2px solid #111;
+  cursor: pointer;
+  text-transform: uppercase;
 }
 
 .cb-btn-secondary:hover {
-    color: #fff; background: #111 !important;
+  color: #fff;
+  background: #111 !important;
 }
 
+/* ========================================
+   Filter Bar
+   ======================================== */
+
 .cb-filter-bar {
-    display: flex; gap: 12px; padding: 16px 28px; border-bottom: 2px solid #111; align-items: flex-end; background: #fff; flex-wrap: wrap;
+  display: flex;
+  gap: 12px;
+  padding: 16px 28px;
+  border-bottom: 2px solid #111;
+  align-items: flex-end;
+  background: #fff;
+  flex-wrap: wrap;
+  box-sizing: border-box;
+  max-width: 100%;
 }
 
 .cb-filter-item {
-    display: flex; flex-direction: column; gap: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
 
 .cb-filter-item label {
-    font-size: 9px; font-weight: 800; color: #858c95; text-transform: uppercase;
+  font-size: 9px;
+  font-weight: 800;
+  color: #858c95;
+  text-transform: uppercase;
 }
 
-.cb-filter-item input, .cb-filter-item select {
-    height: 38px; padding: 0 12px; border: 2px solid #dedede; font-size: 10px; font-weight: 700; color: #111; outline: none; background: #fff; min-width: 140px;
+.cb-filter-item input,
+.cb-filter-item select {
+  height: 38px;
+  padding: 0 12px;
+  border: 2px solid #dedede;
+  font-size: 10px;
+  font-weight: 700;
+  color: #111;
+  outline: none;
+  background: #fff;
+  min-width: 140px;
+  box-sizing: border-box;
 }
 
 .cb-filter-actions {
-    display: flex; gap: 8px; height: 38px; margin-left: auto;
+  display: flex;
+  gap: 8px;
+  height: 38px;
+  margin-left: auto;
 }
 
 .cb-btn-outline {
-    min-height: 38px; padding: 0 15px; border: 2px solid #dedede; color: #111; background: #fff; font-size: 9px; font-weight: 900; cursor: pointer; text-transform: uppercase;
+  min-height: 38px;
+  padding: 0 15px;
+  border: 2px solid #dedede;
+  color: #111;
+  background: #fff;
+  font-size: 9px;
+  font-weight: 900;
+  cursor: pointer;
+  text-transform: uppercase;
 }
-.cb-btn-outline:hover { background: #f1f1f1; }
+
+.cb-btn-outline:hover {
+  background: #f1f1f1;
+}
 
 .cb-btn-primary {
-    min-height: 38px; padding: 0 15px; border: 2px solid #111; color: #fff; background: #111; font-size: 9px; font-weight: 900; cursor: pointer; text-transform: uppercase;
+  min-height: 38px;
+  padding: 0 15px;
+  border: 2px solid #111;
+  color: #fff;
+  background: #111;
+  font-size: 9px;
+  font-weight: 900;
+  cursor: pointer;
+  text-transform: uppercase;
 }
-.cb-btn-primary:hover { background: #333; }
+
+.cb-btn-primary:hover {
+  background: #333;
+}
+
+/* ========================================
+   Statistics
+   ======================================== */
 
 .cb-stats-row {
-    display: flex; border-bottom: 2px solid #111;
+  display: flex;
+  border-bottom: 2px solid #111;
+  box-sizing: border-box;
 }
 
 .cb-stat-box {
-    flex: 1; padding: 24px 28px; border-right: 2px solid #111; display: flex; flex-direction: column; justify-content: center;
+  flex: 1;
+  padding: 24px 28px;
+  border-right: 2px solid #111;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  box-sizing: border-box;
 }
 
 .cb-stat-box:last-child {
-    border-right: none;
+  border-right: none;
 }
 
 .cb-stat-box.bg-dark {
-    background: #111;
+  background: #111;
 }
 
 .cb-stat-box label {
-    font-size: 10px; font-weight: 800; color: #858c95; margin-bottom: 12px; text-transform: uppercase;
+  font-size: 10px;
+  font-weight: 800;
+  color: #858c95;
+  margin-bottom: 12px;
+  text-transform: uppercase;
 }
 
 .cb-stat-box .val {
-    font-size: 20px; font-weight: 900; color: #111;
+  font-size: 20px;
+  font-weight: 900;
+  color: #111;
 }
 
 .cb-stat-box.bg-dark .val {
-    color: #dc2626;
+  color: #dc2626;
 }
 
 .cb-stat-box.bg-dark label {
-    color: #fff;
+  color: #fff;
 }
 
-.text-green { color: #0d8425 !important; }
-.text-red { color: #dc2626 !important; }
+.text-green {
+  color: #0d8425 !important;
+}
+
+.text-red {
+  color: #dc2626 !important;
+}
 
 .cb-stat-box .sub {
-    font-size: 9px; font-weight: 800; color: #dc2626; margin-top: 8px; text-transform: uppercase;
+  font-size: 9px;
+  font-weight: 800;
+  color: #dc2626;
+  margin-top: 8px;
+  text-transform: uppercase;
 }
 
+/* ========================================
+   Calculation Row
+   ======================================== */
+
 .cb-calculation-row {
-    padding: 12px 28px; font-size: 11px; font-weight: 700; color: #858c95; border-bottom: 2px solid #111; background: #fafafa;
+  padding: 12px 28px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #858c95;
+  border-bottom: 2px solid #111;
+  background: #fafafa;
+  box-sizing: border-box;
 }
 
 .cb-calculation-row span {
-    margin: 0 6px; color: #111; font-weight: 900;
+  margin: 0 6px;
+  color: #111;
+  font-weight: 900;
 }
 
 .cb-calculation-row strong {
-    font-weight: 900;
+  font-weight: 900;
 }
 
+/* ========================================
+   Chart Container
+   ======================================== */
+
 .cb-chart-container {
-    padding: 24px 28px; display: flex; flex-direction: column; flex: 1; min-height: 400px;
+  padding: 24px 28px;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 400px;
+  box-sizing: border-box;
 }
 
 .cb-chart-header {
-    display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 24px;
 }
 
 .cb-chart-title h2 {
-    font-size: 12px; font-weight: 900; color: #111; margin: 0 0 8px 0; text-transform: uppercase;
+  font-size: 12px;
+  font-weight: 900;
+  color: #111;
+  margin: 0 0 8px 0;
+  text-transform: uppercase;
 }
 
 .cb-chart-title p {
-    font-size: 9px; font-weight: 800; color: #858c95; margin: 0; text-transform: uppercase;
+  font-size: 9px;
+  font-weight: 800;
+  color: #858c95;
+  margin: 0;
+  text-transform: uppercase;
 }
 
 .cb-chart-tabs {
-    display: flex; border: 2px solid #111;
+  display: flex;
+  border: 2px solid #111;
 }
 
 .cb-chart-tabs button {
-    height: 38px; padding: 0 16px; border: none; background: #fff; color: #111; font-size: 9px; font-weight: 900; cursor: pointer; border-right: 2px solid #111; text-transform: uppercase;
+  height: 38px;
+  padding: 0 16px;
+  border: none;
+  background: #fff;
+  color: #111;
+  font-size: 9px;
+  font-weight: 900;
+  cursor: pointer;
+  border-right: 2px solid #111;
+  text-transform: uppercase;
 }
 
 .cb-chart-tabs button:last-child {
-    border-right: none;
+  border-right: none;
 }
 
 .cb-chart-tabs button.active {
-    background: #111; color: #fff;
+  background: #111;
+  color: #fff;
 }
 
 .cb-chart-body {
-    flex: 1; height: 360px; min-height: 360px; position: relative; border: 2px solid #111; background: #fff; box-sizing: border-box;
+  flex: 1;
+  height: 360px;
+  min-height: 360px;
+  position: relative;
+  border: 2px solid #111;
+  background: #fff;
+  box-sizing: border-box;
 }
 
+/* ========================================
+   Error Banner
+   ======================================== */
+
 .cb-error-banner {
-    padding: 12px 28px; background: #fef2f2; border-bottom: 2px solid #ef4444; color: #b91c1c; font-size: 11px; font-weight: 800; display: flex; align-items: center; justify-content: space-between; text-transform: uppercase;
+  padding: 12px 28px;
+  background: #fef2f2;
+  border-bottom: 2px solid #ef4444;
+  color: #b91c1c;
+  font-size: 11px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  text-transform: uppercase;
+  box-sizing: border-box;
 }
 
 .cb-error-dismiss {
-    background: none; border: none; font-size: 14px; font-weight: 900; color: #b91c1c; cursor: pointer; padding: 0 4px;
+  background: none;
+  border: none;
+  font-size: 14px;
+  font-weight: 900;
+  color: #b91c1c;
+  cursor: pointer;
+  padding: 0 4px;
 }
 
+/* ========================================
+   Loading State
+   ======================================== */
+
 .cb-loading-state {
-    height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; background: rgba(255, 255, 255, 0.9); color: #111; font-size: 10px; font-weight: 800; text-transform: uppercase;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  background: rgba(255, 255, 255, 0.9);
+  color: #111;
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
 }
 
 .cb-spinner {
-    width: 28px; height: 28px; border: 3px solid #e2e8f0; border-top-color: #111; border-radius: 50%; animation: cb-spin 0.8s linear infinite;
+  width: 28px;
+  height: 28px;
+  border: 3px solid #e2e8f0;
+  border-top-color: #111;
+  border-radius: 50%;
+  animation: cb-spin 0.8s linear infinite;
 }
 
 @keyframes cb-spin {
-    to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
+/* ========================================
+   Empty Chart
+   ======================================== */
+
 .cb-empty-chart {
-    height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; background: #fafafa; color: #858c95; padding: 30px; text-align: center;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: #fafafa;
+  color: #858c95;
+  padding: 30px;
+  text-align: center;
 }
 
 .cb-empty-chart-icon-box {
-    width: 48px; height: 48px; display: inline-flex; align-items: center; justify-content: center; background: #fff; border: 2px solid #111; color: #111; box-shadow: 3px 3px 0px #111; margin-bottom: 6px;
+  width: 48px;
+  height: 48px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #fff;
+  border: 2px solid #111;
+  color: #111;
+  box-shadow: 3px 3px 0px #111;
+  margin-bottom: 6px;
 }
 
 .cb-empty-chart-text {
-    font-size: 11px; font-weight: 900; color: #111; margin: 0; text-transform: uppercase; letter-spacing: 0.5px;
+  font-size: 11px;
+  font-weight: 900;
+  color: #111;
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .cb-empty-chart-sub {
-    font-size: 10px; font-weight: 700; color: #858c95; text-transform: uppercase;
+  font-size: 10px;
+  font-weight: 700;
+  color: #858c95;
+  text-transform: uppercase;
 }
 
+/* ========================================
+   Tablet Responsive - 900px
+   ======================================== */
+
+@media (max-width: 900px) {
+  .cb-stats-row {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .cb-stat-box {
+    min-width: 0;
+    border-right: none;
+    border-bottom: 2px solid #111;
+    padding: 16px;
+  }
+
+  .cb-stat-box:nth-child(odd) {
+    border-right: 2px solid #111;
+  }
+
+  .cb-stat-box:nth-last-child(-n + 2) {
+    border-bottom: none;
+  }
+}
+
+/* ========================================
+   Mobile Responsive - 768px
+   ======================================== */
+
+@media (max-width: 768px) {
+  .cb-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 14px;
+    padding: 16px;
+    min-height: auto;
+  }
+
+  .cb-btn-secondary {
+    width: 100%;
+    justify-content: center;
+    box-sizing: border-box;
+  }
+
+  .cb-filter-bar {
+    padding: 14px 16px;
+    gap: 10px;
+  }
+
+  .cb-filter-item {
+    flex: 1 1 calc(50% - 6px);
+    min-width: 130px;
+  }
+
+  .cb-filter-item input,
+  .cb-filter-item select {
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+  }
+
+  .cb-filter-actions {
+    width: 100%;
+    margin-left: 0;
+    height: auto;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .cb-filter-actions button {
+    flex: 1 1 100%;
+    width: 100%;
+    justify-content: center;
+    box-sizing: border-box;
+  }
+
+  .cb-calculation-row {
+    padding: 12px 16px;
+    font-size: 9.5px;
+    line-height: 1.6;
+    word-break: break-word;
+  }
+
+  .cb-chart-container {
+    padding: 16px;
+    min-height: 320px;
+  }
+
+  .cb-chart-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+
+  .cb-chart-tabs {
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .cb-chart-tabs button {
+    flex: 1;
+    min-width: 0;
+    padding: 0 8px;
+    font-size: 8.5px;
+  }
+
+  .cb-chart-body {
+    height: 280px;
+    min-height: 280px;
+  }
+
+  .cb-error-banner {
+    padding: 10px 16px;
+    font-size: 10px;
+  }
+}
+
+/* ========================================
+   Small Mobile Responsive - 520px
+   ======================================== */
+
+@media (max-width: 520px) {
+  .cb-stats-row {
+    grid-template-columns: 1fr;
+  }
+
+  .cb-stat-box {
+    border-right: none !important;
+    border-bottom: 2px solid #111;
+  }
+
+  .cb-stat-box:last-child {
+    border-bottom: none;
+  }
+}
+
+/* ========================================
+   Extra Small Mobile - 480px
+   ======================================== */
+
+@media (max-width: 480px) {
+  .cb-filter-item {
+    flex: 1 1 100%;
+    width: 100%;
+  }
+}

@@ -1,11 +1,6 @@
 package com.example.dantruventu.Services.order;
 
-import static com.example.dantruventu.Services.order.sales.SalesSupport.conflict;
-import static com.example.dantruventu.Services.order.sales.SalesSupport.inputMoney;
-import static com.example.dantruventu.Services.order.sales.SalesSupport.invalid;
-import static com.example.dantruventu.Services.order.sales.SalesSupport.notFound;
-import static com.example.dantruventu.Services.order.sales.SalesSupport.quantity;
-import static com.example.dantruventu.Services.order.sales.SalesSupport.text;
+import static com.example.dantruventu.Services.order.sales.SalesSupport.*;
 
 import com.example.dantruventu.Config.SalesProperties;
 import com.example.dantruventu.DTO.Request.order.AdminOrderRequest;
@@ -14,17 +9,13 @@ import com.example.dantruventu.DTO.Request.order.CustomerCheckoutRequest;
 import com.example.dantruventu.DTO.Request.order.CustomerOrderRequest;
 import com.example.dantruventu.DTO.Response.PaginationResponse;
 import com.example.dantruventu.DTO.Response.order.CustomerOrderResponse;
-import com.example.dantruventu.Entity.ChiTietDonHang;
 import com.example.dantruventu.Entity.AnhSanPham;
+import com.example.dantruventu.Entity.ChiTietDonHang;
 import com.example.dantruventu.Entity.DonHang;
 import com.example.dantruventu.Entity.GioHang;
 import com.example.dantruventu.Entity.NguoiDung;
 import com.example.dantruventu.Entity.SoDiaChi;
-import com.example.dantruventu.Enum.LoaiDonHang;
-import com.example.dantruventu.Enum.TrangThaiDonHang;
-import com.example.dantruventu.Enum.TrangThaiDongGoi;
-import com.example.dantruventu.Enum.TrangThaiThanhToanDonHang;
-import com.example.dantruventu.Enum.TrangThaiXuatKho;
+import com.example.dantruventu.Enum.*;
 import com.example.dantruventu.Error.AppException;
 import com.example.dantruventu.Error.ErrorCode;
 import com.example.dantruventu.Repository.GioHangRepository;
@@ -36,9 +27,10 @@ import com.example.dantruventu.Repository.order.PhieuGiaoHangRepository;
 import com.example.dantruventu.Repository.product.AnhSanPhamRepository;
 import com.example.dantruventu.Repository.warehouse.SoSerialSanPhamRepository;
 import com.example.dantruventu.Repository.warehouse.ThanhPhanComboRepository;
+import com.example.dantruventu.Services.CartPromotionService;
 import com.example.dantruventu.Services.cashbook.CashbookService;
-import com.example.dantruventu.Services.order.sales.SalesCalculationService;
-import com.example.dantruventu.Services.order.sales.SalesContext;
+import com.example.dantruventu.Services.catalog.CatalogSupport;
+import com.example.dantruventu.Services.order.sales.*;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -79,6 +71,7 @@ public class CustomerOrderService {
   private final NguoiDungRepository cartOwnerRepository;
   private final SoDiaChiRepository addressRepository;
   private final DonHangRepository orderRepository;
+  private final OrderEvents orderEvents;
   private final ChiTietDonHangRepository orderLineRepository;
   private final AnhSanPhamRepository imageRepository;
   private final PhieuGiaoHangRepository deliveryRepository;
@@ -91,12 +84,21 @@ public class CustomerOrderService {
   private final ObjectMapper objectMapper;
   private final AdminOrderService adminOrderService;
   private final CashbookService cashbookService;
+  private final CatalogSupport catalogSupport;
+  private final OrderSaleSnapshotService saleSnapshots;
+  private final SalesQuoteService saleQuotes;
+  private final CartPromotionService cartPromotionService;
+  private final SoldDeviceService soldDevices;
+  private final OrderInventoryService orderInventory;
+  private final OrderIntakePolicy intakePolicy;
 
   @Value("${ruventu.order.delivery-fee:30000}")
   private BigDecimal deliveryFee;
 
   public CustomerOrderResponse.Preview preview(
       NguoiDung user, String guestCartId, CustomerCheckoutRequest.Preview request) {
+
+    cartPromotionService.requireSelectedPromotion(user, guestCartId, request.getMaChuongTrinh());
 
     List<Long> selectedIds = validateSelectedIds(request.getCartItemIds());
     List<CartLine> cartLines = loadSelectedCartLines(user, guestCartId, selectedIds, false);
@@ -109,26 +111,69 @@ public class CustomerOrderService {
         calculationService.calculate(salesRequest, LoaiDonHang.ONLINE, false);
 
     List<CustomerOrderResponse.Product> products =
-        plan.data().getSanPham().stream()
+        plan.lines().stream()
             .map(
-                line ->
-                    CustomerOrderResponse.Product.builder()
-                        .phienBanId(line.phienBanId())
-                        .soLuong(line.soLuong())
-                        .donGia(line.donGia())
-                        .thanhTien(line.thanhTien())
-                        .build())
+                line -> {
+                  BigDecimal grossUnitPrice =
+                      line.gift() ? BigDecimal.ZERO : money(line.variant().getGiaBanLe());
+
+                  BigDecimal grossLineAmount =
+                      grossUnitPrice.multiply(BigDecimal.valueOf(line.quantity()));
+
+                  return CustomerOrderResponse.Product.builder()
+                      .maDong(line.key())
+                      .phienBanId(line.variant().getId())
+                      .tenSanPham(line.variant().getSanPham().getTenSanPham())
+                      .tenPhienBan(line.variant().getTenPhienBan())
+                      .soLuong(line.quantity())
+                      .laQuaTang(line.gift())
+
+                      // Giá trước VAT phục vụ dữ liệu tính toán hiện có.
+                      .donGia(line.unitPrice())
+                      .thanhTien(line.amount())
+
+                      // Giá niêm yết đã gồm VAT để website hiển thị.
+                      .donGiaDaGomVat(grossUnitPrice)
+                      .thanhTienDaGomVat(grossLineAmount)
+                      .build();
+                })
             .toList();
 
-    return CustomerOrderResponse.Preview.builder()
-        .tongTienHang(plan.data().getTongTienHang())
-        .tienChietKhau(plan.data().getTienChietKhau())
-        .tongTienVat(plan.data().getTongTienVat())
-        .phiGiaoHang(plan.data().getPhiGiaoHang())
-        .tongThanhToan(plan.data().getTongThanhToan())
-        .sanPham(products)
-        .thongTinNguoiNhan(recipient)
-        .build();
+    BigDecimal grossGoods =
+        products.stream()
+            .map(CustomerOrderResponse.Product::getThanhTienDaGomVat)
+            .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+    BigDecimal goodsPayable = plan.data().getTongThanhToan().subtract(plan.data().getPhiGiaoHang());
+
+    BigDecimal grossDiscount = grossGoods.subtract(goodsPayable);
+
+    if (grossDiscount.signum() < 0) {
+      throw conflict("Tổng tiền đã gồm VAT không khớp kết quả tính giá");
+    }
+
+    var response =
+        CustomerOrderResponse.Preview.builder()
+            .tongTienHang(plan.data().getTongTienHang())
+            .tienChietKhau(plan.data().getTienChietKhau())
+            .tongTienVat(plan.data().getTongTienVat())
+            .phiGiaoHang(plan.data().getPhiGiaoHang())
+            .tongThanhToan(plan.data().getTongThanhToan())
+            .giaDaBaoGomVat(true)
+            .tongTienHangDaGomVat(grossGoods)
+            .tienGiamDaGomVat(grossDiscount)
+            .sanPham(products)
+            .thongTinNguoiNhan(recipient)
+            .build();
+
+    response.setTiepNhan(intakePolicy.preview(user, plan.quantities(), false));
+
+    return saleQuotes.issue(
+        response,
+        SalesQuoteService.identity(user, guestCartId),
+        SalesQuoteService.CUSTOMER_CHECKOUT,
+        salesRequest,
+        plan);
   }
 
   @Transactional(isolation = Isolation.READ_COMMITTED)
@@ -137,6 +182,17 @@ public class CustomerOrderService {
       String guestCartId,
       String idempotencyKey,
       CustomerCheckoutRequest.Checkout request) {
+
+    return checkout(user, guestCartId, idempotencyKey, request, null);
+  }
+
+  @Transactional(isolation = Isolation.READ_COMMITTED)
+  public CustomerOrderResponse.Created checkout(
+      NguoiDung user,
+      String guestCartId,
+      String idempotencyKey,
+      CustomerCheckoutRequest.Checkout request,
+      String remoteAddress) {
 
     if (idempotencyKey == null
         || !idempotencyKey.matches(
@@ -186,11 +242,18 @@ public class CustomerOrderService {
         actorId,
         identityAndRequestHash,
         CustomerOrderResponse.Created.class,
-        () -> createOrder(user, guestCartId, request));
+        () -> createOrder(user, guestCartId, request, remoteAddress));
   }
 
   private CustomerOrderResponse.Created createOrder(
-      NguoiDung user, String guestCartId, CustomerCheckoutRequest.Checkout request) {
+      NguoiDung user,
+      String guestCartId,
+      CustomerCheckoutRequest.Checkout request,
+      String remoteAddress) {
+
+    intakePolicy.checkCheckoutRate(user, guestCartId, remoteAddress);
+
+    cartPromotionService.requireSelectedPromotion(user, guestCartId, request.getMaChuongTrinh());
 
     List<Long> selectedIds = validateSelectedIds(request.getCartItemIds());
     List<CartLine> cartLines = loadSelectedCartLines(user, guestCartId, selectedIds, true);
@@ -199,6 +262,13 @@ public class CustomerOrderService {
     AdminSalesRequest.Preview salesRequest = buildSalesRequest(user, request, cartLines);
     SalesCalculationService.Plan plan =
         calculationService.calculate(salesRequest, LoaiDonHang.ONLINE, true);
+
+    saleQuotes.require(
+        request.getMaXacNhanGia(),
+        SalesQuoteService.identity(user, guestCartId),
+        SalesQuoteService.CUSTOMER_CHECKOUT,
+        salesRequest,
+        plan);
 
     if (inputMoney(request.getTongThanhToanXacNhan()).compareTo(plan.data().getTongThanhToan())
         != 0) {
@@ -228,33 +298,25 @@ public class CustomerOrderService {
 
     order = orderRepository.saveAndFlush(order);
 
-    List<ChiTietDonHang> savedLines = new ArrayList<>();
+    List<ChiTietDonHang> savedLines = saleSnapshots.saveLines(order, plan, salesRequest);
 
-    for (SalesCalculationService.SaleLine line : plan.lines()) {
-      savedLines.add(
-          orderLineRepository.save(
-              ChiTietDonHang.builder()
-                  .donHang(order)
-                  .phienBan(line.variant())
-                  .soLuong(line.quantity())
-                  .donGia(line.unitPrice())
-                  .thanhTien(line.amount())
-                  .build()));
-    }
+    saleSnapshots.recordUnpaidCreationEvidence(order);
 
     /*
      * Checkout chỉ tạo đơn CHO_DUYET.
      *
-     * Chưa giữ hàng, chưa xuất kho, chưa đổi serial
-     * và chưa tạo chứng từ thu/chi.
+     * Tạo đơn và giữ đủ hàng trong cùng transaction.
+     * Chưa xuất kho, chưa giữ serial cụ thể, chưa ghi nhận thu tiền.
      *
      * Tồn kho được kiểm tra lại khi bắt đầu chuẩn bị hàng.
      */
 
-    if (plan.promotion() != null) {
-      Integer used = plan.promotion().getSoLuongDaDung();
-      plan.promotion().setSoLuongDaDung((used == null ? 0 : used) + 1);
-    }
+    saleSnapshots.recordPromotion(order, plan, salesRequest, user);
+
+    orderInventory.reserveForNewOrder(
+        order, false, intakePolicy.temporaryReason(user, plan.quantities()));
+
+    saleSnapshots.configureUnpaidPromotion(order);
 
     orderRepository.flush();
 
@@ -264,6 +326,7 @@ public class CustomerOrderService {
     }
 
     registerCartCleanupAfterCommit(user, guestCartId, cartLines);
+    orderEvents.created(order);
 
     return CustomerOrderResponse.Created.builder()
         .id(order.getId())
@@ -280,16 +343,9 @@ public class CustomerOrderService {
         .phiGiaoHang(plan.data().getPhiGiaoHang())
         .tongThanhToan(plan.data().getTongThanhToan())
         .thongTinNguoiNhan(recipient)
-        .sanPham(
-            savedLines.stream()
-                .map(
-                    line ->
-                        CustomerOrderResponse.CreatedProduct.builder()
-                            .chiTietDonHangId(line.getId())
-                            .phienBanId(line.getPhienBan().getId())
-                            .soLuong(line.getSoLuong())
-                            .build())
-                .toList())
+        .sanPham(savedLines.stream().map(saleSnapshots::product).toList())
+        .khuyenMai(saleSnapshots.appliedPromotion(order.getId()))
+        .tiepNhan(intakePolicy.describe(order))
         .build();
   }
 
@@ -360,10 +416,13 @@ public class CustomerOrderService {
         lines.stream().map(line -> line.getPhienBan().getSanPham().getId()).distinct().toList();
     Map<Long, AnhSanPham> images = new LinkedHashMap<>();
     if (!productIds.isEmpty()) {
-      for (AnhSanPham image : imageRepository.findBySanPhamIdInOrderByThuTuHienThiAscIdAsc(productIds)) {
+      for (AnhSanPham image :
+          imageRepository.findBySanPhamIdInOrderByThuTuHienThiAscIdAsc(productIds)) {
         Long productId = image.getSanPham().getId();
         AnhSanPham current = images.get(productId);
-        if (current == null || (!Boolean.TRUE.equals(current.getLaAnhChinh()) && Boolean.TRUE.equals(image.getLaAnhChinh()))) {
+        if (current == null
+            || (!Boolean.TRUE.equals(current.getLaAnhChinh())
+                && Boolean.TRUE.equals(image.getLaAnhChinh()))) {
           images.put(productId, image);
         }
       }
@@ -372,36 +431,43 @@ public class CustomerOrderService {
     List<CustomerOrderResponse.DetailProduct> products =
         lines.stream()
             .map(
-                line ->
-                    CustomerOrderResponse.DetailProduct.builder()
-                        .chiTietDonHangId(line.getId())
-                        .phienBanId(line.getPhienBan().getId())
-                        .anhDaiDien(
-                            images.containsKey(line.getPhienBan().getSanPham().getId())
-                                ? images.get(line.getPhienBan().getSanPham().getId()).getDuongDanAnh()
-                                : null)
-                        .tenSanPham(line.getPhienBan().getSanPham().getTenSanPham())
-                        .tenPhienBan(line.getPhienBan().getTenPhienBan())
-                        .soLuong(line.getSoLuong())
-                        .donGia(line.getDonGia())
-                        .thanhTien(line.getThanhTien())
-                        // ERD hiện không lưu snapshot VAT/chiết khấu theo từng dòng.
-                        .thueVat(null)
-                        .tienChietKhau(null)
-                        .tienVat(null)
-                        .quanLySerial(calculationService.usesSerial(line.getPhienBan().getId()))
-                        .build())
+                line -> {
+                  var stored = saleSnapshots.product(line);
+                  var product = line.getPhienBan().getSanPham();
+                  var image = images.get(product.getId());
+
+                  return CustomerOrderResponse.DetailProduct.builder()
+                      .chiTietDonHangId(stored.getChiTietDonHangId())
+                      .phienBanId(stored.getPhienBanId())
+                      .maDong(stored.getMaDong())
+                      .anhDaiDien(image == null ? null : image.getDuongDanAnh())
+                      .tenSanPham(stored.getTenSanPham())
+                      .tenPhienBan(stored.getTenPhienBan())
+                      .loaiSanPham(stored.getLoaiSanPham())
+                      .soLuong(stored.getSoLuong())
+                      .donGia(stored.getDonGia())
+                      .thanhTien(stored.getThanhTien())
+                      .laQuaTang(stored.getLaQuaTang())
+                      .tienChietKhau(stored.getTienChietKhau())
+                      .thanhToanDong(stored.getThanhToanDong())
+                      .thueVat(stored.getThueVat())
+                      .tienVat(stored.getTienVat())
+                      .quanLySerial(stored.getQuanLySerial())
+                      .thanhPhan(stored.getThanhPhan())
+                      .canhBaoDuLieu(stored.getCanhBaoDuLieu())
+                      .build();
+                })
             .toList();
 
     List<CustomerOrderResponse.Serial> serials =
-        serialRepository.findByDonHang_IdOrderByIdAsc(order.getId()).stream()
+        soldDevices.originalSerials(order.getId()).stream()
             .map(
                 serial ->
                     CustomerOrderResponse.Serial.builder()
-                        .id(serial.getId())
-                        .phienBanId(serial.getPhienBan().getId())
-                        .soSerial(serial.getSoSerial())
-                        .trangThai(serial.getTrangThai())
+                        .id(serial.id())
+                        .phienBanId(serial.phienBanId())
+                        .soSerial(serial.soSerial())
+                        .trangThai(serial.trangThai())
                         .build())
             .toList();
 
@@ -458,48 +524,59 @@ public class CustomerOrderService {
             order.getNgayTao() == null
                 ? null
                 : order.getNgayTao().atZone(salesProperties.zone()).toOffsetDateTime())
+        .khuyenMai(saleSnapshots.appliedPromotion(order.getId()))
+        .thietBiDaGiao(soldDevices.details(order.getId()))
+        .canhBaoThietBi(soldDevices.warning(order))
+        .ngayHoanThanh(
+            order.getNgayHoanThanh() == null
+                ? null
+                : order.getNgayHoanThanh().atZone(salesProperties.zone()).toOffsetDateTime())
+        .tiepNhan(intakePolicy.describe(order))
         .build();
   }
 
   @Transactional(isolation = Isolation.READ_COMMITTED)
   public CustomerOrderResponse.Cancelled cancelOrder(
-      NguoiDung user, Long orderId, CustomerOrderRequest.Cancel request) {
+      NguoiDung user, Long orderId, String idempotencyKey, CustomerOrderRequest.Cancel request) {
 
-    NguoiDung customer = requireAuthenticatedUser(user);
+    var customer = requireAuthenticatedUser(user);
+    String key = "CANCEL-" + SalesQuoteService.uuid(idempotencyKey);
 
-    if (orderId == null || orderId <= 0) {
-      throw invalid("ID đơn hàng không hợp lệ");
-    }
+    return cashbookService.executeOnce(
+        key,
+        customer,
+        List.of(orderId, request),
+        CustomerOrderResponse.Cancelled.class,
+        () -> {
+          DonHang order =
+              orderRepository
+                  .findCustomerOrderForUpdate(orderId, customer.getId())
+                  .orElseThrow(() -> notFound("Đơn không tồn tại hoặc không thuộc khách hàng"));
 
-    /*
-     * Khóa và xác minh quyền sở hữu trước khi gọi nghiệp vụ chung.
-     * Không nhận khach_hang_id từ request.
-     */
-    DonHang order =
-        orderRepository
-            .findCustomerOrderForUpdate(orderId, customer.getId())
-            .orElseThrow(() -> notFound("Đơn hàng không tồn tại hoặc không thuộc khách hàng"));
+          List<CustomerOrderResponse.ReleasedStock> released =
+              orderInventory.reservedQuantities(order).entrySet().stream()
+                  .map(
+                      entry ->
+                          new CustomerOrderResponse.ReleasedStock(entry.getKey(), entry.getValue()))
+                  .toList();
 
-    AdminOrderRequest.Cancel sharedRequest = new AdminOrderRequest.Cancel();
+          var shared = new AdminOrderRequest.Cancel();
+          shared.setLyDo(request.getLyDo());
 
-    sharedRequest.setLyDo(request.getLyDo());
+          var cancellation = adminOrderService.cancel(orderId, shared);
 
-    /*
-     * Dùng cùng quy tắc với Admin:
-     * - chỉ hủy trước xuất kho;
-     * - chỉ giải phóng lượng hàng đã giữ;
-     * - hủy phiếu giao đang CHO_GIAO;
-     * - giữ lịch sử thanh toán;
-     * - không tự hoàn tiền.
-     */
-    adminOrderService.cancel(orderId, sharedRequest);
-
-    return CustomerOrderResponse.Cancelled.builder()
-        .id(order.getId())
-        .maDonHang(order.getMaDonHang())
-        .trangThaiDonHang(order.getTrangThaiDonHang())
-        .trangThaiXuatKho(order.getTrangThaiXuatKho())
-        .build();
+          return CustomerOrderResponse.Cancelled.builder()
+              .id(order.getId())
+              .maDonHang(order.getMaDonHang())
+              .trangThaiDonHang(order.getTrangThaiDonHang())
+              .trangThaiXuatKho(order.getTrangThaiXuatKho())
+              .trangThaiDongGoi(order.getTrangThaiDongGoi())
+              .trangThaiThanhToan(order.getTrangThaiThanhToan())
+              .khuyenMai(saleSnapshots.appliedPromotion(orderId))
+              .giaiPhongGiuKho(released)
+              .tienCanDoiSoatHoan(cancellation.getTienCanDoiSoatHoan())
+              .build();
+        });
   }
 
   public CustomerOrderResponse.Tracking trackOrder(String orderCode, String recipientPhone) {
@@ -684,7 +761,7 @@ public class CustomerOrderService {
 
     AdminSalesRequest.Tax tax = new AdminSalesRequest.Tax();
     tax.setApDung(true);
-    tax.setCheDoGia("CHUA_BAO_GOM");
+    tax.setCheDoGia("DA_BAO_GOM");
 
     List<AdminSalesRequest.Line> products =
         cartLines.stream()

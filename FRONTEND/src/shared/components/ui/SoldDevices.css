@@ -1,0 +1,52 @@
+.sold-devices {
+  padding: 14px 16px;
+}
+
+.sold-devices-note {
+  margin: 0 0 12px;
+  color: #64748b;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.sold-devices-warning {
+  margin: 0 0 12px;
+  color: #b91c1c;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.sold-devices-scroll {
+  overflow-x: auto;
+}
+
+.sold-devices-table {
+  width: 100%;
+  min-width: 760px;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.sold-devices-table th,
+.sold-devices-table td {
+  padding: 11px 10px;
+  border: 1px solid #e5e7eb;
+  text-align: left;
+  vertical-align: top;
+}
+
+.sold-devices-table th {
+  background: #f8fafc;
+  color: #475569;
+  font-size: 10px;
+}
+
+.sold-devices-table td strong,
+.sold-devices-table td small {
+  display: block;
+}
+
+.sold-devices-table td small {
+  margin-top: 5px;
+  color: #64748b;
+}

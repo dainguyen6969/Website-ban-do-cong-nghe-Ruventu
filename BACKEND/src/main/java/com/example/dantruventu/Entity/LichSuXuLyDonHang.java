@@ -23,8 +23,8 @@ public class LichSuXuLyDonHang {
   @JoinColumn(name = "don_hang_id", nullable = false)
   private DonHang donHang;
 
-  @ManyToOne(fetch = FetchType.LAZY, optional = false)
-  @JoinColumn(name = "nguoi_thuc_hien_id", nullable = false)
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "nguoi_thuc_hien_id")
   private NguoiDung nguoiThucHien;
 
   @Column(name = "hanh_dong", nullable = false, length = 50)
@@ -47,6 +47,17 @@ public class LichSuXuLyDonHang {
   @JdbcTypeCode(SqlTypes.VARCHAR)
   @Column(name = "trang_thai_xuat_kho", nullable = false, length = 50)
   private TrangThaiXuatKho trangThaiXuatKho;
+
+  @Column(name = "phieu_giao_hang_id")
+  private Long phieuGiaoHangId;
+
+  @Column(name = "ma_phieu_giao_hang", length = 50)
+  private String maPhieuGiaoHang;
+
+  @Enumerated(EnumType.STRING)
+  @JdbcTypeCode(SqlTypes.VARCHAR)
+  @Column(name = "trang_thai_giao_hang", length = 50)
+  private TrangThaiGiaoHangEnum trangThaiGiaoHang;
 
   @Column(name = "ngay_thuc_hien", nullable = false, columnDefinition = "DATETIME(6)")
   private LocalDateTime ngayThucHien;

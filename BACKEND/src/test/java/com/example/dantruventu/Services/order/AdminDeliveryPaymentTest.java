@@ -4,16 +4,25 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 import com.example.dantruventu.DTO.Request.order.AdminDeliveryStatusRequest;
+import com.example.dantruventu.DTO.Response.order.AdminDeliveryResponse;
+import com.example.dantruventu.Entity.ChiTietDonHang;
 import com.example.dantruventu.Entity.DonHang;
+import com.example.dantruventu.Entity.PhienBanSanPham;
 import com.example.dantruventu.Entity.PhieuGiaoHang;
+import com.example.dantruventu.Entity.SanPham;
 import com.example.dantruventu.Enum.*;
 import com.example.dantruventu.Error.AppException;
 import com.example.dantruventu.Mapper.order.AdminDeliveryMapper;
+import com.example.dantruventu.Repository.order.ChiTietDonHangRepository;
 import com.example.dantruventu.Repository.order.DonHangRepository;
 import com.example.dantruventu.Repository.order.PhieuGiaoHangRepository;
+import com.example.dantruventu.Services.catalog.CatalogSupport;
+import com.example.dantruventu.Services.order.sales.OrderSaleSnapshotService;
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -28,7 +37,31 @@ class AdminDeliveryPaymentTest {
   @Mock PhieuGiaoHangRepository deliveryRepository;
   @Mock AdminDeliveryMapper mapper;
   @Mock AdminOrderService orderService;
+  @Mock ChiTietDonHangRepository orderLineRepository;
+  @Mock CatalogSupport catalogSupport;
+  @Mock OrderSaleSnapshotService saleSnapshots;
+  @Mock DeliveryInventoryService inventoryService;
   @InjectMocks AdminDeliveryService service;
+
+  @Test
+  void deliveryDetailReturnsTheSameCatalogImageAsOrderDetail() {
+    ReflectionTestUtils.setField(service, "shippingTimeZone", "Asia/Ho_Chi_Minh");
+    var order = DonHang.builder().id(1L).build();
+    var delivery = PhieuGiaoHang.builder().id(3L).donHang(order).build();
+    var product = SanPham.builder().id(12L).loaiSanPham(LoaiSanPham.DON).build();
+    var line =
+        ChiTietDonHang.builder()
+            .phienBan(PhienBanSanPham.builder().sanPham(product).build())
+            .build();
+    when(deliveryRepository.findById(3L)).thenReturn(Optional.of(delivery));
+    when(mapper.toDetail(eq(delivery), any())).thenReturn(new AdminDeliveryResponse.Detail());
+    when(orderLineRepository.findByDonHang_IdOrderByIdAsc(1L)).thenReturn(List.of(line));
+    when(saleSnapshots.product(line)).thenReturn(new AdminDeliveryResponse.ProductData());
+    when(catalogSupport.primaryImages(List.of(12L))).thenReturn(Map.of(12L, "/image.jpg"));
+
+    assertEquals("/image.jpg", service.getDetail(3L).getSanPham().get(0).getAnhDaiDien());
+    verify(catalogSupport).primaryImages(List.of(12L));
+  }
 
   @ParameterizedTest
   @ValueSource(booleans = {false, true})

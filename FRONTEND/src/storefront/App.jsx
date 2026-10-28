@@ -18,23 +18,25 @@ import SearchPage from './pages/SearchPage';
 import NotFoundPage from './pages/NotFoundPage';
 import PromotionsPage from './pages/PromotionsPage';
 import ToastContainer from './components/ToastContainer';
+import BackToTop from './components/BackToTop';
 import FontPreferenceContext from '../typography/FontPreferenceContext';
-import usePersistentFontPreference from '../typography/usePersistentFontPreference';
+import useQaTypography from '../typography/useQaTypography';
 import './App.css';
 import './index.css';
 
 function StorefrontApp() {
-  const fontPreference = usePersistentFontPreference('storefront_font_preference');
-  
+  const fontPreference = useQaTypography();
+
   return (
     <FontPreferenceContext.Provider value={fontPreference}>
-      <div className="app storefront-app" style={{ fontFamily: fontPreference.font.family }}>
+      <div className="app storefront-app" style={{ fontFamily: fontPreference.font.family, '--project-font-scale': fontPreference.fontSize / 14 }}>
         <ToastContainer />
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/search" element={<SearchPage />} />
           <Route path="/category/:slug" element={<CategoryPage />} />
           <Route path="/login" element={<Login />} />
+          <Route path="/bao-tri" element={<Navigate to="/login" replace />} />
           <Route path="/register" element={<Register />} />
           <Route path="/cart" element={<CartPage />} />
           <Route path="/checkout" element={<CheckoutPage />} />
@@ -50,6 +52,7 @@ function StorefrontApp() {
           {/* Redirect unknown routes to 404 Not Found Page */}
           <Route path="*" element={<NotFoundPage />} />
         </Routes>
+        <BackToTop />
       </div>
     </FontPreferenceContext.Provider>
   );

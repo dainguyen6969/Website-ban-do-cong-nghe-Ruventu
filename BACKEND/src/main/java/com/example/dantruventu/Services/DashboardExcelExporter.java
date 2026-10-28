@@ -5,6 +5,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.time.temporal.TemporalAccessor;
+import java.util.Collection;
 import java.util.Map;
 import org.apache.poi.ss.usermodel.BorderStyle;
 import org.apache.poi.ss.usermodel.Cell;
@@ -56,8 +57,137 @@ public class DashboardExcelExporter {
     }
   }
 
-  private void summarySheet(
-      Workbook workbook, Styles styles, AdminDashboardResponse.Summary data) {
+  public byte[] exportSnapshot(Map<String, Object> snapshots) {
+
+    try (XSSFWorkbook workbook = new XSSFWorkbook();
+        ByteArrayOutputStream output = new ByteArrayOutputStream()) {
+
+      Styles styles = styles(workbook);
+
+      for (var entry : snapshots.entrySet()) {
+        Sheet target =
+            sheet(
+                workbook,
+                entry.getKey(),
+                styles,
+                entry.getKey().toUpperCase(java.util.Locale.ROOT),
+                2);
+
+        int row = header(target, 2, styles, "Chỉ tiêu / dữ liệu", "Giá trị");
+
+        snapshotRows(target, row, "", entry.getValue(), styles);
+
+        finish(target, 2);
+      }
+
+      workbook.write(output);
+      return output.toByteArray();
+
+    } catch (IOException exception) {
+      throw new IllegalStateException("Không tạo được báo cáo Dashboard", exception);
+    }
+  }
+
+  private int snapshotRows(Sheet sheet, int row, String name, Object value, Styles styles) {
+
+    if (row >= 1_048_570) {
+      throw new IllegalStateException("Báo cáo vượt giới hạn dòng XLSX");
+    }
+
+    if (value instanceof Map<?, ?> fields) {
+      if (!name.isBlank()) {
+        row = section(sheet, row, snapshotLabel(name), styles);
+      }
+
+      for (var field : fields.entrySet()) {
+        row = snapshotRows(sheet, row, field.getKey().toString(), field.getValue(), styles);
+      }
+
+      return row;
+    }
+
+    if (value instanceof Collection<?> items) {
+      row = section(sheet, row, snapshotLabel(name), styles);
+
+      if (items.isEmpty()) {
+        return info(sheet, row, "Dữ liệu", "Không phát sinh", styles);
+      }
+
+      int index = 1;
+
+      for (Object item : items) {
+        row = snapshotRows(sheet, row, "Dòng " + index++, item, styles);
+      }
+
+      return row;
+    }
+
+    Object displayed =
+        value instanceof Number && ("id".equals(name) || name.endsWith("_id"))
+            ? value.toString()
+            : value;
+
+    return info(sheet, row, snapshotLabel(name), displayed, styles);
+  }
+
+  private String snapshotLabel(String key) {
+    return switch (key) {
+      case "cap_nhat_luc" -> "Cập nhật lúc";
+      case "bo_loc" -> "Bộ lọc";
+      case "tu_ngay" -> "Từ ngày";
+      case "den_ngay" -> "Đến ngày";
+      case "kenh_ban" -> "Kênh bán";
+      case "ky_truoc" -> "Kỳ trước";
+      case "ky_hien_tai" -> "Kỳ hiện tại";
+      case "kinh_doanh" -> "Kinh doanh";
+      case "hien_tai" -> "Hiện tại";
+      case "gia_tri" -> "Giá trị";
+      case "ty_le_thay_doi" -> "Tỷ lệ thay đổi (%)";
+      case "doanh_thu_thuan" -> "Doanh thu thuần trước VAT";
+      case "doanh_thu_ban_hang" -> "Tiền hàng trước VAT";
+      case "tong_giam_gia" -> "Giảm giá đã chốt";
+      case "gia_tri_hang_tra" -> "Hàng nhận trả trước VAT";
+      case "gia_tri_trung_binh_don" -> "Giá trị trung bình đơn";
+      case "gia_von_uoc_tinh" -> "Giá vốn ước tính theo giá nhập hiện tại";
+      case "loi_nhuan_gop_uoc_tinh" -> "Lợi nhuận gộp ước tính";
+      case "so_don" -> "Số đơn";
+      case "so_luong_ban" -> "Số lượng hàng mua";
+      case "so_luong_da_nhan_tra" -> "Số lượng hàng mua đã nhận trả";
+      case "so_luong_qua_da_giao" -> "Số lượng quà đã giao";
+      case "thuc_thu" -> "Thực thu toàn cửa hàng";
+      case "co_cau_kenh" -> "Cơ cấu kênh bán";
+      case "tong_thu" -> "Tổng thu";
+      case "tong_chi" -> "Tổng chi";
+      case "chenh_lech" -> "Chênh lệch thu chi";
+      case "trong_ky" -> "Trong kỳ";
+      case "so_du_quy_hien_tai", "so_du_quy" -> "Số dư quỹ hiện tại";
+      case "bao_hanh" -> "Trạng thái bảo hành";
+      case "tra_hang" -> "Trạng thái trả hàng";
+      case "tai_chinh_bao_hanh" -> "Nghĩa vụ tài chính bảo hành";
+      case "phan_tich_bao_hanh_tra_hang" -> "Phần thu chi hậu mãi nằm trong tổng";
+      case "chat_luong_du_lieu" -> "Chất lượng dữ liệu";
+      case "canh_bao" -> "Cảnh báo";
+      case "message" -> "Nội dung cảnh báo";
+      case "code" -> "Mã cảnh báo";
+      case "items" -> "Danh sách";
+      case "ban_chay" -> "Nhóm sản phẩm đứng đầu theo giới hạn";
+      case "ton_lau" -> "Nhóm tồn lâu theo giới hạn";
+      case "ten_san_pham" -> "Tên sản phẩm";
+      case "ten_phien_ban" -> "Tên phiên bản";
+      case "ton_thuc_te" -> "Tồn thực tế";
+      case "ton_co_the_ban" -> "Tồn có thể bán";
+      case "so_bo_co_the_lap" -> "Số bộ có thể lắp";
+      case "so_luong_giu_cho_bao_hanh" -> "Giữ cho bảo hành";
+      case "tong_hang_loi" -> "Tổng hàng lỗi";
+      case "moc_thoi_gian_kinh_doanh" -> "Mốc thời gian kinh doanh";
+      case "moc_thoi_gian_so_quy" -> "Mốc thời gian sổ quỹ";
+      case "moc_thoi_gian_thong_ke_ky" -> "Mốc thời gian ưu đãi";
+      case "phuong_phap_doanh_thu" -> "Phương pháp doanh thu";
+      default -> key.replace('_', ' ');
+    };
+  }
+
+  private void summarySheet(Workbook workbook, Styles styles, AdminDashboardResponse.Summary data) {
     Sheet sheet = sheet(workbook, "Tổng quan", styles, "TỔNG QUAN RUVENTU", 4);
     int row = 2;
     row = info(sheet, row, "Thời điểm xuất", data.capNhatLuc(), styles);
@@ -78,40 +208,15 @@ public class DashboardExcelExporter {
     row = info(sheet, row, "Doanh thu bán hàng", data.kinhDoanh().doanhThuBanHang(), styles);
     row = info(sheet, row, "Tổng giảm giá", data.kinhDoanh().tongGiamGia(), styles);
     row = info(sheet, row, "Giá trị hàng trả", data.kinhDoanh().giaTriHangTra(), styles);
-    row =
-        info(
-            sheet,
-            row,
-            "Giá trị trung bình đơn",
-            data.kinhDoanh().giaTriTrungBinhDon(),
-            styles);
+    row = info(sheet, row, "Giá trị trung bình đơn", data.kinhDoanh().giaTriTrungBinhDon(), styles);
     row = info(sheet, row, "Giá vốn ước tính", data.kinhDoanh().giaVonUocTinh(), styles);
-    row =
-        info(
-            sheet,
-            row,
-            "Lợi nhuận gộp ước tính",
-            data.kinhDoanh().loiNhuanGopUocTinh(),
-            styles);
+    row = info(sheet, row, "Lợi nhuận gộp ước tính", data.kinhDoanh().loiNhuanGopUocTinh(), styles);
     row = info(sheet, row, "Số dư quỹ hiện tại", data.hienTai().soDuQuy(), styles);
     row =
-        info(
-            sheet,
-            row,
-            "Nhân viên đang hoạt động",
-            data.hienTai().nhanVienDangHoatDong(),
-            styles);
+        info(sheet, row, "Nhân viên đang hoạt động", data.hienTai().nhanVienDangHoatDong(), styles);
     row++;
     row = section(sheet, row, "Cơ cấu kênh", styles);
-    row =
-        header(
-            sheet,
-            row,
-            styles,
-            "Kênh",
-            "Doanh thu thuần",
-            "Số đơn",
-            "Tỷ trọng (%)");
+    row = header(sheet, row, styles, "Kênh", "Doanh thu thuần", "Số đơn", "Tỷ trọng (%)");
     for (AdminDashboardResponse.ChannelMix item : data.coCauKenh()) {
       dataRow(
           sheet,
@@ -153,26 +258,12 @@ public class DashboardExcelExporter {
     row = section(sheet, row, "Trả hàng", styles);
     row = info(sheet, row, "Chờ tiếp nhận", data.traHang().choTiepNhan(), styles);
     row = info(sheet, row, "Chờ hoàn tiền", data.traHang().choHoanTien(), styles);
-    row =
-        info(
-            sheet,
-            row,
-            "Tổng phiếu cần xử lý",
-            data.traHang().tongPhieuCanXuLy(),
-            styles);
+    row = info(sheet, row, "Tổng phiếu cần xử lý", data.traHang().tongPhieuCanXuLy(), styles);
     row++;
     row = section(sheet, row, "Top " + limit + " đơn ưu tiên", styles);
     row =
         header(
-            sheet,
-            row,
-            styles,
-            "ID",
-            "Mã đơn",
-            "Trạng thái",
-            "Lý do",
-            "Ngày tạo",
-            "Số phút chờ");
+            sheet, row, styles, "ID", "Mã đơn", "Trạng thái", "Lý do", "Ngày tạo", "Số phút chờ");
     for (AdminDashboardResponse.PriorityOrder item : data.canUuTien()) {
       dataRow(
           sheet,
@@ -386,12 +477,7 @@ public class DashboardExcelExporter {
       row = info(sheet, row, "Khách hàng ID", data.khachGiaTriCaoNhat().khachHangId(), styles);
       row = info(sheet, row, "Họ tên", data.khachGiaTriCaoNhat().hoTen(), styles);
       row = info(sheet, row, "Số đơn", data.khachGiaTriCaoNhat().soDon(), styles);
-      info(
-          sheet,
-          row,
-          "Giá trị mua thuần",
-          data.khachGiaTriCaoNhat().giaTriMuaThuan(),
-          styles);
+      info(sheet, row, "Giá trị mua thuần", data.khachGiaTriCaoNhat().giaTriMuaThuan(), styles);
     }
     finish(sheet, 4);
   }
@@ -413,8 +499,7 @@ public class DashboardExcelExporter {
     row = section(sheet, row + 1, "Biểu đồ dòng tiền", styles);
     row = header(sheet, row, styles, "Từ ngày", "Đến ngày", "Tổng thu", "Tổng chi");
     for (AdminDashboardResponse.CashPoint item : data.bieuDo()) {
-      dataRow(
-          sheet, row++, styles, item.tuNgay(), item.denNgay(), item.tongThu(), item.tongChi());
+      dataRow(sheet, row++, styles, item.tuNgay(), item.denNgay(), item.tongThu(), item.tongChi());
     }
     row = section(sheet, row + 1, "Đơn hàng hiện tại", styles);
     row = info(sheet, row, "Kênh bán", data.donHangHienTai().kenhBan(), styles);
@@ -425,33 +510,15 @@ public class DashboardExcelExporter {
             "Giá trị chưa thanh toán",
             data.donHangHienTai().giaTriChuaThanhToan(),
             styles);
-    row =
-        info(
-            sheet,
-            row,
-            "COD đang vận chuyển",
-            data.donHangHienTai().codDangVanChuyen(),
-            styles);
-    row =
-        info(
-            sheet,
-            row,
-            "COD chờ đối soát",
-            data.donHangHienTai().codChoDoiSoat(),
-            styles);
+    row = info(sheet, row, "COD đang vận chuyển", data.donHangHienTai().codDangVanChuyen(), styles);
+    row = info(sheet, row, "COD chờ đối soát", data.donHangHienTai().codChoDoiSoat(), styles);
     info(sheet, row, "Lý do COD null", data.donHangHienTai().lyDoCodNull(), styles);
     finish(sheet, 5);
   }
 
   private void afterSalesSheet(
       Workbook workbook, Styles styles, AdminDashboardResponse.AfterSales data) {
-    Sheet sheet =
-        sheet(
-            workbook,
-            "Bảo hành và trả hàng",
-            styles,
-            "BẢO HÀNH VÀ TRẢ HÀNG",
-            3);
+    Sheet sheet = sheet(workbook, "Bảo hành và trả hàng", styles, "BẢO HÀNH VÀ TRẢ HÀNG", 3);
     int row = 2;
     row = info(sheet, row, "Kênh bán", data.kenhBan(), styles);
     row = section(sheet, row + 1, "Bảo hành", styles);
@@ -472,23 +539,11 @@ public class DashboardExcelExporter {
     Sheet sheet = sheet(workbook, "Khuyến mại", styles, "KHUYẾN MẠI", 3);
     int row = 2;
     row = info(sheet, row, "Ngưỡng sắp đến (ngày)", data.nguongSapDenNgay(), styles);
-    row =
-        info(
-            sheet,
-            row,
-            "Đang trong thời gian áp dụng",
-            data.dangTrongThoiGianApDung(),
-            styles);
+    row = info(sheet, row, "Đang trong thời gian áp dụng", data.dangTrongThoiGianApDung(), styles);
     row = info(sheet, row, "Còn lượt áp dụng", data.conLuotApDung(), styles);
     row = info(sheet, row, "Sắp bắt đầu", data.sapBatDau(), styles);
     row = info(sheet, row, "Sắp kết thúc", data.sapKetThuc(), styles);
-    row =
-        info(
-            sheet,
-            row,
-            "Tổng lượt đã dùng lũy kế",
-            data.tongLuotDaDungLuyKe(),
-            styles);
+    row = info(sheet, row, "Tổng lượt đã dùng lũy kế", data.tongLuotDaDungLuyKe(), styles);
     row = info(sheet, row, "Số đơn sử dụng trong kỳ", data.soDonSuDungTrongKy(), styles);
     row =
         info(
@@ -502,11 +557,7 @@ public class DashboardExcelExporter {
   }
 
   private int metric(
-      Sheet sheet,
-      int row,
-      String label,
-      AdminDashboardResponse.Metric metric,
-      Styles styles) {
+      Sheet sheet, int row, String label, AdminDashboardResponse.Metric metric, Styles styles) {
     Row target = sheet.createRow(row);
     value(target.createCell(0), label, styles.label());
     value(target.createCell(1), metric.giaTri(), styles.body());
@@ -515,8 +566,7 @@ public class DashboardExcelExporter {
     return row + 1;
   }
 
-  private Sheet sheet(
-      Workbook workbook, String name, Styles styles, String title, int columns) {
+  private Sheet sheet(Workbook workbook, String name, Styles styles, String title, int columns) {
     Sheet sheet = workbook.createSheet(name);
     Row titleRow = sheet.createRow(0);
     Cell titleCell = titleRow.createCell(0);
@@ -554,8 +604,7 @@ public class DashboardExcelExporter {
     }
   }
 
-  private void note(
-      Sheet sheet, int rowIndex, String text, Styles styles, int mergedColumns) {
+  private void note(Sheet sheet, int rowIndex, String text, Styles styles, int mergedColumns) {
     Row row = sheet.createRow(rowIndex);
     value(row.createCell(0), text, styles.note());
     sheet.addMergedRegion(new CellRangeAddress(rowIndex, rowIndex, 0, mergedColumns - 1));

@@ -55,10 +55,24 @@
   align-items: center;
 }
 
-.logo-image {
-  max-width: 100%;
-  max-height: 65px;
-  object-fit: contain;
+.header-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #111;
+  white-space: nowrap;
+}
+
+.header-brand .logo-image {
+  display: block;
+  width: 48px;
+  height: 48px;
+  flex: 0 0 48px;
+}
+
+.header-brand-name {
+  font: 900 24px/1 Arial, sans-serif;
+  letter-spacing: 1px;
 }
 
 .search-bar {
@@ -132,6 +146,7 @@
 }
 
 .nav-container {
+  position: relative;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -180,11 +195,12 @@
   font-weight: 500;
 }
 
-.hotline span {
+.hotline a {
   color: var(--primary-red);
   font-weight: 900;
   font-size: 16px;
   margin-left: 4px;
+  text-decoration: none;
 }
 
 /* User Profile Dropdown */
@@ -311,6 +327,12 @@
 }
 
 /* Mega Menu Styles */
+.nav-links > li {
+  height: auto;
+  display: flex;
+  align-items: stretch;
+}
+
 .nav-links .has-mega-menu {
   position: relative;
 }
@@ -319,30 +341,33 @@
   position: absolute;
   top: 100%;
   left: 0;
+  display: none;
   width: max-content;
   min-width: 250px;
+  box-sizing: border-box;
   background-color: #181818;
   border-top: 2px solid #ff0000;
   box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-  opacity: 0;
-  visibility: hidden;
-  transform: translateY(10px);
-  transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
   z-index: 100;
   padding: 20px;
 }
 
-/* Mega menu for items that need more space (like Linh Kien PC with 3 columns) */
-.nav-links li:nth-child(1) .mega-menu { width: 750px; }
-.nav-links li:nth-child(2) .mega-menu { width: 500px; }
-.nav-links li:nth-child(3) .mega-menu { width: 250px; }
-.nav-links li:nth-child(4) .mega-menu { width: 500px; }
-.nav-links li:nth-child(5) .mega-menu { width: 250px; }
+.nav-links > li:nth-child(1) > .mega-menu { width: 750px; }
+.nav-links > li:nth-child(2) > .mega-menu { width: 500px; }
+.nav-links > li:nth-child(3) > .mega-menu { width: 250px; }
+.nav-links > li:nth-child(4) > .mega-menu { width: 500px; }
+.nav-links > li:nth-child(5) > .mega-menu { width: 250px; }
 
-.has-mega-menu:hover .mega-menu {
-  opacity: 1;
-  visibility: visible;
-  transform: translateY(0);
+.has-mega-menu:hover > .mega-menu,
+.has-mega-menu:focus-within > .mega-menu {
+  display: block;
+}
+
+.mega-menu [aria-disabled="true"] {
+  display: block;
+  padding: 8px 0;
+  color: #888;
+  cursor: not-allowed;
 }
 
 .mega-menu-content {
@@ -401,21 +426,10 @@
 
 .mega-sub-title {
   margin: 0 0 10px 0;
-}
-
-.mega-sub-title a {
-  padding: 0 !important;
-  border: none !important;
-  color: #fff !important;
-  font-size: 13px !important;
-  font-weight: 700 !important;
-  text-transform: none !important;
-  transition: all 0.2s ease !important;
-}
-
-.mega-sub-title a:hover {
-  color: #ff0000 !important;
-  background-color: transparent !important;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: none;
 }
 
 .mega-sub-category ul {

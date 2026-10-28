@@ -6,6 +6,7 @@ import com.example.dantruventu.DTO.Response.ApiResponse;
 import com.example.dantruventu.DTO.Response.order.CustomerOrderResponse;
 import com.example.dantruventu.Entity.NguoiDung;
 import com.example.dantruventu.Services.order.CustomerOrderService;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -50,12 +51,14 @@ public class CustomerOrderController {
       Authentication authentication,
       @CookieValue(value = GUEST_CART_COOKIE_NAME, required = false) String guestCartId,
       @RequestHeader(name = "Idempotency-Key", required = false) String idempotencyKey,
-      @Valid @RequestBody CustomerCheckoutRequest.Checkout request) {
+      @Valid @RequestBody CustomerCheckoutRequest.Checkout request,
+      HttpServletRequest httpRequest) {
 
     NguoiDung user = getAuthenticatedUser(authentication);
 
     CustomerOrderResponse.Created data =
-        customerOrderService.checkout(user, guestCartId, idempotencyKey, request);
+        customerOrderService.checkout(
+            user, guestCartId, idempotencyKey, request, httpRequest.getRemoteAddr());
 
     ApiResponse<CustomerOrderResponse.Created> response =
         ApiResponse.<CustomerOrderResponse.Created>builder()
@@ -101,6 +104,7 @@ public class CustomerOrderController {
   public ApiResponse<CustomerOrderResponse.Cancelled> cancelOrder(
       Authentication authentication,
       @PathVariable Long id,
+      @RequestHeader(name = "Idempotency-Key", required = false) String idempotencyKey,
       @Valid @RequestBody CustomerOrderRequest.Cancel request) {
 
     NguoiDung user = getAuthenticatedUser(authentication);
@@ -108,7 +112,7 @@ public class CustomerOrderController {
     return ApiResponse.<CustomerOrderResponse.Cancelled>builder()
         .status(HttpStatus.OK.value())
         .message("Hủy đơn hàng thành công")
-        .data(customerOrderService.cancelOrder(user, id, request))
+        .data(customerOrderService.cancelOrder(user, id, idempotencyKey, request))
         .build();
   }
 

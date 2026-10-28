@@ -7,7 +7,7 @@
 
 .storefront-app .header { height: auto; padding: 0; }
 .storefront-app .header-container { height: auto; min-height: 80px; gap: 1em; flex-wrap: wrap; }
-.storefront-app .logo-container { flex: 0 1 200px; }
+.storefront-app .logo-container { flex: 0 0 200px; }
 .storefront-app .search-bar { min-width: 0; margin-inline: 0; height: auto; min-height: 40px; }
 .storefront-app .search-bar input { min-width: 0; width: 100%; }
 .storefront-app .search-btn { flex-shrink: 0; }
@@ -23,11 +23,6 @@
 .storefront-app .arrow-link { position: static; align-self: flex-end; margin-top: 1em; }
 .storefront-app .banner-red-stripe { position: relative; }
 .storefront-app .user-dropdown { top: 100%; max-width: 100vw; }
-.storefront-app .nav-container { position: relative; }
-.storefront-app .nav-links .has-mega-menu { position: static; }
-.storefront-app .mega-menu { display: none; max-width: 100%; }
-.storefront-app .has-mega-menu:hover .mega-menu { display: block; }
-.storefront-app .mega-menu-content { flex-wrap: wrap; }
 .storefront-app .header-actions { flex-shrink: 0; }
 .storefront-app .top-banner { padding-inline: 1em; text-align: center; }
 
@@ -35,6 +30,9 @@
 .storefront-app :is(.product-category-label, .product-badge, .badge, .cart-count) { max-width: 100%; white-space: normal; height: auto; line-height: 1.5; }
 .storefront-app .product-section-title { line-height: 1.3; }
 .storefront-app .product-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.storefront-app :is(.product-grid, .category-product-grid, .search-product-grid, .products-grid, .recommendation-rail__products) { gap: 0; }
+.storefront-app :is(.product-grid, .category-product-grid, .search-product-grid, .products-grid):has(> .product-card) { border: 1px solid #000; }
+.storefront-app :is(.product-grid, .category-product-grid, .search-product-grid, .products-grid) > .product-card { border-block-width: 1px; }
 .storefront-app .product-header { height: auto; }
 .storefront-app .spec-label { width: auto; }
 .storefront-app .specs-table { table-layout: fixed; }

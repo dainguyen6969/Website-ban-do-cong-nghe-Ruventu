@@ -24,9 +24,11 @@ import com.example.dantruventu.Error.ErrorCode;
 import com.example.dantruventu.Repository.NguoiDungRepository;
 import com.example.dantruventu.Repository.cashbook.LoaiThuChiRepository;
 import com.example.dantruventu.Repository.cashbook.SoQuyThuChiRepository;
+import com.example.dantruventu.Repository.order.DonHangRepository;
 import com.example.dantruventu.Repository.partner.DoiTacVanChuyenRepository;
 import com.example.dantruventu.Repository.partner.NhaCungCapRepository;
 import com.example.dantruventu.Services.cashbook.CashbookService;
+import com.example.dantruventu.Services.order.OrderEvents;
 import com.example.dantruventu.Specification.ReceiptSpecification;
 import java.math.BigDecimal;
 import java.time.DateTimeException;
@@ -60,6 +62,8 @@ public class AdminReceiptService {
   private final NhaCungCapRepository supplierRepository;
   private final DoiTacVanChuyenRepository shippingPartnerRepository;
   private final CashbookService cashbookService;
+  private final OrderEvents orderEvents;
+  private final DonHangRepository orderRepository;
 
   @Value("${ruventu.cashbook.time-zone:Asia/Ho_Chi_Minh}")
   private String cashbookTimeZone;
@@ -199,12 +203,15 @@ public class AdminReceiptService {
     }
 
     String receiptCode = optionalText(request.getMaPhieu());
+
     if (receiptCode == null) {
       receiptCode = "PT" + UUID.randomUUID().toString().replace("-", "").toUpperCase(Locale.ROOT);
     }
+
     if (receiptCode.length() > 50 || receiptCode.toUpperCase(Locale.ROOT).startsWith("THU-")) {
       throw invalidRequest("Mã phiếu vượt 50 ký tự hoặc thuộc mã dành cho tự động.");
     }
+
     NhomNguoiNopNhanEnum payerGroup = parsePayerGroup(request.getNhomNguoiNopNhan());
     Counterparty payer =
         resolveCounterparty(
@@ -216,10 +223,23 @@ public class AdminReceiptService {
     if (payer.name() == null || payer.name().isBlank() || payer.name().length() > 150) {
       throw invalidRequest("Tên người nộp bắt buộc và tối đa 150 ký tự.");
     }
+
     String paymentMethod = parsePaymentMethod(request.getPhuongThucThanhToan());
     BigDecimal amount = requirePositiveAmount(request.getSoTien());
     LocalDateTime recordedAt = toLocalDateTime(request.getNgayGhiNhan());
     String referenceCode = optionalText(request.getMaChungTuThamChieu());
+
+    if (referenceCode != null) {
+      orderRepository
+          .findIdByMaDonHangIgnoreCase(referenceCode)
+          .ifPresent(
+              orderId -> {
+                orderRepository
+                    .findByIdForUpdate(orderId)
+                    .orElseThrow(() -> invalidRequest("Đơn hàng tham chiếu không còn tồn tại."));
+              });
+    }
+
     if (request.getMoTa() != null
         && request.getMoTa().getBytes(java.nio.charset.StandardCharsets.UTF_8).length > 65_535) {
       throw invalidRequest("Mô tả vượt giới hạn cột TEXT.");
@@ -296,7 +316,26 @@ public class AdminReceiptService {
       throw exception;
     }
 
+    orderEvents.receipt(receipt);
     return toResponse(receipt);
+  }
+
+  @Transactional
+  public AdminReceiptCancelResponse cancelReceipt(
+      String rawId, AdminReceiptCancelRequest request, NguoiDung actor, String requestKey) {
+
+    Long id = parseReceiptId(rawId);
+
+    if (request == null || !Boolean.TRUE.equals(request.getXacNhan())) {
+      throw new AppException(ErrorCode.INVALID_RECEIPT_CANCEL_CONFIRMATION);
+    }
+
+    return cashbookService.executeOnce(
+        CashbookService.uuidKey("PT-CAN-", requestKey),
+        actor,
+        java.util.List.of(id, request),
+        AdminReceiptCancelResponse.class,
+        () -> cancelReceipt(rawId, request));
   }
 
   @Transactional
@@ -312,7 +351,7 @@ public class AdminReceiptService {
             .findByIdAndLoaiPhieuForUpdate(id, LoaiPhieuThuChi.THU)
             .orElseThrow(() -> new AppException(ErrorCode.RECEIPT_CANCEL_NOT_FOUND));
 
-    if (receipt.getNguonTao() == NguonTaoPhieuThuChi.TU_DONG) {
+    if (CashbookService.protectedVoucher(receipt)) {
       throw new AppException(ErrorCode.AUTOMATIC_RECEIPT_CANNOT_BE_CANCELLED);
     }
 

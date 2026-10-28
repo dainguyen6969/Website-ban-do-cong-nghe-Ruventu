@@ -1,20 +1,22 @@
-import axios from 'axios';
+import axios from "axios";
+import { notifyMaintenance } from '../../settings/maintenanceState';
 
-const BASE_URL =
-  (import.meta.env.VITE_RUVENTU_API_URL || '')
-    .replace(/\/$/, '');
+const BASE_URL = (import.meta.env.VITE_RUVENTU_API_URL || "").replace(
+  /\/$/,
+  "",
+);
 
 const orderAxios = axios.create({
   baseURL: `${BASE_URL}/api/v1/orders`,
   withCredentials: true,
   headers: {
-    'Content-Type': 'application/json',
+    "Content-Type": "application/json",
   },
 });
 
 // Token của phiên đăng nhập storefront hiện tại.
 orderAxios.interceptors.request.use((config) => {
-  const token = localStorage.getItem('accessToken');
+  const token = localStorage.getItem("accessToken");
 
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
@@ -30,13 +32,14 @@ let refreshPromise = null;
 orderAxios.interceptors.response.use(
   (response) => response,
   async (error) => {
+    notifyMaintenance(error.response?.status, error.response?.data);
     const config = error.config;
 
     if (
       error.response?.status !== 401 ||
       !config ||
       config._retried ||
-      !localStorage.getItem('accessToken')
+      !localStorage.getItem("accessToken")
     ) {
       return Promise.reject(error);
     }
@@ -45,30 +48,34 @@ orderAxios.interceptors.response.use(
 
     try {
       if (!refreshPromise) {
-        refreshPromise = axios.post(
-          `${BASE_URL}/api/v1/auth/refresh`,
-          {},
-          { withCredentials: true },
-        ).then((response) => {
-          const token = response.data?.data?.access_token;
+        refreshPromise = axios
+          .post(
+            `${BASE_URL}/api/v1/auth/refresh`,
+            {},
+            { withCredentials: true },
+          )
+          .then((response) => {
+            const token = response.data?.data?.access_token;
 
-          if (!token) {
-            throw new Error('Không thể làm mới phiên đăng nhập.');
-          }
+            if (!token) {
+              throw new Error("Không thể làm mới phiên đăng nhập.");
+            }
 
-          localStorage.setItem('accessToken', token);
-          return token;
-        }).finally(() => {
-          refreshPromise = null;
-        });
+            localStorage.setItem("accessToken", token);
+            return token;
+          })
+          .finally(() => {
+            refreshPromise = null;
+          });
       }
 
       await refreshPromise;
 
       // Giữ nguyên body và Idempotency-Key.
       return orderAxios.request(config);
-    } catch {
-      return Promise.reject(error);
+    } catch (refreshError) {
+      notifyMaintenance(refreshError.response?.status, refreshError.response?.data);
+      return Promise.reject(refreshError);
     }
   },
 );
@@ -77,34 +84,40 @@ const id = (value) => encodeURIComponent(value);
 
 export const orderService = {
   previewCheckout: (body, signal) =>
-    orderAxios.post('/checkout/preview', body, { signal }),
+    orderAxios.post("/checkout/preview", body, { signal }),
 
   submitCheckout: (body, key) =>
-    orderAxios.post('/checkout', body, {
+    orderAxios.post("/checkout", body, {
       headers: {
-        'Idempotency-Key': key,
+        "Idempotency-Key": key,
       },
     }),
 
-  getOrders: (params, signal) =>
-    orderAxios.get('', { params, signal }),
+  getOrders: (params, signal) => orderAxios.get("", { params, signal }),
 
-  getOrder: (orderId, signal) =>
-    orderAxios.get(`/${id(orderId)}`, { signal }),
+  getOrder: (orderId, signal) => orderAxios.get(`/${id(orderId)}`, { signal }),
 
-  cancelOrder: (orderId, reason) =>
-    orderAxios.post(`/${id(orderId)}/cancel`, {
-      ly_do: reason.trim(),
-    }),
+  cancelOrder: (orderId, reason, key) =>
+    orderAxios.post(
+      `/${id(orderId)}/cancel`,
+      {
+        ly_do: reason.trim(),
+      },
+      {
+        headers: {
+          "Idempotency-Key": key,
+        },
+      },
+    ),
 
   requestReturn: (orderId, body) =>
     orderAxios.post(`/${id(orderId)}/returns`, body),
 
   getReturns: (params, signal) =>
-    orderAxios.get('/returns', { params, signal }),
+    orderAxios.get("/returns", { params, signal }),
 
   trackOrder: (orderCode, recipientPhone) =>
-    orderAxios.get('/tracking', {
+    orderAxios.get("/tracking", {
       params: {
         ma_don_hang: orderCode,
         sdt_nguoi_nhan: recipientPhone,
