@@ -227,8 +227,8 @@ public class WarrantyLookupRepository {
 
   public List<PhieuBaoHanh> findIncomingReplacementTickets(Long deviceId) {
     return entityManager
-        .createQuery(
-            "SELECT w FROM PhieuBaoHanh w WHERE w.thietBiThayThe.id = :id ORDER BY w.id",
+        .createNativeQuery(
+            "SELECT w.* FROM phieu_bao_hanh w WHERE w.thiet_bi_thay_the_id = :id OR EXISTS (SELECT 1 FROM lich_su_bao_hanh h WHERE h.phieu_bao_hanh_id=w.id AND JSON_EXTRACT(h.du_lieu_chi_tiet,'$.thiet_bi_cap_doi_id')=:id) ORDER BY w.id",
             PhieuBaoHanh.class)
         .setParameter("id", deviceId)
         .getResultList();

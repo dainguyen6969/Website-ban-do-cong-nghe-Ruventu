@@ -562,6 +562,8 @@ public class DeliveryInventoryService {
     if (physical == null
         || available == null
         || damaged == null
+        || stock.getSoLuongGiuChoBaoHanh() == null
+        || stock.getSoLuongGiuChoBaoHanh() < 0
         || physical < 0
         || available < 0
         || damaged < 0

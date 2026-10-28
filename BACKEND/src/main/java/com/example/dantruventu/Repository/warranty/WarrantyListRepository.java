@@ -30,6 +30,33 @@ public class WarrantyListRepository {
 
   private final EntityManager entityManager;
 
+  public Map<Long, Boolean> settlementStatuses(List<Long> tickets) {
+    if (tickets.isEmpty()) return Map.of();
+    var values =
+        entityManager
+            .createNativeQuery(
+                """
+        SELECT h.phieu_bao_hanh_id,
+          SUM(CASE WHEN JSON_EXTRACT(h.du_lieu_chi_tiet,'$.doi_soat_nha_cung_cap.da_giai_quyet')=false THEN 1 ELSE 0 END),
+          SUM(CASE WHEN JSON_TYPE(JSON_EXTRACT(h.du_lieu_chi_tiet,'$.doi_soat_nha_cung_cap.da_giai_quyet'))='BOOLEAN' THEN 0 ELSE 1 END)
+        FROM lich_su_bao_hanh h
+        WHERE h.phieu_bao_hanh_id IN (:tickets)
+          AND JSON_EXTRACT(h.du_lieu_chi_tiet,'$.doi_soat_nha_cung_cap.phien_ban_du_lieu')=1
+          AND NOT EXISTS (SELECT 1 FROM lich_su_bao_hanh n WHERE n.phieu_bao_hanh_id=h.phieu_bao_hanh_id AND n.id>h.id
+            AND JSON_EXTRACT(n.du_lieu_chi_tiet,'$.doi_soat_nha_cung_cap.nghia_vu_lich_su_id')=JSON_EXTRACT(h.du_lieu_chi_tiet,'$.doi_soat_nha_cung_cap.nghia_vu_lich_su_id'))
+        GROUP BY h.phieu_bao_hanh_id
+        """)
+            .setParameter("tickets", tickets)
+            .getResultList();
+    Map<Long, Boolean> result = new LinkedHashMap<>();
+    for (Object raw : values) {
+      var row = (Object[]) raw;
+      if (((Number) row[2]).longValue() != 0) throw invalidStoredData();
+      result.put(((Number) row[0]).longValue(), ((Number) row[1]).longValue() > 0);
+    }
+    return result;
+  }
+
   /*
    * A cancelled invoice keeps its own receipts and refund obligation. Receipts are not silently
    * transferred to a later active invoice. Supplier-only vouchers have no invoice FK and therefore

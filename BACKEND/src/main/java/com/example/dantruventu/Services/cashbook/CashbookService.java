@@ -40,12 +40,15 @@ public class CashbookService {
           "THU_HOAN_NCC",
           "CHI_NHAP_HANG",
           "CHI_HOAN_DON_HANG",
+          "THU_BAO_HANH",
+          "CHI_HOAN_BAO_HANH",
+          "CHI_DON_VI_BAO_HANH",
+          "THU_HOAN_DON_VI_BAO_HANH",
+          "THU_DOI_SOAT_BAO_HANH",
           "BH-THU",
           "BH-CHI",
           "THU_KHACH_BAO_HANH",
           "HOAN_KHACH_BAO_HANH",
-          "CHI_DON_VI_BAO_HANH",
-          "THU_HOAN_DON_VI_BAO_HANH",
           "HOAN_TIEN_TRA_HANG");
 
   private static final ZoneId CASHBOOK_ZONE = ZoneId.of("Asia/Ho_Chi_Minh");

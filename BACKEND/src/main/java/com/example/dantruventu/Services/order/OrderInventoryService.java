@@ -1072,11 +1072,34 @@ public class OrderInventoryService {
     for (var entry : stocks.entrySet()) {
       TonKho stock = entry.getValue();
 
-      long actualHeld =
-          (long) stock.getTonThucTe()
-              - stock.getHangLoi()
-              - stock.getSoLuongGiuChoBaoHanh()
-              - stock.getTonCoTheBan();
+// Kiểm tra tính hợp lệ của dữ liệu tồn kho.
+Integer physical = stock.getTonThucTe();
+Integer damaged = stock.getHangLoi();
+Integer available = stock.getTonCoTheBan();
+Integer warrantyHeld = stock.getSoLuongGiuChoBaoHanh();
+
+if (physical == null
+    || damaged == null
+    || available == null
+    || warrantyHeld == null
+    || physical < 0
+    || damaged < 0
+    || available < 0
+    || warrantyHeld < 0
+    || (long) available + damaged + warrantyHeld > physical) {
+
+  throw conflict(
+      "Dữ liệu tồn kho hoặc giữ hàng bảo hành không hợp lệ tại phiên bản "
+          + entry.getKey());
+}
+
+// Hàng giữ đổi bảo hành không thuộc lượng giữ cho đơn bán.
+// Phần còn lại là số lượng đang giữ cho các đơn bán.
+long actualHeld =
+    (long) physical
+        - damaged
+        - available
+        - warrantyHeld;
 
       Long expectedHeld = expectedHeld(entry.getKey());
 
