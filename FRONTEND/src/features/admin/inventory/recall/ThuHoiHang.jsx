@@ -82,6 +82,198 @@ function Location({ item }) {
   return 'Cần đối chiếu vị trí thực tế';
 }
 
+const EVENT_META = {
+  LIEN_HE: {
+    noteLabel: 'Kết quả liên hệ',
+    placeholder: 'Ví dụ: Đã gọi khách, khách đồng ý mang sản phẩm tới cửa hàng...',
+    confirmation: 'Tôi đã thực hiện liên hệ và ghi đúng kết quả trao đổi.',
+    submit: 'Lưu kết quả liên hệ',
+  },
+  CHO_NHAN_LAI: {
+    noteLabel: 'Thỏa thuận nhận lại hàng',
+    placeholder: 'Ví dụ: Khách hẹn giao lại sản phẩm và phụ kiện vào...',
+    confirmation: 'Lịch hẹn này đã được thống nhất với khách.',
+    submit: 'Lưu lịch nhận lại',
+  },
+  GAN_THIET_BI: {
+    noteLabel: 'Thông tin đối chiếu thiết bị',
+    placeholder: 'Ghi cách xác định thiết bị này thuộc đúng lần nhận/lô hàng.',
+    confirmation: 'Tôi đã đối chiếu đúng thiết bị bán và nguồn nhận thực tế.',
+    submit: 'Gắn thiết bị',
+  },
+  TRA_NCC: {
+    noteLabel: 'Nội dung liên kết',
+    placeholder: 'Có thể bổ sung thông tin về lần trả hàng.',
+    confirmation: 'Hàng đã được Nhà Cung Cấp nhận trả theo phiếu đang chọn.',
+    submit: 'Liên kết phiếu trả',
+  },
+  DOI_NCC: {
+    noteLabel: 'Nội dung liên kết',
+    placeholder: 'Có thể bổ sung thông tin về hàng đã đổi.',
+    confirmation: 'Hàng đổi đã được nhận đạt theo phiếu đang chọn.',
+    submit: 'Liên kết phiếu đổi',
+  },
+  DOI_BAO_HANH: {
+    noteLabel: 'Nội dung liên kết',
+    placeholder: 'Có thể bổ sung thông tin bàn giao thiết bị thay thế.',
+    confirmation: 'Thiết bị thay thế đã được bàn giao theo phiếu đang chọn.',
+    submit: 'Liên kết phiếu đổi',
+  },
+  LOAI_TRU: {
+    noteLabel: 'Lý do được phép gỡ phạm vi thu hồi',
+    placeholder: 'Ví dụ: Nhà Cung Cấp xác nhận serial này không thuộc lô bị ảnh hưởng...',
+    confirmation: 'Tôi đã có căn cứ hợp lệ cho phép gỡ phạm vi thu hồi của đợt này.',
+    submit: 'Xác nhận gỡ phạm vi',
+  },
+  GHI_CHU: {
+    noteLabel: 'Nội dung ghi chú',
+    placeholder: 'Ví dụ: Nhà Cung Cấp hẹn gửi xác nhận phương án xử lý vào...',
+    confirmation: 'Thông tin ghi chú phản ánh đúng nội dung đã kiểm tra.',
+    submit: 'Lưu ghi chú',
+  },
+  KET_THUC: {
+    noteLabel: 'Nội dung kết thúc',
+    placeholder: '',
+    confirmation: 'Tôi đã kiểm tra kết quả các thiết bị và nghĩa vụ liên quan của đợt này.',
+    submit: 'Kết thúc đợt thu hồi',
+  },
+  MO_LAI: {
+    noteLabel: 'Lý do mở lại',
+    placeholder: 'Ghi thông tin phát sinh cần tiếp tục theo dõi.',
+    confirmation: 'Cần mở lại đợt thu hồi để tiếp tục theo dõi.',
+    submit: 'Mở lại đợt thu hồi',
+  },
+};
+
+const recallNccOptions = (item, action) =>
+  action === 'TRA_NCC' ? item?.ncc_return_options || [] : item?.ncc_exchange_options || [];
+
+const recallSourceCheck = (item, action) =>
+  Boolean(item && !item.serial_id && (resolving(action) || action === 'GAN_THIET_BI'));
+
+function recallReferenceFields(item, action, rawId) {
+  const selectedId = Number(rawId);
+
+  if (['TRA_NCC', 'DOI_NCC'].includes(action)) {
+    const proof = recallNccOptions(item, action).find((option) => Number(option.id) === selectedId);
+
+    if (!proof) return { document: '', note: '' };
+
+    return {
+      document: proof.document || `${proof.code}/SK-${proof.event_id}`,
+      note:
+        `Liên kết ${action === 'TRA_NCC' ? 'phiếu trả' : 'phiếu đổi'} ` +
+        `${proof.code}, sự kiện #${proof.event_id}, ` +
+        `cho ${item.so_serial || item.ma_theo_doi || `thiết bị #${item.id}`}.`,
+    };
+  }
+
+  if (action === 'DOI_BAO_HANH') {
+    const proof = (item?.warranty_options || []).find((option) => Number(option.id) === selectedId);
+
+    if (!proof) return { document: '', note: '' };
+
+    return {
+      document: proof.ma_phieu,
+      note:
+        `Liên kết phiếu đổi ${proof.ma_phieu} cho ` +
+        `${item.so_serial || item.ma_theo_doi || `thiết bị #${item.id}`}.`,
+    };
+  }
+
+  return {};
+}
+
+function recallEventForm(action, item, campaign) {
+  const form = {
+    action,
+    document: '',
+    note: '',
+    nextContactAt: '',
+    deviceId: '',
+    nccUnitId: '',
+    warrantyId: '',
+    sourceVerified: false,
+    qualityConfirmed: false,
+    confirmed: false,
+  };
+
+  if (['TRA_NCC', 'DOI_NCC'].includes(action)) {
+    form.nccUnitId = String(recallNccOptions(item, action)[0]?.id || '');
+
+    Object.assign(form, recallReferenceFields(item, action, form.nccUnitId));
+  }
+
+  if (action === 'DOI_BAO_HANH') {
+    form.warrantyId = String(item?.warranty_options?.[0]?.id || '');
+
+    Object.assign(form, recallReferenceFields(item, action, form.warrantyId));
+  }
+
+  if (action === 'KET_THUC') {
+    const total = campaign?.items?.length || 0;
+
+    form.note =
+      `Kết thúc đợt thu hồi ${campaign.code}: ` +
+      `đã có kết quả cho ${total}/${total} thiết bị ` +
+      'và đã kiểm tra các nghĩa vụ liên quan.';
+  }
+
+  return form;
+}
+
+function recallDefaultAction(item) {
+  if (!item) return 'GHI_CHU';
+
+  if (item.ncc_return_options?.length) {
+    return 'TRA_NCC';
+  }
+
+  if (item.ncc_exchange_options?.length) {
+    return 'DOI_NCC';
+  }
+
+  if (item.warranty_options?.length) {
+    return 'DOI_BAO_HANH';
+  }
+
+  if (!item.serial_id && !flag(item.source_verified)) {
+    return 'GAN_THIET_BI';
+  }
+
+  if (item.order_id && !item.chi_tiet_tra_hang_id) {
+    return 'LIEN_HE';
+  }
+
+  return 'TRA_NCC';
+}
+
+function recallItemActions(item) {
+  if (!item) return [];
+
+  const actions = [];
+
+  if (item.order_id && !item.chi_tiet_tra_hang_id) {
+    actions.push('LIEN_HE', 'CHO_NHAN_LAI');
+  }
+
+  actions.push('GHI_CHU');
+
+  if (!item.serial_id) {
+    actions.push('GAN_THIET_BI');
+  }
+
+  actions.push('TRA_NCC', 'DOI_NCC');
+
+  if (item.order_id || item.warranty_options?.length) {
+    actions.push('DOI_BAO_HANH');
+  }
+
+  actions.push('LOAI_TRU');
+
+  return actions;
+}
+
 export default function ThuHoiHang() {
   const { recallId } = useParams();
   const navigate = useNavigate();
@@ -107,6 +299,37 @@ export default function ThuHoiHang() {
   const attempt = useRef(null);
   const writing = useRef(false);
   const sequence = useRef(0);
+
+  const currentItem = dialog?.item
+    ? detail?.items?.find((item) => Number(item.id) === Number(dialog.item.id)) || dialog.item
+    : null;
+
+  const actions = currentItem ? recallItemActions(currentItem) : [form.action];
+
+  const eventMeta = EVENT_META[form.action] || EVENT_META.GHI_CHU;
+
+  const vendorAction = ['TRA_NCC', 'DOI_NCC'].includes(form.action);
+
+  const nccOptions = vendorAction && currentItem ? recallNccOptions(currentItem, form.action) : [];
+
+  const warrantyOptions = currentItem?.warranty_options || [];
+
+  const referenceReady =
+    dialog?.kind !== 'event'
+      ? true
+      : vendorAction
+        ? nccOptions.some((option) => Number(option.id) === Number(form.nccUnitId))
+        : form.action === 'DOI_BAO_HANH'
+          ? warrantyOptions.some((option) => Number(option.id) === Number(form.warrantyId))
+          : true;
+
+  const confirmationText =
+    dialog?.kind === 'create'
+      ? 'Tôi xác nhận đúng thông báo và phạm vi cần thu hồi.'
+      : eventMeta.confirmation +
+        (recallSourceCheck(currentItem, form.action) && form.action !== 'GAN_THIET_BI'
+          ? ' Tôi đã đối chiếu đúng từng thiết bị và nguồn nhận thực tế.'
+          : '');
 
   useEffect(() => {
     if (recallId) return undefined;
@@ -161,6 +384,22 @@ export default function ThuHoiHang() {
   }, [loadDetail]);
 
   useEffect(() => {
+    if (!recallId || dialog?.kind !== 'event') return undefined;
+
+    const refreshReferences = () => {
+      if (!writing.current && !attempt.current) {
+        loadDetail();
+      }
+    };
+
+    window.addEventListener('focus', refreshReferences);
+
+    return () => {
+      window.removeEventListener('focus', refreshReferences);
+    };
+  }, [recallId, dialog?.kind, loadDetail]);
+
+  useEffect(() => {
     if (dialog?.kind !== 'create') return undefined;
     const controller = new AbortController();
 
@@ -207,11 +446,35 @@ export default function ThuHoiHang() {
   const frozen = busy || Boolean(attempt.current);
 
   const change = (name, value) =>
-    setForm((current) => ({
-      ...current,
-      [name]: value,
-      confirmed: name === 'confirmed' ? value : false,
-    }));
+    setForm((current) => {
+      const item =
+        detail?.items?.find((entry) => Number(entry.id) === Number(dialog?.item?.id)) ||
+        dialog?.item;
+
+      if (dialog?.kind === 'event' && name === 'action') {
+        return recallEventForm(value, item, detail);
+      }
+
+      const next = {
+        ...current,
+        [name]: value,
+        confirmed: name === 'confirmed' ? value : false,
+        sourceVerified: false,
+        qualityConfirmed: false,
+      };
+
+      if (dialog?.kind === 'event' && ['nccUnitId', 'warrantyId'].includes(name)) {
+        Object.assign(next, recallReferenceFields(item, next.action, value));
+      }
+
+      if (dialog?.kind === 'event' && name === 'confirmed') {
+        next.sourceVerified = Boolean(value) && recallSourceCheck(item, next.action);
+
+        next.qualityConfirmed = Boolean(value) && next.action === 'LOAI_TRU';
+      }
+
+      return next;
+    });
 
   const sourceLines = receipts.flatMap((receipt) =>
     receipt.items.map((item) => ({ ...item, receiptId: receipt.id }))
@@ -242,20 +505,11 @@ export default function ThuHoiHang() {
 
   const openAction = (action, item = null) => {
     if (frozen || !detail) return;
+
     setError('');
     setNotice('');
-    setForm({
-      action,
-      document: '',
-      note: '',
-      nextContactAt: '',
-      deviceId: '',
-      nccUnitId: '',
-      warrantyId: '',
-      sourceVerified: false,
-      qualityConfirmed: false,
-      confirmed: false,
-    });
+    setForm(recallEventForm(action, item, detail));
+
     setDialog({
       kind: 'event',
       item,
@@ -351,6 +605,10 @@ export default function ThuHoiHang() {
         });
       }
 
+      if (!referenceReady) {
+        throw new Error('Chưa có phiếu hoàn tất phù hợp. Hãy thực hiện nghiệp vụ liên quan trước.');
+      }
+
       if (needsDocument(form.action) && !form.document.trim()) {
         throw new Error('Nhập mã chứng từ hoặc căn cứ đối soát.');
       }
@@ -373,18 +631,6 @@ export default function ThuHoiHang() {
       setError(errorMessage(cause));
     }
   };
-
-  const actions = dialog?.item
-    ? [
-        'LIEN_HE',
-        'CHO_NHAN_LAI',
-        ...(!dialog.item.serial_id ? ['GAN_THIET_BI'] : []),
-        'TRA_NCC',
-        'DOI_NCC',
-        'DOI_BAO_HANH',
-        'LOAI_TRU',
-      ]
-    : [form.action];
 
   return (
     <main className="serial-page recall-page">
@@ -664,16 +910,9 @@ export default function ThuHoiHang() {
                               type="button"
                               className="recall-button"
                               disabled={frozen}
-                              onClick={() =>
-                                openAction(
-                                  !item.serial_id && !flag(item.source_verified)
-                                    ? 'GAN_THIET_BI'
-                                    : 'LIEN_HE',
-                                  item
-                                )
-                              }
+                              onClick={() => openAction(recallDefaultAction(item), item)}
                             >
-                              Xử lý
+                              Cập nhật thiết bị
                             </button>
                           )}
                         </td>
@@ -693,7 +932,7 @@ export default function ThuHoiHang() {
                   disabled={frozen}
                   onClick={() => openAction('GHI_CHU')}
                 >
-                  Ghi nhận đối soát
+                  Thêm ghi chú
                 </button>
                 {detail.events.map((event) => (
                   <article className="recall-history-line" key={event.id}>
@@ -717,14 +956,22 @@ export default function ThuHoiHang() {
           <OrderModal
             title={dialog.kind === 'create' ? 'TẠO ĐỢT THU HỒI' : RECALL_ACTIONS[form.action]}
             subtitle={
-              dialog.item ? dialog.item.so_serial || `Thiết bị #${dialog.item.id}` : detail?.code
+              currentItem
+                ? currentItem.so_serial || currentItem.ma_theo_doi || `Thiết bị #${currentItem.id}`
+                : detail?.code
             }
             className="recall-modal"
             showClose
             busy={busy}
             error={error}
-            disabled={!attempt.current && !form.confirmed}
-            confirmLabel={attempt.current ? 'Thử lại yêu cầu cũ' : 'Xác nhận'}
+            disabled={!attempt.current && (!form.confirmed || !referenceReady)}
+            confirmLabel={
+              attempt.current
+                ? 'Thử lại yêu cầu cũ'
+                : dialog.kind === 'create'
+                  ? 'Tạo đợt thu hồi'
+                  : eventMeta.submit
+            }
             close={() => {
               if (!frozen) {
                 setDialog(null);
@@ -748,6 +995,7 @@ export default function ThuHoiHang() {
                       onChange={(event) => setSourceQuery(event.target.value)}
                     />
                   </Field>
+
                   <Field label="Đơn nhập nguồn" wide>
                     <select
                       required
@@ -760,12 +1008,15 @@ export default function ThuHoiHang() {
                       <option value="">Chọn đơn nhập</option>
                       {sourceOptions.map((purchase) => (
                         <option key={purchase.id} value={purchase.id}>
-                          {purchase.ma_don_nhap} · {purchase.ten_nha_cung_cap}
+                          {purchase.ma_don_nhap}
+                          {' · '}
+                          {purchase.ten_nha_cung_cap}
                         </option>
                       ))}
                     </select>
                   </Field>
-                  <Field label="Phạm vi" wide>
+
+                  <Field label="Phạm vi thu hồi" wide>
                     <select
                       value={form.mode}
                       onChange={(event) => change('mode', event.target.value)}
@@ -776,7 +1027,7 @@ export default function ThuHoiHang() {
                   </Field>
 
                   {form.mode === 'serials' ? (
-                    <Field label="Serial bị thu hồi, mỗi dòng một mã" wide>
+                    <Field label="Serial thuộc phạm vi, mỗi dòng một mã" wide>
                       <textarea
                         rows={5}
                         required
@@ -796,12 +1047,18 @@ export default function ThuHoiHang() {
                           <option value="">Chọn nguồn và phiên bản</option>
                           {sourceLines.map((line) => (
                             <option key={line.id} value={line.id}>
-                              Nguồn #{line.receiptId} · {line.ten_phien_ban} ·{' '}
-                              {line.supplier_lot || 'chưa có lô'} · {line.quantity} sản phẩm
+                              Nguồn #{line.receiptId}
+                              {' · '}
+                              {line.ten_phien_ban}
+                              {' · '}
+                              {line.supplier_lot || 'Chưa có mã lô'}
+                              {' · '}
+                              {line.quantity} sản phẩm
                             </option>
                           ))}
                         </select>
                       </Field>
+
                       {selectedLine && !flag(selectedLine.serial_managed) && (
                         <>
                           <Field label="Số thiết bị trong phạm vi">
@@ -813,12 +1070,13 @@ export default function ThuHoiHang() {
                               onChange={(event) => change('quantity', event.target.value)}
                             />
                           </Field>
+
                           <Check
                             checked={form.acceptVariantBlock}
                             onChange={(value) => change('acceptVariantBlock', value)}
                           >
-                            Chưa phân bổ chính xác nguồn lô: chặn khả năng bán và bàn giao của toàn
-                            bộ phiên bản trong lúc đối soát.
+                            Tôi xác nhận tạm chặn toàn bộ phiên bản trong lúc đối chiếu nguồn từng
+                            thiết bị không serial.
                           </Check>
                         </>
                       )}
@@ -835,6 +1093,7 @@ export default function ThuHoiHang() {
                       onChange={(event) => change('document', event.target.value)}
                     />
                   </Field>
+
                   <Field label="Hạn xử lý">
                     <input
                       type="datetime-local"
@@ -845,23 +1104,61 @@ export default function ThuHoiHang() {
                 </>
               ) : (
                 <>
-                  {dialog.item && (
-                    <Field label="Thao tác" wide>
+                  {currentItem && (
+                    <div className="recall-dialog-summary recall-wide">
+                      <strong>{currentItem.ten_phien_ban}</strong>
+                      <span>
+                        {currentItem.so_serial ||
+                          currentItem.ma_theo_doi ||
+                          `Thiết bị #${currentItem.id}`}
+                      </span>
+                    </div>
+                  )}
+
+                  {currentItem && (
+                    <Field label="Việc cần ghi nhận" wide>
                       <select
                         value={form.action}
                         onChange={(event) => change('action', event.target.value)}
                       >
-                        {actions.map((action) => (
-                          <option key={action} value={action}>
-                            {RECALL_ACTIONS[action]}
-                          </option>
-                        ))}
+                        {[
+                          {
+                            title: 'Theo dõi trao đổi',
+                            values: ['LIEN_HE', 'CHO_NHAN_LAI', 'GHI_CHU'],
+                          },
+                          {
+                            title: 'Xác định thiết bị',
+                            values: ['GAN_THIET_BI'],
+                          },
+                          {
+                            title: 'Liên kết kết quả đã thực hiện',
+                            values: ['TRA_NCC', 'DOI_NCC', 'DOI_BAO_HANH'],
+                          },
+                          {
+                            title: 'Xác nhận phạm vi',
+                            values: ['LOAI_TRU'],
+                          },
+                        ].map((group) => {
+                          const available = group.values.filter((action) =>
+                            actions.includes(action)
+                          );
+
+                          return available.length ? (
+                            <optgroup key={group.title} label={group.title}>
+                              {available.map((action) => (
+                                <option key={action} value={action}>
+                                  {RECALL_ACTIONS[action]}
+                                </option>
+                              ))}
+                            </optgroup>
+                          ) : null;
+                        })}
                       </select>
                     </Field>
                   )}
 
                   {form.action === 'GAN_THIET_BI' && (
-                    <Field label="Thiết bị bán đã đối soát đúng nguồn" wide>
+                    <Field label="Thiết bị bán đã xác định đúng nguồn" wide>
                       <select
                         required
                         value={form.deviceId}
@@ -871,56 +1168,104 @@ export default function ThuHoiHang() {
                         {(detail.device_options || [])
                           .filter(
                             (device) =>
-                              Number(device.phien_ban_id) === Number(dialog.item.variant_id)
+                              Number(device.phien_ban_id) === Number(currentItem.variant_id)
                           )
                           .map((device) => (
                             <option key={device.id} value={device.id}>
-                              {device.ma_theo_doi} · {device.ma_don_hang}
+                              {device.ma_theo_doi}
+                              {' · '}
+                              {device.ma_don_hang}
                             </option>
                           ))}
                       </select>
                     </Field>
                   )}
 
-                  {['TRA_NCC', 'DOI_NCC'].includes(form.action) && (
-                    <Field label="Dòng trong hồ sơ Nhà Cung Cấp đã kết thúc" wide>
-                      <select
-                        required
-                        value={form.nccUnitId}
-                        onChange={(event) => change('nccUnitId', event.target.value)}
+                  {vendorAction && (
+                    <div className="recall-wide">
+                      {nccOptions.length ? (
+                        <Field
+                          label={
+                            form.action === 'TRA_NCC'
+                              ? 'Phiếu trả đã hoàn tất, đúng thiết bị'
+                              : 'Phiếu đổi đã hoàn tất, đúng thiết bị'
+                          }
+                        >
+                          <select
+                            required
+                            value={form.nccUnitId}
+                            onChange={(event) => change('nccUnitId', event.target.value)}
+                          >
+                            <option value="">Chọn phiếu</option>
+                            {nccOptions.map((proof) => (
+                              <option key={proof.id} value={proof.id}>
+                                {proof.code}
+                                {' · Sự kiện #'}
+                                {proof.event_id}
+                                {proof.old_serial ? ` · ${proof.old_serial}` : ''}
+                                {proof.new_serial ? ` → ${proof.new_serial}` : ''}
+                              </option>
+                            ))}
+                          </select>
+                        </Field>
+                      ) : (
+                        <div className="recall-empty-reference">
+                          <strong>
+                            Chưa có phiếu {form.action === 'TRA_NCC' ? 'trả' : 'đổi'} hoàn tất khớp
+                            thiết bị này.
+                          </strong>
+                          <p>
+                            Thực hiện gửi hàng và chốt kết quả trong hồ sơ Nhà Cung Cấp. Sau khi kết
+                            thúc hồ sơ, quay lại đây để liên kết.
+                          </p>
+                        </div>
+                      )}
+
+                      <a
+                        className="recall-route-link"
+                        href={`/kho-hang/nhap-hang/${detail.purchase_id}`}
+                        target="_blank"
+                        rel="noreferrer"
                       >
-                        <option value="">Chọn lượt xử lý</option>
-                        {(detail.ncc_options || [])
-                          .filter(
-                            (unit) =>
-                              unit.status ===
-                              (form.action === 'TRA_NCC' ? 'DA_TRA_NCC' : 'DA_NHAN_DAT')
-                          )
-                          .map((unit) => (
-                            <option key={unit.id} value={unit.id}>
-                              {unit.code} · #{unit.id} ·{' '}
-                              {unit.so_serial || unit.initial_so_serial || unit.ten_phien_ban}
-                            </option>
-                          ))}
-                      </select>
-                    </Field>
+                        Mở đơn nhập {detail.ma_don_nhap}
+                      </a>
+                    </div>
                   )}
 
                   {form.action === 'DOI_BAO_HANH' && (
-                    <Field label="Phiếu đổi đã bàn giao thiết bị thay thế" wide>
-                      <select
-                        required
-                        value={form.warrantyId}
-                        onChange={(event) => change('warrantyId', event.target.value)}
-                      >
-                        <option value="">Chọn phiếu liên quan</option>
-                        {(detail.warranty_options || []).map((ticket) => (
-                          <option key={ticket.id} value={ticket.id}>
-                            {ticket.ma_phieu}
-                          </option>
-                        ))}
-                      </select>
-                    </Field>
+                    <div className="recall-wide">
+                      {warrantyOptions.length ? (
+                        <Field label="Phiếu đổi đã có bằng chứng bàn giao">
+                          <select
+                            required
+                            value={form.warrantyId}
+                            onChange={(event) => change('warrantyId', event.target.value)}
+                          >
+                            <option value="">Chọn phiếu đổi</option>
+                            {warrantyOptions.map((ticket) => (
+                              <option key={ticket.id} value={ticket.id}>
+                                {ticket.ma_phieu}
+                              </option>
+                            ))}
+                          </select>
+                        </Field>
+                      ) : (
+                        <div className="recall-empty-reference">
+                          Chưa có phiếu đổi hoàn tất và có bằng chứng bàn giao khớp thiết bị này.
+                        </div>
+                      )}
+
+                      {currentItem?.order_id && (
+                        <a
+                          className="recall-route-link"
+                          href={`/admin/don-hang/danh-sach-don-hang/${currentItem.order_id}`}
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          Mở đơn bán {currentItem.ma_don_hang}
+                        </a>
+                      )}
+                    </div>
                   )}
 
                   {['LIEN_HE', 'CHO_NHAN_LAI'].includes(form.action) && (
@@ -934,54 +1279,66 @@ export default function ThuHoiHang() {
                   )}
 
                   {needsDocument(form.action) && (
-                    <Field label="Mã chứng từ hoặc căn cứ đối soát" wide>
+                    <Field
+                      label={
+                        vendorAction || form.action === 'DOI_BAO_HANH'
+                          ? 'Chứng từ được liên kết'
+                          : form.action === 'LOAI_TRU'
+                            ? 'Mã xác nhận cho phép gỡ phạm vi thu hồi'
+                            : 'Mã phiếu hoặc biên bản xác định nguồn'
+                      }
+                      wide
+                    >
                       <input
                         required
                         maxLength={100}
+                        readOnly={vendorAction || form.action === 'DOI_BAO_HANH'}
+                        placeholder={
+                          form.action === 'LOAI_TRU'
+                            ? 'Mã văn bản, email hoặc biên bản xác nhận thực tế'
+                            : ''
+                        }
                         value={form.document}
                         onChange={(event) => change('document', event.target.value)}
                       />
                     </Field>
                   )}
 
-                  {dialog.item &&
-                    !dialog.item.serial_id &&
-                    (resolving(form.action) || form.action === 'GAN_THIET_BI') && (
-                      <Check
-                        checked={form.sourceVerified}
-                        onChange={(value) => change('sourceVerified', value)}
-                      >
-                        Đã đối chiếu đúng từng thiết bị và nguồn nhận thực tế.
-                      </Check>
-                    )}
-
-                  {form.action === 'LOAI_TRU' && (
-                    <Check
-                      checked={form.qualityConfirmed}
-                      onChange={(value) => change('qualityConfirmed', value)}
-                    >
-                      Có căn cứ loại trừ hoặc cho phép sử dụng; thao tác không tự sửa trạng thái
-                      hàng lỗi.
-                    </Check>
+                  {form.action === 'KET_THUC' && (
+                    <div className="recall-dialog-summary recall-wide">
+                      <strong>
+                        Đã có kết quả cho {detail.items.length}/{detail.items.length} thiết bị
+                      </strong>
+                      <p>{form.note}</p>
+                    </div>
                   )}
                 </>
               )}
 
-              <Field
-                label={dialog.kind === 'create' ? 'Lý do thu hồi' : 'Nội dung và căn cứ xác nhận'}
-                wide
-              >
-                <textarea
-                  required
-                  rows={3}
-                  maxLength={1000}
-                  value={form.note}
-                  onChange={(event) => change('note', event.target.value)}
-                />
-              </Field>
+              {form.action !== 'KET_THUC' && (
+                <Field
+                  label={
+                    dialog.kind === 'create' ? 'Lý do thu hồi theo thông báo' : eventMeta.noteLabel
+                  }
+                  wide
+                >
+                  <textarea
+                    required
+                    rows={3}
+                    maxLength={1000}
+                    placeholder={
+                      dialog.kind === 'create'
+                        ? 'Ghi nội dung ảnh hưởng của sản phẩm hoặc lô hàng.'
+                        : eventMeta.placeholder
+                    }
+                    value={form.note}
+                    onChange={(event) => change('note', event.target.value)}
+                  />
+                </Field>
+              )}
 
               <Check checked={form.confirmed} onChange={(value) => change('confirmed', value)}>
-                Xác nhận nội dung, phạm vi và chứng từ phù hợp sự việc thực tế.
+                {confirmationText}
               </Check>
             </fieldset>
           </OrderModal>

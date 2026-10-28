@@ -391,3 +391,260 @@
     padding: 15px;
   }
 }
+
+/* Chỉ áp dụng cho các khối thu hồi. */
+.order-operation-modal.recall-modal {
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  width: min(780px, calc(100vw - 32px));
+  max-height: calc(100dvh - 48px);
+  overflow: hidden;
+}
+
+.order-operation-modal.recall-modal > header {
+  height: auto;
+  min-height: 0;
+  flex: 0 0 auto;
+  align-items: flex-start;
+  padding: 18px 20px;
+}
+
+.order-operation-modal.recall-modal > header > div {
+  display: block;
+  flex: 1;
+  min-width: 0;
+}
+
+.order-operation-modal.recall-modal > header h2 {
+  display: block;
+  height: auto;
+  min-height: 0;
+  margin: 0;
+  line-height: 1.45;
+  font-family: inherit;
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: normal;
+  overflow-wrap: anywhere;
+}
+
+.order-operation-modal.recall-modal > header p {
+  position: static;
+  height: auto;
+  margin: 7px 0 0 13px;
+  line-height: 1.5;
+  font-family: inherit;
+  font-size: 13px;
+  color: #d0d4db;
+}
+
+.order-operation-modal.recall-modal > header > button {
+  position: static;
+  display: grid;
+  place-items: center;
+  align-self: flex-start;
+  width: 32px;
+  height: 32px;
+  min-height: 32px;
+  margin: 0;
+  padding: 0;
+  line-height: 1;
+  font-family: inherit;
+  font-size: 24px;
+}
+
+.order-operation-modal.recall-modal > .order-operation-fields {
+  flex: 1 1 auto;
+  min-height: 0;
+  margin: 0;
+  padding: 20px;
+  overflow-y: auto;
+}
+
+.order-operation-modal.recall-modal > .order-api-message {
+  flex: 0 0 auto;
+  margin: 0 20px 14px;
+  overflow-wrap: anywhere;
+}
+
+.order-operation-modal.recall-modal > footer {
+  position: static;
+  flex: 0 0 auto;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 10px;
+  margin: 0;
+  padding: 14px 20px;
+}
+
+.order-operation-modal.recall-modal > footer .order-action {
+  min-height: 40px;
+  padding: 9px 14px !important;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.4;
+  white-space: normal;
+}
+
+.order-operation-modal.recall-modal .recall-fields textarea {
+  height: auto;
+  min-height: 100px;
+  margin: 0;
+  font-family: inherit;
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.order-operation-modal.recall-modal .recall-fields input,
+.order-operation-modal.recall-modal .recall-fields select {
+  box-sizing: border-box;
+  font-family: inherit;
+}
+
+.order-operation-modal.recall-modal .recall-fields input[readonly] {
+  background: #f5f6f8;
+  color: #4d5661;
+}
+
+.recall-page .serial-info-card .recall-facts,
+.recall-trace.serial-info-card .recall-facts {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px 22px;
+  margin: 0;
+  padding: 0;
+}
+
+.recall-page .serial-info-card .recall-facts > div,
+.recall-trace.serial-info-card .recall-facts > div {
+  display: block;
+  min-width: 0;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.recall-page .serial-info-card .recall-facts dt,
+.recall-trace.serial-info-card .recall-facts dt {
+  margin: 0 0 5px;
+  font-size: 12px;
+  font-weight: 400;
+  color: #6b7280;
+}
+
+.recall-page .serial-info-card .recall-facts dd,
+.recall-trace.serial-info-card .recall-facts dd {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+}
+
+.recall-page .recall-case .recall-table {
+  table-layout: fixed;
+  min-width: 1000px;
+}
+
+.recall-page .recall-case .recall-table th:nth-child(1) {
+  width: 28%;
+}
+
+.recall-page .recall-case .recall-table th:nth-child(2) {
+  width: 19%;
+}
+
+.recall-page .recall-case .recall-table th:nth-child(3) {
+  width: 22%;
+}
+
+.recall-page .recall-case .recall-table th:nth-child(4) {
+  width: 21%;
+}
+
+.recall-page .recall-case .recall-table th:nth-child(5) {
+  width: 10%;
+}
+
+.recall-page .recall-case .recall-table td {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.recall-page .recall-case .recall-table td .recall-button {
+  white-space: normal;
+  line-height: 1.4;
+}
+
+.recall-dialog-summary,
+.recall-empty-reference {
+  padding: 12px 14px;
+  border: 1px solid #dedfe3;
+  background: #f8f9fa;
+  line-height: 1.6;
+}
+
+.recall-dialog-summary strong,
+.recall-dialog-summary > span {
+  display: block;
+}
+
+.recall-dialog-summary > span {
+  margin-top: 4px;
+  color: #626b77;
+  font-size: 13px;
+}
+
+.recall-dialog-summary p,
+.recall-empty-reference p {
+  margin: 7px 0 0;
+  font-size: 13px;
+}
+
+.recall-empty-reference strong {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.recall-route-link {
+  display: inline-block;
+  margin-top: 10px;
+  color: #235f97;
+  font-size: 13px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.recall-modal-description {
+  margin: 0 0 18px;
+  color: #626b77;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+@media (max-width: 850px) {
+  .recall-page .serial-info-card .recall-facts,
+  .recall-trace.serial-info-card .recall-facts {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 600px) {
+  .recall-page .serial-info-card .recall-facts,
+  .recall-trace.serial-info-card .recall-facts {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .order-operation-modal.recall-modal {
+    width: calc(100vw - 24px);
+    max-height: calc(100dvh - 32px);
+  }
+
+  .order-operation-modal.recall-modal > footer .order-action {
+    flex: 1;
+  }
+}

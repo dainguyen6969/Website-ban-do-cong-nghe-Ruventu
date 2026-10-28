@@ -59,14 +59,14 @@ export const RECALL_STATUS = {
 
 export const RECALL_ACTIONS = {
   TAO_THU_HOI: 'Tạo đợt thu hồi',
-  LIEN_HE: 'Ghi nhận liên hệ',
-  CHO_NHAN_LAI: 'Hẹn nhận lại hàng',
-  GAN_THIET_BI: 'Đối soát thiết bị và nguồn lô',
-  TRA_NCC: 'Đã trả Nhà Cung Cấp',
-  DOI_NCC: 'Đã đổi với Nhà Cung Cấp',
-  DOI_BAO_HANH: 'Đã đổi thiết bị cho khách',
-  LOAI_TRU: 'Loại trừ hoặc cho phép sử dụng',
-  GHI_CHU: 'Ghi nhận đối soát',
+  LIEN_HE: 'Ghi nhận liên hệ với khách',
+  CHO_NHAN_LAI: 'Ghi nhận lịch khách giao lại hàng',
+  GAN_THIET_BI: 'Gắn thiết bị bán với nguồn nhận',
+  TRA_NCC: 'Liên kết phiếu trả Nhà Cung Cấp',
+  DOI_NCC: 'Liên kết phiếu đổi Nhà Cung Cấp',
+  DOI_BAO_HANH: 'Liên kết phiếu đổi cho khách',
+  LOAI_TRU: 'Xác nhận gỡ phạm vi thu hồi',
+  GHI_CHU: 'Thêm ghi chú',
   KET_THUC: 'Kết thúc đợt thu hồi',
   MO_LAI: 'Mở lại đợt thu hồi',
 };
