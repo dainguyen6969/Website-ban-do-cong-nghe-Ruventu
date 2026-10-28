@@ -34,7 +34,16 @@ public class CashbookService {
 
   // Mã cấu hình mà các nghiệp vụ nguồn dùng để tự động lập phiếu.
   public static final Set<String> SYSTEM_RESERVED_TYPE_CODES =
-      Set.of("THU_BAN_HANG", "THU_HOAN_NCC", "CHI_NHAP_HANG", "CHI_HOAN_DON_HANG");
+      Set.of(
+          "THU_BAN_HANG",
+          "THU_HOAN_NCC",
+          "CHI_NHAP_HANG",
+          "CHI_HOAN_DON_HANG",
+          "THU_BAO_HANH",
+          "CHI_HOAN_BAO_HANH",
+          "CHI_DON_VI_BAO_HANH",
+          "THU_HOAN_DON_VI_BAO_HANH",
+          "THU_DOI_SOAT_BAO_HANH");
 
   private static final ZoneId CASHBOOK_ZONE = ZoneId.of("Asia/Ho_Chi_Minh");
 
@@ -67,7 +76,9 @@ public class CashbookService {
       OffsetDateTime ngayGhiNhan,
       String moTa,
       String tags,
-      NguoiDung nguoiTao) {}
+      NguoiDung nguoiTao,
+      HoaDonBaoHanh hoaDonBaoHanh,
+      PhieuBaoHanh phieuBaoHanh) {}
 
   @Transactional(propagation = Propagation.MANDATORY)
   public SoQuyThuChi createAutomatic(AutomaticVoucher command) {
@@ -141,6 +152,8 @@ public class CashbookService {
             .moTa(command.moTa())
             .tags(tags)
             .nguoiTao(command.nguoiTao())
+            .hoaDonBaoHanh(command.hoaDonBaoHanh())
+            .phieuBaoHanh(command.phieuBaoHanh())
             .nguonTao(NguonTaoPhieuThuChi.TU_DONG)
             .trangThai(TrangThaiPhieuThuChi.DA_GHI_NHAN)
             .build();

@@ -309,6 +309,91 @@ public enum ErrorCode {
   WARRANTY_EVENT_FAILED(
       HttpStatus.INTERNAL_SERVER_ERROR,
       "Không lưu được sự kiện bảo hành; toàn bộ thay đổi đã được hủy."),
+  INVALID_WARRANTY_QUOTE(
+      HttpStatus.BAD_REQUEST,
+      "Thông tin phí, số lượng, thời hạn hoặc đặt cọc báo giá không hợp lệ."),
+  WARRANTY_QUOTE_SOURCE_INVALID(
+      HttpStatus.CONFLICT, "Phiên bản nguồn hoặc kết luận không còn phù hợp; vui lòng tải lại."),
+  APPROVED_FEE_REMOVAL_UNJUSTIFIED(
+      HttpStatus.CONFLICT, "Không được bỏ khoản phí đã được khách chấp thuận"),
+  WARRANTY_QUOTE_FAILED(
+      HttpStatus.INTERNAL_SERVER_ERROR, "Không lập được báo giá; toàn bộ thay đổi đã được hủy."),
+  INVALID_WARRANTY_QUOTE_EVENT(
+      HttpStatus.BAD_REQUEST, "Hành động, kênh, thời gian hoặc bằng chứng báo giá không hợp lệ."),
+  WARRANTY_QUOTE_EVENT_TRANSITION_INVALID(
+      HttpStatus.CONFLICT, "Báo giá chưa được gửi hoặc không phải phạm vi đang áp dụng."),
+  WARRANTY_QUOTE_EXPIRED(HttpStatus.CONFLICT, "Báo giá đã hết hiệu lực, không nhận quyết định mới"),
+  WARRANTY_QUOTE_ALREADY_DECIDED(
+      HttpStatus.CONFLICT, "Không được thu hồi để ghi đè quyết định đã xảy ra"),
+  WARRANTY_QUOTE_EVENT_FAILED(
+      HttpStatus.INTERNAL_SERVER_ERROR,
+      "Không xử lý được sự kiện báo giá; toàn bộ thay đổi đã được hủy."),
+  INVALID_WARRANTY_INVOICE(
+      HttpStatus.BAD_REQUEST, "Hành động, số tiền, thời hạn hoặc căn cứ hóa đơn không hợp lệ."),
+  WARRANTY_INVOICE_NOT_FOUND(HttpStatus.NOT_FOUND, "Không tìm thấy hóa đơn thuộc phiếu bảo hành."),
+  WARRANTY_INVOICE_INACTIVE(HttpStatus.CONFLICT, "Hóa đơn không còn hiệu lực."),
+  WARRANTY_QUOTE_NOT_APPROVED(
+      HttpStatus.CONFLICT, "Chưa có chấp thuận hợp lệ cho phiên bản áp dụng"),
+  WARRANTY_FINANCIAL_APPROVAL_FORBIDDEN(
+      HttpStatus.FORBIDDEN, "Không có quyền phê duyệt miễn giảm hoặc công nợ"),
+  WARRANTY_INVOICE_AMOUNT_EXCEEDED(
+      HttpStatus.CONFLICT, "Số tiền điều chỉnh hoặc công nợ vượt mức hợp lệ của hóa đơn."),
+  WARRANTY_INVOICE_FAILED(
+      HttpStatus.INTERNAL_SERVER_ERROR,
+      "Không cập nhật được hóa đơn bảo hành; toàn bộ thay đổi đã được hủy."),
+  INVALID_WARRANTY_REPLACEMENT_ITEMS(
+      HttpStatus.BAD_REQUEST, "Dữ liệu cấp hoặc nhận lại hàng đổi không hợp lệ."),
+  INVALID_WARRANTY_SUPPLIER_SETTLEMENT(
+      HttpStatus.BAD_REQUEST, "Dữ liệu nghĩa vụ, số lượng hoặc căn cứ đối soát không hợp lệ."),
+  WARRANTY_SUPPLIER_SETTLEMENT_CONFLICT(
+      HttpStatus.CONFLICT, "Nghĩa vụ, thiết bị hoặc nguồn đối soát không còn phù hợp."),
+  SUPPLIER_SETTLEMENT_ALREADY_RESOLVED(
+      HttpStatus.CONFLICT, "Khoản bù đã giải quyết, không ghi thêm hàng hoặc tiền"),
+  WARRANTY_SUPPLIER_OWNERSHIP_UNVERIFIED(
+      HttpStatus.CONFLICT, "Chưa đủ căn cứ sở hữu hoặc điều kiện nhập kho hàng bù."),
+  WARRANTY_SUPPLIER_APPROVAL_FORBIDDEN(
+      HttpStatus.FORBIDDEN, "Không có quyền quyết định phương án đối soát đơn vị bảo hành."),
+  WARRANTY_SUPPLIER_SETTLEMENT_FAILED(
+      HttpStatus.INTERNAL_SERVER_ERROR,
+      "Không cập nhật được đối soát bảo hành; toàn bộ thay đổi đã được hủy."),
+  WARRANTY_REPLACEMENT_ITEMS_CONFLICT(
+      HttpStatus.CONFLICT, "Hàng đổi, nguồn cấp hoặc phương án không còn phù hợp với thao tác."),
+  WARRANTY_REPLACEMENT_STOCK_UNAVAILABLE(
+      HttpStatus.CONFLICT, "Hàng cửa hàng không còn khả dụng để giữ/cấp"),
+  WARRANTY_REPLACEMENT_ITEMS_HANDED_OVER(
+      HttpStatus.CONFLICT, "Hàng đã bàn giao, không được hoàn xuất thông thường"),
+  WARRANTY_REPLACEMENT_ITEMS_FAILED(
+      HttpStatus.INTERNAL_SERVER_ERROR,
+      "Không cập nhật được hàng đổi bảo hành; toàn bộ thay đổi đã được hủy."),
+  INVALID_WARRANTY_REPLACEMENT(
+      HttpStatus.BAD_REQUEST,
+      "Hành động, phiên bản, căn cứ, nguồn hoặc hạn bảo hành không hợp lệ."),
+  WARRANTY_REPLACEMENT_NOT_APPROVED(
+      HttpStatus.CONFLICT, "Khách đồng ý nhưng phương án chưa được duyệt"),
+  WARRANTY_REPLACEMENT_ALREADY_HANDED_OVER(
+      HttpStatus.CONFLICT, "Không thể hủy phương án đã bàn giao"),
+  WARRANTY_REPLACEMENT_CONFLICT(
+      HttpStatus.CONFLICT, "Phương án đổi đã thay đổi, đã kết thúc hoặc còn hàng cần xử lý."),
+  WARRANTY_REPLACEMENT_POLICY_INVALID(
+      HttpStatus.CONFLICT, "Chưa đủ căn cứ chính sách, kết luận hoặc hạn bảo hành để đổi."),
+  WARRANTY_REPLACEMENT_QUOTE_NOT_APPROVED(
+      HttpStatus.CONFLICT, "Khoản phí của phương án đổi chưa được khách chấp thuận hợp lệ."),
+  WARRANTY_REPLACEMENT_APPROVAL_FORBIDDEN(
+      HttpStatus.FORBIDDEN, "Không có quyền duyệt phương án đổi hoặc xác nhận hạn mới."),
+  WARRANTY_REPLACEMENT_FAILED(
+      HttpStatus.INTERNAL_SERVER_ERROR, "Không cập nhật được phương án đổi bảo hành."),
+  INVALID_WARRANTY_MONEY(
+      HttpStatus.BAD_REQUEST,
+      "Loại giao dịch, số tiền, thời điểm hoặc chứng từ bảo hành không hợp lệ."),
+  WARRANTY_MONEY_EXCEEDS_OUTSTANDING(HttpStatus.CONFLICT, "Khoản tiền vượt nghĩa vụ còn lại"),
+  WARRANTY_MONEY_SOURCE_INVALID(
+      HttpStatus.CONFLICT, "Căn cứ tiền bảo hành chưa được xác nhận hoặc không còn phù hợp."),
+  WARRANTY_MONEY_REFERENCE_DUPLICATED(HttpStatus.CONFLICT, "Chứng từ tiền đã được ghi nhận."),
+  WARRANTY_MONEY_CONFIGURATION(
+      HttpStatus.INTERNAL_SERVER_ERROR, "Chưa cấu hình đúng loại thu chi bảo hành."),
+  WARRANTY_MONEY_FAILED(
+      HttpStatus.INTERNAL_SERVER_ERROR,
+      "Không ghi nhận được giao dịch bảo hành. Cần đối soát tiền thực tế trước khi gửi lại."),
   INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "Đã xảy ra lỗi hệ thống");
 
   private final HttpStatus status;

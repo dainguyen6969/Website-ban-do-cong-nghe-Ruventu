@@ -252,7 +252,14 @@ public class OrderInventoryService {
     for (var entry : stocks.entrySet()) {
       TonKho stock = entry.getValue();
 
-      long actualHeld = (long) stock.getTonThucTe() - stock.getHangLoi() - stock.getTonCoTheBan();
+      // Hàng giữ đổi bảo hành không thuộc lượng giữ cho đơn bán.
+      if (stock.getSoLuongGiuChoBaoHanh() == null || stock.getSoLuongGiuChoBaoHanh() < 0)
+        throw conflict("Dữ liệu giữ hàng bảo hành không hợp lệ");
+      long actualHeld =
+          (long) stock.getTonThucTe()
+              - stock.getHangLoi()
+              - stock.getTonCoTheBan()
+              - stock.getSoLuongGiuChoBaoHanh();
 
       Long expectedHeld = lineRepository.sumReservedQuantity(entry.getKey());
 

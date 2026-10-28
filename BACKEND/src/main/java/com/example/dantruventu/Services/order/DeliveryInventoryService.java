@@ -69,7 +69,11 @@ public class DeliveryInventoryService {
       TonKho stock = lockStock(variantId);
       validateStock(stock);
 
-      long held = (long) stock.getTonThucTe() - stock.getHangLoi() - stock.getTonCoTheBan();
+      long held =
+          (long) stock.getTonThucTe()
+              - stock.getHangLoi()
+              - stock.getTonCoTheBan()
+              - stock.getSoLuongGiuChoBaoHanh();
 
       Long expectedHeld = orderLineRepository.sumReservedQuantity(variantId);
 
@@ -433,10 +437,12 @@ public class DeliveryInventoryService {
     if (physical == null
         || available == null
         || damaged == null
+        || stock.getSoLuongGiuChoBaoHanh() == null
+        || stock.getSoLuongGiuChoBaoHanh() < 0
         || physical < 0
         || available < 0
         || damaged < 0
-        || (long) available + damaged > physical) {
+        || (long) available + damaged + stock.getSoLuongGiuChoBaoHanh() > physical) {
       throw conflict("Dữ liệu tồn kho không hợp lệ, cần đối chiếu trước khi xử lý");
     }
   }
