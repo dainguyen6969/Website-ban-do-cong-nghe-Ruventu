@@ -212,7 +212,7 @@ export default function ChiTietKhachHang() {
             </label>
           </header>
           <div className="customer-history-table-wrap">
-            <table className="customer-history-table">
+            <div className="admin-table-scroll admin-table-scroll--embedded" tabIndex={0} role="region" aria-label="Bảng dữ liệu liên quan"><table className="customer-history-table admin-data-table admin-data-table--records">
               <thead>
                 <tr>
                   <th>MÃ ĐƠN HÀNG</th>
@@ -263,7 +263,7 @@ export default function ChiTietKhachHang() {
                   </tr>
                 )}
               </tbody>
-            </table>
+            </table></div>
           </div>
           <DetailTablePagination
             totalItems={orderTotalElements}

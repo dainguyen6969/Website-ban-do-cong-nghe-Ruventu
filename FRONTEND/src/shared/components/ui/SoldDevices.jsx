@@ -24,7 +24,7 @@ export default function SoldDevices({ order }) {
         <p className="sold-devices-note">Chưa có thông tin thiết bị đã xuất.</p>
       ) : (
         <div className="sold-devices-scroll">
-          <table className="sold-devices-table">
+          <div className="admin-table-scroll admin-table-scroll--embedded" tabIndex={0} role="region" aria-label="Bảng dữ liệu liên quan"><table className="sold-devices-table admin-data-table admin-data-table--records">
             <thead>
               <tr>
                 <th>MÃ THEO DÕI</th>
@@ -84,7 +84,7 @@ export default function SoldDevices({ order }) {
                 );
               })}
             </tbody>
-          </table>
+          </table></div>
         </div>
       )}
     </div>

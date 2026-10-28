@@ -5,6 +5,8 @@ import OrderModal from '../../orders/components/OrderModal';
 import { mockWarrantyData } from '../data/mockData';
 import { dateKey, nextStatus, statusLabels, updateMockStatus } from '../data/warrantyModel';
 import { WarrantyBadge, WarrantyFields, WarrantyPanel, WarrantyTable } from '../components/WarrantyShell';
+import DetailTablePagination from '../../../../shared/components/ui/DetailTablePagination';
+import useDetailTablePagination from '../../../../hooks/useDetailTablePagination';
 import '../styles/warrantyShell.css';
 
 const tabs = ['TỔNG QUAN', 'XỬ LÝ & GIAO NHẬN', 'BÁO GIÁ & THANH TOÁN', 'ĐỔI HÀNG & ĐỐI SOÁT', 'LỊCH SỬ'];
@@ -28,6 +30,7 @@ function WarrantyDetail({ id }) {
     return item ? { ...item } : null;
   });
   const [tab, setTab] = useState(0);
+  const historyPagination = useDetailTablePagination(data?.history);
   const [transition, setTransition] = useState(null);
   const [confirmed, setConfirmed] = useState(false);
   const [note, setNote] = useState('');
@@ -176,7 +179,7 @@ function WarrantyDetail({ id }) {
           <WarrantyPanel title="NGHĨA VỤ / ĐỐI SOÁT NHÀ CUNG CẤP" note="Nghĩa vụ, giao nhận, hàng bù và tiền thực nhận là các sự kiện riêng."><div className="w-shell-actions">{action('GHI NHẬN NGHĨA VỤ', () => openDraft('GHI NHẬN NGHĨA VỤ'))}{other(['GHI NHẬN HÀNG BÙ', 'GHI NHẬN TIỀN THỰC NHẬN'], 'Chưa có nghĩa vụ được xác nhận trong dữ liệu mẫu.')}</div></WarrantyPanel>
         </>}
 
-        {tab === 4 && <WarrantyPanel title="LỊCH SỬ SỰ KIỆN ĐÃ LƯU" note="Không dựng tiến trình từ trạng thái hiện tại."><WarrantyTable columns={['THỜI ĐIỂM', 'SỰ KIỆN', 'NGƯỜI THAO TÁC', 'NỘI DUNG', 'BẰNG CHỨNG']} rows={history.map(event => [event.time, event.title, event.actor, event.description, event.evidence])} empty="Chưa có sự kiện đã lưu." /><div className="w-shell-list-footer"><span>Trang 1/1 · {history.length} sự kiện</span><div className="w-shell-actions">{action('TRƯỚC', null, true)}{action('SAU', null, true)}</div></div></WarrantyPanel>}
+        {tab === 4 && <WarrantyPanel title="LỊCH SỬ SỰ KIỆN ĐÃ LƯU" note="Không dựng tiến trình từ trạng thái hiện tại."><WarrantyTable columns={['THỜI ĐIỂM', 'SỰ KIỆN', 'NGƯỜI THAO TÁC', 'NỘI DUNG', 'BẰNG CHỨNG']} rows={historyPagination.visibleItems.map(event => [event.time, event.title, event.actor, event.description, event.evidence])} empty="Chưa có sự kiện đã lưu." /><DetailTablePagination totalItems={history.length} currentPage={historyPagination.currentPage} onPageChange={historyPagination.onPageChange} idPrefix="warranty-history" /></WarrantyPanel>}
       </main><aside>
         <WarrantyPanel title="NGƯỜI LIÊN HỆ / ĐƠN GỐC"><WarrantyFields fields={ [['NGƯỜI LIÊN HỆ', data.customerName], ['SỐ ĐIỆN THOẠI', data.customerPhone], ['MÃ ĐƠN HÀNG', data.orderId], ['ID ĐƠN HÀNG', data.originalOrderId]] } /><div className="w-shell-actions">{action('XEM ĐƠN HÀNG', () => openDraft('ĐƠN HÀNG GỐC'))}</div></WarrantyPanel>
         <WarrantyPanel title="THIẾT BỊ NHẬN BAN ĐẦU"><WarrantyFields fields={ [['SẢN PHẨM', <>{data.productName}<div className="w-shell-note">{data.productVariant}</div></>], ['SERIAL / MÃ THEO DÕI', data.serial || data.trackingCode], ['ĐIỀU KIỆN MIỄN PHÍ', data.eligibility], ['HẠN BẢO HÀNH', data.warrantyExpiry], ['CĂN CỨ TÍNH HẠN', data.expiryBasis]] } />{data.serial && <div className="w-shell-actions">{action('XEM SERIAL', () => openDraft('THÔNG TIN SERIAL'))}</div>}</WarrantyPanel>

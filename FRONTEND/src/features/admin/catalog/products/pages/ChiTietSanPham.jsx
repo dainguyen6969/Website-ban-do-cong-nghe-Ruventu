@@ -303,7 +303,7 @@ export default function ChiTietSanPham() {
           }
           className="detail-card"
         >
-          <table className="detail-table">
+          <div className="admin-table-scroll admin-table-scroll--embedded" tabIndex={0} role="region" aria-label="Bảng dữ liệu liên quan"><table className="detail-table admin-data-table admin-data-table--records">
             <thead>
               <tr>
                 <th>#</th>
@@ -341,7 +341,7 @@ export default function ChiTietSanPham() {
                 <td className="detail-red">{money(componentTotal)}</td>
               </tr>
             </tbody>
-          </table>
+          </table></div>
           <DetailTablePagination
             totalItems={components.length}
             currentPage={componentPagination.currentPage}
@@ -352,7 +352,7 @@ export default function ChiTietSanPham() {
       )}
       {hasVariantTable && (
         <FormCard title="Thông tin phiên bản" className="detail-card">
-          <table className="detail-table">
+          <div className="admin-table-scroll admin-table-scroll--embedded" tabIndex={0} role="region" aria-label="Bảng dữ liệu liên quan"><table className="detail-table admin-data-table admin-data-table--records">
             <thead>
               <tr>
                 <th>PHIÊN BẢN</th>
@@ -387,7 +387,7 @@ export default function ChiTietSanPham() {
                 </tr>
               ))}
             </tbody>
-          </table>
+          </table></div>
 
           <DetailTablePagination
             totalItems={variants.length}
@@ -416,7 +416,7 @@ export default function ChiTietSanPham() {
         }
         className="detail-card"
       >
-        <table className="detail-table">
+        <div className="admin-table-scroll admin-table-scroll--embedded" tabIndex={0} role="region" aria-label="Bảng dữ liệu liên quan"><table className="detail-table admin-data-table admin-data-table--records">
           <thead>
             <tr>
               <th>KHO HÀNG</th>
@@ -452,7 +452,7 @@ export default function ChiTietSanPham() {
               <td />
             </tr>
           </tbody>
-        </table>
+        </table></div>
       </FormCard>
     </main>
   );

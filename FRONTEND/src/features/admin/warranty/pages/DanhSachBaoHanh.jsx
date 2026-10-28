@@ -5,6 +5,7 @@ import { mockWarrantyData, warrantyStatusLabels } from '../data/mockData';
 import { filterWarranties, statusLabels, quoteStatuses, paymentStatuses, refundStatuses, quickFilters } from '../data/warrantyModel';
 import { WarrantyBadge } from '../components/WarrantyShell';
 import FilterDropdown from '../../../../shared/components/ui/FilterDropdown';
+import TablePagination from '../../../../shared/components/ui/TablePagination';
 import '../styles/warrantyShell.css';
 
 const emptyFilters = { search: '', status: '', quick: 'TẤT CẢ', quoteStatus: '', paymentStatus: '', refundStatus: '', fromDate: '', toDate: '' };
@@ -34,7 +35,7 @@ export default function DanhSachBaoHanh() {
   const update = (field, value) => { setFilters(current => ({ ...current, [field]: value, ...(field === 'status' ? { quick: 'TẤT CẢ' } : field === 'quick' ? { status: '' } : {}) })); setPage(1); };
   const date = value => <><span>{value?.split(' ')[0] || 'Chưa xác định'}</span><small>{value?.split(' ')[1] || ''}</small></>;
 
-  return <div className="w-shell">
+  return <div className="w-shell admin-list-page">
     <header className="w-shell-hero">
       <div><p className="w-shell-breadcrumb">BẢO HÀNH / DANH SÁCH PHIẾU BẢO HÀNH</p><h1>DANH SÁCH PHIẾU BẢO HÀNH</h1><p>THEO DÕI TIẾP NHẬN, KIỂM TRA, XỬ LÝ VÀ BÀN GIAO THIẾT BỊ.</p></div>
       <button type="button" className="w-shell-button w-shell-button--red" onClick={() => navigate('/admin/bao-hanh/tao-moi')}><Plus size={14} /> LẬP PHIẾU BẢO HÀNH</button>
@@ -56,8 +57,8 @@ export default function DanhSachBaoHanh() {
       </div>}
       {invalidDates && <p className="w-shell-error" role="alert">Từ ngày phải nhỏ hơn hoặc bằng đến ngày.</p>}
     </section>
-    <div className="w-shell-content"><section className="w-shell-list-frame">
-      <div className="w-shell-table-scroll"><table className="w-shell-list-table">
+    <div className="w-shell-content admin-list-body"><section className="w-shell-list-frame admin-list-frame">
+      <div className="w-shell-table-scroll admin-table-scroll" tabIndex={0} role="region" aria-label="Bảng danh sách"><table className="w-shell-list-table admin-data-table">
         <thead><tr>{['MÃ PHIẾU / ĐƠN HÀNG', 'KHÁCH HÀNG', 'THIẾT BỊ', 'TRẠNG THÁI XỬ LÝ', 'NGÀY TIẾP NHẬN', 'CẬP NHẬT CUỐI', 'THAO TÁC'].map(title => <th key={title}>{title}</th>)}</tr></thead>
         <tbody>{visible.map(item => <tr key={item.id}>
           <td><button type="button" className="w-shell-ticket-link" onClick={() => navigate(`/admin/bao-hanh/chi-tiet/${item.id}`)}>{item.id}</button><small>{item.orderId || '—'}</small></td>
@@ -68,7 +69,7 @@ export default function DanhSachBaoHanh() {
           <td><button type="button" className="w-shell-button" aria-label={`Xem chi tiết ${item.id}`} onClick={() => navigate(`/admin/bao-hanh/chi-tiet/${item.id}`)}>XEM CHI TIẾT</button></td>
         </tr>)}{!visible.length && <tr><td colSpan={7} className="w-shell-empty">Không tìm thấy phiếu bảo hành phù hợp.</td></tr>}</tbody>
       </table></div>
-      <footer className="w-shell-list-footer"><div>Hiển thị {items.length ? `${start + 1}–${start + visible.length}` : '0'} / tổng {items.length}<small>—: chưa có thông tin.</small></div><div className="w-shell-pager"><strong>TRANG {currentPage} / {pages}</strong><select aria-label="Số phiếu mỗi trang" value={pageSize} onChange={event => { setPageSize(Number(event.target.value)); setPage(1); }}>{[10, 20, 50, 100].map(size => <option key={size} value={size}>{size} / trang</option>)}</select><button type="button" className="w-shell-button" disabled={currentPage === 1} onClick={() => setPage(currentPage - 1)}>TRƯỚC</button><button type="button" className="w-shell-button" disabled={currentPage === pages} onClick={() => setPage(currentPage + 1)}>SAU</button></div></footer>
+      <footer className="w-shell-list-footer admin-table-footer"><div>Hiển thị {items.length ? `${start + 1}–${start + visible.length}` : '0'} / tổng {items.length}<small>—: chưa có thông tin.</small></div><div className="w-shell-pager"><select aria-label="Số phiếu mỗi trang" value={pageSize} onChange={event => { setPageSize(Number(event.target.value)); setPage(1); }}>{[10, 20, 50, 100].map(size => <option key={size} value={size}>{size} / trang</option>)}</select><TablePagination totalItems={items.length} pageSize={pageSize} currentPage={currentPage} onPageChange={setPage} showSummary={false} idPrefix="warranty" /></div></footer>
     </section></div>
   </div>;
 }

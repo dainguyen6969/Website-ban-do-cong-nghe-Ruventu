@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { HiOutlinePlus, HiOutlineSearch } from 'react-icons/hi';
 
@@ -98,6 +98,7 @@ export default function DanhSachNhapHang() {
     totalItems: 0,
     totalPages: 0,
   });
+  const previousSearch = useRef(filters.keyword);
 
   const [suppliers, setSuppliers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -131,11 +132,13 @@ export default function DanhSachNhapHang() {
     setLoading(true);
     setError('');
 
+    const delay = previousSearch.current === filters.keyword ? 0 : 250;
+    previousSearch.current = filters.keyword;
     const timer = setTimeout(() => {
       getPurchaseOrderPage(filters, controller.signal)
-        .then(setData)
+        .then(result => { if (!controller.signal.aborted) setData(result); })
         .catch((reason) => {
-          if (reason.name !== 'AbortError') {
+          if (!controller.signal.aborted && reason.name !== 'AbortError') {
             setError(reason.message);
           }
         })
@@ -144,7 +147,7 @@ export default function DanhSachNhapHang() {
             setLoading(false);
           }
         });
-    }, 250);
+    }, delay);
 
     return () => {
       clearTimeout(timer);
@@ -207,7 +210,7 @@ export default function DanhSachNhapHang() {
   // ========================================
 
   return (
-    <main className="purchase-page purchase-list-page">
+    <main className="purchase-page purchase-list-page admin-list-page">
       {/* Header */}
       <div className="purchase-heading">
         <div>
@@ -284,8 +287,9 @@ export default function DanhSachNhapHang() {
       )}
 
       {/* Bảng đơn nhập hàng */}
-      <div className="purchase-table-wrap">
-        <table className="purchase-table">
+      <div className="purchase-table-wrap admin-list-frame">
+        <div className="admin-table-scroll" tabIndex={0} role="region" aria-label="Bảng danh sách">
+<table className="purchase-table admin-data-table" aria-busy={loading}>
           <thead>
             <tr>
               <th>MÃ ĐƠN NHẬP</th>
@@ -299,8 +303,7 @@ export default function DanhSachNhapHang() {
           </thead>
 
           <tbody>
-            {!loading &&
-              data.items.map((order) => (
+            {data.items.map((order) => (
                 <tr
                   key={order.id}
                   className={
@@ -350,6 +353,7 @@ export default function DanhSachNhapHang() {
                     <button
                       type="button"
                       className="purchase-btn outline small"
+                      disabled={loading}
                       onClick={() =>
                         navigate(
                           `/kho-hang/nhap-hang/${order.id}`
@@ -363,7 +367,7 @@ export default function DanhSachNhapHang() {
               ))}
 
             {/* Trạng thái tải dữ liệu / rỗng */}
-            {(loading || !data.items.length) && (
+            {!data.items.length && (
               <tr className="purchase-empty">
                 <td colSpan="7">
                   {loading
@@ -374,15 +378,10 @@ export default function DanhSachNhapHang() {
             )}
           </tbody>
         </table>
-
-        {/* Thông tin phân trang */}
-        <div className="purchase-pagination-caption">
-          {data.totalItems} ĐƠN NHẬP · TRANG {filters.page}/
-          {Math.max(1, data.totalPages)}
-        </div>
+</div>
 
         {/* Phân trang */}
-        <TablePagination
+        <TablePagination className="admin-table-footer"
           totalItems={data.totalItems}
           pageSize={10}
           currentPage={filters.page}

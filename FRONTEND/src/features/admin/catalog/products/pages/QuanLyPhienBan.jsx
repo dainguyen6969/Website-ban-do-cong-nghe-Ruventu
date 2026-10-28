@@ -152,8 +152,8 @@ export default function QuanLyPhienBan() {
   };
 
   return (
-    <main className="version-page" role="main">
-      <div className="version-page__inner">
+    <main className="version-page admin-list-page" role="main">
+      <div className="version-page__inner admin-list-body">
         <nav className="version-breadcrumb" aria-label="Breadcrumb nội dung">
           <span>Sản phẩm</span>
           <span aria-hidden="true">›</span>
@@ -261,8 +261,9 @@ export default function QuanLyPhienBan() {
           </div>
         )}
 
-        <div className="version-table-shell">
-          <table className="version-table">
+        <div className="version-table-shell admin-list-frame">
+          <div className="admin-table-scroll" tabIndex={0} role="region" aria-label="Bảng danh sách">
+<table className="version-table admin-data-table">
             <thead>
               <tr>
                 <th className="version-table__check">
@@ -412,7 +413,8 @@ export default function QuanLyPhienBan() {
               )}
             </tbody>
           </table>
-          <TablePagination
+</div>
+          <TablePagination className="admin-table-footer"
             totalItems={filteredVersions.length}
             pageSize={PAGE_SIZE}
             currentPage={safePage}

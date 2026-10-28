@@ -123,8 +123,8 @@ export default function DanhSachSerial() {
   };
 
   return (
-    <main className="serial-page" role="main">
-      <div className="serial-page__inner">
+    <main className="serial-page admin-list-page" role="main">
+      <div className="serial-page__inner admin-list-body">
         <nav className="serial-secondary-breadcrumb" aria-label="Breadcrumb nội dung">
           <span>Sản phẩm</span>
           <span>›</span>
@@ -205,8 +205,9 @@ export default function DanhSachSerial() {
   XUẤT EXCEL
 </button>
         </section>
-        <div className="serial-table-shell">
-          <table className="serial-table">
+        <div className="serial-table-shell admin-list-frame">
+          <div className="admin-table-scroll" tabIndex={0} role="region" aria-label="Bảng danh sách">
+<table className="serial-table admin-data-table">
             <thead>
               <tr>
                 <th>PHIÊN BẢN SẢN PHẨM</th>
@@ -286,7 +287,8 @@ export default function DanhSachSerial() {
               )}
             </tbody>
           </table>
-          <TablePagination
+</div>
+          <TablePagination className="admin-table-footer"
             totalItems={totalItems}
             pageSize={PAGE_SIZE}
             currentPage={currentPage}

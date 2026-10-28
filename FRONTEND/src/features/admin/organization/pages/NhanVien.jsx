@@ -138,7 +138,7 @@ export function DanhSachNhanVien() {
   };
 
   return (
-    <main className="employee-page" role="main">
+    <main className="employee-page admin-list-page" role="main">
       <section className="employee-hero">
         <div>
           <p className="employee-crumb">NHÂN VIÊN / DANH SÁCH NHÂN VIÊN</p>
@@ -179,9 +179,9 @@ export function DanhSachNhanVien() {
           }}
         />
       </section>
-      <section className="employee-list-content">
-        <div className="employee-table-wrap">
-          <table className="employee-table">
+      <section className="employee-list-content admin-list-body">
+        <div className="employee-table-wrap admin-table-scroll" tabIndex={0} role="region" aria-label="Bảng danh sách">
+          <table className="employee-table admin-data-table">
             <thead>
               <tr>
                 <th>MÃ NV</th>
@@ -224,7 +224,7 @@ export function DanhSachNhanVien() {
             </tbody>
           </table>
         </div>
-        <div className="employee-list-footer">
+        <div className="employee-list-footer admin-table-footer">
           <p>
             HIỂN THỊ {employees.length} TRÊN TỔNG SỐ {totalItems} NHÂN VIÊN
           </p>

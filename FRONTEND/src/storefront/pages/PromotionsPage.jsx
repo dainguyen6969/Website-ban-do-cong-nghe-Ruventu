@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import ProductCard from '../components/ProductCard';
+import TablePagination from '../../shared/components/ui/TablePagination';
 import { productService } from '../../shared/services/productService';
 import './CategoryPage.css';
 
@@ -12,6 +13,8 @@ const formatVND = (amount) =>
 const PromotionsPage = () => {
   const [products, setProducts] = useState([]);
   const [sortBy, setSortBy] = useState('newest');
+  const [page, setPage] = useState(1);
+  const pageSize = 20;
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -100,7 +103,7 @@ const PromotionsPage = () => {
               <label>Sắp xếp theo:</label>
               <select
                 value={sortBy}
-                onChange={(e) => setSortBy(e.target.value)}
+                onChange={(e) => { setSortBy(e.target.value); setPage(1); }}
                 className="sort-select"
               >
                 <option value="newest">Mới nhất</option>
@@ -123,7 +126,7 @@ const PromotionsPage = () => {
                 Đang tải sản phẩm...
               </div>
             ) : sortedProducts.length > 0 ? (
-              sortedProducts.map((product) => <ProductCard key={product.id} product={product} />)
+              sortedProducts.slice((page - 1) * pageSize, page * pageSize).map((product) => <ProductCard key={product.id} product={product} />)
             ) : (
               <div
                 style={{
@@ -138,13 +141,7 @@ const PromotionsPage = () => {
             )}
           </div>
 
-          {/* Pagination UI */}
-          <div className="category-pagination">
-            <button className="page-btn active">1</button>
-            <button className="page-btn">2</button>
-            <span className="page-dots">...</span>
-            <button className="page-btn">&gt;</button>
-          </div>
+          <TablePagination totalItems={sortedProducts.length} pageSize={pageSize} currentPage={page} onPageChange={setPage} idPrefix="storefront-promotions" />
         </div>
       </div>
 

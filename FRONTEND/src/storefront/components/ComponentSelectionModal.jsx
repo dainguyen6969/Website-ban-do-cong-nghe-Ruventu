@@ -3,6 +3,7 @@ import { X, RotateCcw } from 'lucide-react';
 import { pcBuilderService, pcBuilderError } from '../../shared/services/pcBuilderService';
 import { availableQuantity, money, socketLabels, pcBuilderPriceBands } from '../pages/pcBuilderModel';
 import './ComponentSelectionModal.css';
+import TablePagination from '../../shared/components/ui/TablePagination';
 
 const initialFilters = { keyword: '', thuong_hieu_id: '', gia_tu: '', gia_den: '', tinh_trang_hang: 'TAT_CA', sap_xep: 'MAC_DINH', page: 0 };
 const labels = { TAT_CA: 'TẤT CẢ', CON_HANG: 'CÒN HÀNG', HET_HANG: 'HẾT HÀNG', MAC_DINH: 'NỔI BẬT', GIA_TANG: 'GIÁ THẤP → CAO', GIA_GIAM: 'GIÁ CAO → THẤP' };
@@ -15,6 +16,7 @@ const ComponentSelectionModal = ({ slot, options, selections, onClose, onSelect 
   const [retry, setRetry] = useState(0);
   const panel = useRef(null);
   const search = useRef(null);
+  const previousSearch = useRef(filters.keyword);
   const reference = selections[slot.ma_hang_muc === 'CPU' ? 'MAIN' : slot.ma_hang_muc === 'MAIN' ? 'CPU' : '']?.phien_ban_id;
   const queryKey = JSON.stringify([filters, slot.ma_hang_muc, reference, onlyMatching, retry]);
   const result = reply?.data;
@@ -33,6 +35,8 @@ const ComponentSelectionModal = ({ slot, options, selections, onClose, onSelect 
 
   useEffect(() => {
     const controller = new AbortController();
+    const delay = previousSearch.current === filters.keyword ? 0 : 250;
+    previousSearch.current = filters.keyword;
     const timer = setTimeout(async () => {
       if (filters.gia_tu !== '' && filters.gia_den !== '' && Number(filters.gia_tu) > Number(filters.gia_den)) {
         setReply(prev => ({ ...prev, key: queryKey, error: 'Giá từ không được lớn hơn giá đến.' }));
@@ -49,7 +53,7 @@ const ComponentSelectionModal = ({ slot, options, selections, onClose, onSelect 
       } catch (err) {
         if (!controller.signal.aborted) setReply(prev => ({ ...prev, key: queryKey, error: pcBuilderError(err) }));
       }
-    }, 250);
+    }, delay);
     return () => { clearTimeout(timer); controller.abort(); };
   }, [filters, slot.ma_hang_muc, reference, onlyMatching, retry, queryKey]);
 
@@ -57,9 +61,10 @@ const ComponentSelectionModal = ({ slot, options, selections, onClose, onSelect 
     setFilters(prev => ({ ...prev, [key]: value, page: key === 'page' ? value : 0 }));
   }
   function keyboard(event) {
+    if (event.defaultPrevented) return;
     if (event.key === 'Escape') onClose();
     if (event.key !== 'Tab') return;
-    const targets = [...panel.current.querySelectorAll('button:not(:disabled), input:not(:disabled), select:not(:disabled), a[href]')];
+    const targets = [...panel.current.querySelectorAll('button:not(:disabled), input:not(:disabled), select:not(:disabled), a[href], [tabindex="0"]')];
     const first = targets[0];
     const last = targets.at(-1);
     if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus(); }
@@ -111,9 +116,7 @@ const ComponentSelectionModal = ({ slot, options, selections, onClose, onSelect 
         </div>
       </div>
       <div className="build-pagination">
-        <button disabled={loading || filters.page === 0} onClick={() => change('page', filters.page - 1)}>Trang trước</button>
-        <span>Trang {filters.page + 1} / {Math.max(1, result?.pagination.total_pages || 0)}</span>
-        <button disabled={loading || error || filters.page + 1 >= (result?.pagination.total_pages || 0)} onClick={() => change('page', filters.page + 1)}>Trang sau</button>
+        <TablePagination totalItems={Number(result?.pagination.total_elements) || 0} pageSize={20} currentPage={filters.page + 1} onPageChange={page => change('page', page - 1)} showSummary={false} idPrefix="builder-products" />
       </div>
     </div>
   </div>;

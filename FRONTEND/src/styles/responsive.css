@@ -169,6 +169,7 @@
 .admin-app .filter-dropdown-container { min-width: 0; }
 .admin-app .filter__dropdown-menu { max-width: min(100vw, 100%); }
 .admin-app .filter__dropdown-item { white-space: normal; overflow-wrap: anywhere; }
+.admin-app table[aria-busy="true"] tbody { opacity: 0.5; }
 .admin-app :is(.data-table, .category-table, .product-table) { table-layout: auto; }
 .admin-app :is(th, td) { overflow-wrap: anywhere; }
 .admin-app :is(.category-heading, .category-actions) { flex-wrap: wrap; }

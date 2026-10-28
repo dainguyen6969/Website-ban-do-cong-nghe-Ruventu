@@ -93,7 +93,7 @@ export default function DanhSachDonHang() {
 
     if (!background) setState({ loading: true, error: '' });
 
-    const timer = setTimeout(() => {
+    const load = () => {
       getOrders(request, controller.signal)
         .then((result) => {
           if (controller.signal.aborted) return;
@@ -116,7 +116,15 @@ export default function DanhSachDonHang() {
             error: error.message,
           });
         });
-    }, 250);
+    };
+
+    // Debounce typing only; pagination and filter selections fetch immediately.
+    let timer;
+    if (loadedRequest.current && loadedRequest.current.keyword !== request.keyword) {
+      timer = setTimeout(load, 250);
+    } else {
+      load();
+    }
 
     return () => {
       clearTimeout(timer);
@@ -265,10 +273,10 @@ export default function DanhSachDonHang() {
           </div>
         )}
       </section>
-      <section className="order-list-content">
+      <section className="order-list-content admin-list-body">
         {state.error && <p className="order-api-message order-api-message--error">{state.error}</p>}
-        <div className="order-table-scroll">
-          <table className="order-list-table">
+        <div className="order-table-scroll admin-table-scroll" tabIndex={0} role="region" aria-label="Bảng danh sách">
+          <table className="order-list-table admin-data-table" aria-busy={state.loading}>
             <thead>
               <tr>
                 <th>ẢNH</th>
@@ -384,7 +392,7 @@ export default function DanhSachDonHang() {
                   <td colSpan="11">Không tìm thấy đơn hàng phù hợp.</td>
                 </tr>
               )}
-              {state.loading && (
+              {state.loading && !data.items.length && (
                 <tr className="order-empty-row">
                   <td colSpan="11">Đang tải dữ liệu...</td>
                 </tr>
@@ -392,11 +400,12 @@ export default function DanhSachDonHang() {
             </tbody>
           </table>
         </div>
-        <div className="order-list-footer">
+        <div className="order-list-footer admin-table-footer">
           <p>
             HIỂN THỊ {data.items.length} TRÊN TỔNG SỐ {total} ĐƠN HÀNG
           </p>
           <TablePagination
+            showSummary={false}
             currentPage={page}
             pageSize={PAGE_SIZE}
             totalItems={total}
