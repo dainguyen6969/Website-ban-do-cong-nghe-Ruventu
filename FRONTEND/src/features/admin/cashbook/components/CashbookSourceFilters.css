@@ -135,3 +135,14 @@
     grid-column: span 2;
   }
 }
+
+
+@media (max-width: 480px) {
+  .cb-source-filters__grid {
+    grid-template-columns: 1fr;
+  }
+  .cb-filter-keyword,
+  .cb-filter-span-2 {
+    grid-column: span 1;
+  }
+}

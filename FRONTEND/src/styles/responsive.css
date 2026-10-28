@@ -132,14 +132,27 @@
   .product-detail-page,
   [class$="-page"]
 ) {
-  flex: 1 1 auto;
+  flex: 1 1 0% !important;
   min-height: 0 !important;
-  height: 100%;
-  overflow-y: auto;
-  overflow-x: hidden;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
   -webkit-overflow-scrolling: touch;
   box-sizing: border-box;
-  padding-bottom: 32px;
+  padding-bottom: 40px;
+}
+
+.admin-app :is(
+  .pt-page,
+  .sq-page,
+  .cashbook-page,
+  .lpt-page,
+  .ctlpt-page,
+  .ctp-page,
+  .tpc-page,
+  .tpf-page,
+  .tpt-page
+) > * {
+  flex-shrink: 0;
 }
 
 /* Text may grow independently of its icon and of the default Inter metrics. */
