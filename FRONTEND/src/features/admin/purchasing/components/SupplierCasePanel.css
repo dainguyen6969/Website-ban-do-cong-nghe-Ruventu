@@ -1027,3 +1027,39 @@
   border-color: #fff;
   background: #303640;
 }
+
+/* Nút trong khối Nhà Cung Cấp và hộp thoại của khối này */
+.ncc-workspace button,
+.order-operation-modal.ncc-modal button {
+  border-color: #111 !important;
+  border-radius: 0;
+  background: #111 !important;
+  color: #fff !important;
+}
+
+.ncc-workspace button:hover:not(:disabled),
+.order-operation-modal.ncc-modal button:hover:not(:disabled) {
+  border-color: #303030 !important;
+  background: #303030 !important;
+  color: #fff !important;
+}
+
+.ncc-workspace button:disabled,
+.order-operation-modal.ncc-modal button:disabled {
+  border-color: #111 !important;
+  background: #111 !important;
+  color: #fff !important;
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.ncc-workspace .ncc-tabs > button.is-active {
+  text-decoration: underline;
+  text-underline-offset: 5px;
+}
+
+.ncc-workspace button:focus-visible,
+.order-operation-modal.ncc-modal button:focus-visible {
+  outline: 2px solid #777;
+  outline-offset: 3px;
+}

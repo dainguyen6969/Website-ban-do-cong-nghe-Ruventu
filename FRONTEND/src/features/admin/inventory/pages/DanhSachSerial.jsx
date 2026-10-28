@@ -7,6 +7,7 @@ import FilterDropdown from '../../../../shared/components/ui/FilterDropdown';
 import { getAllVersions } from '../../catalog/products/api/versionApi';
 import { getSerialCounts, getSerialPage, SERIAL_STATUS_META } from '../api/serialApi';
 import './SerialPages.css';
+import '../recall/Recall.css';
 
 const PAGE_SIZE = 10;
 const statusOptions = [
@@ -164,46 +165,50 @@ export default function DanhSachSerial() {
               placeholder="Nhập chính xác số serial..."
             />
           </label>
-{/* Lọc trạng thái serial */}
-<FilterDropdown
-  aria-label="Lọc trạng thái"
-  value={status}
-  onChange={setFilter(setStatus)}
-  selectedDark
->
-  {statusOptions.map((option) => (
-    <option key={option.value} value={option.value}>
-      {option.label}
-    </option>
-  ))}
-</FilterDropdown>
+          {/* Lọc trạng thái serial */}
+          <FilterDropdown
+            aria-label="Lọc trạng thái"
+            value={status}
+            onChange={setFilter(setStatus)}
+            selectedDark
+          >
+            {statusOptions.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </FilterDropdown>
 
-{/* Lọc phiên bản sản phẩm */}
-<FilterDropdown
-  className="serial-version-select"
-  aria-label="Lọc phiên bản"
-  value={versionId}
-  onChange={setFilter(setVersionId)}
-  selectedDark
->
-  <option value="">Tất cả phiên bản</option>
+          {/* Lọc phiên bản sản phẩm */}
+          <FilterDropdown
+            className="serial-version-select"
+            aria-label="Lọc phiên bản"
+            value={versionId}
+            onChange={setFilter(setVersionId)}
+            selectedDark
+          >
+            <option value="">Tất cả phiên bản</option>
 
-  {versions.map((option) => (
-    <option key={option.id} value={option.id}>
-      {`${option.displayName} · ${option.displayCode}`}
-    </option>
-  ))}
-</FilterDropdown>
+            {versions.map((option) => (
+              <option key={option.id} value={option.id}>
+                {`${option.displayName} · ${option.displayCode}`}
+              </option>
+            ))}
+          </FilterDropdown>
 
-{/* Xuất danh sách serial ra Excel */}
-<button
-  type="button"
-  className="serial-export"
-  onClick={exportExcel}
->
-  <HiOutlineUpload size={17} />
-  XUẤT EXCEL
-</button>
+          <button
+            type="button"
+            className="serial-export"
+            onClick={() => navigate('/kho-hang/thu-hoi')}
+          >
+            Thu hồi hàng
+          </button>
+
+          {/* Xuất danh sách serial ra Excel */}
+          <button type="button" className="serial-export" onClick={exportExcel}>
+            <HiOutlineUpload size={17} />
+            XUẤT EXCEL
+          </button>
         </section>
         <div className="serial-table-shell">
           <table className="serial-table">
@@ -278,6 +283,10 @@ export default function DanhSachSerial() {
                     </td>
                     <td>
                       <StatusBadge status={item.status} />
+
+                      {item.recallBlocked && (
+                        <small className="recall-badge is-blocked">Thu hồi · chặn bán</small>
+                      )}
                     </td>
                     <td>{item.activatedAt}</td>
                     <td>{item.warrantyUntil}</td>

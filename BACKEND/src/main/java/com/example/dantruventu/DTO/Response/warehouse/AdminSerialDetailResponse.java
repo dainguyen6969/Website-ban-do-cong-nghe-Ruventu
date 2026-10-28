@@ -37,6 +37,9 @@ public class AdminSerialDetailResponse {
   @JsonProperty("trang_thai")
   private TrangThaiSerial trangThai;
 
+  @JsonProperty("bi_thu_hoi")
+  private Boolean biThuHoi;
+
   @JsonProperty("ngay_kich_hoat")
   private OffsetDateTime ngayKichHoat;
 

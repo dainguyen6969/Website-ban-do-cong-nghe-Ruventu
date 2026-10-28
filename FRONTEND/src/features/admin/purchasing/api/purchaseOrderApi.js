@@ -81,6 +81,16 @@ export function normalizePurchaseOrder(item) {
     createdAt: item.ngay_tao,
     createdAtLabel: formatDate(item.ngay_tao),
 
+    receivedSerials: (item.serial_da_nhan || []).map((serial) => ({
+      id: number(serial.id),
+      versionId: number(serial.phien_ban_id),
+      name: serial.ten_phien_ban || '',
+      code: serial.so_serial || '',
+      status: serial.trang_thai,
+      recallBlocked: serial.bi_thu_hoi === true,
+      packingHeld: serial.dang_dong_goi === true,
+    })),
+
     items: (item.items || []).map((line) => ({
       id: number(line.id),
       versionId: number(line.phien_ban_id),

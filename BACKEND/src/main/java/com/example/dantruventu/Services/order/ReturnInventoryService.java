@@ -26,6 +26,7 @@ import com.example.dantruventu.Repository.warehouse.ThanhPhanComboRepository;
 import com.example.dantruventu.Repository.warehouse.TheKhoRepository;
 import com.example.dantruventu.Repository.warehouse.TonKhoRepository;
 import com.example.dantruventu.Services.catalog.CatalogSupport;
+import com.example.dantruventu.Services.warehouse.RecallSafety;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -53,6 +54,7 @@ public class ReturnInventoryService {
   private final TonKhoRepository stockRepository;
   private final TheKhoRepository ledgerRepository;
   private final SoSerialSanPhamRepository serialRepository;
+  private final RecallSafety recallSafety;
 
   private record ItemKey(Long orderLineId, Long variantId) {}
 
@@ -191,6 +193,7 @@ public class ReturnInventoryService {
       }
 
       TonKho stock = rows.getFirst();
+      recallSafety.track(stock);
       validateStock(stock);
       result.put(key, stock);
     }

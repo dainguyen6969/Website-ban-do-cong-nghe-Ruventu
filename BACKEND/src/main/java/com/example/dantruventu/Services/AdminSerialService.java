@@ -20,6 +20,7 @@ import com.example.dantruventu.Mapper.warehouse.SoSerialSanPhamMapper;
 import com.example.dantruventu.Repository.NguoiDungRepository;
 import com.example.dantruventu.Repository.warehouse.*;
 import com.example.dantruventu.Services.warehouse.NccAccountingService;
+import com.example.dantruventu.Services.warehouse.RecallSafety;
 import com.example.dantruventu.Services.warehouse.WarehouseSupport;
 import com.example.dantruventu.Specification.SoSerialSanPhamSpecification;
 import jakarta.persistence.EntityManager;
@@ -47,6 +48,7 @@ public class AdminSerialService {
   private final KhoHangRepository khoHangRepository;
   private final WarehouseSupport warehouseSupport;
   private final NccAccountingService nccAccounting;
+  private final RecallSafety recallSafety;
 
   private final EntityManager entityManager;
 
@@ -243,6 +245,7 @@ public class AdminSerialService {
     }
 
     TonKho stock = stockRows.get(0);
+    recallSafety.track(stock);
 
     // Sau đó khóa serial.
     SoSerialSanPham serial = serialRepository.findByIdForUpdate(id).orElseThrow(this::notFound);
@@ -270,6 +273,7 @@ public class AdminSerialService {
               + "Hãy hoàn tất kiểm tra hoặc đối soát trong hồ sơ.");
     }
 
+    recallSafety.requireSerialClear(serial);
     TrangThaiSerial source = serial.getTrangThai();
 
     if (!isWarehouseState(source)) {
