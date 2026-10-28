@@ -70,8 +70,14 @@ public class AdminWarrantyService {
 
     Page<WarrantyListRepository.Row> result =
         repository.findAll(filter, PageRequest.of(pageNumber, pageSize));
+    var settlements =
+        repository.settlementStatuses(
+            result.getContent().stream().map(WarrantyListRepository.Row::id).toList());
     return AdminWarrantyListResponse.builder()
-        .items(result.getContent().stream().map(this::toResponse).toList())
+        .items(
+            result.getContent().stream()
+                .map(row -> toResponse(row, settlements.get(row.id())))
+                .toList())
         .pagination(
             PaginationResponse.builder()
                 .page(pageNumber)
@@ -82,7 +88,8 @@ public class AdminWarrantyService {
         .build();
   }
 
-  private AdminWarrantyListItemResponse toResponse(WarrantyListRepository.Row row) {
+  private AdminWarrantyListItemResponse toResponse(
+      WarrantyListRepository.Row row, Boolean settlementOpen) {
     if (row.activeInvoiceCount() > 1) {
       throw new AppException(ErrorCode.INVALID_WARRANTY_FINANCIAL_DATA);
     }
@@ -113,7 +120,7 @@ public class AdminWarrantyService {
         .trangThaiHoaDon(row.invoiceStatus())
         .tinhTrangPhi(feeStatus)
         .conPhaiHoan(row.conPhaiHoan())
-        .doiSoatNccConMo(null)
+        .doiSoatNccConMo(settlementOpen)
         .build();
   }
 

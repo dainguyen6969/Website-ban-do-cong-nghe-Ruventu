@@ -1,18 +1,13 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
-import DetailTablePagination from "../../../../shared/components/ui/DetailTablePagination";
-import useDetailTablePagination from "../../../../hooks/useDetailTablePagination";
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
+import DetailTablePagination from '../../../../shared/components/ui/DetailTablePagination';
+import useDetailTablePagination from '../../../../hooks/useDetailTablePagination';
 
-import {
-  money,
-  Modal,
-  PageCrumb,
-  PurchaseCard,
-  StatusBadge,
-} from "./PurchaseShared";
-import "./NhapHang.css";
+import { money, Modal, PageCrumb, PurchaseCard, StatusBadge } from './PurchaseShared';
+import './NhapHang.css';
 
-import OrderModal from "../../orders/components/OrderModal";
+import OrderModal from '../../orders/components/OrderModal';
+import SupplierCasePanel from '../components/SupplierCasePanel';
 
 import {
   errorMessage,
@@ -20,7 +15,7 @@ import {
   nowLocalInput,
   toApiDateTime,
   withIdempotency,
-} from "../../../../shared/services/mutationUtils";
+} from '../../../../shared/services/mutationUtils';
 
 import {
   approvePurchaseOrder,
@@ -30,13 +25,13 @@ import {
   receivePurchaseOrder,
   receivePurchaseRefund,
   returnPurchaseOrder,
-} from "../api/purchaseOrderApi";
+} from '../api/purchaseOrderApi';
 
 const METHODS = [
-  ["CHUYEN_KHOAN", "Chuyển khoản"],
-  ["TIEN_MAT", "Tiền mặt"],
+  ['CHUYEN_KHOAN', 'Chuyển khoản'],
+  ['TIEN_MAT', 'Tiền mặt'],
 ];
-const serialCodes = (value = "") =>
+const serialCodes = (value = '') =>
   value
     .split(/[\n,]+/)
     .map((item) => item.trim())
@@ -48,10 +43,15 @@ export default function ChiTietNhapHang() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [order, setOrder] = useState(null);
-  const [modal, setModal] = useState("");
+  const [modal, setModal] = useState('');
   const [loading, setLoading] = useState(true);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState("");
+
+  const [pageBusy, setBusy] = useState(false);
+  const [nccLocked, setNccLocked] = useState(false);
+
+  const busy = pageBusy || nccLocked;
+
+  const [error, setError] = useState('');
   const [serialValues, setSerialValues] = useState({});
   const pagination = useDetailTablePagination(order?.items);
   const [receiptQuantities, setReceiptQuantities] = useState({});
@@ -60,14 +60,14 @@ export default function ChiTietNhapHang() {
       try {
         setLoading(true);
         setOrder(await getPurchaseOrder(id, signal));
-        setError("");
+        setError('');
       } catch (reason) {
-        if (reason.name !== "AbortError") setError(reason.message);
+        if (reason.name !== 'AbortError') setError(reason.message);
       } finally {
         setLoading(false);
       }
     },
-    [id],
+    [id]
   );
   useEffect(() => {
     const controller = new AbortController();
@@ -89,15 +89,15 @@ export default function ChiTietNhapHang() {
   }, [order]);
 
   const run = async (request) => {
-    if (operationBusy.current) return;
+    if (operationBusy.current || nccLocked) return;
 
     operationBusy.current = true;
     setBusy(true);
-    setError("");
+    setError('');
 
     try {
       await request();
-      setModal("");
+      setModal('');
       await load();
     } catch (reason) {
       setError(errorMessage(reason));
@@ -116,13 +116,8 @@ export default function ChiTietNhapHang() {
   if (!order)
     return (
       <main className="purchase-page">
-        <p className="purchase-message error">
-          {error || "Không tìm thấy đơn nhập hàng."}
-        </p>
-        <button
-          className="purchase-btn outline"
-          onClick={() => navigate("/kho-hang/nhap-hang")}
-        >
+        <p className="purchase-message error">{error || 'Không tìm thấy đơn nhập hàng.'}</p>
+        <button className="purchase-btn outline" onClick={() => navigate('/kho-hang/nhap-hang')}>
           ‹ DANH SÁCH
         </button>
       </main>
@@ -133,25 +128,22 @@ export default function ChiTietNhapHang() {
   const waitingReceipt = order.items.filter((item) => item.qty > item.received);
 
   const canReceive =
-    [
-      "DA_DUYET",
-      "NHAP_MOT_PHAN",
-      "HOAN_TRA_MOT_PHAN",
-      "HOAN_TRA_TOAN_BO",
-    ].includes(order.importStatus) && waitingReceipt.length > 0;
+    ['DA_DUYET', 'NHAP_MOT_PHAN', 'HOAN_TRA_MOT_PHAN', 'HOAN_TRA_TOAN_BO'].includes(
+      order.importStatus
+    ) && waitingReceipt.length > 0;
 
   const openReceive = () => {
+    if (busy || operationBusy.current) return;
+
     const pending = purchaseAttempt.current;
 
     if (pending && pending.scope !== receiptScope) {
-      setError("Hãy xử lý thao tác đang chờ kết quả trước.");
+      setError('Hãy xử lý thao tác đang chờ kết quả trước.');
       return;
     }
 
-    if (
-      waitingReceipt.some((item) => typeof item.serialManaged !== "boolean")
-    ) {
-      setError("Có phiên bản chưa có cấu hình quản lý serial.");
+    if (waitingReceipt.some((item) => typeof item.serialManaged !== 'boolean')) {
+      setError('Có phiên bản chưa có cấu hình quản lý serial.');
       return;
     }
 
@@ -159,33 +151,28 @@ export default function ChiTietNhapHang() {
       Object.fromEntries(
         waitingReceipt.map((item) => {
           const saved = pending?.body.items.find(
-            (line) => Number(line.chi_tiet_don_nhap_id) === item.id,
+            (line) => Number(line.chi_tiet_don_nhap_id) === item.id
           );
 
-          return [
-            item.id,
-            pending
-              ? (saved?.so_luong_nhap_kho ?? 0)
-              : item.qty - item.received,
-          ];
-        }),
-      ),
+          return [item.id, pending ? (saved?.so_luong_nhap_kho ?? 0) : item.qty - item.received];
+        })
+      )
     );
 
     setSerialValues(
       Object.fromEntries(
         waitingReceipt.map((item) => {
           const saved = pending?.body.items.find(
-            (line) => Number(line.chi_tiet_don_nhap_id) === item.id,
+            (line) => Number(line.chi_tiet_don_nhap_id) === item.id
           );
 
-          return [item.id, saved?.so_serials?.join("\n") || ""];
-        }),
-      ),
+          return [item.id, saved?.so_serials?.join('\n') || ''];
+        })
+      )
     );
 
-    setError("");
-    setModal("receipt");
+    setError('');
+    setModal('receipt');
   };
 
   const receiptItems = waitingReceipt.map((item) => ({
@@ -202,15 +189,14 @@ export default function ChiTietNhapHang() {
     receiptItems.some(({ quantity }) => quantity > 0) &&
     receiptItems.every(
       ({ item, quantity, codes }) =>
-        typeof item.serialManaged === "boolean" &&
+        typeof item.serialManaged === 'boolean' &&
         Number.isSafeInteger(quantity) &&
         quantity >= 0 &&
         quantity <= item.qty - item.received &&
         (quantity === 0 || !item.serialManaged || codes.length === quantity) &&
-        codes.every((code) => code.length <= 100),
+        codes.every((code) => code.length <= 100)
     ) &&
-    new Set(receiptCodes.map((code) => code.toUpperCase())).size ===
-      receiptCodes.length;
+    new Set(receiptCodes.map((code) => code.toUpperCase())).size === receiptCodes.length;
 
   const receiptLocked = busy || purchaseAttempt.current?.scope === receiptScope;
 
@@ -219,7 +205,7 @@ export default function ChiTietNhapHang() {
       const pending = purchaseAttempt.current;
 
       if (!pending && !receiveValid) {
-        throw new Error("Số lượng nhập hoặc danh sách serial chưa hợp lệ.");
+        throw new Error('Số lượng nhập hoặc danh sách serial chưa hợp lệ.');
       }
 
       const body =
@@ -237,16 +223,13 @@ export default function ChiTietNhapHang() {
                 })),
             };
 
-      return withIdempotency(
-        purchaseAttempt,
-        receiptScope,
-        body,
-        (key, payload) => receivePurchaseOrder(order.id, key, payload),
+      return withIdempotency(purchaseAttempt, receiptScope, body, (key, payload) =>
+        receivePurchaseOrder(order.id, key, payload)
       );
     });
 
   const returnable = order.items.filter(
-    (item) => item.received > item.returned,
+    (item) => (item.legacyReturnLimit ?? item.received - item.returned) > 0
   );
 
   const savePurchaseOperation = (kind, buildBody) =>
@@ -261,23 +244,23 @@ export default function ChiTietNhapHang() {
         body,
         (key, payload) => {
           switch (kind) {
-            case "payment":
+            case 'payment':
               return payPurchaseOrder(order.id, key, payload);
 
-            case "return":
+            case 'return':
               return returnPurchaseOrder(order.id, key, payload);
 
-            case "refund":
+            case 'refund':
               return receivePurchaseRefund(order.id, key, payload);
 
             default:
-              throw new Error("Nghiệp vụ nhập hàng không hợp lệ.");
+              throw new Error('Nghiệp vụ nhập hàng không hợp lệ.');
           }
-        },
+        }
       );
     });
 
-  const approved = !["DAT_HANG", "HUY"].includes(order.importStatus);
+  const approved = !['DAT_HANG', 'HUY'].includes(order.importStatus);
 
   return (
     <main className="purchase-page purchase-detail-page">
@@ -292,26 +275,18 @@ export default function ChiTietNhapHang() {
           <p>{order.createdAtLabel}</p>
         </div>
         <div className="purchase-heading-actions">
-          {order.importStatus === "DAT_HANG" && (
+          {order.importStatus === 'DAT_HANG' && (
             <>
               <button
                 className="purchase-btn outline"
-                onClick={() =>
-                  navigate(`/kho-hang/nhap-hang/tao-moi?edit=${order.id}`)
-                }
+                onClick={() => navigate(`/kho-hang/nhap-hang/tao-moi?edit=${order.id}`)}
               >
                 − CHỈNH SỬA
               </button>
-              <button
-                className="purchase-btn blue"
-                onClick={() => setModal("approve")}
-              >
+              <button className="purchase-btn blue" onClick={() => setModal('approve')}>
                 DUYỆT ĐƠN
               </button>
-              <button
-                className="purchase-btn red-outline"
-                onClick={() => setModal("cancel")}
-              >
+              <button className="purchase-btn red-outline" onClick={() => setModal('cancel')}>
                 HỦY ĐƠN
               </button>
             </>
@@ -322,29 +297,32 @@ export default function ChiTietNhapHang() {
               className="purchase-btn black"
               disabled={busy}
               onClick={() => {
-                setError("");
-                setModal("payment");
+                setError('');
+                setModal('payment');
               }}
             >
               THANH TOÁN
             </button>
           )}
           {canReceive && (
-            <button className="purchase-btn green" onClick={openReceive}>
+            <button
+              type="button"
+              className="purchase-btn green"
+              disabled={busy}
+              onClick={openReceive}
+            >
               NHẬP KHO
             </button>
           )}
-          {["NHAP_MOT_PHAN", "DA_NHAP_KHO", "HOAN_TRA_MOT_PHAN"].includes(
-            order.importStatus,
-          ) &&
+          {['NHAP_MOT_PHAN', 'DA_NHAP_KHO', 'HOAN_TRA_MOT_PHAN'].includes(order.importStatus) &&
             returnable.length > 0 && (
               <button
                 type="button"
                 className="purchase-btn orange-outline"
                 disabled={busy}
                 onClick={() => {
-                  setError("");
-                  setModal("return");
+                  setError('');
+                  setModal('return');
                 }}
               >
                 HOÀN TRẢ NHÀ CUNG CẤP
@@ -357,17 +335,14 @@ export default function ChiTietNhapHang() {
               className="purchase-btn green"
               disabled={busy}
               onClick={() => {
-                setError("");
-                setModal("refund");
+                setError('');
+                setModal('refund');
               }}
             >
               NHẬN TIỀN NHÀ CUNG CẤP HOÀN
             </button>
           )}
-          <button
-            className="purchase-btn outline"
-            onClick={() => navigate("/kho-hang/nhap-hang")}
-          >
+          <button className="purchase-btn outline" onClick={() => navigate('/kho-hang/nhap-hang')}>
             ‹ DANH SÁCH
           </button>
         </div>
@@ -411,6 +386,15 @@ export default function ChiTietNhapHang() {
               idPrefix="purchase-order-items"
             />
           </PurchaseCard>
+
+          <SupplierCasePanel
+            key={order.id}
+            order={order}
+            locked={pageBusy || Boolean(modal) || Boolean(purchaseAttempt.current)}
+            onRefresh={load}
+            onLockChange={setNccLocked}
+          />
+
           <PurchaseCard title="TIẾN ĐỘ NHẬP KHO">
             <div className="progress-line">
               <div style={{ width: `${totals.progress}%` }} />
@@ -440,30 +424,29 @@ export default function ChiTietNhapHang() {
               <span>GIÁ TRỊ ĐƠN BAN ĐẦU</span>
               <b>{money(order.total)}</b>
 
-              <span>GIÁ TRỊ HÀNG ĐÃ TRẢ</span>
-              <b>
-                {order.returnedValue == null ? "—" : money(order.returnedValue)}
-              </b>
+              <span>GIÁ TRỊ TRẢ THEO LẦN CŨ</span>
+              <b>{order.returnedValue == null ? '—' : money(order.returnedValue)}</b>
 
-              <span>GIÁ TRỊ ĐƠN SAU TRẢ</span>
-              <b>
-                {order.netOrderValue == null ? "—" : money(order.netOrderValue)}
-              </b>
+              <span>ĐIỀU CHỈNH QUA HỒ SƠ NHÀ CUNG CẤP</span>
+              <b>{order.nccAdjustment == null ? '—' : money(order.nccAdjustment)}</b>
+
+              <span>NGHĨA VỤ SAU ĐIỀU CHỈNH</span>
+              <b>{order.netOrderValue == null ? '—' : money(order.netOrderValue)}</b>
 
               <span>TỔNG TIỀN ĐÃ CHI</span>
-              <b>{order.paid == null ? "—" : money(order.paid)}</b>
+              <b>{order.paid == null ? '—' : money(order.paid)}</b>
 
               <span>TỔNG TIỀN ĐÃ NHẬN HOÀN</span>
-              <b>{order.refunded == null ? "—" : money(order.refunded)}</b>
+              <b>{order.refunded == null ? '—' : money(order.refunded)}</b>
 
               <span>ĐÃ THANH TOÁN THUẦN</span>
-              <b>{order.netPaid == null ? "—" : money(order.netPaid)}</b>
+              <b>{order.netPaid == null ? '—' : money(order.netPaid)}</b>
 
               <span>CỬA HÀNG CÒN NỢ NHÀ CUNG CẤP</span>
-              <b>{order.debt == null ? "—" : money(order.debt)}</b>
+              <b>{order.debt == null ? '—' : money(order.debt)}</b>
 
               <span>NHÀ CUNG CẤP CÒN PHẢI HOÀN</span>
-              <b>{order.refundDue == null ? "—" : money(order.refundDue)}</b>
+              <b>{order.refundDue == null ? '—' : money(order.refundDue)}</b>
             </div>
           </PurchaseCard>
         </div>
@@ -471,19 +454,19 @@ export default function ChiTietNhapHang() {
           <PurchaseCard title="NHÀ CUNG CẤP">
             <InfoRows
               rows={[
-                ["MÃ NCC", order.supplier.code],
-                ["TÊN NCC", order.supplier.name],
-                ["SỐ ĐIỆN THOẠI", order.supplier.phone],
-                ["EMAIL", order.supplier.email],
-                ["ĐỊA CHỈ", order.supplier.address],
+                ['MÃ NHÀ CUNG CẤP', order.supplier.code],
+                ['TÊN NHÀ CUNG CẤP', order.supplier.name],
+                ['SỐ ĐIỆN THOẠI', order.supplier.phone],
+                ['EMAIL', order.supplier.email],
+                ['ĐỊA CHỈ', order.supplier.address],
               ]}
             />
           </PurchaseCard>
           <PurchaseCard title="KHO NHẬP">
             <InfoRows
               rows={[
-                ["MÃ KHO", order.warehouse.code],
-                ["TÊN KHO", order.warehouse.name],
+                ['MÃ KHO', order.warehouse.code],
+                ['TÊN KHO', order.warehouse.name],
               ]}
             />
           </PurchaseCard>
@@ -494,7 +477,7 @@ export default function ChiTietNhapHang() {
               <span>THANH TOÁN NHÀ CUNG CẤP</span>
               <StatusBadge>{order.paymentStatusLabel}</StatusBadge>
               {approved && <p>ĐƠN ĐÃ DUYỆT – KHÔNG THỂ CHỈNH SỬA</p>}
-              {order.importStatus === "HUY" && (
+              {order.importStatus === 'HUY' && (
                 <p className="cancel-note">ĐƠN ĐÃ HỦY – LƯU LÀM LỊCH SỬ</p>
               )}
             </div>
@@ -502,38 +485,36 @@ export default function ChiTietNhapHang() {
         </aside>
       </div>
 
-      {modal === "approve" && (
-        <Modal onClose={() => setModal("")}>
+      {modal === 'approve' && (
+        <Modal onClose={() => setModal('')}>
           <h2>XÁC NHẬN DUYỆT ĐƠN</h2>
           <InfoRows
             rows={[
-              ["MÃ ĐƠN", order.code],
-              ["NCC", order.supplier.name],
-              ["KHO", order.warehouse.name],
-              ["TỔNG", money(order.total)],
+              ['MÃ ĐƠN', order.code],
+              ['NHÀ CUNG CẤP', order.supplier.name],
+              ['KHO', order.warehouse.name],
+              ['TỔNG', money(order.total)],
             ]}
           />
-          <p className="modal-note success">
-            Sau khi duyệt, sản phẩm, số lượng và giá sẽ bị khóa.
-          </p>
+          <p className="modal-note success">Sau khi duyệt, sản phẩm, số lượng và giá sẽ bị khóa.</p>
           <ModalActions
             busy={busy}
-            onClose={() => setModal("")}
+            onClose={() => setModal('')}
             confirm={() => run(() => approvePurchaseOrder(order.id))}
             label="XÁC NHẬN DUYỆT"
             color="blue"
           />
         </Modal>
       )}
-      {modal === "cancel" && (
-        <Modal onClose={() => setModal("")} className="danger-modal">
+      {modal === 'cancel' && (
+        <Modal onClose={() => setModal('')} className="danger-modal">
           <h2>HỦY ĐƠN NHẬP HÀNG</h2>
           <p>
             Bạn có chắc muốn hủy đơn <b>{order.code}</b>?
           </p>
           <ModalActions
             busy={busy}
-            onClose={() => setModal("")}
+            onClose={() => setModal('')}
             confirm={() => run(() => cancelPurchaseOrder(order.id))}
             label="XÁC NHẬN HỦY"
             color="red"
@@ -541,11 +522,11 @@ export default function ChiTietNhapHang() {
           />
         </Modal>
       )}
-      {modal === "receipt" && (
+      {modal === 'receipt' && (
         <Modal
           className="receipt-modal"
           onClose={() => {
-            if (!operationBusy.current) setModal("");
+            if (!operationBusy.current) setModal('');
           }}
         >
           <h2>NHẬP HÀNG THỰC TẾ VÀO KHO</h2>
@@ -613,7 +594,7 @@ export default function ChiTietNhapHang() {
                           <div className="receipt-serial-input">
                             <textarea
                               disabled={receiptLocked || quantity === 0}
-                              value={serialValues[item.id] || ""}
+                              value={serialValues[item.id] || ''}
                               onChange={(event) =>
                                 setSerialValues((current) => ({
                                   ...current,
@@ -627,7 +608,7 @@ export default function ChiTietNhapHang() {
                             </small>
                           </div>
                         ) : (
-                          "Không quản lý serial"
+                          'Không quản lý serial'
                         )}
                       </td>
                     </tr>
@@ -639,15 +620,15 @@ export default function ChiTietNhapHang() {
 
           {purchaseAttempt.current?.scope === receiptScope && (
             <p className="receipt-config-note">
-              Chưa xác định kết quả lần gửi trước. Thử lại sẽ giữ nguyên dữ liệu
-              và khóa chống gửi lặp.
+              Chưa xác định kết quả lần gửi trước. Thử lại sẽ giữ nguyên dữ liệu và khóa chống gửi
+              lặp.
             </p>
           )}
 
           <ModalActions
             busy={busy}
             onClose={() => {
-              if (!operationBusy.current) setModal("");
+              if (!operationBusy.current) setModal('');
             }}
             confirm={submitReceive}
             label="XÁC NHẬN NHẬP KHO"
@@ -656,7 +637,7 @@ export default function ChiTietNhapHang() {
           />
         </Modal>
       )}
-      {["payment", "return", "refund"].includes(modal) && (
+      {['payment', 'return', 'refund'].includes(modal) && (
         <PurchaseOperationDialog
           key={`${order.id}:${modal}`}
           kind={modal}
@@ -667,8 +648,8 @@ export default function ChiTietNhapHang() {
           error={error}
           close={() => {
             if (!operationBusy.current) {
-              setModal("");
-              setError("");
+              setModal('');
+              setError('');
             }
           }}
           submit={(buildBody) => savePurchaseOperation(modal, buildBody)}
@@ -683,7 +664,7 @@ function InfoRows({ rows }) {
       {rows.map(([label, value]) => (
         <div key={label}>
           <dt>{label}</dt>
-          <dd>{value || "—"}</dd>
+          <dd>{value || '—'}</dd>
         </div>
       ))}
     </dl>
@@ -693,8 +674,8 @@ function ModalActions({
   onClose,
   confirm,
   label,
-  color = "black",
-  cancelLabel = "HỦY BỎ",
+  color = 'black',
+  cancelLabel = 'HỦY BỎ',
   disabled,
   busy,
 }) {
@@ -703,86 +684,68 @@ function ModalActions({
       <button className="purchase-btn outline" onClick={onClose}>
         {cancelLabel}
       </button>
-      <button
-        className={`purchase-btn ${color}`}
-        onClick={confirm}
-        disabled={disabled || busy}
-      >
-        {busy ? "ĐANG XỬ LÝ..." : label}
+      <button className={`purchase-btn ${color}`} onClick={confirm} disabled={disabled || busy}>
+        {busy ? 'ĐANG XỬ LÝ...' : label}
       </button>
     </div>
   );
 }
 
-function PurchaseOperationDialog({
-  kind,
-  order,
-  returnable,
-  attempt,
-  busy,
-  error,
-  close,
-  submit,
-}) {
+function PurchaseOperationDialog({ kind, order, returnable, attempt, busy, error, close, submit }) {
   const scope = `purchase:${order.id}:${kind}`;
   const previous = attempt?.scope === scope ? attempt.body : null;
 
   const [form, setForm] = useState(() => ({
-    amount: previous?.so_tien_thanh_toan ?? "",
+    amount: previous?.so_tien_thanh_toan ?? '',
 
-    method:
-      previous?.phuong_thuc_thanh_toan ||
-      previous?.phuong_thuc_hoan ||
-      "CHUYEN_KHOAN",
+    method: previous?.phuong_thuc_thanh_toan || previous?.phuong_thuc_hoan || 'CHUYEN_KHOAN',
 
     occurredAt: previous
       ? inputFromApiTime(previous.ngay_thanh_toan || previous.ngay_nhan_tien)
       : nowLocalInput(),
 
-    transaction: previous?.ma_giao_dich || "",
-    note: previous?.ghi_chu || "",
-    reason: previous?.ly_do || "",
+    transaction: previous?.ma_giao_dich || '',
+    note: previous?.ghi_chu || '',
+    reason: previous?.ly_do || '',
 
-    confirmed: Boolean(
-      previous?.xac_nhan_da_chi_tien || previous?.xac_nhan_da_nhan_tien,
-    ),
+    confirmed: Boolean(previous?.xac_nhan_da_chi_tien || previous?.xac_nhan_da_nhan_tien),
 
     quantities: Object.fromEntries(
       returnable.map((item) => {
         const saved = previous?.items?.find(
-          (line) => Number(line.chi_tiet_don_nhap_id) === item.id,
+          (line) => Number(line.chi_tiet_don_nhap_id) === item.id
         );
 
         return [item.id, saved?.so_luong_tra ?? 0];
-      }),
+      })
     ),
 
     defects: Object.fromEntries(
       returnable.map((item) => {
         const saved = previous?.items?.find(
-          (line) => Number(line.chi_tiet_don_nhap_id) === item.id,
+          (line) => Number(line.chi_tiet_don_nhap_id) === item.id
         );
 
         return [item.id, saved?.so_luong_loi ?? 0];
-      }),
+      })
     ),
 
     serialSelections: Object.fromEntries(
       returnable.map((item) => {
         const saved = previous?.items?.find(
-          (line) => Number(line.chi_tiet_don_nhap_id) === item.id,
+          (line) => Number(line.chi_tiet_don_nhap_id) === item.id
         );
 
         return [item.id, (saved?.so_serial_ids || []).map(Number)];
-      }),
+      })
     ),
   }));
 
   const [serialCandidates, setSerialCandidates] = useState({});
   const [serialLoadErrors, setSerialLoadErrors] = useState({});
 
-  const returning = kind === "return";
-  const paying = kind === "payment";
+  const returning = kind === 'return';
+  const paying = kind === 'payment';
 
   const serialLineKey = JSON.stringify(
     returning
@@ -790,7 +753,7 @@ function PurchaseOperationDialog({
           .filter((item) => item.serialManaged === true)
           .map((item) => item.id)
           .sort((a, b) => a - b)
-      : [],
+      : []
   );
 
   useEffect(() => {
@@ -804,11 +767,7 @@ function PurchaseOperationDialog({
     Promise.all(
       ids.map(async (detailId) => {
         try {
-          const items = await getPurchaseReturnSerials(
-            order.id,
-            detailId,
-            controller.signal,
-          );
+          const items = await getPurchaseReturnSerials(order.id, detailId, controller.signal);
 
           return { detailId, items };
         } catch (reason) {
@@ -819,7 +778,7 @@ function PurchaseOperationDialog({
             error: errorMessage(reason),
           };
         }
-      }),
+      })
     ).then((results) => {
       if (controller.signal.aborted) return;
 
@@ -853,8 +812,7 @@ function PurchaseOperationDialog({
           chi_tiet_don_nhap_id: item.id,
           so_luong_tra: ids.length,
           so_luong_loi: candidates.filter(
-            (serial) =>
-              ids.includes(Number(serial.id)) && serial.trang_thai === "LOI",
+            (serial) => ids.includes(Number(serial.id)) && serial.trang_thai === 'LOI'
           ).length,
           so_serial_ids: ids,
         };
@@ -870,14 +828,14 @@ function PurchaseOperationDialog({
     .filter((item) => item.so_luong_tra > 0);
 
   const quantitiesValid = returnable.every((item) => {
-    if (typeof item.serialManaged !== "boolean") return false;
+    if (typeof item.serialManaged !== 'boolean') return false;
 
     if (item.serialManaged) {
       const ids = (form.serialSelections[item.id] || []).map(Number);
       const candidates = serialCandidates[item.id] || [];
 
       return (
-        ids.length <= item.received - item.returned &&
+        ids.length <= (item.legacyReturnLimit ?? item.received - item.returned) &&
         new Set(ids).size === ids.length &&
         ids.every((id) => candidates.some((serial) => Number(serial.id) === id))
       );
@@ -890,18 +848,18 @@ function PurchaseOperationDialog({
       Number.isSafeInteger(quantity) &&
       Number.isSafeInteger(defect) &&
       quantity >= 0 &&
-      quantity <= item.received - item.returned &&
+      quantity <= (item.legacyReturnLimit ?? item.received - item.returned) &&
       defect >= 0 &&
       defect <= quantity
     );
   });
 
-  const receivingRefund = kind === "refund";
+  const receivingRefund = kind === 'refund';
 
   const moneyFieldsValid = Boolean(
     form.occurredAt &&
     METHODS.some(([code]) => code === form.method) &&
-    (form.method === "TIEN_MAT" || form.transaction.trim()),
+    (form.method === 'TIEN_MAT' || form.transaction.trim())
   );
 
   const valid = previous
@@ -911,15 +869,14 @@ function PurchaseOperationDialog({
           form.reason.trim() &&
           selectedItems.length > 0 &&
           quantitiesValid &&
-          (!form.confirmed || moneyFieldsValid),
+          (!form.confirmed || moneyFieldsValid)
         )
       : Boolean(
           form.confirmed &&
           moneyFieldsValid &&
           (paying
-            ? Number(form.amount) > 0 &&
-              Number(form.amount) <= Number(order.debt)
-            : receivingRefund && Number(order.refundDue) > 0),
+            ? Number(form.amount) > 0 && Number(form.amount) <= Number(order.debt)
+            : receivingRefund && Number(order.refundDue) > 0)
         );
 
   const showMoneyFields = !returning || form.confirmed;
@@ -932,8 +889,7 @@ function PurchaseOperationDialog({
         phuong_thuc_thanh_toan: form.method,
         ngay_thanh_toan: toApiDateTime(form.occurredAt),
         xac_nhan_da_chi_tien: true,
-        ma_giao_dich:
-          form.method === "TIEN_MAT" ? null : form.transaction.trim(),
+        ma_giao_dich: form.method === 'TIEN_MAT' ? null : form.transaction.trim(),
         ghi_chu: form.note.trim() || null,
       };
     }
@@ -942,10 +898,7 @@ function PurchaseOperationDialog({
       xac_nhan_da_nhan_tien: form.confirmed,
       phuong_thuc_hoan: form.confirmed ? form.method : null,
       ngay_nhan_tien: form.confirmed ? toApiDateTime(form.occurredAt) : null,
-      ma_giao_dich:
-        form.confirmed && form.method !== "TIEN_MAT"
-          ? form.transaction.trim()
-          : null,
+      ma_giao_dich: form.confirmed && form.method !== 'TIEN_MAT' ? form.transaction.trim() : null,
       ghi_chu: form.note.trim() || null,
     };
 
@@ -964,10 +917,10 @@ function PurchaseOperationDialog({
   };
 
   const title = paying
-    ? "THANH TOÁN NHÀ CUNG CẤP"
+    ? 'THANH TOÁN NHÀ CUNG CẤP'
     : returning
-      ? "HOÀN TRẢ NHÀ CUNG CẤP"
-      : "NHẬN TIỀN NHÀ CUNG CẤP HOÀN";
+      ? 'HOÀN TRẢ NHÀ CUNG CẤP'
+      : 'NHẬN TIỀN NHÀ CUNG CẤP HOÀN';
 
   return (
     <OrderModal
@@ -979,10 +932,10 @@ function PurchaseOperationDialog({
       disabled={!valid}
       confirmLabel={
         paying
-          ? "XÁC NHẬN THANH TOÁN"
+          ? 'XÁC NHẬN THANH TOÁN'
           : returning
-            ? "XÁC NHẬN TRẢ HÀNG"
-            : "XÁC NHẬN ĐÃ NHẬN TIỀN HOÀN"
+            ? 'XÁC NHẬN TRẢ HÀNG'
+            : 'XÁC NHẬN ĐÃ NHẬN TIỀN HOÀN'
       }
     >
       <p>
@@ -999,15 +952,13 @@ function PurchaseOperationDialog({
             max={order.debt}
             step="0.01"
             value={form.amount}
-            onChange={(event) => change("amount", event.target.value)}
+            onChange={(event) => change('amount', event.target.value)}
           />
           <small>Còn nợ: {money(order.debt)}</small>
         </label>
       )}
 
-      {kind === "refund" && (
-        <p>Nhà cung cấp còn phải hoàn: {money(order.refundDue)}</p>
-      )}
+      {kind === 'refund' && <p>Nhà cung cấp còn phải hoàn: {money(order.refundDue)}</p>}
 
       {returning && (
         <>
@@ -1018,24 +969,22 @@ function PurchaseOperationDialog({
             return (
               <div className="purchase-return-line" key={item.id}>
                 <strong>{item.name}</strong>
-                <small>Còn có thể trả: {item.received - item.returned}</small>
+                <small>
+                  Còn có thể trả: {item.legacyReturnLimit ?? item.received - item.returned}
+                </small>
 
                 {item.serialManaged ? (
                   <>
                     {serialLoadErrors[item.id] && (
-                      <p className="receipt-error">
-                        {serialLoadErrors[item.id]}
-                      </p>
+                      <p className="receipt-error">{serialLoadErrors[item.id]}</p>
                     )}
 
-                    {!candidates && !serialLoadErrors[item.id] && (
-                      <p>Đang tải serial...</p>
-                    )}
+                    {!candidates && !serialLoadErrors[item.id] && <p>Đang tải serial...</p>}
 
                     {candidates?.length === 0 && (
                       <p className="receipt-config-note">
-                        Chưa có serial đủ điều kiện. Với dữ liệu cũ, cần đối
-                        soát liên kết serial với đơn nhập gốc.
+                        Chưa có serial đủ điều kiện. Với dữ liệu cũ, cần đối soát liên kết serial
+                        với đơn nhập gốc.
                       </p>
                     )}
 
@@ -1055,18 +1004,14 @@ function PurchaseOperationDialog({
                                   ? [...selected, serialId]
                                   : selected.filter((id) => id !== serialId);
 
-                                change("serialSelections", {
+                                change('serialSelections', {
                                   ...form.serialSelections,
                                   [item.id]: next,
                                 });
                               }}
                             />
                             <span>{serial.so_serial}</span>
-                            <small>
-                              {serial.trang_thai === "LOI"
-                                ? "Hàng lỗi"
-                                : "Trong kho"}
-                            </small>
+                            <small>{serial.trang_thai === 'LOI' ? 'Hàng lỗi' : 'Trong kho'}</small>
                           </label>
                         );
                       })}
@@ -1081,12 +1026,12 @@ function PurchaseOperationDialog({
                       <input
                         type="number"
                         min="0"
-                        max={item.received - item.returned}
+                        max={item.legacyReturnLimit ?? item.received - item.returned}
                         step="1"
                         disabled={busy || Boolean(previous)}
                         value={form.quantities[item.id]}
                         onChange={(event) =>
-                          change("quantities", {
+                          change('quantities', {
                             ...form.quantities,
                             [item.id]: event.target.value,
                           })
@@ -1104,7 +1049,7 @@ function PurchaseOperationDialog({
                         disabled={busy || Boolean(previous)}
                         value={form.defects[item.id]}
                         onChange={(event) =>
-                          change("defects", {
+                          change('defects', {
                             ...form.defects,
                             [item.id]: event.target.value,
                           })
@@ -1122,7 +1067,7 @@ function PurchaseOperationDialog({
             <textarea
               required
               value={form.reason}
-              onChange={(event) => change("reason", event.target.value)}
+              onChange={(event) => change('reason', event.target.value)}
             />
           </label>
         </>
@@ -1132,21 +1077,18 @@ function PurchaseOperationDialog({
         <input
           type="checkbox"
           checked={form.confirmed}
-          onChange={(event) => change("confirmed", event.target.checked)}
+          onChange={(event) => change('confirmed', event.target.checked)}
         />
         {paying
-          ? "Xác nhận cửa hàng đã chi tiền cho nhà cung cấp"
-          : "Xác nhận cửa hàng đã nhận tiền nhà cung cấp hoàn"}
+          ? 'Xác nhận cửa hàng đã chi tiền cho nhà cung cấp'
+          : 'Xác nhận cửa hàng đã nhận tiền nhà cung cấp hoàn'}
       </label>
 
       {showMoneyFields && (
         <>
           <label className="order-operation-field">
             <span>PHƯƠNG THỨC</span>
-            <select
-              value={form.method}
-              onChange={(event) => change("method", event.target.value)}
-            >
+            <select value={form.method} onChange={(event) => change('method', event.target.value)}>
               {METHODS.map(([code, text]) => (
                 <option key={code} value={code}>
                   {text}
@@ -1156,16 +1098,16 @@ function PurchaseOperationDialog({
           </label>
 
           <label className="order-operation-field">
-            <span>{paying ? "THỜI ĐIỂM CHI TIỀN" : "THỜI ĐIỂM NHẬN TIỀN"}</span>
+            <span>{paying ? 'THỜI ĐIỂM CHI TIỀN' : 'THỜI ĐIỂM NHẬN TIỀN'}</span>
             <input
               required
               type="datetime-local"
               value={form.occurredAt}
-              onChange={(event) => change("occurredAt", event.target.value)}
+              onChange={(event) => change('occurredAt', event.target.value)}
             />
           </label>
 
-          {form.method !== "TIEN_MAT" && (
+          {form.method !== 'TIEN_MAT' && (
             <label className="order-operation-field">
               <span>MÃ GIAO DỊCH</span>
               <input
@@ -1173,7 +1115,7 @@ function PurchaseOperationDialog({
                 maxLength={2555}
                 pattern=".*\S.*"
                 value={form.transaction}
-                onChange={(event) => change("transaction", event.target.value)}
+                onChange={(event) => change('transaction', event.target.value)}
               />
             </label>
           )}
@@ -1182,16 +1124,12 @@ function PurchaseOperationDialog({
 
       <label className="order-operation-field">
         <span>GHI CHÚ</span>
-        <textarea
-          value={form.note}
-          onChange={(event) => change("note", event.target.value)}
-        />
+        <textarea value={form.note} onChange={(event) => change('note', event.target.value)} />
       </label>
 
       {!paying && (
         <p>
-          Số tiền hoàn do hệ thống xác định. Nhận tiền hoàn sau đó không thực
-          hiện trả hàng lần nữa.
+          Số tiền hoàn do hệ thống xác định. Nhận tiền hoàn sau đó không thực hiện trả hàng lần nữa.
         </p>
       )}
     </OrderModal>

@@ -159,7 +159,7 @@ public class AdminWarrantyIntakeResultService {
             ? "Lưu yêu cầu chờ xác minh"
             : input.requestId() == null
                 ? "Lưu từ chối trước tiếp nhận"
-                : "Lưu quyết định từ chối của yêu cầu " + groupId;
+                : "Lưu quyết định từ chối của yêu cầu tiếp nhận";
     return mutations.complete(replay, 201, message, data);
   }
 

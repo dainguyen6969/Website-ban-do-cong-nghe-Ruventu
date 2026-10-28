@@ -58,10 +58,22 @@ public class OrderEvents {
         customer(order),
         () ->
             Map.of(
-                "Đơn hàng", state(order.getTrangThaiDonHang()),
-                "Đóng gói", state(order.getTrangThaiDongGoi()),
-                "Xuất kho", state(order.getTrangThaiXuatKho()),
-                "Thanh toán", state(order.getTrangThaiThanhToan())));
+                "Đơn hàng",
+                state(order.getTrangThaiDonHang()),
+                "Đóng gói",
+                state(order.getTrangThaiDongGoi()),
+                "Xuất kho",
+                state(order.getTrangThaiXuatKho()),
+                "Thanh toán",
+                state(order.getTrangThaiThanhToan()),
+                "Giữ đủ hàng",
+                Boolean.TRUE.equals(order.getDaGiuHang()) ? "Có" : "Chưa",
+                "Hạn giữ tạm",
+                Objects.toString(order.getHanGiuHang(), ""),
+                "Lý do chờ xác minh",
+                Objects.toString(order.getLyDoChoXacMinh(), ""),
+                "Hạn xử lý",
+                Objects.toString(order.getHanXuLy(), "")));
   }
 
   public void createdPurchase(DonNhapHang order) {

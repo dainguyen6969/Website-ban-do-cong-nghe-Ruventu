@@ -56,6 +56,9 @@ public class AdminPurchaseOrderDetailResponse {
   @JsonProperty("gia_tri_hang_tra")
   private BigDecimal giaTriHangTra;
 
+  @JsonProperty("gia_tri_dieu_chinh_ncc")
+  private BigDecimal giaTriDieuChinhNcc;
+
   @JsonProperty("gia_tri_sau_tra")
   private BigDecimal giaTriSauTra;
 
@@ -142,6 +145,9 @@ public class AdminPurchaseOrderDetailResponse {
 
     @JsonProperty("so_luong_da_tra")
     private Integer soLuongDaTra;
+
+    @JsonProperty("so_luong_tra_theo_luong_cu_toi_da")
+    private Integer soLuongTraTheoLuongCuToiDa;
 
     @JsonProperty("quan_ly_serial")
     private Boolean quanLySerial;

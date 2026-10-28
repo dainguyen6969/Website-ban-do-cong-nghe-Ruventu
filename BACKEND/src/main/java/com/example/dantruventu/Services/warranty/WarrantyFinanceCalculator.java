@@ -80,6 +80,11 @@ public final class WarrantyFinanceCalculator {
         || cash.getLoaiPhieu() == null) throw invalid();
   }
 
+  public static boolean isSupplierSettlement(SoQuyThuChi cash) {
+    return cash.getLoaiThuChi() != null
+        && "THU_DOI_SOAT_BAO_HANH".equals(cash.getLoaiThuChi().getMaLoai());
+  }
+
   private static AppException invalid() {
     return new AppException(ErrorCode.INVALID_WARRANTY_FINANCIAL_DATA);
   }

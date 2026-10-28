@@ -16,6 +16,7 @@ import com.example.dantruventu.Repository.product.PhienBanSanPhamRepository;
 import com.example.dantruventu.Repository.warehouse.*;
 import com.example.dantruventu.Services.cashbook.CashbookService;
 import com.example.dantruventu.Services.order.OrderEvents;
+import com.example.dantruventu.Services.warehouse.NccAccountingService;
 import com.example.dantruventu.Services.warehouse.WarehouseSupport;
 import com.example.dantruventu.Specification.PurchaseOrderSpecification;
 import jakarta.persistence.EntityManager;
@@ -34,6 +35,7 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
@@ -69,6 +71,7 @@ public class AdminPurchaseOrderService {
   private final CashbookService cashbookService;
   private final OrderEvents orderEvents;
   private final WarehouseSupport warehouseSupport;
+  private final NccAccountingService nccAccounting;
 
   private final EntityManager entityManager;
 
@@ -133,17 +136,14 @@ public class AdminPurchaseOrderService {
 
     BigDecimal taxAmount = order.getTongTien().subtract(goodsAmount);
 
-    BigDecimal paid = sumCash(order, LoaiPhieuThuChi.CHI);
+    PurchaseRefundBalance balance = readPurchaseRefundBalance(order);
 
-    BigDecimal refundReceived = sumCash(order, LoaiPhieuThuChi.THU);
-
-    BigDecimal returnedValue = calculateReturnedValue(order, details);
-
-    BigDecimal adjustedTotal = order.getTongTien().subtract(returnedValue).max(BigDecimal.ZERO);
-
+    BigDecimal paid = balance.paid();
+    BigDecimal refundReceived = balance.refundReceived();
+    BigDecimal returnedValue = balance.returnedValue();
+    BigDecimal adjustedTotal = balance.adjustedTotal();
     BigDecimal netPaid = paid.subtract(refundReceived);
-
-    BigDecimal debt = adjustedTotal.subtract(netPaid).max(BigDecimal.ZERO);
+    BigDecimal debt = balance.debt();
 
     List<AdminPurchaseOrderDetailResponse.Item> responseItems =
         details.stream()
@@ -154,8 +154,18 @@ public class AdminPurchaseOrderService {
                   int imported =
                       Math.max(0, sumMovement(order.getId(), variantId, LoaiGiaoDichKho.NHAP_HANG));
 
-                  int returned =
+                  int legacyReturned =
                       Math.abs(sumMovement(order.getId(), variantId, LoaiGiaoDichKho.TRA_NCC));
+
+                  int returned =
+                      legacyReturned + nccAccounting.finalReturned(order.getId(), variantId);
+
+                  int legacyReturnLimit =
+                      Math.max(
+                          0,
+                          imported
+                              - legacyReturned
+                              - nccAccounting.legacyAssigned(order.getId(), variantId));
 
                   SerialMode mode = resolveSerialMode(variantId);
 
@@ -168,6 +178,7 @@ public class AdminPurchaseOrderService {
                       .thanhTien(detail.getThanhTien())
                       .soLuongDaNhapKho(imported)
                       .soLuongDaTra(returned)
+                      .soLuongTraTheoLuongCuToiDa(legacyReturnLimit)
                       .quanLySerial(mode.value())
                       .cheDoSerialDaXacLap(mode.established())
                       .build();
@@ -203,6 +214,7 @@ public class AdminPurchaseOrderService {
         .soTienDaThanhToan(paid)
         .soTienConNo(debt)
         .giaTriHangTra(returnedValue)
+        .giaTriDieuChinhNcc(nccAccounting.adjustments(order.getId()))
         .giaTriSauTra(adjustedTotal)
         .soTienDaNhanHoan(refundReceived)
         .soTienDaThanhToanThuan(netPaid)
@@ -321,7 +333,7 @@ public class AdminPurchaseOrderService {
   // PAYMENT
   // =========================================================
 
-  @Transactional
+  @Transactional(isolation = Isolation.READ_COMMITTED)
   public AdminPurchaseOrderPaymentResponse pay(
       Long id, String idempotencyKey, AdminPurchaseOrderPaymentRequest request) {
 
@@ -647,7 +659,8 @@ public class AdminPurchaseOrderService {
        */
       int alreadyReturned = Math.abs(sumMovement(id, variantId, LoaiGiaoDichKho.TRA_NCC));
 
-      int remainingReturnable = imported - alreadyReturned;
+      int remainingReturnable =
+          imported - alreadyReturned - nccAccounting.legacyAssigned(id, variantId);
 
       if (remainingReturnable <= 0) {
         throw new AppException(
@@ -687,12 +700,12 @@ public class AdminPurchaseOrderService {
 
       if (inventory.getTonThucTe() < item.getSoLuongTra()) {
 
-        throw new AppException(ErrorCode.CONFLICT, "Tồn thực tế không đủ để trả NCC");
+        throw new AppException(ErrorCode.CONFLICT, "Tồn thực tế không đủ để trả Nhà Cung Cấp");
       }
 
       if (inventory.getTonCoTheBan() < normalReturn) {
 
-        throw new AppException(ErrorCode.CONFLICT, "Tồn có thể bán không đủ để trả NCC");
+        throw new AppException(ErrorCode.CONFLICT, "Tồn có thể bán không đủ để trả Nhà Cung Cấp");
       }
 
       if (inventory.getHangLoi() < item.getSoLuongLoi()) {
@@ -790,7 +803,9 @@ public class AdminPurchaseOrderService {
 
                   int imported = Math.max(0, sumMovement(id, variantId, LoaiGiaoDichKho.NHAP_HANG));
 
-                  int totalReturned = Math.abs(sumMovement(id, variantId, LoaiGiaoDichKho.TRA_NCC));
+                  int totalReturned =
+                      Math.abs(sumMovement(id, variantId, LoaiGiaoDichKho.TRA_NCC))
+                          + nccAccounting.finalReturned(id, variantId);
 
                   return totalReturned >= imported;
                 });
@@ -815,8 +830,7 @@ public class AdminPurchaseOrderService {
      *
      * Không dùng currentReturnValue ở đây.
      */
-    BigDecimal adjustedTotal =
-        order.getTongTien().subtract(cumulativeReturnValue).max(BigDecimal.ZERO);
+    BigDecimal adjustedTotal = nccAccounting.effectiveTotal(order, cumulativeReturnValue);
 
     /*
      * Số tiền thực tế cửa hàng đã trả NCC,
@@ -914,7 +928,7 @@ public class AdminPurchaseOrderService {
         .build();
   }
 
-  @Transactional
+  @Transactional(isolation = Isolation.READ_COMMITTED)
   public AdminPurchaseOrderReturnResponse returnToSupplier(
       Long id, String idempotencyKey, AdminPurchaseOrderReturnRequest request) {
 
@@ -931,7 +945,7 @@ public class AdminPurchaseOrderService {
         () -> doReturnToSupplier(id, request, actor, "THU-NCC-" + normalizedKey));
   }
 
-  @Transactional
+  @Transactional(isolation = Isolation.READ_COMMITTED)
   public AdminPurchaseOrderRefundResponse receiveRefund(
       Long id, String idempotencyKey, AdminPurchaseOrderRefundRequest request) {
 
@@ -940,7 +954,8 @@ public class AdminPurchaseOrderService {
     }
 
     if (request == null || !Boolean.TRUE.equals(request.getXacNhanDaNhanTien())) {
-      throw new AppException(ErrorCode.INVALID_DATA, "Phải xác nhận đã nhận tiền NCC hoàn");
+      throw new AppException(
+          ErrorCode.INVALID_DATA, "Phải xác nhận đã nhận tiền Nhà Cung Cấp hoàn");
     }
 
     String method = request.getPhuongThucHoan();
@@ -983,15 +998,24 @@ public class AdminPurchaseOrderService {
 
     DonNhapHang order = requireOrderForUpdate(id);
 
-    if (order.getTrangThaiNhap() != TrangThaiNhapHang.HOAN_TRA_MOT_PHAN
-        && order.getTrangThaiNhap() != TrangThaiNhapHang.HOAN_TRA_TOAN_BO) {
-      throw new AppException(ErrorCode.CONFLICT, "Đơn nhập chưa có nghiệp vụ trả hàng NCC hợp lệ");
+    if (order.getTrangThaiNhap() == TrangThaiNhapHang.DAT_HANG
+        || order.getTrangThaiNhap() == TrangThaiNhapHang.HUY) {
+      throw new AppException(ErrorCode.CONFLICT, "Đơn nhập chưa được duyệt hoặc đã bị hủy");
     }
 
     PurchaseRefundBalance before = readPurchaseRefundBalance(order);
 
     if (before.refundDue().signum() <= 0) {
       throw new AppException(ErrorCode.CONFLICT, "Nhà cung cấp không còn khoản tiền phải hoàn");
+    }
+
+    BigDecimal amount =
+        request.getSoTienNhan() == null ? before.refundDue() : request.getSoTienNhan();
+
+    if (amount.signum() <= 0 || amount.scale() > 2 || amount.compareTo(before.refundDue()) > 0) {
+      throw new AppException(
+          ErrorCode.INVALID_DATA,
+          "Số tiền nhận phải lớn hơn 0 và không vượt khoản Nhà Cung Cấp còn phải hoàn");
     }
 
     String transaction =
@@ -1005,7 +1029,7 @@ public class AdminPurchaseOrderService {
             : request.getGhiChu().strip();
 
     String description =
-        "Nhận tiền NCC hoàn sau trả hàng"
+        "Nhận tiền Nhà Cung Cấp hoàn sau trả hàng hoặc điều chỉnh"
             + (transaction == null ? "" : "\nMã giao dịch: " + transaction)
             + (note == null ? "" : "\nGhi chú: " + note);
 
@@ -1018,7 +1042,7 @@ public class AdminPurchaseOrderService {
                 .nhomNguoiNopNhan(NhomNguoiNopNhanEnum.NHA_CUNG_CAP)
                 .nhaCungCap(order.getNhaCungCap())
                 .maChungTuThamChieu(order.getMaDonNhap())
-                .soTien(before.refundDue())
+                .soTien(amount)
                 .phuongThucThanhToan(request.getPhuongThucHoan())
                 .ngayGhiNhan(request.getNgayNhanTien())
                 .moTa(description)
@@ -1084,24 +1108,22 @@ public class AdminPurchaseOrderService {
     if (returnedValue.signum() < 0
         || returnedValue.compareTo(total) > 0
         || paid.signum() < 0
-        || paid.compareTo(total) > 0
-        || refundReceived.signum() < 0) {
+        || refundReceived.signum() < 0
+        || refundReceived.compareTo(paid) > 0) {
       throw new AppException(ErrorCode.CONFLICT, "Dữ liệu tiền của đơn nhập không nhất quán");
     }
 
-    BigDecimal adjustedTotal = total.subtract(returnedValue);
-    BigDecimal refundableTotal = paid.subtract(adjustedTotal).max(BigDecimal.ZERO);
-
-    if (refundReceived.compareTo(refundableTotal) > 0) {
-      throw new AppException(ErrorCode.CONFLICT, "Tiền đã nhận hoàn vượt khoản NCC phải hoàn");
-    }
+    BigDecimal adjustedTotal = nccAccounting.effectiveTotal(order, returnedValue);
 
     BigDecimal netPaid = paid.subtract(refundReceived);
-    BigDecimal debt = adjustedTotal.subtract(netPaid).max(BigDecimal.ZERO);
-    BigDecimal refundDue = netPaid.subtract(adjustedTotal).max(BigDecimal.ZERO);
 
     return new PurchaseRefundBalance(
-        returnedValue, adjustedTotal, paid, refundReceived, debt, refundDue);
+        returnedValue,
+        adjustedTotal,
+        paid,
+        refundReceived,
+        adjustedTotal.subtract(netPaid).max(BigDecimal.ZERO),
+        netPaid.subtract(adjustedTotal).max(BigDecimal.ZERO));
   }
 
   private record PurchaseRefundBalance(
@@ -1239,6 +1261,7 @@ public class AdminPurchaseOrderService {
         donNhapHangRepository
             .findByIdForUpdate(id)
             .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "Đơn nhập không tồn tại"));
+    entityManager.refresh(order);
     orderEvents.watchPurchase(order);
     return order;
   }
@@ -1350,18 +1373,7 @@ public class AdminPurchaseOrderService {
   }
 
   private BigDecimal calculateDebt(DonNhapHang order) {
-
-    List<ChiTietDonNhap> details =
-        chiTietDonNhapRepository.findByDonNhapHangIdOrderByIdAsc(order.getId());
-
-    BigDecimal returned = calculateReturnedValue(order, details);
-
-    BigDecimal adjustedTotal = order.getTongTien().subtract(returned).max(BigDecimal.ZERO);
-
-    BigDecimal netPaid =
-        sumCash(order, LoaiPhieuThuChi.CHI).subtract(sumCash(order, LoaiPhieuThuChi.THU));
-
-    return adjustedTotal.subtract(netPaid).max(BigDecimal.ZERO);
+    return readPurchaseRefundBalance(order).debt();
   }
 
   private BigDecimal calculateReturnedValue(DonNhapHang order, List<ChiTietDonNhap> details) {
@@ -1389,7 +1401,9 @@ public class AdminPurchaseOrderService {
        * Chỉ phần trả vượt quá lượng giao thừa mới
        * làm giảm giá trị đơn/công nợ.
        */
-      int excessReceived = Math.max(imported - ordered, 0);
+      int excessReceived =
+          Math.max(
+              imported - ordered - nccAccounting.legacyExtraAssigned(order.getId(), variantId), 0);
 
       int financiallyReturnedQuantity = Math.max(returned - excessReceived, 0);
 
@@ -1472,7 +1486,7 @@ public class AdminPurchaseOrderService {
             detail.getPhienBan().getId(),
             LoaiGiaoDichKho.NHAP_HANG);
 
-    if (received < 0 || received > detail.getSoLuong()) {
+    if (received < 0) {
       throw new AppException(
           ErrorCode.CONFLICT, "Số lượng đã nhập không nhất quán ở dòng " + detail.getId());
     }
@@ -1487,38 +1501,41 @@ public class AdminPurchaseOrderService {
             .anyMatch(
                 detail ->
                     sumMovement(
-                            order.getId(), detail.getPhienBan().getId(), LoaiGiaoDichKho.TRA_NCC)
-                        < 0);
+                                order.getId(),
+                                detail.getPhienBan().getId(),
+                                LoaiGiaoDichKho.TRA_NCC)
+                            < 0
+                        || nccAccounting.finalReturned(order.getId(), detail.getPhienBan().getId())
+                            > 0);
 
     if (hasReturn) {
-      boolean allReceivedGoodsReturned =
+      boolean allReturned =
           details.stream()
               .allMatch(
                   detail -> {
-                    int received = grossReceived(detail);
-                    int returned =
-                        Math.abs(
-                            sumMovement(
-                                order.getId(),
-                                detail.getPhienBan().getId(),
-                                LoaiGiaoDichKho.TRA_NCC));
+                    Long variantId = detail.getPhienBan().getId();
 
-                    return returned >= received;
+                    int returned =
+                        Math.abs(sumMovement(order.getId(), variantId, LoaiGiaoDichKho.TRA_NCC))
+                            + nccAccounting.finalReturned(order.getId(), variantId);
+
+                    return returned >= grossReceived(detail);
                   });
 
       order.setTrangThaiNhap(
-          allReceivedGoodsReturned
-              ? TrangThaiNhapHang.HOAN_TRA_TOAN_BO
-              : TrangThaiNhapHang.HOAN_TRA_MOT_PHAN);
-
+          allReturned ? TrangThaiNhapHang.HOAN_TRA_TOAN_BO : TrangThaiNhapHang.HOAN_TRA_MOT_PHAN);
       return;
     }
 
     boolean fullyReceived =
-        details.stream().allMatch(detail -> grossReceived(detail) == detail.getSoLuong());
+        details.stream().allMatch(detail -> grossReceived(detail) >= detail.getSoLuong());
+
+    boolean anyReceived = details.stream().anyMatch(detail -> grossReceived(detail) > 0);
 
     order.setTrangThaiNhap(
-        fullyReceived ? TrangThaiNhapHang.DA_NHAP_KHO : TrangThaiNhapHang.NHAP_MOT_PHAN);
+        fullyReceived
+            ? TrangThaiNhapHang.DA_NHAP_KHO
+            : anyReceived ? TrangThaiNhapHang.NHAP_MOT_PHAN : TrangThaiNhapHang.DA_DUYET);
   }
 
   private Set<String> collectAndValidateSerials(
@@ -1605,29 +1622,15 @@ public class AdminPurchaseOrderService {
 
   private void updatePaymentStatus(DonNhapHang order) {
 
-    BigDecimal debt = calculateDebt(order);
+    PurchaseRefundBalance balance = readPurchaseRefundBalance(order);
 
-    BigDecimal adjustedTotal =
-        order
-            .getTongTien()
-            .subtract(
-                calculateReturnedValue(
-                    order, chiTietDonNhapRepository.findByDonNhapHangIdOrderByIdAsc(order.getId())))
-            .max(BigDecimal.ZERO);
+    BigDecimal netPaid = balance.paid().subtract(balance.refundReceived());
 
-    BigDecimal netPaid =
-        sumCash(order, LoaiPhieuThuChi.CHI).subtract(sumCash(order, LoaiPhieuThuChi.THU));
-
-    if (adjustedTotal.compareTo(BigDecimal.ZERO) == 0 || netPaid.compareTo(adjustedTotal) >= 0) {
-
+    if (balance.adjustedTotal().signum() == 0 || netPaid.compareTo(balance.adjustedTotal()) >= 0) {
       order.setTrangThaiThanhToan(TrangThaiThanhToanNhap.DA_TRA);
-
-    } else if (netPaid.compareTo(BigDecimal.ZERO) <= 0) {
-
+    } else if (netPaid.signum() <= 0) {
       order.setTrangThaiThanhToan(TrangThaiThanhToanNhap.CHUA_TRA);
-
     } else {
-
       order.setTrangThaiThanhToan(TrangThaiThanhToanNhap.TRA_MOT_PHAN);
     }
   }
@@ -1676,6 +1679,7 @@ public class AdminPurchaseOrderService {
                 serial.getTrangThai() == TrangThaiSerial.TRONG_KHO
                     || serial.getTrangThai() == TrangThaiSerial.LOI)
         .filter(serial -> serial.getChiTietDongGoi() == null)
+        .filter(serial -> !nccAccounting.trackedSerial(serial.getId()))
         .map(
             serial ->
                 AdminPurchaseOrderReceiveResponse.SerialData.builder()
@@ -1727,6 +1731,13 @@ public class AdminPurchaseOrderService {
     int defects = 0;
 
     for (var serial : serials) {
+      if (nccAccounting.trackedSerial(serial.getId())) {
+        throw new AppException(
+            ErrorCode.CONFLICT,
+            "Serial đã có lịch sử xử lý Nhà Cung Cấp; hãy trả theo hồ sơ Nhà Cung Cấp: "
+                + serial.getSoSerial());
+      }
+
       boolean correctSource =
           Objects.equals(serial.getPhienBan().getId(), detail.getPhienBan().getId())
               && serial.getDonNhapHang() != null
@@ -1847,4 +1858,20 @@ public class AdminPurchaseOrderService {
   }
 
   private record SerialMode(Boolean value, boolean established) {}
+
+  @Transactional(isolation = Isolation.READ_COMMITTED)
+  public DonNhapHang lockForNcc(Long id) {
+    return requireOrderForUpdate(id);
+  }
+
+  @Transactional(isolation = Isolation.READ_COMMITTED)
+  public void synchronizeNcc(Long id) {
+    DonNhapHang order = requireOrderForUpdate(id);
+
+    List<ChiTietDonNhap> details = chiTietDonNhapRepository.findByDonNhapHangIdOrderByIdAsc(id);
+
+    refreshImportStatus(order, details);
+    updatePaymentStatus(order);
+    donNhapHangRepository.saveAndFlush(order);
+  }
 }

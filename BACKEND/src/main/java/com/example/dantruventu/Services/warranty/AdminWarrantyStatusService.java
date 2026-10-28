@@ -103,9 +103,7 @@ public class AdminWarrantyStatusService {
         || !"CUA_HANG".equals(history.text(custody.get("loai")))
         || heldId == null
         || !devices.containsKey(heldId)) throw notReady();
-    if (devices.get(heldId).getSoSerial() != null
-        && devices.get(heldId).getSoSerial().getTrangThai() != TrangThaiSerial.DANG_BAO_HANH)
-      throw notReady();
+    if (!serialReady(ticket, devices.get(heldId))) throw notReady();
     OffsetDateTime at =
         input.at() == null ? OffsetDateTime.now(ZoneId.of("Asia/Ho_Chi_Minh")) : input.at();
     if (ticket.getNgayTiepNhan() == null
@@ -156,9 +154,7 @@ public class AdminWarrantyStatusService {
             || !returning.equals(heldId)
             || !Objects.equals(device.getChiTietDonHang().getId(), origin.lineId())
             || device.getChiTietTraHang() != null) throw notReady();
-        if (device.getSoSerial() != null
-            && device.getSoSerial().getTrangThai() != TrangThaiSerial.DANG_BAO_HANH)
-          throw notReady();
+        if (!serialReady(ticket, device)) throw notReady();
         validateDiscrepancies(events, input.resolvedDiscrepancies(), returning);
         if (replacement) {
           validatePlan(ticket, events, input);
@@ -227,6 +223,16 @@ public class AdminWarrantyStatusService {
         || !Objects.equals(history.id(plan.get("thiet_bi_cu_id")), ticket.getThietBi().getId())
         || !Objects.equals(history.id(plan.get("thiet_bi_thay_the_id")), input.deviceId())
         || history.time(plan.get("han_bao_hanh_ap_dung")) == null) throw notReady();
+  }
+
+  private boolean serialReady(PhieuBaoHanh ticket, ThietBiBaoHanh device) {
+    if (device.getSoSerial() == null) return true;
+    var state = device.getSoSerial().getTrangThai();
+    // Hàng đổi chưa bàn giao vẫn bị giữ riêng, chưa chuyển sang quyền đã bán của khách.
+    return state == TrangThaiSerial.DANG_BAO_HANH
+        || ticket.getThietBiThayThe() != null
+            && ticket.getThietBiThayThe().getId().equals(device.getId())
+            && state == TrangThaiSerial.GIU_CHO_BAO_HANH;
   }
 
   private void validateDiscrepancies(

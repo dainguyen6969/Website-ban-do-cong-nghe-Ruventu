@@ -11,10 +11,7 @@ import com.example.dantruventu.Repository.order.ChiTietDonHangRepository;
 import com.example.dantruventu.Repository.order.GiuHangTungPhanRepository;
 import com.example.dantruventu.Repository.warehouse.SoSerialSanPhamRepository;
 import com.example.dantruventu.Repository.warehouse.TheKhoRepository;
-import com.example.dantruventu.Services.order.sales.OrderSaleSnapshotService;
-import com.example.dantruventu.Services.order.sales.SalesCalculationService;
-import com.example.dantruventu.Services.order.sales.SalesContext;
-import com.example.dantruventu.Services.order.sales.SoldDeviceService;
+import com.example.dantruventu.Services.order.sales.*;
 import jakarta.persistence.EntityManager;
 import java.time.Duration;
 import java.time.LocalDateTime;
@@ -40,6 +37,7 @@ public class OrderInventoryService {
   private final OrderSaleSnapshotService saleSnapshots;
   private final SoldDeviceService soldDevices;
   private final GiuHangTungPhanRepository partialReservationRepository;
+  private final OrderIntakePolicy intakePolicy;
 
   @Value("${ruventu.sales.reservation-ttl}")
   private Duration reservationTtl;
@@ -404,15 +402,31 @@ public class OrderInventoryService {
   }
 
   public void reserveForNewOrder(DonHang order) {
-    reserveForNewOrder(order, false);
+    reserveForNewOrder(order, false, null);
   }
 
   public void reserveForNewOrder(DonHang order, boolean allowWaiting) {
+    reserveForNewOrder(order, allowWaiting, null);
+  }
+
+  public void reserveForNewOrder(DonHang order, boolean allowWaiting, String verificationReason) {
+
     if (order.getLoaiDonHang() != LoaiDonHang.ONLINE
         || order.getTrangThaiDonHang() != TrangThaiDonHang.CHO_DUYET
         || order.getTrangThaiThanhToan() != TrangThaiThanhToanDonHang.CHUA_THANH_TOAN) {
 
       throw conflict("Không đúng trạng thái giữ hàng khi tạo đơn");
+    }
+
+    intakePolicy.initialize(order);
+
+    String reason = !intakePolicy.isWorkingNow() ? "NGOAI_GIO" : verificationReason;
+
+    if (reason != null) {
+      order.setDaGiuHang(false);
+      order.setHanGiuHang(null);
+      order.setLyDoChoXacMinh(reason);
+      return;
     }
 
     if (!tryReserve(order)) {
@@ -422,10 +436,12 @@ public class OrderInventoryService {
 
       order.setDaGiuHang(false);
       order.setHanGiuHang(null);
+      order.setLyDoChoXacMinh("CHO_HANG");
       order.setTrangThaiDonHang(TrangThaiDonHang.CHO_HANG);
       return;
     }
 
+    order.setLyDoChoXacMinh(null);
     startUnpaidReservationDeadline(order);
   }
 
@@ -1056,11 +1072,34 @@ public class OrderInventoryService {
     for (var entry : stocks.entrySet()) {
       TonKho stock = entry.getValue();
 
-      long actualHeld =
-          (long) stock.getTonThucTe()
-              - stock.getHangLoi()
-              - stock.getSoLuongGiuChoBaoHanh()
-              - stock.getTonCoTheBan();
+// Kiểm tra tính hợp lệ của dữ liệu tồn kho.
+Integer physical = stock.getTonThucTe();
+Integer damaged = stock.getHangLoi();
+Integer available = stock.getTonCoTheBan();
+Integer warrantyHeld = stock.getSoLuongGiuChoBaoHanh();
+
+if (physical == null
+    || damaged == null
+    || available == null
+    || warrantyHeld == null
+    || physical < 0
+    || damaged < 0
+    || available < 0
+    || warrantyHeld < 0
+    || (long) available + damaged + warrantyHeld > physical) {
+
+  throw conflict(
+      "Dữ liệu tồn kho hoặc giữ hàng bảo hành không hợp lệ tại phiên bản "
+          + entry.getKey());
+}
+
+// Hàng giữ đổi bảo hành không thuộc lượng giữ cho đơn bán.
+// Phần còn lại là số lượng đang giữ cho các đơn bán.
+long actualHeld =
+    (long) physical
+        - damaged
+        - available
+        - warrantyHeld;
 
       Long expectedHeld = expectedHeld(entry.getKey());
 

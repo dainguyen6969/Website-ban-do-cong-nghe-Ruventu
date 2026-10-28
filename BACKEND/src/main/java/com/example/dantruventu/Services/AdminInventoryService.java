@@ -277,8 +277,7 @@ public class AdminInventoryService {
     try {
       return LoaiGiaoDichKho.valueOf(value.trim().toUpperCase(Locale.ROOT));
     } catch (IllegalArgumentException exception) {
-      throw invalid(
-          "loai_giao_dich chỉ nhận NHAP_HANG, XUAT_BAN, " + "KHACH_TRA, TRA_NCC, KIEM_KHO");
+      throw invalid("Loại giao dịch kho không hợp lệ.");
     }
   }
 

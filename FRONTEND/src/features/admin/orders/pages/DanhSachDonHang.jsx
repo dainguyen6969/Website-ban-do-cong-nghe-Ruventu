@@ -88,6 +88,23 @@ export default function DanhSachDonHang() {
   }, []);
 
   useEffect(() => {
+    const refreshVisible = () => {
+      if (document.visibilityState === 'visible') {
+        setRevision((value) => value + 1);
+      }
+    };
+
+    const timer = window.setInterval(refreshVisible, 30000);
+
+    window.addEventListener('focus', refreshVisible);
+
+    return () => {
+      window.clearInterval(timer);
+      window.removeEventListener('focus', refreshVisible);
+    };
+  }, []);
+
+  useEffect(() => {
     const controller = new AbortController();
     const background = loadedRequest.current === request;
 
@@ -318,6 +335,21 @@ export default function DanhSachDonHang() {
                   </td>
                   <td>
                     <OrderStateBadge value={orderDisplayStatus(order)} />
+
+                    {order.tiep_nhan?.nhan_giu_hang && (
+                      <small>{order.tiep_nhan.nhan_giu_hang}</small>
+                    )}
+
+                    {order.tiep_nhan?.han_xu_ly && (
+                      <small
+                        style={{
+                          color: order.tiep_nhan.qua_han_xu_ly ? '#c62828' : undefined,
+                        }}
+                      >
+                        {order.tiep_nhan.qua_han_xu_ly ? 'QUÁ HẠN · ' : ''}
+                        {order.tiep_nhan.nhan_han_xu_ly}: {dateTime(order.tiep_nhan.han_xu_ly)}
+                      </small>
+                    )}
                   </td>
                   <td>
                     <OrderStateBadge value={order.trang_thai_thanh_toan} />

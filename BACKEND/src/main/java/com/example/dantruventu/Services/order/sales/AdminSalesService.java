@@ -76,6 +76,7 @@ public class AdminSalesService {
 
   private final OrderDeviceHistoryService deviceHistory;
   private final OrderInventoryService orderInventory;
+  private final OrderIntakePolicy intakePolicy;
 
   public AdminSalesResponse.Options options() {
 
@@ -277,8 +278,6 @@ public class AdminSalesService {
         throw conflict("Đơn không còn được phép sửa");
       }
 
-      orderInventory.requireReservationNotExpired(editing);
-
       if (orderInventory.hasQuantityReservation(editing)) {
         ownReservation = orderInventory.plan(editing, false).quantities();
       }
@@ -288,6 +287,11 @@ public class AdminSalesService {
 
     plan.data()
         .setKhuyenMaiKhaDung(calculation.availablePromotions(request, request.getLoaiDonHang()));
+
+    if (request.getLoaiDonHang() == LoaiDonHang.ONLINE && request.getDonHangId() == null) {
+
+      plan.data().setTiepNhan(intakePolicy.preview(null, plan.quantities(), true));
+    }
 
     return saleQuotes.issue(
         plan.data(), SalesQuoteService.identity(actor, null), scope, request, plan);
@@ -356,6 +360,8 @@ public class AdminSalesService {
     saleSnapshots.recordPromotion(order, plan, request, actor);
 
     orderInventory.reserveForNewOrder(order, Boolean.TRUE.equals(request.getChoPhepChoHang()));
+
+    saleSnapshots.configureUnpaidPromotion(order);
 
     orderRepository.flush();
 
@@ -684,6 +690,8 @@ public class AdminSalesService {
   }
 
   private void enrich(AdminSalesResponse.Order response, DonHang order) {
+
+    response.setTiepNhan(intakePolicy.describe(order));
 
     if (order.getTrangThaiDonHang() == TrangThaiDonHang.CHO_HANG) {
       var rows = orderInventory.waitingStockRows(order);

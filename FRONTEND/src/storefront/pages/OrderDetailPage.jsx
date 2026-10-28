@@ -230,7 +230,14 @@ export default function OrderDetailPage() {
                     ? 'ĐÃ NHẬN HÀNG — ĐANG HOÀN TẤT ĐƠN'
                     : label(order.trang_thai_don_hang)}
                 </span>
+
                 <p className="customer-order-date">Ngày đặt: {formatDateTimeVN(order.ngay_tao)}</p>
+
+                {order.tiep_nhan?.thong_bao && (
+                  <p className="customer-order-date" role="status">
+                    {order.tiep_nhan.thong_bao}
+                  </p>
+                )}
               </>
             )}
           </div>
