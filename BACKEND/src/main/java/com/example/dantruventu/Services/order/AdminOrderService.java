@@ -20,6 +20,7 @@ import com.example.dantruventu.Repository.product.AnhSanPhamRepository;
 import com.example.dantruventu.Repository.product.PhienBanSanPhamRepository;
 import com.example.dantruventu.Repository.warehouse.SoSerialSanPhamRepository;
 import com.example.dantruventu.Services.cashbook.CashbookService;
+import com.example.dantruventu.Services.documents.DocumentService;
 import com.example.dantruventu.Services.order.sales.*;
 import com.example.dantruventu.Services.order.sales.SoldDeviceService;
 import com.example.dantruventu.Services.warehouse.RecallSafety;
@@ -79,6 +80,7 @@ public class AdminOrderService {
   private final ObjectMapper objectMapper;
   private final OrderIntakePolicy intakePolicy;
   private final RecallSafety recallSafety;
+  private final DocumentService documents;
 
   @Transactional(isolation = Isolation.READ_COMMITTED)
   public AdminOrderResponse.Action counterExchange(
@@ -777,7 +779,7 @@ public class AdminOrderService {
       String base = prefix + order.getId();
 
       cashRepository
-          .findByMaPhieu(base)
+          .findByBusinessKey(base)
           .ifPresent(voucher -> documents.put(voucher.getId(), voucher));
 
       for (SoQuyThuChi voucher : cashRepository.findByBusinessKeyStartingWith(base + "-")) {
@@ -788,7 +790,7 @@ public class AdminOrderService {
     for (PhieuGiaoHang delivery : deliveryRepository.findByDonHang_IdOrderByIdAsc(order.getId())) {
 
       cashRepository
-          .findByMaPhieu("THU-COD-" + delivery.getId())
+          .findByBusinessKey("THU-COD-" + delivery.getId())
           .ifPresent(voucher -> documents.put(voucher.getId(), voucher));
     }
 
@@ -1994,6 +1996,8 @@ public class AdminOrderService {
 
     inventory.export(order, request);
 
+    documents.recordIssue(order);
+
     order.setTrangThaiXuatKho(TrangThaiXuatKho.DA_XUAT_KHO);
     order.setTrangThaiDonHang(TrangThaiDonHang.CHO_LAY_HANG);
 
@@ -2125,7 +2129,7 @@ public class AdminOrderService {
           newOrderMoneyCode(
               "THU-DH-", order, request.getPhuongThucThanhToan(), request.getMaGiaoDichThanhToan());
 
-      if (cashRepository.findByMaPhieu(receiptCode).isPresent()) {
+      if (cashRepository.findByBusinessKey(receiptCode).isPresent()) {
         throw conflict("Mã giao dịch này đã được ghi nhận cho đơn hàng");
       }
 
@@ -2219,7 +2223,7 @@ public class AdminOrderService {
         throw conflict("Phiếu giao chưa có đối tác vận chuyển");
       }
 
-      if (cashRepository.findByMaPhieu("THU-COD-" + delivery.getId()).isPresent()) {
+      if (cashRepository.findByBusinessKey("THU-COD-" + delivery.getId()).isPresent()) {
 
         throw conflict("Khoản COD của phiếu giao đã được ghi nhận");
       }
@@ -2469,7 +2473,7 @@ public class AdminOrderService {
         newOrderMoneyCode(
             "CHI-HUY-DH-", order, request.getPhuongThucHoan(), request.getMaGiaoDich());
 
-    if (cashRepository.findByMaPhieu(expenseCode).isPresent()) {
+    if (cashRepository.findByBusinessKey(expenseCode).isPresent()) {
       throw conflict("Mã giao dịch hoàn tiền đã được ghi nhận");
     }
 

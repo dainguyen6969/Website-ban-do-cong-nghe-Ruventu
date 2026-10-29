@@ -30,6 +30,7 @@ import com.example.dantruventu.Repository.warehouse.ThanhPhanComboRepository;
 import com.example.dantruventu.Services.CartPromotionService;
 import com.example.dantruventu.Services.cashbook.CashbookService;
 import com.example.dantruventu.Services.catalog.CatalogSupport;
+import com.example.dantruventu.Services.documents.DocumentNumberService;
 import com.example.dantruventu.Services.order.sales.*;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
@@ -92,6 +93,7 @@ public class CustomerOrderService {
   private final OrderInventoryService orderInventory;
   private final OrderIntakePolicy intakePolicy;
   private final BackorderService backorders;
+  private final DocumentNumberService documentNumbers;
 
   @Value("${ruventu.order.delivery-fee:30000}")
   private BigDecimal deliveryFee;
@@ -281,7 +283,7 @@ public class CustomerOrderService {
 
     DonHang order =
         DonHang.builder()
-            .maDonHang("ORD-" + UUID.randomUUID())
+            .maDonHang(documentNumbers.next("DH"))
             .loaiDonHang(LoaiDonHang.ONLINE)
             .khachHang(user)
             .nhanVien(null)

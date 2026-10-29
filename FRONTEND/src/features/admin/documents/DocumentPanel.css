@@ -1,0 +1,290 @@
+.rv-doc {
+  min-width: 0;
+  margin-top: 20px;
+  padding: 18px;
+  border: 1px solid #dedede;
+  border-top: 3px solid #191919;
+  background: #fff;
+  color: #191919;
+  font-family: inherit;
+  line-height: 1.6;
+}
+
+.rv-doc-heading,
+.rv-doc-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.rv-doc-heading {
+  margin-bottom: 16px;
+}
+
+.rv-doc h2,
+.rv-doc h3,
+.rv-doc-modal h3 {
+  margin: 0;
+  font-family: inherit;
+  font-weight: 700;
+}
+
+.rv-doc h2 {
+  font-size: 14px;
+  letter-spacing: 0.02em;
+}
+
+.rv-doc h3,
+.rv-doc-modal h3 {
+  margin: 18px 0 10px;
+  font-size: 14px;
+}
+
+.rv-doc button {
+  padding: 9px 13px;
+  border: 1px solid #191919;
+  border-radius: 0;
+  background: #191919;
+  color: #fff;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.rv-doc button:hover:not(:disabled) {
+  background: #333;
+}
+
+.rv-doc button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.rv-doc a,
+.rv-doc-modal a {
+  color: inherit;
+  font-weight: 650;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.rv-doc-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1px;
+  margin: 16px 0;
+  border: 1px solid #dedede;
+  background: #dedede;
+}
+
+.rv-doc-grid > div {
+  min-width: 0;
+  padding: 14px;
+  background: #fafafa;
+}
+
+.rv-doc-grid dt {
+  margin-bottom: 7px;
+  color: #666;
+  font-size: 11px;
+}
+
+.rv-doc-grid dd {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 650;
+  overflow-wrap: anywhere;
+}
+
+.rv-doc-badge {
+  display: inline-block;
+  padding: 5px 9px;
+  border: 1px solid transparent;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.rv-doc-badge.is-ready {
+  border-color: #b8d9c4;
+  background: #eef7f1;
+  color: #245b38;
+}
+
+.rv-doc-badge.is-waiting {
+  border-color: #e8cf93;
+  background: #fff8e9;
+  color: #805600;
+}
+
+.rv-doc-record {
+  margin: 12px 0;
+  padding: 14px;
+  border: 1px solid #dedede;
+  background: #fff;
+  overflow-wrap: anywhere;
+}
+
+.rv-doc-record p {
+  margin: 7px 0;
+}
+
+.rv-doc-record small,
+.rv-doc-muted {
+  color: #666;
+}
+
+.rv-doc-record summary,
+.rv-doc-history > summary {
+  cursor: pointer;
+  font-weight: 650;
+}
+
+.rv-doc-history {
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid #dedede;
+}
+
+.rv-doc-history > summary {
+  margin-bottom: 12px;
+}
+
+.rv-doc-tools {
+  justify-content: flex-start;
+  margin-top: 12px;
+}
+
+.rv-doc-scroll {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.rv-doc table,
+.rv-doc-modal table {
+  width: 100%;
+  min-width: 600px;
+  border-collapse: collapse;
+  font: inherit;
+  font-size: 12px;
+}
+
+.rv-doc th,
+.rv-doc td,
+.rv-doc-modal th,
+.rv-doc-modal td {
+  padding: 12px;
+  border: 1px solid #e4e4e4;
+  text-align: left;
+  vertical-align: top;
+}
+
+.rv-doc th,
+.rv-doc-modal th {
+  background: #f5f5f5;
+  color: #555;
+  font-size: 11px;
+  font-weight: 650;
+}
+
+.rv-doc td p {
+  margin: 5px 0;
+}
+
+.rv-doc-error,
+.rv-doc-warning {
+  margin: 12px 0;
+  padding: 12px;
+  border-left: 3px solid;
+}
+
+.rv-doc-error {
+  border-color: #c32424;
+  background: #fff3f3;
+  color: #a31c1c;
+}
+
+.rv-doc-warning {
+  border-color: #b27a13;
+  background: #fff8e9;
+  color: #805600;
+}
+
+.rv-doc-modal {
+  width: min(850px, calc(100vw - 32px));
+  font-family: inherit;
+}
+
+.rv-doc-fields {
+  display: grid;
+  gap: 15px;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.rv-doc-field {
+  display: grid;
+  gap: 7px;
+  min-width: 0;
+}
+
+.rv-doc-field > span {
+  color: #555;
+  font-size: 11px;
+  font-weight: 650;
+}
+
+.rv-doc-field input,
+.rv-doc-field select,
+.rv-doc-modal td input:not([type='checkbox']) {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 0;
+  background: #fff;
+  color: #191919;
+  font: inherit;
+}
+
+.rv-doc-field input[readonly] {
+  background: #f5f5f5;
+}
+
+.rv-doc-confirm {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  padding-top: 8px;
+  font: inherit;
+}
+
+.rv-doc-confirm input {
+  flex-shrink: 0;
+  margin-top: 5px;
+  accent-color: #191919;
+}
+
+@media (max-width: 640px) {
+  .rv-doc {
+    padding: 14px;
+  }
+
+  .rv-doc-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .rv-doc-heading {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .rv-doc-heading > button {
+    width: 100%;
+  }
+}

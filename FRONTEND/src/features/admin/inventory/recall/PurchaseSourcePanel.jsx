@@ -227,7 +227,7 @@ export default function PurchaseSourcePanel({ order, locked = false, onLockChang
       {data.map((receipt) => (
         <details className="recall-section" key={receipt.id}>
           <summary>
-            Nguồn #{receipt.id}
+            {receipt.code || `Nguồn #${receipt.id}`}
             {' · '}
             {receipt.supplier_document || 'Chưa ghi chứng từ Nhà Cung Cấp'}
             {' · '}

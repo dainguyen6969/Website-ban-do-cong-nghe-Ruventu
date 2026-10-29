@@ -156,7 +156,7 @@ public class AdminReturnService {
     ensureCodReconciled(returnSlip.getDonHang());
 
     String voucherCode = "CHI-TH-" + returnSlip.getId();
-    if (cashRepository.findByMaPhieu(voucherCode).isPresent()
+    if (cashRepository.findByBusinessKey(voucherCode).isPresent()
         || cashRepository.existsByLoaiPhieuAndNguonTaoAndMaChungTuThamChieuAndSoTien(
             LoaiPhieuThuChi.CHI,
             NguonTaoPhieuThuChi.TU_DONG,

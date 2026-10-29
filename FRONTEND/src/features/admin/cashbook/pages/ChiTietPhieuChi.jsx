@@ -4,6 +4,7 @@ import { CashSourceInfo } from '../components/CashbookEnhancements';
 import { formatDateTimeVN } from '../../../../shared/services/mutationUtils';
 import { useParams, useNavigate } from 'react-router-dom';
 import { disbursementService } from '../../../../shared/services/disbursementService';
+import DocumentPanel from '../../documents/DocumentPanel';
 import './ChiTietPhieu.css';
 
 export default function ChiTietPhieuChi() {
@@ -261,6 +262,8 @@ export default function ChiTietPhieuChi() {
 
             <CashSourceInfo item={currentItem} />
           </div>
+
+          <DocumentPanel key={`money-${currentItem.id}`} mode="money" id={currentItem.id} />
 
           {/* Section 4: Mô tả / Tags */}
           <div className="ctp-section">

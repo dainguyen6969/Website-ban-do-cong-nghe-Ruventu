@@ -9,6 +9,7 @@ import './NhapHang.css';
 import OrderModal from '../../orders/components/OrderModal';
 import SupplierCasePanel from '../components/SupplierCasePanel';
 import PurchaseSourcePanel from '../../inventory/recall/PurchaseSourcePanel';
+import DocumentPanel from '../../documents/DocumentPanel';
 
 import {
   errorMessage,
@@ -64,8 +65,9 @@ export default function ChiTietNhapHang() {
   const [pageBusy, setBusy] = useState(false);
   const [nccLocked, setNccLocked] = useState(false);
   const [sourceLocked, setSourceLocked] = useState(false);
+  const [documentLocked, setDocumentLocked] = useState(false);
 
-  const busy = pageBusy || nccLocked || sourceLocked;
+  const busy = pageBusy || nccLocked || sourceLocked || documentLocked;
 
   const [error, setError] = useState('');
   const [serialValues, setSerialValues] = useState({});
@@ -109,7 +111,7 @@ export default function ChiTietNhapHang() {
   }, [order]);
 
   const run = async (request) => {
-    if (operationBusy.current || nccLocked || sourceLocked) return;
+    if (operationBusy.current || nccLocked || sourceLocked || documentLocked) return;
 
     operationBusy.current = true;
     setBusy(true);
@@ -477,16 +479,36 @@ export default function ChiTietNhapHang() {
 
           <PurchaseSourcePanel
             order={order}
-            locked={pageBusy || nccLocked || Boolean(modal)}
+            locked={pageBusy || nccLocked || documentLocked || Boolean(modal)}
             onLockChange={setSourceLocked}
           />
 
           <SupplierCasePanel
             key={order.id}
             order={order}
-            locked={pageBusy || sourceLocked || Boolean(modal) || Boolean(purchaseAttempt.current)}
+            locked={
+              pageBusy ||
+              sourceLocked ||
+              documentLocked ||
+              Boolean(modal) ||
+              Boolean(purchaseAttempt.current)
+            }
             onRefresh={load}
             onLockChange={setNccLocked}
+          />
+
+          <DocumentPanel
+            key={`purchase-${order.id}`}
+            mode="purchase"
+            id={order.id}
+            locked={
+              pageBusy ||
+              sourceLocked ||
+              nccLocked ||
+              Boolean(modal) ||
+              Boolean(purchaseAttempt.current)
+            }
+            onEditingChange={setDocumentLocked}
           />
 
           <PurchaseCard title="TIẾN ĐỘ NHẬP KHO">
