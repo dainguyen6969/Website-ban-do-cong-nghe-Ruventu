@@ -1645,7 +1645,18 @@ public class NccCaseService {
 
     Long voucherId =
         jdbc.queryForObject(
-            "SELECT id FROM so_quy_thu_chi WHERE ma_phieu = ?", Long.class, voucherCode);
+            """
+                      SELECT id
+                      FROM so_quy_thu_chi
+                      WHERE khoa_nghiep_vu = ?
+                         OR (
+                              khoa_nghiep_vu IS NULL
+                              AND ma_phieu = ?
+                         )
+                      """,
+            Long.class,
+            voucherCode,
+            voucherCode);
 
     log(c, null, request, actor, at, null, null, voucherId);
   }

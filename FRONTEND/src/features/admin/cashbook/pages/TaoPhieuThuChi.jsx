@@ -42,7 +42,6 @@ export default function TaoPhieuThuChi({ initialTab = 'thu' }) {
   const [activeTab, setActiveTab] = useState(initialTab); // 'thu' | 'chi'
 
   const todayStr = new Date().toISOString().split('T')[0];
-  const dateFormatted = new Date().toISOString().slice(0, 10).replace(/-/g, '');
 
   // Form state for Thu
   const [groupThu, setGroupThu] = useState('KHACH_HANG');
@@ -50,9 +49,7 @@ export default function TaoPhieuThuChi({ initialTab = 'thu' }) {
   const [personThuId, setPersonThuId] = useState(null);
   const [showDropdownThu, setShowDropdownThu] = useState(false);
   const [suggestionsThu, setSuggestionsThu] = useState([]);
-  const [codeThu, setCodeThu] = useState(
-    `PT-${dateFormatted}-${Math.floor(100 + Math.random() * 900)}`
-  );
+
   const [typesThu, setTypesThu] = useState([]);
   const [selectedTypeThuId, setSelectedTypeThuId] = useState('');
   const [showAddTypeThu, setShowAddTypeThu] = useState(false);
@@ -64,9 +61,7 @@ export default function TaoPhieuThuChi({ initialTab = 'thu' }) {
   const [personChiId, setPersonChiId] = useState(null);
   const [showDropdownChi, setShowDropdownChi] = useState(false);
   const [suggestionsChi, setSuggestionsChi] = useState([]);
-  const [codeChi, setCodeChi] = useState(
-    `PC-${dateFormatted}-${Math.floor(100 + Math.random() * 900)}`
-  );
+
   const [typesChi, setTypesChi] = useState([]);
   const [selectedTypeChiId, setSelectedTypeChiId] = useState('');
   const [showAddTypeChi, setShowAddTypeChi] = useState(false);
@@ -227,15 +222,6 @@ export default function TaoPhieuThuChi({ initialTab = 'thu' }) {
     setTags(tags.filter((_, idx) => idx !== indexToRemove));
   };
 
-  const handleRegenerateCode = () => {
-    const rand = Math.floor(100 + Math.random() * 900);
-    if (activeTab === 'thu') {
-      setCodeThu(`PT-${dateFormatted}-${rand}`);
-    } else {
-      setCodeChi(`PC-${dateFormatted}-${rand}`);
-    }
-  };
-
   const handleSubmit = async () => {
     const currentPerson = activeTab === 'thu' ? personThu : personChi;
     const currentTypeId = activeTab === 'thu' ? selectedTypeThuId : selectedTypeChiId;
@@ -260,14 +246,12 @@ export default function TaoPhieuThuChi({ initialTab = 'thu' }) {
 
     setIsSubmitting(true);
     try {
-      const currentCode = activeTab === 'thu' ? codeThu : codeChi;
       const currentGroup = activeTab === 'thu' ? groupThu : groupChi;
       const currentPersonId = activeTab === 'thu' ? personThuId : personChiId;
 
       const payload = {
         nhom_nguoi_nop_nhan: currentGroup,
         ten_nguoi_nop_nhan: currentPerson.trim(),
-        ma_phieu: currentCode.trim() || undefined,
         loai_thu_chi_id: parseInt(currentTypeId),
         so_tien: numAmount,
         phuong_thuc_thanh_toan: paymentMethod,
@@ -288,25 +272,25 @@ export default function TaoPhieuThuChi({ initialTab = 'thu' }) {
 
       const requestKey = crypto.randomUUID();
 
-      if (activeTab === 'thu') {
-        await receiptService.createReceipt(payload, requestKey);
-      } else {
-        await disbursementService.createDisbursement(payload, requestKey);
-      }
+      const response =
+        activeTab === 'thu'
+          ? await receiptService.createReceipt(payload, requestKey)
+          : await disbursementService.createDisbursement(payload, requestKey);
 
-      // Đồng bộ thêm vào state cục bộ nếu có
-      if (addCashbookItem) {
+      const created = response?.data?.data;
+
+      if (addCashbookItem && created?.id && created?.ma_phieu) {
         addCashbookItem({
-          id: Date.now(),
+          id: created.id,
           type: activeTab === 'thu' ? 'PHIẾU THU' : 'PHIẾU CHI',
-          date: recordDate,
-          code: currentCode,
-          person: currentPerson,
-          method: paymentMethod,
-          amountIn: activeTab === 'thu' ? numAmount : 0,
-          amountOut: activeTab === 'chi' ? numAmount : 0,
-          desc: description || '-',
-          staff: 'Administrator',
+          date: created.ngay_ghi_nhan,
+          code: created.ma_phieu,
+          person: created.ten_nguoi_nop_nhan || currentPerson,
+          method: created.phuong_thuc_thanh_toan || paymentMethod,
+          amountIn: activeTab === 'thu' ? Number(created.so_tien ?? numAmount) : 0,
+          amountOut: activeTab === 'chi' ? Number(created.so_tien ?? numAmount) : 0,
+          desc: created.mo_ta || description || '-',
+          staff: created.ten_nguoi_tao || '—',
         });
       }
 
@@ -319,7 +303,7 @@ export default function TaoPhieuThuChi({ initialTab = 'thu' }) {
     }
   };
 
-  const currentCode = activeTab === 'thu' ? codeThu : codeChi;
+  const currentCode = 'CẤP KHI LƯU';
   const currentSelectedTypeObj = (activeTab === 'thu' ? typesThu : typesChi).find(
     (t) => String(t.id) === String(activeTab === 'thu' ? selectedTypeThuId : selectedTypeChiId)
   );
@@ -468,10 +452,12 @@ export default function TaoPhieuThuChi({ initialTab = 'thu' }) {
                 <div className="tpc-form-group">
                   <label>MÃ PHIẾU (TỰ ĐỘNG)</label>
                   <div className="tpc-code-input-group">
-                    <input type="text" readOnly value={codeThu} className="input-code-thu" />
-                    <button type="button" className="btn-auto-code" onClick={handleRegenerateCode}>
-                      TỰ ĐỘNG
-                    </button>
+                    <input
+                      type="text"
+                      readOnly
+                      value="Hệ thống cấp mã PT khi lưu"
+                      className="input-code-thu"
+                    />
                   </div>
                 </div>
 
@@ -608,10 +594,12 @@ export default function TaoPhieuThuChi({ initialTab = 'thu' }) {
                 <div className="tpc-form-group">
                   <label>MÃ PHIẾU (TỰ ĐỘNG)</label>
                   <div className="tpc-code-input-group">
-                    <input type="text" readOnly value={codeChi} className="input-code-chi" />
-                    <button type="button" className="btn-auto-code" onClick={handleRegenerateCode}>
-                      TỰ ĐỘNG
-                    </button>
+                    <input
+                      type="text"
+                      readOnly
+                      value="Hệ thống cấp mã PC khi lưu"
+                      className="input-code-chi"
+                    />
                   </div>
                 </div>
 

@@ -414,7 +414,7 @@ public class AdminPurchaseOrderService {
     SoQuyThuChi voucher =
         cashbookService.createAutomatic(
             CashbookService.AutomaticVoucher.builder()
-                .maPhieu(voucherCode)
+                .khoaNghiepVu(voucherCode)
                 .loaiPhieu(LoaiPhieuThuChi.CHI)
                 .maLoaiThuChi("CHI_NHAP_HANG")
                 .nhomNguoiNopNhan(NhomNguoiNopNhanEnum.NHA_CUNG_CAP)
@@ -907,7 +907,7 @@ public class AdminPurchaseOrderService {
       SoQuyThuChi voucher =
           cashbookService.createAutomatic(
               CashbookService.AutomaticVoucher.builder()
-                  .maPhieu(refundVoucherCode)
+                  .khoaNghiepVu(refundVoucherCode)
                   .loaiPhieu(LoaiPhieuThuChi.THU)
                   .maLoaiThuChi("THU_HOAN_NCC")
                   .nhomNguoiNopNhan(NhomNguoiNopNhanEnum.NHA_CUNG_CAP)
@@ -1068,7 +1068,7 @@ public class AdminPurchaseOrderService {
     SoQuyThuChi voucher =
         cashbookService.createAutomatic(
             CashbookService.AutomaticVoucher.builder()
-                .maPhieu(voucherCode)
+                .khoaNghiepVu(voucherCode)
                 .loaiPhieu(LoaiPhieuThuChi.THU)
                 .maLoaiThuChi("THU_HOAN_NCC")
                 .nhomNguoiNopNhan(NhomNguoiNopNhanEnum.NHA_CUNG_CAP)

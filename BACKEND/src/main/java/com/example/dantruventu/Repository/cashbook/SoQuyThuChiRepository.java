@@ -29,6 +29,30 @@ public interface SoQuyThuChiRepository
 
   boolean existsByKhoaNghiepVu(String khoaNghiepVu);
 
+  @Query(
+      """
+            SELECT s
+            FROM SoQuyThuChi s
+            WHERE s.khoaNghiepVu = :key
+               OR (
+                    s.khoaNghiepVu IS NULL
+                    AND s.maPhieu = :key
+               )
+            """)
+  Optional<SoQuyThuChi> findByBusinessKey(@Param("key") String key);
+
+  @Query(
+      """
+            SELECT s
+            FROM SoQuyThuChi s
+            WHERE s.khoaNghiepVu LIKE CONCAT(:prefix, '%')
+               OR (
+                    s.khoaNghiepVu IS NULL
+                    AND s.maPhieu LIKE CONCAT(:prefix, '%')
+               )
+            """)
+  List<SoQuyThuChi> findByBusinessKeyStartingWith(@Param("prefix") String prefix);
+
   boolean existsByMaPhieuIgnoreCase(String maPhieu);
 
   @Query("SELECT COUNT(d) > 0 FROM DonNhapHang d WHERE LOWER(d.maDonNhap) = LOWER(:code)")

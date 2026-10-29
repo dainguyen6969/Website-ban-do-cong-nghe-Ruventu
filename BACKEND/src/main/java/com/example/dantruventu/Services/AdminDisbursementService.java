@@ -225,13 +225,17 @@ public class AdminDisbursementService {
     validateTextLength(request.getMoTa());
 
     String receiptCode = normalizeOptional(request.getMaPhieu());
-    if (receiptCode == null) {
-      receiptCode = generateDisbursementCode();
-    } else {
+
+    if (receiptCode != null) {
+
       validateLength(receiptCode, MAX_CODE_LENGTH, "Mã phiếu tối đa 50 ký tự.");
-    }
-    if (receiptCode.toUpperCase(Locale.ROOT).startsWith("CHI-")) {
-      throw invalidRequest("Mã phiếu thuộc mã dành cho nghiệp vụ tự động.");
+
+      if (CashbookService.isReservedManualCode(receiptCode)) {
+        throw invalidRequest(
+            "Mã nhập riêng không được bắt đầu bằng "
+                + "THU-, CHI-, PT- hoặc PC-. "
+                + "Để trống để hệ thống cấp mã phiếu chi.");
+      }
     }
 
     LoaiThuChi disbursementType =
@@ -247,8 +251,10 @@ public class AdminDisbursementService {
       throw new AppException(ErrorCode.DISBURSEMENT_TYPE_INACTIVE);
     }
 
-    if (disbursementRepository.existsByMaPhieuIgnoreCase(receiptCode)
-        || disbursementRepository.existsByKhoaNghiepVu(receiptCode)) {
+    if (receiptCode != null
+        && (disbursementRepository.existsByMaPhieuIgnoreCase(receiptCode)
+            || disbursementRepository.existsByKhoaNghiepVu(receiptCode))) {
+
       throw new AppException(ErrorCode.DISBURSEMENT_CODE_EXISTS);
     }
 
@@ -256,6 +262,10 @@ public class AdminDisbursementService {
         && disbursementRepository.existsByLoaiPhieuAndNguonTaoAndMaChungTuThamChieuAndSoTien(
             LoaiPhieuThuChi.CHI, NguonTaoPhieuThuChi.TU_DONG, referenceCode, amount)) {
       throw new AppException(ErrorCode.DISBURSEMENT_ALREADY_AUTO_RECORDED);
+    }
+
+    if (receiptCode == null) {
+      receiptCode = cashbookService.nextVoucherCode(LoaiPhieuThuChi.CHI);
     }
 
     SoQuyThuChi disbursement =
@@ -414,16 +424,6 @@ public class AdminDisbursementService {
         .createdAt(toOffsetDateTime(disbursement.getCreatedAt()))
         .updatedAt(toOffsetDateTime(disbursement.getUpdatedAt()))
         .build();
-  }
-
-  private String generateDisbursementCode() {
-    for (int attempt = 0; attempt < 5; attempt++) {
-      String code = "PC" + UUID.randomUUID().toString().replace("-", "").toUpperCase(Locale.ROOT);
-      if (!disbursementRepository.existsByMaPhieuIgnoreCase(code)) {
-        return code;
-      }
-    }
-    throw new AppException(ErrorCode.DISBURSEMENT_CODE_EXISTS);
   }
 
   private NhomNguoiNopNhanEnum parseRequiredPayerGroup(String value) {

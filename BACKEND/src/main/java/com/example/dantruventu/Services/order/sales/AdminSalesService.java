@@ -677,7 +677,7 @@ public class AdminSalesService {
 
     return cashbookService.createAutomatic(
         CashbookService.AutomaticVoucher.builder()
-            .maPhieu("THU-POS-" + order.getId())
+            .khoaNghiepVu("THU-POS-" + order.getId())
             .loaiPhieu(LoaiPhieuThuChi.THU)
             .maLoaiThuChi("THU_BAN_HANG")
             .nhomNguoiNopNhan(NhomNguoiNopNhanEnum.KHACH_HANG)
@@ -777,7 +777,7 @@ public class AdminSalesService {
             .anyMatch(
                 delivery ->
                     cashRepository
-                        .findByMaPhieu("THU-COD-" + delivery.id())
+                        .findByBusinessKey("THU-COD-" + delivery.id())
                         .filter(
                             voucher ->
                                 voucher.getLoaiPhieu() == LoaiPhieuThuChi.THU

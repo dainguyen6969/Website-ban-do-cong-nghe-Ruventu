@@ -253,10 +253,6 @@ export default function ChiTietPhieuChi() {
                 <span className="lbl">NGÀY GHI NHẬN</span>
                 <span className="val">{formatDateDisplay(currentItem.ngay_ghi_nhan)}</span>
               </div>
-              <div className="ctp-info-item">
-                <span className="lbl">CHỨNG TỪ THAM CHIẾU</span>
-                <span className="val">{currentItem.ma_chung_tu_tham_chieu || '—'}</span>
-              </div>
             </div>
           </div>
 

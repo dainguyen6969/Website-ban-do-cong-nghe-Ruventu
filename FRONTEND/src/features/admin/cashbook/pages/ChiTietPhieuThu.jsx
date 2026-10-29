@@ -228,10 +228,6 @@ export default function ChiTietPhieuThu() {
                     : '—'}
                 </span>
               </div>
-              <div className="ctp-info-item">
-                <span className="lbl">CHỨNG TỪ</span>
-                <span className="val">{currentItem.ma_chung_tu_tham_chieu || '—'}</span>
-              </div>
             </div>
           </div>
 

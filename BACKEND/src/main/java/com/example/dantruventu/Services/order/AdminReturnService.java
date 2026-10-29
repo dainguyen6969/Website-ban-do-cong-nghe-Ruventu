@@ -176,7 +176,7 @@ public class AdminReturnService {
     SoQuyThuChi expense =
         cashbookService.createAutomatic(
             CashbookService.AutomaticVoucher.builder()
-                .maPhieu(voucherCode)
+                .khoaNghiepVu(voucherCode)
                 .loaiPhieu(LoaiPhieuThuChi.CHI)
                 .maLoaiThuChi(REFUND_CASH_TYPE_CODE)
                 .nhomNguoiNopNhan(NhomNguoiNopNhanEnum.KHACH_HANG)
@@ -1560,7 +1560,7 @@ public class AdminReturnService {
 
     for (PhieuGiaoHang delivery : codDeliveries) {
       SoQuyThuChi receipt =
-          cashRepository.findByMaPhieu("THU-COD-" + delivery.getId()).orElse(null);
+          cashRepository.findByBusinessKey("THU-COD-" + delivery.getId()).orElse(null);
       if (!isValidCodReceipt(order, delivery, receipt)) {
         throw new AppException(
             ErrorCode.CONFLICT,

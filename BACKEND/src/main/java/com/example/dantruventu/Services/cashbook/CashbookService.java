@@ -12,17 +12,17 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
-import java.time.Instant;
-import java.time.LocalDateTime;
-import java.time.OffsetDateTime;
-import java.time.ZoneId;
+import java.time.*;
+import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.HexFormat;
+import java.util.Locale;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
 import lombok.Builder;
 import lombok.RequiredArgsConstructor;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -60,6 +60,7 @@ public class CashbookService {
   private final SalesIdempotencyRepository idempotencyRepository;
   private final ObjectMapper objectMapper;
   private final OrderEvents orderEvents;
+  private final JdbcTemplate jdbc;
 
   /*
    * Command nội bộ.
@@ -69,7 +70,7 @@ public class CashbookService {
    */
   @Builder
   public record AutomaticVoucher(
-      String maPhieu,
+      String khoaNghiepVu,
       LoaiPhieuThuChi loaiPhieu,
       String maLoaiThuChi,
       NhomNguoiNopNhanEnum nhomNguoiNopNhan,
@@ -100,7 +101,7 @@ public class CashbookService {
       throw invalid("Thiếu dữ liệu lập phiếu");
     }
 
-    String code = requiredText(command.maPhieu(), "Mã phiếu", 50);
+    String businessKey = requiredText(command.khoaNghiepVu(), "Khóa nghiệp vụ", 100);
 
     String typeCode = requiredText(command.maLoaiThuChi(), "Mã loại thu/chi", 50);
 
@@ -122,7 +123,6 @@ public class CashbookService {
     LocalDateTime occurredAt = normalizeOccurredAt(command.ngayGhiNhan());
 
     validateSourceLinks(command, occurredAt);
-
     validateDocumentLinks(command, sourceCode);
 
     String counterpartyName = resolveCounterpartyName(command);
@@ -133,10 +133,10 @@ public class CashbookService {
       requirePersistedId(command.nguoiTao().getId(), "Người tạo");
     }
 
-    if (cashRepository.findByMaPhieu(code).isPresent()
-        || cashRepository.existsByKhoaNghiepVu(code)) {
+    if (cashRepository.findByBusinessKey(businessKey).isPresent()) {
       throw conflict("Khoản thu/chi này đã được ghi nhận");
     }
+
     LoaiThuChi cashType =
         cashTypeRepository
             .findByMaLoaiForUpdate(typeCode)
@@ -150,10 +150,12 @@ public class CashbookService {
       throw invalid("Loại thu/chi không khớp THU hoặc CHI");
     }
 
+    String voucherCode = nextVoucherCode(command.loaiPhieu());
+
     SoQuyThuChi voucher =
         SoQuyThuChi.builder()
-            .maPhieu(code)
-            .khoaNghiepVu(code)
+            .maPhieu(voucherCode)
+            .khoaNghiepVu(businessKey)
             .donHang(command.donHang())
             .donNhapHang(command.donNhapHang())
             .phieuGiaoHang(command.phieuGiaoHang())
@@ -178,16 +180,133 @@ public class CashbookService {
             .trangThai(TrangThaiPhieuThuChi.DA_GHI_NHAN)
             .build();
 
-    /*
-     * UNIQUE(ma_phieu) tại database là ràng buộc cuối cùng
-     * khi có các yêu cầu đồng thời.
-     *
-     * Không bắt lỗi rồi tiếp tục trong transaction đã thất bại.
-     * GlobalExceptionHandler hiện có xử lý lỗi ràng buộc thành 409.
-     */
     voucher = cashRepository.saveAndFlush(voucher);
+
     orderEvents.receipt(voucher);
+
     return voucher;
+  }
+
+  @Transactional(propagation = Propagation.MANDATORY)
+  public String nextVoucherCode(LoaiPhieuThuChi type) {
+
+    requireWritableTransaction();
+
+    if (type != LoaiPhieuThuChi.THU && type != LoaiPhieuThuChi.CHI) {
+      throw invalid("Loại phiếu không hợp lệ để cấp mã");
+    }
+
+    String kind = type == LoaiPhieuThuChi.THU ? "PT" : "PC";
+
+    LocalDate day = LocalDate.now(CASHBOOK_ZONE);
+
+    java.sql.Date sqlDay = java.sql.Date.valueOf(day);
+
+    String prefix = kind + "-" + day.format(DateTimeFormatter.BASIC_ISO_DATE) + "-";
+
+    /*
+     * Bộ đếm và phiếu cùng nằm trong giao dịch nghiệp vụ.
+     * Khóa dòng bộ đếm để các yêu cầu đồng thời nhận số khác nhau.
+     */
+    jdbc.update(
+        """
+                INSERT INTO so_thu_tu_chung_tu (
+                    ma_loai, ngay_cap, so_cuoi
+                )
+                VALUES (?, ?, 0)
+                ON DUPLICATE KEY UPDATE so_cuoi = so_cuoi
+                """,
+        kind,
+        sqlDay);
+
+    Long current =
+        jdbc.queryForObject(
+            """
+                        SELECT so_cuoi
+                        FROM so_thu_tu_chung_tu
+                        WHERE ma_loai = ?
+                          AND ngay_cap = ?
+                        FOR UPDATE
+                        """,
+            Long.class,
+            kind,
+            sqlDay);
+
+    if (current == null || current < 0) {
+      throw conflict("Bộ đếm mã chứng từ không hợp lệ");
+    }
+
+    /*
+     * Lần cấp đầu tiên trong ngày kiểm tra cả mã đã tồn tại.
+     * Dữ liệu phiếu cũ không bị sửa.
+     */
+    if (current == 0) {
+      Long historicalMax =
+          jdbc.queryForObject(
+              """
+                            SELECT COALESCE(
+                                MAX(CAST(RIGHT(ma_phieu, 6) AS UNSIGNED)),
+                                0
+                            )
+                            FROM so_quy_thu_chi
+                            WHERE UPPER(ma_phieu) LIKE ?
+                              AND UPPER(ma_phieu) REGEXP ?
+                            """,
+              Long.class,
+              prefix + "%",
+              "^" + prefix + "[0-9]{6}$");
+
+      current = historicalMax == null ? 0L : historicalMax;
+    }
+
+    if (current >= 999999L) {
+      throw conflict("Đã hết số chứng từ của loại phiếu trong ngày");
+    }
+
+    long next = current + 1L;
+
+    int updated =
+        jdbc.update(
+            """
+                        UPDATE so_thu_tu_chung_tu
+                        SET so_cuoi = ?
+                        WHERE ma_loai = ?
+                          AND ngay_cap = ?
+                        """,
+            next,
+            kind,
+            sqlDay);
+
+    if (updated != 1) {
+      throw conflict("Không cập nhật được bộ đếm mã chứng từ");
+    }
+
+    return prefix + String.format(Locale.ROOT, "%06d", next);
+  }
+
+  public static String businessKey(SoQuyThuChi voucher) {
+
+    if (voucher == null) {
+      return null;
+    }
+
+    String key = voucher.getKhoaNghiepVu();
+
+    return key == null || key.isBlank() ? voucher.getMaPhieu() : key;
+  }
+
+  public static boolean isReservedManualCode(String value) {
+
+    if (value == null) {
+      return false;
+    }
+
+    String code = value.strip().toUpperCase(Locale.ROOT);
+
+    return code.startsWith("THU-")
+        || code.startsWith("CHI-")
+        || code.startsWith("PT-")
+        || code.startsWith("PC-");
   }
 
   /*

@@ -780,7 +780,7 @@ public class AdminOrderService {
           .findByMaPhieu(base)
           .ifPresent(voucher -> documents.put(voucher.getId(), voucher));
 
-      for (SoQuyThuChi voucher : cashRepository.findByMaPhieuStartingWith(base + "-")) {
+      for (SoQuyThuChi voucher : cashRepository.findByBusinessKeyStartingWith(base + "-")) {
         documents.put(voucher.getId(), voucher);
       }
     }
@@ -2520,7 +2520,7 @@ public class AdminOrderService {
 
     return cashbookService.createAutomatic(
         CashbookService.AutomaticVoucher.builder()
-            .maPhieu(code)
+            .khoaNghiepVu(code)
             .loaiPhieu(type)
             .maLoaiThuChi(typeCode)
             .nhomNguoiNopNhan(group)
@@ -2683,9 +2683,11 @@ public class AdminOrderService {
 
     String cashType = voucher.getLoaiThuChi().getMaLoai();
 
+    String key = CashbookService.businessKey(voucher);
+
     if (type == LoaiPhieuThuChi.CHI) {
       return "CHI_HOAN_DON_HANG".equals(cashType)
-          && matchesOrderMoneyCode(voucher.getMaPhieu(), "CHI-HUY-DH-", order.getId())
+          && matchesOrderMoneyCode(key, "CHI-HUY-DH-", order.getId())
           && matchesCustomerCounterparty(order, voucher);
     }
 
@@ -2694,12 +2696,12 @@ public class AdminOrderService {
     }
 
     if (order.getLoaiDonHang() == LoaiDonHang.TAI_QUAY
-        && Objects.equals(voucher.getMaPhieu(), "THU-POS-" + order.getId())) {
+        && Objects.equals(key, "THU-POS-" + order.getId())) {
+
       return matchesCustomerCounterparty(order, voucher);
     }
 
-    if (matchesOrderMoneyCode(voucher.getMaPhieu(), "THU-DH-", order.getId())) {
-
+    if (matchesOrderMoneyCode(key, "THU-DH-", order.getId())) {
       return matchesCustomerCounterparty(order, voucher);
     }
 
@@ -2713,7 +2715,7 @@ public class AdminOrderService {
     return deliveryRepository.findByDonHang_IdOrderByIdAsc(order.getId()).stream()
         .anyMatch(
             delivery ->
-                Objects.equals(voucher.getMaPhieu(), "THU-COD-" + delivery.getId())
+                Objects.equals(key, "THU-COD-" + delivery.getId())
                     && delivery.getDoiTacVanChuyen() != null
                     && Objects.equals(
                         voucher.getDoiTacVanChuyen().getId(),
@@ -2881,7 +2883,7 @@ public class AdminOrderService {
               || document.getTrangThaiTraHang() == TrangThaiTraHang.DA_HOAN_TIEN;
 
       boolean hasRefundVoucher =
-          cashRepository.findByMaPhieu("CHI-TH-" + document.getId()).isPresent();
+          cashRepository.findByBusinessKey("CHI-TH-" + document.getId()).isPresent();
 
       boolean canRefund = received && amount != null && amount.signum() > 0 && !hasRefundVoucher;
 

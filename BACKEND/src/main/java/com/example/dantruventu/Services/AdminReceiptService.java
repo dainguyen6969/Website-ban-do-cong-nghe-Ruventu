@@ -204,12 +204,13 @@ public class AdminReceiptService {
 
     String receiptCode = optionalText(request.getMaPhieu());
 
-    if (receiptCode == null) {
-      receiptCode = "PT" + UUID.randomUUID().toString().replace("-", "").toUpperCase(Locale.ROOT);
-    }
+    if (receiptCode != null
+        && (receiptCode.length() > 50 || CashbookService.isReservedManualCode(receiptCode))) {
 
-    if (receiptCode.length() > 50 || receiptCode.toUpperCase(Locale.ROOT).startsWith("THU-")) {
-      throw invalidRequest("Mã phiếu vượt 50 ký tự hoặc thuộc mã dành cho tự động.");
+      throw invalidRequest(
+          "Mã nhập riêng tối đa 50 ký tự và không được bắt đầu bằng "
+              + "THU-, CHI-, PT- hoặc PC-. "
+              + "Để trống để hệ thống cấp mã phiếu thu.");
     }
 
     NhomNguoiNopNhanEnum payerGroup = parsePayerGroup(request.getNhomNguoiNopNhan());
@@ -267,8 +268,10 @@ public class AdminReceiptService {
       throw invalidRequest("Loại thu này phải được ghi nhận qua nghiệp vụ nguồn.");
     }
 
-    if (receiptRepository.existsByMaPhieuIgnoreCase(receiptCode)
-        || receiptRepository.existsByKhoaNghiepVu(receiptCode)) {
+    if (receiptCode != null
+        && (receiptRepository.existsByMaPhieuIgnoreCase(receiptCode)
+            || receiptRepository.existsByKhoaNghiepVu(receiptCode))) {
+
       throw new AppException(ErrorCode.RECEIPT_CODE_EXISTS);
     }
 
@@ -284,6 +287,10 @@ public class AdminReceiptService {
             || receiptRepository.isCodReference(referenceCode))) {
       throw invalidRequest(
           "COD và tiền nhà cung cấp hoàn đơn nhập phải ghi nhận qua nghiệp vụ nguồn.");
+    }
+
+    if (receiptCode == null) {
+      receiptCode = cashbookService.nextVoucherCode(LoaiPhieuThuChi.THU);
     }
 
     SoQuyThuChi receipt =
