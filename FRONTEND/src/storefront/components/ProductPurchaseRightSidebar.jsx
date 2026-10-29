@@ -57,6 +57,8 @@ const ProductPurchaseRightSidebar = ({ product, selectedVariantId }) => {
 
   const stock = stockKnown ? Math.max(0, Math.floor(Number(rawStock))) : 0;
 
+  const isOutOfStock = Boolean(activeVariant) && stockKnown && stock === 0;
+
   const canSell =
     stockKnown &&
     stock > 0 &&
@@ -218,38 +220,44 @@ const ProductPurchaseRightSidebar = ({ product, selectedVariantId }) => {
       </div>
 
       <div className="action-buttons">
-        <button
-          className="sidebar-btn-buy-now"
-          disabled={availableStock <= 0}
-          onClick={handleBuyNow}
-        >
-          <ChevronRight size={20} className="btn-icon" />
-          {!canSell ? stockStatusText : availableStock <= 0 ? 'ĐÃ ĐẠT GIỚI HẠN' : 'MUA NGAY'}
-        </button>
-        <button
-          className="sidebar-btn-add-cart"
-          disabled={availableStock <= 0}
-          onClick={handleAddToCart}
-        >
-          <ShoppingCart size={20} className="btn-icon" />
-          {!canSell
-            ? stockStatusText
-            : availableStock <= 0
-              ? 'ĐÃ ĐẠT GIỚI HẠN'
-              : 'THÊM VÀO GIỎ HÀNG'}
-        </button>
-      </div>
+        {isOutOfStock ? (
+          <StockInterestActions
+            key={activeVariant.id}
+            variantId={activeVariant.id}
+            productName={product.name}
+            variantName={activeVariant.tenPhienBan}
+            outOfStock={isOutOfStock}
+          />
+        ) : (
+          <>
+            <button
+              type="button"
+              className="sidebar-btn-buy-now"
+              disabled={availableStock <= 0}
+              onClick={handleBuyNow}
+            >
+              <ChevronRight size={20} className="btn-icon" />
 
-      {activeVariant && stockKnown && (stock <= 0 || canSell) && (
-        <StockInterestActions
-          variantId={activeVariant.id}
-          productName={product.name}
-          variantName={activeVariant.tenPhienBan}
-          unitPrice={currentPrice}
-          image={product.images?.[0]}
-          outOfStock={stock <= 0}
-        />
-      )}
+              {!canSell ? stockStatusText : availableStock <= 0 ? 'ĐÃ ĐẠT GIỚI HẠN' : 'MUA NGAY'}
+            </button>
+
+            <button
+              type="button"
+              className="sidebar-btn-add-cart"
+              disabled={availableStock <= 0}
+              onClick={handleAddToCart}
+            >
+              <ShoppingCart size={20} className="btn-icon" />
+
+              {!canSell
+                ? stockStatusText
+                : availableStock <= 0
+                  ? 'ĐÃ ĐẠT GIỚI HẠN'
+                  : 'THÊM VÀO GIỎ HÀNG'}
+            </button>
+          </>
+        )}
+      </div>
 
       <div className="policy-grid">
         {product.policies.map((policy, index) => (

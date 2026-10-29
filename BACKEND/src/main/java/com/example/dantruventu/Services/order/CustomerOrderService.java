@@ -169,15 +169,6 @@ public class CustomerOrderService {
     Map<String, Object> intake =
         new LinkedHashMap<>(intakePolicy.preview(user, plan.quantities(), false));
 
-    if (Boolean.TRUE.equals(request.getChoPhepChoHang())) {
-      intake.put(
-          "thong_bao",
-          "Đây là yêu cầu đặt chờ hàng. Cửa hàng sẽ liên hệ xác minh khả năng cung ứng; "
-              + "đơn chưa thanh toán chưa giữ hàng.");
-      intake.put("dieu_kien_phien_ban", CustomerCheckoutRequest.WAITING_TERMS_VERSION);
-      intake.put("dieu_kien_noi_dung", CustomerCheckoutRequest.WAITING_TERMS_TEXT);
-    }
-
     response.setTiepNhan(intake);
 
     return saleQuotes.issue(
@@ -267,9 +258,8 @@ public class CustomerOrderService {
 
     requireCheckoutPromotion(user, guestCartId, request);
 
-    boolean direct = directWaiting(request);
-
-    List<Long> selectedIds = direct ? List.of() : validateSelectedIds(request.getCartItemIds());
+      List<Long> selectedIds =
+              validateSelectedIds(request.getCartItemIds());
 
     List<CartLine> cartLines = checkoutLines(user, guestCartId, request, true);
     CustomerOrderResponse.Recipient recipient = resolveRecipient(user, request);
@@ -328,36 +318,20 @@ public class CustomerOrderService {
 
     saleSnapshots.recordPromotion(order, plan, salesRequest, user);
 
-    if (Boolean.TRUE.equals(request.getChoPhepChoHang())) {
-      intakePolicy.initialize(order);
-
-      order.setTrangThaiDonHang(TrangThaiDonHang.CHO_HANG);
-      order.setDaGiuHang(false);
-      order.setHanGiuHang(null);
-      order.setLyDoChoXacMinh("CHO_HANG");
-
-      String remainingMethod =
-          "NHAN_TAI_CUA_HANG".equals(request.getHinhThucNhanHang())
-              ? "TAI_CUA_HANG"
-              : "TIEN_MAT".equals(request.getPhuongThucThanhToan()) ? "COD" : "CHUYEN_KHOAN";
-
-      backorders.recordWebsiteOrder(order, remainingMethod);
-    } else {
       orderInventory.reserveForNewOrder(
-          order, false, intakePolicy.temporaryReason(user, plan.quantities()));
-    }
+              order,
+              false,
+              intakePolicy.temporaryReason(user, plan.quantities()));
 
     saleSnapshots.configureUnpaidPromotion(order);
 
     orderRepository.flush();
 
-    if (!direct) {
       if (user != null) {
-        removePurchasedCartItems(user, guestCartId, selectedIds);
+          removePurchasedCartItems(user, guestCartId, selectedIds);
       }
 
       registerCartCleanupAfterCommit(user, guestCartId, cartLines);
-    }
     orderEvents.created(order);
 
     return CustomerOrderResponse.Created.builder()
@@ -788,50 +762,38 @@ public class CustomerOrderService {
         .build();
   }
 
-  private boolean directWaiting(CustomerCheckoutRequest.Preview request) {
-    return request.getSanPhamChoHang() != null && !request.getSanPhamChoHang().isEmpty();
-  }
+    private void requireCheckoutPromotion(
+            NguoiDung user,
+            String guestCartId,
+            CustomerCheckoutRequest.Preview request) {
 
-  private void requireCheckoutPromotion(
-      NguoiDung user, String guestCartId, CustomerCheckoutRequest.Preview request) {
+        boolean waitingRequested =
+                Boolean.TRUE.equals(request.getChoPhepChoHang())
+                        || (request.getSanPhamChoHang() != null
+                        && !request.getSanPhamChoHang().isEmpty());
 
-    if (Boolean.TRUE.equals(request.getChoPhepChoHang())) {
-      backorders.requireWebsiteEnabled();
+        if (waitingRequested) {
+            throw invalid(
+                    "Website chỉ tiếp nhận đăng ký nhận thông báo khi có hàng. "
+                            + "Vui lòng liên hệ cửa hàng để được hỗ trợ tạo đơn chờ hàng.");
+        }
+
+        cartPromotionService.requireSelectedPromotion(
+                user, guestCartId, request.getMaChuongTrinh());
     }
 
-    if (directWaiting(request)) {
-      if (!Boolean.TRUE.equals(request.getChoPhepChoHang())) {
-        throw invalid("Danh sách đặt chờ phải được xác nhận là đơn chờ hàng.");
-      }
-      if (text(request.getMaChuongTrinh()) != null) {
-        throw invalid("Yêu cầu đặt chờ trực tiếp không sử dụng mã đang chọn của giỏ hàng.");
-      }
-      return;
+    private List<CartLine> checkoutLines(
+            NguoiDung user,
+            String guestCartId,
+            CustomerCheckoutRequest.Preview request,
+            boolean lock) {
+
+        return loadSelectedCartLines(
+                user,
+                guestCartId,
+                validateSelectedIds(request.getCartItemIds()),
+                lock);
     }
-
-    cartPromotionService.requireSelectedPromotion(user, guestCartId, request.getMaChuongTrinh());
-  }
-
-  private List<CartLine> checkoutLines(
-      NguoiDung user, String guestCartId, CustomerCheckoutRequest.Preview request, boolean lock) {
-
-    if (!directWaiting(request)) {
-      return loadSelectedCartLines(
-          user, guestCartId, validateSelectedIds(request.getCartItemIds()), lock);
-    }
-
-    var seen = new LinkedHashSet<Long>();
-    List<CartLine> result = new ArrayList<>();
-
-    for (var input : request.getSanPhamChoHang()) {
-      if (!seen.add(input.variantId())) {
-        throw invalid("Phiên bản đặt chờ bị gửi trùng.");
-      }
-      result.add(new CartLine(input.variantId(), input.quantity()));
-    }
-
-    return List.copyOf(result);
-  }
 
   private AdminSalesRequest.Preview buildSalesRequest(
       NguoiDung user, CustomerCheckoutRequest.Preview request, List<CartLine> cartLines) {
@@ -862,7 +824,7 @@ public class CustomerOrderService {
         "GIAO_HANG".equals(request.getHinhThucNhanHang()) ? deliveryFee : BigDecimal.ZERO);
     salesRequest.setGhiChu(text(request.getGhiChu()));
     salesRequest.setLoaiDonHang(LoaiDonHang.ONLINE);
-    salesRequest.setChoPhepChoHang(Boolean.TRUE.equals(request.getChoPhepChoHang()));
+      salesRequest.setChoPhepChoHang(false);
 
     return salesRequest;
   }

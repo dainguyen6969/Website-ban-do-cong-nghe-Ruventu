@@ -316,6 +316,7 @@ export default function AdminApp() {
                       <Route index element={<Navigate to="danh-sach-don-hang" replace />} />
                       <Route path="danh-sach-don-hang" element={<DanhSachDonHang key={search} />} />
                       <Route path="danh-sach-don-hang/:orderId" element={<ChiTietDonHang />} />
+                      <Route path="cho-hang-can-xu-ly" element={<DonChoHangCanXuLy />} />
                       <Route path="dat-hang-online" element={<DatHangOnline />} />
                       <Route path="dat-hang-online/:orderId" element={<DatHangOnline />} />
                       <Route path="quan-ly-giao-hang" element={<QuanLyGiaoHang key={search} />} />
@@ -324,8 +325,6 @@ export default function AdminApp() {
                       <Route path="khach-tra-hang/tao/:orderId" element={<KhachTraHang />} />
                       <Route path="khach-tra-hang/:returnId" element={<KhachTraHang />} />
                     </Route>
-
-                    <Route path="cho-hang-can-xu-ly" element={<DonChoHangCanXuLy />} />
 
                     {/* Catch-all fallback */}
                     <Route

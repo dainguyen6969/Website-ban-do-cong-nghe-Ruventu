@@ -19,13 +19,7 @@ const formatPrice = (price) => {
 const CheckoutPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const waitingItems = useMemo(
-    () => (Array.isArray(location.state?.waitingItems) ? location.state.waitingItems : []),
-    [location.state]
-  );
 
-  const waitingMode = waitingItems.length > 0;
-  const [waitingAccepted, setWaitingAccepted] = useState(false);
   const [deliveryMethod, setDeliveryMethod] = useState('GIAO_HANG');
   const [paymentMethod, setPaymentMethod] = useState('TIEN_MAT');
 
@@ -67,18 +61,7 @@ const CheckoutPage = () => {
 
   const checkoutDraft = useMemo(
     () => ({
-      cart_item_ids: waitingMode ? [] : cartItemIds,
-
-      ...(waitingMode
-        ? {
-            cho_phep_cho_hang: true,
-            san_pham_cho_hang: waitingItems.map((item) => ({
-              phien_ban_id: Number(item.variantId),
-              so_luong: Number(item.quantity),
-            })),
-          }
-        : {}),
-
+      cart_item_ids: cartItemIds,
       hinh_thuc_nhan_hang: deliveryMethod,
       dia_chi_id: null,
 
@@ -109,8 +92,6 @@ const CheckoutPage = () => {
       formData.province,
       formData.note,
       promotionCode,
-      waitingMode,
-      waitingItems,
     ]
   );
 
@@ -118,13 +99,9 @@ const CheckoutPage = () => {
 
   const previewData = preview?.signature === draftSignature ? preview.data : null;
 
-  useEffect(() => {
-    setWaitingAccepted(false);
-  }, [draftSignature, previewData?.ma_xac_nhan_gia]);
-
   const draftReady =
     cartReady &&
-    (waitingMode || cartItemIds.length > 0) &&
+    cartItemIds.length > 0 &&
     Boolean(checkoutDraft.thong_tin_nguoi_nhan.ten_nguoi_nhan) &&
     /^(?:\+84|0)\d{9,10}$/.test(checkoutDraft.thong_tin_nguoi_nhan.sdt_nguoi_nhan) &&
     (deliveryMethod === 'NHAN_TAI_CUA_HANG' || Boolean(formData.address.trim()));
@@ -134,12 +111,12 @@ const CheckoutPage = () => {
   // Tạm tính từ giỏ hàng khi chưa có previewData từ server
   const tempSubtotal = useMemo(() => {
     return cartItemsData
-      .filter((c) => waitingMode || cartItemIds.includes(c.cartItemId))
+      .filter((c) => cartItemIds.includes(c.cartItemId))
       .reduce(
         (sum, item) => sum + (Number(item.donGia ?? item.giaBan) || 0) * (item.soLuong || 1),
         0
       );
-  }, [cartItemsData, cartItemIds, waitingMode]);
+  }, [cartItemsData, cartItemIds]);
 
   useEffect(() => {
     let active = true;
@@ -162,54 +139,6 @@ const CheckoutPage = () => {
     }
 
     const selectedIds = (location.state?.cartItemIds || []).map(Number);
-
-    if (waitingMode) {
-      const valid = waitingItems.every(
-        (item) =>
-          Number.isSafeInteger(Number(item.variantId)) &&
-          Number(item.variantId) > 0 &&
-          Number.isSafeInteger(Number(item.quantity)) &&
-          Number(item.quantity) >= 1 &&
-          Number(item.quantity) <= 99
-      );
-
-      setCartReady(false);
-      setCartItemIds([]);
-      setPromotionCode(null);
-      setCheckoutError('');
-
-      if (!valid) {
-        setCheckoutError('Thông tin đặt chờ không hợp lệ. Vui lòng chọn lại sản phẩm.');
-        return () => {
-          active = false;
-        };
-      }
-
-      setCartItemsData(
-        waitingItems.map((item) => ({
-          cartItemId: Number(item.variantId),
-          phienBanId: Number(item.variantId),
-          tenSanPham: item.name,
-          tenPhienBan: item.variantName,
-          soLuong: Number(item.quantity),
-          donGia: Number(item.unitPrice) || 0,
-          anh: item.image,
-        }))
-      );
-
-      cartService
-        .getCurrentCart()
-        .then(() => {
-          if (active) setCartReady(true);
-        })
-        .catch((error) => {
-          if (active) setCheckoutError(errorMessage(error));
-        });
-
-      return () => {
-        active = false;
-      };
-    }
 
     if (!selectedIds.length) {
       navigate('/cart', { replace: true });
@@ -260,7 +189,7 @@ const CheckoutPage = () => {
     return () => {
       active = false;
     };
-  }, [location.state, navigate, waitingMode, waitingItems]);
+  }, [location.state, navigate]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -462,11 +391,6 @@ const CheckoutPage = () => {
     setErrors(newErrors);
     if (Object.keys(newErrors).length) return;
 
-    if (waitingMode && !checkoutAttempt.current && !waitingAccepted) {
-      setCheckoutError('Vui lòng xác nhận điều kiện đặt chờ hàng.');
-      return;
-    }
-
     placingRef.current = true;
     setPlacing(true);
     setCheckoutError('');
@@ -478,8 +402,6 @@ const CheckoutPage = () => {
         const {
           ma_xac_nhan_gia: _quote,
           tong_thanh_toan_xac_nhan: _total,
-          xac_nhan_cho_hang: _waitingConsent,
-          phien_ban_dieu_kien_cho_hang: _waitingTerms,
           ...previousDraft
         } = checkoutAttempt.current.body;
 
@@ -496,13 +418,6 @@ const CheckoutPage = () => {
         payload = {
           ...checkoutDraft,
           ...priceConfirmation(previewData),
-
-          ...(waitingMode
-            ? {
-                xac_nhan_cho_hang: true,
-                phien_ban_dieu_kien_cho_hang: previewData.tiep_nhan?.dieu_kien_phien_ban,
-              }
-            : {}),
         };
       }
 
@@ -571,7 +486,7 @@ const CheckoutPage = () => {
         <div className="container">
           <div className="checkout-page-title">
             <Link
-              to={waitingMode ? location.state?.waitingReturnTo || '/' : '/cart'}
+              to="/cart"
               style={{
                 color: 'white',
                 textDecoration: 'none',
@@ -583,11 +498,8 @@ const CheckoutPage = () => {
             </Link>
           </div>
           <div className="checkout-breadcrumb">
-            <Link
-              to={waitingMode ? location.state?.waitingReturnTo || '/' : '/cart'}
-              style={{ color: '#888', textDecoration: 'none' }}
-            >
-              {waitingMode ? 'SẢN PHẨM ĐẶT CHỜ' : 'GIỎ HÀNG'}
+            <Link to="/cart" style={{ color: '#888', textDecoration: 'none' }}>
+              GIỎ HÀNG{' '}
             </Link>
             <span>&gt;</span>
             <span className="current">THANH TOÁN</span>
@@ -1005,22 +917,6 @@ const CheckoutPage = () => {
               </p>
             )}
 
-            {waitingMode && (
-              <label className="checkout-waiting-consent">
-                <input
-                  type="checkbox"
-                  checked={waitingAccepted}
-                  disabled={placing || hasPendingAttempt}
-                  onChange={(event) => setWaitingAccepted(event.target.checked)}
-                />
-
-                <span>
-                  {previewData?.tiep_nhan?.dieu_kien_noi_dung ||
-                    'Tôi đồng ý đặt chờ và để cửa hàng liên hệ xác nhận khả năng cung ứng.'}
-                </span>
-              </label>
-            )}
-
             <button
               type="button"
               className="btn-confirm-order"
@@ -1029,8 +925,7 @@ const CheckoutPage = () => {
                 placing ||
                 promotionRemoving ||
                 (!checkoutAttempt.current &&
-                  ((waitingMode && !waitingAccepted) ||
-                    !previewData?.ma_xac_nhan_gia ||
+                  (!previewData?.ma_xac_nhan_gia ||
                     previewData.co_the_thanh_toan === false ||
                     previewLoading ||
                     !draftReady))
@@ -1040,9 +935,7 @@ const CheckoutPage = () => {
                 ? 'ĐANG ĐẶT HÀNG...'
                 : checkoutAttempt.current
                   ? 'THỬ LẠI YÊU CẦU'
-                  : waitingMode
-                    ? 'GỬI YÊU CẦU ĐẶT CHỜ →'
-                    : 'XÁC NHẬN ĐẶT HÀNG →'}
+                  : 'XÁC NHẬN ĐẶT HÀNG →'}
             </button>
           </div>
 
