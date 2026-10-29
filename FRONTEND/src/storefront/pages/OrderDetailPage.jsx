@@ -238,6 +238,20 @@ export default function OrderDetailPage() {
                     {order.tiep_nhan.thong_bao}
                   </p>
                 )}
+
+                {order.tiep_nhan?.ngay_hen_co_hang && (
+                  <p className="customer-order-date">
+                    Mốc cửa hàng hẹn có hàng: {formatDateTimeVN(order.tiep_nhan.ngay_hen_co_hang)}
+                  </p>
+                )}
+
+                {order.tiep_nhan?.dieu_kien_noi_dung && (
+                  <details className="customer-order-date">
+                    <summary>Điều kiện đặt chờ đã đồng ý</summary>
+                    <p>{order.tiep_nhan.dieu_kien_noi_dung}</p>
+                    <small>{formatDateTimeVN(order.tiep_nhan.ngay_dong_y_cho_hang)}</small>
+                  </details>
+                )}
               </>
             )}
           </div>

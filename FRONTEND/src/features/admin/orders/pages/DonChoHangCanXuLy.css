@@ -1,0 +1,249 @@
+.waiting-work {
+  min-width: 0;
+  font: inherit;
+}
+.waiting-controls {
+  display: grid;
+  gap: 12px;
+  padding: 18px 24px;
+  background: #fff;
+  border-bottom: 1px solid #ddd;
+}
+.waiting-tabs,
+.waiting-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+.waiting-tabs button,
+.waiting-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 38px;
+  padding: 9px 13px;
+  border: 1px solid #111;
+  border-radius: 0;
+  background: #111;
+  color: #fff;
+  font: inherit;
+  text-decoration: none;
+  cursor: pointer;
+}
+.waiting-tabs button.is-active {
+  text-decoration: underline;
+  text-underline-offset: 5px;
+}
+.waiting-filters input,
+.waiting-filters select {
+  min-height: 38px;
+  padding: 8px 10px;
+  border: 1px solid #ccc;
+  border-radius: 0;
+  background: #fff;
+  font: inherit;
+}
+.waiting-filters input {
+  flex: 1;
+  min-width: 240px;
+}
+.waiting-controls > small,
+.waiting-table small {
+  color: #666;
+}
+.waiting-table-scroll {
+  margin: 18px 24px 0;
+  overflow: auto;
+  border: 1px solid #111;
+  background: #fff;
+}
+.waiting-table {
+  width: 100%;
+  min-width: 1250px;
+  border-collapse: collapse;
+  font: inherit;
+}
+.waiting-table th,
+.waiting-table td {
+  padding: 14px 12px;
+  text-align: left;
+  vertical-align: top;
+  border-bottom: 1px solid #ddd;
+}
+.waiting-table th {
+  background: #f5f5f5;
+  font-weight: 600;
+}
+.waiting-table td {
+  min-width: 150px;
+}
+.waiting-table td:nth-child(4) {
+  min-width: 290px;
+}
+.waiting-line {
+  display: block;
+  margin-top: 6px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+.waiting-priority {
+  display: inline-block;
+  padding: 4px 7px;
+  border: 1px solid #ccc;
+  white-space: nowrap;
+}
+.waiting-priority--1 {
+  color: #b42318;
+  background: #fff0ee;
+  border-color: #eab0a8;
+}
+.waiting-priority--2 {
+  color: #805000;
+  background: #fff8e7;
+  border-color: #e6ce99;
+}
+.waiting-priority--3 {
+  color: #175cd3;
+  background: #eef4ff;
+  border-color: #b2ccff;
+}
+.waiting-priority--4 {
+  color: #555;
+  background: #f4f4f4;
+}
+.waiting-signals {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 8px;
+}
+.waiting-signals small {
+  padding: 3px 5px;
+  border: 1px solid #ddd;
+}
+.waiting-products {
+  max-height: 190px;
+  overflow: auto;
+}
+.waiting-products > div {
+  padding: 8px 0;
+  border-bottom: 1px solid #eee;
+}
+.waiting-open-order {
+  display: block;
+  margin-top: 10px;
+  color: #111;
+  text-decoration: underline;
+}
+.waiting-error {
+  margin: 12px 24px;
+  padding: 12px;
+  color: #b42318;
+  background: #fff2f0;
+  border-left: 3px solid #b42318;
+}
+.waiting-error button {
+  margin-left: 12px;
+  text-decoration: underline;
+  cursor: pointer;
+}
+.order-operation-modal.waiting-modal {
+  width: min(760px, calc(100vw - 24px));
+  max-height: 90dvh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.order-operation-modal.waiting-modal > header {
+  height: auto;
+  min-height: 0;
+  padding: 18px 20px;
+  align-items: flex-start;
+  flex-shrink: 0;
+}
+.order-operation-modal.waiting-modal > header p {
+  margin-top: 6px;
+  overflow-wrap: anywhere;
+}
+.order-operation-modal.waiting-modal > .order-operation-fields {
+  min-height: 0;
+  overflow: auto;
+  flex: 1;
+}
+.order-operation-modal.waiting-modal > footer {
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.order-operation-modal.waiting-modal > footer button {
+  min-height: 38px;
+  padding: 9px 14px !important;
+  font: inherit;
+}
+.waiting-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 15px;
+  border: 0;
+  padding: 0;
+  margin: 0;
+}
+.waiting-fields > label {
+  display: grid;
+  gap: 7px;
+  min-width: 0;
+}
+.waiting-fields input,
+.waiting-fields select,
+.waiting-fields textarea {
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 38px;
+  padding: 9px;
+  border: 1px solid #ccc;
+  border-radius: 0;
+  font: inherit;
+}
+.waiting-fields textarea {
+  min-height: 95px;
+  resize: vertical;
+}
+.waiting-wide {
+  grid-column: 1 / -1;
+}
+.waiting-fields .waiting-check {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+}
+.waiting-fields .waiting-check input {
+  width: 17px;
+  min-height: 17px;
+  margin-top: 3px;
+  accent-color: #111;
+}
+.waiting-history {
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid #ddd;
+}
+.waiting-history summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+.waiting-history article {
+  padding: 12px 0;
+  border-bottom: 1px solid #eee;
+}
+@media (max-width: 650px) {
+  .waiting-controls {
+    padding: 14px;
+  }
+  .waiting-table-scroll {
+    margin: 14px;
+  }
+  .waiting-fields {
+    grid-template-columns: 1fr;
+  }
+}

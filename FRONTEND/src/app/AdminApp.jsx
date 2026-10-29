@@ -6,6 +6,7 @@ import Header from '../shared/components/layout/Header';
 import OrderLayout from '../features/admin/orders/components/OrderLayout';
 import DanhSachDonHang from '../features/admin/orders/pages/DanhSachDonHang';
 import DatHangOnline from '../features/admin/orders/pages/DatHangOnline';
+import DonChoHangCanXuLy from '../features/admin/orders/pages/DonChoHangCanXuLy';
 import QuanLyGiaoHang from '../features/admin/shipping/pages/QuanLyGiaoHang';
 import KhachTraHang from '../features/admin/customers/pages/KhachTraHang';
 import DanhSachSanPham from '../features/admin/catalog/products/pages/DanhSachSanPham';
@@ -323,6 +324,8 @@ export default function AdminApp() {
                       <Route path="khach-tra-hang/tao/:orderId" element={<KhachTraHang />} />
                       <Route path="khach-tra-hang/:returnId" element={<KhachTraHang />} />
                     </Route>
+
+                    <Route path="cho-hang-can-xu-ly" element={<DonChoHangCanXuLy />} />
 
                     {/* Catch-all fallback */}
                     <Route

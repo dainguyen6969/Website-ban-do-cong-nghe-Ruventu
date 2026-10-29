@@ -28,6 +28,14 @@ export default function OrderLayout() {
   const isDeliveryDetail = /^\/admin\/don-hang\/quan-ly-giao-hang\/[^/]+$/.test(location.pathname);
   const isDeliveryList = location.pathname === '/admin/don-hang/quan-ly-giao-hang';
 
+  if (location.pathname === '/admin/don-hang/cho-hang-can-xu-ly') {
+    return (
+      <main className="order-list-shell" role="main">
+        <Outlet />
+      </main>
+    );
+  }
+
   if (isOrderDetail)
     return (
       <main className="order-detail-shell" role="main">
