@@ -834,9 +834,9 @@ public class AdminOrderService {
   }
 
   private void reserveWaitingStockAutomatically(DonHang order) {
-      if (waitingCustomerStopped(order.getId())) {
-          return;
-      }
+    if (waitingCustomerStopped(order.getId())) {
+      return;
+    }
 
     if (order.getLoaiDonHang() != LoaiDonHang.ONLINE
         || order.getTrangThaiDonHang() != TrangThaiDonHang.CHO_HANG
@@ -929,9 +929,9 @@ public class AdminOrderService {
         () -> {
           DonHang order = lockOrder(id);
 
-            if (waitingCustomerStopped(order.getId())) {
-                throw conflict("Khách không tiếp tục chờ; không giữ bổ sung cho đơn.");
-            }
+          if (waitingCustomerStopped(order.getId())) {
+            throw conflict("Khách không tiếp tục chờ; không giữ bổ sung cho đơn.");
+          }
 
           requireOnline(order);
           requireUnexported(order);
@@ -1094,9 +1094,9 @@ public class AdminOrderService {
 
   private void processPendingOrder(DonHang order) {
 
-      if (waitingCustomerStopped(order.getId())) {
-          return;
-      }
+    if (waitingCustomerStopped(order.getId())) {
+      return;
+    }
 
     if (order.getLoaiDonHang() != LoaiDonHang.ONLINE
         || order.getTrangThaiDonHang() != TrangThaiDonHang.CHO_DUYET
@@ -1459,11 +1459,11 @@ public class AdminOrderService {
     requireOnline(order);
     requireUnexported(order);
 
-      if (waitingCustomerStopped(order.getId())) {
-          throw conflict(
-                  "Khách đã xác nhận không tiếp tục chờ. "
-                          + "Cần xử lý đơn hoặc ghi nhận lại sự đồng ý của khách trước khi duyệt.");
-      }
+    if (waitingCustomerStopped(order.getId())) {
+      throw conflict(
+          "Khách đã xác nhận không tiếp tục chờ. "
+              + "Cần xử lý đơn hoặc ghi nhận lại sự đồng ý của khách trước khi duyệt.");
+    }
 
     if (!Set.of(TrangThaiDonHang.CHO_DUYET, TrangThaiDonHang.CHO_HANG)
             .contains(order.getTrangThaiDonHang())
@@ -2029,7 +2029,7 @@ public class AdminOrderService {
     requireOnline(order);
     validateStoredAmounts(order);
 
-      rememberWaitingCollection(order);
+    rememberWaitingCollection(order);
 
     if (!Boolean.TRUE.equals(request.getXacNhanDaNhanTien())) {
       throw invalid("Phải xác nhận cửa hàng đã thực nhận tiền");
@@ -2132,6 +2132,7 @@ public class AdminOrderService {
       receipt =
           createCash(
               order,
+              null,
               actor,
               receiptCode,
               LoaiPhieuThuChi.THU,
@@ -2252,6 +2253,7 @@ public class AdminOrderService {
       receipt =
           createCash(
               order,
+              delivery,
               actor,
               "THU-COD-" + delivery.getId(),
               LoaiPhieuThuChi.THU,
@@ -2474,6 +2476,7 @@ public class AdminOrderService {
     SoQuyThuChi expense =
         createCash(
             order,
+            null,
             actor,
             expenseCode,
             LoaiPhieuThuChi.CHI,
@@ -2498,6 +2501,7 @@ public class AdminOrderService {
 
   private SoQuyThuChi createCash(
       DonHang order,
+      PhieuGiaoHang delivery,
       NguoiDung actor,
       String code,
       LoaiPhieuThuChi type,
@@ -2524,6 +2528,8 @@ public class AdminOrderService {
             .doiTacVanChuyen(counterpartyPartner)
             .tenDoiTuongTuDo(counterpartyUser == null && counterpartyPartner == null ? payer : null)
             .maChungTuThamChieu(order.getMaDonHang())
+            .donHang(order)
+            .phieuGiaoHang(delivery)
             .soTien(amount)
             .phuongThucThanhToan(method)
             .ngayGhiNhan(date)
@@ -2963,54 +2969,51 @@ public class AdminOrderService {
     }
   }
 
-    private boolean waitingCustomerStopped(Long orderId) {
-        Number count =
-                (Number)
-                        entityManager
-                                .createNativeQuery(
-                                        """
+  private boolean waitingCustomerStopped(Long orderId) {
+    Number count =
+        (Number)
+            entityManager
+                .createNativeQuery(
+                    """
                                         SELECT COUNT(*)
                                         FROM rv_waiting_order
                                         WHERE order_id = :id
                                           AND contact_result = 'KHONG_TIEP_TUC'
                                         """)
-                                .setParameter("id", orderId)
-                                .getSingleResult();
+                .setParameter("id", orderId)
+                .getSingleResult();
 
-        return count.longValue() > 0;
+    return count.longValue() > 0;
+  }
+
+  private void rememberWaitingCollection(DonHang order) {
+    if (order.getLoaiDonHang() != LoaiDonHang.ONLINE
+        || order.getTrangThaiDonHang() != TrangThaiDonHang.CHO_HANG
+        || order.getTrangThaiThanhToan() != TrangThaiThanhToanDonHang.CHUA_THANH_TOAN) {
+      return;
     }
 
-    private void rememberWaitingCollection(DonHang order) {
-        if (order.getLoaiDonHang() != LoaiDonHang.ONLINE
-                || order.getTrangThaiDonHang() != TrangThaiDonHang.CHO_HANG
-                || order.getTrangThaiThanhToan()
-                != TrangThaiThanhToanDonHang.CHUA_THANH_TOAN) {
-            return;
-        }
+    String method =
+        text(order.getDiaChiGiaoHang()) == null
+            ? "TAI_CUA_HANG"
+            : "TIEN_MAT".equals(order.getPhuongThucThanhToan())
+                ? "COD"
+                : "CHUYEN_KHOAN".equals(order.getPhuongThucThanhToan()) ? "CHUYEN_KHOAN" : null;
 
-        String method =
-                text(order.getDiaChiGiaoHang()) == null
-                        ? "TAI_CUA_HANG"
-                        : "TIEN_MAT".equals(order.getPhuongThucThanhToan())
-                        ? "COD"
-                        : "CHUYEN_KHOAN".equals(order.getPhuongThucThanhToan())
-                        ? "CHUYEN_KHOAN"
-                        : null;
+    if (method == null) return;
 
-        if (method == null) return;
-
-        entityManager
-                .createNativeQuery(
-                        """
+    entityManager
+        .createNativeQuery(
+            """
                         INSERT INTO rv_waiting_order (order_id, remaining_method)
                         VALUES (:id, :method)
                         ON DUPLICATE KEY UPDATE
                           remaining_method = COALESCE(remaining_method, :method)
                         """)
-                .setParameter("id", order.getId())
-                .setParameter("method", method)
-                .executeUpdate();
-    }
+        .setParameter("id", order.getId())
+        .setParameter("method", method)
+        .executeUpdate();
+  }
 
   private boolean hasReservation(DonHang order) {
     return inventory.hasQuantityReservation(order);

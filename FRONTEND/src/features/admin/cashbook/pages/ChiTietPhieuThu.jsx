@@ -1,4 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
+
+import { CashSourceInfo } from '../components/CashbookEnhancements';
+import { formatDateTimeVN } from '../../../../shared/services/mutationUtils';
 import { useParams, useNavigate } from 'react-router-dom';
 import { receiptService } from '../../../../shared/services/receiptService';
 import './ChiTietPhieu.css';
@@ -232,6 +235,12 @@ export default function ChiTietPhieuThu() {
             </div>
           </div>
 
+          <div className="ctp-section">
+            <div className="ctp-section-label">CHỨNG TỪ LIÊN QUAN</div>
+
+            <CashSourceInfo item={currentItem} />
+          </div>
+
           {/* Section 4: Mô tả / Tags */}
           <div className="ctp-section">
             <div className="ctp-section-label">MÔ TẢ / TAGS</div>
@@ -269,19 +278,17 @@ export default function ChiTietPhieuThu() {
 
           <div className="ctp-meta-group">
             <span className="meta-lbl">THỜI GIAN</span>
+
             <div className="time-sub-row">
-              <span className="sub-lbl">NGÀY TẠO</span>
-              <span className="sub-val">
-                {currentItem.ngay_tao ? new Date(currentItem.ngay_tao).toLocaleString() : '—'}
-              </span>
+              <span className="sub-lbl">LẬP PHIẾU</span>
+
+              <span className="sub-val">{formatDateTimeVN(currentItem.created_at)}</span>
             </div>
+
             <div className="time-sub-row">
               <span className="sub-lbl">CẬP NHẬT</span>
-              <span className="sub-val">
-                {currentItem.ngay_cap_nhat
-                  ? new Date(currentItem.ngay_cap_nhat).toLocaleString()
-                  : '—'}
-              </span>
+
+              <span className="sub-val">{formatDateTimeVN(currentItem.updated_at)}</span>
             </div>
           </div>
 

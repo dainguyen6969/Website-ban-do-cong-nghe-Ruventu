@@ -684,6 +684,7 @@ public class AdminSalesService {
             .nguoiNopNhan(order.getKhachHang())
             .tenDoiTuongTuDo(order.getKhachHang() == null ? "Khách lẻ" : null)
             .maChungTuThamChieu(order.getMaDonHang())
+            .donHang(order)
             .soTien(order.getTongThanhToan())
             .phuongThucThanhToan(payment.getPhuongThuc())
             .ngayGhiNhan(payment.getNgayThanhToan())

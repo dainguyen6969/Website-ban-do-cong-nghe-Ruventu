@@ -86,7 +86,10 @@ public class CashbookService {
       NguoiDung nguoiTao,
       HoaDonBaoHanh hoaDonBaoHanh,
       PhieuBaoHanh phieuBaoHanh,
-      PhieuTraHang phieuTraHang) {}
+      PhieuTraHang phieuTraHang,
+      DonHang donHang,
+      DonNhapHang donNhapHang,
+      PhieuGiaoHang phieuGiaoHang) {}
 
   @Transactional(propagation = Propagation.MANDATORY)
   public SoQuyThuChi createAutomatic(AutomaticVoucher command) {
@@ -120,6 +123,8 @@ public class CashbookService {
 
     validateSourceLinks(command, occurredAt);
 
+    validateDocumentLinks(command, sourceCode);
+
     String counterpartyName = resolveCounterpartyName(command);
 
     String tags = optionalText(command.tags(), "Tags", 255);
@@ -128,10 +133,10 @@ public class CashbookService {
       requirePersistedId(command.nguoiTao().getId(), "Người tạo");
     }
 
-    if (cashRepository.findByMaPhieu(code).isPresent()) {
+    if (cashRepository.findByMaPhieu(code).isPresent()
+        || cashRepository.existsByKhoaNghiepVu(code)) {
       throw conflict("Khoản thu/chi này đã được ghi nhận");
     }
-
     LoaiThuChi cashType =
         cashTypeRepository
             .findByMaLoaiForUpdate(typeCode)
@@ -148,6 +153,10 @@ public class CashbookService {
     SoQuyThuChi voucher =
         SoQuyThuChi.builder()
             .maPhieu(code)
+            .khoaNghiepVu(code)
+            .donHang(command.donHang())
+            .donNhapHang(command.donNhapHang())
+            .phieuGiaoHang(command.phieuGiaoHang())
             .loaiPhieu(command.loaiPhieu())
             .loaiThuChi(cashType)
             .nhomNguoiNopNhan(command.nhomNguoiNopNhan())
@@ -248,6 +257,70 @@ public class CashbookService {
     idempotencyRepository.complete(key, serialize(result));
 
     return result;
+  }
+
+  private void validateDocumentLinks(AutomaticVoucher command, String sourceCode) {
+
+    DonHang order = command.donHang();
+    DonNhapHang purchase = command.donNhapHang();
+    PhieuGiaoHang delivery = command.phieuGiaoHang();
+    PhieuTraHang returned = command.phieuTraHang();
+
+    boolean warranty = command.hoaDonBaoHanh() != null || command.phieuBaoHanh() != null;
+
+    if (order != null && purchase != null) {
+      throw invalid("Một phiếu không được trộn nguồn đơn bán và đơn nhập.");
+    }
+
+    if (warranty && (order != null || purchase != null || delivery != null)) {
+      throw invalid("Chứng từ bảo hành phải sử dụng liên kết bảo hành riêng.");
+    }
+
+    if (order != null) {
+      requirePersistedId(order.getId(), "Đơn hàng nguồn");
+
+      if (returned != null) {
+        if (returned.getDonHang() == null
+            || !Objects.equals(returned.getDonHang().getId(), order.getId())
+            || !Objects.equals(sourceCode, returned.getMaTraHang())) {
+
+          throw invalid("Phiếu trả hoặc mã tham chiếu không khớp đơn hàng nguồn.");
+        }
+      } else if (!Objects.equals(sourceCode, order.getMaDonHang())) {
+        throw invalid("Mã tham chiếu không khớp đơn hàng nguồn.");
+      }
+    }
+
+    if (purchase != null) {
+      requirePersistedId(purchase.getId(), "Đơn nhập nguồn");
+
+      if (returned != null
+          || delivery != null
+          || !Objects.equals(sourceCode, purchase.getMaDonNhap())
+          || command.nhaCungCap() == null
+          || purchase.getNhaCungCap() == null
+          || !Objects.equals(command.nhaCungCap().getId(), purchase.getNhaCungCap().getId())) {
+
+        throw invalid("Đơn nhập, Nhà Cung Cấp hoặc mã tham chiếu không khớp.");
+      }
+    }
+
+    if (delivery != null) {
+      requirePersistedId(delivery.getId(), "Phiếu giao hàng nguồn");
+
+      if (order == null
+          || delivery.getDonHang() == null
+          || !Objects.equals(delivery.getDonHang().getId(), order.getId())
+          || command.loaiPhieu() != LoaiPhieuThuChi.THU
+          || command.nhomNguoiNopNhan() != NhomNguoiNopNhanEnum.DOI_TAC_GIAO_HANG
+          || command.doiTacVanChuyen() == null
+          || delivery.getDoiTacVanChuyen() == null
+          || !Objects.equals(
+              command.doiTacVanChuyen().getId(), delivery.getDoiTacVanChuyen().getId())) {
+
+        throw invalid("Phiếu thu COD không khớp đơn hàng hoặc đối tác giao hàng.");
+      }
+    }
   }
 
   private void validateSourceLinks(AutomaticVoucher command, LocalDateTime occurredAt) {

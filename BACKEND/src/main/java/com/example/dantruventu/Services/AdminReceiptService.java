@@ -267,7 +267,8 @@ public class AdminReceiptService {
       throw invalidRequest("Loại thu này phải được ghi nhận qua nghiệp vụ nguồn.");
     }
 
-    if (receiptRepository.existsByMaPhieuIgnoreCase(receiptCode)) {
+    if (receiptRepository.existsByMaPhieuIgnoreCase(receiptCode)
+        || receiptRepository.existsByKhoaNghiepVu(receiptCode)) {
       throw new AppException(ErrorCode.RECEIPT_CODE_EXISTS);
     }
 

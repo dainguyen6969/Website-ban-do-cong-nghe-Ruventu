@@ -121,6 +121,21 @@ public class SoQuyThuChi {
   @JoinColumn(name = "phieu_tra_hang_id", unique = true)
   private PhieuTraHang phieuTraHang;
 
+  @Column(name = "khoa_nghiep_vu", unique = true, updatable = false, length = 100)
+  private String khoaNghiepVu;
+
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "don_hang_id", updatable = false)
+  private DonHang donHang;
+
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "don_nhap_hang_id", updatable = false)
+  private DonNhapHang donNhapHang;
+
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "phieu_giao_hang_id", updatable = false)
+  private PhieuGiaoHang phieuGiaoHang;
+
   @PrePersist
   public void prePersist() {
     if (ngayGhiNhan == null) {

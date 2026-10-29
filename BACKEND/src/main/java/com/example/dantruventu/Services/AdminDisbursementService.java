@@ -247,7 +247,8 @@ public class AdminDisbursementService {
       throw new AppException(ErrorCode.DISBURSEMENT_TYPE_INACTIVE);
     }
 
-    if (disbursementRepository.existsByMaPhieuIgnoreCase(receiptCode)) {
+    if (disbursementRepository.existsByMaPhieuIgnoreCase(receiptCode)
+        || disbursementRepository.existsByKhoaNghiepVu(receiptCode)) {
       throw new AppException(ErrorCode.DISBURSEMENT_CODE_EXISTS);
     }
 

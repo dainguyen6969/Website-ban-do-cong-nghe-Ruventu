@@ -189,6 +189,7 @@ public class AdminReturnService {
                 .moTa(description)
                 .nguoiTao(actor)
                 .phieuTraHang(returnSlip)
+                .donHang(returnSlip.getDonHang())
                 .build());
 
     returnSlip.setHinhThucHoanTien(paymentMethod);
