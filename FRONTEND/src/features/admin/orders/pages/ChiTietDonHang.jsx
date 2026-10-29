@@ -1185,6 +1185,13 @@ function OrderDetailView({ orderId }) {
         <div className="order-cod-settlement" role="status">
           <strong>THEO DÕI HÀNG CỦA ĐƠN CHỜ HÀNG</strong>
 
+          <Link
+            className="order-action"
+            to={`/admin/don-hang/cho-hang-can-xu-ly?order_id=${order.id}`}
+          >
+            LIÊN HỆ VÀ LỊCH XỬ LÝ
+          </Link>
+
           {waitingHasReceivedMoney ? (
             waitingFullyReserved ? (
               <p>

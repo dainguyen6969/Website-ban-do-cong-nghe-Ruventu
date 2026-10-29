@@ -91,6 +91,7 @@ public class CustomerOrderService {
   private final SoldDeviceService soldDevices;
   private final OrderInventoryService orderInventory;
   private final OrderIntakePolicy intakePolicy;
+  private final BackorderService backorders;
 
   @Value("${ruventu.order.delivery-fee:30000}")
   private BigDecimal deliveryFee;
@@ -98,10 +99,9 @@ public class CustomerOrderService {
   public CustomerOrderResponse.Preview preview(
       NguoiDung user, String guestCartId, CustomerCheckoutRequest.Preview request) {
 
-    cartPromotionService.requireSelectedPromotion(user, guestCartId, request.getMaChuongTrinh());
+    requireCheckoutPromotion(user, guestCartId, request);
 
-    List<Long> selectedIds = validateSelectedIds(request.getCartItemIds());
-    List<CartLine> cartLines = loadSelectedCartLines(user, guestCartId, selectedIds, false);
+    List<CartLine> cartLines = checkoutLines(user, guestCartId, request, false);
 
     CustomerOrderResponse.Recipient recipient = resolveRecipient(user, request);
 
@@ -166,7 +166,10 @@ public class CustomerOrderService {
             .thongTinNguoiNhan(recipient)
             .build();
 
-    response.setTiepNhan(intakePolicy.preview(user, plan.quantities(), false));
+    Map<String, Object> intake =
+        new LinkedHashMap<>(intakePolicy.preview(user, plan.quantities(), false));
+
+    response.setTiepNhan(intake);
 
     return saleQuotes.issue(
         response,
@@ -253,10 +256,12 @@ public class CustomerOrderService {
 
     intakePolicy.checkCheckoutRate(user, guestCartId, remoteAddress);
 
-    cartPromotionService.requireSelectedPromotion(user, guestCartId, request.getMaChuongTrinh());
+    requireCheckoutPromotion(user, guestCartId, request);
 
-    List<Long> selectedIds = validateSelectedIds(request.getCartItemIds());
-    List<CartLine> cartLines = loadSelectedCartLines(user, guestCartId, selectedIds, true);
+      List<Long> selectedIds =
+              validateSelectedIds(request.getCartItemIds());
+
+    List<CartLine> cartLines = checkoutLines(user, guestCartId, request, true);
     CustomerOrderResponse.Recipient recipient = resolveRecipient(user, request);
 
     AdminSalesRequest.Preview salesRequest = buildSalesRequest(user, request, cartLines);
@@ -313,19 +318,20 @@ public class CustomerOrderService {
 
     saleSnapshots.recordPromotion(order, plan, salesRequest, user);
 
-    orderInventory.reserveForNewOrder(
-        order, false, intakePolicy.temporaryReason(user, plan.quantities()));
+      orderInventory.reserveForNewOrder(
+              order,
+              false,
+              intakePolicy.temporaryReason(user, plan.quantities()));
 
     saleSnapshots.configureUnpaidPromotion(order);
 
     orderRepository.flush();
 
-    if (user != null) {
-      // Giỏ của tài khoản nằm trong MySQL, cùng transaction với đơn.
-      removePurchasedCartItems(user, guestCartId, selectedIds);
-    }
+      if (user != null) {
+          removePurchasedCartItems(user, guestCartId, selectedIds);
+      }
 
-    registerCartCleanupAfterCommit(user, guestCartId, cartLines);
+      registerCartCleanupAfterCommit(user, guestCartId, cartLines);
     orderEvents.created(order);
 
     return CustomerOrderResponse.Created.builder()
@@ -345,7 +351,7 @@ public class CustomerOrderService {
         .thongTinNguoiNhan(recipient)
         .sanPham(savedLines.stream().map(saleSnapshots::product).toList())
         .khuyenMai(saleSnapshots.appliedPromotion(order.getId()))
-        .tiepNhan(intakePolicy.describe(order))
+        .tiepNhan(backorders.customerIntake(order, intakePolicy.describe(order)))
         .build();
   }
 
@@ -531,7 +537,7 @@ public class CustomerOrderService {
             order.getNgayHoanThanh() == null
                 ? null
                 : order.getNgayHoanThanh().atZone(salesProperties.zone()).toOffsetDateTime())
-        .tiepNhan(intakePolicy.describe(order))
+        .tiepNhan(backorders.customerIntake(order, intakePolicy.describe(order)))
         .build();
   }
 
@@ -756,6 +762,39 @@ public class CustomerOrderService {
         .build();
   }
 
+    private void requireCheckoutPromotion(
+            NguoiDung user,
+            String guestCartId,
+            CustomerCheckoutRequest.Preview request) {
+
+        boolean waitingRequested =
+                Boolean.TRUE.equals(request.getChoPhepChoHang())
+                        || (request.getSanPhamChoHang() != null
+                        && !request.getSanPhamChoHang().isEmpty());
+
+        if (waitingRequested) {
+            throw invalid(
+                    "Website chỉ tiếp nhận đăng ký nhận thông báo khi có hàng. "
+                            + "Vui lòng liên hệ cửa hàng để được hỗ trợ tạo đơn chờ hàng.");
+        }
+
+        cartPromotionService.requireSelectedPromotion(
+                user, guestCartId, request.getMaChuongTrinh());
+    }
+
+    private List<CartLine> checkoutLines(
+            NguoiDung user,
+            String guestCartId,
+            CustomerCheckoutRequest.Preview request,
+            boolean lock) {
+
+        return loadSelectedCartLines(
+                user,
+                guestCartId,
+                validateSelectedIds(request.getCartItemIds()),
+                lock);
+    }
+
   private AdminSalesRequest.Preview buildSalesRequest(
       NguoiDung user, CustomerCheckoutRequest.Preview request, List<CartLine> cartLines) {
 
@@ -785,6 +824,7 @@ public class CustomerOrderService {
         "GIAO_HANG".equals(request.getHinhThucNhanHang()) ? deliveryFee : BigDecimal.ZERO);
     salesRequest.setGhiChu(text(request.getGhiChu()));
     salesRequest.setLoaiDonHang(LoaiDonHang.ONLINE);
+      salesRequest.setChoPhepChoHang(false);
 
     return salesRequest;
   }

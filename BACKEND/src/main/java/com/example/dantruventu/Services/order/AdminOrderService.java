@@ -834,6 +834,10 @@ public class AdminOrderService {
   }
 
   private void reserveWaitingStockAutomatically(DonHang order) {
+      if (waitingCustomerStopped(order.getId())) {
+          return;
+      }
+
     if (order.getLoaiDonHang() != LoaiDonHang.ONLINE
         || order.getTrangThaiDonHang() != TrangThaiDonHang.CHO_HANG
         || order.getTrangThaiDongGoi() != TrangThaiDongGoi.CHUA_DONG_GOI
@@ -924,6 +928,10 @@ public class AdminOrderService {
         AdminOrderResponse.Action.class,
         () -> {
           DonHang order = lockOrder(id);
+
+            if (waitingCustomerStopped(order.getId())) {
+                throw conflict("Khách không tiếp tục chờ; không giữ bổ sung cho đơn.");
+            }
 
           requireOnline(order);
           requireUnexported(order);
@@ -1085,6 +1093,11 @@ public class AdminOrderService {
   }
 
   private void processPendingOrder(DonHang order) {
+
+      if (waitingCustomerStopped(order.getId())) {
+          return;
+      }
+
     if (order.getLoaiDonHang() != LoaiDonHang.ONLINE
         || order.getTrangThaiDonHang() != TrangThaiDonHang.CHO_DUYET
         || order.getTrangThaiDongGoi() != TrangThaiDongGoi.CHUA_DONG_GOI
@@ -1445,6 +1458,12 @@ public class AdminOrderService {
 
     requireOnline(order);
     requireUnexported(order);
+
+      if (waitingCustomerStopped(order.getId())) {
+          throw conflict(
+                  "Khách đã xác nhận không tiếp tục chờ. "
+                          + "Cần xử lý đơn hoặc ghi nhận lại sự đồng ý của khách trước khi duyệt.");
+      }
 
     if (!Set.of(TrangThaiDonHang.CHO_DUYET, TrangThaiDonHang.CHO_HANG)
             .contains(order.getTrangThaiDonHang())
@@ -2009,6 +2028,8 @@ public class AdminOrderService {
 
     requireOnline(order);
     validateStoredAmounts(order);
+
+      rememberWaitingCollection(order);
 
     if (!Boolean.TRUE.equals(request.getXacNhanDaNhanTien())) {
       throw invalid("Phải xác nhận cửa hàng đã thực nhận tiền");
@@ -2941,6 +2962,55 @@ public class AdminOrderService {
       throw conflict("Chỉ xem serial cho đơn đã duyệt, chưa hủy và chưa xuất");
     }
   }
+
+    private boolean waitingCustomerStopped(Long orderId) {
+        Number count =
+                (Number)
+                        entityManager
+                                .createNativeQuery(
+                                        """
+                                        SELECT COUNT(*)
+                                        FROM rv_waiting_order
+                                        WHERE order_id = :id
+                                          AND contact_result = 'KHONG_TIEP_TUC'
+                                        """)
+                                .setParameter("id", orderId)
+                                .getSingleResult();
+
+        return count.longValue() > 0;
+    }
+
+    private void rememberWaitingCollection(DonHang order) {
+        if (order.getLoaiDonHang() != LoaiDonHang.ONLINE
+                || order.getTrangThaiDonHang() != TrangThaiDonHang.CHO_HANG
+                || order.getTrangThaiThanhToan()
+                != TrangThaiThanhToanDonHang.CHUA_THANH_TOAN) {
+            return;
+        }
+
+        String method =
+                text(order.getDiaChiGiaoHang()) == null
+                        ? "TAI_CUA_HANG"
+                        : "TIEN_MAT".equals(order.getPhuongThucThanhToan())
+                        ? "COD"
+                        : "CHUYEN_KHOAN".equals(order.getPhuongThucThanhToan())
+                        ? "CHUYEN_KHOAN"
+                        : null;
+
+        if (method == null) return;
+
+        entityManager
+                .createNativeQuery(
+                        """
+                        INSERT INTO rv_waiting_order (order_id, remaining_method)
+                        VALUES (:id, :method)
+                        ON DUPLICATE KEY UPDATE
+                          remaining_method = COALESCE(remaining_method, :method)
+                        """)
+                .setParameter("id", order.getId())
+                .setParameter("method", method)
+                .executeUpdate();
+    }
 
   private boolean hasReservation(DonHang order) {
     return inventory.hasQuantityReservation(order);

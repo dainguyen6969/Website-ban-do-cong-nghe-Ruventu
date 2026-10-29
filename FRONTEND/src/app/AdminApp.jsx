@@ -6,6 +6,7 @@ import Header from '../shared/components/layout/Header';
 import OrderLayout from '../features/admin/orders/components/OrderLayout';
 import DanhSachDonHang from '../features/admin/orders/pages/DanhSachDonHang';
 import DatHangOnline from '../features/admin/orders/pages/DatHangOnline';
+import DonChoHangCanXuLy from '../features/admin/orders/pages/DonChoHangCanXuLy';
 import QuanLyGiaoHang from '../features/admin/shipping/pages/QuanLyGiaoHang';
 import KhachTraHang from '../features/admin/customers/pages/KhachTraHang';
 import DanhSachSanPham from '../features/admin/catalog/products/pages/DanhSachSanPham';
@@ -315,6 +316,7 @@ export default function AdminApp() {
                       <Route index element={<Navigate to="danh-sach-don-hang" replace />} />
                       <Route path="danh-sach-don-hang" element={<DanhSachDonHang key={search} />} />
                       <Route path="danh-sach-don-hang/:orderId" element={<ChiTietDonHang />} />
+                      <Route path="cho-hang-can-xu-ly" element={<DonChoHangCanXuLy />} />
                       <Route path="dat-hang-online" element={<DatHangOnline />} />
                       <Route path="dat-hang-online/:orderId" element={<DatHangOnline />} />
                       <Route path="quan-ly-giao-hang" element={<QuanLyGiaoHang key={search} />} />

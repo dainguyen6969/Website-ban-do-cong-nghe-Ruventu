@@ -5,6 +5,7 @@ import com.example.dantruventu.DTO.Request.order.CustomerOrderRequest;
 import com.example.dantruventu.DTO.Response.ApiResponse;
 import com.example.dantruventu.DTO.Response.order.CustomerOrderResponse;
 import com.example.dantruventu.Entity.NguoiDung;
+import com.example.dantruventu.Services.order.BackorderService;
 import com.example.dantruventu.Services.order.CustomerOrderService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
@@ -30,6 +31,28 @@ public class CustomerOrderController {
   private static final String GUEST_CART_COOKIE_NAME = "guest_cart_id";
 
   private final CustomerOrderService customerOrderService;
+    private final BackorderService backorders;
+
+    @PostMapping("/stock-notifications")
+    public ApiResponse<BackorderService.Result> registerStockNotice(
+            Authentication authentication,
+            @CookieValue(value = GUEST_CART_COOKIE_NAME, required = false) String guestCartId,
+            @RequestHeader("Idempotency-Key") String key,
+            @Valid @RequestBody BackorderService.NoticeRegistration request,
+            HttpServletRequest httpRequest) {
+
+        return ApiResponse.<BackorderService.Result>builder()
+                .status(200)
+                .message("Đã ghi nhận đăng ký báo có hàng")
+                .data(
+                        backorders.registerNotice(
+                                getAuthenticatedUser(authentication),
+                                guestCartId,
+                                httpRequest.getRemoteAddr(),
+                                key,
+                                request))
+                .build();
+    }
 
   @PostMapping("/checkout/preview")
   public ApiResponse<CustomerOrderResponse.Preview> preview(
