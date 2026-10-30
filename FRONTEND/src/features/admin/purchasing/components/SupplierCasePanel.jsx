@@ -26,7 +26,6 @@ const ACTIONS = {
   THU_TIEN: 'Ghi nhận tiền Nhà Cung Cấp hoàn',
   CHI_TIEN: 'Ghi nhận tiền trả Nhà Cung Cấp',
   THEO_DOI: 'Phụ trách và hạn xử lý',
-  GHI_CHU: 'Ghi nhận đối soát',
   KET_THUC: 'Kết thúc hồ sơ',
   MO_LAI: 'Mở lại hồ sơ',
 };
@@ -160,11 +159,6 @@ const NCC_HELP = {
     title: 'Phụ trách và hạn xử lý',
     text: 'Cập nhật người phụ trách và hạn xử lý. Không làm thay đổi hàng hoặc tiền.',
     confirm: 'LƯU PHÂN CÔNG',
-  },
-  GHI_CHU: {
-    title: 'Ghi nhận đối soát',
-    text: 'Lưu phản hồi, sai lệch hoặc nội dung trao đổi. Không tự phát sinh giao nhận.',
-    confirm: 'LƯU NỘI DUNG',
   },
   KET_THUC: {
     title: 'Kết thúc hồ sơ',
@@ -767,11 +761,6 @@ function NccCaseView({ record, data, renderButton, onOpen }) {
               </section>
             </>
           )}
-
-          <section className="ncc-management-section">
-            <h5>Nội dung đối soát</h5>
-            {renderButton('Ghi nhận đối soát', () => onOpen('GHI_CHU', record))}
-          </section>
         </div>
       )}
     </article>

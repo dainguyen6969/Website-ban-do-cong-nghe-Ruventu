@@ -7,6 +7,7 @@ import FilterDropdown from '../../../../shared/components/ui/FilterDropdown';
 import useDetailTablePagination from '../../../../hooks/useDetailTablePagination';
 import { getVersionDetail, getVersionLedger } from '../../catalog/products/api/versionApi';
 import './ChiTietTonKho.css';
+import '../recall/Recall.css';
 
 const transactionOptions = [
   'Tất cả',
@@ -305,6 +306,14 @@ export default function ChiTietTonKho() {
             <span>PHÂN BỔ TỒN KHO</span>
             <small>— {selectedVersion.name}</small>
           </header>
+
+          {selectedVersion.recallQuarantine > 0 && (
+            <p className="recall-notice">
+              Cách ly thu hồi: <strong>{selectedVersion.recallQuarantine}</strong> sản phẩm. Số
+              lượng này nằm trong tồn thực tế và chưa được bán.
+            </p>
+          )}
+
           <div className="inventory-table-wrap">
             <div className="admin-table-scroll admin-table-scroll--embedded" tabIndex={0} role="region" aria-label="Bảng dữ liệu liên quan"><table className="inventory-table inventory-allocation-table admin-data-table admin-data-table--records">
               <thead>

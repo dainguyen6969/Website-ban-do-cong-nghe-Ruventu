@@ -230,7 +230,6 @@ function ShipmentList() {
         </label>
 
         <FilterDropdown
-          className="delivery-list-select"
           aria-label="Trạng thái giao hàng"
           value={status}
           onChange={(event) => {
@@ -249,7 +248,6 @@ function ShipmentList() {
         </FilterDropdown>
 
         <FilterDropdown
-          className="delivery-list-select"
           aria-label="Đối tác vận chuyển"
           value={partnerId}
           disabled={partners.loading}

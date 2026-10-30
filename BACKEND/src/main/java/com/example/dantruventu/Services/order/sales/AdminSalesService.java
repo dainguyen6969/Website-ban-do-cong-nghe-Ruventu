@@ -26,6 +26,7 @@ import com.example.dantruventu.Services.cashbook.CashbookService;
 import com.example.dantruventu.Services.catalog.CatalogSupport;
 import com.example.dantruventu.Services.order.OrderEvents;
 import com.example.dantruventu.Services.order.OrderInventoryService;
+import com.example.dantruventu.Services.warehouse.RecallSafety;
 import com.example.dantruventu.Specification.SalesSpecification;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
@@ -77,6 +78,8 @@ public class AdminSalesService {
   private final OrderDeviceHistoryService deviceHistory;
   private final OrderInventoryService orderInventory;
   private final OrderIntakePolicy intakePolicy;
+
+  private final RecallSafety recallSafety;
 
   public AdminSalesResponse.Options options() {
 
@@ -646,6 +649,8 @@ public class AdminSalesService {
           serialRepository
               .findByIdForUpdate(entry.getKey())
               .orElseThrow(() -> notFound("Serial không tồn tại: " + entry.getKey()));
+
+      recallSafety.requireSerialClear(serial);
 
       if (!Objects.equals(serial.getPhienBan().getId(), entry.getValue())
           || serial.getTrangThai() != TrangThaiSerial.TRONG_KHO

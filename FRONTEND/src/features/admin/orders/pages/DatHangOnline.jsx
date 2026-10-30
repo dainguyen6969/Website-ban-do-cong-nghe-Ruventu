@@ -2,6 +2,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { HiOutlineArrowLeft, HiOutlineSearch } from 'react-icons/hi';
+import { MapPin, Navigation, Loader2 } from 'lucide-react';
+import { VIETNAM_LOCATIONS, matchProvince, matchDistrict } from '../../../../data/vietnamLocations';
 import PriceInput from '../../../../shared/components/ui/PriceInput';
 import {
   buildOnlineOrderBody,
@@ -26,6 +28,7 @@ const money = new Intl.NumberFormat('vi-VN', {
 });
 const formatMoney = (value) => money.format(Number(value || 0));
 const validPhone = (value) => /^(?:\+84|0)\d{9,10}$/.test(value.replace(/[\s.-]/g, ''));
+const GOONG_API_KEY = 'w6ddDpyabJSpcJXqsZB9FPLFv6dgaIrL9WfTYvAS';
 const labels = {
   TIEN_MAT: 'TIỀN MẶT',
   CHUYEN_KHOAN: 'CHUYỂN KHOẢN',
@@ -52,7 +55,15 @@ export default function DatHangOnline() {
     name: '',
     phone: '',
     address: '',
+    province: 'Hà Nội',
+    ward: 'Quận Cầu Giấy',
   });
+  const [addressSuggestions, setAddressSuggestions] = useState([]);
+  const [showAddressDropdown, setShowAddressDropdown] = useState(false);
+  const [locatingUser, setLocatingUser] = useState(false);
+  const [addressSearchLoading, setAddressSearchLoading] = useState(false);
+  const addressWrapperRef = useRef(null);
+  const searchTimeoutRef = useRef(null);
   const [touched, setTouched] = useState({});
   const [productQuery, setProductQuery] = useState('');
   const [productResults, setProductResults] = useState([]);
@@ -133,10 +144,17 @@ export default function DatHangOnline() {
             : null
         );
 
+        const initialAddress = order.dia_chi_giao_hang || '';
+        const matchedProv = matchProvince(initialAddress);
+        const wards = VIETNAM_LOCATIONS[matchedProv] || [];
+        const matchedWard = matchDistrict(initialAddress, wards);
+
         setRecipient({
           name: order.ten_nguoi_nhan || '',
           phone: order.sdt_nguoi_nhan || '',
-          address: order.dia_chi_giao_hang || '',
+          address: initialAddress,
+          province: matchedProv,
+          ward: matchedWard,
         });
 
         setItems(
@@ -218,6 +236,35 @@ export default function DatHangOnline() {
 
   const shippingFee = delivery === 'GIAO_HANG' ? Number(shippingInput || 0) * 1000 : 0;
 
+  const fullShippingAddress = useMemo(() => {
+    const specific = (recipient.address || '').trim();
+    if (!specific) return '';
+    const prov = (recipient.province || '').trim();
+    const ward = (recipient.ward || '').trim();
+
+    const specificLower = specific.toLowerCase();
+    const wardCore = ward.toLowerCase().replace(/^(quận|huyện|thị xã|thành phố)\s+/i, '');
+    const provCore = prov.toLowerCase().replace(/^(tỉnh|thành phố|tp\.)\s+/i, '');
+
+    const hasWard =
+      ward &&
+      (specificLower.includes(ward.toLowerCase()) ||
+        (wardCore && specificLower.includes(wardCore)));
+    const hasProv =
+      prov &&
+      (specificLower.includes(prov.toLowerCase()) ||
+        (provCore && specificLower.includes(provCore)));
+
+    const parts = [specific];
+    if (ward && !hasWard) {
+      parts.push(ward);
+    }
+    if (prov && !hasProv) {
+      parts.push(prov);
+    }
+    return parts.join(', ');
+  }, [recipient.address, recipient.ward, recipient.province]);
+
   const form = useMemo(
     () =>
       options
@@ -231,7 +278,10 @@ export default function DatHangOnline() {
             shippingFee,
             allowWaitingStock: !editId && allowWaitingStock,
             items,
-            recipient,
+            recipient: {
+              ...recipient,
+              address: delivery === 'GIAO_HANG' ? fullShippingAddress : '',
+            },
             payment,
             delivery,
             note,
@@ -249,6 +299,7 @@ export default function DatHangOnline() {
       allowWaitingStock,
       items,
       recipient,
+      fullShippingAddress,
       payment,
       delivery,
       note,
@@ -348,13 +399,150 @@ export default function DatHangOnline() {
     setCustomer(entry);
     setCustomerQuery('');
     setTouched({});
-    setRecipient({ name: entry.name, phone: entry.phone, address: '' });
+    setRecipient((prev) => ({
+      ...prev,
+      name: entry.name,
+      phone: entry.phone,
+      address: '',
+    }));
   };
   const clearCustomer = () => {
     setCustomer(null);
-    setRecipient({ name: '', phone: '', address: '' });
+    setRecipient((prev) => ({
+      ...prev,
+      name: '',
+      phone: '',
+      address: '',
+    }));
   };
-  const updateRecipient = (key, value) => setRecipient((current) => ({ ...current, [key]: value }));
+  const updateRecipient = (key, value) =>
+    setRecipient((current) => ({ ...current, [key]: value }));
+
+  const handleProvinceChange = (newProvince) => {
+    const availableWards = VIETNAM_LOCATIONS[newProvince] || [];
+    setRecipient((prev) => ({
+      ...prev,
+      province: newProvince,
+      ward: availableWards[0] || '',
+    }));
+  };
+
+  const searchGoongPlaces = (query) => {
+    if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
+    searchTimeoutRef.current = setTimeout(async () => {
+      try {
+        setAddressSearchLoading(true);
+        const url = `https://rsapi.goong.io/Place/AutoComplete?api_key=${GOONG_API_KEY}&input=${encodeURIComponent(query)}`;
+        const res = await fetch(url);
+        const data = await res.json();
+        if (data?.predictions) {
+          setAddressSuggestions(data.predictions);
+          setShowAddressDropdown(true);
+        }
+      } catch (err) {
+        console.error('Lỗi tìm kiếm địa chỉ Goong:', err);
+      } finally {
+        setAddressSearchLoading(false);
+      }
+    }, 250);
+  };
+
+  const handleAddressChange = (val) => {
+    updateRecipient('address', val);
+    if (val.trim().length >= 3) {
+      searchGoongPlaces(val.trim());
+    } else {
+      if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
+      setAddressSuggestions([]);
+      setShowAddressDropdown(false);
+    }
+  };
+
+  const handleSelectSuggestion = (place) => {
+    const compound = place.compound || {};
+    const fullAddress = place.description || '';
+
+    const matchedProvince = matchProvince(compound.province || fullAddress || '');
+    const availableWards = VIETNAM_LOCATIONS[matchedProvince] || [];
+    const matchedWard = matchDistrict(
+      compound.district || compound.commune || fullAddress || '',
+      availableWards
+    );
+
+    setRecipient((prev) => ({
+      ...prev,
+      address: fullAddress,
+      province: matchedProvince,
+      ward: matchedWard,
+    }));
+
+    setShowAddressDropdown(false);
+    setAddressSuggestions([]);
+  };
+
+  const handleGetCurrentLocation = () => {
+    if (!navigator.geolocation) {
+      alert('Trình duyệt của bạn không hỗ trợ định vị GPS.');
+      return;
+    }
+
+    setLocatingUser(true);
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        try {
+          const { latitude, longitude } = position.coords;
+          const url = `https://rsapi.goong.io/Geocode?api_key=${GOONG_API_KEY}&latlng=${latitude},${longitude}`;
+          const res = await fetch(url);
+          const data = await res.json();
+          if (data?.results && data.results.length > 0) {
+            const first = data.results[0];
+            const compound = first.compound || {};
+            const fullAddress = first.formatted_address || first.address || '';
+
+            const matchedProvince = matchProvince(compound.province || fullAddress || '');
+            const availableWards = VIETNAM_LOCATIONS[matchedProvince] || [];
+            const matchedWard = matchDistrict(
+              compound.district || compound.commune || fullAddress || '',
+              availableWards
+            );
+
+            setRecipient((prev) => ({
+              ...prev,
+              address: fullAddress,
+              province: matchedProvince,
+              ward: matchedWard,
+            }));
+          }
+        } catch (err) {
+          console.error('Lỗi lấy thông tin vị trí:', err);
+          alert('Không thể chuyển đổi tọa độ thành địa chỉ. Vui lòng nhập tay.');
+        } finally {
+          setLocatingUser(false);
+        }
+      },
+      (err) => {
+        console.error('Lỗi Geolocation:', err);
+        setLocatingUser(false);
+        alert(
+          'Không thể truy cập vị trí hiện tại. Vui lòng cho phép quyền định vị trên trình duyệt.'
+        );
+      },
+      { timeout: 10000, enableHighAccuracy: true }
+    );
+  };
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (addressWrapperRef.current && !addressWrapperRef.current.contains(e.target)) {
+        setShowAddressDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
+    };
+  }, []);
 
   const addProduct = (product) => {
     if (!editId && !allowWaitingStock && !product.stock) {
@@ -611,21 +799,138 @@ export default function DatHangOnline() {
                     : ''
                 }
               />
-              <Field
-                wide
-                label={`ĐỊA CHỈ GIAO HÀNG${delivery === 'GIAO_HANG' ? ' *' : ''}`}
-                value={recipient.address}
-                change={(value) => updateRecipient('address', value)}
-                blur={() => setTouched((v) => ({ ...v, address: true }))}
-                placeholder="Số nhà, đường, phường/xã, quận/huyện, tỉnh/thành..."
-                error={
+              <div className="online-field">
+                <span>TỈNH / THÀNH PHỐ *</span>
+                <select
+                  value={recipient.province}
+                  onChange={(e) => handleProvinceChange(e.target.value)}
+                >
+                  {Object.keys(VIETNAM_LOCATIONS).map((prov) => (
+                    <option key={prov} value={prov}>
+                      {prov}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="online-field">
+                <span>QUẬN / HUYỆN / PHƯỜNG *</span>
+                <select
+                  value={recipient.ward}
+                  onChange={(e) => updateRecipient('ward', e.target.value)}
+                >
+                  {(VIETNAM_LOCATIONS[recipient.province] || []).map((w) => (
+                    <option key={w} value={w}>
+                      {w}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div
+                className={`online-field online-field--wide ${
                   (touched.address || submitted) &&
                   delivery === 'GIAO_HANG' &&
                   !recipient.address.trim()
-                    ? 'Vui lòng nhập địa chỉ giao hàng.'
+                    ? 'online-field--error'
                     : ''
-                }
-              />
+                }`}
+                ref={addressWrapperRef}
+                style={{ position: 'relative' }}
+              >
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                  }}
+                >
+                  <span className="field-label" style={{ color: '#333', fontSize: '9px', fontWeight: 900 }}>
+                    {`ĐỊA CHỈ CỤ THỂ${delivery === 'GIAO_HANG' ? ' *' : ''}`}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={handleGetCurrentLocation}
+                    disabled={locatingUser}
+                    style={{
+                      background: 'transparent',
+                      border: 'none',
+                      color: '#f11919',
+                      fontSize: '10px',
+                      fontWeight: 800,
+                      cursor: locatingUser ? 'not-allowed' : 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      padding: 0,
+                    }}
+                    title="Lấy vị trí hiện tại của bạn"
+                  >
+                    {locatingUser ? (
+                      <>
+                        <Loader2 size={12} className="spin-animate" />
+                        <span>Đang định vị...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Navigation size={12} />
+                        <span>Lấy vị trí hiện tại</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+                <div style={{ position: 'relative' }}>
+                  <input
+                    value={recipient.address}
+                    onChange={(e) => handleAddressChange(e.target.value)}
+                    onFocus={() => {
+                      if (addressSuggestions.length > 0) setShowAddressDropdown(true);
+                    }}
+                    onBlur={() => setTouched((v) => ({ ...v, address: true }))}
+                    placeholder="Nhập địa chỉ hoặc tên địa điểm..."
+                    autoComplete="off"
+                  />
+                  {addressSearchLoading && (
+                    <div
+                      style={{
+                        position: 'absolute',
+                        right: '12px',
+                        top: '50%',
+                        transform: 'translateY(-50%)',
+                        color: '#888',
+                      }}
+                    >
+                      <Loader2 size={15} className="spin-animate" />
+                    </div>
+                  )}
+                </div>
+                {(touched.address || submitted) &&
+                  delivery === 'GIAO_HANG' &&
+                  !recipient.address.trim() && (
+                    <small>Vui lòng nhập địa chỉ giao hàng.</small>
+                  )}
+                {showAddressDropdown && addressSuggestions.length > 0 && (
+                  <div className="goong-autocomplete-dropdown">
+                    {addressSuggestions.map((item, idx) => (
+                      <div
+                        key={item.place_id || idx}
+                        className="goong-suggestion-item"
+                        onClick={() => handleSelectSuggestion(item)}
+                      >
+                        <MapPin size={16} className="goong-icon" />
+                        <div className="goong-item-text">
+                          <span className="goong-main">
+                            {item.structured_formatting?.main_text || item.description}
+                          </span>
+                          {item.structured_formatting?.secondary_text && (
+                            <span className="goong-secondary">
+                              {item.structured_formatting.secondary_text}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           </Section>
           <Section n="3" title="SẢN PHẨM" disabled={financialLocked}>

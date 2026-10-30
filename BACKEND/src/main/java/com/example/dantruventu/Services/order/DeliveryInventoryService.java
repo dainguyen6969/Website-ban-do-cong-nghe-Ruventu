@@ -13,6 +13,7 @@ import com.example.dantruventu.Repository.warehouse.*;
 import com.example.dantruventu.Services.catalog.CatalogSupport;
 import com.example.dantruventu.Services.order.sales.OrderSaleSnapshotService;
 import com.example.dantruventu.Services.order.sales.SoldDeviceService;
+import com.example.dantruventu.Services.warehouse.RecallSafety;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.LockModeType;
 import java.util.*;
@@ -37,6 +38,7 @@ public class DeliveryInventoryService {
   private final SoldDeviceService soldDevices;
   private final EntityManager entityManager;
   private final OrderInventoryService orderInventory;
+  private final RecallSafety recallSafety;
 
   @Value("${ruventu.inventory.default-warehouse-id:1}")
   private Long defaultWarehouseId;
@@ -549,6 +551,7 @@ public class DeliveryInventoryService {
     }
 
     TonKho stock = rows.get(0);
+    recallSafety.track(stock);
     entityManager.refresh(stock);
     return stock;
   }

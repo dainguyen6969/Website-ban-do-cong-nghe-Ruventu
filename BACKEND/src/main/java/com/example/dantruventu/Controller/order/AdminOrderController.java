@@ -9,6 +9,7 @@ import com.example.dantruventu.DTO.Response.order.AdminSalesResponse;
 import com.example.dantruventu.Enum.*;
 import com.example.dantruventu.Services.order.AdminDeliveryService;
 import com.example.dantruventu.Services.order.AdminOrderService;
+import com.example.dantruventu.Services.order.BackorderService;
 import com.example.dantruventu.Services.order.OrderWebSocket;
 import com.example.dantruventu.Services.order.sales.AdminSalesService;
 import jakarta.validation.Valid;
@@ -30,6 +31,7 @@ public class AdminOrderController {
   private final AdminOrderService orderService;
   private final OrderWebSocket orderWebSocket;
   private final AdminDeliveryService deliveryService;
+    private final BackorderService backorders;
 
   @PostMapping("/{id}/counter-exchange")
   public ApiResponse<AdminOrderResponse.Action> counterExchange(
@@ -57,6 +59,40 @@ public class AdminOrderController {
         "Kết nối cập nhật đơn hàng",
         java.util.Map.of("ticket", orderWebSocket.issueTicket(authorization.substring(7))));
   }
+
+    @GetMapping("/waiting-actions")
+    @PreAuthorize("hasAnyRole('ADMIN','QUAN_LY','NHAN_VIEN_BAN_HANG')")
+    public ApiResponse<Object> waitingActions(
+            @RequestParam(defaultValue = "ORDER") String kind,
+            @RequestParam(defaultValue = "") String keyword,
+            @RequestParam(defaultValue = "0") int priority,
+            @RequestParam(name = "order_id", required = false) Long orderId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int limit) {
+
+        return ok(
+                "Danh sách yêu cầu chờ xử lý",
+                backorders.queue(kind, keyword, priority, orderId, page, limit));
+    }
+
+    @PostMapping("/waiting-actions/{kind}/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN','QUAN_LY','NHAN_VIEN_BAN_HANG')")
+    public ApiResponse<BackorderService.Result> waitingContact(
+            @PathVariable String kind,
+            @PathVariable Long id,
+            @RequestHeader("Idempotency-Key") String key,
+            @Valid @RequestBody BackorderService.ContactCommand request) {
+
+        return ok("Đã cập nhật liên hệ và lịch xử lý", backorders.contact(kind, id, key, request));
+    }
+
+    @GetMapping("/waiting-actions/{kind}/{id}/history")
+    @PreAuthorize("hasAnyRole('ADMIN','QUAN_LY','NHAN_VIEN_BAN_HANG')")
+    public ApiResponse<Object> waitingContactHistory(
+            @PathVariable String kind, @PathVariable Long id) {
+
+        return ok("Lịch sử liên hệ", backorders.history(kind, id));
+    }
 
   @GetMapping
   public ApiResponse<AdminSalesResponse.PageData<AdminOrderResponse.ListItem>> list(

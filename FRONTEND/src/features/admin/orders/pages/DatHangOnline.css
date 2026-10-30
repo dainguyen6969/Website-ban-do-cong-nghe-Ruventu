@@ -31,3 +31,82 @@
 .online-order-form[inert] {
   opacity: 0.65;
 }
+
+
+/* Goong Maps Autocomplete Dropdown in DatHangOnline */
+.goong-autocomplete-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: #ffffff;
+  border: 1px solid #111;
+  border-radius: 0;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12);
+  z-index: 100;
+  max-height: 250px;
+  overflow-y: auto;
+  margin-top: 4px;
+}
+
+.goong-suggestion-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 14px;
+  cursor: pointer;
+  border-bottom: 1px solid #f2f2f2;
+  transition: background-color 0.15s ease;
+}
+
+.goong-suggestion-item:last-child {
+  border-bottom: none;
+}
+
+.goong-suggestion-item:hover {
+  background-color: #f8f9fa;
+}
+
+.goong-suggestion-item .goong-icon {
+  color: #f11919;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.goong-item-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  overflow: hidden;
+  text-align: left;
+}
+
+.goong-main {
+  font-size: 12px;
+  font-weight: 700;
+  color: #111;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.goong-secondary {
+  font-size: 11px;
+  color: #777;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.spin-animate {
+  animation: goong-spin 1s linear infinite;
+}
+
+@keyframes goong-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}

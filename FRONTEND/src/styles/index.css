@@ -179,22 +179,51 @@ html:has(.storefront-app) {
   display: block;
 }
 
-/* Scrollbar styling */
-:where(.admin-app) ::-webkit-scrollbar {
-  width: 5px;
+/* Scrollbar styling for main content area (nội dung trang cần rõ ràng) */
+:where(.admin-app) .app-layout__main ::-webkit-scrollbar,
+:where(.admin-app) [class*="-page"]::-webkit-scrollbar,
+:where(.admin-app) [class*="-page"] ::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
 }
 
-:where(.admin-app) ::-webkit-scrollbar-track {
-  background: transparent;
+:where(.admin-app) .app-layout__main ::-webkit-scrollbar-track,
+:where(.admin-app) [class*="-page"]::-webkit-scrollbar-track,
+:where(.admin-app) [class*="-page"] ::-webkit-scrollbar-track {
+  background: #f1f5f9;
 }
 
-:where(.admin-app) ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.15);
-  border-radius: var(--radius-full);
+:where(.admin-app) .app-layout__main ::-webkit-scrollbar-thumb,
+:where(.admin-app) [class*="-page"]::-webkit-scrollbar-thumb,
+:where(.admin-app) [class*="-page"] ::-webkit-scrollbar-thumb {
+  background: #94a3b8;
+  border-radius: 4px;
 }
 
-:where(.admin-app) ::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.25);
+:where(.admin-app) .app-layout__main ::-webkit-scrollbar-thumb:hover,
+:where(.admin-app) [class*="-page"]::-webkit-scrollbar-thumb:hover,
+:where(.admin-app) [class*="-page"] ::-webkit-scrollbar-thumb:hover {
+  background: #64748b;
+}
+
+:where(.admin-app) .app-layout__main,
+:where(.admin-app) [class*="-page"] {
+  scrollbar-width: thin;
+  scrollbar-color: #94a3b8 #f1f5f9;
+}
+
+/* Sidebar scrollbar: ẩn thanh kéo để menu đen gọn gàng, vẫn cuộn mượt bằng chuột */
+:where(.admin-app) .sidebar,
+:where(.admin-app) .sidebar__nav {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+
+:where(.admin-app) .sidebar::-webkit-scrollbar,
+:where(.admin-app) .sidebar__nav::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
 }
 
 /* Utility classes */

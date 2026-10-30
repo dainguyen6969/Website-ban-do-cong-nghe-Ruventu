@@ -310,7 +310,8 @@ public class AdminInventoryCheckService {
         (long) newPhysical
             - stockNumbers.damaged()
             - stockNumbers.orderHeld()
-            - stockNumbers.warrantyHeld();
+            - stockNumbers.warrantyHeld()
+            - stock.getSoLuongCachLyThuHoi();
 
     if (calculatedAvailable < 0 || calculatedAvailable > Integer.MAX_VALUE) {
 

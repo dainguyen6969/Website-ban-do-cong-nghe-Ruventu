@@ -5,6 +5,7 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 import java.util.List;
 import lombok.*;
 
@@ -18,6 +19,10 @@ public class AdminPurchaseOrderReceiveRequest {
   @JsonProperty("kho_hang_id")
   @NotNull(message = "Kho hàng không được để trống")
   private Long khoHangId;
+
+  @JsonProperty("ma_phieu_xuat_ncc")
+  @Size(max = 100)
+  private String maPhieuXuatNcc;
 
   @Valid
   @NotEmpty(message = "Danh sách nhập kho không được trống")
@@ -33,6 +38,10 @@ public class AdminPurchaseOrderReceiveRequest {
     @JsonProperty("chi_tiet_don_nhap_id")
     @NotNull(message = "Chi tiết đơn nhập không được để trống")
     private Long chiTietDonNhapId;
+
+    @JsonProperty("ma_lo_ncc")
+    @Size(max = 100)
+    private String maLoNcc;
 
     @JsonProperty("so_luong_nhap_kho")
     @NotNull

@@ -12,6 +12,7 @@ import com.example.dantruventu.Repository.order.GiuHangTungPhanRepository;
 import com.example.dantruventu.Repository.warehouse.SoSerialSanPhamRepository;
 import com.example.dantruventu.Repository.warehouse.TheKhoRepository;
 import com.example.dantruventu.Services.order.sales.*;
+import com.example.dantruventu.Services.warehouse.RecallSafety;
 import jakarta.persistence.EntityManager;
 import java.time.Duration;
 import java.time.LocalDateTime;
@@ -38,6 +39,7 @@ public class OrderInventoryService {
   private final SoldDeviceService soldDevices;
   private final GiuHangTungPhanRepository partialReservationRepository;
   private final OrderIntakePolicy intakePolicy;
+  private final RecallSafety recallSafety;
 
   @Value("${ruventu.sales.reservation-ttl}")
   private Duration reservationTtl;
@@ -689,6 +691,8 @@ public class OrderInventoryService {
       SoSerialSanPham serial = locked.get(entry.getKey());
       Key key = entry.getValue();
 
+      recallSafety.requireSerialClear(serial);
+
       if (!heldForOrder(serial, order)
           || !Objects.equals(serial.getChiTietDongGoi().getId(), key.lineId())
           || !Objects.equals(serial.getPhienBan().getId(), key.variantId())
@@ -711,6 +715,8 @@ public class OrderInventoryService {
     Plan plan = plan(order, true);
     Map<Long, TonKho> stocks = lockStocks(plan, true);
     Map<Long, Key> selected = packingIndex(plan, request);
+
+    recallSafety.requireVariantsClear(plan.quantities().keySet());
 
     var previous = serialRepository.findPackingByOrderId(order.getId());
     Set<Long> previousIds = new TreeSet<>();
@@ -754,6 +760,8 @@ public class OrderInventoryService {
     for (var entry : selected.entrySet()) {
       var serial = locked.get(entry.getKey());
       var key = entry.getValue();
+
+      recallSafety.requireSerialClear(serial);
 
       if (!Objects.equals(serial.getPhienBan().getId(), key.variantId())
           || serial.getTrangThai() != TrangThaiSerial.TRONG_KHO
@@ -849,6 +857,9 @@ public class OrderInventoryService {
     if (!hasQuantityReservation(order)) {
       throw conflict("Đơn chưa giữ đủ hàng");
     }
+
+    recallSafety.requireVariantsClear(plan.quantities().keySet());
+    recallSafety.requireOrderClear(order.getId());
 
     Map<Long, Key> fixedSelection = packingIndex(plan, packingAllocation(order));
 
@@ -1055,7 +1066,9 @@ public class OrderInventoryService {
 
       if (stock == null) {
         if (allowMissing && !requireHeld) {
-          if (expectedHeld(variantId) != 0) {
+          Long reservedQuantity = expectedHeld(variantId);
+
+          if (reservedQuantity == null || reservedQuantity.longValue() != 0L) {
             throw conflict("Thiếu bản ghi tồn của phiên bản đang có hàng giữ: " + variantId);
           }
 
@@ -1072,44 +1085,41 @@ public class OrderInventoryService {
     for (var entry : stocks.entrySet()) {
       TonKho stock = entry.getValue();
 
-// Kiểm tra tính hợp lệ của dữ liệu tồn kho.
-Integer physical = stock.getTonThucTe();
-Integer damaged = stock.getHangLoi();
-Integer available = stock.getTonCoTheBan();
-Integer warrantyHeld = stock.getSoLuongGiuChoBaoHanh();
+      Integer physical = stock.getTonThucTe();
+      Integer damaged = stock.getHangLoi();
+      Integer available = stock.getTonCoTheBan();
+      Integer warrantyHeld = stock.getSoLuongGiuChoBaoHanh();
+      Integer quarantined = stock.getSoLuongCachLyThuHoi();
 
-if (physical == null
-    || damaged == null
-    || available == null
-    || warrantyHeld == null
-    || physical < 0
-    || damaged < 0
-    || available < 0
-    || warrantyHeld < 0
-    || (long) available + damaged + warrantyHeld > physical) {
+      if (physical == null
+          || damaged == null
+          || available == null
+          || warrantyHeld == null
+          || quarantined == null
+          || physical < 0
+          || damaged < 0
+          || available < 0
+          || warrantyHeld < 0
+          || quarantined < 0
+          || (long) available + damaged + warrantyHeld + quarantined > physical) {
 
-  throw conflict(
-      "Dữ liệu tồn kho hoặc giữ hàng bảo hành không hợp lệ tại phiên bản "
-          + entry.getKey());
-}
+        throw conflict(
+            "Dữ liệu tồn kho, giữ hàng bảo hành hoặc cách ly thu hồi "
+                + "không hợp lệ tại phiên bản "
+                + entry.getKey());
+      }
 
-// Hàng giữ đổi bảo hành không thuộc lượng giữ cho đơn bán.
-// Phần còn lại là số lượng đang giữ cho các đơn bán.
-long actualHeld =
-    (long) physical
-        - damaged
-        - available
-        - warrantyHeld;
+      // Hàng lỗi, giữ bảo hành và cách ly thu hồi
+      // không thuộc lượng giữ cho đơn bán.
+      long actualHeld = (long) physical - damaged - available - warrantyHeld - quarantined;
 
       Long expectedHeld = expectedHeld(entry.getKey());
 
       if (expectedHeld == null || actualHeld != expectedHeld.longValue()) {
-
         throw conflict("Tồn giữ hàng không nhất quán tại phiên bản " + entry.getKey());
       }
 
       if (requireHeld && actualHeld < plan.quantities().get(entry.getKey())) {
-
         throw conflict("Đơn chưa được giữ đủ hàng");
       }
     }
