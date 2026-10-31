@@ -32,24 +32,37 @@ class CustomerOrderDetailTest {
   @Test
   void detailLoadsImagesInOneBatchPreferringPrimaryAndKeepingMissingImagesNull() {
     var user = NguoiDung.builder().id(1L).build();
-    var order = DonHang.builder().id(9L).tongThanhToan(BigDecimal.TEN).tongTienHang(BigDecimal.TEN).build();
+    var order =
+        DonHang.builder().id(9L).tongThanhToan(BigDecimal.TEN).tongTienHang(BigDecimal.TEN).build();
     var first = SanPham.builder().id(10L).tenSanPham("CPU").build();
     var second = SanPham.builder().id(11L).tenSanPham("RAM").build();
     var third = SanPham.builder().id(12L).tenSanPham("MAIN").build();
     var products = List.of(first, second, third, first);
-    var lines = products.stream().map(product -> ChiTietDonHang.builder()
-        .phienBan(PhienBanSanPham.builder().id(product.getId()).sanPham(product).build())
-        .soLuong(1).build()).toList();
+    var lines =
+        products.stream()
+            .map(
+                product ->
+                    ChiTietDonHang.builder()
+                        .phienBan(
+                            PhienBanSanPham.builder().id(product.getId()).sanPham(product).build())
+                        .soLuong(1)
+                        .build())
+            .toList();
     when(orderRepository.findByIdAndKhachHangId(9L, 1L)).thenReturn(Optional.of(order));
     when(orderLineRepository.findByDonHang_IdOrderByIdAsc(9L)).thenReturn(lines);
     when(serialRepository.findByDonHang_IdOrderByIdAsc(9L)).thenReturn(List.of());
     when(deliveryRepository.findByDonHang_IdOrderByIdAsc(9L)).thenReturn(List.of());
     when(imageRepository.findBySanPhamIdInOrderByThuTuHienThiAscIdAsc(List.of(10L, 11L, 12L)))
-        .thenReturn(List.of(
-            AnhSanPham.builder().sanPham(first).duongDanAnh("cpu-first.jpg").build(),
-            AnhSanPham.builder().sanPham(first).duongDanAnh("cpu-main.jpg").laAnhChinh(true).build(),
-            AnhSanPham.builder().sanPham(first).duongDanAnh("cpu-other.jpg").build(),
-            AnhSanPham.builder().sanPham(second).duongDanAnh("ram-first.jpg").build()));
+        .thenReturn(
+            List.of(
+                AnhSanPham.builder().sanPham(first).duongDanAnh("cpu-first.jpg").build(),
+                AnhSanPham.builder()
+                    .sanPham(first)
+                    .duongDanAnh("cpu-main.jpg")
+                    .laAnhChinh(true)
+                    .build(),
+                AnhSanPham.builder().sanPham(first).duongDanAnh("cpu-other.jpg").build(),
+                AnhSanPham.builder().sanPham(second).duongDanAnh("ram-first.jpg").build()));
 
     var detail = service.getOrderDetail(user, 9L);
     assertEquals("cpu-main.jpg", detail.getSanPham().get(0).getAnhDaiDien());

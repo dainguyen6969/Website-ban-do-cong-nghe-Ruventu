@@ -6,5 +6,8 @@ public enum TrangThaiSerial {
   DANG_BAO_HANH,
   LOI,
   GIU_CHO_BAO_HANH,
-  DA_THAY_THE_BAO_HANH
+  DA_THAY_THE_BAO_HANH,
+  DA_TRA_NCC,
+  DANG_GUI_NCC,
+  DA_DOI_NCC
 }

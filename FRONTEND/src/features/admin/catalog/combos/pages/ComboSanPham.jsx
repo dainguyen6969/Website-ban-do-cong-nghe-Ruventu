@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { HiOutlinePlus, HiOutlineSearch } from "react-icons/hi";
 import TablePagination from "../../../../../shared/components/ui/TablePagination";
+import FilterDropdown from "../../../../../shared/components/ui/FilterDropdown";
 import StopComboModal from "../components/StopComboModal";
 import fallbackImage from "../../../../../assets/hero.png";
 import { deactivateCombo, getComboPage, getComboStats } from "../api/comboApi";
@@ -116,18 +117,19 @@ export default function ComboSanPham() {
             placeholder="Tìm tên Combo hoặc mã Combo..."
           />
         </label>
-        <select
+        <FilterDropdown
           id="combo-status-filter"
           value={status}
           onChange={(e) => {
             setStatus(e.target.value);
             setPage(1);
           }}
+          selectedDark
         >
           <option>Tất cả trạng thái</option>
           <option>Đang kinh doanh</option>
           <option>Ngưng kinh doanh</option>
-        </select>
+        </FilterDropdown>
       </div>
       <div className="combo-table-wrap">
         <table className="combo-table">
@@ -137,7 +139,7 @@ export default function ComboSanPham() {
               <th>MÃ COMBO</th>
               <th>TÊN COMBO</th>
               <th>THÀNH PHẦN</th>
-              <th>CÓ THỂ BÁN</th>
+              <th>SỐ BỘ CÓ THỂ LẮP</th>
               <th>TỒN THỰC TẾ</th>
               <th>GIÁ BÁN</th>
               <th>TRẠNG THÁI</th>
@@ -183,7 +185,7 @@ export default function ComboSanPham() {
                   <td className="number-strong">
                     {combo.assemblyCapacity ?? "—"}
                   </td>
-                  <td>{combo.stock}</td>
+                  <td>—</td>
                   <td className="number-strong">{money(combo.price)}</td>
                   <td>
                     <span

@@ -44,3 +44,25 @@
   transform: scale(1.1);
 }
 
+@media (max-width: 768px) {
+  .brands-container {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+
+  .brands-container::-webkit-scrollbar {
+    display: none;
+  }
+
+  .brands-list {
+    min-width: max-content;
+    gap: 16px;
+    justify-content: flex-start;
+  }
+
+  .brand-item {
+    flex: none;
+    padding: 0 8px;
+  }
+}

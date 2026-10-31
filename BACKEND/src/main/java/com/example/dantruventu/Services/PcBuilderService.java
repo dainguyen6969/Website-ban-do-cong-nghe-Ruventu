@@ -1,5 +1,7 @@
 package com.example.dantruventu.Services;
 
+import static com.example.dantruventu.Services.order.sales.SalesSupport.money;
+
 import com.example.dantruventu.Config.PcBuilderProperties;
 import com.example.dantruventu.DTO.Request.PcBuilderPreviewRequest;
 import com.example.dantruventu.DTO.Response.PaginationResponse;
@@ -15,6 +17,7 @@ import com.example.dantruventu.Error.AppException;
 import com.example.dantruventu.Error.ErrorCode;
 import com.example.dantruventu.Repository.DanhMucRepository;
 import com.example.dantruventu.Repository.product.PhienBanSanPhamRepository;
+import com.example.dantruventu.Services.catalog.CatalogSupport;
 import com.example.dantruventu.Services.order.sales.SalesContext;
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -48,6 +51,7 @@ public class PcBuilderService {
   private final SalesContext salesContext;
   private final PcBuilderSocketSupport socketSupport;
   private final PcBuilderStockSupport stockSupport;
+  private final CatalogSupport catalog;
 
   public PcBuilderPreviewResponse preview(PcBuilderPreviewRequest request) {
     try {
@@ -69,22 +73,30 @@ public class PcBuilderService {
                           new PcBuilderStockSupport.DemandInput(item.variantId(), item.quantity()))
                   .toList());
       var variants = validateVariants(selected);
+
+      var attributes = catalog.attributes(variants.keySet());
+
       Map<PcBuilderCategory, PhienBanSanPham> variantBySlot =
           new EnumMap<>(PcBuilderCategory.class);
+
       for (Selection selection : selected) {
         var variant = variants.get(selection.variantId());
         variantBySlot.put(selection.category(), variant);
       }
 
       Long warehouseId = resolveWarehouse(ErrorCode.PC_BUILDER_PREVIEW_FAILED);
+
       var available = stockSupport.availableStock(demand.keySet(), warehouseId);
       var items = new ArrayList<PcBuilderPreviewResponse.Item>(selected.size());
+
       BigDecimal subtotal = BigDecimal.ZERO;
+
       long totalQuantity = 0L;
+
       for (Selection selection : selected) {
         var variant = variants.get(selection.variantId());
-        BigDecimal unitPrice = variant.getGiaBanLe();
-        BigDecimal amount = unitPrice.multiply(BigDecimal.valueOf(selection.quantity()));
+        BigDecimal unitPrice = money(variant.getGiaBanLe());
+        BigDecimal amount = money(unitPrice.multiply(BigDecimal.valueOf(selection.quantity())));
         items.add(
             new PcBuilderPreviewResponse.Item(
                 selection.category().name(),
@@ -94,7 +106,9 @@ public class PcBuilderService {
                 selection.quantity(),
                 unitPrice,
                 amount,
-                available.get(variant.getId())));
+                available.get(variant.getId()),
+                variant.getSanPham().getThoiHanBaoHanhThang(),
+                attributes.getOrDefault(variant.getId(), List.of())));
         subtotal = subtotal.add(amount);
         totalQuantity = Math.addExact(totalQuantity, selection.quantity());
       }
@@ -377,6 +391,13 @@ public class PcBuilderService {
               .map(row -> new PcBuilderProductsResponse.Brand(row.getId(), row.getTenThuongHieu()))
               .toList();
       String finalReferenceSocket = referenceSocket;
+
+      var attributes =
+          catalog.attributes(
+              result.getContent().stream()
+                  .map(PhienBanSanPhamRepository.PcBuilderProduct::getPhienBanId)
+                  .toList());
+
       var items =
           result.getContent().stream()
               .map(
@@ -394,15 +415,16 @@ public class PcBuilderService {
                             ? null
                             : new PcBuilderProductsResponse.Brand(
                                 row.getThuongHieuId(), row.getTenThuongHieu()),
-                        row.getGiaBanLe(),
-                        null,
+                        money(row.getGiaBanLe()),
+                        row.getBaoHanhThang(),
                         stock,
                         stock > 0 ? "CON_HANG" : "HET_HANG",
                         socketSupport.mainSpecifications(row.getThongSoKyThuat()),
                         referenceId == null
                             ? null
                             : socketSupport.compare(finalReferenceSocket, row.getThongSoKyThuat()),
-                        stock > 0);
+                        stock > 0,
+                        attributes.getOrDefault(row.getPhienBanId(), List.of()));
                   })
               .toList();
       var pagination =

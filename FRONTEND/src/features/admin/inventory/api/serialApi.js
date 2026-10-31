@@ -3,9 +3,21 @@ export { nextWarehouseStatus, SERIAL_STATUS_META } from './serialStatus.js';
 
 import { SERIAL_STATUS_META } from './serialStatus.js';
 
-const formatDate = (value) => value
-  ? new Intl.DateTimeFormat('vi-VN').format(new Date(value))
-  : '—';
+const formatDate = (value) => {
+  if (!value) return '—';
+
+  const text = /(?:Z|[+-]\d{2}:\d{2})$/i.test(value)
+    ? value
+    : `${String(value).replace(' ', 'T')}+07:00`;
+
+  const date = new Date(text);
+
+  return Number.isNaN(date.getTime())
+    ? '—'
+    : new Intl.DateTimeFormat('vi-VN', {
+        timeZone: 'Asia/Ho_Chi_Minh',
+      }).format(date);
+};
 
 const normalize = (item) => ({
   id: Number(item.id),
@@ -16,8 +28,15 @@ const normalize = (item) => ({
   barcode: item.ma_vach || '',
   serial: item.so_serial || '',
   status: item.trang_thai,
+  recallBlocked: item.bi_thu_hoi === true || item.bi_thu_hoi === 1 || item.bi_thu_hoi === '1',
+  condition: item.tinh_trang_hang || 'CHUA_XAC_DINH',
+  supplierHistory: item.xu_ly_ncc || [],
   activatedAt: formatDate(item.ngay_kich_hoat),
-  warrantyUntil: formatDate(item.han_bao_hanh),
+  warrantyUntil: item.han_bao_hanh
+    ? formatDate(item.han_bao_hanh)
+    : item.ngay_kich_hoat
+      ? 'Chưa xác định hạn'
+      : 'Chưa kích hoạt',
   order: item.don_hang || null,
 });
 
@@ -38,21 +57,52 @@ export async function getSerialPage(filters, signal) {
   };
 }
 
+export async function getAvailableSerials(versionId, serial, signal) {
+  // shortcut: load one variant's serials in full; use incremental loading for very large variant inventories.
+  const items = [];
+  let totalItems = 0;
+  for (let page = 1, totalPages = 1; page <= totalPages; page += 1) {
+    const data = await getSerialPage(
+      { versionId, serial, status: 'TRONG_KHO', page, limit: 100 },
+      signal
+    );
+    items.push(...data.items);
+    totalItems = data.totalItems;
+    totalPages = data.totalPages;
+  }
+
+  const clearItems = items.filter((item) => !item.recallBlocked);
+
+  return {
+    items: clearItems,
+    totalItems: clearItems.length,
+  };
+}
+
 export async function getSerialCounts(signal) {
-  const entries = await Promise.all(Object.keys(SERIAL_STATUS_META).map(async (status) => {
-    const data = await adminRequest(`/api/v1/admin/serials?trang_thai=${status}&page=0&limit=1`, { signal });
-    return [status, Number(data?.pagination?.total_elements || 0)];
-  }));
+  const entries = await Promise.all(
+    Object.keys(SERIAL_STATUS_META).map(async (status) => {
+      const data = await adminRequest(`/api/v1/admin/serials?trang_thai=${status}&page=0&limit=1`, {
+        signal,
+      });
+      return [status, Number(data?.pagination?.total_elements || 0)];
+    })
+  );
   return Object.fromEntries(entries);
 }
 
 export async function getSerialDetail(id, signal) {
-  return normalize(await adminRequest(`/api/v1/admin/serials/${encodeURIComponent(id)}`, { signal }));
+  return normalize(
+    await adminRequest(`/api/v1/admin/serials/${encodeURIComponent(id)}`, { signal })
+  );
 }
 
-export async function updateSerialStatus(id, status, reason) {
+export async function updateSerialStatus(id, key, body) {
   return adminRequest(`/api/v1/admin/serials/${encodeURIComponent(id)}/status`, {
     method: 'PATCH',
-    body: JSON.stringify({ trang_thai: status, ly_do: reason.trim() }),
+    headers: {
+      'Idempotency-Key': key,
+    },
+    body: JSON.stringify(body),
   });
 }

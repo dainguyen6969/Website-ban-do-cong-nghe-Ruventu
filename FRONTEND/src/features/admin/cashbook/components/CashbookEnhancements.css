@@ -1,0 +1,127 @@
+.cash-source-filters {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
+  margin: 16px 0;
+  padding: 16px;
+  border: 1px solid #dedede;
+  background: #fafafa;
+}
+
+.cash-source-filters legend {
+  padding: 0 8px;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.cash-source-filters label {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  min-width: 0;
+}
+
+.cash-source-filters label > span {
+  color: #595959;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.cash-source-filters input,
+.cash-source-filters select {
+  width: 100%;
+  min-height: 38px;
+  padding: 8px 10px;
+  border: 1px solid #cfcfcf;
+  background: #fff;
+  color: #171717;
+  box-sizing: border-box;
+}
+
+.cash-source-filter-actions {
+  display: flex;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.cash-source-filter-actions button {
+  min-height: 38px;
+  padding: 8px 12px;
+  border: 1px solid #171717;
+  background: #171717;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.cash-source-filter-actions button + button {
+  background: #fff;
+  color: #171717;
+}
+
+.cash-source-info {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  padding: 14px;
+  border: 1px solid #e5e5e5;
+  background: #fafafa;
+  line-height: 1.5;
+}
+
+.cash-source-info.is-compact {
+  min-width: 160px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font-size: 12px;
+}
+
+.cash-source-info a {
+  color: #b91c1c;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.cash-source-info a:hover {
+  text-decoration: underline;
+}
+
+.cash-source-info p {
+  margin: 0;
+  color: #64748b;
+  font-size: 12px;
+}
+
+.cash-operation-error,
+.cash-operation-warning {
+  margin: 12px 0;
+  padding: 12px 14px;
+  border: 1px solid #fecaca;
+  background: #fff1f2;
+  color: #b91c1c;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+
+@media (max-width: 640px) {
+  .cash-source-filters {
+    grid-template-columns: 1fr;
+    padding: 12px;
+    box-sizing: border-box;
+    width: 100%;
+  }
+  .cash-source-filter-actions {
+    flex-direction: column;
+    align-items: stretch;
+    width: 100%;
+  }
+  .cash-source-filter-actions button {
+    width: 100%;
+    justify-content: center;
+    text-align: center;
+  }
+}

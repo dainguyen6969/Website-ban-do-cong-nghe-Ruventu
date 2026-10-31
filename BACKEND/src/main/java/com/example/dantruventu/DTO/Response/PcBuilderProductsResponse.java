@@ -34,5 +34,8 @@ public record PcBuilderProductsResponse(
       @JsonProperty("tinh_trang_hang") String tinhTrangHang,
       @JsonProperty("thong_so_chinh") Map<String, Object> thongSoChinh,
       @JsonProperty("ket_qua_socket") String ketQuaSocket,
-      @JsonProperty("co_the_chon") boolean coTheChon) {}
+      @JsonProperty("co_the_chon") boolean coTheChon,
+      @JsonProperty("thuoc_tinh_phien_ban")
+          List<com.example.dantruventu.DTO.catalog.CatalogFields.AttributeData>
+              thuocTinhPhienBan) {}
 }

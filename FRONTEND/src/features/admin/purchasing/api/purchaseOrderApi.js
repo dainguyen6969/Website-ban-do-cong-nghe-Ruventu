@@ -1,61 +1,120 @@
-import { adminRequest, getAllVersions, getWarehouses } from '../../catalog/products/api/versionApi.js';
+import {
+  adminRequest,
+  getAllVersions,
+  getWarehouses,
+} from '../../catalog/products/api/versionApi.js';
 
 const PATH = '/api/v1/admin/purchase-orders';
-const nullableNumber = (value) =>
-  value == null ? null : Number(value);
+const nullableNumber = (value) => (value == null ? null : Number(value));
 
 export const IMPORT_STATUS = {
-  DAT_HANG: 'Đặt hàng', DA_DUYET: 'Đã duyệt', NHAP_MOT_PHAN: 'Nhập một phần',
-  DA_NHAP_KHO: 'Đã nhập kho', HOAN_TRA_MOT_PHAN: 'Hoàn trả một phần',
-  HOAN_TRA_TOAN_BO: 'Hoàn trả toàn bộ', HUY: 'Đã hủy',
+  DAT_HANG: 'Đặt hàng',
+  DA_DUYET: 'Đã duyệt',
+  NHAP_MOT_PHAN: 'Nhập một phần',
+  DA_NHAP_KHO: 'Đã nhập kho',
+  HOAN_TRA_MOT_PHAN: 'Hoàn trả một phần',
+  HOAN_TRA_TOAN_BO: 'Hoàn trả toàn bộ',
+  HUY: 'Đã hủy',
 };
-export const PAYMENT_STATUS = { CHUA_TRA: 'Chưa trả', TRA_MOT_PHAN: 'Trả một phần', DA_TRA: 'Đã trả' };
+export const PAYMENT_STATUS = {
+  CHUA_TRA: 'Chưa trả',
+  TRA_MOT_PHAN: 'Trả một phần',
+  DA_TRA: 'Đã trả',
+};
 
-export const formatDate = (value) => value ? new Intl.DateTimeFormat('vi-VN').format(new Date(value)) : '—';
+export const getPurchaseReturnSerials = (id, detailId, signal) =>
+  adminRequest(
+    `${PATH}/${encodeURIComponent(id)}/return-serials?` +
+      new URLSearchParams({
+        chi_tiet_don_nhap_id: String(detailId),
+      }),
+    { signal }
+  );
+
+export const formatDate = (value) =>
+  value ? new Intl.DateTimeFormat('vi-VN').format(new Date(value)) : '—';
 const number = (value) => Number(value || 0);
 const supplier = (item = {}) => ({
-  id: number(item.id), code: item.ma_nha_cung_cap || '', name: item.ten_nha_cung_cap || '',
-  phone: item.so_dien_thoai || '', email: item.email || '', address: item.dia_chi || '',
+  id: number(item.id),
+  code: item.ma_nha_cung_cap || '',
+  name: item.ten_nha_cung_cap || '',
+  phone: item.so_dien_thoai || '',
+  email: item.email || '',
+  address: item.dia_chi || '',
 });
-const warehouse = (item = {}) => ({ id: number(item.id), code: item.ma_kho || '', name: item.ten_kho || '' });
+const warehouse = (item = {}) => ({
+  id: number(item.id),
+  code: item.ma_kho || '',
+  name: item.ten_kho || '',
+});
 
 export function normalizePurchaseOrder(item) {
   return {
-    id: number(item.id), code: item.ma_don_nhap || '', supplier: supplier(item.nha_cung_cap),
-    warehouse: warehouse(item.kho_hang), importStatus: item.trang_thai_nhap,
+    id: number(item.id),
+    code: item.ma_don_nhap || '',
+    supplier: supplier(item.nha_cung_cap),
+    warehouse: warehouse(item.kho_hang),
+
+    importStatus: item.trang_thai_nhap,
     importStatusLabel: IMPORT_STATUS[item.trang_thai_nhap] || item.trang_thai_nhap,
+
     paymentStatus: item.trang_thai_thanh_toan,
     paymentStatusLabel: PAYMENT_STATUS[item.trang_thai_thanh_toan] || item.trang_thai_thanh_toan,
-    applyTax: Boolean(item.ap_dung_thue), taxRate: number(item.thue_vat), goodsTotal: number(item.tien_hang),
-    taxTotal: number(item.tien_thue), total: number(item.tong_tien), 
+
+    applyTax: Boolean(item.ap_dung_thue),
+    taxRate: number(item.thue_vat),
+    goodsTotal: number(item.tien_hang),
+    taxTotal: number(item.tien_thue),
+    total: number(item.tong_tien),
+
     paid: nullableNumber(item.so_tien_da_thanh_toan),
     debt: nullableNumber(item.so_tien_con_no),
 
     returnedValue: nullableNumber(item.gia_tri_hang_tra),
+    nccAdjustment: nullableNumber(item.gia_tri_dieu_chinh_ncc),
     netOrderValue: nullableNumber(item.gia_tri_sau_tra),
 
     refunded: nullableNumber(item.so_tien_da_nhan_hoan),
     netPaid: nullableNumber(item.so_tien_da_thanh_toan_thuan),
-
     refundDue: nullableNumber(item.so_tien_ncc_con_phai_hoan),
-    netPaid: nullableNumber(item.so_tien_da_thanh_toan_thuan),
 
-refundDue:
-  item.so_tien_ncc_con_phai_hoan == null
-    ? null
-    : Number(item.so_tien_ncc_con_phai_hoan),
-     createdAt: item.ngay_tao, createdAtLabel: formatDate(item.ngay_tao),
+    createdAt: item.ngay_tao,
+    createdAtLabel: formatDate(item.ngay_tao),
+
+    receivedSerials: (item.serial_da_nhan || []).map((serial) => ({
+      id: number(serial.id),
+      versionId: number(serial.phien_ban_id),
+      name: serial.ten_phien_ban || '',
+      code: serial.so_serial || '',
+      status: serial.trang_thai,
+      recallBlocked: serial.bi_thu_hoi === true,
+      packingHeld: serial.dang_dong_goi === true,
+    })),
+
     items: (item.items || []).map((line) => ({
-      id: number(line.id), versionId: number(line.phien_ban_id), name: line.ten_phien_ban || '',
-      qty: number(line.so_luong), unitPrice: number(line.gia_nhap), lineTotal: number(line.thanh_tien),
-      received: number(line.so_luong_da_nhap_kho), returned: number(line.so_luong_da_tra),
-      serialManaged: line.quan_ly_serial, serialModeEstablished: Boolean(line.che_do_serial_da_xac_lap),
+      id: number(line.id),
+      versionId: number(line.phien_ban_id),
+      name: line.ten_phien_ban || '',
+
+      qty: number(line.so_luong),
+      unitPrice: number(line.gia_nhap),
+      lineTotal: number(line.thanh_tien),
+
+      received: number(line.so_luong_da_nhap_kho),
+      returned: number(line.so_luong_da_tra),
+      legacyReturnLimit: nullableNumber(line.so_luong_tra_theo_luong_cu_toi_da),
+
+      serialManaged: line.quan_ly_serial,
+      serialModeEstablished: Boolean(line.che_do_serial_da_xac_lap),
     })),
   };
 }
 
 export async function getPurchaseOrderPage(filters, signal) {
-  const params = new URLSearchParams({ page: String(Math.max(0, Number(filters.page || 1) - 1)), limit: '10' });
+  const params = new URLSearchParams({
+    page: String(Math.max(0, Number(filters.page || 1) - 1)),
+    limit: '10',
+  });
   if (filters.keyword?.trim()) params.set('keyword', filters.keyword.trim());
   if (filters.supplierId) params.set('nha_cung_cap_id', filters.supplierId);
   if (filters.importStatus) params.set('trang_thai_nhap', filters.importStatus);
@@ -63,16 +122,19 @@ export async function getPurchaseOrderPage(filters, signal) {
   const data = await adminRequest(`${PATH}?${params}`, { signal });
   return {
     items: (data?.items || []).map(normalizePurchaseOrder),
-    totalItems: number(data?.pagination?.total_elements), totalPages: number(data?.pagination?.total_pages),
+    totalItems: number(data?.pagination?.total_elements),
+    totalPages: number(data?.pagination?.total_pages),
   };
 }
 
-export const getPurchaseOrder = async (id, signal) => normalizePurchaseOrder(
-  await adminRequest(`${PATH}/${encodeURIComponent(id)}`, { signal }),
-);
-export const createPurchaseOrder = (body) => adminRequest(PATH, { method: 'POST', body: JSON.stringify(body) });
-export const updatePurchaseOrder = (id, body) => adminRequest(`${PATH}/${id}`, { method: 'PUT', body: JSON.stringify(body) });
-export const approvePurchaseOrder = (id) => adminRequest(`${PATH}/${id}/approve`, { method: 'POST' });
+export const getPurchaseOrder = async (id, signal) =>
+  normalizePurchaseOrder(await adminRequest(`${PATH}/${encodeURIComponent(id)}`, { signal }));
+export const createPurchaseOrder = (body) =>
+  adminRequest(PATH, { method: 'POST', body: JSON.stringify(body) });
+export const updatePurchaseOrder = (id, body) =>
+  adminRequest(`${PATH}/${id}`, { method: 'PUT', body: JSON.stringify(body) });
+export const approvePurchaseOrder = (id) =>
+  adminRequest(`${PATH}/${id}/approve`, { method: 'POST' });
 export const cancelPurchaseOrder = (id) => adminRequest(`${PATH}/${id}/cancel`, { method: 'POST' });
 export const payPurchaseOrder = (id, key, body) =>
   adminRequest(`${PATH}/${encodeURIComponent(id)}/payments`, {
@@ -82,21 +144,28 @@ export const payPurchaseOrder = (id, key, body) =>
     },
     body: JSON.stringify(body),
   });
-export const receivePurchaseOrder = (id, body) => adminRequest(`${PATH}/${id}/receive`, { method: 'POST', body: JSON.stringify(body) });
+export const receivePurchaseOrder = (id, key, body) =>
+  adminRequest(`${PATH}/${encodeURIComponent(id)}/receive`, {
+    method: 'POST',
+    headers: {
+      'Idempotency-Key': key,
+    },
+    body: JSON.stringify(body),
+  });
 export const returnPurchaseOrder = (id, key, body) =>
   adminRequest(`${PATH}/${encodeURIComponent(id)}/returns`, {
-    method: "POST",
+    method: 'POST',
     headers: {
-      "Idempotency-Key": key,
+      'Idempotency-Key': key,
     },
     body: JSON.stringify(body),
   });
 
 export const receivePurchaseRefund = (id, key, body) =>
   adminRequest(`${PATH}/${encodeURIComponent(id)}/refunds`, {
-    method: "POST",
+    method: 'POST',
     headers: {
-      "Idempotency-Key": key,
+      'Idempotency-Key': key,
     },
     body: JSON.stringify(body),
   });
@@ -104,7 +173,11 @@ export const receivePurchaseRefund = (id, key, body) =>
 async function allPages(path, params, signal) {
   const items = [];
   for (let page = 0, pages = 1; page < pages; page += 1) {
-    const query = new URLSearchParams({ ...params, page: String(page), limit: '100' });
+    const query = new URLSearchParams({
+      ...params,
+      page: String(page),
+      limit: '100',
+    });
     const data = await adminRequest(`${path}?${query}`, { signal });
     items.push(...(data?.items || []));
     pages = number(data?.pagination?.total_pages);
@@ -115,18 +188,54 @@ async function allPages(path, params, signal) {
 export async function getSupplierOptions(signal) {
   return (await allPages('/api/v1/admin/suppliers', { trang_thai: '1' }, signal)).map(supplier);
 }
-export const getSupplierDetail = async (id, signal) => supplier(
-  await adminRequest(`/api/v1/admin/suppliers/${encodeURIComponent(id)}?page=0&limit=1`, { signal }),
-);
+export const getSupplierDetail = async (id, signal) =>
+  supplier(
+    await adminRequest(`/api/v1/admin/suppliers/${encodeURIComponent(id)}?page=0&limit=1`, {
+      signal,
+    })
+  );
 export async function getPurchaseOptions(signal) {
-  const [warehouses, versionData] = await Promise.all([getWarehouses(signal), getAllVersions(null, signal, false)]);
+  const [warehouses, versionData] = await Promise.all([
+    getWarehouses(signal),
+    getAllVersions(null, signal, false),
+  ]);
   return {
     warehouses,
-    versions: versionData.versions.map((item) => ({ id: item.id, name: item.displayName, sku: item.sku })),
+    versions: versionData.versions.map((item) => ({
+      id: item.id,
+      name: item.displayName,
+      sku: item.sku,
+    })),
   };
 }
 
 export const saveBody = ({ supplierId, warehouseId, applyTax, items }) => ({
-  nha_cung_cap_id: number(supplierId), kho_hang_id: number(warehouseId), ap_dung_thue: Boolean(applyTax),
-  items: items.map((item) => ({ phien_ban_id: number(item.versionId), so_luong: number(item.qty), gia_nhap: number(item.unitPrice) })),
+  nha_cung_cap_id: number(supplierId),
+  kho_hang_id: number(warehouseId),
+  ap_dung_thue: Boolean(applyTax),
+  items: items.map((item) => ({
+    phien_ban_id: number(item.versionId),
+    so_luong: number(item.qty),
+    gia_nhap: number(item.unitPrice),
+  })),
 });
+
+export const getSupplierCases = (poId, signal) =>
+  adminRequest(`${PATH}/${encodeURIComponent(poId)}/supplier-cases`, { signal });
+
+export const openSupplierCase = (poId, key, body) =>
+  adminRequest(`${PATH}/${encodeURIComponent(poId)}/supplier-cases`, {
+    method: 'POST',
+    headers: { 'Idempotency-Key': key },
+    body: JSON.stringify(body),
+  });
+
+export const sendSupplierCaseEvent = (poId, caseId, key, body) =>
+  adminRequest(
+    `${PATH}/${encodeURIComponent(poId)}/supplier-cases/${encodeURIComponent(caseId)}/events`,
+    {
+      method: 'POST',
+      headers: { 'Idempotency-Key': key },
+      body: JSON.stringify(body),
+    }
+  );

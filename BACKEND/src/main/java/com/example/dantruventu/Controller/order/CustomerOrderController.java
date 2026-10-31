@@ -5,7 +5,9 @@ import com.example.dantruventu.DTO.Request.order.CustomerOrderRequest;
 import com.example.dantruventu.DTO.Response.ApiResponse;
 import com.example.dantruventu.DTO.Response.order.CustomerOrderResponse;
 import com.example.dantruventu.Entity.NguoiDung;
+import com.example.dantruventu.Services.order.BackorderService;
 import com.example.dantruventu.Services.order.CustomerOrderService;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -29,6 +31,28 @@ public class CustomerOrderController {
   private static final String GUEST_CART_COOKIE_NAME = "guest_cart_id";
 
   private final CustomerOrderService customerOrderService;
+    private final BackorderService backorders;
+
+    @PostMapping("/stock-notifications")
+    public ApiResponse<BackorderService.Result> registerStockNotice(
+            Authentication authentication,
+            @CookieValue(value = GUEST_CART_COOKIE_NAME, required = false) String guestCartId,
+            @RequestHeader("Idempotency-Key") String key,
+            @Valid @RequestBody BackorderService.NoticeRegistration request,
+            HttpServletRequest httpRequest) {
+
+        return ApiResponse.<BackorderService.Result>builder()
+                .status(200)
+                .message("Đã ghi nhận đăng ký báo có hàng")
+                .data(
+                        backorders.registerNotice(
+                                getAuthenticatedUser(authentication),
+                                guestCartId,
+                                httpRequest.getRemoteAddr(),
+                                key,
+                                request))
+                .build();
+    }
 
   @PostMapping("/checkout/preview")
   public ApiResponse<CustomerOrderResponse.Preview> preview(
@@ -50,12 +74,14 @@ public class CustomerOrderController {
       Authentication authentication,
       @CookieValue(value = GUEST_CART_COOKIE_NAME, required = false) String guestCartId,
       @RequestHeader(name = "Idempotency-Key", required = false) String idempotencyKey,
-      @Valid @RequestBody CustomerCheckoutRequest.Checkout request) {
+      @Valid @RequestBody CustomerCheckoutRequest.Checkout request,
+      HttpServletRequest httpRequest) {
 
     NguoiDung user = getAuthenticatedUser(authentication);
 
     CustomerOrderResponse.Created data =
-        customerOrderService.checkout(user, guestCartId, idempotencyKey, request);
+        customerOrderService.checkout(
+            user, guestCartId, idempotencyKey, request, httpRequest.getRemoteAddr());
 
     ApiResponse<CustomerOrderResponse.Created> response =
         ApiResponse.<CustomerOrderResponse.Created>builder()
@@ -101,6 +127,7 @@ public class CustomerOrderController {
   public ApiResponse<CustomerOrderResponse.Cancelled> cancelOrder(
       Authentication authentication,
       @PathVariable Long id,
+      @RequestHeader(name = "Idempotency-Key", required = false) String idempotencyKey,
       @Valid @RequestBody CustomerOrderRequest.Cancel request) {
 
     NguoiDung user = getAuthenticatedUser(authentication);
@@ -108,7 +135,7 @@ public class CustomerOrderController {
     return ApiResponse.<CustomerOrderResponse.Cancelled>builder()
         .status(HttpStatus.OK.value())
         .message("Hủy đơn hàng thành công")
-        .data(customerOrderService.cancelOrder(user, id, request))
+        .data(customerOrderService.cancelOrder(user, id, idempotencyKey, request))
         .build();
   }
 

@@ -138,7 +138,7 @@ export const mockPcBuildProducts = [
     ],
     originalPrice: '14.490.000đ',
     price: '12.490.000đ',
-  }
+  },
 ];
 
 export const mockLinhKien = [
@@ -279,7 +279,7 @@ export const mockLinhKien = [
     ],
     originalPrice: '5.200.000đ',
     price: '4.800.000đ',
-  }
+  },
 ];
 
 export const mockGamingGear = [
@@ -341,5 +341,5 @@ export const mockGamingGear = [
       { label: 'Trọng lượng', value: '980g' },
     ],
     price: '5.290.000đ',
-  }
+  },
 ];

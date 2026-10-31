@@ -37,4 +37,13 @@ public class AdminComboComponentOptionResponse {
 
   @JsonProperty("ton_co_the_ban")
   private Long tonCoTheBan;
+
+  @JsonProperty("thoi_han_bao_hanh_thang")
+  private Integer thoiHanBaoHanhThang;
+
+  @JsonProperty("co_quan_ly_serial")
+  private Boolean coQuanLySerial;
+
+  @JsonProperty("anh_chinh")
+  private String anhChinh;
 }

@@ -2,6 +2,19 @@
 import { useState } from 'react';
 import './TablePagination.css';
 
+function getPageNumbers(currentPage, totalPages) {
+  if (totalPages <= 5) return Array.from({ length: totalPages }, (_, index) => index + 1);
+  const pages = new Set([1, totalPages]);
+  for (let page = Math.max(1, currentPage - 1); page <= Math.min(totalPages, currentPage + 1); page++) pages.add(page);
+  const result = [];
+  for (const page of [...pages].sort((a, b) => a - b)) {
+    const previous = result.at(-1);
+    if (page - previous > 1) result.push('...');
+    result.push(page);
+  }
+  return result;
+}
+
 export default function TablePagination({
   totalItems,
   pageSize = 10,
@@ -14,11 +27,10 @@ export default function TablePagination({
   const safePage = Math.min(Math.max(1, currentPage), totalPages);
   const startIndex = totalItems === 0 ? 0 : (safePage - 1) * pageSize + 1;
   const endIndex = Math.min(safePage * pageSize, totalItems);
-  const isMiddlePage = safePage > 2 && safePage < totalPages;
   const [jumpDraft, setJumpDraft] = useState(null);
-  const jumpPage = jumpDraft ?? (isMiddlePage ? String(safePage) : '');
+  const jumpPage = jumpDraft ?? String(safePage);
 
-  const changePage = (pageNumber) => onPageChange(Math.min(Math.max(1, pageNumber), totalPages));
+  const changePage = (pageNumber) => { setJumpDraft(null); onPageChange(Math.min(Math.max(1, pageNumber), totalPages)); };
   const commitJump = () => {
     const rawValue = jumpPage.trim();
     const parsedPage = Number(rawValue);
@@ -31,9 +43,7 @@ export default function TablePagination({
     changePage(targetPage);
   };
 
-  const compactPages = totalPages <= 3
-    ? Array.from({ length: totalPages }, (_, index) => index + 1)
-    : [1, 2];
+  const compactPages = getPageNumbers(safePage, totalPages);
 
   return (
     <div className="product-pagination-bar">
@@ -45,7 +55,7 @@ export default function TablePagination({
         <span className="product-pagination-range__text"> trên tổng số {totalItems} kết quả</span>
       </div>}
 
-      <div className="product-pagination-controls">
+      <nav className="product-pagination-controls" aria-label="Phân trang">
         {safePage > 1 && <button
           type="button"
           className="product-pagination-btn product-pagination-btn--nav"
@@ -55,7 +65,7 @@ export default function TablePagination({
         >
           ←
         </button>}
-        {compactPages.map((pageNumber) => (
+        {compactPages.map((pageNumber, index) => pageNumber === '...' ? <span key={`gap-${index}`} className="product-pagination-ellipsis" aria-hidden="true">...</span> : (
           <button
             key={pageNumber}
             type="button"
@@ -67,32 +77,25 @@ export default function TablePagination({
             {pageNumber}
           </button>
         ))}
-        {totalPages > 3 && <>
+        {totalPages > 3 &&
+          <label className="product-pagination-jump-label">
+          <span>Đến trang</span>
           <input
-            className={`product-pagination-jump ${isMiddlePage ? 'product-pagination-jump--current' : ''}`}
+            className="product-pagination-jump"
             type="number"
             min="1"
             max={totalPages}
             step="1"
             inputMode="numeric"
             value={jumpPage}
-            placeholder="…"
+            title="Nhập số trang rồi nhấn Enter"
             onChange={(event) => setJumpDraft(event.target.value)}
             onKeyDown={(event) => { if (event.key === 'Enter') commitJump(); }}
             onBlur={commitJump}
             aria-label="Đi đến trang"
             id={`${idPrefix}-pagination-jump`}
           />
-          <button
-            type="button"
-            className={`product-pagination-btn ${safePage === totalPages ? 'product-pagination-btn--active' : ''}`}
-            onClick={() => changePage(totalPages)}
-            aria-current={safePage === totalPages ? 'page' : undefined}
-            id={`${idPrefix}-pagination-page-${totalPages}`}
-          >
-            {totalPages}
-          </button>
-        </>}
+          </label>}
         {safePage < totalPages && <button
           type="button"
           className="product-pagination-btn product-pagination-btn--nav"
@@ -102,7 +105,7 @@ export default function TablePagination({
         >
           →
         </button>}
-      </div>
+      </nav>
     </div>
   );
 }

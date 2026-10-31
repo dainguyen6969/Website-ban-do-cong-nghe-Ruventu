@@ -7,6 +7,7 @@ import org.springframework.http.HttpStatus;
 @Getter
 @RequiredArgsConstructor
 public enum ErrorCode {
+  SYSTEM_MAINTENANCE(HttpStatus.SERVICE_UNAVAILABLE, "Hệ thống đang bảo trì."),
   INVALID_DATA(HttpStatus.BAD_REQUEST, "Dữ liệu không hợp lệ"),
 
   INVALID_PARAM(HttpStatus.BAD_REQUEST, "Tham số không hợp lệ."),
