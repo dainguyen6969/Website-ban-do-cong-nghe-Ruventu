@@ -235,7 +235,7 @@ public class AdminWarrantyStatusService {
             && state == TrangThaiSerial.GIU_CHO_BAO_HANH;
   }
 
-  private void validateDiscrepancies(
+  void validateDiscrepancies(
       List<LichSuBaoHanh> events, List<Long> resolving, Long returning) {
     Map<Long, Boolean> discrepancies = new LinkedHashMap<>();
     Map<Long, Long> deviceByDiscrepancy = new HashMap<>();
