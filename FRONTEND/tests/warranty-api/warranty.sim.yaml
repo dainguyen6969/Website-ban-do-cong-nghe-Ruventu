@@ -1,0 +1,6 @@
+simulation: ruventu-warranty-frontend
+routing: path
+mocks:
+  - name: warranty
+    routeKey: warranty
+    path: FRONTEND/tests/warranty-api/mock

@@ -12,10 +12,9 @@ export function WarrantyBadge({ children, tone }) {
 }
 
 export function WarrantyPanel({ title, note, action, children }) {
-  return <section className="w-shell-panel">
-    <header><div><h2>{title}</h2>{note && <p>{note}</p>}</div>{action}</header>
-    <div className="w-shell-panel-body">{children}</div>
-  </section>;
+  return <FormCard title={title} headerRight={action} className="w-shell-panel">
+    <div className="w-shell-panel-body">{note && <p className="w-shell-note w-panel-note">{note}</p>}{children}</div>
+  </FormCard>;
 }
 
 export function WarrantyFields({ fields }) {
@@ -23,5 +22,6 @@ export function WarrantyFields({ fields }) {
 }
 
 export function WarrantyTable({ columns, rows = [], empty }) {
-  return <div className="w-shell-table-scroll"><table className="w-shell-detail-table"><thead><tr>{columns.map(column => <th key={column}>{column}</th>)}</tr></thead><tbody>{rows.length ? rows.map((row, i) => <tr key={i}>{row.map((cell, j) => <td key={j}>{cell ?? '—'}</td>)}</tr>) : <tr><td colSpan={columns.length} className="w-shell-empty">{empty}</td></tr>}</tbody></table></div>;
+  return <div className="w-shell-table-scroll"><div className="admin-table-scroll admin-table-scroll--embedded" tabIndex={0} role="region" aria-label="Bảng dữ liệu liên quan"><table className="w-shell-detail-table admin-data-table admin-data-table--records"><thead><tr>{columns.map(column => <th key={column}>{column}</th>)}</tr></thead><tbody>{rows.length ? rows.map((row, i) => <tr key={i}>{row.map((cell, j) => <td key={j}>{cell ?? '—'}</td>)}</tr>) : <tr><td colSpan={columns.length} className="w-shell-empty">{empty}</td></tr>}</tbody></table></div></div>;
 }
+import FormCard from '../../../../shared/components/ui/FormCard';

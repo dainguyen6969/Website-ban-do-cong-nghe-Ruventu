@@ -1214,7 +1214,7 @@ function OrderDetailView({ orderId }) {
 
           {waitingRows.length > 0 ? (
             <div style={{ overflowX: 'auto' }}>
-              <table className="order-waiting-stock-table">
+              <div className="admin-table-scroll admin-table-scroll--embedded" tabIndex={0} role="region" aria-label="Bảng dữ liệu liên quan"><table className="order-waiting-stock-table admin-data-table admin-data-table--records">
                 <thead>
                   <tr>
                     <th>Sản phẩm / linh kiện</th>
@@ -1240,7 +1240,7 @@ function OrderDetailView({ orderId }) {
                     </tr>
                   ))}
                 </tbody>
-              </table>
+              </table></div>
             </div>
           ) : (
             <p>Chưa tải được thông tin giữ hàng của đơn.</p>
@@ -1300,7 +1300,7 @@ function OrderDetailView({ orderId }) {
         <div className="order-detail-main">
           <Panel title="SẢN PHẨM TRONG ĐƠN">
             <div className="order-products-table-wrap">
-              <table className="order-products-table">
+              <div className="admin-table-scroll admin-table-scroll--embedded" tabIndex={0} role="region" aria-label="Bảng dữ liệu liên quan"><table className="order-products-table admin-data-table admin-data-table--records">
                 <thead>
                   <tr>
                     <th>ẢNH</th>
@@ -1338,7 +1338,7 @@ function OrderDetailView({ orderId }) {
                     </tr>
                   ))}
                 </tbody>
-              </table>
+              </table></div>
             </div>
             <DetailTablePagination
               totalItems={(order.san_pham || []).length}
@@ -1594,7 +1594,7 @@ function OrderDetailView({ orderId }) {
                   <h3>THIẾT BỊ HIỆN HÀNH</h3>
 
                   <div className="sold-devices-scroll">
-                    <table className="sold-devices-table">
+                    <div className="admin-table-scroll admin-table-scroll--embedded" tabIndex={0} role="region" aria-label="Bảng dữ liệu liên quan"><table className="sold-devices-table admin-data-table admin-data-table--records">
                       <thead>
                         <tr>
                           <th>Mã theo dõi</th>
@@ -1644,7 +1644,7 @@ function OrderDetailView({ orderId }) {
                           );
                         })}
                       </tbody>
-                    </table>
+                    </table></div>
                   </div>
                 </>
               )}
@@ -1930,7 +1930,7 @@ function DeviceExchangeHistory({ order }) {
           <h3>LỊCH SỬ ĐỔI — {root.so_serial || root.ma_theo_doi}</h3>
 
           <div className="sold-devices-scroll">
-            <table className="sold-devices-table">
+            <div className="admin-table-scroll admin-table-scroll--embedded" tabIndex={0} role="region" aria-label="Bảng dữ liệu liên quan"><table className="sold-devices-table admin-data-table admin-data-table--records">
               <thead>
                 <tr>
                   <th>Lần</th>
@@ -1988,7 +1988,7 @@ function DeviceExchangeHistory({ order }) {
                   );
                 })}
               </tbody>
-            </table>
+            </table></div>
           </div>
         </div>
       ))}

@@ -385,7 +385,7 @@ export default function ChiTietNhapHang() {
       <div className="purchase-detail-grid">
         <div className="purchase-detail-main">
           <PurchaseCard title="SẢN PHẨM TRONG ĐƠN NHẬP">
-            <table className="purchase-detail-table">
+            <div className="admin-table-scroll admin-table-scroll--embedded" tabIndex={0} role="region" aria-label="Bảng dữ liệu liên quan"><table className="purchase-detail-table admin-data-table admin-data-table--records">
               <thead>
                 <tr>
                   <th>PHIÊN BẢN</th>
@@ -412,7 +412,7 @@ export default function ChiTietNhapHang() {
                   </tr>
                 ))}
               </tbody>
-            </table>
+            </table></div>
             <DetailTablePagination
               totalItems={order.items.length}
               currentPage={pagination.currentPage}
@@ -652,7 +652,7 @@ export default function ChiTietNhapHang() {
           )}
 
           <div className="return-table-scroll">
-            <table className="receipt-table">
+            <div className="admin-table-scroll admin-table-scroll--embedded" tabIndex={0} role="region" aria-label="Bảng dữ liệu liên quan"><table className="receipt-table admin-data-table admin-data-table--records">
               <thead>
                 <tr>
                   <th>PHIÊN BẢN</th>
@@ -736,7 +736,7 @@ export default function ChiTietNhapHang() {
                   );
                 })}
               </tbody>
-            </table>
+            </table></div>
           </div>
 
           {purchaseAttempt.current?.scope === receiptScope && (

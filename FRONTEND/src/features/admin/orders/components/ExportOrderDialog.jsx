@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { getSerialCandidates } from '../api/orderApi';
 import { canExport, exportPayload } from './exportSelection';
 import OrderModal from './OrderModal';
+import TablePagination from '../../../../shared/components/ui/TablePagination';
 
 export default function ExportOrderDialog({
   order,
@@ -246,6 +247,7 @@ export default function ExportOrderDialog({
 function SerialPicker({ orderId, group, usedIds, close, confirm }) {
   const [selected, setSelected] = useState(group.selected);
   const [filter, setFilter] = useState({ keyword: '', page: 0 });
+  const previousSearch = useRef(filter.keyword);
   const [result, setResult] = useState({
     items: [],
     pagination: {},
@@ -266,6 +268,8 @@ function SerialPicker({ orderId, group, usedIds, close, confirm }) {
       error: '',
     }));
 
+    const delay = previousSearch.current === filter.keyword ? 0 : 150;
+    previousSearch.current = filter.keyword;
     const timer = setTimeout(async () => {
       try {
         const data = await getSerialCandidates(
@@ -297,7 +301,7 @@ function SerialPicker({ orderId, group, usedIds, close, confirm }) {
           });
         }
       }
-    }, 150);
+    }, delay);
 
     return () => {
       clearTimeout(timer);
@@ -464,27 +468,7 @@ function SerialPicker({ orderId, group, usedIds, close, confirm }) {
       </div>
 
       {result.pagination?.total_pages > 1 && (
-        <div className="order-serial-pages">
-          <button
-            type="button"
-            disabled={result.loading || filter.page === 0}
-            onClick={() => search(filter.keyword, filter.page - 1)}
-          >
-            Trang trước
-          </button>
-
-          <span>
-            {filter.page + 1} / {result.pagination.total_pages}
-          </span>
-
-          <button
-            type="button"
-            disabled={result.loading || filter.page + 1 >= result.pagination.total_pages}
-            onClick={() => search(filter.keyword, filter.page + 1)}
-          >
-            Trang sau
-          </button>
-        </div>
+        <TablePagination totalItems={Number(result.pagination.total_elements) || result.pagination.total_pages * 100} pageSize={100} currentPage={filter.page + 1} onPageChange={page => search(filter.keyword, page - 1)} showSummary={false} idPrefix="export-serials" />
       )}
     </OrderModal>
   );

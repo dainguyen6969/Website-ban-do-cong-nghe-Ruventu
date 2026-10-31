@@ -70,6 +70,7 @@ import useQaTypography from '../typography/useQaTypography';
 import '../styles/index.css';
 import './App.css';
 import '../styles/responsive.css';
+import '../styles/adminTables.css';
 
 export default function AdminApp() {
   const { search } = useLocation();

@@ -63,7 +63,7 @@ export default function OrderLayout() {
 
   if (isOrderList) {
     return (
-      <main className="order-list-shell" role="main">
+      <main className="order-list-shell admin-list-page" role="main">
         <section className="order-list-hero">
           <div>
             <nav className="content__breadcrumb" aria-label="Breadcrumb nội dung">

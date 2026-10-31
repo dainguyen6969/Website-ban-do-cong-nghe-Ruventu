@@ -80,7 +80,7 @@ export default function DanhSachKhachHang() {
   const mapStatusStr = (trangThaiVal) => (trangThaiVal === 1 ? 'active' : 'inactive');
 
   return (
-    <main className="customer-page customer-list-page" role="main">
+    <main className="customer-page customer-list-page admin-list-page" role="main">
       <section className="customer-page__hero">
         <div>
           <nav className="customer-page__crumbs" aria-label="Breadcrumb nội dung">
@@ -123,9 +123,9 @@ export default function DanhSachKhachHang() {
         />
       </section>
 
-      <section className="customer-list-content">
-        <div className="customer-table-wrap">
-          <table className="customer-table">
+      <section className="customer-list-content admin-list-body">
+        <div className="customer-table-wrap admin-table-scroll" tabIndex={0} role="region" aria-label="Bảng danh sách">
+          <table className="customer-table admin-data-table">
             <thead>
               <tr>
                 <th>MÃ</th>
@@ -183,7 +183,7 @@ export default function DanhSachKhachHang() {
             </tbody>
           </table>
         </div>
-        <div className="customer-list-footer">
+        <div className="customer-list-footer admin-table-footer">
           <p>
             HIỂN THỊ {customers.length ? (currentPage - 1) * PAGE_SIZE + 1 : 0}-
             {Math.min(currentPage * PAGE_SIZE, totalElements)} TRÊN TỔNG SỐ {totalElements} KHÁCH

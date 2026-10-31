@@ -43,6 +43,8 @@ export default function DanhSachSerial() {
   const [totalItems, setTotalItems] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [countsError, setCountsError] = useState('');
+  const [versionsError, setVersionsError] = useState('');
   const [reloadKey, setReloadKey] = useState(0);
   const comboName = searchParams.get('combo');
 
@@ -52,18 +54,19 @@ export default function DanhSachSerial() {
       .then(({ versions: items }) => setVersions(items.filter((item) => item.type === 'Phiên bản')))
       .catch((cause) => {
         if (cause.name !== 'AbortError')
-          setError(cause.message || 'Không thể tải bộ lọc phiên bản.');
+          setVersionsError(cause.message || 'Không thể tải bộ lọc phiên bản.');
       });
     return () => controller.abort();
   }, []);
 
   useEffect(() => {
     const controller = new AbortController();
+    setCountsError('');
     getSerialCounts(controller.signal)
       .then(setCounts)
       .catch((cause) => {
         if (cause.name !== 'AbortError')
-          setError(cause.message || 'Không thể tải thống kê serial.');
+          setCountsError(cause.message || 'Không thể tải thống kê serial.');
       });
     return () => controller.abort();
   }, [reloadKey]);
@@ -124,8 +127,8 @@ export default function DanhSachSerial() {
   };
 
   return (
-    <main className="serial-page" role="main">
-      <div className="serial-page__inner">
+    <main className="serial-page admin-list-page" role="main">
+      <div className="serial-page__inner admin-list-body">
         <nav className="serial-secondary-breadcrumb" aria-label="Breadcrumb nội dung">
           <span>Sản phẩm</span>
           <span>›</span>
@@ -139,12 +142,15 @@ export default function DanhSachSerial() {
             {Object.entries(SERIAL_STATUS_META).map(([code, meta]) => (
               <div className={`serial-stat serial-stat--${meta.key}`} key={code}>
                 <span className="serial-stat__square" aria-hidden="true" />
-                <strong>{counts[code] || 0}</strong>
+                <strong>{counts[code] ?? '—'}</strong>
                 <span>{meta.label.toLocaleUpperCase('vi')}</span>
               </div>
             ))}
           </div>
         </div>
+        {Object.entries(counts).some(([, count]) => count === null) && <p role="status">Backend hiện chưa hỗ trợ lọc và thống kê: {Object.entries(counts).filter(([, count]) => count === null).map(([code]) => SERIAL_STATUS_META[code].label).join(', ')}.</p>}
+        {countsError && <p role="alert">Không tải được thống kê: {countsError} <button type="button" className="serial-view" onClick={() => setReloadKey(value => value + 1)}>THỬ LẠI THỐNG KÊ</button></p>}
+        {versionsError && <p role="alert">Không tải được bộ lọc phiên bản: {versionsError}</p>}
         <section className="serial-toolbar" aria-label="Tìm kiếm và lọc serial">
           <label className="serial-search">
             <HiOutlineSearch size={18} aria-hidden="true" />
@@ -165,19 +171,19 @@ export default function DanhSachSerial() {
               placeholder="Nhập chính xác số serial..."
             />
           </label>
-          {/* Lọc trạng thái serial */}
-          <FilterDropdown
-            aria-label="Lọc trạng thái"
-            value={status}
-            onChange={setFilter(setStatus)}
-            selectedDark
-          >
-            {statusOptions.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </FilterDropdown>
+{/* Lọc trạng thái serial */}
+<FilterDropdown
+  aria-label="Lọc trạng thái"
+  value={status}
+  onChange={setFilter(setStatus)}
+  selectedDark
+>
+  {statusOptions.map((option) => (
+    <option key={option.value} value={option.value} disabled={counts[option.value] === null}>
+      {`${option.label}${counts[option.value] === null ? ' (chưa hỗ trợ)' : ''}`}
+    </option>
+  ))}
+</FilterDropdown>
 
           {/* Lọc phiên bản sản phẩm */}
           <FilterDropdown
@@ -210,8 +216,9 @@ export default function DanhSachSerial() {
             XUẤT EXCEL
           </button>
         </section>
-        <div className="serial-table-shell">
-          <table className="serial-table">
+        <div className="serial-table-shell admin-list-frame">
+          <div className="admin-table-scroll" tabIndex={0} role="region" aria-label="Bảng danh sách">
+<table className="serial-table admin-data-table">
             <thead>
               <tr>
                 <th>PHIÊN BẢN SẢN PHẨM</th>
@@ -295,7 +302,8 @@ export default function DanhSachSerial() {
               )}
             </tbody>
           </table>
-          <TablePagination
+</div>
+          <TablePagination className="admin-table-footer"
             totalItems={totalItems}
             pageSize={PAGE_SIZE}
             currentPage={currentPage}

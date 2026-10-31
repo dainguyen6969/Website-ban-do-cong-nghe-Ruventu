@@ -1,5 +1,5 @@
 // Product list screen: real IntelliJ API data with server-side search, filters, and pagination.
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   HiOutlineUpload,
@@ -47,6 +47,7 @@ export default function DanhSachSanPham() {
   const [reloadKey, setReloadKey] = useState(0);
 
   const [searchTerm, setSearchTerm] = useState("");
+  const previousSearch = useRef(searchTerm);
   const [isFilterPanelOpen, setIsFilterPanelOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState("Tất cả danh mục");
   const [selectedBrand, setSelectedBrand] = useState("Tất cả thương hiệu");
@@ -149,6 +150,8 @@ export default function DanhSachSanPham() {
   // Server-side pagination/search/filtering keeps counts and page boundaries authoritative.
   useEffect(() => {
     const controller = new AbortController();
+    const delay = previousSearch.current === searchTerm ? 0 : 250;
+    previousSearch.current = searchTerm;
     const timer = window.setTimeout(async () => {
       setLoading(true);
       setError("");
@@ -165,11 +168,12 @@ export default function DanhSachSanPham() {
           },
           controller.signal,
         );
+        if (controller.signal.aborted) return;
         setProductsList(result.items);
         setTotalFilteredCount(result.totalItems);
         setTotalPages(result.totalPages);
       } catch (requestError) {
-        if (requestError?.name !== "AbortError") {
+        if (!controller.signal.aborted && requestError?.name !== "AbortError") {
           setProductsList([]);
           setTotalFilteredCount(0);
           setTotalPages(0);
@@ -180,7 +184,7 @@ export default function DanhSachSanPham() {
       } finally {
         if (!controller.signal.aborted) setLoading(false);
       }
-    }, 250);
+    }, delay);
     return () => {
       window.clearTimeout(timer);
       controller.abort();
@@ -223,7 +227,7 @@ export default function DanhSachSanPham() {
   };
 
   return (
-    <main className="product-page" role="main">
+    <main className="product-page admin-list-page" role="main">
       {/* 2. Action button band */}
       <div className="product-actions-band">
         <div className="product-actions-band__content">
@@ -345,8 +349,9 @@ export default function DanhSachSanPham() {
       <div className="product-divider" aria-hidden="true" />
 
       {/* Product table (edge-to-edge) */}
-      <div className="product-table-wrapper">
-        <table className="product-table" id="products-table">
+      <div className="admin-list-body admin-list-body--inset">
+<div className="product-table-wrapper admin-table-scroll" tabIndex={0} role="region" aria-label="Bảng danh sách">
+        <table className="product-table admin-data-table" id="products-table" aria-busy={loading}>
           <thead className="product-table__head">
             <tr>
               {tableColumns.map((col) => (
@@ -606,13 +611,14 @@ export default function DanhSachSanPham() {
         </table>
       </div>
 
-      <TablePagination
+      <TablePagination className="admin-table-footer"
         totalItems={totalFilteredCount}
         pageSize={PAGE_SIZE}
         currentPage={safeCurrentPage}
         onPageChange={setCurrentPage}
         idPrefix="products"
       />
+</div>
     </main>
   );
 }

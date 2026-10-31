@@ -57,6 +57,7 @@ function ShipmentList() {
   const PAGE_SIZE = 20;
 
   const [keyword, setKeyword] = useState('');
+  const previousSearch = useRef(keyword);
   const [status, setStatus] = useState(() =>
     STATUSES.includes(params.get('trang_thai_giao_hang')) ? params.get('trang_thai_giao_hang') : ''
   );
@@ -139,6 +140,8 @@ function ShipmentList() {
       error: '',
     }));
 
+    const delay = previousSearch.current === keyword ? 0 : 250;
+    previousSearch.current = keyword;
     const timer = setTimeout(async () => {
       const params = new URLSearchParams({
         page: String(page - 1),
@@ -189,7 +192,7 @@ function ShipmentList() {
           counts: null,
         });
       }
-    }, 250);
+    }, delay);
 
     return () => {
       clearTimeout(timer);
@@ -205,7 +208,7 @@ function ShipmentList() {
 
   return (
     <section
-      className="delivery-page delivery-list-page"
+      className="delivery-page delivery-list-page admin-list-page"
       aria-label="Quản lý giao hàng"
       aria-busy={state.loading}
     >
@@ -292,8 +295,9 @@ function ShipmentList() {
         </p>
       )}
 
-      <div className="delivery-table-scroll">
-        <table className="delivery-table" aria-label="Danh sách phiếu giao hàng">
+      <div className="admin-list-body admin-list-body--inset">
+<div className="delivery-table-scroll admin-table-scroll" tabIndex={0} role="region" aria-label="Bảng danh sách">
+        <table className="delivery-table admin-data-table" aria-label="Danh sách phiếu giao hàng" aria-busy={state.loading}>
           <colgroup>
             {Array.from({ length: 13 }, (_, index) => (
               <col key={index} />
@@ -319,7 +323,7 @@ function ShipmentList() {
           </thead>
 
           <tbody>
-            {state.loading ? (
+            {state.loading && !state.items.length ? (
               <tr>
                 <td colSpan={13} className="delivery-list-empty">
                   Đang tải phiếu giao hàng...
@@ -455,7 +459,7 @@ function ShipmentList() {
         </table>
       </div>
 
-      <footer className="delivery-list-footer">
+      <footer className="delivery-list-footer admin-table-footer">
         <div
           className="delivery-status-counts"
           role="group"
@@ -489,7 +493,7 @@ function ShipmentList() {
         <fieldset
           className="delivery-list-pagination"
           aria-label="Phân trang phiếu giao hàng"
-          disabled={state.loading || Boolean(state.error)}
+          disabled={Boolean(state.error)}
         >
           <TablePagination
             currentPage={page}
@@ -501,6 +505,7 @@ function ShipmentList() {
           />
         </fieldset>
       </footer>
+</div>
     </section>
   );
 }
@@ -866,7 +871,7 @@ function ShipmentDetail({ id }) {
 
             <ShipmentPanel title="CHI TIẾT HÀNG HÓA">
               <div className="delivery-items-wrap">
-                <table className="delivery-items">
+                <div className="admin-table-scroll admin-table-scroll--embedded" tabIndex={0} role="region" aria-label="Bảng dữ liệu liên quan"><table className="delivery-items admin-data-table admin-data-table--records">
                   <thead>
                     <tr>
                       <th>SẢN PHẨM</th>
@@ -898,7 +903,7 @@ function ShipmentDetail({ id }) {
                       </tr>
                     )}
                   </tbody>
-                </table>
+                </table></div>
               </div>
 
               <DetailTablePagination
