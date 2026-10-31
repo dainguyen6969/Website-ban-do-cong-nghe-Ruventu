@@ -2565,7 +2565,7 @@ public class AdminOrderService {
       BigDecimal linePayable = BigDecimal.ZERO;
 
       for (var line : lines) {
-        saleSnapshots.requireSnapshot(line);
+        if (!saleSnapshots.hasValidSnapshot(line)) return result;
 
         if (line.getThanhToanDong() == null
             || line.getThanhToanDong().signum() < 0

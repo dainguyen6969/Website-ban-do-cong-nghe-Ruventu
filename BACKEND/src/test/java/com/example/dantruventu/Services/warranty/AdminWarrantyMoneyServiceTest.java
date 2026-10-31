@@ -14,6 +14,7 @@ import com.example.dantruventu.Error.*;
 import com.example.dantruventu.Repository.cashbook.*;
 import com.example.dantruventu.Repository.warranty.*;
 import com.example.dantruventu.Services.cashbook.CashbookService;
+import com.example.dantruventu.Services.order.OrderEvents;
 import java.math.BigDecimal;
 import java.time.*;
 import java.util.*;
@@ -30,7 +31,8 @@ class AdminWarrantyMoneyServiceTest {
     SoQuyThuChiRepository cashRepository = mock(SoQuyThuChiRepository.class);
     LoaiThuChiRepository types = mock(LoaiThuChiRepository.class);
     WarrantyMoneySources sources = new WarrantyMoneySources(history);
-    CashbookService cashbook = new CashbookService(cashRepository, types, dedup, JSON);
+    CashbookService cashbook =
+        new CashbookService(cashRepository, types, dedup, JSON, mock(OrderEvents.class));
     WarrantyMoneyTransactions moneyTransactions;
     AdminWarrantyMoneyService moneyService;
     long nextCashId = 10000;

@@ -155,6 +155,17 @@ public class OrderSaleSnapshotService {
     return true;
   }
 
+  public boolean hasValidSnapshot(ChiTietDonHang line) {
+    // Catch missing legacy evidence before it crosses the transactional proxy and marks the read rollback-only.
+    try {
+      requireSnapshot(line);
+      return true;
+    } catch (AppException exception) {
+      if (exception.getErrorCode().getStatus().is5xxServerError()) throw exception;
+      return false;
+    }
+  }
+
   public LineSnapshot requireSnapshot(ChiTietDonHang line) {
     LineSnapshot snapshot = readLine(line);
 

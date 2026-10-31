@@ -2,10 +2,31 @@ import assert from 'node:assert/strict';
 import { after, afterEach, before, beforeEach, test } from 'node:test';
 import { createServer } from 'vite';
 
-let server, getAvailableSerials, originalStorage;
+let server, getAvailableSerials, getSerialCounts, originalStorage;
 before(async () => {
   server = await createServer({ configFile: false, cacheDir: 'node_modules/.vite-serial-options-test', server: { middlewareMode: true, ws: false }, appType: 'custom' });
-  ({ getAvailableSerials } = await server.ssrLoadModule('/src/features/admin/inventory/api/serialApi.js'));
+  ({ getAvailableSerials, getSerialCounts } = await server.ssrLoadModule('/src/features/admin/inventory/api/serialApi.js'));
+});
+
+test('unsupported backend enum counts stay unknown while supported counts still load', async t => {
+  t.mock.method(globalThis, 'fetch', async url => {
+    const status = new URL(url, 'http://localhost').searchParams.get('trang_thai');
+    return ['DANG_GUI_NCC', 'DA_DOI_NCC'].includes(status)
+      ? new Response(JSON.stringify({ message: 'Tham số không đúng kiểu dữ liệu: trang_thai' }), { status: 400 })
+      : new Response(JSON.stringify({ data: { pagination: { total_elements: status === 'TRONG_KHO' ? 942 : 0 } } }));
+  });
+  const counts = await getSerialCounts();
+  assert.equal(counts.TRONG_KHO, 942);
+  assert.equal(counts.DA_BAN, 0);
+  assert.equal(counts.DANG_GUI_NCC, null);
+  assert.equal(counts.DA_DOI_NCC, null);
+});
+
+test('count failures other than an unsupported enum are not reported as zero or unsupported', async t => {
+  for (const status of [400, 500]) {
+    t.mock.method(globalThis, 'fetch', async () => new Response(JSON.stringify({ message: 'Không thể tải thống kê' }), { status }));
+    await assert.rejects(getSerialCounts(), /Không thể tải thống kê/);
+  }
 });
 after(() => server.close());
 beforeEach(() => {

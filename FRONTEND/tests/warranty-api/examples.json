@@ -1,0 +1,544 @@
+{
+  "BH01": {
+    "status": 200,
+    "message": "Danh sách có phiếu đang xử lý có phí",
+    "data": {
+      "items": [
+        {
+          "id": 501,
+          "ma_phieu": "BH-001",
+          "don_hang_id": 1001,
+          "ma_don_hang": "ORD-001",
+          "khach_hang_id": null,
+          "ten_nguoi_lien_he": "Nguyễn Văn An",
+          "sdt_nguoi_lien_he": "0912345678",
+          "ten_san_pham": "RAM 16GB",
+          "ma_theo_doi": "TB000700",
+          "so_serial": "RAM-SN-001",
+          "trang_thai_xu_ly": "DANG_BAO_HANH",
+          "trang_thai_bao_gia": "DONG_Y",
+          "trang_thai_thanh_toan": "THANH_TOAN_MOT_PHAN",
+          "trang_thai_hoan_tien": "KHONG_CAN_HOAN",
+          "ngay_tiep_nhan": "2026-10-12T09:00:00+07:00",
+          "ngay_cap_nhat": "2026-10-12T10:40:00+07:00"
+        }
+      ],
+      "pagination": {
+        "page": 0,
+        "limit": 20,
+        "total_elements": 1,
+        "total_pages": 1
+      }
+    }
+  },
+  "BH02": {
+    "status": 200,
+    "message": "Tìm thấy thiết bị hiện hành có thể tiếp nhận",
+    "data": {
+      "items": [
+        {
+          "don_hang_id": 1001,
+          "ma_don_hang": "ORD-001",
+          "chi_tiet_don_hang_id": 2001,
+          "khach_hang_id": null,
+          "da_giao_khach": true,
+          "so_luong_da_giao": 2,
+          "so_luong_dang_xu_ly": 0,
+          "thiet_bi_id": 700,
+          "ma_theo_doi": "TB000700",
+          "phien_ban_id": 101,
+          "so_serial_id": 501,
+          "so_serial": "RAM-SN-001",
+          "la_thiet_bi_hien_hanh": true,
+          "han_bao_hanh": "2027-10-01T10:00:00+07:00",
+          "can_cu_tinh_han": "Chính sách giao dịch gốc",
+          "dieu_kien_bao_hanh": "CHUA_XAC_MINH",
+          "co_the_tiep_nhan": true,
+          "ly_do_chan": []
+        }
+      ],
+      "yeu_cau_tiep_nhan": [
+        {
+          "id": 880,
+          "ket_qua_tiep_nhan": "CHO_XAC_MINH",
+          "ly_do": "Đang bổ sung căn cứ kết luận miễn phí"
+        }
+      ],
+      "pagination": {
+        "page": 0,
+        "limit": 20,
+        "total_elements": 1,
+        "total_pages": 1
+      }
+    }
+  },
+  "BH03": {
+    "status": 200,
+    "message": "Chi tiết đang xử lý có phí",
+    "data": {
+      "id": 501,
+      "ma_phieu": "BH-001",
+      "trang_thai_xu_ly": "DANG_BAO_HANH",
+      "ket_qua_xu_ly": "CHUA_CO_KET_QUA",
+      "don_hang": {
+        "id": 1001,
+        "ma_don_hang": "ORD-001",
+        "chi_tiet_don_hang_id": 2001
+      },
+      "nguoi_lien_he": {
+        "khach_hang_id": null,
+        "ten": "Nguyễn Văn An",
+        "sdt": "0912345678"
+      },
+      "thiet_bi": {
+        "id": 700,
+        "ma_theo_doi": "TB000700",
+        "phien_ban_id": 101,
+        "so_serial_id": 501,
+        "so_serial": "RAM-SN-001",
+        "la_thiet_bi_hien_hanh": true,
+        "han_bao_hanh": "2027-10-01T10:00:00+07:00",
+        "can_cu_tinh_han": "Chính sách giao dịch ORD-001, bắt đầu khi khách nhận ngày 01/10/2026"
+      },
+      "tiep_nhan": {
+        "ly_do": "Không nhận RAM",
+        "tinh_trang": "Tem còn nguyên",
+        "phu_kien": [
+          {
+            "ten": "Hộp",
+            "so_luong": 1
+          }
+        ],
+        "anh_urls": [
+          "/media/bh/501/nhan.jpg"
+        ]
+      },
+      "ket_luan": [
+        {
+          "lich_su_id": 1002,
+          "noi_dung": "Một lỗi ngoài phạm vi miễn phí",
+          "hang_muc": [
+            {
+              "ma_hang_muc": "HM01",
+              "dieu_kien_bao_hanh": "KHONG_DU_DIEU_KIEN",
+              "ly_do": "Hư hại do người dùng",
+              "can_cu": "Biên bản kiểm tra",
+              "ben_chiu_phi": "KHACH_HANG"
+            }
+          ]
+        }
+      ],
+      "noi_dang_giu": {
+        "loai": "DON_VI_BAO_HANH",
+        "nha_cung_cap_id": 3,
+        "ten": "Trung tâm A"
+      },
+      "bao_gia": [
+        {
+          "phien_ban": 1,
+          "trang_thai": "DONG_Y",
+          "thay_the_phien_ban": null,
+          "hang_muc": [
+            {
+              "id": 1101,
+              "ma_hang_muc": "HM01",
+              "noi_dung": "Sửa chân tiếp xúc",
+              "so_luong": 1,
+              "don_gia_khach": 150000,
+              "thanh_tien_khach": 150000,
+              "chi_phi_ncc_du_kien": 100000,
+              "dieu_kien_bao_hanh": "KHONG_DU_DIEU_KIEN",
+              "ben_chiu_phi": "KHACH_HANG",
+              "van_phat_sinh_khi_khong_sua": false
+            }
+          ],
+          "tong_tien_khach": 150000,
+          "thoi_gian_du_kien": "Trong ngày",
+          "han_phan_hoi": "2026-10-12T18:00:00+07:00",
+          "dieu_kien_dat_coc": {
+            "so_tien_toi_thieu": 50000
+          },
+          "dieu_kien_thanh_toan": "Đủ tiền trước bàn giao",
+          "quyet_dinh": {
+            "quyet_dinh": "DONG_Y",
+            "thoi_diem": "2026-10-12T09:30:00+07:00",
+            "kenh": "TAI_QUAY",
+            "bang_chung_urls": [
+              "/media/bh/501/dong-y.jpg"
+            ]
+          }
+        }
+      ],
+      "hoa_don": {
+        "id": 801,
+        "ma_hoa_don": "HDBH-801",
+        "trang_thai": "HIEU_LUC",
+        "phien_ban_bao_gia": 1,
+        "tong_tien": 150000,
+        "khoan_phai_thu_hieu_luc": 150000,
+        "da_thu": 50000,
+        "da_hoan": 0,
+        "con_phai_thu": 100000,
+        "tong_can_hoan": 0,
+        "con_phai_hoan": 0,
+        "trang_thai_thanh_toan": "THANH_TOAN_MOT_PHAN",
+        "trang_thai_hoan_tien": "KHONG_CAN_HOAN"
+      },
+      "chi_phi_don_vi": {
+        "chi_phi_ncc_xac_nhan": 100000,
+        "da_chi": 0,
+        "da_nhan_hoan": 0,
+        "con_phai_chi": 100000
+      },
+      "giao_dich_tien": [
+        {
+          "id": 9001,
+          "loai": "THU_KHACH",
+          "so_tien": 50000,
+          "phieu_thu_chi_id": 9001
+        }
+      ],
+      "phuong_an_doi": null,
+      "doi_soat_nha_cung_cap": null,
+      "giao_nhan": [
+        {
+          "lich_su_id": 1005,
+          "su_kien": "GUI_DON_VI",
+          "thiet_bi_id": 700,
+          "ngay": "2026-10-12T10:00:00+07:00"
+        }
+      ],
+      "lich_su": {
+        "items": [
+          {
+            "id": 1000,
+            "loai_su_kien": "TIEP_NHAN",
+            "nguoi_thuc_hien_id": 8,
+            "ngay_tao": "2026-10-12T09:00:00+07:00",
+            "noi_dung": "Nhận thực tế RAM-SN-001"
+          }
+        ],
+        "pagination": {
+          "page": 0,
+          "limit": 1,
+          "total_elements": 8,
+          "total_pages": 8
+        }
+      },
+      "thao_tac_duoc_phep": [
+        "CAP_NHAT_TIEN_DO",
+        "YEU_CAU_DUNG",
+        "NHAN_LAI"
+      ],
+      "ngay_tiep_nhan": "2026-10-12T09:00:00+07:00",
+      "ngay_cap_nhat": "2026-10-12T10:40:00+07:00",
+      "hoa_don_da_huy": []
+    }
+  },
+  "BH04": {
+    "status": 201,
+    "message": "Tiếp nhận thiết bị có serial",
+    "data": {
+      "id": 501,
+      "ma_phieu": "BH-001",
+      "don_hang_id": 1001,
+      "chi_tiet_don_hang_id": 2001,
+      "khach_hang_id": null,
+      "thiet_bi_id": 700,
+      "ma_theo_doi": "TB000700",
+      "so_serial_id": 501,
+      "trang_thai_serial": "DANG_BAO_HANH",
+      "trang_thai_xu_ly": "TIEP_NHAN",
+      "ket_qua_tiep_nhan": "CHAP_NHAN",
+      "dieu_kien_bao_hanh": "CHUA_XAC_MINH",
+      "nguoi_tiep_nhan_id": 8,
+      "ngay_tiep_nhan": "2026-10-12T09:00:00+07:00"
+    }
+  },
+  "BH05": {
+    "status": 201,
+    "message": "Lưu từ chối trước tiếp nhận",
+    "data": {
+      "yeu_cau_tiep_nhan_id": 880,
+      "lich_su_id": 880,
+      "ket_qua_tiep_nhan": "TU_CHOI",
+      "phieu_bao_hanh_id": null,
+      "trang_thai_serial": "DA_BAN",
+      "ngay_tao": "2026-10-12T08:55:00+07:00"
+    }
+  },
+  "BH06": {
+    "status": 200,
+    "message": "Bắt đầu kiểm tra thiết bị",
+    "data": {
+      "id": 501,
+      "su_kien": "BAT_DAU_KIEM_TRA",
+      "trang_thai_xu_ly": "DANG_KIEM_TRA",
+      "ket_qua_xu_ly": "CHUA_CO_KET_QUA",
+      "thiet_bi_se_tra_id": null,
+      "lich_su_id": 1001
+    }
+  },
+  "BH07": {
+    "status": 200,
+    "message": "Lưu kết luận kiểm tra theo hạng mục",
+    "data": {
+      "id": 501,
+      "su_kien": "GHI_KET_LUAN",
+      "lich_su_id": 1002,
+      "trang_thai_xu_ly": "DANG_KIEM_TRA",
+      "ket_qua_xu_ly": "CHUA_CO_KET_QUA",
+      "noi_dang_giu": {
+        "loai": "CUA_HANG",
+        "thiet_bi_id": 700
+      },
+      "chi_phi_ncc_xac_nhan": null,
+      "ngay_cap_nhat": "2026-10-12T09:15:00+07:00",
+      "ket_luan": {
+        "lich_su_id": 1002,
+        "noi_dung": "Lỗi do người dùng",
+        "hang_muc": [
+          {
+            "ma_hang_muc": "HM01",
+            "loi": "Hỏng chân tiếp xúc",
+            "dieu_kien_bao_hanh": "KHONG_DU_DIEU_KIEN",
+            "noi_dung_xu_ly": "Sửa chân tiếp xúc",
+            "ben_chiu_phi": "KHACH_HANG",
+            "ly_do": "Ngoài phạm vi miễn phí",
+            "can_cu": "Biên bản kiểm tra",
+            "don_vi_ket_luan": "Trung tâm A"
+          }
+        ],
+        "bang_chung_urls": [
+          "/media/bh/501/check.jpg"
+        ]
+      }
+    }
+  },
+  "BH08": {
+    "status": 201,
+    "message": "Tạo báo giá nháp phiên bản1",
+    "data": {
+      "phieu_bao_hanh_id": 501,
+      "phien_ban_bao_gia": 1,
+      "trang_thai_bao_gia": "NHAP",
+      "hang_muc": [
+        {
+          "ma_hang_muc": "HM01",
+          "noi_dung": "Sửa chân tiếp xúc",
+          "so_luong": 1,
+          "don_gia_khach": 150000,
+          "chi_phi_ncc_du_kien": 100000,
+          "dieu_kien_bao_hanh": "KHONG_DU_DIEU_KIEN",
+          "ben_chiu_phi": "KHACH_HANG",
+          "van_phat_sinh_khi_khong_sua": false,
+          "id": 1101,
+          "thanh_tien_khach": 150000
+        }
+      ],
+      "tong_tien_khach": 150000,
+      "han_phan_hoi": "2026-10-12T18:00:00+07:00",
+      "thay_the_phien_ban": null,
+      "hoa_don_id": null,
+      "thoi_gian_du_kien": "Trong ngày",
+      "dieu_kien_dat_coc": {
+        "so_tien_toi_thieu": 50000
+      },
+      "dieu_kien_thanh_toan": "Đủ tiền trước bàn giao",
+      "quyet_dinh_khach": null,
+      "da_tao_giao_dich_tien": false
+    }
+  },
+  "BH09": {
+    "status": 200,
+    "message": "Gửi báo giá, chờ khách phản hồi",
+    "data": {
+      "phieu_bao_hanh_id": 501,
+      "phien_ban_bao_gia": 1,
+      "trang_thai_bao_gia": "CHO_PHAN_HOI",
+      "trang_thai_xu_ly": "DANG_KIEM_TRA",
+      "hoa_don": null,
+      "phieu_thu_chi_id": null,
+      "quyet_dinh": null,
+      "han_phan_hoi": "2026-10-12T18:00:00+07:00",
+      "lich_su_id": 1016,
+      "hanh_dong": "GUI",
+      "ngay_gui": "2026-10-12T09:25:00+07:00",
+      "kenh": "TAI_QUAY"
+    }
+  },
+  "BH010": {
+    "status": 200,
+    "message": "Áp dụng khoản200000 đã được khách duyệt",
+    "data": {
+      "hoa_don_id": 801,
+      "trang_thai": "HIEU_LUC",
+      "phien_ban_bao_gia": 2,
+      "tong_tien_truoc": 150000,
+      "tong_tien": 200000,
+      "da_thu": 150000,
+      "da_hoan": 0,
+      "con_phai_thu": 50000,
+      "con_phai_hoan": 0,
+      "trang_thai_thanh_toan": "THANH_TOAN_MOT_PHAN",
+      "trang_thai_hoan_tien": "KHONG_CAN_HOAN",
+      "lich_su_id": 1020,
+      "hanh_dong": "AP_DUNG_BAO_GIA_DA_DUYET",
+      "khoan_phai_thu_hieu_luc": 200000,
+      "phieu_thu_chi_moi_id": null,
+      "co_thay_doi": true
+    }
+  },
+  "BH011": {
+    "status": 201,
+    "message": "Ghi thu cọc50000, còn phải thu100000",
+    "data": {
+      "loai": "THU_KHACH",
+      "phieu_thu_chi": {
+        "id": 9001,
+        "ma_phieu": "PT-BH-9001",
+        "loai_phieu": "THU",
+        "so_tien": 50000,
+        "trang_thai": "DA_GHI_NHAN",
+        "nguon_tao": "TU_DONG",
+        "hoa_don_bao_hanh_id": 801,
+        "phieu_bao_hanh_id": 501,
+        "nha_cung_cap_id": null,
+        "nhom_nguoi_nop_nhan": "KHACH_HANG",
+        "ten_nguoi_nop_nhan": "Nguyễn Văn An",
+        "phuong_thuc_thanh_toan": "TIEN_MAT",
+        "ngay_ghi_nhan": "2026-10-12T09:35:00+07:00",
+        "ma_chung_tu_tham_chieu": "BH-001-COC",
+        "nguoi_tao_id": 8,
+        "chung_tu_urls": [
+          "/media/bh/501/deposit.jpg"
+        ]
+      },
+      "hoa_don": {
+        "id": 801,
+        "ma_hoa_don": "HDBH-801",
+        "trang_thai": "HIEU_LUC",
+        "phien_ban_bao_gia": 1,
+        "tong_tien": 150000,
+        "khoan_phai_thu_hieu_luc": 150000,
+        "da_thu": 50000,
+        "da_hoan": 0,
+        "con_phai_thu": 100000,
+        "tong_can_hoan": 0,
+        "con_phai_hoan": 0,
+        "trang_thai_thanh_toan": "THANH_TOAN_MOT_PHAN",
+        "trang_thai_hoan_tien": "KHONG_CAN_HOAN"
+      },
+      "chi_phi_don_vi": null,
+      "doi_soat_ncc": null,
+      "lien_ket_nguon": {
+        "hoa_don_bao_hanh_id": 801,
+        "chi_phi_lich_su_id": null,
+        "giao_dich_chi_goc_id": null,
+        "nghia_vu_lich_su_id": null
+      }
+    }
+  },
+  "BH012": {
+    "status": 200,
+    "message": "Lập phương án đổi, chờ phê duyệt và khách",
+    "data": {
+      "phieu_bao_hanh_id": 501,
+      "phien_ban_phuong_an": 1,
+      "da_duyet": false,
+      "khach_dong_y": false,
+      "nguon": "TON_KHO_CUA_HANG",
+      "phien_ban_thay_the_id": 101,
+      "han_bao_hanh_ap_dung": "2027-10-01T10:00:00+07:00",
+      "trang_thai_xu_ly": "DANG_KIEM_TRA",
+      "ket_qua_xu_ly": "CHUA_CO_KET_QUA",
+      "thiet_bi_thay_the_id": null,
+      "quyet_dinh_khach": null,
+      "da_huy": false,
+      "da_ban_giao": false,
+      "nguoi_phe_duyet_id": null,
+      "thay_the_phien_ban": null,
+      "phien_ban_truoc": null
+    }
+  },
+  "BH013": {
+    "status": 200,
+    "message": "Giữ chỗ serial601, chưa xuất kho",
+    "data": {
+      "phieu_bao_hanh_id": 501,
+      "hanh_dong": "GIU_CHO_HANG_CUA_HANG",
+      "nguon": "TON_KHO_CUA_HANG",
+      "thiet_bi_thay_the_id": null,
+      "so_serial_id": 601,
+      "trang_thai_serial": "GIU_CHO_BAO_HANH",
+      "trang_thai_xu_ly": "CHO_DOI_SAN_PHAM",
+      "ket_qua_xu_ly": "CHUA_CO_KET_QUA",
+      "the_kho": null,
+      "da_ban_giao": false,
+      "co_the_ban_giao": false,
+      "bien_dong_ton": {
+        "ton_thuc_te": 0,
+        "ton_co_the_ban": -1,
+        "hang_loi": 0,
+        "so_luong_giu_cho_bao_hanh": 1
+      },
+      "giu_cho_lich_su_id": 1030,
+      "ton_sau": {
+        "ton_thuc_te": 5,
+        "ton_co_the_ban": 4,
+        "hang_loi": 0,
+        "so_luong_giu_cho_bao_hanh": 1
+      }
+    }
+  },
+  "BH014": {
+    "status": 200,
+    "message": "Ghi nghĩa vụ bù hàng chưa thực nhận",
+    "data": {
+      "phieu_bao_hanh_id": 501,
+      "trang_thai_xu_ly": "HOAN_TAT",
+      "nghia_vu_lich_su_id": 1040,
+      "so_luong_can_bu": 1,
+      "so_luong_da_bu": 0,
+      "so_luong_con_bu": 1,
+      "so_tien_con_doi_soat": 0,
+      "the_kho": null,
+      "da_giai_quyet": false,
+      "hanh_dong": "GHI_NGHIA_VU",
+      "nha_cung_cap_id": 3,
+      "giao_dich_xuat_the_kho_id": 12001,
+      "can_cu": "NCC xác nhận bù một RAM cho hàng đổi trước",
+      "nghia_vu_gui_thiet_bi_cu_con_mo": true
+    }
+  },
+  "BH015": {
+    "status": 200,
+    "message": "Bàn giao thiết bị cũ đã sửa thành công",
+    "data": {
+      "id": 501,
+      "ma_phieu": "BH-001",
+      "trang_thai_xu_ly": "HOAN_TAT",
+      "ket_qua_xu_ly": "SUA_THANH_CONG",
+      "thiet_bi_da_tra_id": 700,
+      "serials": [
+        {
+          "id": 501,
+          "trang_thai": "DA_BAN",
+          "don_hang_id": 1001
+        }
+      ],
+      "da_giai_phong_khoa": true,
+      "ngay_hoan_tat": "2026-10-12T14:30:00+07:00",
+      "the_kho_moi": null,
+      "con_phai_hoan": 0,
+      "doi_soat_ncc_con_mo": false,
+      "lich_su_id": 1050,
+      "thiet_bi_cu_id": 700,
+      "thiet_bi_thay_the_id": null,
+      "thiet_bi_hien_hanh_id": 700,
+      "han_bao_hanh_ap_dung": "2027-10-01T10:00:00+07:00",
+      "con_phai_thu": 0,
+      "nguon_san_pham_thay_the": null
+    }
+  }
+}
