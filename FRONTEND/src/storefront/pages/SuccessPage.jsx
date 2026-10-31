@@ -8,11 +8,12 @@ import './SuccessPage.css';
 const SuccessPage = () => {
   const location = useLocation();
   const orderCode = location.state?.orderCode || 'RV-XXXXXX';
+  const intake = location.state?.intake;
 
   return (
     <div className="success-page-wrapper">
       <Header />
-      
+
       <div className="success-page-content container">
         <div className="success-box">
           <div className="success-header">
@@ -21,20 +22,27 @@ const SuccessPage = () => {
             </div>
             <h2>ĐẶT HÀNG THÀNH CÔNG</h2>
           </div>
-          
+
           <div className="success-body">
             <div className="order-code-box">
               <span className="label">Mã đơn hàng</span>
               <span className="code">{orderCode}</span>
             </div>
-            
+
             <p className="success-message">
-              Cảm ơn bạn đã đặt hàng tại <strong>Ruventu Tech</strong>. Chúng tôi sẽ liên hệ xác nhận qua số điện thoại trong vòng 30 phút.
+              Cảm ơn bạn đã đặt hàng tại <strong>Ruventu Tech</strong>. Cửa hàng sẽ liên hệ xác nhận
+              theo lịch làm việc trong vòng 30 phút.
             </p>
-            
+
+            {intake?.thong_bao && (
+              <p className="success-message" role="status">
+                {intake.thong_bao}
+              </p>
+            )}
+
             <div className="divider-line"></div>
-            
-            <div className="success-actions" style={{marginTop: '20px'}}>
+
+            <div className="success-actions" style={{ marginTop: '20px' }}>
               <Link to="/" className="btn-home">
                 VỀ TRANG CHỦ
               </Link>

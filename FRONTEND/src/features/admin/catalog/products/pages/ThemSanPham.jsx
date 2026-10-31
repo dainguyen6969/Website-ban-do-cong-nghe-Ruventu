@@ -9,6 +9,7 @@ import {
 
 import FormCard from "../../../../../shared/components/ui/FormCard";
 import ImageUploader from "../../../../../shared/components/ui/ImageUploader";
+import FilterDropdown from "../../../../../shared/components/ui/FilterDropdown";
 import { apiRequest } from "../../../../../auth/backendAuth";
 import { getAllCategories } from "../../categories/api/categoryApi";
 import { getAllBrands } from "../../brands/api/brandApi";
@@ -1894,11 +1895,12 @@ export default function ThemSanPham() {
                 <span>
                   DANH MỤC <i>*</i>
                 </span>
-                <select
+                <FilterDropdown
                   value={form.categoryId}
                   onChange={(event) =>
                     updateForm("categoryId", event.target.value)
                   }
+                  selectedDark
                 >
                   <option value="">Chọn danh mục</option>
                   {categories.map((item) => (
@@ -1906,16 +1908,17 @@ export default function ThemSanPham() {
                       {item.name}
                     </option>
                   ))}
-                </select>
+                </FilterDropdown>
               </label>
 
               <label className="product-editor__field">
                 <span>THƯƠNG HIỆU</span>
-                <select
+                <FilterDropdown
                   value={form.brandId}
                   onChange={(event) =>
                     updateForm("brandId", event.target.value)
                   }
+                  selectedDark
                 >
                   <option value="">Không chọn</option>
                   {brands.map((item) => (
@@ -1923,7 +1926,7 @@ export default function ThemSanPham() {
                       {item.name}
                     </option>
                   ))}
-                </select>
+                </FilterDropdown>
               </label>
             </FormCard>
 

@@ -1,8 +1,10 @@
 // Admin order screen: DatHangOnline.
-import { useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
-import { HiOutlineArrowLeft, HiOutlineSearch } from "react-icons/hi";
-import PriceInput from "../../../../shared/components/ui/PriceInput";
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
+import { HiOutlineArrowLeft, HiOutlineSearch } from 'react-icons/hi';
+import { MapPin, Navigation, Loader2 } from 'lucide-react';
+import { VIETNAM_LOCATIONS, matchProvince, matchDistrict } from '../../../../data/vietnamLocations';
+import PriceInput from '../../../../shared/components/ui/PriceInput';
 import {
   buildOnlineOrderBody,
   buildPreviewBody,
@@ -13,68 +15,74 @@ import {
   searchSalesCustomers,
   searchSalesProducts,
   buildOnlineOrderDraft,
-} from "../api/onlineOrderApi";
-import "./DatHangOnline.css";
-import { canEditOnlineOrder, getOrder } from "../api/orderApi";
-import OrderModal from "../components/OrderModal";
-import {
-  errorMessage,
-  withIdempotency,
-} from "../../../../shared/services/mutationUtils";
+} from '../api/onlineOrderApi';
+import './DatHangOnline.css';
+import { canEditOnlineOrder, getOrder } from '../api/orderApi';
+import OrderModal from '../components/OrderModal';
+import { errorMessage, withIdempotency } from '../../../../shared/services/mutationUtils';
 
-const money = new Intl.NumberFormat("vi-VN", {
-  style: "currency",
-  currency: "VND",
+const money = new Intl.NumberFormat('vi-VN', {
+  style: 'currency',
+  currency: 'VND',
   maximumFractionDigits: 0,
 });
 const formatMoney = (value) => money.format(Number(value || 0));
-const validPhone = (value) =>
-  /^(?:\+84|0)\d{9,10}$/.test(value.replace(/[\s.-]/g, ""));
+const validPhone = (value) => /^(?:\+84|0)\d{9,10}$/.test(value.replace(/[\s.-]/g, ''));
+const GOONG_API_KEY = 'w6ddDpyabJSpcJXqsZB9FPLFv6dgaIrL9WfTYvAS';
 const labels = {
-  TIEN_MAT: "TIỀN MẶT",
-  CHUYEN_KHOAN: "CHUYỂN KHOẢN",
-  CHUA_BAO_GOM: "CHƯA BAO GỒM THUẾ",
-  DA_BAO_GOM: "ĐÃ BAO GỒM THUẾ",
-  NHAN_TAI_CUA_HANG: "NHẬN TẠI CỬA HÀNG",
-  GIAO_HANG: "GIAO HÀNG",
+  TIEN_MAT: 'TIỀN MẶT',
+  CHUYEN_KHOAN: 'CHUYỂN KHOẢN',
+  CHUA_BAO_GOM: 'CHƯA BAO GỒM THUẾ',
+  DA_BAO_GOM: 'ĐÃ BAO GỒM THUẾ',
+  NHAN_TAI_CUA_HANG: 'NHẬN TẠI CỬA HÀNG',
+  GIAO_HANG: 'GIAO HÀNG',
 };
 
 export default function DatHangOnline() {
   const navigate = useNavigate();
   const { orderId: editId } = useParams();
   const [options, setOptions] = useState(null);
-  const [optionsError, setOptionsError] = useState("");
+  const [optionsError, setOptionsError] = useState('');
   const [editReady, setEditReady] = useState(false);
-  const [customerQuery, setCustomerQuery] = useState("");
+  const [customerQuery, setCustomerQuery] = useState('');
   const [customerResults, setCustomerResults] = useState([]);
   const [customerLoading, setCustomerLoading] = useState(false);
   const [customer, setCustomer] = useState(null);
   const [newCustomer, setNewCustomer] = useState(null);
   const [customerSaving, setCustomerSaving] = useState(false);
-  const [customerError, setCustomerError] = useState("");
+  const [customerError, setCustomerError] = useState('');
   const [recipient, setRecipient] = useState({
-    name: "",
-    phone: "",
-    address: "",
+    name: '',
+    phone: '',
+    address: '',
+    province: 'Hà Nội',
+    ward: 'Quận Cầu Giấy',
   });
+  const [addressSuggestions, setAddressSuggestions] = useState([]);
+  const [showAddressDropdown, setShowAddressDropdown] = useState(false);
+  const [locatingUser, setLocatingUser] = useState(false);
+  const [addressSearchLoading, setAddressSearchLoading] = useState(false);
+  const addressWrapperRef = useRef(null);
+  const searchTimeoutRef = useRef(null);
   const [touched, setTouched] = useState({});
-  const [productQuery, setProductQuery] = useState("");
+  const [productQuery, setProductQuery] = useState('');
   const [productResults, setProductResults] = useState([]);
   const [productLoading, setProductLoading] = useState(false);
   const [items, setItems] = useState([]);
-  const [stockNote, setStockNote] = useState("");
-  const [promotion, setPromotion] = useState("");
-  const [payment, setPayment] = useState("");
+  const [stockNote, setStockNote] = useState('');
+  const [allowWaitingStock, setAllowWaitingStock] = useState(false);
+  const [promotion, setPromotion] = useState('');
+  const [payment, setPayment] = useState('');
   const [applyVat, setApplyVat] = useState(false);
-  const [vatMode, setVatMode] = useState("CHUA_BAO_GOM");
-  const [delivery, setDelivery] = useState("GIAO_HANG");
-  const [shippingInput, setShippingInput] = useState("");
-  const [note, setNote] = useState("");
+  const [vatMode, setVatMode] = useState('CHUA_BAO_GOM');
+  const [delivery, setDelivery] = useState('GIAO_HANG');
+  const [shippingInput, setShippingInput] = useState('');
+  const [note, setNote] = useState('');
   const [preview, setPreview] = useState(null);
   const [promotions, setPromotions] = useState([]);
   const [previewRevision, setPreviewRevision] = useState(0);
-  const [previewError, setPreviewError] = useState("");
-  const [submitError, setSubmitError] = useState("");
+  const [previewError, setPreviewError] = useState('');
+  const [submitError, setSubmitError] = useState('');
   const requestKey = useRef(null);
   const submitBusy = useRef(false);
   const [previewLoading, setPreviewLoading] = useState(false);
@@ -93,16 +101,16 @@ export default function DatHangOnline() {
     getSalesOptions(controller.signal)
       .then((data) => {
         setOptions(data);
-        setPayment(data.phuong_thuc_online?.[0] || "");
-        setVatMode(data.che_do_thue?.[0] || "CHUA_BAO_GOM");
+        setPayment(data.phuong_thuc_online?.[0] || '');
+        setVatMode(data.che_do_thue?.[0] || 'CHUA_BAO_GOM');
         setDelivery(
-          data.hinh_thuc_nhan_hang?.includes("GIAO_HANG")
-            ? "GIAO_HANG"
-            : data.hinh_thuc_nhan_hang?.[0] || "",
+          data.hinh_thuc_nhan_hang?.includes('GIAO_HANG')
+            ? 'GIAO_HANG'
+            : data.hinh_thuc_nhan_hang?.[0] || ''
         );
       })
       .catch((error) => {
-        if (error.name !== "AbortError") setOptionsError(error.message);
+        if (error.name !== 'AbortError') setOptionsError(error.message);
       });
     return () => controller.abort();
   }, []);
@@ -118,8 +126,7 @@ export default function DatHangOnline() {
 
         if (!canEditOnlineOrder(order)) {
           throw new Error(
-            "Chỉ sửa đơn Online chờ duyệt, chưa thanh toán, " +
-              "chưa đóng gói và chưa xuất kho.",
+            'Chỉ sửa đơn Online chờ duyệt, chưa thanh toán, ' + 'chưa đóng gói và chưa xuất kho.'
           );
         }
 
@@ -132,15 +139,22 @@ export default function DatHangOnline() {
             ? {
                 id: order.khach_hang_id,
                 name: order.ten_khach_hang,
-                phone: order.so_dien_thoai_khach_hang || "",
+                phone: order.so_dien_thoai_khach_hang || '',
               }
-            : null,
+            : null
         );
 
+        const initialAddress = order.dia_chi_giao_hang || '';
+        const matchedProv = matchProvince(initialAddress);
+        const wards = VIETNAM_LOCATIONS[matchedProv] || [];
+        const matchedWard = matchDistrict(initialAddress, wards);
+
         setRecipient({
-          name: order.ten_nguoi_nhan || "",
-          phone: order.sdt_nguoi_nhan || "",
-          address: order.dia_chi_giao_hang || "",
+          name: order.ten_nguoi_nhan || '',
+          phone: order.sdt_nguoi_nhan || '',
+          address: initialAddress,
+          province: matchedProv,
+          ward: matchedWard,
         });
 
         setItems(
@@ -149,28 +163,28 @@ export default function DatHangOnline() {
             .map((item) => ({
               id: Number(item.phien_ban_id),
               name: item.ten_san_pham || `Phiên bản #${item.phien_ban_id}`,
-              variant: item.ten_phien_ban || "",
-              code: item.ma_san_pham || "",
+              variant: item.ten_phien_ban || '',
+              code: item.ma_san_pham || '',
               unitPrice: Number(item.don_gia || 0),
               quantity: Number(item.so_luong),
-            })),
+            }))
         );
 
-        setPromotion(order.khuyen_mai?.ma_chuong_trinh || "");
+        setPromotion(order.khuyen_mai?.ma_chuong_trinh || '');
         setPayment(order.phuong_thuc_thanh_toan);
 
         setApplyVat(frozen?.thue?.ap_dung ?? Number(order.tong_tien_vat) > 0);
 
-        setVatMode(frozen?.thue?.che_do_gia || "CHUA_BAO_GOM");
+        setVatMode(frozen?.thue?.che_do_gia || 'CHUA_BAO_GOM');
 
         setDelivery(order.hinh_thuc_nhan_hang);
         setShippingInput(String(Number(order.phi_giao_hang || 0) / 1000));
-        setNote(order.ghi_chu || "");
+        setNote(order.ghi_chu || '');
 
         setEditReady(editId);
       })
       .catch((error) => {
-        if (error.name !== "AbortError") {
+        if (error.name !== 'AbortError') {
           setOptionsError(error.message);
         }
       });
@@ -187,7 +201,7 @@ export default function DatHangOnline() {
       searchSalesCustomers(query, controller.signal)
         .then(setCustomerResults)
         .catch((error) => {
-          if (error.name !== "AbortError") setOptionsError(error.message);
+          if (error.name !== 'AbortError') setOptionsError(error.message);
         })
         .finally(() => {
           if (!controller.signal.aborted) setCustomerLoading(false);
@@ -208,7 +222,7 @@ export default function DatHangOnline() {
       searchSalesProducts(query, options, controller.signal)
         .then(setProductResults)
         .catch((error) => {
-          if (error.name !== "AbortError") setOptionsError(error.message);
+          if (error.name !== 'AbortError') setOptionsError(error.message);
         })
         .finally(() => {
           if (!controller.signal.aborted) setProductLoading(false);
@@ -220,8 +234,36 @@ export default function DatHangOnline() {
     };
   }, [productQuery, options]);
 
-  const shippingFee =
-    delivery === "GIAO_HANG" ? Number(shippingInput || 0) * 1000 : 0;
+  const shippingFee = delivery === 'GIAO_HANG' ? Number(shippingInput || 0) * 1000 : 0;
+
+  const fullShippingAddress = useMemo(() => {
+    const specific = (recipient.address || '').trim();
+    if (!specific) return '';
+    const prov = (recipient.province || '').trim();
+    const ward = (recipient.ward || '').trim();
+
+    const specificLower = specific.toLowerCase();
+    const wardCore = ward.toLowerCase().replace(/^(quận|huyện|thị xã|thành phố)\s+/i, '');
+    const provCore = prov.toLowerCase().replace(/^(tỉnh|thành phố|tp\.)\s+/i, '');
+
+    const hasWard =
+      ward &&
+      (specificLower.includes(ward.toLowerCase()) ||
+        (wardCore && specificLower.includes(wardCore)));
+    const hasProv =
+      prov &&
+      (specificLower.includes(prov.toLowerCase()) ||
+        (provCore && specificLower.includes(provCore)));
+
+    const parts = [specific];
+    if (ward && !hasWard) {
+      parts.push(ward);
+    }
+    if (prov && !hasProv) {
+      parts.push(prov);
+    }
+    return parts.join(', ');
+  }, [recipient.address, recipient.ward, recipient.province]);
 
   const form = useMemo(
     () =>
@@ -234,8 +276,12 @@ export default function DatHangOnline() {
             vatMode,
             promotion,
             shippingFee,
+            allowWaitingStock: !editId && allowWaitingStock,
             items,
-            recipient,
+            recipient: {
+              ...recipient,
+              address: delivery === 'GIAO_HANG' ? fullShippingAddress : '',
+            },
             payment,
             delivery,
             note,
@@ -250,34 +296,31 @@ export default function DatHangOnline() {
       vatMode,
       promotion,
       shippingFee,
+      allowWaitingStock,
       items,
       recipient,
+      fullShippingAddress,
       payment,
       delivery,
       note,
       frozenFinancial,
-    ],
+    ]
   );
 
   const previewBody = useMemo(() => {
-    if (
-      !form ||
-      !items.length ||
-      financialLocked ||
-      (editId && editReady !== editId)
-    ) {
+    if (!form || !items.length || financialLocked || (editId && editReady !== editId)) {
       return null;
     }
 
     return buildPreviewBody(form);
   }, [form, items.length, financialLocked, editId, editReady]);
 
-  const previewSignature = previewBody ? JSON.stringify(previewBody) : "";
+  const previewSignature = previewBody ? JSON.stringify(previewBody) : '';
 
   useEffect(() => {
     if (!previewSignature) {
       setPreview(null);
-      setPreviewError("");
+      setPreviewError('');
       setPreviewLoading(false);
       return undefined;
     }
@@ -285,7 +328,7 @@ export default function DatHangOnline() {
     const controller = new AbortController();
 
     setPreview(null);
-    setPreviewError("");
+    setPreviewError('');
     setPreviewLoading(true);
 
     const timer = setTimeout(() => {
@@ -301,7 +344,7 @@ export default function DatHangOnline() {
           setPromotions(result.khuyen_mai_kha_dung || []);
         })
         .catch((error) => {
-          if (error.name !== "AbortError") {
+          if (error.name !== 'AbortError') {
             setPreviewError(error.message);
           }
         })
@@ -326,19 +369,15 @@ export default function DatHangOnline() {
 
   const phoneError =
     recipient.phone && !validPhone(recipient.phone)
-      ? "Số điện thoại chưa đúng định dạng backend."
-      : "";
+      ? 'Số điện thoại chưa đúng định dạng backend.'
+      : '';
 
   const missing = [
-    !items.length && "Chưa có sản phẩm",
-    !recipient.name.trim() && "Thiếu tên người nhận",
-    !recipient.phone.trim() && "Thiếu số điện thoại",
-    delivery === "GIAO_HANG" &&
-      !recipient.address.trim() &&
-      "Thiếu địa chỉ giao hàng",
-    financialLocked &&
-      !frozenFinancial &&
-      "Đơn cũ chưa có đủ bản chụp để chỉnh sửa.",
+    !items.length && 'Chưa có sản phẩm',
+    !recipient.name.trim() && 'Thiếu tên người nhận',
+    !recipient.phone.trim() && 'Thiếu số điện thoại',
+    delivery === 'GIAO_HANG' && !recipient.address.trim() && 'Thiếu địa chỉ giao hàng',
+    financialLocked && !frozenFinancial && 'Đơn cũ chưa có đủ bản chụp để chỉnh sửa.',
   ].filter(Boolean);
 
   const hasPendingSave = Boolean(requestKey.current);
@@ -358,50 +397,199 @@ export default function DatHangOnline() {
 
   const chooseCustomer = (entry) => {
     setCustomer(entry);
-    setCustomerQuery("");
+    setCustomerQuery('');
     setTouched({});
-    setRecipient({ name: entry.name, phone: entry.phone, address: "" });
+    setRecipient((prev) => ({
+      ...prev,
+      name: entry.name,
+      phone: entry.phone,
+      address: '',
+    }));
   };
   const clearCustomer = () => {
     setCustomer(null);
-    setRecipient({ name: "", phone: "", address: "" });
+    setRecipient((prev) => ({
+      ...prev,
+      name: '',
+      phone: '',
+      address: '',
+    }));
   };
   const updateRecipient = (key, value) =>
     setRecipient((current) => ({ ...current, [key]: value }));
-  const addProduct = (product) => {
-    if (!product.stock) {
-      setStockNote("Sản phẩm đã hết hàng.");
+
+  const handleProvinceChange = (newProvince) => {
+    const availableWards = VIETNAM_LOCATIONS[newProvince] || [];
+    setRecipient((prev) => ({
+      ...prev,
+      province: newProvince,
+      ward: availableWards[0] || '',
+    }));
+  };
+
+  const searchGoongPlaces = (query) => {
+    if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
+    searchTimeoutRef.current = setTimeout(async () => {
+      try {
+        setAddressSearchLoading(true);
+        const url = `https://rsapi.goong.io/Place/AutoComplete?api_key=${GOONG_API_KEY}&input=${encodeURIComponent(query)}`;
+        const res = await fetch(url);
+        const data = await res.json();
+        if (data?.predictions) {
+          setAddressSuggestions(data.predictions);
+          setShowAddressDropdown(true);
+        }
+      } catch (err) {
+        console.error('Lỗi tìm kiếm địa chỉ Goong:', err);
+      } finally {
+        setAddressSearchLoading(false);
+      }
+    }, 250);
+  };
+
+  const handleAddressChange = (val) => {
+    updateRecipient('address', val);
+    if (val.trim().length >= 3) {
+      searchGoongPlaces(val.trim());
+    } else {
+      if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
+      setAddressSuggestions([]);
+      setShowAddressDropdown(false);
+    }
+  };
+
+  const handleSelectSuggestion = (place) => {
+    const compound = place.compound || {};
+    const fullAddress = place.description || '';
+
+    const matchedProvince = matchProvince(compound.province || fullAddress || '');
+    const availableWards = VIETNAM_LOCATIONS[matchedProvince] || [];
+    const matchedWard = matchDistrict(
+      compound.district || compound.commune || fullAddress || '',
+      availableWards
+    );
+
+    setRecipient((prev) => ({
+      ...prev,
+      address: fullAddress,
+      province: matchedProvince,
+      ward: matchedWard,
+    }));
+
+    setShowAddressDropdown(false);
+    setAddressSuggestions([]);
+  };
+
+  const handleGetCurrentLocation = () => {
+    if (!navigator.geolocation) {
+      alert('Trình duyệt của bạn không hỗ trợ định vị GPS.');
       return;
     }
-    setProductQuery("");
-    setStockNote("");
+
+    setLocatingUser(true);
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        try {
+          const { latitude, longitude } = position.coords;
+          const url = `https://rsapi.goong.io/Geocode?api_key=${GOONG_API_KEY}&latlng=${latitude},${longitude}`;
+          const res = await fetch(url);
+          const data = await res.json();
+          if (data?.results && data.results.length > 0) {
+            const first = data.results[0];
+            const compound = first.compound || {};
+            const fullAddress = first.formatted_address || first.address || '';
+
+            const matchedProvince = matchProvince(compound.province || fullAddress || '');
+            const availableWards = VIETNAM_LOCATIONS[matchedProvince] || [];
+            const matchedWard = matchDistrict(
+              compound.district || compound.commune || fullAddress || '',
+              availableWards
+            );
+
+            setRecipient((prev) => ({
+              ...prev,
+              address: fullAddress,
+              province: matchedProvince,
+              ward: matchedWard,
+            }));
+          }
+        } catch (err) {
+          console.error('Lỗi lấy thông tin vị trí:', err);
+          alert('Không thể chuyển đổi tọa độ thành địa chỉ. Vui lòng nhập tay.');
+        } finally {
+          setLocatingUser(false);
+        }
+      },
+      (err) => {
+        console.error('Lỗi Geolocation:', err);
+        setLocatingUser(false);
+        alert(
+          'Không thể truy cập vị trí hiện tại. Vui lòng cho phép quyền định vị trên trình duyệt.'
+        );
+      },
+      { timeout: 10000, enableHighAccuracy: true }
+    );
+  };
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (addressWrapperRef.current && !addressWrapperRef.current.contains(e.target)) {
+        setShowAddressDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
+    };
+  }, []);
+
+  const addProduct = (product) => {
+    if (!editId && !allowWaitingStock && !product.stock) {
+      setStockNote('Sản phẩm đã hết hàng.');
+      return;
+    }
+
+    setProductQuery('');
+    setStockNote('');
+
     setItems((current) => {
       const existing = current.find((item) => item.id === product.id);
-      if (!existing) return [...current, { ...product, quantity: 1 }];
-      if (existing.quantity >= existing.stock) {
+
+      if (!existing) {
+        return [...current, { ...product, quantity: 1 }];
+      }
+
+      if (!editId && !allowWaitingStock && existing.quantity >= existing.stock) {
         setStockNote(`Chỉ còn ${existing.stock} sản phẩm trong kho.`);
         return current;
       }
+
       return current.map((item) =>
-        item.id === product.id
-          ? { ...item, quantity: item.quantity + 1 }
-          : item,
+        item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item
       );
     });
   };
 
   const changeQuantity = (id, value) => {
-    setStockNote("");
+    setStockNote('');
+
     setItems((current) =>
       current.map((item) => {
         if (item.id !== id) return item;
+
         const requested = Number.parseInt(value, 10) || 1;
-        if (requested > item.stock) {
+
+        if (!editId && !allowWaitingStock && requested > item.stock) {
           setStockNote(`Chỉ còn ${item.stock} sản phẩm trong kho.`);
           return { ...item, quantity: item.stock };
         }
-        return { ...item, quantity: Math.max(1, requested) };
-      }),
+
+        return {
+          ...item,
+          quantity: Math.min(100000, Math.max(1, requested)),
+        };
+      })
     );
   };
 
@@ -419,7 +607,7 @@ export default function DatHangOnline() {
 
     submitBusy.current = true;
     setSubmitting(true);
-    setSubmitError("");
+    setSubmitError('');
 
     try {
       let body;
@@ -435,8 +623,7 @@ export default function DatHangOnline() {
 
         if (JSON.stringify(previousDraft) !== JSON.stringify(currentDraft)) {
           throw new Error(
-            "Yêu cầu trước chưa xác định kết quả. " +
-              "Giữ nguyên dữ liệu để thử lại.",
+            'Yêu cầu trước chưa xác định kết quả. ' + 'Giữ nguyên dữ liệu để thử lại.'
           );
         }
 
@@ -447,9 +634,9 @@ export default function DatHangOnline() {
 
       const result = await withIdempotency(
         requestKey,
-        `admin-online:${editId || "create"}`,
+        `admin-online:${editId || 'create'}`,
         body,
-        (key, frozenBody) => saveOnlineOrder(editId, frozenBody, key),
+        (key, frozenBody) => saveOnlineOrder(editId, frozenBody, key)
       );
 
       navigate(`/admin/don-hang/danh-sach-don-hang/${result.id}`);
@@ -471,13 +658,13 @@ export default function DatHangOnline() {
   const saveCustomer = async () => {
     if (!newCustomer.name.trim() || !validPhone(newCustomer.phone)) return;
     setCustomerSaving(true);
-    setCustomerError("");
+    setCustomerError('');
     try {
       chooseCustomer(
         await createSalesCustomer({
           ...newCustomer,
-          phone: newCustomer.phone.replace(/[\s.-]/g, ""),
-        }),
+          phone: newCustomer.phone.replace(/[\s.-]/g, ''),
+        })
       );
       setNewCustomer(null);
     } catch (error) {
@@ -490,15 +677,13 @@ export default function DatHangOnline() {
   if (editId && editReady !== editId)
     return (
       <div className="online-order-page">
-        <p role={optionsError ? "alert" : "status"}>
-          {optionsError || "Đang kiểm tra điều kiện sửa đơn..."}
+        <p role={optionsError ? 'alert' : 'status'}>
+          {optionsError || 'Đang kiểm tra điều kiện sửa đơn...'}
         </p>
         <button
           type="button"
           className="online-outline-btn"
-          onClick={() =>
-            navigate(`/admin/don-hang/danh-sach-don-hang/${editId}`)
-          }
+          onClick={() => navigate(`/admin/don-hang/danh-sach-don-hang/${editId}`)}
         >
           QUAY LẠI ĐƠN HÀNG
         </button>
@@ -511,37 +696,30 @@ export default function DatHangOnline() {
           <nav>
             ĐƠN HÀNG <span>/</span> ĐẶT HÀNG ONLINE
           </nav>
-          <h1>
-            {editId ? "CHỈNH SỬA ĐƠN HÀNG ONLINE" : "TẠO ĐƠN HÀNG ONLINE"}
-          </h1>
-          <p>
-            LÊN ĐƠN THỦ CÔNG CHO KHÁCH HÀNG VÀ KIỂM TRA GIÁ / TỒN / KHUYẾN MẠI
-            TRƯỚC KHI LƯU
-          </p>
+          <h1>{editId ? 'CHỈNH SỬA ĐƠN HÀNG ONLINE' : 'TẠO ĐƠN HÀNG ONLINE'}</h1>
+          <p>LÊN ĐƠN THỦ CÔNG CHO KHÁCH HÀNG VÀ KIỂM TRA GIÁ / TỒN / KHUYẾN MẠI TRƯỚC KHI LƯU</p>
         </div>
         <button
           type="button"
           className="online-outline-btn"
-          onClick={() => navigate("/admin/don-hang/danh-sach-don-hang")}
+          onClick={() => navigate('/admin/don-hang/danh-sach-don-hang')}
         >
           <HiOutlineArrowLeft /> DANH SÁCH ĐƠN HÀNG
         </button>
       </div>
-      {optionsError && (
-        <p className="online-banner online-banner--error">{optionsError}</p>
-      )}
+      {optionsError && <p className="online-banner online-banner--error">{optionsError}</p>}
 
       {financialLocked && (
         <p className="online-banner" role="status">
-          Đơn đã chốt khuyến mại. Bạn có thể sửa thông tin người nhận và ghi
-          chú; sản phẩm và số tiền được giữ nguyên.
+          Đơn đã chốt khuyến mại. Bạn có thể sửa thông tin người nhận và ghi chú; sản phẩm và số
+          tiền được giữ nguyên.
         </p>
       )}
 
       {hasPendingSave && (
         <p className="online-banner" role="status">
-          Chưa xác định được kết quả lưu đơn. Dữ liệu đang được giữ nguyên; bấm
-          thử lại để gửi cùng yêu cầu.
+          Chưa xác định được kết quả lưu đơn. Dữ liệu đang được giữ nguyên; bấm thử lại để gửi cùng
+          yêu cầu.
         </p>
       )}
 
@@ -552,8 +730,8 @@ export default function DatHangOnline() {
               type="button"
               className="online-outline-btn"
               onClick={() => {
-                setCustomerError("");
-                setNewCustomer({ name: "", phone: "" });
+                setCustomerError('');
+                setNewCustomer({ name: '', phone: '' });
               }}
             >
               + THÊM KHÁCH HÀNG
@@ -563,13 +741,9 @@ export default function DatHangOnline() {
                 <div>
                   <strong>{customer.name}</strong>
                   <span>{customer.phone}</span>
-                  <span>{customer.email || "Không có email"}</span>
+                  <span>{customer.email || 'Không có email'}</span>
                 </div>
-                <button
-                  type="button"
-                  className="online-outline-btn"
-                  onClick={clearCustomer}
-                >
+                <button type="button" className="online-outline-btn" onClick={clearCustomer}>
                   ĐỔI KHÁCH
                 </button>
               </div>
@@ -590,7 +764,7 @@ export default function DatHangOnline() {
                     <strong>{entry.name}</strong>
                     <span>
                       {entry.phone}
-                      {entry.email ? ` · ${entry.email}` : ""}
+                      {entry.email ? ` · ${entry.email}` : ''}
                     </span>
                   </button>
                 ))}
@@ -602,47 +776,189 @@ export default function DatHangOnline() {
               <Field
                 label="TÊN NGƯỜI NHẬN *"
                 value={recipient.name}
-                change={(value) => updateRecipient("name", value)}
+                change={(value) => updateRecipient('name', value)}
                 blur={() => setTouched((v) => ({ ...v, name: true }))}
                 placeholder="Nhập họ tên"
                 error={
                   (touched.name || submitted) && !recipient.name.trim()
-                    ? "Vui lòng nhập tên người nhận."
-                    : ""
+                    ? 'Vui lòng nhập tên người nhận.'
+                    : ''
                 }
               />
               <Field
                 label="SỐ ĐIỆN THOẠI *"
                 value={recipient.phone}
-                change={(value) => updateRecipient("phone", value)}
+                change={(value) => updateRecipient('phone', value)}
                 blur={() => setTouched((v) => ({ ...v, phone: true }))}
                 placeholder="0901234567"
                 error={
                   touched.phone || submitted
                     ? !recipient.phone.trim()
-                      ? "Vui lòng nhập số điện thoại."
+                      ? 'Vui lòng nhập số điện thoại.'
                       : phoneError
-                    : ""
+                    : ''
                 }
               />
-              <Field
-                wide
-                label={`ĐỊA CHỈ GIAO HÀNG${delivery === "GIAO_HANG" ? " *" : ""}`}
-                value={recipient.address}
-                change={(value) => updateRecipient("address", value)}
-                blur={() => setTouched((v) => ({ ...v, address: true }))}
-                placeholder="Số nhà, đường, phường/xã, quận/huyện, tỉnh/thành..."
-                error={
+              <div className="online-field">
+                <span>TỈNH / THÀNH PHỐ *</span>
+                <select
+                  value={recipient.province}
+                  onChange={(e) => handleProvinceChange(e.target.value)}
+                >
+                  {Object.keys(VIETNAM_LOCATIONS).map((prov) => (
+                    <option key={prov} value={prov}>
+                      {prov}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="online-field">
+                <span>QUẬN / HUYỆN / PHƯỜNG *</span>
+                <select
+                  value={recipient.ward}
+                  onChange={(e) => updateRecipient('ward', e.target.value)}
+                >
+                  {(VIETNAM_LOCATIONS[recipient.province] || []).map((w) => (
+                    <option key={w} value={w}>
+                      {w}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div
+                className={`online-field online-field--wide ${
                   (touched.address || submitted) &&
-                  delivery === "GIAO_HANG" &&
+                  delivery === 'GIAO_HANG' &&
                   !recipient.address.trim()
-                    ? "Vui lòng nhập địa chỉ giao hàng."
-                    : ""
-                }
-              />
+                    ? 'online-field--error'
+                    : ''
+                }`}
+                ref={addressWrapperRef}
+                style={{ position: 'relative' }}
+              >
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                  }}
+                >
+                  <span className="field-label" style={{ color: '#333', fontSize: '9px', fontWeight: 900 }}>
+                    {`ĐỊA CHỈ CỤ THỂ${delivery === 'GIAO_HANG' ? ' *' : ''}`}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={handleGetCurrentLocation}
+                    disabled={locatingUser}
+                    style={{
+                      background: 'transparent',
+                      border: 'none',
+                      color: '#f11919',
+                      fontSize: '10px',
+                      fontWeight: 800,
+                      cursor: locatingUser ? 'not-allowed' : 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      padding: 0,
+                    }}
+                    title="Lấy vị trí hiện tại của bạn"
+                  >
+                    {locatingUser ? (
+                      <>
+                        <Loader2 size={12} className="spin-animate" />
+                        <span>Đang định vị...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Navigation size={12} />
+                        <span>Lấy vị trí hiện tại</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+                <div style={{ position: 'relative' }}>
+                  <input
+                    value={recipient.address}
+                    onChange={(e) => handleAddressChange(e.target.value)}
+                    onFocus={() => {
+                      if (addressSuggestions.length > 0) setShowAddressDropdown(true);
+                    }}
+                    onBlur={() => setTouched((v) => ({ ...v, address: true }))}
+                    placeholder="Nhập địa chỉ hoặc tên địa điểm..."
+                    autoComplete="off"
+                  />
+                  {addressSearchLoading && (
+                    <div
+                      style={{
+                        position: 'absolute',
+                        right: '12px',
+                        top: '50%',
+                        transform: 'translateY(-50%)',
+                        color: '#888',
+                      }}
+                    >
+                      <Loader2 size={15} className="spin-animate" />
+                    </div>
+                  )}
+                </div>
+                {(touched.address || submitted) &&
+                  delivery === 'GIAO_HANG' &&
+                  !recipient.address.trim() && (
+                    <small>Vui lòng nhập địa chỉ giao hàng.</small>
+                  )}
+                {showAddressDropdown && addressSuggestions.length > 0 && (
+                  <div className="goong-autocomplete-dropdown">
+                    {addressSuggestions.map((item, idx) => (
+                      <div
+                        key={item.place_id || idx}
+                        className="goong-suggestion-item"
+                        onClick={() => handleSelectSuggestion(item)}
+                      >
+                        <MapPin size={16} className="goong-icon" />
+                        <div className="goong-item-text">
+                          <span className="goong-main">
+                            {item.structured_formatting?.main_text || item.description}
+                          </span>
+                          {item.structured_formatting?.secondary_text && (
+                            <span className="goong-secondary">
+                              {item.structured_formatting.secondary_text}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           </Section>
           <Section n="3" title="SẢN PHẨM" disabled={financialLocked}>
+            {!editId && (
+              <>
+                <label className="check-row">
+                  <input
+                    type="checkbox"
+                    checked={allowWaitingStock}
+                    disabled={submitting || hasPendingSave}
+                    onChange={(event) => {
+                      setAllowWaitingStock(event.target.checked);
+                      setStockNote('');
+                    }}
+                  />
+                  Cho phép tạo đơn chờ hàng khi chưa đủ tồn
+                </label>
+
+                {allowWaitingStock && (
+                  <p className="stock-note">
+                    Đã thống nhất với khách việc chờ bổ sung hàng. Nếu thiếu bất kỳ sản phẩm, linh
+                    kiện hoặc quà tặng nào, đơn sẽ chờ hàng và chưa giữ số lượng. Nếu đủ toàn bộ
+                    hàng, đơn được giữ hàng như thông thường.
+                  </p>
+                )}
+              </>
+            )}
+
             <Search
               value={productQuery}
               onChange={setProductQuery}
@@ -660,32 +976,26 @@ export default function DatHangOnline() {
                     <strong>{product.name}</strong>
                     <small>
                       {product.code} · {product.variant}
-                      {product.barcode ? ` · ${product.barcode}` : ""}
+                      {product.barcode ? ` · ${product.barcode}` : ''}
                     </small>
                   </span>
                   <span>
                     <b>{formatMoney(product.unitPrice)}</b>
-                    <small>
-                      {product.stock ? `Tồn: ${product.stock}` : "HẾT HÀNG"}
-                    </small>
+                    <small>{product.stock ? `Tồn: ${product.stock}` : 'HẾT HÀNG'}</small>
                   </span>
                 </button>
               ))}
             </Search>
             {!items.length ? (
-              <p className="product-empty">
-                CHƯA CÓ SẢN PHẨM — TÌM VÀ THÊM SẢN PHẨM VÀO ĐƠN
-              </p>
+              <p className="product-empty">CHƯA CÓ SẢN PHẨM — TÌM VÀ THÊM SẢN PHẨM VÀO ĐƠN</p>
             ) : (
               <LineTable
+                editing={Boolean(editId)}
+                allowWaiting={allowWaitingStock}
                 items={items}
                 previewLines={data?.san_pham || []}
                 change={changeQuantity}
-                remove={(id) =>
-                  setItems((current) =>
-                    current.filter((item) => item.id !== id),
-                  )
-                }
+                remove={(id) => setItems((current) => current.filter((item) => item.id !== id))}
               />
             )}
             {stockNote && <p className="stock-note">{stockNote}</p>}
@@ -705,35 +1015,24 @@ export default function DatHangOnline() {
                 value={promotion}
                 onChange={(event) => {
                   setPromotion(event.target.value);
-                  setSubmitError("");
+                  setSubmitError('');
                 }}
               />
               <datalist id="online-promotions">
                 {promotions.map((item) => (
-                  <option
-                    key={item.ma_chuong_trinh}
-                    value={item.ma_chuong_trinh}
-                  >
+                  <option key={item.ma_chuong_trinh} value={item.ma_chuong_trinh}>
                     {item.ten_chuong_trinh}
                   </option>
                 ))}
               </datalist>
             </label>
-            {editId && (
-              <p className="stock-note">
-                API chỉnh sửa chưa hỗ trợ thay đổi khuyến mại.
-              </p>
-            )}
+            {editId && <p className="stock-note">API chỉnh sửa chưa hỗ trợ thay đổi khuyến mại.</p>}
           </Section>
           <Section n="5" title="THANH TOÁN" disabled={financialLocked}>
             <p className="field-label">PHƯƠNG THỨC THANH TOÁN *</p>
             <div className="toggle-row">
               {(options?.phuong_thuc_online || []).map((value) => (
-                <Toggle
-                  key={value}
-                  active={payment === value}
-                  click={() => setPayment(value)}
-                >
+                <Toggle key={value} active={payment === value} click={() => setPayment(value)}>
                   {labels[value] || value}
                 </Toggle>
               ))}
@@ -745,17 +1044,13 @@ export default function DatHangOnline() {
                 type="checkbox"
                 checked={applyVat}
                 onChange={(event) => setApplyVat(event.target.checked)}
-              />{" "}
+              />{' '}
               Áp dụng VAT
             </label>
             {applyVat && (
               <div className="toggle-row vat-toggles">
                 {(options?.che_do_thue || []).map((value) => (
-                  <Toggle
-                    key={value}
-                    active={vatMode === value}
-                    click={() => setVatMode(value)}
-                  >
+                  <Toggle key={value} active={vatMode === value} click={() => setVatMode(value)}>
                     {labels[value] || value}
                   </Toggle>
                 ))}
@@ -765,23 +1060,16 @@ export default function DatHangOnline() {
           <Section n="6" title="HÌNH THỨC NHẬN HÀNG" disabled={financialLocked}>
             <div className="toggle-row">
               {(options?.hinh_thuc_nhan_hang || []).map((value) => (
-                <Toggle
-                  key={value}
-                  active={delivery === value}
-                  click={() => setDelivery(value)}
-                >
+                <Toggle key={value} active={delivery === value} click={() => setDelivery(value)}>
                   {labels[value] || value}
                 </Toggle>
               ))}
             </div>
-            {delivery === "GIAO_HANG" && (
+            {delivery === 'GIAO_HANG' && (
               <label className="online-field shipping-field">
                 <span>PHÍ GIAO HÀNG (đ)</span>
                 <div className="money-input">
-                  <PriceInput
-                    value={shippingInput}
-                    onChange={setShippingInput}
-                  />
+                  <PriceInput value={shippingInput} onChange={setShippingInput} />
                   <i>đ</i>
                 </div>
               </label>
@@ -862,10 +1150,7 @@ function Section({ n, title, children, disabled = false }) {
         </h2>
       </header>
 
-      <fieldset
-        className="online-section__body online-section-fields"
-        disabled={disabled}
-      >
+      <fieldset className="online-section__body online-section-fields" disabled={disabled}>
         {children}
       </fieldset>
     </section>
@@ -897,10 +1182,11 @@ function Search({ value, onChange, placeholder, loading, children }) {
     </div>
   );
 }
+
 function Field({ label, value, change, blur, placeholder, error, wide }) {
   return (
     <label
-      className={`online-field ${wide ? "online-field--wide" : ""} ${error ? "online-field--error" : ""}`}
+      className={`online-field ${wide ? 'online-field--wide' : ''} ${error ? 'online-field--error' : ''}`}
     >
       <span>{label}</span>
       <input
@@ -913,25 +1199,24 @@ function Field({ label, value, change, blur, placeholder, error, wide }) {
     </label>
   );
 }
+
 function Toggle({ active, click, children }) {
   return (
-    <button
-      type="button"
-      className={`online-toggle ${active ? "is-active" : ""}`}
-      onClick={click}
-    >
+    <button type="button" className={`online-toggle ${active ? 'is-active' : ''}`} onClick={click}>
       {children}
     </button>
   );
 }
+
 function InlineError({ children }) {
   return <p className="inline-error">{children}</p>;
 }
-function LineTable({ items, previewLines, change, remove }) {
+
+function LineTable({ items, previewLines, change, remove, editing = false, allowWaiting = false }) {
   const byId = new Map(
     previewLines
       .filter((line) => !line.la_qua_tang)
-      .map((line) => [Number(line.phien_ban_id), line]),
+      .map((line) => [Number(line.phien_ban_id), line])
   );
   return (
     <div className="line-table-wrap">
@@ -956,43 +1241,33 @@ function LineTable({ items, previewLines, change, remove }) {
                     {item.code} · {item.variant}
                   </small>
                 </td>
-                <td>{line ? formatMoney(line.don_gia) : "Đang tính..."}</td>
+                <td>{line ? formatMoney(line.don_gia) : 'Đang tính...'}</td>
                 <td>
                   <div className="quantity-control">
-                    <button
-                      type="button"
-                      onClick={() => change(item.id, item.quantity - 1)}
-                    >
+                    <button type="button" onClick={() => change(item.id, item.quantity - 1)}>
                       −
                     </button>
                     <input
                       aria-label={`Số lượng ${item.name}`}
                       type="number"
                       min="1"
-                      max={item.stock}
+                      max={editing || allowWaiting ? 100000 : item.stock}
                       value={item.quantity}
                       onChange={(event) => change(item.id, event.target.value)}
                     />
-                    <button
-                      type="button"
-                      onClick={() => change(item.id, item.quantity + 1)}
-                    >
+                    <button type="button" onClick={() => change(item.id, item.quantity + 1)}>
                       +
                     </button>
                   </div>
                 </td>
                 <td className="line-total">
-                  {line ? formatMoney(line.thanh_toan_dong) : "—"}
+                  {line ? formatMoney(line.thanh_toan_dong) : '—'}
                   {line?.tien_chiet_khau > 0 && (
                     <small>Giảm {formatMoney(line.tien_chiet_khau)}</small>
                   )}
                 </td>
                 <td>
-                  <button
-                    type="button"
-                    className="remove-line"
-                    onClick={() => remove(item.id)}
-                  >
+                  <button type="button" className="remove-line" onClick={() => remove(item.id)}>
                     XÓA
                   </button>
                 </td>
@@ -1037,37 +1312,38 @@ function Summary({
     <aside className="order-summary">
       <h2>TỔNG KẾT ĐƠN HÀNG</h2>
       <div className="summary-body">
-        <SummaryLine
-          label="Tiền hàng"
-          value={data ? formatMoney(data.tong_tien_hang) : "—"}
-        />
+        <SummaryLine label="Tiền hàng" value={data ? formatMoney(data.tong_tien_hang) : '—'} />
         <SummaryLine
           label="Chiết khấu"
-          value={
-            data?.tien_chiet_khau
-              ? `−${formatMoney(data.tien_chiet_khau)}`
-              : "—"
-          }
+          value={data?.tien_chiet_khau ? `−${formatMoney(data.tien_chiet_khau)}` : '—'}
           red={Number(data?.tien_chiet_khau) > 0}
         />
-        <SummaryLine
-          label="VAT"
-          value={data ? formatMoney(data.tong_tien_vat) : "—"}
-        />
+        <SummaryLine label="VAT" value={data ? formatMoney(data.tong_tien_vat) : '—'} />
         <SummaryLine
           label="Phí giao hàng"
-          value={data?.phi_giao_hang ? formatMoney(data.phi_giao_hang) : "—"}
+          value={data?.phi_giao_hang ? formatMoney(data.phi_giao_hang) : '—'}
         />
         <div className="summary-total">
           <strong>KHÁCH PHẢI TRẢ</strong>
-          <b>{data ? formatMoney(data.tong_thanh_toan) : "—"}</b>
+          <b>{data ? formatMoney(data.tong_thanh_toan) : '—'}</b>
         </div>
+
+        {!edit && data?.tiep_nhan?.thong_bao && (
+          <p className="summary-note">{data.tiep_nhan.thong_bao}</p>
+        )}
+
+        {!edit && data?.tiep_nhan?.luu_y_uu_dai && (
+          <p className="summary-note">{data.tiep_nhan.luu_y_uu_dai}</p>
+        )}
+
         {loading && <p className="summary-note">Đang tính lại từ backend...</p>}
+
         {error && (
           <p className="summary-error" role="alert">
             - {error}
           </p>
         )}
+
         {missing.length > 0 && (
           <ul className="missing-list">
             {missing.map((item) => (
@@ -1075,22 +1351,17 @@ function Summary({
             ))}
           </ul>
         )}
-        {phoneError && (
-          <p className="summary-error">- Số điện thoại chưa hợp lệ</p>
-        )}
-        <button
-          type="button"
-          className="submit-order"
-          disabled={!canSubmit}
-          onClick={submit}
-        >
+
+        {phoneError && <p className="summary-error">- Số điện thoại chưa hợp lệ</p>}
+
+        <button type="button" className="submit-order" disabled={!canSubmit} onClick={submit}>
           {submitting
-            ? "ĐANG LƯU..."
+            ? 'ĐANG LƯU...'
             : retry
-              ? "THỬ LẠI YÊU CẦU"
+              ? 'THỬ LẠI YÊU CẦU'
               : edit
-                ? "LƯU THAY ĐỔI"
-                : "ĐẶT HÀNG"}
+                ? 'LƯU THAY ĐỔI'
+                : 'ĐẶT HÀNG'}
         </button>
       </div>
     </aside>
@@ -1101,7 +1372,7 @@ function SummaryLine({ label, value, red }) {
   return (
     <div className="summary-line">
       <span>{label}</span>
-      <strong className={red ? "is-red" : ""}>{value}</strong>
+      <strong className={red ? 'is-red' : ''}>{value}</strong>
     </div>
   );
 }

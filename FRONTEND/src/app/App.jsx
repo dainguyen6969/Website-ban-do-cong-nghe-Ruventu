@@ -8,9 +8,8 @@ import { canAccessAdmin } from '../auth/accountModel';
 export default function App() {
   const { pathname } = useLocation();
   const { currentAccount, roles } = useMockAuth();
-  const isAdminRoute = pathname === '/admin'
-    || pathname.startsWith('/admin/')
-    || pathname.startsWith('/kho-hang/');
+  const isAdminRoute =
+    pathname === '/admin' || pathname.startsWith('/admin/') || pathname.startsWith('/kho-hang/');
 
   if (isAdminRoute && !canAccessAdmin(currentAccount, roles)) {
     return <Navigate to="/login" replace state={{ from: pathname }} />;

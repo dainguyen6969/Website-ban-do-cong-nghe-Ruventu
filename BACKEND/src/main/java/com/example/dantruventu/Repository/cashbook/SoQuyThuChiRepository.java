@@ -146,4 +146,6 @@ public interface SoQuyThuChiRepository
       @Param("trangThai") TrangThaiPhieuThuChi trangThai);
 
   List<SoQuyThuChi> findByMaChungTuThamChieu(String maChungTuThamChieu);
+
+  List<SoQuyThuChi> findByMaPhieuStartingWith(String prefix);
 }

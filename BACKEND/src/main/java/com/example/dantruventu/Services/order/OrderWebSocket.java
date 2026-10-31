@@ -126,6 +126,18 @@ public class OrderWebSocket extends TextWebSocketHandler implements HandshakeInt
                     event.orderId(),
                     "change",
                     event.change())));
+    send(message);
+  }
+
+  @TransactionalEventListener
+  public void broadcastNotification(OrderEvents.Notification event) {
+    send(
+        new TextMessage(
+            objectMapper.writeValueAsString(
+                Map.of("type", "admin-notification", "notification", event))));
+  }
+
+  private void send(TextMessage message) {
     for (WebSocketSession session : sessions.values()) {
       try {
         if (!session.isOpen() || !authorized((String) session.getAttributes().get("token"))) {

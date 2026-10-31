@@ -11,6 +11,7 @@ import com.example.dantruventu.Enum.TrangThaiXuatKho;
 import com.example.dantruventu.Error.AppException;
 import com.example.dantruventu.Error.ErrorCode;
 import com.example.dantruventu.Repository.order.ChiTietDonHangRepository;
+import com.example.dantruventu.Services.warehouse.RecallSafety;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.LockModeType;
 import java.time.LocalDateTime;
@@ -33,6 +34,7 @@ public class SoldDeviceService {
   private final ChiTietDonHangRepository lines;
   private final OrderSaleSnapshotService snapshots;
   private final SalesProperties properties;
+  private final RecallSafety recallSafety;
 
   @Transactional(propagation = Propagation.MANDATORY)
   public void prepare(
@@ -86,6 +88,10 @@ public class SoldDeviceService {
             throw conflict("Serial sai phiên bản hoặc bị phân bổ trùng");
           }
 
+          if (serial != null) {
+            recallSafety.requireSerialClear(serial);
+          }
+
           var device =
               ThietBiBaoHanh.builder()
                   .maTheoDoi("TB-" + UUID.randomUUID())
@@ -123,6 +129,11 @@ public class SoldDeviceService {
   @Transactional(propagation = Propagation.MANDATORY)
   public void handover(DonHang order) {
     if (order.getNgayHoanThanh() != null) return;
+
+    if (order.getTrangThaiDonHang()
+        != com.example.dantruventu.Enum.TrangThaiDonHang.DANG_GIAO_HANG) {
+      recallSafety.requireOrderClear(order.getId());
+    }
 
     var orderLines = lines.findByDonHang_IdOrderByIdAsc(order.getId());
 

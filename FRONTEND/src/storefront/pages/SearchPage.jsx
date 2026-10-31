@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { Search, X, ChevronDown, ChevronUp } from "lucide-react";
 import Header from "../components/Header";
@@ -10,6 +10,7 @@ import {
 } from "../../shared/services/productService";
 import TablePagination from "../../shared/components/ui/TablePagination";
 import { catalogScopes, inCatalogScope } from './catalogModel';
+import { getRecommendedProducts, isRecommendationQuery } from '../services/recommendationService';
 import "./SearchPage.css";
 
 const SearchPage = ({ categorySlug } = {}) => {
@@ -17,6 +18,9 @@ const SearchPage = ({ categorySlug } = {}) => {
   const navigate = useNavigate();
   const query = searchParams.get("q") || "";
   const isCategory = categorySlug != null;
+  const isRecommended = !isCategory && (searchParams.get('mode') === 'recommended' || isRecommendationQuery(query));
+  const relatedCategoryId = !isCategory ? searchParams.get('danh_muc_id') : null;
+  const excludeId = searchParams.get('exclude');
   const categoryTitle = catalogScopes[categorySlug]?.title || 'Không tìm thấy danh mục';
 
   const [searchProducts, setSearchProducts] = useState([]);
@@ -24,7 +28,9 @@ const SearchPage = ({ categorySlug } = {}) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [page, setPage] = useState(1);
-  const [sortBy, setSortBy] = useState(isCategory ? "newest" : "relevance");
+  const resultsRef = useRef(null);
+  const [selectedSort, setSortBy] = useState(isCategory ? "newest" : "relevance");
+  const sortBy = isRecommended && ['newest', 'bestseller'].includes(selectedSort) ? 'relevance' : selectedSort;
   const [isSortDropdownOpen, setIsSortDropdownOpen] = useState(false);
 
   // Filter states
@@ -39,7 +45,8 @@ const SearchPage = ({ categorySlug } = {}) => {
     const loadProducts = async () => {
       setLoading(true); setError('');
       try {
-        const params = { keyword: query };
+        const params = isRecommended || relatedCategoryId ? {} : { keyword: query };
+        if (relatedCategoryId && !isRecommended) params.danh_muc_id = relatedCategoryId;
 
         if (minPrice) params.gia_min = Number(minPrice);
         if (maxPrice) params.gia_max = Number(maxPrice);
@@ -55,9 +62,13 @@ const SearchPage = ({ categorySlug } = {}) => {
           params.sort = "ban_chay";
         }
 
-        const catalog = await productService.getAllProducts(params);
-        const products = isCategory ? catalog.filter(product => inCatalogScope(product, categorySlug)) : catalog;
-        const recommended = products.length || isCategory ? [] : (await productService.getProducts({ limit: 4, sort: 'moi_nhat' })).data.danhSachSanPham.map(toProductCard);
+        const catalog = isRecommended
+          ? await getRecommendedProducts({ excludeId, params })
+          : await productService.getAllProducts(params);
+        const products = catalog.filter(product =>
+          (excludeId == null || String(product.id) !== excludeId) &&
+          (!isCategory || inCatalogScope(product, categorySlug)));
+        const recommended = products.length || isCategory || isRecommended || relatedCategoryId ? [] : (await productService.getProducts({ limit: 4, sort: 'moi_nhat' })).data.danhSachSanPham.map(toProductCard);
         if (active) { setSearchProducts(products); setSuggestedProducts(recommended); setPage(1); }
       } catch (reason) {
         if (active) { setSearchProducts([]); setSuggestedProducts([]); setError(reason.response?.data?.message || reason.message || 'Không tải được sản phẩm.'); }
@@ -65,27 +76,29 @@ const SearchPage = ({ categorySlug } = {}) => {
     };
     loadProducts();
     return () => { active = false; };
-  }, [query, sortBy, minPrice, maxPrice, stockStatus, categorySlug, isCategory]);
+  }, [query, sortBy, minPrice, maxPrice, stockStatus, categorySlug, isCategory, isRecommended, relatedCategoryId, excludeId]);
 
   const filteredProducts = useMemo(() => {
     const products = searchProducts.filter(product =>
       (!selectedBrands.length || selectedBrands.includes(product.brand)) &&
       (!selectedCategories.length || selectedCategories.includes(product.category)));
     if (sortBy === 'name-asc') products.sort((a, b) => a.title.localeCompare(b.title, 'vi'));
+    if (isRecommended && sortBy === 'price-asc') products.sort((a, b) => a.priceValue - b.priceValue);
+    if (isRecommended && sortBy === 'price-desc') products.sort((a, b) => b.priceValue - a.priceValue);
     return products;
-  }, [searchProducts, selectedBrands, selectedCategories, sortBy]);
+  }, [searchProducts, selectedBrands, selectedCategories, sortBy, isRecommended]);
   const totalProducts = filteredProducts.length;
   const currentPage = Math.min(page, Math.max(1, Math.ceil(totalProducts / 20)));
   const facets = field => [...new Set(searchProducts.map(product => product[field]).filter(Boolean))].sort((a,b) => a.localeCompare(b,'vi')).map(name => ({ name, count: searchProducts.filter(product => product[field] === name).length }));
 
   const sortOptions = [
-    { value: "relevance", label: "Liên quan nhất" },
+    { value: "relevance", label: isRecommended ? "Gợi ý ngẫu nhiên" : "Liên quan nhất" },
     { value: "price-asc", label: "Giá thấp → cao" },
     { value: "price-desc", label: "Giá cao → thấp" },
     { value: "newest", label: "Mới nhất" },
     { value: "name-asc", label: "Tên A–Z" },
     { value: "bestseller", label: "Bán chạy nhất" },
-  ];
+  ].filter(option => !isRecommended || !['newest', 'bestseller'].includes(option.value));
 
   const brands = facets('brand');
   const categories = facets('category');
@@ -165,7 +178,10 @@ const handleSuggestKeyword = (k) => {
       {/* Search Header Banner */}
       <div className="search-banner">
         <div className="container">
-          {isCategory ? <h1 className="catalog-listing-title">{categoryTitle}</h1> : <div className="search-query-info">
+          {isCategory ? <h1 className="catalog-listing-title">{categoryTitle}</h1> : isRecommended ? <div className="search-query-info">
+            <h1 className="catalog-listing-title">Gợi ý dành cho bạn</h1>
+            <p>Khám phá sản phẩm ngẫu nhiên từ cửa hàng · {filteredProducts.length} sản phẩm</p>
+          </div> : <div className="search-query-info">
             Kết quả cho: <strong>"{query}"</strong> - {filteredProducts.length}{" "}
             sản phẩm
           </div>}
@@ -307,7 +323,7 @@ const handleSuggestKeyword = (k) => {
         </aside>
 
         {/* Search Results Area */}
-        <div className="search-content">
+        <div className="search-content" ref={resultsRef}>
           <div className="search-toolbar">
             <div className="toolbar-left">
               {totalProducts > 0 ? (
@@ -376,9 +392,13 @@ const handleSuggestKeyword = (k) => {
           {loading ? <p role="status">Đang tải sản phẩm...</p> : error ? <p role="alert">{error}</p> : filteredProducts.length > 0 ? (
             <><div className="search-product-grid">
               {filteredProducts.slice((currentPage - 1) * 20, currentPage * 20).map(product => (
-                <ProductCard key={product.id} product={product} />
+                <ProductCard key={product.id} product={product} showPreview />
               ))}
-            </div><TablePagination totalItems={totalProducts} pageSize={20} currentPage={currentPage} onPageChange={setPage} idPrefix="store-search" /></>
+            </div><TablePagination totalItems={totalProducts} pageSize={20} currentPage={currentPage} onPageChange={nextPage => {
+              if (nextPage === currentPage) return;
+              setPage(nextPage);
+              resultsRef.current?.scrollIntoView({ block: 'start' });
+            }} idPrefix="store-search" /></>
           ) : (
             <div className="no-results-area">
               <div className="no-results-header">
@@ -390,16 +410,16 @@ const handleSuggestKeyword = (k) => {
                   <Search size={40} />
                 </div>
                 <div className="no-results-content">
-                  <h2>{isCategory ? 'KHÔNG CÓ SẢN PHẨM PHÙ HỢP VỚI BỘ LỌC' : 'KHÔNG TÌM THẤY KẾT QUẢ NÀO PHÙ HỢP VỚI TỪ KHÓA'}</h2>
-                  {!isCategory && <div className="keyword-badge">
+                  <h2>{isCategory || isRecommended || relatedCategoryId ? 'KHÔNG CÓ SẢN PHẨM PHÙ HỢP VỚI BỘ LỌC' : 'KHÔNG TÌM THẤY KẾT QUẢ NÀO PHÙ HỢP VỚI TỪ KHÓA'}</h2>
+                  {!isCategory && !isRecommended && <div className="keyword-badge">
                     <Search size={16} />
                     <span>"{query}"</span>
                   </div>}
                   <p>
-                    {isCategory ? 'Thử thay đổi khoảng giá, thương hiệu hoặc xóa bộ lọc để xem thêm sản phẩm trong danh mục.' : 'Hệ thống không tìm thấy sản phẩm nào phù hợp. Thử kiểm tra lại chính tả, dùng từ khóa ngắn hơn, hoặc tìm theo tên thương hiệu / danh mục.'}
+                    {isCategory || isRecommended || relatedCategoryId ? 'Thử thay đổi khoảng giá, thương hiệu hoặc xóa bộ lọc để xem thêm sản phẩm.' : 'Hệ thống không tìm thấy sản phẩm nào phù hợp. Thử kiểm tra lại chính tả, dùng từ khóa ngắn hơn, hoặc tìm theo tên thương hiệu / danh mục.'}
                   </p>
 
-                  {!isCategory && <div className="suggested-keywords">
+                  {!isCategory && !isRecommended && !relatedCategoryId && <div className="suggested-keywords">
                     {suggestedKeywords.map((k) => (
                       <button
                         key={k}
@@ -431,8 +451,8 @@ const handleSuggestKeyword = (k) => {
                   <span className="recommended-subtitle">GỢI Ý CHO BẠN</span>
                 </div>
                 <div className="search-product-grid">
-                  {suggestedProducts.map((product, index) => (
-                    <ProductCard key={index} product={product} />
+                  {suggestedProducts.map(product => (
+                    <ProductCard key={product.id} product={product} showPreview />
                   ))}
                 </div>
               </div>}

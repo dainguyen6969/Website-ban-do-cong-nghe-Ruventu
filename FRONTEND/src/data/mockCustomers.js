@@ -21,7 +21,11 @@ export const seedCustomers = [
     status: 'active',
     createdAt: '14/08/2026 10:15',
     updatedAt: '14/08/2026 10:15',
-    address: { recipient: 'Trần Thị An', phone: '0901 234 568', lines: ['Số 8, phố Huế', 'Phường Hai Bà Trưng', 'Hà Nội'] },
+    address: {
+      recipient: 'Trần Thị An',
+      phone: '0901 234 568',
+      lines: ['Số 8, phố Huế', 'Phường Hai Bà Trưng', 'Hà Nội'],
+    },
   },
   {
     id: '22',
@@ -31,7 +35,11 @@ export const seedCustomers = [
     status: 'inactive',
     createdAt: '18/08/2026 13:30',
     updatedAt: '02/09/2026 08:45',
-    address: { recipient: 'Lê Minh Hùng', phone: '0912 345 678', lines: ['24 Nguyễn Văn Cừ', 'Phường Bồ Đề', 'Hà Nội'] },
+    address: {
+      recipient: 'Lê Minh Hùng',
+      phone: '0912 345 678',
+      lines: ['24 Nguyễn Văn Cừ', 'Phường Bồ Đề', 'Hà Nội'],
+    },
   },
   {
     id: '23',
@@ -41,7 +49,11 @@ export const seedCustomers = [
     status: 'active',
     createdAt: '20/08/2026 09:20',
     updatedAt: '20/08/2026 09:20',
-    address: { recipient: 'Phạm Thị Hoa', phone: '0933 999 888', lines: ['115 Lê Lợi', 'Phường Bến Thành', 'TP. Hồ Chí Minh'] },
+    address: {
+      recipient: 'Phạm Thị Hoa',
+      phone: '0933 999 888',
+      lines: ['115 Lê Lợi', 'Phường Bến Thành', 'TP. Hồ Chí Minh'],
+    },
   },
   {
     id: '24',
@@ -51,7 +63,11 @@ export const seedCustomers = [
     status: 'active',
     createdAt: '21/08/2026 15:40',
     updatedAt: '21/08/2026 15:40',
-    address: { recipient: 'Hoàng Minh Đức', phone: '0912 111 222', lines: ['39 Trần Phú', 'Phường Hải Châu', 'Đà Nẵng'] },
+    address: {
+      recipient: 'Hoàng Minh Đức',
+      phone: '0912 111 222',
+      lines: ['39 Trần Phú', 'Phường Hải Châu', 'Đà Nẵng'],
+    },
   },
   {
     id: '25',
@@ -61,7 +77,11 @@ export const seedCustomers = [
     status: 'active',
     createdAt: '24/08/2026 11:05',
     updatedAt: '24/08/2026 11:05',
-    address: { recipient: 'Vũ Thị Lan', phone: '0977 890 123', lines: ['76 Cầu Đất', 'Phường Ngô Quyền', 'Hải Phòng'] },
+    address: {
+      recipient: 'Vũ Thị Lan',
+      phone: '0977 890 123',
+      lines: ['76 Cầu Đất', 'Phường Ngô Quyền', 'Hải Phòng'],
+    },
   },
   {
     id: '26',
@@ -71,7 +91,11 @@ export const seedCustomers = [
     status: 'inactive',
     createdAt: '25/08/2026 16:25',
     updatedAt: '10/09/2026 10:12',
-    address: { recipient: 'Bùi Quốc Nam', phone: '0988 901 234', lines: ['18 Võ Thị Sáu', 'Phường Thống Nhất', 'Biên Hòa'] },
+    address: {
+      recipient: 'Bùi Quốc Nam',
+      phone: '0988 901 234',
+      lines: ['18 Võ Thị Sáu', 'Phường Thống Nhất', 'Biên Hòa'],
+    },
   },
   {
     id: '27',
@@ -81,7 +105,11 @@ export const seedCustomers = [
     status: 'active',
     createdAt: '26/08/2026 08:10',
     updatedAt: '26/08/2026 08:10',
-    address: { recipient: 'Ngô Thị Hồng', phone: '0999 012 345', lines: ['9 Lý Thường Kiệt', 'Phường Tràng Tiền', 'Hà Nội'] },
+    address: {
+      recipient: 'Ngô Thị Hồng',
+      phone: '0999 012 345',
+      lines: ['9 Lý Thường Kiệt', 'Phường Tràng Tiền', 'Hà Nội'],
+    },
   },
   {
     id: '28',
@@ -91,7 +119,11 @@ export const seedCustomers = [
     status: 'active',
     createdAt: '29/08/2026 14:00',
     updatedAt: '29/08/2026 14:00',
-    address: { recipient: 'Đinh Văn Minh', phone: '0901 123 456', lines: ['52 Hùng Vương', 'Phường Phú Hội', 'Huế'] },
+    address: {
+      recipient: 'Đinh Văn Minh',
+      phone: '0901 123 456',
+      lines: ['52 Hùng Vương', 'Phường Phú Hội', 'Huế'],
+    },
   },
   {
     id: '29',
@@ -101,7 +133,11 @@ export const seedCustomers = [
     status: 'active',
     createdAt: '01/09/2026 09:35',
     updatedAt: '01/09/2026 09:35',
-    address: { recipient: 'Phan Thị Mai', phone: '0912 234 567', lines: ['21 Nguyễn Trãi', 'Phường Thanh Xuân', 'Hà Nội'] },
+    address: {
+      recipient: 'Phan Thị Mai',
+      phone: '0912 234 567',
+      lines: ['21 Nguyễn Trãi', 'Phường Thanh Xuân', 'Hà Nội'],
+    },
   },
   {
     id: '30',
@@ -111,7 +147,11 @@ export const seedCustomers = [
     status: 'active',
     createdAt: '03/09/2026 10:50',
     updatedAt: '03/09/2026 10:50',
-    address: { recipient: 'Trương Minh Đức', phone: '0923 345 678', lines: ['17 Quang Trung', 'Phường Lê Lợi', 'Quy Nhơn'] },
+    address: {
+      recipient: 'Trương Minh Đức',
+      phone: '0923 345 678',
+      lines: ['17 Quang Trung', 'Phường Lê Lợi', 'Quy Nhơn'],
+    },
   },
   {
     id: '31',
@@ -121,7 +161,11 @@ export const seedCustomers = [
     status: 'inactive',
     createdAt: '05/09/2026 16:10',
     updatedAt: '12/09/2026 09:30',
-    address: { recipient: 'Đỗ Hải Yến', phone: '0966 456 789', lines: ['88 Hoàng Văn Thụ', 'Phường 9', 'Đà Lạt'] },
+    address: {
+      recipient: 'Đỗ Hải Yến',
+      phone: '0966 456 789',
+      lines: ['88 Hoàng Văn Thụ', 'Phường 9', 'Đà Lạt'],
+    },
   },
 ];
 

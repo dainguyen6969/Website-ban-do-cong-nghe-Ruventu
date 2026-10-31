@@ -56,6 +56,9 @@ public class AdminPurchaseOrderDetailResponse {
   @JsonProperty("gia_tri_hang_tra")
   private BigDecimal giaTriHangTra;
 
+  @JsonProperty("gia_tri_dieu_chinh_ncc")
+  private BigDecimal giaTriDieuChinhNcc;
+
   @JsonProperty("gia_tri_sau_tra")
   private BigDecimal giaTriSauTra;
 
@@ -72,6 +75,37 @@ public class AdminPurchaseOrderDetailResponse {
   private LocalDateTime ngayTao;
 
   private List<Item> items;
+
+  @JsonProperty("serial_da_nhan")
+  private List<ReceivedSerial> serialDaNhan;
+
+  @Getter
+  @Setter
+  @NoArgsConstructor
+  @AllArgsConstructor
+  @Builder
+  public static class ReceivedSerial {
+
+    private Long id;
+
+    @JsonProperty("phien_ban_id")
+    private Long phienBanId;
+
+    @JsonProperty("ten_phien_ban")
+    private String tenPhienBan;
+
+    @JsonProperty("so_serial")
+    private String soSerial;
+
+    @JsonProperty("trang_thai")
+    private String trangThai;
+
+    @JsonProperty("bi_thu_hoi")
+    private Boolean biThuHoi;
+
+    @JsonProperty("dang_dong_goi")
+    private Boolean dangDongGoi;
+  }
 
   @Getter
   @Setter
@@ -142,6 +176,9 @@ public class AdminPurchaseOrderDetailResponse {
 
     @JsonProperty("so_luong_da_tra")
     private Integer soLuongDaTra;
+
+    @JsonProperty("so_luong_tra_theo_luong_cu_toi_da")
+    private Integer soLuongTraTheoLuongCuToiDa;
 
     @JsonProperty("quan_ly_serial")
     private Boolean quanLySerial;

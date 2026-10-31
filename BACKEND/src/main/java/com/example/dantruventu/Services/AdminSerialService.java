@@ -19,6 +19,8 @@ import com.example.dantruventu.Error.ErrorCode;
 import com.example.dantruventu.Mapper.warehouse.SoSerialSanPhamMapper;
 import com.example.dantruventu.Repository.NguoiDungRepository;
 import com.example.dantruventu.Repository.warehouse.*;
+import com.example.dantruventu.Services.warehouse.NccAccountingService;
+import com.example.dantruventu.Services.warehouse.RecallSafety;
 import com.example.dantruventu.Services.warehouse.WarehouseSupport;
 import com.example.dantruventu.Specification.SoSerialSanPhamSpecification;
 import jakarta.persistence.EntityManager;
@@ -45,6 +47,8 @@ public class AdminSerialService {
   private final SoSerialSanPhamMapper serialMapper;
   private final KhoHangRepository khoHangRepository;
   private final WarehouseSupport warehouseSupport;
+  private final NccAccountingService nccAccounting;
+  private final RecallSafety recallSafety;
 
   private final EntityManager entityManager;
 
@@ -184,6 +188,8 @@ public class AdminSerialService {
     response.setHanBaoHanh(
         warranty.expiresAt() == null ? null : warranty.expiresAt().atZone(zone).toOffsetDateTime());
 
+    response.setXuLyNcc(nccAccounting.serialHistory(id));
+
     return response;
   }
 
@@ -239,6 +245,7 @@ public class AdminSerialService {
     }
 
     TonKho stock = stockRows.get(0);
+    recallSafety.track(stock);
 
     // Sau đó khóa serial.
     SoSerialSanPham serial = serialRepository.findByIdForUpdate(id).orElseThrow(this::notFound);
@@ -248,12 +255,25 @@ public class AdminSerialService {
       throw conflict("Phiên bản của serial vừa thay đổi, vui lòng tải lại dữ liệu");
     }
 
+    if (serial.getChiTietDongGoi() != null) {
+      throw conflict(
+          "Serial đang giữ để đóng gói. "
+              + "Hãy đổi mã hoặc hủy đóng gói trước khi sửa trạng thái.");
+    }
+
     if (serial.getDonHang() != null) {
       throw conflict(
           "Serial đang liên kết với đơn hàng, "
               + "không được sửa bằng nghiệp vụ hàng lỗi trong kho");
     }
 
+    if (nccAccounting.pendingSerial(serial.getId())) {
+      throw conflict(
+          "Serial còn đang xử lý trong hồ sơ Nhà Cung Cấp. "
+              + "Hãy hoàn tất kiểm tra hoặc đối soát trong hồ sơ.");
+    }
+
+    recallSafety.requireSerialClear(serial);
     TrangThaiSerial source = serial.getTrangThai();
 
     if (!isWarehouseState(source)) {

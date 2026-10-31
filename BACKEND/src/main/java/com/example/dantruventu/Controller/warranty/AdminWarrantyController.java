@@ -2,8 +2,16 @@ package com.example.dantruventu.Controller.warranty;
 
 import com.example.dantruventu.DTO.Request.warranty.AdminWarrantyCreateRequest;
 import com.example.dantruventu.DTO.Request.warranty.AdminWarrantyEventRequest;
+import com.example.dantruventu.DTO.Request.warranty.AdminWarrantyHandoverRequest;
 import com.example.dantruventu.DTO.Request.warranty.AdminWarrantyIntakeResultRequest;
+import com.example.dantruventu.DTO.Request.warranty.AdminWarrantyInvoiceRequest;
+import com.example.dantruventu.DTO.Request.warranty.AdminWarrantyMoneyRequest;
+import com.example.dantruventu.DTO.Request.warranty.AdminWarrantyQuoteEventRequest;
+import com.example.dantruventu.DTO.Request.warranty.AdminWarrantyQuoteRequest;
+import com.example.dantruventu.DTO.Request.warranty.AdminWarrantyReplacementItemsRequest;
+import com.example.dantruventu.DTO.Request.warranty.AdminWarrantyReplacementPlanRequest;
 import com.example.dantruventu.DTO.Request.warranty.AdminWarrantyStatusRequest;
+import com.example.dantruventu.DTO.Request.warranty.AdminWarrantySupplierSettlementRequest;
 import com.example.dantruventu.DTO.Response.ApiResponse;
 import com.example.dantruventu.DTO.Response.warranty.*;
 import com.example.dantruventu.Entity.NguoiDung;
@@ -26,6 +34,89 @@ public class AdminWarrantyController {
   private final AdminWarrantyIntakeResultService intakeResultService;
   private final AdminWarrantyStatusService statusService;
   private final AdminWarrantyEventService eventService;
+  private final AdminWarrantyQuoteService quoteService;
+  private final AdminWarrantyQuoteEventService quoteEventService;
+  private final AdminWarrantyInvoiceService invoiceService;
+  private final AdminWarrantyMoneyService moneyService;
+  private final AdminWarrantyReplacementPlanService replacementPlanService;
+  private final AdminWarrantyReplacementItemsService replacementItemsService;
+  private final AdminWarrantySupplierSettlementService supplierSettlementService;
+  private final AdminWarrantyHandoverService handoverService;
+
+  @PostMapping("/{id}/handover")
+  public ApiResponse<AdminWarrantyHandoverResponse> handover(
+      @PathVariable String id,
+      @RequestBody AdminWarrantyHandoverRequest request,
+      @RequestHeader(name = "Idempotency-Key", required = false) String key,
+      @AuthenticationPrincipal NguoiDung actor) {
+    return handoverService.save(id, request, key, actor == null ? null : actor.getId());
+  }
+
+  @PostMapping("/{id}/supplier-settlements")
+  public ApiResponse<AdminWarrantySupplierSettlementResponse> supplierSettlement(
+      @PathVariable String id,
+      @RequestBody AdminWarrantySupplierSettlementRequest request,
+      @RequestHeader(name = "Idempotency-Key", required = false) String key,
+      @AuthenticationPrincipal NguoiDung actor) {
+    return supplierSettlementService.save(id, request, key, actor == null ? null : actor.getId());
+  }
+
+  @PostMapping("/{id}/replacement-items")
+  public ApiResponse<AdminWarrantyReplacementItemsResponse> replacementItems(
+      @PathVariable String id,
+      @RequestBody AdminWarrantyReplacementItemsRequest request,
+      @RequestHeader(name = "Idempotency-Key", required = false) String key,
+      @AuthenticationPrincipal NguoiDung actor) {
+    return replacementItemsService.save(id, request, key, actor == null ? null : actor.getId());
+  }
+
+  @PostMapping("/{id}/replacement-plan")
+  public ApiResponse<AdminWarrantyReplacementPlanResponse> replacementPlan(
+      @PathVariable String id,
+      @RequestBody AdminWarrantyReplacementPlanRequest request,
+      @RequestHeader(name = "Idempotency-Key", required = false) String key,
+      @AuthenticationPrincipal NguoiDung actor) {
+    return replacementPlanService.save(id, request, key, actor == null ? null : actor.getId());
+  }
+
+  @PostMapping("/{id}/money-transactions")
+  public ResponseEntity<ApiResponse<AdminWarrantyMoneyResponse>> moneyTransaction(
+      @PathVariable String id,
+      @RequestBody AdminWarrantyMoneyRequest request,
+      @RequestHeader(name = "Idempotency-Key", required = false) String key,
+      @AuthenticationPrincipal NguoiDung actor) {
+    return ResponseEntity.status(201)
+        .body(moneyService.save(id, request, key, actor == null ? null : actor.getId()));
+  }
+
+  @PatchMapping("/{id}/invoice")
+  public ApiResponse<AdminWarrantyInvoiceResponse> updateInvoice(
+      @PathVariable String id,
+      @RequestBody AdminWarrantyInvoiceRequest request,
+      @RequestHeader(name = "Idempotency-Key", required = false) String key,
+      @AuthenticationPrincipal NguoiDung actor) {
+    return invoiceService.update(id, request, key, actor == null ? null : actor.getId());
+  }
+
+  @PostMapping("/{id}/quotes/{version}/events")
+  public ApiResponse<AdminWarrantyQuoteEventResponse> quoteEvent(
+      @PathVariable String id,
+      @PathVariable String version,
+      @RequestBody AdminWarrantyQuoteEventRequest request,
+      @RequestHeader(name = "Idempotency-Key", required = false) String key,
+      @AuthenticationPrincipal NguoiDung actor) {
+    return quoteEventService.save(id, version, request, key, actor == null ? null : actor.getId());
+  }
+
+  @PostMapping("/{id}/quotes")
+  public ResponseEntity<ApiResponse<AdminWarrantyQuoteResponse>> createQuote(
+      @PathVariable String id,
+      @RequestBody AdminWarrantyQuoteRequest request,
+      @RequestHeader(name = "Idempotency-Key", required = false) String key,
+      @AuthenticationPrincipal NguoiDung actor) {
+    return ResponseEntity.status(201)
+        .body(quoteService.create(id, request, key, actor == null ? null : actor.getId()));
+  }
 
   @PostMapping("/{id}/events")
   public ApiResponse<AdminWarrantyEventResponse> saveEvent(

@@ -1,0 +1,49 @@
+.product-card.product-card--preview-open { z-index: 20; }
+.product-card.product-card--preview-open:focus-within { z-index: 30; }
+
+.storefront-app .product-card__preview-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 8px 12px;
+  border-top: 1px solid #000;
+  background: #fff;
+  color: #111;
+  font-size: 12px;
+  font-weight: 700;
+  text-align: left;
+}
+
+.storefront-app .product-card__preview-toggle[aria-expanded="true"] { background: #111; color: #fff; }
+.storefront-app .product-card__preview-toggle > span { color: var(--primary-red); font-size: 18px; line-height: 1; }
+.product-card-preview {
+  position: absolute;
+  top: 100%;
+  left: -1px;
+  right: -1px;
+  max-height: min(65vh, 600px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 12px;
+  border: 2px solid #000;
+  border-top-color: var(--primary-red);
+  background: #fff;
+  box-shadow: 0 8px 16px #0002;
+}
+
+.product-card-preview__heading { margin: 0 0 8px; padding-left: 8px; border-left: 3px solid var(--primary-red); font-size: 12px; line-height: 1.5; color: #111; }
+.product-card-preview__variants { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 16px; }
+.storefront-app .product-card-preview__variants > button { width: 100%; padding: 6px 8px; border: 1px solid #aaa; background: #fff; color: #333; border-radius: 0; font-size: 12px; text-align: left; }
+.storefront-app .product-card-preview__variants > button[aria-pressed="true"] { border-color: var(--primary-red); background: #fff1f1; color: #b00000; font-weight: 700; }
+.product-card-preview__stock { display: inline-block; margin-left: 6px; color: #777; font-size: 11px; font-weight: 400; }
+.product-card-preview__status { margin: 0 0 12px; color: #666; font-size: 12px; }
+.product-card-preview__status p { margin: 0 0 6px; }
+.product-card-preview__status button { padding: 4px 8px; background: #111; color: #fff; }
+.storefront-app .product-card .product-card-preview table.specs-table :is(th, td) { height: auto; padding: 6px 8px; }
+.product-card .product-card-preview .specs-table span { display: block; overflow: visible; }
+.product-card :is(.product-card__preview-toggle, .product-card-preview button):focus-visible { outline: 2px solid var(--primary-red); outline-offset: -3px; }
+
+@media (hover: none) {
+  .product-card-preview { position: static; border-inline: 0; border-bottom: 0; box-shadow: none; }
+}

@@ -13,6 +13,7 @@ import com.example.dantruventu.Repository.warehouse.*;
 import com.example.dantruventu.Services.catalog.CatalogSupport;
 import com.example.dantruventu.Services.order.sales.OrderSaleSnapshotService;
 import com.example.dantruventu.Services.order.sales.SoldDeviceService;
+import com.example.dantruventu.Services.warehouse.RecallSafety;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.LockModeType;
 import java.util.*;
@@ -37,6 +38,7 @@ public class DeliveryInventoryService {
   private final SoldDeviceService soldDevices;
   private final EntityManager entityManager;
   private final OrderInventoryService orderInventory;
+  private final RecallSafety recallSafety;
 
   @Value("${ruventu.inventory.default-warehouse-id:1}")
   private Long defaultWarehouseId;
@@ -79,45 +81,11 @@ public class DeliveryInventoryService {
   }
 
   public void releaseReservation(DonHang order) {
-    requireWarehouse();
+    orderInventory.releaseQuantityReservation(order);
+  }
 
-    if (order.getTrangThaiDongGoi() != TrangThaiDongGoi.DANG_DONG_GOI
-        && order.getTrangThaiDongGoi() != TrangThaiDongGoi.DA_DONG_GOI) {
-      throw conflict("Đơn không ở trạng thái có giữ hàng để hủy đóng gói");
-    }
-
-    if (ledgerRepository.existsByMaChungTuGocAndLoaiGiaoDich(
-        order.getId(), LoaiGiaoDichKho.XUAT_BAN)) {
-      throw conflict("Đơn đã có chứng từ xuất bán, không được giải phóng giữ hàng");
-    }
-
-    Map<Long, Integer> quantities = totals(expected(order.getId()));
-
-    for (var entry : quantities.entrySet()) {
-      Long variantId = entry.getKey();
-      int quantity = entry.getValue();
-
-      TonKho stock = lockStock(variantId);
-      validateStock(stock);
-
-      long held =
-          (long) stock.getTonThucTe()
-              - stock.getHangLoi()
-              - stock.getSoLuongGiuChoBaoHanh()
-              - stock.getTonCoTheBan();
-      Long expectedHeld = orderInventory.expectedHeld(variantId);
-
-      if (expectedHeld == null || held != expectedHeld || held < quantity) {
-        throw conflict(
-            "Số lượng giữ hàng không khớp tại phiên bản "
-                + variantId
-                + ". Cần đối chiếu luồng giữ hàng trước khi hủy");
-      }
-
-      stock.setTonCoTheBan(bounded((long) stock.getTonCoTheBan() + quantity));
-    }
-
-    // Không đổi tồn thực tế, không sinh thẻ kho.
+  public void releasePackingSerials(DonHang order) {
+    orderInventory.releasePackingSerials(order);
   }
 
   public List<ReturnRequirement> getReturnRequirements(DonHang order) {
@@ -583,6 +551,7 @@ public class DeliveryInventoryService {
     }
 
     TonKho stock = rows.get(0);
+    recallSafety.track(stock);
     entityManager.refresh(stock);
     return stock;
   }
@@ -596,6 +565,8 @@ public class DeliveryInventoryService {
     if (physical == null
         || available == null
         || damaged == null
+        || stock.getSoLuongGiuChoBaoHanh() == null
+        || stock.getSoLuongGiuChoBaoHanh() < 0
         || physical < 0
         || available < 0
         || damaged < 0

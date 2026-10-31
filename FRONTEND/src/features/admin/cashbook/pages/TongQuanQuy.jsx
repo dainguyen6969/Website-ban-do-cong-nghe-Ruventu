@@ -15,6 +15,7 @@ import {
   createCashbookSourceFilters,
   cashbookSourceParams,
 } from "../api/cashbookFilterParams";
+import FilterDropdown from "../../../../shared/components/ui/FilterDropdown";
 import "./TongQuanQuy.css";
 
 // Default dates: First day of current month to today
@@ -469,26 +470,28 @@ export default function TongQuanQuy() {
         </div>
         <div className="cb-filter-item">
           <label>LOẠI PHIẾU</label>
-          <select
+          <FilterDropdown
             value={filterType}
             onChange={(e) => setFilterType(e.target.value)}
+            selectedDark
           >
             <option value="TẤT CẢ">TẤT CẢ</option>
             <option value="THU">PHIẾU THU</option>
             <option value="CHI">PHIẾU CHI</option>
-          </select>
+          </FilterDropdown>
         </div>
         <div className="cb-filter-item">
           <label>PHƯƠNG THỨC</label>
-          <select
+          <FilterDropdown
             value={filterMethod}
             onChange={(e) => setFilterMethod(e.target.value)}
+            selectedDark
           >
             <option value="TẤT CẢ">TẤT CẢ</option>
             <option value="TIỀN MẶT">TIỀN MẶT</option>
             <option value="CHUYỂN KHOẢN">CHUYỂN KHOẢN</option>
             <option value="THẺ">THẺ</option>
-          </select>
+          </FilterDropdown>
         </div>
         <div className="cb-filter-item">
           <label>NGƯỜI NỘP / NHẬN</label>
@@ -501,22 +504,24 @@ export default function TongQuanQuy() {
         </div>
         <div className="cb-filter-item">
           <label>NHÓM ĐỐI TƯỢNG</label>
-          <select
+          <FilterDropdown
             value={filterGroup}
             onChange={(e) => setFilterGroup(e.target.value)}
+            selectedDark
           >
             <option value="TẤT CẢ NHÓM">TẤT CẢ NHÓM</option>
             <option value="KHÁCH HÀNG">KHÁCH HÀNG</option>
             <option value="NHÂN VIÊN">NHÂN VIÊN</option>
             <option value="NHÀ CUNG CẤP">NHÀ CUNG CẤP</option>
             <option value="ĐỐI TÁC GIAO HÀNG">ĐỐI TÁC GIAO HÀNG</option>
-          </select>
+          </FilterDropdown>
         </div>
         <div className="cb-filter-item">
           <label>NHÂN VIÊN (TẠO PHIẾU)</label>
-          <select
+          <FilterDropdown
             value={employeeId}
             onChange={(e) => setEmployeeId(e.target.value)}
+            selectedDark
           >
             <option value="">TẤT CẢ NHÂN VIÊN</option>
             {employees.map((emp) => (
@@ -524,7 +529,7 @@ export default function TongQuanQuy() {
                 {emp.hoTen || emp.ho_ten || emp.tenNhanVien || emp.username}
               </option>
             ))}
-          </select>
+          </FilterDropdown>
         </div>
         <div className="cb-filter-actions">
           <button className="cb-btn-outline" onClick={handleClearFilters}>

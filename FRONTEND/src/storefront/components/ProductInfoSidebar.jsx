@@ -7,41 +7,7 @@ const ProductInfoSidebar = ({ product, selectedVariantId, setSelectedVariantId }
 
   const hasMultipleVariants = product.variants && product.variants.length > 1;
 
-  if (!hasMultipleVariants) {
-    return (
-      <div className="product-info-sidebar old-layout">
-        <div className="info-sidebar-header old-header">
-          THÔNG SỐ SẢN PHẨM
-        </div>
-        
-        <div className="info-sidebar-thumbnail-box">
-          {product.images && product.images.length > 0 ? (
-            <img src={product.images[0]} alt={product.category} className="thumbnail-image" style={{width: '100%', border: '1px solid #ff0000'}} />
-          ) : (
-            <div className="thumbnail-placeholder"></div>
-          )}
-          <div className="category-text">{product.category}</div>
-        </div>
-
-        <div className="info-sidebar-specs-section old-specs-section">
-          <div className="specs-title-bar">THÔNG SỐ CƠ BẢN</div>
-          <table className="info-specs-table old-specs-table">
-            <tbody>
-              {!product.specsSummary?.length && (
-                <tr><td colSpan={2}>Chưa có thông số kỹ thuật.</td></tr>
-              )}
-              {product.specsSummary && product.specsSummary.map((spec, index) => (
-                <tr key={index}>
-                  <td>{spec.label}</td>
-                  <td>{spec.value}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    );
-  }
+  if (!hasMultipleVariants) return null;
 
   const inStockVariantsCount = product.variants ? product.variants.filter(v => (v.tonCoTheBan || v.stock || 0) > 0).length : 0;
   const totalVariantsCount = product.variants ? product.variants.length : 0;
@@ -91,29 +57,6 @@ const ProductInfoSidebar = ({ product, selectedVariantId, setSelectedVariantId }
             </div>
           </div>
         )}
-
-        {/* THÔNG SỐ CƠ BẢN */}
-        <div className="info-sidebar-specs-section">
-          <div className="section-title">
-            <span className="red-bar"></span> THÔNG SỐ CƠ BẢN
-          </div>
-          <table className="info-specs-table">
-            <tbody>
-              {product.specsSummary && product.specsSummary.length > 0 ? (
-                product.specsSummary.map((spec, index) => (
-                  <tr key={index}>
-                    <td>{spec.label}</td>
-                    <td>{spec.value}</td>
-                  </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan={2}>Chưa có thông số kỹ thuật.</td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
       </div>
     </div>
   );

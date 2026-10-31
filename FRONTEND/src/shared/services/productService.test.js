@@ -103,3 +103,33 @@ test('missing data stays empty and combo availability uses assembly capacity ins
   assert.equal(combo.soBoCoTheLap, 8);
   assert.equal(combo.priceFrom, false);
 });
+
+test('cards show at most four real highlights from the same cheapest variant as the detail', () => {
+  const specs = { nguon_du_lieu: [{ url: 'https://example.com/source' }], phien_ban: {
+    541: { thong_so_ky_thuat: { GPU: 'RTX 3050', VRAM: '6 GB' } },
+    542: { thong_so_ky_thuat: { GPU: 'RX 6500 XT', VRAM: '4 GB', 'Xung nhịp': '2815 MHz', 'Giao tiếp': 'PCIe 4.0', 'Cổng kết nối': 'HDMI', 'Công suất nguồn đề xuất': '400 W' } },
+  } };
+  const list = toProductCard({ id: 459, tenDanhMuc: 'VGA', giaThapNhat: 4890000, phienBanMacDinhId: 542, thongSoKyThuat: specs });
+  const detail = toProductDetail({ id: 459, danhMuc: { tenDanhMuc: 'VGA' }, danhSachPhienBan: [{ id: 541, giaBanLe: 6190000 }, { id: 542, giaBanLe: 4890000 }], thongSoKyThuat: specs });
+  assert.equal(list.defaultVariantId, 542);
+  assert.deepEqual(list.specs, detail.specs);
+  assert.deepEqual(list.specs.map(row => row.label), ['GPU', 'VRAM', 'Xung nhịp', 'Giao tiếp']);
+  assert.equal(list.specs[1].value, '4 GB');
+  assert(!JSON.stringify(list.specs).includes('RTX 3050'));
+  assert.deepEqual(toProductCard({ thongSoKyThuat: { nguon_du_lieu: 'https://example.com' } }).specs, []);
+  assert.deepEqual(toProductCard({ thongSoKyThuat: '{broken' }).specs, []);
+  assert.deepEqual(toProductCard({ thongSoKyThuat: { LED: false, USB: 0 } }).specs, [{ label: 'LED', value: 'Không' }, { label: 'USB', value: '0' }]);
+});
+
+test('preview variant selection uses its explicit highlights without leaking other variants or source metadata', () => {
+  const product = { tenDanhMuc: 'Laptop', thongSoKyThuat: { phien_ban: {
+    1: { thong_so_chinh: { CPU: 'Core i5', RAM: '16 GB', SSD: '512 GB', 'Màn hình': '14 inch', GPU: 'Iris Xe' } },
+    2: { thong_so_chinh: { CPU: 'Core i7', RAM: '32 GB', SSD: '1 TB', 'Màn hình': '16 inch', source: 'https://example.com' },
+      thong_so_ky_thuat: { 'Cổng kết nối đầy đủ': 'Không đưa vào bản xem nhanh' } },
+  } }, danhSachPhienBan: [{ id: 1, giaBanLe: 100 }, { id: 2, giaBanLe: 200 }] };
+  const first = toProductCard({ ...product, phienBanMacDinhId: 1 });
+  const second = toProductCard({ ...product, phienBanMacDinhId: 2 });
+  assert.deepEqual(first.specs.map(row => row.value), ['Core i5', '16 GB', '512 GB', '14 inch']);
+  assert.deepEqual(second.specs.map(row => row.value), ['Core i7', '32 GB', '1 TB', '16 inch']);
+  assert.doesNotMatch(JSON.stringify(second.specs), /Core i5|16 GB|512 GB|Cổng kết nối|example\.com/);
+});

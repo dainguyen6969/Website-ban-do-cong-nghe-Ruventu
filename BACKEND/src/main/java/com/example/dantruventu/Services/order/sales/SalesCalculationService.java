@@ -17,6 +17,8 @@ import com.example.dantruventu.Repository.warehouse.SoSerialSanPhamRepository;
 import com.example.dantruventu.Repository.warehouse.ThanhPhanComboRepository;
 import com.example.dantruventu.Repository.warehouse.TonKhoRepository;
 import com.example.dantruventu.Services.catalog.CatalogSupport;
+import com.example.dantruventu.Services.warehouse.RecallSafety;
+import com.example.dantruventu.Services.warehouse.WarehouseSupport;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.LockModeType;
 import java.math.BigDecimal;
@@ -43,6 +45,7 @@ public class SalesCalculationService {
   private final SalesPromotionRepository promotionRepository;
   private final SalesPromotionDetailRepository promotionDetailRepository;
   private final EntityManager entityManager;
+  private final RecallSafety recallSafety;
 
   public record SerialKey(String lineKey, Long variantId) {}
 
@@ -296,6 +299,7 @@ public class SalesCalculationService {
 
     if (lock) {
       entityManager.refresh(stock);
+      recallSafety.track(stock);
     }
 
     if (stock.getTonThucTe() == null
@@ -312,12 +316,23 @@ public class SalesCalculationService {
       throw conflict("Dữ liệu tồn kho không nhất quán tại phiên bản " + variantId);
     }
 
+    WarehouseSupport.numbers(stock);
+
     return stock;
   }
 
   public Plan calculate(AdminSalesRequest.Base request, LoaiDonHang type, boolean lock) {
 
     return calculate(request, type, lock, text(request.getMaChuongTrinh()));
+  }
+
+  public Plan calculate(
+      AdminSalesRequest.Base request,
+      LoaiDonHang type,
+      boolean lock,
+      Map<Long, Integer> ownReservation) {
+
+    return calculate(request, type, lock, text(request.getMaChuongTrinh()), ownReservation);
   }
 
   public List<AdminSalesResponse.Promotion> availablePromotions(
@@ -349,6 +364,16 @@ public class SalesCalculationService {
 
   private Plan calculate(
       AdminSalesRequest.Base request, LoaiDonHang type, boolean lock, String promotionCode) {
+
+    return calculate(request, type, lock, promotionCode, Map.of());
+  }
+
+  private Plan calculate(
+      AdminSalesRequest.Base request,
+      LoaiDonHang type,
+      boolean lock,
+      String promotionCode,
+      Map<Long, Integer> ownReservation) {
 
     context.warehouse(request.getKhoHangId());
 
@@ -504,18 +529,30 @@ public class SalesCalculationService {
               input.gift()));
     }
 
+    boolean allowWaiting = Boolean.TRUE.equals(request.getChoPhepChoHang());
+
+    if (allowWaiting && type != LoaiDonHang.ONLINE) {
+      throw invalid("Chỉ đơn Online được chọn chờ hàng");
+    }
+
     Map<Long, TonKho> stocks = new TreeMap<>();
 
-    // Khóa tồn theo ID phiên bản tăng dần; serial được khóa ở bước chốt sau.
     for (var need : totalQuantities.entrySet()) {
-
       TonKho stock = stock(request.getKhoHangId(), need.getKey(), lock);
 
-      if (stock == null || stock.getTonCoTheBan() < need.getValue()) {
+      long availableForThisOrder =
+          stock == null
+              ? 0L
+              : (long) stock.getTonCoTheBan() + ownReservation.getOrDefault(need.getKey(), 0);
+
+      if (!allowWaiting && (stock == null || availableForThisOrder < need.getValue())) {
+
         throw conflict("Không đủ tồn có thể bán của phiên bản " + need.getKey());
       }
 
-      stocks.put(need.getKey(), stock);
+      if (stock != null) {
+        stocks.put(need.getKey(), stock);
+      }
     }
 
     Map<Long, Boolean> serialModes = new HashMap<>();

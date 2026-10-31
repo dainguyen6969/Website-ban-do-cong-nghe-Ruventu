@@ -82,6 +82,35 @@ public class AdminWarrantyDetailService {
         exchange(historySupport.latestSection(events, "phuong_an_doi"), ticket);
     Map<String, Object> settlement =
         settlement(historySupport.latestSection(events, "doi_soat_nha_cung_cap"));
+    var settlementReader = new WarrantySupplierSettlementSnapshots(historySupport);
+    var obligations = settlementReader.load(events);
+    if (!obligations.isEmpty()) {
+      for (var obligation : obligations.values())
+        settlementReader.reconcileMoney(obligation, events, cash);
+      settlement = new LinkedHashMap<>();
+      settlement.put(
+          "nghia_vu_lich_su_id",
+          obligations.size() == 1 ? obligations.keySet().iterator().next() : null);
+      for (String field : List.of("so_luong_can_bu", "so_luong_da_bu", "so_luong_con_bu"))
+        settlement.put(
+            field,
+            obligations.values().stream()
+                .mapToLong(v -> WarrantySupplierSettlementSnapshots.quantity(v.get(field)))
+                .sum());
+      settlement.put(
+          "so_tien_con_doi_soat",
+          obligations.values().stream()
+              .map(v -> WarrantyQuoteSnapshots.amount(v.get("so_tien_con_doi_soat")))
+              .reduce(BigDecimal.ZERO, BigDecimal::add));
+      settlement.put(
+          "nghia_vu_gui_thiet_bi_cu_con_mo",
+          obligations.values().stream()
+              .anyMatch(v -> Boolean.TRUE.equals(v.get("nghia_vu_gui_thiet_bi_cu_con_mo"))));
+      settlement.put(
+          "da_giai_quyet",
+          obligations.values().stream().allMatch(v -> Boolean.TRUE.equals(v.get("da_giai_quyet"))));
+      settlement.put("nghia_vu", new ArrayList<>(obligations.values()));
+    }
     List<Map<String, Object>> quotes = quotes(ticket, fees, events);
     Device currentDevice =
         deviceState.thietBiHienHanh() == null
@@ -217,7 +246,10 @@ public class AdminWarrantyDetailService {
             || !ticketId.equals(voucher.getPhieuBaoHanh().getId())
             || voucher.getNhomNguoiNopNhan() != NhomNguoiNopNhanEnum.NHA_CUNG_CAP
             || voucher.getNhaCungCap() == null) throw invalid();
-        type = voucher.getLoaiPhieu() == LoaiPhieuThuChi.CHI ? "CHI_DON_VI" : "NHAN_HOAN_DON_VI";
+        type =
+            WarrantyFinanceCalculator.isSupplierSettlement(voucher)
+                ? "THU_DOI_SOAT_DON_VI"
+                : voucher.getLoaiPhieu() == LoaiPhieuThuChi.CHI ? "CHI_DON_VI" : "NHAN_HOAN_DON_VI";
       }
       result.add(new MoneyTransaction(voucher.getId(), type, voucher.getSoTien(), voucher.getId()));
     }
@@ -230,6 +262,7 @@ public class AdminWarrantyDetailService {
     for (var voucher : cash) {
       if (voucher.getTrangThai() != TrangThaiPhieuThuChi.DA_GHI_NHAN) continue;
       if (voucher.getHoaDonBaoHanh() != null) continue;
+      if (WarrantyFinanceCalculator.isSupplierSettlement(voucher)) continue;
       if (voucher.getLoaiPhieu() == LoaiPhieuThuChi.CHI) paid = paid.add(voucher.getSoTien());
       else receivedRefund = receivedRefund.add(voucher.getSoTien());
     }
@@ -462,27 +495,57 @@ public class AdminWarrantyDetailService {
     if (value == null) return null;
     Long oldId = historySupport.id(value.get("thiet_bi_cu_id"));
     Long replacementId = historySupport.id(value.get("thiet_bi_thay_the_id"));
+    boolean withdrawn =
+        Boolean.TRUE.equals(value.get("da_huy"))
+            && Boolean.FALSE.equals(value.get("dang_ap_dung_cho_phuong_an"))
+            && (Boolean.TRUE.equals(value.get("da_hoan_xuat"))
+                || Boolean.TRUE.equals(value.get("da_tra_nguon")));
     if ((oldId != null && !oldId.equals(ticket.getThietBi().getId()))
         || (replacementId != null
+            && !withdrawn
             && (ticket.getThietBiThayThe() == null
                 || !replacementId.equals(ticket.getThietBiThayThe().getId())))) throw invalid();
-    return fields(
-        "phien_ban",
-        positiveInteger(value.get("phien_ban")),
-        "da_duyet",
-        bool(value.get("da_duyet")),
-        "khach_dong_y",
-        bool(value.get("khach_dong_y")),
-        "nguon",
-        historySupport.text(value.get("nguon")),
-        "thiet_bi_cu_id",
-        oldId,
-        "thiet_bi_thay_the_id",
-        replacementId,
-        "han_bao_hanh_ap_dung",
-        historySupport.time(value.get("han_bao_hanh_ap_dung")),
-        "da_ban_giao",
-        bool(value.get("da_ban_giao")));
+    var result =
+        fields(
+            "phien_ban",
+            positiveInteger(value.get("phien_ban")),
+            "da_duyet",
+            bool(value.get("da_duyet")),
+            "khach_dong_y",
+            bool(value.get("khach_dong_y")),
+            "nguon",
+            historySupport.text(value.get("nguon")),
+            "thiet_bi_cu_id",
+            oldId,
+            "thiet_bi_thay_the_id",
+            replacementId,
+            "han_bao_hanh_ap_dung",
+            historySupport.time(value.get("han_bao_hanh_ap_dung")),
+            "da_ban_giao",
+            bool(value.get("da_ban_giao")));
+    for (String key :
+        List.of(
+            "da_huy",
+            "da_hoan_xuat",
+            "da_tra_nguon",
+            "dang_ap_dung_cho_phuong_an",
+            "thiet_bi_da_thu_hoi_id",
+            "giao_dich_xuat_the_kho_id",
+            "quyet_dinh_khach",
+            "quyet_dinh",
+            "nguoi_phe_duyet_id",
+            "lich_su_phe_duyet_id",
+            "phe_duyet",
+            "phien_ban_thay_the_id",
+            "tinh_trang_hang",
+            "phu_kien",
+            "cach_tinh_han",
+            "can_cu_han",
+            "bao_gia_phien_ban",
+            "thay_the_phien_ban",
+            "huong_xu_ly_thiet_bi_cu",
+            "huy")) if (value.containsKey(key)) result.put(key, value.get(key));
+    return result;
   }
 
   private Map<String, Object> settlement(Map<String, Object> value) {
@@ -493,7 +556,15 @@ public class AdminWarrantyDetailService {
     if (required != null
         && supplied != null
         && remaining != null
-        && required - supplied != remaining) throw invalid();
+        && required
+                - supplied
+                - WarrantySupplierSettlementSnapshots.quantity(
+                    value.get("so_luong_quy_doi_sang_tien"))
+                - WarrantySupplierSettlementSnapshots.quantity(
+                    value.get("so_luong_ket_thuc_theo_quyet_dinh"))
+                - WarrantySupplierSettlementSnapshots.quantity(
+                    value.get("so_luong_huy_do_hoan_xuat"))
+            != remaining) throw invalid();
     BigDecimal remainingMoney = amount(value.get("so_tien_con_doi_soat"));
     Boolean resolved = bool(value.get("da_giai_quyet"));
     if (Boolean.TRUE.equals(resolved)
@@ -510,6 +581,8 @@ public class AdminWarrantyDetailService {
         remaining,
         "so_tien_con_doi_soat",
         remainingMoney,
+        "nghia_vu_gui_thiet_bi_cu_con_mo",
+        value.get("nghia_vu_gui_thiet_bi_cu_con_mo"),
         "da_giai_quyet",
         resolved);
   }
@@ -577,6 +650,7 @@ public class AdminWarrantyDetailService {
               || (exchange != null
                   && Boolean.TRUE.equals(exchange.get("da_duyet"))
                   && Boolean.TRUE.equals(exchange.get("khach_dong_y"))
+                  && !Boolean.TRUE.equals(exchange.get("da_huy"))
                   && ticket.getThietBiThayThe().getId().equals(exchange.get("thiet_bi_thay_the_id"))
                   && exchange.get("han_bao_hanh_ap_dung") != null);
       Long heldDevice = historySupport.id(value(custody, "thiet_bi_id"));
@@ -595,7 +669,7 @@ public class AdminWarrantyDetailService {
       result.add("HOAN_KHACH");
     if (settlement != null
         && Boolean.FALSE.equals(settlement.get("da_giai_quyet"))
-        && ((settlement.get("so_luong_con_bu") instanceof Integer quantity && quantity > 0)
+        && ((settlement.get("so_luong_con_bu") instanceof Number quantity && quantity.longValue() > 0)
             || (settlement.get("so_tien_con_doi_soat") instanceof BigDecimal remaining
                 && remaining.signum() > 0))) result.add("SUPPLIER_SETTLEMENT");
     // Advisory guards only: each later mutation endpoint must authorize and validate again.

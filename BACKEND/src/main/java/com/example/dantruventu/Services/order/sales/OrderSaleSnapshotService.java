@@ -10,10 +10,7 @@ import com.example.dantruventu.DTO.Response.order.AdminDeliveryResponse;
 import com.example.dantruventu.DTO.Response.order.AdminSalesResponse;
 import com.example.dantruventu.DTO.catalog.CatalogFields;
 import com.example.dantruventu.Entity.*;
-import com.example.dantruventu.Enum.LoaiApDungKhuyenMai;
-import com.example.dantruventu.Enum.LoaiSanPham;
-import com.example.dantruventu.Enum.TrangThaiApDungKhuyenMai;
-import com.example.dantruventu.Enum.TrangThaiDonHang;
+import com.example.dantruventu.Enum.*;
 import com.example.dantruventu.Error.AppException;
 import com.example.dantruventu.Error.ErrorCode;
 import com.example.dantruventu.Services.catalog.CatalogSupport;
@@ -38,6 +35,7 @@ public class OrderSaleSnapshotService {
   private final EntityManager entityManager;
   private final ObjectMapper objectMapper;
   private final CatalogSupport catalog;
+  private final OrderIntakePolicy intakePolicy;
 
   @JsonIgnoreProperties(ignoreUnknown = true)
   public record LineSnapshot(
@@ -506,6 +504,9 @@ public class OrderSaleSnapshotService {
 
     if (!completed && !cancelled) return;
 
+    order.setHanGiuUuDai(null);
+    order.setHanXuLy(null);
+
     var usage = lockPromotionForOrder(order.getId());
 
     // Đơn cũ chưa có bản chụp: không tự đoán chương trình hoặc sửa bộ đếm.
@@ -537,6 +538,115 @@ public class OrderSaleSnapshotService {
     }
 
     entityManager.flush();
+  }
+
+  public void configureUnpaidPromotion(DonHang order) {
+    var usage = lockPromotionForOrder(order.getId());
+
+    if (usage == null) {
+      order.setHanGiuUuDai(null);
+      return;
+    }
+
+    if (order.getTrangThaiThanhToan() != TrangThaiThanhToanDonHang.CHUA_THANH_TOAN) {
+      return;
+    }
+
+    if (Boolean.TRUE.equals(order.getDaGiuHang()) && order.getHanGiuHang() != null) {
+
+      order.setHanGiuUuDai(intakePolicy.unpaidPromotionDeadline(order));
+    } else {
+      releaseUnpaidPromotion(
+          order, "Đơn chưa được cấp giữ tạm; ưu đãi cần kiểm tra lại khi duyệt.");
+    }
+
+    entityManager.flush();
+  }
+
+  public void releaseUnpaidPromotion(DonHang order, String reason) {
+    if (order.getTrangThaiThanhToan() != TrangThaiThanhToanDonHang.CHUA_THANH_TOAN
+        || order.getTrangThaiXuatKho() != TrangThaiXuatKho.CHUA_XUAT_KHO
+        || !Set.of(TrangThaiDonHang.CHO_DUYET, TrangThaiDonHang.CHO_HANG)
+            .contains(order.getTrangThaiDonHang())) {
+
+      throw conflict("Không được giải phóng ưu đãi theo luồng giữ tạm");
+    }
+
+    var usage = lockPromotionForOrder(order.getId());
+
+    if (usage != null && usage.getTrangThaiApDung() == TrangThaiApDungKhuyenMai.GIU_CHO) {
+
+      usage.setTrangThaiApDung(TrangThaiApDungKhuyenMai.DA_GIAI_PHONG);
+      usage.setLyDoGiaiPhong(reason);
+    }
+
+    order.setHanGiuUuDai(null);
+  }
+
+  /**
+   * Trả null khi có thể tiếp tục. Trả thông báo khi cần đối soát; không tự thay giá hoặc quà của
+   * đơn.
+   */
+  public String tryCommitPromotion(DonHang order) {
+    var usage = lockPromotionForOrder(order.getId());
+
+    if (usage == null) {
+      order.setHanGiuUuDai(null);
+      return null;
+    }
+
+    if (usage.getTrangThaiApDung() == TrangThaiApDungKhuyenMai.GIU_CHO) {
+      order.setHanGiuUuDai(null);
+      return null;
+    }
+
+    if (usage.getTrangThaiApDung() != TrangThaiApDungKhuyenMai.DA_GIAI_PHONG) {
+      return "Trạng thái lượt khuyến mại cần đối soát.";
+    }
+
+    var promotion = usage.getKhuyenMai();
+    var current = intakePolicy.now();
+    var snapshot = parse(usage.getDuLieuApDung());
+    var version = snapshot == null ? null : snapshot.get("phien_ban_cau_hinh");
+
+    if (promotion.getTrangThai() != TrangThaiCoBanEnum.HOAT_DONG
+        || promotion.getNgayBatDau() == null
+        || promotion.getNgayKetThuc() == null
+        || current.isBefore(promotion.getNgayBatDau())
+        || !current.isBefore(promotion.getNgayKetThuc())
+        || version == null
+        || !Objects.equals(version.asText(), String.valueOf(promotion.getPhienBanCauHinh()))) {
+
+      return "Ưu đãi đã thay đổi hoặc hết hiệu lực; cần xác nhận lại với khách.";
+    }
+
+    long held =
+        entityManager
+            .createQuery(
+                """
+                                select count(x)
+                                from KhuyenMaiDonHang x
+                                where x.khuyenMai.id = :id
+                                  and x.trangThaiApDung = :status
+                                """,
+                Long.class)
+            .setParameter("id", promotion.getId())
+            .setParameter("status", TrangThaiApDungKhuyenMai.GIU_CHO)
+            .getSingleResult();
+
+    long occupied = (long) usedCount(promotion) + held;
+    Integer limit = promotion.getSoLuongApDung();
+
+    if (occupied >= Integer.MAX_VALUE || (limit != null && occupied >= limit)) {
+      return "Ưu đãi không còn lượt khả dụng; cần đối soát với khách.";
+    }
+
+    usage.setTrangThaiApDung(TrangThaiApDungKhuyenMai.GIU_CHO);
+    usage.setLyDoGiaiPhong(null);
+    order.setHanGiuUuDai(null);
+    entityManager.flush();
+
+    return null;
   }
 
   public boolean hasPromotion(Long orderId) {
@@ -642,6 +752,58 @@ public class OrderSaleSnapshotService {
     result.setCanhBaoDuLieu(warnings.isEmpty() ? null : String.join(" ", warnings));
 
     return result;
+  }
+
+  public boolean hasReceivedBeforeHandover(DonHang order) {
+    if (order == null
+        || order.getId() == null
+        || order.getLoaiDonHang() != LoaiDonHang.ONLINE
+        || order.getTrangThaiDonHang() != TrangThaiDonHang.HUY_HANG
+        || order.getTrangThaiXuatKho() != TrangThaiXuatKho.DA_HOAN_KHO
+        || order.getNgayHoanThanh() != null) {
+      return false;
+    }
+
+    var documents =
+        entityManager
+            .createQuery(
+                """
+                                select p
+                                from PhieuTraHang p
+                                where p.donHang.id = :orderId
+                                  and p.maTraHang = :code
+                                """,
+                PhieuTraHang.class)
+            .setParameter("orderId", order.getId())
+            .setParameter("code", "TH-HUY-DH-" + order.getId())
+            .getResultList();
+
+    if (documents.size() != 1) {
+      return false;
+    }
+
+    var document = documents.get(0);
+
+    if (document.getTrangThaiTraHang() != TrangThaiTraHang.HOAN_TAT
+        || document.getTongTienHoan() == null
+        || document.getTongTienHoan().signum() != 0
+        || document.getNgayNhanHang() == null
+        || document.getNgayKetThuc() == null) {
+      return false;
+    }
+
+    var source = parse(document.getDuLieuNhanHang());
+
+    return source != null
+        && source.path("phien_ban").asInt(-1) == 1
+        && "HUY_TRUOC_BAN_GIAO".equals(source.path("nguon").asString())
+        && source.path("don_hang_id").asLong(-1) == order.getId().longValue()
+        && source.path("phieu_tra_hang_id").asLong(-1) == document.getId().longValue()
+        && source.path("xac_nhan_da_nhan_du_hang").asBoolean(false)
+        && source.path("hang_nhan").isArray()
+        && !source.path("hang_nhan").isEmpty()
+        && source.path("bien_dong_kho").isArray()
+        && !source.path("bien_dong_kho").isEmpty();
   }
 
   private LineSnapshot readLine(ChiTietDonHang line) {

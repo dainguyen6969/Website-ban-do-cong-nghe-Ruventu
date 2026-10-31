@@ -16,6 +16,7 @@ import com.example.dantruventu.Error.ErrorCode;
 import com.example.dantruventu.Mapper.partner.DoiTacVanChuyenMapper;
 import com.example.dantruventu.Repository.order.PhieuGiaoHangRepository;
 import com.example.dantruventu.Repository.partner.DoiTacVanChuyenRepository;
+import com.example.dantruventu.Services.order.OrderEvents;
 import com.example.dantruventu.Specification.DoiTacVanChuyenSpecification;
 import com.example.dantruventu.Specification.PhieuGiaoHangSpecification;
 import java.time.LocalDateTime;
@@ -43,6 +44,7 @@ public class AdminShippingPartnerService {
   private final DoiTacVanChuyenRepository partnerRepository;
   private final PhieuGiaoHangRepository deliveryRepository;
   private final DoiTacVanChuyenMapper mapper;
+  private final OrderEvents orderEvents;
 
   @Value("${ruventu.shipping.time-zone:Asia/Ho_Chi_Minh}")
   private String shippingTimeZone;
@@ -165,10 +167,17 @@ public class AdminShippingPartnerService {
     DoiTacVanChuyen partner = partnerRepository.findByIdForUpdate(id).orElseThrow(this::notFound);
 
     if (partner.getTrangThai() != requestedStatus) {
+      var previousStatus = partner.getTrangThai();
       partner.setTrangThai(requestedStatus);
       partner.setNgayCapNhat(LocalDateTime.now(timeZone()));
 
       partnerRepository.flush();
+      orderEvents.status(
+          "SHIPPING_PARTNER",
+          partner.getId(),
+          partner.getMaDoiTac() + " · " + partner.getTenDoiTac(),
+          previousStatus,
+          requestedStatus);
     }
 
     return mapper.toStatusResponse(partner, timeZone());

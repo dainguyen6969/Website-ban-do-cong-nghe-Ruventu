@@ -12,9 +12,6 @@ export const FONT_OPTIONS = Object.freeze([
   { name: 'Saira Condensed', family: "'Saira Condensed', Arial, sans-serif" },
 ]);
 
-export const ADMIN_FONT_STORAGE_KEY = 'ruventu_admin_font_override';
-export const HOMEPAGE_FONT_STORAGE_KEY = 'ruventu_homepage_font_override';
-
 export const DEFAULT_FONT_OPTION = FONT_OPTIONS[0];
 
 export function findFontOption(name) {

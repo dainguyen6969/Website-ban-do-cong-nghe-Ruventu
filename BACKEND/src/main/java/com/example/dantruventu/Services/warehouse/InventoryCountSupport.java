@@ -34,6 +34,7 @@ public class InventoryCountSupport {
   private final SalesContext context;
   private final EntityManager entityManager;
   private final ObjectMapper objectMapper;
+  private final RecallSafety recallSafety;
 
   private record Part(PhienBanSanPham variant, int quantity) {}
 
@@ -151,6 +152,7 @@ public class InventoryCountSupport {
 
       if (lock) {
         entityManager.refresh(stock, LockModeType.PESSIMISTIC_WRITE);
+        recallSafety.track(stock);
       }
 
       WarehouseSupport.numbers(stock);
@@ -167,7 +169,12 @@ public class InventoryCountSupport {
             .soLuongGiuChoBaoHanh(0)
             .build();
 
-    return lock ? stockRepository.saveAndFlush(stock) : stock;
+    if (lock) {
+      stock = stockRepository.saveAndFlush(stock);
+      recallSafety.track(stock);
+    }
+
+    return stock;
   }
 
   private List<InventoryCountData.SerialRow> snapshot(Long variantId, boolean lock) {
