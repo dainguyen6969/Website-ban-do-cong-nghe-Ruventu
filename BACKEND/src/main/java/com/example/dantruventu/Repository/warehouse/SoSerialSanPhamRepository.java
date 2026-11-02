@@ -63,6 +63,14 @@ public interface SoSerialSanPhamRepository
 
   boolean existsBySoSerialIn(Collection<String> soSerials);
 
+  @Query(
+      """
+            SELECT s.soSerial
+            FROM SoSerialSanPham s
+            WHERE s.soSerial IN :codes
+            """)
+  List<String> findExistingSerialCodes(@Param("codes") Collection<String> codes);
+
   long countByPhienBanId(Long phienBanId);
 
   @Lock(LockModeType.PESSIMISTIC_WRITE)

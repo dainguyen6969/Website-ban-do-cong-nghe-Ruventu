@@ -960,3 +960,784 @@
     margin: 12px 14px;
   }
 }
+
+/* Phân cấp thông tin hàng đợi xử lý */
+.waiting-work {
+  color: #20242a;
+  line-height: 1.55;
+}
+
+.waiting-work .waiting-overview-card {
+  min-height: 112px;
+  padding: 16px;
+  border-color: #dce0e5;
+  border-left-width: 3px;
+  box-shadow: none;
+}
+
+.waiting-work .waiting-overview-card--1 {
+  --priority-color: #b42318;
+}
+
+.waiting-work .waiting-overview-card--2 {
+  --priority-color: #9a5b00;
+}
+
+.waiting-work .waiting-overview-card--3 {
+  --priority-color: #175c9c;
+}
+
+.waiting-work .waiting-overview-card--4 {
+  --priority-color: #5f6875;
+}
+
+.waiting-work .waiting-overview-card__title {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  font-size: 0.9rem;
+  font-weight: 650;
+}
+
+.waiting-work .waiting-overview-card > strong {
+  color: #20242a;
+  font-size: 1.75rem;
+  font-weight: 700;
+}
+
+.waiting-work .waiting-overview-card > small {
+  font-size: 0.82rem;
+  font-weight: 400;
+  color: #596370;
+}
+
+.waiting-work .waiting-overview-card.is-selected {
+  border-color: var(--priority-color);
+  box-shadow: inset 0 0 0 1px var(--priority-color);
+}
+
+.waiting-work .waiting-overview-card--1.is-selected {
+  background: #fff4f2;
+}
+
+.waiting-work .waiting-overview-card--2.is-selected {
+  background: #fff8ec;
+}
+
+.waiting-work .waiting-overview-card--3.is-selected {
+  background: #f0f6ff;
+}
+
+.waiting-work .waiting-overview-card--4.is-selected {
+  background: #f5f6f8;
+}
+
+.waiting-work .waiting-priority-icon {
+  display: inline-block;
+  width: 19px;
+  height: 19px;
+  flex: 0 0 19px;
+  vertical-align: middle;
+}
+
+.waiting-work .waiting-priority {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 9px;
+  font-size: 0.82rem;
+  font-weight: 650;
+  line-height: 1.4;
+  border: 1px solid transparent;
+  white-space: normal;
+}
+
+.waiting-work .waiting-priority--1 {
+  color: #a52017;
+  border-color: #f1c7c2;
+  background: #fff0ed;
+}
+
+.waiting-work .waiting-priority--2 {
+  color: #8d5500;
+  border-color: #eed5a7;
+  background: #fff7e8;
+}
+
+.waiting-work .waiting-priority--3 {
+  color: #175c9c;
+  border-color: #c6d9f0;
+  background: #eef5ff;
+}
+
+.waiting-work .waiting-priority--4 {
+  color: #515b67;
+  border-color: #dce0e5;
+  background: #f3f5f7;
+}
+
+.waiting-work .waiting-table th {
+  padding: 14px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: normal;
+}
+
+.waiting-work .waiting-table td {
+  padding: 18px 14px;
+  line-height: 1.55;
+}
+
+.waiting-work .waiting-row--1 td:first-child {
+  border-left: 3px solid #b42318;
+  background: #fffaf9;
+}
+
+.waiting-work .waiting-row--2 td:first-child {
+  border-left: 3px solid #b77a19;
+}
+
+.waiting-work .waiting-row--3 td:first-child {
+  border-left: 3px solid #2467a9;
+}
+
+.waiting-work .waiting-row--4 td:first-child {
+  border-left: 3px solid #b4bcc6;
+}
+
+.waiting-work .waiting-task {
+  margin-top: 12px;
+  color: #20242a;
+  font-size: 0.96rem;
+  font-weight: 650;
+  line-height: 1.5;
+}
+
+.waiting-work .waiting-task--red {
+  color: #a52017;
+}
+
+.waiting-work .waiting-signals {
+  gap: 5px;
+  margin-top: 10px;
+}
+
+.waiting-work .waiting-signals > span {
+  padding: 3px 6px;
+  border: 1px solid #e0e4e9;
+  background: #f7f8fa;
+  color: #596370;
+  font-size: 0.76rem;
+  font-weight: 400;
+}
+
+.waiting-work .waiting-customer {
+  font-size: 0.96rem;
+  font-weight: 650;
+}
+
+.waiting-work .waiting-phone {
+  margin-top: 5px;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.waiting-work .waiting-badge {
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.waiting-work .waiting-money {
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.waiting-work .waiting-money dd {
+  font-size: 0.94rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.waiting-work .waiting-money__remaining {
+  padding-top: 10px;
+  border-top: 1px solid #e1e5ea;
+}
+
+.waiting-work .waiting-money__remaining dd {
+  color: #20242a;
+  font-size: 1rem;
+}
+
+.waiting-work .waiting-product {
+  padding: 12px;
+  border-color: #e0e4e9;
+  background: #fff;
+}
+
+.waiting-work .waiting-product__name {
+  color: #20242a;
+  font-size: 0.9rem;
+  font-weight: 650;
+}
+
+.waiting-work .waiting-product__variant {
+  color: #66717d;
+  font-size: 0.8rem;
+}
+
+.waiting-work .waiting-quantities dd {
+  font-size: 1.1rem;
+  font-weight: 650;
+}
+
+.waiting-work .waiting-stock-meta {
+  font-size: 0.8rem;
+}
+
+.waiting-work .waiting-schedule {
+  padding-bottom: 12px;
+}
+
+.waiting-work .waiting-contact {
+  padding-top: 12px;
+  border-top: 1px solid #e1e5ea;
+}
+
+.waiting-work .waiting-assignee {
+  color: #20242a;
+  font-weight: 650;
+}
+
+.waiting-work .waiting-dates dd {
+  font-weight: 550;
+}
+
+.waiting-work .waiting-created,
+.waiting-work .waiting-contact-detail,
+.waiting-work .waiting-money dt,
+.waiting-work .waiting-dates dt {
+  font-size: 0.8rem;
+}
+
+.waiting-work .waiting-row-actions {
+  gap: 12px;
+}
+
+.waiting-work .waiting-open-order {
+  font-size: 0.84rem;
+  font-weight: 600;
+}
+
+.waiting-modal .waiting-field-note {
+  color: #626c78;
+  font-size: 0.8rem;
+  line-height: 1.5;
+}
+
+@media (max-width: 700px) {
+  .waiting-work .waiting-overview,
+  .waiting-work .waiting-overview--notice {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 420px) {
+  .waiting-work .waiting-overview,
+  .waiting-work .waiting-overview--notice {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* Đồng bộ chữ và màu với các trang quản trị */
+.admin-app .waiting-work {
+  --waiting-red: #df1720;
+  --waiting-amber: #d36b00;
+  --waiting-blue: #0067df;
+  --waiting-green: #0d8425;
+  --waiting-neutral: #60656b;
+
+  color: #111;
+  font-family: var(--font-family-admin, var(--font-family-base));
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.45;
+}
+
+.admin-app .waiting-work :is(button, input, select, textarea) {
+  font-family: inherit;
+}
+
+.admin-app .waiting-work :is(p, table, input, select, textarea) {
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+/* Đầu trang và thanh điều khiển */
+.admin-app .waiting-work .order-list-hero {
+  min-height: 96px;
+  padding: 16px 24px;
+}
+
+.admin-app .waiting-work .order-list-hero h1 {
+  font-size: 20px;
+  font-weight: 900;
+  line-height: 1.25;
+}
+
+.admin-app .waiting-work .content__breadcrumb {
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.admin-app .waiting-work .waiting-controls {
+  gap: 14px;
+  padding: 16px 24px;
+}
+
+.admin-app .waiting-work .waiting-tabs > button {
+  min-height: 34px;
+  padding: 7px 12px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.admin-app .waiting-work .waiting-tabs > button.is-active {
+  border-color: #111;
+  background: #111;
+  color: #fff;
+}
+
+.admin-app .waiting-work .waiting-button {
+  min-height: 34px;
+  padding: 8px 12px;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.admin-app .waiting-work .waiting-filters :is(input, select) {
+  min-height: 36px;
+  padding: 8px 10px;
+  font-size: 11px;
+}
+
+/* Các ô tổng hợp ưu tiên */
+.admin-app .waiting-work .waiting-overview-card {
+  min-height: 76px;
+  padding: 12px 14px;
+  gap: 4px 10px;
+}
+
+.admin-app .waiting-work :is(.waiting-overview-card--1, .waiting-row--1) {
+  --priority-color: #df1720;
+  --priority-bg: #fff1f1;
+}
+
+.admin-app .waiting-work :is(.waiting-overview-card--2, .waiting-row--2) {
+  --priority-color: #d36b00;
+  --priority-bg: #fff9e9;
+}
+
+.admin-app .waiting-work :is(.waiting-overview-card--3, .waiting-row--3) {
+  --priority-color: #0067df;
+  --priority-bg: #edf7ff;
+}
+
+.admin-app .waiting-work :is(.waiting-overview-card--4, .waiting-row--4) {
+  --priority-color: #60656b;
+  --priority-bg: #f6f6f6;
+}
+
+.admin-app .waiting-work .waiting-overview-card > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--priority-color);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.admin-app .waiting-work .waiting-overview-card > strong {
+  font-size: 18px;
+  font-weight: 900;
+  line-height: 1.2;
+}
+
+.admin-app .waiting-work .waiting-overview-card > small {
+  color: #777;
+  font-size: 10px;
+  font-weight: 500;
+}
+
+.admin-app .waiting-work .waiting-overview-card:is(:hover, .is-selected) {
+  border-color: var(--priority-color);
+  background: var(--priority-bg);
+}
+
+.admin-app .waiting-work :is(.waiting-overview-card > span, .waiting-priority) svg {
+  width: 13px;
+  height: 13px;
+  flex-shrink: 0;
+}
+
+.admin-app .waiting-work .waiting-resultbar {
+  font-size: 11px;
+}
+
+.admin-app .waiting-work .waiting-resultbar strong {
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.admin-app .waiting-work .waiting-resultbar > small {
+  font-size: 10px;
+}
+
+/* Bảng danh sách */
+.admin-app .waiting-work .waiting-table {
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.admin-app .waiting-work .waiting-table th {
+  padding: 10px 12px;
+  background: #0a0a0a;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.admin-app .waiting-work .waiting-table td {
+  padding: 12px;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.45;
+}
+
+.admin-app .waiting-work .waiting-row > td:first-child {
+  box-shadow: inset 3px 0 var(--priority-color, #d1d1d1);
+}
+
+/* Trạng thái: cùng màu với danh sách đơn hàng */
+.admin-app .waiting-work :is(.waiting-priority, .waiting-badge) {
+  gap: 5px;
+  padding: 2px 6px;
+  border-radius: 0;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.admin-app .waiting-work :is(.waiting-priority--1, .waiting-badge--red) {
+  border-color: #ff9297;
+  background: #fff1f1;
+  color: #df1720;
+}
+
+.admin-app .waiting-work :is(.waiting-priority--2, .waiting-badge--amber) {
+  border-color: #ffba55;
+  background: #fff9e9;
+  color: #d36b00;
+}
+
+.admin-app .waiting-work :is(.waiting-priority--3, .waiting-badge--blue) {
+  border-color: #70b8ff;
+  background: #edf7ff;
+  color: #0067df;
+}
+
+.admin-app .waiting-work .waiting-badge--green {
+  border-color: #89ce96;
+  background: #f0faf2;
+  color: #0d8425;
+}
+
+.admin-app .waiting-work :is(.waiting-priority--4, .waiting-badge--neutral) {
+  border-color: #d1d1d1;
+  background: #f6f6f6;
+  color: #60656b;
+}
+
+/* Nội dung chính và nhãn phụ */
+.admin-app
+  .waiting-work
+  :is(.waiting-task, .waiting-customer, .waiting-product__name, .waiting-assignee) {
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.45;
+}
+
+.admin-app .waiting-work .waiting-task {
+  margin-top: 8px;
+}
+
+.admin-app .waiting-work .waiting-task--red {
+  color: var(--waiting-red);
+}
+
+.admin-app .waiting-work .waiting-task--green {
+  color: var(--waiting-green);
+}
+
+.admin-app .waiting-work .waiting-task--blue {
+  color: var(--waiting-blue);
+}
+
+.admin-app .waiting-work .waiting-task--neutral {
+  color: #111;
+}
+
+.admin-app
+  .waiting-work
+  :is(.waiting-label, .waiting-created, .waiting-signals > span, .waiting-quantities dt) {
+  color: #777;
+  font-size: 10px;
+  font-weight: 500;
+}
+
+.admin-app
+  .waiting-work
+  :is(
+    .waiting-phone,
+    .waiting-product__variant,
+    .waiting-stock-meta,
+    .waiting-age,
+    .waiting-contact-detail,
+    .waiting-open-order,
+    .waiting-muted
+  ) {
+  font-size: 11px;
+}
+
+.admin-app .waiting-work .waiting-reference {
+  gap: 3px;
+  margin: 10px 0 8px;
+}
+
+.admin-app .waiting-work .waiting-reference > :is(a, strong) {
+  color: #111;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.admin-app .waiting-work .waiting-product {
+  padding: 10px;
+}
+
+.admin-app .waiting-work .waiting-quantities {
+  margin-top: 8px;
+}
+
+.admin-app .waiting-work .waiting-quantities > div {
+  padding: 7px 6px;
+}
+
+.admin-app .waiting-work .waiting-quantities dd {
+  font-size: 16px;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.admin-app .waiting-work .waiting-quantity-held {
+  background: #edf7ff;
+}
+
+.admin-app .waiting-work .waiting-quantity-held dd {
+  color: var(--waiting-blue);
+}
+
+.admin-app .waiting-work .waiting-quantity-missing {
+  background: #fff9e9;
+}
+
+.admin-app .waiting-work .waiting-quantity-missing dd {
+  color: var(--waiting-amber);
+}
+
+/* Thông tin báo có hàng */
+.admin-app .waiting-work .waiting-availability--ready {
+  border-color: #89ce96;
+  background: #f0faf2;
+}
+
+.admin-app .waiting-work .waiting-availability__quantity strong {
+  font-size: 16px;
+  font-weight: 800;
+}
+
+.admin-app .waiting-work .waiting-availability--ready .waiting-availability__quantity strong {
+  color: var(--waiting-green);
+}
+
+.admin-app .waiting-work .waiting-availability__quantity span {
+  font-size: 10px;
+}
+
+/* Tiền và lịch hẹn */
+.admin-app .waiting-work :is(.waiting-money dt, .waiting-dates dt) {
+  color: #777;
+  font-size: 10px;
+}
+
+.admin-app .waiting-work .waiting-money dd {
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.admin-app .waiting-work .waiting-money__remaining dd {
+  color: var(--waiting-amber);
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.admin-app .waiting-work .waiting-dates dd {
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.admin-app .waiting-work .waiting-schedule--overdue {
+  border-left-color: var(--waiting-red);
+}
+
+.admin-app .waiting-work :is(.waiting-age--long, .waiting-age--long strong) {
+  color: var(--waiting-amber);
+}
+
+/* Hộp liên hệ và lịch xử lý */
+.admin-app .waiting-work .order-operation-modal.waiting-modal {
+  font-family: inherit;
+  font-size: 12px;
+}
+
+.admin-app .waiting-work .order-operation-modal.waiting-modal > header {
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 16px;
+}
+
+.admin-app .waiting-work .order-operation-modal.waiting-modal > header h2 {
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.admin-app .waiting-work .order-operation-modal.waiting-modal > header p {
+  font-size: 11px;
+}
+
+.admin-app .waiting-work .order-operation-modal.waiting-modal > header > button {
+  flex-shrink: 0;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  background: transparent;
+  color: #fff;
+  font-size: 22px;
+  line-height: 1;
+}
+
+.admin-app
+  .waiting-work
+  :is(
+    .waiting-dialog-context strong,
+    .waiting-fields input,
+    .waiting-fields select,
+    .waiting-fields textarea
+  ) {
+  font-size: 12px;
+}
+
+.admin-app .waiting-work .waiting-fields > label > span {
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.admin-app .waiting-work .waiting-fields :is(input:not([type='checkbox']), select) {
+  min-height: 36px;
+  padding: 8px 10px;
+}
+
+.admin-app .waiting-work .waiting-history {
+  font-size: 11px;
+}
+
+.admin-app .waiting-work .waiting-history small {
+  font-size: 10px;
+}
+
+.admin-app .waiting-work .order-operation-modal.waiting-modal > footer > button {
+  min-height: 34px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+@media (max-width: 650px) {
+  .admin-app .waiting-work .order-list-hero {
+    padding: 16px;
+  }
+
+  .admin-app .waiting-work .waiting-controls {
+    padding: 14px 16px;
+  }
+
+  .admin-app .waiting-work .waiting-overview-card {
+    padding: 10px;
+  }
+}
+
+/* Giữ biểu tượng và tên mức ưu tiên trên cùng một dòng */
+.admin-app .waiting-work .waiting-table .waiting-priority {
+  display: inline-flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 6px;
+  width: max-content;
+  max-width: none;
+  min-height: 22px;
+  padding: 3px 8px;
+  box-sizing: border-box;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.4;
+  white-space: nowrap;
+  overflow-wrap: normal;
+  word-break: normal;
+}
+
+.admin-app .waiting-work .waiting-table .waiting-priority > span {
+  flex: 0 0 auto;
+  width: auto;
+  max-width: none;
+  color: inherit;
+  font: inherit;
+  white-space: nowrap;
+  overflow-wrap: normal;
+  word-break: normal;
+}
+
+.admin-app .waiting-work .waiting-table .waiting-priority svg {
+  display: block;
+  flex: 0 0 12px;
+  width: 12px;
+  height: 12px;
+}
+
+.admin-app .waiting-work .waiting-table .waiting-task {
+  display: block;
+  margin-top: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.45;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.admin-app .waiting-work .waiting-table .waiting-signals {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 8px;
+}

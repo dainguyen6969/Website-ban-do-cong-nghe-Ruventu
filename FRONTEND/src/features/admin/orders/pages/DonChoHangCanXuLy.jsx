@@ -10,6 +10,7 @@ import {
 } from '../api/orderApi';
 import { subscribeOrderUpdates } from '../api/orderRealtime';
 import {
+  apiHasCode,
   errorMessage,
   formatDateTimeVN,
   inputFromApiTime,
@@ -48,7 +49,24 @@ const NOTICE_RESULTS = ['HEN_XU_LY', 'KHONG_LIEN_LAC_DUOC', 'DA_THONG_BAO', 'HUY
 const CONNECTED = ['DONG_Y_CHO', 'XAC_NHAN_MUA', 'KHONG_TIEP_TUC'];
 
 const cash = (value) => (value == null ? '—' : money(value));
-const appointment = (value) => (value ? `${value}:00+07:00` : null);
+function appointment(value) {
+  const text = String(value || '').trim();
+
+  if (!text) return null;
+
+  if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(text) || Number(text.slice(0, 4)) < 1000) {
+    throw new Error('Ngày giờ hẹn không hợp lệ.');
+  }
+
+  const result = `${text}:00+07:00`;
+  const date = new Date(result);
+
+  if (Number.isNaN(date.getTime()) || inputFromApiTime(date.toISOString()) !== text) {
+    throw new Error('Ngày giờ hẹn không hợp lệ.');
+  }
+
+  return result;
+}
 
 function waitingDuration(value) {
   if (value == null) return 'Chưa rõ thời gian';
@@ -58,18 +76,67 @@ function waitingDuration(value) {
   return `${Math.floor(minutes / 1440)} ngày ${Math.floor((minutes % 1440) / 60)} giờ`;
 }
 
+function WaitingPriorityIcon({ level }) {
+  const value = Number(level);
+
+  return (
+    <svg
+      className="waiting-priority-icon"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      focusable="false"
+    >
+      {value === 1 ? (
+        <>
+          <path d="M12 3 2 21h20L12 3Z" />
+          <path d="M12 9v5" />
+          <circle cx="12" cy="17.5" r=".7" fill="currentColor" stroke="none" />
+        </>
+      ) : value === 2 ? (
+        <path d="m13 3-8 10h6l-1 8L19 9h-6l0-6Z" />
+      ) : value === 3 ? (
+        <>
+          <rect x="5" y="5" width="14" height="16" rx="2" />
+          <path d="M9 5V3h6v2M8 13l3 3 5-6" />
+        </>
+      ) : (
+        <>
+          <circle cx="12" cy="12" r="9" />
+          <path d="M12 7v5l3 2" />
+        </>
+      )}
+    </svg>
+  );
+}
+
+function WaitingPriority({ level }) {
+  return (
+    <span className={`waiting-priority waiting-priority--${level}`}>
+      <WaitingPriorityIcon level={level} />
+      <span>{PRIORITIES[level] || 'Chưa phân loại'}</span>
+    </span>
+  );
+}
+
 function WaitingBadge({ tone = 'neutral', children }) {
   return <span className={`waiting-badge waiting-badge--${tone}`}>{children}</span>;
 }
 
 function waitingPaymentTone(row) {
-  if (row.received == null || row.remaining == null) return 'red';
+  if (row.received == null || row.remaining == null) {
+    return 'red';
+  }
 
   if (Number(row.received) > 0 && Number(row.remaining) === 0) {
     return 'green';
   }
 
-  return Number(row.received) > 0 ? 'amber' : 'neutral';
+  return 'amber';
 }
 
 function waitingContactTone(result) {
@@ -195,9 +262,7 @@ function WaitingQueueRow({ row, onOpen, locked }) {
   return (
     <tr className={`waiting-row waiting-row--${row.priority}`}>
       <td>
-        <span className={`waiting-priority waiting-priority--${row.priority}`}>
-          {row.priority} · {PRIORITIES[row.priority] || 'Chưa phân loại'}
-        </span>
+        <WaitingPriority level={row.priority} />
 
         <strong className={`waiting-task waiting-task--${actionTone}`}>{row.action_label}</strong>
 
@@ -229,11 +294,7 @@ function WaitingQueueRow({ row, onOpen, locked }) {
           )}
         </div>
 
-        <WaitingBadge
-          tone={notice ? 'neutral' : row.status_label === 'Chờ duyệt' ? 'blue' : 'amber'}
-        >
-          {row.status_label}
-        </WaitingBadge>
+        <WaitingBadge tone={notice ? 'neutral' : 'amber'}>{row.status_label}</WaitingBadge>
       </td>
 
       {!notice && (
@@ -254,7 +315,7 @@ function WaitingQueueRow({ row, onOpen, locked }) {
             )}
 
             <div className="waiting-money__remaining">
-              <dt>{hasCod ? 'COD còn lại' : 'Còn phải thu'}</dt>
+              <dt>{hasCod ? 'COD dự kiến' : 'Còn phải thu'}</dt>
               <dd>{cash(hasCod ? row.cod_remaining : row.remaining)}</dd>
             </div>
           </dl>
@@ -491,34 +552,47 @@ export default function DonChoHangCanXuLy() {
     let body = attempt.current?.body;
 
     if (!body) {
-      if (!form.confirmed) {
-        setOperationError('Cần xác nhận đúng nội dung thao tác.');
+      try {
+        if (!form.confirmed) {
+          throw new Error('Cần xác nhận đúng nội dung thao tác.');
+        }
+
+        const requiresNext = ['HEN_XU_LY', 'KHONG_LIEN_LAC_DUOC', 'DONG_Y_CHO'].includes(
+          form.result
+        );
+
+        const nextContactAt = appointment(form.nextContactAt);
+
+        if (requiresNext && !nextContactAt) {
+          throw new Error('Chọn lịch xử lý hoặc liên hệ tiếp theo.');
+        }
+
+        const connected = dialog.kind === 'ORDER' && CONNECTED.includes(form.result);
+
+        const note =
+          form.note.trim() ||
+          (form.result === 'HEN_XU_LY'
+            ? `Phân công xử lý; hẹn ${formatDateTimeVN(nextContactAt)}.`
+            : '');
+
+        if (!note) {
+          throw new Error('Nhập kết quả trao đổi thực tế.');
+        }
+
+        body = {
+          revision: Number(dialog.revision),
+          result: form.result,
+          employeeId: Number(form.employeeId) || null,
+          nextContactAt,
+          promisedAt: connected ? appointment(form.promisedAt) : null,
+          remainingMethod: connected ? form.remainingMethod || null : null,
+          note,
+          confirmed: true,
+        };
+      } catch (error) {
+        setOperationError(errorMessage(error));
         return;
       }
-
-      const note =
-        form.note.trim() ||
-        (form.result === 'HEN_XU_LY'
-          ? `Phân công xử lý; lịch tiếp theo: ${form.nextContactAt}.`
-          : '');
-
-      if (!note) {
-        setOperationError('Nhập kết quả trao đổi thực tế.');
-        return;
-      }
-
-      const connected = dialog.kind === 'ORDER' && CONNECTED.includes(form.result);
-
-      body = {
-        revision: Number(dialog.revision),
-        result: form.result,
-        employeeId: Number(form.employeeId) || null,
-        nextContactAt: appointment(form.nextContactAt),
-        promisedAt: connected ? appointment(form.promisedAt) : null,
-        remainingMethod: connected ? form.remainingMethod || null : null,
-        note,
-        confirmed: true,
-      };
     }
 
     writing.current = true;
@@ -539,7 +613,7 @@ export default function DonChoHangCanXuLy() {
     } catch (error) {
       setOperationError(errorMessage(error));
 
-      if (Number(error.status || error.response?.status) === 409 && !attempt.current) {
+      if (apiHasCode(error, 'WAITING_REVISION_CHANGED') && !attempt.current) {
         editing.current = false;
         setDialog(null);
         setRevision((value) => value + 1);
@@ -647,8 +721,9 @@ export default function DonChoHangCanXuLy() {
                 setPage(0);
               }}
             >
-              <span>
-                {value} · {text}
+              <span className="waiting-overview-card__title">
+                <WaitingPriorityIcon level={value} />
+                <span>{text}</span>
               </span>
               <strong>{Number(data.summary?.[value] || 0)}</strong>
               <small>{priorityNotes[value]}</small>
@@ -782,7 +857,7 @@ export default function DonChoHangCanXuLy() {
 
       {dialog && (
         <OrderModal
-          title="LIÊN HỆ VÀ LỊCH XỬ LÝ"
+          title="LIÊN HỆ VÀ HẸN XỬ LÝ"
           subtitle={dialog.code}
           className="waiting-modal"
           showClose
@@ -862,20 +937,26 @@ export default function DonChoHangCanXuLy() {
                   />
                 </label>
 
-                <label>
-                  <span>Thu phần tiền còn lại</span>
-                  <select
-                    value={form.remainingMethod}
-                    onChange={(event) => change('remainingMethod', event.target.value)}
-                  >
-                    <option value="">Chưa xác định</option>
-                    <option value="COD" disabled={!dialog.delivery}>
-                      COD khi giao hàng
-                    </option>
-                    <option value="CHUYEN_KHOAN">Chuyển khoản</option>
-                    <option value="TAI_CUA_HANG">Thu tại cửa hàng</option>
-                  </select>
-                </label>
+                {(dialog.remaining == null || Number(dialog.remaining) > 0) && (
+                  <label>
+                    <span>Dự kiến thu phần còn thiếu</span>
+                    <select
+                      title="Lưu phương án dự kiến; việc thực thu được ghi nhận tại chi tiết đơn hoặc đối soát COD."
+                      value={form.remainingMethod}
+                      onChange={(event) => change('remainingMethod', event.target.value)}
+                    >
+                      <option value="">Chưa xác định</option>
+                      <option value="COD" disabled={!dialog.delivery}>
+                        COD khi giao hàng
+                      </option>
+                      <option value="CHUYEN_KHOAN">Chuyển khoản</option>
+                      <option value="TAI_CUA_HANG">Thu tại cửa hàng</option>
+                    </select>
+                    <small className="waiting-field-note">
+                      Còn phải thu: {cash(dialog.remaining)}. Dự kiến.
+                    </small>
+                  </label>
+                )}
               </>
             )}
 

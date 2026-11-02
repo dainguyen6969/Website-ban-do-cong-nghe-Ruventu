@@ -185,5 +185,8 @@ public class AdminPurchaseOrderDetailResponse {
 
     @JsonProperty("che_do_serial_da_xac_lap")
     private Boolean cheDoSerialDaXacLap;
+
+    @JsonProperty("vi_tri_luu_kho")
+    private String viTriLuuKho;
   }
 }
