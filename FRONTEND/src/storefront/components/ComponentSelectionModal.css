@@ -55,7 +55,6 @@
 .build-modal-content button:disabled { opacity: .45; cursor: not-allowed; }
 .build-product-action .build-warning { font-size: 11px; }
 .build-pagination { flex-shrink: 0; display: flex; justify-content: center; align-items: center; gap: 20px; padding: 10px; border-top: 2px solid #111; font-size: 12px; }
-.build-pagination button { background: #fff; border: 1px solid #111; border-radius: 0; padding: 8px 12px; cursor: pointer; }
 .build-modal-content :focus-visible { outline: 2px solid #c60000; outline-offset: 2px; }
 .build-modal-search-bar input:focus-visible { outline-offset: -3px; }
 @media (max-width: 1000px) {

@@ -119,6 +119,32 @@ export default function FilterDropdown({
     if (onSelect) {
       onSelect(option.value);
     }
+    dropdownRef.current?.querySelector('button')?.focus();
+  };
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const active = dropdownRef.current?.querySelector('[aria-selected="true"]:not([aria-disabled="true"])');
+    (active || dropdownRef.current?.querySelector('[role="option"]:not([aria-disabled="true"])'))?.focus();
+  }, [isOpen]);
+
+  const handleOptionKeyDown = (event, option) => {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      handleSelect(option);
+    } else if (event.key === 'Escape') {
+      event.preventDefault();
+      event.stopPropagation();
+      setIsOpen(false);
+      dropdownRef.current?.querySelector('button')?.focus();
+    } else if (['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key)) {
+      event.preventDefault();
+      const items = [...event.currentTarget.parentElement.querySelectorAll('[role="option"]:not([aria-disabled="true"])')];
+      const index = items.indexOf(event.currentTarget);
+      const next = event.key === 'Home' ? 0 : event.key === 'End' ? items.length - 1 :
+        (index + (event.key === 'ArrowDown' ? 1 : -1) + items.length) % items.length;
+      items[next]?.focus();
+    }
   };
 
   const handleKeyDown = (e) => {
@@ -127,7 +153,12 @@ export default function FilterDropdown({
       e.preventDefault();
       setIsOpen((prev) => !prev);
     } else if (e.key === 'Escape') {
+      e.preventDefault();
+      e.stopPropagation();
       setIsOpen(false);
+    } else if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      e.preventDefault();
+      setIsOpen(true);
     }
   };
 
@@ -137,6 +168,7 @@ export default function FilterDropdown({
       ref={dropdownRef}
       id={id}
       style={style}
+      onBlur={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) setIsOpen(false); }}
     >
       <button
         type="button"
@@ -175,8 +207,11 @@ export default function FilterDropdown({
                 key={`${option.value}-${idx}`}
                 className={`filter__dropdown-item ${isItemActive ? 'filter__dropdown-item--selected' : ''} ${option.disabled ? 'filter__dropdown-item--disabled' : ''}`}
                 onClick={() => handleSelect(option)}
+                onKeyDown={(event) => handleOptionKeyDown(event, option)}
+                tabIndex={isItemActive && !option.disabled ? 0 : -1}
                 role="option"
                 aria-selected={isItemActive}
+                aria-disabled={option.disabled || undefined}
               >
                 {option.label}
               </li>

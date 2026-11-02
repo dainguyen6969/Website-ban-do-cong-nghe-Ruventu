@@ -1,0 +1,16 @@
+import React from 'react';
+import { createRoot } from 'react-dom/client';
+import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
+import MockAuthContext from '../src/auth/mockAuthContext';
+import FontPreferenceContext from '../src/typography/FontPreferenceContext';
+import { FONT_OPTIONS } from '../src/typography/fontOptions';
+import Sidebar from '../src/shared/components/layout/Sidebar';
+import Header from '../src/shared/components/layout/Header';
+import List from '../src/features/admin/warranty/pages/DanhSachBaoHanh';
+import Detail from '../src/features/admin/warranty/pages/ChiTietBaoHanh';
+import Create from '../src/features/admin/warranty/pages/LapPhieuBaoHanh';
+import '../src/styles/index.css';
+import '../src/styles/responsive.css';
+import '../src/styles/adminTables.css';
+const account = { name: 'Quản trị viên', email: 'admin@example.test', role: 'admin', vaiTro: 'admin_toan_quyen', trangThai: 'hoat_dong' };
+createRoot(document.getElementById('root')).render(<MockAuthContext.Provider value={{ currentAccount: account }}><FontPreferenceContext.Provider value={{ font: FONT_OPTIONS[0], selectFont: () => {} }}><HashRouter><div className="admin-app" style={{display:'flex', height:'100vh'}}><Sidebar /><div style={{display:'flex', flexDirection:'column', flex:1, minWidth:0}}><Header /><Routes><Route path="/admin/bao-hanh/danh-sach" element={<List />} /><Route path="/admin/bao-hanh/chi-tiet/:id" element={<Detail />} /><Route path="/admin/bao-hanh/tao-moi" element={<Create />} /><Route path="/admin/bao-hanh" element={<List />} /><Route path="/admin/bao-hanh/lap-phieu" element={<Create />} /><Route path="/admin/bao-hanh/:id" element={<Detail />} /><Route path="*" element={<Navigate to="/admin/bao-hanh/danh-sach" replace />} /></Routes></div></div></HashRouter></FontPreferenceContext.Provider></MockAuthContext.Provider>);

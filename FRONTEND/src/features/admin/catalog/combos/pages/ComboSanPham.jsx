@@ -71,7 +71,7 @@ export default function ComboSanPham() {
   };
 
   return (
-    <main className="combo-list-page">
+    <main className="combo-list-page admin-list-page">
       <div className="combo-page-heading">
         <div>
           <div className="combo-secondary-breadcrumb">
@@ -131,8 +131,20 @@ export default function ComboSanPham() {
           <option>Ngưng kinh doanh</option>
         </FilterDropdown>
       </div>
-      <div className="combo-table-wrap">
-        <table className="combo-table">
+      <div className="admin-list-body admin-list-body--inset">
+<div className="combo-table-wrap admin-table-scroll" tabIndex={0} role="region" aria-label="Bảng danh sách">
+        <table className="combo-table admin-data-table">
+          <colgroup>
+            <col className="combo-col-image" />
+            <col className="combo-col-code" />
+            <col className="combo-col-name" />
+            <col />
+            <col className="combo-col-capacity" />
+            <col className="combo-col-stock" />
+            <col className="combo-col-price" />
+            <col className="combo-col-status" />
+            <col className="combo-col-actions" />
+          </colgroup>
           <thead>
             <tr>
               <th>ẢNH</th>
@@ -167,10 +179,10 @@ export default function ComboSanPham() {
                     <div className="component-preview">
                       {combo.components.slice(0, 2).map((item) => (
                         <div key={`${item.sku}-${item.name}`}>
-                          <b>
-                            {item.name} <em>×{item.qty}</em>
+                          <b title={`${item.name} ×${item.qty}`}>
+                            <span>{item.name}</span><em>×{item.qty}</em>
                           </b>
-                          <small>
+                          <small title={`${item.variant} · ${item.sku}`}>
                             {item.variant} · {item.sku}
                           </small>
                         </div>
@@ -247,13 +259,14 @@ export default function ComboSanPham() {
           </tbody>
         </table>
       </div>
-      <TablePagination
+      <TablePagination className="admin-table-footer"
         totalItems={totalItems}
         pageSize={PAGE_SIZE}
         currentPage={page}
         onPageChange={setPage}
         idPrefix="combo"
       />
+</div>
       <StopComboModal
         combo={comboToStop}
         onCancel={() => setComboToStop(null)}
