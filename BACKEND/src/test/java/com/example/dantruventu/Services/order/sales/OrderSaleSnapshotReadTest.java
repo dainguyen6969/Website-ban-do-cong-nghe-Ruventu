@@ -22,7 +22,8 @@ class OrderSaleSnapshotReadTest {
     var target = new OrderSaleSnapshotService(null, new ObjectMapper(), null, null);
     var factory = new ProxyFactory(target);
     factory.setProxyTargetClass(true);
-    factory.addAdvice(new TransactionInterceptor(transactions, new AnnotationTransactionAttributeSource()));
+    factory.addAdvice(
+        new TransactionInterceptor(transactions, new AnnotationTransactionAttributeSource()));
     var proxy = (OrderSaleSnapshotService) factory.getProxy();
 
     assertFalse(proxy.hasValidSnapshot(new ChiTietDonHang()));

@@ -1229,7 +1229,7 @@ function OrderDetailView({ orderId }) {
 
           {waitingRows.length > 0 ? (
             <div style={{ overflowX: 'auto' }}>
-              <div className="admin-table-scroll admin-table-scroll--embedded" tabIndex={0} role="region" aria-label="Bảng dữ liệu liên quan"><table className="order-waiting-stock-table admin-data-table admin-data-table--records">
+              <table className="order-waiting-stock-table">
                 <thead>
                   <tr>
                     <th>Sản phẩm / linh kiện</th>
@@ -1255,7 +1255,7 @@ function OrderDetailView({ orderId }) {
                     </tr>
                   ))}
                 </tbody>
-              </table></div>
+              </table>
             </div>
           ) : (
             <p>Chưa tải được thông tin giữ hàng của đơn.</p>
@@ -1314,47 +1314,98 @@ function OrderDetailView({ orderId }) {
       <div className="order-detail-content">
         <div className="order-detail-main">
           <Panel title="SẢN PHẨM TRONG ĐƠN">
-            <div className="order-products-table-wrap">
-              <div className="admin-table-scroll admin-table-scroll--embedded" tabIndex={0} role="region" aria-label="Bảng dữ liệu liên quan"><table className="order-products-table admin-data-table admin-data-table--records">
-                <thead>
-                  <tr>
-                    <th>ẢNH</th>
-                    <th>SẢN PHẨM / PHIÊN BẢN</th>
-                    <th>MÃ VẠCH</th>
-                    <th>ĐƠN GIÁ</th>
-                    <th>SL</th>
-                    <th>THÀNH TIỀN</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {products.visibleItems.map((item) => (
-                    <tr key={item.chi_tiet_don_hang_id}>
-                      <td>
-                        <OrderProductImage item={item} />
-                      </td>
-                      <td>
-                        <strong>{item.ten_san_pham || `Phiên bản #${item.phien_ban_id}`}</strong>
+            <div className="order-items-figma">
+              <div
+                className="order-items-figma__scroll"
+                tabIndex={0}
+                role="region"
+                aria-label="Sản phẩm và linh kiện trong đơn"
+              >
+                <table className="order-products-table order-items-figma__table">
+                  <colgroup>
+                    <col className="order-items-figma__col-image" />
+                    <col />
+                    <col className="order-items-figma__col-barcode" />
+                    <col className="order-items-figma__col-price" />
+                    <col className="order-items-figma__col-quantity" />
+                    <col className="order-items-figma__col-total" />
+                  </colgroup>
 
-                        <OrderLineNotice item={item} />
-                        <span>
-                          {item.loai_san_pham === 'BO_PC' ? 'Bộ PC' : item.ten_phien_ban || '—'}
-                        </span>
-
-                        {item.loai_san_pham === 'BO_PC' && (
-                          <ComboContents items={item.thanh_phan || []} order compact />
-                        )}
-                      </td>
-                      <td>—</td>
-                      <td className="align-right">{money(item.don_gia)}</td>
-                      <td className="align-center">{item.so_luong}</td>
-                      <td className="align-right">
-                        <OrderLineAmount item={item} />{' '}
-                      </td>
+                  <thead>
+                    <tr>
+                      <th>ẢNH</th>
+                      <th>SẢN PHẨM / PHIÊN BẢN</th>
+                      <th>MÃ VẠCH</th>
+                      <th className="order-items-figma__number">ĐƠN GIÁ</th>
+                      <th className="order-items-figma__number">SL</th>
+                      <th className="order-items-figma__number">THÀNH TIỀN</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table></div>
+                  </thead>
+
+                  {products.visibleItems.map((item) => {
+                    const isPc = item.loai_san_pham === 'BO_PC';
+
+                    const productName = item.ten_san_pham || `Phiên bản #${item.phien_ban_id}`;
+
+                    const variantName = String(item.ten_phien_ban || '').trim();
+
+                    const showVariant =
+                      variantName.length > 0 &&
+                      variantName.toLocaleLowerCase('vi-VN') !==
+                        String(productName).trim().toLocaleLowerCase('vi-VN');
+
+                    const components = Array.isArray(item.thanh_phan) ? item.thanh_phan : [];
+
+                    return (
+                      <tbody key={item.chi_tiet_don_hang_id}>
+                        <tr className={isPc ? 'order-items-figma__pc-row' : undefined}>
+                          <td className="order-items-figma__photo">
+                            <OrderProductImage item={item} />
+                          </td>
+
+                          <td>
+                            <strong className="order-items-figma__name">{productName}</strong>
+
+                            {showVariant && (
+                              <span className="order-items-figma__variant">{variantName}</span>
+                            )}
+
+                            {isPc && (
+                              <span className="order-items-figma__kind">
+                                Bộ PC · {item.so_luong} bộ
+                              </span>
+                            )}
+
+                            <OrderLineNotice item={item} />
+                          </td>
+
+                          <td className="order-items-figma__barcode">—</td>
+
+                          <td className="order-items-figma__number">{money(item.don_gia)}</td>
+
+                          <td className="order-items-figma__number">{item.so_luong}</td>
+
+                          <td className="order-items-figma__number order-items-figma__amount">
+                            <OrderLineAmount item={item} />
+                          </td>
+                        </tr>
+
+                        {isPc && (
+                          <tr className="order-items-figma__parts-row">
+                            <td colSpan={6}>
+                              <div className="order-items-figma__components">
+                                <ComboContents items={components} order />
+                              </div>
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    );
+                  })}
+                </table>
+              </div>
             </div>
+
             <DetailTablePagination
               totalItems={(order.san_pham || []).length}
               currentPage={products.currentPage}
@@ -1598,92 +1649,94 @@ function OrderDetailView({ orderId }) {
             (order.thiet_bi_da_ban || []).length > 0 ||
             order.can_xac_minh_lich_su === true) && (
             <Panel title="THIẾT BỊ VÀ BẢO HÀNH">
-              {counterInspectionClosed && (
-                <p className="order-note">
-                  Đã kết thúc kiểm tra tại quầy. Lỗi phát sinh tiếp theo xử lý qua bảo hành.
-                </p>
-              )}
+              <div className="order-warranty">
+                {counterInspectionClosed && (
+                  <p className="order-note">
+                    Đã kết thúc kiểm tra tại quầy. Lỗi phát sinh tiếp theo xử lý qua bảo hành.
+                  </p>
+                )}
 
-              {canCounterExchange && counterDevices.length > 0 && (
-                <div className="order-panel-actions">
-                  <Action
-                    secondary
-                    disabled={
-                      state.busy || Boolean(orderAttempt.current) || Boolean(cashAttempt.current)
-                    }
-                    click={() => open('completeCounterInspection', 'KẾT THÚC KIỂM TRA TẠI QUẦY')}
-                  >
-                    KẾT THÚC KIỂM TRA TẠI QUẦY
-                  </Action>
-                </div>
-              )}
-
-              {counterDevices.length > 0 && (
-                <>
-                  <h3>THIẾT BỊ HIỆN HÀNH</h3>
-
-                  <div className="sold-devices-scroll">
-                    <div className="admin-table-scroll admin-table-scroll--embedded" tabIndex={0} role="region" aria-label="Bảng dữ liệu liên quan"><table className="sold-devices-table admin-data-table admin-data-table--records">
-                      <thead>
-                        <tr>
-                          <th>Mã theo dõi</th>
-                          <th>Serial / nhận dạng</th>
-                          <th>Số lần đã đổi</th>
-                          <th>Thao tác</th>
-                        </tr>
-                      </thead>
-
-                      <tbody>
-                        {counterDevices.map((device) => {
-                          const count = Array.isArray(device.chuoi_thay_the)
-                            ? device.chuoi_thay_the.length
-                            : 0;
-
-                          return (
-                            <tr key={device.thiet_bi_id}>
-                              <td>{device.ma_theo_doi}</td>
-
-                              <td>
-                                {device.so_serial ||
-                                  device.dau_hieu_nhan_dang ||
-                                  'Không quản lý serial'}
-                              </td>
-
-                              <td>{count}</td>
-
-                              <td>
-                                {canCounterExchange ? (
-                                  <Action
-                                    disabled={
-                                      state.busy ||
-                                      Boolean(orderAttempt.current) ||
-                                      Boolean(cashAttempt.current)
-                                    }
-                                    click={() => openCounterExchange(device)}
-                                  >
-                                    {count > 0
-                                      ? 'GHI NHẬN LỖI VÀ ĐỔI TIẾP'
-                                      : 'ĐỔI 1-1 LỖI TẠI QUẦY'}
-                                  </Action>
-                                ) : (
-                                  '—'
-                                )}
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table></div>
+                {canCounterExchange && counterDevices.length > 0 && (
+                  <div className="order-panel-actions">
+                    <Action
+                      secondary
+                      disabled={
+                        state.busy || Boolean(orderAttempt.current) || Boolean(cashAttempt.current)
+                      }
+                      click={() => open('completeCounterInspection', 'KẾT THÚC KIỂM TRA TẠI QUẦY')}
+                    >
+                      KẾT THÚC KIỂM TRA TẠI QUẦY
+                    </Action>
                   </div>
-                </>
-              )}
+                )}
 
-              <details>
-                <summary>THIẾT BỊ CỦA LẦN XUẤT GỐC</summary>
-                <SoldDevices order={order} />
-              </details>
+                {counterDevices.length > 0 && (
+                  <>
+                    <h3>THIẾT BỊ HIỆN HÀNH</h3>
 
-              <DeviceExchangeHistory order={order} />
+                    <div className="sold-devices-scroll">
+                      <table className="sold-devices-table order-current-devices-table admin-data-table admin-data-table--records">
+                        <thead>
+                          <tr>
+                            <th>Mã theo dõi</th>
+                            <th>Serial / nhận dạng</th>
+                            <th>Số lần đã đổi</th>
+                            <th>Thao tác</th>
+                          </tr>
+                        </thead>
+
+                        <tbody>
+                          {counterDevices.map((device) => {
+                            const count = Array.isArray(device.chuoi_thay_the)
+                              ? device.chuoi_thay_the.length
+                              : 0;
+
+                            return (
+                              <tr key={device.thiet_bi_id}>
+                                <td>{device.ma_theo_doi}</td>
+
+                                <td>
+                                  {device.so_serial ||
+                                    device.dau_hieu_nhan_dang ||
+                                    'Không quản lý serial'}
+                                </td>
+
+                                <td>{count}</td>
+
+                                <td>
+                                  {canCounterExchange ? (
+                                    <Action
+                                      disabled={
+                                        state.busy ||
+                                        Boolean(orderAttempt.current) ||
+                                        Boolean(cashAttempt.current)
+                                      }
+                                      click={() => openCounterExchange(device)}
+                                    >
+                                      {count > 0
+                                        ? 'GHI NHẬN LỖI VÀ ĐỔI TIẾP'
+                                        : 'ĐỔI 1-1 LỖI TẠI QUẦY'}
+                                    </Action>
+                                  ) : (
+                                    '—'
+                                  )}
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </>
+                )}
+
+                <details className="order-original-devices">
+                  <summary>THIẾT BỊ CỦA LẦN XUẤT GỐC</summary>
+                  <SoldDevices order={order} />
+                </details>
+
+                <DeviceExchangeHistory order={order} />
+              </div>
             </Panel>
           )}
 
@@ -1959,7 +2012,7 @@ function DeviceExchangeHistory({ order }) {
           <h3>LỊCH SỬ ĐỔI — {root.so_serial || root.ma_theo_doi}</h3>
 
           <div className="sold-devices-scroll">
-            <div className="admin-table-scroll admin-table-scroll--embedded" tabIndex={0} role="region" aria-label="Bảng dữ liệu liên quan"><table className="sold-devices-table admin-data-table admin-data-table--records">
+            <table className="sold-devices-table">
               <thead>
                 <tr>
                   <th>Lần</th>
@@ -2017,7 +2070,7 @@ function DeviceExchangeHistory({ order }) {
                   );
                 })}
               </tbody>
-            </table></div>
+            </table>
           </div>
         </div>
       ))}

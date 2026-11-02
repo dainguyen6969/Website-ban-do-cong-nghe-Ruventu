@@ -31,7 +31,10 @@ public class GlobalExceptionHandler {
     if (exception instanceof WarrantyReadException warrantyException) {
       WarrantyErrorResponse response =
           new WarrantyErrorResponse(
-              errorCode.getStatus().value(), exception.getMessage(), warrantyException.getErrors(), warrantyException.getData());
+              errorCode.getStatus().value(),
+              exception.getMessage(),
+              warrantyException.getErrors(),
+              warrantyException.getData());
 
       return ResponseEntity.status(errorCode.getStatus()).body(response);
     }
