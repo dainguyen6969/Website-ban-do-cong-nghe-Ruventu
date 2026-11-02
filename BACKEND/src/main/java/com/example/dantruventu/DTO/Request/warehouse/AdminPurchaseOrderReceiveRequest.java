@@ -1,5 +1,6 @@
 package com.example.dantruventu.DTO.Request.warehouse;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
@@ -55,5 +56,10 @@ public class AdminPurchaseOrderReceiveRequest {
     @JsonProperty("so_serials")
     @NotNull(message = "Danh sách Serial không được null")
     private List<String> soSerials;
+
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    @JsonProperty("vi_tri_luu_kho")
+    @Size(max = 100, message = "Vị trí lưu kho tối đa 100 ký tự")
+    private String viTriLuuKho;
   }
 }

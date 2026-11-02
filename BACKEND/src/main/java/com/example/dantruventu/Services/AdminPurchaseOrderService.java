@@ -30,6 +30,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -168,6 +169,13 @@ public class AdminPurchaseOrderService {
 
                   SerialMode mode = resolveSerialMode(variantId);
 
+                  List<TonKho> currentStocks =
+                      tonKhoRepository.findByKhoHang_IdAndPhienBan_IdOrderByIdAsc(
+                          warehouse.getId(), variantId);
+
+                  String storageLocation =
+                      currentStocks.size() == 1 ? currentStocks.getFirst().getViTriLuuKho() : null;
+
                   return AdminPurchaseOrderDetailResponse.Item.builder()
                       .id(detail.getId())
                       .phienBanId(variantId)
@@ -180,6 +188,7 @@ public class AdminPurchaseOrderService {
                       .soLuongTraTheoLuongCuToiDa(legacyReturnLimit)
                       .quanLySerial(mode.value())
                       .cheDoSerialDaXacLap(mode.established())
+                      .viTriLuuKho(storageLocation)
                       .build();
                 })
             .toList();
@@ -463,6 +472,7 @@ public class AdminPurchaseOrderService {
         details.stream().collect(Collectors.toMap(ChiTietDonNhap::getId, Function.identity()));
 
     validateReceiveRequest(request, detailMap);
+    validateReceiptMetadata(request);
 
     Map<Long, PhienBanSanPham> lockedVariants = new TreeMap<>();
 
@@ -495,9 +505,26 @@ public class AdminPurchaseOrderService {
 
     Set<String> allSerials = collectAndValidateSerials(request, detailMap);
 
-    if (!allSerials.isEmpty() && soSerialSanPhamRepository.existsBySoSerialIn(allSerials)) {
+    if (!allSerials.isEmpty()) {
+      Set<String> existing = new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
+      existing.addAll(soSerialSanPhamRepository.findExistingSerialCodes(allSerials));
 
-      throw new AppException(ErrorCode.CONFLICT, "Có serial đã tồn tại trong hệ thống");
+      if (!existing.isEmpty()) {
+        for (int index = 0; index < request.getItems().size(); index++) {
+          var item = request.getItems().get(index);
+
+          List<String> duplicated =
+              item.getSoSerials().stream().map(String::trim).filter(existing::contains).toList();
+
+          if (!duplicated.isEmpty()) {
+            throw new AppException(
+                ErrorCode.CONFLICT,
+                "items[" + index + "].so_serials",
+                "RECEIPT_SERIAL_EXISTS",
+                "Serial đã tồn tại: " + String.join(", ", duplicated.stream().limit(8).toList()));
+          }
+        }
+      }
     }
 
     List<AdminPurchaseOrderReceiveResponse.Item> responseItems = new ArrayList<>();
@@ -518,6 +545,16 @@ public class AdminPurchaseOrderService {
       int cumulativeReceived = previouslyReceived + quantity;
 
       TonKho inventory = lockOrCreateInventory(warehouse, variant);
+
+      String storageLocation =
+          receiptText(
+              item.getViTriLuuKho(),
+              "items[" + request.getItems().indexOf(item) + "].vi_tri_luu_kho",
+              "Vị trí lưu kho");
+
+      if (storageLocation != null) {
+        inventory.setViTriLuuKho(storageLocation);
+      }
 
       WarehouseSupport.numbers(inventory);
 
@@ -562,16 +599,30 @@ public class AdminPurchaseOrderService {
                             .build())
                 .toList();
 
-        serialResponses =
-            soSerialSanPhamRepository.saveAll(serialEntities).stream()
-                .map(
-                    serial ->
-                        AdminPurchaseOrderReceiveResponse.SerialData.builder()
-                            .id(serial.getId())
-                            .soSerial(serial.getSoSerial())
-                            .trangThai(serial.getTrangThai())
-                            .build())
-                .toList();
+        try {
+          serialResponses =
+              soSerialSanPhamRepository.saveAllAndFlush(serialEntities).stream()
+                  .map(
+                      serial ->
+                          AdminPurchaseOrderReceiveResponse.SerialData.builder()
+                              .id(serial.getId())
+                              .soSerial(serial.getSoSerial())
+                              .trangThai(serial.getTrangThai())
+                              .build())
+                  .toList();
+        } catch (DataIntegrityViolationException exception) {
+          Throwable root = exception.getMostSpecificCause();
+
+          if (root instanceof java.sql.SQLException sql && sql.getErrorCode() == 1062) {
+            throw new AppException(
+                ErrorCode.CONFLICT,
+                "items[" + request.getItems().indexOf(item) + "].so_serials",
+                "RECEIPT_SERIAL_CONCURRENT",
+                "Serial của dòng này đã tồn tại hoặc vừa được giao dịch khác sử dụng.");
+          }
+
+          throw exception;
+        }
       }
 
       responseItems.add(
@@ -1570,42 +1621,95 @@ public class AdminPurchaseOrderService {
             : anyReceived ? TrangThaiNhapHang.NHAP_MOT_PHAN : TrangThaiNhapHang.DA_DUYET);
   }
 
+  private String receiptText(String value, String field, String label) {
+    if (value == null || value.isBlank()) {
+      return null;
+    }
+
+    String normalized = value.strip();
+
+    if (normalized.length() > 100 || normalized.chars().anyMatch(Character::isISOControl)) {
+      throw new AppException(
+          ErrorCode.INVALID_DATA,
+          field,
+          "RECEIPT_TEXT_INVALID",
+          label + " tối đa 100 ký tự và không chứa ký tự điều khiển.");
+    }
+
+    return normalized;
+  }
+
+  private void validateReceiptMetadata(AdminPurchaseOrderReceiveRequest request) {
+    receiptText(request.getMaPhieuXuatNcc(), "ma_phieu_xuat_ncc", "Mã chứng từ Nhà Cung Cấp");
+
+    for (int index = 0; index < request.getItems().size(); index++) {
+      var item = request.getItems().get(index);
+      String prefix = "items[" + index + "].";
+
+      receiptText(item.getMaLoNcc(), prefix + "ma_lo_ncc", "Mã lô Nhà Cung Cấp");
+      receiptText(item.getViTriLuuKho(), prefix + "vi_tri_luu_kho", "Vị trí lưu kho");
+    }
+  }
+
   private Set<String> collectAndValidateSerials(
       AdminPurchaseOrderReceiveRequest request, Map<Long, ChiTietDonNhap> detailMap) {
 
     Set<String> globalSerials = new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
 
-    for (var item : request.getItems()) {
+    for (int index = 0; index < request.getItems().size(); index++) {
+      var item = request.getItems().get(index);
       List<String> serials = item.getSoSerials();
+      String field = "items[" + index + "].so_serials";
 
       if (serials == null || item.getQuanLySerial() == null) {
         throw new AppException(
-            ErrorCode.INVALID_DATA, "Thiếu cấu hình serial hoặc danh sách serial");
+            ErrorCode.INVALID_DATA,
+            field,
+            "RECEIPT_SERIAL_REQUIRED",
+            "Thiếu cấu hình serial hoặc danh sách serial.");
       }
 
       if (!Boolean.TRUE.equals(item.getQuanLySerial())) {
         if (!serials.isEmpty()) {
           throw new AppException(
               ErrorCode.UNPROCESSABLE_ENTITY,
-              "Phiên bản không quản lý serial phải gửi so_serials: []");
+              field,
+              "RECEIPT_SERIAL_NOT_MANAGED",
+              "Hàng không quản lý serial phải gửi danh sách serial rỗng.");
         }
-
         continue;
       }
 
       if (serials.size() != item.getSoLuongNhapKho()) {
         throw new AppException(
-            ErrorCode.UNPROCESSABLE_ENTITY, "Số lượng serial phải bằng số lượng nhập kho");
+            ErrorCode.UNPROCESSABLE_ENTITY,
+            field,
+            "RECEIPT_SERIAL_COUNT",
+            "Số serial phải bằng số lượng nhận của dòng này.");
       }
 
-      for (String code : serials) {
-        if (code == null || code.isBlank() || code.trim().length() > 100) {
-
-          throw new AppException(ErrorCode.INVALID_DATA, "Serial bắt buộc và tối đa 100 ký tự");
+      for (String raw : serials) {
+        if (raw == null || raw.isBlank()) {
+          throw new AppException(
+              ErrorCode.INVALID_DATA, field, "RECEIPT_SERIAL_EMPTY", "Serial không được để trống.");
         }
 
-        if (!globalSerials.add(code.trim())) {
-          throw new AppException(ErrorCode.CONFLICT, "Serial bị trùng trong yêu cầu");
+        String code = raw.trim();
+
+        if (code.length() > 100 || code.chars().anyMatch(Character::isISOControl)) {
+          throw new AppException(
+              ErrorCode.INVALID_DATA,
+              field,
+              "RECEIPT_SERIAL_INVALID",
+              "Serial tối đa 100 ký tự và không chứa ký tự điều khiển.");
+        }
+
+        if (!globalSerials.add(code)) {
+          throw new AppException(
+              ErrorCode.CONFLICT,
+              field,
+              "RECEIPT_SERIAL_DUPLICATED",
+              "Serial bị trùng trong lần nhập: " + code);
         }
       }
     }

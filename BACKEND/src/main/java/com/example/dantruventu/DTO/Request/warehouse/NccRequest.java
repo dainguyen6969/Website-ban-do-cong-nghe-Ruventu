@@ -36,8 +36,7 @@ public final class NccRequest {
       Boolean passed,
       Boolean alreadyInStock,
       Boolean allowDifferentProduct,
-      @Size(max = 100, message = "Mã lô tối đa 100 ký tự.")
-      String supplierLot,
+      @Size(max = 100, message = "Mã lô tối đa 100 ký tự.") String supplierLot,
       BigDecimal amount,
       String paymentMethod,
       @Size(max = 255) String transactionId,

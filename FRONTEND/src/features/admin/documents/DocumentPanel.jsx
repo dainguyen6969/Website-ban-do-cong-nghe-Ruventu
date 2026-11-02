@@ -427,7 +427,8 @@ export default function DocumentPanel({ mode, id, locked = false, onEditingChang
   );
 
   return (
-    <section className="rv-doc" aria-busy={busy}>
+    <section className={`rv-doc${mode === 'order' ? ' rv-doc--order' : ''}`} aria-busy={busy}>
+      {' '}
       <header className="rv-doc-heading">
         <h2>
           {mode === 'money'
@@ -457,7 +458,6 @@ export default function DocumentPanel({ mode, id, locked = false, onEditingChang
           </button>
         )}
       </header>
-
       {readError && (
         <div className="rv-doc-error" role="alert">
           <p>{readError}</p>
@@ -466,9 +466,7 @@ export default function DocumentPanel({ mode, id, locked = false, onEditingChang
           </button>
         </div>
       )}
-
       {!data && !readError && <p role="status">Đang đọc chứng từ...</p>}
-
       {mode === 'money' && data && (
         <>
           <span className={`rv-doc-badge ${current ? 'is-ready' : 'is-waiting'}`}>
@@ -585,7 +583,6 @@ export default function DocumentPanel({ mode, id, locked = false, onEditingChang
           )}
         </>
       )}
-
       {mode === 'purchase' && data && (
         <>
           {(data.documents || [])
@@ -683,57 +680,95 @@ export default function DocumentPanel({ mode, id, locked = false, onEditingChang
           )}
         </>
       )}
-
       {mode === 'order' && data && (
-        <>
-          <p>
-            Phiếu xuất: <strong>{data.issue?.code || 'Chưa có mã phiếu xuất riêng'}</strong>
-          </p>
+        <div className="rv-doc-order">
+          <div className="rv-doc-order__issue">
+            <span>PHIẾU XUẤT</span>
 
-          {(data.devices || []).map((device) => (
-            <article className="rv-doc-record" key={device.id}>
-              <strong>{device.ten_phien_ban}</strong>
-              <p>{device.so_serial || device.ma_theo_doi}</p>
+            <strong>{data.issue?.code || 'Chưa có mã phiếu xuất riêng'}</strong>
+          </div>
 
-              {device.sources?.length ? (
-                device.sources.map((source) => (
-                  <p key={source.receipt_line_id}>
-                    <PurchaseLink id={source.purchase_id} code={source.ma_don_nhap} />
-                    {' · '}
-                    {source.code || `Nguồn #${source.id}`}
-                    {' · '}
-                    {source.ten_nha_cung_cap}
-                    {source.supplier_lot ? ` · Lô ${source.supplier_lot}` : ''}
-                  </p>
-                ))
-              ) : (
-                <span className="rv-doc-badge is-waiting">CHƯA XÁC NHẬN NGUỒN NHẬN</span>
-              )}
+          <div className="rv-doc-order__devices">
+            {(data.devices || []).map((device) => (
+              <article className="rv-doc-order-device" key={device.id}>
+                <header className="rv-doc-order-device__heading">
+                  <div>
+                    <strong className="rv-doc-order-device__name">{device.ten_phien_ban}</strong>
 
-              <div className="rv-doc-tools">
-                <button
-                  type="button"
-                  disabled={locked || frozen}
-                  onClick={() => openTrace(device.id)}
-                >
-                  TRUY VẾT
-                </button>
+                    <p className="rv-doc-order-device__identity">
+                      <span>{device.so_serial ? 'SERIAL' : 'MÃ THIẾT BỊ'}</span>
 
-                {!device.so_serial_id && (
-                  <button
-                    type="button"
-                    disabled={locked || frozen}
-                    onClick={() => openSource(device)}
-                  >
-                    {Number(device.source_revision) > 0 ? 'ĐIỀU CHỈNH NGUỒN' : 'XÁC NHẬN NGUỒN'}
-                  </button>
+                      <b>{device.so_serial || device.ma_theo_doi || 'Chưa xác định'}</b>
+                    </p>
+                  </div>
+
+                  <div className="rv-doc-order-device__actions">
+                    <button
+                      type="button"
+                      disabled={locked || frozen}
+                      onClick={() => openTrace(device.id)}
+                    >
+                      TRUY VẾT
+                    </button>
+
+                    {!device.so_serial_id && (
+                      <button
+                        type="button"
+                        disabled={locked || frozen}
+                        onClick={() => openSource(device)}
+                      >
+                        {Number(device.source_revision) > 0 ? 'ĐIỀU CHỈNH NGUỒN' : 'XÁC NHẬN NGUỒN'}
+                      </button>
+                    )}
+                  </div>
+                </header>
+
+                {device.sources?.length ? (
+                  <div className="rv-doc-order-device__sources">
+                    {device.sources.map((source) => (
+                      <dl className="rv-doc-order-source" key={source.receipt_line_id}>
+                        <div>
+                          <dt>ĐƠN NHẬP</dt>
+
+                          <dd>
+                            <PurchaseLink id={source.purchase_id} code={source.ma_don_nhap} />
+                          </dd>
+                        </div>
+
+                        <div>
+                          <dt>PHIẾU NHẬN</dt>
+
+                          <dd>{source.code || `Nguồn #${source.id}`}</dd>
+                        </div>
+
+                        <div>
+                          <dt>NHÀ CUNG CẤP</dt>
+
+                          <dd>{source.ten_nha_cung_cap || 'Chưa xác định'}</dd>
+                        </div>
+
+                        <div>
+                          <dt>MÃ LÔ</dt>
+
+                          <dd>{source.supplier_lot || 'Chưa ghi nhận'}</dd>
+                        </div>
+                      </dl>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="rv-doc-order-device__sources">
+                    <span className="rv-doc-badge is-waiting">CHƯA XÁC NHẬN NGUỒN NHẬN</span>
+                  </div>
                 )}
-              </div>
-            </article>
-          ))}
-        </>
-      )}
+              </article>
+            ))}
 
+            {!data.devices?.length && (
+              <p className="rv-doc-order__empty">Chưa có thiết bị được liên kết với đơn hàng.</p>
+            )}
+          </div>
+        </div>
+      )}
       {attempt.current && !dialog && (
         <div className="rv-doc-warning">
           <p>Chưa xác định được kết quả yêu cầu vừa gửi.</p>
@@ -742,13 +777,11 @@ export default function DocumentPanel({ mode, id, locked = false, onEditingChang
           </button>
         </div>
       )}
-
       {operationError && !dialog && (
         <p className="rv-doc-error" role="alert">
           {operationError}
         </p>
       )}
-
       {dialog && (
         <OrderModal
           title={
@@ -762,12 +795,18 @@ export default function DocumentPanel({ mode, id, locked = false, onEditingChang
                     ? 'XÁC NHẬN NGUỒN THỰC TẾ'
                     : 'LIÊN KẾT CHỨNG TỪ NHÀ CUNG CẤP'
           }
-          className="rv-doc-modal"
+          className={`rv-doc-modal ${dialog.kind === 'document' ? 'rv-doc-modal--supplier' : ''}`}
           showClose
           busy={busy}
           error={operationError}
           cancelLabel="ĐÓNG"
-          confirmLabel={attempt.current ? 'THỬ LẠI YÊU CẦU CŨ' : 'LƯU ĐỐI CHIẾU'}
+          confirmLabel={
+            attempt.current
+              ? 'THỬ LẠI YÊU CẦU CŨ'
+              : dialog.kind === 'document'
+                ? 'LƯU LIÊN KẾT'
+                : 'LƯU ĐỐI CHIẾU'
+          }
           disabled={dialog.kind === 'trace' || (!attempt.current && !form.confirmed)}
           close={() => {
             if (!busy && !attempt.current) {
@@ -869,6 +908,7 @@ export default function DocumentPanel({ mode, id, locked = false, onEditingChang
                       onChange={(event) => selectDocument(event.target.value)}
                     >
                       <option value="">Ghi nhận chứng từ mới</option>
+
                       {(data.documents || []).map((document) => (
                         <option key={document.id} value={document.id}>
                           {kindLabel(document.kind)} · {document.external_number}
@@ -884,33 +924,44 @@ export default function DocumentPanel({ mode, id, locked = false, onEditingChang
                       onChange={(event) => update('kind', event.target.value)}
                     >
                       <option value="HOA_DON">Hóa đơn Nhà Cung Cấp</option>
+
                       <option value="PHIEU_GIAO_HANG">Phiếu giao hàng Nhà Cung Cấp</option>
                     </select>
                   </Field>
 
-                  {input('externalNumber', 'SỐ CHỨNG TỪ NGUYÊN GỐC', 'text', {
+                  {input('externalNumber', 'SỐ CHỨNG TỪ CỦA NHÀ CUNG CẤP', 'text', {
                     maxLength: 150,
                     readOnly: Boolean(form.documentId),
                   })}
+
                   {input('issuedDate', 'NGÀY TRÊN CHỨNG TỪ', 'date', {
                     readOnly: Boolean(form.documentId),
                   })}
-                  {input('totalAmount', 'TỔNG GIÁ TRỊ GỒM THUẾ', 'number', {
+
+                  {input('totalAmount', 'TỔNG GIÁ TRỊ CHỨNG TỪ GỒM THUẾ', 'number', {
                     min: 0,
                     step: '0.01',
                     readOnly: Boolean(form.documentId),
                   })}
 
-                  <div className="rv-doc-scroll">
-                    <table>
+                  <div className="rv-doc-scroll rv-doc-allocation-scroll">
+                    <table className="rv-doc-allocation-table">
+                      <colgroup>
+                        <col className="rv-doc-allocation-col--select" />
+                        <col />
+                        <col className="rv-doc-allocation-col--quantity" />
+                        <col className="rv-doc-allocation-col--amount" />
+                      </colgroup>
+
                       <thead>
                         <tr>
-                          <th>Chọn</th>
-                          <th>Dòng thực nhận</th>
-                          <th>SL liên kết</th>
-                          <th>Giá trị gồm thuế</th>
+                          <th scope="col">Chọn</th>
+                          <th scope="col">Dòng hàng đã thực nhận</th>
+                          <th scope="col">SL liên kết</th>
+                          <th scope="col">Giá trị dòng gồm thuế</th>
                         </tr>
                       </thead>
+
                       <tbody>
                         {(data.lines || []).map((line) => {
                           const value = form.lines[line.id] || {};
@@ -928,22 +979,28 @@ export default function DocumentPanel({ mode, id, locked = false, onEditingChang
                             }));
 
                           return (
-                            <tr key={line.id}>
-                              <td>
+                            <tr key={line.id} className={value.selected ? 'is-selected' : ''}>
+                              <td className="rv-doc-allocation-select">
                                 <input
                                   type="checkbox"
                                   checked={Boolean(value.selected)}
+                                  aria-label={`Chọn dòng ${line.ten_phien_ban}`}
                                   onChange={(event) => change({ selected: event.target.checked })}
                                 />
                               </td>
+
                               <td>
-                                <b>{line.ten_phien_ban}</b>
-                                <p>
+                                <strong className="rv-doc-allocation-name">
+                                  {line.ten_phien_ban}
+                                </strong>
+
+                                <p className="rv-doc-allocation-source">
                                   {line.receipt_code || `Nguồn #${line.receipt_id}`}
                                   {' · '}
-                                  Đã nhận {line.quantity}
+                                  Đã nhận: {line.quantity}
                                 </p>
                               </td>
+
                               <td>
                                 <input
                                   type="number"
@@ -952,9 +1009,11 @@ export default function DocumentPanel({ mode, id, locked = false, onEditingChang
                                   max={line.quantity}
                                   disabled={!value.selected}
                                   value={value.quantity ?? ''}
+                                  aria-label={`Số lượng liên kết của ${line.ten_phien_ban}`}
                                   onChange={(event) => change({ quantity: event.target.value })}
                                 />
                               </td>
+
                               <td>
                                 <input
                                   type="number"
@@ -962,6 +1021,7 @@ export default function DocumentPanel({ mode, id, locked = false, onEditingChang
                                   step="0.01"
                                   disabled={!value.selected}
                                   value={value.amount ?? ''}
+                                  aria-label={`Giá trị gồm thuế của ${line.ten_phien_ban}`}
                                   onChange={(event) => change({ amount: event.target.value })}
                                 />
                               </td>

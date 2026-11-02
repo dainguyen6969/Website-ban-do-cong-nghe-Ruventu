@@ -7,6 +7,8 @@ import com.example.dantruventu.DTO.Request.order.CustomerCheckoutRequest;
 import com.example.dantruventu.Entity.DonHang;
 import com.example.dantruventu.Entity.NguoiDung;
 import com.example.dantruventu.Enum.*;
+import com.example.dantruventu.Error.AppException;
+import com.example.dantruventu.Error.ErrorCode;
 import com.example.dantruventu.Repository.order.DonHangRepository;
 import com.example.dantruventu.Services.order.sales.OrderIntakePolicy;
 import com.example.dantruventu.Services.order.sales.SalesCalculationService;
@@ -637,7 +639,11 @@ public class BackorderService {
           }
 
           if (number(previous.get("revision")) != request.revision()) {
-            throw conflict("Thông tin đã thay đổi. Đóng hộp thoại và mở lại để đối chiếu.");
+            throw new AppException(
+                ErrorCode.CONFLICT,
+                "revision",
+                "WAITING_REVISION_CHANGED",
+                "Thông tin đã thay đổi. Đóng hộp thoại và mở lại để đối chiếu.");
           }
 
           Set<String> allowed =
@@ -667,8 +673,8 @@ public class BackorderService {
           boolean needsNext =
               Set.of("HEN_XU_LY", "KHONG_LIEN_LAC_DUOC", "DONG_Y_CHO").contains(request.result());
 
-          if ((needsNext && next == null) || (next != null && !next.isAfter(at))) {
-            throw invalid("Chọn lịch xử lý hoặc liên hệ tiếp theo trong tương lai.");
+          if (needsNext && next == null) {
+            throw invalid("Chọn lịch xử lý hoặc liên hệ tiếp theo.");
           }
 
           LocalDateTime promised = local(previous.get("promised_at"));
@@ -681,13 +687,7 @@ public class BackorderService {
           }
 
           if (orderKind && connected) {
-            LocalDateTime proposed = local(request.promisedAt());
-
-            if (proposed != null && !proposed.isAfter(at) && !Objects.equals(proposed, promised)) {
-              throw invalid("Mốc hẹn có hàng mới phải nằm trong tương lai.");
-            }
-
-            promised = proposed;
+            promised = local(request.promisedAt());
             remainingMethod = text(request.remainingMethod());
 
             if (remainingMethod != null

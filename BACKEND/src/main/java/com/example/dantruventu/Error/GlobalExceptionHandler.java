@@ -62,38 +62,33 @@ public class GlobalExceptionHandler {
         .body(new ErrorResponse(400, "Thiếu header: " + exception.getHeaderName()));
   }
 
-    @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<?> handleValidationException(
-            MethodArgumentNotValidException exception) {
+  @ExceptionHandler(MethodArgumentNotValidException.class)
+  public ResponseEntity<?> handleValidationException(MethodArgumentNotValidException exception) {
 
-        var errors =
-                exception.getBindingResult().getFieldErrors().stream()
-                        .map(
-                                error ->
-                                        Map.of(
-                                                "field", error.getField(),
-                                                "code",
-                                                error.getCode() == null
-                                                        ? "INVALID_DATA"
-                                                        : error.getCode(),
-                                                "message",
-                                                error.getDefaultMessage() == null
-                                                        ? "Dữ liệu không hợp lệ."
-                                                        : error.getDefaultMessage()))
-                        .toList();
+    var errors =
+        exception.getBindingResult().getFieldErrors().stream()
+            .map(
+                error ->
+                    Map.of(
+                        "field",
+                        error.getField(),
+                        "code",
+                        error.getCode() == null ? "INVALID_DATA" : error.getCode(),
+                        "message",
+                        error.getDefaultMessage() == null
+                            ? "Dữ liệu không hợp lệ."
+                            : error.getDefaultMessage()))
+            .toList();
 
-        Map<String, Object> body = new LinkedHashMap<>();
-        body.put("status", ErrorCode.INVALID_DATA.getStatus().value());
-        body.put(
-                "message",
-                errors.isEmpty()
-                        ? "Dữ liệu không hợp lệ."
-                        : errors.getFirst().get("message"));
-        body.put("data", null);
-        body.put("errors", errors);
+    Map<String, Object> body = new LinkedHashMap<>();
+    body.put("status", ErrorCode.INVALID_DATA.getStatus().value());
+    body.put(
+        "message", errors.isEmpty() ? "Dữ liệu không hợp lệ." : errors.getFirst().get("message"));
+    body.put("data", null);
+    body.put("errors", errors);
 
-        return ResponseEntity.status(ErrorCode.INVALID_DATA.getStatus()).body(body);
-    }
+    return ResponseEntity.status(ErrorCode.INVALID_DATA.getStatus()).body(body);
+  }
 
   @ExceptionHandler({
     HttpMessageNotReadableException.class,

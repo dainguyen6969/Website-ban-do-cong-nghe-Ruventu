@@ -67,7 +67,7 @@ public class NccCaseService {
       Set.of(
           "GUI",
           "PHUONG_AN",
-              "DIEU_CHINH_PHUONG_AN",
+          "DIEU_CHINH_PHUONG_AN",
           "NHAN",
           "GUI_LAI",
           "CHOT_TRA",
@@ -203,11 +203,11 @@ public class NccCaseService {
     if (!condition) throw conflict(message);
   }
 
-    private void requireField(boolean valid, String field, String code, String message) {
-        if (!valid) {
-            throw new AppException(ErrorCode.CONFLICT, field, code, message);
-        }
+  private void requireField(boolean valid, String field, String code, String message) {
+    if (!valid) {
+      throw new AppException(ErrorCode.CONFLICT, field, code, message);
     }
+  }
 
   private Long id(Object value) {
     return value == null ? null : ((Number) value).longValue();
@@ -598,99 +598,95 @@ public class NccCaseService {
     return s;
   }
 
-    private String condition(String value, boolean passed) {
-        String result = value == null ? "CHUA_XAC_DINH" : value;
+  private String condition(String value, boolean passed) {
+    String result = value == null ? "CHUA_XAC_DINH" : value;
 
-        requireField(
-                Set.of("MOI", "DA_SUA_CHUA", "DA_QUA_SU_DUNG", "CHUA_XAC_DINH").contains(result),
-                "condition",
-                "NCC_CONDITION_INVALID",
-                "Tình trạng hàng không hợp lệ.");
+    requireField(
+        Set.of("MOI", "DA_SUA_CHUA", "DA_QUA_SU_DUNG", "CHUA_XAC_DINH").contains(result),
+        "condition",
+        "NCC_CONDITION_INVALID",
+        "Tình trạng hàng không hợp lệ.");
 
-        requireField(
-                !passed || !"CHUA_XAC_DINH".equals(result),
-                "condition",
-                "NCC_CONDITION_REQUIRED",
-                "Chọn tình trạng hàng trước khi xác nhận đạt.");
+    requireField(
+        !passed || !"CHUA_XAC_DINH".equals(result),
+        "condition",
+        "NCC_CONDITION_REQUIRED",
+        "Chọn tình trạng hàng trước khi xác nhận đạt.");
 
-        return result;
-    }
+    return result;
+  }
 
-    private Long newSerial(
-            Long poId, Long variantId, String code, String condition, boolean passed) {
+  private Long newSerial(Long poId, Long variantId, String code, String condition, boolean passed) {
 
-        requireField(
-                code != null && !code.isBlank(),
-                "serialCodes",
-                "NCC_SERIAL_REQUIRED",
-                "Nhập serial in trên thiết bị thực nhận.");
+    requireField(
+        code != null && !code.isBlank(),
+        "serialCodes",
+        "NCC_SERIAL_REQUIRED",
+        "Nhập serial in trên thiết bị thực nhận.");
 
-        code = code.strip();
+    code = code.strip();
 
-        requireField(
-                code.length() <= 100,
-                "serialCodes",
-                "NCC_SERIAL_INVALID",
-                "Serial tối đa 100 ký tự.");
+    requireField(
+        code.length() <= 100, "serialCodes", "NCC_SERIAL_INVALID", "Serial tối đa 100 ký tự.");
 
-        var existing = jdbc.queryForList(
-                """
+    var existing =
+        jdbc.queryForList(
+            """
                 SELECT s.phien_ban_id, d.nha_cung_cap_id
                 FROM so_serial_san_pham s
                 LEFT JOIN don_nhap_hang d ON d.id = s.don_nhap_hang_id
                 WHERE s.so_serial = ?
                 """,
-                code);
+            code);
 
-        if (!existing.isEmpty()) {
-            var serial = existing.getFirst();
+    if (!existing.isEmpty()) {
+      var serial = existing.getFirst();
 
-            requireField(
-                    Objects.equals(id(serial.get("phien_ban_id")), variantId),
-                    "serialCodes",
-                    "NCC_SERIAL_WRONG_VARIANT",
-                    "Serial đã thuộc phiên bản khác. Kiểm tra lại thiết bị thực nhận.");
+      requireField(
+          Objects.equals(id(serial.get("phien_ban_id")), variantId),
+          "serialCodes",
+          "NCC_SERIAL_WRONG_VARIANT",
+          "Serial đã thuộc phiên bản khác. Kiểm tra lại thiết bị thực nhận.");
 
-            Long supplierId = jdbc.queryForObject(
-                    "SELECT nha_cung_cap_id FROM don_nhap_hang WHERE id = ?",
-                    Long.class,
-                    poId);
+      Long supplierId =
+          jdbc.queryForObject(
+              "SELECT nha_cung_cap_id FROM don_nhap_hang WHERE id = ?", Long.class, poId);
 
-            requireField(
-                    serial.get("nha_cung_cap_id") == null
-                            || Objects.equals(id(serial.get("nha_cung_cap_id")), supplierId),
-                    "serialCodes",
-                    "NCC_SERIAL_WRONG_SUPPLIER",
-                    "Serial đã thuộc nguồn nhập của NCC khác. Cần đối soát nguồn hàng.");
+      requireField(
+          serial.get("nha_cung_cap_id") == null
+              || Objects.equals(id(serial.get("nha_cung_cap_id")), supplierId),
+          "serialCodes",
+          "NCC_SERIAL_WRONG_SUPPLIER",
+          "Serial đã thuộc nguồn nhập của NCC khác. Cần đối soát nguồn hàng.");
 
-            throw new AppException(
-                    ErrorCode.CONFLICT,
-                    "serialCodes",
-                    "NCC_SERIAL_EXISTS",
-                    "Serial đã tồn tại trong hệ thống; không được tạo lại: " + code);
-        }
+      throw new AppException(
+          ErrorCode.CONFLICT,
+          "serialCodes",
+          "NCC_SERIAL_EXISTS",
+          "Serial đã tồn tại trong hệ thống; không được tạo lại: " + code);
+    }
 
-        try {
-            return insert(
-                    """
+    try {
+      return insert(
+          """
                     INSERT INTO so_serial_san_pham (
                       phien_ban_id, so_serial, trang_thai,
                       don_nhap_hang_id, tinh_trang_hang
                     ) VALUES (?, ?, ?, ?, ?)
                     """,
-                    variantId,
-                    code,
-                    passed ? "TRONG_KHO" : "LOI",
-                    poId,
-                    condition);
-        } catch (DuplicateKeyException exception) {
-            throw new AppException(
-                    ErrorCode.CONFLICT,
-                    "serialCodes",
-                    "NCC_SERIAL_CONCURRENT",
-                    "Serial vừa được giao dịch khác sử dụng: " + code);
-        }
+          variantId,
+          code,
+          passed ? "TRONG_KHO" : "LOI",
+          poId,
+          condition);
+    } catch (DuplicateKeyException exception) {
+      throw new AppException(
+          ErrorCode.CONFLICT,
+          "serialCodes",
+          "NCC_SERIAL_CONCURRENT",
+          "Serial vừa được giao dịch khác sử dụng: " + code);
     }
+  }
 
   private long event(
       Long caseId,
@@ -895,11 +891,11 @@ public class NccCaseService {
           DonNhapHang order = lockOrder(poId);
           Map<String, Object> c = lockCase(poId, caseId);
 
-            requireField(
-                    Objects.equals(id(c.get("revision")), request.revision()),
-                    "revision",
-                    "NCC_REVISION_CHANGED",
-                    "Hồ sơ đã thay đổi. Hãy mở lại thao tác.");
+          requireField(
+              Objects.equals(id(c.get("revision")), request.revision()),
+              "revision",
+              "NCC_REVISION_CHANGED",
+              "Hồ sơ đã thay đổi. Hãy mở lại thao tác.");
           require(Boolean.TRUE.equals(request.confirmed()), "Chưa xác nhận thao tác.");
 
           String action = request.action();
@@ -917,13 +913,13 @@ public class NccCaseService {
             case "GUI" -> send(order, c, request, actor, at);
             case "NHAN_BO_SUNG" -> extra(order, c, request, actor, at);
 
-              case "PHUONG_AN",
-                   "DIEU_CHINH_PHUONG_AN",
-                   "NHAN",
-                   "GUI_LAI",
-                   "CHOT_TRA",
-                   "CHAP_NHAN_LOI" ->
-                      handleUnit(order, c, request, actor, at);
+            case "PHUONG_AN",
+                "DIEU_CHINH_PHUONG_AN",
+                "NHAN",
+                "GUI_LAI",
+                "CHOT_TRA",
+                "CHAP_NHAN_LOI" ->
+                handleUnit(order, c, request, actor, at);
 
             case "PHI" -> {
               BigDecimal fee = money(request.amount(), true);
@@ -1037,15 +1033,15 @@ public class NccCaseService {
             actor.getId(),
             at);
 
-      sourceTraceService.recordNccReceipt(
-              eventId,
-              id(c.get("id")),
-              unitId,
-              request.action(),
-              newSerial,
-              request.document(),
-              Boolean.TRUE.equals(request.alreadyInStock()),
-              request.supplierLot());
+    sourceTraceService.recordNccReceipt(
+        eventId,
+        id(c.get("id")),
+        unitId,
+        request.action(),
+        newSerial,
+        request.document(),
+        Boolean.TRUE.equals(request.alreadyInStock()),
+        request.supplierLot());
 
     return eventId;
   }
@@ -1260,19 +1256,19 @@ public class NccCaseService {
     String receivedCondition =
         alreadyInStock ? "CHUA_XAC_DINH" : condition(request.condition(), passed);
 
-      requireField(
-              request.value() != null && request.value().signum() >= 0,
-              "value",
-              "NCC_VALUE_REQUIRED",
-              "Nhập giá trị nhận mua bổ sung, gồm thuế.");
+    requireField(
+        request.value() != null && request.value().signum() >= 0,
+        "value",
+        "NCC_VALUE_REQUIRED",
+        "Nhập giá trị nhận mua bổ sung, gồm thuế.");
 
     BigDecimal value = money(request.value(), false);
 
-      requireField(
-              request.value() != null && request.value().signum() >= 0,
-              "value",
-              "NCC_VALUE_REQUIRED",
-              "Nhập giá trị nhận mua bổ sung, gồm thuế.");
+    requireField(
+        request.value() != null && request.value().signum() >= 0,
+        "value",
+        "NCC_VALUE_REQUIRED",
+        "Nhập giá trị nhận mua bổ sung, gồm thuế.");
 
     List<String> codes = request.serialCodes() == null ? List.of() : request.serialCodes();
 
@@ -1410,128 +1406,116 @@ public class NccCaseService {
     }
   }
 
-    private void agree(
-            Map<String, Object> c,
-            Map<String, Object> u,
-            Map<Long, PhienBanSanPham> locked,
-            NccRequest.Command request,
-            NguoiDung actor,
-            LocalDateTime at) {
+  private void agree(
+      Map<String, Object> c,
+      Map<String, Object> u,
+      Map<Long, PhienBanSanPham> locked,
+      NccRequest.Command request,
+      NguoiDung actor,
+      LocalDateTime at) {
 
-        boolean amending = "DIEU_CHINH_PHUONG_AN".equals(request.action());
+    boolean amending = "DIEU_CHINH_PHUONG_AN".equals(request.action());
 
-        requireField(
-                "DANG_O_NCC".equals(text(u.get("status"))),
-                "method",
-                "NCC_PLAN_UNAVAILABLE",
-                "Hàng không còn ở Nhà Cung Cấp để chốt phương án.");
+    requireField(
+        "DANG_O_NCC".equals(text(u.get("status"))),
+        "method",
+        "NCC_PLAN_UNAVAILABLE",
+        "Hàng không còn ở Nhà Cung Cấp để chốt phương án.");
 
-        requireField(
-                amending == bool(u.get("planned")),
-                "method",
-                "NCC_PLAN_LOCKED",
-                amending
-                        ? "Chỉ điều chỉnh phương án đã chốt."
-                        : "Phương án đã chốt. Hãy dùng thao tác điều chỉnh có chứng từ.");
+    requireField(
+        amending == bool(u.get("planned")),
+        "method",
+        "NCC_PLAN_LOCKED",
+        amending
+            ? "Chỉ điều chỉnh phương án đã chốt."
+            : "Phương án đã chốt. Hãy dùng thao tác điều chỉnh có chứng từ.");
 
-        if (amending
-                && (actor.getVaiTro() == null
-                || !"ADMIN".equals(actor.getVaiTro().getTenVaiTro()))) {
-            throw new AppException(
-                    ErrorCode.FORBIDDEN,
-                    "Không có quyền điều chỉnh phương án đã chốt.");
-        }
+    if (amending
+        && (actor.getVaiTro() == null || !"ADMIN".equals(actor.getVaiTro().getTenVaiTro()))) {
+      throw new AppException(ErrorCode.FORBIDDEN, "Không có quyền điều chỉnh phương án đã chốt.");
+    }
 
-        String method = request.method();
+    String method = request.method();
 
-        requireField(
-                method != null && Set.of("SUA_CHUA", "DOI_HANG", "TRA_HANG").contains(method),
-                "method",
-                "NCC_METHOD_INVALID",
-                "Chọn phương án xử lý hợp lệ.");
+    requireField(
+        method != null && Set.of("SUA_CHUA", "DOI_HANG", "TRA_HANG").contains(method),
+        "method",
+        "NCC_METHOD_INVALID",
+        "Chọn phương án xử lý hợp lệ.");
 
-        Long variantId = id(u.get("variant_id"));
-        Long target = "DOI_HANG".equals(method) ? request.variantId() : variantId;
+    Long variantId = id(u.get("variant_id"));
+    Long target = "DOI_HANG".equals(method) ? request.variantId() : variantId;
 
-        requireField(
-                target != null && locked.containsKey(target),
-                "variantId",
-                "NCC_VARIANT_REQUIRED",
-                "Chọn phiên bản nhận.");
+    requireField(
+        target != null && locked.containsKey(target),
+        "variantId",
+        "NCC_VARIANT_REQUIRED",
+        "Chọn phiên bản nhận.");
 
-        boolean differentProduct =
-                !Objects.equals(
-                        locked.get(variantId).getSanPham().getId(),
-                        locked.get(target).getSanPham().getId());
+    boolean differentProduct =
+        !Objects.equals(
+            locked.get(variantId).getSanPham().getId(), locked.get(target).getSanPham().getId());
 
-        requireField(
-                !differentProduct || Boolean.TRUE.equals(request.allowDifferentProduct()),
-                "variantId",
-                "NCC_PRODUCT_CONFIRM_REQUIRED",
-                "Nhà Cung Cấp phải đồng ý đổi sang sản phẩm khác trước khi chốt.");
+    requireField(
+        !differentProduct || Boolean.TRUE.equals(request.allowDifferentProduct()),
+        "variantId",
+        "NCC_PRODUCT_CONFIRM_REQUIRED",
+        "Nhà Cung Cấp phải đồng ý đổi sang sản phẩm khác trước khi chốt.");
 
-        if (!"SUA_CHUA".equals(method)) {
-            requireField(
-                    request.credit() != null && request.credit().signum() >= 0,
-                    "credit",
-                    "NCC_CREDIT_REQUIRED",
-                    "Nhập giá trị Nhà Cung Cấp chấp nhận cho hàng gửi, gồm thuế.");
-        }
+    if (!"SUA_CHUA".equals(method)) {
+      requireField(
+          request.credit() != null && request.credit().signum() >= 0,
+          "credit",
+          "NCC_CREDIT_REQUIRED",
+          "Nhập giá trị Nhà Cung Cấp chấp nhận cho hàng gửi, gồm thuế.");
+    }
 
-        if ("DOI_HANG".equals(method)) {
-            requireField(
-                    request.value() != null && request.value().signum() >= 0,
-                    "value",
-                    "NCC_VALUE_REQUIRED",
-                    "Nhập giá trị hàng đổi sẽ nhận, gồm thuế.");
-        }
+    if ("DOI_HANG".equals(method)) {
+      requireField(
+          request.value() != null && request.value().signum() >= 0,
+          "value",
+          "NCC_VALUE_REQUIRED",
+          "Nhập giá trị hàng đổi sẽ nhận, gồm thuế.");
+    }
 
-        Map<String, Object> previous = new LinkedHashMap<>();
-        previous.put("method", text(u.get("method")));
-        previous.put("variantId", id(u.get("expected_variant_id")));
-        previous.put("credit", decimal(u.get("credit")));
-        previous.put("value", decimal(u.get("receive_value")));
+    Map<String, Object> previous = new LinkedHashMap<>();
+    previous.put("method", text(u.get("method")));
+    previous.put("variantId", id(u.get("expected_variant_id")));
+    previous.put("credit", decimal(u.get("credit")));
+    previous.put("value", decimal(u.get("receive_value")));
 
-        BigDecimal credit =
-                "SUA_CHUA".equals(method) ? ZERO : money(request.credit(), false);
+    BigDecimal credit = "SUA_CHUA".equals(method) ? ZERO : money(request.credit(), false);
 
-        BigDecimal value =
-                "DOI_HANG".equals(method)
-                        ? money(request.value(), false)
-                        : decimal(u.get("book_value"));
+    BigDecimal value =
+        "DOI_HANG".equals(method) ? money(request.value(), false) : decimal(u.get("book_value"));
 
-        jdbc.update(
-                """
+    jdbc.update(
+        """
                 UPDATE ncc_unit
                 SET method = ?, expected_variant_id = ?, credit = ?,
                     receive_value = ?, planned = TRUE
                 WHERE id = ?
                 """,
-                method,
-                target,
-                credit,
-                value,
-                request.unitId());
+        method,
+        target,
+        credit,
+        value,
+        request.unitId());
 
-        event(
-                id(c.get("id")),
-                request.unitId(),
-                request.action(),
-                id(u.get("serial_id")),
-                id(u.get("serial_id")),
-                null,
-                documentReference(
-                        id(c.get("id")),
-                        request.action(),
-                        request.document(),
-                        id(c.get("revision")) + 1L),
-                request.note().strip(),
-                amending
-                        ? Map.of("previousAgreement", previous, "agreement", request)
-                        : request,
-                actor.getId(),
-                at);
-    }
+    event(
+        id(c.get("id")),
+        request.unitId(),
+        request.action(),
+        id(u.get("serial_id")),
+        id(u.get("serial_id")),
+        null,
+        documentReference(
+            id(c.get("id")), request.action(), request.document(), id(c.get("revision")) + 1L),
+        request.note().strip(),
+        amending ? Map.of("previousAgreement", previous, "agreement", request) : request,
+        actor.getId(),
+        at);
+  }
 
   private void handleUnit(
       DonNhapHang order,
@@ -1554,18 +1538,16 @@ public class NccCaseService {
     String status = text(u.get("status"));
     String method = text(u.get("method"));
 
-      Map<Long, PhienBanSanPham> locked =
-              variants(
-                      variantId,
-                      expectedId,
-                      Set.of("PHUONG_AN", "DIEU_CHINH_PHUONG_AN")
-                              .contains(request.action())
-                              ? request.variantId()
-                              : null);
+    Map<Long, PhienBanSanPham> locked =
+        variants(
+            variantId,
+            expectedId,
+            Set.of("PHUONG_AN", "DIEU_CHINH_PHUONG_AN").contains(request.action())
+                ? request.variantId()
+                : null);
 
     switch (request.action()) {
-        case "PHUONG_AN", "DIEU_CHINH_PHUONG_AN" ->
-                agree(c, u, locked, request, actor, at);
+      case "PHUONG_AN", "DIEU_CHINH_PHUONG_AN" -> agree(c, u, locked, request, actor, at);
 
       case "NHAN" -> {
         require(
@@ -1579,11 +1561,11 @@ public class NccCaseService {
         boolean passed = Boolean.TRUE.equals(request.passed());
         String condition = condition(request.condition(), passed);
 
-          requireField(
-                  !"SUA_CHUA".equals(method) || !"MOI".equals(condition),
-                  "condition",
-                  "NCC_REPAIR_CONDITION",
-                  "Thiết bị sửa chữa không được ghi nhận thành hàng mới.");
+        requireField(
+            !"SUA_CHUA".equals(method) || !"MOI".equals(condition),
+            "condition",
+            "NCC_REPAIR_CONDITION",
+            "Thiết bị sửa chữa không được ghi nhận thành hàng mới.");
 
         for (Long stockVariantId : new TreeSet<>(List.of(variantId, expectedId))) {
 
@@ -1601,12 +1583,12 @@ public class NccCaseService {
 
         if (swapping) {
           if (Boolean.TRUE.equals(locked.get(expectedId).getCoQuanLySerial())) {
-              requireField(
-                      codes.size() == 1,
-                      "serialCodes",
-                      "NCC_SERIAL_COUNT",
-                      "Phải nhập đúng một serial hàng đổi.");
-              newSerial = newSerial(order.getId(), expectedId, codes.get(0), condition, passed);
+            requireField(
+                codes.size() == 1,
+                "serialCodes",
+                "NCC_SERIAL_COUNT",
+                "Phải nhập đúng một serial hàng đổi.");
+            newSerial = newSerial(order.getId(), expectedId, codes.get(0), condition, passed);
           } else {
             require(codes.isEmpty(), "Hàng nhận không quản lý serial.");
             newSerial = null;
@@ -1628,14 +1610,13 @@ public class NccCaseService {
                     String.class,
                     oldSerial);
 
-              requireField(
-                      codes.size() == 1
-                              && codes.get(0) != null
-                              && code.equals(codes.get(0).strip()),
-                      "serialCodes",
-                      "NCC_SERIAL_MISMATCH",
-                      "Serial thực nhận khác serial đã gửi: " + code
-                              + ". Nếu NCC đổi thiết bị, điều chỉnh phương án sang đổi hàng trước khi nhận.");
+            requireField(
+                codes.size() == 1 && codes.get(0) != null && code.equals(codes.get(0).strip()),
+                "serialCodes",
+                "NCC_SERIAL_MISMATCH",
+                "Serial thực nhận khác serial đã gửi: "
+                    + code
+                    + ". Nếu NCC đổi thiết bị, điều chỉnh phương án sang đổi hàng trước khi nhận.");
 
             jdbc.update(
                 """
@@ -1993,7 +1974,7 @@ ORDER BY e.id
     List<Map<String, Object>> variants =
         jdbc.queryForList(
             """
-                        
+
                     SELECT v.id, v.san_pham_id, p.ten_san_pham,
                                v.ten_phien_ban, v.co_quan_ly_serial
                         FROM phien_ban_san_pham v

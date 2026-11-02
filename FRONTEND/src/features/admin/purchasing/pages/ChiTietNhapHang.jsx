@@ -17,6 +17,7 @@ import {
   nowLocalInput,
   toApiDateTime,
   withIdempotency,
+  apiFieldErrors,
 } from '../../../../shared/services/mutationUtils';
 
 import {
@@ -53,6 +54,128 @@ const serialCodes = (value = '') =>
     .map((item) => item.trim())
     .filter(Boolean);
 
+function receiptTextIssue(value, label) {
+  const text = String(value || '').trim();
+
+  if (text.length > 100) {
+    return `${label} tối đa 100 ký tự.`;
+  }
+
+  if (/[\u0000-\u001F\u007F-\u009F]/.test(text)) {
+    return `${label} không được chứa ký tự điều khiển.`;
+  }
+
+  return '';
+}
+
+function validateReceiptInputs(entries, document) {
+  const errors = {};
+  const seen = new Map();
+
+  const documentIssue = receiptTextIssue(document, 'Mã chứng từ Nhà Cung Cấp');
+
+  if (documentIssue) errors.document = documentIssue;
+
+  if (!entries.some(({ quantity }) => quantity > 0)) {
+    errors.form = 'Chọn ít nhất một dòng có số lượng nhận lớn hơn 0.';
+  }
+
+  for (const entry of entries) {
+    const { item, quantity, codes, lot, locationUpdate } = entry;
+    const prefix = String(item.id);
+
+    if (!Number.isSafeInteger(quantity) || quantity < 0 || quantity > item.qty - item.received) {
+      errors[`${prefix}.quantity`] = `Số lượng nhận từ 0 đến ${item.qty - item.received}.`;
+      continue;
+    }
+
+    if (quantity === 0) continue;
+
+    const lotIssue = receiptTextIssue(lot, 'Mã lô Nhà Cung Cấp');
+    const locationIssue = receiptTextIssue(locationUpdate, 'Vị trí lưu kho');
+
+    if (lotIssue) errors[`${prefix}.lot`] = lotIssue;
+    if (locationIssue) errors[`${prefix}.location`] = locationIssue;
+
+    if (typeof item.serialManaged !== 'boolean') {
+      errors[`${prefix}.serials`] = 'Phiên bản chưa có cấu hình quản lý serial.';
+      continue;
+    }
+
+    if (!item.serialManaged) continue;
+
+    if (codes.length !== quantity) {
+      errors[`${prefix}.serials`] = `Cần ${quantity} serial; hiện có ${codes.length}.`;
+    }
+
+    for (const code of codes) {
+      const issue = receiptTextIssue(code, 'Serial');
+
+      if (issue) {
+        errors[`${prefix}.serials`] ??= issue;
+      }
+
+      const key = code.toUpperCase();
+
+      if (seen.has(key)) {
+        const previousId = seen.get(key);
+        const message = `Serial bị trùng trong lần nhập: ${code}`;
+
+        errors[`${prefix}.serials`] ??= message;
+        errors[`${previousId}.serials`] ??= message;
+      } else {
+        seen.set(key, prefix);
+      }
+    }
+  }
+
+  return errors;
+}
+
+function receiptErrorsFromApi(error, submittedItems) {
+  const result = {};
+  const fields = apiFieldErrors(error);
+
+  const names = {
+    so_serials: 'serials',
+    soSerials: 'serials',
+    so_luong_nhap_kho: 'quantity',
+    soLuongNhapKho: 'quantity',
+    ma_lo_ncc: 'lot',
+    maLoNcc: 'lot',
+    vi_tri_luu_kho: 'location',
+    viTriLuuKho: 'location',
+  };
+
+  for (const [field, message] of Object.entries(fields)) {
+    if (['ma_phieu_xuat_ncc', 'maPhieuXuatNcc'].includes(field)) {
+      result.document = message;
+      continue;
+    }
+
+    const match = /^items\[(\d+)\]\.([A-Za-z_]+)$/.exec(field);
+
+    if (!match) continue;
+
+    const item = submittedItems[Number(match[1])];
+    const name = names[match[2]];
+
+    if (item && name) {
+      result[`${item.chi_tiet_don_nhap_id}.${name}`] = message;
+    }
+  }
+
+  return result;
+}
+
+function ReceiptFieldError({ message }) {
+  return message ? (
+    <small className="receipt-field-error" role="alert">
+      {message}
+    </small>
+  ) : null;
+}
+
 export default function ChiTietNhapHang() {
   const operationBusy = useRef(false);
   const purchaseAttempt = useRef(null);
@@ -77,6 +200,9 @@ export default function ChiTietNhapHang() {
 
   const [supplierReceiptDocument, setSupplierReceiptDocument] = useState('');
   const [supplierLots, setSupplierLots] = useState({});
+
+  const [receiptLocations, setReceiptLocations] = useState({});
+  const [receiptServerErrors, setReceiptServerErrors] = useState({});
 
   const load = useCallback(
     async (signal) => {
@@ -170,77 +296,96 @@ export default function ChiTietNhapHang() {
       return;
     }
 
+    const savedItems = new Map(
+      (pending?.body?.items || []).map((item) => [Number(item.chi_tiet_don_nhap_id), item])
+    );
+
     setReceiptQuantities(
       Object.fromEntries(
-        waitingReceipt.map((item) => {
-          const saved = pending?.body.items.find(
-            (line) => Number(line.chi_tiet_don_nhap_id) === item.id
-          );
-
-          return [item.id, pending ? (saved?.so_luong_nhap_kho ?? 0) : item.qty - item.received];
-        })
+        waitingReceipt.map((item) => [
+          item.id,
+          pending ? (savedItems.get(item.id)?.so_luong_nhap_kho ?? 0) : item.qty - item.received,
+        ])
       )
     );
 
     setSerialValues(
       Object.fromEntries(
-        waitingReceipt.map((item) => {
-          const saved = pending?.body.items.find(
-            (line) => Number(line.chi_tiet_don_nhap_id) === item.id
-          );
-
-          return [item.id, saved?.so_serials?.join('\n') || ''];
-        })
-      )
-    );
-
-    setSupplierReceiptDocument(pending?.body.ma_phieu_xuat_ncc || '');
-
-    setSupplierLots(
-      Object.fromEntries(
         waitingReceipt.map((item) => [
           item.id,
-          pending?.body.items.find((row) => Number(row.chi_tiet_don_nhap_id) === item.id)
-            ?.ma_lo_ncc || '',
+          savedItems.get(item.id)?.so_serials?.join('\n') || '',
         ])
       )
     );
 
+    setSupplierReceiptDocument(pending?.body?.ma_phieu_xuat_ncc || '');
+
+    setSupplierLots(
+      Object.fromEntries(
+        waitingReceipt.map((item) => [item.id, savedItems.get(item.id)?.ma_lo_ncc || ''])
+      )
+    );
+
+    setReceiptLocations(
+      Object.fromEntries(
+        waitingReceipt.map((item) => [
+          item.id,
+          savedItems.get(item.id)?.vi_tri_luu_kho ?? item.storageLocation ?? '',
+        ])
+      )
+    );
+
+    setReceiptServerErrors({});
     setError('');
     setModal('receipt');
   };
 
-  const receiptItems = waitingReceipt.map((item) => ({
-    item,
-    quantity: Number(receiptQuantities[item.id] ?? 0),
-    codes: item.serialManaged ? serialCodes(serialValues[item.id]) : [],
-  }));
+  const receiptItems = waitingReceipt.map((item) => {
+    const location = String(receiptLocations[item.id] || '').trim();
+    const originalLocation = String(item.storageLocation || '').trim();
 
-  const receiptCodes = receiptItems
-    .filter(({ quantity }) => quantity > 0)
-    .flatMap(({ codes }) => codes);
+    return {
+      item,
+      quantity: Number(receiptQuantities[item.id] ?? 0),
+      codes: item.serialManaged ? serialCodes(serialValues[item.id]) : [],
+      lot: String(supplierLots[item.id] || '').trim(),
+      locationUpdate: location && location !== originalLocation ? location : null,
+    };
+  });
 
-  const receiveValid =
-    receiptItems.some(({ quantity }) => quantity > 0) &&
-    receiptItems.every(
-      ({ item, quantity, codes }) =>
-        typeof item.serialManaged === 'boolean' &&
-        Number.isSafeInteger(quantity) &&
-        quantity >= 0 &&
-        quantity <= item.qty - item.received &&
-        (quantity === 0 || !item.serialManaged || codes.length === quantity) &&
-        codes.every((code) => code.length <= 100)
-    ) &&
-    new Set(receiptCodes.map((code) => code.toUpperCase())).size === receiptCodes.length;
+  const receiptLocalErrors = validateReceiptInputs(receiptItems, supplierReceiptDocument);
+
+  const receiptErrors = {
+    ...receiptServerErrors,
+    ...receiptLocalErrors,
+  };
+
+  const receiveValid = Object.keys(receiptLocalErrors).length === 0;
 
   const receiptLocked = busy || purchaseAttempt.current?.scope === receiptScope;
 
+  const changeReceiptValue = (setter, itemId, value) => {
+    if (receiptLocked) return;
+
+    setter((current) => ({
+      ...current,
+      [itemId]: value,
+    }));
+
+    setReceiptServerErrors({});
+    setError('');
+  };
+
   const submitReceive = () =>
-    run(() => {
+    run(async () => {
       const pending = purchaseAttempt.current;
 
+      if (pending && pending.scope !== receiptScope) {
+        throw new Error('Hãy xử lý thao tác đang chờ kết quả trước.');
+      }
+
       if (!pending && !receiveValid) {
-        throw new Error('Số lượng nhập hoặc danh sách serial chưa hợp lệ.');
+        throw new Error('Kiểm tra các trường được đánh dấu trong biểu mẫu.');
       }
 
       const body =
@@ -251,18 +396,26 @@ export default function ChiTietNhapHang() {
               ma_phieu_xuat_ncc: supplierReceiptDocument.trim() || null,
               items: receiptItems
                 .filter(({ quantity }) => quantity > 0)
-                .map(({ item, quantity, codes }) => ({
+                .map(({ item, quantity, codes, lot, locationUpdate }) => ({
                   chi_tiet_don_nhap_id: item.id,
-                  ma_lo_ncc: (supplierLots[item.id] || '').trim() || null,
+                  ma_lo_ncc: lot || null,
                   so_luong_nhap_kho: quantity,
                   quan_ly_serial: item.serialManaged,
                   so_serials: codes,
+                  vi_tri_luu_kho: locationUpdate,
                 })),
             };
 
-      return withIdempotency(purchaseAttempt, receiptScope, body, (key, payload) =>
-        receivePurchaseOrder(order.id, key, payload)
-      );
+      setReceiptServerErrors({});
+
+      try {
+        return await withIdempotency(purchaseAttempt, receiptScope, body, (key, payload) =>
+          receivePurchaseOrder(order.id, key, payload)
+        );
+      } catch (error) {
+        setReceiptServerErrors(receiptErrorsFromApi(error, body.items));
+        throw error;
+      }
     });
 
   const returnable = order.items.filter(
@@ -344,7 +497,7 @@ export default function ChiTietNhapHang() {
           {canReceive && (
             <button
               type="button"
-              className="purchase-btn green"
+              className="purchase-btn green purchase-btn--receive"
               disabled={busy}
               onClick={openReceive}
             >
@@ -563,34 +716,84 @@ export default function ChiTietNhapHang() {
           </section>
 
           <section className="purchase-section" hidden={detailTab !== 'money'}>
-            <PurchaseCard title="THANH TOÁN NHÀ CUNG CẤP">
-              <div className="detail-payment">
-                <span>GIÁ TRỊ ĐƠN BAN ĐẦU</span>
-                <b>{money(order.total)}</b>
+            <PurchaseCard title="THANH TOÁN NHÀ CUNG CẤP" className="purchase-finance-card">
+              <div className="purchase-finance">
+                <dl className="purchase-finance__rows">
+                  <div>
+                    <dt>GIÁ TRỊ ĐƠN BAN ĐẦU</dt>
+                    <dd>{order.total == null ? 'Chưa xác định' : money(order.total)}</dd>
+                  </div>
 
-                <span>GIÁ TRỊ TRẢ THEO LẦN CŨ</span>
-                <b>{order.returnedValue == null ? '—' : money(order.returnedValue)}</b>
+                  <div>
+                    <dt>GIÁ TRỊ HÀNG ĐÃ TRẢ</dt>
+                    <dd>
+                      {order.returnedValue == null ? 'Chưa xác định' : money(order.returnedValue)}
+                    </dd>
+                  </div>
 
-                <span>ĐIỀU CHỈNH QUA HỒ SƠ NHÀ CUNG CẤP</span>
-                <b>{order.nccAdjustment == null ? '—' : money(order.nccAdjustment)}</b>
+                  <div>
+                    <dt>ĐIỀU CHỈNH QUA HỒ SƠ NHÀ CUNG CẤP</dt>
+                    <dd>
+                      {order.nccAdjustment == null ? 'Chưa xác định' : money(order.nccAdjustment)}
+                    </dd>
+                  </div>
 
-                <span>NGHĨA VỤ SAU ĐIỀU CHỈNH</span>
-                <b>{order.netOrderValue == null ? '—' : money(order.netOrderValue)}</b>
+                  <div className="purchase-finance__total">
+                    <dt>GIÁ TRỊ ĐƠN SAU ĐIỀU CHỈNH</dt>
+                    <dd>
+                      {order.netOrderValue == null ? 'Chưa xác định' : money(order.netOrderValue)}
+                    </dd>
+                  </div>
 
-                <span>TỔNG TIỀN ĐÃ CHI</span>
-                <b>{order.paid == null ? '—' : money(order.paid)}</b>
+                  <div>
+                    <dt>TỔNG TIỀN ĐÃ CHI</dt>
+                    <dd>{order.paid == null ? 'Chưa xác định' : money(order.paid)}</dd>
+                  </div>
 
-                <span>TỔNG TIỀN ĐÃ NHẬN HOÀN</span>
-                <b>{order.refunded == null ? '—' : money(order.refunded)}</b>
+                  <div>
+                    <dt>TỔNG TIỀN ĐÃ NHẬN HOÀN</dt>
+                    <dd>{order.refunded == null ? 'Chưa xác định' : money(order.refunded)}</dd>
+                  </div>
 
-                <span>ĐÃ THANH TOÁN THUẦN</span>
-                <b>{order.netPaid == null ? '—' : money(order.netPaid)}</b>
+                  <div className="purchase-finance__paid">
+                    <dt>ĐÃ THANH TOÁN SAU HOÀN TIỀN</dt>
+                    <dd>{order.netPaid == null ? 'Chưa xác định' : money(order.netPaid)}</dd>
+                  </div>
+                </dl>
 
-                <span>CỬA HÀNG CÒN NỢ NHÀ CUNG CẤP</span>
-                <b>{order.debt == null ? '—' : money(order.debt)}</b>
+                <div
+                  className={`purchase-finance__balance ${
+                    order.debt == null
+                      ? 'is-unknown'
+                      : Number(order.debt) > 0
+                        ? 'is-debt'
+                        : 'is-clear'
+                  }`}
+                >
+                  <span>CỬA HÀNG CÒN NỢ NHÀ CUNG CẤP</span>
 
-                <span>NHÀ CUNG CẤP CÒN PHẢI HOÀN</span>
-                <b>{order.refundDue == null ? '—' : money(order.refundDue)}</b>
+                  <strong>{order.debt == null ? 'Chưa xác định' : money(order.debt)}</strong>
+                </div>
+
+                <div
+                  className={`purchase-finance__balance ${
+                    order.refundDue == null
+                      ? 'is-unknown'
+                      : Number(order.refundDue) > 0
+                        ? 'is-refund'
+                        : 'is-neutral'
+                  }`}
+                >
+                  <span>NHÀ CUNG CẤP CÒN PHẢI HOÀN</span>
+
+                  <strong>
+                    {order.refundDue == null ? 'Chưa xác định' : money(order.refundDue)}
+                  </strong>
+                </div>
+
+                <div className="purchase-finance__status">
+                  <StatusBadge>{order.paymentStatusLabel}</StatusBadge>
+                </div>
               </div>
             </PurchaseCard>
           </section>
@@ -691,14 +894,20 @@ export default function ChiTietNhapHang() {
               <input
                 maxLength={100}
                 disabled={receiptLocked}
+                aria-invalid={Boolean(receiptErrors.document)}
                 value={supplierReceiptDocument}
-                onChange={(event) => setSupplierReceiptDocument(event.target.value)}
+                onChange={(event) => {
+                  setSupplierReceiptDocument(event.target.value);
+                  setReceiptServerErrors({});
+                  setError('');
+                }}
               />
+              <ReceiptFieldError message={receiptErrors.document} />
             </label>
           </div>
 
           <p className="receipt-config-note">
-            Có thể nhập từng phần. Để số lượng bằng 0 đối với dòng chưa nhận.
+            Nhập số lượng thực nhận. Dòng chưa nhận để số lượng bằng 0.
           </p>
 
           {error && (
@@ -707,13 +916,17 @@ export default function ChiTietNhapHang() {
             </p>
           )}
 
+          <ReceiptFieldError message={receiptErrors.form} />
+
           <div className="purchase-receive-list">
-            {waitingReceipt.map((item) => {
-              const quantity = Number(receiptQuantities[item.id] ?? 0);
-              const codes = serialCodes(serialValues[item.id]);
+            {receiptItems.map(({ item, quantity, codes }) => {
+              const fieldError = (name) => receiptErrors[`${item.id}.${name}`];
 
               return (
-                <article key={item.id} className="purchase-receive-item">
+                <article
+                  key={item.id}
+                  className={'purchase-receive-item' + (quantity > 0 ? ' is-receiving' : '')}
+                >
                   <header>
                     <strong>{item.name}</strong>
                     <span>
@@ -723,65 +936,79 @@ export default function ChiTietNhapHang() {
                   </header>
 
                   <div className="purchase-receive-fields">
-                    <label>
+                    <label className="receipt-field">
                       <span>Số lượng nhận lần này</span>
                       <input
-                        aria-label={`Số lượng nhập ${item.name}`}
                         type="number"
                         min="0"
                         max={item.qty - item.received}
                         step="1"
                         disabled={receiptLocked}
+                        aria-invalid={Boolean(fieldError('quantity'))}
                         value={receiptQuantities[item.id] ?? 0}
                         onChange={(event) =>
-                          setReceiptQuantities((current) => ({
-                            ...current,
-                            [item.id]: event.target.value,
-                          }))
+                          changeReceiptValue(setReceiptQuantities, item.id, event.target.value)
                         }
                       />
+                      <ReceiptFieldError message={fieldError('quantity')} />
                     </label>
 
-                    <label>
-                      <span>Mã lô trên hàng/chứng từ, nếu có</span>
+                    <label className="receipt-field receipt-field--lot">
+                      <span>
+                        <b className="receipt-field-tag">LÔ</b>
+                        Mã lô Nhà Cung Cấp
+                      </span>
                       <input
                         maxLength={100}
+                        placeholder="Mã in trên hàng hoặc chứng từ, nếu có"
                         disabled={receiptLocked || quantity === 0}
+                        aria-invalid={Boolean(fieldError('lot'))}
                         value={supplierLots[item.id] || ''}
                         onChange={(event) =>
-                          setSupplierLots((current) => ({
-                            ...current,
-                            [item.id]: event.target.value,
-                          }))
+                          changeReceiptValue(setSupplierLots, item.id, event.target.value)
                         }
                       />
+                      <ReceiptFieldError message={fieldError('lot')} />
+                    </label>
+
+                    <label className="receipt-field receipt-field--location">
+                      <span>Vị trí lưu kho</span>
+                      <input
+                        maxLength={100}
+                        placeholder="Ví dụ: Kệ A – Tầng 2 – Ô 03"
+                        disabled={receiptLocked || quantity === 0}
+                        aria-invalid={Boolean(fieldError('location'))}
+                        value={receiptLocations[item.id] || ''}
+                        onChange={(event) =>
+                          changeReceiptValue(setReceiptLocations, item.id, event.target.value)
+                        }
+                      />
+                      <small>Để trống giữ vị trí đang có của phiên bản.</small>
+                      <ReceiptFieldError message={fieldError('location')} />
                     </label>
 
                     {item.serialManaged ? (
-                      <label className="purchase-receive-serials">
+                      <label className="receipt-field purchase-receive-serials">
                         <span>
-                          Serial thực nhận · {codes.length}/{quantity}
+                          Serial thực nhận
+                          <b className="receipt-serial-count">
+                            {codes.length}/{quantity}
+                          </b>
                         </span>
                         <textarea
-                          rows={3}
+                          rows={4}
                           disabled={receiptLocked || quantity === 0}
+                          aria-invalid={Boolean(fieldError('serials'))}
                           value={serialValues[item.id] || ''}
                           onChange={(event) =>
-                            setSerialValues((current) => ({
-                              ...current,
-                              [item.id]: event.target.value,
-                            }))
+                            changeReceiptValue(setSerialValues, item.id, event.target.value)
                           }
                           placeholder="Mỗi serial một dòng"
                         />
-                        {quantity > 0 && codes.length !== quantity && (
-                          <small className="ncc-field-error">
-                            Số serial phải khớp số lượng nhận.
-                          </small>
-                        )}
+                        <ReceiptFieldError message={fieldError('serials')} />
                       </label>
                     ) : (
-                      <p>Không quản lý serial.</p>
+                      <p className="receipt-no-serial">Sản phẩm không quản lý serial.</p>
                     )}
                   </div>
                 </article>
@@ -792,8 +1019,7 @@ export default function ChiTietNhapHang() {
 
           {purchaseAttempt.current?.scope === receiptScope && (
             <p className="receipt-config-note">
-              Chưa xác định kết quả lần gửi trước. Thử lại sẽ giữ nguyên dữ liệu và khóa chống gửi
-              lặp.
+              Chưa xác định kết quả lần gửi trước. Thử lại giữ nguyên dữ liệu và khóa chống gửi lặp.
             </p>
           )}
 
@@ -803,9 +1029,13 @@ export default function ChiTietNhapHang() {
               if (!operationBusy.current) setModal('');
             }}
             confirm={submitReceive}
-            label="XÁC NHẬN NHẬP KHO"
+            label={
+              purchaseAttempt.current?.scope === receiptScope
+                ? 'THỬ LẠI YÊU CẦU CŨ'
+                : 'XÁC NHẬN NHẬP KHO'
+            }
             color="green"
-            disabled={!receiveValid}
+            disabled={!purchaseAttempt.current && !receiveValid}
           />
         </Modal>
       )}
