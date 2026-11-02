@@ -156,7 +156,8 @@ public class OrderSaleSnapshotService {
   }
 
   public boolean hasValidSnapshot(ChiTietDonHang line) {
-    // Catch missing legacy evidence before it crosses the transactional proxy and marks the read rollback-only.
+    // Catch missing legacy evidence before it crosses the transactional proxy and marks the read
+    // rollback-only.
     try {
       requireSnapshot(line);
       return true;

@@ -134,70 +134,6 @@
   background: #f00c13;
 }
 
-.order-products-table-wrap {
-  padding: 7px 14px 12px;
-  overflow-x: auto;
-}
-.order-products-table {
-  width: 100%;
-  min-width: 760px;
-  border-collapse: collapse;
-}
-.order-products-table th {
-  height: 31px;
-  padding: 5px 6px;
-  border-bottom: 1px solid #d7d7d7;
-  color: #858c95;
-  font-size: 8px;
-  font-weight: 800;
-  text-align: left;
-  white-space: nowrap;
-}
-.order-products-table td {
-  min-height: 58px;
-  padding: 10px 6px;
-  border-bottom: 1px solid #e5e5e5;
-  color: #222;
-  font-size: 9px;
-  vertical-align: middle;
-}
-.order-products-table th:first-child,
-.order-products-table td:first-child {
-  width: 54px;
-  min-width: 54px;
-}
-.order-products-table .order-product-no-image {
-  width: 42px;
-  margin: 0;
-  font-size: 9px;
-  text-align: center;
-}
-.order-products-table td img {
-  display: block;
-  width: 42px;
-  height: 42px;
-  object-fit: contain;
-  border: 1px solid #ddd;
-  background: #f6f6f6;
-}
-.order-products-table td strong {
-  display: block;
-  color: #070707;
-  font-size: 10px;
-  font-weight: 900;
-}
-.order-products-table td span {
-  display: block;
-  margin-top: 4px;
-  color: #858c95;
-}
-.order-products-table .align-right {
-  text-align: right;
-}
-.order-products-table .align-center {
-  text-align: center;
-}
-
 .order-detail-kv {
   padding: 8px 14px 10px;
 }
@@ -1231,5 +1167,502 @@
   .admin-order-detail .order-cod-settlement,
   .admin-order-detail .order-pending-operation {
     margin: 10px 14px;
+  }
+}
+
+/* Bảng trong chi tiết đơn hàng: nền trắng theo mẫu Figma */
+.admin-app .admin-order-detail .order-warranty .admin-data-table {
+  width: 100%;
+  min-width: 760px;
+  margin: 0;
+  border-collapse: collapse;
+  border-spacing: 0;
+  font-family: inherit;
+  font-size: 12px;
+}
+
+.admin-app .admin-order-detail .order-warranty .admin-data-table > thead {
+  background: #fff;
+  color: #888;
+}
+
+.admin-app .admin-order-detail .order-warranty .admin-data-table > thead > tr > th {
+  height: auto;
+  padding: 8px 10px;
+  border: 0;
+  border-bottom: 1px solid #dedede;
+  background: #fff;
+  color: #888;
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 1.4;
+  letter-spacing: 0.08em;
+  text-align: left;
+  vertical-align: bottom;
+  white-space: normal;
+}
+
+.admin-app .admin-order-detail .order-warranty .admin-data-table > tbody > tr > td {
+  height: auto;
+  padding: 10px;
+  border: 0;
+  border-bottom: 1px solid #f0f0f0;
+  color: #111;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.45;
+  text-align: left;
+  vertical-align: top;
+  overflow-wrap: anywhere;
+}
+
+.admin-app .admin-order-detail .order-warranty .admin-data-table > tbody > tr {
+  background: #fff;
+}
+
+.admin-app .admin-order-detail .order-warranty .admin-data-table > tbody > tr:hover {
+  background: #fafafa;
+}
+
+.admin-app .admin-order-detail .order-warranty .admin-data-table td small {
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+/* Thiết bị và bảo hành */
+.admin-app .admin-order-detail .order-warranty {
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+  padding: 14px;
+}
+
+.admin-app .admin-order-detail .order-warranty > .order-note {
+  margin: 0;
+  padding: 0;
+  color: #777;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.admin-app .admin-order-detail .order-warranty > .order-panel-actions {
+  margin: 0;
+  padding: 0;
+}
+
+.admin-app .admin-order-detail .order-warranty h3 {
+  margin: 0 0 10px;
+  color: #111;
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1.45;
+}
+
+.admin-app .admin-order-detail .order-warranty .sold-devices-table td strong {
+  font-size: 12px;
+  font-weight: 700;
+}
+
+/* Bảng thiết bị hiện hành */
+.admin-app .admin-order-detail .order-warranty .order-current-devices-table {
+  table-layout: fixed;
+}
+
+.admin-app .admin-order-detail .order-current-devices-table th:nth-child(1) {
+  width: 32%;
+}
+
+.admin-app .admin-order-detail .order-current-devices-table th:nth-child(2) {
+  width: 34%;
+}
+
+.admin-app .admin-order-detail .order-current-devices-table th:nth-child(3) {
+  width: 12%;
+}
+
+.admin-app .admin-order-detail .order-current-devices-table th:nth-child(4) {
+  width: 22%;
+}
+
+.admin-app
+  .admin-order-detail
+  .order-warranty
+  .order-current-devices-table
+  :is(th, td):nth-child(3) {
+  text-align: center;
+}
+
+.admin-app .admin-order-detail .order-warranty .order-current-devices-table :is(th, td):last-child {
+  text-align: right;
+}
+
+.admin-app .admin-order-detail .order-warranty .order-current-devices-table td:first-child {
+  color: #666;
+  font-size: 11px;
+}
+
+.admin-app .admin-order-detail .order-warranty .order-current-devices-table .order-action {
+  min-height: 30px;
+  height: auto;
+  padding: 6px 10px !important;
+  font-size: 10px;
+  line-height: 1.4;
+  white-space: normal;
+}
+
+/* Thiết bị của lần xuất gốc */
+.admin-app .admin-order-detail .order-warranty .order-original-devices {
+  margin: 0;
+  padding: 12px 0 0;
+  border: 0;
+  border-top: 1px solid #dedede;
+  background: #fff;
+}
+
+.admin-app .admin-order-detail .order-original-devices > summary {
+  color: #111;
+  font-size: 10px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.admin-app .admin-order-detail .order-original-devices .sold-devices {
+  padding: 12px 0 0;
+}
+
+.admin-app .admin-order-detail .order-original-devices .sold-devices-note {
+  margin: 0 0 10px;
+  font-size: 11px;
+}
+
+.admin-app .admin-order-detail .order-original-devices .sold-devices-table {
+  min-width: 840px;
+  table-layout: fixed;
+}
+
+.admin-app .admin-order-detail .order-original-devices .sold-devices-table th:nth-child(1) {
+  width: 24%;
+}
+
+.admin-app .admin-order-detail .order-original-devices .sold-devices-table th:nth-child(2) {
+  width: 30%;
+}
+
+.admin-app .admin-order-detail .order-original-devices .sold-devices-table th:nth-child(3) {
+  width: 20%;
+}
+
+.admin-app .admin-order-detail .order-original-devices .sold-devices-table th:nth-child(4) {
+  width: 8%;
+}
+
+.admin-app .admin-order-detail .order-original-devices .sold-devices-table th:nth-child(5) {
+  width: 9%;
+}
+
+.admin-app .admin-order-detail .order-original-devices .sold-devices-table th:nth-child(6) {
+  width: 9%;
+}
+
+.admin-app
+  .admin-order-detail
+  .order-warranty
+  .order-original-devices
+  .sold-devices-table
+  td:first-child {
+  color: #666;
+  font-size: 11px;
+}
+
+.admin-app
+  .admin-order-detail
+  .order-warranty
+  .order-original-devices
+  .sold-devices-table
+  td:nth-child(n + 4) {
+  font-size: 11px;
+}
+
+@media (max-width: 700px) {
+  .admin-app .admin-order-detail .order-warranty {
+    padding: 12px;
+  }
+}
+
+/* Sản phẩm trong đơn theo bố cục Figma Make */
+.admin-app .admin-order-detail .order-items-figma {
+  min-width: 0;
+  padding: 14px 16px;
+  background: #fff;
+  font-family: var(--font-family-admin, var(--font-family-base));
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.admin-app .admin-order-detail .order-items-figma__scroll {
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: auto;
+  border: 0;
+  background: #fff;
+}
+
+.admin-app .admin-order-detail .order-items-figma__scroll:focus-visible {
+  outline: 2px solid #e31e24;
+  outline-offset: 2px;
+}
+
+.admin-app .admin-order-detail .order-items-figma .order-items-figma__table {
+  width: 100%;
+  min-width: 820px;
+  margin: 0;
+  border: 0;
+  border-collapse: collapse;
+  border-spacing: 0;
+  table-layout: fixed;
+  background: #fff;
+  font-family: inherit;
+}
+
+/* Dành phần chiều rộng còn lại cho tên sản phẩm */
+.admin-app .admin-order-detail .order-items-figma__col-image {
+  width: 64px;
+}
+
+.admin-app .admin-order-detail .order-items-figma__col-barcode {
+  width: 20%;
+}
+
+.admin-app .admin-order-detail .order-items-figma__col-price {
+  width: 120px;
+}
+
+.admin-app .admin-order-detail .order-items-figma__col-quantity {
+  width: 52px;
+}
+
+.admin-app .admin-order-detail .order-items-figma__col-total {
+  width: 140px;
+}
+
+/* Tiêu đề cột */
+.admin-app .admin-order-detail .order-items-figma__table > thead {
+  background: #fff;
+}
+
+.admin-app .admin-order-detail .order-items-figma__table > thead > tr > th {
+  width: auto;
+  min-width: 0;
+  height: auto;
+  padding: 0 12px 8px 0;
+  border: 0;
+  border-bottom: 2px solid #e0e0e0;
+  background: #fff;
+  color: #888;
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 1.4;
+  letter-spacing: 0.1em;
+  text-align: left;
+  vertical-align: bottom;
+}
+
+/* Nội dung từng dòng */
+.admin-app .admin-order-detail .order-items-figma__table > tbody > tr {
+  background: #fff;
+}
+
+.admin-app .admin-order-detail .order-items-figma__table > tbody > tr > td {
+  width: auto;
+  min-width: 0;
+  height: auto;
+  padding: 10px 12px 10px 0;
+  border: 0;
+  border-bottom: 1px solid #f0f0f0;
+  background: #fff;
+  color: #111;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.45;
+  text-align: left;
+  vertical-align: top;
+  overflow-wrap: anywhere;
+}
+
+.admin-app .admin-order-detail .order-items-figma__table > thead > tr > th:last-child,
+.admin-app .admin-order-detail .order-items-figma__table > tbody > tr > td:last-child {
+  padding-right: 0;
+}
+
+.admin-app .admin-order-detail .order-items-figma .order-items-figma__name {
+  display: block;
+  margin: 0;
+  color: #111;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.admin-app .admin-order-detail .order-items-figma .order-items-figma__variant {
+  display: block;
+  margin-top: 3px;
+  color: #888;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.45;
+}
+
+.admin-app .admin-order-detail .order-items-figma .order-items-figma__kind {
+  display: block;
+  margin-top: 3px;
+  color: #777;
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.admin-app
+  .admin-order-detail
+  .order-items-figma__table
+  > tbody
+  > tr
+  > .order-items-figma__barcode {
+  color: #777;
+  font-size: 10px;
+}
+
+/* Cột tiền và số lượng */
+.admin-app .admin-order-detail .order-items-figma__table > thead > tr > .order-items-figma__number,
+.admin-app .admin-order-detail .order-items-figma__table > tbody > tr > .order-items-figma__number {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.admin-app .admin-order-detail .order-items-figma__table > tbody > tr > .order-items-figma__number {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.admin-app .admin-order-detail .order-items-figma .order-items-figma__amount strong {
+  display: block;
+  font-size: 12px;
+  font-weight: 800;
+  text-align: right;
+}
+
+.admin-app .admin-order-detail .order-items-figma .order-items-figma__amount :is(span, small) {
+  font-size: 10px;
+  font-weight: 400;
+  line-height: 1.45;
+}
+
+.admin-app .admin-order-detail .order-items-figma .order-items-figma__amount > div {
+  justify-content: flex-end;
+}
+
+/* Ảnh sản phẩm chính */
+.admin-app .admin-order-detail .order-items-figma__photo > img {
+  display: block;
+  width: 40px;
+  height: 40px;
+  border: 1px solid #e0e0e0;
+  background: #fff;
+  object-fit: contain;
+}
+
+.admin-app .admin-order-detail .order-items-figma__photo > .order-product-no-image {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  margin: 0;
+  font-size: 9px;
+}
+
+/* Linh kiện bộ PC nằm ở dòng riêng, rộng toàn bảng */
+.admin-app .admin-order-detail .order-items-figma__table > tbody > .order-items-figma__pc-row > td {
+  border-bottom: 0;
+}
+
+.admin-app
+  .admin-order-detail
+  .order-items-figma__table
+  > tbody
+  > .order-items-figma__parts-row
+  > td {
+  padding: 0 0 14px;
+  white-space: normal;
+  text-align: left;
+}
+
+.admin-app .admin-order-detail .order-items-figma__components {
+  min-width: 0;
+}
+
+.admin-app .admin-order-detail .order-items-figma__components .combo-contents {
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  border: 1px solid #e5e5e5;
+}
+
+.admin-app .admin-order-detail .order-items-figma__components .combo-contents__header {
+  padding: 8px 10px;
+  border-left: 3px solid #e31e24;
+  background: #f7f7f7;
+  color: #111;
+}
+
+.admin-app .admin-order-detail .order-items-figma__components .combo-contents__header b {
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.admin-app .admin-order-detail .order-items-figma__components .combo-contents__header small {
+  color: #777;
+  font-size: 10px;
+}
+
+.admin-app .admin-order-detail .order-items-figma__components .combo-contents__list {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  height: auto;
+  max-height: none;
+  overflow: visible;
+}
+.admin-app .admin-order-detail .order-items-figma__components .combo-contents__item {
+  grid-template-columns: 36px minmax(0, 1fr) auto;
+  gap: 10px;
+  padding: 10px 12px;
+}
+
+.admin-app .admin-order-detail .order-items-figma__components .combo-contents__image {
+  width: 36px;
+  height: 36px;
+}
+
+.admin-app .admin-order-detail .order-items-figma__components .combo-contents__image img {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  object-fit: contain;
+}
+
+.admin-app .admin-order-detail .order-items-figma__components .combo-contents__info :is(a, b) {
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.admin-app .admin-order-detail .order-items-figma__components .combo-contents__info small {
+  font-size: 11px;
+}
+
+.admin-app .admin-order-detail .order-items-figma__components .combo-contents__quantity b {
+  font-size: 14px;
+}
+
+@media (max-width: 700px) {
+  .admin-app .admin-order-detail .order-items-figma {
+    padding: 12px;
   }
 }
