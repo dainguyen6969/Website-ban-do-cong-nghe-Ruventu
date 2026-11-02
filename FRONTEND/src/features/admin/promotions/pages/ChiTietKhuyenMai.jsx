@@ -397,7 +397,7 @@ export default function ChiTietKhuyenMai() {
                             
                             <div className="gift-section-block">
                                 <h3 className="gift-sub-title">SẢN PHẨM KHÁCH PHẢI MUA</h3>
-                                <table className="applied-products-table">
+                                <div className="admin-table-scroll admin-table-scroll--embedded" tabIndex={0} role="region" aria-label="Bảng dữ liệu liên quan"><table className="applied-products-table admin-data-table admin-data-table--records">
                                     <thead>
                                         <tr>
                                             <th>MÃ SẢN PHẨM</th>
@@ -416,12 +416,12 @@ export default function ChiTietKhuyenMai() {
                                             </tr>
                                         ))}
                                     </tbody>
-                                </table>
+                                </table></div>
                             </div>
 
                             <div className="gift-section-block" style={{marginTop: '24px'}}>
                                 <h3 className="gift-sub-title">SẢN PHẨM ĐƯỢC TẶNG</h3>
-                                <table className="applied-products-table">
+                                <div className="admin-table-scroll admin-table-scroll--embedded" tabIndex={0} role="region" aria-label="Bảng dữ liệu liên quan"><table className="applied-products-table admin-data-table admin-data-table--records">
                                     <thead>
                                         <tr>
                                             <th>MÃ SẢN PHẨM</th>
@@ -440,13 +440,13 @@ export default function ChiTietKhuyenMai() {
                                             </tr>
                                         ))}
                                     </tbody>
-                                </table>
+                                </table></div>
                             </div>
                         </div>
                     ) : (promo.appliedProducts && promo.appliedProducts.length > 0) && (
                         <div className="detail-section">
                             <h2>SẢN PHẨM / PHIÊN BẢN ÁP DỤNG</h2>
-                            <table className="applied-products-table">
+                            <div className="admin-table-scroll admin-table-scroll--embedded" tabIndex={0} role="region" aria-label="Bảng dữ liệu liên quan"><table className="applied-products-table admin-data-table admin-data-table--records">
                                 <thead>
                                     <tr>
                                         <th>VAI TRÒ</th>
@@ -471,7 +471,7 @@ export default function ChiTietKhuyenMai() {
                                         </tr>
                                     ))}
                                 </tbody>
-                            </table>
+                            </table></div>
                         </div>
                     )}
                 </div>

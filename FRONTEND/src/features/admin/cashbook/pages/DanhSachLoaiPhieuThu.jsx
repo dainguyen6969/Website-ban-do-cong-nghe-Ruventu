@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import './DanhSachLoaiPhieuThu.css';
 import TablePagination from '../../../../shared/components/ui/TablePagination';
@@ -20,6 +20,7 @@ export default function DanhSachLoaiPhieuThu() {
   });
 
   const [searchQuery, setSearchQuery] = useState('');
+  const previousSearch = useRef(searchQuery);
   const [filterStatus, setFilterStatus] = useState('TẤT CẢ TRẠNG THÁI');
   const [showModal, setShowModal] = useState(false);
   const [creating, setCreating] = useState(false);
@@ -46,6 +47,7 @@ export default function DanhSachLoaiPhieuThu() {
           },
           controller.signal
         );
+        if (controller.signal.aborted) return;
         setData(res.items);
         setPagination((prev) => ({
           ...prev,
@@ -53,17 +55,19 @@ export default function DanhSachLoaiPhieuThu() {
           totalPages: res.totalPages,
         }));
       } catch (err) {
-        if (err.name !== 'AbortError') {
+        if (!controller.signal.aborted && err.name !== 'AbortError') {
           setError('Không thể tải danh sách loại phiếu thu. Vui lòng thử lại.');
         }
       } finally {
-        setLoading(false);
+        if (!controller.signal.aborted) setLoading(false);
       }
     };
 
+    const delay = previousSearch.current === searchQuery ? 0 : 300;
+    previousSearch.current = searchQuery;
     const timer = setTimeout(() => {
       loadData();
-    }, 300);
+    }, delay);
 
     return () => {
       clearTimeout(timer);
@@ -111,7 +115,7 @@ export default function DanhSachLoaiPhieuThu() {
   };
 
 return (
-  <div className="lpt-page">
+  <div className="lpt-page admin-list-page">
     <div className="pt-header-top">
       <div className="pt-breadcrumb">
         SỔ QUỸ TIỀN MẶT / LOẠI PHIẾU THU
@@ -165,8 +169,9 @@ return (
 
     {/* Phần bảng bên dưới được giữ nguyên */}
 
-      <div className="pt-table-container">
-        <table className="promo-table pt-table">
+      <div className="admin-list-body admin-list-body--inset">
+<div className="pt-table-container admin-table-scroll" tabIndex={0} role="region" aria-label="Bảng danh sách">
+        <table className="promo-table pt-table admin-data-table" aria-busy={loading}>
           <thead>
             <tr>
               <th>MÃ LOẠI</th>
@@ -178,7 +183,7 @@ return (
             </tr>
           </thead>
           <tbody>
-            {loading ? (
+            {loading && !data.length ? (
               <tr>
                 <td colSpan="6">
                   <div className="pt-empty-state">
@@ -239,14 +244,15 @@ return (
         </table>
       </div>
 
-      {data.length > 0 && !loading && (
-        <TablePagination
+      {pagination.totalItems > 0 && (
+        <TablePagination className="admin-table-footer"
           totalItems={pagination.totalItems}
           pageSize={pagination.limit}
           currentPage={pagination.page}
           onPageChange={(page) => setPagination((prev) => ({ ...prev, page }))}
         />
       )}
+</div>
 
       {showModal && (
         <div className="lpt-modal-overlay">

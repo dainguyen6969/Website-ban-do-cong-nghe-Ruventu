@@ -233,8 +233,8 @@ export default function ChiTietPhieuKiemHang() {
         <section className="stock-flow-card">
           <h2>SẢN PHẨM KIỂM</h2>
           <div className="stock-form-table-wrap">
-            <table
-              className={`stock-form-table stock-detail-table ${check.trang_thai === "DA_HUY" ? "is-muted" : ""}`}
+            <div className="admin-table-scroll admin-table-scroll--embedded" tabIndex={0} role="region" aria-label="Bảng dữ liệu liên quan"><table
+              className={`stock-form-table stock-detail-table admin-data-table admin-data-table--records ${check.trang_thai === "DA_HUY" ? "is-muted" : ""}`}
             >
               <thead>
                 <tr>
@@ -267,7 +267,7 @@ export default function ChiTietPhieuKiemHang() {
                   <td>{check.ly_do || "—"}</td>
                 </tr>
               </tbody>
-            </table>
+            </table></div>
           </div>
           <div className="stock-form-summary">
             <div>

@@ -36,7 +36,7 @@ class AdminWarrantyEventHttpTest {
   static class Web {
     @Bean
     AdminWarrantyEventServiceTest.Fixture fixture() {
-      return new AdminWarrantySupplierSettlementServiceTest.Fixture();
+      return new AdminWarrantyHandoverServiceTest.Fixture();
     }
 
     @Bean
@@ -145,7 +145,8 @@ class AdminWarrantyEventHttpTest {
           ((AdminWarrantyMoneyServiceTest.Fixture) f).moneyService,
           ((AdminWarrantyReplacementPlanServiceTest.Fixture) f).replacementService,
           ((AdminWarrantyReplacementItemsServiceTest.Fixture) f).itemsService,
-          ((AdminWarrantySupplierSettlementServiceTest.Fixture) f).settlementsService);
+          ((AdminWarrantySupplierSettlementServiceTest.Fixture) f).settlementsService,
+          ((AdminWarrantyHandoverServiceTest.Fixture) f).handoverService);
     }
   }
 
@@ -683,6 +684,110 @@ class AdminWarrantyEventHttpTest {
     } finally {
       SecurityContextHolder.clearContext();
     }
+  }
+
+  @Test
+  void handoverRouteEnforcesAuthAndPreservesStructuredPaymentError() throws Exception {
+    try (var context = new AnnotationConfigWebApplicationContext()) {
+      context.setServletContext(new MockServletContext());
+      context
+          .getEnvironment()
+          .getPropertySources()
+          .addFirst(
+              new MapPropertySource(
+                  "offline",
+                  Map.of(
+                      "jwt.secret",
+                      "test-only-offline-secret",
+                      "jwt.access-token-expiration",
+                      "3600000",
+                      "jwt.refresh-token-expiration",
+                      "86400000",
+                      "jwt.refresh-token-remember-expiration",
+                      "172800000")));
+      context.register(Web.class);
+      context.refresh();
+      var jwt = context.getBean(JwtService.class);
+      var users = context.getBean(NguoiDungRepository.class);
+      for (int i = 0; i < 3; i++) {
+        String token = List.of("admin", "user", "blocked").get(i);
+        long id = 8L + i;
+        when(jwt.isAccessTokenValid(token)).thenReturn(true);
+        when(jwt.getUserIdFromToken(token)).thenReturn(id);
+        when(users.findByIdWithVaiTro(id))
+            .thenReturn(
+                Optional.of(
+                    NguoiDung.builder()
+                        .id(id)
+                        .trangThai(
+                            i == 2
+                                ? TrangThaiCoBanEnum.NGUNG_HOAT_DONG
+                                : TrangThaiCoBanEnum.HOAT_DONG)
+                        .vaiTro(
+                            VaiTro.builder()
+                                .id((long) i + 1)
+                                .tenVaiTro(i == 1 ? "USER" : "ADMIN")
+                                .build())
+                        .build()));
+      }
+      var f =
+          (AdminWarrantyHandoverServiceTest.Fixture)
+              context.getBean(AdminWarrantyEventServiceTest.Fixture.class);
+      AdminWarrantyInvoiceServiceTest.role("ADMIN");
+      f.paid(50000);
+      f.readyToReturn(com.example.dantruventu.Enum.KetQuaXuLyBaoHanh.SUA_THANH_CONG);
+      when(f.workflow.ticketOrigin(999L))
+          .thenThrow(
+              WarrantyReadException.notFound(
+                  ErrorCode.WARRANTY_NOT_FOUND, "path.id", "WARRANTY_NOT_FOUND"));
+      var mvc =
+          MockMvcBuilders.webAppContextSetup(context)
+              .apply(SecurityMockMvcConfigurers.springSecurity())
+              .build();
+      var body = f.input();
+      String key = UUID.randomUUID().toString();
+      assertEquals(401, handover(mvc, null, key, "501", body).getStatus());
+      assertEquals(401, handover(mvc, "expired", key, "501", body).getStatus());
+      assertEquals(403, handover(mvc, "user", key, "501", body).getStatus());
+      assertEquals(403, handover(mvc, "blocked", key, "501", body).getStatus());
+      assertEquals(400, handover(mvc, "admin", null, "501", body).getStatus());
+      assertEquals(
+          404, handover(mvc, "admin", UUID.randomUUID().toString(), "999", body).getStatus());
+      var response = handover(mvc, "admin", key, "501", body);
+      assertEquals(409, response.getStatus(), response.getContentAsString());
+      var json = AdminWarrantyEventServiceTest.JSON.readTree(response.getContentAsString());
+      assertEquals(100000, json.at("/data/con_phai_thu").asInt());
+      assertFalse(json.at("/data/da_ban_giao").asBoolean());
+      assertEquals("HANDOVER_PAYMENT_REQUIRED", json.at("/errors/0/code").asString());
+      f.cash.clear();
+      f.invoices.clear();
+      f.fees.clear();
+      f.events.removeIf(e -> f.history.object(f.history.payload(e).get("bao_gia")) != null);
+      body = f.input();
+      key = UUID.randomUUID().toString();
+      response = handover(mvc, "admin", key, "501", body);
+      assertEquals(200, response.getStatus(), response.getContentAsString());
+      assertEquals(
+          response.getContentAsString(),
+          handover(mvc, "admin", key, "501", body).getContentAsString());
+      var changed = new LinkedHashMap<>(body);
+      changed.put("ghi_chu", "Khác");
+      assertEquals(409, handover(mvc, "admin", key, "501", changed).getStatus());
+    } finally {
+      SecurityContextHolder.clearContext();
+    }
+  }
+
+  private static MockHttpServletResponse handover(
+      MockMvc mvc, String token, String key, String id, Map<String, Object> body) throws Exception {
+    SecurityContextHolder.clearContext();
+    var request =
+        MockMvcRequestBuilders.post("/api/v1/admin/warranties/" + id + "/handover")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(AdminWarrantyEventServiceTest.JSON.writeValueAsString(body));
+    if (token != null) request.header("Authorization", "Bearer " + token);
+    if (key != null) request.header("Idempotency-Key", key);
+    return mvc.perform(request).andReturn().getResponse();
   }
 
   private static MockHttpServletResponse settlement(

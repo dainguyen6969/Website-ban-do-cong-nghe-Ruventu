@@ -35,7 +35,7 @@ export default function OrderModal({
     if (event.key !== 'Tab') return;
     const controls = [
       ...ref.current.querySelectorAll(
-        'button:not(:disabled), input:not(:disabled), select:not(:disabled), textarea:not(:disabled)'
+        'button:not(:disabled), input:not(:disabled), select:not(:disabled), textarea:not(:disabled), [tabindex="0"]'
       ),
     ];
     const first = controls[0];

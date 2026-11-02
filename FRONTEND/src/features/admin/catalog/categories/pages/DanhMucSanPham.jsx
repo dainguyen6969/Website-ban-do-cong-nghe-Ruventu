@@ -1329,7 +1329,7 @@ export default function DanhMucSanPham() {
   // ========================================
 
   return (
-    <main className="category-page">
+    <main className="category-page admin-list-page">
       <div className="category-heading">
         <div>
           <h1>DANH MỤC SẢN PHẨM</h1>
@@ -1499,8 +1499,8 @@ export default function DanhMucSanPham() {
           </div>
 
           {/* Bảng danh mục */}
-          <div className="category-table-wrap">
-            <table className="category-table">
+          <div className="category-table-wrap admin-table-scroll" tabIndex={0} role="region" aria-label="Bảng danh sách">
+            <table className="category-table admin-data-table">
               <thead>
                 <tr>
                   <th>MÃ</th>
@@ -2107,7 +2107,7 @@ export function ChiTietDanhMuc() {
           </SectionHeader>
 
           <div className="category-detail-table-wrap">
-            <table>
+            <div className="admin-table-scroll admin-table-scroll--embedded" tabIndex={0} role="region" aria-label="Bảng dữ liệu liên quan"><table className="admin-data-table admin-data-table--records">
               <thead>
                 <tr>
                   <th>MÃ</th>
@@ -2151,7 +2151,7 @@ export function ChiTietDanhMuc() {
                   )
                 )}
               </tbody>
-            </table>
+            </table></div>
           </div>
 
           <DetailTablePagination
@@ -2178,7 +2178,7 @@ export function ChiTietDanhMuc() {
         {products.length ? (
           <>
             <div className="category-detail-table-wrap">
-              <table>
+              <div className="admin-table-scroll admin-table-scroll--embedded" tabIndex={0} role="region" aria-label="Bảng dữ liệu liên quan"><table className="admin-data-table admin-data-table--records">
                 <thead>
                   <tr>
                     <th>MÃ SẢN PHẨM</th>
@@ -2213,7 +2213,7 @@ export function ChiTietDanhMuc() {
                     )
                   )}
                 </tbody>
-              </table>
+              </table></div>
             </div>
 
             <DetailTablePagination

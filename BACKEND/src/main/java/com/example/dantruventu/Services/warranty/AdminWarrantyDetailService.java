@@ -669,7 +669,7 @@ public class AdminWarrantyDetailService {
       result.add("HOAN_KHACH");
     if (settlement != null
         && Boolean.FALSE.equals(settlement.get("da_giai_quyet"))
-        && ((settlement.get("so_luong_con_bu") instanceof Integer quantity && quantity > 0)
+        && ((settlement.get("so_luong_con_bu") instanceof Number quantity && quantity.longValue() > 0)
             || (settlement.get("so_tien_con_doi_soat") instanceof BigDecimal remaining
                 && remaining.signum() > 0))) result.add("SUPPLIER_SETTLEMENT");
     // Advisory guards only: each later mutation endpoint must authorize and validate again.

@@ -787,6 +787,7 @@ export default function ChiTietNhapHang() {
                 </article>
               );
             })}
+
           </div>
 
           {purchaseAttempt.current?.scope === receiptScope && (

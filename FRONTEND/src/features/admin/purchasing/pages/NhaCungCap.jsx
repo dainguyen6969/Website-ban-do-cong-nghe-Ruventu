@@ -250,7 +250,7 @@ export default function NhaCungCap() {
 
   const start = totalItems ? (page - 1) * PAGE_SIZE + 1 : 0;
   return (
-    <main className="supplier-page" role="main">
+    <main className="supplier-page admin-list-page" role="main">
       {selectedSupplier ? (
         <SupplierDetail
           supplier={selectedSupplier}
@@ -297,10 +297,10 @@ export default function NhaCungCap() {
               }}
             />
           </section>
-          <section className="supplier-list-content">
+          <section className="supplier-list-content admin-list-body">
             {loadError && <NetworkError message={loadError} onRetry={reload} />}
-            <div className="supplier-table-wrap">
-              <table className="supplier-table">
+            <div className="supplier-table-wrap admin-table-scroll" tabIndex={0} role="region" aria-label="Bảng danh sách">
+              <table className="supplier-table admin-data-table">
                 <thead>
                   <tr>
                     <th>MÃ NHÀ CUNG CẤP</th>
@@ -350,7 +350,7 @@ export default function NhaCungCap() {
                 </tbody>
               </table>
             </div>
-            <div className="supplier-footer">
+            <div className="supplier-footer admin-table-footer">
               <p>
                 HIỂN THỊ {start}-{Math.min(page * PAGE_SIZE, totalItems)} TRÊN TỔNG SỐ {totalItems}{' '}
                 NHÀ CUNG CẤP
@@ -446,7 +446,7 @@ function SupplierDetail({ supplier, page, onPageChange, onBack, onEdit, toast })
         </SupplierPanel>
         <SupplierPanel title="LỊCH SỬ NHẬP HÀNG">
           <div className="supplier-history-wrap">
-            <table className="supplier-history">
+            <div className="admin-table-scroll admin-table-scroll--embedded" tabIndex={0} role="region" aria-label="Bảng dữ liệu liên quan"><table className="supplier-history admin-data-table admin-data-table--records">
               <thead>
                 <tr>
                   <th>MÃ ĐƠN NHẬP</th>
@@ -482,7 +482,7 @@ function SupplierDetail({ supplier, page, onPageChange, onBack, onEdit, toast })
                   </tr>
                 )}
               </tbody>
-            </table>
+            </table></div>
           </div>
           <TablePagination
             totalItems={supplier.orderTotal}
