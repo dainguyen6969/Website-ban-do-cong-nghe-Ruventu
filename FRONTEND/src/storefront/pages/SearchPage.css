@@ -33,11 +33,11 @@
 
 .search-main {
   display: grid;
-  grid-template-columns: 260px minmax(0, 1fr);
+  grid-template-columns: 230px minmax(0, 1fr);
   gap: 24px;
   flex: 1;
   width: 100%;
-  margin-top: 40px;
+  margin-top: 24px;
   margin-bottom: 60px;
 }
 
@@ -546,4 +546,52 @@
     text-align: center;
     padding: 30px;
   }
+}
+
+/* Giao diện lọc đã duyệt: vuông vức, đỏ sáng, viền focus 1px. */
+.storefront-app .filter-header-block { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:18px; }
+.storefront-app .filter-header-block .filter-title { margin:0; font-family:'Asap Condensed',Arial,sans-serif; font-size:16px; line-height:1.35; white-space:nowrap; }
+.storefront-app .clear-all-btn { display:inline-flex; align-items:center; justify-content:center; flex-shrink:0; min-height:40px; padding:9px 18px; border:1px solid #111; border-radius:0; color:#111; background:#fff; font:700 14px/1.4 'Asap Condensed',Arial,sans-serif; white-space:nowrap; text-decoration:none; }
+.storefront-app .clear-all-btn:hover { color:#fff; background:#e60000; border-color:#e60000; text-decoration:none; }
+.storefront-app .toolbar-left { display:flex; align-items:center; flex-wrap:wrap; gap:18px; }
+.storefront-app .search-page-wrapper .search-content .search-product-grid { border:0; border-radius:0; box-shadow:none; }
+.storefront-app .search-bar form { height:42px; align-items:stretch; }
+.storefront-app .search-bar form input { min-width:0; border:1px solid #d8d8d8; border-right:0; border-radius:0; box-shadow:none; background:#fff; }
+.storefront-app .search-bar form input:focus, .storefront-app .search-bar form input:focus-visible { border-color:#777; outline:none; box-shadow:none; }
+.storefront-app .search-bar form .search-btn { height:42px; margin:0; }
+.storefront-app .filter-block-content { padding:20px 18px; }
+.storefront-app .filter-section { padding-bottom:20px; margin-bottom:20px; border-bottom:1px solid #ececec; }
+.storefront-app .filter-section:last-child { margin-bottom:0; padding-bottom:0; border-bottom:0; }
+.storefront-app .filter-section-title { margin:0 0 14px; font-family:'Asap Condensed',Arial,sans-serif; }
+.storefront-app .checkbox-list { gap:0; }
+.storefront-app .checkbox-item { padding:7px 0; }
+.storefront-app .checkbox-label { font-size:14px; font-weight:600; }
+.storefront-app .item-count { font-size:13px; color:#777; }
+.storefront-app .price-inputs input { height:38px; border:1px solid #d6d6d6; padding:8px; font:400 14px/1.4 'Asap Condensed',Arial,sans-serif; }
+.storefront-app .price-preset-btn { padding:10px 6px; font-size:13px; }
+.storefront-app .search-toolbar { align-items:center; min-height:44px; }
+.storefront-app .custom-sort-btn { min-height:40px; padding:8px 12px; border:1px solid #bbb; font:600 14px/1.4 'Asap Condensed',Arial,sans-serif; }
+.storefront-app .active-filters { display:flex; align-items:center; flex-wrap:wrap; gap:8px; padding:0; margin:0 0 20px; background:transparent; }
+.storefront-app .active-filters::before { content:'ĐANG LỌC'; color:#777; font-size:12px; font-weight:600; letter-spacing:.5px; margin-right:4px; }
+.storefront-app .filter-chip { display:inline-flex; align-items:center; gap:6px; max-width:100%; min-height:36px; padding:0 0 0 12px; border:1px solid #d0d0d0; border-radius:0; background:#fff; color:#222; font-size:14px; font-weight:500; line-height:1.4; }
+.storefront-app .chip-close { position:relative; display:inline-flex; align-items:center; justify-content:center; width:34px; height:34px; padding:0; margin:0; flex-shrink:0; background:transparent; color:#e60000; border:0; border-radius:0; transition:background-color .15s ease,color .15s ease; }
+.storefront-app .chip-close::before, .storefront-app .chip-close::after { content:''; position:absolute; top:50%; left:50%; width:11px; height:1.5px; background:currentColor; transform:translate(-50%,-50%) rotate(45deg); pointer-events:none; }
+.storefront-app .chip-close::after { transform:translate(-50%,-50%) rotate(-45deg); }
+.storefront-app .chip-close:hover { background:#e60000; color:#fff; }
+
+.storefront-app .search-filter-toggle { display:none; }
+.storefront-app .search-main.container { margin-top:24px; margin-bottom:60px; }
+.storefront-app .search-page-wrapper .checkbox-wrap input { display:block; width:16px; height:16px; margin:0; flex-shrink:0; accent-color:#e60000; }
+.storefront-app .search-page-wrapper .checkbox-custom { display:none; }
+.storefront-app .search-page-wrapper :is(button,input,select):focus-visible { outline:2px solid #777; outline-offset:2px; }
+.storefront-app .search-bar form input:focus-visible { outline:none; }
+.storefront-app .search-page-wrapper .no-results-body { flex-direction:column; align-items:center; text-align:center; padding:40px 28px; gap:16px; }
+.storefront-app .search-page-wrapper .no-results-icon { width:48px; height:48px; border:1px solid #ddd; color:#777; }
+.storefront-app .search-page-wrapper .no-results-icon svg { width:22px; height:22px; }
+.storefront-app .search-page-wrapper .no-results-content h2 { font-size:24px; margin:0 0 12px; }
+.storefront-app .search-page-wrapper .no-results-content p { max-width:600px; margin:0 0 18px; font-size:16px; }
+.storefront-app .clear-filters-large-btn:hover { background:#e60000; border-color:#e60000; color:#fff; }
+@media(max-width:992px) {
+  .storefront-app .search-filter-toggle { display:block; justify-self:start; padding:10px 14px; color:#fff; background:#111; font-weight:700; }
+  .storefront-app .search-sidebar.search-sidebar--open { display:block; }
 }

@@ -9,9 +9,12 @@ import ConsultationBanner from "../components/ConsultationBanner";
 import Footer from "../components/Footer";
 
 import { productService } from "../../shared/services/productService";
-import { catalogScopes, inCatalogScope, shuffleProducts } from "./catalogModel";
+import { componentCategoryIds, inCatalogScope, shuffleProducts } from "./catalogModel";
+import useCatalogOptions from '../hooks/useCatalogOptions';
 
 export default function Home() {
+  const catalogOptions = useCatalogOptions();
+  const componentIds = useMemo(() => componentCategoryIds(catalogOptions.categories), [catalogOptions.categories]);
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -56,8 +59,8 @@ export default function Home() {
   );
 
   const componentProducts = useMemo(
-    () => products.filter((product) => inCatalogScope(product, "linh-kien")),
-    [products],
+    () => products.filter(product => product.loaiSanPham === 'DON' && componentIds.has(Number(product.categoryId))),
+    [products, componentIds],
   );
 
   const gamingGearProducts = useMemo(
@@ -106,9 +109,7 @@ export default function Home() {
             linkText="XEM TẤT CẢ"
             linkUrl="/category/linh-kien"
             products={componentProducts}
-            categories={catalogScopes["linh-kien"].categories.filter(category =>
-              componentProducts.some(product => product.category === category)
-            )}
+            categories={[...new Set(componentProducts.map(product => product.category))].sort((a,b) => a.localeCompare(b, 'vi'))}
           />
 
           <ProductSection

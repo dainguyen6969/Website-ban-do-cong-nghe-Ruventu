@@ -56,6 +56,7 @@ export function toProductCard(product) {
     category,
     categoryId: product.danhMucId ?? product.danhMuc?.id ?? null,
     brand: product.tenThuongHieu ?? product.thuongHieu?.tenThuongHieu ?? "",
+    brandId: product.thuongHieuId ?? product.thuongHieu?.id ?? null,
     priceValue,
     defaultVariantId,
     specs,

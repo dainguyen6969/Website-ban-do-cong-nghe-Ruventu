@@ -5,7 +5,27 @@ import axios from 'axios';
 
 const server = await createServer({ configFile: false, cacheDir: 'node_modules/.vite-public-products-test', server: { middlewareMode: true }, appType: 'custom' });
 const { productService, toProductCard, toProductDetail } = await server.ssrLoadModule('/src/shared/services/productService.js');
+const { categoryService } = await server.ssrLoadModule('/src/shared/services/categoryService.js');
 after(() => server.close());
+
+test('public metadata requests share an in-flight call but refresh after admin changes', async (t) => {
+  let complete;
+  const get = t.mock.method(axios, 'get', () => new Promise(resolve => { complete = resolve; }));
+  const first = categoryService.getOptions();
+  assert.equal(first, categoryService.getOptions());
+  assert.match(get.mock.calls[0].arguments[0], /\/catalog\/options$/);
+  complete({ data: { data: { danhMuc: [{ id: 1, tenDanhMuc: 'Tên cũ' }], thuongHieu: [] } } });
+  await first;
+  get.mock.mockImplementation(async () => ({ data: { data: { danhMuc: [{ id: 1, tenDanhMuc: 'Tên mới' }], thuongHieu: [] } } }));
+  assert.equal((await categoryService.getOptions()).danhMuc[0].tenDanhMuc, 'Tên mới');
+  assert.equal(get.mock.calls.length, 2);
+});
+
+test('catalog filters retain stable category and brand IDs across list and detail responses', () => {
+  assert.equal(toProductCard({ danhMucId: 2, thuongHieuId: 3 }).brandId, 3);
+  assert.equal(toProductCard({ danhMuc: { id: 2 }, thuongHieu: { id: 3 } }).categoryId, 2);
+  assert.equal(toProductCard({ thuongHieu: { id: 3 } }).brandId, 3);
+});
 
 test('catalog filtering reads every API page and retains real IDs, category, price and availability', async () => {
   const original = productService.getProducts;

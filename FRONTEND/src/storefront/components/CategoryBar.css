@@ -1,68 +1,42 @@
 .category-bar {
-  background-color: var(--bg-white);
-  border-top: 1px solid var(--border-color);
-  border-bottom: 1px solid var(--border-color);
-  padding: 10px 0;
+  background: var(--bg-white);
+  border-block: 1px solid var(--border-color);
+  padding: 12px 0;
 }
 
-.brands-container {
-  display: flex;
-  height: 50px;
+.category-bar .brands-container { display:block; height:auto; }
+
+.category-bar .brands-list {
+  display:flex;
+  flex-wrap:nowrap;
+  align-items:center;
+  gap:16px;
+  width:100%;
+  min-width:0;
+  overflow-x:auto;
+  overscroll-behavior-x:contain;
+  scrollbar-width:none;
+  padding:4px 0;
 }
 
-.brands-list {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  width: 100%;
+.category-bar .brands-list::-webkit-scrollbar { display:none; }
+
+.category-bar .brand-item {
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  flex:0 0 176px;
+  height:80px;
+  padding:12px 16px;
 }
 
-.brand-item {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 100%;
-  flex: 1;
-  cursor: pointer;
-  transition: opacity 0.2s ease-in-out;
-  border: none !important;
-  outline: none !important;
+.category-bar .brand-logo {
+  width:144px;
+  height:56px;
+  object-fit:contain;
 }
 
-.brand-logo {
-  width: auto;
-  max-width: 100px;
-  height: 28px;
-  object-fit: contain;
-  transition: transform 0.2s ease-in-out;
-  border: none !important;
-  outline: none !important;
-  mix-blend-mode: multiply;
-}
-
-.brand-item:hover .brand-logo {
-  transform: scale(1.1);
-}
-
-@media (max-width: 768px) {
-  .brands-container {
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: none;
-  }
-
-  .brands-container::-webkit-scrollbar {
-    display: none;
-  }
-
-  .brands-list {
-    min-width: max-content;
-    gap: 16px;
-    justify-content: flex-start;
-  }
-
-  .brand-item {
-    flex: none;
-    padding: 0 8px;
-  }
-}
+.category-bar .brand-name { font-size:22px; font-weight:800; color:#111; text-align:center; }
+.category-bar .brand-item:has(.brand-logo:not([hidden])) .brand-name { display:none; }
+.category-bar .brand-logo[hidden] { display:none; }
+.category-bar .brand-item:focus-visible, .category-bar .brands-list:focus-visible { outline:2px solid #e60000; outline-offset:-2px; }

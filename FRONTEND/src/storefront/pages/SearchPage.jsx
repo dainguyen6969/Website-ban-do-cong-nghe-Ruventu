@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
-import { Search, X, ChevronDown, ChevronUp } from "lucide-react";
+import { Search, X } from "lucide-react";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 import ProductCard from "../components/ProductCard";
@@ -9,19 +9,25 @@ import {
   toProductCard,
 } from "../../shared/services/productService";
 import TablePagination from "../../shared/components/ui/TablePagination";
-import { catalogScopes, inCatalogScope } from './catalogModel';
+import { catalogScopes, inCatalogScope, categoryTreeIds, componentCategoryIds } from './catalogModel';
+import useCatalogOptions from '../hooks/useCatalogOptions';
 import { getRecommendedProducts, isRecommendationQuery } from '../services/recommendationService';
 import "./SearchPage.css";
 
 const SearchPage = ({ categorySlug } = {}) => {
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const query = searchParams.get("q") || "";
   const isCategory = categorySlug != null;
   const isRecommended = !isCategory && (searchParams.get('mode') === 'recommended' || isRecommendationQuery(query));
   const relatedCategoryId = !isCategory ? searchParams.get('danh_muc_id') : null;
   const excludeId = searchParams.get('exclude');
-  const categoryTitle = catalogScopes[categorySlug]?.title || 'Không tìm thấy danh mục';
+  const urlBrandId = searchParams.get('thuong_hieu_id');
+  const catalogOptions = useCatalogOptions();
+  const actualCategory = catalogOptions.categories.find(c => c.duongDanUrl === categorySlug);
+  const categoryIds = useMemo(() => actualCategory ? categoryTreeIds(catalogOptions.categories, actualCategory.id) : categorySlug === 'linh-kien' ? componentCategoryIds(catalogOptions.categories) : null, [actualCategory, catalogOptions.categories, categorySlug]);
+  const categoryTitle = actualCategory?.tenDanhMuc || catalogScopes[categorySlug]?.title || 'Không tìm thấy danh mục';
+  const displayQuery = query || catalogOptions.brands.find(b => String(b.id) === urlBrandId)?.tenThuongHieu || '';
 
   const [searchProducts, setSearchProducts] = useState([]);
   const [suggestedProducts, setSuggestedProducts] = useState([]);
@@ -31,7 +37,6 @@ const SearchPage = ({ categorySlug } = {}) => {
   const resultsRef = useRef(null);
   const [selectedSort, setSortBy] = useState(isCategory ? "newest" : "relevance");
   const sortBy = isRecommended && ['newest', 'bestseller'].includes(selectedSort) ? 'relevance' : selectedSort;
-  const [isSortDropdownOpen, setIsSortDropdownOpen] = useState(false);
 
   // Filter states
   const [minPrice, setMinPrice] = useState("");
@@ -39,8 +44,13 @@ const SearchPage = ({ categorySlug } = {}) => {
   const [stockStatus, setStockStatus] = useState("all"); // 'all', 'in-stock'
   const [selectedBrands, setSelectedBrands] = useState([]);
   const [selectedCategories, setSelectedCategories] = useState([]);
+  const filterCategoryIds = useMemo(() => new Set(selectedCategories.flatMap(id => [...categoryTreeIds(catalogOptions.categories, id)])), [selectedCategories, catalogOptions.categories]);
+  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
+
+  useEffect(() => { if (urlBrandId) setSelectedBrands([urlBrandId]); setPage(1); }, [urlBrandId]);
 
   useEffect(() => {
+    if (catalogOptions.loading) return;
     let active = true;
     const loadProducts = async () => {
       setLoading(true); setError('');
@@ -67,8 +77,8 @@ const SearchPage = ({ categorySlug } = {}) => {
           : await productService.getAllProducts(params);
         const products = catalog.filter(product =>
           (excludeId == null || String(product.id) !== excludeId) &&
-          (!isCategory || inCatalogScope(product, categorySlug)));
-        const recommended = products.length || isCategory || isRecommended || relatedCategoryId ? [] : (await productService.getProducts({ limit: 4, sort: 'moi_nhat' })).data.danhSachSanPham.map(toProductCard);
+          (!isCategory || (categoryIds ? categoryIds.has(Number(product.categoryId)) : inCatalogScope(product, categorySlug))));
+        const recommended = products.length || isCategory || isRecommended || relatedCategoryId || minPrice || maxPrice || stockStatus !== 'all' ? [] : (await productService.getProducts({ limit: 4, sort: 'moi_nhat' })).data.danhSachSanPham.map(toProductCard);
         if (active) { setSearchProducts(products); setSuggestedProducts(recommended); setPage(1); }
       } catch (reason) {
         if (active) { setSearchProducts([]); setSuggestedProducts([]); setError(reason.response?.data?.message || reason.message || 'Không tải được sản phẩm.'); }
@@ -76,20 +86,23 @@ const SearchPage = ({ categorySlug } = {}) => {
     };
     loadProducts();
     return () => { active = false; };
-  }, [query, sortBy, minPrice, maxPrice, stockStatus, categorySlug, isCategory, isRecommended, relatedCategoryId, excludeId]);
+  }, [query, sortBy, minPrice, maxPrice, stockStatus, categorySlug, isCategory, isRecommended, relatedCategoryId, excludeId, catalogOptions.loading, categoryIds]);
 
   const filteredProducts = useMemo(() => {
     const products = searchProducts.filter(product =>
-      (!selectedBrands.length || selectedBrands.includes(product.brand)) &&
-      (!selectedCategories.length || selectedCategories.includes(product.category)));
+      (!selectedBrands.length || selectedBrands.includes(String(product.brandId))) &&
+      (!selectedCategories.length || filterCategoryIds.has(Number(product.categoryId))));
     if (sortBy === 'name-asc') products.sort((a, b) => a.title.localeCompare(b.title, 'vi'));
     if (isRecommended && sortBy === 'price-asc') products.sort((a, b) => a.priceValue - b.priceValue);
     if (isRecommended && sortBy === 'price-desc') products.sort((a, b) => b.priceValue - a.priceValue);
     return products;
-  }, [searchProducts, selectedBrands, selectedCategories, sortBy, isRecommended]);
+  }, [searchProducts, selectedBrands, selectedCategories, filterCategoryIds, sortBy, isRecommended]);
   const totalProducts = filteredProducts.length;
   const currentPage = Math.min(page, Math.max(1, Math.ceil(totalProducts / 20)));
-  const facets = field => [...new Set(searchProducts.map(product => product[field]).filter(Boolean))].sort((a,b) => a.localeCompare(b,'vi')).map(name => ({ name, count: searchProducts.filter(product => product[field] === name).length }));
+  const facets = (items, nameField, idField) => items.map(item => {
+    const ids = idField === 'categoryId' ? categoryTreeIds(catalogOptions.categories, item.id) : new Set([Number(item.id)]);
+    return { id: String(item.id), name: item[nameField], count: searchProducts.filter(product => ids.has(Number(product[idField]))).length };
+  });
 
   const sortOptions = [
     { value: "relevance", label: isRecommended ? "Gợi ý ngẫu nhiên" : "Liên quan nhất" },
@@ -100,8 +113,8 @@ const SearchPage = ({ categorySlug } = {}) => {
     { value: "bestseller", label: "Bán chạy nhất" },
   ].filter(option => !isRecommended || !['newest', 'bestseller'].includes(option.value));
 
-  const brands = facets('brand');
-  const categories = facets('category');
+  const brands = facets(catalogOptions.brands, 'tenThuongHieu', 'brandId');
+  const categories = facets(catalogOptions.categories, 'tenDanhMuc', 'categoryId');
 
   const suggestedKeywords = [
     "RTX 4090",
@@ -146,17 +159,29 @@ const SearchPage = ({ categorySlug } = {}) => {
   };
 
   const clearAllFilters = () => {
+    setPage(1);
     setSelectedBrands([]);
     setSelectedCategories([]);
     setMinPrice("");
     setMaxPrice("");
     setStockStatus("all");
+    if (urlBrandId || relatedCategoryId) setSearchParams(previous => {
+      const next = new URLSearchParams(previous);
+      next.delete('thuong_hieu_id'); next.delete('danh_muc_id');
+      return next;
+    });
   };
 
   const removeFilter = (filter, type) => {
     if (type === "brand") {
       setSelectedBrands((prev) => prev.filter((b) => b !== filter));
+      if (urlBrandId === filter) setSearchParams(previous => { const next = new URLSearchParams(previous); next.delete('thuong_hieu_id'); return next; });
     }
+    if (type === 'category') setSelectedCategories(prev => prev.filter(c => c !== filter));
+    if (type === 'min') setMinPrice('');
+    if (type === 'max') setMaxPrice('');
+    if (type === 'stock') setStockStatus('all');
+    setPage(1);
   };
 
   const hasActiveFilters =
@@ -182,25 +207,22 @@ const handleSuggestKeyword = (k) => {
             <h1 className="catalog-listing-title">Gợi ý dành cho bạn</h1>
             <p>Khám phá sản phẩm ngẫu nhiên từ cửa hàng · {filteredProducts.length} sản phẩm</p>
           </div> : <div className="search-query-info">
-            Kết quả cho: <strong>"{query}"</strong> - {filteredProducts.length}{" "}
+            {displayQuery ? <>Kết quả cho: <strong>"{displayQuery}"</strong></> : 'Tất cả sản phẩm'} - {filteredProducts.length}{" "}
             sản phẩm
           </div>}
         </div>
       </div>
 
       <div className="search-main container">
+        <button type="button" className="search-filter-toggle" aria-expanded={mobileFiltersOpen} aria-controls="store-search-filters" onClick={() => setMobileFiltersOpen(open => !open)}>BỘ LỌC SẢN PHẨM</button>
         {/* Sidebar Filters */}
-        <aside className="search-sidebar">
+        <aside id="store-search-filters" className={`search-sidebar${mobileFiltersOpen ? ' search-sidebar--open' : ''}`}>
           <div className="filter-header-block">
             <h3 className="filter-title">{isCategory ? 'BỘ LỌC SẢN PHẨM' : 'BỘ LỌC TÌM KIẾM'}</h3>
-            {hasActiveFilters && (
-              <button className="clear-all-btn" onClick={clearAllFilters}>
-                XÓA TẤT CẢ
-              </button>
-            )}
           </div>
 
           <div className="filter-block-content">
+            {catalogOptions.error && <p role="alert">{catalogOptions.error}</p>}
             {/* Price Filter */}
             <div className="filter-section">
               <h4 className="filter-section-title">
@@ -281,12 +303,12 @@ const handleSuggestKeyword = (k) => {
               </h4>
               <div className="checkbox-list brand-list">
                 {brands.map((brand) => (
-                  <label key={brand.name} className="checkbox-item">
+                  <label key={brand.id} className="checkbox-item">
                     <div className="checkbox-wrap">
                       <input
                         type="checkbox"
-                        checked={selectedBrands.includes(brand.name)}
-                        onChange={() => handleBrandChange(brand.name)}
+                        checked={selectedBrands.includes(brand.id)}
+                        onChange={() => handleBrandChange(brand.id)}
                       />
                       <span className="checkbox-custom"></span>
                       <span className="checkbox-label">{brand.name}</span>
@@ -304,12 +326,12 @@ const handleSuggestKeyword = (k) => {
               </h4>
               <div className="checkbox-list category-list">
                 {categories.map((cat) => (
-                  <label key={cat.name} className="checkbox-item">
+                  <label key={cat.id} className="checkbox-item">
                     <div className="checkbox-wrap">
                       <input
                         type="checkbox"
-                        checked={selectedCategories.includes(cat.name)}
-                        onChange={() => handleCategoryChange(cat.name)}
+                        checked={selectedCategories.includes(cat.id)}
+                        onChange={() => handleCategoryChange(cat.id)}
                       />
                       <span className="checkbox-custom"></span>
                       <span className="checkbox-label">{cat.name}</span>
@@ -333,59 +355,23 @@ const handleSuggestKeyword = (k) => {
               ) : (
                 <span>Không có kết quả</span>
               )}
+              {hasActiveFilters && <button type="button" className="clear-all-btn" onClick={clearAllFilters}>XÓA TẤT CẢ</button>}
             </div>
             <div className="toolbar-right">
-              <div className="custom-sort-wrapper">
-                <button
-                  className="custom-sort-btn"
-                  onClick={() => setIsSortDropdownOpen(!isSortDropdownOpen)}
-                >
-                  <span className="sort-label">SẮP XẾP: </span>
-                  <span className="sort-current">
-                    {sortOptions.find((opt) => opt.value === sortBy)?.label}
-                  </span>
-                  {isSortDropdownOpen ? (
-                    <ChevronUp size={16} />
-                  ) : (
-                    <ChevronDown size={16} />
-                  )}
-                </button>
-
-                {isSortDropdownOpen && (
-                  <div className="custom-sort-dropdown">
-                    {sortOptions.map((option) => (
-                      <div
-                        key={option.value}
-                        className={`sort-option ${sortBy === option.value ? "active" : ""}`}
-                        onClick={() => {
-                          setSortBy(option.value);
-                          setIsSortDropdownOpen(false);
-                        }}
-                      >
-                        {option.label}
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
+              <select className="custom-sort-btn" aria-label="Sắp xếp sản phẩm" value={sortBy} onChange={event => { setSortBy(event.target.value); setPage(1); }}>
+                {sortOptions.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
+              </select>
             </div>
           </div>
-
           {/* Active Filters */}
           {hasActiveFilters && (
             <div className="active-filters">
-              {selectedBrands.map((brand) => (
-                <div key={brand} className="filter-chip">
-                  <span className="chip-text">{brand}</span>
-                  <button
-                    className="chip-close"
-                    onClick={() => removeFilter(brand, "brand")}
-                  >
-                    <X size={14} />
-                  </button>
-                </div>
-              ))}
-              {/* Other chips can be added similarly */}
+              {[...selectedBrands.map(id => ({ key: `brand-${id}`, value: id, type: 'brand', label: brands.find(b => b.id === id)?.name || id })),
+                ...selectedCategories.map(id => ({ key: `category-${id}`, value: id, type: 'category', label: categories.find(c => c.id === id)?.name || id })),
+                ...(minPrice ? [{ key: 'min', type: 'min', label: `Từ ${Number(minPrice).toLocaleString('vi-VN')}đ` }] : []),
+                ...(maxPrice ? [{ key: 'max', type: 'max', label: `Đến ${Number(maxPrice).toLocaleString('vi-VN')}đ` }] : []),
+                ...(stockStatus === 'in-stock' ? [{ key: 'stock', type: 'stock', label: 'Còn hàng' }] : []),
+              ].map(filter => <div key={filter.key} className="filter-chip"><span>{filter.label}</span><button type="button" className="chip-close" aria-label={`Bỏ lọc ${filter.label}`} onClick={() => removeFilter(filter.value, filter.type)} /></div>)}
             </div>
           )}
 
@@ -410,16 +396,16 @@ const handleSuggestKeyword = (k) => {
                   <Search size={40} />
                 </div>
                 <div className="no-results-content">
-                  <h2>{isCategory || isRecommended || relatedCategoryId ? 'KHÔNG CÓ SẢN PHẨM PHÙ HỢP VỚI BỘ LỌC' : 'KHÔNG TÌM THẤY KẾT QUẢ NÀO PHÙ HỢP VỚI TỪ KHÓA'}</h2>
-                  {!isCategory && !isRecommended && <div className="keyword-badge">
+                  <h2>{isCategory || isRecommended || relatedCategoryId || hasActiveFilters ? 'KHÔNG CÓ SẢN PHẨM PHÙ HỢP VỚI BỘ LỌC' : 'KHÔNG TÌM THẤY KẾT QUẢ NÀO PHÙ HỢP VỚI TỪ KHÓA'}</h2>
+                  {!isCategory && !isRecommended && query && !hasActiveFilters && <div className="keyword-badge">
                     <Search size={16} />
                     <span>"{query}"</span>
                   </div>}
                   <p>
-                    {isCategory || isRecommended || relatedCategoryId ? 'Thử thay đổi khoảng giá, thương hiệu hoặc xóa bộ lọc để xem thêm sản phẩm.' : 'Hệ thống không tìm thấy sản phẩm nào phù hợp. Thử kiểm tra lại chính tả, dùng từ khóa ngắn hơn, hoặc tìm theo tên thương hiệu / danh mục.'}
+                    {isCategory || isRecommended || relatedCategoryId || hasActiveFilters ? 'Thử thay đổi khoảng giá, thương hiệu hoặc xóa bộ lọc để xem thêm sản phẩm.' : 'Hệ thống không tìm thấy sản phẩm nào phù hợp. Thử kiểm tra lại chính tả, dùng từ khóa ngắn hơn, hoặc tìm theo tên thương hiệu / danh mục.'}
                   </p>
 
-                  {!isCategory && !isRecommended && !relatedCategoryId && <div className="suggested-keywords">
+                  {!isCategory && !isRecommended && !relatedCategoryId && !hasActiveFilters && <div className="suggested-keywords">
                     {suggestedKeywords.map((k) => (
                       <button
                         key={k}
@@ -443,7 +429,7 @@ const handleSuggestKeyword = (k) => {
               </div>
 
               {/* Recommended Products when no results */}
-              {suggestedProducts.length > 0 && <div className="recommended-section">
+              {!hasActiveFilters && suggestedProducts.length > 0 && <div className="recommended-section">
                 <div className="recommended-header">
                   <h3>
                     <span>|</span> SẢN PHẨM NỔI BẬT
