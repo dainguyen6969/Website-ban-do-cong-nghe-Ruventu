@@ -145,6 +145,54 @@ public class SupplierRecallService {
         now());
   }
 
+    private void requireRecallSlot(
+            Set<Long> serialIds, SupplierRecallRequest.Open request) {
+
+        List<Map<String, Object>> overlaps;
+
+        if (serialIds.isEmpty()) {
+            overlaps =
+                    jdbc.queryForList(
+                            """
+                            SELECT r.code
+                            FROM rv_recall_item i
+                            JOIN rv_recall r ON r.id = i.recall_id
+                            WHERE i.receipt_line_id = ?
+                              AND i.serial_id IS NULL
+                              AND r.status = 'DANG_XU_LY'
+                              AND i.status <> 'DA_GIAI_QUYET'
+                            LIMIT 1
+                            """,
+                            request.receiptLineId());
+        } else {
+            String placeholders =
+                    String.join(",", Collections.nCopies(serialIds.size(), "?"));
+
+            String sql =
+                    """
+                    SELECT r.code
+                    FROM rv_recall_item i
+                    JOIN rv_recall r ON r.id = i.recall_id
+                    WHERE r.status = 'DANG_XU_LY'
+                      AND i.status <> 'DA_GIAI_QUYET'
+                      AND i.serial_id IN (%s)
+                    LIMIT 1
+                    """.formatted(placeholders);
+
+            overlaps = jdbc.queryForList(sql, serialIds.toArray());
+        }
+
+        if (!overlaps.isEmpty()) {
+            throw new AppException(
+                    ErrorCode.CONFLICT,
+                    request.receiptLineId() == null ? "serialCodes" : "receiptLineId",
+                    "RECALL_ALREADY_ACTIVE",
+                    "Phạm vi đang được xử lý tại "
+                            + overlaps.getFirst().get("code")
+                            + ". Hãy tiếp tục đợt đó trước.");
+        }
+    }
+
   @Transactional(readOnly = false, isolation = Isolation.READ_COMMITTED)
   public Result open(String key, SupplierRecallRequest.Open request) {
     var actor = context.actor();
@@ -256,7 +304,9 @@ public class SupplierRecallService {
                 "Nguồn serial vừa thay đổi; mở lại phạm vi.");
           }
 
-          String code = "TH-" + UUID.randomUUID();
+            requireRecallSlot(serialIds, request);
+
+            String code = "TH-" + UUID.randomUUID();
 
           long recallId =
               insert(
@@ -340,9 +390,13 @@ public class SupplierRecallService {
         () -> {
           var campaign = row("SELECT * FROM rv_recall WHERE id = ? FOR UPDATE", recallId);
 
-          require(
-              Objects.equals(id(campaign.get("revision")), request.revision()),
-              "Phạm vi thu hồi đã thay đổi; mở lại thao tác.");
+            if (!Objects.equals(id(campaign.get("revision")), request.revision())) {
+                throw new AppException(
+                        ErrorCode.CONFLICT,
+                        "revision",
+                        "RECALL_REVISION_CHANGED",
+                        "Phạm vi thu hồi đã thay đổi; mở lại thao tác.");
+            }
 
           require(Boolean.TRUE.equals(request.confirmed()), "Chưa xác nhận thao tác thu hồi.");
 
@@ -402,49 +456,77 @@ public class SupplierRecallService {
                   request.itemId());
             }
 
-            case "GAN_THIET_BI" -> {
-              require(
-                  item != null
-                      && item.get("serial_id") == null
-                      && !"DA_GIAI_QUYET".equals(item.get("status")),
-                  "Chỉ đối soát thiết bị không serial đang xử lý.");
+              case "GAN_THIET_BI" -> {
+                  require(
+                          item != null
+                                  && item.get("serial_id") == null
+                                  && !"DA_GIAI_QUYET".equals(item.get("status")),
+                          "Chỉ đối soát thiết bị không serial đang xử lý.");
 
-              document(request.document());
+                  document(request.document());
 
-              require(
-                  Boolean.TRUE.equals(request.sourceVerified()),
-                  "Chưa xác nhận đối chiếu nguồn thực tế.");
+                  require(
+                          Boolean.TRUE.equals(request.sourceVerified()),
+                          "Chưa xác nhận đối chiếu nguồn thực tế.");
 
-              var device = row("SELECT * FROM thiet_bi_bao_hanh WHERE id = ?", request.deviceId());
+                  var device =
+                          row(
+                                  "SELECT * FROM thiet_bi_bao_hanh WHERE id = ? FOR UPDATE",
+                                  request.deviceId());
 
-              require(
-                  device.get("so_serial_id") == null
-                      && Objects.equals(id(device.get("phien_ban_id")), id(item.get("variant_id"))),
-                  "Thiết bị bán không khớp phiên bản không serial.");
+                  require(
+                          device.get("so_serial_id") == null
+                                  && Objects.equals(
+                                  id(device.get("phien_ban_id")),
+                                  id(item.get("variant_id"))),
+                          "Thiết bị bán không khớp phiên bản không serial.");
 
-              require(
-                  jdbc.queryForObject(
+                  require(
+                          jdbc.queryForObject(
+                                  """
+                                  SELECT COUNT(*)
+                                  FROM rv_recall_item
+                                  WHERE recall_id = ? AND device_id = ? AND id <> ?
+                                  """,
+                                  Long.class,
+                                  recallId,
+                                  request.deviceId(),
+                                  request.itemId())
+                                  == 0,
+                          "Thiết bị đã được gắn cho dòng khác trong đợt thu hồi.");
+
+                  Long activeLinks =
+                          jdbc.queryForObject(
+                                  """
+                                  SELECT COUNT(*)
+                                  FROM rv_recall_item i
+                                  JOIN rv_recall r ON r.id = i.recall_id
+                                  WHERE i.device_id = ?
+                                    AND i.id <> ?
+                                    AND r.status = 'DANG_XU_LY'
+                                    AND i.status <> 'DA_GIAI_QUYET'
+                                  """,
+                                  Long.class,
+                                  request.deviceId(),
+                                  request.itemId());
+
+                  if (activeLinks != null && activeLinks > 0) {
+                      throw new AppException(
+                              ErrorCode.CONFLICT,
+                              "deviceId",
+                              "RECALL_DEVICE_ACTIVE",
+                              "Thiết bị đang được xử lý ở một dòng thu hồi khác.");
+                  }
+
+                  jdbc.update(
                           """
-                                            SELECT COUNT(*)
-                                            FROM rv_recall_item
-                                            WHERE recall_id = ? AND device_id = ? AND id <> ?
-                                            """,
-                          Long.class,
-                          recallId,
+                          UPDATE rv_recall_item
+                          SET device_id = ?, source_verified = TRUE
+                          WHERE id = ?
+                          """,
                           request.deviceId(),
-                          request.itemId())
-                      == 0,
-                  "Thiết bị đã được gắn cho dòng khác trong đợt thu hồi.");
-
-              jdbc.update(
-                  """
-                                    UPDATE rv_recall_item
-                                    SET device_id = ?, source_verified = TRUE
-                                    WHERE id = ?
-                                    """,
-                  request.deviceId(),
-                  request.itemId());
-            }
+                          request.itemId());
+              }
 
             case "TRA_NCC", "DOI_NCC", "DOI_BAO_HANH", "LOAI_TRU" -> {
               require(

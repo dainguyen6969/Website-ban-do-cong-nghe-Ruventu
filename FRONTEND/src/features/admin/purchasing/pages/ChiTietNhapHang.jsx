@@ -60,6 +60,7 @@ export default function ChiTietNhapHang() {
   const navigate = useNavigate();
   const [order, setOrder] = useState(null);
   const [modal, setModal] = useState('');
+  const [detailTab, setDetailTab] = useState('overview');
   const [loading, setLoading] = useState(true);
 
   const [pageBusy, setBusy] = useState(false);
@@ -299,7 +300,7 @@ export default function ChiTietNhapHang() {
   const approved = !['DAT_HANG', 'HUY'].includes(order.importStatus);
 
   return (
-    <main className="purchase-page purchase-detail-page">
+    <main className="purchase-page purchase-detail-page ruventu-ops">
       <div className="purchase-heading purchase-detail-heading">
         <div>
           <PageCrumb tail={order.code} />
@@ -384,188 +385,217 @@ export default function ChiTietNhapHang() {
         </div>
       </div>
       {error && <p className="purchase-message error">{error}</p>}
+
+      <nav className="ops-tabs purchase-detail-tabs" aria-label="Nội dung đơn nhập">
+        {[
+          ['overview', 'Sản phẩm và nhập kho'],
+          ['sources', 'Nguồn nhận'],
+          ['cases', 'Hồ sơ Nhà Cung Cấp'],
+          ['documents', 'Chứng từ'],
+          ['money', 'Thanh toán và công nợ'],
+        ].map(([value, label]) => (
+          <button
+            key={value}
+            type="button"
+            className={detailTab === value ? 'is-active' : ''}
+            aria-pressed={detailTab === value}
+            disabled={busy}
+            onClick={() => setDetailTab(value)}
+          >
+            {label}
+          </button>
+        ))}
+      </nav>
+
       <div className="purchase-detail-grid">
         <div className="purchase-detail-main">
-          <PurchaseCard title="SẢN PHẨM TRONG ĐƠN NHẬP">
-            <table className="purchase-detail-table">
-              <thead>
-                <tr>
-                  <th>PHIÊN BẢN</th>
-                  <th>SL ĐẶT</th>
-                  <th>ĐƠN GIÁ NHẬP</th>
-                  <th>THÀNH TIỀN</th>
-                  <th>ĐÃ NHẬP</th>
-                  <th>ĐÃ TRẢ</th>
-                </tr>
-              </thead>
-              <tbody>
-                {pagination.visibleItems.map((item) => (
-                  <tr key={item.id}>
-                    <td>
-                      <strong>{item.name}</strong>
-                    </td>
-                    <td>{item.qty}</td>
-                    <td>{money(item.unitPrice)}</td>
-                    <td>{money(item.lineTotal)}</td>
-                    <td className="received">
-                      {item.received} <span>/ {item.qty}</span>
-                    </td>
-                    <td>{item.returned}</td>
+          <section className="purchase-section" hidden={detailTab !== 'overview'}>
+            <PurchaseCard title="SẢN PHẨM TRONG ĐƠN NHẬP">
+              <table className="purchase-detail-table">
+                <thead>
+                  <tr>
+                    <th>PHIÊN BẢN</th>
+                    <th>SL ĐẶT</th>
+                    <th>ĐƠN GIÁ NHẬP</th>
+                    <th>THÀNH TIỀN</th>
+                    <th>ĐÃ NHẬP</th>
+                    <th>ĐÃ TRẢ</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-            <DetailTablePagination
-              totalItems={order.items.length}
-              currentPage={pagination.currentPage}
-              onPageChange={pagination.onPageChange}
-              idPrefix="purchase-order-items"
-            />
-          </PurchaseCard>
-
-          {(order.receivedSerials.length > 0 ||
-            order.items.some((item) => item.serialManaged === true)) && (
-            <PurchaseCard title="SERIAL ĐÃ NHẬN THEO ĐƠN NHẬP">
-              <p className="purchase-received-serials__count">
-                {order.receivedSerials.length} mã serial đã tiếp nhận
-              </p>
-
-              <div className="purchase-received-serials">
-                <table className="purchase-received-serial-table">
-                  <thead>
-                    <tr>
-                      <th>STT</th>
-                      <th>PHIÊN BẢN</th>
-                      <th>SERIAL</th>
-                      <th>TRẠNG THÁI HIỆN TẠI</th>
+                </thead>
+                <tbody>
+                  {pagination.visibleItems.map((item) => (
+                    <tr key={item.id}>
+                      <td>
+                        <strong>{item.name}</strong>
+                      </td>
+                      <td>{item.qty}</td>
+                      <td>{money(item.unitPrice)}</td>
+                      <td>{money(item.lineTotal)}</td>
+                      <td className="received">
+                        {item.received} <span>/ {item.qty}</span>
+                      </td>
+                      <td>{item.returned}</td>
                     </tr>
-                  </thead>
+                  ))}
+                </tbody>
+              </table>
+              <DetailTablePagination
+                totalItems={order.items.length}
+                currentPage={pagination.currentPage}
+                onPageChange={pagination.onPageChange}
+                idPrefix="purchase-order-items"
+              />
+            </PurchaseCard>
 
-                  <tbody>
-                    {!order.receivedSerials.length ? (
+            {(order.receivedSerials.length > 0 ||
+              order.items.some((item) => item.serialManaged === true)) && (
+              <PurchaseCard title="SERIAL ĐÃ NHẬN THEO ĐƠN NHẬP">
+                <p className="purchase-received-serials__count">
+                  {order.receivedSerials.length} mã serial đã tiếp nhận
+                </p>
+                <div className="purchase-received-serials">
+                  <table className="purchase-received-serial-table">
+                    <thead>
                       <tr>
-                        <td colSpan={4}>Chưa có serial đã nhận.</td>
+                        <th>STT</th>
+                        <th>PHIÊN BẢN</th>
+                        <th>SERIAL</th>
+                        <th>TRẠNG THÁI HIỆN TẠI</th>
                       </tr>
-                    ) : (
-                      order.receivedSerials.map((serial, index) => (
-                        <tr key={serial.id}>
-                          <td>{index + 1}</td>
-
-                          <td>{serial.name}</td>
-
-                          <td>
-                            <Link to={`/kho-hang/danh-sach-serial/${serial.id}`}>
-                              {serial.code}
-                            </Link>
-                          </td>
-
-                          <td>
-                            <span>{RECEIVED_SERIAL_LABELS[serial.status] || 'Chưa xác định'}</span>
-
-                            {serial.packingHeld && <small>Đang phân bổ đóng gói</small>}
-
-                            {serial.recallBlocked && (
-                              <small className="is-recall-blocked">Thuộc phạm vi thu hồi</small>
-                            )}
-                          </td>
+                    </thead>
+                    <tbody>
+                      {!order.receivedSerials.length ? (
+                        <tr>
+                          <td colSpan={4}>Chưa có serial đã nhận.</td>
                         </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
+                      ) : (
+                        order.receivedSerials.map((serial, index) => (
+                          <tr key={serial.id}>
+                            <td>{index + 1}</td>
+                            <td>{serial.name}</td>
+                            <td>
+                              <Link to={`/kho-hang/danh-sach-serial/${serial.id}`}>
+                                {serial.code}
+                              </Link>
+                            </td>
+                            <td>
+                              <span>
+                                {RECEIVED_SERIAL_LABELS[serial.status] || 'Chưa xác định'}
+                              </span>
+                              {serial.packingHeld && <small>Đang phân bổ đóng gói</small>}
+                              {serial.recallBlocked && (
+                                <small className="is-recall-blocked">Thuộc phạm vi thu hồi</small>
+                              )}
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </PurchaseCard>
+            )}
+
+            <PurchaseCard title="TIẾN ĐỘ NHẬP KHO">
+              <div className="progress-line">
+                <div style={{ width: `${totals.progress}%` }} />
+                <span>{totals.progress}%</span>
+              </div>
+              <div className="progress-stats">
+                <div>
+                  <b>{totals.ordered}</b>
+                  <span>TỔNG ĐẶT</span>
+                </div>
+                <div className="orange-text">
+                  <b>{totals.received}</b>
+                  <span>ĐÃ NHẬP</span>
+                </div>
+                <div>
+                  <b>{totals.returned}</b>
+                  <span>ĐÃ TRẢ NHÀ CUNG CẤP</span>
+                </div>
+                <div>
+                  <b>{totals.waiting}</b>
+                  <span>CÒN CHỜ</span>
+                </div>
               </div>
             </PurchaseCard>
-          )}
+          </section>
 
-          <PurchaseSourcePanel
-            order={order}
-            locked={pageBusy || nccLocked || documentLocked || Boolean(modal)}
-            onLockChange={setSourceLocked}
-          />
+          <section className="purchase-section" hidden={detailTab !== 'sources'}>
+            <PurchaseSourcePanel
+              order={order}
+              locked={pageBusy || nccLocked || documentLocked || Boolean(modal)}
+              onLockChange={setSourceLocked}
+            />
+          </section>
 
-          <SupplierCasePanel
-            key={order.id}
-            order={order}
-            locked={
-              pageBusy ||
-              sourceLocked ||
-              documentLocked ||
-              Boolean(modal) ||
-              Boolean(purchaseAttempt.current)
-            }
-            onRefresh={load}
-            onLockChange={setNccLocked}
-          />
+          <section className="purchase-section" hidden={detailTab !== 'cases'}>
+            <SupplierCasePanel
+              key={order.id}
+              order={order}
+              locked={
+                pageBusy ||
+                sourceLocked ||
+                documentLocked ||
+                Boolean(modal) ||
+                Boolean(purchaseAttempt.current)
+              }
+              onRefresh={load}
+              onLockChange={setNccLocked}
+            />
+          </section>
 
-          <DocumentPanel
-            key={`purchase-${order.id}`}
-            mode="purchase"
-            id={order.id}
-            locked={
-              pageBusy ||
-              sourceLocked ||
-              nccLocked ||
-              Boolean(modal) ||
-              Boolean(purchaseAttempt.current)
-            }
-            onEditingChange={setDocumentLocked}
-          />
+          <section className="purchase-section" hidden={detailTab !== 'documents'}>
+            <DocumentPanel
+              key={`purchase-${order.id}`}
+              mode="purchase"
+              id={order.id}
+              locked={
+                pageBusy ||
+                sourceLocked ||
+                nccLocked ||
+                Boolean(modal) ||
+                Boolean(purchaseAttempt.current)
+              }
+              onEditingChange={setDocumentLocked}
+            />
+          </section>
 
-          <PurchaseCard title="TIẾN ĐỘ NHẬP KHO">
-            <div className="progress-line">
-              <div style={{ width: `${totals.progress}%` }} />
-              <span>{totals.progress}%</span>
-            </div>
-            <div className="progress-stats">
-              <div>
-                <b>{totals.ordered}</b>
-                <span>TỔNG ĐẶT</span>
+          <section className="purchase-section" hidden={detailTab !== 'money'}>
+            <PurchaseCard title="THANH TOÁN NHÀ CUNG CẤP">
+              <div className="detail-payment">
+                <span>GIÁ TRỊ ĐƠN BAN ĐẦU</span>
+                <b>{money(order.total)}</b>
+
+                <span>GIÁ TRỊ TRẢ THEO LẦN CŨ</span>
+                <b>{order.returnedValue == null ? '—' : money(order.returnedValue)}</b>
+
+                <span>ĐIỀU CHỈNH QUA HỒ SƠ NHÀ CUNG CẤP</span>
+                <b>{order.nccAdjustment == null ? '—' : money(order.nccAdjustment)}</b>
+
+                <span>NGHĨA VỤ SAU ĐIỀU CHỈNH</span>
+                <b>{order.netOrderValue == null ? '—' : money(order.netOrderValue)}</b>
+
+                <span>TỔNG TIỀN ĐÃ CHI</span>
+                <b>{order.paid == null ? '—' : money(order.paid)}</b>
+
+                <span>TỔNG TIỀN ĐÃ NHẬN HOÀN</span>
+                <b>{order.refunded == null ? '—' : money(order.refunded)}</b>
+
+                <span>ĐÃ THANH TOÁN THUẦN</span>
+                <b>{order.netPaid == null ? '—' : money(order.netPaid)}</b>
+
+                <span>CỬA HÀNG CÒN NỢ NHÀ CUNG CẤP</span>
+                <b>{order.debt == null ? '—' : money(order.debt)}</b>
+
+                <span>NHÀ CUNG CẤP CÒN PHẢI HOÀN</span>
+                <b>{order.refundDue == null ? '—' : money(order.refundDue)}</b>
               </div>
-              <div className="orange-text">
-                <b>{totals.received}</b>
-                <span>ĐÃ NHẬP</span>
-              </div>
-              <div>
-                <b>{totals.returned}</b>
-                <span>ĐÃ TRẢ NHÀ CUNG CẤP</span>
-              </div>
-              <div>
-                <b>{totals.waiting}</b>
-                <span>CÒN CHỜ</span>
-              </div>
-            </div>
-          </PurchaseCard>
-          <PurchaseCard title="THANH TOÁN NHÀ CUNG CẤP">
-            <div className="detail-payment">
-              <span>GIÁ TRỊ ĐƠN BAN ĐẦU</span>
-              <b>{money(order.total)}</b>
-
-              <span>GIÁ TRỊ TRẢ THEO LẦN CŨ</span>
-              <b>{order.returnedValue == null ? '—' : money(order.returnedValue)}</b>
-
-              <span>ĐIỀU CHỈNH QUA HỒ SƠ NHÀ CUNG CẤP</span>
-              <b>{order.nccAdjustment == null ? '—' : money(order.nccAdjustment)}</b>
-
-              <span>NGHĨA VỤ SAU ĐIỀU CHỈNH</span>
-              <b>{order.netOrderValue == null ? '—' : money(order.netOrderValue)}</b>
-
-              <span>TỔNG TIỀN ĐÃ CHI</span>
-              <b>{order.paid == null ? '—' : money(order.paid)}</b>
-
-              <span>TỔNG TIỀN ĐÃ NHẬN HOÀN</span>
-              <b>{order.refunded == null ? '—' : money(order.refunded)}</b>
-
-              <span>ĐÃ THANH TOÁN THUẦN</span>
-              <b>{order.netPaid == null ? '—' : money(order.netPaid)}</b>
-
-              <span>CỬA HÀNG CÒN NỢ NHÀ CUNG CẤP</span>
-              <b>{order.debt == null ? '—' : money(order.debt)}</b>
-
-              <span>NHÀ CUNG CẤP CÒN PHẢI HOÀN</span>
-              <b>{order.refundDue == null ? '—' : money(order.refundDue)}</b>
-            </div>
-          </PurchaseCard>
+            </PurchaseCard>
+          </section>
         </div>
+
         <aside className="purchase-detail-side">
           <PurchaseCard title="NHÀ CUNG CẤP">
             <InfoRows
@@ -578,6 +608,7 @@ export default function ChiTietNhapHang() {
               ]}
             />
           </PurchaseCard>
+
           <PurchaseCard title="KHO NHẬP">
             <InfoRows
               rows={[
@@ -586,13 +617,16 @@ export default function ChiTietNhapHang() {
               ]}
             />
           </PurchaseCard>
+
           <PurchaseCard title="TRẠNG THÁI ĐƠN">
             <div className="status-info">
               <span>TRẠNG THÁI NHẬP</span>
               <StatusBadge>{order.importStatusLabel}</StatusBadge>
               <span>THANH TOÁN NHÀ CUNG CẤP</span>
               <StatusBadge>{order.paymentStatusLabel}</StatusBadge>
+
               {approved && <p>ĐƠN ĐÃ DUYỆT – KHÔNG THỂ CHỈNH SỬA</p>}
+
               {order.importStatus === 'HUY' && (
                 <p className="cancel-note">ĐƠN ĐÃ HỦY – LƯU LÀM LỊCH SỬ</p>
               )}
@@ -673,92 +707,86 @@ export default function ChiTietNhapHang() {
             </p>
           )}
 
-          <div className="return-table-scroll">
-            <table className="receipt-table">
-              <thead>
-                <tr>
-                  <th>PHIÊN BẢN</th>
-                  <th>ĐÃ ĐẶT</th>
-                  <th>ĐÃ NHẬP</th>
-                  <th>CÒN NHẬP</th>
-                  <th>NHẬP LẦN NÀY</th>
-                  <th>SERIAL</th>
-                </tr>
-              </thead>
+          <div className="purchase-receive-list">
+            {waitingReceipt.map((item) => {
+              const quantity = Number(receiptQuantities[item.id] ?? 0);
+              const codes = serialCodes(serialValues[item.id]);
 
-              <tbody>
-                {waitingReceipt.map((item) => {
-                  const quantity = Number(receiptQuantities[item.id] ?? 0);
-                  const codes = serialCodes(serialValues[item.id]);
+              return (
+                <article key={item.id} className="purchase-receive-item">
+                  <header>
+                    <strong>{item.name}</strong>
+                    <span>
+                      Đặt {item.qty} · Đã nhập {item.received}
+                      {' · '}Còn {item.qty - item.received}
+                    </span>
+                  </header>
 
-                  return (
-                    <tr key={item.id}>
-                      <td>
-                        <strong>{item.name}</strong>
+                  <div className="purchase-receive-fields">
+                    <label>
+                      <span>Số lượng nhận lần này</span>
+                      <input
+                        aria-label={`Số lượng nhập ${item.name}`}
+                        type="number"
+                        min="0"
+                        max={item.qty - item.received}
+                        step="1"
+                        disabled={receiptLocked}
+                        value={receiptQuantities[item.id] ?? 0}
+                        onChange={(event) =>
+                          setReceiptQuantities((current) => ({
+                            ...current,
+                            [item.id]: event.target.value,
+                          }))
+                        }
+                      />
+                    </label>
 
-                        <label className="recall-lot-field">
-                          <span>Mã lô Nhà Cung Cấp</span>
-                          <input
-                            maxLength={100}
-                            disabled={receiptLocked || quantity === 0}
-                            value={supplierLots[item.id] || ''}
-                            onChange={(event) =>
-                              setSupplierLots((current) => ({
-                                ...current,
-                                [item.id]: event.target.value,
-                              }))
-                            }
-                          />
-                        </label>
-                      </td>
-                      <td>{item.qty}</td>
-                      <td>{item.received}</td>
-                      <td>{item.qty - item.received}</td>
-                      <td>
-                        <input
-                          aria-label={`Số lượng nhập ${item.name}`}
-                          className="purchase-receive-quantity"
-                          type="number"
-                          min="0"
-                          max={item.qty - item.received}
-                          step="1"
-                          disabled={receiptLocked}
-                          value={receiptQuantities[item.id] ?? 0}
+                    <label>
+                      <span>Mã lô trên hàng/chứng từ, nếu có</span>
+                      <input
+                        maxLength={100}
+                        disabled={receiptLocked || quantity === 0}
+                        value={supplierLots[item.id] || ''}
+                        onChange={(event) =>
+                          setSupplierLots((current) => ({
+                            ...current,
+                            [item.id]: event.target.value,
+                          }))
+                        }
+                      />
+                    </label>
+
+                    {item.serialManaged ? (
+                      <label className="purchase-receive-serials">
+                        <span>
+                          Serial thực nhận · {codes.length}/{quantity}
+                        </span>
+                        <textarea
+                          rows={3}
+                          disabled={receiptLocked || quantity === 0}
+                          value={serialValues[item.id] || ''}
                           onChange={(event) =>
-                            setReceiptQuantities((current) => ({
+                            setSerialValues((current) => ({
                               ...current,
                               [item.id]: event.target.value,
                             }))
                           }
+                          placeholder="Mỗi serial một dòng"
                         />
-                      </td>
-                      <td>
-                        {item.serialManaged ? (
-                          <div className="receipt-serial-input">
-                            <textarea
-                              disabled={receiptLocked || quantity === 0}
-                              value={serialValues[item.id] || ''}
-                              onChange={(event) =>
-                                setSerialValues((current) => ({
-                                  ...current,
-                                  [item.id]: event.target.value,
-                                }))
-                              }
-                              placeholder="Mỗi serial một dòng"
-                            />
-                            <small>
-                              Đã nhập {codes.length}/{quantity} serial
-                            </small>
-                          </div>
-                        ) : (
-                          'Không quản lý serial'
+                        {quantity > 0 && codes.length !== quantity && (
+                          <small className="ncc-field-error">
+                            Số serial phải khớp số lượng nhận.
+                          </small>
                         )}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+                      </label>
+                    ) : (
+                      <p>Không quản lý serial.</p>
+                    )}
+                  </div>
+                </article>
+              );
+            })}
           </div>
 
           {purchaseAttempt.current?.scope === receiptScope && (

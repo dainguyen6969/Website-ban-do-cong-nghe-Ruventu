@@ -16,17 +16,42 @@ function position(row) {
 
   if (states[row.trang_thai]) return states[row.trang_thai];
   if (row.packing_order_id) return 'Đang phân bổ đóng gói';
-  if (row.don_hang_id && row.ngay_hoan_thanh) return 'Khách đã nhận theo chứng từ';
-  if (row.don_hang_id && row.order_status === 'DANG_GIAO_HANG') return 'Đang giao hàng';
+  if (row.don_hang_id && row.ngay_hoan_thanh) {
+    return 'Khách đã nhận theo chứng từ';
+  }
+  if (row.don_hang_id && row.order_status === 'DANG_GIAO_HANG') {
+    return 'Đang giao hàng';
+  }
   if (row.don_hang_id) return 'Đã gắn đơn bán; đối chiếu bàn giao';
   if (row.trang_thai === 'TRONG_KHO') return 'Trong kho cửa hàng';
+
   return 'Cần đối chiếu theo lịch sử thiết bị';
+}
+
+const TRACE_TABS = [
+  ['receipts', 'Nguồn nhận'],
+  ['devices', 'Đơn bán và nhận lại'],
+  ['warranty', 'Đổi thiết bị và bảo hành'],
+  ['supplierEvents', 'Lịch sử Nhà Cung Cấp'],
+  ['recalls', 'Các đợt thu hồi'],
+];
+
+function TraceSection({ active, value, label, count, children }) {
+  return (
+    <section className="trace-content" hidden={active !== value}>
+      <h3>
+        {label} <span className="ncc-count">{count}</span>
+      </h3>
+      {count ? children : <p className="recall-muted">Chưa có bản ghi trong nhóm này.</p>}
+    </section>
+  );
 }
 
 export default function SerialTracePanel({ serialId, refreshKey }) {
   const [data, setData] = useState(null);
   const [error, setError] = useState('');
   const [retry, setRetry] = useState(0);
+  const [tab, setTab] = useState('receipts');
 
   useEffect(() => {
     const controller = new AbortController();
@@ -39,7 +64,9 @@ export default function SerialTracePanel({ serialId, refreshKey }) {
         }
       })
       .catch((cause) => {
-        if (!controller.signal.aborted) setError(errorMessage(cause));
+        if (!controller.signal.aborted) {
+          setError(errorMessage(cause));
+        }
       });
 
     return () => controller.abort();
@@ -48,6 +75,7 @@ export default function SerialTracePanel({ serialId, refreshKey }) {
   return (
     <section className="serial-info-card recall-trace">
       <h2>NGUỒN NHẬP VÀ TRUY VẾT</h2>
+
       <div className="recall-body">
         {error && (
           <p className="recall-error" role="alert">
@@ -61,6 +89,7 @@ export default function SerialTracePanel({ serialId, refreshKey }) {
             </button>
           </p>
         )}
+
         {!data && !error && <p role="status">Đang tải truy vết...</p>}
 
         {data && (
@@ -78,14 +107,17 @@ export default function SerialTracePanel({ serialId, refreshKey }) {
                   )}
                 </dd>
               </div>
+
               <div>
                 <dt>Nhà Cung Cấp</dt>
                 <dd>{data.current.ten_nha_cung_cap || 'Chưa xác định'}</dd>
               </div>
+
               <div>
                 <dt>Vị trí theo sự kiện</dt>
                 <dd>{position(data.current)}</dd>
               </div>
+
               <div>
                 <dt>Thu hồi</dt>
                 <dd>
@@ -100,8 +132,26 @@ export default function SerialTracePanel({ serialId, refreshKey }) {
               </p>
             )}
 
-            <details className="recall-section" open>
-              <summary>Nguồn nhận ({data.receipts.length})</summary>
+            <nav className="ops-tabs" aria-label="Nhóm thông tin truy vết">
+              {TRACE_TABS.map(([value, label]) => (
+                <button
+                  key={value}
+                  type="button"
+                  aria-pressed={tab === value}
+                  className={tab === value ? 'is-active' : ''}
+                  onClick={() => setTab(value)}
+                >
+                  {label} <span>{data[value].length}</span>
+                </button>
+              ))}
+            </nav>
+
+            <TraceSection
+              active={tab}
+              value="receipts"
+              label="Nguồn nhận"
+              count={data.receipts.length}
+            >
               {data.receipts.map((receipt) => (
                 <article className="recall-history-line" key={receipt.id}>
                   <strong>
@@ -110,15 +160,20 @@ export default function SerialTracePanel({ serialId, refreshKey }) {
                   </strong>
                   <p>Lô: {receipt.supplier_lot || 'Chưa ghi mã lô'}</p>
                   <small>
-                    {formatDateTimeVN(receipt.recorded_at)} · {receipt.actor_name}
+                    {formatDateTimeVN(receipt.recorded_at)}
+                    {' · '}
+                    {receipt.actor_name}
                   </small>
                 </article>
               ))}
-              {!data.receipts.length && <p className="recall-muted">Chưa có nguồn nhận riêng.</p>}
-            </details>
+            </TraceSection>
 
-            <details className="recall-section">
-              <summary>Đơn bán và nhận lại ({data.devices.length})</summary>
+            <TraceSection
+              active={tab}
+              value="devices"
+              label="Đơn bán và nhận lại"
+              count={data.devices.length}
+            >
               {data.devices.map((device) => (
                 <article className="recall-history-line" key={device.id}>
                   <strong>{device.ma_theo_doi}</strong>
@@ -127,7 +182,8 @@ export default function SerialTracePanel({ serialId, refreshKey }) {
                     {device.ma_don_hang}
                   </Link>
                   <p>
-                    {device.ten_nguoi_nhan || 'Chưa có người nhận'} ·{' '}
+                    {device.ten_nguoi_nhan || 'Chưa có người nhận'}
+                    {' · '}
                     {device.sdt_nguoi_nhan || 'Chưa có số điện thoại'}
                   </p>
                   {device.return_id && <small>Phiếu nhận lại: {device.ma_tra_hang}</small>}
@@ -138,10 +194,14 @@ export default function SerialTracePanel({ serialId, refreshKey }) {
                   </small>
                 </article>
               ))}
-            </details>
+            </TraceSection>
 
-            <details className="recall-section">
-              <summary>Đổi thiết bị và bảo hành ({data.warranty.length})</summary>
+            <TraceSection
+              active={tab}
+              value="warranty"
+              label="Đổi thiết bị và bảo hành"
+              count={data.warranty.length}
+            >
               {data.warranty.map((ticket) => (
                 <article className="recall-history-line" key={ticket.id}>
                   <Link to={`/admin/bao-hanh/chi-tiet/${ticket.id}`}>{ticket.ma_phieu}</Link>
@@ -156,15 +216,21 @@ export default function SerialTracePanel({ serialId, refreshKey }) {
                   </small>
                 </article>
               ))}
-            </details>
+            </TraceSection>
 
-            <details className="recall-section">
-              <summary>Lịch sử Nhà Cung Cấp ({data.supplierEvents.length})</summary>
+            <TraceSection
+              active={tab}
+              value="supplierEvents"
+              label="Lịch sử Nhà Cung Cấp"
+              count={data.supplierEvents.length}
+            >
               {data.supplierEvents.map((event) => (
                 <article className="recall-history-line" key={event.id}>
                   <Link to={`/kho-hang/nhap-hang/${event.source_po_id}`}>{event.code}</Link>
                   <small>
-                    {formatDateTimeVN(event.occurred_at)} · {event.document}
+                    {formatDateTimeVN(event.occurred_at)}
+                    {' · '}
+                    {event.document}
                   </small>
                   <p>{event.note}</p>
                   {event.old_serial &&
@@ -176,10 +242,14 @@ export default function SerialTracePanel({ serialId, refreshKey }) {
                     )}
                 </article>
               ))}
-            </details>
+            </TraceSection>
 
-            <details className="recall-section">
-              <summary>Các đợt thu hồi ({data.recalls.length})</summary>
+            <TraceSection
+              active={tab}
+              value="recalls"
+              label="Các đợt thu hồi"
+              count={data.recalls.length}
+            >
               {data.recalls.map((recall) => (
                 <article className="recall-history-line" key={recall.id}>
                   <Link to={`/kho-hang/thu-hoi/${recall.recall_id}`}>{recall.code}</Link>
@@ -190,7 +260,7 @@ export default function SerialTracePanel({ serialId, refreshKey }) {
                   </small>
                 </article>
               ))}
-            </details>
+            </TraceSection>
           </>
         )}
       </div>

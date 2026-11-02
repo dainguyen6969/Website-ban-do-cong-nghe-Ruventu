@@ -4,6 +4,8 @@ import TablePagination from '../../../../shared/components/ui/TablePagination';
 import FilterDropdown from '../../../../shared/components/ui/FilterDropdown';
 import OrderModal from '../../orders/components/OrderModal';
 import {
+  apiFieldErrors,
+  apiHasCode,
   errorMessage,
   formatDateTimeVN,
   withIdempotency,
@@ -38,11 +40,16 @@ const needsDocument = (action) =>
 
 const resolving = (action) => ['TRA_NCC', 'DOI_NCC', 'DOI_BAO_HANH', 'LOAI_TRU'].includes(action);
 
-function Field({ label, children, wide = false }) {
+function Field({ label, children, wide = false, error }) {
   return (
     <label className={wide ? 'recall-wide' : undefined}>
       <span>{label}</span>
       {children}
+      {error && (
+        <small className="ncc-field-error" role="alert">
+          {error}
+        </small>
+      )}
     </label>
   );
 }
@@ -280,6 +287,8 @@ export default function ThuHoiHang() {
   const [notice, setNotice] = useState('');
   const [dialog, setDialog] = useState(null);
   const [form, setForm] = useState({});
+  const [fieldErrors, setFieldErrors] = useState({});
+  const [recallTab, setRecallTab] = useState('devices');
   const [busy, setBusy] = useState(false);
   const [sourceQuery, setSourceQuery] = useState('');
   const [sourceOptions, setSourceOptions] = useState([]);
@@ -480,6 +489,7 @@ export default function ThuHoiHang() {
     const source = recallId ? detail : null;
 
     setError('');
+    setFieldErrors({});
     setNotice('');
     setSourceError('');
     setSourceQuery(source?.ma_don_nhap || '');
@@ -517,6 +527,7 @@ export default function ThuHoiHang() {
     if (frozen || !detail) return;
 
     setError('');
+    setFieldErrors({});
     setNotice('');
     setForm(recallEventForm(action, item, detail));
 
@@ -530,9 +541,11 @@ export default function ThuHoiHang() {
 
   const perform = async (scope, body) => {
     if (writing.current) return;
+
     writing.current = true;
     setBusy(true);
     setError('');
+    setFieldErrors({});
 
     try {
       const result = await withIdempotency(attempt, scope, body, (key, saved) =>
@@ -552,9 +565,10 @@ export default function ThuHoiHang() {
 
       setRefresh((current) => current + 1);
     } catch (cause) {
+      setFieldErrors(apiFieldErrors(cause));
       setError(errorMessage(cause));
 
-      if (Number(cause.status || cause.response?.status) === 409 && !attempt.current) {
+      if (apiHasCode(cause, 'RECALL_REVISION_CHANGED') && !attempt.current) {
         setDialog(null);
         await loadDetail();
         setError(errorMessage(cause));
@@ -643,7 +657,7 @@ export default function ThuHoiHang() {
   };
 
   return (
-    <main className="serial-page recall-page">
+    <main className="serial-page recall-page ruventu-ops">
       <div className="serial-page__inner">
         <div className="serial-heading-row recall-heading">
           <h1>{recallId ? 'CHI TIẾT THU HỒI' : 'THU HỒI HÀNG'}</h1>
@@ -735,8 +749,8 @@ export default function ThuHoiHang() {
                       list.items.map((record) => (
                         <tr key={record.id}>
                           <td>
-                            <strong>{record.code}</strong>
-                            <small>{record.reason}</small>
+                            <strong>{record.reason}</strong>
+                            <small className="recall-reference-code">{record.code}</small>
                           </td>
                           <td>
                             <Link to={`/kho-hang/nhap-hang/${record.purchase_id}`}>
@@ -745,7 +759,15 @@ export default function ThuHoiHang() {
                             <small>{record.ten_nha_cung_cap}</small>
                           </td>
                           <td>
-                            {record.resolved_items}/{record.total_items}
+                            <div className="recall-progress">
+                              <span>
+                                {record.resolved_items}/{record.total_items}
+                              </span>
+                              <progress
+                                value={Number(record.resolved_items)}
+                                max={Math.max(1, Number(record.total_items))}
+                              />
+                            </div>
                           </td>
                           <td>
                             {record.deadline ? formatDateTimeVN(record.deadline) : 'Không đặt hạn'}
@@ -857,7 +879,25 @@ export default function ThuHoiHang() {
               </div>
             </section>
 
-            <section className="serial-info-card recall-case">
+            <nav className="ops-tabs" aria-label="Nội dung đợt thu hồi">
+              {[
+                ['devices', 'Thiết bị trong phạm vi'],
+                ['history', 'Chứng từ và lịch sử'],
+              ].map(([value, label]) => (
+                <button
+                  key={value}
+                  type="button"
+                  className={recallTab === value ? 'is-active' : ''}
+                  aria-pressed={recallTab === value}
+                  disabled={frozen}
+                  onClick={() => setRecallTab(value)}
+                >
+                  {label}
+                </button>
+              ))}
+            </nav>
+
+            <section className="serial-info-card recall-case" hidden={recallTab !== 'devices'}>
               <h2>THIẾT BỊ TRONG PHẠM VI</h2>
               <div className="recall-table-scroll">
                 <table className="recall-table">
@@ -936,7 +976,7 @@ export default function ThuHoiHang() {
               </div>
             </section>
 
-            <section className="serial-info-card recall-case">
+            <section className="serial-info-card recall-case" hidden={recallTab !== 'history'}>
               <h2>CHỨNG TỪ VÀ LỊCH SỬ</h2>
               <div className="recall-body">
                 {detail.events.map((event) => (
@@ -1032,19 +1072,25 @@ export default function ThuHoiHang() {
                   </Field>
 
                   {form.mode === 'serials' ? (
-                    <Field label="Serial thuộc phạm vi, mỗi dòng một mã" wide>
+                    <Field
+                      label="Serial thuộc phạm vi, mỗi dòng một mã"
+                      wide
+                      error={fieldErrors.serialCodes}
+                    >
                       <textarea
                         rows={5}
                         required
+                        aria-invalid={Boolean(fieldErrors.serialCodes)}
                         value={form.serials}
                         onChange={(event) => change('serials', event.target.value)}
                       />
                     </Field>
                   ) : (
                     <>
-                      <Field label="Dòng nguồn nhận" wide>
+                      <Field label="Dòng nguồn nhận" wide error={fieldErrors.receiptLineId}>
                         <select
                           required
+                          aria-invalid={Boolean(fieldErrors.receiptLineId)}
                           disabled={sourceLoading || !form.purchaseId || !sourceLines.length}
                           value={form.receiptLineId}
                           onChange={(event) => change('receiptLineId', event.target.value)}
@@ -1058,6 +1104,7 @@ export default function ThuHoiHang() {
                                   ? 'Chưa có dữ liệu nguồn nhận để chọn'
                                   : 'Chọn nguồn và phiên bản'}
                           </option>
+
                           {sourceLines.map((line) => (
                             <option key={line.id} value={line.id}>
                               Nguồn #{line.receiptId}

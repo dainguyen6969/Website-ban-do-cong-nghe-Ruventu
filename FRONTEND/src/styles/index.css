@@ -181,33 +181,33 @@ html:has(.storefront-app) {
 
 /* Scrollbar styling for main content area (nội dung trang cần rõ ràng) */
 :where(.admin-app) .app-layout__main ::-webkit-scrollbar,
-:where(.admin-app) [class*="-page"]::-webkit-scrollbar,
-:where(.admin-app) [class*="-page"] ::-webkit-scrollbar {
+:where(.admin-app) [class*='-page']::-webkit-scrollbar,
+:where(.admin-app) [class*='-page'] ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
 
 :where(.admin-app) .app-layout__main ::-webkit-scrollbar-track,
-:where(.admin-app) [class*="-page"]::-webkit-scrollbar-track,
-:where(.admin-app) [class*="-page"] ::-webkit-scrollbar-track {
+:where(.admin-app) [class*='-page']::-webkit-scrollbar-track,
+:where(.admin-app) [class*='-page'] ::-webkit-scrollbar-track {
   background: #f1f5f9;
 }
 
 :where(.admin-app) .app-layout__main ::-webkit-scrollbar-thumb,
-:where(.admin-app) [class*="-page"]::-webkit-scrollbar-thumb,
-:where(.admin-app) [class*="-page"] ::-webkit-scrollbar-thumb {
+:where(.admin-app) [class*='-page']::-webkit-scrollbar-thumb,
+:where(.admin-app) [class*='-page'] ::-webkit-scrollbar-thumb {
   background: #94a3b8;
   border-radius: 4px;
 }
 
 :where(.admin-app) .app-layout__main ::-webkit-scrollbar-thumb:hover,
-:where(.admin-app) [class*="-page"]::-webkit-scrollbar-thumb:hover,
-:where(.admin-app) [class*="-page"] ::-webkit-scrollbar-thumb:hover {
+:where(.admin-app) [class*='-page']::-webkit-scrollbar-thumb:hover,
+:where(.admin-app) [class*='-page'] ::-webkit-scrollbar-thumb:hover {
   background: #64748b;
 }
 
 :where(.admin-app) .app-layout__main,
-:where(.admin-app) [class*="-page"] {
+:where(.admin-app) [class*='-page'] {
   scrollbar-width: thin;
   scrollbar-color: #94a3b8 #f1f5f9;
 }
@@ -237,4 +237,387 @@ html:has(.storefront-app) {
   clip: rect(0, 0, 0, 0);
   white-space: nowrap;
   border: 0;
+}
+
+/* Giao diện serial, nhập hàng và thu hồi */
+.admin-app .ruventu-ops,
+.admin-app .ruventu-ops :where(*) {
+  font-family: var(--font-family-admin, var(--project-font-family, var(--font-family-base)));
+}
+
+.admin-app .ruventu-ops {
+  color: #1a1d23;
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.admin-app .ruventu-ops [hidden] {
+  display: none !important;
+}
+
+.admin-app .ruventu-ops :is(p, table, dd, label, input, select, textarea, button, code) {
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.admin-app .ruventu-ops :is(td, dd) {
+  font-weight: 400;
+}
+
+.admin-app .ruventu-ops :is(strong, b, th) {
+  font-weight: 600;
+}
+
+.admin-app .ruventu-ops :is(small, dt, .recall-muted, .ncc-muted, .info-rows dt) {
+  font-size: 12px;
+  line-height: 1.5;
+  color: #626b77;
+}
+
+.admin-app .ruventu-ops :is(h1, .purchase-heading h1) {
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1.3;
+  letter-spacing: normal;
+}
+
+.admin-app .ruventu-ops :is(.purchase-badge, .ncc-badge, .recall-badge, .serial-status) {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  padding: 4px 8px;
+  border-radius: 3px;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+.admin-app .ruventu-ops :is(.form-card, .serial-info-card, .serial-note) {
+  border: 1px solid #dfe2e6;
+}
+
+.admin-app .ruventu-ops :is(.serial-info-card > h2, .serial-note > h2) {
+  height: auto;
+  min-height: 44px;
+  gap: 9px;
+  padding: 10px 16px;
+  background: #1a1d23;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: normal;
+}
+
+.admin-app .ruventu-ops :is(.serial-info-card > h2, .serial-note > h2)::before {
+  content: '';
+  width: 3px;
+  height: 16px;
+  flex-shrink: 0;
+  background: #e31e24;
+}
+
+.admin-app .ruventu-ops .form-card__title {
+  font-size: 13px;
+  letter-spacing: normal;
+}
+
+.admin-app .ruventu-ops :is(.recall-table, .purchase-detail-table) :is(th, td) {
+  padding: 12px 14px;
+  vertical-align: top;
+}
+
+.admin-app .ruventu-ops a {
+  overflow-wrap: anywhere;
+  text-underline-offset: 3px;
+}
+
+.admin-app .ruventu-ops .ncc-field-error {
+  display: block;
+  color: #b42318;
+  font-size: 12px;
+}
+
+.admin-app .ruventu-ops [aria-invalid='true'] {
+  border-color: #b42318 !important;
+  outline-color: #b42318;
+}
+
+.admin-app
+  .ruventu-ops
+  :is(
+    .purchase-btn.black,
+    .purchase-btn.blue,
+    .purchase-btn.green,
+    .recall-button.is-dark,
+    .ncc-btn--primary,
+    .ncc-btn--dark,
+    .order-action--black
+  ) {
+  border-color: #1a1d23 !important;
+  background: #1a1d23 !important;
+  color: #fff;
+}
+
+.admin-app .ruventu-ops button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.admin-app .ruventu-ops :is(button, input, select, textarea, a):focus-visible {
+  outline: 2px solid #e31e24;
+  outline-offset: 2px;
+}
+
+.admin-app .ruventu-ops .ops-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  border-bottom: 1px solid #dfe2e6;
+  margin: 16px 0;
+}
+
+.admin-app .ruventu-ops .ops-tabs button {
+  padding: 10px 14px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: #626b77;
+}
+
+.admin-app .ruventu-ops .ops-tabs button.is-active {
+  border-bottom-color: #e31e24;
+  color: #1a1d23;
+  font-weight: 600;
+}
+
+.admin-app .ruventu-ops .ops-tabs button span {
+  margin-left: 5px;
+  color: #626b77;
+}
+
+.admin-app .ruventu-ops .trace-content h3 {
+  font-size: 15px;
+  margin-bottom: 12px;
+}
+
+.admin-app .ruventu-ops .recall-history-line {
+  margin: 0 0 12px;
+  padding: 12px 16px;
+  border: 1px solid #e5e7eb;
+  border-left: 3px solid #d6d9de;
+  overflow-wrap: anywhere;
+}
+
+.admin-app .ruventu-ops .recall-history-line > strong {
+  display: block;
+}
+
+.admin-app .ruventu-ops .recall-trace .recall-facts {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.admin-app .ruventu-ops .purchase-detail-tabs {
+  margin: 16px 24px 0;
+}
+
+.admin-app .ruventu-ops .purchase-detail-grid {
+  grid-template-columns: minmax(0, 1fr) minmax(260px, 320px);
+  gap: 18px;
+  padding: 20px 24px;
+}
+
+.admin-app .ruventu-ops .purchase-section {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+}
+
+.admin-app .ruventu-ops .purchase-section > .purchase-card {
+  margin: 0;
+}
+
+.admin-app .ruventu-ops .purchase-heading-actions {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.admin-app .ruventu-ops .info-rows > div {
+  grid-template-columns: 105px minmax(0, 1fr);
+}
+
+.admin-app .ruventu-ops .info-rows dd {
+  font-size: 14px;
+  overflow-wrap: anywhere;
+}
+
+.admin-app .ruventu-ops .detail-payment {
+  gap: 12px 18px;
+}
+
+.admin-app .ruventu-ops .detail-payment b {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.admin-app .ruventu-ops :is(.receipt-source-items, .purchase-receive-list) {
+  display: grid;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.admin-app .ruventu-ops :is(.receipt-source-item, .purchase-receive-item) {
+  border: 1px solid #dfe2e6;
+  padding: 14px;
+}
+
+.admin-app .ruventu-ops .receipt-source-item dl,
+.admin-app .ruventu-ops .purchase-receive-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.admin-app .ruventu-ops .receipt-serial-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.admin-app .ruventu-ops .receipt-serial-chips a {
+  padding: 4px 8px;
+  border: 1px solid #dfe2e6;
+}
+
+.admin-app .ruventu-ops .purchase-receive-item header {
+  display: grid;
+  gap: 4px;
+}
+
+.admin-app .ruventu-ops .purchase-receive-fields label {
+  display: grid;
+  gap: 6px;
+}
+
+.admin-app .ruventu-ops .purchase-receive-fields :is(input, textarea) {
+  width: 100%;
+  min-width: 0;
+  padding: 9px 10px;
+  border: 1px solid #cdd2d9;
+}
+
+.admin-app .ruventu-ops .purchase-receive-serials {
+  grid-column: 1 / -1;
+}
+
+.admin-app .ruventu-ops .ncc-workspace-layout {
+  display: grid;
+  grid-template-columns: minmax(220px, 270px) minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.admin-app .ruventu-ops .ncc-workspace-layout :is(.ncc-case-picker, .ncc-case) {
+  margin-top: 0;
+}
+
+.admin-app .ruventu-ops .ncc-case-picker {
+  max-height: 650px;
+  overflow: auto;
+}
+
+.admin-app .ruventu-ops .ncc-case-row {
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  padding: 12px;
+}
+
+.admin-app .ruventu-ops .ncc-case-row > div {
+  grid-column: 1 / -1;
+}
+
+.admin-app .ruventu-ops .ncc-receive-summary {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.admin-app .ruventu-ops .ncc-receive-summary > div {
+  display: grid;
+  gap: 5px;
+  padding: 12px;
+  background: #f6f7f9;
+}
+
+.admin-app .ruventu-ops .ncc-agreement {
+  border-left: 3px solid #1a1d23;
+  background: #f6f7f9;
+}
+
+.admin-app .ruventu-ops .ncc-tabs > button {
+  background: transparent;
+  color: #626b77;
+}
+
+.admin-app .ruventu-ops .ncc-tabs > button.is-active {
+  color: #1a1d23;
+  background: #fff;
+  border-bottom-color: #e31e24;
+  text-decoration: none;
+}
+
+.admin-app .ruventu-ops.recall-page .serial-toolbar {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) minmax(180px, 240px);
+  gap: 12px;
+}
+
+.admin-app .ruventu-ops.recall-page .serial-search {
+  width: 100%;
+  min-width: 0;
+}
+
+.admin-app .ruventu-ops .recall-progress {
+  display: grid;
+  gap: 6px;
+  min-width: 80px;
+}
+
+.admin-app .ruventu-ops .recall-progress progress {
+  width: 100%;
+  height: 6px;
+  accent-color: #1a1d23;
+}
+
+@media (max-width: 1200px) {
+  .admin-app .ruventu-ops .ncc-workspace-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .admin-app .ruventu-ops .ncc-case-picker {
+    max-height: 260px;
+  }
+}
+
+@media (max-width: 950px) {
+  .admin-app .ruventu-ops :is(.purchase-detail-grid, .serial-detail-grid) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .admin-app .ruventu-ops .recall-trace .recall-facts {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 600px) {
+  .admin-app
+    .ruventu-ops
+    :is(.ncc-receive-summary, .purchase-receive-fields, .recall-trace .recall-facts),
+  .admin-app .ruventu-ops.recall-page .serial-toolbar {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }

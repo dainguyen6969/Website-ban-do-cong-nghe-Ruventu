@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { PurchaseCard } from '../../purchasing/pages/PurchaseShared';
 import OrderModal from '../../orders/components/OrderModal';
 import {
@@ -234,30 +235,39 @@ export default function PurchaseSourcePanel({ order, locked = false, onLockChang
             {formatDateTimeVN(receipt.recorded_at)}
           </summary>
 
-          <div className="recall-table-scroll">
-            <table className="recall-table">
-              <thead>
-                <tr>
-                  <th>Phiên bản</th>
-                  <th>Số lượng</th>
-                  <th>Mã lô</th>
-                  <th>Serial</th>
-                </tr>
-              </thead>
-              <tbody>
-                {(receipt.items || []).map((item) => (
-                  <tr key={item.id}>
-                    <td>{item.ten_phien_ban}</td>
-                    <td>{item.quantity}</td>
-                    <td>{item.supplier_lot || 'Chưa ghi'}</td>
-                    <td>
-                      {(item.serials || []).map((serial) => serial.so_serial).join(', ') ||
-                        'Không quản lý serial'}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="receipt-source-items">
+            {(receipt.items || []).map((item) => (
+              <article className="receipt-source-item" key={item.id}>
+                <strong>{item.ten_phien_ban}</strong>
+
+                <dl>
+                  <div>
+                    <dt>Số lượng</dt>
+                    <dd>{item.quantity}</dd>
+                  </div>
+                  <div>
+                    <dt>Lô thực nhận</dt>
+                    <dd>{item.supplier_lot || 'Chưa ghi mã lô'}</dd>
+                  </div>
+                </dl>
+
+                <div className="receipt-serial-chips">
+                  {(item.serials || []).map((serial) => (
+                    <Link key={serial.id} to={`/kho-hang/danh-sach-serial/${serial.id}`}>
+                      {serial.so_serial}
+                    </Link>
+                  ))}
+
+                  {!item.serials?.length && (
+                    <span>
+                      {[true, 1, '1'].includes(item.serial_managed)
+                        ? 'Chưa có serial được liên kết với dòng nguồn nhận'
+                        : 'Không quản lý serial'}
+                    </span>
+                  )}
+                </div>
+              </article>
+            ))}
           </div>
 
           <p className="recall-muted">

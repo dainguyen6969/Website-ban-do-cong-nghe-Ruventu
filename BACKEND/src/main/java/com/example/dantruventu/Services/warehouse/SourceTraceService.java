@@ -167,13 +167,14 @@ public class SourceTraceService {
 
   @Transactional(propagation = Propagation.MANDATORY)
   public void recordNccReceipt(
-      Long eventId,
-      Long caseId,
-      Long unitId,
-      String action,
-      Long newSerialId,
-      String document,
-      boolean alreadyInStock) {
+          Long eventId,
+          Long caseId,
+          Long unitId,
+          String action,
+          Long newSerialId,
+          String document,
+          boolean alreadyInStock,
+          String supplierLot) {
 
     if (!Set.of("NHAN", "NHAN_BO_SUNG").contains(action)) return;
 
@@ -215,14 +216,14 @@ public class SourceTraceService {
             (alreadyInStock ? "Đối soát hàng đã có trong kho, hồ sơ #" : "Nhận theo hồ sơ #")
                 + caseId);
 
-    line(
-        receiptId,
-        id(unit.get("source_line_id")),
-        variantId,
-        1,
-        null,
-        managed,
-        newSerialId == null ? List.of() : List.of(newSerialId));
+      line(
+              receiptId,
+              id(unit.get("source_line_id")),
+              variantId,
+              1,
+              supplierLot,
+              managed,
+              newSerialId == null ? List.of() : List.of(newSerialId));
   }
 
   public Object purchaseSources(Long poId) {

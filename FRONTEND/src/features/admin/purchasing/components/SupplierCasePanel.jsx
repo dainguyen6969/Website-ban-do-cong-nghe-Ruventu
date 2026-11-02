@@ -3,6 +3,8 @@ import OrderModal from '../../orders/components/OrderModal';
 import { PurchaseCard } from '../pages/PurchaseShared';
 import { getSupplierCases, openSupplierCase, sendSupplierCaseEvent } from '../api/purchaseOrderApi';
 import {
+  apiFieldErrors,
+  apiHasCode,
   errorMessage,
   formatDateTimeVN,
   inputFromApiTime,
@@ -172,6 +174,20 @@ const NCC_HELP = {
   },
 };
 
+ACTIONS.DIEU_CHINH_PHUONG_AN = 'Điều chỉnh phương án đã chốt';
+
+NCC_DOCUMENT_LABELS.DIEU_CHINH_PHUONG_AN = 'Mã thỏa thuận điều chỉnh';
+
+NCC_HELP.DIEU_CHINH_PHUONG_AN = {
+  title: 'Điều chỉnh phương án đã chốt',
+  text:
+    'Chỉ dùng khi Nhà Cung Cấp đã đồng ý thay đổi. Ghi chứng từ và lý do; ' +
+    'hệ thống giữ lịch sử trước/sau.',
+  confirm: 'XÁC NHẬN ĐIỀU CHỈNH',
+};
+
+const isPlanAction = (action) => ['PHUONG_AN', 'DIEU_CHINH_PHUONG_AN'].includes(action);
+
 const NCC_UNIT_TONES = {
   DANG_O_NCC: 'blue',
   DA_NHAN_LOI: 'red',
@@ -234,7 +250,9 @@ function nccCaseState(record) {
 }
 
 function NccEvidence({ event, data }) {
-  const payload = nccPayload(event.payload);
+  const envelope = nccPayload(event.payload);
+
+  const payload = event.action === 'DIEU_CHINH_PHUONG_AN' ? envelope?.agreement : envelope;
   const rows = [];
 
   const add = (label, value) => {
@@ -262,7 +280,7 @@ function NccEvidence({ event, data }) {
       );
     }
 
-    if (['GUI', 'PHUONG_AN'].includes(event.action)) {
+    if (event.action === 'GUI' || isPlanAction(event.action)) {
       add('Mục đích / phương án', METHODS[payload.method]);
     }
 
@@ -274,7 +292,7 @@ function NccEvidence({ event, data }) {
       }
     }
 
-    if (event.action === 'PHUONG_AN') {
+    if (isPlanAction(event.action)) {
       if (payload.method === 'DOI_HANG') {
         add('Phiên bản đã thống nhất nhận', variantName(payload.variantId));
         add('Giá trị Nhà Cung Cấp chấp nhận cho hàng gửi', cash(payload.credit));
@@ -319,6 +337,19 @@ function NccEvidence({ event, data }) {
       add('Phương thức', NCC_PAYMENT_LABELS[event.cash_method ?? payload.paymentMethod]);
       add('Mã giao dịch', payload.transactionId);
     }
+  }
+
+  if (envelope?.previousAgreement) {
+    const previous = envelope.previousAgreement;
+
+    add('Phương án trước điều chỉnh', METHODS[previous.method]);
+    add('Phiên bản trước điều chỉnh', variantName(previous.variantId));
+    add('Giá trị Nhà Cung Cấp chấp nhận trước điều chỉnh', cash(previous.credit));
+    add('Giá trị hàng nhận trước điều chỉnh', cash(previous.value));
+  }
+
+  if (['NHAN', 'NHAN_BO_SUNG'].includes(event.action) && payload) {
+    add('Lô thực nhận', payload.supplierLot || 'Chưa ghi');
   }
 
   if (event.adjustment_kind === 'SWAP') {
@@ -368,7 +399,7 @@ function NccHistory({ record, data }) {
   const events = [...(record.events ?? [])].reverse();
 
   return (
-    <details className="ncc-history">
+    <details className="ncc-history" open>
       <summary>
         Chứng từ và lịch sử
         <span className="ncc-count">{events.length}</span>
@@ -549,7 +580,9 @@ function NccUnitCard({ item, record, renderButton, onOpen }) {
 
           {outside &&
             planned &&
-            renderButton('Sửa phương án', () => onOpen('PHUONG_AN', record, item))}
+            renderButton('Điều chỉnh phương án đã chốt', () =>
+              onOpen('DIEU_CHINH_PHUONG_AN', record, item)
+            )}
 
           {item.status === 'DA_NHAN_LOI' && (
             <>
@@ -783,14 +816,12 @@ function NccWorkspace({
 }) {
   const cases = data?.cases ?? [];
   const selected = cases.find((record) => Number(record.id) === Number(selectedCaseId));
-
   const canCreate = (data?.case_types ?? []).some((item) => bool(item.can_create));
 
   return (
     <>
       <div className="ncc-workspace-toolbar">
         <span>Đơn nhập {order.code}</span>
-
         {renderButton('TẠO HỒ SƠ', () => onOpen('OPEN'), !data || !canCreate, 'primary')}
       </div>
 
@@ -846,49 +877,54 @@ function NccWorkspace({
             </p>
           )}
 
-          <div className="ncc-case-picker">
-            {cases.map((record) => {
-              const state = nccCaseState(record);
-              const isSelected = Number(record.id) === Number(selectedCaseId);
+          <div className="ncc-workspace-layout">
+            <div className="ncc-case-picker">
+              {cases.map((record) => {
+                const state = nccCaseState(record);
+                const isSelected = Number(record.id) === Number(selectedCaseId);
 
-              return (
-                <div key={record.id} className={`ncc-case-row${isSelected ? ' is-selected' : ''}`}>
-                  <div>
-                    <small>
-                      #{record.id}
-                      {' · '}
-                      {NCC_PURPOSES[record.purpose] || 'Hồ sơ cũ'}
-                    </small>
-                    <strong>{record.reason}</strong>
-                  </div>
-
-                  <span className={`ncc-badge ncc-badge--${state.tone}`}>{state.label}</span>
-
-                  <button
-                    type="button"
-                    className="ncc-btn"
-                    aria-controls={`ncc-case-${record.id}`}
-                    aria-expanded={isSelected}
-                    onClick={() => onSelectCase(record.id)}
+                return (
+                  <div
+                    key={record.id}
+                    className={`ncc-case-row${isSelected ? ' is-selected' : ''}`}
                   >
-                    XEM HỒ SƠ
-                  </button>
-                </div>
-              );
-            })}
+                    <div>
+                      <small>
+                        #{record.id}
+                        {' · '}
+                        {NCC_PURPOSES[record.purpose] || 'Hồ sơ cũ'}
+                      </small>
+                      <strong>{record.reason}</strong>
+                    </div>
 
-            {!cases.length && <p className="ncc-empty">Chưa có hồ sơ.</p>}
+                    <span className={`ncc-badge ncc-badge--${state.tone}`}>{state.label}</span>
+
+                    <button
+                      type="button"
+                      className="ncc-btn"
+                      aria-controls={`ncc-case-${record.id}`}
+                      aria-expanded={isSelected}
+                      onClick={() => onSelectCase(record.id)}
+                    >
+                      XEM HỒ SƠ
+                    </button>
+                  </div>
+                );
+              })}
+
+              {!cases.length && <p className="ncc-empty">Chưa có hồ sơ.</p>}
+            </div>
+
+            {selected && (
+              <NccCaseView
+                key={selected.id}
+                record={selected}
+                data={data}
+                renderButton={renderButton}
+                onOpen={onOpen}
+              />
+            )}
           </div>
-
-          {selected && (
-            <NccCaseView
-              key={selected.id}
-              record={selected}
-              data={data}
-              renderButton={renderButton}
-              onOpen={onOpen}
-            />
-          )}
         </>
       )}
     </>
@@ -904,7 +940,7 @@ function NccActionHelp({ action, unit, form }) {
   const hasValue = form.value !== '' && form.value != null && Number.isFinite(Number(form.value));
 
   const canPreview =
-    action === 'PHUONG_AN' &&
+    isPlanAction(action) &&
     hasCredit &&
     (form.method === 'TRA_HANG' || (form.method === 'DOI_HANG' && hasValue));
 
@@ -950,6 +986,8 @@ export default function SupplierCasePanel({ order, locked = false, onRefresh, on
   const [busy, setBusy] = useState(false);
   const [dialog, setDialog] = useState(null);
   const [form, setForm] = useState({});
+  const [fieldErrors, setFieldErrors] = useState({});
+  const formFields = useRef(null);
   const [selectedCaseId, setSelectedCaseId] = useState(null);
   const attempt = useRef(null);
   const writing = useRef(false);
@@ -993,13 +1031,68 @@ export default function SupplierCasePanel({ order, locked = false, onRefresh, on
 
   useEffect(() => () => onLockChange?.(false), [onLockChange]);
 
-  const change = (name, value) => setForm((current) => ({ ...current, [name]: value }));
+  const change = (name, value) => {
+    if (busy || attempt.current) return;
+
+    setForm((current) => ({
+      ...current,
+      [name]: value,
+      ...(name === 'confirmed' ? {} : { confirmed: false }),
+    }));
+
+    setFieldErrors((current) => ({ ...current, [name]: '' }));
+  };
+
+  const inputProps = (name) => ({
+    name,
+    'aria-invalid': Boolean(fieldErrors[name]),
+    'aria-describedby': fieldErrors[name] ? `ncc-error-${name}` : undefined,
+  });
+
+  const fieldError = (name) =>
+    fieldErrors[name] && (
+      <small id={`ncc-error-${name}`} className="ncc-field-error" role="alert">
+        {fieldErrors[name]}
+      </small>
+    );
+
+  const showFieldErrors = (errors) => {
+    setFieldErrors(errors);
+
+    const names = [
+      'serialCodes',
+      'condition',
+      'variantId',
+      'supplierLot',
+      'note',
+      'document',
+      'confirmed',
+      'credit',
+      'value',
+      'method',
+      'at',
+    ];
+
+    const first = names.find((name) => errors[name]);
+
+    if (first) {
+      requestAnimationFrame(() => {
+        formFields.current?.querySelector(`[name="${first}"]`)?.focus();
+      });
+    }
+  };
 
   const open = (action, supplierCase = null, unit = null, followUp = false) => {
     if (locked || busy || attempt.current) return;
 
     setOperationError('');
+    setFieldErrors({});
     setNotice('');
+
+    if (action === 'PHUONG_AN' && bool(unit?.planned)) {
+      setOperationError('Phương án đã chốt. Dùng thao tác điều chỉnh có chứng từ.');
+      return;
+    }
 
     setDialog({
       action,
@@ -1023,19 +1116,32 @@ export default function SupplierCasePanel({ order, locked = false, onRefresh, on
           ? 1
           : 0,
       serialIds: [],
-      serialCodes: '',
-      method: action === 'PHUONG_AN' ? unit?.method || 'SUA_CHUA' : 'SUA_CHUA',
+      serialCodes: action === 'NHAN' && unit?.method !== 'DOI_HANG' ? unit?.so_serial || '' : '',
+      method: isPlanAction(action) ? unit?.method || 'SUA_CHUA' : 'SUA_CHUA',
       variantId: String(unit?.expected_variant_id ?? first?.phien_ban_id ?? ''),
+      allowDifferentProduct: Boolean(
+        unit &&
+        data?.variants?.some(
+          (item) =>
+            Number(item.id) === Number(unit.expected_variant_id) &&
+            Number(item.san_pham_id) !== Number(unit.product_id)
+        )
+      ),
+      supplierLot: '',
       credit:
-        action === 'PHUONG_AN' && unit?.method !== 'SUA_CHUA' && !bool(unit?.planned)
+        isPlanAction(action) && unit?.method !== 'SUA_CHUA' && !bool(unit?.planned)
           ? ''
           : (unit?.credit ?? 0),
-
       value:
-        action === 'PHUONG_AN' && unit?.method === 'DOI_HANG' && !bool(unit?.planned)
+        isPlanAction(action) && unit?.method === 'DOI_HANG' && !bool(unit?.planned)
           ? ''
           : (unit?.receive_value ?? ''),
-      condition: action === 'NHAN_BO_SUNG' ? 'MOI' : 'CHUA_XAC_DINH',
+      condition:
+        action === 'NHAN_BO_SUNG'
+          ? 'MOI'
+          : action === 'NHAN' && unit?.method === 'SUA_CHUA'
+            ? 'DA_SUA_CHUA'
+            : 'CHUA_XAC_DINH',
       passed: false,
       alreadyInStock: false,
       amount:
@@ -1068,6 +1174,11 @@ export default function SupplierCasePanel({ order, locked = false, onRefresh, on
 
   const receiveManaged = action === 'NHAN' && bool(unit?.expected_serial_managed);
 
+  const replacementVariants = (data?.variants ?? []).filter(
+    (item) =>
+      bool(form.allowDifferentProduct) || Number(item.san_pham_id) === Number(unit?.product_id)
+  );
+
   const frozen = busy || Boolean(attempt.current);
 
   const close = () => {
@@ -1099,15 +1210,22 @@ export default function SupplierCasePanel({ order, locked = false, onRefresh, on
 
       setDialog(null);
       setNotice(scope === 'open' ? 'Đã tạo hồ sơ.' : 'Đã cập nhật hồ sơ.');
+
       await Promise.all([refresh(), onRefresh?.()]);
     } catch (error) {
-      setOperationError(errorMessage(error));
-
-      const status = Number(error.status || error.response?.status);
-
-      if (status === 409 && !attempt.current) {
+      if (apiHasCode(error, 'NCC_REVISION_CHANGED') && !attempt.current) {
         setDialog(null);
         await refresh();
+        setOperationError(errorMessage(error));
+      } else {
+        const errors = apiFieldErrors(error);
+        showFieldErrors(errors);
+
+        setOperationError(
+          Object.keys(errors).length
+            ? 'Kiểm tra các trường được đánh dấu trong biểu mẫu.'
+            : errorMessage(error)
+        );
       }
     } finally {
       writing.current = false;
@@ -1123,19 +1241,81 @@ export default function SupplierCasePanel({ order, locked = false, onRefresh, on
     if (!dialog || locked || busy) return;
 
     try {
+      const errors = {};
+
       if (!form.confirmed) {
-        throw new Error('Chỉ xác nhận khi sự việc thực tế đã xảy ra hoặc đã được chốt.');
+        errors.confirmed = 'Xác nhận sau khi đã đối chiếu thực tế.';
       }
 
       if (!form.note.trim()) {
-        throw new Error(
-          action === 'OPEN' ? 'Nhập lý do tạo hồ sơ.' : 'Nhập nội dung hoặc căn cứ xác nhận.'
-        );
+        errors.note =
+          action === 'OPEN' ? 'Nhập lý do tạo hồ sơ.' : 'Nhập nội dung hoặc căn cứ xác nhận.';
       }
 
       if (NCC_DOCUMENT_LABELS[action] && !form.document.trim()) {
-        throw new Error(`Nhập ${NCC_DOCUMENT_LABELS[action].toLowerCase()}.`);
+        errors.document = 'Nhập mã chứng từ hoặc thỏa thuận thực tế.';
       }
+
+      const receiving = action === 'NHAN' || (action === 'NHAN_BO_SUNG' && !form.alreadyInStock);
+
+      const managed = action === 'NHAN' ? receiveManaged : sourceManaged;
+      const entered = codes(form.serialCodes);
+
+      if (receiving && managed) {
+        if (!entered.length || (action === 'NHAN' && entered.length !== 1)) {
+          errors.serialCodes = 'Nhập đủ serial thực nhận.';
+        } else if (entered.some((code) => code.length > 100)) {
+          errors.serialCodes = 'Mỗi serial tối đa 100 ký tự.';
+        } else if (new Set(entered).size !== entered.length) {
+          errors.serialCodes = 'Danh sách serial có mã bị trùng.';
+        } else if (
+          action === 'NHAN' &&
+          unit.method !== 'DOI_HANG' &&
+          entered[0] !== unit.so_serial
+        ) {
+          errors.serialCodes =
+            `Phải nhận lại serial ${unit.so_serial}. ` +
+            'Nếu Nhà Cung Cấp đổi thiết bị, điều chỉnh phương án trước khi nhận.';
+        }
+      }
+
+      if (receiving && form.passed && form.condition === 'CHUA_XAC_DINH') {
+        errors.condition = 'Chọn tình trạng hàng trước khi xác nhận đạt.';
+      }
+
+      if (action === 'NHAN' && unit.method === 'SUA_CHUA' && form.condition === 'MOI') {
+        errors.condition = 'Hàng sửa chữa không được ghi nhận là hàng mới.';
+      }
+
+      if (
+        isPlanAction(action) &&
+        form.method === 'DOI_HANG' &&
+        !replacementVariants.some((item) => Number(item.id) === Number(form.variantId))
+      ) {
+        errors.variantId = 'Chọn phiên bản phù hợp; cần xác nhận nếu đổi sang sản phẩm khác.';
+      }
+
+      const validMoney = (value) =>
+        value !== '' && value != null && Number.isFinite(Number(value)) && Number(value) >= 0;
+
+      if (isPlanAction(action) && form.method !== 'SUA_CHUA' && !validMoney(form.credit)) {
+        errors.credit = 'Nhập giá trị Nhà Cung Cấp chấp nhận cho hàng gửi, gồm thuế.';
+      }
+
+      if (
+        ((isPlanAction(action) && form.method === 'DOI_HANG') || action === 'NHAN_BO_SUNG') &&
+        !validMoney(form.value)
+      ) {
+        errors.value = 'Nhập giá trị hàng nhận đã thống nhất, gồm thuế.';
+      }
+
+      if (Object.keys(errors).length) {
+        showFieldErrors(errors);
+        setOperationError('Kiểm tra các trường được đánh dấu trong biểu mẫu.');
+        return;
+      }
+
+      setFieldErrors({});
 
       if (action === 'OPEN') {
         const selectedType = data?.case_types?.find((item) => item.code === form.purpose);
@@ -1145,32 +1325,14 @@ export default function SupplierCasePanel({ order, locked = false, onRefresh, on
         }
       }
 
-      if (action === 'PHUONG_AN' && ['DOI_HANG', 'TRA_HANG'].includes(form.method)) {
-        if (
-          form.credit === '' ||
-          form.credit == null ||
-          !Number.isFinite(Number(form.credit)) ||
-          Number(form.credit) < 0
-        ) {
-          throw new Error(
-            'Nhập giá trị hàng gửi được Nhà Cung Cấp chấp nhận. ' +
-              'Chỉ nhập 0 khi hai bên đã thống nhất giá trị bằng 0.'
-          );
-        }
+      let at;
 
-        if (
-          form.method === 'DOI_HANG' &&
-          (!form.variantId ||
-            form.value === '' ||
-            form.value == null ||
-            !Number.isFinite(Number(form.value)) ||
-            Number(form.value) < 0)
-        ) {
-          throw new Error('Chọn phiên bản và nhập giá trị hàng đổi nhận về đã thống nhất.');
-        }
+      try {
+        at = toApiDateTime(form.at);
+      } catch (error) {
+        showFieldErrors({ at: errorMessage(error) });
+        return;
       }
-
-      const at = toApiDateTime(form.at);
 
       if (action === 'OPEN') {
         return execute('open', {
@@ -1187,10 +1349,11 @@ export default function SupplierCasePanel({ order, locked = false, onRefresh, on
       let quantity = Number(form.quantity);
       let damagedQuantity = Number(form.damagedQuantity);
       let serialIds = form.serialIds.map(Number);
-      let serialCodes = codes(form.serialCodes);
+      const serialCodes = codes(form.serialCodes);
 
       if (action === 'GUI' && !dialog.followUp && sourceManaged) {
         quantity = serialIds.length;
+
         damagedQuantity = (source?.serials ?? []).filter(
           (item) => serialIds.includes(Number(item.id)) && item.trang_thai === 'LOI'
         ).length;
@@ -1222,6 +1385,8 @@ export default function SupplierCasePanel({ order, locked = false, onRefresh, on
         condition: form.condition,
         passed: form.passed,
         alreadyInStock: form.alreadyInStock,
+        allowDifferentProduct: bool(form.allowDifferentProduct),
+        supplierLot: form.supplierLot.trim() || null,
         amount: form.amount === '' ? null : String(form.amount),
         paymentMethod: form.paymentMethod,
         transactionId: form.transactionId.trim(),
@@ -1354,7 +1519,7 @@ export default function SupplierCasePanel({ order, locked = false, onRefresh, on
 
             <NccActionHelp action={action} unit={unit} form={form} />
 
-            <fieldset className="ncc-fields" disabled={frozen}>
+            <fieldset ref={formFields} className="ncc-fields" disabled={frozen}>
               {action === 'OPEN' && (
                 <label className="ncc-field-wide">
                   <span>Loại hồ sơ</span>
@@ -1452,11 +1617,20 @@ export default function SupplierCasePanel({ order, locked = false, onRefresh, on
                 </>
               )}
 
-              {action === 'PHUONG_AN' && (
+              {isPlanAction(action) && (
                 <>
+                  {action === 'DIEU_CHINH_PHUONG_AN' && (
+                    <p className="ncc-field-wide">
+                      Đang điều chỉnh: <b>{METHODS[unit.method]}</b>
+                      {' · '}
+                      {unit.expected_variant_name}. Bản xác nhận cũ được giữ trong lịch sử.
+                    </p>
+                  )}
+
                   <label>
-                    <span>PHƯƠNG ÁN ĐÃ THỐNG NHẤT</span>
+                    <span>Phương án đã thống nhất *</span>
                     <select
+                      {...inputProps('method')}
                       value={form.method}
                       onChange={(event) => {
                         const method = event.target.value;
@@ -1464,10 +1638,14 @@ export default function SupplierCasePanel({ order, locked = false, onRefresh, on
                         setForm((current) => ({
                           ...current,
                           method,
+                          variantId:
+                            method === 'DOI_HANG' ? current.variantId : String(unit.variant_id),
                           credit: method === 'SUA_CHUA' ? 0 : '',
                           value: method === 'DOI_HANG' ? '' : current.value,
                           confirmed: false,
                         }));
+
+                        setFieldErrors({});
                       }}
                     >
                       {Object.entries(METHODS).map(([value, label]) => (
@@ -1476,53 +1654,75 @@ export default function SupplierCasePanel({ order, locked = false, onRefresh, on
                         </option>
                       ))}
                     </select>
+                    {fieldError('method')}
                   </label>
 
                   {form.method === 'DOI_HANG' && (
-                    <label>
-                      <span>PHIÊN BẢN HÀNG ĐỔI</span>
-                      <select
-                        value={form.variantId}
-                        onChange={(event) => change('variantId', event.target.value)}
-                      >
-                        {(data?.variants ?? []).map((item) => (
-                          <option key={item.id} value={item.id}>
-                            {item.ten_san_pham} · {item.ten_phien_ban}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
+                    <>
+                      <label className="ncc-check ncc-field-wide">
+                        <input
+                          type="checkbox"
+                          checked={bool(form.allowDifferentProduct)}
+                          onChange={(event) => {
+                            change('allowDifferentProduct', event.target.checked);
+                            change('variantId', String(unit.variant_id));
+                          }}
+                        />
+                        <span>Nhà Cung Cấp đã đồng ý đổi sang sản phẩm khác.</span>
+                      </label>
+
+                      <label>
+                        <span>Phiên bản hàng đổi *</span>
+                        <select
+                          {...inputProps('variantId')}
+                          value={form.variantId}
+                          onChange={(event) => change('variantId', event.target.value)}
+                        >
+                          <option value="">Chọn phiên bản</option>
+                          {replacementVariants.map((item) => (
+                            <option key={item.id} value={item.id}>
+                              {item.ten_san_pham} · {item.ten_phien_ban}
+                            </option>
+                          ))}
+                        </select>
+                        {fieldError('variantId')}
+                      </label>
+                    </>
                   )}
 
                   {form.method !== 'SUA_CHUA' && (
                     <label>
-                      <span>GIÁ TRỊ HÀNG GỬI ĐƯỢC Nhà Cung Cấp CHẤP NHẬN, GỒM THUẾ</span>
+                      <span>Giá trị Nhà Cung Cấp chấp nhận cho hàng gửi, gồm thuế *</span>
                       <input
+                        {...inputProps('credit')}
                         type="number"
                         min="0"
                         step="0.01"
                         value={form.credit}
                         onChange={(event) => change('credit', event.target.value)}
                       />
+                      {fieldError('credit')}
                     </label>
                   )}
 
                   {form.method === 'DOI_HANG' && (
                     <label>
-                      <span>GIÁ TRỊ HÀNG NHẬN THAY THẾ, GỒM THUẾ</span>
+                      <span>Giá trị hàng đổi sẽ nhận, gồm thuế *</span>
                       <input
+                        {...inputProps('value')}
                         type="number"
                         min="0"
                         step="0.01"
                         value={form.value}
                         onChange={(event) => change('value', event.target.value)}
                       />
+                      {fieldError('value')}
                     </label>
                   )}
 
                   <p className="ncc-muted">
-                    Chốt phương án chưa phát sinh thu/chi tiền. Chênh lệch được ghi khi nhận hàng
-                    đổi hoặc khi NCC chấp nhận trả hàng.
+                    Chốt hoặc điều chỉnh phương án chưa phát sinh thu/chi. Chênh lệch được ghi khi
+                    nhận hàng đổi hoặc xác nhận Nhà Cung Cấp nhận trả.
                   </p>
                 </>
               )}
@@ -1530,8 +1730,8 @@ export default function SupplierCasePanel({ order, locked = false, onRefresh, on
               {action === 'NHAN_BO_SUNG' && (
                 <>
                   <p>
-                    Chỉ dùng khi cửa hàng đã đồng ý nhận mua phần bổ sung và chốt giá với NCC. Đơn
-                    đặt ban đầu được giữ nguyên.
+                    Chỉ dùng khi cửa hàng đã đồng ý nhận mua phần bổ sung và chốt giá với Nhà Cung
+                    Cấp. Đơn đặt ban đầu được giữ nguyên.
                   </p>
 
                   {Number(source?.legacy_extra_capacity) > 0 && (
@@ -1558,10 +1758,12 @@ export default function SupplierCasePanel({ order, locked = false, onRefresh, on
                     <label>
                       <span>SERIAL HÀNG BỔ SUNG — MỖI DÒNG MỘT MÃ</span>
                       <textarea
+                        {...inputProps('serialCodes')}
                         rows="4"
                         value={form.serialCodes}
                         onChange={(event) => change('serialCodes', event.target.value)}
                       />
+                      {fieldError('serialCodes')}
                     </label>
                   )}
 
@@ -1569,7 +1771,6 @@ export default function SupplierCasePanel({ order, locked = false, onRefresh, on
                     <>
                       <label>
                         <span>SỐ LƯỢNG</span>
-
                         <input
                           type="number"
                           min="1"
@@ -1583,7 +1784,6 @@ export default function SupplierCasePanel({ order, locked = false, onRefresh, on
                       {form.alreadyInStock && (
                         <label>
                           <span>TRONG ĐÓ, SỐ LƯỢNG ĐANG THUỘC HÀNG LỖI</span>
-
                           <input
                             type="number"
                             min="0"
@@ -1600,32 +1800,48 @@ export default function SupplierCasePanel({ order, locked = false, onRefresh, on
                   <label>
                     <span>GIÁ ĐÃ CHỐT CHO MỖI SẢN PHẨM, GỒM THUẾ</span>
                     <input
+                      {...inputProps('value')}
                       type="number"
                       min="0"
                       step="0.01"
                       value={form.value}
                       onChange={(event) => change('value', event.target.value)}
                     />
+                    {fieldError('value')}
                   </label>
                 </>
               )}
 
               {action === 'NHAN' && (
                 <>
-                  <p>
-                    Nhận: <b>{unit.expected_variant_name}</b>.
-                    {unit.method !== 'DOI_HANG'
-                      ? ' Phải nhận lại đúng thiết bị đã gửi.'
-                      : ' Serial hàng đổi phải chưa tồn tại trong hệ thống.'}
-                  </p>
+                  <div className="ncc-receive-summary ncc-field-wide">
+                    <div>
+                      <small>Thiết bị đã gửi</small>
+                      <strong>{unit.variant_name}</strong>
+                      <code>{unit.so_serial || 'Không quản lý serial'}</code>
+                    </div>
+                    <div>
+                      <small>Hàng nhận theo phương án đã chốt</small>
+                      <strong>{unit.expected_variant_name}</strong>
+                      <span>{METHODS[unit.method]}</span>
+                    </div>
+                  </div>
+
                   {receiveManaged && (
-                    <label>
-                      <span>SERIAL THỰC NHẬN</span>
+                    <label className="ncc-field-wide">
+                      <span>Serial thực nhận *</span>
                       <input
+                        {...inputProps('serialCodes')}
                         value={form.serialCodes}
                         maxLength={100}
                         onChange={(event) => change('serialCodes', event.target.value)}
                       />
+                      <small>
+                        {unit.method === 'DOI_HANG'
+                          ? 'Nhập serial mới của hàng đổi; hệ thống kiểm tra trùng và nguồn hàng.'
+                          : 'Đối chiếu serial trên thiết bị. Serial khác cần điều chỉnh phương án trước.'}
+                      </small>
+                      {fieldError('serialCodes')}
                     </label>
                   )}
                 </>
@@ -1634,8 +1850,9 @@ export default function SupplierCasePanel({ order, locked = false, onRefresh, on
               {(action === 'NHAN' || (action === 'NHAN_BO_SUNG' && !form.alreadyInStock)) && (
                 <>
                   <label>
-                    <span>TÌNH TRẠNG HÀNG THỰC NHẬN</span>
+                    <span>Tình trạng hàng thực nhận{form.passed ? ' *' : ''}</span>
                     <select
+                      {...inputProps('condition')}
                       value={form.condition}
                       onChange={(event) => change('condition', event.target.value)}
                     >
@@ -1645,7 +1862,21 @@ export default function SupplierCasePanel({ order, locked = false, onRefresh, on
                         </option>
                       ))}
                     </select>
+                    {fieldError('condition')}
                   </label>
+
+                  <label>
+                    <span>Mã lô trên hàng/chứng từ nhận, nếu có</span>
+                    <input
+                      {...inputProps('supplierLot')}
+                      maxLength={100}
+                      value={form.supplierLot}
+                      onChange={(event) => change('supplierLot', event.target.value)}
+                    />
+                    <small>Ghi đúng lô thực nhận. Hàng đổi có thể thuộc lô khác.</small>
+                    {fieldError('supplierLot')}
+                  </label>
+
                   <label className="ncc-check">
                     <input
                       type="checkbox"
@@ -1654,9 +1885,9 @@ export default function SupplierCasePanel({ order, locked = false, onRefresh, on
                     />
                     <span>Đã kiểm tra đạt, đủ điều kiện đưa vào tồn có thể bán.</span>
                   </label>
+
                   <p className="ncc-muted">
-                    Không đánh dấu đạt: hàng nhận vào tồn thực tế và hàng lỗi, không tăng tồn có thể
-                    bán.
+                    Hàng chưa đạt vào tồn thực tế và hàng lỗi; không tăng tồn có thể bán.
                   </p>
                 </>
               )}
@@ -1742,35 +1973,43 @@ export default function SupplierCasePanel({ order, locked = false, onRefresh, on
                   <span>{NCC_DOCUMENT_LABELS[action]}</span>
 
                   <input
+                    {...inputProps('document')}
                     required
                     maxLength="100"
                     value={form.document}
                     onChange={(event) => change('document', event.target.value)}
                   />
+
+                  {fieldError('document')}
                 </label>
               )}
 
               <label className="ncc-field-wide">
                 <span>{action === 'OPEN' ? 'Lý do tạo hồ sơ' : 'Nội dung và căn cứ xác nhận'}</span>
                 <textarea
+                  {...inputProps('note')}
                   rows="3"
                   maxLength={action === 'OPEN' ? 500 : 1000}
                   value={form.note}
                   onChange={(event) => change('note', event.target.value)}
                 />
+                {fieldError('note')}
               </label>
 
               <label>
                 <span>THỜI ĐIỂM THỰC HIỆN</span>
                 <input
+                  {...inputProps('at')}
                   type="datetime-local"
                   value={form.at}
                   onChange={(event) => change('at', event.target.value)}
                 />
+                {fieldError('at')}
               </label>
 
               <label className="ncc-check">
                 <input
+                  {...inputProps('confirmed')}
                   type="checkbox"
                   checked={form.confirmed}
                   onChange={(event) => change('confirmed', event.target.checked)}
@@ -1778,6 +2017,7 @@ export default function SupplierCasePanel({ order, locked = false, onRefresh, on
                 <span>
                   Tôi xác nhận nội dung, chứng từ và sự việc thực tế phù hợp với thao tác này.
                 </span>
+                {fieldError('confirmed')}
               </label>
             </fieldset>
           </OrderModal>
