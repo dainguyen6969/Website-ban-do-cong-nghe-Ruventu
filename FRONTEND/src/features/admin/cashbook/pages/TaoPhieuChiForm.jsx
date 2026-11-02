@@ -218,8 +218,8 @@ export default function TaoPhieuChiForm() {
       newErrors.date = 'Ngày ghi nhận không được ở tương lai';
     }
 
-    if (code.trim() && code.trim().toUpperCase().startsWith('CHI-')) {
-      newErrors.code = 'Mã phiếu bắt đầu bằng CHI- được dành riêng cho hệ thống tự động';
+    if (/^(THU-|CHI-|PT-|PC-)/i.test(code.trim())) {
+      newErrors.code = 'Tiền tố này do hệ thống quản lý. Để trống để cấp mã tự động.';
     }
 
     if (Object.keys(newErrors).length > 0) {
@@ -383,7 +383,7 @@ export default function TaoPhieuChiForm() {
               <label>MÃ PHIẾU (Tùy chọn)</label>
               <input
                 type="text"
-                placeholder="Để trống để tự động tạo (PC...)"
+                placeholder="Để trống để tự động tạo PC theo ngày"
                 value={code}
                 className={errors.code ? 'input-error' : ''}
                 onChange={(e) => {

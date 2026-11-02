@@ -118,7 +118,7 @@ export default function ChiTietSerial() {
   };
 
   return (
-    <main className="serial-page" role="main">
+    <main className="serial-page serial-detail-page ruventu-ops" role="main">
       <div className="serial-page__inner">
         <nav className="serial-secondary-breadcrumb" aria-label="Breadcrumb nội dung">
           <span>Sản phẩm</span>
@@ -240,9 +240,9 @@ export default function ChiTietSerial() {
             </section>
           </aside>
         </div>
-      </div>
 
-      <SerialTracePanel serialId={serialId} refreshKey={serial.status} />
+        <SerialTracePanel serialId={serialId} refreshKey={serial.status} />
+      </div>
 
       {modalOpen && (
         <div

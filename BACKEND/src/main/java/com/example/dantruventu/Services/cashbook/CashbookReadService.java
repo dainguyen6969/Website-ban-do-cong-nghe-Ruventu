@@ -571,6 +571,15 @@ public class CashbookReadService {
     var creator = voucher.getNguoiTao();
     var type = voucher.getLoaiThuChi();
 
+    var saleOrder = voucher.getDonHang();
+    var purchaseOrder = voucher.getDonNhapHang();
+    var delivery = voucher.getPhieuGiaoHang();
+
+    // Phiếu trả cũ đã có quan hệ bằng ID đến đơn bán.
+    if (saleOrder == null && voucher.getPhieuTraHang() != null) {
+      saleOrder = voucher.getPhieuTraHang().getDonHang();
+    }
+
     return m(
         "id",
         voucher.getId(),
@@ -625,7 +634,19 @@ public class CashbookReadService {
         "phieu_tra_hang_id",
         voucher.getPhieuTraHang() == null ? null : voucher.getPhieuTraHang().getId(),
         "nghiep_vu_nguon",
-        CashbookService.sourceBusiness(voucher));
+        CashbookService.sourceBusiness(voucher),
+        "don_hang_id",
+        saleOrder == null ? null : saleOrder.getId(),
+        "ma_don_hang",
+        saleOrder == null ? null : saleOrder.getMaDonHang(),
+        "don_nhap_hang_id",
+        purchaseOrder == null ? null : purchaseOrder.getId(),
+        "ma_don_nhap",
+        purchaseOrder == null ? null : purchaseOrder.getMaDonNhap(),
+        "phieu_giao_hang_id",
+        delivery == null ? null : delivery.getId(),
+        "ma_phieu_giao_hang",
+        delivery == null ? null : delivery.getMaPhieuGiaoHang());
   }
 
   private <T> T read(Supplier<T> operation) {

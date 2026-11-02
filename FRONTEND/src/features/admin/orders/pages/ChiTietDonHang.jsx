@@ -30,6 +30,7 @@ import {
   completeCounterInspection,
 } from '../api/orderApi';
 
+import DocumentPanel from '../../documents/DocumentPanel';
 import { subscribeAdminRealtime } from '../api/orderRealtime';
 import OrderRefundPanel from '../components/OrderRefundPanel';
 import { OrderStateBadge } from './DanhSachDonHang';
@@ -226,6 +227,7 @@ function OrderDetailView({ orderId }) {
   const readerRef = useRef(null);
   const editingRef = useRef(false);
   const refundEditing = useRef(false);
+  const documentEditing = useRef(false);
   const navigate = useNavigate();
 
   const [screen, setScreen] = useState({
@@ -272,6 +274,14 @@ function OrderDetailView({ orderId }) {
     }
   }, []);
 
+  const onDocumentEditing = useCallback((value) => {
+    documentEditing.current = value;
+
+    if (!value) {
+      readerRef.current?.resume();
+    }
+  }, []);
+
   useEffect(() => {
     const optionsController = new AbortController();
 
@@ -286,7 +296,11 @@ function OrderDetailView({ orderId }) {
         return value;
       },
 
-      canApply: () => !actionBusy.current && !editingRef.current && !refundEditing.current,
+      canApply: () =>
+        !actionBusy.current &&
+        !editingRef.current &&
+        !refundEditing.current &&
+        !documentEditing.current,
 
       onData: (value) => {
         setScreen(value);
@@ -429,7 +443,7 @@ function OrderDetailView({ orderId }) {
     );
 
   const open = (type, title, fields = {}) => {
-    if (refundEditing.current) return;
+    if (refundEditing.current || documentEditing.current) return;
 
     setState((current) => ({ ...current, error: '' }));
     editingRef.current = true;
@@ -537,6 +551,7 @@ function OrderDetailView({ orderId }) {
     if (
       actionBusy.current ||
       refundEditing.current ||
+      documentEditing.current ||
       orderAttempt.current ||
       cashAttempt.current
     ) {
@@ -1451,6 +1466,20 @@ function OrderDetailView({ orderId }) {
               onEditingChange={onRefundEditing}
             />
           </Panel>
+
+          <DocumentPanel
+            key={`order-${order.id}`}
+            mode="order"
+            id={order.id}
+            locked={
+              state.busy ||
+              Boolean(dialog) ||
+              isCancelOpen ||
+              Boolean(orderAttempt.current) ||
+              Boolean(cashAttempt.current)
+            }
+            onEditingChange={onDocumentEditing}
+          />
 
           <Panel title="ĐÓNG GÓI VÀ XUẤT KHO">
             <div className="order-fulfillment-grid">

@@ -15,6 +15,7 @@ import com.example.dantruventu.Repository.partner.NhaCungCapRepository;
 import com.example.dantruventu.Repository.product.PhienBanSanPhamRepository;
 import com.example.dantruventu.Repository.warehouse.*;
 import com.example.dantruventu.Services.cashbook.CashbookService;
+import com.example.dantruventu.Services.documents.DocumentNumberService;
 import com.example.dantruventu.Services.order.OrderEvents;
 import com.example.dantruventu.Services.warehouse.NccAccountingService;
 import com.example.dantruventu.Services.warehouse.RecallSafety;
@@ -68,6 +69,8 @@ public class AdminPurchaseOrderService {
 
   private final SourceTraceService sourceTraceService;
   private final RecallSafety recallSafety;
+
+  private final DocumentNumberService documentNumbers;
 
   private final EntityManager entityManager;
 
@@ -272,7 +275,7 @@ public class AdminPurchaseOrderService {
 
     DonNhapHang order =
         DonNhapHang.builder()
-            .maDonNhap("TMP-" + UUID.randomUUID())
+            .maDonNhap(documentNumbers.next("DN"))
             .nhaCungCap(supplier)
             .nguoiTao(currentUser())
             .tongTien(total)
@@ -282,10 +285,6 @@ public class AdminPurchaseOrderService {
             .build();
 
     order = donNhapHangRepository.saveAndFlush(order);
-
-    order.setMaDonNhap("DN" + String.format("%07d", order.getId()));
-
-    order = donNhapHangRepository.save(order);
 
     saveDetails(order, request.getItems(), variants);
 
@@ -380,7 +379,7 @@ public class AdminPurchaseOrderService {
 
     String voucherCode = "CHI-NCC-" + idempotencyKey;
 
-    Optional<SoQuyThuChi> existing = soQuyThuChiRepository.findByMaPhieu(voucherCode);
+    Optional<SoQuyThuChi> existing = soQuyThuChiRepository.findByBusinessKey(voucherCode);
 
     if (existing.isPresent()) {
 
@@ -414,12 +413,13 @@ public class AdminPurchaseOrderService {
     SoQuyThuChi voucher =
         cashbookService.createAutomatic(
             CashbookService.AutomaticVoucher.builder()
-                .maPhieu(voucherCode)
+                .khoaNghiepVu(voucherCode)
                 .loaiPhieu(LoaiPhieuThuChi.CHI)
                 .maLoaiThuChi("CHI_NHAP_HANG")
                 .nhomNguoiNopNhan(NhomNguoiNopNhanEnum.NHA_CUNG_CAP)
                 .nhaCungCap(order.getNhaCungCap())
                 .maChungTuThamChieu(order.getMaDonNhap())
+                .donNhapHang(order)
                 .soTien(request.getSoTienThanhToan())
                 .phuongThucThanhToan(request.getPhuongThucThanhToan())
                 .ngayGhiNhan(request.getNgayThanhToan())
@@ -906,12 +906,13 @@ public class AdminPurchaseOrderService {
       SoQuyThuChi voucher =
           cashbookService.createAutomatic(
               CashbookService.AutomaticVoucher.builder()
-                  .maPhieu(refundVoucherCode)
+                  .khoaNghiepVu(refundVoucherCode)
                   .loaiPhieu(LoaiPhieuThuChi.THU)
                   .maLoaiThuChi("THU_HOAN_NCC")
                   .nhomNguoiNopNhan(NhomNguoiNopNhanEnum.NHA_CUNG_CAP)
                   .nhaCungCap(order.getNhaCungCap())
                   .maChungTuThamChieu(order.getMaDonNhap())
+                  .donNhapHang(order)
                   .soTien(refundDue)
                   .phuongThucThanhToan(request.getPhuongThucHoan())
                   .ngayGhiNhan(request.getNgayNhanTien())
@@ -1066,12 +1067,13 @@ public class AdminPurchaseOrderService {
     SoQuyThuChi voucher =
         cashbookService.createAutomatic(
             CashbookService.AutomaticVoucher.builder()
-                .maPhieu(voucherCode)
+                .khoaNghiepVu(voucherCode)
                 .loaiPhieu(LoaiPhieuThuChi.THU)
                 .maLoaiThuChi("THU_HOAN_NCC")
                 .nhomNguoiNopNhan(NhomNguoiNopNhanEnum.NHA_CUNG_CAP)
                 .nhaCungCap(order.getNhaCungCap())
                 .maChungTuThamChieu(order.getMaDonNhap())
+                .donNhapHang(order)
                 .soTien(amount)
                 .phuongThucThanhToan(request.getPhuongThucHoan())
                 .ngayGhiNhan(request.getNgayNhanTien())

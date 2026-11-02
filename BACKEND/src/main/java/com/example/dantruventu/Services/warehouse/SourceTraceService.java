@@ -5,6 +5,7 @@ import com.example.dantruventu.DTO.Request.warehouse.SupplierRecallRequest;
 import com.example.dantruventu.DTO.Response.warehouse.AdminPurchaseOrderReceiveResponse;
 import com.example.dantruventu.Error.AppException;
 import com.example.dantruventu.Error.ErrorCode;
+import com.example.dantruventu.Services.documents.DocumentNumberService;
 import com.example.dantruventu.Services.order.sales.SalesContext;
 import java.sql.Statement;
 import java.sql.Timestamp;
@@ -26,6 +27,7 @@ public class SourceTraceService {
   private final JdbcTemplate jdbc;
   private final SalesContext context;
   private final WarehouseSupport warehouse;
+  private final DocumentNumberService documentNumbers;
 
   private static final ZoneId ZONE = ZoneId.of("Asia/Ho_Chi_Minh");
 
@@ -65,17 +67,23 @@ public class SourceTraceService {
   }
 
   private long header(Long poId, String kind, Long eventId, String document, String note) {
+
+    boolean actualReceipt = Set.of("NHAP_GOC", "NHAN_XU_LY_NCC").contains(kind);
+
+    String code = actualReceipt ? documentNumbers.next("NK") : null;
+
     return insert(
         """
                 INSERT INTO rv_receipt (
-                  purchase_id, source_kind, ncc_event_id,
+                  code, purchase_id, source_kind, ncc_event_id,
                   supplier_document, recorded_at, actor_id, note
-                ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                 """,
+        code,
         poId,
         kind,
         eventId,
-        clean(document),
+        document == null || document.isBlank() ? null : document,
         Timestamp.valueOf(LocalDateTime.now(ZONE)),
         context.actor().getId(),
         note);
@@ -159,13 +167,14 @@ public class SourceTraceService {
 
   @Transactional(propagation = Propagation.MANDATORY)
   public void recordNccReceipt(
-      Long eventId,
-      Long caseId,
-      Long unitId,
-      String action,
-      Long newSerialId,
-      String document,
-      boolean alreadyInStock) {
+          Long eventId,
+          Long caseId,
+          Long unitId,
+          String action,
+          Long newSerialId,
+          String document,
+          boolean alreadyInStock,
+          String supplierLot) {
 
     if (!Set.of("NHAN", "NHAN_BO_SUNG").contains(action)) return;
 
@@ -207,14 +216,14 @@ public class SourceTraceService {
             (alreadyInStock ? "Đối soát hàng đã có trong kho, hồ sơ #" : "Nhận theo hồ sơ #")
                 + caseId);
 
-    line(
-        receiptId,
-        id(unit.get("source_line_id")),
-        variantId,
-        1,
-        null,
-        managed,
-        newSerialId == null ? List.of() : List.of(newSerialId));
+      line(
+              receiptId,
+              id(unit.get("source_line_id")),
+              variantId,
+              1,
+              supplierLot,
+              managed,
+              newSerialId == null ? List.of() : List.of(newSerialId));
   }
 
   public Object purchaseSources(Long poId) {
@@ -541,6 +550,10 @@ public class SourceTraceService {
   }
 
   public Object safe(Object value) {
+    if (value instanceof java.sql.Date date) {
+      return date.toLocalDate().toString();
+    }
+
     if (value instanceof Timestamp timestamp) {
       return timestamp.toLocalDateTime().atZone(ZONE).toOffsetDateTime().toString();
     }

@@ -50,8 +50,9 @@ public class BackorderService {
   private final OrderEvents events;
   private final ObjectMapper json;
 
-    @Value("${ruventu.sales.stock-notification-website-enabled:true}")
-    private boolean websiteEnabled;
+  @Value("${ruventu.sales.stock-notification-website-enabled:true}")
+  private boolean websiteEnabled;
+
   @Value("${ruventu.sales.backorder-long-wait:PT72H}")
   private Duration longWait;
 
@@ -73,12 +74,11 @@ public class BackorderService {
       @NotBlank @Size(max = 1000) String note,
       @NotNull @AssertTrue Boolean confirmed) {}
 
-    public void requireWebsiteEnabled() {
-        if (!websiteEnabled) {
-            throw conflict(
-                    "Cửa hàng chưa mở đăng ký nhận thông báo có hàng trên website.");
-        }
+  public void requireWebsiteEnabled() {
+    if (!websiteEnabled) {
+      throw conflict("Cửa hàng chưa mở đăng ký nhận thông báo có hàng trên website.");
     }
+  }
 
   @Transactional(propagation = Propagation.MANDATORY)
   public void recordWebsiteOrder(DonHang order, String remainingMethod) {

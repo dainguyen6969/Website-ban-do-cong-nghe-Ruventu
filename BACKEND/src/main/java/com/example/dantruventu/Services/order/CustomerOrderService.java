@@ -30,6 +30,7 @@ import com.example.dantruventu.Repository.warehouse.ThanhPhanComboRepository;
 import com.example.dantruventu.Services.CartPromotionService;
 import com.example.dantruventu.Services.cashbook.CashbookService;
 import com.example.dantruventu.Services.catalog.CatalogSupport;
+import com.example.dantruventu.Services.documents.DocumentNumberService;
 import com.example.dantruventu.Services.order.sales.*;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
@@ -92,6 +93,7 @@ public class CustomerOrderService {
   private final OrderInventoryService orderInventory;
   private final OrderIntakePolicy intakePolicy;
   private final BackorderService backorders;
+  private final DocumentNumberService documentNumbers;
 
   @Value("${ruventu.order.delivery-fee:30000}")
   private BigDecimal deliveryFee;
@@ -258,8 +260,7 @@ public class CustomerOrderService {
 
     requireCheckoutPromotion(user, guestCartId, request);
 
-      List<Long> selectedIds =
-              validateSelectedIds(request.getCartItemIds());
+    List<Long> selectedIds = validateSelectedIds(request.getCartItemIds());
 
     List<CartLine> cartLines = checkoutLines(user, guestCartId, request, true);
     CustomerOrderResponse.Recipient recipient = resolveRecipient(user, request);
@@ -282,7 +283,7 @@ public class CustomerOrderService {
 
     DonHang order =
         DonHang.builder()
-            .maDonHang("ORD-" + UUID.randomUUID())
+            .maDonHang(documentNumbers.next("DH"))
             .loaiDonHang(LoaiDonHang.ONLINE)
             .khachHang(user)
             .nhanVien(null)
@@ -318,20 +319,18 @@ public class CustomerOrderService {
 
     saleSnapshots.recordPromotion(order, plan, salesRequest, user);
 
-      orderInventory.reserveForNewOrder(
-              order,
-              false,
-              intakePolicy.temporaryReason(user, plan.quantities()));
+    orderInventory.reserveForNewOrder(
+        order, false, intakePolicy.temporaryReason(user, plan.quantities()));
 
     saleSnapshots.configureUnpaidPromotion(order);
 
     orderRepository.flush();
 
-      if (user != null) {
-          removePurchasedCartItems(user, guestCartId, selectedIds);
-      }
+    if (user != null) {
+      removePurchasedCartItems(user, guestCartId, selectedIds);
+    }
 
-      registerCartCleanupAfterCommit(user, guestCartId, cartLines);
+    registerCartCleanupAfterCommit(user, guestCartId, cartLines);
     orderEvents.created(order);
 
     return CustomerOrderResponse.Created.builder()
@@ -762,38 +761,28 @@ public class CustomerOrderService {
         .build();
   }
 
-    private void requireCheckoutPromotion(
-            NguoiDung user,
-            String guestCartId,
-            CustomerCheckoutRequest.Preview request) {
+  private void requireCheckoutPromotion(
+      NguoiDung user, String guestCartId, CustomerCheckoutRequest.Preview request) {
 
-        boolean waitingRequested =
-                Boolean.TRUE.equals(request.getChoPhepChoHang())
-                        || (request.getSanPhamChoHang() != null
-                        && !request.getSanPhamChoHang().isEmpty());
+    boolean waitingRequested =
+        Boolean.TRUE.equals(request.getChoPhepChoHang())
+            || (request.getSanPhamChoHang() != null && !request.getSanPhamChoHang().isEmpty());
 
-        if (waitingRequested) {
-            throw invalid(
-                    "Website chỉ tiếp nhận đăng ký nhận thông báo khi có hàng. "
-                            + "Vui lòng liên hệ cửa hàng để được hỗ trợ tạo đơn chờ hàng.");
-        }
-
-        cartPromotionService.requireSelectedPromotion(
-                user, guestCartId, request.getMaChuongTrinh());
+    if (waitingRequested) {
+      throw invalid(
+          "Website chỉ tiếp nhận đăng ký nhận thông báo khi có hàng. "
+              + "Vui lòng liên hệ cửa hàng để được hỗ trợ tạo đơn chờ hàng.");
     }
 
-    private List<CartLine> checkoutLines(
-            NguoiDung user,
-            String guestCartId,
-            CustomerCheckoutRequest.Preview request,
-            boolean lock) {
+    cartPromotionService.requireSelectedPromotion(user, guestCartId, request.getMaChuongTrinh());
+  }
 
-        return loadSelectedCartLines(
-                user,
-                guestCartId,
-                validateSelectedIds(request.getCartItemIds()),
-                lock);
-    }
+  private List<CartLine> checkoutLines(
+      NguoiDung user, String guestCartId, CustomerCheckoutRequest.Preview request, boolean lock) {
+
+    return loadSelectedCartLines(
+        user, guestCartId, validateSelectedIds(request.getCartItemIds()), lock);
+  }
 
   private AdminSalesRequest.Preview buildSalesRequest(
       NguoiDung user, CustomerCheckoutRequest.Preview request, List<CartLine> cartLines) {
@@ -824,7 +813,7 @@ public class CustomerOrderService {
         "GIAO_HANG".equals(request.getHinhThucNhanHang()) ? deliveryFee : BigDecimal.ZERO);
     salesRequest.setGhiChu(text(request.getGhiChu()));
     salesRequest.setLoaiDonHang(LoaiDonHang.ONLINE);
-      salesRequest.setChoPhepChoHang(false);
+    salesRequest.setChoPhepChoHang(false);
 
     return salesRequest;
   }
