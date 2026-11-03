@@ -421,8 +421,28 @@ export default function ThuHoiHang() {
     getPurchaseSources(form.purchaseId, controller.signal)
       .then((rows) => {
         if (!controller.signal.aborted) {
-          setReceipts(rows);
+          const list = rows || [];
+          setReceipts(list);
           setSourceError('');
+
+          const lines = list.flatMap((receipt) =>
+            (receipt.items || []).map((item) => ({ ...item, receiptId: receipt.id }))
+          );
+          const hasSerial = lines.some((l) => flag(l.serial_managed));
+          const hasNonSerial = lines.some((l) => !flag(l.serial_managed));
+
+          setForm((current) => {
+            const nextMode = !hasSerial && hasNonSerial ? 'receipt' : current.mode;
+            const nextReceiptLineId =
+              current.receiptLineId && lines.some((l) => String(l.id) === String(current.receiptLineId))
+                ? current.receiptLineId
+                : String(lines[0]?.id || '');
+            return {
+              ...current,
+              mode: nextMode,
+              receiptLineId: nextReceiptLineId,
+            };
+          });
         }
       })
       .catch((cause) => {
@@ -552,12 +572,18 @@ export default function ThuHoiHang() {
 
       setRefresh((current) => current + 1);
     } catch (cause) {
-      setError(errorMessage(cause));
+      let msg = errorMessage(cause);
+      if (msg.includes('Không tìm thấy dữ liệu hoặc dữ liệu bị trùng') && form.mode === 'serials') {
+        msg = 'Số serial không tồn tại trong hệ thống hoặc không thuộc đơn nhập đã chọn.';
+      }
+      setError(msg);
 
       if (Number(cause.status || cause.response?.status) === 409 && !attempt.current) {
-        setDialog(null);
-        await loadDetail();
-        setError(errorMessage(cause));
+        if (dialog?.kind !== 'create') {
+          setDialog(null);
+          await loadDetail();
+        }
+        setError(msg);
       }
     } finally {
       writing.current = false;
@@ -714,12 +740,12 @@ export default function ThuHoiHang() {
                 <table className="recall-table">
                   <thead>
                     <tr>
-                      <th>Đợt thu hồi</th>
-                      <th>Nguồn nhập</th>
-                      <th>Tiến độ</th>
-                      <th>Hạn xử lý</th>
-                      <th>Trạng thái</th>
-                      <th />
+                      <th>MÃ ĐỢT THU HỒI</th>
+                      <th>NGUỒN NHẬP / NCC</th>
+                      <th>TIẾN ĐỘ</th>
+                      <th>HẠN XỬ LÝ</th>
+                      <th>TRẠNG THÁI</th>
+                      <th>THAO TÁC</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -758,7 +784,7 @@ export default function ThuHoiHang() {
                             </span>
                           </td>
                           <td>
-                            <Link to={`/kho-hang/thu-hoi/${record.id}`}>Xem chi tiết</Link>
+                            <Link to={`/kho-hang/thu-hoi/${record.id}`} className="recall-button recall-button--sm">XEM CHI TIẾT</Link>
                           </td>
                         </tr>
                       ))
@@ -863,11 +889,11 @@ export default function ThuHoiHang() {
                 <table className="recall-table">
                   <thead>
                     <tr>
-                      <th>Thiết bị / nguồn</th>
-                      <th>Vị trí theo sự kiện</th>
-                      <th>Đơn bán / liên hệ</th>
-                      <th>Kết quả</th>
-                      <th />
+                      <th>THIẾT BỊ / NGUỒN</th>
+                      <th>VỊ TRÍ THEO SỰ KIỆN</th>
+                      <th>ĐƠN BÁN / LIÊN HỆ</th>
+                      <th>KẾT QUẢ</th>
+                      <th>THAO TÁC</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -921,11 +947,11 @@ export default function ThuHoiHang() {
                           {detail.status === 'DANG_XU_LY' && item.status !== 'DA_GIAI_QUYET' && (
                             <button
                               type="button"
-                              className="recall-button"
+                              className="recall-button is-dark recall-button--sm"
                               disabled={frozen}
                               onClick={() => openAction(recallDefaultAction(item), item)}
                             >
-                              Cập nhật thiết bị
+                              CẬP NHẬT
                             </button>
                           )}
                         </td>
@@ -1031,15 +1057,39 @@ export default function ThuHoiHang() {
                     </select>
                   </Field>
 
+                  {form.purchaseId && !sourceLoading && receipts.length === 0 && (
+                    <div className="recall-empty-reference recall-wide" style={{ marginBottom: '12px' }}>
+                      <p style={{ color: '#dc2626', margin: '0 0 6px 0' }}>
+                        ⚠️ Đơn nhập này chưa có dữ liệu nguồn nhận đối soát.
+                      </p>
+                      <a
+                        className="recall-route-link"
+                        href={`/kho-hang/nhap-hang/${form.purchaseId}`}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        Mở chi tiết đơn nhập để thực hiện &quot;Đối soát nguồn cũ&quot;
+                      </a>
+                    </div>
+                  )}
+
                   {form.mode === 'serials' ? (
-                    <Field label="Serial thuộc phạm vi, mỗi dòng một mã" wide>
-                      <textarea
-                        rows={5}
-                        required
-                        value={form.serials}
-                        onChange={(event) => change('serials', event.target.value)}
-                      />
-                    </Field>
+                    <>
+                      {form.purchaseId && !sourceLoading && receipts.length > 0 && !sourceLines.some((l) => flag(l.serial_managed)) && (
+                        <p className="receipt-config-note" style={{ color: '#d97706', marginBottom: '8px' }}>
+                          ⚠️ Đơn nhập này là hàng không quản lý theo serial. Hãy chuyển phạm vi sang &quot;Theo dòng/lô của nguồn nhận&quot;.
+                        </p>
+                      )}
+                      <Field label="Serial thuộc phạm vi, mỗi dòng một mã" wide>
+                        <textarea
+                          rows={5}
+                          required
+                          value={form.serials}
+                          placeholder="Ví dụ: SN123456 (không nhập mã đơn nhập)"
+                          onChange={(event) => change('serials', event.target.value)}
+                        />
+                      </Field>
+                    </>
                   ) : (
                     <>
                       <Field label="Dòng nguồn nhận" wide>

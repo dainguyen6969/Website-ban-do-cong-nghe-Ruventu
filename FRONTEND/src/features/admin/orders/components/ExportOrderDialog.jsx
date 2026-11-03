@@ -77,57 +77,104 @@ export default function ExportOrderDialog({
           {!warehouses.length && <p role="status">Chưa có kho xuất hàng.</p>}
 
           {packing && Boolean(dialog.savedSerials?.length) && (
-            <section className="order-export-product">
-              <strong>SERIAL ĐÃ GIỮ</strong>
+            <section className="order-export-product order-export-saved-serials">
+              <header className="order-export-saved-serials__header">
+                <div className="order-export-saved-serials__heading">
+                  <strong>SERIAL ĐÃ GIỮ TRONG ĐƠN</strong>
+                  <span className="order-count-pill">{dialog.savedSerials.length}</span>
+                </div>
+                <span className="order-export-saved-serials__subtitle">
+                  Chọn mã bị lỗi để gỡ khỏi phân bổ và chọn serial thay thế
+                </span>
+              </header>
 
-              <p>Chọn mã bị lỗi, chọn serial thay thế rồi lưu phân bổ.</p>
+              <div className="order-export-saved-serials__body">
+                <p className="order-export-saved-serials__hint">
+                  Đánh dấu các serial bị lỗi (hỏng hóc, sai thông số hoặc không đạt chuẩn). Hệ thống sẽ tự động gỡ ra để bạn chọn mã mới thay thế ở danh sách bên dưới.
+                </p>
 
-              {dialog.savedSerials.map((serial) => (
-                <label key={serial.id} className="order-operation-confirm">
-                  <input
-                    type="checkbox"
-                    disabled={busy}
-                    checked={defectIds.includes(serial.id)}
-                    onChange={(event) => {
-                      const checked = event.target.checked;
+                <div className="order-export-serial-list">
+                  {dialog.savedSerials.map((serial) => {
+                    const isDefect = defectIds.includes(serial.id);
 
-                      setDialog((current) => ({
-                        ...current,
-                        defectIds: checked
-                          ? [...(current.defectIds || []), serial.id]
-                          : (current.defectIds || []).filter((id) => id !== serial.id),
-                        groups: checked
-                          ? current.groups.map((group) => ({
-                              ...group,
-                              selected: group.selected.filter((id) => id !== serial.id),
-                            }))
-                          : current.groups,
-                      }));
-                    }}
-                  />
+                    return (
+                      <label
+                        key={serial.id}
+                        className={`order-export-serial-card ${
+                          isDefect ? 'order-export-serial-card--defect' : ''
+                        }`}
+                      >
+                        <input
+                          type="checkbox"
+                          disabled={busy}
+                          checked={isDefect}
+                          onChange={(event) => {
+                            const checked = event.target.checked;
 
-                  <span>{serial.so_serial} — đánh dấu lỗi</span>
-                </label>
-              ))}
+                            setDialog((current) => ({
+                              ...current,
+                              defectIds: checked
+                                ? [...(current.defectIds || []), serial.id]
+                                : (current.defectIds || []).filter((id) => id !== serial.id),
+                              groups: checked
+                                ? current.groups.map((group) => ({
+                                    ...group,
+                                    selected: group.selected.filter((id) => id !== serial.id),
+                                  }))
+                                : current.groups,
+                            }));
+                          }}
+                        />
 
-              {defectIds.length > 0 && (
-                <label className="order-operation-field">
-                  <span>LÝ DO ĐỔI SERIAL LỖI</span>
+                        <div className="order-export-serial-card__info">
+                          <div className="order-export-serial-card__code">
+                            <span className="order-device-serial">{serial.so_serial}</span>
+                            {isDefect ? (
+                              <span className="order-export-defect-badge">ĐÃ ĐÁNH DẤU LỖI</span>
+                            ) : (
+                              <span className="order-export-normal-badge">ĐANG GIỮ</span>
+                            )}
+                          </div>
+                          <span className="order-export-serial-card__desc">
+                            {isDefect
+                              ? 'Đã gỡ khỏi phân bổ — hãy chọn serial thay thế ở sản phẩm bên dưới'
+                              : 'Bấm để đánh dấu lỗi và chọn serial thay thế'}
+                          </span>
+                        </div>
+                      </label>
+                    );
+                  })}
+                </div>
 
-                  <textarea
-                    required
-                    maxLength={150}
-                    disabled={busy}
-                    value={dialog.defectReason || ''}
-                    onChange={(event) =>
-                      setDialog((current) => ({
-                        ...current,
-                        defectReason: event.target.value,
-                      }))
-                    }
-                  />
-                </label>
-              )}
+                {defectIds.length > 0 && (
+                  <div className="order-export-defect-reason-box">
+                    <label className="order-export-defect-reason-label">
+                      <span className="order-export-defect-reason-title">
+                        LÝ DO ĐỔI SERIAL LỖI *
+                      </span>
+
+                      <textarea
+                        required
+                        rows={3}
+                        maxLength={150}
+                        disabled={busy}
+                        placeholder="Nhập lý do đổi serial lỗi (ví dụ: lỗi trầy xước, không nhận diện, lỗi bao bì...)"
+                        value={dialog.defectReason || ''}
+                        onChange={(event) =>
+                          setDialog((current) => ({
+                            ...current,
+                            defectReason: event.target.value,
+                          }))
+                        }
+                      />
+                      <div className="order-export-defect-reason-meta">
+                        <small>Bắt buộc nhập lý do để lưu lịch sử xử lý đóng gói.</small>
+                        <small>{(dialog.defectReason || '').length}/150 ký tự</small>
+                      </div>
+                    </label>
+                  </div>
+                )}
+              </div>
             </section>
           )}
 

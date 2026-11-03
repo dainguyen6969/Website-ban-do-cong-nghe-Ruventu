@@ -669,13 +669,24 @@
   margin-top: 18px;
   border: 1px solid #cfcfcf;
 }
+.category-section-header > span:first-child {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.category-section-header > span:first-child::before {
+  content: '';
+  width: 3px;
+  height: 16px;
+  background: #e31e24;
+  flex-shrink: 0;
+}
 .category-section-header {
   min-height: 42px;
   padding: 0 16px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  border-left: 4px solid #e00000;
   background: #080808;
   color: #fff;
   font-size: 10px;

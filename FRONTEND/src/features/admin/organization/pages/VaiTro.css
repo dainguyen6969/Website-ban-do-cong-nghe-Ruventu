@@ -214,7 +214,11 @@
   display: flex;
   align-items: center;
   gap: 18px;
-  background: #fafafa;
+  background: #0b0b0b;
+  color: #fff;
+}
+.role-matrix-title h2 {
+  color: #fff;
 }
 .role-matrix-title p {
   color: #a3a8ae;

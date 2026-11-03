@@ -264,11 +264,21 @@
 }
 
 .cb-chart-title h2 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   font-size: 12px;
   font-weight: 900;
   color: #111;
   margin: 0 0 8px 0;
   text-transform: uppercase;
+}
+.cb-chart-title h2::before {
+  content: '';
+  width: 3px;
+  height: 14px;
+  background-color: #e31e24;
+  flex-shrink: 0;
 }
 
 .cb-chart-title p {

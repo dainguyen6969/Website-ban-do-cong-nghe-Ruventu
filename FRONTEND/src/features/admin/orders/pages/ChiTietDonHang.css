@@ -529,7 +529,7 @@
 .order-start-delivery {
   width: min(520px, 100%);
   box-shadow: none;
-  font-family: 'Barlow Condensed', sans-serif;
+  font-family: var(--font-family-admin, inherit);
 }
 .order-start-delivery > header {
   height: 48px;
@@ -588,14 +588,14 @@
   min-height: 40px;
   padding: 9px 10px;
   border: 2px solid #ddd;
-  font-family: 'Barlow', sans-serif;
+  font-family: var(--font-family-admin, inherit);
   font-size: 13px;
   font-weight: 400;
   border-radius: 0;
 }
 .order-start-delivery .order-operation-field small {
   color: #888;
-  font-family: 'Barlow', sans-serif;
+  font-family: var(--font-family-admin, inherit);
   font-size: 11px;
   font-weight: 400;
   letter-spacing: 0;
@@ -610,7 +610,7 @@
 .order-start-delivery footer .order-action {
   min-height: 40px;
   padding: 0 8px !important;
-  font-family: 'Barlow Condensed', sans-serif;
+  font-family: var(--font-family-admin, inherit);
   font-size: 11px;
 }
 .order-start-delivery footer .order-action--black:disabled {
@@ -641,7 +641,7 @@
   border: 2px solid #111;
   background: #fff;
   text-align: left;
-  font-family: 'Barlow Condensed', sans-serif !important;
+  font-family: var(--font-family-admin, inherit) !important;
 }
 .order-courier-card strong {
   display: block;
@@ -650,7 +650,7 @@
 .order-start-delivery .order-courier-card small {
   display: block;
   margin-top: 2px;
-  font-family: 'Barlow Condensed', sans-serif;
+  font-family: var(--font-family-admin, inherit);
   font-size: 10px;
 }
 .order-courier-card__type {
@@ -672,7 +672,7 @@
 
 .order-export-modal,
 .order-select-serial {
-  font-family: 'Barlow Condensed', sans-serif;
+  font-family: var(--font-family-admin, inherit);
   box-shadow: none;
 }
 .order-modal-backdrop:has(> .order-export-modal) {
@@ -762,6 +762,188 @@
   color: #1565c0;
   white-space: nowrap;
 }
+
+/* Serial đã giữ & đánh dấu đổi serial lỗi */
+.order-export-saved-serials {
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  margin-bottom: 16px;
+}
+
+.order-export-saved-serials__header {
+  padding: 10px 14px;
+  background: #f8fafc;
+  border-bottom: 1px solid #e2e8f0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.order-export-saved-serials__heading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.order-export-saved-serials__heading strong {
+  font-size: 11px;
+  font-weight: 800;
+  color: #0f172a;
+  letter-spacing: 0.03em;
+}
+
+.order-export-saved-serials__subtitle {
+  color: #64748b;
+  font-size: 10px;
+}
+
+.order-export-saved-serials__body {
+  padding: 12px 14px;
+  display: grid;
+  gap: 12px;
+}
+
+.order-export-saved-serials__hint {
+  margin: 0;
+  padding: 8px 12px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-left: 3px solid #64748b;
+  color: #475569;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.order-export-serial-list {
+  display: grid;
+  gap: 8px;
+}
+
+.order-export-serial-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  background: #fdfdfd;
+  border: 1px solid #e2e8f0;
+  cursor: pointer;
+  transition: border-color 0.15s, background-color 0.15s;
+}
+
+.order-export-serial-card:hover {
+  border-color: #cbd5e1;
+  background: #f8fafc;
+}
+
+.order-export-serial-card input[type='checkbox'] {
+  margin-top: 3px;
+  width: 15px;
+  height: 15px;
+  accent-color: #dc2626;
+  cursor: pointer;
+}
+
+.order-export-serial-card--defect {
+  background: #fef2f2 !important;
+  border-color: #fca5a5 !important;
+}
+
+.order-export-serial-card__info {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+  flex: 1;
+}
+
+.order-export-serial-card__code {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.order-export-serial-card__desc {
+  color: #64748b;
+  font-size: 10px;
+  line-height: 1.4;
+}
+
+.order-export-serial-card--defect .order-export-serial-card__desc {
+  color: #b91c1c;
+  font-weight: 500;
+}
+
+.order-export-defect-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 7px;
+  background: #fee2e2;
+  color: #b91c1c;
+  border: 1px solid #fca5a5;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+}
+
+.order-export-normal-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 7px;
+  background: #f1f5f9;
+  color: #475569;
+  border: 1px solid #cbd5e1;
+  font-size: 9px;
+  font-weight: 700;
+}
+
+.order-export-defect-reason-box {
+  padding: 12px 14px;
+  background: #fffdf5;
+  border: 1px solid #fde68a;
+  border-left: 3px solid #f59e0b;
+}
+
+.order-export-defect-reason-label {
+  display: grid;
+  gap: 6px;
+}
+
+.order-export-defect-reason-title {
+  color: #92400e;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+
+.order-export-defect-reason-label textarea {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid #d1d5db;
+  border-radius: 0;
+  font-family: inherit;
+  font-size: 11px;
+  line-height: 1.5;
+  color: #0f172a;
+  background: #fff;
+  resize: vertical;
+  min-height: 68px;
+  box-sizing: border-box;
+}
+
+.order-export-defect-reason-label textarea:focus {
+  outline: none;
+  border-color: #f59e0b;
+  box-shadow: 0 0 0 1px #f59e0b;
+}
+
+.order-export-defect-reason-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  color: #78350f;
+  font-size: 10px;
+}
 .order-export-variant {
   display: flex;
   align-items: center;
@@ -778,7 +960,7 @@
 }
 .order-export-variant small {
   color: #888;
-  font-family: 'Barlow', sans-serif;
+  font-family: var(--font-family-admin, inherit);
   font-size: 10px;
   overflow-wrap: anywhere;
 }
@@ -795,7 +977,7 @@
 }
 .order-export-modal .order-action,
 .order-select-serial .order-action {
-  font-family: 'Barlow Condensed', sans-serif;
+  font-family: var(--font-family-admin, inherit);
   font-size: 11px;
 }
 .order-export-variant .order-action {
@@ -842,7 +1024,7 @@
   height: 40px;
   border: 2px solid #ddd;
   padding: 10px;
-  font-family: 'Barlow', sans-serif !important;
+  font-family: var(--font-family-admin, inherit) !important;
   font-size: 13px;
 }
 .order-serial-results {
@@ -852,7 +1034,7 @@
 }
 .order-serial-results > p {
   padding: 12px;
-  font-family: 'Barlow', sans-serif;
+  font-family: var(--font-family-admin, inherit);
   font-size: 12px;
 }
 .order-serial-row {
@@ -878,7 +1060,7 @@
   border: 1px solid #a5d6a7;
   background: #e8f5e9;
   color: #2e7d32;
-  font-family: 'Barlow Condensed', sans-serif;
+  font-family: var(--font-family-admin, inherit);
   font-size: 10px;
   white-space: nowrap;
 }
@@ -1059,7 +1241,7 @@
 
 /* Các nghiệp vụ mới sử dụng giao diện gốc. */
 .admin-order-detail {
-  font-family: 'Barlow Condensed', sans-serif;
+  font-family: var(--font-family-admin, inherit);
 }
 
 .admin-order-detail .order-detail-hero,
@@ -1113,123 +1295,594 @@
   font-weight: 800;
 }
 
-.admin-order-detail .order-detail-panel > details {
-  margin: 0 14px 14px;
-  padding: 10px;
-  border: 1px solid #dedede;
+/* 1. Banner chờ nộp COD */
+.order-cod-settlement-alert {
+  margin: 14px 24px 0;
+  padding: 14px 18px;
+  background: #fffdf5;
+  border: 1px solid #fde68a;
+  border-left: 4px solid #f59e0b;
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.order-cod-settlement-alert__badge {
+  flex-shrink: 0;
+  padding: 4px 8px;
+  background: #fef3c7;
+  color: #92400e;
+  border: 1px solid #fcd34d;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+.order-cod-settlement-alert__body {
+  display: grid;
+  gap: 6px;
+}
+
+.order-cod-settlement-alert__body strong {
+  color: #92400e;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.order-cod-settlement-alert__body p {
+  margin: 0;
+  color: #78350f;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.order-cod-settlement-alert__guide {
+  margin-top: 2px;
+  padding: 6px 10px;
   background: #fff;
+  border: 1px dashed #fcd34d;
+  color: #92400e;
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+/* 2. Hiển thị tiền tệ trong THANH TOÁN */
+.order-amount-text {
+  font-weight: 800;
+}
+
+.order-amount-text--received {
+  color: #059669;
+  font-size: 12px;
+}
+
+.order-amount-text--due {
+  color: #dc2626;
+  font-size: 12px;
+}
+
+.order-amount-text--cod {
+  color: #d97706;
+  font-size: 12px;
+}
+
+.order-amount-text--refunded {
+  color: #7c3aed;
+  font-size: 12px;
+}
+
+/* 3. Lịch sử thu tiền (Receipts Table) */
+.order-collapsible-panel {
+  margin: 0 14px 14px;
+  border: 1px solid #e2e8f0;
+  background: #fff;
+}
+
+.order-collapsible-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 9px 12px;
+  background: #f8fafc;
+  cursor: pointer;
+  user-select: none;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  color: #334155;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.order-collapsible-summary > span:first-child {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.order-collapsible-summary > span:first-child::before {
+  content: '';
+  display: inline-block;
+  width: 3px;
+  height: 11px;
+  background: #e60012;
+  flex-shrink: 0;
+}
+
+.order-collapsible-summary:hover {
+  background: #f1f5f9;
+}
+
+.order-collapsible-panel:not([open]) .order-collapsible-summary {
+  border-bottom: none;
+}
+
+.order-count-pill {
+  display: inline-block;
+  padding: 1px 7px;
+  background: #e2e8f0;
+  color: #334155;
+  font-size: 9px;
+  font-weight: 800;
+}
+
+.order-receipts-table-wrap {
+  overflow-x: auto;
+}
+
+.order-receipts-table {
+  width: 100%;
+  border-collapse: collapse;
   font-size: 11px;
 }
 
-.admin-order-detail .order-detail-panel > details > summary {
+.order-receipts-table th {
+  height: 30px;
+  padding: 6px 12px;
+  background: #f8fafc;
+  border-bottom: 1px solid #e2e8f0;
+  color: #64748b;
+  font-size: 9px;
+  font-weight: 800;
+  text-align: left;
+  letter-spacing: 0.03em;
+}
+
+.order-receipts-table td {
+  padding: 9px 12px;
+  border-bottom: 1px solid #f1f5f9;
+  color: #1e293b;
+  vertical-align: middle;
+}
+
+.order-receipts-table tr:last-child td {
+  border-bottom: none;
+}
+
+.order-receipt-code {
+  font-family: monospace;
+  font-weight: 700;
+  color: #2563eb;
+  text-decoration: underline;
+}
+
+.order-receipt-code:hover {
+  color: #1d4ed8;
+}
+
+.order-payment-method-badge {
+  display: inline-block;
+  padding: 2px 7px;
+  background: #f1f5f9;
+  color: #475569;
+  font-size: 9px;
+  font-weight: 700;
+  border: 1px solid #cbd5e1;
+}
+
+.order-receipt-date {
+  color: #64748b;
+  font-size: 11px;
+}
+
+.order-receipt-amount {
+  font-weight: 800;
+  color: #059669;
+  font-size: 11px;
+}
+
+/* 4. Giao vận & Thu COD */
+.order-delivery-item + .order-delivery-item {
+  margin-top: 14px;
+  border-top: 1px dashed #cbd5e1;
+  padding-top: 12px;
+}
+
+.order-tracking-num {
+  font-family: monospace;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.order-cod-amount {
+  color: #d97706;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.order-cod-status-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 8px;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+}
+
+.order-cod-status-badge--success {
+  background: #ecfdf5;
+  color: #059669;
+  border: 1px solid #a7f3d0;
+}
+
+.order-cod-status-badge--waiting {
+  background: #fffbeb;
+  color: #b45309;
+  border: 1px solid #fde68a;
+}
+
+.order-cod-status-badge--neutral {
+  background: #f1f5f9;
+  color: #64748b;
+  border: 1px solid #cbd5e1;
+}
+
+.order-cod-collection-box {
+  margin: 10px 14px 14px;
+  padding: 12px 14px;
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+  border-left: 3px solid #f59e0b;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.order-cod-collection-box__content {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.order-cod-collection-box__title {
+  color: #92400e;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.order-cod-collection-box__amount-row {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  font-size: 11px;
+  color: #334155;
+}
+
+.order-cod-collection-box__amount-row strong {
+  color: #d97706;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.order-cod-collection-box__desc {
+  margin: 0;
+  color: #64748b;
+  font-size: 10px;
+  line-height: 1.4;
+}
+
+.order-cod-collection-box__action {
+  flex-shrink: 0;
+}
+
+/* 5. Thiết bị và bảo hành */
+.order-counter-closed-notice {
+  margin: 12px 14px;
+  padding: 8px 12px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-left: 3px solid #64748b;
+  color: #475569;
+  font-size: 11px;
+}
+
+.order-counter-devices-section {
+  margin-bottom: 14px;
+}
+
+.order-subsection-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 14px;
+  background: #f8fafc;
+  border-top: 1px solid #e2e8f0;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.order-subsection-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #0f172a;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+
+.order-subsection-title::before {
+  content: '';
+  display: inline-block;
+  width: 3px;
+  height: 11px;
+  background: #e60012;
+}
+
+.order-btn-secondary {
+  padding: 5px 12px;
+  border: 1px solid #cbd5e1;
+  background: #fff;
+  color: #1e293b;
+  font-size: 9px;
+  font-weight: 800;
   cursor: pointer;
+  letter-spacing: 0.03em;
+}
+
+.order-btn-secondary:hover:not(:disabled) {
+  background: #f1f5f9;
+  border-color: #94a3b8;
+}
+
+.order-btn-secondary:disabled {
+  color: #94a3b8;
+  border-color: #e2e8f0;
+  cursor: not-allowed;
+}
+
+.order-action--sm {
+  min-height: 28px !important;
+  padding: 0 12px !important;
+  font-size: 9px !important;
+}
+
+.order-devices-table-wrap {
+  overflow-x: auto;
+}
+
+.order-devices-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11px;
+  background: #fff;
+}
+
+.order-devices-table th {
+  height: 31px;
+  padding: 6px 12px;
+  background: #fff;
+  border-bottom: 1px solid #e2e8f0;
+  color: #64748b;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.order-devices-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid #f1f5f9;
+  color: #1e293b;
+  vertical-align: middle;
+}
+
+.order-devices-table tr:hover td {
+  background: #f8fafc;
+}
+
+.order-device-code {
+  font-family: monospace;
+  font-size: 10px;
+  color: #475569;
+}
+
+.order-device-serial {
+  font-family: monospace;
+  font-size: 11px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.order-text-muted {
+  color: #94a3b8;
+  font-size: 10px;
+  font-style: italic;
+}
+
+.order-badge-counter {
+  display: inline-block;
+  padding: 2px 7px;
+  background: #fffbeb;
+  color: #b45309;
+  border: 1px solid #fde68a;
+  font-size: 9px;
+  font-weight: 700;
+}
+
+/* Lịch sử đổi thiết bị */
+.order-exchange-history-wrapper {
+  margin-top: 14px;
+}
+
+.order-exchange-warning {
+  margin: 10px 14px;
+  padding: 8px 12px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #dc2626;
+  font-size: 11px;
+}
+
+.order-exchange-root-card {
+  margin-bottom: 12px;
+  border: 1px solid #e2e8f0;
+}
+
+.order-round-number {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border: 1px solid #cbd5e1;
+  background: #f1f5f9;
+  color: #334155;
   font-size: 10px;
   font-weight: 800;
 }
 
-.admin-order-detail .order-detail-panel > details p {
-  margin: 8px 0;
-  line-height: 1.5;
+.order-device-identity strong {
+  display: block;
+  font-size: 11px;
+  color: #0f172a;
 }
 
-.admin-order-detail .order-detail-panel > details ul {
-  margin: 10px 0 0;
-  padding-left: 16px;
+.order-device-identity small {
+  display: block;
+  margin-top: 2px;
 }
 
-.admin-order-detail .order-detail-panel > details li + li {
-  margin-top: 6px;
+.order-exchange-status-pill {
+  display: inline-block;
+  margin-top: 4px;
+  padding: 2px 6px;
+  background: #f1f5f9;
+  color: #64748b;
+  border: 1px solid #cbd5e1;
+  font-size: 9px;
+  font-weight: 700;
 }
 
-.admin-order-detail .order-waiting-stock-table {
-  margin: 10px 0;
-  background: #fff;
+.order-exchange-status-pill--current {
+  background: #ecfdf5;
+  color: #059669;
+  border-color: #a7f3d0;
+}
+
+.order-warranty-link {
+  font-family: monospace;
+  font-weight: 700;
+  color: #2563eb;
+  text-decoration: underline;
+}
+
+.order-warranty-link:hover {
+  color: #1d4ed8;
+}
+
+.order-exchange-handover {
+  display: grid;
+  gap: 2px;
+}
+
+.order-exchange-time {
+  font-size: 10px;
+  color: #334155;
+}
+
+.order-exchange-staff {
+  color: #64748b;
+  font-size: 10px;
+}
+
+.order-exchange-reason {
+  color: #475569;
   font-size: 11px;
 }
 
-.admin-order-detail .order-waiting-stock-table th,
-.admin-order-detail .order-waiting-stock-table td {
+/* Monetary Modal Dialog */
+.order-operation-monetary-card {
+  display: grid;
+  gap: 12px;
+}
+
+.order-operation-monetary-summary {
+  padding: 12px 14px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  display: grid;
+  gap: 8px;
+}
+
+.order-operation-summary-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 11px;
+  color: #475569;
+}
+
+.order-operation-amount-highlight {
+  color: #dc2626;
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.order-operation-refund-note {
+  padding: 8px 12px;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  color: #1e40af;
+  font-size: 11px;
+}
+
+.order-waiting-stock-table {
+  width: 100%;
+  margin: 10px 0;
+  background: #fff;
+  border-collapse: collapse;
+  font-size: 11px;
+}
+
+.order-waiting-stock-table th,
+.order-waiting-stock-table td {
   padding: 7px 10px;
   border-bottom: 1px solid #dedede;
 }
 
-.admin-order-detail .order-waiting-stock-table th {
+.order-waiting-stock-table th {
   color: #777;
   font-size: 9px;
   font-weight: 800;
 }
 
-.admin-order-detail .order-refund-panel {
-  margin: 12px 14px 14px;
-  border: 1px solid #111;
-}
-
-.admin-order-detail .order-refund-panel__heading {
-  min-height: 38px;
-  padding: 7px 12px;
-  background: #0b0b0b;
-}
-
-.admin-order-detail .order-refund-panel__heading h2 {
-  padding-left: 8px;
-  border-left: 3px solid #f00c13;
-  color: #fff;
-  font-size: 10px;
-  font-weight: 900;
-  letter-spacing: 0;
-}
-
-.admin-order-detail .order-refund-panel__heading .order-action {
-  min-height: 26px;
-  padding: 0 10px !important;
-  font-size: 9px;
-}
-
-.admin-order-detail .order-refund-panel__item {
-  gap: 12px;
-  padding: 12px;
-}
-
-.admin-order-detail .order-refund-panel__item strong,
-.admin-order-detail .order-refund-panel__item p,
-.admin-order-detail .order-refund-panel__item a {
-  font-size: 11px;
-}
-
-.admin-order-detail .order-refund-panel__item p {
-  margin: 5px 0;
-}
-
-.admin-order-detail .order-refund-panel__item small,
-.admin-order-detail .order-refund-panel__note,
-.admin-order-detail .order-refund-panel__error {
-  font-size: 10px;
-  line-height: 1.5;
-}
-
-.admin-order-detail .order-refund-panel__completed {
-  border-radius: 0;
-  font-size: 9px;
-}
-
-.admin-order-detail .order-refund-panel__pending {
-  margin: 10px 12px;
-  padding: 10px;
-  border: 1px solid #ddd;
-  border-left: 3px solid #e1141c;
-  background: #fff;
-}
-
-.admin-order-detail .order-refund-panel__pending p {
-  color: #333;
-  font-size: 11px;
-  line-height: 1.5;
-}
-
 @media (max-width: 700px) {
   .admin-order-detail .order-inline-warning,
   .admin-order-detail .order-cod-settlement,
-  .admin-order-detail .order-pending-operation {
+  .admin-order-detail .order-pending-operation,
+  .order-cod-settlement-alert {
     margin: 10px 14px;
+  }
+
+  .order-cod-collection-box {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .order-cod-collection-box__action .order-action {
+    width: 100%;
   }
 }

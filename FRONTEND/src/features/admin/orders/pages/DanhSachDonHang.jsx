@@ -354,29 +354,7 @@ export default function DanhSachDonHang() {
                   </td>
 
                   <td className="order-delivery-status-cell">
-                    <span
-                      className={`order-state-badge order-state-badge--${
-                        {
-                          CHO_GIAO: 'neutral',
-                          DA_NHAN_HANG: 'blue',
-                          DANG_GIAO: 'indigo',
-                          GIAO_THANH_CONG: 'green',
-                          GIAO_THAT_BAI: 'red',
-                          CHO_HOAN_HANG: 'orange',
-                          DA_HOAN_HANG: 'orange',
-                          HUY_GIAO_HANG: 'red',
-                        }[order.trang_thai_giao_hang] || 'neutral'
-                      }`}
-                    >
-                      {order.trang_thai_giao_hang
-                        ? label(order.trang_thai_giao_hang).toUpperCase()
-                        : order.loai_don_hang === 'TAI_QUAY' ||
-                            order.hinh_thuc_nhan_hang === 'NHAN_TAI_CUA_HANG'
-                          ? 'NHẬN TẠI CỬA HÀNG'
-                          : order.hinh_thuc_nhan_hang === 'GIAO_HANG'
-                            ? 'CHƯA TẠO PHIẾU GIAO'
-                            : '—'}
-                    </span>
+                    <OrderDeliveryBadge order={order} />
                   </td>
 
                   <td>
@@ -453,11 +431,40 @@ function Advanced({ label: text, children }) {
 export function OrderStateBadge({ value }) {
   const text = label(value);
 
-  const variant = ['ONLINE', 'DANG_GIAO_HANG', 'CHO_DONG_GOI', 'DANG_DONG_GOI'].includes(value)
+  // 1. Phân loại theo Đóng gói
+  if (value === 'CHUA_DONG_GOI') {
+    return <span className="order-state-badge order-state-badge--sky">{text.toUpperCase()}</span>;
+  }
+  if (['CHO_DONG_GOI', 'DANG_DONG_GOI'].includes(value)) {
+    return <span className="order-state-badge order-state-badge--blue">{text.toUpperCase()}</span>;
+  }
+  if (value === 'DA_DONG_GOI') {
+    return <span className="order-state-badge order-state-badge--green">{text.toUpperCase()}</span>;
+  }
+  if (value === 'HUY_DONG_GOI') {
+    return <span className="order-state-badge order-state-badge--red">{text.toUpperCase()}</span>;
+  }
+
+  // 2. Phân loại theo Xuất kho
+  if (value === 'CHUA_XUAT_KHO') {
+    return <span className="order-state-badge order-state-badge--violet">{text.toUpperCase()}</span>;
+  }
+  if (['CHO_XUAT_KHO', 'DANG_XUAT_KHO'].includes(value)) {
+    return <span className="order-state-badge order-state-badge--purple">{text.toUpperCase()}</span>;
+  }
+  if (value === 'DA_XUAT_KHO') {
+    return <span className="order-state-badge order-state-badge--green">{text.toUpperCase()}</span>;
+  }
+  if (value === 'HUY_XUAT_KHO') {
+    return <span className="order-state-badge order-state-badge--red">{text.toUpperCase()}</span>;
+  }
+
+  // 3. Phân loại theo Đơn hàng & Thanh toán & Các trạng thái khác
+  const variant = ['ONLINE', 'DANG_GIAO_HANG'].includes(value)
     ? 'blue'
     : value === 'CHO_LAY_HANG'
       ? 'purple'
-      : ['HUY_HANG', 'HUY_DONG_GOI'].includes(value)
+      : ['HUY_HANG', 'DA_HUY'].includes(value)
         ? 'red'
         : [
               'CHO_DUYET',
@@ -468,7 +475,7 @@ export function OrderStateBadge({ value }) {
               'CHO_DOI_SOAT_COD',
             ].includes(value)
           ? 'amber'
-          : ['HOAN_THANH', 'DA_THANH_TOAN', 'DA_DONG_GOI', 'DA_XUAT_KHO'].includes(value)
+          : ['HOAN_THANH', 'DA_THANH_TOAN'].includes(value)
             ? 'green'
             : 'neutral';
 
@@ -477,25 +484,25 @@ export function OrderStateBadge({ value }) {
   );
 }
 
-function OrderDeliveryBadge({ order }) {
+export function OrderDeliveryBadge({ order }) {
   const status = order.trang_thai_giao_hang;
 
   if (!status) {
     const pickup =
       order.loai_don_hang === 'TAI_QUAY' || order.hinh_thuc_nhan_hang === 'NHAN_TAI_CUA_HANG';
 
-    const text = pickup
-      ? 'NHẬN TẠI CỬA HÀNG'
-      : order.hinh_thuc_nhan_hang === 'GIAO_HANG'
-        ? 'CHƯA TẠO PHIẾU GIAO'
-        : '—';
-
-    return <span className="order-state-badge order-state-badge--neutral">{text}</span>;
+    if (pickup) {
+      return <span className="order-state-badge order-state-badge--teal">NHẬN TẠI CỬA HÀNG</span>;
+    }
+    if (order.hinh_thuc_nhan_hang === 'GIAO_HANG') {
+      return <span className="order-state-badge order-state-badge--orange">CHƯA TẠO PHIẾU GIAO</span>;
+    }
+    return <span className="order-state-badge order-state-badge--neutral">—</span>;
   }
 
   const variant =
     {
-      CHO_GIAO: 'neutral',
+      CHO_GIAO: 'amber',
       DA_NHAN_HANG: 'blue',
       DANG_GIAO: 'indigo',
       GIAO_THANH_CONG: 'green',
