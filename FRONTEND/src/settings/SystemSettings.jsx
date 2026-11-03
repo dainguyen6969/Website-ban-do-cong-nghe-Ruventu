@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { FONT_OPTIONS } from '../typography/fontOptions';
 import FontSizeControl from '../typography/FontSizeControl';
-import { getSystemStatus, getTypography, saveMaintenance, saveTypography, SETTINGS_CHANGED } from './settingsApi';
+import { getSystemStatus, saveMaintenance, saveTypography, SETTINGS_CHANGED } from './settingsApi';
 import './SystemSettings.css';
 
 export default function SystemSettings() {
@@ -15,21 +15,20 @@ export default function SystemSettings() {
 
   useEffect(() => {
     let active = true;
-    Promise.all([getSystemStatus(), getTypography()]).then(([system, typography]) => {
-      if (active) { setStatus(system); setFont(typography); setError(''); }
+    getSystemStatus({ force: reload > 0 }).then((system) => {
+      if (active) { setStatus(system); setFont({ fontFamily: system.fontFamily, fontSize: system.fontSize }); setError(''); }
     }).catch((e) => { if (active) setError(e.message || 'Không thể tải cài đặt.'); });
     return () => { active = false; };
   }, [reload]);
   useEffect(() => {
     let active = true;
-    const refresh = () => getSystemStatus().then((next) => {
+    const refresh = () => getSystemStatus({ force: true }).then((next) => {
       if (!active) return;
       setStatus(next);
       if (!dirty.current && next.fontSize && next.fontFamily) setFont((current) => current && (current.fontSize !== next.fontSize || current.fontFamily !== next.fontFamily) ? { fontFamily: next.fontFamily, fontSize: next.fontSize } : current);
     }).catch(() => {});
-    const timer = window.setInterval(refresh, 15000);
     window.addEventListener(SETTINGS_CHANGED, refresh);
-    return () => { active = false; window.clearInterval(timer); window.removeEventListener(SETTINGS_CHANGED, refresh); };
+    return () => { active = false; window.removeEventListener(SETTINGS_CHANGED, refresh); };
   }, []);
 
   const toggleMaintenance = async () => {

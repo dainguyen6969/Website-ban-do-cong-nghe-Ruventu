@@ -1,8 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useInsertionEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Wrench } from 'lucide-react';
 import useMockAuth from '../auth/useMockAuth';
-import { getSystemStatus, SETTINGS_CHANGED } from './settingsApi';
+import { getCachedSystemStatus, getSystemStatus, SETTINGS_CHANGED, SYSTEM_STATUS_TTL_MS } from './settingsApi';
 import { isMaintenanceResponse } from './maintenanceState';
 import ProjectTypographyContext from '../typography/ProjectTypographyContext';
 import { findFontOption } from '../typography/fontOptions';
@@ -11,48 +11,53 @@ import './SystemSettings.css';
 export default function SystemAccessGate({ children }) {
   const { currentAccount } = useMockAuth();
   const { pathname, search } = useLocation();
-  const [status, setStatus] = useState(null);
+  const identity = JSON.stringify([currentAccount?.id, currentAccount?.role, currentAccount?.vaiTro]);
+  const [snapshot, setSnapshot] = useState(() => ({ identity, status: getCachedSystemStatus() }));
+  const status = snapshot.identity === identity ? snapshot.status : null;
   const [error, setError] = useState('');
   const [retry, setRetry] = useState(0);
 
-  useEffect(() => {
+  useInsertionEffect(() => {
     document.documentElement.style.setProperty('--project-font-scale', String((status?.fontSize || 14) / 14));
-    return () => document.documentElement.style.removeProperty('--project-font-scale');
-  }, [status?.fontSize]);
-
-  useEffect(() => {
     document.documentElement.style.setProperty('--project-font-family', findFontOption(status?.fontFamily).family);
-    return () => document.documentElement.style.removeProperty('--project-font-family');
-  }, [status?.fontFamily]);
+    return () => {
+      document.documentElement.style.removeProperty('--project-font-scale');
+      document.documentElement.style.removeProperty('--project-font-family');
+    };
+  }, [status?.fontSize, status?.fontFamily]);
 
   useEffect(() => {
     let active = true;
     let sequence = 0;
-    const check = async () => {
+    const check = async (force = false) => {
       const request = ++sequence;
       try {
-        const next = await getSystemStatus();
-        if (active && request === sequence) { setStatus(next); setError(''); }
+        const next = await getSystemStatus({ force });
+        if (active && request === sequence) { setSnapshot({ identity, status: next }); setError(''); }
       } catch (e) {
         if (!active || request !== sequence) return;
-        if (isMaintenanceResponse(e.status, e.data)) { setStatus({ maintenance: true, canManage: false }); setError(''); }
+        if (isMaintenanceResponse(e.status, e.data)) { setSnapshot({ identity, status: { maintenance: true, canManage: false } }); setError(''); }
         else setError('Không thể kiểm tra trạng thái hệ thống. Vui lòng thử lại.');
       }
     };
-    check();
-    const timer = window.setInterval(check, 15000);
-    window.addEventListener('focus', check);
-    window.addEventListener(SETTINGS_CHANGED, check);
+    const refreshVisible = () => { if (document.visibilityState === 'visible') check(); };
+    const refreshSettings = () => check(true);
+    check(true);
+    const timer = window.setInterval(refreshVisible, SYSTEM_STATUS_TTL_MS);
+    window.addEventListener('focus', refreshVisible);
+    document.addEventListener('visibilitychange', refreshVisible);
+    window.addEventListener(SETTINGS_CHANGED, refreshSettings);
     return () => {
       active = false;
       window.clearInterval(timer);
-      window.removeEventListener('focus', check);
-      window.removeEventListener(SETTINGS_CHANGED, check);
+      window.removeEventListener('focus', refreshVisible);
+      document.removeEventListener('visibilitychange', refreshVisible);
+      window.removeEventListener(SETTINGS_CHANGED, refreshSettings);
     };
-  }, [currentAccount?.id, pathname, search, retry]);
+  }, [identity, retry]);
 
   const adminLogin = pathname === '/login' && new URLSearchParams(search).get('quan-tri') === '1';
-  if (!error && status && (!status.maintenance || status.canManage || adminLogin)) {
+  if (status && (!status.maintenance || status.canManage || adminLogin)) {
     return <ProjectTypographyContext.Provider value={{ fontSize: status.fontSize || 14, fontFamily: status.fontFamily || 'Inter' }}>{children}</ProjectTypographyContext.Provider>;
   }
 

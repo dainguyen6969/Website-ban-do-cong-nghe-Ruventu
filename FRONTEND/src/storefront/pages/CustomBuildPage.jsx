@@ -50,9 +50,6 @@ const CustomBuildPage = () => {
   const locked = adding || uncertain || exporting;
 
   useEffect(() => {
-    window.scrollTo(0, 0);
-  }, []);
-  useEffect(() => {
     const controller = new AbortController();
     pcBuilderService
       .options(controller.signal)

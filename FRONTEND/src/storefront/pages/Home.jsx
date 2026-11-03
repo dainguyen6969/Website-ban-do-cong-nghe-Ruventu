@@ -9,40 +9,33 @@ import ConsultationBanner from "../components/ConsultationBanner";
 import Footer from "../components/Footer";
 
 import { productService } from "../../shared/services/productService";
-import { componentCategoryIds, inCatalogScope, shuffleProducts } from "./catalogModel";
+import { componentCategoryIds, inCatalogScope } from "./catalogModel";
 import useCatalogOptions from '../hooks/useCatalogOptions';
 
 export default function Home() {
   const catalogOptions = useCatalogOptions();
   const componentIds = useMemo(() => componentCategoryIds(catalogOptions.categories), [catalogOptions.categories]);
-  const [products, setProducts] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const [{ products, loading, error }, setCatalog] = useState(() => {
+    const cached = productService.getCachedAllProducts();
+    return { products: cached || [], loading: !cached, error: '' };
+  });
 
   useEffect(() => {
     let active = true;
 
     async function loadProducts() {
-      setLoading(true);
-      setError("");
-
       try {
         const items = await productService.getAllProducts({ sort: "moi_nhat" });
 
         if (active) {
-          setProducts(shuffleProducts(items));
+          setCatalog({ products: items, loading: false, error: '' });
         }
       } catch (reason) {
         if (active) {
-          setProducts([]);
-          setError(
-            reason.response?.data?.message ||
+          setCatalog({ products: [], loading: false, error: reason.response?.data?.message ||
               reason.message ||
-              "Không tải được danh sách sản phẩm.",
-          );
+              "Không tải được danh sách sản phẩm." });
         }
-      } finally {
-        if (active) setLoading(false);
       }
     }
 

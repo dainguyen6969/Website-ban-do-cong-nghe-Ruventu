@@ -47,7 +47,7 @@ const SearchPage = ({ categorySlug } = {}) => {
   const filterCategoryIds = useMemo(() => new Set(selectedCategories.flatMap(id => [...categoryTreeIds(catalogOptions.categories, id)])), [selectedCategories, catalogOptions.categories]);
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
 
-  useEffect(() => { if (urlBrandId) setSelectedBrands([urlBrandId]); setPage(1); }, [urlBrandId]);
+  useEffect(() => { setSelectedBrands(urlBrandId ? [urlBrandId] : []); setPage(1); }, [urlBrandId]);
 
   useEffect(() => {
     if (catalogOptions.loading) return;

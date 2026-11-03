@@ -26,7 +26,6 @@ export default function ProductDetail() {
   useEffect(() => {
     let active = true;
 
-    window.scrollTo(0, 0);
     setLoading(true);
     setProduct(null);
     setError("");

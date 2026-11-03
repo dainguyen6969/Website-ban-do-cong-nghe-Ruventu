@@ -8,6 +8,8 @@ import { createServer } from 'vite';
 const vite = await createServer({ cacheDir: 'node_modules/.vite-catalog-page-test', server: { middlewareMode: true, ws: false }, appType: 'custom' });
 const CategoryPage = (await vite.ssrLoadModule('/src/storefront/pages/CategoryPage.jsx')).default;
 const SearchPage = (await vite.ssrLoadModule('/src/storefront/pages/SearchPage.jsx')).default;
+const Home = (await vite.ssrLoadModule('/src/storefront/pages/Home.jsx')).default;
+const { productService } = await vite.ssrLoadModule('/src/shared/services/productService.js');
 const MockAuthContext = (await vite.ssrLoadModule('/src/auth/mockAuthContext.js')).default;
 const FontPreferenceContext = (await vite.ssrLoadModule('/src/typography/FontPreferenceContext.js')).default;
 after(() => vite.close());
@@ -16,8 +18,16 @@ const render = path => renderToStaticMarkup(React.createElement(MemoryRouter, { 
   React.createElement(MockAuthContext.Provider, { value: { currentAccount: null, roles: [], logout() {} } },
   React.createElement(FontPreferenceContext.Provider, { value: { font: { name: 'Roboto', family: 'Roboto, sans-serif' }, selectFont() {} } },
   React.createElement(Routes, null,
+    React.createElement(Route, { path: '/', element: React.createElement(Home) }),
     React.createElement(Route, { path: '/category/:slug', element: React.createElement(CategoryPage) }),
     React.createElement(Route, { path: '/search', element: React.createElement(SearchPage) }))))));
+
+test('reload renders cached home products immediately without a product loading screen', t => {
+  t.mock.method(productService, 'getCachedAllProducts', () => [{ id: 42, title: 'PC đã tải trong phiên', loaiSanPham: 'BO_PC', priceValue: 1000000, specs: [] }]);
+  const markup = render('/');
+  assert.match(markup, /PC đã tải trong phiên/);
+  assert.doesNotMatch(markup, /Đang tải sản phẩm/);
+});
 
 test('direct category navigation uses the same compact listing and filters as submenu search', () => {
   for (const path of ['/category/linh-kien', '/category/gaming-gear', '/category/man-hinh', '/category/laptop', '/search?q=CPU%20Intel']) {

@@ -8,6 +8,49 @@ const { productService, toProductCard, toProductDetail } = await server.ssrLoadM
 const { categoryService } = await server.ssrLoadModule('/src/shared/services/categoryService.js');
 after(() => server.close());
 
+test('catalog survives module reload, expires after five minutes and keeps filters separate', async (t) => {
+  const storage = new Map();
+  const previous = globalThis.sessionStorage;
+  globalThis.sessionStorage = { getItem: key => storage.get(key), setItem: (key, value) => storage.set(key, value) };
+  const get = t.mock.method(axios, 'get', async () => ({ data: { data: { tongSoTrang: 1, danhSachSanPham: [{ id: 42, tenSanPham: 'Cached PC' }] } } }));
+  let now = Date.now();
+  t.mock.method(Date, 'now', () => now);
+  try {
+    const first = JSON.parse(JSON.stringify(await productService.getAllProducts({ sort: 'moi_nhat' })));
+    server.moduleGraph.invalidateAll();
+    const reloaded = (await server.ssrLoadModule('/src/shared/services/productService.js')).productService;
+    assert.deepEqual(reloaded.getCachedAllProducts(), first);
+    assert.deepEqual(await reloaded.getAllProducts(), first);
+    assert.equal(get.mock.calls.length, 1);
+    assert.equal(reloaded.getCachedAllProducts({ keyword: 'RAM' }), null);
+    await reloaded.getAllProducts({ keyword: 'RAM' });
+    assert.equal(get.mock.calls.length, 2);
+    now += 5 * 60 * 1000;
+    assert.equal(reloaded.getCachedAllProducts({ keyword: 'RAM' }), null);
+    await reloaded.getAllProducts({ keyword: 'RAM' });
+    assert.equal(get.mock.calls.length, 3);
+    for (const value of ['bad JSON', JSON.stringify({ key: 'invalid', expiresAt: now + 1, items: {} })]) {
+      storage.set([...storage.keys()][0], value);
+      assert.equal(reloaded.getCachedAllProducts(), null);
+    }
+  } finally { globalThis.sessionStorage = previous; }
+});
+
+test('catalog pages load at most two at a time and retain API ordering', async (t) => {
+  let active = 0, maximum = 0;
+  const get = t.mock.method(productService, 'getProducts', async ({ page }) => {
+    active++;
+    maximum = Math.max(maximum, active);
+    await new Promise(resolve => setImmediate(resolve));
+    active--;
+    return { data: { tongSoTrang: 6, danhSachSanPham: [{ id: page }] } };
+  });
+  const products = await productService.getAllProducts();
+  assert.equal(maximum, 2);
+  assert.equal(get.mock.calls.length, 6);
+  assert.deepEqual(products.map(product => product.id), [0, 1, 2, 3, 4, 5]);
+});
+
 test('public metadata requests share an in-flight call but refresh after admin changes', async (t) => {
   let complete;
   const get = t.mock.method(axios, 'get', () => new Promise(resolve => { complete = resolve; }));
