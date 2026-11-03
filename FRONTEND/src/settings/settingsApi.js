@@ -73,7 +73,8 @@ export const getTypography = () => apiRequest('/api/v1/users/me/typography');
 
 export async function saveTypography(value) {
   const saved = await apiRequest('/api/v1/users/me/typography', {
-    method: 'PUT', body: JSON.stringify(value),
+    method: 'PUT',
+    body: JSON.stringify(value),
   });
   statusRequest = null;
   clearStatusSnapshot();
@@ -84,7 +85,8 @@ export async function saveTypography(value) {
 
 export async function saveMaintenance(enabled) {
   const saved = await apiRequest('/api/v1/admin/system-settings/maintenance', {
-    method: 'PUT', body: JSON.stringify({ enabled }),
+    method: 'PUT',
+    body: JSON.stringify({ enabled }),
   });
   statusRequest = null;
   clearStatusSnapshot();

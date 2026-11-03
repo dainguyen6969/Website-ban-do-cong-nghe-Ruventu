@@ -31,6 +31,7 @@ export default function SystemAccessGate({ children }) {
     let sequence = 0;
     const check = async (force = false) => {
       const request = ++sequence;
+
       try {
         const next = await getSystemStatus({ force });
         if (active && request === sequence) { setSnapshot({ identity, status: next }); setError(''); }
@@ -49,6 +50,7 @@ export default function SystemAccessGate({ children }) {
     window.addEventListener(SETTINGS_CHANGED, refreshSettings);
     return () => {
       active = false;
+
       window.clearInterval(timer);
       window.removeEventListener('focus', refreshVisible);
       document.removeEventListener('visibilitychange', refreshVisible);
@@ -66,9 +68,24 @@ export default function SystemAccessGate({ children }) {
       <div className="maintenance-page__card">
         <div className="maintenance-page__brand">RUVENTU</div>
         <Wrench size={42} aria-hidden="true" />
-        <h1>{error ? 'Chưa thể kết nối hệ thống' : status ? 'Hệ thống đang bảo trì' : 'Đang kiểm tra hệ thống'}</h1>
-        <p role="status">{error || (status ? 'Chúng tôi đang nâng cấp hệ thống. Vui lòng quay lại sau.' : 'Vui lòng chờ trong giây lát.')}</p>
-        {(status || error) && <button type="button" onClick={() => setRetry((n) => n + 1)}>Kiểm tra lại</button>}
+        <h1>
+          {error
+            ? 'Chưa thể kết nối hệ thống'
+            : status
+              ? 'Hệ thống đang bảo trì'
+              : 'Đang kiểm tra hệ thống'}
+        </h1>
+        <p role="status">
+          {error ||
+            (status
+              ? 'Chúng tôi đang nâng cấp hệ thống. Vui lòng quay lại sau.'
+              : 'Vui lòng chờ trong giây lát.')}
+        </p>
+        {(status || error) && (
+          <button type="button" onClick={() => setRetry((n) => n + 1)}>
+            Kiểm tra lại
+          </button>
+        )}
         {status?.maintenance && <Link to="/login?quan-tri=1">Đăng nhập quản trị</Link>}
       </div>
     </main>
