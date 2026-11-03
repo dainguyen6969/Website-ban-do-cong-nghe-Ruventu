@@ -30,3 +30,23 @@ export function shuffleProducts(products) {
   }
   return shuffled;
 }
+
+export function categoryTreeIds(categories, rootId) {
+  const ids = new Set([Number(rootId)]);
+  for (let changed = true; changed;) {
+    changed = false;
+    for (const category of categories) {
+      if (category.danhMucChaId != null && ids.has(Number(category.danhMucChaId)) && !ids.has(Number(category.id))) {
+        ids.add(Number(category.id));
+        changed = true;
+      }
+    }
+  }
+  return ids;
+}
+
+export function componentCategoryIds(categories) {
+  const specialized = categories.filter(c => ['phu-kien', 'gaming-gear', 'man-hinh', 'laptop', 'pc-build', 'pc-build-san'].includes(c.duongDanUrl));
+  const excluded = new Set(specialized.flatMap(c => [...categoryTreeIds(categories, c.id)]));
+  return new Set(categories.filter(c => !excluded.has(Number(c.id))).map(c => Number(c.id)));
+}

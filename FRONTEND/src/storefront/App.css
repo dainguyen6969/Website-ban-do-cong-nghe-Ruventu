@@ -38,9 +38,6 @@
 .storefront-app .specs-table { table-layout: fixed; }
 .storefront-app .product-actions > button { min-width: 0; padding-inline: .5em; white-space: normal; }
 .storefront-app .section-tabs { flex-wrap: wrap; }
-.storefront-app .brands-container { height: auto; }
-.storefront-app .brands-list { flex-wrap: wrap; gap: 1em; }
-.storefront-app .brand-item { flex: 1 1 auto; }
 .storefront-app .info-item { min-width: 0; }
 .storefront-app .cart-drawer { max-width: 100vw; }
 .storefront-app .cart-drawer:not(.open) { display: none; }

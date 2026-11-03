@@ -54,6 +54,7 @@ public class SecurityConfig {
                         "/api/v1/orders/stock-notifications",
                         "/api/v1/orders/tracking",
                         "/api/v1/products",
+                        "/api/v1/catalog/options",
                         "/api/v1/pc-builder/options",
                         "/api/v1/pc-builder/products",
                         "/api/v1/pc-builder/preview",

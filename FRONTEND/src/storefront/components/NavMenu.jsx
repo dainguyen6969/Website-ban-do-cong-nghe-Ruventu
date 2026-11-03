@@ -1,8 +1,8 @@
 import { NavLink } from "react-router-dom";
 
-export default function NavMenu({ label, to, children }) {
+export default function NavMenu({ label, to, children, className = "" }) {
   return (
-    <li className="has-mega-menu">
+    <li className={`has-mega-menu ${className}`}>
       <NavLink to={to} className={({ isActive }) => isActive ? "active" : ""}>{label}</NavLink>
       <div className="mega-menu">
         {children}
