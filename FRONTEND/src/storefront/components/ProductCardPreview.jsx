@@ -3,7 +3,7 @@ import { productService, toProductCard } from '../../shared/services/productServ
 import './ProductCardPreview.css';
 
 export default function ProductCardPreview({ product, open, panelId }) {
-  const [detail, setDetail] = useState(null);
+  const [detail, setDetail] = useState(() => productService.getCachedProductDetail(product.id)?.data || null);
   const [selectedVariantId, setSelectedVariantId] = useState(null);
   const [error, setError] = useState('');
   const [attempt, setAttempt] = useState(0);

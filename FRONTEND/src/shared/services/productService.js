@@ -1,5 +1,6 @@
 import axios from "axios";
 import { parseSpecifications, selectHighlights, toSpecRows } from './productSpecifications';
+import { createReadCache, queryKey } from './readCache';
 
 const API_BASE_URL =
   (import.meta.env.VITE_RUVENTU_API_URL || "")
@@ -12,28 +13,25 @@ const currency = new Intl.NumberFormat("vi-VN", {
 
 export const formatProductPrice = value => currency.format(value ?? 0);
 
-const pendingRequests = new Map();
-const CATALOG_CACHE_KEY = `ruventu:catalog:v1:${API_BASE_URL}`;
-const CATALOG_TTL_MS = 5 * 60 * 1000;
-const catalogQueryKey = params => JSON.stringify(Object.entries({ sort: 'moi_nhat', ...params }).sort(([a], [b]) => a.localeCompare(b)));
+// shortcut: browsing prices/stock can be five minutes old; cart and checkout validate live on the server.
+const catalogCache = createReadCache({ ttl: 5 * 60 * 1000, storageKey: `ruventu:catalog:v2:${API_BASE_URL}`, limit: 12, validate: Array.isArray });
+const productCache = createReadCache({ ttl: 5 * 60 * 1000, storageKey: `ruventu:products:v1:${API_BASE_URL}`, validate: value => value?.data && typeof value.data === 'object' });
+const catalogQueryKey = params => queryKey({ ...params, sort: params.sort || 'moi_nhat' });
+const productKey = (path, params = {}) => JSON.stringify([path, queryKey(params)]);
 
 function getCachedAllProducts(params = {}) {
-  try {
-    const cached = JSON.parse(sessionStorage.getItem(CATALOG_CACHE_KEY));
-    return cached?.key === catalogQueryKey(params) && cached.expiresAt > Date.now() && Array.isArray(cached.items)
-      ? cached.items : null;
-  } catch { return null; }
+  const items = catalogCache.peek(catalogQueryKey(params));
+  return Array.isArray(items) ? items : null;
 }
 
 function getProductData(path, params = {}) {
-  const key = JSON.stringify([path, Object.entries(params).sort(([a], [b]) => a.localeCompare(b))]);
-  if (!pendingRequests.has(key)) {
-    const request = axios.get(`${API_BASE_URL}${path}`, { params })
-      .then(response => response.data)
-      .finally(() => pendingRequests.delete(key));
-    pendingRequests.set(key, request);
-  }
-  return pendingRequests.get(key);
+  return productCache.load(productKey(path, params), async () => {
+    const response = await axios.get(`${API_BASE_URL}${path}`, { params });
+    if (!response.data?.data || (path === '/products' && !Array.isArray(response.data.data.danhSachSanPham))) {
+      throw new Error('Dữ liệu sản phẩm không hợp lệ.');
+    }
+    return response.data;
+  });
 }
 
 export function toProductCard(product) {
@@ -102,10 +100,11 @@ export function toProductDetail(product) {
 
 export const productService = {
   getCachedAllProducts,
+  getCachedProducts: (params = {}) => productCache.peek(productKey('/products', params)),
+  getCachedProductDetail: id => productCache.peek(productKey(`/products/${encodeURIComponent(id)}`)),
+  clearCache: () => { catalogCache.clear(); productCache.clear(); },
   // shortcut: filters read every page; move them to the API when the catalog grows.
-  getAllProducts: async (params = {}) => {
-    const cached = getCachedAllProducts(params);
-    if (cached) return cached;
+  getAllProducts: (params = {}) => catalogCache.load(catalogQueryKey(params), async () => {
     const readPage = async page => {
       const response = await productService.getProducts({ ...params, page, limit: 100 });
       const data = response?.data;
@@ -119,12 +118,8 @@ export const productService = {
       const batch = await Promise.all([readPage(page), ...(page + 1 < first.tongSoTrang ? [readPage(page + 1)] : [])]);
       for (const data of batch) items.push(...data.danhSachSanPham);
     }
-    const cards = items.map(toProductCard);
-    // shortcut: list prices/stock may be five minutes old; invalidate on inventory events if live listings are required.
-    try { sessionStorage.setItem(CATALOG_CACHE_KEY, JSON.stringify({ key: catalogQueryKey(params), expiresAt: Date.now() + CATALOG_TTL_MS, items: cards })); }
-    catch { /* Storage unavailable or full: keep the live result. */ }
-    return cards;
-  },
+    return items.map(toProductCard);
+  }),
   getProducts: (params = {}) => getProductData("/products", params),
 
   getProductDetail: (id) => getProductData(`/products/${encodeURIComponent(id)}`),

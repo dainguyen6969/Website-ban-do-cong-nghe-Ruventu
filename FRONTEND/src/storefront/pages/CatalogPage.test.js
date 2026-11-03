@@ -9,6 +9,7 @@ const vite = await createServer({ cacheDir: 'node_modules/.vite-catalog-page-tes
 const CategoryPage = (await vite.ssrLoadModule('/src/storefront/pages/CategoryPage.jsx')).default;
 const SearchPage = (await vite.ssrLoadModule('/src/storefront/pages/SearchPage.jsx')).default;
 const Home = (await vite.ssrLoadModule('/src/storefront/pages/Home.jsx')).default;
+const ProductDetail = (await vite.ssrLoadModule('/src/storefront/pages/ProductDetail.jsx')).default;
 const { productService } = await vite.ssrLoadModule('/src/shared/services/productService.js');
 const MockAuthContext = (await vite.ssrLoadModule('/src/auth/mockAuthContext.js')).default;
 const FontPreferenceContext = (await vite.ssrLoadModule('/src/typography/FontPreferenceContext.js')).default;
@@ -19,6 +20,7 @@ const render = path => renderToStaticMarkup(React.createElement(MemoryRouter, { 
   React.createElement(FontPreferenceContext.Provider, { value: { font: { name: 'Roboto', family: 'Roboto, sans-serif' }, selectFont() {} } },
   React.createElement(Routes, null,
     React.createElement(Route, { path: '/', element: React.createElement(Home) }),
+    React.createElement(Route, { path: '/product/:id', element: React.createElement(ProductDetail) }),
     React.createElement(Route, { path: '/category/:slug', element: React.createElement(CategoryPage) }),
     React.createElement(Route, { path: '/search', element: React.createElement(SearchPage) }))))));
 
@@ -27,6 +29,25 @@ test('reload renders cached home products immediately without a product loading 
   const markup = render('/');
   assert.match(markup, /PC đã tải trong phiên/);
   assert.doesNotMatch(markup, /Đang tải sản phẩm/);
+});
+
+test('returning to a detail renders its own cached product and default variant synchronously', t => {
+  t.mock.method(productService, 'getCachedProductDetail', id => ({ data: {
+    id: Number(id), tenSanPham: `Sản phẩm đã xem ${id}`, danhSachPhienBan: [{ id: Number(id) + 1, giaBanLe: 1000, tonCoTheBan: 2 }],
+  } }));
+  t.mock.method(productService, 'getCachedAllProducts', () => []);
+  for (const id of [42, 43]) {
+    const html = render(`/product/${id}`);
+    assert.match(html, new RegExp(`Sản phẩm đã xem ${id}`));
+    assert.doesNotMatch(html, /Đang tải thông tin sản phẩm|Đang tải sản phẩm gợi ý/);
+  }
+});
+
+test('cached category listings render without another loading screen', t => {
+  t.mock.method(productService, 'getCachedAllProducts', () => [{ id: 42, title: 'Laptop đã xem', category: 'Laptop', categoryId: 4, specs: [], priceValue: 1000 }]);
+  const html = render('/search');
+  assert.match(html, /Laptop đã xem/);
+  assert.doesNotMatch(html, /Đang tải sản phẩm/);
 });
 
 test('direct category navigation uses the same compact listing and filters as submenu search', () => {

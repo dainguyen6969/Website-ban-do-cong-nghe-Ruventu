@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from "react";
+import React, { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { Search, X } from "lucide-react";
 import Header from "../components/Header";
@@ -11,7 +11,7 @@ import {
 import TablePagination from "../../shared/components/ui/TablePagination";
 import { catalogScopes, inCatalogScope, categoryTreeIds, componentCategoryIds } from './catalogModel';
 import useCatalogOptions from '../hooks/useCatalogOptions';
-import { getRecommendedProducts, isRecommendationQuery } from '../services/recommendationService';
+import { getRecommendedProducts, isRecommendationQuery, selectRecommendedProducts } from '../services/recommendationService';
 import "./SearchPage.css";
 
 const SearchPage = ({ categorySlug } = {}) => {
@@ -29,9 +29,18 @@ const SearchPage = ({ categorySlug } = {}) => {
   const categoryTitle = actualCategory?.tenDanhMuc || catalogScopes[categorySlug]?.title || 'Không tìm thấy danh mục';
   const displayQuery = query || catalogOptions.brands.find(b => String(b.id) === urlBrandId)?.tenThuongHieu || '';
 
-  const [searchProducts, setSearchProducts] = useState([]);
+  const inScope = useCallback(product =>
+    (excludeId == null || String(product.id) !== excludeId) &&
+    (!isCategory || (categoryIds ? categoryIds.has(Number(product.categoryId)) : inCatalogScope(product, categorySlug))),
+  [excludeId, isCategory, categoryIds, categorySlug]);
+  const initialCatalog = productService.getCachedAllProducts({
+    ...(!isRecommended && !relatedCategoryId ? { keyword: query } : {}),
+    ...(relatedCategoryId && !isRecommended ? { danh_muc_id: relatedCategoryId } : {}),
+  });
+  const [searchProducts, setSearchProducts] = useState(() =>
+    (isRecommended && initialCatalog ? selectRecommendedProducts(initialCatalog, { excludeId }) : initialCatalog || []).filter(inScope));
   const [suggestedProducts, setSuggestedProducts] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!initialCatalog);
   const [error, setError] = useState('');
   const [page, setPage] = useState(1);
   const resultsRef = useRef(null);
@@ -52,41 +61,41 @@ const SearchPage = ({ categorySlug } = {}) => {
   useEffect(() => {
     if (catalogOptions.loading) return;
     let active = true;
+    const params = isRecommended || relatedCategoryId ? {} : { keyword: query };
+    if (relatedCategoryId && !isRecommended) params.danh_muc_id = relatedCategoryId;
+
+    if (minPrice) params.gia_min = Number(minPrice);
+    if (maxPrice) params.gia_max = Number(maxPrice);
+    if (stockStatus === "in-stock") params.ton_kho = true;
+
+    if (sortBy === "price-asc") {
+      params.sort = "gia_tang_dan";
+    } else if (sortBy === "price-desc") {
+      params.sort = "gia_giam_dan";
+    } else if (sortBy === "newest") {
+      params.sort = "moi_nhat";
+    } else if (sortBy === "bestseller") {
+      params.sort = "ban_chay";
+    }
+    const cached = productService.getCachedAllProducts(params);
     const loadProducts = async () => {
-      setLoading(true); setError('');
+      setLoading(!cached); setError('');
       try {
-        const params = isRecommended || relatedCategoryId ? {} : { keyword: query };
-        if (relatedCategoryId && !isRecommended) params.danh_muc_id = relatedCategoryId;
-
-        if (minPrice) params.gia_min = Number(minPrice);
-        if (maxPrice) params.gia_max = Number(maxPrice);
-        if (stockStatus === "in-stock") params.ton_kho = true;
-
-        if (sortBy === "price-asc") {
-          params.sort = "gia_tang_dan";
-        } else if (sortBy === "price-desc") {
-          params.sort = "gia_giam_dan";
-        } else if (sortBy === "newest") {
-          params.sort = "moi_nhat";
-        } else if (sortBy === "bestseller") {
-          params.sort = "ban_chay";
-        }
-
         const catalog = isRecommended
           ? await getRecommendedProducts({ excludeId, params })
           : await productService.getAllProducts(params);
-        const products = catalog.filter(product =>
-          (excludeId == null || String(product.id) !== excludeId) &&
-          (!isCategory || (categoryIds ? categoryIds.has(Number(product.categoryId)) : inCatalogScope(product, categorySlug))));
+        const products = catalog.filter(inScope);
         const recommended = products.length || isCategory || isRecommended || relatedCategoryId || minPrice || maxPrice || stockStatus !== 'all' ? [] : (await productService.getProducts({ limit: 4, sort: 'moi_nhat' })).data.danhSachSanPham.map(toProductCard);
         if (active) { setSearchProducts(products); setSuggestedProducts(recommended); setPage(1); }
       } catch (reason) {
         if (active) { setSearchProducts([]); setSuggestedProducts([]); setError(reason.response?.data?.message || reason.message || 'Không tải được sản phẩm.'); }
       } finally { if (active) setLoading(false); }
     };
-    loadProducts();
-    return () => { active = false; };
-  }, [query, sortBy, minPrice, maxPrice, stockStatus, categorySlug, isCategory, isRecommended, relatedCategoryId, excludeId, catalogOptions.loading, categoryIds]);
+    // Avoid downloading the catalog for every digit typed into a price filter.
+    const timer = cached ? null : setTimeout(loadProducts, 300);
+    if (cached) loadProducts();
+    return () => { active = false; clearTimeout(timer); };
+  }, [query, sortBy, minPrice, maxPrice, stockStatus, categorySlug, isCategory, isRecommended, relatedCategoryId, excludeId, catalogOptions.loading, categoryIds, inScope]);
 
   const filteredProducts = useMemo(() => {
     const products = searchProducts.filter(product =>

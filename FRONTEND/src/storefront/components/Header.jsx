@@ -40,16 +40,17 @@ const Header = () => {
 
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
-  const [cartCount, setCartCount] = useState(0);
+  const [cartCount, setCartCount] = useState(() => {
+    try { return cartService.getCachedCart()?.data?.data?.tongSoLuong || 0; }
+    catch { return 0; }
+  });
 
   useEffect(() => {
     // Initial fetch
     const fetchCartCount = async () => {
       try {
         const res = await cartService.getCurrentCart();
-        if (res?.data?.data?.tongSoLuong) {
-          setCartCount(res.data.data.tongSoLuong);
-        }
+        setCartCount(res?.data?.data?.tongSoLuong || 0);
       } catch {
         setCartCount(0);
       }

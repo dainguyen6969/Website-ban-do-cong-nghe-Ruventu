@@ -9,44 +9,36 @@ import './NotFoundPage.css';
 
 const formatVND = (amount) =>
   new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount ?? 0);
+const productParams = { ton_kho: true, limit: 8, sort: 'moi_nhat' };
+const mapProducts = response => (response?.data?.danhSachSanPham || []).slice(0, 4).map(p => ({
+  id: p.id, title: p.tenSanPham, name: p.tenSanPham,
+  image: p.anhChinh || 'https://via.placeholder.com/300',
+  price: formatVND(p.giaThapNhat), rawPrice: p.giaThapNhat || 0,
+  category: p.tenDanhMuc || '', brand: p.tenThuongHieu || '', outOfStock: !p.conHang,
+}));
 
 const NotFoundPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const isAccountNotFound = location.state?.type === 'account';
-  const [suggestedProducts, setSuggestedProducts] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [suggestedProducts, setSuggestedProducts] = useState(() => mapProducts(productService.getCachedProducts(productParams)));
+  const [isLoading, setIsLoading] = useState(() => !productService.getCachedProducts(productParams));
 
   useEffect(() => {
+    let active = true;
     const fetchSuggested = async () => {
-      setIsLoading(true);
+      setIsLoading(!productService.getCachedProducts(productParams));
       try {
-        const response = await productService.getProducts({
-          ton_kho: true,
-          limit: 8,
-          sort: 'moi_nhat',
-        });
-        const list = response?.data?.danhSachSanPham || [];
-        setSuggestedProducts(
-          list.slice(0, 4).map((p) => ({
-            id: p.id,
-            title: p.tenSanPham,
-            name: p.tenSanPham,
-            image: p.anhChinh || 'https://via.placeholder.com/300',
-            price: formatVND(p.giaThapNhat),
-            rawPrice: p.giaThapNhat || 0,
-            category: p.tenDanhMuc || '',
-            brand: p.tenThuongHieu || '',
-            outOfStock: !p.conHang,
-          }))
-        );
+        const response = await productService.getProducts(productParams);
+        if (active) setSuggestedProducts(mapProducts(response));
       } catch (err) {
         console.error('Lỗi tải sản phẩm nổi bật:', err);
       } finally {
-        setIsLoading(false);
+        if (active) setIsLoading(false);
       }
     };
     fetchSuggested();
+    return () => { active = false; };
   }, []);
 
   const searchKeywords = [
