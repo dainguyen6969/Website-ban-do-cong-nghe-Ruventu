@@ -105,7 +105,12 @@ public class CustomerOrderService {
 
     List<CartLine> cartLines = checkoutLines(user, guestCartId, request, false);
 
-    CustomerOrderResponse.Recipient recipient = resolveRecipient(user, request);
+    // Cho phép tính giá trước khi khách nhập thông tin người nhận.
+    // Nếu đã gửi thông tin người nhận hoặc chọn địa chỉ thì vẫn kiểm tra như cũ.
+    CustomerOrderResponse.Recipient recipient =
+        request.getThongTinNguoiNhan() == null && request.getDiaChiId() == null
+            ? null
+            : resolveRecipient(user, request);
 
     AdminSalesRequest.Preview salesRequest = buildSalesRequest(user, request, cartLines);
 

@@ -1,14 +1,14 @@
-import React, { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { Trash2, X } from "lucide-react";
-import Header from "../components/Header";
-import Footer from "../components/Footer";
-import { cartService } from "../../shared/services/cartService";
-import { errorMessage } from "../../shared/services/mutationUtils";
-import "./CartPage.css";
+import React, { useState, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { Trash2, X } from 'lucide-react';
+import Header from '../components/Header';
+import Footer from '../components/Footer';
+import { cartService } from '../../shared/services/cartService';
+import { orderService } from '../../shared/services/orderService';
+import { errorMessage } from '../../shared/services/mutationUtils';
+import './CartPage.css';
 
-const formatPrice = (price) =>
-  new Intl.NumberFormat("vi-VN").format(price) + "đ";
+const formatPrice = (price) => new Intl.NumberFormat('vi-VN').format(price) + 'đ';
 
 const CartPage = () => {
   const navigate = useNavigate();
@@ -16,10 +16,11 @@ const CartPage = () => {
   const [cartItems, setCartItems] = useState([]);
 
   const [cartData, setCartData] = useState({});
-  const [cartError, setCartError] = useState("");
+  const [cartError, setCartError] = useState('');
   const [cartLoading, setCartLoading] = useState(true);
+  const [selectionPricing, setSelectionPricing] = useState(null);
 
-  const [voucherCode, setVoucherCode] = useState("");
+  const [voucherCode, setVoucherCode] = useState('');
 
   const loadCart = async () => {
     setCartLoading(true);
@@ -29,13 +30,11 @@ const CartPage = () => {
       const data = response.data?.data;
 
       if (!data || !Array.isArray(data.items)) {
-        throw new Error("Dữ liệu giỏ hàng không hợp lệ.");
+        throw new Error('Dữ liệu giỏ hàng không hợp lệ.');
       }
 
       setCartItems((previous) => {
-        const selectedById = new Map(
-          previous.map((item) => [item.cartItemId, item.selected]),
-        );
+        const selectedById = new Map(previous.map((item) => [item.cartItemId, item.selected]));
 
         return data.items.map((item) => ({
           ...item,
@@ -48,14 +47,14 @@ const CartPage = () => {
         khuyenMai: data.khuyen_mai || data.khuyenMai || null,
       });
 
-      setCartError("");
+      setCartError('');
 
       window.dispatchEvent(
-        new CustomEvent("cartCountUpdated", {
+        new CustomEvent('cartCountUpdated', {
           detail: {
             count: data.tongSoLuong || 0,
           },
-        }),
+        })
       );
     } catch (error) {
       setCartError(errorMessage(error));
@@ -66,8 +65,8 @@ const CartPage = () => {
 
   useEffect(() => {
     loadCart();
-    window.addEventListener("cartUpdated", loadCart);
-    return () => window.removeEventListener("cartUpdated", loadCart);
+    window.addEventListener('cartUpdated', loadCart);
+    return () => window.removeEventListener('cartUpdated', loadCart);
   }, []);
 
   const saveCart = (newItems) => {
@@ -82,7 +81,7 @@ const CartPage = () => {
       await cartService.updateItem(id, newQty);
       loadCart();
     } catch (err) {
-      alert(err.response?.data?.message || "Không thể cập nhật số lượng");
+      alert(err.response?.data?.message || 'Không thể cập nhật số lượng');
     }
   };
 
@@ -91,7 +90,7 @@ const CartPage = () => {
       await cartService.removeItem(id);
       loadCart();
     } catch (err) {
-      alert("Không thể xóa sản phẩm");
+      alert('Không thể xóa sản phẩm');
     }
   };
 
@@ -100,12 +99,9 @@ const CartPage = () => {
     try {
       await cartService.applyPromotion(voucherCode);
       loadCart();
-      alert("Áp dụng mã giảm giá thành công!");
+      alert('Áp dụng mã giảm giá thành công!');
     } catch (err) {
-      alert(
-        err.response?.data?.message ||
-          "Mã giảm giá không hợp lệ hoặc đã hết hạn.",
-      );
+      alert(err.response?.data?.message || 'Mã giảm giá không hợp lệ hoặc đã hết hạn.');
     }
   };
 
@@ -120,14 +116,13 @@ const CartPage = () => {
 
   const handleToggleSelect = (id) => {
     const newItems = cartItems.map((item) =>
-      item.cartItemId === id ? { ...item, selected: !item.selected } : item,
+      item.cartItemId === id ? { ...item, selected: !item.selected } : item
     );
     saveCart(newItems);
   };
 
   const handleToggleSelectAll = () => {
-    const allSelected =
-      cartItems.length > 0 && cartItems.every((item) => item.selected);
+    const allSelected = cartItems.length > 0 && cartItems.every((item) => item.selected);
     const newItems = cartItems.map((item) => ({
       ...item,
       selected: !allSelected,
@@ -137,69 +132,154 @@ const CartPage = () => {
 
   const selectedItems = cartItems.filter((item) => item.selected);
 
-  const selectedQuantity = selectedItems.reduce(
-    (sum, item) => sum + Number(item.soLuong),
-    0,
-  );
+  const selectedQuantity = selectedItems.reduce((sum, item) => sum + Number(item.soLuong), 0);
 
   const localTotalPrice = selectedItems.reduce(
     (sum, item) => sum + Number(item.donGia) * Number(item.soLuong),
-    0,
+    0
   );
 
-  const isAllSelected =
-    cartItems.length > 0 && cartItems.every((item) => item.selected);
+  const isAllSelected = cartItems.length > 0 && cartItems.every((item) => item.selected);
 
-  const totalCartQuantity = cartItems.reduce(
-    (sum, item) => sum + Number(item.soLuong),
-    0,
-  );
+  const totalCartQuantity = cartItems.reduce((sum, item) => sum + Number(item.soLuong), 0);
 
   const promotion = cartData.khuyenMai;
 
   const appliedPromotionCode =
-    promotion?.ma_chuong_trinh ||
-    promotion?.maChuongTrinh ||
-    promotion?.maKhuyenMai ||
-    "";
+    promotion?.ma_chuong_trinh || promotion?.maChuongTrinh || promotion?.maKhuyenMai || '';
 
   const promotionName =
-    promotion?.ten_chuong_trinh ||
-    promotion?.tenChuongTrinh ||
-    promotion?.tenKhuyenMai ||
-    "";
+    promotion?.ten_chuong_trinh || promotion?.tenChuongTrinh || promotion?.tenKhuyenMai || '';
 
-  const pricingBlocked = cartData.co_the_thanh_toan === false;
+  const selectionSignature = JSON.stringify({
+    promotionCode: appliedPromotionCode || null,
+    lines: selectedItems.map((item) => [
+      Number(item.cartItemId),
+      Number(item.soLuong),
+      Number(item.donGia ?? item.giaBan ?? 0),
+    ]),
+  });
+
+  useEffect(() => {
+    const controller = new AbortController();
+    const selection = JSON.parse(selectionSignature);
+
+    setSelectionPricing(null);
+
+    if (cartLoading || cartError || isAllSelected || selection.lines.length === 0) {
+      return () => controller.abort();
+    }
+
+    const timer = setTimeout(async () => {
+      try {
+        const response = await orderService.previewCheckout(
+          {
+            cart_item_ids: selection.lines.map(([id]) => id),
+
+            // Giỏ hàng chỉ tính tiền hàng; phí giao hàng tính ở checkout.
+            hinh_thuc_nhan_hang: 'NHAN_TAI_CUA_HANG',
+            dia_chi_id: null,
+            thong_tin_nguoi_nhan: null,
+            phuong_thuc_thanh_toan: 'TIEN_MAT',
+            ma_chuong_trinh: selection.promotionCode,
+            ghi_chu: null,
+          },
+          controller.signal
+        );
+
+        if (controller.signal.aborted) return;
+
+        const price = response.data?.data;
+
+        if (
+          !price ||
+          price.tong_thanh_toan == null ||
+          !Number.isFinite(Number(price.tong_thanh_toan)) ||
+          Number(price.tong_thanh_toan) < 0 ||
+          price.co_the_thanh_toan === false
+        ) {
+          throw new Error(
+            price?.ly_do_khuyen_mai ||
+              price?.ly_do_tinh_gia ||
+              'Chưa tính được giá cho các sản phẩm đã chọn.'
+          );
+        }
+
+        setSelectionPricing({
+          signature: selectionSignature,
+          error: '',
+          data: {
+            tamTinh: price.tong_tien_hang_da_gom_vat,
+            tongTien: price.tong_thanh_toan,
+            giamGia: price.tien_giam_da_gom_vat,
+            co_the_thanh_toan: price.co_the_thanh_toan,
+            qua_tang: (price.san_pham || [])
+              .filter((item) => item.la_qua_tang === true)
+              .map((item) => ({
+                ...item,
+                thanh_toan_dong: item.thanh_tien_da_gom_vat ?? 0,
+              })),
+          },
+        });
+      } catch (error) {
+        if (controller.signal.aborted) return;
+
+        setSelectionPricing({
+          signature: selectionSignature,
+          data: null,
+          error: errorMessage(error),
+        });
+      }
+    }, 300);
+
+    return () => {
+      clearTimeout(timer);
+      controller.abort();
+    };
+  }, [selectionSignature, cartLoading, cartError, isAllSelected]);
+
+  const partialResult =
+    !isAllSelected &&
+    !cartLoading &&
+    !cartError &&
+    selectionPricing?.signature === selectionSignature
+      ? selectionPricing
+      : null;
+
+  const pricing = isAllSelected ? cartData : partialResult?.data;
+
+  const selectionPriceLoading =
+    !isAllSelected && selectedQuantity > 0 && !cartLoading && !cartError && !partialResult;
+
+  const pricingBlocked =
+    selectedQuantity > 0 &&
+    (!pricing ||
+      pricing.co_the_thanh_toan === false ||
+      pricing.tongTien == null ||
+      !Number.isFinite(Number(pricing.tongTien)) ||
+      Number(pricing.tongTien) < 0);
 
   const finalPrice =
-    isAllSelected &&
-    !pricingBlocked &&
-    !cartLoading &&
-    !cartError &&
-    cartData.tongTien != null
-      ? Number(cartData.tongTien)
-      : null;
+    selectedQuantity === 0
+      ? 0
+      : !cartLoading && !cartError && !pricingBlocked
+        ? Number(pricing.tongTien)
+        : null;
 
-  const discountAmount =
-    isAllSelected &&
-    !pricingBlocked &&
-    !cartLoading &&
-    !cartError &&
-    cartData.giamGia != null
-      ? Number(cartData.giamGia)
-      : null;
+  const discountAmount = finalPrice == null ? null : Number(pricing?.giamGia ?? 0);
 
-  const gifts = isAllSelected ? cartData.qua_tang || [] : [];
+  const gifts = finalPrice == null || selectedQuantity === 0 ? [] : pricing?.qua_tang || [];
 
-  const pricingMessage =
-    cartData.ly_do_khuyen_mai || cartData.ly_do_tinh_gia || "";
+  const pricingMessage = isAllSelected
+    ? cartData.ly_do_khuyen_mai || cartData.ly_do_tinh_gia || ''
+    : partialResult?.error || '';
 
   const handleProceedToCheckout = () => {
     if (selectedQuantity === 0 || cartLoading || cartError || pricingBlocked) {
       return;
     }
 
-    navigate("/checkout", {
+    navigate('/checkout', {
       state: {
         cartItemIds: selectedItems.map((item) => item.cartItemId),
         voucherCode: appliedPromotionCode || null,
@@ -221,7 +301,7 @@ const CartPage = () => {
             <span className="cart-count">{totalCartQuantity}</span>
           </div>
           <div className="cart-breadcrumb">
-            <Link to="/">TRANG CHỦ</Link> <span>&gt;</span>{" "}
+            <Link to="/">TRANG CHỦ</Link> <span>&gt;</span>{' '}
             <span className="current">GIỎ HÀNG</span>
           </div>
         </div>
@@ -248,11 +328,7 @@ const CartPage = () => {
           )}
           <div className="cart-table-header">
             <div className="col-checkbox">
-              <input
-                type="checkbox"
-                checked={isAllSelected}
-                onChange={handleToggleSelectAll}
-              />
+              <input type="checkbox" checked={isAllSelected} onChange={handleToggleSelectAll} />
               <span>CHỌN TẤT CẢ ({cartItems.length} SẢN PHẨM)</span>
             </div>
             <div className="col-quantity">SỐ LƯỢNG</div>
@@ -261,9 +337,7 @@ const CartPage = () => {
 
           <div className="cart-items-list">
             {cartItems.length === 0 ? (
-              <div
-                style={{ padding: "40px", textAlign: "center", color: "#666" }}
-              >
+              <div style={{ padding: '40px', textAlign: 'center', color: '#666' }}>
                 Giỏ hàng của bạn đang trống.
               </div>
             ) : (
@@ -278,25 +352,21 @@ const CartPage = () => {
                   </div>
                   <div className="item-info">
                     <img
-                      src={item.anh || "https://via.placeholder.com/100"}
+                      src={item.anh || 'https://via.placeholder.com/100'}
                       alt={item.tenSanPham}
                     />
                     <div className="item-details">
                       <h4>{item.tenSanPham}</h4>
                       <p>{item.tenPhienBan}</p>
                       <div className="item-price-mobile">
-                        <span className="current">
-                          {formatPrice(item.donGia)}
-                        </span>
+                        <span className="current">{formatPrice(item.donGia)}</span>
                       </div>
                     </div>
                   </div>
                   <div className="item-quantity">
                     <div className="quantity-selector">
                       <button
-                        onClick={() =>
-                          handleQuantityChange(item.cartItemId, -1)
-                        }
+                        onClick={() => handleQuantityChange(item.cartItemId, -1)}
                         disabled={item.soLuong <= 1}
                       >
                         -
@@ -311,13 +381,8 @@ const CartPage = () => {
                     </div>
                   </div>
                   <div className="item-total">
-                    <span className="total-price">
-                      {formatPrice(item.donGia * item.soLuong)}
-                    </span>
-                    <button
-                      className="delete-btn"
-                      onClick={() => handleDelete(item.cartItemId)}
-                    >
+                    <span className="total-price">{formatPrice(item.donGia * item.soLuong)}</span>
+                    <button className="delete-btn" onClick={() => handleDelete(item.cartItemId)}>
                       <Trash2 size={18} />
                     </button>
                   </div>
@@ -333,9 +398,7 @@ const CartPage = () => {
               {gifts.map((item) => (
                 <div className="cart-gift-item" key={item.ma_dong}>
                   <div>
-                    <strong>
-                      {item.ten_san_pham || `Phiên bản #${item.phien_ban_id}`}
-                    </strong>
+                    <strong>{item.ten_san_pham || `Phiên bản #${item.phien_ban_id}`}</strong>
 
                     {item.ten_phien_ban && <small>{item.ten_phien_ban}</small>}
                   </div>
@@ -385,11 +448,7 @@ const CartPage = () => {
                   onChange={(event) => setVoucherCode(event.target.value)}
                 />
 
-                <button
-                  type="button"
-                  onClick={handleApplyVoucher}
-                  disabled={cartLoading}
-                >
+                <button type="button" onClick={handleApplyVoucher} disabled={cartLoading}>
                   ÁP DỤNG
                 </button>
               </div>
@@ -401,7 +460,7 @@ const CartPage = () => {
 
             <div className="summary-row">
               <span>Tạm tính ({selectedQuantity} sản phẩm)</span>
-              <span>{formatPrice(localTotalPrice)}</span>
+              <span>{formatPrice(pricing?.tamTinh ?? localTotalPrice)}</span>
             </div>
 
             {discountAmount > 0 && (
@@ -420,8 +479,7 @@ const CartPage = () => {
 
             {!isAllSelected && selectedQuantity > 0 && (
               <p className="cart-pricing-note">
-                Khuyến mại và tổng tiền của các sản phẩm đã chọn sẽ được xác
-                nhận tại bước thanh toán.
+                Giá và ưu đãi được tính riêng cho các sản phẩm đang chọn.
               </p>
             )}
 
@@ -429,7 +487,11 @@ const CartPage = () => {
               <span>TIỀN HÀNG SAU ƯU ĐÃI</span>
 
               <span className="total-amount">
-                {finalPrice == null ? "Chờ xác nhận" : formatPrice(finalPrice)}
+                {cartLoading || selectionPriceLoading
+                  ? 'Đang tính giá...'
+                  : finalPrice == null
+                    ? 'Chưa tính được'
+                    : formatPrice(finalPrice)}{' '}
               </span>
             </div>
 
@@ -438,10 +500,7 @@ const CartPage = () => {
               className="btn-checkout-full"
               onClick={handleProceedToCheckout}
               disabled={
-                selectedQuantity === 0 ||
-                cartLoading ||
-                Boolean(cartError) ||
-                pricingBlocked
+                selectedQuantity === 0 || cartLoading || Boolean(cartError) || pricingBlocked
               }
             >
               TIẾN HÀNH ĐẶT HÀNG →

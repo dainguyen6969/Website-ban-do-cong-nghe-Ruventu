@@ -97,7 +97,31 @@ const CheckoutPage = () => {
 
   const draftSignature = JSON.stringify(checkoutDraft);
 
-  const previewData = preview?.signature === draftSignature ? preview.data : null;
+  const previewDraft = useMemo(
+    () => ({
+      cart_item_ids: cartItemIds,
+      hinh_thuc_nhan_hang: deliveryMethod,
+      dia_chi_id: null,
+      thong_tin_nguoi_nhan: null,
+      phuong_thuc_thanh_toan: paymentMethod,
+      ma_chuong_trinh: promotionCode,
+      ghi_chu: formData.note.trim() || null,
+    }),
+    [cartItemIds, deliveryMethod, paymentMethod, promotionCode, formData.note]
+  );
+
+  const previewSignature = JSON.stringify(previewDraft);
+
+  const previewReady = cartReady && cartItemIds.length > 0;
+
+  const previewData = preview?.signature === previewSignature ? preview.data : null;
+
+  const pricingStatusText =
+    !cartReady && checkoutError
+      ? 'Chưa tải được giỏ hàng'
+      : previewError
+        ? 'Chưa tính được'
+        : 'Đang tính giá...';
 
   const draftReady =
     cartReady &&
@@ -197,7 +221,7 @@ const CheckoutPage = () => {
     setPreview(null);
     setPreviewError('');
 
-    if (!draftReady) {
+    if (!previewReady) {
       setPreviewLoading(false);
       return () => controller.abort();
     }
@@ -206,12 +230,12 @@ const CheckoutPage = () => {
 
     const timer = setTimeout(async () => {
       try {
-        const response = await orderService.previewCheckout(checkoutDraft, controller.signal);
+        const response = await orderService.previewCheckout(previewDraft, controller.signal);
 
         if (controller.signal.aborted) return;
 
         setPreview({
-          signature: draftSignature,
+          signature: previewSignature,
           data: response.data.data,
         });
       } catch (error) {
@@ -228,7 +252,7 @@ const CheckoutPage = () => {
       clearTimeout(timer);
       controller.abort();
     };
-  }, [checkoutDraft, draftSignature, draftReady, previewRevision]);
+  }, [previewDraft, previewSignature, previewReady, previewRevision]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -869,7 +893,7 @@ const CheckoutPage = () => {
               <span>Phí vận chuyển</span>
 
               {!previewData ? (
-                <span>Chờ xác nhận</span>
+                <span>{pricingStatusText}</span>
               ) : Number(previewData.phi_giao_hang) === 0 ? (
                 <span className="checkout-shipping-badge">MIỄN PHÍ</span>
               ) : (
@@ -883,15 +907,15 @@ const CheckoutPage = () => {
               <span>TỔNG THANH TOÁN</span>
 
               <span className="price">
-                {previewData ? formatPrice(previewData.tong_thanh_toan) : 'Chờ xác nhận'}
+                {previewData ? formatPrice(previewData.tong_thanh_toan) : pricingStatusText}
               </span>
             </div>
 
-            {!previewData && (
+            {previewData && !draftReady && (
               <p className="checkout-summary-message">
-                {previewLoading
-                  ? 'Đang cập nhật tổng tiền...'
-                  : 'Vui lòng hoàn tất thông tin nhận hàng để xác nhận tổng tiền.'}
+                {deliveryMethod === 'NHAN_TAI_CUA_HANG'
+                  ? 'Vui lòng nhập họ tên và số điện thoại để đặt đơn.'
+                  : 'Vui lòng hoàn tất họ tên, số điện thoại và địa chỉ giao hàng để đặt đơn.'}
               </p>
             )}
 
