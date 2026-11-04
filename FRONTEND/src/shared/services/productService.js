@@ -1,5 +1,6 @@
 import axios from "axios";
 import { parseSpecifications, selectHighlights, toSpecRows } from './productSpecifications';
+import { createReadCache, queryKey } from './readCache';
 
 const API_BASE_URL =
   (import.meta.env.VITE_RUVENTU_API_URL || "")
@@ -12,17 +13,25 @@ const currency = new Intl.NumberFormat("vi-VN", {
 
 export const formatProductPrice = value => currency.format(value ?? 0);
 
-const pendingRequests = new Map();
+// shortcut: browsing prices/stock can be five minutes old; cart and checkout validate live on the server.
+const catalogCache = createReadCache({ ttl: 5 * 60 * 1000, storageKey: `ruventu:catalog:v2:${API_BASE_URL}`, limit: 12, validate: Array.isArray });
+const productCache = createReadCache({ ttl: 5 * 60 * 1000, storageKey: `ruventu:products:v1:${API_BASE_URL}`, validate: value => value?.data && typeof value.data === 'object' });
+const catalogQueryKey = params => queryKey({ ...params, sort: params.sort || 'moi_nhat' });
+const productKey = (path, params = {}) => JSON.stringify([path, queryKey(params)]);
+
+function getCachedAllProducts(params = {}) {
+  const items = catalogCache.peek(catalogQueryKey(params));
+  return Array.isArray(items) ? items : null;
+}
 
 function getProductData(path, params = {}) {
-  const key = JSON.stringify([path, Object.entries(params).sort(([a], [b]) => a.localeCompare(b))]);
-  if (!pendingRequests.has(key)) {
-    const request = axios.get(`${API_BASE_URL}${path}`, { params })
-      .then(response => response.data)
-      .finally(() => pendingRequests.delete(key));
-    pendingRequests.set(key, request);
-  }
-  return pendingRequests.get(key);
+  return productCache.load(productKey(path, params), async () => {
+    const response = await axios.get(`${API_BASE_URL}${path}`, { params });
+    if (!response.data?.data || (path === '/products' && !Array.isArray(response.data.data.danhSachSanPham))) {
+      throw new Error('Dữ liệu sản phẩm không hợp lệ.');
+    }
+    return response.data;
+  });
 }
 
 export function toProductCard(product) {
@@ -90,18 +99,27 @@ export function toProductDetail(product) {
 }
 
 export const productService = {
+  getCachedAllProducts,
+  getCachedProducts: (params = {}) => productCache.peek(productKey('/products', params)),
+  getCachedProductDetail: id => productCache.peek(productKey(`/products/${encodeURIComponent(id)}`)),
+  clearCache: () => { catalogCache.clear(); productCache.clear(); },
   // shortcut: filters read every page; move them to the API when the catalog grows.
-  getAllProducts: async (params = {}) => {
-    const items = [];
-    for (let page = 0, pages = 1; page < pages; page += 1) {
+  getAllProducts: (params = {}) => catalogCache.load(catalogQueryKey(params), async () => {
+    const readPage = async page => {
       const response = await productService.getProducts({ ...params, page, limit: 100 });
       const data = response?.data;
       if (!Array.isArray(data?.danhSachSanPham)) throw new Error("Dữ liệu sản phẩm không hợp lệ.");
-      items.push(...data.danhSachSanPham);
-      pages = Number(data.tongSoTrang || 0);
+      return data;
+    };
+    const first = await readPage(0);
+    const items = [...first.danhSachSanPham];
+    // Keep at most two page requests active, rather than downloading the catalog serially.
+    for (let page = 1; page < Number(first.tongSoTrang || 0); page += 2) {
+      const batch = await Promise.all([readPage(page), ...(page + 1 < first.tongSoTrang ? [readPage(page + 1)] : [])]);
+      for (const data of batch) items.push(...data.danhSachSanPham);
     }
     return items.map(toProductCard);
-  },
+  }),
   getProducts: (params = {}) => getProductData("/products", params),
 
   getProductDetail: (id) => getProductData(`/products/${encodeURIComponent(id)}`),

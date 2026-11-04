@@ -1,5 +1,6 @@
 import axios from "axios";
 import { cartService } from "./cartService";
+import { createReadCache, queryKey } from './readCache';
 
 export function pcBuilderError(error) {
   if (error.response?.data?.message) {
@@ -23,6 +24,7 @@ const api = axios.create({
     "/api/v1/pc-builder",
   withCredentials: true,
 });
+const cache = createReadCache({ ttl: 60 * 1000 });
 
 async function exportBuild(body) {
   try {
@@ -69,12 +71,11 @@ async function exportBuild(body) {
 
 export const pcBuilderService = {
   options: (signal) =>
-    api.get("/options", { signal }).then((response) => response.data.data),
+    cache.load('options', () => api.get('/options').then(response => response.data.data), { signal }),
 
   products: (params, signal) =>
-    api
-      .get("/products", { params, signal })
-      .then((response) => response.data.data),
+    cache.load(`products:${queryKey(params)}`, () => api.get('/products', { params })
+      .then(response => response.data.data), { signal }),
 
   preview: (body, signal) =>
     api

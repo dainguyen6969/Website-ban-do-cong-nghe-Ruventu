@@ -1,7 +1,7 @@
 .category-bar {
   background: var(--bg-white);
   border-block: 1px solid var(--border-color);
-  padding: 12px 0;
+  padding: 8px 0;
 }
 
 .category-bar .brands-container { display:block; height:auto; }
@@ -10,13 +10,13 @@
   display:flex;
   flex-wrap:nowrap;
   align-items:center;
-  gap:16px;
+  gap:12px;
   width:100%;
   min-width:0;
   overflow-x:auto;
   overscroll-behavior-x:contain;
   scrollbar-width:none;
-  padding:4px 0;
+  padding:2px 0;
 }
 
 .category-bar .brands-list::-webkit-scrollbar { display:none; }
@@ -25,18 +25,18 @@
   display:flex;
   align-items:center;
   justify-content:center;
-  flex:0 0 176px;
-  height:80px;
-  padding:12px 16px;
+  flex:0 0 136px;
+  height:60px;
+  padding:8px 12px;
 }
 
 .category-bar .brand-logo {
-  width:144px;
-  height:56px;
+  width:104px;
+  height:40px;
   object-fit:contain;
 }
 
-.category-bar .brand-name { font-size:22px; font-weight:800; color:#111; text-align:center; }
+.category-bar .brand-name { font-size:16px; font-weight:800; color:#111; text-align:center; }
 .category-bar .brand-item:has(.brand-logo:not([hidden])) .brand-name { display:none; }
 .category-bar .brand-logo[hidden] { display:none; }
 .category-bar .brand-item:focus-visible, .category-bar .brands-list:focus-visible { outline:2px solid #e60000; outline-offset:-2px; }

@@ -9,6 +9,7 @@ import './CheckoutPage.css';
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { errorMessage, withIdempotency } from '../../shared/services/mutationUtils';
 import { priceConfirmation } from '../../shared/services/saleQuote';
+import { getAddressSuggestions } from '../services/addressService';
 
 const formatPrice = (price) => {
   const num = Number(price);
@@ -45,7 +46,35 @@ const CheckoutPage = () => {
   const [showAddressDropdown, setShowAddressDropdown] = useState(false);
   const [locatingUser, setLocatingUser] = useState(false);
   const [addressSearchLoading, setAddressSearchLoading] = useState(false);
+  const [addressQuery, setAddressQuery] = useState('');
   const addressWrapperRef = useRef(null);
+
+  useEffect(() => {
+    if (addressQuery.length < 3) {
+      return;
+    }
+    const controller = new AbortController();
+    const timer = setTimeout(async () => {
+      setAddressSearchLoading(true);
+      try {
+        const url = `https://rsapi.goong.io/Place/AutoComplete?api_key=${GOONG_API_KEY}&input=${encodeURIComponent(addressQuery)}`;
+        const predictions = await getAddressSuggestions(url, controller.signal);
+        if (!controller.signal.aborted) {
+          setAddressSuggestions(predictions);
+          setShowAddressDropdown(true);
+        }
+      } catch (error) {
+        if (!controller.signal.aborted) {
+          setAddressSuggestions([]);
+          setShowAddressDropdown(false);
+          console.error('Lỗi tìm kiếm địa chỉ Goong:', error);
+        }
+      } finally {
+        if (!controller.signal.aborted) setAddressSearchLoading(false);
+      }
+    }, 350);
+    return () => { clearTimeout(timer); controller.abort(); };
+  }, [addressQuery]);
 
   const LOCATION_DATA = VIETNAM_LOCATIONS;
 
@@ -177,7 +206,7 @@ const CheckoutPage = () => {
     setCheckoutError('');
 
     cartService
-      .getCurrentCart()
+      .getCurrentCart({ force: true })
       .then((response) => {
         if (!active) return;
 
@@ -273,35 +302,17 @@ const CheckoutPage = () => {
     }
 
     if (name === 'address') {
-      if (value.trim().length >= 3) {
-        searchGoongPlaces(value.trim());
-      } else {
-        setAddressSuggestions([]);
-        setShowAddressDropdown(false);
-      }
-    }
-  };
-
-  // Tìm kiếm địa chỉ với Goong AutoComplete
-  const searchGoongPlaces = async (query) => {
-    try {
-      setAddressSearchLoading(true);
-      const url = `https://rsapi.goong.io/Place/AutoComplete?api_key=${GOONG_API_KEY}&input=${encodeURIComponent(query)}`;
-      const res = await fetch(url);
-      const data = await res.json();
-      if (data?.predictions) {
-        setAddressSuggestions(data.predictions);
-        setShowAddressDropdown(true);
-      }
-    } catch (err) {
-      console.error('Lỗi tìm kiếm địa chỉ Goong:', err);
-    } finally {
+      setAddressQuery(value.trim());
+      setAddressSuggestions([]);
+      setShowAddressDropdown(false);
       setAddressSearchLoading(false);
     }
   };
 
   // Chọn địa chỉ từ danh sách gợi ý của Goong
   const handleSelectSuggestion = (place) => {
+    setAddressQuery('');
+    setAddressSearchLoading(false);
     const compound = place.compound || {};
     const fullAddress = place.description || '';
 
@@ -326,6 +337,10 @@ const CheckoutPage = () => {
 
   // Lấy vị trí GPS hiện tại của người dùng qua Geolocation + Goong Reverse Geocoding
   const handleGetCurrentLocation = () => {
+    setAddressQuery('');
+    setAddressSearchLoading(false);
+    setAddressSuggestions([]);
+    setShowAddressDropdown(false);
     if (!navigator.geolocation) {
       alert('Trình duyệt của bạn không hỗ trợ định vị GPS.');
       return;

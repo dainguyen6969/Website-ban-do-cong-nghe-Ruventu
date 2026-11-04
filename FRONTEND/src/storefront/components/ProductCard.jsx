@@ -116,6 +116,8 @@ export default function ProductCard({ product, showPreview = false }) {
             src={product.image}
             alt={product.title}
             className="product-image"
+            loading="lazy"
+            decoding="async"
           />
         ) : <span className="product-image-placeholder">Chưa có ảnh sản phẩm</span>}
       </div>

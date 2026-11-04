@@ -9,46 +9,36 @@ import './CategoryPage.css';
 
 const formatVND = (amount) =>
   new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount ?? 0);
+const productParams = { ton_kho: true, limit: 100, sort: 'moi_nhat' };
+const mapProducts = response => (response?.data?.danhSachSanPham || []).map(p => ({
+  id: p.id, title: p.tenSanPham, name: p.tenSanPham,
+  image: p.anhChinh || 'https://via.placeholder.com/300',
+  priceRaw: Number(p.giaThapNhat ?? 0), price: formatVND(p.giaThapNhat),
+  brand: p.tenThuongHieu || '', category: p.tenDanhMuc || '', outOfStock: !p.conHang,
+})).filter(p => !p.outOfStock);
 
 const PromotionsPage = () => {
-  const [products, setProducts] = useState([]);
+  const [products, setProducts] = useState(() => mapProducts(productService.getCachedProducts(productParams)));
   const [sortBy, setSortBy] = useState('newest');
   const [page, setPage] = useState(1);
   const pageSize = 20;
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(() => !productService.getCachedProducts(productParams));
 
   useEffect(() => {
+    let active = true;
     const fetchProducts = async () => {
-      setIsLoading(true);
+      setIsLoading(!productService.getCachedProducts(productParams));
       try {
-        const response = await productService.getProducts({
-          ton_kho: true,
-          limit: 100,
-          sort: 'moi_nhat',
-        });
-        if (response?.data?.danhSachSanPham) {
-          const mapped = response.data.danhSachSanPham
-            .map((p) => ({
-              id: p.id,
-              title: p.tenSanPham,
-              name: p.tenSanPham,
-              image: p.anhChinh || 'https://via.placeholder.com/300',
-              priceRaw: Number(p.giaThapNhat ?? 0),
-              price: formatVND(p.giaThapNhat),
-              brand: p.tenThuongHieu || '',
-              category: p.tenDanhMuc || '',
-              outOfStock: !p.conHang,
-            }))
-            .filter((p) => !p.outOfStock);
-          setProducts(mapped);
-        }
+        const response = await productService.getProducts(productParams);
+        if (active) setProducts(mapProducts(response));
       } catch (error) {
         console.error('Lỗi tải sản phẩm khuyến mãi:', error);
       } finally {
-        setIsLoading(false);
+        if (active) setIsLoading(false);
       }
     };
     fetchProducts();
+    return () => { active = false; };
   }, []);
 
   const sortedProducts = useMemo(() => {

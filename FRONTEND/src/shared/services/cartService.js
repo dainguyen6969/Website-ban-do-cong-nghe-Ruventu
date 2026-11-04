@@ -2,7 +2,9 @@ import axios from 'axios';
 import {
   apiRequest,
   getAccessToken,
+  AUTH_CHANGED,
 } from '../../auth/backendAuth';
+import { createReadCache } from './readCache';
 
 const CART_PATH = '/api/v1/cart';
 
@@ -20,7 +22,7 @@ const cartAxios = axios.create({
   },
 });
 
-async function request(
+async function sendRequest(
   method,
   path = '',
   body = undefined,
@@ -70,8 +72,31 @@ async function request(
   }
 }
 
+const cache = createReadCache({ ttl: 30 * 1000, limit: 1, validate: response => Array.isArray(response?.data?.data?.items) });
+let identity;
+function currentCache() {
+  const next = getAccessToken();
+  if (identity !== next) { cache.clear(); identity = next; }
+  return cache;
+}
+
+if (typeof window !== 'undefined') {
+  window.addEventListener?.(AUTH_CHANGED, () => cache.clear());
+  window.addEventListener?.('storage', event => {
+    if (event.key === 'accessToken' || event.key === null) cache.clear();
+  });
+}
+
+async function request(...args) {
+  cache.clear();
+  try { return await sendRequest(...args); }
+  finally { cache.clear(); }
+}
+
 export const cartService = {
-  getCurrentCart: () => request('GET'),
+  getCurrentCart: ({ force = false } = {}) => currentCache().load('cart', () => sendRequest('GET'), { force }),
+  getCachedCart: () => currentCache().peek('cart'),
+  clearCache: () => cache.clear(),
 
   addItem: (phienBanId, soLuong = 1) =>
     request('POST', '/items', {

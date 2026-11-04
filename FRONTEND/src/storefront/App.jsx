@@ -1,4 +1,4 @@
-import React, { useLayoutEffect } from 'react';
+import React, { useLayoutEffect, useRef } from 'react';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import Home from './pages/Home';
 import Login from './pages/Login';
@@ -21,15 +21,21 @@ import ToastContainer from './components/ToastContainer';
 import BackToTop from './components/BackToTop';
 import FontPreferenceContext from '../typography/FontPreferenceContext';
 import useQaTypography from '../typography/useQaTypography';
+import { manageScrollPosition } from './scrollPosition';
 import './App.css';
 import './index.css';
 
 function StorefrontApp() {
   const fontPreference = useQaTypography();
-  const { pathname, search } = useLocation();
+  const { pathname, search, hash } = useLocation();
+  const initialUrl = useRef(`${pathname}${search}${hash}`);
+  const navigated = useRef(false);
   useLayoutEffect(() => {
-    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
-  }, [pathname, search]);
+    const url = `${pathname}${search}${hash}`;
+    if (url !== initialUrl.current) navigated.current = true;
+    const reload = !navigated.current && performance.getEntriesByType('navigation')[0]?.type === 'reload';
+    return manageScrollPosition(url, reload);
+  }, [pathname, search, hash]);
 
   return (
     <FontPreferenceContext.Provider value={fontPreference}>
