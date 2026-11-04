@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import test, { after } from 'node:test';
+import test, { after, beforeEach } from 'node:test';
 import { createServer } from 'vite';
 import axios from 'axios';
 
@@ -7,8 +7,49 @@ const server = await createServer({ configFile: false, cacheDir: 'node_modules/.
 const { productService, toProductCard, toProductDetail } = await server.ssrLoadModule('/src/shared/services/productService.js');
 const { categoryService } = await server.ssrLoadModule('/src/shared/services/categoryService.js');
 after(() => server.close());
+beforeEach(() => { productService.clearCache(); categoryService.clearCache(); });
 
-test('public metadata requests share an in-flight call but refresh after admin changes', async (t) => {
+test('catalog survives module reload, expires after five minutes and keeps filters separate', async (t) => {
+  const storage = new Map();
+  const previous = globalThis.sessionStorage;
+  globalThis.sessionStorage = { getItem: key => storage.get(key), setItem: (key, value) => storage.set(key, value), removeItem: key => storage.delete(key) };
+  const get = t.mock.method(axios, 'get', async () => ({ data: { data: { tongSoTrang: 1, danhSachSanPham: [{ id: 42, tenSanPham: 'Cached PC' }] } } }));
+  let now = Date.now();
+  t.mock.method(Date, 'now', () => now);
+  try {
+    const first = JSON.parse(JSON.stringify(await productService.getAllProducts({ sort: 'moi_nhat' })));
+    server.moduleGraph.invalidateAll();
+    const reloaded = (await server.ssrLoadModule('/src/shared/services/productService.js')).productService;
+    assert.deepEqual(reloaded.getCachedAllProducts(), first);
+    assert.deepEqual(await reloaded.getAllProducts(), first);
+    assert.equal(get.mock.calls.length, 1);
+    assert.equal(reloaded.getCachedAllProducts({ keyword: 'RAM' }), null);
+    await reloaded.getAllProducts({ keyword: 'RAM' });
+    assert.equal(get.mock.calls.length, 2);
+    assert.deepEqual(reloaded.getCachedAllProducts(), first, 'a filtered query must not overwrite the homepage');
+    now += 5 * 60 * 1000;
+    assert.equal(reloaded.getCachedAllProducts({ keyword: 'RAM' }), null);
+    await reloaded.getAllProducts({ keyword: 'RAM' });
+    assert.equal(get.mock.calls.length, 3);
+  } finally { globalThis.sessionStorage = previous; }
+});
+
+test('catalog pages load at most two at a time and retain API ordering', async (t) => {
+  let active = 0, maximum = 0;
+  const get = t.mock.method(productService, 'getProducts', async ({ page }) => {
+    active++;
+    maximum = Math.max(maximum, active);
+    await new Promise(resolve => setImmediate(resolve));
+    active--;
+    return { data: { tongSoTrang: 6, danhSachSanPham: [{ id: page }] } };
+  });
+  const products = await productService.getAllProducts();
+  assert.equal(maximum, 2);
+  assert.equal(get.mock.calls.length, 6);
+  assert.deepEqual(products.map(product => product.id), [0, 1, 2, 3, 4, 5]);
+});
+
+test('public metadata requests share cache until explicitly refreshed', async (t) => {
   let complete;
   const get = t.mock.method(axios, 'get', () => new Promise(resolve => { complete = resolve; }));
   const first = categoryService.getOptions();
@@ -17,7 +58,8 @@ test('public metadata requests share an in-flight call but refresh after admin c
   complete({ data: { data: { danhMuc: [{ id: 1, tenDanhMuc: 'Tên cũ' }], thuongHieu: [] } } });
   await first;
   get.mock.mockImplementation(async () => ({ data: { data: { danhMuc: [{ id: 1, tenDanhMuc: 'Tên mới' }], thuongHieu: [] } } }));
-  assert.equal((await categoryService.getOptions()).danhMuc[0].tenDanhMuc, 'Tên mới');
+  assert.equal((await categoryService.getOptions()).danhMuc[0].tenDanhMuc, 'Tên cũ');
+  assert.equal((await categoryService.getOptions({ force: true })).danhMuc[0].tenDanhMuc, 'Tên mới');
   assert.equal(get.mock.calls.length, 2);
 });
 
@@ -42,12 +84,15 @@ test('catalog filtering reads every API page and retains real IDs, category, pri
     assert.equal(result[1].brand, 'Intel');
     assert.equal(result[1].priceValue, 4190000);
     assert.equal(result[0].outOfStock, false);
+    productService.clearCache();
     productService.getProducts = async () => ({ data: {} });
     await assert.rejects(productService.getAllProducts(), /không hợp lệ/);
   } finally { productService.getProducts = original; }
 });
 
-test('identical concurrent list, detail and variant requests share one call and refresh after settlement', async (t) => {
+test('identical list, detail and variant requests reuse settled results until expiry', async (t) => {
+  let now = Date.now();
+  t.mock.method(Date, 'now', () => now);
   const requests = [];
   t.mock.method(axios, 'get', (url, config) => new Promise(resolve => requests.push({ url, config, resolve })));
   const first = productService.getProducts({ page: 0, limit: 100 });
@@ -62,8 +107,11 @@ test('identical concurrent list, detail and variant requests share one call and 
   assert.equal(variant, duplicateVariant);
   assert.notEqual(first, filtered);
   assert.equal(requests.length, 4);
-  for (const request of requests) request.resolve({ data: { data: { url: request.url } } });
+  for (const request of requests) request.resolve({ data: { data: request.url.endsWith('/products') ? { danhSachSanPham: [] } : { url: request.url } } });
   await Promise.all([first, duplicate, filtered, detail, duplicateDetail, variant, duplicateVariant]);
+  await productService.getProductDetail(346);
+  assert.equal(requests.length, 4);
+  now += 5 * 60 * 1000;
   const fresh = productService.getProductDetail(346);
   assert.equal(requests.length, 5);
   requests[4].resolve({ data: { data: { updatedStock: 3 } } });

@@ -8,7 +8,7 @@ const HeroBanner = () => {
       <div className="hero-grid">
         {/* Main Banner */}
         <div className="main-banner">
-          <img src="https://images.unsplash.com/photo-1587202372634-32705e3bf49c?auto=format&fit=crop&q=80&w=1200&h=600" alt="PC Gaming" className="banner-img" />
+          <img src="https://images.unsplash.com/photo-1587202372634-32705e3bf49c?auto=format&fit=crop&q=80&w=1200&h=600" alt="PC Gaming" className="banner-img" decoding="async" />
           <div className="banner-overlay"></div>
           <div className="banner-content">
             <div className="badge-container">
@@ -31,7 +31,7 @@ const HeroBanner = () => {
         {/* Side Banners */}
         <div className="side-banners">
           <Link className="side-banner" to="/search?q=RTX%204090" aria-label="Xem sản phẩm RTX 4090">
-            <img src="https://images.unsplash.com/photo-1587202372775-e229f172b9d7?auto=format&fit=crop&q=80&w=600&h=300" alt="RTX 4090" className="banner-img" />
+            <img src="https://images.unsplash.com/photo-1587202372775-e229f172b9d7?auto=format&fit=crop&q=80&w=600&h=300" alt="RTX 4090" className="banner-img" decoding="async" />
             <div className="banner-content small-content">
               <div style={{display: 'flex', marginBottom: '8px'}}>
                 <span className="small-label-badge">VGA - FLAGSHIP</span>
@@ -45,7 +45,7 @@ const HeroBanner = () => {
           </Link>
           <a className="side-banner" href="#pc-build-san" aria-label="Xem các bộ PC build sẵn">
             <div className="banner-red-stripe">⚡ KHUYẾN MÃI TUẦN NÀY</div>
-            <img src="https://images.unsplash.com/photo-1593640408182-31c70c8268f5?auto=format&fit=crop&q=80&w=600&h=300" alt="PC Build Sẵn" className="banner-img" />
+            <img src="https://images.unsplash.com/photo-1593640408182-31c70c8268f5?auto=format&fit=crop&q=80&w=600&h=300" alt="PC Build Sẵn" className="banner-img" decoding="async" />
             <div className="banner-content small-content">
               <span className="small-label">PC BUILD SẴN</span>
               <h3 className="side-title">RUVENTU<br/>WARLORD PRO</h3>

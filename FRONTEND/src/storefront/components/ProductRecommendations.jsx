@@ -2,7 +2,8 @@ import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import ProductCard from './ProductCard';
-import { getRecommendedProducts, recommendationResultsUrl } from '../services/recommendationService';
+import { getRecommendedProducts, recommendationResultsUrl, selectRecommendedProducts } from '../services/recommendationService';
+import { productService } from '../../shared/services/productService';
 import { createRecommendationScroll } from './recommendationScroll';
 import './ProductRecommendations.css';
 
@@ -74,8 +75,11 @@ export function RecommendationRail({ title, products, moreUrl }) {
 }
 
 export default function ProductRecommendations({ product }) {
-  const [products, setProducts] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [products, setProducts] = useState(() => {
+    const cached = productService.getCachedAllProducts();
+    return cached ? selectRecommendedProducts(cached, { excludeId: product.id }) : null;
+  });
+  const [loading, setLoading] = useState(products === null);
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -87,7 +91,7 @@ export default function ProductRecommendations({ product }) {
     return () => { active = false; };
   }, [product.id]);
 
-  const related = product.categoryId == null ? [] : products.filter(item => String(item.categoryId) === String(product.categoryId));
+  const related = product.categoryId == null ? [] : (products || []).filter(item => String(item.categoryId) === String(product.categoryId));
 
   return (
     <div className="product-recommendations">

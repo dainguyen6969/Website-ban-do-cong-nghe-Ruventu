@@ -1,13 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { FONT_OPTIONS } from '../typography/fontOptions';
 import FontSizeControl from '../typography/FontSizeControl';
-import {
-  getSystemStatus,
-  getTypography,
-  saveMaintenance,
-  saveTypography,
-  SETTINGS_CHANGED,
-} from './settingsApi';
+import { getSystemStatus, saveMaintenance, saveTypography, SETTINGS_CHANGED } from './settingsApi';
 import './SystemSettings.css';
 
 export default function SystemSettings() {
@@ -21,55 +15,27 @@ export default function SystemSettings() {
 
   useEffect(() => {
     let active = true;
-    Promise.all([getSystemStatus(), getTypography()])
-      .then(([system, typography]) => {
-        if (active) {
-          setStatus(system);
-          setFont(typography);
-          setError('');
-        }
-      })
-      .catch((e) => {
-        if (active) setError(e.message || 'Không thể tải cài đặt.');
-      });
-    return () => {
-      active = false;
-    };
+    getSystemStatus({ force: reload > 0 }).then((system) => {
+      if (active) { setStatus(system); setFont({ fontFamily: system.fontFamily, fontSize: system.fontSize }); setError(''); }
+    }).catch((e) => { if (active) setError(e.message || 'Không thể tải cài đặt.'); });
+    return () => { active = false; };
   }, [reload]);
 
   useEffect(() => {
     let active = true;
-
-    const refresh = () => {
-      getSystemStatus()
-        .then((next) => {
-          if (!active) return;
-
-          setStatus(next);
-
-          if (!dirty.current && next.fontSize && next.fontFamily) {
-            setFont((current) =>
-              current &&
-              (current.fontSize !== next.fontSize || current.fontFamily !== next.fontFamily)
-                ? {
-                    fontFamily: next.fontFamily,
-                    fontSize: next.fontSize,
-                  }
-                : current
-            );
-          }
-        })
-        .catch(() => {});
-    };
-
-    window.addEventListener(SETTINGS_CHANGED, refresh);
-    window.addEventListener('focus', refresh);
-
+    const refresh = (force = false) => getSystemStatus({ force }).then((next) => {
+      if (!active) return;
+      setStatus(next);
+      if (!dirty.current && next.fontSize && next.fontFamily) setFont((current) => current && (current.fontSize !== next.fontSize || current.fontFamily !== next.fontFamily) ? { fontFamily: next.fontFamily, fontSize: next.fontSize } : current);
+    }).catch(() => {});
+    const refreshSettings = () => refresh(true);
+    const refreshOnFocus = () => refresh();
+    window.addEventListener(SETTINGS_CHANGED, refreshSettings);
+    window.addEventListener('focus', refreshOnFocus);
     return () => {
       active = false;
-
-      window.removeEventListener(SETTINGS_CHANGED, refresh);
-      window.removeEventListener('focus', refresh);
+      window.removeEventListener(SETTINGS_CHANGED, refreshSettings);
+      window.removeEventListener('focus', refreshOnFocus);
     };
   }, []);
 

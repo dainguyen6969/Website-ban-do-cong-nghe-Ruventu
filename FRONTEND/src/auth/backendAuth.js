@@ -101,7 +101,7 @@ function apiError(message, status, data = null) {
   return Object.assign(new Error(message), { status, data });
 }
 
-async function refreshAccessToken() {
+export async function refreshAccessToken() {
   if (!refreshPromise) {
     const previousToken = getAccessToken();
 

@@ -17,20 +17,26 @@ import { parseSpecifications, resolveProductContent } from './productDetailConte
 
 export default function ProductDetail() {
   const { id } = useParams();
+  return <ProductDetailContent key={id} id={id} />;
+}
 
-  const [product, setProduct] = useState(null);
-  const [loading, setLoading] = useState(true);
+function mapProduct(data) {
+  const mapped = toProductDetail(data);
+  mapped.specifications = parseSpecifications(mapped.specifications);
+  return mapped;
+}
+
+function ProductDetailContent({ id }) {
+  const [product, setProduct] = useState(() => {
+    const cached = productService.getCachedProductDetail(id)?.data;
+    return cached ? mapProduct(cached) : null;
+  });
+  const [loading, setLoading] = useState(!product);
   const [error, setError] = useState("");
-  const [selectedVariantId, setSelectedVariantId] = useState(null);
+  const [selectedVariantId, setSelectedVariantId] = useState(product?.defaultVariantId ?? null);
 
   useEffect(() => {
     let active = true;
-
-    window.scrollTo(0, 0);
-    setLoading(true);
-    setProduct(null);
-    setError("");
-    setSelectedVariantId(null);
 
     async function load() {
       try {
@@ -41,8 +47,7 @@ export default function ProductDetail() {
           throw new Error("Không tìm thấy sản phẩm.");
         }
 
-        const mapped = toProductDetail(data);
-        mapped.specifications = parseSpecifications(mapped.specifications);
+        const mapped = mapProduct(data);
 
         if (!active) return;
 
