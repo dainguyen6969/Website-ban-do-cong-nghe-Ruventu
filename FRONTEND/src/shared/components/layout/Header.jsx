@@ -56,7 +56,12 @@ export default function Header({ onMenuToggle, isMenuOpen = false }) {
   const isSerialDetail = currentPath.startsWith('/kho-hang/danh-sach-serial/');
   const isSerialList = currentPath === '/kho-hang/danh-sach-serial';
   const isComboPage = currentPath.startsWith('/kho-hang/combo-san-pham');
+  const isComboCreate = currentPath === '/kho-hang/combo-san-pham/them-moi';
+  const isComboDetail = isComboPage && !isComboCreate && currentPath !== '/kho-hang/combo-san-pham';
   const isPurchasePage = currentPath.startsWith('/kho-hang/nhap-hang');
+  const isPurchaseCreate = currentPath === '/kho-hang/nhap-hang/tao-moi';
+  const isPurchaseDetail =
+    isPurchasePage && !isPurchaseCreate && currentPath !== '/kho-hang/nhap-hang';
   const isRecallPage =
     currentPath === '/kho-hang/thu-hoi' || currentPath.startsWith('/kho-hang/thu-hoi/');
 
@@ -252,6 +257,30 @@ export default function Header({ onMenuToggle, isMenuOpen = false }) {
                 {isRecallDetail ? 'CHI TIẾT THU HỒI' : 'THU HỒI HÀNG'}
               </span>
             </>
+          ) : isComboPage ? (
+            <>
+              <span className="header__breadcrumb-item header__breadcrumb-item--muted">
+                KHO HÀNG
+              </span>
+              <span className="header__breadcrumb-sep" aria-hidden="true">
+                ›
+              </span>
+              <span
+                className={`header__breadcrumb-item ${isComboCreate || isComboDetail ? 'header__breadcrumb-item--muted' : 'header__breadcrumb-item--active'}`}
+              >
+                COMBO SẢN PHẨM
+              </span>
+              {(isComboCreate || isComboDetail) && (
+                <>
+                  <span className="header__breadcrumb-sep" aria-hidden="true">
+                    ›
+                  </span>
+                  <span className="header__breadcrumb-item header__breadcrumb-item--active">
+                    {isComboCreate ? 'THÊM COMBO SẢN PHẨM' : 'CHI TIẾT COMBO'}
+                  </span>
+                </>
+              )}
+            </>
           ) : isPurchasePage ? (
             <>
               <span className="header__breadcrumb-item header__breadcrumb-item--muted">
@@ -260,9 +289,21 @@ export default function Header({ onMenuToggle, isMenuOpen = false }) {
               <span className="header__breadcrumb-sep" aria-hidden="true">
                 ›
               </span>
-              <span className="header__breadcrumb-item header__breadcrumb-item--active">
-                COMBO SẢN PHẨM
+              <span
+                className={`header__breadcrumb-item ${isPurchaseCreate || isPurchaseDetail ? 'header__breadcrumb-item--muted' : 'header__breadcrumb-item--active'}`}
+              >
+                NHẬP HÀNG
               </span>
+              {(isPurchaseCreate || isPurchaseDetail) && (
+                <>
+                  <span className="header__breadcrumb-sep" aria-hidden="true">
+                    ›
+                  </span>
+                  <span className="header__breadcrumb-item header__breadcrumb-item--active">
+                    {isPurchaseCreate ? 'TẠO ĐƠN NHẬP HÀNG' : 'CHI TIẾT ĐƠN NHẬP HÀNG'}
+                  </span>
+                </>
+              )}
             </>
           ) : isSerialDetail ? (
             <>

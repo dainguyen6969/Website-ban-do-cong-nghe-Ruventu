@@ -533,3 +533,260 @@
     grid-template-columns: 125px 1fr;
   }
 }
+
+/* ==========================================================================
+   Supplier Cashbook Panel & Vouchers
+   ========================================================================== */
+
+.supplier-cashbook-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 16px;
+  padding: 20px 20px 16px;
+}
+
+.supplier-stat-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 18px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+}
+
+.supplier-stat-card--chi {
+  border-left: 4px solid #dc2626;
+  background: linear-gradient(to right, #fffdfd, #ffffff);
+}
+
+.supplier-stat-card--thu {
+  border-left: 4px solid #16a34a;
+  background: linear-gradient(to right, #fcfdfd, #ffffff);
+}
+
+.supplier-stat-card--net {
+  border-left: 4px solid #0f172a;
+  background: linear-gradient(to right, #fafafa, #ffffff);
+}
+
+.supplier-stat-icon {
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  flex-shrink: 0;
+}
+
+.supplier-stat-icon--chi {
+  background: #fef2f2;
+  color: #dc2626;
+  border: 1px solid #fee2e2;
+}
+
+.supplier-stat-icon--thu {
+  background: #f0fdf4;
+  color: #16a34a;
+  border: 1px solid #dcfce7;
+}
+
+.supplier-stat-icon--net {
+  background: #f8fafc;
+  color: #0f172a;
+  border: 1px solid #e2e8f0;
+}
+
+.supplier-stat-content {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.supplier-stat-title {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  color: #64748b;
+  text-transform: uppercase;
+}
+
+.supplier-stat-subtitle {
+  font-size: 11px;
+  color: #94a3b8;
+  margin-top: 1px;
+}
+
+.supplier-stat-value {
+  font-size: 19px;
+  font-weight: 900;
+  margin-top: 5px;
+  line-height: 1.2;
+}
+
+.text-red {
+  color: #dc2626 !important;
+}
+
+.text-green {
+  color: #16a34a !important;
+}
+
+.text-dark {
+  color: #0f172a !important;
+}
+
+.supplier-cashbook-tabs {
+  padding: 0 20px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.supplier-cashbook-tabs-group {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.supplier-cashbook-tab {
+  height: 34px;
+  padding: 0 14px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 11px;
+  font-weight: 800;
+  background: #f8fafc;
+  color: #475569;
+  border: 1px solid #cbd5e1;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.supplier-cashbook-tab:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+  border-color: #94a3b8;
+}
+
+.supplier-cashbook-tab--active {
+  background: #0f172a !important;
+  color: #ffffff !important;
+  border-color: #0f172a !important;
+}
+
+.supplier-cashbook-tab-count {
+  padding: 1px 6px;
+  font-size: 10px;
+  font-weight: 900;
+  background: rgba(255, 255, 255, 0.25);
+  color: #ffffff;
+}
+
+.supplier-cashbook-badge {
+  display: inline-block;
+  padding: 3px 8px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+}
+
+.supplier-cashbook-badge--chi {
+  background: #fee2e2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
+}
+
+.supplier-cashbook-badge--thu {
+  background: #dcfce7;
+  color: #166534;
+  border: 1px solid #bbf7d0;
+}
+
+.supplier-cashbook-badge--success {
+  background: #ecfdf5;
+  color: #065f46;
+  border: 1px solid #a7f3d0;
+}
+
+.supplier-cashbook-badge--cancelled {
+  background: #f1f5f9;
+  color: #64748b;
+  border: 1px solid #cbd5e1;
+}
+
+.supplier-cashbook-badge--default {
+  background: #f3f4f6;
+  color: #374151;
+  border: 1px solid #e5e7eb;
+}
+
+.supplier-cashbook-amount {
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.supplier-cashbook-amount--chi {
+  color: #dc2626;
+}
+
+.supplier-cashbook-amount--thu {
+  color: #16a34a;
+}
+
+.supplier-doc-link {
+  background: none;
+  border: none;
+  padding: 0;
+  color: #2563eb;
+  font-size: 12px;
+  font-weight: 800;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.supplier-doc-link:hover {
+  color: #1d4ed8;
+}
+
+.supplier-table-loading {
+  text-align: center;
+  padding: 36px !important;
+  color: #64748b;
+  font-weight: 700;
+}
+
+.supplier-table-error {
+  text-align: center;
+  padding: 24px !important;
+  color: #dc2626;
+  font-weight: 700;
+}
+
+.supplier-btn-retry {
+  margin-left: 10px;
+  padding: 3px 10px;
+  font-size: 11px;
+  font-weight: 800;
+  color: #dc2626;
+  background: #fff;
+  border: 1px solid #dc2626;
+  cursor: pointer;
+}
+
+.supplier-btn-retry:hover {
+  background: #dc2626;
+  color: #fff;
+}
+
+.supplier-col-notes {
+  max-width: 220px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: #64748b;
+  font-size: 11px;
+}
