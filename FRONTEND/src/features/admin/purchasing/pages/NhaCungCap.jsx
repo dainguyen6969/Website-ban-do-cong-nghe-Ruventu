@@ -1,8 +1,18 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { HiOutlineArrowLeft, HiOutlinePlus, HiOutlineSearch, HiOutlineX } from 'react-icons/hi';
+import {
+  HiOutlineArrowLeft,
+  HiOutlineExternalLink,
+  HiOutlinePlus,
+  HiOutlineScale,
+  HiOutlineSearch,
+  HiOutlineTrendingDown,
+  HiOutlineTrendingUp,
+  HiOutlineX,
+} from 'react-icons/hi';
 import FilterDropdown from '../../../../shared/components/ui/FilterDropdown';
 import TablePagination from '../../../../shared/components/ui/TablePagination';
+import { cashbookService } from '../../../../shared/services/cashbookService';
 import {
   createSupplier,
   getSupplierDetail,
@@ -41,6 +51,32 @@ const money = (value) =>
 const messageOf = (error) => error?.message || 'Không thể kết nối tới backend. Vui lòng thử lại.';
 const formatSupplierStatus = (status) =>
   status === SUPPLIER_STATUS.active ? 'ĐANG HỢP TÁC' : 'NGỪNG HỢP TÁC';
+const formatDateTime = (dateStr) => {
+  if (!dateStr) return '—';
+  try {
+    return new Date(dateStr).toLocaleString('vi-VN', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  } catch {
+    return String(dateStr);
+  }
+};
+const formatPaymentMethod = (method) => {
+  switch (method) {
+    case 'TIEN_MAT':
+      return 'Tiền mặt';
+    case 'CHUYEN_KHOAN':
+      return 'Chuyển khoản';
+    case 'THE':
+      return 'Quẹt thẻ';
+    default:
+      return method ? String(method).replaceAll('_', ' ') : '—';
+  }
+};
 
 export default function NhaCungCap() {
   const location = useLocation();
@@ -492,8 +528,293 @@ function SupplierDetail({ supplier, page, onPageChange, onBack, onEdit, toast })
             idPrefix="supplier-orders"
           />
         </SupplierPanel>
+        <SupplierCashbookPanel supplierId={supplier.id} orders={supplier.orders} />
       </section>
     </>
+  );
+}
+
+function SupplierCashbookPanel({ supplierId, orders = [] }) {
+  const navigate = useNavigate();
+  const [items, setItems] = useState([]);
+  const [summary, setSummary] = useState({
+    tongThu: 0,
+    tongChi: 0,
+    tonCuoiKy: 0,
+  });
+  const [totalElements, setTotalElements] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [page, setPage] = useState(1);
+  const [typeFilter, setTypeFilter] = useState('ALL');
+
+  const fetchVouchers = useCallback(async () => {
+    if (!supplierId) return;
+    setLoading(true);
+    setError('');
+    try {
+      const params = {
+        nha_cung_cap_id: supplierId,
+        tu_ngay: '2020-01-01',
+        den_ngay: '2035-12-31',
+        page: Math.max(0, page - 1),
+        limit: 5,
+        ...(typeFilter !== 'ALL' ? { loai_phieu: typeFilter } : {}),
+      };
+      const res = await cashbookService.getCashbook(params);
+      const data = res.data?.data;
+      if (data) {
+        setItems(data.items || []);
+        setTotalElements(data.pagination?.total_elements || 0);
+        if (data.tong_hop) {
+          setSummary({
+            tongThu: Number(data.tong_hop.tong_thu) || 0,
+            tongChi: Number(data.tong_hop.tong_chi) || 0,
+            tonCuoiKy: Number(data.tong_hop.ton_cuoi_ky) || 0,
+          });
+        }
+      }
+    } catch (err) {
+      console.error('Lỗi khi tải phiếu thu chi của nhà cung cấp:', err);
+      setError('Không thể kết nối hoặc tải sổ quỹ nhà cung cấp.');
+      setItems([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [supplierId, page, typeFilter]);
+
+  useEffect(() => {
+    fetchVouchers();
+  }, [fetchVouchers]);
+
+  const handleTabChange = (nextType) => {
+    if (nextType === typeFilter) return;
+    setTypeFilter(nextType);
+    setPage(1);
+  };
+
+  const handleDocClick = (docCode) => {
+    if (!docCode) return;
+    const cleanCode = docCode.trim();
+    const matched = (orders || []).find((o) => o.code === cleanCode);
+    if (matched) {
+      navigate(`/kho-hang/nhap-hang/${matched.id}`);
+      return;
+    }
+    if (cleanCode.startsWith('DN')) {
+      navigate('/kho-hang/nhap-hang');
+    } else if (cleanCode.startsWith('TH')) {
+      navigate('/kho-hang/thu-hoi');
+    }
+  };
+
+  const handleVoucherClick = (item) => {
+    if (item.loai_phieu === 'CHI') {
+      navigate(`/admin/so-quy-tien-mat/phieu-chi/${item.id}`);
+    } else {
+      navigate(`/admin/so-quy-tien-mat/phieu-thu/${item.id}`);
+    }
+  };
+
+  return (
+    <SupplierPanel title="SỔ QUỸ: PHIẾU THU & PHIẾU CHI LIÊN QUAN">
+      <div className="supplier-cashbook-stats">
+        <div className="supplier-stat-card supplier-stat-card--chi">
+          <div className="supplier-stat-icon supplier-stat-icon--chi">
+            <HiOutlineTrendingDown />
+          </div>
+          <div className="supplier-stat-content">
+            <span className="supplier-stat-title">TỔNG TIỀN ĐÃ CHI</span>
+            <span className="supplier-stat-subtitle">Thanh toán tiền nhập hàng</span>
+            <strong className="supplier-stat-value text-red">
+              -{money(summary.tongChi)}
+            </strong>
+          </div>
+        </div>
+
+        <div className="supplier-stat-card supplier-stat-card--thu">
+          <div className="supplier-stat-icon supplier-stat-icon--thu">
+            <HiOutlineTrendingUp />
+          </div>
+          <div className="supplier-stat-content">
+            <span className="supplier-stat-title">TỔNG TIỀN THU HOÀN</span>
+            <span className="supplier-stat-subtitle">Tiền NCC hoàn lại khi trả hàng</span>
+            <strong className="supplier-stat-value text-green">
+              +{money(summary.tongThu)}
+            </strong>
+          </div>
+        </div>
+
+        <div className="supplier-stat-card supplier-stat-card--net">
+          <div className="supplier-stat-icon supplier-stat-icon--net">
+            <HiOutlineScale />
+          </div>
+          <div className="supplier-stat-content">
+            <span className="supplier-stat-title">CHÊNH LỆCH THỰC CHI</span>
+            <span className="supplier-stat-subtitle">Tổng chi trừ thu hoàn</span>
+            <strong className="supplier-stat-value text-dark">
+              {money(summary.tongChi - summary.tongThu)}
+            </strong>
+          </div>
+        </div>
+      </div>
+
+      <div className="supplier-cashbook-tabs">
+        <div className="supplier-cashbook-tabs-group">
+          <button
+            type="button"
+            className={`supplier-cashbook-tab ${typeFilter === 'ALL' ? 'supplier-cashbook-tab--active' : ''}`}
+            onClick={() => handleTabChange('ALL')}
+          >
+            TẤT CẢ
+            {typeFilter === 'ALL' && <span className="supplier-cashbook-tab-count">{totalElements}</span>}
+          </button>
+          <button
+            type="button"
+            className={`supplier-cashbook-tab ${typeFilter === 'CHI' ? 'supplier-cashbook-tab--active' : ''}`}
+            onClick={() => handleTabChange('CHI')}
+          >
+            PHIẾU CHI (XUẤT QUỸ)
+            {typeFilter === 'CHI' && <span className="supplier-cashbook-tab-count">{totalElements}</span>}
+          </button>
+          <button
+            type="button"
+            className={`supplier-cashbook-tab ${typeFilter === 'THU' ? 'supplier-cashbook-tab--active' : ''}`}
+            onClick={() => handleTabChange('THU')}
+          >
+            PHIẾU THU (NHẬP QUỸ)
+            {typeFilter === 'THU' && <span className="supplier-cashbook-tab-count">{totalElements}</span>}
+          </button>
+        </div>
+      </div>
+
+      <div className="supplier-history-wrap">
+        <table className="supplier-history">
+          <thead>
+            <tr>
+              <th style={{ width: '48px' }}>STT</th>
+              <th>MÃ PHIẾU</th>
+              <th>LOẠI PHIẾU</th>
+              <th>CHỨNG TỪ THAM CHIẾU</th>
+              <th>HÌNH THỨC</th>
+              <th style={{ textAlign: 'right' }}>SỐ TIỀN</th>
+              <th>NGÀY GHI NHẬN</th>
+              <th>TRẠNG THÁI</th>
+              <th>GHI CHÚ / MÔ TẢ</th>
+            </tr>
+          </thead>
+          <tbody>
+            {loading ? (
+              <tr>
+                <td colSpan="9" className="supplier-table-loading">
+                  Đang tải dữ liệu phiếu thu / phiếu chi...
+                </td>
+              </tr>
+            ) : error ? (
+              <tr>
+                <td colSpan="9" className="supplier-table-error">
+                  <span>{error}</span>
+                  <button type="button" onClick={fetchVouchers} className="supplier-btn-retry">
+                    Thử lại
+                  </button>
+                </td>
+              </tr>
+            ) : items.length > 0 ? (
+              items.map((item, idx) => {
+                const isChi = item.loai_phieu === 'CHI';
+                const amount = isChi
+                  ? Number(item.tien_chi || item.so_tien || 0)
+                  : Number(item.tien_thu || item.so_tien || 0);
+                return (
+                  <tr key={item.id}>
+                    <td>{(page - 1) * 5 + idx + 1}</td>
+                    <td>
+                      <button
+                        type="button"
+                        className="partner-order-link"
+                        onClick={() => handleVoucherClick(item)}
+                        title="Xem chi tiết phiếu"
+                      >
+                        {item.ma_phieu}
+                        <HiOutlineExternalLink style={{ marginLeft: 4, verticalAlign: 'middle' }} />
+                      </button>
+                    </td>
+                    <td>
+                      <span
+                        className={`supplier-cashbook-badge ${
+                          isChi ? 'supplier-cashbook-badge--chi' : 'supplier-cashbook-badge--thu'
+                        }`}
+                      >
+                        {isChi ? 'PHIẾU CHI' : 'PHIẾU THU'}
+                      </span>
+                    </td>
+                    <td>
+                      {item.ma_chung_tu_tham_chieu ? (
+                        <button
+                          type="button"
+                          className="supplier-doc-link"
+                          onClick={() => handleDocClick(item.ma_chung_tu_tham_chieu)}
+                          title="Đi đến chứng từ tham chiếu"
+                        >
+                          {item.ma_chung_tu_tham_chieu}
+                        </button>
+                      ) : (
+                        <span style={{ color: '#94a3b8' }}>—</span>
+                      )}
+                    </td>
+                    <td>{formatPaymentMethod(item.phuong_thuc_thanh_toan)}</td>
+                    <td style={{ textAlign: 'right' }}>
+                      <span
+                        className={`supplier-cashbook-amount ${
+                          isChi ? 'supplier-cashbook-amount--chi' : 'supplier-cashbook-amount--thu'
+                        }`}
+                      >
+                        {isChi ? `-${money(amount)}` : `+${money(amount)}`}
+                      </span>
+                    </td>
+                    <td>{formatDateTime(item.ngay_ghi_nhan)}</td>
+                    <td>
+                      <span
+                        className={`supplier-cashbook-badge ${
+                          item.trang_thai === 'DA_GHI_NHAN' || item.trang_thai === 'DA_GHI_SO'
+                            ? 'supplier-cashbook-badge--success'
+                            : item.trang_thai === 'HUY'
+                            ? 'supplier-cashbook-badge--cancelled'
+                            : 'supplier-cashbook-badge--default'
+                        }`}
+                      >
+                        {item.trang_thai === 'DA_GHI_NHAN' || item.trang_thai === 'DA_GHI_SO'
+                          ? 'ĐÃ GHI SỔ'
+                          : item.trang_thai === 'HUY'
+                          ? 'ĐÃ HỦY'
+                          : item.trang_thai}
+                      </span>
+                    </td>
+                    <td className="supplier-col-notes" title={item.mo_ta || ''}>
+                      {item.mo_ta || '—'}
+                    </td>
+                  </tr>
+                );
+              })
+            ) : (
+              <tr className="supplier-empty">
+                <td colSpan="9">
+                  Chưa có phiếu thu hoặc phiếu chi nào phát sinh với nhà cung cấp này
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      <TablePagination
+        totalItems={totalElements}
+        pageSize={5}
+        currentPage={page}
+        onPageChange={setPage}
+        idPrefix="supplier-cashbook"
+      />
+    </SupplierPanel>
   );
 }
 

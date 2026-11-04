@@ -265,10 +265,21 @@ export default function ChiTietNhapHang() {
   if (!order)
     return (
       <main className="purchase-page">
+        <div className="purchase-heading purchase-detail-heading">
+          <div>
+            <PageCrumb tail="Chi tiết đơn nhập" />
+            <h1>CHI TIẾT ĐƠN NHẬP HÀNG</h1>
+          </div>
+        </div>
         <p className="purchase-message error">{error || 'Không tìm thấy đơn nhập hàng.'}</p>
-        <button className="purchase-btn outline" onClick={() => navigate('/kho-hang/nhap-hang')}>
-          ‹ DANH SÁCH
-        </button>
+        <div style={{ display: 'flex', gap: '8px', margin: '0 24px' }}>
+          <button className="purchase-btn outline" onClick={() => navigate('/kho-hang/nhap-hang')}>
+            ‹ DANH SÁCH
+          </button>
+          <button className="purchase-btn" onClick={() => load()}>
+            THỬ LẠI
+          </button>
+        </div>
       </main>
     );
 

@@ -1266,15 +1266,17 @@ function OrderDetailView({ orderId }) {
       )}
 
       {waitingCod && (
-        <div className="order-cod-settlement" role="status">
-          <strong>ĐÃ GIAO HÀNG — CHỜ ĐỐI TÁC NỘP COD</strong>
-
-          <p>
-            Khách đã nhận hàng và thanh toán COD cho đối tác. Cửa hàng chưa ghi nhận thực nhận khoản
-            tiền này nên đơn chưa hoàn thành.
-          </p>
-
-          <p>Chỉ bấm “GHI NHẬN ĐỐI TÁC NỘP COD” trong mục GIAO VẬN khi cửa hàng đã nhận đủ tiền.</p>
+        <div className="order-cod-settlement-alert" role="status">
+          <div className="order-cod-settlement-alert__badge">CHỜ NỘP COD</div>
+          <div className="order-cod-settlement-alert__body">
+            <strong>ĐÃ GIAO HÀNG — CHỜ ĐỐI TÁC VẬN CHUYỂN NỘP TIỀN COD</strong>
+            <p>
+              Khách đã nhận hàng và thanh toán COD cho đối tác giao hàng. Cửa hàng chưa ghi nhận thực nhận khoản tiền này nên đơn chưa hoàn thành.
+            </p>
+            <div className="order-cod-settlement-alert__guide">
+              Vui lòng kiểm tra đối soát với đối tác giao hàng và bấm <strong>GHI NHẬN ĐỐI TÁC NỘP COD</strong> trong mục <strong>GIAO VẬN</strong> bên dưới khi đã nhận đủ tiền.
+            </div>
+          </div>
         </div>
       )}
 
@@ -1425,26 +1427,46 @@ function OrderDetailView({ orderId }) {
               <Info text="MÃ GIAO DỊCH GẦN NHẤT">{order.ma_giao_dich_thanh_toan || '—'}</Info>
 
               <Info text="ĐÃ THỰC THU">
-                {order.doi_soat_thanh_toan?.co_du_can_cu === true &&
-                order.doi_soat_thanh_toan.so_tien_thuc_thu != null
-                  ? money(order.doi_soat_thanh_toan.so_tien_thuc_thu)
-                  : 'Chưa xác minh'}
+                <span className="order-amount-text order-amount-text--received">
+                  {order.doi_soat_thanh_toan?.co_du_can_cu === true &&
+                  order.doi_soat_thanh_toan.so_tien_thuc_thu != null
+                    ? money(order.doi_soat_thanh_toan.so_tien_thuc_thu)
+                    : 'Chưa xác minh'}
+                </span>
               </Info>
 
               {order.trang_thai_don_hang !== 'HUY_HANG' && (
                 <Info text={waitingCod ? 'CHỜ ĐỐI TÁC NỘP COD' : 'CÒN PHẢI THU'}>
-                  {order.doi_soat_thanh_toan?.co_du_can_cu === true &&
-                  order.doi_soat_thanh_toan.so_tien_con_phai_thu != null
-                    ? money(order.doi_soat_thanh_toan.so_tien_con_phai_thu)
-                    : 'Chưa xác minh'}
+                  <span
+                    className={
+                      waitingCod
+                        ? 'order-amount-text order-amount-text--cod'
+                        : Number(order.doi_soat_thanh_toan?.so_tien_con_phai_thu) > 0
+                          ? 'order-amount-text order-amount-text--due'
+                          : ''
+                    }
+                  >
+                    {order.doi_soat_thanh_toan?.co_du_can_cu === true &&
+                    order.doi_soat_thanh_toan.so_tien_con_phai_thu != null
+                      ? money(order.doi_soat_thanh_toan.so_tien_con_phai_thu)
+                      : 'Chưa xác minh'}
+                  </span>
                 </Info>
               )}
 
               <Info text="ĐÃ HOÀN THEO ĐƠN HỦY">
-                {order.doi_soat_thanh_toan?.co_du_can_cu === true &&
-                order.doi_soat_thanh_toan.so_tien_da_hoan != null
-                  ? money(order.doi_soat_thanh_toan.so_tien_da_hoan)
-                  : 'Chưa xác minh'}
+                <span
+                  className={
+                    Number(order.doi_soat_thanh_toan?.so_tien_da_hoan) > 0
+                      ? 'order-amount-text order-amount-text--refunded'
+                      : ''
+                  }
+                >
+                  {order.doi_soat_thanh_toan?.co_du_can_cu === true &&
+                  order.doi_soat_thanh_toan.so_tien_da_hoan != null
+                    ? money(order.doi_soat_thanh_toan.so_tien_da_hoan)
+                    : 'Chưa xác minh'}
+                </span>
               </Info>
             </dl>
 
@@ -1456,24 +1478,51 @@ function OrderDetailView({ orderId }) {
 
             {order.doi_soat_thanh_toan?.co_du_can_cu === true &&
               order.doi_soat_thanh_toan.phieu_thu?.length > 0 && (
-                <details>
-                  <summary>Lịch sử thu tiền ({order.doi_soat_thanh_toan.phieu_thu.length})</summary>
+                <details className="order-collapsible-panel" open>
+                  <summary className="order-collapsible-summary">
+                    <span>LỊCH SỬ THU TIỀN</span>
+                    <span className="order-count-pill">
+                      {order.doi_soat_thanh_toan.phieu_thu.length}
+                    </span>
+                  </summary>
 
-                  <ul>
-                    {order.doi_soat_thanh_toan.phieu_thu.map((receipt) => (
-                      <li key={receipt.id}>
-                        <Link to={'/admin/so-quy-tien-mat/phieu-thu/' + receipt.id}>
-                          {receipt.ma_phieu}
-                        </Link>
-                        {' · '}
-                        {money(receipt.so_tien)}
-                        {' · '}
-                        {label(receipt.phuong_thuc_thanh_toan)}
-                        {' · '}
-                        {dateTime(receipt.ngay_ghi_nhan)}
-                      </li>
-                    ))}
-                  </ul>
+                  <div className="order-receipts-table-wrap">
+                    <table className="order-receipts-table">
+                      <thead>
+                        <tr>
+                          <th>MÃ PHIẾU THU</th>
+                          <th>PHƯƠNG THỨC</th>
+                          <th>THỜI GIAN GHI NHẬN</th>
+                          <th className="align-right">SỐ TIỀN</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {order.doi_soat_thanh_toan.phieu_thu.map((receipt) => (
+                          <tr key={receipt.id}>
+                            <td>
+                              <Link
+                                to={'/admin/so-quy-tien-mat/phieu-thu/' + receipt.id}
+                                className="order-receipt-code"
+                              >
+                                {receipt.ma_phieu}
+                              </Link>
+                            </td>
+                            <td>
+                              <span className="order-payment-method-badge">
+                                {label(receipt.phuong_thuc_thanh_toan)}
+                              </span>
+                            </td>
+                            <td className="order-receipt-date">
+                              {dateTime(receipt.ngay_ghi_nhan)}
+                            </td>
+                            <td className="align-right order-receipt-amount">
+                              {money(receipt.so_tien)}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 </details>
               )}
 
@@ -1593,7 +1642,7 @@ function OrderDetailView({ orderId }) {
           <Panel title="GIAO VẬN">
             {deliveries.length ? (
               deliveries.map((item) => (
-                <div key={item.id}>
+                <div key={item.id} className="order-delivery-item">
                   <dl className="order-detail-kv">
                     {deliveries.length > 1 && (
                       <Info text="MÃ PHIẾU">
@@ -1616,7 +1665,7 @@ function OrderDetailView({ orderId }) {
                     </Info>
 
                     <Info text="MÃ VẬN ĐƠN">
-                      <span className={item.ma_van_don ? '' : 'order-alert-text'}>
+                      <span className={item.ma_van_don ? 'order-tracking-num' : 'order-alert-text'}>
                         {item.ma_van_don || 'CHƯA CÓ MÃ VẬN ĐƠN'}
                       </span>
                     </Info>
@@ -1624,13 +1673,61 @@ function OrderDetailView({ orderId }) {
                     <Info text="TRẠNG THÁI">{label(item.trang_thai_giao_hang)}</Info>
 
                     <Info text="PHÍ GIAO HÀNG">{money(order.phi_giao_hang)}</Info>
+
+                    {((item.tien_thu_ho_cod != null && Number(item.tien_thu_ho_cod) > 0) ||
+                      order.phuong_thuc_thanh_toan === 'COD') && (
+                      <>
+                        <Info text="TIỀN THU HỘ (COD)">
+                          <strong className="order-cod-amount">
+                            {money(
+                              item.tien_thu_ho_cod != null
+                                ? item.tien_thu_ho_cod
+                                : order.tong_thanh_toan
+                            )}
+                          </strong>
+                        </Info>
+                        <Info text="ĐỐI SOÁT COD">
+                          {order.da_ghi_nhan_thu_cod === true ? (
+                            <span className="order-cod-status-badge order-cod-status-badge--success">
+                              ĐÃ THU COD TỪ ĐỐI TÁC
+                            </span>
+                          ) : canCollectCod(item) ? (
+                            <span className="order-cod-status-badge order-cod-status-badge--waiting">
+                              CHỜ ĐỐI TÁC NỘP COD
+                            </span>
+                          ) : (
+                            <span className="order-cod-status-badge order-cod-status-badge--neutral">
+                              CHƯA ĐỐI SOÁT
+                            </span>
+                          )}
+                        </Info>
+                      </>
+                    )}
                   </dl>
 
                   {canCollectCod(item) && (
-                    <div className="order-panel-actions">
-                      <Action disabled={state.busy} click={() => payment(item)}>
-                        GHI NHẬN ĐỐI TÁC NỘP COD
-                      </Action>
+                    <div className="order-cod-collection-box">
+                      <div className="order-cod-collection-box__content">
+                        <div className="order-cod-collection-box__title">
+                          ĐỐI TÁC ĐÃ GIAO HÀNG — CẦN THU COD
+                        </div>
+                        <div className="order-cod-collection-box__amount-row">
+                          <span>Số tiền COD cần nhận:</span>
+                          <strong>
+                            {money(
+                              item.tien_thu_ho_cod || paymentContext?.so_tien_con_phai_thu || 0
+                            )}
+                          </strong>
+                        </div>
+                        <p className="order-cod-collection-box__desc">
+                          Xác nhận khi đối tác giao hàng đã thực sự nộp số tiền thu hộ trên về quỹ cửa hàng.
+                        </p>
+                      </div>
+                      <div className="order-cod-collection-box__action">
+                        <Action disabled={state.busy} click={() => payment(item)}>
+                          GHI NHẬN ĐỐI TÁC NỘP COD
+                        </Action>
+                      </div>
                     </div>
                   )}
                 </div>
@@ -1640,6 +1737,9 @@ function OrderDetailView({ orderId }) {
                 <Info text="ĐƠN VỊ VẬN CHUYỂN">—</Info>
                 <Info text="MÃ VẬN ĐƠN">—</Info>
                 <Info text="PHÍ GIAO HÀNG">{money(order.phi_giao_hang)}</Info>
+                {order.phuong_thuc_thanh_toan === 'COD' && (
+                  <Info text="TIỀN THU HỘ (COD)">{money(order.tong_thanh_toan)}</Info>
+                )}
               </dl>
             )}
           </Panel>
@@ -1992,35 +2092,41 @@ function DeviceExchangeHistory({ order }) {
     (device) => Array.isArray(device.chuoi_thay_the) && device.chuoi_thay_the.length
   );
 
+  if (!roots.length && !order.can_xac_minh_lich_su) return null;
+
   const identity = (device) => (
-    <>
-      <strong>{device?.so_serial || device?.dau_hieu_nhan_dang || 'Không quản lý serial'}</strong>
-      <small>{device?.ma_theo_doi || '—'}</small>
-    </>
+    <div className="order-device-identity">
+      <strong>{device?.so_serial || device?.dau_hieu_nhan_dang || '-'}</strong>
+      <small className="order-device-code">{device?.ma_theo_doi || '—'}</small>
+    </div>
   );
 
   return (
-    <div>
+    <div className="order-exchange-history-wrapper">
       {order.can_xac_minh_lich_su === true && (
-        <p role="alert" className="order-alert-text">
+        <p role="alert" className="order-alert-text order-exchange-warning">
           Lịch sử thiết bị cần đối soát. Chỉ hiển thị các chuỗi đã xác minh được.
         </p>
       )}
 
       {roots.map((root) => (
-        <div key={root.thiet_bi_id}>
-          <h3>LỊCH SỬ ĐỔI — {root.so_serial || root.ma_theo_doi}</h3>
+        <div key={root.thiet_bi_id} className="order-exchange-root-card">
+          <div className="order-subsection-bar">
+            <div className="order-subsection-title">
+              <span>LỊCH SỬ ĐỔI THIẾT BỊ — {root.so_serial || root.ma_theo_doi}</span>
+            </div>
+          </div>
 
-          <div className="sold-devices-scroll">
-            <table className="sold-devices-table">
+          <div className="order-devices-table-wrap">
+            <table className="order-devices-table">
               <thead>
                 <tr>
-                  <th>Lần</th>
-                  <th>Thiết bị được nhận lại</th>
-                  <th>Thiết bị thay thế</th>
-                  <th>Phiếu xử lý</th>
-                  <th>Bàn giao / nhân viên</th>
-                  <th>Lý do</th>
+                  <th style={{ width: '48px' }}>LẦN</th>
+                  <th>THIẾT BỊ ĐƯỢC NHẬN LẠI</th>
+                  <th>THIẾT BỊ THAY THẾ</th>
+                  <th>PHIẾU XỬ LÝ</th>
+                  <th>BÀN GIAO / NHÂN VIÊN</th>
+                  <th>LÝ DO</th>
                 </tr>
               </thead>
 
@@ -2042,30 +2148,50 @@ function DeviceExchangeHistory({ order }) {
 
                   return (
                     <tr key={edge.phieu_bao_hanh_id}>
-                      <td>{edge.lan_doi}</td>
+                      <td>
+                        <span className="order-round-number">{edge.lan_doi}</span>
+                      </td>
 
                       <td>{identity(edge.thiet_bi_cu)}</td>
 
                       <td>
                         {identity(edge.thiet_bi_moi)}
-                        <small>{status}</small>
+                        <span
+                          className={`order-exchange-status-pill ${
+                            isCurrent ? 'order-exchange-status-pill--current' : ''
+                          }`}
+                        >
+                          {status}
+                        </span>
                       </td>
 
                       <td>
-                        <Link to={'/admin/bao-hanh/chi-tiet/' + edge.phieu_bao_hanh_id}>
+                        <Link
+                          to={'/admin/bao-hanh/chi-tiet/' + edge.phieu_bao_hanh_id}
+                          className="order-warranty-link"
+                        >
                           {edge.ma_phieu_bao_hanh || '#' + edge.phieu_bao_hanh_id}
                         </Link>
                       </td>
 
                       <td>
-                        {edge.ngay_ban_giao
-                          ? dateTime(edge.ngay_ban_giao)
-                          : 'Chưa ghi nhận thời điểm'}
-
-                        <small>{edge.nguoi_thuc_hien || 'Chưa ghi nhận nhân viên'}</small>
+                        <div className="order-exchange-handover">
+                          <span className="order-exchange-time">
+                            {edge.ngay_ban_giao
+                              ? dateTime(edge.ngay_ban_giao)
+                              : 'Chưa ghi nhận thời điểm'}
+                          </span>
+                          <small className="order-exchange-staff">
+                            {edge.nguoi_thuc_hien || 'Chưa ghi nhận nhân viên'}
+                          </small>
+                        </div>
                       </td>
 
-                      <td>{edge.ly_do || 'Chưa ghi nhận lý do'}</td>
+                      <td>
+                        <span className="order-exchange-reason">
+                          {edge.ly_do || 'Chưa ghi nhận lý do'}
+                        </span>
+                      </td>
                     </tr>
                   );
                 })}
@@ -2260,36 +2386,43 @@ function OrderActionDialog({ dialog, setDialog, order, options, busy, error, sub
       )}
 
       {monetary && (
-        <>
+        <div className="order-operation-monetary-card">
           {receiving && (
-            <>
-              <p>
-                Nguồn thu: {dialog.source === 'KHACH_HANG' ? 'Khách hàng' : 'Đối tác giao hàng'}
-              </p>
+            <div className="order-operation-monetary-summary">
+              <div className="order-operation-summary-row">
+                <span>Nguồn thu:</span>
+                <strong>{dialog.source === 'KHACH_HANG' ? 'Khách hàng' : 'Đối tác giao hàng'}</strong>
+              </div>
 
-              <p>
-                {dialog.source === 'DOI_TAC_GIAO_HANG'
-                  ? 'COD cần ghi nhận: '
-                  : order.trang_thai_don_hang === 'HUY_HANG'
-                    ? 'Giới hạn ghi nhận tiền đến muộn: '
-                    : 'Còn phải thu: '}
-                <strong>{money(dialog.maxAmount)}</strong>
-              </p>
+              <div className="order-operation-summary-row">
+                <span>
+                  {dialog.source === 'DOI_TAC_GIAO_HANG'
+                    ? 'COD cần ghi nhận:'
+                    : order.trang_thai_don_hang === 'HUY_HANG'
+                      ? 'Giới hạn ghi nhận tiền đến muộn:'
+                      : 'Còn phải thu:'}
+                </span>
+                <strong className="order-operation-amount-highlight">{money(dialog.maxAmount)}</strong>
+              </div>
 
-              {field('SỐ TIỀN THỰC NHẬN LẦN NÀY (đ)', 'amount', 'number', {
+              {field('SỐ TIỀN THỰC NHẬN LẦN NÀY (đ) *', 'amount', 'number', {
                 required: true,
                 min: 1,
                 max: dialog.maxAmount,
                 step: 1,
                 disabled: busy || dialog.source === 'DOI_TAC_GIAO_HANG',
               })}
-            </>
+            </div>
           )}
 
-          {refunding && <p>Số tiền hoàn do hệ thống xác định từ khoản đã thu.</p>}
+          {refunding && (
+            <div className="order-operation-refund-note">
+              Số tiền hoàn do hệ thống xác định từ khoản đã thu.
+            </div>
+          )}
 
           <label className="order-operation-field">
-            <span>PHƯƠNG THỨC</span>
+            <span>PHƯƠNG THỨC *</span>
             <select
               required
               value={dialog.method}
@@ -2304,19 +2437,19 @@ function OrderActionDialog({ dialog, setDialog, order, options, busy, error, sub
           </label>
 
           {field(
-            refunding ? 'THỜI ĐIỂM HOÀN TIỀN' : 'THỜI ĐIỂM NHẬN TIỀN',
+            refunding ? 'THỜI ĐIỂM HOÀN TIỀN *' : 'THỜI ĐIỂM NHẬN TIỀN *',
             'occurredAt',
             'datetime-local',
             { required: true }
           )}
 
           {dialog.method !== 'TIEN_MAT' &&
-            field('MÃ GIAO DỊCH', 'transaction', 'text', {
+            field('MÃ GIAO DỊCH *', 'transaction', 'text', {
               required: true,
               maxLength: 255,
               pattern: '.*\\S.*',
             })}
-        </>
+        </div>
       )}
 
       {dialog.type === 'deliveryStatus' &&

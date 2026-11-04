@@ -155,10 +155,15 @@ export default function OrderRefundPanel({ order, busy, perform, data, onEditing
     return null;
   }
 
+  const totalRefundCount = (showCancelled ? 1 : 0) + documents.length;
+
   return (
     <section className="order-refund-panel" aria-busy={busy}>
       <header className="order-refund-panel__heading">
-        <h2>KHOẢN HOÀN VÀ PHIẾU NHẬN LẠI</h2>
+        <div className="order-refund-panel__title">
+          <span>KHOẢN HOÀN VÀ PHIẾU NHẬN LẠI</span>
+          {totalRefundCount > 0 && <span className="order-count-pill">{totalRefundCount}</span>}
+        </div>
       </header>
 
       {pending && (
@@ -175,40 +180,47 @@ export default function OrderRefundPanel({ order, busy, perform, data, onEditing
 
       {showCancelled && (
         <article className="order-refund-panel__item">
-          <div>
-            <strong>
+          <div className="order-refund-panel__info">
+            <strong className="order-refund-panel__type">
               {order.trang_thai_xuat_kho === 'DA_HOAN_KHO'
                 ? 'ĐƠN HỦY ĐÃ NHẬN LẠI HÀNG'
                 : 'ĐƠN HỦY TRƯỚC XUẤT KHO'}
             </strong>
 
-            <p>
-              {cancelled.so_tien_can_hoan == null
-                ? 'Chưa xác định được số tiền cần hoàn.'
-                : 'Còn phải hoàn: ' + money(cancelled.so_tien_can_hoan)}
-            </p>
+            <div className="order-refund-panel__amount-row">
+              <span>Còn phải hoàn:</span>
+              <strong className="order-refund-panel__due-amount">
+                {cancelled.so_tien_can_hoan == null
+                  ? 'Chưa xác định'
+                  : money(cancelled.so_tien_can_hoan)}
+              </strong>
+            </div>
 
-            {cancelled.ly_do && <small>{cancelled.ly_do}</small>}
+            {cancelled.ly_do && <small className="order-refund-panel__reason">{cancelled.ly_do}</small>}
           </div>
 
-          {cancelled.co_the_hoan === true ? (
-            <button
-              type="button"
-              className="order-action order-action--black"
-              disabled={locked}
-              onClick={() => openRefund('cancelled')}
-            >
-              GHI NHẬN ĐÃ HOÀN TIỀN
-            </button>
-          ) : (
-            <span
-              className={
-                noRefundDue ? 'order-refund-panel__completed' : 'order-refund-panel__error'
-              }
-            >
-              {noRefundDue ? 'KHÔNG CÒN KHOẢN HOÀN' : 'CẦN ĐỐI SOÁT'}
-            </span>
-          )}
+          <div className="order-refund-panel__action">
+            {cancelled.co_the_hoan === true ? (
+              <button
+                type="button"
+                className="order-action order-action--black order-action--sm"
+                disabled={locked}
+                onClick={() => openRefund('cancelled')}
+              >
+                GHI NHẬN ĐÃ HOÀN TIỀN
+              </button>
+            ) : (
+              <span
+                className={
+                  noRefundDue
+                    ? 'order-refund-status-badge order-refund-status-badge--success'
+                    : 'order-refund-status-badge order-refund-status-badge--warning'
+                }
+              >
+                {noRefundDue ? 'KHÔNG CÒN KHOẢN HOÀN' : 'CẦN ĐỐI SOÁT'}
+              </span>
+            )}
+          </div>
         </article>
       )}
 
@@ -217,37 +229,63 @@ export default function OrderRefundPanel({ order, busy, perform, data, onEditing
 
         return (
           <article className="order-refund-panel__item" key={document.id}>
-            <div>
-              <strong>{cancellationReturn ? 'PHIẾU NHẬN LẠI HÀNG' : 'PHIẾU TRẢ'}</strong>{' '}
-              <Link to={'/admin/don-hang/khach-tra-hang/' + document.id}>
-                {document.ma_tra_hang}
-              </Link>
-              <p>
-                {cancellationReturn
-                  ? 'Hàng đã được nhận lại. Khoản hoàn tiền được theo dõi theo đơn hủy.'
-                  : document.tong_tien_hoan == null
-                    ? 'Chưa xác định được tiền hoàn.'
-                    : 'Tiền hoàn: ' + money(document.tong_tien_hoan)}
-              </p>
-              {document.ly_do && <small>{document.ly_do}</small>}
+            <div className="order-refund-panel__info">
+              <div className="order-refund-panel__header-row">
+                <strong className="order-refund-panel__type">
+                  {cancellationReturn ? 'PHIẾU NHẬN LẠI HÀNG' : 'PHIẾU TRẢ'}
+                </strong>
+                <Link
+                  to={'/admin/don-hang/khach-tra-hang/' + document.id}
+                  className="order-refund-link"
+                >
+                  {document.ma_tra_hang}
+                </Link>
+              </div>
+
+              <div className="order-refund-panel__amount-row">
+                <span>{cancellationReturn ? 'Trạng thái nhận:' : 'Tiền hoàn:'}</span>
+                <strong
+                  className={
+                    cancellationReturn
+                      ? 'order-refund-panel__note-text'
+                      : 'order-refund-panel__due-amount'
+                  }
+                >
+                  {cancellationReturn
+                    ? 'Hàng đã được nhận lại (khoản tiền theo đơn hủy)'
+                    : document.tong_tien_hoan == null
+                      ? 'Chưa xác định'
+                      : money(document.tong_tien_hoan)}
+                </strong>
+              </div>
+
+              {document.ly_do && <small className="order-refund-panel__reason">{document.ly_do}</small>}
             </div>
 
-            {cancellationReturn ? (
-              <span className="order-refund-panel__completed">ĐÃ NHẬN LẠI HÀNG</span>
-            ) : document.da_ghi_nhan_hoan === true ? (
-              <span className="order-refund-panel__completed">ĐÃ KẾT THÚC</span>
-            ) : document.co_the_hoan === true ? (
-              <button
-                type="button"
-                className="order-action order-action--black"
-                disabled={locked}
-                onClick={() => openRefund('return', document)}
-              >
-                GHI NHẬN ĐÃ HOÀN THEO PHIẾU
-              </button>
-            ) : (
-              <span className="order-refund-panel__note">CHƯA ĐỦ ĐIỀU KIỆN HOÀN</span>
-            )}
+            <div className="order-refund-panel__action">
+              {cancellationReturn ? (
+                <span className="order-refund-status-badge order-refund-status-badge--info">
+                  ĐÃ NHẬN LẠI HÀNG
+                </span>
+              ) : document.da_ghi_nhan_hoan === true ? (
+                <span className="order-refund-status-badge order-refund-status-badge--success">
+                  ĐÃ KẾT THÚC
+                </span>
+              ) : document.co_the_hoan === true ? (
+                <button
+                  type="button"
+                  className="order-action order-action--black order-action--sm"
+                  disabled={locked}
+                  onClick={() => openRefund('return', document)}
+                >
+                  GHI NHẬN ĐÃ HOÀN THEO PHIẾU
+                </button>
+              ) : (
+                <span className="order-refund-status-badge order-refund-status-badge--warning">
+                  CHƯA ĐỦ ĐIỀU KIỆN HOÀN
+                </span>
+              )}
+            </div>
           </article>
         );
       })}

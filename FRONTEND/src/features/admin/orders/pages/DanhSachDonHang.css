@@ -207,3 +207,21 @@
   border-color: #8995ef;
   background: #eff0ff;
 }
+
+.order-state-badge--teal {
+  color: #0d9488;
+  border-color: #5eead4;
+  background: #f0fdfa;
+}
+
+.order-state-badge--sky {
+  color: #0284c7;
+  border-color: #7dd3fc;
+  background: #f0f9ff;
+}
+
+.order-state-badge--violet {
+  color: #7c3aed;
+  border-color: #c4b5fd;
+  background: #f5f3ff;
+}

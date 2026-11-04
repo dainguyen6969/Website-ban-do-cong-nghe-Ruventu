@@ -223,8 +223,100 @@ export function ChiTietThuongHieu() {
     {actionError && <div className="brand-inline-error brand-page-error">{actionError}</div>}
     <section className="brand-detail-hero"><BrandLogo brand={detail} large /><div className="brand-detail-title"><h1>{detail.name}</h1><code>/{detail.slug}</code><small>MÃ #{detail.id}</small></div><div className="brand-detail-actions"><StatusBadge status={detail.status} /><div><button type="button" onClick={() => setModal({ type: 'form', id: detail.id })}>CHỈNH SỬA</button>{detail.status === 'active' ? <button type="button" className="is-danger" onClick={() => setModal({ type: 'deactivate', id: detail.id, brand: current })}>NGỪNG HOẠT ĐỘNG</button> : <button type="button" className="is-success" disabled={restoring} onClick={restore}>{restoring ? 'ĐANG KHÔI PHỤC...' : 'KHÔI PHỤC'}</button>}</div></div></section>
     <section className="brand-detail-stats"><div><strong>#{detail.id}</strong><span>MÃ THƯƠNG HIỆU</span></div><div><strong>{detail.products.length}</strong><span>SỐ SẢN PHẨM</span></div><div><strong>{detail.status === 'active' ? 'HOẠT ĐỘNG' : 'NGỪNG HOẠT ĐỘNG'}</strong><span>TRẠNG THÁI</span></div><div><strong>/{detail.slug}</strong><span>ĐƯỜNG DẪN</span></div></section>
-    <section className="brand-section"><header>THÔNG TIN THƯƠNG HIỆU</header><div className="brand-info-grid"><dl><dt>TÊN THƯƠNG HIỆU</dt><dd>{detail.name}</dd><dt>ĐƯỜNG DẪN</dt><dd>/{detail.slug}</dd><dt>TRẠNG THÁI</dt><dd>{detail.status === 'active' ? 'HOẠT ĐỘNG' : 'NGỪNG HOẠT ĐỘNG'}</dd></dl><div><span>LOGO THƯƠNG HIỆU</span><BrandLogo brand={detail} large /></div></div></section>
-    <section className="brand-section brand-products"><header><span>SẢN PHẨM THUỘC THƯƠNG HIỆU</span><span>{detail.products.length} SẢN PHẨM</span></header><div className="brand-table-wrap"><div className="admin-table-scroll admin-table-scroll--embedded" tabIndex={0} role="region" aria-label="Bảng dữ liệu liên quan"><table className="brand-table admin-data-table admin-data-table--records"><thead><tr><th>MÃ SP</th><th>SẢN PHẨM</th><th>DANH MỤC</th><th>GIÁ BÁN</th><th>TỒN KHO</th><th>TRẠNG THÁI</th></tr></thead><tbody>{productPagination.visibleItems.map((product) => <tr key={product.id}><td>{product.code}</td><td><strong>{product.name}</strong></td><td>{product.category}</td><td><strong>{price(product.price)}</strong></td><td>{product.stock}</td><td><StatusBadge status={product.status} /></td></tr>)}{!detail.products.length && <tr><td colSpan="6" className="brand-empty">Thương hiệu chưa có sản phẩm liên kết.</td></tr>}</tbody></table></div></div><DetailTablePagination totalItems={detail.products.length} currentPage={productPagination.currentPage} onPageChange={productPagination.onPageChange} idPrefix="brand-products" /></section>
+    <section className="brand-section">
+      <header>
+        <span>
+          <span className="brand-accent" />
+          THÔNG TIN THƯƠNG HIỆU
+        </span>
+      </header>
+
+      <div className="brand-info-grid">
+        <dl>
+          <dt>TÊN THƯƠNG HIỆU</dt>
+          <dd>{detail.name}</dd>
+
+          <dt>ĐƯỜNG DẪN</dt>
+          <dd>/{detail.slug}</dd>
+
+          <dt>TRẠNG THÁI</dt>
+          <dd>
+            {detail.status === 'active' ? 'HOẠT ĐỘNG' : 'NGỪNG HOẠT ĐỘNG'}
+          </dd>
+        </dl>
+
+        <div>
+          <span>LOGO THƯƠNG HIỆU</span>
+          <BrandLogo brand={detail} large />
+        </div>
+      </div>
+    </section>
+
+    <section className="brand-section brand-products">
+      <header>
+        <span>
+          <span className="brand-accent" />
+          SẢN PHẨM THUỘC THƯƠNG HIỆU
+        </span>
+        <span>{detail.products.length} SẢN PHẨM</span>
+      </header>
+
+      <div className="brand-table-wrap">
+        <div
+          className="admin-table-scroll admin-table-scroll--embedded"
+          tabIndex={0}
+          role="region"
+          aria-label="Sản phẩm thuộc thương hiệu"
+        >
+          <table className="brand-table admin-data-table admin-data-table--records">
+            <thead>
+              <tr>
+                <th>MÃ SP</th>
+                <th>SẢN PHẨM</th>
+                <th>DANH MỤC</th>
+                <th>GIÁ BÁN</th>
+                <th>TỒN KHO</th>
+                <th>TRẠNG THÁI</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              {productPagination.visibleItems.map((product) => (
+                <tr key={product.id}>
+                  <td>{product.code}</td>
+                  <td>
+                    <strong>{product.name}</strong>
+                  </td>
+                  <td>{product.category}</td>
+                  <td>
+                    <strong>{price(product.price)}</strong>
+                  </td>
+                  <td>{product.stock}</td>
+                  <td>
+                    <StatusBadge status={product.status} />
+                  </td>
+                </tr>
+              ))}
+
+              {!detail.products.length && (
+                <tr>
+                  <td colSpan="6" className="brand-empty">
+                    Thương hiệu chưa có sản phẩm liên kết.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <DetailTablePagination
+        totalItems={detail.products.length}
+        currentPage={productPagination.currentPage}
+        onPageChange={productPagination.onPageChange}
+        idPrefix="brand-products"
+      />
+    </section>
     <BrandModals key={`${modal?.type || 'none'}-${modal?.id || 'new'}`} modal={modal} setModal={setModal} brands={brands} reload={reload} onChanged={loadDetail} />
   </main>;
 }
