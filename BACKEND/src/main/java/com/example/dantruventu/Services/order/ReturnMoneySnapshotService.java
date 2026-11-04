@@ -219,6 +219,14 @@ public class ReturnMoneySnapshotService {
       Long actorId,
       Object evidence) {
 
+    Map<String, Object> root = objectMapper.readValue(slip.getDuLieuNhanHang(), Map.class);
+    if (root != null
+        && !root.containsKey("phien_ban_phan_bo_tien")
+        && root.containsKey("kiem_tra_chinh_sach_khi_lap")) {
+      validateCreationPolicy(slip, lines, root);
+      return addReceipt(root, receivedAt, actorId, evidence);
+    }
+
     Map<Long, Allocation> allocations = read(slip.getDuLieuNhanHang());
 
     if (allocations.size() != lines.size()) {
@@ -243,7 +251,11 @@ public class ReturnMoneySnapshotService {
       throw unverified();
     }
 
-    Map<String, Object> root = objectMapper.readValue(slip.getDuLieuNhanHang(), Map.class);
+    return addReceipt(root, receivedAt, actorId, evidence);
+  }
+
+  private String addReceipt(
+      Map<String, Object> root, OffsetDateTime receivedAt, Long actorId, Object evidence) {
 
     Map<String, Object> received = new LinkedHashMap<>();
 
@@ -254,6 +266,71 @@ public class ReturnMoneySnapshotService {
     root.put("nhan_hang", received);
 
     return objectMapper.writeValueAsString(root);
+  }
+
+  // TH05 records exact VND quotes and prior held rights, rather than a VAT allocation.
+  // Validate that evidence without fabricating historical VAT components.
+  private void validateCreationPolicy(
+      PhieuTraHang slip, List<ChiTietTraHang> lines, Map<String, Object> root) {
+    try {
+      if (!(root.get("kiem_tra_chinh_sach_khi_lap") instanceof Map<?, ?> policy)
+          || !Boolean.TRUE.equals(policy.get("du_dieu_kien"))
+          || !(policy.get("chi_tiet") instanceof List<?> details)
+          || details.isEmpty()
+          || details.size() != lines.size()) {
+        throw unverified();
+      }
+      Map<Long, Map<?, ?>> recorded = new HashMap<>();
+      for (Object item : details) {
+        if (!(item instanceof Map<?, ?> detail)) {
+          throw unverified();
+        }
+        long lineId = integer(detail.get("chi_tiet_don_hang_id"));
+        if (lineId <= 0 || recorded.putIfAbsent(lineId, detail) != null) {
+          throw unverified();
+        }
+      }
+      BigDecimal total = ZERO;
+      Set<Long> seen = new HashSet<>();
+      for (ChiTietTraHang line : lines) {
+        ChiTietDonHang purchase = line.getChiTietDonHang();
+        Map<?, ?> detail = recorded.get(purchase.getId());
+        if (detail == null
+            || !seen.add(purchase.getId())
+            || line.getSoLuong() == null
+            || integer(detail.get("so_luong_yeu_cau")) != line.getSoLuong()) {
+          throw unverified();
+        }
+        var quote =
+            ReturnRefundCalculator.quote(
+                decimal(detail.get("thanh_toan_dong")),
+                purchase.getSoLuong(),
+                line.getSoLuong(),
+                integer(detail.get("so_luong_da_yeu_cau_tra")),
+                decimal(detail.get("tien_da_yeu_cau_tra")));
+        if (quote.unitRefund().compareTo(exact(line.getDonGiaHoan())) != 0
+            || quote.lineRefund().compareTo(exact(line.getThanhTienHoan())) != 0) {
+          throw unverified();
+        }
+        total = total.add(quote.lineRefund());
+      }
+      if (total.compareTo(exact(slip.getTongTienHoan())) != 0) {
+        throw unverified();
+      }
+    } catch (RuntimeException exception) {
+      throw unverified();
+    }
+  }
+
+  private long integer(Object value) {
+    return decimal(value).longValueExact();
+  }
+
+  private BigDecimal decimal(Object value) {
+    if (!(value instanceof Number number)) {
+      throw unverified();
+    }
+    return new BigDecimal(number.toString());
   }
 
   public Map<Long, Allocation> read(String raw) {

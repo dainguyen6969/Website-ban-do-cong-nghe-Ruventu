@@ -281,28 +281,28 @@
   .error-code-outline {
     font-size: 150px;
   }
-  
+
   .error-title {
     font-size: 32px;
   }
-  
+
   .nf-banner-content {
     flex-direction: column;
     text-align: center;
   }
-  
+
   .error-right {
     align-items: center;
     text-align: center;
     padding-left: 20px;
     padding-right: 20px;
   }
-  
+
   .details-grid {
     padding-left: 0;
     justify-content: center;
   }
-  
+
   .products-grid {
     grid-template-columns: repeat(2, 1fr);
   }
@@ -312,11 +312,11 @@
   .error-actions {
     flex-direction: column;
   }
-  
+
   .products-grid {
     grid-template-columns: 1fr;
   }
-  
+
   .details-grid {
     flex-direction: column;
     gap: 15px;

@@ -52,11 +52,14 @@ public class WarehouseSupport {
     Integer available = stock.getTonCoTheBan();
     Integer damaged = stock.getHangLoi();
     Integer warrantyHeld = stock.getSoLuongGiuChoBaoHanh();
+    Integer recalled = stock.getSoLuongCachLyThuHoi();
 
     if (actual == null
         || available == null
         || damaged == null
         || warrantyHeld == null
+        || recalled == null
+        || recalled < 0
         || actual < 0
         || available < 0
         || damaged < 0
@@ -65,7 +68,7 @@ public class WarehouseSupport {
       throw inconsistentStock();
     }
 
-    long orderHeld = (long) actual - damaged - warrantyHeld - available;
+    long orderHeld = (long) actual - damaged - warrantyHeld - recalled - available;
 
     if (orderHeld < 0 || orderHeld > Integer.MAX_VALUE) {
       throw inconsistentStock();

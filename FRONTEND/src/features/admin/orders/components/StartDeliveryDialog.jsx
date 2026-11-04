@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
-import { searchDeliveryPartners } from "../api/orderApi";
-import OrderModal from "./OrderModal";
+import { useEffect, useState } from 'react';
+import { searchDeliveryPartners } from '../api/orderApi';
+import OrderModal from './OrderModal';
 
 const validFee = (value) =>
   /^\d{1,13}(?:\.\d{1,2})?$/.test(value.trim()) &&
@@ -10,36 +10,32 @@ const validFee = (value) =>
 export default function StartDeliveryDialog({
   order,
   delivery = null,
-  mode = "start",
+  mode = 'start',
   busy,
   error,
   close,
   submit,
 }) {
-  const waiting = order.phieu_giao_hang?.find(
-    (item) => item.trang_thai_giao_hang === "CHO_GIAO",
-  );
+  const waiting = order.phieu_giao_hang?.find((item) => item.trang_thai_giao_hang === 'CHO_GIAO');
 
   const initialPartner = delivery?.doi_tac_van_chuyen || null;
 
   const [query, setQuery] = useState(
-    initialPartner?.ten_doi_tac || waiting?.ten_doi_tac_van_chuyen || "",
+    initialPartner?.ten_doi_tac || waiting?.ten_doi_tac_van_chuyen || ''
   );
 
   const [selected, setSelected] = useState(initialPartner);
   const [fee, setFee] = useState(
-    String(delivery?.phi_tra_doi_tac ?? waiting?.phi_tra_doi_tac ?? ""),
+    String(delivery?.phi_tra_doi_tac ?? waiting?.phi_tra_doi_tac ?? '')
   );
 
-  const [tracking, setTracking] = useState(
-    delivery?.ma_van_don || waiting?.ma_van_don || "",
-  );
+  const [tracking, setTracking] = useState(delivery?.ma_van_don || waiting?.ma_van_don || '');
 
   const [confirmed, setConfirmed] = useState(false);
   const [partners, setPartners] = useState([]);
   const [search, setSearch] = useState({
     loading: false,
-    error: "",
+    error: '',
   });
 
   useEffect(() => {
@@ -47,26 +43,23 @@ export default function StartDeliveryDialog({
 
     const controller = new AbortController();
 
-    setSearch({ loading: true, error: "" });
+    setSearch({ loading: true, error: '' });
 
     const timer = setTimeout(async () => {
       try {
-        const result = await searchDeliveryPartners(
-          query.trim(),
-          controller.signal,
-        );
+        const result = await searchDeliveryPartners(query.trim(), controller.signal);
 
         if (controller.signal.aborted) return;
 
         setPartners(result?.items || []);
-        setSearch({ loading: false, error: "" });
+        setSearch({ loading: false, error: '' });
       } catch (failure) {
         if (controller.signal.aborted) return;
 
         setPartners([]);
         setSearch({
           loading: false,
-          error: failure.message || "Không tải được đối tác.",
+          error: failure.message || 'Không tải được đối tác.',
         });
       }
     }, 250);
@@ -77,7 +70,7 @@ export default function StartDeliveryDialog({
     };
   }, [query, selected]);
 
-  const editing = mode === "edit";
+  const editing = mode === 'edit';
 
   const valid =
     selected &&
@@ -88,11 +81,11 @@ export default function StartDeliveryDialog({
 
   return (
     <OrderModal
-      title={editing ? "CHỈNH SỬA THÔNG TIN VẬN ĐƠN" : "BẮT ĐẦU GIAO HÀNG"}
+      title={editing ? 'CHỈNH SỬA THÔNG TIN VẬN ĐƠN' : 'BẮT ĐẦU GIAO HÀNG'}
       className="order-start-delivery"
       showClose
       cancelLabel="HỦY"
-      confirmLabel={editing ? "LƯU THÔNG TIN" : "XÁC NHẬN ĐÃ BÀN GIAO"}
+      confirmLabel={editing ? 'LƯU THÔNG TIN' : 'XÁC NHẬN ĐÃ BÀN GIAO'}
       busy={busy}
       close={close}
       error={error || search.error}
@@ -101,8 +94,8 @@ export default function StartDeliveryDialog({
     >
       <p className="order-start-delivery__intro">
         {editing
-          ? "THÔNG TIN VẬN ĐƠN CHỈ SỬA ĐƯỢC KHI PHIẾU CHỜ GIAO"
-          : "CHỌN ĐỐI TÁC VÀ XÁC NHẬN HÀNG ĐÃ ĐƯỢC BÀN GIAO"}
+          ? 'THÔNG TIN VẬN ĐƠN CHỈ SỬA ĐƯỢC KHI PHIẾU CHỜ GIAO'
+          : 'CHỌN ĐỐI TÁC VÀ XÁC NHẬN HÀNG ĐÃ ĐƯỢC BÀN GIAO'}
       </p>
 
       <dl className="order-start-delivery__summary">
@@ -112,15 +105,15 @@ export default function StartDeliveryDialog({
         </div>
         <div>
           <dt>NGƯỜI NHẬN</dt>
-          <dd>{order.ten_nguoi_nhan || "—"}</dd>
+          <dd>{order.ten_nguoi_nhan || '—'}</dd>
         </div>
         <div>
           <dt>SỐ ĐIỆN THOẠI</dt>
-          <dd>{order.sdt_nguoi_nhan || "—"}</dd>
+          <dd>{order.sdt_nguoi_nhan || '—'}</dd>
         </div>
         <div>
           <dt>ĐỊA CHỈ GIAO HÀNG</dt>
-          <dd>{order.dia_chi_giao_hang || "—"}</dd>
+          <dd>{order.dia_chi_giao_hang || '—'}</dd>
         </div>
       </dl>
 
@@ -149,37 +142,28 @@ export default function StartDeliveryDialog({
               aria-pressed={selected?.id === partner.id}
               onClick={() => {
                 setSelected(partner);
-                setQuery(partner.ten_doi_tac || "");
+                setQuery(partner.ten_doi_tac || '');
               }}
             >
               <span>
                 <strong>{partner.ten_doi_tac}</strong>
                 <small>
-                  {[partner.ma_doi_tac, partner.so_dien_thoai]
-                    .filter(Boolean)
-                    .join(" · ")}
+                  {[partner.ma_doi_tac, partner.so_dien_thoai].filter(Boolean).join(' · ')}
                 </small>
               </span>
 
               <span className="order-courier-card__type">
-                {partner.loai_doi_tac === "SHIP_CUA_HANG"
-                  ? "SHIP CỬA HÀNG"
-                  : "SHIP CÁ NHÂN"}
+                {partner.loai_doi_tac === 'SHIP_CUA_HANG' ? 'SHIP CỬA HÀNG' : 'SHIP CÁ NHÂN'}
               </span>
             </button>
           ))}
         </div>
 
-        {!selected && search.loading && (
-          <small role="status">Đang tìm đối tác...</small>
-        )}
+        {!selected && search.loading && <small role="status">Đang tìm đối tác...</small>}
 
-        {!selected &&
-          !search.loading &&
-          !search.error &&
-          partners.length === 0 && (
-            <small>Không tìm thấy đối tác đang hoạt động.</small>
-          )}
+        {!selected && !search.loading && !search.error && partners.length === 0 && (
+          <small>Không tìm thấy đối tác đang hoạt động.</small>
+        )}
 
         {selected && Number(selected.trang_thai) !== 1 && (
           <small>Đối tác đã ngừng hoạt động. Hãy chọn đối tác khác.</small>
@@ -207,9 +191,7 @@ export default function StartDeliveryDialog({
           value={fee}
           onChange={(event) => setFee(event.target.value)}
         />
-        <small>
-          Đây là phí trả người giao, khác với phí giao hàng thu từ khách.
-        </small>
+        <small>Đây là phí trả người giao, khác với phí giao hàng thu từ khách.</small>
       </label>
 
       {!editing && (

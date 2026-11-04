@@ -98,19 +98,23 @@
   font-weight: 700;
 }
 
-.price-bottom-row {
+.purchase-right-sidebar-container .price-bottom-row {
   display: flex;
+  flex-wrap: wrap;
   align-items: baseline;
-  gap: 10px;
+  gap: 4px 10px;
 }
 
-.current-price {
+.purchase-right-sidebar-container .current-price {
+  white-space: nowrap;
   color: #ff0000;
   font-size: 38px;
   font-weight: 900;
 }
 
-.vat-note {
+.purchase-right-sidebar-container .vat-note {
+  flex: 0 0 auto;
+  white-space: nowrap;
   color: #888;
   font-size: 13px;
 }
@@ -317,7 +321,7 @@
 }
 
 /* Disabled States for Out of Stock */
-.sidebar-btn-buy-now:disabled, 
+.sidebar-btn-buy-now:disabled,
 .sidebar-btn-add-cart:disabled {
   background-color: #555;
   border-color: #555;

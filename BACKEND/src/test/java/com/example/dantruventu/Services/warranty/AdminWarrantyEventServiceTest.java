@@ -36,7 +36,16 @@ class AdminWarrantyEventServiceTest {
   }
 
   static void error(ErrorCode code, Runnable call) {
-    assertEquals(code, assertThrows(AppException.class, call::run).getErrorCode());
+    var failure = assertThrows(AppException.class, call::run);
+    assertEquals(code, failure.getErrorCode());
+    messageWithoutNumbers(failure.getMessage());
+    if (failure instanceof WarrantyReadException structured)
+      structured.getErrors().forEach(e -> messageWithoutNumbers(e.message()));
+  }
+
+  static void messageWithoutNumbers(String message) {
+    assertNotNull(message);
+    assertFalse(message.codePoints().anyMatch(Character::isDigit), message);
   }
 
   static class Fixture {
@@ -125,6 +134,7 @@ class AdminWarrantyEventServiceTest {
                     LichSuBaoHanh.builder()
                         .id(nextId++)
                         .phieuBaoHanh(ticket)
+                        .nguoiThucHien(NguoiDung.builder().id(a.getArgument(1)).build())
                         .loaiSuKien(a.getArgument(2))
                         .noiDung(a.getArgument(3))
                         .duLieuChiTiet(a.getArgument(4))
@@ -158,7 +168,9 @@ class AdminWarrantyEventServiceTest {
     }
 
     AdminWarrantyEventResponse call(Map<String, Object> body) {
-      return service.save("501", dto(body), UUID.randomUUID().toString(), 8L).getData();
+      var response = service.save("501", dto(body), UUID.randomUUID().toString(), 8L);
+      messageWithoutNumbers(response.getMessage());
+      return response.getData();
     }
 
     void expense(long value) {

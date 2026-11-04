@@ -132,9 +132,13 @@ function totalPagesOf(data) {
 // Chỉ đọc dữ liệu. Hủy request cũ khi thay bộ lọc hoặc rời trang.
 function useBackendData(path, revision, enabled = true, delay = 250) {
   const requestId = enabled ? `${revision}:${path}` : "";
+  const scope = path.replace(/([?&]page=)\d+/, '$1*');
+  const keyword = new URL(path, 'http://localhost').searchParams.get('keyword') || '';
+  const previousSearch = useRef(keyword);
 
   const [state, setState] = useState({
     requestId: "",
+    scope: "",
     data: null,
     loading: false,
     error: "",
@@ -146,13 +150,16 @@ function useBackendData(path, revision, enabled = true, delay = 250) {
     const controller = new AbortController();
     let active = true;
 
-    setState({
+    setState(current => ({
       requestId,
-      data: null,
+      scope,
+      data: current.scope === scope ? current.data : null,
       loading: true,
       error: "",
-    });
+    }));
 
+    const wait = previousSearch.current === keyword ? 0 : delay;
+    previousSearch.current = keyword;
     const timer = setTimeout(async () => {
       try {
         const data = await adminRequest(path, {
@@ -162,6 +169,7 @@ function useBackendData(path, revision, enabled = true, delay = 250) {
         if (active) {
           setState({
             requestId,
+            scope,
             data,
             loading: false,
             error: "",
@@ -171,20 +179,21 @@ function useBackendData(path, revision, enabled = true, delay = 250) {
         if (active && reason?.name !== "AbortError") {
           setState({
             requestId,
+            scope,
             data: null,
             loading: false,
             error: errorMessage(reason),
           });
         }
       }
-    }, delay);
+    }, wait);
 
     return () => {
       active = false;
       clearTimeout(timer);
       controller.abort();
     };
-  }, [path, revision, enabled, delay, requestId]);
+  }, [path, revision, enabled, delay, requestId, scope, keyword]);
 
   if (!enabled) {
     return { data: null, loading: false, error: "" };
@@ -192,7 +201,7 @@ function useBackendData(path, revision, enabled = true, delay = 250) {
 
   // Không hiển thị kết quả của bộ lọc hoặc đối tác trước đó.
   if (state.requestId !== requestId) {
-    return { data: null, loading: true, error: "" };
+    return { data: state.scope === scope ? state.data : null, loading: true, error: "" };
   }
 
   return state;
@@ -469,7 +478,7 @@ export default function DoiTacVanChuyen() {
   }
 
   return (
-    <main className="partner-page" aria-busy={busy}>
+    <main className="partner-page admin-list-page" aria-busy={busy}>
       {detailMode ? (
         !validSelectedId ? (
           <div className="partner-not-found">
@@ -566,9 +575,9 @@ export default function DoiTacVanChuyen() {
             />
           </section>
 
-          <section className="partner-list-content">
-            <div className="partner-table-wrap">
-              <table className="partner-table">
+          <section className="partner-list-content admin-list-body">
+            <div className="partner-table-wrap admin-table-scroll" tabIndex={0} role="region" aria-label="Bảng danh sách">
+              <table className="partner-table admin-data-table" aria-busy={list.loading}>
                 <thead>
                   <tr>
                     <th>MÃ ĐỐI TÁC</th>
@@ -582,7 +591,7 @@ export default function DoiTacVanChuyen() {
                 </thead>
 
                 <tbody>
-                  {list.loading ? (
+                  {list.loading && !list.data ? (
                     <tr className="partner-empty">
                       <td colSpan={7}>Đang tải danh sách đối tác...</td>
                     </tr>
@@ -671,7 +680,7 @@ export default function DoiTacVanChuyen() {
               </table>
             </div>
 
-            {!list.loading && !list.error && list.data && (
+            {!list.error && list.data && (
               <ServerPagination
                 data={list.data}
                 page={filters.page}
@@ -816,7 +825,7 @@ function ServerPagination({ data, page, onPageChange, noun, idPrefix }) {
   const end = items.length ? Math.min(start + items.length - 1, total) : 0;
 
   return (
-    <div className="partner-footer">
+    <div className="partner-footer admin-table-footer">
       <p>
         HIỂN THỊ {start}-{end} TRÊN TỔNG SỐ {total} {noun}
       </p>
@@ -963,7 +972,7 @@ function PartnerDetail({
 
         <PartnerPanel title="LỊCH SỬ GIAO HÀNG" headerTools={historyTools}>
           <div className="partner-history-wrap">
-            <table className="partner-history">
+            <div className="admin-table-scroll admin-table-scroll--embedded" tabIndex={0} role="region" aria-label="Bảng dữ liệu liên quan"><table className="partner-history admin-data-table admin-data-table--records">
               <thead>
                 <tr>
                   <th>MÃ PHIẾU</th>
@@ -979,7 +988,7 @@ function PartnerDetail({
               </thead>
 
               <tbody>
-                {history.loading ? (
+                {history.loading && !history.data ? (
                   <tr className="partner-empty">
                     <td colSpan={9}>Đang tải lịch sử giao hàng...</td>
                   </tr>
@@ -1069,10 +1078,10 @@ function PartnerDetail({
                   ))
                 )}
               </tbody>
-            </table>
+            </table></div>
           </div>
 
-          {!history.loading && !history.error && history.data && (
+          {!history.error && history.data && (
             <div style={{ padding: "0 14px" }}>
               <ServerPagination
                 data={history.data}

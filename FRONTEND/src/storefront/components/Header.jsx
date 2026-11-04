@@ -13,9 +13,11 @@ import "./Header.css";
 import logo from "../assets/reventu.png";
 import CartDrawer from "./CartDrawer";
 import NavMenu from "./NavMenu";
+import CatalogNavigation from "./CatalogNavigation";
 import FontSwitcher from "../../shared/components/ui/FontSwitcher";
 import { productService, toProductCard } from "../../shared/services/productService";
 import { cartService } from "../../shared/services/cartService";
+import { isRecommendationQuery } from '../services/recommendationService';
 
 const Header = () => {
   const navigate = useNavigate();
@@ -85,11 +87,17 @@ const Header = () => {
 
   // Debounce gọi API tìm kiếm
   useEffect(() => {
+    let active = true;
     const fetchSuggestions = async () => {
+      if (isRecommendationQuery(searchQuery)) {
+        setSuggestions([]);
+        setShowSuggestions(false);
+        return;
+      }
       if (searchQuery.trim().length >= 2) {
         try {
           const response = await productService.getProducts({ keyword: searchQuery.trim(), limit: 5 });
-          if (response && response.data && response.data.danhSachSanPham) {
+          if (active && response && response.data && response.data.danhSachSanPham) {
             setSuggestions(response.data.danhSachSanPham.map(toProductCard));
             setShowSuggestions(true);
           }
@@ -106,7 +114,7 @@ const Header = () => {
       fetchSuggestions();
     }, 500);
 
-    return () => clearTimeout(timer);
+    return () => { active = false; clearTimeout(timer); };
   }, [searchQuery]);
 
   const handleLogout = async () => {
@@ -137,7 +145,8 @@ const Header = () => {
       return;
     }
 
-    navigate(`/search?q=${encodeURIComponent(keyword)}`);
+    setShowSuggestions(false);
+    navigate(`/search?q=${encodeURIComponent(keyword)}${isRecommendationQuery(keyword) ? '&mode=recommended' : ''}`);
   };
 
   const displayName = user?.name || user?.ho_ten || user?.email || "Người dùng";
@@ -160,8 +169,11 @@ const Header = () => {
           <div className="container header-container">
             {/* Logo */}
             <div className="logo-container">
-              <Link to="/">
-                <img src={logo} alt="Ruventu Logo" className="logo-image" />
+              <Link to="/" className="header-brand" aria-label="Ruventu - Trang chủ">
+                <svg className="logo-image" viewBox="150 125 190 190" aria-hidden="true" focusable="false">
+                  <image href={logo} width="500" height="500" />
+                </svg>
+                <span className="header-brand-name">RUVENTU</span>
               </Link>
             </div>
 
@@ -193,7 +205,7 @@ const Header = () => {
                 </button>
               </form>
 
-              {showSuggestions && suggestions.length > 0 && (
+              {showSuggestions && suggestions.length > 0 && !isRecommendationQuery(searchQuery) && (
                 <div className="search-suggestions">
                   {suggestions.map((p) => (
                     <Link
@@ -385,281 +397,7 @@ const Header = () => {
         <nav className="navbar">
           <div className="container nav-container">
             <ul className="nav-links">
-              {/* ================= LINH KIỆN ================= */}
-              <NavMenu label="Linh Kiện PC" to="/category/linh-kien">
-                  <div className="mega-menu-content">
-                    <div className="mega-col">
-                      <h4 className="mega-title">Xử lý & Bo mạch</h4>
-
-                      <div className="mega-sub-category">
-                        <h5 className="mega-sub-title">
-                          CPU - Bộ vi xử lý
-                        </h5>
-
-                        <ul>
-                          <li>
-                            <Link to="/search?q=CPU Intel">CPU Intel</Link>
-                          </li>
-
-                          <li>
-                            <Link to="/search?q=CPU AMD">CPU AMD</Link>
-                          </li>
-                        </ul>
-                      </div>
-
-                      <div className="mega-sub-category">
-                        <h5 className="mega-sub-title">
-                          Mainboard - Bo mạch chủ
-                        </h5>
-
-                        <ul>
-                          <li>
-                            <Link to="/search?q=Mainboard Intel">
-                              Mainboard Intel
-                            </Link>
-                          </li>
-
-                          <li>
-                            <Link to="/search?q=Mainboard AMD">
-                              Mainboard AMD
-                            </Link>
-                          </li>
-                        </ul>
-                      </div>
-
-                      <div className="mega-sub-category">
-                        <h5 className="mega-sub-title">
-                          RAM - Bộ nhớ trong
-                        </h5>
-
-                        <ul>
-                          <li>
-                            <Link to="/search?q=DDR4">RAM DDR4</Link>
-                          </li>
-
-                          <li>
-                            <Link to="/search?q=DDR5">RAM DDR5</Link>
-                          </li>
-                        </ul>
-                      </div>
-                    </div>
-
-                    <div className="mega-col">
-                      <h4 className="mega-title">Đồ họa & Nguồn</h4>
-
-                      <div className="mega-sub-category">
-                        <h5 className="mega-sub-title">
-                          VGA - Card màn hình
-                        </h5>
-
-                        <ul>
-                          <li>
-                            <Link to="/search?q=NVIDIA">VGA NVIDIA</Link>
-                          </li>
-
-                          <li>
-                            <Link to="/search?q=VGA AMD">VGA AMD</Link>
-                          </li>
-                        </ul>
-                      </div>
-
-                      <div className="mega-sub-category">
-                        <h5 className="mega-sub-title">
-                          PSU - Nguồn máy tính
-                        </h5>
-
-                        <ul>
-                          <li>
-                            <Link to="/search?q=PSU Corsair">Nguồn Corsair</Link>
-                          </li>
-
-                          <li>
-                            <Link to="/search?q=PSU MSI">Nguồn MSI</Link>
-                          </li>
-                        </ul>
-                      </div>
-
-                      <div className="mega-sub-category">
-                        <h5 className="mega-sub-title">
-                          Case - Vỏ máy tính
-                        </h5>
-
-                        <ul>
-                          <li>
-                            <Link to="/search?q=Case Mid Tower">Mid Tower</Link>
-                          </li>
-
-                          <li>
-                            <Link to="/search?q=Case Full Tower">
-                              Full Tower
-                            </Link>
-                          </li>
-                        </ul>
-                      </div>
-                    </div>
-
-                    <div className="mega-col">
-                      <h4 className="mega-title">Lưu trữ & Tản nhiệt</h4>
-
-                      <div className="mega-sub-category">
-                        <h5 className="mega-sub-title">
-                          Ổ cứng SSD/HDD
-                        </h5>
-
-                        <ul>
-                          <li>
-                            <Link to="/search?q=SSD NVMe">SSD M.2 NVMe</Link>
-                          </li>
-
-                          <li>
-                            <Link to="/search?q=SSD SATA">SSD SATA 3</Link>
-                          </li>
-                        </ul>
-                      </div>
-
-                      <div className="mega-sub-category">
-                        <h5 className="mega-sub-title">
-                          Tản nhiệt máy tính
-                        </h5>
-
-                        <ul>
-                          <li>
-                            <Link to="/search?q=Tản khí">Tản nhiệt khí</Link>
-                          </li>
-
-                          <li>
-                            <Link to="/search?q=Tản nước">
-                              Tản nhiệt nước (AIO)
-                            </Link>
-                          </li>
-                        </ul>
-                      </div>
-                    </div>
-                  </div>
-              </NavMenu>
-
-              {/* ================= GAMING GEAR ================= */}
-              <NavMenu label="Gaming Gear" to="/category/gaming-gear">
-                  <div className="mega-menu-content">
-                    <div className="mega-col">
-                      <ul>
-                        <li>
-                          <Link to="/search?q=Bàn phím cơ">Bàn phím cơ</Link>
-                        </li>
-
-                        <li>
-                          <Link to="/search?q=Chuột Gaming">Chuột Gaming</Link>
-                        </li>
-
-                        <li>
-                          <Link to="/search?q=Tai nghe Gaming">
-                            Tai nghe Gaming
-                          </Link>
-                        </li>
-                      </ul>
-                    </div>
-
-                    <div className="mega-col">
-                      <ul>
-                        <li>
-                          <Link to="/search?q=Lót chuột">Lót chuột</Link>
-                        </li>
-
-                        <li>
-                          <Link to="/search?q=Ghế Gaming">Ghế Gaming</Link>
-                        </li>
-
-                        <li>
-                          <Link to="/search?q=Bàn Gaming">Bàn Gaming</Link>
-                        </li>
-
-                        <li>
-                          <Link to="/search?q=Phụ kiện Gear khác">
-                            Phụ kiện Gear khác
-                          </Link>
-                        </li>
-                      </ul>
-                    </div>
-                  </div>
-              </NavMenu>
-
-              {/* ================= MÀN HÌNH ================= */}
-              <NavMenu label="Màn Hình" to="/category/man-hinh">
-                  <div className="mega-menu-content">
-                    <div className="mega-col">
-                      <ul>
-                        <li>
-                          <Link to="/search?q=Màn hình Gaming">
-                            Màn hình Gaming (144Hz - 360Hz)
-                          </Link>
-                        </li>
-
-                        <li>
-                          <Link to="/search?q=Màn hình Đồ họa">
-                            Màn hình Đồ họa
-                          </Link>
-                        </li>
-
-                        <li>
-                          <Link to="/search?q=Màn hình Văn phòng">
-                            Màn hình Văn phòng
-                          </Link>
-                        </li>
-
-                        <li>
-                          <Link to="/search?q=Giá treo màn hình">
-                            Giá treo màn hình (Arm)
-                          </Link>
-                        </li>
-                      </ul>
-                    </div>
-                  </div>
-              </NavMenu>
-
-              {/* ================= LAPTOP ================= */}
-              <NavMenu label="Laptop" to="/category/laptop">
-                  <div className="mega-menu-content">
-                    <div className="mega-col">
-                      <ul>
-                        <li>
-                          <Link to="/search?q=Laptop Gaming">
-                            Laptop Gaming
-                          </Link>
-                        </li>
-
-                        <li>
-                          <Link to="/search?q=Laptop Văn phòng">
-                            Laptop Văn phòng
-                          </Link>
-                        </li>
-
-                        <li>
-                          <Link to="/search?q=Laptop Đồ họa">
-                            Laptop Đồ họa - Creator
-                          </Link>
-                        </li>
-                      </ul>
-                    </div>
-
-                    <div className="mega-col">
-                      <ul>
-                        <li>
-                          <Link to="/search?q=MacBook">MacBook</Link>
-                        </li>
-
-                        <li>
-                          <Link to="/search?q=Linh kiện Laptop">
-                            Linh kiện Laptop
-                          </Link>
-                        </li>
-
-                        <li>
-                          <Link to="/search?q=Balo">Balo / Túi chống sốc</Link>
-                        </li>
-                      </ul>
-                    </div>
-                  </div>
-              </NavMenu>
+              <CatalogNavigation />
 
               {/* ================= BUILD PC ================= */}
               <NavMenu label="Build PC" to="/build-pc">

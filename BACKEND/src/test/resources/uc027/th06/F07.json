@@ -1,0 +1,46 @@
+{
+  "status": 200,
+  "message": "Lấy chi tiết phiếu trả thành công",
+  "data": {
+    "id": 306,
+    "ma_tra_hang": "TH000306",
+    "don_hang": {
+      "id": 1001,
+      "ma_don_hang": "ORD-001"
+    },
+    "khach_hang_id": null,
+    "ten_nguoi_lien_he": "Nguyễn Văn An",
+    "sdt_nguoi_lien_he": "0912345678",
+    "ly_do_tra": "Không còn nhu cầu",
+    "trang_thai_tra_hang": "TU_CHOI",
+    "chi_tiet_tra": [
+      {
+        "id": 500,
+        "chi_tiet_don_hang_id": 2001,
+        "so_luong": 1,
+        "don_gia_hoan": 1045000,
+        "thanh_tien_hoan": 1045000
+      }
+    ],
+    "tong_tien_hoan": 1045000,
+    "hinh_thuc_hoan_tien": "TIEN_MAT",
+    "ngay_tiep_nhan_thuc_te": "2026-10-12T11:30:00+07:00",
+    "ngay_nhan_hang": null,
+    "ngay_ket_thuc": "2026-10-12T12:30:00+07:00",
+    "ly_do_ket_thuc": "Không đáp ứng điều kiện trả hàng",
+    "muc_dich_ket_thuc": "TU_CHOI",
+    "ket_qua_kiem_tra": "Đã kiểm tra hoạt động, đủ tem và hộp",
+    "hang_dang_giu": [],
+    "hang_da_nhan": [],
+    "ban_giao_lai": {
+      "ten_nguoi_nhan": "Nguyễn Văn An",
+      "ngay_ban_giao": "2026-10-12T12:30:00+07:00",
+      "bang_chung_urls": [
+        "/uploads/ban-giao-lai-300.jpg"
+      ]
+    },
+    "phe_duyet_ngoai_le": null,
+    "phieu_chi": null,
+    "thao_tac_duoc_phep": []
+  }
+}

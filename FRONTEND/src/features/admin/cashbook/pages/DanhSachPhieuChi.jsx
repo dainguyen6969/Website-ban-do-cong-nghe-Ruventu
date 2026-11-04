@@ -2,7 +2,8 @@ import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Check, X } from "lucide-react";
 import { disbursementService } from "../../../../shared/services/disbursementService";
-import DetailTablePagination from "../../../../shared/components/ui/DetailTablePagination";
+import TablePagination from "../../../../shared/components/ui/TablePagination";
+import FilterDropdown from "../../../../shared/components/ui/FilterDropdown";
 import {
   CashSourceFilters,
   CashSourceInfo,
@@ -178,7 +179,7 @@ export default function DanhSachPhieuChi() {
   };
 
   return (
-    <div className="pt-page">
+    <div className="pt-page admin-list-page">
       {toastMessage && (
         <div className="pt-toast">
           <div className="pt-toast-content">
@@ -219,17 +220,18 @@ export default function DanhSachPhieuChi() {
           value={searchQuery}
           onChange={handleSearchChange}
         />
-        <select
+        <FilterDropdown
           value={filterStatus}
           onChange={(e) => {
             setFilterStatus(e.target.value);
             setPage(1);
           }}
+          selectedDark
         >
           <option value="ALL">TẤT CẢ TRẠNG THÁI</option>
           <option value="DA_GHI_NHAN">ĐÃ GHI NHẬN</option>
           <option value="HUY">ĐÃ HỦY</option>
-        </select>
+        </FilterDropdown>
         <div className="pt-date-filter">
           <label>TỪ NGÀY</label>
           <input
@@ -266,12 +268,13 @@ export default function DanhSachPhieuChi() {
           className="pt-filter-bar"
           style={{ paddingTop: 0, paddingBottom: "16px" }}
         >
-          <select
+          <FilterDropdown
             value={filterGroup}
             onChange={(e) => {
               setFilterGroup(e.target.value);
               setPage(1);
             }}
+            selectedDark
           >
             <option value="ALL">TẤT CẢ NHÓM ĐỐI TƯỢNG</option>
             <option value="KHACH_HANG">KHÁCH HÀNG</option>
@@ -279,30 +282,32 @@ export default function DanhSachPhieuChi() {
             <option value="NHA_CUNG_CAP">NHÀ CUNG CẤP</option>
             <option value="DOI_TAC_GIAO_HANG">ĐỐI TÁC GIAO HÀNG</option>
             <option value="KHAC">KHÁC</option>
-          </select>
-          <select
+          </FilterDropdown>
+          <FilterDropdown
             value={filterMethod}
             onChange={(e) => {
               setFilterMethod(e.target.value);
               setPage(1);
             }}
+            selectedDark
           >
             <option value="ALL">TẤT CẢ PHƯƠNG THỨC</option>
             <option value="TIEN_MAT">TIỀN MẶT</option>
             <option value="CHUYEN_KHOAN">CHUYỂN KHOẢN</option>
             <option value="THE">QUẸT THẺ</option>
-          </select>
-          <select
+          </FilterDropdown>
+          <FilterDropdown
             value={filterSource}
             onChange={(e) => {
               setFilterSource(e.target.value);
               setPage(1);
             }}
+            selectedDark
           >
             <option value="ALL">TẤT CẢ NGUỒN TẠO</option>
             <option value="THU_CONG">THỦ CÔNG</option>
             <option value="TU_DONG">TỰ ĐỘNG</option>
-          </select>
+          </FilterDropdown>
         </div>
       )}
 
@@ -314,8 +319,9 @@ export default function DanhSachPhieuChi() {
         }}
       />
 
-      <div className="pt-table-container">
-        <table className="promo-table pt-table">
+      <div className="admin-list-body admin-list-body--inset">
+<div className="pt-table-container admin-table-scroll" tabIndex={0} role="region" aria-label="Bảng danh sách">
+        <table className="promo-table pt-table admin-data-table">
           <thead>
             <tr>
               <th>MÃ PHIẾU</th>
@@ -422,7 +428,7 @@ export default function DanhSachPhieuChi() {
       </div>
 
       {disbursements.length > 0 && (
-        <DetailTablePagination
+        <TablePagination className="admin-table-footer"
           totalItems={totalElements}
           currentPage={page}
           onPageChange={setPage}
@@ -430,6 +436,7 @@ export default function DanhSachPhieuChi() {
           idPrefix="disbursements"
         />
       )}
+</div>
     </div>
   );
 }

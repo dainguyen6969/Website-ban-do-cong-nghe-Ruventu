@@ -1,6 +1,6 @@
 import { apiRequest } from '../../../../auth/backendAuth.js';
 
-export function subscribeOrderUpdates(onUpdate) {
+function connectRealtime(onUpdate) {
   let disposed = false;
   let socket;
   let retryTimer;
@@ -51,18 +51,23 @@ export function subscribeOrderUpdates(onUpdate) {
           lastMessage = Date.now();
           retryDelay = 1000;
           // Fetch again after reconnect to recover events missed while disconnected.
-          onUpdate();
+          onUpdate(event);
         } else if (event?.type === 'order-changed' && Number.isSafeInteger(event.orderId) && event.orderId > 0) {
           lastMessage = Date.now();
-          onUpdate();
+          onUpdate(event);
+        } else if (event?.type === 'admin-notification') {
+          lastMessage = Date.now();
+          onUpdate(event);
         }
       };
       connection.onerror = () => connection.close();
       connection.onclose = () => {
         clearConnectionTimers();
+        onUpdate({ type: 'disconnected' });
         retry();
       };
     } catch {
+      if (!disposed) onUpdate({ type: 'disconnected' });
       retry();
     }
   }
@@ -81,4 +86,32 @@ export function subscribeOrderUpdates(onUpdate) {
       socket.close();
     }
   };
+}
+
+const listeners = new Set();
+let disconnect;
+let connected = false;
+
+export function subscribeAdminRealtime(listener) {
+  listeners.add(listener);
+  if (!disconnect) disconnect = connectRealtime(event => {
+    if (event.type === 'ready') connected = true;
+    if (event.type === 'disconnected') connected = false;
+    listeners.forEach(callback => callback(event));
+  });
+  else if (connected) listener({ type: 'ready' });
+  return () => {
+    listeners.delete(listener);
+    if (!listeners.size) {
+      disconnect?.();
+      disconnect = undefined;
+      connected = false;
+    }
+  };
+}
+
+export function subscribeOrderUpdates(onUpdate) {
+  return subscribeAdminRealtime(event => {
+    if (event.type === 'ready' || event.type === 'order-changed') onUpdate();
+  });
 }

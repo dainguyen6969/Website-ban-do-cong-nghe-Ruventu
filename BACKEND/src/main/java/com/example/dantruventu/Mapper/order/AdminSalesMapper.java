@@ -36,8 +36,19 @@ public interface AdminSalesMapper {
   @Mapping(target = "nhanVienId", source = "nhanVien.id")
   AdminSalesResponse.Checkout toCheckout(DonHang entity, @Context ZoneId zone);
 
-  @Mapping(target = "phienBanId", source = "phienBan.id")
-  AdminSalesResponse.Serial toSerial(SoSerialSanPham entity);
+  default AdminSalesResponse.Serial toSerial(SoSerialSanPham entity) {
+
+    if (entity == null) {
+      return null;
+    }
+
+    return new AdminSalesResponse.Serial(
+        entity.getId(),
+        entity.getPhienBan() == null ? null : entity.getPhienBan().getId(),
+        entity.getSoSerial(),
+        entity.getTrangThai(),
+        entity.getTinhTrangHang() == null ? "CHUA_XAC_DINH" : entity.getTinhTrangHang());
+  }
 
   AdminSalesResponse.CashReceipt toCashReceipt(SoQuyThuChi entity);
 

@@ -1,4 +1,7 @@
+import { useState } from "react";
 import { createCashbookSourceFilters } from "../api/cashbookFilterParams";
+import FilterDropdown from "../../../../shared/components/ui/FilterDropdown";
+import { HiOutlineChevronDown } from "react-icons/hi";
 
 import "./CashbookSourceFilters.css";
 
@@ -43,6 +46,8 @@ export default function CashbookSourceFilters({
   applyRequired = false,
   extended = false,
 }) {
+  const [isCollapsed, setIsCollapsed] = useState(false);
+
   const update = (field, nextValue) => {
     onChange({
       ...value,
@@ -50,13 +55,14 @@ export default function CashbookSourceFilters({
     });
   };
 
-  const selectField = (field, title, options) => (
-    <label>
+  const selectField = (field, title, options, isSpan2 = false) => (
+    <label className={isSpan2 ? "cb-filter-span-2" : ""}>
       <span>{title}</span>
 
-      <select
+      <FilterDropdown
         value={value[field] ?? ""}
         onChange={(event) => update(field, event.target.value)}
+        selectedDark
       >
         <option value="">TẤT CẢ</option>
 
@@ -65,7 +71,7 @@ export default function CashbookSourceFilters({
             {label}
           </option>
         ))}
-      </select>
+      </FilterDropdown>
     </label>
   );
 
@@ -73,65 +79,84 @@ export default function CashbookSourceFilters({
     ? [...extendedIdFields, ...sourceIdFields]
     : sourceIdFields;
 
+  const hasFilterValue = Object.entries(value).some(([k, v]) => v !== "" && v !== null && v !== undefined);
+
   return (
     <section className="cb-source-filters">
       <div className="cb-source-filters__heading">
-        <strong>
-          {extended
-            ? "BỘ LỌC BỔ SUNG / LIÊN KẾT NGHIỆP VỤ"
-            : "LIÊN KẾT NGHIỆP VỤ"}
-        </strong>
-
         <button
           type="button"
-          onClick={() => onChange(createCashbookSourceFilters())}
+          className="cb-source-filters__toggle-btn"
+          onClick={() => setIsCollapsed((prev) => !prev)}
         >
-          {extended ? "XÓA LỌC BỔ SUNG" : "XÓA LỌC NGUỒN"}
+          <strong>
+            {extended
+              ? "BỘ LỌC BỔ SUNG / LIÊN KẾT NGHIỆP VỤ"
+              : "LIÊN KẾT NGHIỆP VỤ"}
+          </strong>
+          <HiOutlineChevronDown
+            size={14}
+            className={`cb-source-chevron ${isCollapsed ? "cb-source-chevron--collapsed" : ""}`}
+          />
         </button>
+
+        <div className="cb-source-filters__heading-actions">
+          {hasFilterValue && (
+            <button
+              type="button"
+              className="cb-source-filters__clear-btn"
+              onClick={() => onChange(createCashbookSourceFilters())}
+            >
+              {extended ? "XÓA LỌC BỔ SUNG" : "XÓA LỌC NGUỒN"}
+            </button>
+          )}
+        </div>
       </div>
 
-      <div className="cb-source-filters__grid">
-        {extended && (
-          <>
-            <label>
-              <span>TỪ KHÓA</span>
+      {!isCollapsed && (
+        <div className="cb-source-filters__grid">
+          {extended && (
+            <>
+              <label className="cb-filter-keyword">
+                <span>TỪ KHÓA</span>
+
+                <input
+                  type="text"
+                  value={value.keyword ?? ""}
+                  placeholder="Nhập từ khóa tìm phiếu..."
+                  onChange={(event) => update("keyword", event.target.value)}
+                />
+              </label>
+
+              {selectField(
+                "nhom_nguoi_nop_nhan",
+                "NHÓM NGƯỜI NỘP / NHẬN",
+                groups,
+              )}
+
+              {selectField("nguon_tao", "NGUỒN TẠO", sources)}
+            </>
+          )}
+
+          {idFields.map(([field, title]) => (
+            <label key={field}>
+              <span>{title}</span>
 
               <input
                 type="text"
-                value={value.keyword ?? ""}
-                placeholder="Nhập từ khóa tìm phiếu..."
-                onChange={(event) => update("keyword", event.target.value)}
+                inputMode="numeric"
+                value={value[field] ?? ""}
+                placeholder="Nhập ID"
+                onChange={(event) => update(field, event.target.value)}
               />
             </label>
+          ))}
 
-            {selectField(
-              "nhom_nguoi_nop_nhan",
-              "NHÓM NGƯỜI NỘP / NHẬN",
-              groups,
-            )}
+          {selectField("nghiep_vu_nguon", "NGHIỆP VỤ NGUỒN", businesses, true)}
+        </div>
+      )}
 
-            {selectField("nguon_tao", "NGUỒN TẠO", sources)}
-          </>
-        )}
-
-        {idFields.map(([field, title]) => (
-          <label key={field}>
-            <span>{title}</span>
-
-            <input
-              type="text"
-              inputMode="numeric"
-              value={value[field] ?? ""}
-              placeholder="Nhập ID"
-              onChange={(event) => update(field, event.target.value)}
-            />
-          </label>
-        ))}
-
-        {selectField("nghiep_vu_nguon", "NGHIỆP VỤ NGUỒN", businesses)}
-      </div>
-
-      {applyRequired && (
+      {applyRequired && !isCollapsed && (
         <p className="cb-source-filters__hint">
           Chọn ÁP DỤNG để tải dữ liệu theo bộ lọc đã nhập.
         </p>

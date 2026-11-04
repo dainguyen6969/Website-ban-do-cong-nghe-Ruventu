@@ -3,6 +3,7 @@ package com.example.dantruventu.DTO.Response.warehouse;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.List;
+import java.util.Map;
 import lombok.*;
 
 @Getter
@@ -12,6 +13,9 @@ import lombok.*;
 @Builder
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class AdminInventoryDetailResponse {
+
+  @JsonProperty("cach_ly_thu_hoi")
+  private List<Map<String, Object>> cachLyThuHoi;
 
   @JsonProperty("loai_doi_tuong")
   private String loaiDoiTuong;

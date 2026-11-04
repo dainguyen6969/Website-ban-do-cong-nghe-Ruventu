@@ -1,4 +1,20 @@
 // State helpers for the admin point-of-sale workflow.
+export function posSerialGroups(preview) {
+  return (preview?.san_pham || []).flatMap((line) =>
+    (line.serial_requirements || []).map((requirement) => ({
+      key: `${line.ma_dong}:${requirement.phien_ban_id}`,
+      lineKey: line.ma_dong,
+      variantId: Number(requirement.phien_ban_id),
+      quantity: Number(requirement.so_luong_can_serial),
+      gift: Boolean(line.la_qua_tang),
+      label:
+        [requirement.ten_san_pham, requirement.ten_phien_ban]
+          .filter(Boolean)
+          .join(" · ") || `Phiên bản #${requirement.phien_ban_id}`,
+    })),
+  );
+}
+
 export function createOrder(sequence, employee = null) {
   return {
     id: sequence,
@@ -105,12 +121,32 @@ export function updateOrder(order, patch) {
 
   if (financialChanged) {
     next.preview = null;
-    next.serialSelections = {};
     next.paymentReceived = false;
     next.paid = 0;
   }
 
   return next;
+}
+
+export function applyOrderPreview(order, signature, data) {
+  return {
+    ...order,
+    preview: { signature, data },
+    promotions: data.khuyen_mai_kha_dung,
+    serialSelections: Object.fromEntries(
+      posSerialGroups(data)
+        .filter((group) => order.serialSelections?.[group.key]?.length)
+        .map((group) => [
+          group.key,
+          order.serialSelections[group.key].slice(0, group.quantity),
+        ]),
+    ),
+    paid:
+      Number(order.paid) === 0 ||
+      Number(order.paid) === Number(order.preview?.data?.tong_thanh_toan)
+        ? Number(data.tong_thanh_toan)
+        : order.paid,
+  };
 }
 
 export function addProduct(cart, product) {

@@ -234,7 +234,7 @@ export default function ChiTietCombo() {
         </FormCard>
         <FormCard title="Thành phần combo" className="detail-components-card">
           <div className="detail-components">
-            <table>
+            <div className="admin-table-scroll admin-table-scroll--embedded" tabIndex={0} role="region" aria-label="Bảng dữ liệu liên quan"><table className="admin-data-table admin-data-table--records">
               <thead>
                 <tr>
                   <th>ẢNH</th>
@@ -303,7 +303,7 @@ export default function ChiTietCombo() {
                   );
                 })}
               </tbody>
-            </table>
+            </table></div>
           </div>
           <DetailTablePagination
             totalItems={detail.components.length}

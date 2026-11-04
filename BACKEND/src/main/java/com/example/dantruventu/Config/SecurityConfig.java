@@ -40,6 +40,7 @@ public class SecurityConfig {
         .authorizeHttpRequests(
             auth ->
                 auth.requestMatchers(
+                        "/api/v1/system-settings/status",
                         "/api/v1/auth/register",
                         "/api/v1/auth/otp/resend",
                         "/api/v1/auth/verify-otp",
@@ -50,8 +51,10 @@ public class SecurityConfig {
                         "/api/v1/cart/**",
                         "/api/v1/orders/checkout/preview",
                         "/api/v1/orders/checkout",
+                        "/api/v1/orders/stock-notifications",
                         "/api/v1/orders/tracking",
                         "/api/v1/products",
+                        "/api/v1/catalog/options",
                         "/api/v1/pc-builder/options",
                         "/api/v1/pc-builder/products",
                         "/api/v1/pc-builder/preview",

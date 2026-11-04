@@ -39,7 +39,12 @@ class AdminSupplierServiceTest {
 
   @BeforeEach
   void setUp() {
-    service = new AdminSupplierService(supplierRepository, purchaseOrderRepository, mapper);
+    service =
+        new AdminSupplierService(
+            supplierRepository,
+            purchaseOrderRepository,
+            mapper,
+            org.mockito.Mockito.mock(com.example.dantruventu.Services.order.OrderEvents.class));
     ReflectionTestUtils.setField(service, "purchaseTimeZone", "Asia/Ho_Chi_Minh");
   }
 

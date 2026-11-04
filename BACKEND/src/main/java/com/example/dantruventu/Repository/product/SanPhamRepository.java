@@ -336,6 +336,14 @@ public interface SanPhamRepository
                 ) AS anhChinh,
                 vd.minimum_price AS giaThapNhat,
                 vd.maximum_price AS giaCaoNhat,
+                sp.thong_so_ky_thuat AS thongSoKyThuat,
+                (
+                    SELECT default_v.id
+                    FROM phien_ban_san_pham default_v
+                    WHERE default_v.san_pham_id = sp.id AND default_v.trang_thai = 1
+                    ORDER BY default_v.gia_ban_le ASC, default_v.id ASC
+                    LIMIT 1
+                ) AS phienBanMacDinhId,
                 ps.physical_quantity AS tonKhoKhaDung,
                 ps.assembly_capacity AS soBoCoTheLap,
                 sp.ngay_tao AS ngayTao

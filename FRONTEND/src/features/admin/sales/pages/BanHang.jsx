@@ -8,7 +8,7 @@ import {
   HiOutlineTrash,
   HiOutlineX,
 } from "react-icons/hi";
-import { getSerialPage } from "../../inventory/api/serialApi";
+import { getAvailableSerials } from "../../inventory/api/serialApi";
 import {
   buildPosCheckoutBody,
   buildPosPreviewBody,
@@ -23,6 +23,7 @@ import {
 } from "../../orders/api/onlineOrderApi";
 import {
   addProduct,
+  applyOrderPreview,
   closeOrderTab,
   createOrder,
   findStockIssue,
@@ -139,17 +140,7 @@ export default function BanHang() {
         setOrders((current) =>
           current.map((item) =>
             item.id === activeId
-              ? {
-                  ...item,
-                  preview: { signature: previewSignature, data },
-                  promotions: data.khuyen_mai_kha_dung,
-                  paid:
-                    Number(item.paid) === 0 ||
-                    Number(item.paid) ===
-                      Number(item.preview?.data?.tong_thanh_toan)
-                      ? Number(data.tong_thanh_toan)
-                      : item.paid,
-                }
+              ? applyOrderPreview(item, previewSignature, data)
               : item,
           ),
         );
@@ -335,8 +326,6 @@ export default function BanHang() {
     setSerialModal({
       ...group,
       productId: group.variantId,
-      page: 1,
-      totalPages: 0,
       total: 0,
       loading: true,
       candidates: [],
@@ -353,12 +342,11 @@ export default function BanHang() {
 
     const controller = new AbortController();
     const key = serialModal.key;
-    const page = serialModal.page;
     const productId = serialModal.productId;
 
     const updateModal = (patchValue) => {
       setSerialModal((current) =>
-        current?.key === key && current.page === page
+        current?.key === key
           ? { ...current, ...patchValue }
           : current,
       );
@@ -372,16 +360,7 @@ export default function BanHang() {
 
     const timer = setTimeout(async () => {
       try {
-        const data = await getSerialPage(
-          {
-            page,
-            limit: 50,
-            status: "TRONG_KHO",
-            versionId: productId,
-            serial: serialSearch,
-          },
-          controller.signal,
-        );
+        const data = await getAvailableSerials(productId, serialSearch, controller.signal);
 
         if (controller.signal.aborted) return;
 
@@ -389,7 +368,6 @@ export default function BanHang() {
           loading: false,
           candidates: data.items,
           total: data.totalItems,
-          totalPages: data.totalPages,
         });
       } catch (error) {
         if (controller.signal.aborted) return;
@@ -408,7 +386,6 @@ export default function BanHang() {
     };
   }, [
     serialModal?.key,
-    serialModal?.page,
     serialModal?.productId,
     serialSearch,
   ]);
@@ -528,16 +505,12 @@ export default function BanHang() {
             current.map((item) =>
               item.id === activeId
                 ? {
-                    ...item,
-                    preview: null,
-                    serialSelections: {},
+                    ...applyOrderPreview(item, previewSignature, freshPreview),
                     paymentReceived: false,
                   }
                 : item,
             ),
           );
-
-          setPreviewRevision((value) => value + 1);
 
           throw new Error(
             "Giá hoặc cấu hình khuyến mại đã thay đổi. " +
@@ -580,7 +553,6 @@ export default function BanHang() {
               ? {
                   ...item,
                   preview: null,
-                  serialSelections: {},
                   paymentReceived: false,
                 }
               : item,
@@ -1401,10 +1373,6 @@ export default function BanHang() {
               value={serialSearch}
               onChange={(event) => {
                 setSerialSearch(event.target.value);
-
-                setSerialModal((current) =>
-                  current ? { ...current, page: 1 } : current,
-                );
               }}
               onKeyDown={(event) => {
                 if (event.key === "Enter") {
@@ -1464,40 +1432,6 @@ export default function BanHang() {
             </button>
           </footer>
 
-          <div className="pos-serial-pagination">
-            <button
-              type="button"
-              disabled={serialModal.loading || serialModal.page <= 1}
-              onClick={() =>
-                setSerialModal((current) => ({
-                  ...current,
-                  page: current.page - 1,
-                }))
-              }
-            >
-              TRƯỚC
-            </button>
-
-            <span>
-              Trang {serialModal.page}/{Math.max(1, serialModal.totalPages)}
-            </span>
-
-            <button
-              type="button"
-              disabled={
-                serialModal.loading ||
-                serialModal.page >= Math.max(1, serialModal.totalPages)
-              }
-              onClick={() =>
-                setSerialModal((current) => ({
-                  ...current,
-                  page: current.page + 1,
-                }))
-              }
-            >
-              SAU
-            </button>
-          </div>
         </PosDialog>
       )}
       {receipt && (

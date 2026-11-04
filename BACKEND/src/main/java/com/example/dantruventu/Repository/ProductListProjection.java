@@ -23,6 +23,10 @@ public interface ProductListProjection {
 
   String getAnhChinh();
 
+  String getThongSoKyThuat();
+
+  Long getPhienBanMacDinhId();
+
   BigDecimal getGiaThapNhat();
 
   BigDecimal getGiaCaoNhat();

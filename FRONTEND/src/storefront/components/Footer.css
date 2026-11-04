@@ -90,9 +90,21 @@
   color: #666;
 }
 
+.footer-brand {
+  display: flex;
+  flex: 0 0 48px;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  color: #fff;
+  font: 900 8px/1 Arial, sans-serif;
+  letter-spacing: 0.3px;
+}
+
 .footer-logo-image {
-  height: 24px;
-  object-fit: contain;
+  display: block;
+  width: 32px;
+  height: 32px;
 }
 
 .bottom-links {

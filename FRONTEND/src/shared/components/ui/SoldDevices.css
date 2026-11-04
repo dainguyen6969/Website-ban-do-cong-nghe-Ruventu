@@ -1,19 +1,44 @@
 .sold-devices {
-  padding: 14px 16px;
+  padding: 12px 14px 14px;
 }
 
-.sold-devices-note {
-  margin: 0 0 12px;
-  color: #64748b;
-  font-size: 12px;
-  line-height: 1.6;
+.sold-devices-notice {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  padding: 8px 12px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-left: 3px solid #0f172a;
+  font-size: 11px;
+  color: #475569;
+}
+
+.sold-devices-notice strong {
+  color: #0f172a;
+  font-weight: 700;
 }
 
 .sold-devices-warning {
-  margin: 0 0 12px;
+  margin-bottom: 12px;
+  padding: 8px 12px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-left: 3px solid #dc2626;
   color: #b91c1c;
-  font-size: 12px;
-  line-height: 1.6;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.sold-devices-empty {
+  margin: 0;
+  padding: 16px;
+  color: #64748b;
+  font-size: 11px;
+  text-align: center;
+  background: #f8fafc;
+  border: 1px dashed #cbd5e1;
 }
 
 .sold-devices-scroll {
@@ -24,29 +49,83 @@
   width: 100%;
   min-width: 760px;
   border-collapse: collapse;
-  font-size: 12px;
-}
-
-.sold-devices-table th,
-.sold-devices-table td {
-  padding: 11px 10px;
-  border: 1px solid #e5e7eb;
-  text-align: left;
-  vertical-align: top;
+  font-size: 11px;
+  background: #fff;
 }
 
 .sold-devices-table th {
+  height: 32px;
+  padding: 6px 10px;
+  border-bottom: 2px solid #e2e8f0;
   background: #f8fafc;
-  color: #475569;
-  font-size: 10px;
-}
-
-.sold-devices-table td strong,
-.sold-devices-table td small {
-  display: block;
-}
-
-.sold-devices-table td small {
-  margin-top: 5px;
   color: #64748b;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.sold-devices-table td {
+  padding: 10px;
+  border-bottom: 1px solid #e2e8f0;
+  color: #1e293b;
+  vertical-align: middle;
+}
+
+.sold-devices-table tr:last-child td {
+  border-bottom: none;
+}
+
+.sold-devices-table tr:hover td {
+  background: #f8fafc;
+}
+
+.sold-device-code {
+  font-family: monospace;
+  font-size: 10px;
+  color: #475569;
+}
+
+.sold-device-product-name {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.sold-device-version-name {
+  display: block;
+  margin-top: 3px;
+  font-size: 10px;
+  color: #64748b;
+}
+
+.sold-device-serial {
+  font-family: monospace;
+  font-size: 11px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.sold-device-no-serial {
+  color: #94a3b8;
+  font-size: 10px;
+  font-style: italic;
+}
+
+.sold-device-warranty-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border: 1px solid #cbd5e1;
+  background: #f1f5f9;
+  color: #334155;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.sold-device-date {
+  font-size: 11px;
+  color: #334155;
+  white-space: nowrap;
 }

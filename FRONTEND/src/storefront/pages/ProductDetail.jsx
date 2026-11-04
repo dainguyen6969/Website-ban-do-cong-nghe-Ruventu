@@ -7,6 +7,7 @@ import ProductGallery from "../components/ProductGallery";
 import ProductInfoSidebar from "../components/ProductInfoSidebar";
 import ProductPurchaseRightSidebar from "../components/ProductPurchaseRightSidebar";
 import ProductSpecsTabs from "../components/ProductSpecsTabs";
+import ProductRecommendations from "../components/ProductRecommendations";
 
 import ComboContents from "../../shared/components/ui/ComboContents";
 import { productService, toProductDetail } from "../../shared/services/productService";
@@ -72,6 +73,8 @@ export default function ProductDetail() {
     ...resolveProductContent(product.specifications,product.description,product.category,selectedVariantId),
   } : null;
 
+  const hasInfoSidebar = product && (product.loaiSanPham === "BO_PC" || product.variants.length > 1);
+
   return (
     <div className="product-detail-page">
       <Header />
@@ -99,8 +102,8 @@ export default function ProductDetail() {
             </div>
           </div>
 
-          <div className="product-main-container">
-            <div className="info-sidebar-column">
+          <div className={"product-main-container" + (hasInfoSidebar ? "" : " product-main-container--without-sidebar")}>
+            {hasInfoSidebar && <div className="info-sidebar-column">
               {product.loaiSanPham === "BO_PC" ? (
                 <ComboContents items={product.thanhPhan} scrollable />
               ) : (
@@ -110,7 +113,7 @@ export default function ProductDetail() {
                   setSelectedVariantId={setSelectedVariantId}
                 />
               )}
-            </div>
+            </div>}
 
             <div className="gallery-column">
               <ProductGallery
@@ -131,6 +134,7 @@ export default function ProductDetail() {
               <ProductSpecsTabs product={displayProduct} />
             </div>
           </div>
+          <ProductRecommendations key={product.id} product={product} />
         </>
       )}
 

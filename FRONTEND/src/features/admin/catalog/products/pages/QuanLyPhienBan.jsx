@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { HiOutlineDownload, HiOutlineSearch } from "react-icons/hi";
 import TablePagination from "../../../../../shared/components/ui/TablePagination";
+import FilterDropdown from "../../../../../shared/components/ui/FilterDropdown";
 import { getAllVersions } from "../api/versionApi";
 import "./QuanLyPhienBan.css";
 
@@ -151,8 +152,8 @@ export default function QuanLyPhienBan() {
   };
 
   return (
-    <main className="version-page" role="main">
-      <div className="version-page__inner">
+    <main className="version-page admin-list-page" role="main">
+      <div className="version-page__inner admin-list-body">
         <nav className="version-breadcrumb" aria-label="Breadcrumb nội dung">
           <span>Sản phẩm</span>
           <span aria-hidden="true">›</span>
@@ -182,13 +183,14 @@ export default function QuanLyPhienBan() {
 
           <label className="version-select-wrap">
             <span className="sr-only">Lọc theo kho</span>
-            <select
+            <FilterDropdown
               id="warehouse-filter"
               value={warehouse}
               onChange={(event) => {
                 setWarehouse(event.target.value);
                 setCurrentPage(1);
               }}
+              selectedDark
             >
               <option value="">Tất cả kho</option>
               {warehouses.map((option) => (
@@ -196,26 +198,39 @@ export default function QuanLyPhienBan() {
                   {option.name}
                 </option>
               ))}
-            </select>
+            </FilterDropdown>
           </label>
 
           <label className="version-select-wrap">
             <span className="sr-only">Lọc theo phân loại</span>
-            <select
+            <FilterDropdown
               id="type-filter"
               value={type}
               onChange={(event) => {
                 setType(event.target.value);
                 setCurrentPage(1);
               }}
+              selectedDark
             >
               {typeOptions.map((option) => (
                 <option key={option}>{option}</option>
               ))}
-            </select>
+            </FilterDropdown>
           </label>
 
-          <label className="version-select-wrap"><span className="sr-only">Lọc cảnh báo tồn kho</span><select aria-label="Lọc cảnh báo tồn kho" value={warning} onChange={event => { setWarning(event.target.value); setCurrentPage(1); }}><option value="">Tất cả cảnh báo</option><option value="HET_HANG">Hết hàng</option><option value="DUOI_TOI_THIEU">Dưới mức tối thiểu</option></select></label>
+          <label className="version-select-wrap">
+            <span className="sr-only">Lọc cảnh báo tồn kho</span>
+            <FilterDropdown
+              aria-label="Lọc cảnh báo tồn kho"
+              value={warning}
+              onChange={event => { setWarning(event.target.value); setCurrentPage(1); }}
+              selectedDark
+            >
+              <option value="">Tất cả cảnh báo</option>
+              <option value="HET_HANG">Hết hàng</option>
+              <option value="DUOI_TOI_THIEU">Dưới mức tối thiểu</option>
+            </FilterDropdown>
+          </label>
 
           <button
             type="button"
@@ -246,8 +261,9 @@ export default function QuanLyPhienBan() {
           </div>
         )}
 
-        <div className="version-table-shell">
-          <table className="version-table">
+        <div className="version-table-shell admin-list-frame">
+          <div className="admin-table-scroll" tabIndex={0} role="region" aria-label="Bảng danh sách">
+<table className="version-table admin-data-table">
             <thead>
               <tr>
                 <th className="version-table__check">
@@ -397,7 +413,8 @@ export default function QuanLyPhienBan() {
               )}
             </tbody>
           </table>
-          <TablePagination
+</div>
+          <TablePagination className="admin-table-footer"
             totalItems={filteredVersions.length}
             pageSize={PAGE_SIZE}
             currentPage={safePage}

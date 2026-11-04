@@ -1,19 +1,26 @@
-import { useRef, useState } from "react";
+import { useId, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { cartService } from "../../shared/services/cartService";
-import { productService } from "../../shared/services/productService";
-import ComboContents from "../../shared/components/ui/ComboContents";
+import { formatProductPrice, productService } from "../../shared/services/productService";
+import ProductCardPreview from './ProductCardPreview';
 import "./ProductCard.css";
 
-export default function ProductCard({ product }) {
+export default function ProductCard({ product, showPreview = false }) {
   const navigate = useNavigate();
+  const previewId = useId();
+  const previewToggle = useRef(null);
+  const [previewOpen, setPreviewOpen] = useState(false);
 
   const addingRef = useRef(false);
   const [isAdding, setIsAdding] = useState(false);
   const [error, setError] = useState("");
 
-  const isCombo = product.loaiSanPham === "BO_PC";
   const outOfStock = product.outOfStock === true;
+  const specs = (product.specs || []).slice(0, 4);
+  const demoReferencePrice = ["DON", "BO_PC"].includes(product.loaiSanPham) && Number.isSafeInteger(product.priceValue) && product.priceValue > 0
+    ? Math.ceil(product.priceValue / 0.9 / 1000) * 1000 : 0;
+  const demoSavings = Number.isSafeInteger(demoReferencePrice) && demoReferencePrice > 0 && demoReferencePrice > product.priceValue
+    ? demoReferencePrice - product.priceValue : 0;
 
   const handleViewDetails = () => {
     navigate(`/product/${encodeURIComponent(product.id)}`);
@@ -76,7 +83,19 @@ export default function ProductCard({ product }) {
   };
 
   return (
-    <div className={`product-card ${outOfStock ? "out-of-stock" : ""}`}>
+    <div
+      className={`product-card ${outOfStock ? "out-of-stock" : ""}${previewOpen ? ' product-card--preview-open' : ''}`}
+      onPointerEnter={showPreview ? event => { if (event.pointerType === 'mouse' && window.matchMedia('(hover: hover)').matches) setPreviewOpen(true); } : undefined}
+      onPointerLeave={showPreview ? event => { if (event.pointerType === 'mouse' && !event.currentTarget.querySelector(':focus-visible')) setPreviewOpen(false); } : undefined}
+      onBlur={showPreview ? event => { if (!event.currentTarget.contains(event.relatedTarget)) setPreviewOpen(false); } : undefined}
+      onKeyDown={showPreview ? event => {
+        if (event.key === 'Escape' && previewOpen) {
+          event.preventDefault();
+          setPreviewOpen(false);
+          previewToggle.current?.focus();
+        }
+      } : undefined}
+    >
       <div className="product-image-container" onClick={handleViewDetails}>
         {product.discount && (
           <span className="product-badge badge-discount">
@@ -112,30 +131,14 @@ export default function ProductCard({ product }) {
           )}
         </div>
 
-        {isCombo && product.soBoCoTheLap != null && (
-          <p className="product-card__capacity">
-            Có thể lắp: {product.soBoCoTheLap} bộ
-          </p>
-        )}
-
-        {isCombo && (
-          <details className="product-card__configuration">
-            <summary>
-              XEM CẤU HÌNH ({product.thanhPhan?.length || 0} linh kiện)
-            </summary>
-
-            <ComboContents items={product.thanhPhan || []} compact />
-          </details>
-        )}
-
-        {product.specs && (
+        {!showPreview && specs.length > 0 && (
           <div className="product-specs">
-            <table className="specs-table">
+            <table className="specs-table" aria-label={`Thông số nổi bật của ${product.title}`}>
               <tbody>
-                {product.specs.map((spec, index) => (
+                {specs.map((spec, index) => (
                   <tr key={index}>
-                    <td className="spec-label">{spec.label}</td>
-                    <td className="spec-value">{spec.value}</td>
+                    <th scope="row" className="spec-label" title={spec.label}><span>{spec.label}</span></th>
+                    <td className="spec-value" title={spec.value}><span>{spec.value}</span></td>
                   </tr>
                 ))}
               </tbody>
@@ -144,6 +147,17 @@ export default function ProductCard({ product }) {
         )}
 
         <div className="product-pricing">
+          {demoSavings > 0 && (
+            <div className="product-card__demo-pricing" aria-label="Giá mô phỏng, không áp dụng thanh toán">
+              <span className="product-card__demo-label">Dữ liệu demo · không phải ưu đãi thật</span>
+              <div className="product-card__demo-offer">
+                <s className="product-card__demo-reference">{product.priceFrom && "Từ "}{formatProductPrice(demoReferencePrice)}</s>
+                <span className="product-card__demo-saving" title={`Tiết kiệm mô phỏng ${formatProductPrice(demoSavings)}`}>
+                  Tiết kiệm {Math.round(demoSavings / demoReferencePrice * 100)}%
+                </span>
+              </div>
+            </div>
+          )}
           {(product.originalPrice || product.soldCount) && (
             <div className="price-row">
               {product.originalPrice && (
@@ -165,6 +179,10 @@ export default function ProductCard({ product }) {
           </p>
         )}
       </div>
+
+      {showPreview && <button ref={previewToggle} type="button" className="product-card__preview-toggle" aria-expanded={previewOpen} aria-controls={previewId} onClick={() => setPreviewOpen(value => !value)}>
+        THÔNG SỐ & PHIÊN BẢN <span aria-hidden="true">{previewOpen ? '−' : '+'}</span>
+      </button>}
 
       <div className="product-actions">
         <button
@@ -188,6 +206,7 @@ export default function ProductCard({ product }) {
               : "THÊM VÀO GIỎ HÀNG"}
         </button>
       </div>
+      {showPreview && <ProductCardPreview product={product} open={previewOpen} panelId={previewId} />}
     </div>
   );
 }

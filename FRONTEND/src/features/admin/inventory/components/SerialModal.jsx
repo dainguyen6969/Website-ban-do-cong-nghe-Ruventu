@@ -37,7 +37,11 @@ function BarcodeScanIcon() {
 }
 
 function generateInitialSerials(count, initialSerials) {
-  if (initialSerials && initialSerials.length === count && initialSerials.every((s) => s && s.trim())) {
+  if (
+    initialSerials &&
+    initialSerials.length === count &&
+    initialSerials.every((s) => s && s.trim())
+  ) {
     return [...initialSerials];
   }
   return Array.from({ length: count }, (_, i) => {
@@ -239,10 +243,7 @@ function SerialModalDialog({
           <span className="serial-status-sep">|</span>
           <div className="serial-progress-wrap">
             <div className="serial-progress-bar">
-              <div
-                className="serial-progress-bar__fill"
-                style={{ width: `${progressPercent}%` }}
-              />
+              <div className="serial-progress-bar__fill" style={{ width: `${progressPercent}%` }} />
             </div>
             <span className="serial-progress-text">
               Đã nhập: {filledCount}/{countRequired}
@@ -257,7 +258,8 @@ function SerialModalDialog({
             <h3 className="serial-col-title">QUÉT BARCODE / NHẬP TAY TỪNG MÃ:</h3>
             <div className="serial-rows-list">
               {serials.map((val, idx) => {
-                const isDup = val && duplicateValues.some((d) => d.toUpperCase() === val.trim().toUpperCase());
+                const isDup =
+                  val && duplicateValues.some((d) => d.toUpperCase() === val.trim().toUpperCase());
                 return (
                   <div
                     key={idx}

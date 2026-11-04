@@ -41,3 +41,23 @@ test('highlights are limited while the full table is preserved and demo descript
   assert.equal(result.mainSpecs.length, 6);
   assert.equal(result.description, '');
 });
+
+test('real description images and text survive a legacy demo introduction', () => {
+  const image = '<img src="https://example.com/gpu.jpg" alt="Card màn hình">';
+  const intro = 'Dữ liệu kiểm thử local; các phiên bản là model thực tế, nguồn được ghi trong thông số.';
+  assert.equal(resolveProductContent({}, intro + image, 'VGA', 1).description, image);
+  assert.equal(resolveProductContent({}, intro + '<p>Mô tả đã cập nhật.</p>' + image, 'VGA', 1).description, '<p>Mô tả đã cập nhật.</p>' + image);
+  assert.equal(resolveProductContent({}, image, 'VGA', 1).description, image);
+  assert.equal(resolveProductContent({}, intro, 'VGA', 1).description, '');
+});
+
+test('category priorities select six highlights while all technical rows remain available', () => {
+  const rows = { Model: 'GPU-X', 'Khối lượng': '1 kg', 'Màu sắc': 'Đen',
+    'Công suất': '130 W', 'Cổng kết nối': 'HDMI, DisplayPort', 'Giao tiếp': 'PCIe 4.0',
+    'Xung nhịp': '1800 MHz', VRAM: '8 GB', GPU: 'GPU-X', 'Chiều dài': '250 mm' };
+  const specs = { phien_ban: { 1: { thong_so_ky_thuat: rows, thong_so_chinh: rows } } };
+  const result = resolveProductContent(specs, '', 'VGA', 1);
+  assert.deepEqual(result.mainSpecs.map(row => row.label), ['GPU', 'VRAM', 'Xung nhịp', 'Giao tiếp', 'Cổng kết nối', 'Công suất']);
+  assert.equal(result.specsSummary.length, 6);
+  assert.equal(result.fullSpecs.length, Object.keys(rows).length);
+});

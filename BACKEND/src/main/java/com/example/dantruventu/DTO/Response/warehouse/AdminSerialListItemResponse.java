@@ -35,6 +35,9 @@ public class AdminSerialListItemResponse {
   @JsonProperty("trang_thai")
   private TrangThaiSerial trangThai;
 
+  @JsonProperty("bi_thu_hoi")
+  private Boolean biThuHoi;
+
   @JsonProperty("don_hang_id")
   private Long donHangId;
 

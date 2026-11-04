@@ -10,7 +10,8 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 
 import { cashbookService } from "../../../../shared/services/cashbookService";
 
-import DetailTablePagination from "../../../../shared/components/ui/DetailTablePagination";
+import TablePagination from "../../../../shared/components/ui/TablePagination";
+import FilterDropdown from "../../../../shared/components/ui/FilterDropdown";
 
 import { DETAIL_TABLE_PAGE_SIZE } from "../../../../hooks/useDetailTablePagination";
 
@@ -85,7 +86,7 @@ export default function SoQuy() {
     createCashbookSourceFilters(params),
   );
 
-  // Khớp với component DetailTablePagination đang dùng.
+  // Khớp với component TablePagination đang dùng.
   const pageSize = DETAIL_TABLE_PAGE_SIZE;
 
   const [transactions, setTransactions] = useState([]);
@@ -299,7 +300,7 @@ export default function SoQuy() {
   };
 
   return (
-    <div className="sq-page">
+    <div className="sq-page admin-list-page">
       <div className="sq-header">
         <div className="sq-breadcrumb">
           ADMIN <span>&rsaquo;</span> SỔ QUỸ TIỀN MẶT / SỔ QUỸ
@@ -340,34 +341,34 @@ export default function SoQuy() {
         </div>
         <div className="cb-filter-item">
           <label>LOẠI PHIẾU</label>
-          <select
+          <FilterDropdown
             value={filterType}
-            className={filterType !== "ALL" ? "active-filter" : ""}
             onChange={(e) => {
               setFilterType(e.target.value);
               setPage(1);
             }}
+            selectedDark
           >
             <option value="ALL">Tất cả</option>
             <option value="THU">Phiếu thu</option>
             <option value="CHI">Phiếu chi</option>
-          </select>
+          </FilterDropdown>
         </div>
         <div className="cb-filter-item">
           <label>PHƯƠNG THỨC</label>
-          <select
+          <FilterDropdown
             value={filterMethod}
-            className={filterMethod !== "ALL" ? "active-filter" : ""}
             onChange={(e) => {
               setFilterMethod(e.target.value);
               setPage(1);
             }}
+            selectedDark
           >
             <option value="ALL">Tất cả</option>
             <option value="TIEN_MAT">Tiền mặt</option>
             <option value="CHUYEN_KHOAN">Chuyển khoản</option>
             <option value="THE">Quẹt thẻ</option>
-          </select>
+          </FilterDropdown>
         </div>
         <div className="cb-filter-item">
           <label>NGƯỜI NỘP / NHẬN</label>
@@ -563,8 +564,9 @@ export default function SoQuy() {
       </div>
 
       {/* Table */}
-      <div className="sq-table-container">
-        <table className="promo-table sq-table">
+      <div className="admin-list-body admin-list-body--inset">
+<div className="sq-table-container admin-table-scroll" tabIndex={0} role="region" aria-label="Bảng danh sách">
+        <table className="promo-table sq-table admin-data-table">
           <thead>
             <tr>
               <th>STT</th>
@@ -673,7 +675,7 @@ export default function SoQuy() {
       </div>
 
       {totalElements > 0 && (
-        <DetailTablePagination
+        <TablePagination className="admin-table-footer"
           totalItems={totalElements}
           currentPage={page}
           onPageChange={setPage}
@@ -681,6 +683,7 @@ export default function SoQuy() {
           idPrefix="cashbook"
         />
       )}
+</div>
     </div>
   );
 }

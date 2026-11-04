@@ -32,3 +32,14 @@ test('direct category navigation uses the same compact listing and filters as su
   assert.match(render('/category/linh-kien'), /<h1 class="catalog-listing-title">LINH KIỆN PC<\/h1>/);
   assert.match(render('/search?q=CPU%20Intel'), /CPU Intel/);
 });
+
+test('special search phrases take priority over literal product matching and use the results layout', () => {
+  for (const path of ['/search?q=ASUS%20sản%20phẩm%20tôi%20thích', '/search?mode=recommended', '/search?q=goi%20y%20cho%20toi']) {
+    const markup = render(path);
+    assert.match(markup, /Gợi ý dành cho bạn/);
+    assert.match(markup, /class="search-main container"/);
+    assert.doesNotMatch(markup, /Kết quả cho:/);
+    assert.match(markup, /Gợi ý ngẫu nhiên/);
+  }
+  assert.doesNotMatch(render('/search?q=RTX%204090'), /Gợi ý dành cho bạn/);
+});

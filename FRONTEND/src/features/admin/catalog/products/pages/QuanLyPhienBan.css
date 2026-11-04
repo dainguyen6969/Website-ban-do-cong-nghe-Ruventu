@@ -65,7 +65,9 @@
   background: transparent;
 }
 
-.version-search input::placeholder { color: #a7a9ad; }
+.version-search input::placeholder {
+  color: #a7a9ad;
+}
 
 .version-select-wrap {
   position: relative;
@@ -96,10 +98,12 @@
   color: #fff;
   font-size: 12px;
   font-weight: 800;
-  letter-spacing: .02em;
+  letter-spacing: 0.02em;
 }
 
-.version-export:hover { background: #2a2a2a !important; }
+.version-export:hover {
+  background: #2a2a2a !important;
+}
 
 .version-warning {
   min-height: 42px;
@@ -114,7 +118,9 @@
   font-size: 12px;
 }
 
-.version-warning strong { font-size: 11px; }
+.version-warning strong {
+  font-size: 11px;
+}
 
 .version-warning__marker,
 .version-stock-marker {
@@ -150,18 +156,32 @@
   text-align: left;
   font-size: 10px;
   font-weight: 700;
-  letter-spacing: .08em;
+  letter-spacing: 0.08em;
   white-space: nowrap;
 }
 
-.version-table th:nth-child(2) { width: 78px; }
-.version-table th:nth-child(3) { width: 130px; }
-.version-table th:nth-child(4) { width: 38%; }
-.version-table th:nth-child(5) { width: 112px; }
+.version-table th:nth-child(2) {
+  width: 78px;
+}
+.version-table th:nth-child(3) {
+  width: 130px;
+}
+.version-table th:nth-child(4) {
+  width: 38%;
+}
+.version-table th:nth-child(5) {
+  width: 112px;
+}
 .version-table th:nth-child(6),
-.version-table th:nth-child(7) { width: 110px; }
-.version-table th:nth-child(8) { width: 126px; }
-.version-table th:nth-child(9) { width: 98px; }
+.version-table th:nth-child(7) {
+  width: 110px;
+}
+.version-table th:nth-child(8) {
+  width: 126px;
+}
+.version-table th:nth-child(9) {
+  width: 98px;
+}
 
 .version-table td {
   height: 64px;
@@ -172,8 +192,12 @@
   vertical-align: middle;
 }
 
-.version-table tbody tr:last-child td { border-bottom: 0; }
-.version-table tbody tr:hover { background: #fafafa; }
+.version-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+.version-table tbody tr:hover {
+  background: #fafafa;
+}
 
 .version-table__check {
   width: 44px;
@@ -194,7 +218,9 @@
   box-shadow: inset 3px 0 0 var(--color-brand-red);
 }
 
-.version-table__row--negative:hover { background: #ffe9e9 !important; }
+.version-table__row--negative:hover {
+  background: #ffe9e9 !important;
+}
 
 .version-table__row--selected,
 .version-table__row--selected:hover {
@@ -219,10 +245,14 @@
   color: #9a9a9a;
   font-size: 10px;
   font-weight: 800;
-  letter-spacing: .08em;
+  letter-spacing: 0.08em;
 }
 
-.version-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.version-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
 
 .version-code {
   display: inline-block;
@@ -234,7 +264,10 @@
   white-space: nowrap;
 }
 
-.version-name { font-weight: 650; line-height: 1.35; }
+.version-name {
+  font-weight: 650;
+  line-height: 1.35;
+}
 
 .version-meta {
   margin-top: 3px;
@@ -278,7 +311,9 @@
   color: var(--color-brand-red);
 }
 
-.version-actual { font-size: 13px; }
+.version-actual {
+  font-size: 13px;
+}
 
 .version-detail {
   min-width: 70px;
@@ -291,7 +326,10 @@
   font-weight: 800;
 }
 
-.version-detail:hover { background: var(--color-brand-red) !important; color: #fff; }
+.version-detail:hover {
+  background: var(--color-brand-red) !important;
+  color: #fff;
+}
 
 .version-selection-strip {
   min-height: 44px;
@@ -306,7 +344,7 @@
 
 .version-selection-strip strong {
   font-size: 11px;
-  letter-spacing: .04em;
+  letter-spacing: 0.04em;
 }
 
 .version-selection-strip button {
@@ -322,7 +360,9 @@
   font-weight: 800;
 }
 
-.version-selection-strip button:hover { border-color: #fff !important; }
+.version-selection-strip button:hover {
+  border-color: #fff !important;
+}
 
 .version-empty {
   height: 180px !important;
@@ -331,9 +371,20 @@
 }
 
 @media (max-width: 900px) {
-  .version-page__inner { min-width: 0; padding: 0 14px 24px; }
-  .version-toolbar { flex-wrap: wrap; }
-  .version-search { width: 100%; }
-  .version-export { margin-left: 0; }
-  .version-table-shell { width: 100%; }
+  .version-page__inner {
+    min-width: 0;
+    padding: 0 14px 24px;
+  }
+  .version-toolbar {
+    flex-wrap: wrap;
+  }
+  .version-search {
+    width: 100%;
+  }
+  .version-export {
+    margin-left: 0;
+  }
+  .version-table-shell {
+    width: 100%;
+  }
 }

@@ -5,7 +5,27 @@ import axios from 'axios';
 
 const server = await createServer({ configFile: false, cacheDir: 'node_modules/.vite-public-products-test', server: { middlewareMode: true }, appType: 'custom' });
 const { productService, toProductCard, toProductDetail } = await server.ssrLoadModule('/src/shared/services/productService.js');
+const { categoryService } = await server.ssrLoadModule('/src/shared/services/categoryService.js');
 after(() => server.close());
+
+test('public metadata requests share an in-flight call but refresh after admin changes', async (t) => {
+  let complete;
+  const get = t.mock.method(axios, 'get', () => new Promise(resolve => { complete = resolve; }));
+  const first = categoryService.getOptions();
+  assert.equal(first, categoryService.getOptions());
+  assert.match(get.mock.calls[0].arguments[0], /\/catalog\/options$/);
+  complete({ data: { data: { danhMuc: [{ id: 1, tenDanhMuc: 'Tên cũ' }], thuongHieu: [] } } });
+  await first;
+  get.mock.mockImplementation(async () => ({ data: { data: { danhMuc: [{ id: 1, tenDanhMuc: 'Tên mới' }], thuongHieu: [] } } }));
+  assert.equal((await categoryService.getOptions()).danhMuc[0].tenDanhMuc, 'Tên mới');
+  assert.equal(get.mock.calls.length, 2);
+});
+
+test('catalog filters retain stable category and brand IDs across list and detail responses', () => {
+  assert.equal(toProductCard({ danhMucId: 2, thuongHieuId: 3 }).brandId, 3);
+  assert.equal(toProductCard({ danhMuc: { id: 2 }, thuongHieu: { id: 3 } }).categoryId, 2);
+  assert.equal(toProductCard({ thuongHieu: { id: 3 } }).brandId, 3);
+});
 
 test('catalog filtering reads every API page and retains real IDs, category, price and availability', async () => {
   const original = productService.getProducts;
@@ -102,4 +122,34 @@ test('missing data stays empty and combo availability uses assembly capacity ins
   assert.equal(combo.stock, 8);
   assert.equal(combo.soBoCoTheLap, 8);
   assert.equal(combo.priceFrom, false);
+});
+
+test('cards show at most four real highlights from the same cheapest variant as the detail', () => {
+  const specs = { nguon_du_lieu: [{ url: 'https://example.com/source' }], phien_ban: {
+    541: { thong_so_ky_thuat: { GPU: 'RTX 3050', VRAM: '6 GB' } },
+    542: { thong_so_ky_thuat: { GPU: 'RX 6500 XT', VRAM: '4 GB', 'Xung nhịp': '2815 MHz', 'Giao tiếp': 'PCIe 4.0', 'Cổng kết nối': 'HDMI', 'Công suất nguồn đề xuất': '400 W' } },
+  } };
+  const list = toProductCard({ id: 459, tenDanhMuc: 'VGA', giaThapNhat: 4890000, phienBanMacDinhId: 542, thongSoKyThuat: specs });
+  const detail = toProductDetail({ id: 459, danhMuc: { tenDanhMuc: 'VGA' }, danhSachPhienBan: [{ id: 541, giaBanLe: 6190000 }, { id: 542, giaBanLe: 4890000 }], thongSoKyThuat: specs });
+  assert.equal(list.defaultVariantId, 542);
+  assert.deepEqual(list.specs, detail.specs);
+  assert.deepEqual(list.specs.map(row => row.label), ['GPU', 'VRAM', 'Xung nhịp', 'Giao tiếp']);
+  assert.equal(list.specs[1].value, '4 GB');
+  assert(!JSON.stringify(list.specs).includes('RTX 3050'));
+  assert.deepEqual(toProductCard({ thongSoKyThuat: { nguon_du_lieu: 'https://example.com' } }).specs, []);
+  assert.deepEqual(toProductCard({ thongSoKyThuat: '{broken' }).specs, []);
+  assert.deepEqual(toProductCard({ thongSoKyThuat: { LED: false, USB: 0 } }).specs, [{ label: 'LED', value: 'Không' }, { label: 'USB', value: '0' }]);
+});
+
+test('preview variant selection uses its explicit highlights without leaking other variants or source metadata', () => {
+  const product = { tenDanhMuc: 'Laptop', thongSoKyThuat: { phien_ban: {
+    1: { thong_so_chinh: { CPU: 'Core i5', RAM: '16 GB', SSD: '512 GB', 'Màn hình': '14 inch', GPU: 'Iris Xe' } },
+    2: { thong_so_chinh: { CPU: 'Core i7', RAM: '32 GB', SSD: '1 TB', 'Màn hình': '16 inch', source: 'https://example.com' },
+      thong_so_ky_thuat: { 'Cổng kết nối đầy đủ': 'Không đưa vào bản xem nhanh' } },
+  } }, danhSachPhienBan: [{ id: 1, giaBanLe: 100 }, { id: 2, giaBanLe: 200 }] };
+  const first = toProductCard({ ...product, phienBanMacDinhId: 1 });
+  const second = toProductCard({ ...product, phienBanMacDinhId: 2 });
+  assert.deepEqual(first.specs.map(row => row.value), ['Core i5', '16 GB', '512 GB', '14 inch']);
+  assert.deepEqual(second.specs.map(row => row.value), ['Core i7', '32 GB', '1 TB', '16 inch']);
+  assert.doesNotMatch(JSON.stringify(second.specs), /Core i5|16 GB|512 GB|Cổng kết nối|example\.com/);
 });

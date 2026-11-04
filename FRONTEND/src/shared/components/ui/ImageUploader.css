@@ -3,7 +3,81 @@
    ======================================== */
 
 .image-uploader__file-input {
-  display: none;
+  display: none !important;
+  visibility: hidden !important;
+  position: absolute !important;
+  width: 0 !important;
+  height: 0 !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+/* Styled control bar matching the user's action area */
+.image-uploader__footer {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 14px;
+  background: #ffffff;
+  border: 1px solid #d1d5db;
+  border-top: none;
+}
+
+.image-uploader__browse-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 36px;
+  padding: 6px 18px;
+  background: #e00000;
+  color: #ffffff;
+  border: 1px solid #c00000;
+  border-radius: 0;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all var(--transition-fast, 0.15s ease);
+}
+
+.image-uploader__browse-btn:hover {
+  background: #c00000;
+  border-color: #a00000;
+  box-shadow: 0 2px 8px rgba(224, 0, 0, 0.25);
+}
+
+.image-uploader__browse-btn:active {
+  background: #a00000;
+}
+
+.image-uploader__status-text {
+  font-size: 13px;
+  color: #6b7280;
+  font-weight: 500;
+}
+
+/* Universal file-selector-button style in case raw file input appears anywhere */
+input[type="file"]::file-selector-button,
+input[type="file"]::-webkit-file-upload-button {
+  background: #e00000;
+  color: #ffffff;
+  border: 1px solid #c00000;
+  border-radius: 0;
+  padding: 6px 16px;
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  margin-right: 12px;
+  transition: background 0.15s ease;
+}
+
+input[type="file"]::file-selector-button:hover,
+input[type="file"]::-webkit-file-upload-button:hover {
+  background: #c00000;
 }
 
 /* Drop zone */

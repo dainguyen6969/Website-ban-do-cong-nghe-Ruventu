@@ -24,18 +24,19 @@ public class WarrantyEventWorkAuthorization {
       List<Long> ids,
       OffsetDateTime at,
       boolean starting) {
-    if (!Objects.equals(ticket.getPhienBanBaoGia(), version)
-        || ticket.getTrangThaiBaoGia() != TrangThaiBaoGiaBaoHanh.DONG_Y) throw denied();
+    if (starting
+        && (!Objects.equals(ticket.getPhienBanBaoGia(), version)
+            || ticket.getTrangThaiBaoGia() != TrangThaiBaoGiaBaoHanh.DONG_Y)) throw denied();
+    // A new draft does not revoke consent for work already started under an older approved
+    // scope. progress() verifies that work was started; invoice/scope/deposit checks below still
+    // apply. Starting additional work remains limited to the current approved version.
     Map<String, Object> quote = null;
     for (var event : events) {
       var q = history.object(history.payload(event).get("bao_gia"));
       if (q == null) continue;
       Long v = history.id(q.get("phien_ban"));
       if (v == null) throw invalidHistory();
-      if (v != version) {
-        if (Objects.equals(history.id(q.get("thay_the_phien_ban")), (long) version)) throw denied();
-        continue;
-      }
+      if (v != version) continue;
       var merged = quote == null ? new LinkedHashMap<String, Object>() : new LinkedHashMap<>(quote);
       var oldDecision = history.object(merged.get("quyet_dinh"));
       var decision = history.object(q.get("quyet_dinh"));
@@ -108,9 +109,35 @@ public class WarrantyEventWorkAuthorization {
         details.findInvoices(ticket.getId()).stream()
             .filter(i -> i.getTrangThai() == TrangThaiHoaDonBaoHanh.HIEU_LUC)
             .toList();
-    if (invoices.size() != 1
-        || !Objects.equals(invoices.getFirst().getPhienBanBaoGia(), version)
-        || invoices.getFirst().getTongTien().compareTo(total) != 0) throw denied();
+    if (invoices.size() != 1) throw denied();
+    var activeInvoice = invoices.getFirst();
+    var approvedVersions =
+        WarrantyQuoteSnapshots.load(history, ticket, events, details.findFees(ticket.getId()));
+    WarrantyInvoiceAdjustments.validate(
+        activeInvoice, approvedVersions.get(activeInvoice.getPhienBanBaoGia()), events, history);
+    // An authorized invoice reduction does not rewrite the customer's accepted work scope.
+    if (!Objects.equals(activeInvoice.getPhienBanBaoGia(), version)) {
+      // An accepted full snapshot may move the SAME invoice to a newer version. Already
+      // started older work remains authorized only when its approved fee is retained there.
+      if (starting
+          || activeInvoice.getPhienBanBaoGia() == null
+          || activeInvoice.getPhienBanBaoGia() < version) throw denied();
+      var covering = approvedVersions.get(activeInvoice.getPhienBanBaoGia());
+      if (covering == null || !"DONG_Y".equals(covering.get("trang_thai"))) throw denied();
+      for (Long id : ids) {
+        String code = history.text(scope.get(id).get("ma_hang_muc"));
+        boolean retained = false;
+        for (Object raw : history.array(covering.get("hang_muc"))) {
+          var item = history.object(raw);
+          if (code != null
+              && code.equals(history.text(item.get("ma_hang_muc")))
+              && "KHACH_HANG".equals(item.get("ben_chiu_phi"))
+              && amount(item.get("thanh_tien_khach")).compareTo(fees.get(id).getThanhTienKhach())
+                  >= 0) retained = true;
+        }
+        if (!retained) throw denied();
+      }
+    }
     var financial =
         WarrantyFinanceCalculator.invoice(
             invoices.getFirst(), details.findPostedMoney(ticket.getId()));
@@ -118,6 +145,7 @@ public class WarrantyEventWorkAuthorization {
     BigDecimal minimum =
         deposit == null ? BigDecimal.ZERO : amount(deposit.get("so_tien_toi_thieu"));
     BigDecimal net = financial.daThu().subtract(financial.daHoan());
+    minimum = minimum.min(activeInvoice.getTongTien());
     if (minimum.signum() < 0 || minimum.compareTo(total) > 0 || net.compareTo(minimum) < 0)
       throw denied();
     for (var event : events) {

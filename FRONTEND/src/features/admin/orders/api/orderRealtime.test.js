@@ -2,18 +2,20 @@ import assert from 'node:assert/strict';
 import { after, before, beforeEach, afterEach, test } from 'node:test';
 import { createServer } from 'vite';
 
-let server, subscribeOrderUpdates, sockets, requests, cleanup;
+let server, subscribeOrderUpdates, subscribeAdminRealtime, sockets, requests, cleanup, now;
 const settle = () => new Promise(resolve => setImmediate(resolve));
 
 before(async () => {
   server = await createServer({ configFile: false, cacheDir: 'node_modules/.vite-realtime-test', server: { middlewareMode: true, ws: false }, appType: 'custom' });
-  ({ subscribeOrderUpdates } = await server.ssrLoadModule('/src/features/admin/orders/api/orderRealtime.js'));
+  ({ subscribeOrderUpdates, subscribeAdminRealtime } = await server.ssrLoadModule('/src/features/admin/orders/api/orderRealtime.js'));
 });
 after(async () => server.close());
 beforeEach(t => {
   sockets = [];
   requests = [];
-  t.mock.timers.enable({ apis: ['setTimeout', 'setInterval', 'Date'] });
+  now = 0;
+  t.mock.method(Date, 'now', () => now);
+  t.mock.timers.enable({ apis: ['setTimeout', 'setInterval'] });
   t.mock.method(globalThis, 'fetch', async (url, options) => {
     requests.push({ url, options });
     return new Response(JSON.stringify({ data: { ticket: 'one-use-ticket' } }), { status: 200 });
@@ -74,6 +76,7 @@ test('drop reconnects and ready resynchronizes missed events', async t => {
   sockets[1].open();
   sockets[1].message('{"type":"ready"}');
   assert.equal(updates, 2);
+  now += 60000;
   t.mock.timers.tick(60000);
   assert.equal(sockets[1].readyState, 3);
 });
@@ -96,4 +99,26 @@ test('unavailable connection retries without throwing; pending ticket is aborted
   pending.resolve(new Response(JSON.stringify({ data: { ticket: 'late' } })));
   await settle();
   assert.equal(sockets.length, 0);
+});
+
+test('bell and order list share one connection, filter events and release independently', async () => {
+  let updates = 0;
+  const notifications = [];
+  cleanup = subscribeAdminRealtime(event => notifications.push(event));
+  const stopOrders = subscribeOrderUpdates(() => updates++);
+  try {
+    await settle();
+    assert.equal(requests.length, 1);
+    assert.equal(sockets.length, 1);
+    sockets[0].open();
+    sockets[0].message('{"type":"ready"}');
+    sockets[0].message('{"type":"admin-notification","notification":{"category":"RECEIPT"}}');
+    assert.equal(updates, 1);
+    assert.equal(notifications[1].notification.category, 'RECEIPT');
+    cleanup();
+    assert.equal(sockets[0].readyState, 1);
+    sockets[0].message('{"type":"order-changed","orderId":7}');
+    assert.equal(updates, 2);
+  } finally { stopOrders(); }
+  assert.equal(sockets[0].readyState, 3);
 });

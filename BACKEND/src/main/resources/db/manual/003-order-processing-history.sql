@@ -2,7 +2,7 @@
 CREATE TABLE IF NOT EXISTS lich_su_xu_ly_don_hang (
   id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
   don_hang_id BIGINT NOT NULL,
-  nguoi_thuc_hien_id BIGINT NOT NULL,
+  nguoi_thuc_hien_id BIGINT NULL,
   hanh_dong VARCHAR(50) NOT NULL,
   mo_ta VARCHAR(255) NOT NULL,
   trang_thai_don_hang VARCHAR(50) NOT NULL,

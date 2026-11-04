@@ -13,7 +13,7 @@ const WarrantyLookupPage = () => {
   const handleSearch = (e) => {
     e.preventDefault();
     if (!searchValue.trim()) return;
-    
+
     // Simulate API search
     if (searchValue.toLowerCase() === 'error' || searchValue === '123') {
       setSearchStatus('not-found');
@@ -53,7 +53,10 @@ const WarrantyLookupPage = () => {
           <Search size={32} color="#aaa" />
         </div>
         <h2>KHÔNG TÌM THẤY KẾT QUẢ</h2>
-        <p>Không tìm thấy phiếu bảo hành với thông tin đã nhập. Vui lòng kiểm tra lại số Serial hoặc Mã phiếu bảo hành và thử lại.</p>
+        <p>
+          Không tìm thấy phiếu bảo hành với thông tin đã nhập. Vui lòng kiểm tra lại số Serial hoặc
+          Mã phiếu bảo hành và thử lại.
+        </p>
         <button className="btn-outline" onClick={handleReset}>
           TÌM KIẾM LẠI
         </button>
@@ -64,18 +67,17 @@ const WarrantyLookupPage = () => {
   const renderFoundState = () => (
     <div className="warranty-content found">
       <div className="found-grid">
-        
         {/* Left Column - Product Info */}
         <div className="product-info-panel">
           <div className="panel-header">
             <div className="red-line"></div>
             <h3>THÔNG TIN SẢN PHẨM</h3>
           </div>
-          
+
           <div className="product-details">
             <h2 className="product-title">ASUS ROG STRIX RTX 4090 OC 24GB</h2>
             <p className="product-category">VGA — Card Đồ Họa</p>
-            
+
             <div className="codes-table">
               <div className="code-col border-right">
                 <span className="code-label">SỐ SERIAL</span>
@@ -106,12 +108,15 @@ const WarrantyLookupPage = () => {
             </div>
             <div className="detail-row">
               <span className="detail-label">Lý do bảo hành</span>
-              <span className="detail-value reason">Lỗi quạt tản nhiệt — tiếng ồn bất thường khi chịu tải cao</span>
+              <span className="detail-value reason">
+                Lỗi quạt tản nhiệt — tiếng ồn bất thường khi chịu tải cao
+              </span>
             </div>
           </div>
 
           <div className="panel-footer">
-            Mọi thắc mắc vui lòng liên hệ hotline <strong>1800 6018</strong> hoặc email <strong>warranty@reventu.com</strong>.
+            Mọi thắc mắc vui lòng liên hệ hotline <strong>1800 6018</strong> hoặc email{' '}
+            <strong>warranty@reventu.com</strong>.
           </div>
         </div>
 
@@ -123,7 +128,6 @@ const WarrantyLookupPage = () => {
           </div>
 
           <div className="timeline">
-            
             {/* Step 1: Done */}
             <div className="timeline-item done">
               <div className="timeline-icon">
@@ -186,7 +190,6 @@ const WarrantyLookupPage = () => {
                 <h4 className="step-title">Hoàn tất</h4>
               </div>
             </div>
-
           </div>
         </div>
       </div>
@@ -196,7 +199,7 @@ const WarrantyLookupPage = () => {
   return (
     <div className="warranty-lookup-page">
       <Header />
-      
+
       {/* Top Black Banner */}
       <div className="warranty-banner">
         <div className="container">
@@ -208,21 +211,23 @@ const WarrantyLookupPage = () => {
             <div className="red-vertical-line"></div>
             <h1 className="banner-title">TRA CỨU BẢO HÀNH</h1>
           </div>
-          
+
           <p className="banner-subtitle">
             Nhập số Serial hoặc Mã phiếu bảo hành để kiểm tra trạng thái xử lý sản phẩm của bạn.
           </p>
 
           <form className="search-form" onSubmit={handleSearch}>
             <div className="search-input-wrapper">
-              <input 
-                type="text" 
-                placeholder="Nhập số Serial hoặc Mã đơn hàng để tra cứu..." 
+              <input
+                type="text"
+                placeholder="Nhập số Serial hoặc Mã đơn hàng để tra cứu..."
                 value={searchValue}
                 onChange={(e) => setSearchValue(e.target.value)}
               />
             </div>
-            <button type="submit" className="search-submit-btn">TRA CỨU</button>
+            <button type="submit" className="search-submit-btn">
+              TRA CỨU
+            </button>
           </form>
 
           <p className="search-hint">Thử: G4090S-VN4521 • WR-2024-0012</p>
@@ -237,7 +242,7 @@ const WarrantyLookupPage = () => {
       </div>
 
       <Footer />
-      
+
       <div className="floating-help">
         <HelpCircle size={24} color="#fff" />
       </div>

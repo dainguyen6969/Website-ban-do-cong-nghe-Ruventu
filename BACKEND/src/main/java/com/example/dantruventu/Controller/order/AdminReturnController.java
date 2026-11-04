@@ -1,6 +1,7 @@
 package com.example.dantruventu.Controller.order;
 
 import com.example.dantruventu.DTO.Request.order.AdminReturnCreateRequest;
+import com.example.dantruventu.DTO.Request.order.AdminReturnPreviewRequest;
 import com.example.dantruventu.DTO.Request.order.AdminReturnReceiveRequest;
 import com.example.dantruventu.DTO.Request.order.AdminReturnRefundRequest;
 import com.example.dantruventu.DTO.Response.ApiResponse;
@@ -30,6 +31,17 @@ import org.springframework.web.bind.annotation.RestController;
 public class AdminReturnController {
 
   private final AdminReturnService adminReturnService;
+
+  @PostMapping("/preview")
+  public ApiResponse<AdminReturnResponse.PreviewResponse> preview(
+      @Valid @RequestBody AdminReturnPreviewRequest request) {
+
+    return ApiResponse.<AdminReturnResponse.PreviewResponse>builder()
+        .status(200)
+        .message("Tính thử phiếu trả thành công")
+        .data(adminReturnService.preview(request))
+        .build();
+  }
 
   @PostMapping("/{id}/refund")
   public ApiResponse<AdminReturnResponse.RefundResponse> refund(
@@ -75,14 +87,14 @@ public class AdminReturnController {
   @PostMapping
   @ResponseStatus(HttpStatus.CREATED)
   public ApiResponse<AdminReturnResponse.CreateResponse> create(
+      @RequestHeader(name = "Idempotency-Key", required = false) String idempotencyKey,
       @Valid @RequestBody AdminReturnCreateRequest request,
-      @AuthenticationPrincipal NguoiDung actor,
-      @RequestHeader(name = "Idempotency-Key", required = false) String requestKey) {
+      @AuthenticationPrincipal NguoiDung actor) {
 
     return ApiResponse.<AdminReturnResponse.CreateResponse>builder()
         .status(HttpStatus.CREATED.value())
         .message("Tạo phiếu trả thành công")
-        .data(adminReturnService.create(request, actor == null ? null : actor.getId(), requestKey))
+        .data(adminReturnService.create(request, idempotencyKey, actor))
         .build();
   }
 
@@ -92,7 +104,7 @@ public class AdminReturnController {
 
     return ApiResponse.<AdminReturnResponse.EligibleOrderDetailResponse>builder()
         .status(200)
-        .message("Lấy thông tin tạo phiếu trả hàng thành công")
+        .message("Lấy dữ liệu lập phiếu trả thành công")
         .data(adminReturnService.getEligibleOrderDetail(orderId))
         .build();
   }
@@ -105,7 +117,7 @@ public class AdminReturnController {
 
     return ApiResponse.<AdminReturnResponse.EligibleOrderListResponse>builder()
         .status(200)
-        .message("Lấy danh sách đơn hàng có thể trả thành công")
+        .message("Lấy đơn đủ điều kiện ban đầu thành công")
         .data(adminReturnService.getEligibleOrders(keyword, page, limit))
         .build();
   }
@@ -114,13 +126,15 @@ public class AdminReturnController {
   public ApiResponse<AdminReturnResponse.ListResponse> getReturns(
       @RequestParam(name = "keyword", required = false) String keyword,
       @RequestParam(name = "trang_thai_tra_hang", required = false) TrangThaiTraHang returnStatus,
+      @RequestParam(name = "tu_ngay", required = false) String from,
+      @RequestParam(name = "den_ngay", required = false) String to,
       @RequestParam(name = "page", defaultValue = "0") int page,
       @RequestParam(name = "limit", defaultValue = "20") int limit) {
 
     return ApiResponse.<AdminReturnResponse.ListResponse>builder()
         .status(200)
-        .message("Lấy danh sách phiếu trả hàng thành công")
-        .data(adminReturnService.getReturns(keyword, returnStatus, page, limit))
+        .message("Lấy danh sách phiếu trả thành công")
+        .data(adminReturnService.getReturns(keyword, returnStatus, from, to, page, limit))
         .build();
   }
 }

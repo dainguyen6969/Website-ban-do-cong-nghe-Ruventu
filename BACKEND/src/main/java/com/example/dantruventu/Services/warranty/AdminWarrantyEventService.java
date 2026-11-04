@@ -100,7 +100,10 @@ public class AdminWarrantyEventService {
     if (!cost)
       for (var device : devices.values())
         if (device.getSoSerial() != null
-            && device.getSoSerial().getTrangThai() != TrangThaiSerial.DANG_BAO_HANH)
+            && device.getSoSerial().getTrangThai() != TrangThaiSerial.DANG_BAO_HANH
+            && !(ticket.getThietBiThayThe() != null
+                && ticket.getThietBiThayThe().getId().equals(device.getId())
+                && device.getSoSerial().getTrangThai() == TrangThaiSerial.GIU_CHO_BAO_HANH))
           throw transition();
     OffsetDateTime at =
         input.get("thoi_diem") instanceof OffsetDateTime time
@@ -195,10 +198,7 @@ public class AdminWarrantyEventService {
         } else if (complete && ((BigDecimal) balance.get("con_phai_nhan_hoan")).signum() > 0)
           message = "Giảm chi phí sau đã chi, phát sinh cần NCC hoàn";
         else if (complete) message = "Xác nhận chi phí còn phải trả sau bàn giao";
-        else
-          message =
-              "Xác nhận chi phí đơn vị"
-                  + ticket.getChiPhiNccXacNhan().stripTrailingZeros().toPlainString();
+        else message = "Xác nhận chi phí đơn vị thành công";
       }
       case "GUI_DON_VI" -> {
         requireState(ticket, TrangThaiBaoHanh.DANG_KIEM_TRA);
@@ -454,7 +454,8 @@ public class AdminWarrantyEventService {
           message = "Đã lưu lần nhận sai thiết bị, tiếp tục bị chặn bàn giao";
           extra.put(
               "canh_bao",
-              List.of("Đã lưu vật thực nhận; device" + chosen + " chưa được chứng minh đã về"));
+              List.of(
+                  "Đã lưu vật thực nhận; chưa có căn cứ xác nhận thiết bị cần nhận đã về cửa hàng."));
         }
       }
       default -> throw WarrantyEventValidation.invalid();
@@ -590,6 +591,7 @@ public class AdminWarrantyEventService {
     for (var cash : details.findPostedMoney(ticket.getId())) {
       if (cash.getHoaDonBaoHanh() != null
           || cash.getTrangThai() != TrangThaiPhieuThuChi.DA_GHI_NHAN) continue;
+      if (WarrantyFinanceCalculator.isSupplierSettlement(cash)) continue;
       if (cash.getPhieuBaoHanh() == null
           || !ticket.getId().equals(cash.getPhieuBaoHanh().getId())
           || cash.getNhaCungCap() == null

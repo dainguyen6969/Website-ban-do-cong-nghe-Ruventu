@@ -39,4 +39,7 @@ public class SalePreviewData {
 
   @JsonProperty("co_the_thanh_toan")
   private Boolean coTheThanhToan;
+
+  @JsonProperty("tiep_nhan")
+  private Map<String, Object> tiepNhan;
 }

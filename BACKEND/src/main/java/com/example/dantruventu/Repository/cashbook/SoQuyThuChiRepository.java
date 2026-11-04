@@ -27,6 +27,32 @@ public interface SoQuyThuChiRepository
 
   Optional<SoQuyThuChi> findByMaPhieu(String maPhieu);
 
+  boolean existsByKhoaNghiepVu(String khoaNghiepVu);
+
+  @Query(
+      """
+            SELECT s
+            FROM SoQuyThuChi s
+            WHERE s.khoaNghiepVu = :key
+               OR (
+                    s.khoaNghiepVu IS NULL
+                    AND s.maPhieu = :key
+               )
+            """)
+  Optional<SoQuyThuChi> findByBusinessKey(@Param("key") String key);
+
+  @Query(
+      """
+            SELECT s
+            FROM SoQuyThuChi s
+            WHERE s.khoaNghiepVu LIKE CONCAT(:prefix, '%')
+               OR (
+                    s.khoaNghiepVu IS NULL
+                    AND s.maPhieu LIKE CONCAT(:prefix, '%')
+               )
+            """)
+  List<SoQuyThuChi> findByBusinessKeyStartingWith(@Param("prefix") String prefix);
+
   boolean existsByMaPhieuIgnoreCase(String maPhieu);
 
   @Query("SELECT COUNT(d) > 0 FROM DonNhapHang d WHERE LOWER(d.maDonNhap) = LOWER(:code)")
@@ -97,7 +123,17 @@ public interface SoQuyThuChiRepository
       @Param("startInclusive") LocalDateTime startInclusive,
       @Param("endExclusive") LocalDateTime endExclusive);
 
-  @EntityGraph(attributePaths = {"loaiThuChi", "nguoiTao"})
+  @EntityGraph(
+      attributePaths = {
+        "loaiThuChi",
+        "nguoiTao",
+        "donHang",
+        "donNhapHang",
+        "phieuGiaoHang",
+        "phieuTraHang.donHang",
+        "hoaDonBaoHanh",
+        "phieuBaoHanh"
+      })
   Optional<SoQuyThuChi> findByIdAndLoaiPhieu(Long id, LoaiPhieuThuChi loaiPhieu);
 
   @Lock(LockModeType.PESSIMISTIC_WRITE)
@@ -125,11 +161,31 @@ public interface SoQuyThuChiRepository
       @Param("updatedAt") LocalDateTime updatedAt);
 
   @Override
-  @EntityGraph(attributePaths = {"loaiThuChi", "nguoiTao"})
+  @EntityGraph(
+      attributePaths = {
+        "loaiThuChi",
+        "nguoiTao",
+        "donHang",
+        "donNhapHang",
+        "phieuGiaoHang",
+        "phieuTraHang.donHang",
+        "hoaDonBaoHanh",
+        "phieuBaoHanh"
+      })
   Page<SoQuyThuChi> findAll(Specification<SoQuyThuChi> specification, Pageable pageable);
 
   @Override
-  @EntityGraph(attributePaths = {"loaiThuChi", "nguoiTao"})
+  @EntityGraph(
+      attributePaths = {
+        "loaiThuChi",
+        "nguoiTao",
+        "donHang",
+        "donNhapHang",
+        "phieuGiaoHang",
+        "phieuTraHang.donHang",
+        "hoaDonBaoHanh",
+        "phieuBaoHanh"
+      })
   List<SoQuyThuChi> findAll(Specification<SoQuyThuChi> specification, Sort sort);
 
   @Query(
@@ -146,4 +202,6 @@ public interface SoQuyThuChiRepository
       @Param("trangThai") TrangThaiPhieuThuChi trangThai);
 
   List<SoQuyThuChi> findByMaChungTuThamChieu(String maChungTuThamChieu);
+
+  List<SoQuyThuChi> findByMaPhieuStartingWith(String prefix);
 }

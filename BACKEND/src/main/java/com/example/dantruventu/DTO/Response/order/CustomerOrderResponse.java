@@ -7,6 +7,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.Map;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -166,6 +167,9 @@ public final class CustomerOrderResponse {
 
     @JsonProperty("canh_bao_thiet_bi")
     private String canhBaoThietBi;
+
+    @JsonProperty("tiep_nhan")
+    private Map<String, Object> tiepNhan;
   }
 
   @Getter
@@ -398,6 +402,9 @@ public final class CustomerOrderResponse {
 
     @JsonProperty("canh_bao_thiet_bi")
     private String canhBaoThietBi;
+
+    @JsonProperty("tiep_nhan")
+    private Map<String, Object> tiepNhan;
   }
 
   @Getter

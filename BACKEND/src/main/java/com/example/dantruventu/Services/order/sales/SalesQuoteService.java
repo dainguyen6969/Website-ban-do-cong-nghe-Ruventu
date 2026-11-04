@@ -165,6 +165,10 @@ public class SalesQuoteService {
     input.put("phi_giao_hang", inputMoney(request.getPhiGiaoHang()));
     input.put("san_pham", request.getSanPham());
 
+    if (Boolean.TRUE.equals(request.getChoPhepChoHang())) {
+      input.put("cho_phep_cho_hang", true);
+    }
+
     Set<Long> variantIds = new TreeSet<>(plan.quantities().keySet());
     plan.lines().forEach(line -> variantIds.add(line.variant().getId()));
 
