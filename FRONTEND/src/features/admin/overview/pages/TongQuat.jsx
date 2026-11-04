@@ -214,7 +214,7 @@ function Stat({ label, value, currency = false, note, to }) {
 function Table({ headers, items, children, empty }) {
   return (
     <div className="tq-table-scroll">
-      <table className="tq-table">
+      <div className="admin-table-scroll admin-table-scroll--embedded" tabIndex={0} role="region" aria-label="Bảng dữ liệu liên quan"><table className="tq-table admin-data-table admin-data-table--records">
         <thead>
           <tr>
             {headers.map((header) => (
@@ -233,7 +233,7 @@ function Table({ headers, items, children, empty }) {
             </tr>
           )}
         </tbody>
-      </table>
+      </table></div>
     </div>
   );
 }

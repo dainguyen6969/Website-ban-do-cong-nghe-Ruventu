@@ -257,6 +257,33 @@ public class OrderIntakePolicy {
     }
   }
 
+  public void checkStockNoticeRate(NguoiDung user, String guestCartId, String remoteAddress) {
+
+    String identity = user == null ? "GUEST:" + guestCartId : "USER:" + user.getId();
+    String ip = remoteAddress == null || remoteAddress.isBlank() ? "unknown" : remoteAddress;
+
+    Long allowed;
+
+    try {
+      allowed =
+          redis.execute(
+              CHECKOUT_LIMIT,
+              List.of("sales:restock:identity:" + hash(identity), "sales:restock:ip:" + hash(ip)),
+              String.valueOf(config().getCheckoutWindow().toMillis()),
+              String.valueOf(config().getCheckoutIdentityLimit()),
+              String.valueOf(config().getCheckoutIpLimit()));
+    } catch (DataAccessException exception) {
+      throw new AppException(
+          ErrorCode.INTERNAL_SERVER_ERROR,
+          "Chưa kiểm tra được giới hạn đăng ký. Vui lòng thử lại cùng yêu cầu.");
+    }
+
+    if (!Long.valueOf(1L).equals(allowed)) {
+      throw new AppException(
+          ErrorCode.TOO_MANY_REQUESTS, "Bạn đã gửi nhiều đăng ký. Vui lòng chờ rồi thử lại.");
+    }
+  }
+
   private String hash(String value) {
     try {
       return HexFormat.of()

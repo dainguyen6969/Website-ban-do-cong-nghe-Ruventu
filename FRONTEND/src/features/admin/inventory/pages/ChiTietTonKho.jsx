@@ -238,7 +238,7 @@ export default function ChiTietTonKho() {
             <small>— chọn phiên bản để lọc thẻ kho</small>
           </header>
           <div className="inventory-table-wrap">
-            <table className="inventory-table inventory-version-table">
+            <div className="admin-table-scroll admin-table-scroll--embedded" tabIndex={0} role="region" aria-label="Bảng dữ liệu liên quan"><table className="inventory-table inventory-version-table admin-data-table admin-data-table--records">
               <thead>
                 <tr>
                   <th>TÊN PHIÊN BẢN</th>
@@ -291,7 +291,7 @@ export default function ChiTietTonKho() {
                   );
                 })}
               </tbody>
-            </table>
+            </table></div>
           </div>
           <DetailTablePagination
             totalItems={detail.versions.length}
@@ -315,7 +315,7 @@ export default function ChiTietTonKho() {
           )}
 
           <div className="inventory-table-wrap">
-            <table className="inventory-table inventory-allocation-table">
+            <div className="admin-table-scroll admin-table-scroll--embedded" tabIndex={0} role="region" aria-label="Bảng dữ liệu liên quan"><table className="inventory-table inventory-allocation-table admin-data-table admin-data-table--records">
               <thead>
                 <tr>
                   <th>KHO HÀNG</th>
@@ -371,7 +371,7 @@ export default function ChiTietTonKho() {
                   <td />
                 </tr>
               </tfoot>
-            </table>
+            </table></div>
           </div>
           <DetailTablePagination
             totalItems={selectedVersion.allocations.length}
@@ -463,7 +463,7 @@ export default function ChiTietTonKho() {
           </div>
 
           <div className="inventory-table-wrap">
-            <table className="inventory-table inventory-history-table">
+            <div className="admin-table-scroll admin-table-scroll--embedded" tabIndex={0} role="region" aria-label="Bảng dữ liệu liên quan"><table className="inventory-table inventory-history-table admin-data-table admin-data-table--records">
               <thead>
                 <tr>
                   <th>THỜI GIAN</th>
@@ -532,7 +532,7 @@ export default function ChiTietTonKho() {
                   </tr>
                 )}
               </tbody>
-            </table>
+            </table></div>
           </div>
           <DetailTablePagination
             totalItems={filteredHistory.length}

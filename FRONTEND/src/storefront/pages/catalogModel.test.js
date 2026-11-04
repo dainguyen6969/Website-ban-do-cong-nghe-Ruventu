@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { inCatalogScope, shuffleProducts } from './catalogModel.js';
+import { inCatalogScope, shuffleProducts, categoryTreeIds, componentCategoryIds } from './catalogModel.js';
 
 test('category navigation uses real category names and never treats combo components as standalone categories', () => {
   const cpu = { loaiSanPham: 'DON', category: 'CPU' };
@@ -35,4 +35,17 @@ test('homepage shuffle draws from the whole catalog without mutating or duplicat
   assert.equal(new Set(shuffled).size, products.length);
   assert.deepEqual(shuffleProducts([]), []);
   assert.deepEqual(shuffleProducts([products[0]]), [products[0]]);
+});
+
+test('database category IDs survive renames and include descendants without looping on cycles', () => {
+  const categories = [
+    { id: 1, tenDanhMuc: 'Tên đã đổi', duongDanUrl: 'ten-moi' },
+    { id: 2, danhMucChaId: 1, duongDanUrl: 'con' },
+    { id: 3, duongDanUrl: 'laptop' },
+    { id: 4, danhMucChaId: 3, duongDanUrl: 'laptop-con' },
+    { id: 5, danhMucChaId: 6 }, { id: 6, danhMucChaId: 5 },
+  ];
+  assert.deepEqual([...categoryTreeIds(categories, '1')], [1, 2]);
+  assert.deepEqual([...categoryTreeIds(categories, 5)], [5, 6]);
+  assert.deepEqual([...componentCategoryIds(categories)], [1, 2, 5, 6]);
 });

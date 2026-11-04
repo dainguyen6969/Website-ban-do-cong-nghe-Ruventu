@@ -683,23 +683,30 @@ export default function ChiTietKhuyenMai() {
                         </div>
                     </div>
 
-                    {/* Card 2: Phiên bản mua / áp dụng */}
-                    <div className="detail-card">
-                        <div className="detail-card-header">
-                            <h3>PHIÊN BẢN MUA / ÁP DỤNG</h3>
-                        </div>
-                        <div className="detail-card-body table-body">
-                            <table className="detail-table-dark">
-                                <thead>
-                                    <tr>
-                                        <th>SẢN PHẨM / PHIÊN BẢN</th>
-                                        <th>SKU / MÃ VẠCH</th>
-                                        <th>SỐ LƯỢNG</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {buyProducts.length > 0 ? (
-                                        buyProducts.map((p, idx) => (
+                 {/* Card 2: Phiên bản mua / áp dụng */}
+                 <div className="detail-card">
+                     <div className="detail-card-header">
+                         <h3>PHIÊN BẢN MUA / ÁP DỤNG</h3>
+                     </div>
+
+                     <div className="detail-card-body table-body">
+                         <div
+                             className="admin-table-scroll admin-table-scroll--embedded"
+                             tabIndex={0}
+                             role="region"
+                             aria-label="Phiên bản mua hoặc áp dụng"
+                         >
+                             <table className="detail-table-dark admin-data-table admin-data-table--records">
+                                 <thead>
+                                     <tr>
+                                         <th>SẢN PHẨM / PHIÊN BẢN</th>
+                                         <th>SKU / MÃ VẠCH</th>
+                                         <th>SỐ LƯỢNG</th>
+                                     </tr>
+                                 </thead>
+                                 <tbody>
+                                     {buyProducts.length > 0 ? (
+                                         buyProducts.map((p, idx) => (
                                             <tr key={idx}>
                                                 <td>
                                                     <div className="item-name-bold">{p.name}</div>
@@ -715,19 +722,27 @@ export default function ChiTietKhuyenMai() {
                                                 Không có dòng mua theo phiên bản trong cấu hình trả về.
                                             </td>
                                         </tr>
-                                    )}
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
+                                     )}
+                                 </tbody>
+                             </table>
+                         </div>
+                     </div>
+                 </div>
 
-                    {/* Card 3: Bộ quà cấu hình */}
-                    <div className="detail-card">
-                        <div className="detail-card-header">
-                            <h3>BỘ QUÀ CẤU HÌNH</h3>
-                        </div>
-                        <div className="detail-card-body table-body">
-                            <table className="detail-table-dark">
+                 {/* Card 3: Bộ quà cấu hình */}
+                 <div className="detail-card">
+                     <div className="detail-card-header">
+                         <h3>BỘ QUÀ CẤU HÌNH</h3>
+                     </div>
+
+                     <div className="detail-card-body table-body">
+                         <div
+                             className="admin-table-scroll admin-table-scroll--embedded"
+                             tabIndex={0}
+                             role="region"
+                             aria-label="Bộ quà cấu hình"
+                         >
+                             <table className="detail-table-dark admin-data-table admin-data-table--records">
                                 <thead>
                                     <tr>
                                         <th>SẢN PHẨM / PHIÊN BẢN</th>
@@ -755,7 +770,7 @@ export default function ChiTietKhuyenMai() {
                                         </tr>
                                     )}
                                 </tbody>
-                            </table>
+                            </table></div>
                         </div>
                     </div>
                 </div>

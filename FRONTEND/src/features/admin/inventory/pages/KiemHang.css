@@ -269,12 +269,6 @@
 .stock-check-footer .product-pagination-range {
   display: none;
 }
-.stock-check-footer .product-pagination-btn {
-  min-width: 30px;
-  height: 30px;
-  padding: 0 8px;
-  font-size: 11px;
-}
 @media (max-width: 1050px) {
   .stock-check-toolbar {
     grid-template-columns: 1fr 1fr 1fr;

@@ -2,6 +2,7 @@ package com.example.dantruventu.Controller.warranty;
 
 import com.example.dantruventu.DTO.Request.warranty.AdminWarrantyCreateRequest;
 import com.example.dantruventu.DTO.Request.warranty.AdminWarrantyEventRequest;
+import com.example.dantruventu.DTO.Request.warranty.AdminWarrantyHandoverRequest;
 import com.example.dantruventu.DTO.Request.warranty.AdminWarrantyIntakeResultRequest;
 import com.example.dantruventu.DTO.Request.warranty.AdminWarrantyInvoiceRequest;
 import com.example.dantruventu.DTO.Request.warranty.AdminWarrantyMoneyRequest;
@@ -40,6 +41,16 @@ public class AdminWarrantyController {
   private final AdminWarrantyReplacementPlanService replacementPlanService;
   private final AdminWarrantyReplacementItemsService replacementItemsService;
   private final AdminWarrantySupplierSettlementService supplierSettlementService;
+  private final AdminWarrantyHandoverService handoverService;
+
+  @PostMapping("/{id}/handover")
+  public ApiResponse<AdminWarrantyHandoverResponse> handover(
+      @PathVariable String id,
+      @RequestBody AdminWarrantyHandoverRequest request,
+      @RequestHeader(name = "Idempotency-Key", required = false) String key,
+      @AuthenticationPrincipal NguoiDung actor) {
+    return handoverService.save(id, request, key, actor == null ? null : actor.getId());
+  }
 
   @PostMapping("/{id}/supplier-settlements")
   public ApiResponse<AdminWarrantySupplierSettlementResponse> supplierSettlement(

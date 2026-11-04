@@ -106,6 +106,7 @@ export function normalizePurchaseOrder(item) {
 
       serialManaged: line.quan_ly_serial,
       serialModeEstablished: Boolean(line.che_do_serial_da_xac_lap),
+      storageLocation: line.vi_tri_luu_kho || '',
     })),
   };
 }

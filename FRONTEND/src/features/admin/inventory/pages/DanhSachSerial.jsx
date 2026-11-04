@@ -43,6 +43,8 @@ export default function DanhSachSerial() {
   const [totalItems, setTotalItems] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [countsError, setCountsError] = useState('');
+  const [versionsError, setVersionsError] = useState('');
   const [reloadKey, setReloadKey] = useState(0);
   const comboName = searchParams.get('combo');
 
@@ -52,18 +54,19 @@ export default function DanhSachSerial() {
       .then(({ versions: items }) => setVersions(items.filter((item) => item.type === 'Phiên bản')))
       .catch((cause) => {
         if (cause.name !== 'AbortError')
-          setError(cause.message || 'Không thể tải bộ lọc phiên bản.');
+          setVersionsError(cause.message || 'Không thể tải bộ lọc phiên bản.');
       });
     return () => controller.abort();
   }, []);
 
   useEffect(() => {
     const controller = new AbortController();
+    setCountsError('');
     getSerialCounts(controller.signal)
       .then(setCounts)
       .catch((cause) => {
         if (cause.name !== 'AbortError')
-          setError(cause.message || 'Không thể tải thống kê serial.');
+          setCountsError(cause.message || 'Không thể tải thống kê serial.');
       });
     return () => controller.abort();
   }, [reloadKey]);
@@ -124,8 +127,8 @@ export default function DanhSachSerial() {
   };
 
   return (
-    <main className="serial-page" role="main">
-      <div className="serial-page__inner">
+    <main className="serial-page admin-list-page serial-list-page" role="main">
+      <div className="serial-page__inner admin-list-body">
         <nav className="serial-secondary-breadcrumb" aria-label="Breadcrumb nội dung">
           <span>Sản phẩm</span>
           <span>›</span>
@@ -139,16 +142,40 @@ export default function DanhSachSerial() {
             {Object.entries(SERIAL_STATUS_META).map(([code, meta]) => (
               <div className={`serial-stat serial-stat--${meta.key}`} key={code}>
                 <span className="serial-stat__square" aria-hidden="true" />
-                <strong>{counts[code] || 0}</strong>
+                <strong>{counts[code] ?? '—'}</strong>
                 <span>{meta.label.toLocaleUpperCase('vi')}</span>
               </div>
             ))}
           </div>
         </div>
+        {Object.entries(counts).some(([, count]) => count === null) && (
+          <p role="status">
+            Backend hiện chưa hỗ trợ lọc và thống kê:{' '}
+            {Object.entries(counts)
+              .filter(([, count]) => count === null)
+              .map(([code]) => SERIAL_STATUS_META[code].label)
+              .join(', ')}
+            .
+          </p>
+        )}
+        {countsError && (
+          <p role="alert">
+            Không tải được thống kê: {countsError}{' '}
+            <button
+              type="button"
+              className="serial-view"
+              onClick={() => setReloadKey((value) => value + 1)}
+            >
+              THỬ LẠI THỐNG KÊ
+            </button>
+          </p>
+        )}
+        {versionsError && <p role="alert">Không tải được bộ lọc phiên bản: {versionsError}</p>}
         <section className="serial-toolbar" aria-label="Tìm kiếm và lọc serial">
           <label className="serial-search">
             <HiOutlineSearch size={18} aria-hidden="true" />
             <span className="sr-only">Tìm sản phẩm hoặc phiên bản</span>
+
             <input
               type="search"
               value={search}
@@ -156,8 +183,10 @@ export default function DanhSachSerial() {
               placeholder="Tìm sản phẩm / mã vạch / phiên bản..."
             />
           </label>
+
           <label className="serial-search serial-search--code">
             <span className="sr-only">Lọc theo số serial</span>
+
             <input
               type="search"
               value={serial}
@@ -165,7 +194,7 @@ export default function DanhSachSerial() {
               placeholder="Nhập chính xác số serial..."
             />
           </label>
-          {/* Lọc trạng thái serial */}
+
           <FilterDropdown
             aria-label="Lọc trạng thái"
             value={status}
@@ -173,13 +202,16 @@ export default function DanhSachSerial() {
             selectedDark
           >
             {statusOptions.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
+              <option
+                key={option.value}
+                value={option.value}
+                disabled={counts[option.value] === null}
+              >
+                {`${option.label}${counts[option.value] === null ? ' (chưa hỗ trợ)' : ''}`}
               </option>
             ))}
           </FilterDropdown>
 
-          {/* Lọc phiên bản sản phẩm */}
           <FilterDropdown
             className="serial-version-select"
             aria-label="Lọc phiên bản"
@@ -196,106 +228,115 @@ export default function DanhSachSerial() {
             ))}
           </FilterDropdown>
 
-          <button
-            type="button"
-            className="serial-export"
-            onClick={() => navigate('/kho-hang/thu-hoi')}
-          >
-            Thu hồi hàng
-          </button>
+          <div className="serial-toolbar-actions">
+            <button
+              type="button"
+              className="serial-export"
+              onClick={() => navigate('/kho-hang/thu-hoi')}
+            >
+              Thu hồi hàng
+            </button>
 
-          {/* Xuất danh sách serial ra Excel */}
-          <button type="button" className="serial-export" onClick={exportExcel}>
-            <HiOutlineUpload size={17} />
-            XUẤT EXCEL
-          </button>
+            <button type="button" className="serial-export" onClick={exportExcel}>
+              <HiOutlineUpload size={17} aria-hidden="true" />
+              XUẤT EXCEL
+            </button>
+          </div>
         </section>
-        <div className="serial-table-shell">
-          <table className="serial-table">
-            <thead>
-              <tr>
-                <th>PHIÊN BẢN SẢN PHẨM</th>
-                <th>MÃ VẠCH/SKU</th>
-                <th>SỐ SERIAL</th>
-                <th>TRẠNG THÁI</th>
-                <th>NGÀY KÍCH HOẠT</th>
-                <th>HẠN BẢO HÀNH</th>
-              </tr>
-            </thead>
-            <tbody>
-              {loading ? (
+        <div className="serial-table-shell admin-list-frame">
+          <div
+            className="admin-table-scroll"
+            tabIndex={0}
+            role="region"
+            aria-label="Bảng danh sách"
+          >
+            <table className="serial-table admin-data-table">
+              <thead>
                 <tr>
-                  <td className="serial-empty" colSpan="6">
-                    Đang tải dữ liệu...
-                  </td>
+                  <th>PHIÊN BẢN SẢN PHẨM</th>
+                  <th>MÃ VẠCH/SKU</th>
+                  <th>SỐ SERIAL</th>
+                  <th>TRẠNG THÁI</th>
+                  <th>NGÀY KÍCH HOẠT</th>
+                  <th>HẠN BẢO HÀNH</th>
                 </tr>
-              ) : error ? (
-                <tr>
-                  <td className="serial-empty" colSpan="6">
-                    {error}{' '}
-                    <button
-                      type="button"
-                      className="serial-view"
-                      onClick={() => setReloadKey((value) => value + 1)}
-                    >
-                      THỬ LẠI
-                    </button>
-                  </td>
-                </tr>
-              ) : rows.length === 0 ? (
-                <tr>
-                  <td className="serial-empty" colSpan="6">
-                    Không tìm thấy Serial phù hợp.
-                  </td>
-                </tr>
-              ) : (
-                rows.map((item) => (
-                  <tr
-                    key={item.id}
-                    className={item.status === 'LOI' ? 'serial-table__row--error' : ''}
-                    onClick={() => openDetail(item.id)}
-                    tabIndex="0"
-                    onKeyDown={(event) => {
-                      if (event.key === 'Enter') openDetail(item.id);
-                    }}
-                  >
-                    <td>
-                      <strong className="serial-product-name">
-                        {item.productName} · {item.version}
-                      </strong>
-                      <small>{item.productCode}</small>
+              </thead>
+              <tbody>
+                {loading ? (
+                  <tr>
+                    <td className="serial-empty" colSpan="6">
+                      Đang tải dữ liệu...
+                    </td>
+                  </tr>
+                ) : error ? (
+                  <tr>
+                    <td className="serial-empty" colSpan="6">
+                      {error}{' '}
                       <button
                         type="button"
                         className="serial-view"
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          openDetail(item.id);
-                        }}
+                        onClick={() => setReloadKey((value) => value + 1)}
                       >
-                        XEM CHI TIẾT
+                        THỬ LẠI
                       </button>
                     </td>
-                    <td>
-                      <span className="serial-barcode">{item.barcode}</span>
-                    </td>
-                    <td>
-                      <strong className="serial-code">{item.serial}</strong>
-                    </td>
-                    <td>
-                      <StatusBadge status={item.status} />
-
-                      {item.recallBlocked && (
-                        <small className="recall-badge is-blocked">Thu hồi · chặn bán</small>
-                      )}
-                    </td>
-                    <td>{item.activatedAt}</td>
-                    <td>{item.warrantyUntil}</td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+                ) : rows.length === 0 ? (
+                  <tr>
+                    <td className="serial-empty" colSpan="6">
+                      Không tìm thấy Serial phù hợp.
+                    </td>
+                  </tr>
+                ) : (
+                  rows.map((item) => (
+                    <tr
+                      key={item.id}
+                      className={item.status === 'LOI' ? 'serial-table__row--error' : ''}
+                      onClick={() => openDetail(item.id)}
+                      tabIndex="0"
+                      onKeyDown={(event) => {
+                        if (event.key === 'Enter') openDetail(item.id);
+                      }}
+                    >
+                      <td>
+                        <strong className="serial-product-name">
+                          {item.productName} · {item.version}
+                        </strong>
+                        <small>{item.productCode}</small>
+                        <button
+                          type="button"
+                          className="serial-view"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            openDetail(item.id);
+                          }}
+                        >
+                          XEM CHI TIẾT
+                        </button>
+                      </td>
+                      <td>
+                        <span className="serial-barcode">{item.barcode}</span>
+                      </td>
+                      <td>
+                        <strong className="serial-code">{item.serial}</strong>
+                      </td>
+                      <td>
+                        <StatusBadge status={item.status} />
+
+                        {item.recallBlocked && (
+                          <small className="recall-badge is-blocked">Thu hồi · chặn bán</small>
+                        )}
+                      </td>
+                      <td>{item.activatedAt}</td>
+                      <td>{item.warrantyUntil}</td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
           <TablePagination
+            className="admin-table-footer"
             totalItems={totalItems}
             pageSize={PAGE_SIZE}
             currentPage={currentPage}

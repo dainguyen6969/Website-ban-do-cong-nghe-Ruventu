@@ -7,6 +7,7 @@ export default function DetailTablePagination({ totalItems, currentPage, onPageC
 
   return (
     <TablePagination
+      className="admin-table-footer"
       totalItems={totalItems}
       pageSize={DETAIL_TABLE_PAGE_SIZE}
       currentPage={currentPage}

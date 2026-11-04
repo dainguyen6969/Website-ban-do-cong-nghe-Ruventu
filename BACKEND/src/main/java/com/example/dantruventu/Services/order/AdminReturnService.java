@@ -156,7 +156,7 @@ public class AdminReturnService {
     ensureCodReconciled(returnSlip.getDonHang());
 
     String voucherCode = "CHI-TH-" + returnSlip.getId();
-    if (cashRepository.findByMaPhieu(voucherCode).isPresent()
+    if (cashRepository.findByBusinessKey(voucherCode).isPresent()
         || cashRepository.existsByLoaiPhieuAndNguonTaoAndMaChungTuThamChieuAndSoTien(
             LoaiPhieuThuChi.CHI,
             NguonTaoPhieuThuChi.TU_DONG,
@@ -176,7 +176,7 @@ public class AdminReturnService {
     SoQuyThuChi expense =
         cashbookService.createAutomatic(
             CashbookService.AutomaticVoucher.builder()
-                .maPhieu(voucherCode)
+                .khoaNghiepVu(voucherCode)
                 .loaiPhieu(LoaiPhieuThuChi.CHI)
                 .maLoaiThuChi(REFUND_CASH_TYPE_CODE)
                 .nhomNguoiNopNhan(NhomNguoiNopNhanEnum.KHACH_HANG)
@@ -189,6 +189,7 @@ public class AdminReturnService {
                 .moTa(description)
                 .nguoiTao(actor)
                 .phieuTraHang(returnSlip)
+                .donHang(returnSlip.getDonHang())
                 .build());
 
     returnSlip.setHinhThucHoanTien(paymentMethod);
@@ -1559,7 +1560,7 @@ public class AdminReturnService {
 
     for (PhieuGiaoHang delivery : codDeliveries) {
       SoQuyThuChi receipt =
-          cashRepository.findByMaPhieu("THU-COD-" + delivery.getId()).orElse(null);
+          cashRepository.findByBusinessKey("THU-COD-" + delivery.getId()).orElse(null);
       if (!isValidCodReceipt(order, delivery, receipt)) {
         throw new AppException(
             ErrorCode.CONFLICT,

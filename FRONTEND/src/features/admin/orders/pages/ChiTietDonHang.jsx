@@ -30,6 +30,7 @@ import {
   completeCounterInspection,
 } from '../api/orderApi';
 
+import DocumentPanel from '../../documents/DocumentPanel';
 import { subscribeAdminRealtime } from '../api/orderRealtime';
 import OrderRefundPanel from '../components/OrderRefundPanel';
 import { OrderStateBadge } from './DanhSachDonHang';
@@ -226,6 +227,7 @@ function OrderDetailView({ orderId }) {
   const readerRef = useRef(null);
   const editingRef = useRef(false);
   const refundEditing = useRef(false);
+  const documentEditing = useRef(false);
   const navigate = useNavigate();
 
   const [screen, setScreen] = useState({
@@ -272,6 +274,14 @@ function OrderDetailView({ orderId }) {
     }
   }, []);
 
+  const onDocumentEditing = useCallback((value) => {
+    documentEditing.current = value;
+
+    if (!value) {
+      readerRef.current?.resume();
+    }
+  }, []);
+
   useEffect(() => {
     const optionsController = new AbortController();
 
@@ -286,7 +296,11 @@ function OrderDetailView({ orderId }) {
         return value;
       },
 
-      canApply: () => !actionBusy.current && !editingRef.current && !refundEditing.current,
+      canApply: () =>
+        !actionBusy.current &&
+        !editingRef.current &&
+        !refundEditing.current &&
+        !documentEditing.current,
 
       onData: (value) => {
         setScreen(value);
@@ -429,7 +443,7 @@ function OrderDetailView({ orderId }) {
     );
 
   const open = (type, title, fields = {}) => {
-    if (refundEditing.current) return;
+    if (refundEditing.current || documentEditing.current) return;
 
     setState((current) => ({ ...current, error: '' }));
     editingRef.current = true;
@@ -537,6 +551,7 @@ function OrderDetailView({ orderId }) {
     if (
       actionBusy.current ||
       refundEditing.current ||
+      documentEditing.current ||
       orderAttempt.current ||
       cashAttempt.current
     ) {
@@ -1185,6 +1200,13 @@ function OrderDetailView({ orderId }) {
         <div className="order-cod-settlement" role="status">
           <strong>THEO DÕI HÀNG CỦA ĐƠN CHỜ HÀNG</strong>
 
+          <Link
+            className="order-action"
+            to={`/admin/don-hang/cho-hang-can-xu-ly?order_id=${order.id}`}
+          >
+            LIÊN HỆ VÀ LỊCH XỬ LÝ
+          </Link>
+
           {waitingHasReceivedMoney ? (
             waitingFullyReserved ? (
               <p>
@@ -1294,47 +1316,98 @@ function OrderDetailView({ orderId }) {
       <div className="order-detail-content">
         <div className="order-detail-main">
           <Panel title="SẢN PHẨM TRONG ĐƠN">
-            <div className="order-products-table-wrap">
-              <table className="order-products-table">
-                <thead>
-                  <tr>
-                    <th>ẢNH</th>
-                    <th>SẢN PHẨM / PHIÊN BẢN</th>
-                    <th>MÃ VẠCH</th>
-                    <th>ĐƠN GIÁ</th>
-                    <th>SL</th>
-                    <th>THÀNH TIỀN</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {products.visibleItems.map((item) => (
-                    <tr key={item.chi_tiet_don_hang_id}>
-                      <td>
-                        <OrderProductImage item={item} />
-                      </td>
-                      <td>
-                        <strong>{item.ten_san_pham || `Phiên bản #${item.phien_ban_id}`}</strong>
+            <div className="order-items-figma">
+              <div
+                className="order-items-figma__scroll"
+                tabIndex={0}
+                role="region"
+                aria-label="Sản phẩm và linh kiện trong đơn"
+              >
+                <table className="order-products-table order-items-figma__table">
+                  <colgroup>
+                    <col className="order-items-figma__col-image" />
+                    <col />
+                    <col className="order-items-figma__col-barcode" />
+                    <col className="order-items-figma__col-price" />
+                    <col className="order-items-figma__col-quantity" />
+                    <col className="order-items-figma__col-total" />
+                  </colgroup>
 
-                        <OrderLineNotice item={item} />
-                        <span>
-                          {item.loai_san_pham === 'BO_PC' ? 'Bộ PC' : item.ten_phien_ban || '—'}
-                        </span>
-
-                        {item.loai_san_pham === 'BO_PC' && (
-                          <ComboContents items={item.thanh_phan || []} order compact />
-                        )}
-                      </td>
-                      <td>—</td>
-                      <td className="align-right">{money(item.don_gia)}</td>
-                      <td className="align-center">{item.so_luong}</td>
-                      <td className="align-right">
-                        <OrderLineAmount item={item} />{' '}
-                      </td>
+                  <thead>
+                    <tr>
+                      <th>ẢNH</th>
+                      <th>SẢN PHẨM / PHIÊN BẢN</th>
+                      <th>MÃ VẠCH</th>
+                      <th className="order-items-figma__number">ĐƠN GIÁ</th>
+                      <th className="order-items-figma__number">SL</th>
+                      <th className="order-items-figma__number">THÀNH TIỀN</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+
+                  {products.visibleItems.map((item) => {
+                    const isPc = item.loai_san_pham === 'BO_PC';
+
+                    const productName = item.ten_san_pham || `Phiên bản #${item.phien_ban_id}`;
+
+                    const variantName = String(item.ten_phien_ban || '').trim();
+
+                    const showVariant =
+                      variantName.length > 0 &&
+                      variantName.toLocaleLowerCase('vi-VN') !==
+                        String(productName).trim().toLocaleLowerCase('vi-VN');
+
+                    const components = Array.isArray(item.thanh_phan) ? item.thanh_phan : [];
+
+                    return (
+                      <tbody key={item.chi_tiet_don_hang_id}>
+                        <tr className={isPc ? 'order-items-figma__pc-row' : undefined}>
+                          <td className="order-items-figma__photo">
+                            <OrderProductImage item={item} />
+                          </td>
+
+                          <td>
+                            <strong className="order-items-figma__name">{productName}</strong>
+
+                            {showVariant && (
+                              <span className="order-items-figma__variant">{variantName}</span>
+                            )}
+
+                            {isPc && (
+                              <span className="order-items-figma__kind">
+                                Bộ PC · {item.so_luong} bộ
+                              </span>
+                            )}
+
+                            <OrderLineNotice item={item} />
+                          </td>
+
+                          <td className="order-items-figma__barcode">—</td>
+
+                          <td className="order-items-figma__number">{money(item.don_gia)}</td>
+
+                          <td className="order-items-figma__number">{item.so_luong}</td>
+
+                          <td className="order-items-figma__number order-items-figma__amount">
+                            <OrderLineAmount item={item} />
+                          </td>
+                        </tr>
+
+                        {isPc && (
+                          <tr className="order-items-figma__parts-row">
+                            <td colSpan={6}>
+                              <div className="order-items-figma__components">
+                                <ComboContents items={components} order />
+                              </div>
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    );
+                  })}
+                </table>
+              </div>
             </div>
+
             <DetailTablePagination
               totalItems={(order.san_pham || []).length}
               currentPage={products.currentPage}
@@ -1493,6 +1566,20 @@ function OrderDetailView({ orderId }) {
               onEditingChange={onRefundEditing}
             />
           </Panel>
+
+          <DocumentPanel
+            key={`order-${order.id}`}
+            mode="order"
+            id={order.id}
+            locked={
+              state.busy ||
+              Boolean(dialog) ||
+              isCancelOpen ||
+              Boolean(orderAttempt.current) ||
+              Boolean(cashAttempt.current)
+            }
+            onEditingChange={onDocumentEditing}
+          />
 
           <Panel title="ĐÓNG GÓI VÀ XUẤT KHO">
             <div className="order-fulfillment-grid">
@@ -1662,119 +1749,94 @@ function OrderDetailView({ orderId }) {
             (order.thiet_bi_da_ban || []).length > 0 ||
             order.can_xac_minh_lich_su === true) && (
             <Panel title="THIẾT BỊ VÀ BẢO HÀNH">
-              {counterInspectionClosed && (
-                <div className="order-counter-closed-notice">
-                  Đã kết thúc kiểm tra tại quầy. Mọi lỗi phát sinh tiếp theo sẽ được xử lý qua quy trình bảo hành tiêu chuẩn.
-                </div>
-              )}
+              <div className="order-warranty">
+                {counterInspectionClosed && (
+                  <p className="order-note">
+                    Đã kết thúc kiểm tra tại quầy. Lỗi phát sinh tiếp theo xử lý qua bảo hành.
+                  </p>
+                )}
 
-              {counterDevices.length > 0 && (
-                <div className="order-counter-devices-section">
-                  <div className="order-subsection-bar">
-                    <div className="order-subsection-title">
-                      <span>THIẾT BỊ HIỆN HÀNH</span>
-                      <span className="order-count-pill">{counterDevices.length}</span>
+                {canCounterExchange && counterDevices.length > 0 && (
+                  <div className="order-panel-actions">
+                    <Action
+                      secondary
+                      disabled={
+                        state.busy || Boolean(orderAttempt.current) || Boolean(cashAttempt.current)
+                      }
+                      click={() => open('completeCounterInspection', 'KẾT THÚC KIỂM TRA TẠI QUẦY')}
+                    >
+                      KẾT THÚC KIỂM TRA TẠI QUẦY
+                    </Action>
+                  </div>
+                )}
+
+                {counterDevices.length > 0 && (
+                  <>
+                    <h3>THIẾT BỊ HIỆN HÀNH</h3>
+
+                    <div className="sold-devices-scroll">
+                      <table className="sold-devices-table order-current-devices-table admin-data-table admin-data-table--records">
+                        <thead>
+                          <tr>
+                            <th>Mã theo dõi</th>
+                            <th>Serial / nhận dạng</th>
+                            <th>Số lần đã đổi</th>
+                            <th>Thao tác</th>
+                          </tr>
+                        </thead>
+
+                        <tbody>
+                          {counterDevices.map((device) => {
+                            const count = Array.isArray(device.chuoi_thay_the)
+                              ? device.chuoi_thay_the.length
+                              : 0;
+
+                            return (
+                              <tr key={device.thiet_bi_id}>
+                                <td>{device.ma_theo_doi}</td>
+
+                                <td>
+                                  {device.so_serial ||
+                                    device.dau_hieu_nhan_dang ||
+                                    'Không quản lý serial'}
+                                </td>
+
+                                <td>{count}</td>
+
+                                <td>
+                                  {canCounterExchange ? (
+                                    <Action
+                                      disabled={
+                                        state.busy ||
+                                        Boolean(orderAttempt.current) ||
+                                        Boolean(cashAttempt.current)
+                                      }
+                                      click={() => openCounterExchange(device)}
+                                    >
+                                      {count > 0
+                                        ? 'GHI NHẬN LỖI VÀ ĐỔI TIẾP'
+                                        : 'ĐỔI 1-1 LỖI TẠI QUẦY'}
+                                    </Action>
+                                  ) : (
+                                    '—'
+                                  )}
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
                     </div>
+                  </>
+                )}
 
-                    {canCounterExchange && (
-                      <button
-                        type="button"
-                        className="order-btn-secondary"
-                        disabled={
-                          state.busy ||
-                          Boolean(orderAttempt.current) ||
-                          Boolean(cashAttempt.current)
-                        }
-                        onClick={() =>
-                          open('completeCounterInspection', 'KẾT THÚC KIỂM TRA TẠI QUẦY')
-                        }
-                      >
-                        KẾT THÚC KIỂM TRA TẠI QUẦY
-                      </button>
-                    )}
-                  </div>
+                <details className="order-original-devices">
+                  <summary>THIẾT BỊ CỦA LẦN XUẤT GỐC</summary>
+                  <SoldDevices order={order} />
+                </details>
 
-                  <div className="order-devices-table-wrap">
-                    <table className="order-devices-table">
-                      <thead>
-                        <tr>
-                          <th>MÃ THEO DÕI</th>
-                          <th>SERIAL / NHẬN DẠNG</th>
-                          <th className="align-center">SỐ LẦN ĐÃ ĐỔI</th>
-                          <th className="align-right">THAO TÁC</th>
-                        </tr>
-                      </thead>
-
-                      <tbody>
-                        {counterDevices.map((device) => {
-                          const count = Array.isArray(device.chuoi_thay_the)
-                            ? device.chuoi_thay_the.length
-                            : 0;
-
-                          return (
-                            <tr key={device.thiet_bi_id}>
-                              <td>
-                                <span className="order-device-code">{device.ma_theo_doi}</span>
-                              </td>
-
-                              <td>
-                                {device.so_serial ? (
-                                  <strong className="order-device-serial">{device.so_serial}</strong>
-                                ) : device.dau_hieu_nhan_dang ? (
-                                  <span>{device.dau_hieu_nhan_dang}</span>
-                                ) : (
-                                  <span className="order-text-muted">-</span>
-                                )}
-                              </td>
-
-                              <td className="align-center">
-                                {count > 0 ? (
-                                  <span className="order-badge-counter">Đã đổi {count} lần</span>
-                                ) : (
-                                  <span className="order-text-muted">0</span>
-                                )}
-                              </td>
-
-                              <td className="align-right">
-                                {canCounterExchange ? (
-                                  <button
-                                    type="button"
-                                    className="order-action order-action--black order-action--sm"
-                                    disabled={
-                                      state.busy ||
-                                      Boolean(orderAttempt.current) ||
-                                      Boolean(cashAttempt.current)
-                                    }
-                                    onClick={() => openCounterExchange(device)}
-                                  >
-                                    {count > 0
-                                      ? 'GHI NHẬN LỖI VÀ ĐỔI TIẾP'
-                                      : 'ĐỔI 1-1 LỖI TẠI QUẦY'}
-                                  </button>
-                                ) : (
-                                  '—'
-                                )}
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              )}
-
-              <details className="order-collapsible-panel" open>
-                <summary className="order-collapsible-summary">
-                  <span>THIẾT BỊ CỦA LẦN XUẤT GỐC</span>
-                  <span className="order-count-pill">
-                    {(order.thiet_bi_da_giao || []).length}
-                  </span>
-                </summary>
-                <SoldDevices order={order} />
-              </details>
-
-              <DeviceExchangeHistory order={order} />
+                <DeviceExchangeHistory order={order} />
+              </div>
             </Panel>
           )}
 

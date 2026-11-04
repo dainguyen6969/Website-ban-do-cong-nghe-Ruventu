@@ -210,7 +210,11 @@ export default function ChiTietKhachHang() {
           <section className="customer-panel customer-order-history">
             <header>
               <h2>LỊCH SỬ MUA HÀNG</h2>
-              <label className="customer-order-search" htmlFor="customer-order-search">
+
+              <label
+                className="customer-order-search"
+                htmlFor="customer-order-search"
+              >
                 <HiOutlineSearch size={16} />
                 <input
                   id="customer-order-search"
@@ -220,60 +224,91 @@ export default function ChiTietKhachHang() {
                 />
               </label>
             </header>
+
             <div className="customer-history-table-wrap">
-              <table className="customer-history-table">
-                <thead>
-                  <tr>
-                    <th>MÃ ĐƠN HÀNG</th>
-                    <th>LOẠI ĐƠN</th>
-                    <th>TRẠNG THÁI ĐƠN</th>
-                    <th>THANH TOÁN</th>
-                    <th>GIÁ TRỊ</th>
-                    <th>NGÀY GHI NHẬN</th>
-                    <th>THAO TÁC</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {orders.map((order) => (
-                    <tr key={order.id}>
-                      <td className="customer-order-code">{order.ma_don_hang}</td>
-                      <td>
-                        <OrderBadge type={order.loai_don_hang}>
-                          {order.loai_don_hang?.toUpperCase()}
-                        </OrderBadge>
-                      </td>
-                      <td>
-                        <OrderBadge type={order.trang_thai_don_hang}>
-                          {order.trang_thai_don_hang?.toUpperCase()}
-                        </OrderBadge>
-                      </td>
-                      <td
-                        className={
-                          order.trang_thai_thanh_toan === 'Đã thanh toán' ? 'customer-order-paid' : ''
-                        }
-                      >
-                        {order.trang_thai_thanh_toan?.toUpperCase()}
-                      </td>
-                      <td className="customer-order-value">{formatMoney(order.tong_thanh_toan)}</td>
-                      <td>{new Date(order.ngay_tao).toLocaleString()}</td>
-                      <td>
-                        <button
-                          className="customer-action-btn"
-                          onClick={() => navigate(`/admin/don-hang/danh-sach-don-hang/${order.id}`)}
+              <div
+                className="admin-table-scroll admin-table-scroll--embedded"
+                tabIndex={0}
+                role="region"
+                aria-label="Lịch sử mua hàng của khách hàng"
+              >
+                <table className="customer-history-table admin-data-table admin-data-table--records">
+                  <thead>
+                    <tr>
+                      <th>MÃ ĐƠN HÀNG</th>
+                      <th>LOẠI ĐƠN</th>
+                      <th>TRẠNG THÁI ĐƠN</th>
+                      <th>THANH TOÁN</th>
+                      <th>GIÁ TRỊ</th>
+                      <th>NGÀY GHI NHẬN</th>
+                      <th>THAO TÁC</th>
+                    </tr>
+                  </thead>
+
+                  <tbody>
+                    {orders.map((order) => (
+                      <tr key={order.id}>
+                        <td className="customer-order-code">
+                          {order.ma_don_hang}
+                        </td>
+
+                        <td>
+                          <OrderBadge type={order.loai_don_hang}>
+                            {order.loai_don_hang?.toUpperCase()}
+                          </OrderBadge>
+                        </td>
+
+                        <td>
+                          <OrderBadge type={order.trang_thai_don_hang}>
+                            {order.trang_thai_don_hang?.toUpperCase()}
+                          </OrderBadge>
+                        </td>
+
+                        <td
+                          className={
+                            order.trang_thai_thanh_toan === 'Đã thanh toán'
+                              ? 'customer-order-paid'
+                              : ''
+                          }
                         >
-                          XEM ĐƠN HÀNG
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                  {!orders.length && (
-                    <tr className="customer-empty-row">
-                      <td colSpan="7">Không tìm thấy đơn hàng phù hợp.</td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
+                          {order.trang_thai_thanh_toan?.toUpperCase()}
+                        </td>
+
+                        <td className="customer-order-value">
+                          {formatMoney(order.tong_thanh_toan)}
+                        </td>
+
+                        <td>
+                          {new Date(order.ngay_tao).toLocaleString()}
+                        </td>
+
+                        <td>
+                          <button
+                            className="customer-action-btn"
+                            onClick={() =>
+                              navigate(
+                                `/admin/don-hang/danh-sach-don-hang/${order.id}`
+                              )
+                            }
+                          >
+                            XEM ĐƠN HÀNG
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+
+                    {!orders.length && (
+                      <tr className="customer-empty-row">
+                        <td colSpan="7">
+                          Không tìm thấy đơn hàng phù hợp.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </div>
+
             <DetailTablePagination
               totalItems={orderTotalElements}
               currentPage={orderPage}

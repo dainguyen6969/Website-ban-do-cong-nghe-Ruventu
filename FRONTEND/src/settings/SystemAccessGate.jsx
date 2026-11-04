@@ -16,44 +16,105 @@ export default function SystemAccessGate({ children }) {
   const [retry, setRetry] = useState(0);
 
   useEffect(() => {
-    document.documentElement.style.setProperty('--project-font-scale', String((status?.fontSize || 14) / 14));
+    document.documentElement.style.setProperty(
+      '--project-font-scale',
+      String((status?.fontSize || 14) / 14)
+    );
     return () => document.documentElement.style.removeProperty('--project-font-scale');
   }, [status?.fontSize]);
 
   useEffect(() => {
-    document.documentElement.style.setProperty('--project-font-family', findFontOption(status?.fontFamily).family);
+    document.documentElement.style.setProperty(
+      '--project-font-family',
+      findFontOption(status?.fontFamily).family
+    );
     return () => document.documentElement.style.removeProperty('--project-font-family');
   }, [status?.fontFamily]);
 
   useEffect(() => {
     let active = true;
     let sequence = 0;
-    const check = async () => {
+    let lastCheckAt = 0;
+
+    const check = async (force = false) => {
+      if (!active) return;
+
+      // Không polling khi tab đang ở chế độ nền.
+      if (!force && document.hidden) return;
+
+      // Tránh gọi API liên tục khi focus thay đổi nhiều lần.
+      const now = Date.now();
+
+      if (!force && now - lastCheckAt < 10000) {
+        return;
+      }
+
+      lastCheckAt = now;
       const request = ++sequence;
+
       try {
         const next = await getSystemStatus();
-        if (active && request === sequence) { setStatus(next); setError(''); }
+
+        if (active && request === sequence) {
+          setStatus(next);
+          setError('');
+        }
       } catch (e) {
         if (!active || request !== sequence) return;
-        if (isMaintenanceResponse(e.status, e.data)) { setStatus({ maintenance: true, canManage: false }); setError(''); }
-        else setError('Không thể kiểm tra trạng thái hệ thống. Vui lòng thử lại.');
+
+        if (isMaintenanceResponse(e.status, e.data)) {
+          setStatus({
+            maintenance: true,
+            canManage: false,
+          });
+          setError('');
+        } else {
+          setError('Không thể kiểm tra trạng thái hệ thống. Vui lòng thử lại.');
+        }
       }
     };
-    check();
-    const timer = window.setInterval(check, 15000);
-    window.addEventListener('focus', check);
-    window.addEventListener(SETTINGS_CHANGED, check);
+
+    // Kiểm tra ngay khi website được mở.
+    void check(true);
+
+    // Kiểm tra định kỳ mỗi 5 phút.
+    const timer = window.setInterval(() => {
+      void check();
+    }, 300000);
+
+    // Kiểm tra khi người dùng quay lại cửa sổ.
+    const handleFocus = () => {
+      void check();
+    };
+
+    // Kiểm tra ngay khi có thay đổi cài đặt hệ thống.
+    const handleSettingsChanged = () => {
+      void check(true);
+    };
+
+    window.addEventListener('focus', handleFocus);
+    window.addEventListener(SETTINGS_CHANGED, handleSettingsChanged);
+
     return () => {
       active = false;
+
       window.clearInterval(timer);
-      window.removeEventListener('focus', check);
-      window.removeEventListener(SETTINGS_CHANGED, check);
+
+      window.removeEventListener('focus', handleFocus);
+
+      window.removeEventListener(SETTINGS_CHANGED, handleSettingsChanged);
     };
-  }, [currentAccount?.id, pathname, search, retry]);
+  }, [currentAccount?.id, retry]);
 
   const adminLogin = pathname === '/login' && new URLSearchParams(search).get('quan-tri') === '1';
   if (!error && status && (!status.maintenance || status.canManage || adminLogin)) {
-    return <ProjectTypographyContext.Provider value={{ fontSize: status.fontSize || 14, fontFamily: status.fontFamily || 'Inter' }}>{children}</ProjectTypographyContext.Provider>;
+    return (
+      <ProjectTypographyContext.Provider
+        value={{ fontSize: status.fontSize || 14, fontFamily: status.fontFamily || 'Inter' }}
+      >
+        {children}
+      </ProjectTypographyContext.Provider>
+    );
   }
 
   return (
@@ -61,9 +122,24 @@ export default function SystemAccessGate({ children }) {
       <div className="maintenance-page__card">
         <div className="maintenance-page__brand">RUVENTU</div>
         <Wrench size={42} aria-hidden="true" />
-        <h1>{error ? 'Chưa thể kết nối hệ thống' : status ? 'Hệ thống đang bảo trì' : 'Đang kiểm tra hệ thống'}</h1>
-        <p role="status">{error || (status ? 'Chúng tôi đang nâng cấp hệ thống. Vui lòng quay lại sau.' : 'Vui lòng chờ trong giây lát.')}</p>
-        {(status || error) && <button type="button" onClick={() => setRetry((n) => n + 1)}>Kiểm tra lại</button>}
+        <h1>
+          {error
+            ? 'Chưa thể kết nối hệ thống'
+            : status
+              ? 'Hệ thống đang bảo trì'
+              : 'Đang kiểm tra hệ thống'}
+        </h1>
+        <p role="status">
+          {error ||
+            (status
+              ? 'Chúng tôi đang nâng cấp hệ thống. Vui lòng quay lại sau.'
+              : 'Vui lòng chờ trong giây lát.')}
+        </p>
+        {(status || error) && (
+          <button type="button" onClick={() => setRetry((n) => n + 1)}>
+            Kiểm tra lại
+          </button>
+        )}
         {status?.maintenance && <Link to="/login?quan-tri=1">Đăng nhập quản trị</Link>}
       </div>
     </main>

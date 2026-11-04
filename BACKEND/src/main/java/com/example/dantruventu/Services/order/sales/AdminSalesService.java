@@ -24,6 +24,8 @@ import com.example.dantruventu.Repository.warehouse.SoSerialSanPhamRepository;
 import com.example.dantruventu.Repository.warehouse.TheKhoRepository;
 import com.example.dantruventu.Services.cashbook.CashbookService;
 import com.example.dantruventu.Services.catalog.CatalogSupport;
+import com.example.dantruventu.Services.documents.DocumentNumberService;
+import com.example.dantruventu.Services.documents.DocumentService;
 import com.example.dantruventu.Services.order.OrderEvents;
 import com.example.dantruventu.Services.order.OrderInventoryService;
 import com.example.dantruventu.Services.warehouse.RecallSafety;
@@ -78,6 +80,9 @@ public class AdminSalesService {
   private final OrderDeviceHistoryService deviceHistory;
   private final OrderInventoryService orderInventory;
   private final OrderIntakePolicy intakePolicy;
+
+  private final DocumentNumberService documentNumbers;
+  private final DocumentService documents;
 
   private final RecallSafety recallSafety;
 
@@ -344,7 +349,7 @@ public class AdminSalesService {
 
     DonHang order =
         newOrder(
-            key,
+            documentNumbers.next("DH"),
             LoaiDonHang.ONLINE,
             actor,
             customer,
@@ -417,7 +422,7 @@ public class AdminSalesService {
 
     DonHang order =
         newOrder(
-            key,
+            documentNumbers.next("DH"),
             LoaiDonHang.TAI_QUAY,
             employee,
             customer,
@@ -478,6 +483,8 @@ public class AdminSalesService {
               .build());
     }
 
+    documents.recordIssue(order);
+
     saleSnapshots.recordPromotion(order, plan, request, actor);
 
     SoQuyThuChi receipt = createCashReceipt(order, actor, request.getThanhToan());
@@ -520,7 +527,7 @@ public class AdminSalesService {
 
     if (response instanceof AdminSalesResponse.Checkout checkout) {
       cashRepository
-          .findByMaPhieu("THU-POS-" + order.getId())
+          .findByBusinessKey("THU-POS-" + order.getId())
           .map(mapper::toCashReceipt)
           .ifPresent(checkout::setPhieuThu);
     }
@@ -677,13 +684,14 @@ public class AdminSalesService {
 
     return cashbookService.createAutomatic(
         CashbookService.AutomaticVoucher.builder()
-            .maPhieu("THU-POS-" + order.getId())
+            .khoaNghiepVu("THU-POS-" + order.getId())
             .loaiPhieu(LoaiPhieuThuChi.THU)
             .maLoaiThuChi("THU_BAN_HANG")
             .nhomNguoiNopNhan(NhomNguoiNopNhanEnum.KHACH_HANG)
             .nguoiNopNhan(order.getKhachHang())
             .tenDoiTuongTuDo(order.getKhachHang() == null ? "Khách lẻ" : null)
             .maChungTuThamChieu(order.getMaDonHang())
+            .donHang(order)
             .soTien(order.getTongThanhToan())
             .phuongThucThanhToan(payment.getPhuongThuc())
             .ngayGhiNhan(payment.getNgayThanhToan())
@@ -776,7 +784,7 @@ public class AdminSalesService {
             .anyMatch(
                 delivery ->
                     cashRepository
-                        .findByMaPhieu("THU-COD-" + delivery.id())
+                        .findByBusinessKey("THU-COD-" + delivery.id())
                         .filter(
                             voucher ->
                                 voucher.getLoaiPhieu() == LoaiPhieuThuChi.THU

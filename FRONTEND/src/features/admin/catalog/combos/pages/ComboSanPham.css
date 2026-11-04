@@ -232,6 +232,31 @@
   width: auto;
 }
 
+.admin-app .combo-list-page .combo-table-wrap { margin: 0; }
+.admin-app .combo-list-page .combo-table-wrap > .combo-table { min-width: 1180px; table-layout: fixed; }
+.combo-col-image { width: 64px; }
+.combo-col-code { width: 100px; }
+.combo-col-name { width: 17%; }
+.combo-col-capacity { width: 110px; }
+.combo-col-stock { width: 100px; }
+.combo-col-price { width: 128px; }
+.combo-col-status { width: 150px; }
+.combo-col-actions { width: 120px; }
+.admin-app .combo-list-page .combo-table-wrap > .combo-table th { white-space: normal; letter-spacing: normal; }
+.admin-app .combo-list-page .combo-table-wrap > .combo-table td:nth-child(2) { white-space: nowrap; }
+.admin-app .combo-list-page .combo-table-wrap > .combo-table td:nth-child(3) strong { display: block; white-space: normal; overflow-wrap: anywhere; }
+.admin-app .combo-list-page .combo-table-wrap > .combo-table :is(th, td):nth-child(5),
+.admin-app .combo-list-page .combo-table-wrap > .combo-table :is(th, td):nth-child(6),
+.admin-app .combo-list-page .combo-table-wrap > .combo-table :is(th, td):nth-child(8) { text-align: center; }
+.admin-app .combo-list-page .combo-table-wrap > .combo-table :is(th, td):nth-child(7) { text-align: right; white-space: nowrap; }
+.combo-list-page .component-preview { min-width: 0; }
+.combo-list-page .component-preview :is(b, small) { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.combo-list-page .component-preview b { display: flex; align-items: baseline; gap: 4px; }
+.combo-list-page .component-preview b > span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.combo-list-page .component-preview em { flex-shrink: 0; }
+.admin-app .combo-list-page .combo-table-wrap > .combo-table td:last-child > .combo-actions { min-width: 0; width: 100%; grid-template-columns: minmax(0, 1fr); justify-content: stretch; }
+.combo-list-page .combo-actions button { height: 30px; padding: 0 6px; font-size: 10px; white-space: nowrap; }
+
 .combo-create-grid {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 310px;

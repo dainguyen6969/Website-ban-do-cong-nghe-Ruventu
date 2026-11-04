@@ -20,6 +20,7 @@ import com.example.dantruventu.Repository.product.AnhSanPhamRepository;
 import com.example.dantruventu.Repository.product.PhienBanSanPhamRepository;
 import com.example.dantruventu.Repository.warehouse.SoSerialSanPhamRepository;
 import com.example.dantruventu.Services.cashbook.CashbookService;
+import com.example.dantruventu.Services.documents.DocumentService;
 import com.example.dantruventu.Services.order.sales.*;
 import com.example.dantruventu.Services.order.sales.SoldDeviceService;
 import com.example.dantruventu.Services.warehouse.RecallSafety;
@@ -79,6 +80,7 @@ public class AdminOrderService {
   private final ObjectMapper objectMapper;
   private final OrderIntakePolicy intakePolicy;
   private final RecallSafety recallSafety;
+  private final DocumentService documents;
 
   @Transactional(isolation = Isolation.READ_COMMITTED)
   public AdminOrderResponse.Action counterExchange(
@@ -777,10 +779,10 @@ public class AdminOrderService {
       String base = prefix + order.getId();
 
       cashRepository
-          .findByMaPhieu(base)
+          .findByBusinessKey(base)
           .ifPresent(voucher -> documents.put(voucher.getId(), voucher));
 
-      for (SoQuyThuChi voucher : cashRepository.findByMaPhieuStartingWith(base + "-")) {
+      for (SoQuyThuChi voucher : cashRepository.findByBusinessKeyStartingWith(base + "-")) {
         documents.put(voucher.getId(), voucher);
       }
     }
@@ -788,7 +790,7 @@ public class AdminOrderService {
     for (PhieuGiaoHang delivery : deliveryRepository.findByDonHang_IdOrderByIdAsc(order.getId())) {
 
       cashRepository
-          .findByMaPhieu("THU-COD-" + delivery.getId())
+          .findByBusinessKey("THU-COD-" + delivery.getId())
           .ifPresent(voucher -> documents.put(voucher.getId(), voucher));
     }
 
@@ -834,6 +836,10 @@ public class AdminOrderService {
   }
 
   private void reserveWaitingStockAutomatically(DonHang order) {
+    if (waitingCustomerStopped(order.getId())) {
+      return;
+    }
+
     if (order.getLoaiDonHang() != LoaiDonHang.ONLINE
         || order.getTrangThaiDonHang() != TrangThaiDonHang.CHO_HANG
         || order.getTrangThaiDongGoi() != TrangThaiDongGoi.CHUA_DONG_GOI
@@ -924,6 +930,10 @@ public class AdminOrderService {
         AdminOrderResponse.Action.class,
         () -> {
           DonHang order = lockOrder(id);
+
+          if (waitingCustomerStopped(order.getId())) {
+            throw conflict("Khách không tiếp tục chờ; không giữ bổ sung cho đơn.");
+          }
 
           requireOnline(order);
           requireUnexported(order);
@@ -1085,6 +1095,11 @@ public class AdminOrderService {
   }
 
   private void processPendingOrder(DonHang order) {
+
+    if (waitingCustomerStopped(order.getId())) {
+      return;
+    }
+
     if (order.getLoaiDonHang() != LoaiDonHang.ONLINE
         || order.getTrangThaiDonHang() != TrangThaiDonHang.CHO_DUYET
         || order.getTrangThaiDongGoi() != TrangThaiDongGoi.CHUA_DONG_GOI
@@ -1445,6 +1460,12 @@ public class AdminOrderService {
 
     requireOnline(order);
     requireUnexported(order);
+
+    if (waitingCustomerStopped(order.getId())) {
+      throw conflict(
+          "Khách đã xác nhận không tiếp tục chờ. "
+              + "Cần xử lý đơn hoặc ghi nhận lại sự đồng ý của khách trước khi duyệt.");
+    }
 
     if (!Set.of(TrangThaiDonHang.CHO_DUYET, TrangThaiDonHang.CHO_HANG)
             .contains(order.getTrangThaiDonHang())
@@ -1975,6 +1996,8 @@ public class AdminOrderService {
 
     inventory.export(order, request);
 
+    documents.recordIssue(order);
+
     order.setTrangThaiXuatKho(TrangThaiXuatKho.DA_XUAT_KHO);
     order.setTrangThaiDonHang(TrangThaiDonHang.CHO_LAY_HANG);
 
@@ -2009,6 +2032,8 @@ public class AdminOrderService {
 
     requireOnline(order);
     validateStoredAmounts(order);
+
+    rememberWaitingCollection(order);
 
     if (!Boolean.TRUE.equals(request.getXacNhanDaNhanTien())) {
       throw invalid("Phải xác nhận cửa hàng đã thực nhận tiền");
@@ -2104,13 +2129,14 @@ public class AdminOrderService {
           newOrderMoneyCode(
               "THU-DH-", order, request.getPhuongThucThanhToan(), request.getMaGiaoDichThanhToan());
 
-      if (cashRepository.findByMaPhieu(receiptCode).isPresent()) {
+      if (cashRepository.findByBusinessKey(receiptCode).isPresent()) {
         throw conflict("Mã giao dịch này đã được ghi nhận cho đơn hàng");
       }
 
       receipt =
           createCash(
               order,
+              null,
               actor,
               receiptCode,
               LoaiPhieuThuChi.THU,
@@ -2197,7 +2223,7 @@ public class AdminOrderService {
         throw conflict("Phiếu giao chưa có đối tác vận chuyển");
       }
 
-      if (cashRepository.findByMaPhieu("THU-COD-" + delivery.getId()).isPresent()) {
+      if (cashRepository.findByBusinessKey("THU-COD-" + delivery.getId()).isPresent()) {
 
         throw conflict("Khoản COD của phiếu giao đã được ghi nhận");
       }
@@ -2231,6 +2257,7 @@ public class AdminOrderService {
       receipt =
           createCash(
               order,
+              delivery,
               actor,
               "THU-COD-" + delivery.getId(),
               LoaiPhieuThuChi.THU,
@@ -2446,13 +2473,14 @@ public class AdminOrderService {
         newOrderMoneyCode(
             "CHI-HUY-DH-", order, request.getPhuongThucHoan(), request.getMaGiaoDich());
 
-    if (cashRepository.findByMaPhieu(expenseCode).isPresent()) {
+    if (cashRepository.findByBusinessKey(expenseCode).isPresent()) {
       throw conflict("Mã giao dịch hoàn tiền đã được ghi nhận");
     }
 
     SoQuyThuChi expense =
         createCash(
             order,
+            null,
             actor,
             expenseCode,
             LoaiPhieuThuChi.CHI,
@@ -2477,6 +2505,7 @@ public class AdminOrderService {
 
   private SoQuyThuChi createCash(
       DonHang order,
+      PhieuGiaoHang delivery,
       NguoiDung actor,
       String code,
       LoaiPhieuThuChi type,
@@ -2495,7 +2524,7 @@ public class AdminOrderService {
 
     return cashbookService.createAutomatic(
         CashbookService.AutomaticVoucher.builder()
-            .maPhieu(code)
+            .khoaNghiepVu(code)
             .loaiPhieu(type)
             .maLoaiThuChi(typeCode)
             .nhomNguoiNopNhan(group)
@@ -2503,6 +2532,8 @@ public class AdminOrderService {
             .doiTacVanChuyen(counterpartyPartner)
             .tenDoiTuongTuDo(counterpartyUser == null && counterpartyPartner == null ? payer : null)
             .maChungTuThamChieu(order.getMaDonHang())
+            .donHang(order)
+            .phieuGiaoHang(delivery)
             .soTien(amount)
             .phuongThucThanhToan(method)
             .ngayGhiNhan(date)
@@ -2544,7 +2575,7 @@ public class AdminOrderService {
       BigDecimal linePayable = BigDecimal.ZERO;
 
       for (var line : lines) {
-        saleSnapshots.requireSnapshot(line);
+        if (!saleSnapshots.hasValidSnapshot(line)) return result;
 
         if (line.getThanhToanDong() == null
             || line.getThanhToanDong().signum() < 0
@@ -2656,9 +2687,11 @@ public class AdminOrderService {
 
     String cashType = voucher.getLoaiThuChi().getMaLoai();
 
+    String key = CashbookService.businessKey(voucher);
+
     if (type == LoaiPhieuThuChi.CHI) {
       return "CHI_HOAN_DON_HANG".equals(cashType)
-          && matchesOrderMoneyCode(voucher.getMaPhieu(), "CHI-HUY-DH-", order.getId())
+          && matchesOrderMoneyCode(key, "CHI-HUY-DH-", order.getId())
           && matchesCustomerCounterparty(order, voucher);
     }
 
@@ -2667,12 +2700,12 @@ public class AdminOrderService {
     }
 
     if (order.getLoaiDonHang() == LoaiDonHang.TAI_QUAY
-        && Objects.equals(voucher.getMaPhieu(), "THU-POS-" + order.getId())) {
+        && Objects.equals(key, "THU-POS-" + order.getId())) {
+
       return matchesCustomerCounterparty(order, voucher);
     }
 
-    if (matchesOrderMoneyCode(voucher.getMaPhieu(), "THU-DH-", order.getId())) {
-
+    if (matchesOrderMoneyCode(key, "THU-DH-", order.getId())) {
       return matchesCustomerCounterparty(order, voucher);
     }
 
@@ -2686,7 +2719,7 @@ public class AdminOrderService {
     return deliveryRepository.findByDonHang_IdOrderByIdAsc(order.getId()).stream()
         .anyMatch(
             delivery ->
-                Objects.equals(voucher.getMaPhieu(), "THU-COD-" + delivery.getId())
+                Objects.equals(key, "THU-COD-" + delivery.getId())
                     && delivery.getDoiTacVanChuyen() != null
                     && Objects.equals(
                         voucher.getDoiTacVanChuyen().getId(),
@@ -2854,7 +2887,7 @@ public class AdminOrderService {
               || document.getTrangThaiTraHang() == TrangThaiTraHang.DA_HOAN_TIEN;
 
       boolean hasRefundVoucher =
-          cashRepository.findByMaPhieu("CHI-TH-" + document.getId()).isPresent();
+          cashRepository.findByBusinessKey("CHI-TH-" + document.getId()).isPresent();
 
       boolean canRefund = received && amount != null && amount.signum() > 0 && !hasRefundVoucher;
 
@@ -2940,6 +2973,52 @@ public class AdminOrderService {
         && order.getTrangThaiDonHang() != TrangThaiDonHang.CHO_THANH_TOAN) {
       throw conflict("Chỉ xem serial cho đơn đã duyệt, chưa hủy và chưa xuất");
     }
+  }
+
+  private boolean waitingCustomerStopped(Long orderId) {
+    Number count =
+        (Number)
+            entityManager
+                .createNativeQuery(
+                    """
+                                        SELECT COUNT(*)
+                                        FROM rv_waiting_order
+                                        WHERE order_id = :id
+                                          AND contact_result = 'KHONG_TIEP_TUC'
+                                        """)
+                .setParameter("id", orderId)
+                .getSingleResult();
+
+    return count.longValue() > 0;
+  }
+
+  private void rememberWaitingCollection(DonHang order) {
+    if (order.getLoaiDonHang() != LoaiDonHang.ONLINE
+        || order.getTrangThaiDonHang() != TrangThaiDonHang.CHO_HANG
+        || order.getTrangThaiThanhToan() != TrangThaiThanhToanDonHang.CHUA_THANH_TOAN) {
+      return;
+    }
+
+    String method =
+        text(order.getDiaChiGiaoHang()) == null
+            ? "TAI_CUA_HANG"
+            : "TIEN_MAT".equals(order.getPhuongThucThanhToan())
+                ? "COD"
+                : "CHUYEN_KHOAN".equals(order.getPhuongThucThanhToan()) ? "CHUYEN_KHOAN" : null;
+
+    if (method == null) return;
+
+    entityManager
+        .createNativeQuery(
+            """
+                        INSERT INTO rv_waiting_order (order_id, remaining_method)
+                        VALUES (:id, :method)
+                        ON DUPLICATE KEY UPDATE
+                          remaining_method = COALESCE(remaining_method, :method)
+                        """)
+        .setParameter("id", order.getId())
+        .setParameter("method", method)
+        .executeUpdate();
   }
 
   private boolean hasReservation(DonHang order) {

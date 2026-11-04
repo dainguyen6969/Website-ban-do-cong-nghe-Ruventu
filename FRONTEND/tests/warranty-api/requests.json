@@ -1,0 +1,151 @@
+{
+  "BH04": {
+    "yeu_cau_tiep_nhan_id": 880,
+    "thiet_bi_id": 700,
+    "ly_do_bao_hanh": "Không nhận RAM",
+    "tinh_trang_tiep_nhan": "Tem nguyên vẹn",
+    "ten_nguoi_lien_he": "Nguyễn Văn An",
+    "sdt_nguoi_lien_he": "0912345678",
+    "ngay_tiep_nhan_thuc_te": "2026-10-12T09:00:00+07:00",
+    "dieu_kien_bao_hanh": "CHUA_XAC_MINH",
+    "can_cu_xac_minh": "Đã đối chiếu giao dịch mua, cần kiểm tra kỹ thuật",
+    "phu_kien": [
+      {
+        "ten": "Hộp",
+        "so_luong": 1
+      }
+    ],
+    "anh_urls": [
+      "/media/bh/501/nhan.jpg"
+    ],
+    "don_vi_bao_hanh_du_kien": "Trung tâm A",
+    "ghi_chu": "Nhận tại quầy"
+  },
+  "BH05": {
+    "yeu_cau_tiep_nhan_id": null,
+    "don_hang_id": 1001,
+    "chi_tiet_don_hang_id": 2001,
+    "thiet_bi_id": 700,
+    "so_serial": "RAM-SN-001",
+    "ten_nguoi_lien_he": "Nguyễn Văn An",
+    "sdt_nguoi_lien_he": "0912345678",
+    "ket_qua_tiep_nhan": "TU_CHOI",
+    "ly_do": "Cửa hàng không nhận xử lý hạng mục ngoài phạm vi dịch vụ",
+    "can_cu": "Chính sách tiếp nhận",
+    "bang_chung_urls": [
+      "/media/bh/refuse.jpg"
+    ]
+  },
+  "BH06": {
+    "su_kien": "BAT_DAU_KIEM_TRA",
+    "thoi_diem": "2026-10-12T09:10:00+07:00",
+    "ghi_chu": "Bắt đầu đối chiếu lỗi"
+  },
+  "BH07": {
+    "su_kien": "GHI_KET_LUAN",
+    "noi_dung": "Lỗi do người dùng",
+    "hang_muc": [
+      {
+        "ma_hang_muc": "HM01",
+        "loi": "Hỏng chân tiếp xúc",
+        "dieu_kien_bao_hanh": "KHONG_DU_DIEU_KIEN",
+        "noi_dung_xu_ly": "Sửa chân tiếp xúc",
+        "ben_chiu_phi": "KHACH_HANG",
+        "ly_do": "Ngoài phạm vi miễn phí",
+        "can_cu": "Biên bản kiểm tra",
+        "don_vi_ket_luan": "Trung tâm A"
+      }
+    ],
+    "bang_chung_urls": [
+      "/media/bh/501/check.jpg"
+    ]
+  },
+  "BH08": {
+    "thay_the_phien_ban": null,
+    "ket_luan_lich_su_id": 1002,
+    "hang_muc": [
+      {
+        "ma_hang_muc": "HM01",
+        "noi_dung": "Sửa chân tiếp xúc",
+        "so_luong": 1,
+        "don_gia_khach": 150000,
+        "chi_phi_ncc_du_kien": 100000,
+        "dieu_kien_bao_hanh": "KHONG_DU_DIEU_KIEN",
+        "ben_chiu_phi": "KHACH_HANG",
+        "van_phat_sinh_khi_khong_sua": false
+      }
+    ],
+    "thoi_gian_du_kien": "Trong ngày",
+    "han_phan_hoi": "2026-10-12T18:00:00+07:00",
+    "dieu_kien_dat_coc": {
+      "so_tien_toi_thieu": 50000
+    },
+    "dieu_kien_thanh_toan": "Đủ tiền trước bàn giao",
+    "ly_do": "Báo phí sau kiểm tra"
+  },
+  "BH09": {
+    "hanh_dong": "GUI",
+    "kenh": "TAI_QUAY",
+    "thoi_diem": "2026-10-12T09:25:00+07:00",
+    "bang_chung_urls": [
+      "/media/bh/501/quote.jpg"
+    ]
+  },
+  "BH010": {
+    "hanh_dong": "AP_DUNG_BAO_GIA_DA_DUYET",
+    "phien_ban_bao_gia": 2,
+    "ly_do": "Khách đã duyệt phạm vi cuối cùng"
+  },
+  "BH011": {
+    "loai": "THU_KHACH",
+    "hoa_don_bao_hanh_id": 801,
+    "so_tien": 50000,
+    "phuong_thuc_thanh_toan": "TIEN_MAT",
+    "ten_nguoi_nop_nhan": "Nguyễn Văn An",
+    "ngay_ghi_nhan": "2026-10-12T09:35:00+07:00",
+    "ma_chung_tu_tham_chieu": "BH-001-COC",
+    "chung_tu_urls": [
+      "/media/bh/501/deposit.jpg"
+    ]
+  },
+  "BH012": {
+    "hanh_dong": "LAP_PHIEN_BAN",
+    "thay_the_phien_ban": null,
+    "ket_luan_lich_su_id": 1002,
+    "ly_do": "Lỗi nhà sản xuất đủ chính sách đổi",
+    "can_cu": "Xác nhận trung tâm A",
+    "don_vi_phe_duyet": "Trung tâm A",
+    "phien_ban_thay_the_id": 101,
+    "tinh_trang_hang": "Mới",
+    "phu_kien": [
+      {
+        "ten": "Hộp",
+        "so_luong": 1
+      }
+    ],
+    "nguon": "TON_KHO_CUA_HANG",
+    "cach_tinh_han": "GIU_HAN_CON_LAI",
+    "han_moi_xac_nhan": null,
+    "can_cu_han": "Tiếp tục hạn của giao dịch gốc",
+    "bao_gia_phien_ban": null,
+    "huong_xu_ly_thiet_bi_cu": "Gửi NCC bù hàng",
+    "chung_tu_urls": [
+      "/media/bh/501/exchange-approval.jpg"
+    ]
+  },
+  "BH013": {
+    "hanh_dong": "GIU_CHO_HANG_CUA_HANG",
+    "phien_ban_phuong_an": 1,
+    "so_serial_id": 601
+  },
+  "BH014": {
+    "hanh_dong": "GHI_NGHIA_VU",
+    "nha_cung_cap_id": 3,
+    "giao_dich_xuat_the_kho_id": 12001,
+    "so_luong_can_bu": 1,
+    "can_cu": "Nhà cung cấp xác nhận bù một RAM cho hàng đổi trước",
+    "chung_tu_urls": [
+      "/media/bh/501/compensation.jpg"
+    ]
+  }
+}

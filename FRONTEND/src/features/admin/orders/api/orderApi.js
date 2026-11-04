@@ -346,3 +346,19 @@ export const labels = {
 export const label = (value) => labels[value] || value || '—';
 export const money = (value) => (value == null ? '—' : `${Number(value).toLocaleString('vi-VN')}đ`);
 export const dateTime = formatDateTimeVN;
+
+export const getWaitingActions = (params, signal) =>
+  adminRequest(`${PATH}/waiting-actions?${query(params)}`, { signal });
+
+export const saveWaitingContact = (kind, id, key, body) =>
+  adminRequest(`${PATH}/waiting-actions/${encodeURIComponent(kind)}/${encodeURIComponent(id)}`, {
+    method: 'POST',
+    headers: { 'Idempotency-Key': key },
+    body: JSON.stringify(body),
+  });
+
+export const getWaitingContactHistory = (kind, id, signal) =>
+  adminRequest(
+    `${PATH}/waiting-actions/${encodeURIComponent(kind)}/${encodeURIComponent(id)}/history`,
+    { signal }
+  );

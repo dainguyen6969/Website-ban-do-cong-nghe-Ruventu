@@ -3,7 +3,8 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
-import { Search, ArrowLeft, HelpCircle, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Search, ArrowLeft, HelpCircle } from 'lucide-react';
+import TablePagination from '../../shared/components/ui/TablePagination';
 import './OrderLookupPage.css';
 
 const MOCK_ORDERS = [
@@ -215,33 +216,7 @@ const OrderLookupPage = () => {
         </span>
 
         {totalPages > 1 && (
-          <div className="pagination">
-            <button
-              className="page-btn"
-              disabled={currentPage === 1}
-              onClick={() => handlePageChange(currentPage - 1)}
-            >
-              <ChevronLeft size={16} />
-            </button>
-
-            {[...Array(totalPages)].map((_, i) => (
-              <button
-                key={i}
-                className={`page-btn ${currentPage === i + 1 ? 'active' : ''}`}
-                onClick={() => handlePageChange(i + 1)}
-              >
-                {i + 1}
-              </button>
-            ))}
-
-            <button
-              className="page-btn"
-              disabled={currentPage === totalPages}
-              onClick={() => handlePageChange(currentPage + 1)}
-            >
-              <ChevronRight size={16} />
-            </button>
-          </div>
+          <TablePagination totalItems={filteredOrders.length} pageSize={itemsPerPage} currentPage={currentPage} onPageChange={handlePageChange} showSummary={false} idPrefix="order-lookup" />
         )}
       </div>
     </div>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { getPromotions, getPromotion } from '../api/promotionApi.js';
 import { normalizePromotion, computePromotionStatus } from '../promotionModel.js';
@@ -17,6 +17,7 @@ export default function DanhSachKhuyenMai() {
 
     // Filter states matching wireframe (Image 1)
     const [searchQuery, setSearchQuery] = useState('');
+    const previousSearch = useRef(searchQuery);
     const [methodFilter, setMethodFilter] = useState('ALL');
     const [scopeFilter, setScopeFilter] = useState('ALL');
     const [statusFilter, setStatusFilter] = useState('ALL');
@@ -38,6 +39,8 @@ export default function DanhSachKhuyenMai() {
 
     useEffect(() => {
         const controller = new AbortController();
+        const delay = previousSearch.current === searchQuery ? 0 : 250;
+        previousSearch.current = searchQuery;
         setLoading(true);
         setError('');
 
@@ -96,7 +99,8 @@ export default function DanhSachKhuyenMai() {
             }
         };
 
-        const timer = setTimeout(fetchData, 200);
+        const timer = setTimeout(fetchData, delay);
+
         return () => {
             clearTimeout(timer);
             controller.abort();
@@ -215,7 +219,7 @@ export default function DanhSachKhuyenMai() {
     };
 
     return (
-        <div className="promo-list-page">
+        <div className="promo-list-page admin-list-page">
             {toastMessage && (
                 <div className="promo-toast">
                     <div className="promo-toast-content">
@@ -337,9 +341,17 @@ export default function DanhSachKhuyenMai() {
             </div>
 
             {/* Table Area (Image 2) */}
-            <div className="promo-list-content-area">
-                <div className="promo-list-table-container">
-                    <table className="promo-table-v2">
+            <div className="promo-list-content-area admin-list-body">
+                <div
+                    className="promo-list-table-container admin-table-scroll"
+                    tabIndex={0}
+                    role="region"
+                    aria-label="Danh sách khuyến mại"
+                >
+                    <table
+                        className="promo-table-v2 admin-data-table"
+                        aria-busy={loading}
+                    >
                         <thead>
                             <tr>
                                 <th>MÃ / TÊN CHƯƠNG TRÌNH</th>
@@ -353,66 +365,92 @@ export default function DanhSachKhuyenMai() {
                             </tr>
                         </thead>
                         <tbody>
-                            {loading ? (
+                            {loading && !promotions.length ? (
                                 <tr>
-                                    <td colSpan="8" className="promo-table-notice">Đang tải dữ liệu...</td>
+                                    <td colSpan="8" className="promo-table-notice">
+                                        Đang tải dữ liệu...
+                                    </td>
                                 </tr>
                             ) : error ? (
                                 <tr>
-                                    <td colSpan="8" className="promo-table-notice error-notice">{error}</td>
+                                    <td
+                                        colSpan="8"
+                                        className="promo-table-notice error-notice"
+                                    >
+                                        {error}
+                                    </td>
                                 </tr>
                             ) : paginatedPromotions.length > 0 ? (
                                 paginatedPromotions.map((promo) => (
                                     <tr key={promo.id}>
-                                        {/* 1. MÃ / TÊN */}
                                         <td className="promo-col-name">
-                                            <div className="promo-code-bold">{promo.code}</div>
-                                            <div className="promo-name-sub">{promo.name}</div>
+                                            <div className="promo-code-bold">
+                                                {promo.code}
+                                            </div>
+                                            <div className="promo-name-sub">
+                                                {promo.name}
+                                            </div>
                                         </td>
 
-                                        {/* 2. PHƯƠNG THỨC */}
                                         <td className="promo-col-method">
-                                            <div className="promo-cell-bold">{promo.method}</div>
+                                            <div className="promo-cell-bold">
+                                                {promo.method}
+                                            </div>
                                         </td>
 
-                                        {/* 3. PHẠM VI ÁP DỤNG */}
                                         <td className="promo-col-scope">
-                                            <div className="promo-cell-bold">{promo.target}</div>
+                                            <div className="promo-cell-bold">
+                                                {promo.target}
+                                            </div>
                                         </td>
 
-                                        {/* 4. ƯU ĐÃI */}
                                         <td className="promo-col-offer">
-                                            <div className="promo-cell-bold">{getOfferText(promo)}</div>
+                                            <div className="promo-cell-bold">
+                                                {getOfferText(promo)}
+                                            </div>
                                         </td>
 
-                                        {/* 5. THỜI GIAN */}
                                         <td className="promo-col-time">
-                                            <div className="promo-time-row">Từ {formatDateTime(promo.startDate)}</div>
-                                            <div className="promo-time-row">Đến {formatDateTime(promo.endDate)}</div>
+                                            <div className="promo-time-row">
+                                                Từ {formatDateTime(promo.startDate)}
+                                            </div>
+                                            <div className="promo-time-row">
+                                                Đến {formatDateTime(promo.endDate)}
+                                            </div>
                                         </td>
 
-                                        {/* 6. LƯỢT CÒN LẠI */}
                                         <td className="promo-col-usage">
-                                            <div className="promo-remain-main">{getRemainingText(promo)}</div>
+                                            <div className="promo-remain-main">
+                                                {getRemainingText(promo)}
+                                            </div>
                                             <div className="promo-remain-sub">
-                                                Đã dùng {promo.usedUsage ?? 0} · Đang giữ {promo.holdingCount ?? 0}
+                                                Đã dùng {promo.usedUsage ?? 0}
+                                                {' · '}
+                                                Đang giữ {promo.holdingCount ?? 0}
                                             </div>
                                         </td>
 
-                                        {/* 7. TRẠNG THÁI */}
                                         <td className="promo-col-status">
-                                            <div className="promo-status-main">{promo.status}</div>
+                                            <div className="promo-status-main">
+                                                {promo.status}
+                                            </div>
                                             <div className="promo-flag-sub">
-                                                Cờ quản lý: {promo.savedStatus === 0 ? 'Tạm dừng' : 'Đang bật'}
+                                                Cờ quản lý:{' '}
+                                                {promo.savedStatus === 0
+                                                    ? 'Tạm dừng'
+                                                    : 'Đang bật'}
                                             </div>
                                         </td>
 
-                                        {/* 8. THAO TÁC */}
                                         <td className="promo-col-action">
                                             <button
                                                 type="button"
                                                 className="btn-detail-outline"
-                                                onClick={() => navigate(`/admin/khuyen-mai/chi-tiet-khuyen-mai/${encodeURIComponent(promo.id)}`)}
+                                                onClick={() =>
+                                                    navigate(
+                                                        `/admin/khuyen-mai/chi-tiet-khuyen-mai/${encodeURIComponent(promo.id)}`
+                                                    )
+                                                }
                                             >
                                                 XEM CHI TIẾT
                                             </button>
@@ -423,7 +461,9 @@ export default function DanhSachKhuyenMai() {
                                 <tr>
                                     <td colSpan="8">
                                         <div className="promo-empty-state">
-                                            <p>KHÔNG TÌM THẤY CHƯƠNG TRÌNH KHUYẾN MẠI PHÙ HỢP</p>
+                                            <p>
+                                                KHÔNG TÌM THẤY CHƯƠNG TRÌNH KHUYẾN MẠI PHÙ HỢP
+                                            </p>
                                             <button
                                                 type="button"
                                                 className="btn-clear-filters"
@@ -438,17 +478,18 @@ export default function DanhSachKhuyenMai() {
                         </tbody>
                     </table>
                 </div>
-            </div>
 
-            {!loading && !error && totalItems > ITEMS_PER_PAGE && (
-                <TablePagination
-                    totalItems={totalItems}
-                    pageSize={ITEMS_PER_PAGE}
-                    currentPage={currentPage}
-                    onPageChange={setCurrentPage}
-                    idPrefix="promotion"
-                />
-            )}
+                {!error && (
+                    <TablePagination
+                        className="admin-table-footer"
+                        totalItems={totalItems}
+                        pageSize={ITEMS_PER_PAGE}
+                        currentPage={currentPage}
+                        onPageChange={setCurrentPage}
+                        idPrefix="promotion"
+                    />
+                )}
+            </div>
         </div>
     );
 }

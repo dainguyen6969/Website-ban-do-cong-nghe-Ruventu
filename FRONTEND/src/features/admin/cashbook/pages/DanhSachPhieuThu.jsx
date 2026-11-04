@@ -5,7 +5,7 @@ import { Check, X } from "lucide-react";
 
 import { receiptService } from "../../../../shared/services/receiptService";
 
-import DetailTablePagination from "../../../../shared/components/ui/DetailTablePagination";
+import TablePagination from "../../../../shared/components/ui/TablePagination";
 import FilterDropdown from "../../../../shared/components/ui/FilterDropdown";
 
 import CashbookSourceFilters from "../components/CashbookSourceFilters";
@@ -152,7 +152,7 @@ export default function DanhSachPhieuThu() {
   };
 
   return (
-    <div className="pt-page">
+    <div className="pt-page admin-list-page">
       {toastMessage && (
         <div className="pt-toast">
           <div className="pt-toast-content">
@@ -234,8 +234,9 @@ export default function DanhSachPhieuThu() {
         }}
       />
 
-      <div className="pt-table-container">
-        <table className="promo-table pt-table">
+      <div className="admin-list-body admin-list-body--inset">
+<div className="pt-table-container admin-table-scroll" tabIndex={0} role="region" aria-label="Bảng danh sách">
+        <table className="promo-table pt-table admin-data-table">
           <thead>
             <tr>
               <th>MÃ PHIẾU</th>
@@ -338,7 +339,7 @@ export default function DanhSachPhieuThu() {
       </div>
 
       {receipts.length > 0 && (
-        <DetailTablePagination
+        <TablePagination className="admin-table-footer"
           totalItems={totalElements}
           currentPage={page}
           onPageChange={setPage}
@@ -346,6 +347,7 @@ export default function DanhSachPhieuThu() {
           idPrefix="receipts"
         />
       )}
+</div>
     </div>
   );
 }

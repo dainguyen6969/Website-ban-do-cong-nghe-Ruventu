@@ -1034,18 +1034,6 @@
   background: transparent;
 }
 
-.delivery-list-page .product-pagination-btn {
-  min-width: 29px;
-  height: 29px;
-  padding: 0 8px;
-  font-size: 11px;
-}
-
-.delivery-list-page .product-pagination-jump {
-  height: 29px;
-  font-size: 11px;
-}
-
 @media (max-width: 1100px) {
   .delivery-list-page .delivery-toolbar {
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 70px 34px;

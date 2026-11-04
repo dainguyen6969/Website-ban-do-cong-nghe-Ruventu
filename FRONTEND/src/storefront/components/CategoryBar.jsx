@@ -1,47 +1,33 @@
-import React from 'react';
+import { useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
+import useCatalogOptions from '../hooks/useCatalogOptions';
+import { brandLogoUrl } from './brandLogo';
+import { createRecommendationScroll } from './recommendationScroll';
 import './CategoryBar.css';
 
-const CategoryBar = () => {
-  const brands = [
-    { name: 'NVIDIA', logo: 'https://upload.wikimedia.org/wikipedia/commons/a/a4/NVIDIA_logo.svg' },
-    { name: 'AMD', logo: 'https://upload.wikimedia.org/wikipedia/commons/7/7c/AMD_Logo.svg' },
-    { name: 'ASUS', logo: 'https://upload.wikimedia.org/wikipedia/commons/2/2e/ASUS_Logo.svg' },
-    {
-      name: 'MSI',
-      logo: 'https://upload.wikimedia.org/wikipedia/commons/9/91/Micro-Star_International_logo.svg',
-    },
-    {
-      name: 'CORSAIR',
-      logo: 'https://placehold.co/120x30/f9f9f9/000000?text=CORSAIR&font=Montserrat',
-    },
-    {
-      name: 'INTEL',
-      logo: 'https://upload.wikimedia.org/wikipedia/commons/7/7d/Intel_logo_%282006-2020%29.svg',
-    },
-    {
-      name: 'GIGABYTE',
-      logo: 'https://placehold.co/120x30/f9f9f9/000000?text=GIGABYTE&font=Montserrat',
-    },
-    {
-      name: 'SAMSUNG',
-      logo: 'https://upload.wikimedia.org/wikipedia/commons/6/61/Samsung_old_logo_before_year_2015.svg',
-    },
-  ];
-
-  return (
-    <div className="category-bar">
-      <div className="container brands-container">
-        <div className="brands-list">
-          {brands.map((brand, index) => (
-            <Link key={index} to={`/search?q=${brand.name}`} className="brand-item">
-              <img src={brand.logo} alt={brand.name} className="brand-logo" />
-            </Link>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-};
-
-export default CategoryBar;
+export default function CategoryBar() {
+  const { brands, loading, error } = useCatalogOptions();
+  const viewport = useRef(null);
+  useEffect(() => {
+    const element = viewport.current;
+    if (!element) return;
+    const scroll = createRecommendationScroll(element);
+    element.addEventListener('wheel', scroll.onWheel, { passive: false });
+    return () => {
+      element.removeEventListener('wheel', scroll.onWheel);
+      scroll.stop();
+    };
+  }, [brands, loading, error]);
+  return <div className="category-bar"><div className="container brands-container">
+    {loading ? <p role="status">Đang tải thương hiệu...</p> : error ? <p role="alert">{error}</p> : <div ref={viewport} className="brands-list" role="region" aria-label="Thương hiệu — dùng con lăn chuột hoặc vuốt để cuộn ngang" tabIndex={0}>
+      {brands.map(brand => <Link key={brand.id} to={`/search?thuong_hieu_id=${brand.id}`} className="brand-item" aria-label={brand.tenThuongHieu}>
+        {brand.logo && <img src={brandLogoUrl(brand.logo)} alt="" className="brand-logo" onError={event => {
+          const image = event.currentTarget;
+          if (image.dataset.original) image.hidden = true;
+          else { image.dataset.original = 'true'; image.src = brand.logo; }
+        }} />}
+        <span className="brand-name">{brand.tenThuongHieu}</span>
+      </Link>)}
+    </div>}
+  </div></div>;
+}

@@ -19,6 +19,7 @@ const formatPrice = (price) => {
 const CheckoutPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
+
   const [deliveryMethod, setDeliveryMethod] = useState('GIAO_HANG');
   const [paymentMethod, setPaymentMethod] = useState('TIEN_MAT');
 
@@ -63,9 +64,11 @@ const CheckoutPage = () => {
       cart_item_ids: cartItemIds,
       hinh_thuc_nhan_hang: deliveryMethod,
       dia_chi_id: null,
+
       thong_tin_nguoi_nhan: {
         ten_nguoi_nhan: formData.name.trim(),
         sdt_nguoi_nhan: formData.phone.replace(/[\s.-]/g, ''),
+
         dia_chi_giao_hang:
           deliveryMethod === 'GIAO_HANG'
             ? [formData.address.trim(), formData.ward.trim(), formData.province.trim()]
@@ -73,6 +76,7 @@ const CheckoutPage = () => {
                 .join(', ')
             : null,
       },
+
       phuong_thuc_thanh_toan: paymentMethod,
       ma_chuong_trinh: promotionCode,
       ghi_chu: formData.note.trim() || null,
@@ -380,8 +384,6 @@ const CheckoutPage = () => {
       newErrors.address = 'Vui lòng nhập địa chỉ cụ thể.';
     }
 
-    // Email không thuộc body checkout mới.
-    // Nếu giữ ô email trên UI thì để tùy chọn.
     if (formData.email.trim() && !/^\S+@\S+\.\S+$/.test(formData.email.trim())) {
       newErrors.email = 'Email không hợp lệ.';
     }
@@ -497,7 +499,7 @@ const CheckoutPage = () => {
           </div>
           <div className="checkout-breadcrumb">
             <Link to="/cart" style={{ color: '#888', textDecoration: 'none' }}>
-              GIỎ HÀNG
+              GIỎ HÀNG{' '}
             </Link>
             <span>&gt;</span>
             <span className="current">THANH TOÁN</span>

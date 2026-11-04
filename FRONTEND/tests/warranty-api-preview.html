@@ -1,0 +1,6 @@
+<!doctype html><html lang="vi"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Kiểm thử nối API bảo hành</title></head><body><div id="root"></div><script type="module">
+// Isolated test origin only; never overwrite a real application login.
+if (location.port !== '5174') throw new Error('Chỉ chạy bản kiểm thử trên cổng 5174.');
+localStorage.setItem('accessToken', 'warranty-simulation-token');
+await import('./warranty-api-preview.jsx');
+</script></body></html>

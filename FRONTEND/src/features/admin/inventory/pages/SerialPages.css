@@ -721,3 +721,177 @@
   border-color: #c7bfdc;
   background: #f3effa;
 }
+
+/* Danh sách serial: thống kê và bộ lọc không tràn ngang */
+.admin-app .serial-list-page .serial-heading-row {
+  min-height: auto;
+  padding: 18px 0;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 24px;
+}
+
+.admin-app .serial-list-page .serial-heading-row h1 {
+  max-width: 100%;
+  margin: 0;
+  font-size: 20px;
+  font-weight: 900;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
+.admin-app .serial-list-page .serial-stats {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+  width: auto;
+  min-width: 0;
+  max-width: 100%;
+  margin-left: auto;
+  overflow: visible;
+}
+
+.admin-app .serial-list-page .serial-stat {
+  height: auto;
+  min-height: 34px;
+  padding: 6px 9px;
+  gap: 5px;
+}
+
+.admin-app .serial-list-page .serial-stat strong {
+  font-size: 16px;
+}
+
+.admin-app .serial-list-page .serial-stat > span:last-child {
+  font-size: 9px;
+}
+
+/* Các ô lọc có thể xuống hàng theo chiều rộng thực tế */
+.admin-app .serial-list-page .serial-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  min-height: auto;
+  padding: 12px 0;
+  overflow: visible;
+}
+
+.admin-app .serial-list-page .serial-toolbar > .serial-search {
+  flex: 2 1 240px;
+  width: auto;
+  min-width: 200px;
+  height: 36px;
+  margin: 0;
+  padding: 0 10px;
+}
+
+.admin-app .serial-list-page .serial-toolbar > .serial-search--code {
+  flex: 1 1 190px;
+  min-width: 170px;
+}
+
+.admin-app .serial-list-page .serial-search input {
+  width: 100%;
+  min-width: 0;
+  font-family: inherit;
+  font-size: 11px;
+}
+
+.admin-app .serial-list-page .serial-toolbar > .filter-dropdown-container {
+  flex: 1 1 170px;
+  width: auto;
+  min-width: 160px;
+  max-width: 100%;
+}
+
+.admin-app .serial-list-page .serial-toolbar > .serial-version-select {
+  flex: 1.2 1 210px;
+  width: auto;
+  min-width: 180px;
+}
+
+.admin-app .serial-list-page .serial-toolbar .filter__dropdown {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  min-width: 0;
+  height: 36px;
+  min-height: 36px;
+  padding: 0 10px;
+  font-family: inherit;
+  font-size: 11px;
+}
+
+.admin-app .serial-list-page .serial-toolbar .filter__dropdown-label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-app .serial-list-page .serial-toolbar .filter__dropdown-label strong {
+  font-size: 11px;
+}
+
+/* Hai nút thao tác nằm trong cùng một nhóm */
+.admin-app .serial-list-page .serial-toolbar-actions {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  margin-left: auto;
+}
+
+.admin-app .serial-list-page .serial-toolbar-actions > .serial-export {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 36px;
+  min-height: 36px;
+  margin: 0;
+  padding: 0 12px;
+  border: 1px solid #111;
+  color: #fff;
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.3;
+  white-space: nowrap;
+}
+
+.admin-app .serial-list-page .serial-toolbar-actions svg {
+  flex-shrink: 0;
+}
+
+@media (max-width: 1050px) {
+  .admin-app .serial-list-page .serial-stats {
+    width: 100%;
+    margin-left: 0;
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 700px) {
+  .admin-app .serial-list-page .serial-toolbar > :is(.serial-search, .filter-dropdown-container) {
+    flex: 1 1 100%;
+    width: 100%;
+    min-width: 0;
+  }
+
+  .admin-app .serial-list-page .serial-toolbar-actions {
+    flex-wrap: wrap;
+    width: 100%;
+    margin-left: 0;
+  }
+
+  .admin-app .serial-list-page .serial-toolbar-actions > .serial-export {
+    flex: 1 1 140px;
+  }
+}

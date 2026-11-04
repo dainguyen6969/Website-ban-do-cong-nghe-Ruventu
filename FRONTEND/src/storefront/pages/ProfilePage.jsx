@@ -6,6 +6,7 @@ import Footer from "../components/Footer";
 import { User, Edit, Lock, Check } from "lucide-react";
 import "./ProfilePage.css";
 import { orderService } from "../../shared/services/orderService";
+import TablePagination from '../../shared/components/ui/TablePagination';
 
 import {
   errorMessage,
@@ -285,7 +286,7 @@ const ProfilePage = () => {
       </header>
 
       {ordersError && <p role="alert">{ordersError}</p>}
-      {ordersLoading && <p>Đang tải đơn hàng...</p>}
+      {ordersLoading && !customerOrders.items.length && <p>Đang tải đơn hàng...</p>}
 
       <div className="list-container">
         {customerOrders.items.map((order) => (
@@ -335,28 +336,7 @@ const ProfilePage = () => {
           Tổng {customerOrders.pagination.total_elements || 0} đơn hàng
         </span>
 
-        <button
-          type="button"
-          className="btn-outline"
-          disabled={ordersLoading || orderPage <= 1}
-          onClick={() => setOrderPage((current) => current - 1)}
-        >
-          TRƯỚC
-        </button>
-
-        <span>Trang {orderPage}</span>
-
-        <button
-          type="button"
-          className="btn-outline"
-          disabled={
-            ordersLoading ||
-            orderPage >= Number(customerOrders.pagination.total_pages || 0)
-          }
-          onClick={() => setOrderPage((current) => current + 1)}
-        >
-          SAU
-        </button>
+        <TablePagination totalItems={Number(customerOrders.pagination.total_elements) || 0} pageSize={10} currentPage={orderPage} onPageChange={setOrderPage} showSummary={false} idPrefix="profile-orders" />
       </div>
     </div>
   );

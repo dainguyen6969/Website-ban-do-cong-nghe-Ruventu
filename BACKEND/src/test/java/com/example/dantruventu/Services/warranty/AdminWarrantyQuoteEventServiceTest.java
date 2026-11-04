@@ -729,7 +729,12 @@ class AdminWarrantyQuoteEventServiceTest {
               .matcher(source);
       while (customErrors.find()) messageWithoutNumbers(customErrors.group(1));
     }
-    assertEquals(91, successMessages.size(), successMessages.toString());
+    var handoverLiterals =
+        quoted.matcher(
+            Files.readString(root.resolve("Services/warranty/WarrantyHandoverTransactions.java")));
+    while (handoverLiterals.find())
+      if (handoverLiterals.group(1).contains(" ")) successMessages.add(handoverLiterals.group(1));
+    assertEquals(102, successMessages.size(), successMessages.toString());
     successMessages.forEach(AdminWarrantyEventServiceTest::messageWithoutNumbers);
     for (ErrorCode code : ErrorCode.values())
       if (code.name().contains("WARRANTY")
