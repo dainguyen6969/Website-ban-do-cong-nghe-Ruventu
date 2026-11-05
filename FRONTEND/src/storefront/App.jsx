@@ -39,7 +39,7 @@ function StorefrontApp() {
 
   return (
     <FontPreferenceContext.Provider value={fontPreference}>
-      <div className="app storefront-app" style={{ fontFamily: fontPreference.font.family, '--project-font-scale': fontPreference.fontSize / 14 }}>
+      <div className="app storefront-app" style={{ fontFamily: fontPreference.font.family, '--font-family-base': fontPreference.font.family, '--project-font-family': fontPreference.font.family, '--project-font-scale': fontPreference.fontSize / 14 }}>
         <ToastContainer />
         <Routes>
           <Route path="/" element={<Home />} />

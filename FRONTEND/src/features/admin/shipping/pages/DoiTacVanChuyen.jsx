@@ -7,7 +7,7 @@ import {
   HiOutlineX,
 } from "react-icons/hi";
 
-import FilterDropdown from "../../../../shared/components/ui/FilterDropdown";
+import FilterDropdown, { FormDropdown } from "../../../../shared/components/ui/FilterDropdown";
 import TablePagination from "../../../../shared/components/ui/TablePagination";
 import { adminRequest } from "../../catalog/products/api/versionApi";
 import { label, money } from "../../orders/api/orderApi";
@@ -1283,7 +1283,7 @@ function AddPartnerModal({
           </PartnerField>
 
           <PartnerField title="LOẠI ĐỐI TÁC *" error={errors.loai_doi_tac}>
-            <select
+            <FormDropdown
               value={form.loai_doi_tac}
               aria-invalid={Boolean(errors.loai_doi_tac)}
               onChange={(event) => onChange("loai_doi_tac", event.target.value)}
@@ -1295,7 +1295,7 @@ function AddPartnerModal({
                   {text}
                 </option>
               ))}
-            </select>
+            </FormDropdown>
           </PartnerField>
 
           <PartnerField title="EMAIL" error={errors.email}>

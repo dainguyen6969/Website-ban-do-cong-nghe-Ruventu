@@ -13,6 +13,7 @@ import {
 import OrderModal from './OrderModal';
 
 import './OrderRefundPanel.css';
+import { FormDropdown } from "../../../../shared/components/ui/FilterDropdown";
 
 export default function OrderRefundPanel({ order, busy, perform, data, onEditingChange }) {
   const attempt = useRef(null);
@@ -319,13 +320,13 @@ export default function OrderRefundPanel({ order, busy, perform, data, onEditing
             <label>
               <span>PHƯƠNG THỨC HOÀN</span>
 
-              <select
+              <FormDropdown
                 value={dialog.method}
                 onChange={(event) => change('method', event.target.value)}
               >
                 <option value="CHUYEN_KHOAN">Chuyển khoản</option>
                 <option value="TIEN_MAT">Tiền mặt</option>
-              </select>
+              </FormDropdown>
             </label>
 
             <label>

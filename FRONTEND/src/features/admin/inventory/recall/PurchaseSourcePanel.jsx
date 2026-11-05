@@ -9,6 +9,7 @@ import {
 } from '../../../../shared/services/mutationUtils';
 import { getPurchaseSources, recordPurchaseSource, splitCodes } from './recallApi';
 import './Recall.css';
+import { FormDropdown } from "../../../../shared/components/ui/FilterDropdown";
 
 export default function PurchaseSourcePanel({ order, locked = false, onLockChange }) {
   const [data, setData] = useState([]);
@@ -302,7 +303,7 @@ export default function PurchaseSourcePanel({ order, locked = false, onLockChang
           <fieldset className="recall-fields" disabled={frozen}>
             <label className="recall-wide">
               <span>Dòng hàng chưa ghi đủ nguồn</span>
-              <select
+              <FormDropdown
                 value={form.lineId}
                 onChange={(event) => change('lineId', event.target.value)}
               >
@@ -314,7 +315,7 @@ export default function PurchaseSourcePanel({ order, locked = false, onLockChang
                     {' sản phẩm chưa ghi nguồn'}
                   </option>
                 ))}
-              </select>
+              </FormDropdown>
             </label>
 
             <label>

@@ -20,8 +20,10 @@
   /* Sidebar */
   --color-sidebar-bg: #000000;
   --color-sidebar-bg-dark: #000000;
-  --color-sidebar-text: #a0a4b0;
-  --color-sidebar-text-hover: #ffffff;
+  --color-sidebar-text: #b1b6bf;
+  --color-sidebar-text-hover: #f3f4f6;
+  --color-sidebar-text-active: #f58c94;
+  --color-sidebar-text-expanded: #e5e7eb;
   --color-sidebar-active-bg: rgba(227, 30, 36, 0.1);
   --color-sidebar-border: rgba(255, 255, 255, 0.06);
   --color-sidebar-width: 260px;
@@ -287,8 +289,9 @@ html:has(.storefront-app) {
   width: fit-content;
   padding: 4px 8px;
   border-radius: 3px;
-  font-size: 12px;
-  font-weight: 500;
+  font-family: var(--project-font-family, var(--font-family-admin));
+  font-size: 11px;
+  font-weight: 900;
   line-height: 1.4;
 }
 

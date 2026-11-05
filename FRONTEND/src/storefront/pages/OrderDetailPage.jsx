@@ -25,6 +25,7 @@ import {
 } from '../../shared/components/ui/OrderSaleDetails';
 import SoldDevices from '../../shared/components/ui/SoldDevices';
 import ComboContents from '../../shared/components/ui/ComboContents';
+import { FormDropdown } from "../../shared/components/ui/FilterDropdown";
 
 const returnLabels = {
   CHO_TIEP_NHAN: 'Chờ tiếp nhận',
@@ -564,13 +565,13 @@ export default function OrderDetailPage() {
 
               <label className="order-operation-field">
                 <span>HÌNH THỨC HOÀN TIỀN</span>
-                <select
+                <FormDropdown
                   value={dialog.method}
                   onChange={(event) => updateDialog('method', event.target.value)}
                 >
                   <option value="CHUYEN_KHOAN">Chuyển khoản</option>
                   <option value="TIEN_MAT">Tiền mặt</option>
-                </select>
+                </FormDropdown>
               </label>
 
               <label className="order-operation-field">

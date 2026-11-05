@@ -4,6 +4,7 @@ import { getPromotion, updatePromotion, deletePromotion, setPromotionStatus } fr
 import { normalizePromotion, editPromotionBody, computePromotionStatus } from '../promotionModel.js';
 import { findDemoPromotion, updateStoredPromotion } from '../demoPromotions.js';
 import './ChiTietKhuyenMai.css';
+import { FormDropdown } from "../../../../shared/components/ui/FilterDropdown";
 
 export default function ChiTietKhuyenMai() {
     const { id } = useParams();
@@ -789,7 +790,7 @@ export default function ChiTietKhuyenMai() {
                                 onChange={(e) => setOrderSearch(e.target.value)}
                                 className="order-search-input"
                             />
-                            <select
+                            <FormDropdown
                                 value={orderStatusFilter}
                                 onChange={(e) => setOrderStatusFilter(e.target.value)}
                                 className="order-status-select"
@@ -799,7 +800,7 @@ export default function ChiTietKhuyenMai() {
                                 <option value="Đang giữ">Đang giữ</option>
                                 <option value="Đã giải phóng">Đã giải phóng</option>
                                 <option value="HOÀN THÀNH">Hoàn thành</option>
-                            </select>
+                            </FormDropdown>
                             <div className="order-date-item">
                                 <label>TỪ NGÀY</label>
                                 <input

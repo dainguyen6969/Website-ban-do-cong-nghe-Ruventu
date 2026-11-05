@@ -1,4 +1,5 @@
 import React from "react";
+import useFontPreference from "../../../../typography/useFontPreference";
 import { Line } from "react-chartjs-2";
 import {
   Chart as ChartJS,
@@ -32,6 +33,9 @@ export default function WebGL2LineChart({
   datasets = [],
   title = "",
 }) {
+  const { font, fontSize } = useFontPreference();
+  const chartFont = { family: font.family, size: (12 * fontSize) / 14 };
+  const tickFont = { family: font.family, size: (10 * fontSize) / 14, weight: "700" };
   const chartData = {
     labels: labels,
     datasets: datasets.map((ds, idx) => {
@@ -61,6 +65,7 @@ export default function WebGL2LineChart({
   };
 
   const chartOptions = {
+    font: chartFont,
     responsive: true,
     maintainAspectRatio: false,
     layout: {
@@ -76,6 +81,9 @@ export default function WebGL2LineChart({
         display: false, // Removed Legend items (TỔNG THU & TỔNG CHI) completely
       },
       tooltip: {
+        titleFont: { ...chartFont, weight: "700" },
+        bodyFont: chartFont,
+        footerFont: { ...chartFont, weight: "700" },
         enabled: true,
         backgroundColor: "#0f172a",
         titleColor: "#94a3b8",
@@ -118,7 +126,7 @@ export default function WebGL2LineChart({
           color: "#e2e8f0",
         },
         ticks: {
-          font: { size: 10, weight: "700" },
+          font: tickFont,
           color: "#64748b",
           callback: function (value) {
             return value + "M";
@@ -130,7 +138,7 @@ export default function WebGL2LineChart({
           display: false,
         },
         ticks: {
-          font: { size: 10, weight: "700" },
+          font: tickFont,
           color: "#64748b",
         },
       },

@@ -1,3 +1,4 @@
+import { scaledFontSize } from '../../../../typography/projectFontSize.js';
 import React, {
   useCallback,
   useEffect,
@@ -458,7 +459,7 @@ export default function SoQuy() {
             padding: "8px 28px",
             backgroundColor: "#fee2e2",
             color: "#b91c1c",
-            fontSize: "11px",
+            fontSize: scaledFontSize(11),
             fontWeight: 800,
           }}
         >

@@ -10,7 +10,7 @@ import {
   HiOutlineTrendingUp,
   HiOutlineX,
 } from 'react-icons/hi';
-import FilterDropdown from '../../../../shared/components/ui/FilterDropdown';
+import FilterDropdown, { FormDropdown } from '../../../../shared/components/ui/FilterDropdown';
 import TablePagination from '../../../../shared/components/ui/TablePagination';
 import { cashbookService } from '../../../../shared/services/cashbookService';
 import {
@@ -945,13 +945,13 @@ function SupplierFormModal({
             {!creating && (
               <label className="supplier-form-field">
                 <span>TRẠNG THÁI HỢP TÁC</span>
-                <select
+                <FormDropdown
                   value={form.trangThai}
                   onChange={(event) => onChange('trangThai', event.target.value)}
                 >
                   <option value={SUPPLIER_STATUS.active}>Đang hợp tác</option>
                   <option value={SUPPLIER_STATUS.inactive}>Ngừng hợp tác</option>
-                </select>
+                </FormDropdown>
               </label>
             )}
           </fieldset>

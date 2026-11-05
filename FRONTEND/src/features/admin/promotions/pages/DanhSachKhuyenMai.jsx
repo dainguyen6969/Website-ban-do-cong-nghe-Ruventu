@@ -5,6 +5,7 @@ import { normalizePromotion, computePromotionStatus } from '../promotionModel.js
 import { getDemoPromotions } from '../demoPromotions.js';
 import TablePagination from '../../../../shared/components/ui/TablePagination';
 import './DanhSachKhuyenMai.css';
+import { FormDropdown } from "../../../../shared/components/ui/FilterDropdown";
 
 export default function DanhSachKhuyenMai() {
     const navigate = useNavigate();
@@ -262,7 +263,7 @@ export default function DanhSachKhuyenMai() {
 
                 <div className="promo-filter-field promo-field-select">
                     <label>PHƯƠNG THỨC</label>
-                    <select
+                    <FormDropdown
                         value={methodFilter}
                         onChange={(e) => {
                             setMethodFilter(e.target.value);
@@ -272,12 +273,12 @@ export default function DanhSachKhuyenMai() {
                         <option value="ALL">Tất cả phương thức</option>
                         <option value="CHIET_KHAU">Chiết khấu</option>
                         <option value="TANG_SAN_PHAM">Tặng sản phẩm</option>
-                    </select>
+                    </FormDropdown>
                 </div>
 
                 <div className="promo-filter-field promo-field-select">
                     <label>PHẠM VI</label>
-                    <select
+                    <FormDropdown
                         value={scopeFilter}
                         onChange={(e) => {
                             setScopeFilter(e.target.value);
@@ -288,12 +289,12 @@ export default function DanhSachKhuyenMai() {
                         <option value="TONG_DON">Tổng đơn hàng</option>
                         <option value="TUNG_SAN_PHAM">Phiên bản sản phẩm</option>
                         <option value="DANH_MUC">Danh mục</option>
-                    </select>
+                    </FormDropdown>
                 </div>
 
                 <div className="promo-filter-field promo-field-select">
                     <label>TRẠNG THÁI HIỂN THỊ</label>
-                    <select
+                    <FormDropdown
                         value={statusFilter}
                         onChange={(e) => {
                             setStatusFilter(e.target.value);
@@ -306,7 +307,7 @@ export default function DanhSachKhuyenMai() {
                         <option value="CHUA_BAT_DAU">Chưa bắt đầu</option>
                         <option value="HET_LUOT">Hết lượt</option>
                         <option value="HET_HAN">Hết hạn</option>
-                    </select>
+                    </FormDropdown>
                 </div>
 
                 <div className="promo-filter-field promo-field-date">

@@ -1,4 +1,5 @@
 /* Keep text-sized content flexible when the QA font changes. */
+.storefront-app { font-size: 14px; }
 .storefront-app :is(button, input, select, textarea) { font-family: inherit; }
 .storefront-app :is(.container, .product-card, .product-info, .product-title, .info-content, .item-details) { min-width: 0; }
 .storefront-app :is(button, h1, h2, h3, h4, p, td) { overflow-wrap: anywhere; }
@@ -19,7 +20,7 @@
 .storefront-app .hero-grid { height: auto; min-height: 600px; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); }
 .storefront-app .banner-content { height: auto; padding: clamp(1em, 5vw, 80px); }
 .storefront-app .small-content { padding: clamp(1em, 3vw, 40px); }
-.storefront-app .hero-title { font-size: clamp(2rem, 5vw, 64px); }
+.storefront-app .hero-title { font-size: calc(clamp(2rem, 5vw, 64px) * var(--project-font-scale, 1)); }
 .storefront-app .arrow-link { position: static; align-self: flex-end; margin-top: 1em; }
 .storefront-app .banner-red-stripe { position: relative; }
 .storefront-app .user-dropdown { top: 100%; max-width: 100vw; }

@@ -14,6 +14,7 @@ import {
 } from "../../shared/services/mutationUtils";
 
 import { label, money } from "../../features/admin/orders/api/orderApi";
+import { FormDropdown } from "../../shared/components/ui/FilterDropdown";
 
 const ProfilePage = () => {
   const navigate = useNavigate();
@@ -207,7 +208,7 @@ const ProfilePage = () => {
         <div className="form-row">
           <div className="form-group">
             <label>TỈNH / THÀNH PHỐ</label>
-            <select
+            <FormDropdown
               name="city"
               value={formData.city}
               onChange={handleChange}
@@ -221,11 +222,11 @@ const ProfilePage = () => {
               {Object.keys(VIETNAM_LOCATIONS).map((prov) => (
                 <option key={prov} value={prov}>{prov}</option>
               ))}
-            </select>
+            </FormDropdown>
           </div>
           <div className="form-group">
             <label>PHƯỜNG / XÃ</label>
-            <select
+            <FormDropdown
               name="ward"
               value={formData.ward}
               onChange={handleChange}
@@ -239,7 +240,7 @@ const ProfilePage = () => {
               {(VIETNAM_LOCATIONS[formData.city] || []).map((w) => (
                 <option key={w} value={w}>{w}</option>
               ))}
-            </select>
+            </FormDropdown>
           </div>
         </div>
 

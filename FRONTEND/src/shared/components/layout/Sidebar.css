@@ -42,7 +42,7 @@
 }
 
 .sidebar__toggle:hover {
-  color: var(--color-text-white);
+  color: var(--color-sidebar-text-hover);
   background: rgba(255, 255, 255, 0.08);
 }
 
@@ -115,12 +115,12 @@
 }
 
 .sidebar__menu-btn:hover {
-  color: var(--color-text-white);
+  color: var(--color-sidebar-text-hover);
   background: rgba(255, 255, 255, 0.04);
 }
 
 .sidebar__menu-btn--active {
-  color: var(--color-brand-red);
+  color: var(--color-sidebar-text-active);
   background: var(--color-sidebar-active-bg);
 }
 
@@ -136,7 +136,7 @@
 }
 
 .sidebar__menu-btn--active:hover {
-  color: var(--color-brand-red);
+  color: var(--color-sidebar-text-active);
 }
 
 /* Expanded parent menu item: continuous left red bar */
@@ -163,7 +163,7 @@
 
 /* Parent button when expanded: bold white text, no maroon background */
 .sidebar__menu-item--expanded > .sidebar__menu-btn {
-  color: var(--color-text-white) !important;
+  color: var(--color-sidebar-text-expanded) !important;
   font-weight: 700 !important;
   background: transparent !important;
 }
@@ -171,13 +171,13 @@
 .sidebar__menu-item--expanded > .sidebar__menu-btn .sidebar__menu-icon,
 .sidebar__menu-item--expanded > .sidebar__menu-btn .sidebar__menu-label,
 .sidebar__menu-item--expanded > .sidebar__menu-btn .sidebar__chevron {
-  color: var(--color-text-white) !important;
+  color: inherit !important;
   opacity: 1 !important;
 }
 
 .sidebar__menu-item--expanded > .sidebar__menu-btn:hover {
   background: rgba(255, 255, 255, 0.05) !important;
-  color: var(--color-text-white) !important;
+  color: var(--color-sidebar-text-hover) !important;
 }
 
 /* Suppress individual left bars inside expanded parent to let continuous bar reign */
@@ -273,12 +273,12 @@
 /* Active sub-item: maroon background, bold red text, red bullet, solid red square flush at right */
 .sidebar__submenu-btn--active {
   background: #3a0606 !important;
-  color: var(--color-brand-red) !important;
+  color: var(--color-sidebar-text-active) !important;
   font-weight: 700 !important;
 }
 
 .sidebar__submenu-btn--active .sidebar__submenu-bullet {
-  color: var(--color-brand-red) !important;
+  color: var(--color-sidebar-text-active) !important;
   opacity: 1 !important;
 }
 
@@ -296,12 +296,12 @@
 /* Hover on submenu items */
 .sidebar__submenu-btn:hover {
   background: #3a0606;
-  color: var(--color-brand-red);
+  color: var(--color-sidebar-text-hover);
   font-weight: 700;
 }
 
 .sidebar__submenu-btn:hover .sidebar__submenu-bullet {
-  color: var(--color-brand-red);
+  color: var(--color-sidebar-text-hover);
   opacity: 1;
 }
 
@@ -329,7 +329,7 @@
   opacity: 0.6;
 }
 .sidebar__submenu-item--expanded > .sidebar__submenu-btn {
-  color: #fff;
+  color: var(--color-sidebar-text-expanded);
   font-weight: 700;
 }
 .sidebar__nested-submenu {
@@ -352,8 +352,13 @@
 .sidebar__nested-submenu-btn:hover,
 .sidebar__nested-submenu-btn--active {
   background: #3a0606;
-  color: var(--color-brand-red);
+  color: var(--color-sidebar-text-hover);
   font-weight: 700;
+}
+
+.sidebar__nested-submenu-btn--active,
+.sidebar__nested-submenu-btn--active:hover {
+  color: var(--color-sidebar-text-active);
 }
 .sidebar__nested-submenu-btn--active::after {
   content: '';
@@ -440,7 +445,7 @@
 }
 
 .sidebar__exit-btn:hover {
-  color: var(--color-text-white);
+  color: var(--color-sidebar-text-hover);
   background: rgba(255, 255, 255, 0.06);
 }
 
