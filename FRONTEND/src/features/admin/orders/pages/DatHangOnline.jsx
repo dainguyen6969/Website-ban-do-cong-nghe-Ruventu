@@ -1,3 +1,4 @@
+import { scaledFontSize } from '../../../../typography/projectFontSize.js';
 // Admin order screen: DatHangOnline.
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -20,6 +21,7 @@ import './DatHangOnline.css';
 import { canEditOnlineOrder, getOrder } from '../api/orderApi';
 import OrderModal from '../components/OrderModal';
 import { errorMessage, withIdempotency } from '../../../../shared/services/mutationUtils';
+import { FormDropdown } from "../../../../shared/components/ui/FilterDropdown";
 
 const money = new Intl.NumberFormat('vi-VN', {
   style: 'currency',
@@ -801,7 +803,7 @@ export default function DatHangOnline() {
               />
               <div className="online-field">
                 <span>TỈNH / THÀNH PHỐ *</span>
-                <select
+                <FormDropdown
                   value={recipient.province}
                   onChange={(e) => handleProvinceChange(e.target.value)}
                 >
@@ -810,11 +812,11 @@ export default function DatHangOnline() {
                       {prov}
                     </option>
                   ))}
-                </select>
+                </FormDropdown>
               </div>
               <div className="online-field">
                 <span>QUẬN / HUYỆN / PHƯỜNG *</span>
-                <select
+                <FormDropdown
                   value={recipient.ward}
                   onChange={(e) => updateRecipient('ward', e.target.value)}
                 >
@@ -823,7 +825,7 @@ export default function DatHangOnline() {
                       {w}
                     </option>
                   ))}
-                </select>
+                </FormDropdown>
               </div>
               <div
                 className={`online-field online-field--wide ${
@@ -843,7 +845,7 @@ export default function DatHangOnline() {
                     alignItems: 'center',
                   }}
                 >
-                  <span className="field-label" style={{ color: '#333', fontSize: '9px', fontWeight: 900 }}>
+                  <span className="field-label" style={{ color: '#333', fontSize: scaledFontSize(9), fontWeight: 900 }}>
                     {`ĐỊA CHỈ CỤ THỂ${delivery === 'GIAO_HANG' ? ' *' : ''}`}
                   </span>
                   <button
@@ -854,7 +856,7 @@ export default function DatHangOnline() {
                       background: 'transparent',
                       border: 'none',
                       color: '#f11919',
-                      fontSize: '10px',
+                      fontSize: scaledFontSize(10),
                       fontWeight: 800,
                       cursor: locatingUser ? 'not-allowed' : 'pointer',
                       display: 'flex',

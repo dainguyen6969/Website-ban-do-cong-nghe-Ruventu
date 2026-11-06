@@ -16,7 +16,7 @@ import OrderModal from '../../orders/components/OrderModal';
 import { OrderStateBadge } from '../../orders/pages/DanhSachDonHang';
 
 import TablePagination from '../../../../shared/components/ui/TablePagination';
-import FilterDropdown from '../../../../shared/components/ui/FilterDropdown';
+import FilterDropdown, { FormDropdown } from '../../../../shared/components/ui/FilterDropdown';
 import DetailTablePagination from '../../../../shared/components/ui/DetailTablePagination';
 
 import useDetailTablePagination from '../../../../hooks/useDetailTablePagination';
@@ -1188,7 +1188,7 @@ function ShipmentEditDialog({ delivery, busy, error, close, submit }) {
     >
       <label className="delivery-field">
         <span>ĐỐI TÁC VẬN CHUYỂN *</span>
-        <select
+        <FormDropdown
           required
           value={partnerId}
           disabled={loading}
@@ -1200,7 +1200,7 @@ function ShipmentEditDialog({ delivery, busy, error, close, submit }) {
               {item.ten_doi_tac} — {item.ma_doi_tac}
             </option>
           ))}
-        </select>
+        </FormDropdown>
       </label>
 
       {loadError && (
@@ -1715,7 +1715,7 @@ export function ShipmentReturnDialog({
                             <small>{serial.ma_theo_doi || ''}</small>
                           </span>
 
-                          <select
+                          <FormDropdown
                             required
                             value={serial.resale}
                             onChange={(event) =>
@@ -1727,7 +1727,7 @@ export function ShipmentReturnDialog({
                             <option value="true">Đủ điều kiện bán lại</option>
 
                             <option value="false">Không đủ điều kiện bán lại</option>
-                          </select>
+                          </FormDropdown>
                         </label>
                       ))}
                     </div>
@@ -1735,7 +1735,7 @@ export function ShipmentReturnDialog({
                     <label className="delivery-field">
                       <span>KẾT LUẬN HÀNG NGUYÊN VẸN *</span>
 
-                      <select
+                      <FormDropdown
                         required
                         value={row.resale}
                         onChange={(event) =>
@@ -1749,7 +1749,7 @@ export function ShipmentReturnDialog({
                         <option value="true">Đủ điều kiện bán lại</option>
 
                         <option value="false">Không đủ điều kiện bán lại</option>
-                      </select>
+                      </FormDropdown>
                     </label>
                   )}
 
@@ -1817,14 +1817,14 @@ export function ShipmentReturnDialog({
             <label className="delivery-field">
               <span>HÌNH THỨC HOÀN TIỀN DỰ KIẾN *</span>
 
-              <select
+              <FormDropdown
                 required
                 value={refundMethod}
                 onChange={(event) => setRefundMethod(event.target.value)}
               >
                 <option value="CHUYEN_KHOAN">Chuyển khoản</option>
                 <option value="TIEN_MAT">Tiền mặt</option>
-              </select>
+              </FormDropdown>
             </label>
           )}
 

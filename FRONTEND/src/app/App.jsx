@@ -2,6 +2,7 @@
 import { lazy, Suspense } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import '../styles/index.css';
+import '../typography/buttonTypography.css';
 import StorefrontApp from '../storefront/App';
 import useMockAuth from '../auth/useMockAuth';
 import { canAccessAdmin } from '../auth/accountModel';

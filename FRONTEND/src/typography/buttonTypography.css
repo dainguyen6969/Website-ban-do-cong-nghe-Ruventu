@@ -1,0 +1,48 @@
+/* Important layer rules override page-level button fonts, including !important. */
+@layer system-button-typography {
+  :root :is(
+    button,
+    input[type='button'],
+    input[type='submit'],
+    input[type='reset'],
+    [role='button'],
+    [role='option'],
+    a[class*='btn'],
+    a[class*='button'],
+    a.action-item,
+    a.order-action,
+    a.tq-qa-link,
+    a.waiting-open-order
+  ),
+  :root input::file-selector-button {
+    font-family: var(--project-font-family, var(--font-family-base, Arial, sans-serif)) !important;
+    font-size: calc(11px * var(--project-font-scale, 1)) !important;
+    font-weight: 900 !important;
+  }
+
+  :root .admin-app .sidebar button {
+    font-size: calc(12.1px * var(--project-font-scale, 1)) !important;
+    font-weight: 600 !important;
+  }
+
+  :root .admin-app .sidebar button:is(:hover, :focus-visible, [class*='--active'], .sidebar__menu-btn--expanded),
+  :root .admin-app .sidebar__submenu-item--expanded > button {
+    font-weight: 700 !important;
+  }
+
+  :root :is(
+    button,
+    [role='button'],
+    [role='option'],
+    a[class*='btn'],
+    a[class*='button'],
+    a.action-item,
+    a.order-action,
+    a.tq-qa-link,
+    a.waiting-open-order
+  ) :where(:not(svg, svg *)) {
+    font-family: inherit !important;
+    font-size: inherit !important;
+    font-weight: inherit !important;
+  }
+}

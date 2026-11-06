@@ -198,14 +198,6 @@ export default function DanhSachDonHang() {
           </p>
         )}
 
-        <button
-          type="button"
-          className="order-advanced-toggle"
-          onClick={() => navigate('/admin/don-hang/cho-hang-can-xu-ly')}
-        >
-          ĐƠN CHỜ HÀNG CẦN XỬ LÝ
-        </button>
-
         <div className="order-toolbar__primary">
           <label className="order-search">
             <HiOutlineSearch size={17} />

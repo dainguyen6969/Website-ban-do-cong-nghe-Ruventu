@@ -279,11 +279,13 @@
 .inventory-warehouse svg {
   color: #999;
 }
-.inventory-allocation-table tfoot td {
+.admin-app .admin-table-scroll > .inventory-allocation-table tfoot :is(th, td) {
   height: 44px;
   padding: 0 14px;
   border-top: 2px solid #111;
   background: #fafafa;
+  color: #111;
+  text-align: left;
   font-size: 11px;
   font-weight: 900;
   letter-spacing: 0.06em;

@@ -8,7 +8,7 @@ import {
   HiOutlineX,
 } from "react-icons/hi";
 import FormCard from "../../../../../shared/components/ui/FormCard";
-import FilterDropdown from "../../../../../shared/components/ui/FilterDropdown";
+import { FormDropdown } from "../../../../../shared/components/ui/FilterDropdown";
 import PriceInput from "../../../../../shared/components/ui/PriceInput";
 import { uploadImage } from "../../../../media/api/imageUploadApi";
 import {
@@ -766,14 +766,14 @@ export default function ThemComboSanPham() {
         <aside className="combo-create-side">
           <FormCard title="Phân loại & cấu hình">
             <div className="combo-field">
-              <label>
+              <span className="combo-field__label">
                 DANH MỤC <i>*</i>
-              </label>
-              <FilterDropdown
-                className={fieldClass(errors.category)}
+              </span>
+              <FormDropdown
+                aria-label="Danh mục"
+                aria-invalid={Boolean(errors.category)}
                 value={form.category}
                 onChange={(e) => update("category", e.target.value)}
-                selectedDark
               >
                 <option value="">— Chọn —</option>
                 {categories.map((item) => (
@@ -781,16 +781,15 @@ export default function ThemComboSanPham() {
                     {item.name}
                   </option>
                 ))}
-              </FilterDropdown>
+              </FormDropdown>
               {errors.category && <small>{errors.category}</small>}
             </div>
             <div className="combo-field">
-              <label>THƯƠNG HIỆU</label>
-              <FilterDropdown
-                className="combo-form-input"
+              <span className="combo-field__label">THƯƠNG HIỆU</span>
+              <FormDropdown
+                aria-label="Thương hiệu"
                 value={form.brand}
                 onChange={(e) => update("brand", e.target.value)}
-                selectedDark
               >
                 <option value="">— Chọn —</option>
                 {brands.map((item) => (
@@ -798,7 +797,7 @@ export default function ThemComboSanPham() {
                     {item.name}
                   </option>
                 ))}
-              </FilterDropdown>
+              </FormDropdown>
             </div>
             <div className="combo-field">
               <label>LOẠI SẢN PHẨM</label>

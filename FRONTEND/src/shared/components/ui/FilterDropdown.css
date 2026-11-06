@@ -46,6 +46,55 @@
   background-color: #f9fafb;
 }
 
+.filter-dropdown-container.filter-dropdown--form {
+  display: block;
+}
+
+.filter-dropdown-container.filter-dropdown--form > .filter__dropdown {
+  height: 40px;
+  min-height: 40px;
+  padding: 0 12px;
+  border: 1px solid #d1d5db;
+  background: #fff;
+}
+
+.filter-dropdown-container.filter-dropdown--form > .filter__dropdown:hover:not(:disabled) {
+  background: #f9fafb;
+}
+
+.filter-dropdown-container.filter-dropdown--form > .filter__dropdown:is([aria-invalid='true'], .input-error) {
+  border-color: var(--color-brand-red);
+}
+
+.filter-dropdown--form.filter-dropdown-container--disabled > .filter__dropdown {
+  background: #f3f4f6;
+  color: #6b7280;
+}
+
+.filter-dropdown--form > .filter-dropdown__validation {
+  position: absolute;
+  width: 1px !important;
+  height: 1px !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  padding: 0 !important;
+  clip-path: inset(50%);
+  pointer-events: none;
+}
+
+.filter-dropdown__error {
+  display: block;
+  margin-top: 4px;
+  color: var(--color-brand-red, #dc2626);
+}
+
+.filter__dropdown-group {
+  padding: 7px 14px;
+  color: #626b77;
+  font-size: 12px;
+  font-weight: 700;
+}
+
 /* ========================================
    Open & Focus State
    ======================================== */

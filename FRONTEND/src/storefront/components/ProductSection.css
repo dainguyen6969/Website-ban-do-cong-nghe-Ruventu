@@ -204,7 +204,7 @@
   margin: 0;
   padding: 0;
   color: #000;
-  font: 700 15px/1.25 "Barlow Condensed", sans-serif;
+  font: 700 15px/1.25 var(--project-font-family, var(--font-family-base));
   text-transform: none;
   letter-spacing: normal;
   display: -webkit-box;
@@ -220,7 +220,7 @@
   padding: 2px 8px;
   background: #f0f0f0;
   color: #555;
-  font: 700 11px/1.5 "Barlow Condensed", sans-serif;
+  font: 700 11px/1.5 var(--project-font-family, var(--font-family-base));
   letter-spacing: 0.06em;
   white-space: nowrap;
   overflow: hidden;
@@ -234,7 +234,7 @@
 
 .home-page .product-card .specs-table {
   border: 1px solid #000;
-  font: 400 12px/1.5 "Barlow", sans-serif;
+  font: 400 12px/1.5 var(--project-font-family, var(--font-family-base));
 }
 
 .home-page .product-card .specs-table td {
@@ -251,7 +251,7 @@
   width: 80px;
   background: #000;
   color: #fff;
-  font: 700 11px/1.5 "Barlow Condensed", sans-serif;
+  font: 700 11px/1.5 var(--project-font-family, var(--font-family-base));
   letter-spacing: 0.06em;
   text-align: left;
 }
@@ -266,13 +266,13 @@
 
 .home-page .product-card .original-price {
   color: #aaa;
-  font: 400 12px/1.5 "Barlow", sans-serif;
+  font: 400 12px/1.5 var(--project-font-family, var(--font-family-base));
 }
 
 .home-page .product-card .sale-price {
   margin: 0;
   color: #f00;
-  font: 900 22px/1 "Barlow Condensed", sans-serif;
+  font: 900 22px/1 var(--project-font-family, var(--font-family-base));
 }
 
 .home-page .product-card .product-actions {
@@ -282,7 +282,7 @@
 
 .storefront-app .home-page .product-card .product-actions > button {
   padding: 10px 8px;
-  font: 800 13px/1.5 "Barlow Condensed", sans-serif;
+  font: 800 13px/1.5 var(--project-font-family, var(--font-family-base));
   letter-spacing: normal;
   border-radius: 0;
 }

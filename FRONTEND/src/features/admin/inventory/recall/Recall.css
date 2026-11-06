@@ -35,6 +35,100 @@
 .recall-toolbar p {
   margin: 5px 0 0;
 }
+.recall-page {
+  --recall-gutter: clamp(14px, 2vw, 24px);
+}
+
+.recall-page .serial-page__inner {
+  padding-inline: var(--recall-gutter);
+}
+
+.recall-page .recall-heading {
+  min-height: 0;
+  margin-inline: calc(-1 * var(--recall-gutter));
+  padding: 20px var(--recall-gutter);
+  border-bottom: 2px solid #111;
+  background: #fff;
+}
+
+.recall-heading > div {
+  min-width: 0;
+}
+
+.recall-title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  overflow-wrap: anywhere;
+}
+
+.recall-heading-label {
+  margin: 0 0 5px;
+  color: var(--recall-muted);
+  font-size: 12px;
+}
+
+.recall-page .recall-filters {
+  flex-wrap: wrap;
+  padding: 16px 0;
+  border: 0;
+}
+
+.recall-page .recall-filters .serial-search {
+  flex: 1 1 240px;
+  color: var(--recall-muted);
+}
+
+.recall-detail-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(250px, 27%);
+  grid-template-areas: 'content details';
+  align-items: start;
+  gap: 20px;
+}
+
+.recall-details {
+  grid-area: details;
+}
+
+.recall-detail-content {
+  grid-area: content;
+}
+
+.admin-app .recall-page .recall-detail-grid .recall-case {
+  min-width: 0;
+  margin-top: 0;
+  border: 2px solid #111;
+}
+
+.admin-app .recall-page .recall-detail-grid .recall-case > h2,
+.recall-page .recall-detail-content .recall-table th {
+  background: #111;
+}
+
+.recall-page .recall-detail-grid .recall-details .recall-facts {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 10px;
+}
+
+.recall-page .recall-detail-grid .recall-details .recall-facts > div {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
+  gap: 8px;
+}
+
+.recall-details .recall-notice {
+  margin-bottom: 0;
+}
+
+@media (max-width: 1100px) {
+  .recall-detail-grid {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: 'details' 'content';
+  }
+}
+
 .recall-body {
   padding: 18px;
   min-width: 0;
@@ -180,6 +274,12 @@
 .recall-table-scroll {
   overflow-x: auto;
   min-width: 0;
+}
+
+.recall-page .recall-table a.recall-button {
+  color: var(--recall-text);
+  text-decoration: none;
+  white-space: nowrap;
 }
 .recall-table {
   width: 100%;
@@ -573,7 +673,7 @@
 
 .recall-page .recall-case .recall-table {
   table-layout: fixed;
-  min-width: 1000px;
+  min-width: 720px;
 }
 
 .recall-page .recall-case .recall-table th:nth-child(1) {

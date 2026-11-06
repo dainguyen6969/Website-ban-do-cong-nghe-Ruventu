@@ -38,6 +38,7 @@ import { sameQuotedPrice } from "../../../../shared/services/saleQuote";
 
 import { createRequestKey } from "../../../../shared/services/mutationUtils";
 import "./BanHang.css";
+import { FormDropdown } from "../../../../shared/components/ui/FilterDropdown";
 
 const money = (value) =>
   value == null ? "—" : `${Number(value).toLocaleString("vi-VN")}đ`;
@@ -727,7 +728,7 @@ export default function BanHang() {
                 {order.tax && (
                   <label className="pos-vat-mode">
                     <span>Chế độ giá</span>
-                    <select
+                    <FormDropdown
                       value={order.taxMode || "CHUA_BAO_GOM"}
                       onChange={(event) =>
                         patch({ taxMode: event.target.value })
@@ -735,7 +736,7 @@ export default function BanHang() {
                     >
                       <option value="CHUA_BAO_GOM">CHƯA BAO GỒM THUẾ</option>
                       <option value="DA_BAO_GOM">ĐÃ BAO GỒM THUẾ</option>
-                    </select>
+                    </FormDropdown>
                   </label>
                 )}
               </div>

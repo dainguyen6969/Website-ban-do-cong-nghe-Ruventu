@@ -1,3 +1,4 @@
+import { scaledFontSize } from '../../../../typography/projectFontSize.js';
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { createPromotion, getPromotionVariants } from '../api/promotionApi.js';
@@ -7,6 +8,7 @@ import { getAllCategories } from '../../catalog/categories/api/categoryApi.js';
 import { getAllBrands } from '../../catalog/brands/api/brandApi.js';
 import { seedProductCategories } from '../../../../data/productCategories.js';
 import './TaoKhuyenMai.css';
+import { FormDropdown } from "../../../../shared/components/ui/FilterDropdown";
 
 const FALLBACK_BRANDS = [
     { id: 1, name: 'ASUS' },
@@ -571,7 +573,7 @@ export default function TaoKhuyenMai() {
                         value={query}
                         onChange={(e) => setQuery(e.target.value)}
                     />
-                    <select
+                    <FormDropdown
                         value={catFilter}
                         onChange={(e) => setCatFilter(e.target.value)}
                     >
@@ -582,15 +584,15 @@ export default function TaoKhuyenMai() {
                                 value={cat.id}
                                 style={{
                                     fontWeight: cat.level === 0 ? '700' : '400',
-                                    fontSize: cat.level >= 2 ? '11px' : cat.level === 1 ? '12px' : '13px',
+                                    fontSize: scaledFontSize(cat.level >= 2 ? '11px' : cat.level === 1 ? '12px' : '13px'),
                                     color: cat.level >= 2 ? '#4b5563' : '#111'
                                 }}
                             >
                                 {cat.displayName}
                             </option>
                         ))}
-                    </select>
-                    <select
+                    </FormDropdown>
+                    <FormDropdown
                         value={brandFilter}
                         onChange={(e) => setBrandFilter(e.target.value)}
                     >
@@ -598,7 +600,7 @@ export default function TaoKhuyenMai() {
                         {brandsList.map(b => (
                             <option key={b.id} value={b.id}>{b.name}</option>
                         ))}
-                    </select>
+                    </FormDropdown>
                 </div>
 
                 <div className="picker-subtext">
@@ -922,7 +924,7 @@ export default function TaoKhuyenMai() {
                     {method === 'CHIẾT KHẤU' && scope === 'DANH_MUC' && (
                         <div className="create-form-field" style={{ marginTop: '16px' }}>
                             <label>DANH MỤC ÁP DỤNG <span>*</span></label>
-                            <select
+                            <FormDropdown
                                 value={selectedCategory}
                                 onChange={(e) => {
                                     setSelectedCategory(e.target.value);
@@ -937,14 +939,14 @@ export default function TaoKhuyenMai() {
                                         value={cat.id}
                                         style={{
                                             fontWeight: cat.level === 0 ? '700' : '400',
-                                            fontSize: cat.level >= 2 ? '11px' : cat.level === 1 ? '12px' : '13px',
+                                            fontSize: scaledFontSize(cat.level >= 2 ? '11px' : cat.level === 1 ? '12px' : '13px'),
                                             color: cat.level >= 2 ? '#4b5563' : '#111'
                                         }}
                                     >
                                         {cat.displayName}
                                     </option>
                                 ))}
-                            </select>
+                            </FormDropdown>
                             <div className="field-hint">
                                 Áp dụng cho danh mục đã chọn và các danh mục con. Không phải loại sản phẩm.
                             </div>
@@ -956,7 +958,7 @@ export default function TaoKhuyenMai() {
                     {method === 'CHIẾT KHẤU' && scope === 'THUONG_HIEU' && (
                         <div className="create-form-field" style={{ marginTop: '16px' }}>
                             <label>THƯƠNG HIỆU ÁP DỤNG <span>*</span></label>
-                            <select
+                            <FormDropdown
                                 value={selectedBrand}
                                 onChange={(e) => {
                                     setSelectedBrand(e.target.value);
@@ -970,7 +972,7 @@ export default function TaoKhuyenMai() {
                                         {brand.name}
                                     </option>
                                 ))}
-                            </select>
+                            </FormDropdown>
                             <div className="field-hint">
                                 Chỉ hàng thuộc thương hiệu đã chọn được tính là hàng đủ điều kiện.
                             </div>
