@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { HiOutlineAdjustments, HiOutlineSearch } from 'react-icons/hi';
 import FilterDropdown from '../../../../shared/components/ui/FilterDropdown';
 import TablePagination from '../../../../shared/components/ui/TablePagination';
+import syncTableHeaderOffset from '../../../../shared/components/ui/syncTableHeaderOffset';
 import { dateTime, getOrders, label, money, orderDisplayStatus } from '../api/orderApi';
 import { subscribeOrderUpdates } from '../api/orderRealtime';
 import './DanhSachDonHang.css';
@@ -293,7 +294,7 @@ export default function DanhSachDonHang() {
       </section>
       <section className="order-list-content admin-list-body">
         {state.error && <p className="order-api-message order-api-message--error">{state.error}</p>}
-        <div className="order-table-scroll admin-table-scroll" tabIndex={0} role="region" aria-label="Bảng danh sách">
+        <div ref={syncTableHeaderOffset} className="order-table-scroll admin-table-scroll" tabIndex={0} role="region" aria-label="Bảng danh sách">
           <table className="order-list-table admin-data-table" aria-busy={state.loading}>
             <thead>
               <tr>

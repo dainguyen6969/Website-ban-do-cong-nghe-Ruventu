@@ -1502,7 +1502,7 @@ function PurchaseOperationDialog({ kind, order, returnable, attempt, busy, error
         <>
           <label className="order-operation-field">
             <span>PHƯƠNG THỨC</span>
-            <FormDropdown value={form.method} onChange={(event) => change('method', event.target.value)}>
+            <FormDropdown aria-label="PHƯƠNG THỨC" value={form.method} onChange={(event) => change('method', event.target.value)}>
               {METHODS.map(([code, text]) => (
                 <option key={code} value={code}>
                   {text}

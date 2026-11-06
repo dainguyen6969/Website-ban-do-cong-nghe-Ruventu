@@ -9,7 +9,7 @@ const tabs = [
     label: 'Danh sách đơn hàng',
     path: '/admin/don-hang/danh-sach-don-hang',
   },
-  { id: 'dat-hang-online', label: 'Đặt hàng online', path: '/admin/don-hang/dat-hang-online' },
+  { id: 'dat-hang-online', label: 'Tạo đơn chờ hàng', path: '/admin/don-hang/dat-hang-online' },
   {
     id: 'quan-ly-giao-hang',
     label: 'Quản lý giao hàng',
@@ -85,7 +85,7 @@ export default function OrderLayout() {
               type="button"
               onClick={() => navigate('/admin/don-hang/dat-hang-online')}
             >
-              <HiOutlinePlus size={16} /> TẠO ĐƠN HÀNG
+              <HiOutlinePlus size={16} /> TẠO ĐƠN CHỜ HÀNG
             </button>
           </div>
         </section>
@@ -117,7 +117,7 @@ export default function OrderLayout() {
           </button>
           <button className="btn btn--primary" id="btn-dat-hang-online">
             <HiOutlinePlus size={16} />
-            <span>ĐẶT HÀNG ONLINE</span>
+            <span>TẠO ĐƠN CHỜ HÀNG</span>
           </button>
         </div>
       </div>

@@ -27,6 +27,12 @@ export default function ChiTietCombo() {
   const [showStopModal, setShowStopModal] = useState(false);
 
   useEffect(() => {
+    const refresh = () => setReloadKey((value) => value + 1);
+    window.addEventListener("focus", refresh);
+    return () => window.removeEventListener("focus", refresh);
+  }, []);
+
+  useEffect(() => {
     const controller = new AbortController();
     setLoading(true);
     setError("");
@@ -45,13 +51,17 @@ export default function ChiTietCombo() {
   const detail = useMemo(() => {
     if (!combo) return null;
 
+    const components = combo.components.map((item) => ({
+      ...item,
+      image: item.image || fallbackImage,
+    }));
+
     return {
-      components: combo.components.map((item) => ({
-        ...item,
-        image: item.image || fallbackImage,
-      })),
+      components,
       sellable: combo.assemblyCapacity,
-      bottleneck: null,
+      bottleneck: components.find(
+        (item) => item.capacity != null && item.capacity === combo.assemblyCapacity,
+      ),
     };
   }, [combo]);
   const componentPagination = useDetailTablePagination(detail?.components);

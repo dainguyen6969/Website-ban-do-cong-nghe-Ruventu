@@ -8,13 +8,25 @@ import ProductSection from "../components/ProductSection";
 import ConsultationBanner from "../components/ConsultationBanner";
 import Footer from "../components/Footer";
 
-import { productService } from "../../shared/services/productService";
-import { componentCategoryIds, inCatalogScope } from "./catalogModel";
+import { productService, toProductCard } from "../../shared/services/productService";
+import { categoryTreeIds, componentCategoryIds, inCatalogScope } from "./catalogModel";
 import useCatalogOptions from '../hooks/useCatalogOptions';
 
-export default function Home() {
+const categoryTabs = items =>
+  [...new Set(items.map(product => product.category).filter(Boolean))]
+    .sort((a, b) => a.localeCompare(b, "vi"));
+
+function pcPlatform(product) {
+  const cpu = product.specs?.find(spec => /^cpu$/i.test(spec.label))?.value || "";
+  if (/\b(?:amd\b|ryzen)/i.test(cpu)) return "AMD";
+  if (/\bintel\b/i.test(cpu)) return "Intel";
+  return "";
+}
+
+export default function Home({ selectedTabs = {}, onSelectTab }) {
   const catalogOptions = useCatalogOptions();
   const componentIds = useMemo(() => componentCategoryIds(catalogOptions.categories), [catalogOptions.categories]);
+  const [laptopSpecs, setLaptopSpecs] = useState({});
   const [{ products, loading, error }, setCatalog] = useState(() => {
     const cached = productService.getCachedAllProducts();
     return { products: cached || [], loading: !cached, error: '' };
@@ -50,6 +62,33 @@ export default function Home() {
     () => products.filter((product) => inCatalogScope(product, "pc-build")),
     [products],
   );
+
+  const laptopProducts = useMemo(() => {
+    const laptop = catalogOptions.categories.find(category => category.duongDanUrl === "laptop");
+    const laptopIds = laptop ? categoryTreeIds(catalogOptions.categories, laptop.id) : null;
+    return products.filter(product => laptopIds && product.categoryId != null
+      ? product.loaiSanPham === "DON" && laptopIds.has(Number(product.categoryId))
+      : inCatalogScope(product, "laptop")).slice(0, 4);
+  }, [products, catalogOptions.categories]);
+
+  useEffect(() => {
+    const missing = laptopProducts.filter(product => !product.specs?.length);
+    if (!missing.length) return;
+
+    let active = true;
+    Promise.allSettled(missing.map(async product => {
+      const { data } = await productService.getProductDetail(product.id);
+      const { specs } = toProductCard({ ...data, phienBanMacDinhId: product.defaultVariantId });
+      return [product.id, { variantId: product.defaultVariantId, specs }];
+    })).then(results => {
+      if (active) {
+        setLaptopSpecs(Object.fromEntries(results
+          .filter(result => result.status === "fulfilled")
+          .map(result => result.value)));
+      }
+    });
+    return () => { active = false; };
+  }, [laptopProducts]);
 
   const componentProducts = useMemo(
     () => products.filter(product => product.loaiSanPham === 'DON' && componentIds.has(Number(product.categoryId))),
@@ -92,6 +131,24 @@ export default function Home() {
             linkText="XEM TẤT CẢ"
             linkUrl="/category/pc-build"
             products={pcProducts}
+            categories={["Intel", "AMD"].filter(platform => pcProducts.some(product => pcPlatform(product) === platform))}
+            getCategory={pcPlatform}
+            activeTab={selectedTabs.pcBuild}
+            onTabChange={platform => onSelectTab?.('pcBuild', platform)}
+          />
+
+          <ProductSection
+            id="laptop"
+            title="LAPTOP"
+            subtitle="Gaming, học tập & làm việc — chọn cấu hình phù hợp với bạn"
+            linkText="XEM TẤT CẢ"
+            linkUrl="/category/laptop"
+            products={laptopProducts.map(product => {
+              const fallback = laptopSpecs[product.id];
+              return !product.specs?.length && fallback && fallback.variantId === product.defaultVariantId
+                ? { ...product, specs: fallback.specs }
+                : product;
+            })}
           />
 
           <ConsultationBanner />
@@ -102,7 +159,9 @@ export default function Home() {
             linkText="XEM TẤT CẢ"
             linkUrl="/category/linh-kien"
             products={componentProducts}
-            categories={[...new Set(componentProducts.map(product => product.category))].sort((a,b) => a.localeCompare(b, 'vi'))}
+            activeTab={selectedTabs.components}
+            onTabChange={category => onSelectTab?.('components', category)}
+            categories={categoryTabs(componentProducts)}
           />
 
           <ProductSection
@@ -111,8 +170,9 @@ export default function Home() {
             linkText="XEM TẤT CẢ"
             linkUrl="/category/gaming-gear"
             products={gamingGearProducts}
-            categories={[...new Set(gamingGearProducts.map(product => product.category).filter(Boolean))]
-              .sort((a, b) => a.localeCompare(b, "vi"))}
+            activeTab={selectedTabs.gamingGear}
+            onTabChange={category => onSelectTab?.('gamingGear', category)}
+            categories={categoryTabs(gamingGearProducts)}
             darkTheme
           />
         </>

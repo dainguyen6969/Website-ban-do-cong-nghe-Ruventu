@@ -628,7 +628,7 @@ const CheckoutPage = () => {
                 <div className="form-row">
                   <div className="form-group">
                     <label className="form-label">TỈNH / THÀNH PHỐ</label>
-                    <FormDropdown
+                    <FormDropdown aria-label="TỈNH / THÀNH PHỐ"
                       name="province"
                       value={formData.province}
                       onChange={handleInputChange}
@@ -643,7 +643,7 @@ const CheckoutPage = () => {
                   </div>
                   <div className="form-group">
                     <label className="form-label">QUẬN / HUYỆN / PHƯỜNG</label>
-                    <FormDropdown
+                    <FormDropdown aria-label="QUẬN / HUYỆN / PHƯỜNG"
                       name="ward"
                       value={formData.ward}
                       onChange={handleInputChange}

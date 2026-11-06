@@ -287,7 +287,7 @@ export default function DanhSachNhapHang() {
       )}
 
       {/* Bảng đơn nhập hàng */}
-      <div className="purchase-table-wrap admin-list-frame">
+      <section className="purchase-list-results admin-list-body admin-list-frame" aria-label="Danh sách đơn nhập hàng">
         <div className="admin-table-scroll" tabIndex={0} role="region" aria-label="Bảng danh sách">
 <table className="purchase-table admin-data-table" aria-busy={loading}>
           <thead>
@@ -393,7 +393,7 @@ export default function DanhSachNhapHang() {
           }
           idPrefix="purchase"
         />
-      </div>
+      </section>
     </main>
   );
 }

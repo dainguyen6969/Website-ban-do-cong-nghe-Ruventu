@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { HiOutlinePlus, HiOutlineSearch } from "react-icons/hi";
 import TablePagination from "../../../../../shared/components/ui/TablePagination";
+import syncTableHeaderOffset from "../../../../../shared/components/ui/syncTableHeaderOffset";
 import FilterDropdown from "../../../../../shared/components/ui/FilterDropdown";
 import StopComboModal from "../components/StopComboModal";
 import fallbackImage from "../../../../../assets/hero.png";
@@ -28,6 +29,12 @@ export default function ComboSanPham() {
   const [error, setError] = useState("");
   const [reloadKey, setReloadKey] = useState(0);
   const [comboToStop, setComboToStop] = useState(null);
+
+  useEffect(() => {
+    const refresh = () => setReloadKey((value) => value + 1);
+    window.addEventListener("focus", refresh);
+    return () => window.removeEventListener("focus", refresh);
+  }, []);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -132,7 +139,7 @@ export default function ComboSanPham() {
         </FilterDropdown>
       </div>
       <div className="admin-list-body admin-list-body--inset">
-<div className="combo-table-wrap admin-table-scroll" tabIndex={0} role="region" aria-label="Bảng danh sách">
+<div ref={syncTableHeaderOffset} className="combo-table-wrap admin-table-scroll" tabIndex={0} role="region" aria-label="Bảng danh sách">
         <table className="combo-table admin-data-table">
           <colgroup>
             <col className="combo-col-image" />

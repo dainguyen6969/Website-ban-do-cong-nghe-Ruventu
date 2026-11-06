@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Search } from 'lucide-react';
+import { HiOutlinePlus, HiOutlineSearch } from 'react-icons/hi';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import TablePagination from '../../../../shared/components/ui/TablePagination';
 import FilterDropdown, { FormDropdown } from '../../../../shared/components/ui/FilterDropdown';
@@ -678,44 +678,44 @@ export default function ThuHoiHang() {
   };
 
   return (
-    <main className="serial-page recall-page ruventu-ops">
-      <div className="serial-page__inner">
-        <header className="serial-heading-row recall-heading">
-          <div>
-            {detail && recallId && <p className="recall-heading-label">Chi tiết đợt thu hồi</p>}
-            <div className="recall-title">
-              <h1>{recallId ? detail?.code || 'CHI TIẾT THU HỒI' : 'THU HỒI HÀNG'}</h1>
-              {detail && recallId && (
-                <span className={`recall-badge ${detail.status === 'HOAN_TAT' ? 'is-done' : 'is-active'}`}>
-                  {RECALL_STATUS[detail.status]}
-                </span>
-              )}
+    <main className={`serial-page recall-page ${recallId ? 'ruventu-ops' : 'admin-list-page'}`} aria-label="Thu hồi hàng">
+      <div className={recallId ? 'serial-page__inner' : 'admin-list-content admin-list-body'}>
+        {recallId ? (
+          <header className="serial-heading-row recall-heading">
+            <div>
+              {detail && <p className="recall-heading-label">Chi tiết đợt thu hồi</p>}
+              <div className="recall-title">
+                <h1>{detail?.code || 'CHI TIẾT THU HỒI'}</h1>
+                {detail && (
+                  <span className={`recall-badge ${detail.status === 'HOAN_TAT' ? 'is-done' : 'is-active'}`}>
+                    {RECALL_STATUS[detail.status]}
+                  </span>
+                )}
+              </div>
             </div>
-          </div>
 
-          <div className="recall-actions">
-            {recallId && detail && (
-              detail.status === 'DANG_XU_LY' ? (
-                <button
-                  type="button"
-                  className="recall-button is-dark"
-                  disabled={frozen || !flag(detail.can_close)}
-                  onClick={() => openAction('KET_THUC')}
-                >
-                  Kết thúc đợt thu hồi
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  className="recall-button"
-                  disabled={frozen}
-                  onClick={() => openAction('MO_LAI')}
-                >
-                  Mở lại đợt thu hồi
-                </button>
-              )
-            )}
-            {recallId && (
+            <div className="recall-actions">
+              {detail && (
+                detail.status === 'DANG_XU_LY' ? (
+                  <button
+                    type="button"
+                    className="recall-button is-dark"
+                    disabled={frozen || !flag(detail.can_close)}
+                    onClick={() => openAction('KET_THUC')}
+                  >
+                    Kết thúc đợt thu hồi
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    className="recall-button"
+                    disabled={frozen}
+                    onClick={() => openAction('MO_LAI')}
+                  >
+                    Mở lại đợt thu hồi
+                  </button>
+                )
+              )}
               <button
                 type="button"
                 className="recall-button"
@@ -724,18 +724,24 @@ export default function ThuHoiHang() {
               >
                 ‹ Danh sách
               </button>
-            )}
 
-            <button
-              type="button"
-              className="recall-button is-dark"
-              disabled={frozen || Boolean(recallId && !detail)}
-              onClick={openCreate}
-            >
-              {recallId ? 'Tạo đợt thu hồi mới' : 'Tạo đợt thu hồi'}
-            </button>
-          </div>
-        </header>
+              <button
+                type="button"
+                className="recall-button is-dark"
+                disabled={frozen || !detail}
+                onClick={openCreate}
+              >
+                Tạo đợt thu hồi mới
+              </button>
+            </div>
+          </header>
+        ) : (
+          <nav className="admin-list-breadcrumb" aria-label="Breadcrumb nội dung">
+            <span>Kho hàng</span>
+            <span aria-hidden="true">›</span>
+            <strong aria-current="page">Thu hồi hàng</strong>
+          </nav>
+        )}
 
         {error && !dialog && (
           <p className="recall-error" role="alert">
@@ -750,9 +756,9 @@ export default function ThuHoiHang() {
 
         {!recallId && (
           <>
-            <section className="serial-toolbar recall-filters" aria-label="Bộ lọc thu hồi hàng">
-              <label className="serial-search">
-                <Search size={17} aria-hidden="true" />
+            <section className="admin-list-toolbar" aria-label="Bộ lọc thu hồi hàng">
+              <label className="admin-list-search">
+                <HiOutlineSearch size={18} aria-hidden="true" />
                 <input
                   type="search"
                   aria-label="Tìm đợt thu hồi"
@@ -765,8 +771,10 @@ export default function ThuHoiHang() {
                 />
               </label>
               <FilterDropdown
+                className="recall-list-status"
                 aria-label="Trạng thái đợt thu hồi"
                 value={status}
+                selectedDark
                 onChange={(event) => {
                   setStatus(event.target.value);
                   setPage(1);
@@ -776,11 +784,20 @@ export default function ThuHoiHang() {
                 <option value="DANG_XU_LY">Đang xử lý</option>
                 <option value="HOAN_TAT">Hoàn tất</option>
               </FilterDropdown>
+              <button
+                type="button"
+                className="admin-list-primary-action"
+                disabled={frozen}
+                onClick={openCreate}
+              >
+                <HiOutlinePlus size={17} aria-hidden="true" />
+                TẠO ĐỢT THU HỒI
+              </button>
             </section>
 
-            <section className="recall-list" aria-label="Danh sách đợt thu hồi">
-              <div className="admin-table-scroll admin-table-scroll--embedded" tabIndex={0} role="region" aria-label="Bảng đợt thu hồi">
-                <table className="recall-table admin-data-table" aria-busy={loading}>
+            <section className="admin-list-frame" aria-label="Danh sách đợt thu hồi">
+              <div className="admin-table-scroll" tabIndex={0} role="region" aria-label="Bảng đợt thu hồi">
+                <table className="recall-list-table admin-data-table" aria-busy={loading}>
                   <thead>
                     <tr>
                       <th>MÃ ĐỢT THU HỒI</th>
@@ -836,7 +853,9 @@ export default function ThuHoiHang() {
                             </span>
                           </td>
                           <td>
-                            <Link to={`/kho-hang/thu-hoi/${record.id}`} className="recall-button recall-button--sm">XEM CHI TIẾT</Link>
+                            <Link to={`/kho-hang/thu-hoi/${record.id}`} className="admin-list-detail-action">
+                              XEM CHI TIẾT
+                            </Link>
                           </td>
                         </tr>
                       ))
@@ -928,8 +947,8 @@ export default function ThuHoiHang() {
 
               <section className="serial-info-card recall-case recall-detail-content" hidden={recallTab !== 'devices'}>
                 <h2>THIẾT BỊ TRONG PHẠM VI</h2>
-                <div className="recall-table-scroll" tabIndex={0} role="region" aria-label="Bảng thiết bị thu hồi">
-                  <table className="recall-table">
+                <div className="admin-table-scroll admin-table-scroll--embedded" tabIndex={0} role="region" aria-label="Bảng thiết bị thu hồi">
+                  <table className="recall-table admin-data-table admin-data-table--records">
                     <thead>
                       <tr>
                         <th>THIẾT BỊ / NGUỒN</th>
@@ -1035,8 +1054,9 @@ export default function ThuHoiHang() {
                 ? currentItem.so_serial || currentItem.ma_theo_doi || `Thiết bị #${currentItem.id}`
                 : detail?.code
             }
-            className="recall-modal"
+            className={recallId ? 'recall-modal' : 'recall-modal ruventu-ops'}
             showClose
+            scrollBody
             busy={busy}
             error={error}
             disabled={!attempt.current && (!form.confirmed || !referenceReady)}

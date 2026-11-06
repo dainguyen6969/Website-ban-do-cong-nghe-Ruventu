@@ -1188,7 +1188,7 @@ function ShipmentEditDialog({ delivery, busy, error, close, submit }) {
     >
       <label className="delivery-field">
         <span>ĐỐI TÁC VẬN CHUYỂN *</span>
-        <FormDropdown
+        <FormDropdown aria-label="ĐỐI TÁC VẬN CHUYỂN"
           required
           value={partnerId}
           disabled={loading}
@@ -1735,7 +1735,7 @@ export function ShipmentReturnDialog({
                     <label className="delivery-field">
                       <span>KẾT LUẬN HÀNG NGUYÊN VẸN *</span>
 
-                      <FormDropdown
+                      <FormDropdown aria-label="KẾT LUẬN HÀNG NGUYÊN VẸN"
                         required
                         value={row.resale}
                         onChange={(event) =>
@@ -1817,7 +1817,7 @@ export function ShipmentReturnDialog({
             <label className="delivery-field">
               <span>HÌNH THỨC HOÀN TIỀN DỰ KIẾN *</span>
 
-              <FormDropdown
+              <FormDropdown aria-label="HÌNH THỨC HOÀN TIỀN DỰ KIẾN"
                 required
                 value={refundMethod}
                 onChange={(event) => setRefundMethod(event.target.value)}

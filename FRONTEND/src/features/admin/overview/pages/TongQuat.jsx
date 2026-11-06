@@ -1359,7 +1359,7 @@ export default function TongQuat() {
         <h2 className="tq-qa-title">Truy cập nhanh</h2>
         <div className="tq-qa-links">
           <Link className="tq-qa-link" to="/admin/don-hang/dat-hang-online">
-            Tạo đơn Online →
+            Tạo đơn chờ hàng →
           </Link>
           <Link className="tq-qa-link" to={`${PURCHASE_PATH}/tao-moi`}>
             Tạo đơn nhập →

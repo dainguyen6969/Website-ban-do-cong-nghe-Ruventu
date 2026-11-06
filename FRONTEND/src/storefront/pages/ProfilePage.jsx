@@ -208,7 +208,7 @@ const ProfilePage = () => {
         <div className="form-row">
           <div className="form-group">
             <label>TỈNH / THÀNH PHỐ</label>
-            <FormDropdown
+            <FormDropdown aria-label="TỈNH / THÀNH PHỐ"
               name="city"
               value={formData.city}
               onChange={handleChange}
@@ -226,7 +226,7 @@ const ProfilePage = () => {
           </div>
           <div className="form-group">
             <label>PHƯỜNG / XÃ</label>
-            <FormDropdown
+            <FormDropdown aria-label="PHƯỜNG / XÃ"
               name="ward"
               value={formData.ward}
               onChange={handleChange}

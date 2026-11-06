@@ -327,7 +327,7 @@ export default function TaoPhieuChiForm() {
 
             <div className="tpf-form-group">
               <label>NHÓM NGƯỜI NHẬN *</label>
-              <FormDropdown
+              <FormDropdown aria-label="NHÓM NGƯỜI NHẬN"
                 value={group}
                 onChange={(e) => {
                   const newGroup = e.target.value;
@@ -470,7 +470,7 @@ export default function TaoPhieuChiForm() {
 
             <div className="tpf-form-group">
               <label>PHƯƠNG THỨC THANH TOÁN *</label>
-              <FormDropdown value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value)}>
+              <FormDropdown aria-label="PHƯƠNG THỨC THANH TOÁN" value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value)}>
                 <option value="TIEN_MAT">TIỀN MẶT</option>
                 <option value="CHUYEN_KHOAN">CHUYỂN KHOẢN</option>
                 <option value="THE">QUẸT THẺ</option>

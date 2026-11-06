@@ -362,6 +362,7 @@
   min-width: 0;
   max-height: min(360px, 65dvh);
   overflow-y: auto;
+  scrollbar-gutter: stable;
   overscroll-behavior: contain;
   padding: 16px;
   border: 1px solid #333;
@@ -422,6 +423,56 @@
 
 .catalog-nav-item .catalog-brand-links a {
   background-color: #202020;
+}
+
+.catalog-nav-item .mega-col :is(.catalog-category-tree, .catalog-subcategories) {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.catalog-nav-item .mega-col .catalog-subcategories {
+  margin: 2px 0 4px 10px;
+  padding-left: 7px;
+  border-left: 1px solid #544141;
+}
+
+.catalog-nav-item .mega-col .catalog-subcategories[hidden] {
+  display: none;
+}
+
+.catalog-category-row {
+  display: flex;
+  align-items: stretch;
+  border-radius: 3px;
+}
+
+.catalog-category-row > a {
+  flex: 1;
+  min-width: 0;
+}
+
+.catalog-category-row:has([aria-expanded="true"]) {
+  background: #2b2020;
+}
+
+.catalog-category-toggle {
+  display: grid;
+  flex: 0 0 32px;
+  place-items: center;
+  color: #ccc;
+  background: transparent;
+}
+
+.catalog-category-toggle:is(:hover, :focus-visible, [aria-expanded="true"]) {
+  color: #fff;
+}
+
+.catalog-category-toggle:focus-visible {
+  outline: 1px solid var(--primary-red);
+  outline-offset: -1px;
+}
+
+.catalog-category-toggle[aria-expanded="true"] svg {
+  transform: rotate(180deg);
 }
 
 .catalog-nav-item .mega-col ul li a:hover,
