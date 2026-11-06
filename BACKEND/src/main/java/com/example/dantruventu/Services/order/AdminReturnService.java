@@ -279,6 +279,8 @@ public class AdminReturnService {
     List<ChiTietTraHang> returnLines =
         returnLineRepository.findByPhieuTraHang_IdOrderByIdAsc(returnId);
 
+    ReturnCustodyAcceptance.verify(slip, request);
+
     // Xác minh tiền trước khi cập nhật tồn.
     String receivedSnapshot =
         returnMoneySnapshots.receivedSnapshot(
@@ -290,6 +292,7 @@ public class AdminReturnService {
     Map<String, Object> receiptData = ReturnSnapshotJson.decode(receivedSnapshot);
     receiptData.put("hang_da_nhan", receivedItems);
     receiptData.put("hang_dang_giu", List.of());
+    receiptData.put("dang_giu_hang", false);
 
     slip.setNgayNhanHang(receivedAt);
 
