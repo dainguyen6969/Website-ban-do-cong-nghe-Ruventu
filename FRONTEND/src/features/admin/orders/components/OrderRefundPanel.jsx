@@ -1,3 +1,4 @@
+import { FormDropdown } from "../../../../shared/components/ui/FilterDropdown";
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 
@@ -281,13 +282,13 @@ export default function OrderRefundPanel({ order, busy, perform, data, onEditing
             <label>
               <span>PHƯƠNG THỨC HOÀN</span>
 
-              <select
+              <FormDropdown aria-label="PHƯƠNG THỨC HOÀN"
                 value={dialog.method}
                 onChange={(event) => change('method', event.target.value)}
               >
                 <option value="CHUYEN_KHOAN">Chuyển khoản</option>
                 <option value="TIEN_MAT">Tiền mặt</option>
-              </select>
+              </FormDropdown>
             </label>
 
             <label>

@@ -1,3 +1,4 @@
+import { FormDropdown } from "../../shared/components/ui/FilterDropdown";
 import React, { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import Header from '../components/Header';
@@ -91,7 +92,7 @@ const PromotionsPage = () => {
             </div>
             <div className="toolbar-right">
               <label>Sắp xếp theo:</label>
-              <select
+              <FormDropdown aria-label="Sắp xếp theo:"
                 value={sortBy}
                 onChange={(e) => { setSortBy(e.target.value); setPage(1); }}
                 className="sort-select"
@@ -99,7 +100,7 @@ const PromotionsPage = () => {
                 <option value="newest">Mới nhất</option>
                 <option value="price-asc">Giá tăng dần</option>
                 <option value="price-desc">Giá giảm dần</option>
-              </select>
+              </FormDropdown>
             </div>
           </div>
 

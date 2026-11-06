@@ -1,3 +1,4 @@
+import { FormDropdown } from "../../../../shared/components/ui/FilterDropdown";
 import PriceInput from "../../../../shared/components/ui/PriceInput";
 import "./CatalogPolicies.css";
 
@@ -118,7 +119,7 @@ export function VariantEditor({
 
         <label>
           Quản lý serial *
-          <select
+          <FormDropdown
             value={
               combo
                 ? "false"
@@ -141,7 +142,7 @@ export function VariantEditor({
             <option value="">Chọn chế độ</option>
             <option value="true">Có quản lý serial</option>
             <option value="false">Không quản lý serial</option>
-          </select>
+          </FormDropdown>
         </label>
       </div>
 

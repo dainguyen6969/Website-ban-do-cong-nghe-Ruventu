@@ -157,8 +157,10 @@ html:has(.storefront-app) {
 }
 
 :where(.admin-app) button {
+  appearance: none;
   cursor: pointer;
   border: none;
+  border-radius: 0;
   background: none;
   outline: none;
 }
@@ -179,37 +181,50 @@ html:has(.storefront-app) {
   display: block;
 }
 
-/* Scrollbar styling for main content area (nội dung trang cần rõ ràng) */
-:where(.admin-app) .app-layout__main ::-webkit-scrollbar,
-:where(.admin-app) [class*='-page']::-webkit-scrollbar,
-:where(.admin-app) [class*='-page'] ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
+/* Ruventu scrollbars retain native scrolling and keyboard controls. */
+@media (forced-colors: none) {
+  @supports not selector(::-webkit-scrollbar) {
+    :where(.admin-app .app-layout__main, .admin-app .app-layout__main *),
+    .admin-app .app-layout__main .admin-table-scroll {
+      scrollbar-width: thin;
+      scrollbar-color: #111 #f3f4f6;
+    }
+  }
 
-:where(.admin-app) .app-layout__main ::-webkit-scrollbar-track,
-:where(.admin-app) [class*='-page']::-webkit-scrollbar-track,
-:where(.admin-app) [class*='-page'] ::-webkit-scrollbar-track {
-  background: #f1f5f9;
-}
+  @supports selector(::-webkit-scrollbar) {
+    .admin-app .app-layout__main :is(.admin-table-scroll, .waiting-products, [class*='-tabs']) {
+      /* Standard scrollbar properties otherwise suppress the WebKit design. */
+      scrollbar-width: auto !important;
+      scrollbar-color: auto !important;
+    }
 
-:where(.admin-app) .app-layout__main ::-webkit-scrollbar-thumb,
-:where(.admin-app) [class*='-page']::-webkit-scrollbar-thumb,
-:where(.admin-app) [class*='-page'] ::-webkit-scrollbar-thumb {
-  background: #94a3b8;
-  border-radius: 4px;
-}
+    .admin-app :is(.app-layout__main, .app-layout__main *)::-webkit-scrollbar {
+      width: 10px;
+      height: 10px;
+    }
 
-:where(.admin-app) .app-layout__main ::-webkit-scrollbar-thumb:hover,
-:where(.admin-app) [class*='-page']::-webkit-scrollbar-thumb:hover,
-:where(.admin-app) [class*='-page'] ::-webkit-scrollbar-thumb:hover {
-  background: #64748b;
-}
+    .admin-app :is(.app-layout__main, .app-layout__main *)::-webkit-scrollbar-track,
+    .admin-app :is(.app-layout__main, .app-layout__main *)::-webkit-scrollbar-corner {
+      background: #f3f4f6;
+    }
 
-:where(.admin-app) .app-layout__main,
-:where(.admin-app) [class*='-page'] {
-  scrollbar-width: thin;
-  scrollbar-color: #94a3b8 #f1f5f9;
+    .admin-app :is(.app-layout__main, .app-layout__main *)::-webkit-scrollbar-thumb {
+      min-width: 28px;
+      min-height: 28px;
+      border: 2px solid #f3f4f6;
+      border-radius: 0;
+      background: #111;
+    }
+
+    .admin-app :is(.app-layout__main, .app-layout__main *)::-webkit-scrollbar-thumb:hover,
+    .admin-app :is(.app-layout__main, .app-layout__main *)::-webkit-scrollbar-thumb:active {
+      background: var(--color-brand-red, #e31e24);
+    }
+
+    .admin-app :is(.app-layout__main, .app-layout__main *)::-webkit-scrollbar-button {
+      display: none;
+    }
+  }
 }
 
 /* Sidebar scrollbar: ẩn thanh kéo để menu đen gọn gàng, vẫn cuộn mượt bằng chuột */
@@ -286,7 +301,7 @@ html:has(.storefront-app) {
   align-items: center;
   width: fit-content;
   padding: 4px 8px;
-  border-radius: 3px;
+  border-radius: 0;
   font-size: 12px;
   font-weight: 500;
   line-height: 1.4;

@@ -1,3 +1,4 @@
+import { FormDropdown } from "../../../../shared/components/ui/FilterDropdown";
 import { useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { HiOutlineSearch } from 'react-icons/hi';
@@ -319,7 +320,7 @@ export default function TaoDonNhapHang() {
               <p className="purchase-note">Chỉ hiển thị nhà cung cấp đang hoạt động từ hệ thống.</p>
             </PurchaseCard>
             <PurchaseCard title="KHO NHẬP">
-              <select className="purchase-wide-select" value={warehouseId} disabled>
+              <FormDropdown className="purchase-wide-select" value={warehouseId} disabled>
                 {warehouses
                   .filter((item) => String(item.id) === warehouseId)
                   .map((item) => (
@@ -327,7 +328,7 @@ export default function TaoDonNhapHang() {
                       {item.name} ({item.code})
                     </option>
                   ))}
-              </select>
+              </FormDropdown>
             </PurchaseCard>
             <PurchaseCard title="THUẾ VÀ TỔNG TIỀN">
               <label className="purchase-checkbox">

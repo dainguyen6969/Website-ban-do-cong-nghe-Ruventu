@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import TablePagination from '../../../../shared/components/ui/TablePagination';
-import FilterDropdown from '../../../../shared/components/ui/FilterDropdown';
+import FilterDropdown, { FormDropdown } from '../../../../shared/components/ui/FilterDropdown';
 import OrderModal from '../../orders/components/OrderModal';
 import {
   apiFieldErrors,
@@ -1042,7 +1042,7 @@ export default function ThuHoiHang() {
                   </Field>
 
                   <Field label="Đơn nhập nguồn" wide>
-                    <select
+                    <FormDropdown aria-label="Đơn nhập nguồn"
                       required
                       value={form.purchaseId}
                       onChange={(event) => {
@@ -1058,17 +1058,17 @@ export default function ThuHoiHang() {
                           {purchase.ten_nha_cung_cap}
                         </option>
                       ))}
-                    </select>
+                    </FormDropdown>
                   </Field>
 
                   <Field label="Phạm vi thu hồi" wide>
-                    <select
+                    <FormDropdown aria-label="Phạm vi thu hồi"
                       value={form.mode}
                       onChange={(event) => change('mode', event.target.value)}
                     >
                       <option value="serials">Theo danh sách serial</option>
                       <option value="receipt">Theo dòng/lô của nguồn nhận</option>
-                    </select>
+                    </FormDropdown>
                   </Field>
 
                   {form.mode === 'serials' ? (
@@ -1088,7 +1088,7 @@ export default function ThuHoiHang() {
                   ) : (
                     <>
                       <Field label="Dòng nguồn nhận" wide error={fieldErrors.receiptLineId}>
-                        <select
+                        <FormDropdown aria-label="Dòng nguồn nhận"
                           required
                           aria-invalid={Boolean(fieldErrors.receiptLineId)}
                           disabled={sourceLoading || !form.purchaseId || !sourceLines.length}
@@ -1116,7 +1116,7 @@ export default function ThuHoiHang() {
                               {line.quantity} sản phẩm
                             </option>
                           ))}
-                        </select>
+                        </FormDropdown>
                       </Field>
 
                       {selectedLine && !flag(selectedLine.serial_managed) && (
@@ -1177,7 +1177,7 @@ export default function ThuHoiHang() {
 
                   {currentItem && (
                     <Field label="Việc cần ghi nhận" wide>
-                      <select
+                      <FormDropdown aria-label="Việc cần ghi nhận"
                         value={form.action}
                         onChange={(event) => change('action', event.target.value)}
                       >
@@ -1213,13 +1213,13 @@ export default function ThuHoiHang() {
                             </optgroup>
                           ) : null;
                         })}
-                      </select>
+                      </FormDropdown>
                     </Field>
                   )}
 
                   {form.action === 'GAN_THIET_BI' && (
                     <Field label="Thiết bị bán đã xác định đúng nguồn" wide>
-                      <select
+                      <FormDropdown aria-label="Thiết bị bán đã xác định đúng nguồn"
                         required
                         value={form.deviceId}
                         onChange={(event) => change('deviceId', event.target.value)}
@@ -1237,7 +1237,7 @@ export default function ThuHoiHang() {
                               {device.ma_don_hang}
                             </option>
                           ))}
-                      </select>
+                      </FormDropdown>
                     </Field>
                   )}
 
@@ -1251,7 +1251,11 @@ export default function ThuHoiHang() {
                               : 'Phiếu đổi đã hoàn tất, đúng thiết bị'
                           }
                         >
-                          <select
+                          <FormDropdown aria-label={
+                            form.action === 'TRA_NCC'
+                              ? 'Phiếu trả đã hoàn tất, đúng thiết bị'
+                              : 'Phiếu đổi đã hoàn tất, đúng thiết bị'
+                          }
                             required
                             value={form.nccUnitId}
                             onChange={(event) => change('nccUnitId', event.target.value)}
@@ -1266,7 +1270,7 @@ export default function ThuHoiHang() {
                                 {proof.new_serial ? ` → ${proof.new_serial}` : ''}
                               </option>
                             ))}
-                          </select>
+                          </FormDropdown>
                         </Field>
                       ) : (
                         <div className="recall-empty-reference">
@@ -1296,7 +1300,7 @@ export default function ThuHoiHang() {
                     <div className="recall-wide">
                       {warrantyOptions.length ? (
                         <Field label="Phiếu đổi đã có bằng chứng bàn giao">
-                          <select
+                          <FormDropdown aria-label="Phiếu đổi đã có bằng chứng bàn giao"
                             required
                             value={form.warrantyId}
                             onChange={(event) => change('warrantyId', event.target.value)}
@@ -1307,7 +1311,7 @@ export default function ThuHoiHang() {
                                 {ticket.ma_phieu}
                               </option>
                             ))}
-                          </select>
+                          </FormDropdown>
                         </Field>
                       ) : (
                         <div className="recall-empty-reference">

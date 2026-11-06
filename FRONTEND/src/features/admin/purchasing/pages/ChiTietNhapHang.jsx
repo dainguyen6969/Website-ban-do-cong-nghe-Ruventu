@@ -1,3 +1,4 @@
+import { FormDropdown } from "../../../../shared/components/ui/FilterDropdown";
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import DetailTablePagination from '../../../../shared/components/ui/DetailTablePagination';
@@ -1490,13 +1491,13 @@ function PurchaseOperationDialog({ kind, order, returnable, attempt, busy, error
         <>
           <label className="order-operation-field">
             <span>PHƯƠNG THỨC</span>
-            <select value={form.method} onChange={(event) => change('method', event.target.value)}>
+            <FormDropdown aria-label="PHƯƠNG THỨC" value={form.method} onChange={(event) => change('method', event.target.value)}>
               {METHODS.map(([code, text]) => (
                 <option key={code} value={code}>
                   {text}
                 </option>
               ))}
-            </select>
+            </FormDropdown>
           </label>
 
           <label className="order-operation-field">

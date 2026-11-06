@@ -57,7 +57,8 @@ test('direct category navigation uses the same compact listing and filters as su
     assert.match(markup, /class="search-main container"/);
     assert.match(markup, /KHOẢNG GIÁ/);
     assert.match(markup, /TÌNH TRẠNG/);
-    assert.match(markup, /class="custom-sort-btn"/);
+    assert.match(markup, /<button\b[^>]*aria-haspopup="listbox"[^>]*aria-label="Sắp xếp sản phẩm"/);
+    assert.doesNotMatch(markup, /<select\b/);
     assert.doesNotMatch(markup, /class="category-banner"/);
   }
   assert.match(render('/category/linh-kien'), /<h1 class="catalog-listing-title">LINH KIỆN PC<\/h1>/);

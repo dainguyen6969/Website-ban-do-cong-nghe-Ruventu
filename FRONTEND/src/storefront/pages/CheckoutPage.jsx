@@ -1,3 +1,4 @@
+import { FormDropdown } from "../../shared/components/ui/FilterDropdown";
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { VIETNAM_LOCATIONS, matchProvince, matchDistrict } from '../../data/vietnamLocations';
 import { ArrowLeft, ShieldCheck, Truck, MapPin, Navigation, Loader2 } from 'lucide-react';
@@ -602,7 +603,7 @@ const CheckoutPage = () => {
                 <div className="form-row">
                   <div className="form-group">
                     <label className="form-label">TỈNH / THÀNH PHỐ</label>
-                    <select
+                    <FormDropdown aria-label="TỈNH / THÀNH PHỐ"
                       name="province"
                       value={formData.province}
                       onChange={handleInputChange}
@@ -613,11 +614,11 @@ const CheckoutPage = () => {
                           {prov}
                         </option>
                       ))}
-                    </select>
+                    </FormDropdown>
                   </div>
                   <div className="form-group">
                     <label className="form-label">QUẬN / HUYỆN / PHƯỜNG</label>
-                    <select
+                    <FormDropdown aria-label="QUẬN / HUYỆN / PHƯỜNG"
                       name="ward"
                       value={formData.ward}
                       onChange={handleInputChange}
@@ -628,7 +629,7 @@ const CheckoutPage = () => {
                           {w}
                         </option>
                       ))}
-                    </select>
+                    </FormDropdown>
                   </div>
                 </div>
                 <div

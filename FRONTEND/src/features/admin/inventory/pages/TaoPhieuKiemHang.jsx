@@ -1,3 +1,4 @@
+import { FormDropdown } from "../../../../shared/components/ui/FilterDropdown";
 import { Fragment, useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { HiOutlineSearch } from "react-icons/hi";
@@ -609,7 +610,7 @@ export default function TaoPhieuKiemHang() {
                                 </td>
 
                                 <td>
-                                  <select
+                                  <FormDropdown
                                     required
                                     aria-label={`Lý do kiểm ${row.ten_phien_ban}`}
                                     value={row.reasonChoice}
@@ -632,7 +633,7 @@ export default function TaoPhieuKiemHang() {
                                     <option value={CUSTOM_REASON}>
                                       Nhập lý do khác...
                                     </option>
-                                  </select>
+                                  </FormDropdown>
 
                                   {row.reasonChoice === CUSTOM_REASON && (
                                     <input

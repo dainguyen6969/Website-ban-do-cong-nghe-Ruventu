@@ -32,16 +32,11 @@
   margin-bottom: 0;
   overflow: auto !important;
   overscroll-behavior: contain;
-  scrollbar-width: thin !important;
-  scrollbar-color: #8d8d8d #ededed;
   border: 2px solid #111;
   border-radius: 0;
   background: #fff;
   box-sizing: border-box;
 }
-.admin-app .admin-table-scroll::-webkit-scrollbar { display: block; width: 10px; height: 10px; }
-.admin-app .admin-table-scroll::-webkit-scrollbar-track { background: #ededed; }
-.admin-app .admin-table-scroll::-webkit-scrollbar-thumb { border: 2px solid #ededed; background: #8d8d8d; }
 .admin-app .admin-table-scroll:focus-visible { outline: 2px solid var(--color-brand-red, #e31e24); outline-offset: -2px; }
 .admin-app .admin-table-scroll--embedded { flex: none; max-height: 420px; }
 .admin-app :is([class*="table-wrap"], [class*="table-scroll"], [class*="table-container"], [class*="history-wrap"]):has(> .admin-table-scroll--embedded) {
@@ -66,6 +61,23 @@
   white-space: nowrap;
   overflow-wrap: normal;
 }
+
+@media (forced-colors: none) {
+  @supports selector(::-webkit-scrollbar) {
+    .admin-app .admin-list-page .admin-table-scroll:has(> .admin-data-table:not(.admin-data-table--records) > thead > tr:only-child) {
+      --admin-table-header-offset: max(42px, calc(20px + 15.4px * var(--project-font-scale, 1)));
+    }
+
+    .admin-app .admin-list-page .admin-table-scroll:has(> .admin-data-table:not(.admin-data-table--records) > thead > tr:only-child)::-webkit-scrollbar:vertical {
+      background: linear-gradient(#111 var(--admin-table-header-offset), #f3f4f6 0);
+    }
+
+    .admin-app .admin-list-page .admin-table-scroll:has(> .admin-data-table:not(.admin-data-table--records) > thead > tr:only-child)::-webkit-scrollbar-track:vertical {
+      margin-top: var(--admin-table-header-offset);
+    }
+  }
+}
+
 .admin-app .admin-table-scroll > .admin-data-table td {
   height: 60px;
   padding: 10px 14px;
@@ -78,6 +90,7 @@
   overflow-wrap: normal;
   font-variant-numeric: tabular-nums;
 }
+.admin-app .admin-table-scroll > .admin-data-table tfoot td { border-top: 2px solid #111; }
 .admin-app .admin-table-scroll > .admin-data-table tbody tr { background: #fff; }
 .admin-app .admin-table-scroll > .admin-data-table tbody tr:nth-child(even) { background: #fafafa; }
 .admin-app .admin-table-scroll > .admin-data-table tbody tr:hover { background: #f3f3f3; }
@@ -89,7 +102,7 @@
 .admin-app .admin-table-scroll > .admin-data-table td > :is(strong, a, div) { text-align: inherit; }
 .admin-app .admin-table-scroll > .admin-data-table :is(td strong, td a) { font-size: 12px; }
 .admin-app .admin-table-scroll > .admin-data-table td small { font-size: 11px; line-height: 1.4; }
-.admin-app .admin-table-scroll > .admin-data-table td[colspan] { height: 120px; text-align: center; white-space: normal; }
+.admin-app .admin-table-scroll > .admin-data-table tbody td[colspan] { height: 120px; text-align: center; white-space: normal; }
 .admin-app .admin-table-footer {
   display: flex;
   align-items: center;

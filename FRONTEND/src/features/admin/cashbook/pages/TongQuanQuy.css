@@ -203,11 +203,11 @@
   color: #fff;
 }
 
-.text-green {
+.cashbook-page .text-green {
   color: #0d8425 !important;
 }
 
-.text-red {
+.cashbook-page .text-red {
   color: #dc2626 !important;
 }
 

@@ -1,3 +1,4 @@
+import { FormDropdown } from "../../../../shared/components/ui/FilterDropdown";
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { HiOutlineArrowLeft, HiOutlinePencilAlt, HiX } from 'react-icons/hi';
@@ -267,14 +268,14 @@ export default function ChiTietSerial() {
             </header>
             <div className="serial-status-modal__body">
               <label htmlFor="new-serial-status">Trạng thái mới</label>
-              <select
+              <FormDropdown
                 id="new-serial-status"
                 value={nextStatus}
                 disabled
                 className={`serial-modal-select--${nextMeta.key}`}
               >
                 <option value={nextStatus}>{nextMeta.label}</option>
-              </select>
+              </FormDropdown>
               <label htmlFor="serial-status-reason">Lý do</label>
               <input
                 disabled={saving || statusAttempt.current !== null}

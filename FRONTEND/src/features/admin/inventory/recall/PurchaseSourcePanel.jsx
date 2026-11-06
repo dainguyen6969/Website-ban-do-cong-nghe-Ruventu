@@ -1,3 +1,4 @@
+import { FormDropdown } from "../../../../shared/components/ui/FilterDropdown";
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { PurchaseCard } from '../../purchasing/pages/PurchaseShared';
@@ -302,7 +303,7 @@ export default function PurchaseSourcePanel({ order, locked = false, onLockChang
           <fieldset className="recall-fields" disabled={frozen}>
             <label className="recall-wide">
               <span>Dòng hàng chưa ghi đủ nguồn</span>
-              <select
+              <FormDropdown aria-label="Dòng hàng chưa ghi đủ nguồn"
                 value={form.lineId}
                 onChange={(event) => change('lineId', event.target.value)}
               >
@@ -314,7 +315,7 @@ export default function PurchaseSourcePanel({ order, locked = false, onLockChang
                     {' sản phẩm chưa ghi nguồn'}
                   </option>
                 ))}
-              </select>
+              </FormDropdown>
             </label>
 
             <label>

@@ -1,3 +1,4 @@
+import { FormDropdown } from "../../../../shared/components/ui/FilterDropdown";
 import { useEffect, useRef, useState } from 'react';
 import { SquareCheck as CheckCircle2, MessageSquareText as Info, X } from 'lucide-react';
 import OrderModal from '../../orders/components/OrderModal';
@@ -29,7 +30,7 @@ function InputField({ field, value, change, operation, detail, suppliers, versio
   const list = name.endsWith('_urls') || name.endsWith('_ids') || name === 'sai_lech_da_xu_ly' || name === 'serials' || operation.stringList?.includes(name);
   if (name === 'phien_ban_phuong_an' && optional && (!detail.phuong_an_doi || operation.key === 'HANDOVER' && !detail.phuong_an_doi.thiet_bi_thay_the_id)) return null;
   return <label className={`w-intake-field ${type === 'checkbox' ? 'w-field-checkbox' : ''}`}><span>{prefix}{label}{optional ? <small className="w-field-optional"> Tùy chọn</small> : type !== 'checkbox' && <em className="w-field-required"> *</em>}{operation.stringList?.includes(name) && ' (mỗi dòng một mã)'}</span>
-    {options ? <select required={!optional} value={value} onChange={event => change(event.target.value)}><option value="">Chọn {label.toLowerCase()}</option>{Object.entries(options).map(([key, text]) => <option key={key} value={key}>{text}</option>)}</select>
+    {options ? <FormDropdown required={!optional} value={value} onChange={event => change(event.target.value)}><option value="">Chọn {label.toLowerCase()}</option>{Object.entries(options).map(([key, text]) => <option key={key} value={key}>{text}</option>)}</FormDropdown>
       : type === 'checkbox' ? <input type="checkbox" required={name === 'xac_nhan_khach'} checked={Boolean(value)} onChange={event => change(event.target.checked)} />
       : type === 'textarea' || list ? <textarea value={value} rows={3} placeholder={name.endsWith('_urls') ? 'https://…' : `Nhập ${label.toLowerCase()}`} required={!optional} onChange={event => change(event.target.value)} />
       : <input type={type === 'id' ? 'number' : type} min={type === 'id' ? '1' : type === 'number' ? '0' : undefined} step={type === 'datetime-local' ? '0.001' : type === 'id' || name.startsWith('so_luong') ? '1' : type === 'number' ? '0.01' : undefined} required={!optional} value={value} onChange={event => change(event.target.value)} />}

@@ -1,4 +1,5 @@
 // Admin order screen: DatHangOnline.
+import { FormDropdown } from "../../../../shared/components/ui/FilterDropdown";
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { HiOutlineArrowLeft, HiOutlineSearch } from 'react-icons/hi';
@@ -801,7 +802,7 @@ export default function DatHangOnline() {
               />
               <div className="online-field">
                 <span>TỈNH / THÀNH PHỐ *</span>
-                <select
+                <FormDropdown aria-label="TỈNH / THÀNH PHỐ"
                   value={recipient.province}
                   onChange={(e) => handleProvinceChange(e.target.value)}
                 >
@@ -810,11 +811,11 @@ export default function DatHangOnline() {
                       {prov}
                     </option>
                   ))}
-                </select>
+                </FormDropdown>
               </div>
               <div className="online-field">
                 <span>QUẬN / HUYỆN / PHƯỜNG *</span>
-                <select
+                <FormDropdown aria-label="QUẬN / HUYỆN / PHƯỜNG"
                   value={recipient.ward}
                   onChange={(e) => updateRecipient('ward', e.target.value)}
                 >
@@ -823,7 +824,7 @@ export default function DatHangOnline() {
                       {w}
                     </option>
                   ))}
-                </select>
+                </FormDropdown>
               </div>
               <div
                 className={`online-field online-field--wide ${

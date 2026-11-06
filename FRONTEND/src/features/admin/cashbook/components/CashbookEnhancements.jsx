@@ -1,3 +1,4 @@
+import { FormDropdown } from "../../../../shared/components/ui/FilterDropdown";
 import { useMemo, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import {
@@ -112,7 +113,7 @@ export function CashSourceFilters({ value }) {
 
       <label>
         <span>Nguồn tạo</span>
-        <select
+        <FormDropdown aria-label="Nguồn tạo"
           value={value.draft.nguon_tao}
           onChange={(event) =>
             value.setDraft((current) => ({
@@ -124,12 +125,12 @@ export function CashSourceFilters({ value }) {
           <option value="">Tất cả</option>
           <option value="THU_CONG">Thủ công</option>
           <option value="TU_DONG">Tự động</option>
-        </select>
+        </FormDropdown>
       </label>
 
       <label>
         <span>Nghiệp vụ nguồn</span>
-        <select
+        <FormDropdown aria-label="Nghiệp vụ nguồn"
           value={value.draft.nghiep_vu_nguon}
           onChange={(event) =>
             value.setDraft((current) => ({
@@ -144,7 +145,7 @@ export function CashSourceFilters({ value }) {
               {label}
             </option>
           ))}
-        </select>
+        </FormDropdown>
       </label>
 
       {field('hoa_don_bao_hanh_id', 'Hóa đơn bảo hành ID')}

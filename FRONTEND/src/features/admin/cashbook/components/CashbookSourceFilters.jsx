@@ -45,8 +45,9 @@ export default function CashbookSourceFilters({
   onChange,
   applyRequired = false,
   extended = false,
+  defaultCollapsed = false,
 }) {
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(defaultCollapsed);
 
   const update = (field, nextValue) => {
     onChange({
@@ -82,11 +83,12 @@ export default function CashbookSourceFilters({
   const hasFilterValue = Object.entries(value).some(([k, v]) => v !== "" && v !== null && v !== undefined);
 
   return (
-    <section className="cb-source-filters">
+    <section className={`cb-source-filters ${isCollapsed ? "cb-source-filters--collapsed" : ""}`}>
       <div className="cb-source-filters__heading">
         <button
           type="button"
           className="cb-source-filters__toggle-btn"
+          aria-expanded={!isCollapsed}
           onClick={() => setIsCollapsed((prev) => !prev)}
         >
           <strong>

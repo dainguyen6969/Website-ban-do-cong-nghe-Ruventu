@@ -9,7 +9,7 @@ import {
 
 import FormCard from "../../../../../shared/components/ui/FormCard";
 import ImageUploader from "../../../../../shared/components/ui/ImageUploader";
-import FilterDropdown from "../../../../../shared/components/ui/FilterDropdown";
+import FilterDropdown, { FormDropdown } from "../../../../../shared/components/ui/FilterDropdown";
 import { apiRequest } from "../../../../../auth/backendAuth";
 import { getAllCategories } from "../../categories/api/categoryApi";
 import { getAllBrands } from "../../brands/api/brandApi";
@@ -1571,7 +1571,7 @@ export default function ThemSanPham() {
                               </td>
 
                               <td>
-                                <select
+                                <FormDropdown
                                   aria-label={`Quản lý serial ${variant.name}`}
                                   disabled={variant.serialModeLocked}
                                   title={
@@ -1589,7 +1589,7 @@ export default function ThemSanPham() {
                                   <option value="">Chọn chế độ</option>
                                   <option value="true">Có serial</option>
                                   <option value="false">Không serial</option>
-                                </select>
+                                </FormDropdown>
                               </td>
 
                               <td>

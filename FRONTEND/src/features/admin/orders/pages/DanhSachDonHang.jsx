@@ -60,6 +60,20 @@ const options = {
 const selectedLabel = (field, value) =>
   options[field].find((item) => item[1] === value)?.[0] || ALL;
 
+function syncHeaderOffset(scrollRegion) {
+  const header = scrollRegion?.querySelector('thead');
+  if (!header) return;
+
+  // The fixed-width columns can wrap the header on narrower desktop layouts.
+  const update = () => {
+    scrollRegion.style.setProperty('--admin-table-header-offset', `${header.getBoundingClientRect().height}px`);
+  };
+  update();
+  const observer = new ResizeObserver(update);
+  observer.observe(header);
+  return () => observer.disconnect();
+}
+
 export default function DanhSachDonHang() {
   const navigate = useNavigate();
   const [params] = useSearchParams();
@@ -198,14 +212,6 @@ export default function DanhSachDonHang() {
           </p>
         )}
 
-        <button
-          type="button"
-          className="order-advanced-toggle"
-          onClick={() => navigate('/admin/don-hang/cho-hang-can-xu-ly')}
-        >
-          ĐƠN CHỜ HÀNG CẦN XỬ LÝ
-        </button>
-
         <div className="order-toolbar__primary">
           <label className="order-search">
             <HiOutlineSearch size={17} />
@@ -301,7 +307,7 @@ export default function DanhSachDonHang() {
       </section>
       <section className="order-list-content admin-list-body">
         {state.error && <p className="order-api-message order-api-message--error">{state.error}</p>}
-        <div className="order-table-scroll admin-table-scroll" tabIndex={0} role="region" aria-label="Bảng danh sách">
+        <div ref={syncHeaderOffset} className="order-table-scroll admin-table-scroll" tabIndex={0} role="region" aria-label="Bảng danh sách">
           <table className="order-list-table admin-data-table" aria-busy={state.loading}>
             <thead>
               <tr>

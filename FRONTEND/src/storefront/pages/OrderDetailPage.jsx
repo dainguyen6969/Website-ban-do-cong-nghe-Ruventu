@@ -1,3 +1,4 @@
+import { FormDropdown } from "../../shared/components/ui/FilterDropdown";
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Check, ImageOff } from 'lucide-react';
@@ -564,13 +565,13 @@ export default function OrderDetailPage() {
 
               <label className="order-operation-field">
                 <span>HÌNH THỨC HOÀN TIỀN</span>
-                <select
+                <FormDropdown aria-label="HÌNH THỨC HOÀN TIỀN"
                   value={dialog.method}
                   onChange={(event) => updateDialog('method', event.target.value)}
                 >
                   <option value="CHUYEN_KHOAN">Chuyển khoản</option>
                   <option value="TIEN_MAT">Tiền mặt</option>
-                </select>
+                </FormDropdown>
               </label>
 
               <label className="order-operation-field">

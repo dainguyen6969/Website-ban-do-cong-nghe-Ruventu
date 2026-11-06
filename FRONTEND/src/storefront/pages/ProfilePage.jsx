@@ -1,3 +1,4 @@
+import { FormDropdown } from "../../shared/components/ui/FilterDropdown";
 import React, { useEffect, useState } from "react";
 import { VIETNAM_LOCATIONS } from "../../data/vietnamLocations";
 import { useNavigate, useLocation } from "react-router-dom";
@@ -207,7 +208,7 @@ const ProfilePage = () => {
         <div className="form-row">
           <div className="form-group">
             <label>TỈNH / THÀNH PHỐ</label>
-            <select
+            <FormDropdown aria-label="TỈNH / THÀNH PHỐ"
               name="city"
               value={formData.city}
               onChange={handleChange}
@@ -221,11 +222,11 @@ const ProfilePage = () => {
               {Object.keys(VIETNAM_LOCATIONS).map((prov) => (
                 <option key={prov} value={prov}>{prov}</option>
               ))}
-            </select>
+            </FormDropdown>
           </div>
           <div className="form-group">
             <label>PHƯỜNG / XÃ</label>
-            <select
+            <FormDropdown aria-label="PHƯỜNG / XÃ"
               name="ward"
               value={formData.ward}
               onChange={handleChange}
@@ -239,7 +240,7 @@ const ProfilePage = () => {
               {(VIETNAM_LOCATIONS[formData.city] || []).map((w) => (
                 <option key={w} value={w}>{w}</option>
               ))}
-            </select>
+            </FormDropdown>
           </div>
         </div>
 
