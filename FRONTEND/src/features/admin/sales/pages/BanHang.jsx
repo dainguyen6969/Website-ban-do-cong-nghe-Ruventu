@@ -728,7 +728,7 @@ export default function BanHang() {
                 {order.tax && (
                   <label className="pos-vat-mode">
                     <span>Chế độ giá</span>
-                    <FormDropdown
+                    <FormDropdown aria-label="Chế độ giá"
                       value={order.taxMode || "CHUA_BAO_GOM"}
                       onChange={(event) =>
                         patch({ taxMode: event.target.value })

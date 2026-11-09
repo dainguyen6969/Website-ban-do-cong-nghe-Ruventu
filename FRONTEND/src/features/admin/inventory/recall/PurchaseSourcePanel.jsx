@@ -283,6 +283,7 @@ export default function PurchaseSourcePanel({ order, locked = false, onLockChang
           subtitle={order.code}
           className="recall-modal"
           showClose
+          scrollBody
           busy={busy}
           error={error}
           disabled={!attempt.current && !form.confirmed}
@@ -303,7 +304,7 @@ export default function PurchaseSourcePanel({ order, locked = false, onLockChang
           <fieldset className="recall-fields" disabled={frozen}>
             <label className="recall-wide">
               <span>Dòng hàng chưa ghi đủ nguồn</span>
-              <FormDropdown
+              <FormDropdown aria-label="Dòng hàng chưa ghi đủ nguồn"
                 value={form.lineId}
                 onChange={(event) => change('lineId', event.target.value)}
               >

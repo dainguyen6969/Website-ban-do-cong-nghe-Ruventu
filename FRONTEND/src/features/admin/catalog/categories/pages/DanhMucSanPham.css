@@ -134,9 +134,9 @@
   border: 2px solid #111;
   overflow-x: auto;
 }
-.category-table {
-  width: 100%;
-  border-collapse: collapse;
+.admin-app .category-page .admin-table-scroll > .category-table {
+  min-width: 1145px;
+  table-layout: fixed;
 }
 .category-table th {
   padding: 12px 10px;
@@ -160,30 +160,16 @@
 .category-table tr.category-root-row {
   background: #f5f5f5;
   box-shadow: inset 3px 0 #e00000;
-  cursor: pointer;
 }
+.category-table th:first-child { width: 56px; }
+.category-table th:nth-child(3) { width: 98px; }
+.category-table th:nth-child(4) { width: 100px; }
+.category-table th:nth-child(5) { width: 160px; }
+.category-table th:nth-child(6) { width: 145px; }
+.category-table th:last-child { width: 226px; }
 .category-table td:first-child {
-  width: 56px;
   color: #777;
   font-size: 10px;
-}
-.category-table td:nth-child(2) {
-  min-width: 360px;
-}
-.category-table td:nth-child(3) {
-  width: 98px;
-}
-.category-table td:nth-child(4) {
-  width: 100px;
-}
-.category-table td:nth-child(5) {
-  width: 160px;
-}
-.category-table td:nth-child(6) {
-  width: 145px;
-}
-.category-table td:last-child {
-  width: 226px;
 }
 .category-table td:nth-child(4) > strong {
   display: block;
@@ -202,19 +188,19 @@
   color: #777;
   font-size: 11px;
 }
+.category-table code { overflow-wrap: anywhere; }
 
 .category-name-cell {
   width: 100%;
   display: flex;
   align-items: center;
   gap: 10px;
+  padding-left: calc(20px * var(--category-depth, 0));
   text-align: left;
 }
 
-/* Giữ từ main-test */
-.category-name-cell--child {
-  padding-left: 22px;
-  cursor: default !important;
+.category-name-cell:has(.category-toggle-expand) {
+  cursor: pointer;
 }
 
 /* Danh mục nhiều cấp */
@@ -249,13 +235,11 @@
 
 /* Thụt lề danh mục */
 .category-tree-indent {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 22px;
-  color: #888;
-  font-weight: 700;
-  flex: 0 0 22px;
+  width: 12px;
+  height: 12px;
+  border-left: 1px solid #999;
+  border-bottom: 1px solid #999;
+  align-self: flex-start;
 }
 
 /* Tên danh mục */
@@ -263,6 +247,7 @@
   display: flex;
   min-width: 0;
   flex-direction: column;
+  overflow-wrap: anywhere;
 }
 
 .category-name-copy strong {
@@ -278,8 +263,14 @@
 
 .category-name-copy small {
   margin-top: 4px;
-  color: #a0a0a0;
+  color: #666;
   font-size: 9px;
+}
+
+.category-child-count {
+  display: block;
+  margin-top: 4px;
+  color: #666;
 }
 
 /* Ảnh đại diện danh mục */
@@ -353,6 +344,7 @@
 }
 .category-actions {
   display: flex;
+  flex-wrap: wrap;
   gap: 5px;
 }
 .category-actions button,

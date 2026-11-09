@@ -369,7 +369,7 @@ export default function TaoPhieuThuChi({ initialTab = 'thu' }) {
               <>
                 <div className="tpc-form-group">
                   <label>NHÓM NGƯỜI NỘP</label>
-                  <FormDropdown
+                  <FormDropdown aria-label="NHÓM NGƯỜI NỘP"
                     value={groupThu}
                     onChange={(e) => {
                       setGroupThu(e.target.value);
@@ -509,7 +509,7 @@ export default function TaoPhieuThuChi({ initialTab = 'thu' }) {
               <>
                 <div className="tpc-form-group">
                   <label>NHÓM NGƯỜI NHẬN</label>
-                  <FormDropdown
+                  <FormDropdown aria-label="NHÓM NGƯỜI NHẬN"
                     value={groupChi}
                     onChange={(e) => {
                       setGroupChi(e.target.value);
@@ -685,7 +685,7 @@ export default function TaoPhieuThuChi({ initialTab = 'thu' }) {
 
             <div className="tpc-form-group">
               <label>PHƯƠNG THỨC THANH TOÁN</label>
-              <FormDropdown value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value)}>
+              <FormDropdown aria-label="PHƯƠNG THỨC THANH TOÁN" value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value)}>
                 <option value="TIEN_MAT">Tiền mặt</option>
                 <option value="CHUYEN_KHOAN">Chuyển khoản</option>
               </FormDropdown>

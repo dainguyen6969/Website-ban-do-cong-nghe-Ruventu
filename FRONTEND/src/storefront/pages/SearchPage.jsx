@@ -320,7 +320,7 @@ const handleSuggestKeyword = (k) => {
                         checked={selectedBrands.includes(brand.id)}
                         onChange={() => handleBrandChange(brand.id)}
                       />
-                      <span className="checkbox-custom"></span>
+                      <span className="checkbox-custom" aria-hidden="true" />
                       <span className="checkbox-label">{brand.name}</span>
                     </div>
                     <span className="item-count">{brand.count}</span>
@@ -343,7 +343,7 @@ const handleSuggestKeyword = (k) => {
                         checked={selectedCategories.includes(cat.id)}
                         onChange={() => handleCategoryChange(cat.id)}
                       />
-                      <span className="checkbox-custom"></span>
+                      <span className="checkbox-custom" aria-hidden="true" />
                       <span className="checkbox-label">{cat.name}</span>
                     </div>
                     <span className="item-count">{cat.count}</span>

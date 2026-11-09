@@ -320,7 +320,7 @@ export default function OrderRefundPanel({ order, busy, perform, data, onEditing
             <label>
               <span>PHƯƠNG THỨC HOÀN</span>
 
-              <FormDropdown
+              <FormDropdown aria-label="PHƯƠNG THỨC HOÀN"
                 value={dialog.method}
                 onChange={(event) => change('method', event.target.value)}
               >

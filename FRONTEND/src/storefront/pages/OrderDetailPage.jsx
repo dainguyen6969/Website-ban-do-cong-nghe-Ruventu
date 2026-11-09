@@ -565,7 +565,7 @@ export default function OrderDetailPage() {
 
               <label className="order-operation-field">
                 <span>HÌNH THỨC HOÀN TIỀN</span>
-                <FormDropdown
+                <FormDropdown aria-label="HÌNH THỨC HOÀN TIỀN"
                   value={dialog.method}
                   onChange={(event) => updateDialog('method', event.target.value)}
                 >

@@ -113,7 +113,7 @@ export function CashSourceFilters({ value }) {
 
       <label>
         <span>Nguồn tạo</span>
-        <FormDropdown
+        <FormDropdown aria-label="Nguồn tạo"
           value={value.draft.nguon_tao}
           onChange={(event) =>
             value.setDraft((current) => ({
@@ -130,7 +130,7 @@ export function CashSourceFilters({ value }) {
 
       <label>
         <span>Nghiệp vụ nguồn</span>
-        <FormDropdown
+        <FormDropdown aria-label="Nghiệp vụ nguồn"
           value={value.draft.nghiep_vu_nguon}
           onChange={(event) =>
             value.setDraft((current) => ({

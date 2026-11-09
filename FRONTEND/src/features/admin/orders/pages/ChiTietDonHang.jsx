@@ -2297,7 +2297,7 @@ function OrderActionDialog({ dialog, setDialog, order, options, busy, error, sub
           <label className="order-operation-field">
             <span>ĐỐI TÁC GIAO HÀNG *</span>
 
-            <FormDropdown
+            <FormDropdown aria-label="ĐỐI TÁC GIAO HÀNG"
               required
               disabled={busy}
               value={dialog.partner}
@@ -2424,7 +2424,7 @@ function OrderActionDialog({ dialog, setDialog, order, options, busy, error, sub
 
           <label className="order-operation-field">
             <span>PHƯƠNG THỨC *</span>
-            <FormDropdown
+            <FormDropdown aria-label="PHƯƠNG THỨC"
               required
               value={dialog.method}
               onChange={(event) => change('method', event.target.value)}

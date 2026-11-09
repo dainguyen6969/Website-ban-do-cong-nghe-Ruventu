@@ -10,7 +10,7 @@ import './MainContent.css';
 
 const tabs = [
   { id: 'danh-sach-don-hang', label: 'Danh sách đơn hàng' },
-  { id: 'dat-hang-online', label: 'Đặt hàng online' },
+  { id: 'dat-hang-online', label: 'Tạo đơn chờ hàng' },
   { id: 'quan-ly-giao-hang', label: 'Quản lý giao hàng' },
   { id: 'khach-tra-hang', label: 'Khách trả hàng' },
 ];
@@ -60,7 +60,7 @@ export default function MainContent() {
           </button>
           <button className="btn btn--primary" id="btn-dat-hang-online">
             <HiOutlinePlus size={16} />
-            <span>ĐẶT HÀNG ONLINE</span>
+            <span>TẠO ĐƠN CHỜ HÀNG</span>
           </button>
         </div>
       </div>

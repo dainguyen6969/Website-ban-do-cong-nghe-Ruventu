@@ -1525,7 +1525,7 @@ export default function SupplierCasePanel({ order, locked = false, onRefresh, on
                 <label className="ncc-field-wide">
                   <span>Loại hồ sơ</span>
 
-                  <FormDropdown
+                  <FormDropdown aria-label="Loại hồ sơ"
                     required
                     value={form.purpose}
                     onChange={(event) => {
@@ -1548,7 +1548,7 @@ export default function SupplierCasePanel({ order, locked = false, onRefresh, on
               {isSourceAction && (
                 <label className="ncc-field-wide">
                   <span>DÒNG ĐƠN NHẬP</span>
-                  <FormDropdown
+                  <FormDropdown aria-label="DÒNG ĐƠN NHẬP"
                     value={form.detailId}
                     onChange={(event) => {
                       change('detailId', event.target.value);
@@ -1574,7 +1574,7 @@ export default function SupplierCasePanel({ order, locked = false, onRefresh, on
               {action === 'GUI' && (
                 <label>
                   <span>MỤC ĐÍCH GỬI</span>
-                  <FormDropdown
+                  <FormDropdown aria-label="MỤC ĐÍCH GỬI"
                     value={form.method}
                     onChange={(event) => change('method', event.target.value)}
                   >
@@ -1630,7 +1630,7 @@ export default function SupplierCasePanel({ order, locked = false, onRefresh, on
 
                   <label>
                     <span>Phương án đã thống nhất *</span>
-                    <FormDropdown
+                    <FormDropdown aria-label="Phương án đã thống nhất"
                       {...inputProps('method')}
                       value={form.method}
                       onChange={(event) => {
@@ -1674,7 +1674,7 @@ export default function SupplierCasePanel({ order, locked = false, onRefresh, on
 
                       <label>
                         <span>Phiên bản hàng đổi *</span>
-                        <FormDropdown
+                        <FormDropdown aria-label="Phiên bản hàng đổi"
                           {...inputProps('variantId')}
                           value={form.variantId}
                           onChange={(event) => change('variantId', event.target.value)}
@@ -1912,7 +1912,7 @@ export default function SupplierCasePanel({ order, locked = false, onRefresh, on
                   <p>Khoản này được đối chiếu vào công nợ chung của đơn nhập {order.code}.</p>
                   <label>
                     <span>PHƯƠNG THỨC</span>
-                    <FormDropdown
+                    <FormDropdown aria-label="PHƯƠNG THỨC"
                       value={form.paymentMethod}
                       onChange={(event) => change('paymentMethod', event.target.value)}
                     >
@@ -1938,7 +1938,7 @@ export default function SupplierCasePanel({ order, locked = false, onRefresh, on
                 <>
                   <label>
                     <span>NGƯỜI PHỤ TRÁCH</span>
-                    <FormDropdown
+                    <FormDropdown aria-label="NGƯỜI PHỤ TRÁCH"
                       value={form.employeeId}
                       onChange={(event) => change('employeeId', event.target.value)}
                     >

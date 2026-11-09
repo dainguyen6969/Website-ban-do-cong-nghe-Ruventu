@@ -890,7 +890,7 @@ export default function DonChoHangCanXuLy() {
           <fieldset className="waiting-fields" disabled={frozen}>
             <label>
               <span>Nội dung cần cập nhật</span>
-              <FormDropdown
+              <FormDropdown aria-label="Nội dung cần cập nhật"
                 value={form.result}
                 onChange={(event) => change('result', event.target.value)}
               >
@@ -904,7 +904,7 @@ export default function DonChoHangCanXuLy() {
 
             <label>
               <span>Phụ trách sau khi lưu</span>
-              <FormDropdown
+              <FormDropdown aria-label="Phụ trách sau khi lưu"
                 required
                 value={form.employeeId}
                 onChange={(event) => change('employeeId', event.target.value)}
@@ -941,7 +941,7 @@ export default function DonChoHangCanXuLy() {
                 {(dialog.remaining == null || Number(dialog.remaining) > 0) && (
                   <label>
                     <span>Dự kiến thu phần còn thiếu</span>
-                    <FormDropdown
+                    <FormDropdown aria-label="Dự kiến thu phần còn thiếu"
                       title="Lưu phương án dự kiến; việc thực thu được ghi nhận tại chi tiết đơn hoặc đối soát COD."
                       value={form.remainingMethod}
                       onChange={(event) => change('remainingMethod', event.target.value)}

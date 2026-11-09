@@ -696,9 +696,9 @@ export default function DatHangOnline() {
       <div className="online-order-hero">
         <div>
           <nav>
-            ĐƠN HÀNG <span>/</span> ĐẶT HÀNG ONLINE
+            ĐƠN HÀNG <span>/</span> {editId ? 'CHỈNH SỬA ĐƠN HÀNG ONLINE' : 'TẠO ĐƠN CHỜ HÀNG'}
           </nav>
-          <h1>{editId ? 'CHỈNH SỬA ĐƠN HÀNG ONLINE' : 'TẠO ĐƠN HÀNG ONLINE'}</h1>
+          <h1>{editId ? 'CHỈNH SỬA ĐƠN HÀNG ONLINE' : 'TẠO ĐƠN CHỜ HÀNG'}</h1>
           <p>LÊN ĐƠN THỦ CÔNG CHO KHÁCH HÀNG VÀ KIỂM TRA GIÁ / TỒN / KHUYẾN MẠI TRƯỚC KHI LƯU</p>
         </div>
         <button
@@ -803,7 +803,7 @@ export default function DatHangOnline() {
               />
               <div className="online-field">
                 <span>TỈNH / THÀNH PHỐ *</span>
-                <FormDropdown
+                <FormDropdown aria-label="TỈNH / THÀNH PHỐ"
                   value={recipient.province}
                   onChange={(e) => handleProvinceChange(e.target.value)}
                 >
@@ -816,7 +816,7 @@ export default function DatHangOnline() {
               </div>
               <div className="online-field">
                 <span>QUẬN / HUYỆN / PHƯỜNG *</span>
-                <FormDropdown
+                <FormDropdown aria-label="QUẬN / HUYỆN / PHƯỜNG"
                   value={recipient.ward}
                   onChange={(e) => updateRecipient('ward', e.target.value)}
                 >
@@ -1363,7 +1363,7 @@ function Summary({
               ? 'THỬ LẠI YÊU CẦU'
               : edit
                 ? 'LƯU THAY ĐỔI'
-                : 'ĐẶT HÀNG'}
+                : 'TẠO ĐƠN CHỜ HÀNG'}
         </button>
       </div>
     </aside>

@@ -945,7 +945,7 @@ function SupplierFormModal({
             {!creating && (
               <label className="supplier-form-field">
                 <span>TRẠNG THÁI HỢP TÁC</span>
-                <FormDropdown
+                <FormDropdown aria-label="TRẠNG THÁI HỢP TÁC"
                   value={form.trangThai}
                   onChange={(event) => onChange('trangThai', event.target.value)}
                 >

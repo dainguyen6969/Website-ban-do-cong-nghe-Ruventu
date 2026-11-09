@@ -11,13 +11,21 @@ after(() => vite.close());
 
 test('homepage sections show at most eight cards and retain the full catalog for category tabs', () => {
   const products = Array.from({ length: 20 }, (_, id) => ({ id, title: `Product ${id}`, category: id < 8 ? 'CPU' : 'RAM' }));
-  const render = (items) => renderToStaticMarkup(React.createElement(MemoryRouter, null,
-    React.createElement(ProductSection, { title: 'LINH KIỆN KHỦNG', products: items, categories: ['CPU', 'RAM'] })));
+  const render = (items, activeTab) => renderToStaticMarkup(React.createElement(MemoryRouter, null,
+    React.createElement(ProductSection, { title: 'LINH KIỆN KHỦNG', products: items, categories: ['CPU', 'RAM'], activeTab })));
   const markup = render(products);
   assert.equal((markup.match(/class="product-card /g) || []).length, 8);
+  assert.match(markup, /aria-pressed="true">CPU<\/button>/);
   assert.match(markup, />RAM<\/button>/);
+  assert.doesNotMatch(markup, />Tất cả<\/button>/);
   assert.doesNotMatch(markup, />Product 8<\/h4>/);
   assert.equal(products.length, 20);
   assert.equal((render(products.slice(0, 3)).match(/class="product-card /g) || []).length, 3);
   assert.match(render([]), /Chưa có sản phẩm nào/);
+
+  const restored = render(products, 'RAM');
+  assert.match(restored, /aria-pressed="true">RAM<\/button>/);
+  assert.match(restored, />Product 8<\/h4>/);
+  assert.doesNotMatch(restored, />Product 0<\/h4>/);
+  assert.match(render(products, 'VGA'), /aria-pressed="true">CPU<\/button>/);
 });

@@ -92,7 +92,7 @@ const PromotionsPage = () => {
             </div>
             <div className="toolbar-right">
               <label>Sắp xếp theo:</label>
-              <FormDropdown
+              <FormDropdown aria-label="Sắp xếp theo:"
                 value={sortBy}
                 onChange={(e) => { setSortBy(e.target.value); setPage(1); }}
                 className="sort-select"

@@ -19,6 +19,9 @@ test('all four compact menus retain categories and scope brand links to their gr
       { id: 4, tenDanhMuc: 'Chuột', duongDanUrl: 'chuot', danhMucChaId: 3 },
       { id: 5, tenDanhMuc: 'Màn hình', duongDanUrl: 'man-hinh' },
       { id: 6, tenDanhMuc: 'Laptop', duongDanUrl: 'laptop' },
+      { id: 8, tenDanhMuc: 'Chuột không dây', duongDanUrl: 'chuot-khong-day', danhMucChaId: '4' },
+      { id: 9, tenDanhMuc: 'Chuột Bluetooth', duongDanUrl: 'chuot-bluetooth', danhMucChaId: 8 },
+      { id: 10, tenDanhMuc: 'Ổ cứng', duongDanUrl: 'o-cung', danhMucChaId: 99 },
     ],
     thuongHieu: [{ id: 7, tenThuongHieu: 'ASUS' }],
   }));
@@ -33,4 +36,15 @@ test('all four compact menus retain categories and scope brand links to their gr
   }
   assert.doesNotMatch(markup, /href="\/search\?thuong_hieu_id=/);
   assert.match(markup, /title="ASUS"/);
+  assert.match(markup, /href="\/category\/o-cung"/);
+  const branch = label => markup.match(new RegExp(`aria-label="Danh mục con của ${label}" aria-expanded="false" aria-controls="([^"]+)"`))?.[1];
+  const mousePanel = branch('Chuột');
+  const wirelessPanel = branch('Chuột không dây');
+  assert.ok(mousePanel && wirelessPanel && mousePanel !== wirelessPanel);
+  const mouseStart = markup.indexOf(`<ul id="${mousePanel}" class="catalog-subcategories" hidden="">`);
+  const wirelessStart = markup.indexOf(`<ul id="${wirelessPanel}" class="catalog-subcategories" hidden="">`);
+  assert.ok(mouseStart > -1 && wirelessStart > mouseStart);
+  assert.match(markup.slice(mouseStart, wirelessStart), /href="\/category\/chuot-khong-day"/);
+  assert.match(markup.slice(wirelessStart), /href="\/category\/chuot-bluetooth"/);
+  assert.equal((markup.match(/href="\/category\/chuot-bluetooth"/g) || []).length, 1);
 });

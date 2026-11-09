@@ -129,6 +129,15 @@
   padding-inline: 24px;
 }
 
+.home-page #laptop {
+  border-top: 1px solid #111;
+  background-color: var(--bg-white, #fff);
+}
+
+.home-page #laptop .product-section-title {
+  color: #111;
+}
+
 .storefront-app .home-page .product-grid {
   grid-template-columns: repeat(4, minmax(0, 1fr));
 }

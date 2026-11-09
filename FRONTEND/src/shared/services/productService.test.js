@@ -69,6 +69,28 @@ test('catalog filters retain stable category and brand IDs across list and detai
   assert.equal(toProductCard({ thuongHieu: { id: 3 } }).brandId, 3);
 });
 
+test('laptop specs use the requested variant title and keep structured specs authoritative', () => {
+  const laptop = {
+    tenDanhMuc: 'Laptop gaming',
+    phienBanMacDinhId: 501,
+    danhSachPhienBan: [
+      { id: 500, giaBanLe: 85990000, tenPhienBan: 'MSI Stealth (Ultra 9-386H/ RTX 5070 8GB/ 32GB/ 1TB/ 16" QHD+ OLED/ Win 11)' },
+      { id: 501, giaBanLe: 34990000, tenPhienBan: 'MSI Cyborg (I5-13420H/ RTX 5050 8GB/ 16GB/ 512GB/ 15.6" FHD/ Win 11)' },
+    ],
+    thongSoKyThuat: { nguon_du_lieu: [{ ten: 'Nguồn tham khảo' }] },
+  };
+  assert.deepEqual(toProductCard(laptop).specs, [
+    { label: 'CPU', value: 'I5-13420H' },
+    { label: 'RAM', value: '16GB' },
+    { label: 'Lưu trữ', value: '512GB' },
+    { label: 'Màn hình', value: '15.6" FHD' },
+  ]);
+  assert.deepEqual(toProductCard({ ...laptop, phienBanMacDinhId: 999 }).specs, []);
+  assert.deepEqual(toProductCard({ ...laptop, thongSoKyThuat: { CPU: 'CPU đã xác nhận' } }).specs, [
+    { label: 'CPU', value: 'CPU đã xác nhận' },
+  ]);
+});
+
 test('catalog filtering reads every API page and retains real IDs, category, price and availability', async () => {
   const original = productService.getProducts;
   const calls = [];
