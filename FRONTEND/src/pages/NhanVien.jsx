@@ -8,7 +8,7 @@ import {
   HiOutlineSearch,
   HiOutlineX,
 } from 'react-icons/hi';
-import FilterDropdown from '../components/FilterDropdown';
+import FilterDropdown, { FormDropdown } from '../components/FilterDropdown';
 import TablePagination from '../components/TablePagination';
 import useMockAuth from '../auth/useMockAuth';
 import {
@@ -509,7 +509,7 @@ function EmployeeFormModal({ mode, accounts, roles, employee, onClose, onSubmit 
           </div>
           <div className="employee-form-grid">
             <FormField label="VAI TRÒ *" error={errors.vaiTro}>
-              <select
+              <FormDropdown aria-label="VAI TRÒ *"
                 value={form.vaiTro}
                 onChange={(event) => change('vaiTro', event.target.value)}
               >
@@ -519,17 +519,17 @@ function EmployeeFormModal({ mode, accounts, roles, employee, onClose, onSubmit 
                     {role.label}
                   </option>
                 ))}
-              </select>
+              </FormDropdown>
             </FormField>
             {!creating && (
               <FormField label="TRẠNG THÁI">
-                <select
+                <FormDropdown aria-label="TRẠNG THÁI"
                   value={form.trangThai}
                   onChange={(event) => change('trangThai', event.target.value)}
                 >
                   <option value="hoat_dong">Hoạt động</option>
                   <option value="ngung_hoat_dong">Ngừng hoạt động</option>
-                </select>
+                </FormDropdown>
               </FormField>
             )}
           </div>

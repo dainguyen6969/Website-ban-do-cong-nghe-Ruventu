@@ -14,6 +14,7 @@ export default function OrderModal({
   cancelLabel = 'QUAY LẠI',
   className = '',
   showClose = false,
+  scrollBody = false,
 }) {
   const ref = useRef(null);
   useEffect(() => {
@@ -48,6 +49,12 @@ export default function OrderModal({
       first?.focus();
     }
   };
+  const fields = (
+    <fieldset disabled={busy} className="order-operation-fields">
+      {children}
+    </fieldset>
+  );
+
   return (
     <div
       className="order-modal-backdrop"
@@ -78,9 +85,7 @@ export default function OrderModal({
             </button>
           )}
         </header>
-        <fieldset disabled={busy} className="order-operation-fields">
-          {children}
-        </fieldset>
+        {scrollBody ? <div className="order-operation-scroll">{fields}</div> : fields}
         {error && (
           <p className="order-api-message order-api-message--error" role="alert">
             {error}

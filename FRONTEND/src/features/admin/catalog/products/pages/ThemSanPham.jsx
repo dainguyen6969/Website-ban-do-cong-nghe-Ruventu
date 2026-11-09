@@ -8,8 +8,8 @@ import {
 } from "react-icons/hi";
 
 import FormCard from "../../../../../shared/components/ui/FormCard";
+import { FormDropdown } from "../../../../../shared/components/ui/FilterDropdown";
 import ImageUploader from "../../../../../shared/components/ui/ImageUploader";
-import FilterDropdown from "../../../../../shared/components/ui/FilterDropdown";
 import { apiRequest } from "../../../../../auth/backendAuth";
 import { getAllCategories } from "../../categories/api/categoryApi";
 import { getAllBrands } from "../../brands/api/brandApi";
@@ -1571,7 +1571,7 @@ export default function ThemSanPham() {
                               </td>
 
                               <td>
-                                <select
+                                <FormDropdown
                                   aria-label={`Quản lý serial ${variant.name}`}
                                   disabled={variant.serialModeLocked}
                                   title={
@@ -1589,7 +1589,7 @@ export default function ThemSanPham() {
                                   <option value="">Chọn chế độ</option>
                                   <option value="true">Có serial</option>
                                   <option value="false">Không serial</option>
-                                </select>
+                                </FormDropdown>
                               </td>
 
                               <td>
@@ -1891,16 +1891,16 @@ export default function ThemSanPham() {
             </FormCard>
 
             <FormCard title="Phân loại">
-              <label className="product-editor__field">
+              <div className="product-editor__field">
                 <span>
                   DANH MỤC <i>*</i>
                 </span>
-                <FilterDropdown
+                <FormDropdown
+                  aria-label="Danh mục"
                   value={form.categoryId}
                   onChange={(event) =>
                     updateForm("categoryId", event.target.value)
                   }
-                  selectedDark
                 >
                   <option value="">Chọn danh mục</option>
                   {categories.map((item) => (
@@ -1908,17 +1908,17 @@ export default function ThemSanPham() {
                       {item.name}
                     </option>
                   ))}
-                </FilterDropdown>
-              </label>
+                </FormDropdown>
+              </div>
 
-              <label className="product-editor__field">
+              <div className="product-editor__field">
                 <span>THƯƠNG HIỆU</span>
-                <FilterDropdown
+                <FormDropdown
+                  aria-label="Thương hiệu"
                   value={form.brandId}
                   onChange={(event) =>
                     updateForm("brandId", event.target.value)
                   }
-                  selectedDark
                 >
                   <option value="">Không chọn</option>
                   {brands.map((item) => (
@@ -1926,8 +1926,8 @@ export default function ThemSanPham() {
                       {item.name}
                     </option>
                   ))}
-                </FilterDropdown>
-              </label>
+                </FormDropdown>
+              </div>
             </FormCard>
 
             <FormCard title="Trạng thái">

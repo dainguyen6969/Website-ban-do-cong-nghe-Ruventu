@@ -194,34 +194,53 @@
 }
 
 .checkbox-wrap {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 10px;
 }
 
 .checkbox-wrap input {
-  display: none;
+  position: absolute;
+  inset-inline-start: 0;
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
 }
 
 .checkbox-custom {
   width: 16px;
   height: 16px;
-  border: 1px solid #ccc;
+  flex: 0 0 16px;
+  border: 1px solid #767676;
+  border-radius: 0;
+  background-color: #fff;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.2s;
 }
 
 .checkbox-wrap input:checked + .checkbox-custom {
-  background-color: #ff0000;
-  border-color: #ff0000;
+  background-color: #e60000;
+  border-color: #e60000;
 }
 
 .checkbox-wrap input:checked + .checkbox-custom::after {
   content: '✓';
   color: #fff;
   font-size: 10px;
+}
+
+.checkbox-wrap input:focus-visible + .checkbox-custom {
+  outline: 2px solid #767676;
+  outline-offset: 2px;
+}
+
+@media (forced-colors: active) {
+  .checkbox-wrap input { position: static; opacity: 1; flex-shrink: 0; }
+  .checkbox-custom { display: none; }
 }
 
 .item-count {
@@ -550,8 +569,8 @@
 
 /* Giao diện lọc đã duyệt: vuông vức, đỏ sáng, viền focus 1px. */
 .storefront-app .filter-header-block { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:18px; }
-.storefront-app .filter-header-block .filter-title { margin:0; font-family:'Asap Condensed',Arial,sans-serif; font-size:16px; line-height:1.35; white-space:nowrap; }
-.storefront-app .clear-all-btn { display:inline-flex; align-items:center; justify-content:center; flex-shrink:0; min-height:40px; padding:9px 18px; border:1px solid #111; border-radius:0; color:#111; background:#fff; font:700 14px/1.4 'Asap Condensed',Arial,sans-serif; white-space:nowrap; text-decoration:none; }
+.storefront-app .filter-header-block .filter-title { margin:0; font-family:var(--project-font-family, var(--font-family-base)); font-size:16px; line-height:1.35; white-space:nowrap; }
+.storefront-app .clear-all-btn { display:inline-flex; align-items:center; justify-content:center; flex-shrink:0; min-height:40px; padding:9px 18px; border:1px solid #111; border-radius:0; color:#111; background:#fff; font:700 14px/1.4 var(--project-font-family, var(--font-family-base)); white-space:nowrap; text-decoration:none; }
 .storefront-app .clear-all-btn:hover { color:#fff; background:#e60000; border-color:#e60000; text-decoration:none; }
 .storefront-app .toolbar-left { display:flex; align-items:center; flex-wrap:wrap; gap:18px; }
 .storefront-app .search-page-wrapper .search-content .search-product-grid { border:0; border-radius:0; box-shadow:none; }
@@ -562,15 +581,15 @@
 .storefront-app .filter-block-content { padding:20px 18px; }
 .storefront-app .filter-section { padding-bottom:20px; margin-bottom:20px; border-bottom:1px solid #ececec; }
 .storefront-app .filter-section:last-child { margin-bottom:0; padding-bottom:0; border-bottom:0; }
-.storefront-app .filter-section-title { margin:0 0 14px; font-family:'Asap Condensed',Arial,sans-serif; }
+.storefront-app .filter-section-title { margin:0 0 14px; font-family:var(--project-font-family, var(--font-family-base)); }
 .storefront-app .checkbox-list { gap:0; }
 .storefront-app .checkbox-item { padding:7px 0; }
 .storefront-app .checkbox-label { font-size:14px; font-weight:600; }
 .storefront-app .item-count { font-size:13px; color:#777; }
-.storefront-app .price-inputs input { height:38px; border:1px solid #d6d6d6; padding:8px; font:400 14px/1.4 'Asap Condensed',Arial,sans-serif; }
+.storefront-app .price-inputs input { height:38px; border:1px solid #d6d6d6; padding:8px; font:400 14px/1.4 var(--project-font-family, var(--font-family-base)); }
 .storefront-app .price-preset-btn { padding:10px 6px; font-size:13px; }
 .storefront-app .search-toolbar { align-items:center; min-height:44px; }
-.storefront-app .custom-sort-btn { min-height:40px; padding:8px 12px; border:1px solid #bbb; font:600 14px/1.4 'Asap Condensed',Arial,sans-serif; }
+.storefront-app .custom-sort-btn { min-height:40px; padding:8px 12px; border:1px solid #bbb; font:600 14px/1.4 var(--project-font-family, var(--font-family-base)); }
 .storefront-app .active-filters { display:flex; align-items:center; flex-wrap:wrap; gap:8px; padding:0; margin:0 0 20px; background:transparent; }
 .storefront-app .active-filters::before { content:'ĐANG LỌC'; color:#777; font-size:12px; font-weight:600; letter-spacing:.5px; margin-right:4px; }
 .storefront-app .filter-chip { display:inline-flex; align-items:center; gap:6px; max-width:100%; min-height:36px; padding:0 0 0 12px; border:1px solid #d0d0d0; border-radius:0; background:#fff; color:#222; font-size:14px; font-weight:500; line-height:1.4; }
@@ -581,8 +600,6 @@
 
 .storefront-app .search-filter-toggle { display:none; }
 .storefront-app .search-main.container { margin-top:24px; margin-bottom:60px; }
-.storefront-app .search-page-wrapper .checkbox-wrap input { display:block; width:16px; height:16px; margin:0; flex-shrink:0; accent-color:#e60000; }
-.storefront-app .search-page-wrapper .checkbox-custom { display:none; }
 .storefront-app .search-page-wrapper :is(button,input,select):focus-visible { outline:2px solid #777; outline-offset:2px; }
 .storefront-app .search-bar form input:focus-visible { outline:none; }
 .storefront-app .search-page-wrapper .no-results-body { flex-direction:column; align-items:center; text-align:center; padding:40px 28px; gap:16px; }

@@ -213,13 +213,13 @@ export default function KiemHang() {
         </div>
       </section>
 
-      <section className="stock-check-table-shell admin-list-body admin-list-frame" aria-label="Danh sách phiếu kiểm hàng">
+      <section className="stock-check-list admin-list-body admin-list-frame" aria-label="Danh sách phiếu kiểm hàng">
         {error && (
           <div className="stock-check-error" style={{ padding: 20, color: 'red' }}>
             {error}
           </div>
         )}
-        <div className="stock-check-table-scroll admin-table-scroll" tabIndex={0} role="region" aria-label="Bảng danh sách">
+        <div className="admin-table-scroll" tabIndex={0} role="region" aria-label="Bảng danh sách">
           <table className="stock-check-table admin-data-table">
             <thead>
               <tr>

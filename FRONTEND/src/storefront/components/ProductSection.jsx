@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { Link } from "react-router-dom";
 
 import ProductCard from "./ProductCard";
@@ -13,6 +12,7 @@ function categoryKey(value) {
 }
 
 export default function ProductSection({
+  id,
   title,
   subtitle,
   linkText,
@@ -20,9 +20,10 @@ export default function ProductSection({
   products = [],
   darkTheme = false,
   categories = [],
+  getCategory = product => product.category,
+  activeTab = "",
+  onTabChange,
 }) {
-  const [activeTab, setActiveTab] = useState("");
-
   const items = Array.isArray(products) ? products : [];
 
   const tabs = [
@@ -36,19 +37,17 @@ export default function ProductSection({
     ),
   ];
 
-  // Khi danh mục thay đổi, tab cũ không còn tồn tại sẽ về Tất cả.
-  const selectedTab = tabs.includes(activeTab) ? activeTab : "";
+  const selectedTab = tabs.includes(activeTab) ? activeTab : tabs[0];
 
   const visibleProducts = (selectedTab
     ? items.filter(
         (product) =>
-          categoryKey(product.category || "Chưa phân loại") ===
-          categoryKey(selectedTab),
+          categoryKey(getCategory(product)) === categoryKey(selectedTab),
       )
     : items).slice(0, 8);
 
   return (
-    <section className={`product-section ${darkTheme ? "dark-theme" : ""}`}>
+    <section id={id} className={`product-section ${darkTheme ? "dark-theme" : ""}`}>
       <div className="container">
         <div className="section-header">
           <div className="section-title-wrapper">
@@ -67,17 +66,6 @@ export default function ProductSection({
         {tabs.length > 0 && (
           <div className="section-tabs-wrapper">
             <div className="section-tabs">
-              <button
-                type="button"
-                className={`section-tab-btn ${
-                  selectedTab === "" ? "active" : ""
-                }`}
-                aria-pressed={selectedTab === ""}
-                onClick={() => setActiveTab("")}
-              >
-                Tất cả
-              </button>
-
               {tabs.map((category) => (
                 <button
                   type="button"
@@ -86,7 +74,7 @@ export default function ProductSection({
                     selectedTab === category ? "active" : ""
                   }`}
                   aria-pressed={selectedTab === category}
-                  onClick={() => setActiveTab(category)}
+                  onClick={() => onTabChange?.(category)}
                 >
                   {category}
                 </button>

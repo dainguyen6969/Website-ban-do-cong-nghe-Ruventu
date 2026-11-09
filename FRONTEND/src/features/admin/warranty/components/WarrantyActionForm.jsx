@@ -21,6 +21,7 @@ import { getSupplierOptions } from '../../purchasing/api/purchaseOrderApi';
 import { getAllVersions } from '../../catalog/products/api/versionApi';
 import { displayValue } from './WarrantySnapshot';
 import { WarrantyFields } from './WarrantyShell';
+import { FormDropdown } from "../../../../shared/components/ui/FilterDropdown";
 
 function InputField({
   field,

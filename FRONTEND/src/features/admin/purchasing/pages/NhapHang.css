@@ -129,11 +129,8 @@
   font-size: 12px;
   font-weight: 800;
 }
-.purchase-table-wrap {
-  margin: 20px 24px 30px;
-  border: 2px solid #111;
-  background: #fff;
-  overflow: auto;
+.purchase-list-results {
+  margin: 20px 24px 0;
 }
 .purchase-table {
   width: 100%;
@@ -176,9 +173,6 @@
   color: #888;
   font-size: 11px;
   font-weight: 800;
-}
-.purchase-table-wrap > .product-pagination-bar {
-  padding: 10px 14px;
 }
 .purchase-badge {
   display: inline-flex;
@@ -747,8 +741,8 @@
   .purchase-detail-grid {
     padding: 14px;
   }
-  .purchase-table-wrap {
-    margin: 14px;
+  .purchase-list-results {
+    margin: 14px 14px 0;
   }
   .purchase-heading {
     padding: 17px 14px;
@@ -992,10 +986,6 @@
 
 .purchase-page {
   min-width: 0;
-}
-.purchase-table-wrap {
-  min-width: 0;
-  overflow-x: auto;
 }
 .purchase-card .form-card__body {
   overflow-x: auto;

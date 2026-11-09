@@ -9,66 +9,6 @@
   background: #f7f7f7;
 }
 
-.version-page__inner {
-  width: 100%;
-  min-width: 0;
-  max-width: 100%;
-  padding: 0 22px 32px;
-}
-
-.version-breadcrumb {
-  height: 42px;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  color: #9a9ca2;
-  font-size: 12px;
-  border-bottom: 1px solid #e2e2e2;
-}
-
-.version-breadcrumb strong {
-  color: var(--color-brand-red);
-  font-weight: 700;
-}
-
-.version-toolbar {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  min-height: 72px;
-  padding: 12px 4px;
-  border-bottom: 2px solid #111;
-}
-
-.version-search {
-  width: min(480px, 42vw);
-  height: 42px;
-  display: flex;
-  align-items: center;
-  gap: 11px;
-  padding: 0 13px;
-  background: #fff;
-  border: 1px solid #cfd1d4;
-  color: #9a9da3;
-}
-
-.version-search:focus-within {
-  border-color: #111;
-}
-
-.version-search input {
-  flex: 1;
-  min-width: 0;
-  height: 100%;
-  font-size: 14px;
-  color: #111;
-  background: transparent;
-}
-
-.version-search input::placeholder {
-  color: #a7a9ad;
-}
-
 .version-select-wrap {
   position: relative;
 }
@@ -84,25 +24,6 @@
   font-size: 13px;
   font-weight: 650;
   cursor: pointer;
-}
-
-.version-export {
-  height: 42px;
-  margin-left: auto;
-  padding: 0 19px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  background: #080808 !important;
-  color: #fff;
-  font-size: 12px;
-  font-weight: 800;
-  letter-spacing: 0.02em;
-}
-
-.version-export:hover {
-  background: #2a2a2a !important;
 }
 
 .version-warning {
@@ -132,6 +53,7 @@
 }
 
 .version-table-shell {
+  --admin-table-header-height: 44px;
   width: 100%;
   max-width: 100%;
   overflow-x: auto;
@@ -146,7 +68,6 @@
 }
 
 .version-table thead {
-  height: 44px;
   background: #090909;
   color: #fff;
 }
@@ -315,22 +236,6 @@
   font-size: 13px;
 }
 
-.version-detail {
-  min-width: 70px;
-  height: 30px;
-  padding: 0 10px;
-  border: 2px solid var(--color-brand-red) !important;
-  background: #fff !important;
-  color: var(--color-brand-red);
-  font-size: 10px;
-  font-weight: 800;
-}
-
-.version-detail:hover {
-  background: var(--color-brand-red) !important;
-  color: #fff;
-}
-
 .version-selection-strip {
   min-height: 44px;
   margin-bottom: 10px;
@@ -371,19 +276,6 @@
 }
 
 @media (max-width: 900px) {
-  .version-page__inner {
-    min-width: 0;
-    padding: 0 14px 24px;
-  }
-  .version-toolbar {
-    flex-wrap: wrap;
-  }
-  .version-search {
-    width: 100%;
-  }
-  .version-export {
-    margin-left: 0;
-  }
   .version-table-shell {
     width: 100%;
   }

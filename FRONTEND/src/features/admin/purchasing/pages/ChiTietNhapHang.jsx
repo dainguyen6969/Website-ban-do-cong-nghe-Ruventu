@@ -30,6 +30,7 @@ import {
   receivePurchaseRefund,
   returnPurchaseOrder,
 } from '../api/purchaseOrderApi';
+import { FormDropdown } from "../../../../shared/components/ui/FilterDropdown";
 
 const METHODS = [
   ['CHUYEN_KHOAN', 'Chuyển khoản'],
@@ -1501,13 +1502,13 @@ function PurchaseOperationDialog({ kind, order, returnable, attempt, busy, error
         <>
           <label className="order-operation-field">
             <span>PHƯƠNG THỨC</span>
-            <select value={form.method} onChange={(event) => change('method', event.target.value)}>
+            <FormDropdown aria-label="PHƯƠNG THỨC" value={form.method} onChange={(event) => change('method', event.target.value)}>
               {METHODS.map(([code, text]) => (
                 <option key={code} value={code}>
                   {text}
                 </option>
               ))}
-            </select>
+            </FormDropdown>
           </label>
 
           <label className="order-operation-field">

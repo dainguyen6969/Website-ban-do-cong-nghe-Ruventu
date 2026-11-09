@@ -1,3 +1,4 @@
+import { scaledFontSize } from '../../../../typography/projectFontSize.js';
 // Admin customer returns screen: KhachTraHang (UC-027 TH001-TH012)
 import { useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
@@ -199,7 +200,7 @@ function ReturnList({ returns }) {
       {/* Toast Notification */}
       {toast && (
         <div className="returns-toast" role="status">
-          <HiOutlineCheck style={{ fontSize: 16 }} />
+          <HiOutlineCheck style={{ fontSize: scaledFontSize(16) }} />
           <span>{toast}</span>
         </div>
       )}
@@ -532,7 +533,7 @@ function SelectOrderModal({ onClose, onSelect }) {
                       <td>
                         <div style={{ display: 'flex', flexDirection: 'column' }}>
                           <span className="returns-code">{order.maDonHang || order.id}</span>
-                          <span style={{ fontSize: 11, color: '#6b7280' }}>{order.loai}</span>
+                          <span style={{ fontSize: scaledFontSize(11), color: '#6b7280' }}>{order.loai}</span>
                         </div>
                       </td>
                       <td>{order.khachHang}</td>
@@ -545,7 +546,7 @@ function SelectOrderModal({ onClose, onSelect }) {
                       <td>
                         <div style={{ display: 'flex', flexDirection: 'column' }}>
                           <span style={{ fontWeight: 700 }}>{order.dieuKienSoBo}</span>
-                          <span style={{ fontSize: 10, color: '#6b7280' }}>{order.dieuKienSub}</span>
+                          <span style={{ fontSize: scaledFontSize(10), color: '#6b7280' }}>{order.dieuKienSub}</span>
                         </div>
                       </td>
                       <td>
@@ -1006,7 +1007,7 @@ function CreateReturn({ orderId, returns, updateReturns }) {
                   placeholder="Nhập tên người liên hệ..."
                 />
                 {attemptedSubmit && !contactName.trim() && (
-                  <span style={{ color: '#d32f2f', fontSize: 11, fontWeight: 700 }}>
+                  <span style={{ color: '#d32f2f', fontSize: scaledFontSize(11), fontWeight: 700 }}>
                     Vui lòng nhập tên người liên hệ.
                   </span>
                 )}
@@ -1021,7 +1022,7 @@ function CreateReturn({ orderId, returns, updateReturns }) {
                   placeholder="Nhập số điện thoại..."
                 />
                 {attemptedSubmit && !contactPhone.trim() && (
-                  <span style={{ color: '#d32f2f', fontSize: 11, fontWeight: 700 }}>
+                  <span style={{ color: '#d32f2f', fontSize: scaledFontSize(11), fontWeight: 700 }}>
                     Vui lòng nhập số điện thoại người liên hệ.
                   </span>
                 )}
@@ -1035,7 +1036,7 @@ function CreateReturn({ orderId, returns, updateReturns }) {
                   placeholder="Nhập lý do trả hàng..."
                 />
                 {attemptedSubmit && !reason.trim() && (
-                  <span style={{ color: '#d32f2f', fontSize: 11, fontWeight: 700 }}>
+                  <span style={{ color: '#d32f2f', fontSize: scaledFontSize(11), fontWeight: 700 }}>
                     Vui lòng nhập lý do trả hàng.
                   </span>
                 )}
@@ -1102,7 +1103,7 @@ function CreateReturn({ orderId, returns, updateReturns }) {
                     <span className="return-preview-status">
                       <HiOutlineCheck /> ĐÃ TÍNH THỬ HOÀN TIỀN TH004 HỢP LỆ
                     </span>
-                    <span style={{ fontSize: 11, color: '#6b7280' }}>
+                    <span style={{ fontSize: scaledFontSize(11), color: '#6b7280' }}>
                       Hình thức dự kiến: {refundMethod === 'CHUYEN_KHOAN' ? 'Chuyển khoản' : 'Tiền mặt'}
                     </span>
                   </div>
@@ -1276,7 +1277,7 @@ function ReturnDetail({ returnId, returns, updateReturns }) {
       {/* Toast */}
       {toast && (
         <div className="returns-toast" role="status">
-          <HiOutlineCheck style={{ fontSize: 16 }} />
+          <HiOutlineCheck style={{ fontSize: scaledFontSize(16) }} />
           <span>{toast}</span>
         </div>
       )}
@@ -1445,24 +1446,24 @@ function ReturnDetail({ returnId, returns, updateReturns }) {
                 {/* Left: Product & Snapshot Serials */}
                 <div className="return-th007-item-left">
                   <div className="return-th007-item-title">{firstItem.sanPham}</div>
-                  <div style={{ fontSize: 11, color: '#4b5563' }}>
+                  <div style={{ fontSize: scaledFontSize(11), color: '#4b5563' }}>
                     {firstItem.phienBan || 'Bộ 2x16GB - Đen v1'}
                   </div>
 
                   <div style={{ marginTop: 10 }}>
-                    <span style={{ fontSize: 10, fontWeight: 900, color: '#4b5563' }}>
+                    <span style={{ fontSize: scaledFontSize(10), fontWeight: 900, color: '#4b5563' }}>
                       THIẾT BỊ QUYỀN — CÓ THỂ ĐỐI CHIẾU
                     </span>
                     <div className="return-th007-device-list">
                       <div className="return-th007-device-card">
                         <strong>SERI-TH007-1A17-1</strong>
                         <span>Mã thiết bị: DI-04100-1122</span>
-                        <span style={{ fontSize: 10 }}>Serial từ kiểm tra không được tự sinh</span>
+                        <span style={{ fontSize: scaledFontSize(10) }}>Serial từ kiểm tra không được tự sinh</span>
                       </div>
                       <div className="return-th007-device-card">
                         <strong>SERI-TH007-1A17-2</strong>
                         <span>Mã thiết bị: DI-04100-1123</span>
-                        <span style={{ fontSize: 10 }}>Serial từ kiểm tra không được tự sinh</span>
+                        <span style={{ fontSize: scaledFontSize(10) }}>Serial từ kiểm tra không được tự sinh</span>
                       </div>
                     </div>
                   </div>
@@ -1577,7 +1578,7 @@ function ReturnDetail({ returnId, returns, updateReturns }) {
               {/* Warning Banner */}
               <div className="return-warning-callout">
                 <strong>CHƯA ĐỦ ĐỐI CHIẾU — VẪN CÓ THỂ GHI NHẬN KIỆN ĐỂ XÁC MINH</strong>
-                <p style={{ margin: '4px 0 0', fontSize: 11 }}>
+                <p style={{ margin: '4px 0 0', fontSize: scaledFontSize(11) }}>
                   {firstItem.sanPham} chưa khớp snapshot giao hàng hiện hành.
                 </p>
               </div>
@@ -1633,7 +1634,7 @@ function ReturnDetail({ returnId, returns, updateReturns }) {
 
               <div className="return-info-item">
                 <dt>TỔNG TIỀN HOÀN ĐÃ LƯU</dt>
-                <dd style={{ color: '#000', fontSize: 13 }}>{money(totals.amount)}</dd>
+                <dd style={{ color: '#000', fontSize: scaledFontSize(13) }}>{money(totals.amount)}</dd>
               </div>
               <div className="return-info-item">
                 <dt>HÌNH THỨC HOÀN DỰ KIẾN</dt>
@@ -1680,12 +1681,12 @@ function ReturnDetail({ returnId, returns, updateReturns }) {
                       <td>
                         <div style={{ display: 'flex', flexDirection: 'column' }}>
                           <span style={{ fontWeight: 800 }}>{line.sanPham}</span>
-                          <span style={{ fontSize: 11, color: '#6b7280' }}>
+                          <span style={{ fontSize: scaledFontSize(11), color: '#6b7280' }}>
                             {line.phienBan || 'Mặc định'}
                           </span>
                           <span
                             style={{
-                              fontSize: 10,
+                              fontSize: scaledFontSize(10),
                               fontFamily: 'monospace',
                               color: '#374151',
                               marginTop: 4,
@@ -1697,10 +1698,10 @@ function ReturnDetail({ returnId, returns, updateReturns }) {
                       </td>
                       <td style={{ fontWeight: 800 }}>{line.slTra}</td>
                       <td>
-                        <div style={{ fontSize: 12 }}>
+                        <div style={{ fontSize: scaledFontSize(12) }}>
                           {line.vatPhamVatLy || `${line.slTra} đơn vị: đối chiếu với danh sách hiện hành`}
                         </div>
-                        <div style={{ fontSize: 11, color: '#6b7280', marginTop: 4 }}>
+                        <div style={{ fontSize: scaledFontSize(11), color: '#6b7280', marginTop: 4 }}>
                           {line.vatPhamVatLyNote ||
                             'Chưa có định danh / snapshot hiện hành. Chỉ ghi kiểm tra để xác minh; không tự tạo thiết bị.'}
                         </div>
@@ -1709,7 +1710,7 @@ function ReturnDetail({ returnId, returns, updateReturns }) {
                         <div style={{ fontWeight: 900, color: '#000' }}>
                           {money(line.thanhTienHoan || line.donGiaHoan)}
                         </div>
-                        <div style={{ fontSize: 10, color: '#6b7280', marginTop: 2 }}>
+                        <div style={{ fontSize: scaledFontSize(10), color: '#6b7280', marginTop: 2 }}>
                           {line.tienHoanNote ||
                             `Đơn giá: ${money(line.donGiaHoan)} · không tính lại theo giá bán hiện tại`}
                         </div>
@@ -1732,26 +1733,26 @@ function ReturnDetail({ returnId, returns, updateReturns }) {
           <div className="return-section-box__body">
             {record.th007Inspection ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                <div style={{ fontSize: 12, color: '#15803d', fontWeight: 800 }}>
+                <div style={{ fontSize: scaledFontSize(12), color: '#15803d', fontWeight: 800 }}>
                   ✓ ĐÃ TIẾP NHẬN KIỆN TH007 ({record.th007Inspection.receiptDate})
                 </div>
-                <div style={{ fontSize: 12 }}>
+                <div style={{ fontSize: scaledFontSize(12) }}>
                   <strong>Thiết bị thực nhận:</strong> {record.th007Inspection.deviceReceived} ·{' '}
                   <strong>Số lượng:</strong> {record.th007Inspection.quantity}
                 </div>
                 {record.th007Inspection.condition && (
-                  <div style={{ fontSize: 12, color: '#4b5563' }}>
+                  <div style={{ fontSize: scaledFontSize(12), color: '#4b5563' }}>
                     <strong>Hiện trạng:</strong> {record.th007Inspection.condition}
                   </div>
                 )}
                 {record.th007Inspection.inspectionResult && (
-                  <div style={{ fontSize: 12, color: '#4b5563' }}>
+                  <div style={{ fontSize: scaledFontSize(12), color: '#4b5563' }}>
                     <strong>Kết quả kiểm tra:</strong> {record.th007Inspection.inspectionResult}
                   </div>
                 )}
               </div>
             ) : (
-              <p style={{ margin: 0, color: '#6b7280', fontSize: 12 }}>
+              <p style={{ margin: 0, color: '#6b7280', fontSize: scaledFontSize(12) }}>
                 Chưa có TH007; không suy ra hàng đã đến chỉ từ trạng thái phiếu.
               </p>
             )}
@@ -1766,7 +1767,7 @@ function ReturnDetail({ returnId, returns, updateReturns }) {
             <h2>HÀNG ĐÃ CHẤP NHẬN NHẬP TRẢ</h2>
           </div>
           <div className="return-section-box__body">
-            <p style={{ margin: 0, color: '#6b7280', fontSize: 12 }}>
+            <p style={{ margin: 0, color: '#6b7280', fontSize: scaledFontSize(12) }}>
               CHƯA CHẤP NHẬN NHẬP TRẢ. Kiểm tra / giữ kiện không làm tăng tồn kho.
             </p>
           </div>
@@ -1783,20 +1784,20 @@ function ReturnDetail({ returnId, returns, updateReturns }) {
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                 <div>
-                  <dt style={{ fontSize: 10, fontWeight: 900, color: '#6b7280', marginBottom: 4 }}>
+                  <dt style={{ fontSize: scaledFontSize(10), fontWeight: 900, color: '#6b7280', marginBottom: 4 }}>
                     PHIẾU HOÀN TIỀN
                   </dt>
-                  <dd style={{ margin: 0, fontSize: 12, color: '#374151' }}>
+                  <dd style={{ margin: 0, fontSize: scaledFontSize(12), color: '#374151' }}>
                     {record.refund
                       ? `Đã hoàn tiền (${record.refund.phuongThuc})`
                       : 'Chưa có chứng từ hoàn tiền. Không tạo phiếu chi 0 đ.'}
                   </dd>
                 </div>
                 <div>
-                  <dt style={{ fontSize: 10, fontWeight: 900, color: '#6b7280', marginBottom: 4 }}>
+                  <dt style={{ fontSize: scaledFontSize(10), fontWeight: 900, color: '#6b7280', marginBottom: 4 }}>
                     LÝ DO HỦY
                   </dt>
-                  <dd style={{ margin: 0, fontSize: 12, color: '#374151' }}>
+                  <dd style={{ margin: 0, fontSize: scaledFontSize(12), color: '#374151' }}>
                     {record.cancelReason || 'Chưa có dữ liệu'}
                   </dd>
                 </div>
@@ -1804,18 +1805,18 @@ function ReturnDetail({ returnId, returns, updateReturns }) {
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                 <div>
-                  <dt style={{ fontSize: 10, fontWeight: 900, color: '#6b7280', marginBottom: 4 }}>
+                  <dt style={{ fontSize: scaledFontSize(10), fontWeight: 900, color: '#6b7280', marginBottom: 4 }}>
                     BẰNG CHỨNG BÀN GIAO
                   </dt>
-                  <dd style={{ margin: 0, fontSize: 12, color: '#374151' }}>
+                  <dd style={{ margin: 0, fontSize: scaledFontSize(12), color: '#374151' }}>
                     {record.handoverEvidence || 'Chưa có dữ liệu bàn giao'}
                   </dd>
                 </div>
                 <div>
-                  <dt style={{ fontSize: 10, fontWeight: 900, color: '#6b7280', marginBottom: 4 }}>
+                  <dt style={{ fontSize: scaledFontSize(10), fontWeight: 900, color: '#6b7280', marginBottom: 4 }}>
                     LÝ DO TỪ CHỐI
                   </dt>
-                  <dd style={{ margin: 0, fontSize: 12, color: '#374151' }}>
+                  <dd style={{ margin: 0, fontSize: scaledFontSize(12), color: '#374151' }}>
                     {record.rejectReason || 'Chưa có dữ liệu'}
                   </dd>
                 </div>

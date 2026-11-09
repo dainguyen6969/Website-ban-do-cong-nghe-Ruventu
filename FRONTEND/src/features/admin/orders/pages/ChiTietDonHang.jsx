@@ -54,6 +54,7 @@ import { canExport, exportPayload } from '../components/exportSelection';
 import SoldDevices from '../../../../shared/components/ui/SoldDevices';
 import ComboContents from '../../../../shared/components/ui/ComboContents';
 import { ShipmentReturnDialog } from '../../shipping/pages/QuanLyGiaoHang';
+import { FormDropdown } from "../../../../shared/components/ui/FilterDropdown";
 
 function OrderProductImage({ item }) {
   const [failedUrl, setFailedUrl] = useState(null);
@@ -2296,7 +2297,7 @@ function OrderActionDialog({ dialog, setDialog, order, options, busy, error, sub
           <label className="order-operation-field">
             <span>ĐỐI TÁC GIAO HÀNG *</span>
 
-            <select
+            <FormDropdown aria-label="ĐỐI TÁC GIAO HÀNG"
               required
               disabled={busy}
               value={dialog.partner}
@@ -2309,7 +2310,7 @@ function OrderActionDialog({ dialog, setDialog, order, options, busy, error, sub
                   {partner.ten_doi_tac} — {partner.ma_doi_tac}
                 </option>
               ))}
-            </select>
+            </FormDropdown>
           </label>
 
           {field('PHÍ TRẢ ĐỐI TÁC (đ) *', 'fee', 'number', {
@@ -2423,7 +2424,7 @@ function OrderActionDialog({ dialog, setDialog, order, options, busy, error, sub
 
           <label className="order-operation-field">
             <span>PHƯƠNG THỨC *</span>
-            <select
+            <FormDropdown aria-label="PHƯƠNG THỨC"
               required
               value={dialog.method}
               onChange={(event) => change('method', event.target.value)}
@@ -2433,7 +2434,7 @@ function OrderActionDialog({ dialog, setDialog, order, options, busy, error, sub
                   {label(method)}
                 </option>
               ))}
-            </select>
+            </FormDropdown>
           </label>
 
           {field(

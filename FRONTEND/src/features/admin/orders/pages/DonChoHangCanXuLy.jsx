@@ -17,6 +17,7 @@ import {
   withIdempotency,
 } from '../../../../shared/services/mutationUtils';
 import './DonChoHangCanXuLy.css';
+import { FormDropdown } from "../../../../shared/components/ui/FilterDropdown";
 
 const RESULTS = {
   CHUA_LIEN_HE: 'Chưa ghi nhận liên hệ',
@@ -748,7 +749,7 @@ export default function DonChoHangCanXuLy() {
             }}
           />
 
-          <select
+          <FormDropdown
             aria-label="Mức ưu tiên"
             value={priority}
             onChange={(event) => {
@@ -763,7 +764,7 @@ export default function DonChoHangCanXuLy() {
                 {text} ({data.summary?.[value] || 0})
               </option>
             ))}
-          </select>
+          </FormDropdown>
 
           {orderId && (
             <button type="button" className="waiting-button" onClick={() => setParams({})}>
@@ -889,7 +890,7 @@ export default function DonChoHangCanXuLy() {
           <fieldset className="waiting-fields" disabled={frozen}>
             <label>
               <span>Nội dung cần cập nhật</span>
-              <select
+              <FormDropdown aria-label="Nội dung cần cập nhật"
                 value={form.result}
                 onChange={(event) => change('result', event.target.value)}
               >
@@ -898,12 +899,12 @@ export default function DonChoHangCanXuLy() {
                     {RESULTS[value]}
                   </option>
                 ))}
-              </select>
+              </FormDropdown>
             </label>
 
             <label>
               <span>Phụ trách sau khi lưu</span>
-              <select
+              <FormDropdown aria-label="Phụ trách sau khi lưu"
                 required
                 value={form.employeeId}
                 onChange={(event) => change('employeeId', event.target.value)}
@@ -913,7 +914,7 @@ export default function DonChoHangCanXuLy() {
                     {employee.name}
                   </option>
                 ))}
-              </select>
+              </FormDropdown>
             </label>
 
             <label>
@@ -940,7 +941,7 @@ export default function DonChoHangCanXuLy() {
                 {(dialog.remaining == null || Number(dialog.remaining) > 0) && (
                   <label>
                     <span>Dự kiến thu phần còn thiếu</span>
-                    <select
+                    <FormDropdown aria-label="Dự kiến thu phần còn thiếu"
                       title="Lưu phương án dự kiến; việc thực thu được ghi nhận tại chi tiết đơn hoặc đối soát COD."
                       value={form.remainingMethod}
                       onChange={(event) => change('remainingMethod', event.target.value)}
@@ -951,7 +952,7 @@ export default function DonChoHangCanXuLy() {
                       </option>
                       <option value="CHUYEN_KHOAN">Chuyển khoản</option>
                       <option value="TAI_CUA_HANG">Thu tại cửa hàng</option>
-                    </select>
+                    </FormDropdown>
                     <small className="waiting-field-note">
                       Còn phải thu: {cash(dialog.remaining)}. Dự kiến.
                     </small>

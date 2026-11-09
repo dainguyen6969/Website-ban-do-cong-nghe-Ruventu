@@ -14,7 +14,7 @@
 
 .sq-header {
   min-height: 60px;
-  padding: 18px 28px;
+  padding: 10px 24px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -35,6 +35,21 @@
   color: #858c95;
   margin: 0 8px;
   font-weight: normal;
+}
+
+.sq-page > .cb-filter-bar {
+  padding: 12px 24px;
+}
+
+.sq-page > .cb-source-filters {
+  margin: 12px 24px 0;
+  padding: 12px 16px;
+}
+
+/* Keep filters from squeezing the ledger down to a single row. */
+.admin-app .sq-page > .admin-list-body {
+  flex: 1 0 400px;
+  min-height: 400px;
 }
 
 .bg-red {
@@ -181,26 +196,26 @@
    ======================================== */
 
 .sq-stats-row {
-  display: flex;
-  border-bottom: 2px solid #111;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin: 12px 24px 0;
   box-sizing: border-box;
 }
 
 .sq-stat-box {
-  flex: 1;
-  padding: 16px 28px;
-  border-right: 2px solid #111;
+  min-width: 0;
+  padding: 12px 16px;
+  border: 1px solid #e5e7eb;
+  background: #fafafa;
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 12px;
   box-sizing: border-box;
 }
 
-.sq-stat-box:last-child {
-  border-right: none;
-}
-
 .sq-stat-box.bg-dark {
+  border-color: #111;
   background: #111;
 }
 
@@ -229,7 +244,8 @@
 .sq-stat-box .info {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
+  min-width: 0;
 }
 
 .sq-stat-box label {
@@ -243,6 +259,8 @@
   font-size: 18px;
   font-weight: 900;
   color: #111;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
 }
 
 .sq-stat-box.bg-dark label {
@@ -253,11 +271,11 @@
    Text Colors
    ======================================== */
 
-.text-green {
+.sq-page .text-green {
   color: #0d8425 !important;
 }
 
-.text-red {
+.sq-page .text-red {
   color: #dc2626 !important;
 }
 
@@ -274,12 +292,10 @@
    ======================================== */
 
 .sq-subtext-row {
-  padding: 12px 28px;
+  padding: 10px 24px 0;
   font-size: 9px;
   font-weight: 700;
   color: #858c95;
-  border-bottom: 2px solid #111;
-  background: #fafafa;
   display: flex;
   align-items: center;
   gap: 12px;
@@ -293,6 +309,14 @@
   padding: 4px 8px;
   font-weight: 800;
   border: 1px solid #fde047;
+}
+
+.sq-subtext-row .count-badge {
+  margin-left: auto;
+  flex-shrink: 0;
+  border-color: #e5e7eb;
+  background: #f5f6f8;
+  color: #4b5563;
 }
 
 /* ========================================
@@ -403,23 +427,12 @@
 
 @media (max-width: 900px) {
   .sq-stats-row {
-    display: grid !important;
-    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .sq-stat-box {
     min-width: 0;
-    border-right: none;
-    border-bottom: 2px solid #111;
     padding: 14px 16px;
-  }
-
-  .sq-stat-box:nth-child(odd) {
-    border-right: 2px solid #111;
-  }
-
-  .sq-stat-box:nth-last-child(-n + 2) {
-    border-bottom: none;
   }
 }
 
@@ -474,13 +487,13 @@
     justify-content: center;
   }
 
-  .sq-stats-row {
-    display: grid !important;
-    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  .sq-stats-row,
+  .sq-page > .cb-source-filters {
+    margin-inline: 16px;
   }
 
   .sq-subtext-row {
-    padding: 10px 16px;
+    padding: 10px 16px 0;
     flex-wrap: wrap;
     gap: 8px;
     font-size: 9px;
@@ -493,19 +506,13 @@
    ======================================== */
 
 @media (max-width: 520px) {
-  .sq-stats-row {
-    display: grid !important;
-    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-  }
-
   .sq-stat-box {
     padding: 12px;
     gap: 10px;
   }
 
   .sq-stat-box .icon {
-    width: 32px;
-    height: 32px;
+    display: none;
   }
 
   .sq-stat-box .val {
@@ -514,9 +521,6 @@
 }
 
 @media (max-width: 480px) {
-  .sq-stats-row {
-    grid-template-columns: 1fr !important;
-  }
   .cb-filter-item {
     flex: 1 1 100%;
   }

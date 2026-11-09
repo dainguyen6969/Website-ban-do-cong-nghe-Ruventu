@@ -365,7 +365,7 @@ export default function ChiTietTonKho() {
               </tbody>
               <tfoot>
                 <tr>
-                  <td colSpan="2">TỔNG CỘNG</td>
+                  <th scope="row" colSpan={2}>TỔNG CỘNG</th>
                   <td>{allocationTotals.actual}</td>
                   <td className="inventory-number--green">{allocationTotals.available}</td>
                   <td />

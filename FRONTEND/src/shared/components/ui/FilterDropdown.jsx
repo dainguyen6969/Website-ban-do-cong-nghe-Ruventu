@@ -3,6 +3,10 @@ import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { HiOutlineChevronDown } from 'react-icons/hi';
 import './FilterDropdown.css';
 
+export function FormDropdown(props) {
+  return <FilterDropdown {...props} formField selectedDark={false} />;
+}
+
 export default function FilterDropdown({
   label,
   options,
@@ -14,14 +18,20 @@ export default function FilterDropdown({
   id,
   name,
   className = '',
+  formField = false,
+  required = false,
   selectedDark = true,
   direction = 'down',
   disabled = false,
   placeholder,
   style,
+  title,
   'aria-label': ariaLabel,
+  'aria-invalid': ariaInvalid,
+  'aria-describedby': ariaDescribedBy,
 }) {
   const [isOpen, setIsOpen] = useState(false);
+  const [invalid, setInvalid] = useState(false);
   const dropdownRef = useRef(null);
 
   // Normalize options from either props.options OR children (<option> tags)
@@ -42,20 +52,21 @@ export default function FilterDropdown({
         }
       });
     } else if (children) {
+      const addOption = (option, group, groupDisabled) => {
+        if (!React.isValidElement(option) || option.type !== 'option') return;
+        const { value, label, children: content, disabled, hidden } = option.props;
+        if (hidden) return;
+        const text = label ?? React.Children.toArray(content).join('');
+        list.push({ value: String(value ?? text), label: text, disabled: disabled || groupDisabled, group });
+      };
       React.Children.forEach(children, (child) => {
         if (!React.isValidElement(child)) return;
-        if (child.type === 'option') {
-          const val = child.props.value !== undefined ? String(child.props.value) : String(child.props.children ?? '');
-          const lbl = child.props.children !== undefined ? String(child.props.children) : val;
-          list.push({ value: val, label: lbl, disabled: !!child.props.disabled });
-        } else if (child.type === 'optgroup') {
-          React.Children.forEach(child.props.children, (subChild) => {
-            if (React.isValidElement(subChild) && subChild.type === 'option') {
-              const val = subChild.props.value !== undefined ? String(subChild.props.value) : String(subChild.props.children ?? '');
-              const lbl = subChild.props.children !== undefined ? String(subChild.props.children) : val;
-              list.push({ value: val, label: lbl, disabled: !!subChild.props.disabled });
-            }
-          });
+        if (child.type === 'optgroup') {
+          React.Children.forEach(child.props.children, (option) =>
+            addOption(option, child.props.label, child.props.disabled),
+          );
+        } else {
+          addOption(child);
         }
       });
     }
@@ -107,6 +118,7 @@ export default function FilterDropdown({
       setInternalValue(option.value);
     }
     setIsOpen(false);
+    setInvalid(false);
 
     if (onChange) {
       onChange({
@@ -124,9 +136,27 @@ export default function FilterDropdown({
 
   useEffect(() => {
     if (!isOpen) return;
-    const active = dropdownRef.current?.querySelector('[aria-selected="true"]:not([aria-disabled="true"])');
-    (active || dropdownRef.current?.querySelector('[role="option"]:not([aria-disabled="true"])'))?.focus();
-  }, [isOpen]);
+    const dropdown = dropdownRef.current;
+    const menu = dropdown?.querySelector('[role="listbox"]');
+    if (formField && menu) {
+      const rect = dropdown.getBoundingClientRect();
+      let top = 0;
+      let bottom = window.innerHeight;
+      for (let parent = dropdown.parentElement; parent; parent = parent.parentElement) {
+        if (!/auto|scroll|hidden|clip/.test(getComputedStyle(parent).overflowY)) continue;
+        const bounds = parent.getBoundingClientRect();
+        top = Math.max(top, bounds.top);
+        bottom = Math.min(bottom, bounds.bottom);
+      }
+      const above = rect.top - top;
+      const below = bottom - rect.bottom;
+      const opensUp = below < Math.min(280, menu.scrollHeight) && above > below;
+      menu.classList.toggle('filter__dropdown-menu--up', opensUp);
+      menu.style.maxHeight = `${Math.max(0, Math.min(280, (opensUp ? above : below) - 4))}px`;
+    }
+    const active = menu?.querySelector('[aria-selected="true"]:not([aria-disabled="true"])');
+    (active || menu?.querySelector('[role="option"]:not([aria-disabled="true"])'))?.focus();
+  }, [isOpen, formField]);
 
   const handleOptionKeyDown = (event, option) => {
     if (event.key === 'Enter' || event.key === ' ') {
@@ -164,21 +194,25 @@ export default function FilterDropdown({
 
   return (
     <div
-      className={`filter-dropdown-container ${className} ${isOpen ? 'filter-dropdown-container--open' : ''} ${disabled ? 'filter-dropdown-container--disabled' : ''}`}
+      className={`filter-dropdown-container ${formField ? 'filter-dropdown--form' : className} ${isOpen ? 'filter-dropdown-container--open' : ''} ${disabled ? 'filter-dropdown-container--disabled' : ''}`}
       ref={dropdownRef}
-      id={id}
+      id={formField ? undefined : id}
       style={style}
       onBlur={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) setIsOpen(false); }}
     >
       <button
         type="button"
+        id={formField ? id : undefined}
+        title={title}
         disabled={disabled}
-        className={`filter__dropdown ${isOpen ? 'filter__dropdown--open' : ''} ${isSelected ? 'filter__dropdown--selected-dark' : ''}`}
+        className={`filter__dropdown ${formField ? className : ''} ${isOpen ? 'filter__dropdown--open' : ''} ${isSelected ? 'filter__dropdown--selected-dark' : ''}`}
         onClick={() => !disabled && setIsOpen((prev) => !prev)}
         onKeyDown={handleKeyDown}
         aria-haspopup="listbox"
         aria-expanded={isOpen}
-        aria-label={ariaLabel || label || displayLabel}
+        aria-label={ariaLabel || label || (formField ? undefined : displayLabel)}
+        aria-invalid={invalid || ariaInvalid}
+        aria-describedby={ariaDescribedBy}
       >
         <span className="filter__dropdown-label">
           {label ? (
@@ -195,6 +229,29 @@ export default function FilterDropdown({
         />
       </button>
 
+      {formField && (name || required) && (
+        <select
+          className="filter-dropdown__validation"
+          aria-hidden="true"
+          tabIndex={-1}
+          name={name}
+          required={required}
+          disabled={disabled}
+          value={currentVal}
+          onChange={onChange}
+          onInvalid={(event) => {
+            event.preventDefault();
+            setInvalid(true);
+            dropdownRef.current?.querySelector('button')?.focus();
+          }}
+        >
+          {children}
+        </select>
+      )}
+      {invalid && (
+        <small className="filter-dropdown__error" role="alert">Vui lòng chọn một mục.</small>
+      )}
+
       {isOpen && normalizedOptions.length > 0 && (
         <ul
           className={`filter__dropdown-menu ${direction === 'up' ? 'filter__dropdown-menu--up' : ''}`}
@@ -203,18 +260,25 @@ export default function FilterDropdown({
           {normalizedOptions.map((option, idx) => {
             const isItemActive = String(option.value) === currentVal;
             return (
-              <li
-                key={`${option.value}-${idx}`}
-                className={`filter__dropdown-item ${isItemActive ? 'filter__dropdown-item--selected' : ''} ${option.disabled ? 'filter__dropdown-item--disabled' : ''}`}
-                onClick={() => handleSelect(option)}
-                onKeyDown={(event) => handleOptionKeyDown(event, option)}
-                tabIndex={isItemActive && !option.disabled ? 0 : -1}
-                role="option"
-                aria-selected={isItemActive}
-                aria-disabled={option.disabled || undefined}
-              >
-                {option.label}
-              </li>
+              <React.Fragment key={`${option.value}-${idx}`}>
+                {option.group && option.group !== normalizedOptions[idx - 1]?.group && (
+                  <li className="filter__dropdown-group" role="presentation">{option.group}</li>
+                )}
+                <li
+                  className={`filter__dropdown-item ${isItemActive ? 'filter__dropdown-item--selected' : ''} ${option.disabled ? 'filter__dropdown-item--disabled' : ''}`}
+                  onClick={(event) => {
+                    event.preventDefault();
+                    handleSelect(option);
+                  }}
+                  onKeyDown={(event) => handleOptionKeyDown(event, option)}
+                  tabIndex={isItemActive && !option.disabled ? 0 : -1}
+                  role="option"
+                  aria-selected={isItemActive}
+                  aria-disabled={option.disabled || undefined}
+                >
+                  {option.label}
+                </li>
+              </React.Fragment>
             );
           })}
         </ul>

@@ -11,6 +11,7 @@ const SearchPage = (await vite.ssrLoadModule('/src/storefront/pages/SearchPage.j
 const Home = (await vite.ssrLoadModule('/src/storefront/pages/Home.jsx')).default;
 const ProductDetail = (await vite.ssrLoadModule('/src/storefront/pages/ProductDetail.jsx')).default;
 const { productService } = await vite.ssrLoadModule('/src/shared/services/productService.js');
+const { categoryService } = await vite.ssrLoadModule('/src/shared/services/categoryService.js');
 const MockAuthContext = (await vite.ssrLoadModule('/src/auth/mockAuthContext.js')).default;
 const FontPreferenceContext = (await vite.ssrLoadModule('/src/typography/FontPreferenceContext.js')).default;
 after(() => vite.close());
@@ -29,6 +30,41 @@ test('reload renders cached home products immediately without a product loading 
   const markup = render('/');
   assert.match(markup, /PC đã tải trong phiên/);
   assert.doesNotMatch(markup, /Đang tải sản phẩm/);
+});
+
+test('home inserts four laptops from the laptop subtree and shows only specific tabs', t => {
+  t.mock.method(categoryService, 'getCachedOptions', () => ({
+    danhMuc: [
+      { id: 1, duongDanUrl: 'laptop' },
+      { id: 2, danhMucChaId: 1, duongDanUrl: 'laptop-gaming' },
+      { id: 3, duongDanUrl: 'cpu' },
+    ],
+    thuongHieu: [],
+  }));
+  t.mock.method(productService, 'getCachedAllProducts', () => [
+    { id: 10, title: 'PC Intel', loaiSanPham: 'BO_PC', specs: [{ label: 'CPU', value: 'Intel Core i5' }] },
+    { id: 11, title: 'PC AMD', loaiSanPham: 'BO_PC', specs: [{ label: 'CPU', value: 'Ryzen7-7800X3D' }] },
+    { id: 12, title: 'Linh kiện test', loaiSanPham: 'DON', categoryId: 3, category: 'CPU' },
+    ...Array.from({ length: 5 }, (_, index) => ({
+      id: 20 + index,
+      title: `Máy thử ${index}`,
+      loaiSanPham: 'DON',
+      categoryId: 2,
+      category: 'Laptop gaming',
+    })),
+  ]);
+  const markup = render('/');
+  const pc = markup.indexOf('>PC BUILD SẴN</h2>');
+  const laptop = markup.indexOf('<section id="laptop"');
+  const components = markup.indexOf('>LINH KIỆN KHỦNG</h2>');
+  assert.ok(pc >= 0 && pc < laptop && laptop < components);
+  const laptopSection = markup.slice(laptop, markup.indexOf('</section>', laptop));
+  assert.equal((laptopSection.match(/class="product-card /g) || []).length, 4);
+  assert.match(laptopSection, /href="\/category\/laptop"/);
+  assert.doesNotMatch(laptopSection, /Linh kiện test|Máy thử 4/);
+  assert.match(markup.slice(pc, laptop), /aria-pressed="true">Intel<\/button>/);
+  assert.match(markup.slice(pc, laptop), />AMD<\/button>/);
+  assert.doesNotMatch(markup, /class="section-tab-btn[^"]*"[^>]*>Tất cả<\/button>/);
 });
 
 test('returning to a detail renders its own cached product and default variant synchronously', t => {
@@ -57,7 +93,8 @@ test('direct category navigation uses the same compact listing and filters as su
     assert.match(markup, /class="search-main container"/);
     assert.match(markup, /KHOẢNG GIÁ/);
     assert.match(markup, /TÌNH TRẠNG/);
-    assert.match(markup, /class="custom-sort-btn"/);
+    assert.match(markup, /<button\b[^>]*aria-haspopup="listbox"[^>]*aria-label="Sắp xếp sản phẩm"/);
+    assert.doesNotMatch(markup, /<select\b/);
     assert.doesNotMatch(markup, /class="category-banner"/);
   }
   assert.match(render('/category/linh-kien'), /<h1 class="catalog-listing-title">LINH KIỆN PC<\/h1>/);

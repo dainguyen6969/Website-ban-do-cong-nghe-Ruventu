@@ -10,6 +10,7 @@ import {
   Legend,
 } from 'chart.js';
 import { Line } from 'react-chartjs-2';
+import useFontPreference from '../../../../typography/useFontPreference';
 import { apiRequest } from '../../../../auth/backendAuth';
 import { formatDateTimeVN } from '../../../../shared/services/mutationUtils';
 import FilterDropdown from '../../../../shared/components/ui/FilterDropdown';
@@ -365,6 +366,8 @@ function CashFilters({ draft, onChange, onApply, error, busy }) {
 }
 
 export default function TongQuat() {
+  const { font, fontSize } = useFontPreference();
+  const chartFont = { family: font.family, size: (12 * fontSize) / 14 };
   const initial = () => ({
     ...dateRange('THANG_NAY'),
     ky: 'THANG_NAY',
@@ -881,10 +884,15 @@ export default function TongQuat() {
                   aria-label={`Biểu đồ ${CHART_FIELDS[chartField]}`}
                   data={businessChartData(data, chartField)}
                   options={{
+                    font: chartFont,
                     responsive: true,
                     maintainAspectRatio: false,
                     plugins: {
+                      legend: { labels: { font: chartFont } },
                       tooltip: {
+                        titleFont: { ...chartFont, weight: '700' },
+                        bodyFont: chartFont,
+                        footerFont: { ...chartFont, weight: '700' },
                         callbacks: {
                           title: (points) => {
                             const point = points[0];
@@ -1351,7 +1359,7 @@ export default function TongQuat() {
         <h2 className="tq-qa-title">Truy cập nhanh</h2>
         <div className="tq-qa-links">
           <Link className="tq-qa-link" to="/admin/don-hang/dat-hang-online">
-            Tạo đơn Online →
+            Tạo đơn chờ hàng →
           </Link>
           <Link className="tq-qa-link" to={`${PURCHASE_PATH}/tao-moi`}>
             Tạo đơn nhập →

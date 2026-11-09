@@ -86,7 +86,7 @@
 /* ===== GIAO DIỆN TẠO PHIẾU KIỂM HÀNG ===== */
 
 #inventory-count-create {
-  --inv-font: Arial, "Helvetica Neue", sans-serif;
+  --inv-font: var(--font-family-admin, var(--font-family-base));
   --inv-border: #dedee3;
   --inv-text: #18181b;
   --inv-muted: #71717a;
@@ -96,7 +96,6 @@
   padding-bottom: 100px;
 }
 
-/* Nội dung dùng phông dễ đọc, tách khỏi phông tiêu đề của hệ thống. */
 #inventory-count-create :where(
   p, small, span, strong, label, input, textarea,
   button, li, summary, dt, dd
