@@ -169,6 +169,41 @@ public class AdminWarrantyDetailService {
         oldCustody);
   }
 
+  public HistoryDetail getHistoryDetail(String rawId, String rawHistoryId) {
+    Long ticketId = WarrantyReadValidation.id(rawId, ErrorCode.INVALID_WARRANTY_DETAIL);
+    Long historyId = WarrantyReadValidation.id(rawHistoryId, ErrorCode.INVALID_WARRANTY_DETAIL);
+
+    PhieuBaoHanh ticket =
+        repository
+            .findTicket(ticketId)
+            .orElseThrow(
+                () ->
+                    WarrantyReadException.notFound(
+                        ErrorCode.WARRANTY_NOT_FOUND, "path.id", "WARRANTY_NOT_FOUND"));
+
+    validateTicket(ticket);
+
+    LichSuBaoHanh event =
+        historyRepository
+            .findByIdAndPhieuBaoHanh_Id(historyId, ticketId)
+            .orElseThrow(
+                () ->
+                    WarrantyReadException.notFound(
+                        ErrorCode.NOT_FOUND, "path.historyId", "WARRANTY_HISTORY_NOT_FOUND"));
+
+    NguoiDung actor = event.getNguoiThucHien();
+
+    return new HistoryDetail(
+        event.getId(),
+        ticketId,
+        event.getLoaiSuKien(),
+        actor == null ? null : actor.getId(),
+        actor == null ? null : actor.getHoTen(),
+        WarrantyReadValidation.time(event.getNgayTao()),
+        event.getNoiDung(),
+        historySupport.payload(event));
+  }
+
   private void validateTicket(PhieuBaoHanh ticket) {
     if (ticket.getDonHang() == null
         || ticket.getDonHang().getId() == null
@@ -189,24 +224,36 @@ public class AdminWarrantyDetailService {
   }
 
   private Device device(ThietBiBaoHanh device, boolean current, Map<String, Object> metadata) {
+
     if (metadata != null
         && metadata.get("id") != null
-        && !device.getId().equals(historySupport.id(metadata.get("id")))) throw invalid();
-    SoSerialSanPham serial = device.getSoSerial();
-    if (serial != null && !serial.getPhienBan().getId().equals(device.getPhienBan().getId()))
+        && !device.getId().equals(historySupport.id(metadata.get("id")))) {
       throw invalid();
-    // A stored expiry is authoritative; never calculate from today's product warranty policy.
+    }
+
+    SoSerialSanPham serial = device.getSoSerial();
+
+    if (serial != null && !serial.getPhienBan().getId().equals(device.getPhienBan().getId())) {
+      throw invalid();
+    }
+
     var expiry = serial == null ? device.getHanBaoHanh() : serial.getHanBaoHanh();
     OffsetDateTime savedExpiry = historySupport.time(value(metadata, "han_bao_hanh"));
+
+    var variant = device.getPhienBan();
+    var product = variant.getSanPham();
+
     return new Device(
         device.getId(),
         device.getMaTheoDoi(),
-        device.getPhienBan().getId(),
+        variant.getId(),
         serial == null ? null : serial.getId(),
         serial == null ? null : serial.getSoSerial(),
         current,
         expiry == null ? savedExpiry : WarrantyReadValidation.time(expiry),
-        historySupport.text(value(metadata, "can_cu_tinh_han")));
+        historySupport.text(value(metadata, "can_cu_tinh_han")),
+        product == null ? null : product.getTenSanPham(),
+        variant.getTenPhienBan());
   }
 
   private Map<String, Object> deviceMetadata(
