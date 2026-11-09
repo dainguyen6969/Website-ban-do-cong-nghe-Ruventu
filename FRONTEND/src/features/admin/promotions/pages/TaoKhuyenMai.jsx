@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Check } from 'lucide-react';
 import { createPromotion, getPromotionVariants } from '../api/promotionApi.js';
 import { createPromotionBody, computePromotionStatus } from '../promotionModel.js';
 import { DEMO_VARIANTS, addStoredPromotion } from '../demoPromotions.js';
@@ -690,16 +691,12 @@ export default function TaoKhuyenMai() {
                 </div>
             </div>
 
-            {/* Prototype Banner (Image 1) */}
-            <div className="create-proto-banner">
-                <strong>PROTOTYPE KM03</strong> · Lưu vào dữ liệu cục bộ của phiên này, không gửi POST thật và không lưu lên backend. Không giữ lượt, giữ kho, tạo đơn hàng hay phiếu chi.
-            </div>
-
             {/* Top Grid: Card 01 & Card 02 (Image 1) */}
             <div className="create-grid-2-col">
                 {/* 01 / THÔNG TIN CHƯƠNG TRÌNH */}
                 <div className="create-card">
                     <div className="create-card-header">
+                        <span className="create-card-accent" aria-hidden="true" />
                         <h3>01 / THÔNG TIN CHƯƠNG TRÌNH</h3>
                     </div>
                     <div className="create-card-body">
@@ -716,7 +713,7 @@ export default function TaoKhuyenMai() {
                                     }}
                                     className={errors.code ? 'input-error' : ''}
                                 />
-                                <button type="button" className="btn-auto-code" onClick={generateCode}>
+                                <button type="button" className="btn-auto-code promo-btn-auto-code" onClick={generateCode} title="Tự động sinh mã ngẫu nhiên">
                                     TỰ SINH
                                 </button>
                             </div>
@@ -756,6 +753,7 @@ export default function TaoKhuyenMai() {
                 {/* 02 / HÌNH THỨC ƯU ĐÃI (Image 1 & 4) */}
                 <div className="create-card">
                     <div className="create-card-header">
+                        <span className="create-card-accent" aria-hidden="true" />
                         <h3>02 / HÌNH THỨC ƯU ĐÃI</h3>
                     </div>
                     <div className="create-card-body">
@@ -861,6 +859,7 @@ export default function TaoKhuyenMai() {
             {/* 03 / PHẠM VI & ĐIỀU KIỆN */}
             <div className="create-card full-width">
                 <div className="create-card-header">
+                    <span className="create-card-accent" aria-hidden="true" />
                     <h3>03 / PHẠM VI & ĐIỀU KIỆN</h3>
                 </div>
                 <div className="create-card-body">
@@ -1093,7 +1092,7 @@ export default function TaoKhuyenMai() {
                                 {errors.gift && <div className="error-tip" style={{ marginTop: '10px' }}>{errors.gift}</div>}
 
                                 <div className="sub-section-footnote">
-                                    Nhận toàn bộ các dòng quà. Tạo khuyến mại không giữ kho và không tạo đơn giao hàng; backend bán hàng xuất quà qua các dòng quà riêng lẻ khi chốt đơn.
+                                    Nhận toàn bộ các dòng quà đã cấu hình.
                                 </div>
                             </div>
                         </>
@@ -1126,7 +1125,7 @@ export default function TaoKhuyenMai() {
                             {errors.gift && <div className="error-tip" style={{ marginTop: '10px' }}>{errors.gift}</div>}
 
                             <div className="sub-section-footnote">
-                                Nhận toàn bộ các dòng quà. Tạo khuyến mại không giữ kho và không tạo đơn giao hàng; backend bán hàng xuất quà qua các dòng quà riêng lẻ khi chốt đơn.
+                                Nhận toàn bộ các dòng quà đã cấu hình.
                             </div>
                         </div>
                     )}
@@ -1136,12 +1135,10 @@ export default function TaoKhuyenMai() {
             {/* 04 / THỜI GIAN & HẠN MỨC (Image 2) */}
             <div className="create-card full-width">
                 <div className="create-card-header">
+                    <span className="create-card-accent" aria-hidden="true" />
                     <h3>04 / THỜI GIAN & HẠN MỨC</h3>
                 </div>
                 <div className="create-card-body">
-                    <div className="create-card-hint">
-                        Giờ Việt Nam (UTC+07:00). Yêu cầu lưu giữ đầy đủ múi giờ ISO-8601.
-                    </div>
 
                     <div className="threshold-grid" style={{ marginTop: '14px' }}>
                         <div className="create-form-field">
@@ -1178,9 +1175,10 @@ export default function TaoKhuyenMai() {
                             />
                         </div>
                         <div className="checkbox-unlimited-row">
-                            <label className="checkbox-label">
+                            <label className={`unlimited-toggle-pill ${unlimited ? 'is-active' : ''}`} title="Áp dụng không giới hạn số lượt">
                                 <input
                                     type="checkbox"
+                                    className="unlimited-toggle-checkbox"
                                     checked={unlimited}
                                     onChange={(e) => {
                                         setUnlimited(e.target.checked);
@@ -1190,7 +1188,10 @@ export default function TaoKhuyenMai() {
                                         }
                                     }}
                                 />
-                                KHÔNG GIỚI HẠN
+                                <span className="unlimited-indicator">
+                                    {unlimited ? <Check size={12} strokeWidth={3} /> : null}
+                                </span>
+                                <span className="unlimited-text">KHÔNG GIỚI HẠN</span>
                             </label>
                         </div>
                     </div>
@@ -1201,6 +1202,7 @@ export default function TaoKhuyenMai() {
             {/* 05 / KIỂM TRA TRƯỚC KHI LƯU (Image 3 & 5) */}
             <div className="create-card full-width">
                 <div className="create-card-header">
+                    <span className="create-card-accent" aria-hidden="true" />
                     <h3>05 / KIỂM TRA TRƯỚC KHI LƯU</h3>
                 </div>
                 <div className="create-card-body">
@@ -1268,15 +1270,24 @@ export default function TaoKhuyenMai() {
                         <div className="summary-col">
                             <div className="summary-item">
                                 <label>CHƯƠNG TRÌNH</label>
-                                <div>{code || 'Chưa nhập mã'} - {name || 'Chưa nhập tên'}</div>
+                                <div>
+                                    {code ? <span className="summary-code-badge">{code}</span> : <span className="summary-placeholder">Chưa nhập mã</span>}
+                                    {name ? <strong className="summary-name-bold"> — {name}</strong> : <span className="summary-placeholder"> — Chưa nhập tên</span>}
+                                </div>
                             </div>
                             <div className="summary-item">
                                 <label>GIÁ TRỊ HÀNG TỐI THIỂU</label>
-                                <div>{minOrderValue ? `${formatMoney(minOrderValue)}` : '0 đ'}</div>
+                                <div>{minOrderValue ? <strong className="summary-val-highlight">{formatMoney(minOrderValue)}</strong> : '0 đ'}</div>
                             </div>
                             <div className="summary-item">
                                 <label>GIỚI HẠN</label>
-                                <div>{unlimited ? 'KHÔNG GIỚI HẠN' : (limit ? `${limit} lượt` : 'Chưa nhập hạn mức')}</div>
+                                <div>
+                                    {unlimited ? (
+                                        <span className="summary-unlimited-badge">KHÔNG GIỚI HẠN</span>
+                                    ) : (
+                                        limit ? <strong className="summary-limit-count">{limit} lượt</strong> : <span className="summary-placeholder">Chưa nhập hạn mức</span>
+                                    )}
+                                </div>
                             </div>
                         </div>
 
@@ -1284,35 +1295,35 @@ export default function TaoKhuyenMai() {
                             <div className="summary-item">
                                 <label>PHẠM VI</label>
                                 <div>
-                                    {scope === 'TOAN_DON' && 'TỔNG ĐƠN HÀNG'}
-                                    {scope === 'PHIEN_BAN' && 'PHIÊN BẢN SẢN PHẨM'}
-                                    {scope === 'DANH_MUC' && (
-                                        selectedCategory
-                                            ? `DANH MỤC: ${(categoriesList.find(c => String(c.id) === String(selectedCategory))?.name || selectedCategory).toUpperCase()}`
-                                            : 'DANH MỤC'
-                                    )}
-                                    {scope === 'THUONG_HIEU' && (
-                                        selectedBrand
-                                            ? `THƯƠNG HIỆU: ${(brandsList.find(b => String(b.id) === String(selectedBrand))?.name || selectedBrand).toUpperCase()}`
-                                            : 'THƯƠNG HIỆU'
-                                    )}
+                                    <span className="summary-scope-badge">
+                                        {scope === 'TOAN_DON' && 'TỔNG ĐƠN HÀNG'}
+                                        {scope === 'PHIEN_BAN' && 'PHIÊN BẢN SẢN PHẨM'}
+                                        {scope === 'DANH_MUC' && (
+                                            selectedCategory
+                                                ? `DANH MỤC: ${(categoriesList.find(c => String(c.id) === String(selectedCategory))?.name || selectedCategory).toUpperCase()}`
+                                                : 'DANH MỤC'
+                                        )}
+                                        {scope === 'THUONG_HIEU' && (
+                                            selectedBrand
+                                                ? `THƯƠNG HIỆU: ${(brandsList.find(b => String(b.id) === String(selectedBrand))?.name || selectedBrand).toUpperCase()}`
+                                                : 'THƯƠNG HIỆU'
+                                        )}
+                                    </span>
                                 </div>
                             </div>
                             <div className="summary-item">
                                 <label>SỐ LƯỢNG MUA TỐI THIỂU</label>
-                                <div>{minQuantity || 0}</div>
+                                <div><strong>{minQuantity || 0}</strong></div>
                             </div>
                             <div className="summary-item">
                                 <label>THỜI GIAN</label>
-                                <div>
-                                    {fromDate ? formatDisplayDate(fromDate) : 'Chưa chọn bắt đầu'} → {toDate ? formatDisplayDate(toDate) : 'Chưa chọn kết thúc'}
+                                <div className="summary-dates-highlight">
+                                    {fromDate ? <strong>{formatDisplayDate(fromDate)}</strong> : <span className="summary-placeholder">Chưa chọn bắt đầu</span>}
+                                    <span className="summary-date-arrow"> → </span>
+                                    {toDate ? <strong>{formatDisplayDate(toDate)}</strong> : <span className="summary-placeholder">Chưa chọn kết thúc</span>}
                                 </div>
                             </div>
                         </div>
-                    </div>
-
-                    <div className="summary-footnote">
-                        Đây là tóm tắt cấu hình, không phải báo giá hoặc kết quả giảm tiền khi thanh toán. Backend bán hàng kiểm tra điều kiện và tính số tiền thực tế; prototype này không mô phỏng việc áp dụng ưu đãi tại checkout.
                     </div>
                 </div>
             </div>

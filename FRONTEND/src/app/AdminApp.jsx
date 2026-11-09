@@ -240,6 +240,10 @@ export default function AdminApp() {
                       element={<ChiTietKhuyenMai />}
                     />
                     <Route path="/admin/khuyen-mai/tao-khuyen-mai" element={<TaoKhuyenMai />} />
+                    <Route
+                      path="/admin/khuyen-mai/tao-moi"
+                      element={<Navigate to="/admin/khuyen-mai/tao-khuyen-mai" replace />}
+                    />
 
                     <Route
                       path="/admin/so-quy-tien-mat"

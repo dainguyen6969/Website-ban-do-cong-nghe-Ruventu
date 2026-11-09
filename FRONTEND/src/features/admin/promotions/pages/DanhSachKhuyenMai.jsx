@@ -6,6 +6,23 @@ import { getDemoPromotions } from '../demoPromotions.js';
 import TablePagination from '../../../../shared/components/ui/TablePagination';
 import './DanhSachKhuyenMai.css';
 
+function getPromoStatusVariant(status) {
+    switch (status) {
+        case 'ĐANG ÁP DỤNG':
+            return 'green';
+        case 'TẠM DỪNG':
+            return 'amber';
+        case 'HẾT LƯỢT':
+            return 'red';
+        case 'HẾT HẠN':
+            return 'neutral';
+        case 'CHƯA BẮT ĐẦU':
+            return 'blue';
+        default:
+            return 'neutral';
+    }
+}
+
 export default function DanhSachKhuyenMai() {
     const navigate = useNavigate();
     const location = useLocation();
@@ -431,9 +448,9 @@ export default function DanhSachKhuyenMai() {
                                         </td>
 
                                         <td className="promo-col-status">
-                                            <div className="promo-status-main">
+                                            <span className={`promo-status-badge promo-status-badge--${getPromoStatusVariant(promo.status)}`}>
                                                 {promo.status}
-                                            </div>
+                                            </span>
                                             <div className="promo-flag-sub">
                                                 Cờ quản lý:{' '}
                                                 {promo.savedStatus === 0

@@ -1,5 +1,5 @@
-import { adminRequest } from '../../catalog/products/api/versionApi';
-import { emptyPermissions } from '../../../../auth/roleModel';
+import { apiRequest } from '../../../../auth/backendAuth';
+import { emptyPermissions, fullPermissions } from '../../../../auth/roleModel';
 
 export async function getRolePage(page = 1, limit = 20, keyword = '') {
   const params = new URLSearchParams({
@@ -8,7 +8,7 @@ export async function getRolePage(page = 1, limit = 20, keyword = '') {
   });
   if (keyword?.trim()) params.set('keyword', keyword.trim());
 
-  const data = await adminRequest(`/api/v1/admin/roles?${params}`);
+  const data = await apiRequest(`/api/v1/admin/roles?${params}`);
   return {
     items: data?.items || [],
     totalItems: Number(data?.pagination?.total_elements || 0),
@@ -16,12 +16,15 @@ export async function getRolePage(page = 1, limit = 20, keyword = '') {
   };
 }
 
-// Lấy danh sách cho dropdown chọn Vai trò không phân trang (hoặc phân trang cực lớn)
 export async function getAllRoles() {
-  const data = await adminRequest('/api/v1/admin/roles?page=0&limit=100');
+  const data = await apiRequest('/api/v1/admin/roles?page=0&limit=100');
   const roles = (data?.items || []).map((role) => {
+    const isSystemAdmin = String(role.ten_vai_tro || role.tenVaiTro || '').toUpperCase() === 'ADMIN';
     const parsed = parseRoleDescription(role.moTa || role.mo_ta);
-    return { ...role, permissions: parsed.permissions };
+    const perms = isSystemAdmin && Object.values(parsed.permissions).every((a) => !a.length)
+      ? fullPermissions()
+      : parsed.permissions;
+    return { ...role, permissions: perms };
   });
 
   if (roles.length > 0) {
@@ -38,13 +41,20 @@ export async function getAllRoles() {
 const PERMISSION_SEPARATOR = '|||';
 
 const MOD_MAP = {
+  tong_quat: 't',
   san_pham: 'p',
   danh_muc: 'm',
+  combo_san_pham: 'b',
   kho_hang: 'k',
+  kiem_hang: 'l',
   nhap_hang: 'i',
   ban_hang_pos: 's',
   don_hang: 'o',
+  giao_hang: 'h',
+  khach_tra_hang: 'u',
   khach_hang: 'c',
+  nha_cung_cap: 'n',
+  doi_tac_van_chuyen: 'y',
   khuyen_mai: 'd',
   bao_hanh: 'g',
   so_quy: 'f',
@@ -58,7 +68,7 @@ const ACT_REV = Object.fromEntries(Object.entries(ACT_MAP).map(([k, v]) => [v, k
 
 function compressPermissions(permissions) {
   const parts = [];
-  for (const [mod, acts] of Object.entries(permissions)) {
+  for (const [mod, acts] of Object.entries(permissions || {})) {
     if (!acts || !acts.length) continue;
     const m = MOD_MAP[mod];
     if (!m) continue;
@@ -97,7 +107,6 @@ export function parseRoleDescription(moTaRaw) {
     const parts = moTaRaw.split(PERMISSION_SEPARATOR);
     const permStr = parts.pop();
     description = parts.join(PERMISSION_SEPARATOR);
-
     if (permStr.startsWith('{')) {
       try {
         permissions = { ...emptyPermissions(), ...JSON.parse(permStr) };
@@ -115,23 +124,23 @@ export function buildRoleDescription(description, permissions) {
   const permStr = compressPermissions(permissions);
   const suffix = `${PERMISSION_SEPARATOR}${permStr}`;
   let desc = description || '';
-  if (desc.length + suffix.length > 255) {
-    desc = desc.substring(0, 255 - suffix.length);
+  const maxDescLen = Math.max(0, 250 - suffix.length);
+  if (desc.length > maxDescLen) {
+    desc = desc.substring(0, maxDescLen);
   }
   return `${desc}${suffix}`;
 }
 
 export async function getRoleDetail(id) {
-  const data = await adminRequest(`/api/v1/admin/roles/${encodeURIComponent(id)}`);
-  return data;
+  return await apiRequest(`/api/v1/admin/roles/${encodeURIComponent(id)}`);
 }
 
 export async function createRole({ tenVaiTro, moTa, permissions }) {
   const payload = {
-    ten_vai_tro: tenVaiTro,
+    ten_vai_tro: (tenVaiTro || '').trim(),
     mo_ta: buildRoleDescription(moTa, permissions),
   };
-  return await adminRequest('/api/v1/admin/roles', {
+  return await apiRequest('/api/v1/admin/roles', {
     method: 'POST',
     body: JSON.stringify(payload),
   });
@@ -139,17 +148,17 @@ export async function createRole({ tenVaiTro, moTa, permissions }) {
 
 export async function updateRole(id, { tenVaiTro, moTa, permissions }) {
   const payload = {
-    ten_vai_tro: tenVaiTro,
+    ten_vai_tro: (tenVaiTro || '').trim(),
     mo_ta: buildRoleDescription(moTa, permissions),
   };
-  return await adminRequest(`/api/v1/admin/roles/${encodeURIComponent(id)}`, {
+  return await apiRequest(`/api/v1/admin/roles/${encodeURIComponent(id)}`, {
     method: 'PUT',
     body: JSON.stringify(payload),
   });
 }
 
 export async function deleteRole(id) {
-  return await adminRequest(`/api/v1/admin/roles/${encodeURIComponent(id)}`, {
+  return await apiRequest(`/api/v1/admin/roles/${encodeURIComponent(id)}`, {
     method: 'DELETE',
   });
 }
