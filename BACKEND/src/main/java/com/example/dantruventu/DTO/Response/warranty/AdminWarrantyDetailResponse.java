@@ -35,7 +35,14 @@ public record AdminWarrantyDetailResponse(
     @JsonProperty("ngay_cap_nhat") OffsetDateTime ngayCapNhat,
     @JsonProperty("hoa_don_da_huy") List<Invoice> hoaDonDaHuy,
     @JsonProperty("thiet_bi_hien_hanh") Device thietBiHienHanh,
-    @JsonProperty("noi_dang_giu_thiet_bi_cu") Map<String, Object> noiDangGiuThietBiCu) {
+    @JsonProperty("noi_dang_giu_thiet_bi_cu") Map<String, Object> noiDangGiuThietBiCu,
+    @JsonProperty("xu_ly_tiep") NextWork xuLyTiep) {
+
+  @JsonInclude(JsonInclude.Include.ALWAYS)
+  public record NextWork(
+      @JsonProperty("thao_tac") List<String> thaoTac,
+      @JsonProperty("giu_cho_lich_su_id") Long giuChoLichSuId,
+      @JsonProperty("phu_kien_san_sang_tra") List<Map<String, Object>> phuKienSanSangTra) {}
 
   @JsonInclude(JsonInclude.Include.ALWAYS)
   public record Order(
