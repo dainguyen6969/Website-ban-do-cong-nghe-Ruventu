@@ -18,6 +18,9 @@
   --color-brand-red-lighter: rgba(227, 30, 36, 0.06);
 
   /* Sidebar */
+  --color-sidebar-bg: #0a0a0a;
+  --color-sidebar-width: 252px;
+  --color-sidebar-collapsed: 56px;
   --color-sidebar-bg: #000000;
   --color-sidebar-bg-dark: #000000;
   --color-sidebar-text: #b1b6bf;
@@ -102,6 +105,11 @@ textarea {
 }
 
 html:has(.admin-app) {
+  --admin-weight-regular: 400;
+  --admin-weight-medium: 500;
+  --admin-weight-semibold: 600;
+  --admin-weight-bold: 700;
+  --admin-weight-button: var(--admin-weight-semibold);
   font-size: 14px;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -202,7 +210,10 @@ html:has(.storefront-app) {
       scrollbar-color: auto !important;
     }
 
-    :is(.admin-app :is(.app-layout__main, .app-layout__main *), .storefront-app :where(.catalog-nav-item) > .mega-menu) {
+    :is(
+      .admin-app :is(.app-layout__main, .app-layout__main *),
+      .storefront-app :where(.catalog-nav-item) > .mega-menu
+    ) {
       &::-webkit-scrollbar {
         width: 10px;
         height: 10px;

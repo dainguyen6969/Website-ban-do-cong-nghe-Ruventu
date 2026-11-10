@@ -394,7 +394,7 @@ export default function Sidebar({ collapsed, mobileOpen = false, onToggle, onNav
   const location = useLocation();
   const navigate = useNavigate();
   const { currentAccount } = useMockAuth();
-  const [expandedMenus, setExpandedMenus] = useState(['don-hang']);
+  const [expandedMenus, setExpandedMenus] = useState([]);
   const showDetails = !collapsed || mobileOpen;
 
   // Auto-expand menu if current route matches sub-item or section
@@ -501,18 +501,15 @@ export default function Sidebar({ collapsed, mobileOpen = false, onToggle, onNav
                         <span className="sidebar__badge sidebar__badge--red">{item.badge}</span>
                       )}
                       {item.expandable && (
-                        <span className="sidebar__chevron">
-                          {isMenuExpanded ? (
-                            <HiOutlineChevronUp size={16} />
-                          ) : (
-                            <HiOutlineChevronDown size={16} />
-                          )}
+                        <span className="sidebar__chevron" aria-hidden="true">
+                          <HiOutlineChevronDown size={14} />
                         </span>
                       )}
                     </>
                   )}
                 </button>
 
+                {/* Sub-items */}
                 {/* Sub-items */}
                 {item.expandable &&
                   item.subItems &&
@@ -521,8 +518,11 @@ export default function Sidebar({ collapsed, mobileOpen = false, onToggle, onNav
                   showDetails && (
                     <ul className="sidebar__submenu">
                       {item.subItems.map((sub) => {
-                        const isSubActive = hasActivePath(sub, location.pathname);
                         const isSubExpanded = isExpanded(sub.id);
+                        const isSubActive =
+                          hasActivePath(sub, location.pathname) &&
+                          (!sub.children?.length || !isSubExpanded);
+
                         return (
                           <li
                             key={sub.id}
@@ -538,16 +538,13 @@ export default function Sidebar({ collapsed, mobileOpen = false, onToggle, onNav
                                 }
                               }}
                               id={`submenu-${sub.id}`}
+                              aria-expanded={sub.children?.length ? isSubExpanded : undefined}
                             >
-                              <span className="sidebar__submenu-bullet">—</span>
+                              <span className="sidebar__submenu-bullet" aria-hidden="true" />
                               <span className="sidebar__submenu-label">{sub.label}</span>
                               {sub.children && (
-                                <span className="sidebar__submenu-chevron">
-                                  {isSubExpanded ? (
-                                    <HiOutlineChevronUp size={14} />
-                                  ) : (
-                                    <HiOutlineChevronDown size={14} />
-                                  )}
+                                <span className="sidebar__submenu-chevron" aria-hidden="true">
+                                  <HiOutlineChevronDown size={12} />
                                 </span>
                               )}
                               {shouldShowBadge(sub.badge) && (
@@ -564,8 +561,11 @@ export default function Sidebar({ collapsed, mobileOpen = false, onToggle, onNav
                                       className={`sidebar__nested-submenu-btn ${location.pathname.startsWith(child.path) ? 'sidebar__nested-submenu-btn--active' : ''}`}
                                       onClick={() => handleSubClick(child.path)}
                                     >
-                                      <span>—</span>
-                                      {child.label}
+                                      <span
+                                        className="sidebar__submenu-bullet"
+                                        aria-hidden="true"
+                                      />
+                                      <span className="sidebar__submenu-label">{child.label}</span>
                                     </button>
                                   </li>
                                 ))}

@@ -212,7 +212,7 @@ public class GlobalExceptionHandler {
   }
 
   @ExceptionHandler(AccessDeniedException.class)
-  public ResponseEntity<ErrorResponse> handleAccessDenied(
+  public ResponseEntity<?> handleAccessDenied(
       AccessDeniedException exception, HttpServletRequest request) {
 
     var auth = SecurityContextHolder.getContext().getAuthentication();

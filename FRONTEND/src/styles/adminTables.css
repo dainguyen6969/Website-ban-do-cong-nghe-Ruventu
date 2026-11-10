@@ -8,8 +8,15 @@
   overflow: hidden;
   padding-bottom: 16px;
 }
-.admin-app .admin-list-page:has(.admin-data-table:not(.admin-data-table--records)) > * { flex-shrink: 0; }
-.admin-app .return-shell:has(> .admin-list-page) { display: flex; flex-direction: column; min-height: 0; overflow: hidden; }
+.admin-app .admin-list-page:has(.admin-data-table:not(.admin-data-table--records)) > * {
+  flex-shrink: 0;
+}
+.admin-app .return-shell:has(> .admin-list-page) {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
 .admin-app .admin-list-body,
 .admin-app .admin-list-frame {
   display: flex;
@@ -20,9 +27,18 @@
   overflow: visible;
   padding-bottom: 0;
 }
-.admin-app .admin-list-body--inset { padding: 16px 24px 0; }
-.admin-app .admin-list-frame { border: 0; background: transparent; }
-.admin-app .admin-list-body > :not(.admin-table-scroll):not(.admin-list-body):not(.admin-list-frame) { flex-shrink: 0; }
+.admin-app .admin-list-body--inset {
+  padding: 16px 24px 0;
+}
+.admin-app .admin-list-frame {
+  border: 0;
+  background: transparent;
+}
+.admin-app
+  .admin-list-body
+  > :not(.admin-table-scroll):not(.admin-list-body):not(.admin-list-frame) {
+  flex-shrink: 0;
+}
 .admin-app .admin-table-scroll {
   flex: 1 1 0;
   width: 100%;
@@ -37,16 +53,41 @@
   background: #fff;
   box-sizing: border-box;
 }
-.admin-app .admin-table-scroll:focus-visible { outline: 2px solid var(--color-brand-red, #e31e24); outline-offset: -2px; }
-.admin-app .admin-table-scroll--embedded { flex: none; max-height: 420px; }
-.admin-app :is([class*="table-wrap"], [class*="table-scroll"], [class*="table-container"], [class*="history-wrap"]):has(> .admin-table-scroll--embedded) {
+.admin-app .admin-table-scroll:focus-visible {
+  outline: 2px solid var(--color-brand-red, #e31e24);
+  outline-offset: -2px;
+}
+.admin-app .admin-table-scroll--embedded {
+  flex: none;
+  max-height: 420px;
+}
+.admin-app
+  :is(
+    [class*='table-wrap'],
+    [class*='table-scroll'],
+    [class*='table-container'],
+    [class*='history-wrap']
+  ):has(> .admin-table-scroll--embedded) {
   padding: 0;
   border: 0;
   max-height: none;
   overflow: visible;
 }
-.admin-app .admin-table-scroll > .admin-data-table { width: 100%; margin: 0; table-layout: auto; border-collapse: separate; border-spacing: 0; text-align: left; }
-.admin-app .admin-table-scroll > .admin-data-table thead { position: sticky; top: 0; z-index: 2; background: #111; color: #fff; }
+.admin-app .admin-table-scroll > .admin-data-table {
+  width: 100%;
+  margin: 0;
+  table-layout: auto;
+  border-collapse: separate;
+  border-spacing: 0;
+  text-align: left;
+}
+.admin-app .admin-table-scroll > .admin-data-table thead {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: #111;
+  color: #fff;
+}
 .admin-app .admin-table-scroll > .admin-data-table th {
   height: var(--admin-table-header-height, 42px);
   padding: 10px 14px;
@@ -54,7 +95,7 @@
   background: #111;
   color: #fff;
   font-size: 11px;
-  font-weight: 700;
+  font-weight: var(--admin-weight-semibold);
   line-height: 1.4;
   text-align: left;
   vertical-align: middle;
@@ -64,15 +105,30 @@
 
 @media (forced-colors: none) {
   @supports selector(::-webkit-scrollbar) {
-    .admin-app .admin-list-page .admin-table-scroll:has(> .admin-data-table:not(.admin-data-table--records) > thead > tr:only-child) {
-      --admin-table-header-offset: max(var(--admin-table-header-height, 42px), calc(20px + 15.4px * var(--project-font-scale, 1)));
+    .admin-app
+      .admin-list-page
+      .admin-table-scroll:has(
+        > .admin-data-table:not(.admin-data-table--records) > thead > tr:only-child
+      ) {
+      --admin-table-header-offset: max(
+        var(--admin-table-header-height, 42px),
+        calc(20px + 15.4px * var(--project-font-scale, 1))
+      );
     }
 
-    .admin-app .admin-list-page .admin-table-scroll:has(> .admin-data-table:not(.admin-data-table--records) > thead > tr:only-child)::-webkit-scrollbar:vertical {
+    .admin-app
+      .admin-list-page
+      .admin-table-scroll:has(
+        > .admin-data-table:not(.admin-data-table--records) > thead > tr:only-child
+      )::-webkit-scrollbar:vertical {
       background: linear-gradient(#111 var(--admin-table-header-offset), #f3f4f6 0);
     }
 
-    .admin-app .admin-list-page .admin-table-scroll:has(> .admin-data-table:not(.admin-data-table--records) > thead > tr:only-child)::-webkit-scrollbar-track:vertical {
+    .admin-app
+      .admin-list-page
+      .admin-table-scroll:has(
+        > .admin-data-table:not(.admin-data-table--records) > thead > tr:only-child
+      )::-webkit-scrollbar-track:vertical {
       margin-top: var(--admin-table-header-offset);
     }
   }
@@ -90,19 +146,56 @@
   overflow-wrap: normal;
   font-variant-numeric: tabular-nums;
 }
-.admin-app .admin-table-scroll > .admin-data-table tfoot td { border-top: 2px solid #111; }
-.admin-app .admin-table-scroll > .admin-data-table tbody tr { background: #fff; }
-.admin-app .admin-table-scroll > .admin-data-table tbody tr:nth-child(even) { background: #fafafa; }
-.admin-app .admin-table-scroll > .admin-data-table tbody tr:hover { background: #f3f3f3; }
-.admin-app .admin-table-scroll > .admin-data-table tbody tr:is(.is-selected, .product-table__row--selected) { background: #fff1f2; }
-.admin-app .admin-table-scroll > .admin-data-table tbody tr:last-child td { border-bottom: 0; }
-.admin-app .admin-table-scroll > .admin-data-table :is(th, td):has(> input[type="checkbox"]) { width: 44px; text-align: center; }
-.admin-app .admin-table-scroll > .admin-data-table:not(.serial-table):not(.admin-data-table--records) :is(th, td):last-child:not([colspan]) { text-align: center; }
-.admin-app .admin-table-scroll > .admin-data-table td:last-child > div { justify-content: center; }
-.admin-app .admin-table-scroll > .admin-data-table td > :is(strong, a, div) { text-align: inherit; }
-.admin-app .admin-table-scroll > .admin-data-table :is(td strong, td a) { font-size: 12px; }
-.admin-app .admin-table-scroll > .admin-data-table td small { font-size: 11px; line-height: 1.4; }
-.admin-app .admin-table-scroll > .admin-data-table tbody td[colspan] { height: 120px; text-align: center; white-space: normal; }
+.admin-app .admin-table-scroll > .admin-data-table tfoot td {
+  border-top: 2px solid #111;
+}
+.admin-app .admin-table-scroll > .admin-data-table tbody tr {
+  background: #fff;
+}
+.admin-app .admin-table-scroll > .admin-data-table tbody tr:nth-child(even) {
+  background: #fafafa;
+}
+.admin-app .admin-table-scroll > .admin-data-table tbody tr:hover {
+  background: #f3f3f3;
+}
+.admin-app
+  .admin-table-scroll
+  > .admin-data-table
+  tbody
+  tr:is(.is-selected, .product-table__row--selected) {
+  background: #fff1f2;
+}
+.admin-app .admin-table-scroll > .admin-data-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+.admin-app .admin-table-scroll > .admin-data-table :is(th, td):has(> input[type='checkbox']) {
+  width: 44px;
+  text-align: center;
+}
+.admin-app
+  .admin-table-scroll
+  > .admin-data-table:not(.serial-table):not(.admin-data-table--records)
+  :is(th, td):last-child:not([colspan]) {
+  text-align: center;
+}
+.admin-app .admin-table-scroll > .admin-data-table td:last-child > div {
+  justify-content: center;
+}
+.admin-app .admin-table-scroll > .admin-data-table td > :is(strong, a, div) {
+  text-align: inherit;
+}
+.admin-app .admin-table-scroll > .admin-data-table :is(td strong, td a) {
+  font-size: 12px;
+}
+.admin-app .admin-table-scroll > .admin-data-table td small {
+  font-size: 11px;
+  line-height: 1.4;
+}
+.admin-app .admin-table-scroll > .admin-data-table tbody td[colspan] {
+  height: 120px;
+  text-align: center;
+  white-space: normal;
+}
 .admin-app .admin-table-footer {
   display: flex;
   align-items: center;
@@ -120,10 +213,25 @@
   background: #fff;
   box-sizing: border-box;
 }
-.admin-app .admin-table-footer > :is(p, span) { margin: 0; font-size: 12px; line-height: 1.5; }
-.admin-app .admin-table-footer .product-pagination-bar { width: auto; margin: 0; padding: 0; border: 0; background: transparent; }
-.admin-app .admin-table-footer .product-pagination-controls { margin-left: auto; }
-.admin-app .admin-table-footer .product-pagination-range { flex-wrap: wrap; gap: 4px; }
+.admin-app .admin-table-footer > :is(p, span) {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.5;
+}
+.admin-app .admin-table-footer .product-pagination-bar {
+  width: auto;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+.admin-app .admin-table-footer .product-pagination-controls {
+  margin-left: auto;
+}
+.admin-app .admin-table-footer .product-pagination-range {
+  flex-wrap: wrap;
+  gap: 4px;
+}
 
 .admin-list-content {
   width: 100%;
@@ -247,9 +355,19 @@ a.admin-list-detail-action {
 }
 
 @media (max-width: 900px), (max-height: 700px) {
-  .admin-app .admin-list-page:has(.admin-data-table:not(.admin-data-table--records)) { overflow-y: auto; }
+  .admin-app .admin-list-page:has(.admin-data-table:not(.admin-data-table--records)) {
+    overflow-y: auto;
+  }
   .admin-app .admin-list-body,
-  .admin-app .admin-list-frame { flex: 0 0 auto; }
-  .admin-app .admin-table-scroll { flex: 0 0 auto; max-height: 60dvh; min-height: 160px; }
-  .admin-app .admin-list-body--inset { padding-inline: 16px; }
+  .admin-app .admin-list-frame {
+    flex: 0 0 auto;
+  }
+  .admin-app .admin-table-scroll {
+    flex: 0 0 auto;
+    max-height: 60dvh;
+    min-height: 160px;
+  }
+  .admin-app .admin-list-body--inset {
+    padding-inline: 16px;
+  }
 }

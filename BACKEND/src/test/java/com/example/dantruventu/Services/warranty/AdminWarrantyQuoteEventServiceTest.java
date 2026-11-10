@@ -606,7 +606,8 @@ class AdminWarrantyQuoteEventServiceTest {
     var event = f.events.getLast();
     var payload = f.history.payload(event);
     var quote = f.history.object(payload.get("bao_gia"));
-    quote.put("thoi_diem_lap", f.history.time(quote.get("thoi_diem_lap")).minusSeconds(1).toString());
+    quote.put(
+        "thoi_diem_lap", f.history.time(quote.get("thoi_diem_lap")).minusSeconds(1).toString());
     payload.put("bao_gia", quote);
     event.setDuLieuChiTiet(JSON.writeValueAsString(payload));
 
