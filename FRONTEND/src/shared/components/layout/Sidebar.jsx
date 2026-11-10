@@ -255,7 +255,7 @@ const menuItems = [
         label: 'Danh sách đơn hàng',
         path: '/admin/don-hang/danh-sach-don-hang',
       },
-      { id: 'dat-hang-online', label: 'Đặt hàng online', path: '/admin/don-hang/dat-hang-online' },
+      { id: 'dat-hang-online', label: 'Tạo đơn chờ hàng', path: '/admin/don-hang/dat-hang-online' },
       {
         id: 'quan-ly-giao-hang',
         label: 'Quản lý giao hàng',

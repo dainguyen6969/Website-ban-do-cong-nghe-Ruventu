@@ -132,14 +132,8 @@
   color: #111;
   font-size: 10px;
 }
-.stock-check-table-shell {
-  margin: 20px 24px 30px;
-  border: 2px solid #111;
-  background: #fff;
-  overflow: hidden;
-}
-.stock-check-table-scroll {
-  overflow-x: auto;
+.stock-check-list {
+  margin: 20px 24px 0;
 }
 .stock-check-table {
   width: 100%;
@@ -298,8 +292,8 @@
   .stock-check-search {
     grid-column: 1/-1;
   }
-  .stock-check-table-shell {
-    margin: 14px;
+  .stock-check-list {
+    margin: 14px 14px 0;
   }
   .stock-check-extra-filters {
     padding-left: 14px;
@@ -320,10 +314,4 @@
 
 .stock-check-page {
   min-width: 0;
-}
-.stock-check-table-scroll {
-  width: 100%;
-  max-width: 100%;
-  min-width: 0;
-  overflow-x: auto;
 }

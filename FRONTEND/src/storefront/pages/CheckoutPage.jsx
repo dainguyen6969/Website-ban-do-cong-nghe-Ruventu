@@ -1,3 +1,4 @@
+import { scaledFontSize } from '../../typography/projectFontSize.js';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { VIETNAM_LOCATIONS, matchProvince, matchDistrict } from '../../data/vietnamLocations';
 import { ArrowLeft, ShieldCheck, Truck, MapPin, Navigation, Loader2 } from 'lucide-react';
@@ -10,6 +11,7 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { errorMessage, withIdempotency } from '../../shared/services/mutationUtils';
 import { priceConfirmation } from '../../shared/services/saleQuote';
 import { getAddressSuggestions } from '../services/addressService';
+import { FormDropdown } from "../../shared/components/ui/FilterDropdown";
 
 const formatPrice = (price) => {
   const num = Number(price);
@@ -626,7 +628,7 @@ const CheckoutPage = () => {
                 <div className="form-row">
                   <div className="form-group">
                     <label className="form-label">TỈNH / THÀNH PHỐ</label>
-                    <select
+                    <FormDropdown aria-label="TỈNH / THÀNH PHỐ"
                       name="province"
                       value={formData.province}
                       onChange={handleInputChange}
@@ -637,11 +639,11 @@ const CheckoutPage = () => {
                           {prov}
                         </option>
                       ))}
-                    </select>
+                    </FormDropdown>
                   </div>
                   <div className="form-group">
                     <label className="form-label">QUẬN / HUYỆN / PHƯỜNG</label>
-                    <select
+                    <FormDropdown aria-label="QUẬN / HUYỆN / PHƯỜNG"
                       name="ward"
                       value={formData.ward}
                       onChange={handleInputChange}
@@ -652,7 +654,7 @@ const CheckoutPage = () => {
                           {w}
                         </option>
                       ))}
-                    </select>
+                    </FormDropdown>
                   </div>
                 </div>
                 <div
@@ -679,7 +681,7 @@ const CheckoutPage = () => {
                         background: 'transparent',
                         border: 'none',
                         color: '#f11919',
-                        fontSize: '12px',
+                        fontSize: scaledFontSize(12),
                         fontWeight: 600,
                         cursor: locatingUser ? 'not-allowed' : 'pointer',
                         display: 'flex',

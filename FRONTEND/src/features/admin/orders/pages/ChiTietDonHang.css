@@ -339,7 +339,7 @@
   border-radius: 0;
   outline: none;
   color: #111;
-  font: 11px inherit;
+  font-family: inherit; font-size: 11px;
 }
 .order-cancel-modal textarea:focus {
   border-color: #f10e16;

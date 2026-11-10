@@ -95,6 +95,8 @@ export default function AdminApp() {
               className="app-layout admin-app"
               style={{
                 '--font-family-admin': fontPreference.font.family,
+                '--font-family-base': fontPreference.font.family,
+                '--project-font-family': fontPreference.font.family,
                 '--project-font-scale': fontPreference.fontSize / 14,
               }}
             >

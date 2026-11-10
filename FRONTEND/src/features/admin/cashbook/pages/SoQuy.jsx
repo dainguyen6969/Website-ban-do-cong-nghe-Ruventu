@@ -1,3 +1,4 @@
+import { scaledFontSize } from '../../../../typography/projectFontSize.js';
 import React, {
   useCallback,
   useEffect,
@@ -12,8 +13,6 @@ import { cashbookService } from "../../../../shared/services/cashbookService";
 
 import TablePagination from "../../../../shared/components/ui/TablePagination";
 import FilterDropdown from "../../../../shared/components/ui/FilterDropdown";
-
-import { DETAIL_TABLE_PAGE_SIZE } from "../../../../hooks/useDetailTablePagination";
 
 import {
   CashSourceFilters,
@@ -86,8 +85,7 @@ export default function SoQuy() {
     createCashbookSourceFilters(params),
   );
 
-  // Khớp với component TablePagination đang dùng.
-  const pageSize = DETAIL_TABLE_PAGE_SIZE;
+  const pageSize = 10;
 
   const [transactions, setTransactions] = useState([]);
   const [totalElements, setTotalElements] = useState(0);
@@ -458,7 +456,7 @@ export default function SoQuy() {
             padding: "8px 28px",
             backgroundColor: "#fee2e2",
             color: "#b91c1c",
-            fontSize: "11px",
+            fontSize: scaledFontSize(11),
             fontWeight: 800,
           }}
         >
@@ -468,6 +466,7 @@ export default function SoQuy() {
 
       <CashbookSourceFilters
         extended
+        defaultCollapsed
         value={sourceFilters}
         onChange={(nextFilters) => {
           setSourceFilters(nextFilters);
@@ -554,12 +553,7 @@ export default function SoQuy() {
 
       {/* Formula Subtext */}
       <div className="sq-subtext-row">
-        <span>
-          (i) Tồn cuối kỳ = {formatMoney(summary.soDuDauKy)} (Đầu kỳ) +{" "}
-          {formatMoney(summary.tongThu)} (Tổng thu) -{" "}
-          {formatMoney(summary.tongChi)} (Tổng chi) ={" "}
-          {formatMoney(summary.tonCuoiKy)}
-        </span>
+        <span>Tồn cuối kỳ = Số dư đầu kỳ + Tổng thu − Tổng chi</span>
         <span className="count-badge">Tổng {totalElements} phiếu ghi nhận</span>
       </div>
 

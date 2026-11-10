@@ -15,6 +15,10 @@
   margin-bottom: 14px;
 }
 
+.cb-source-filters--collapsed .cb-source-filters__heading {
+  margin-bottom: 0;
+}
+
 .cb-source-filters__toggle-btn {
   display: inline-flex;
   align-items: center;

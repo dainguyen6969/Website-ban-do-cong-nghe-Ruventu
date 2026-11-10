@@ -1,5 +1,5 @@
-import React, { useLayoutEffect, useRef } from 'react';
-import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import React, { useState } from 'react';
+import { Routes, Route, Navigate, useLocation, useNavigationType } from 'react-router-dom';
 import Home from './pages/Home';
 import Login from './pages/Login';
 import Register from './pages/Register';
@@ -21,28 +21,29 @@ import ToastContainer from './components/ToastContainer';
 import BackToTop from './components/BackToTop';
 import FontPreferenceContext from '../typography/FontPreferenceContext';
 import useQaTypography from '../typography/useQaTypography';
-import { manageScrollPosition } from './scrollPosition';
+import { StorefrontScrollPosition } from './scrollPosition';
 import './App.css';
 import './index.css';
 
 function StorefrontApp() {
   const fontPreference = useQaTypography();
-  const { pathname, search, hash } = useLocation();
-  const initialUrl = useRef(`${pathname}${search}${hash}`);
-  const navigated = useRef(false);
-  useLayoutEffect(() => {
-    const url = `${pathname}${search}${hash}`;
-    if (url !== initialUrl.current) navigated.current = true;
-    const reload = !navigated.current && performance.getEntriesByType('navigation')[0]?.type === 'reload';
-    return manageScrollPosition(url, reload);
-  }, [pathname, search, hash]);
+  const { key, pathname, search, hash } = useLocation();
+  const navigationType = useNavigationType();
+  const [homeTabs, setHomeTabs] = useState(() => new Map());
+
+  const selectHomeTab = (section, category) => {
+    setHomeTabs(previous => new Map(previous).set(key, {
+      ...previous.get(key),
+      [section]: category,
+    }));
+  };
 
   return (
     <FontPreferenceContext.Provider value={fontPreference}>
-      <div className="app storefront-app" style={{ fontFamily: fontPreference.font.family, '--project-font-scale': fontPreference.fontSize / 14 }}>
+      <div className="app storefront-app" style={{ fontFamily: fontPreference.font.family, '--font-family-base': fontPreference.font.family, '--project-font-family': fontPreference.font.family, '--project-font-scale': fontPreference.fontSize / 14 }}>
         <ToastContainer />
         <Routes>
-          <Route path="/" element={<Home />} />
+          <Route path="/" element={<Home selectedTabs={homeTabs.get(key)} onSelectTab={selectHomeTab} />} />
           <Route path="/search" element={<SearchPage />} />
           <Route path="/category/:slug" element={<CategoryPage />} />
           <Route path="/login" element={<Login />} />
@@ -63,6 +64,7 @@ function StorefrontApp() {
           <Route path="*" element={<NotFoundPage />} />
         </Routes>
         <BackToTop />
+        <StorefrontScrollPosition entryKey={key} url={`${pathname}${search}${hash}`} navigationType={navigationType} />
       </div>
     </FontPreferenceContext.Provider>
   );

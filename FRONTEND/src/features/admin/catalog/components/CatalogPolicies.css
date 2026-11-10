@@ -1,4 +1,3 @@
-.catalog-policy,
 .catalog-variant {
   padding: 16px;
   border: 1px solid #ddd;
@@ -20,11 +19,20 @@
 }
 
 .catalog-policy li {
-  display: flex;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) max-content;
+  align-items: start;
   gap: 16px;
   padding: 9px 0;
   border-bottom: 1px solid #eee;
+}
+
+.catalog-policy li span {
+  overflow-wrap: anywhere;
+}
+
+.catalog-policy li small {
+  display: block;
 }
 
 .catalog-muted {
@@ -107,7 +115,7 @@
   }
 
   .catalog-policy li {
-    flex-direction: column;
+    grid-template-columns: minmax(0, 1fr);
     gap: 5px;
   }
 }

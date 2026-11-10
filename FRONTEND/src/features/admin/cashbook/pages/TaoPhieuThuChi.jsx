@@ -4,6 +4,7 @@ import { receiptService } from '../../../../shared/services/receiptService';
 import { disbursementService } from '../../../../shared/services/disbursementService';
 import { useCashbook } from '../context/CashbookContext';
 import './TaoPhieuThuChi.css';
+import { FormDropdown } from "../../../../shared/components/ui/FilterDropdown";
 
 const fallbackPersonData = {
   NHAN_VIEN: [
@@ -368,7 +369,7 @@ export default function TaoPhieuThuChi({ initialTab = 'thu' }) {
               <>
                 <div className="tpc-form-group">
                   <label>NHÓM NGƯỜI NỘP</label>
-                  <select
+                  <FormDropdown aria-label="NHÓM NGƯỜI NỘP"
                     value={groupThu}
                     onChange={(e) => {
                       setGroupThu(e.target.value);
@@ -379,7 +380,7 @@ export default function TaoPhieuThuChi({ initialTab = 'thu' }) {
                     <option value="KHACH_HANG">Khách hàng</option>
                     <option value="NHAN_VIEN">Nhân viên</option>
                     <option value="DOI_TAC_GIAO_HANG">Đối tác giao hàng</option>
-                  </select>
+                  </FormDropdown>
                 </div>
 
                 <div className="tpc-form-group">
@@ -464,7 +465,7 @@ export default function TaoPhieuThuChi({ initialTab = 'thu' }) {
                 <div className="tpc-form-group">
                   <label>LOẠI PHIẾU THU</label>
                   <div className="tpc-select-add-wrapper">
-                    <select
+                    <FormDropdown
                       value={selectedTypeThuId}
                       onChange={(e) => {
                         setSelectedTypeThuId(e.target.value);
@@ -477,7 +478,7 @@ export default function TaoPhieuThuChi({ initialTab = 'thu' }) {
                           {t.ten_loai}
                         </option>
                       ))}
-                    </select>
+                    </FormDropdown>
                     <button
                       type="button"
                       className="btn-add-type-icon"
@@ -508,7 +509,7 @@ export default function TaoPhieuThuChi({ initialTab = 'thu' }) {
               <>
                 <div className="tpc-form-group">
                   <label>NHÓM NGƯỜI NHẬN</label>
-                  <select
+                  <FormDropdown aria-label="NHÓM NGƯỜI NHẬN"
                     value={groupChi}
                     onChange={(e) => {
                       setGroupChi(e.target.value);
@@ -520,7 +521,7 @@ export default function TaoPhieuThuChi({ initialTab = 'thu' }) {
                     <option value="NHAN_VIEN">Nhân viên</option>
                     <option value="NHA_CUNG_CAP">Nhà cung cấp</option>
                     <option value="DOI_TAC_GIAO_HANG">Đối tác giao hàng</option>
-                  </select>
+                  </FormDropdown>
                 </div>
 
                 <div className="tpc-form-group">
@@ -606,7 +607,7 @@ export default function TaoPhieuThuChi({ initialTab = 'thu' }) {
                 <div className="tpc-form-group">
                   <label>LOẠI PHIẾU CHI</label>
                   <div className="tpc-select-add-wrapper">
-                    <select
+                    <FormDropdown
                       value={selectedTypeChiId}
                       onChange={(e) => {
                         setSelectedTypeChiId(e.target.value);
@@ -619,7 +620,7 @@ export default function TaoPhieuThuChi({ initialTab = 'thu' }) {
                           {t.ten_loai}
                         </option>
                       ))}
-                    </select>
+                    </FormDropdown>
                     <button
                       type="button"
                       className="btn-add-type-icon"
@@ -684,10 +685,10 @@ export default function TaoPhieuThuChi({ initialTab = 'thu' }) {
 
             <div className="tpc-form-group">
               <label>PHƯƠNG THỨC THANH TOÁN</label>
-              <select value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value)}>
+              <FormDropdown aria-label="PHƯƠNG THỨC THANH TOÁN" value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value)}>
                 <option value="TIEN_MAT">Tiền mặt</option>
                 <option value="CHUYEN_KHOAN">Chuyển khoản</option>
-              </select>
+              </FormDropdown>
             </div>
 
             <div className="tpc-form-group">

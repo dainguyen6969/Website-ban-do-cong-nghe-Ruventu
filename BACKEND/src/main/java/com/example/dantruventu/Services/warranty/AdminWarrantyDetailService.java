@@ -112,6 +112,24 @@ public class AdminWarrantyDetailService {
       settlement.put("nghia_vu", new ArrayList<>(obligations.values()));
     }
     List<Map<String, Object>> quotes = quotes(ticket, fees, events);
+
+    var reports = conclusions(events);
+    var allowed =
+        allowedActions(ticket, custody, exchange, settlement, activeInvoice, invoiceViews, quotes);
+    var ready =
+        ticket.getTrangThaiXuLy() == TrangThaiBaoHanh.CHO_TRA_KHACH
+            ? historySupport.latestSection(events, "san_sang_tra")
+            : null;
+    Long readyDeviceId = historySupport.id(value(ready, "thiet_bi_se_tra_id"));
+    boolean readyRecorded =
+        readyDeviceId != null
+            && readyDeviceId.equals(historySupport.id(value(custody, "thiet_bi_id")))
+            && value(ready, "phu_kien") instanceof List<?>;
+    var hold =
+        Boolean.TRUE.equals(value(exchange, "da_giu_cho"))
+            ? historySupport.latestSection(events, "giu_cho_hang_doi")
+            : null;
+
     Device currentDevice =
         deviceState.thietBiHienHanh() == null
             ? null
@@ -138,7 +156,7 @@ public class AdminWarrantyDetailService {
             ticket.getTinhTrangTiepNhan(),
             accessories(value(intake, "phu_kien")),
             strings(value(intake, "anh_urls"))),
-        conclusions(events),
+        reports,
         custody,
         quotes,
         activeInvoice,
@@ -161,12 +179,65 @@ public class AdminWarrantyDetailService {
                             event.getNoiDung()))
                 .toList(),
             WarrantyReadValidation.pagination(page, limit, historyPageResult.getTotalElements())),
-        allowedActions(ticket, custody, exchange, settlement, activeInvoice, invoiceViews, quotes),
+        allowed,
         WarrantyReadValidation.time(ticket.getNgayTiepNhan()),
         WarrantyReadValidation.time(ticket.getNgayCapNhat()),
         cancelled,
         currentDevice,
-        oldCustody);
+        oldCustody,
+        new NextWork(
+            suggestedActions(
+                ticket,
+                events,
+                custody,
+                exchange,
+                reports,
+                quotes,
+                activeInvoice,
+                allowed,
+                readyRecorded),
+            Boolean.TRUE.equals(value(hold, "dang_giu"))
+                    && Objects.equals(
+                        historySupport.id(value(hold, "phien_ban_phuong_an")),
+                        historySupport.id(value(exchange, "phien_ban")))
+                ? historySupport.id(value(hold, "giu_cho_lich_su_id"))
+                : null,
+            readyRecorded ? accessories(ready.get("phu_kien")) : null));
+  }
+
+  public HistoryDetail getHistoryDetail(String rawId, String rawHistoryId) {
+    Long ticketId = WarrantyReadValidation.id(rawId, ErrorCode.INVALID_WARRANTY_DETAIL);
+    Long historyId = WarrantyReadValidation.id(rawHistoryId, ErrorCode.INVALID_WARRANTY_DETAIL);
+
+    PhieuBaoHanh ticket =
+        repository
+            .findTicket(ticketId)
+            .orElseThrow(
+                () ->
+                    WarrantyReadException.notFound(
+                        ErrorCode.WARRANTY_NOT_FOUND, "path.id", "WARRANTY_NOT_FOUND"));
+
+    validateTicket(ticket);
+
+    LichSuBaoHanh event =
+        historyRepository
+            .findByIdAndPhieuBaoHanh_Id(historyId, ticketId)
+            .orElseThrow(
+                () ->
+                    WarrantyReadException.notFound(
+                        ErrorCode.NOT_FOUND, "path.historyId", "WARRANTY_HISTORY_NOT_FOUND"));
+
+    NguoiDung actor = event.getNguoiThucHien();
+
+    return new HistoryDetail(
+        event.getId(),
+        ticketId,
+        event.getLoaiSuKien(),
+        actor == null ? null : actor.getId(),
+        actor == null ? null : actor.getHoTen(),
+        WarrantyReadValidation.time(event.getNgayTao()),
+        event.getNoiDung(),
+        historySupport.payload(event));
   }
 
   private void validateTicket(PhieuBaoHanh ticket) {
@@ -189,24 +260,36 @@ public class AdminWarrantyDetailService {
   }
 
   private Device device(ThietBiBaoHanh device, boolean current, Map<String, Object> metadata) {
+
     if (metadata != null
         && metadata.get("id") != null
-        && !device.getId().equals(historySupport.id(metadata.get("id")))) throw invalid();
-    SoSerialSanPham serial = device.getSoSerial();
-    if (serial != null && !serial.getPhienBan().getId().equals(device.getPhienBan().getId()))
+        && !device.getId().equals(historySupport.id(metadata.get("id")))) {
       throw invalid();
-    // A stored expiry is authoritative; never calculate from today's product warranty policy.
+    }
+
+    SoSerialSanPham serial = device.getSoSerial();
+
+    if (serial != null && !serial.getPhienBan().getId().equals(device.getPhienBan().getId())) {
+      throw invalid();
+    }
+
     var expiry = serial == null ? device.getHanBaoHanh() : serial.getHanBaoHanh();
     OffsetDateTime savedExpiry = historySupport.time(value(metadata, "han_bao_hanh"));
+
+    var variant = device.getPhienBan();
+    var product = variant.getSanPham();
+
     return new Device(
         device.getId(),
         device.getMaTheoDoi(),
-        device.getPhienBan().getId(),
+        variant.getId(),
         serial == null ? null : serial.getId(),
         serial == null ? null : serial.getSoSerial(),
         current,
         expiry == null ? savedExpiry : WarrantyReadValidation.time(expiry),
-        historySupport.text(value(metadata, "can_cu_tinh_han")));
+        historySupport.text(value(metadata, "can_cu_tinh_han")),
+        product == null ? null : product.getTenSanPham(),
+        variant.getTenPhienBan());
   }
 
   private Map<String, Object> deviceMetadata(
@@ -472,6 +555,8 @@ public class AdminWarrantyDetailService {
               type == null ? event.getLoaiSuKien() : type,
               "thiet_bi_id",
               historySupport.id(handover.get("thiet_bi_id")),
+              "da_nhan_dung_thiet_bi",
+              bool(handover.get("da_nhan_dung_thiet_bi")),
               "ngay",
               at == null ? WarrantyReadValidation.time(event.getNgayTao()) : at));
     }
@@ -676,6 +761,167 @@ public class AdminWarrantyDetailService {
     // Advisory guards only: each later mutation endpoint must authorize and validate again.
     // Never return permission strings copied from unvalidated JSON supplied by a historic writer.
     return result;
+  }
+
+  private List<String> suggestedActions(
+      PhieuBaoHanh ticket,
+      List<LichSuBaoHanh> events,
+      Map<String, Object> custody,
+      Map<String, Object> plan,
+      List<Map<String, Object>> reports,
+      List<Map<String, Object>> quotes,
+      Invoice invoice,
+      List<String> allowed,
+      boolean readyRecorded) {
+    var status = ticket.getTrangThaiXuLy();
+    String location = historySupport.text(value(custody, "loai"));
+    boolean atShop = "CUA_HANG".equals(location);
+    boolean atSupplier = "DON_VI_BAO_HANH".equals(location);
+    boolean inTransit = "DANG_VAN_CHUYEN".equals(location);
+    boolean consent = hasCollectionConsent(invoice, quotes);
+    boolean collect = consent && invoice.conPhaiThu().signum() > 0;
+
+    if (status == TrangThaiBaoHanh.HOAN_TAT) {
+      if (allowed.contains("HOAN_KHACH")) return List.of("HOAN_KHACH");
+      return collect ? List.of("THU_KHACH") : List.of();
+    }
+    if (status == TrangThaiBaoHanh.CHO_TRA_KHACH) {
+      if (readyRecorded && allowed.contains("HANDOVER")) return List.of("HANDOVER");
+      return atShop && collect ? List.of("THU_KHACH") : List.of();
+    }
+    if (status == TrangThaiBaoHanh.TIEP_NHAN)
+      return atShop ? List.of("BAT_DAU_KIEM_TRA") : List.of();
+
+    var quote = quotes.isEmpty() ? null : quotes.getLast();
+    var quoteStep = quoteSuggestions(quote);
+
+    if (plan != null
+        && !Boolean.TRUE.equals(plan.get("da_huy"))
+        && !"TU_CHOI".equals(plan.get("quyet_dinh_khach"))) {
+      if (!Boolean.TRUE.equals(plan.get("da_duyet"))) return List.of("PLAN_APPROVE");
+      if (!Boolean.TRUE.equals(plan.get("khach_dong_y"))) {
+        Long quoteRef = historySupport.id(plan.get("bao_gia_phien_ban"));
+        if (quoteRef != null) {
+          if (quoteRef.equals(historySupport.id(value(quote, "phien_ban"))) && !quoteStep.isEmpty())
+            return quoteStep;
+          if (!consent || !quoteRef.equals(historySupport.id(invoice.phienBanBaoGia())))
+            return List.of();
+        }
+        return List.of("PLAN_ACCEPT", "PLAN_REJECT");
+      }
+
+      Long replacementId = historySupport.id(plan.get("thiet_bi_thay_the_id"));
+      if (replacementId != null) {
+        return atShop && replacementId.equals(historySupport.id(value(custody, "thiet_bi_id")))
+            ? List.of("SAN_SANG_TRA")
+            : List.of();
+      }
+      if ("DON_VI_BAO_HANH".equals(plan.get("nguon"))) return List.of("RECEIVE");
+      if ("TON_KHO_CUA_HANG".equals(plan.get("nguon")))
+        return Boolean.TRUE.equals(plan.get("da_giu_cho"))
+            ? List.of("ISSUE")
+            : List.of("HOLD_SERIAL", "HOLD_UNIT");
+      return List.of();
+    }
+    if (status == TrangThaiBaoHanh.CHO_DOI_SAN_PHAM) return List.of();
+    if (ticket.getThietBiThayThe() != null && Boolean.TRUE.equals(value(plan, "da_huy")))
+      return List.of();
+
+    if (atSupplier || inTransit) {
+      var outsideEvents =
+          Set.of("GUI_DON_VI", "BAT_DAU_CONG_VIEC", "YEU_CAU_DUNG", "YEU_CAU_THU_HOI");
+      String last =
+          events.reversed().stream()
+              .map(LichSuBaoHanh::getLoaiSuKien)
+              .filter(Objects::nonNull)
+              .filter(outsideEvents::contains)
+              .findFirst()
+              .orElse("");
+
+      if ("YEU_CAU_DUNG".equals(last)) return List.of("YEU_CAU_THU_HOI");
+      if ("YEU_CAU_THU_HOI".equals(last)) return List.of("NHAN_LAI");
+      if (inTransit) return List.of("DON_VI_TIEP_NHAN");
+      if ("BAT_DAU_CONG_VIEC".equals(last)) return List.of("NHAN_LAI");
+    }
+
+    if (!atShop && !atSupplier) return List.of();
+    if (atShop && status == TrangThaiBaoHanh.DA_NHAN_LAI) return List.of("KIEM_TRA_TIEP");
+    if (atShop && status == TrangThaiBaoHanh.DANG_BAO_HANH) return List.of("SAN_SANG_TRA");
+    if (status != TrangThaiBaoHanh.DANG_KIEM_TRA && status != TrangThaiBaoHanh.DANG_BAO_HANH)
+      return List.of();
+
+    var phase = historySupport.latestSection(events, "trang_thai");
+    if (atShop
+        && ("KIEM_TRA_TIEP".equals(value(phase, "su_kien"))
+            || events.stream().anyMatch(event -> "YEU_CAU_DUNG".equals(event.getLoaiSuKien()))))
+      return List.of("SAN_SANG_TRA");
+
+    if (reports.isEmpty()) return List.of("GHI_KET_LUAN");
+    if (!quoteStep.isEmpty()) return quoteStep;
+    if ("TU_CHOI".equals(value(quote, "trang_thai")))
+      return atShop ? List.of("SAN_SANG_TRA", "QUOTE") : List.of("NHAN_LAI", "QUOTE");
+
+    if (consent
+        && "DONG_Y".equals(value(quote, "trang_thai"))
+        && Objects.equals(value(quote, "phien_ban"), invoice.phienBanBaoGia())
+        && invoice.tongTien().signum() > 0) {
+      var deposit = historySupport.object(value(quote, "dieu_kien_dat_coc"));
+      var minimum = amount(value(deposit, "so_tien_toi_thieu"));
+      if (minimum != null
+          && invoice.daThu().subtract(invoice.daHoan()).compareTo(minimum.min(invoice.tongTien()))
+              < 0) return collect ? List.of("THU_KHACH") : List.of();
+      return List.of("BAT_DAU_CONG_VIEC");
+    }
+
+    boolean free = false;
+    boolean paid = false;
+    for (Object raw : historySupport.array(reports.getLast().get("hang_muc"))) {
+      var item = historySupport.object(raw);
+      String basis = historySupport.text(value(item, "can_cu"));
+      if (basis == null || basis.isBlank()) continue;
+      free |=
+          "DU_DIEU_KIEN".equals(value(item, "dieu_kien_bao_hanh"))
+              || "CUA_HANG".equals(value(item, "ben_chiu_phi"));
+      paid |= "KHACH_HANG".equals(value(item, "ben_chiu_phi"));
+    }
+    List<String> choices = new ArrayList<>();
+    if (free) choices.add("BAT_DAU_MIEN_PHI");
+    if (paid) choices.add("QUOTE");
+    if (atShop) {
+      choices.add("GUI_DON_VI");
+      if (free) choices.add("PLAN_CREATE");
+      choices.add("SAN_SANG_TRA");
+    } else {
+      choices.add("NHAN_LAI");
+    }
+    return choices;
+  }
+
+  private List<String> quoteSuggestions(Map<String, Object> quote) {
+    if ("NHAP".equals(value(quote, "trang_thai"))) return List.of("SEND_QUOTE");
+    if ("CHO_PHAN_HOI".equals(value(quote, "trang_thai"))) {
+      if (value(quote, "han_phan_hoi") instanceof OffsetDateTime deadline
+          && deadline.isBefore(OffsetDateTime.now())) return List.of("QUOTE");
+      return List.of("ACCEPT_QUOTE", "REJECT_QUOTE");
+    }
+    return List.of();
+  }
+
+  private boolean hasCollectionConsent(Invoice invoice, List<Map<String, Object>> quotes) {
+    if (invoice == null) return false;
+    return quotes.stream()
+        .anyMatch(
+            quote -> {
+              var consent = historySupport.object(quote.get("quyet_dinh"));
+              return Objects.equals(quote.get("phien_ban"), invoice.phienBanBaoGia())
+                  && "DONG_Y".equals(quote.get("trang_thai"))
+                  && "DONG_Y".equals(value(consent, "quyet_dinh"))
+                  && historySupport.text(value(consent, "kenh")) != null
+                  && !historySupport.array(value(consent, "bang_chung_urls")).isEmpty()
+                  && value(consent, "thoi_diem") instanceof OffsetDateTime accepted
+                  && quote.get("han_phan_hoi") instanceof OffsetDateTime deadline
+                  && !accepted.isAfter(deadline);
+            });
   }
 
   private List<Map<String, Object>> accessories(Object value) {

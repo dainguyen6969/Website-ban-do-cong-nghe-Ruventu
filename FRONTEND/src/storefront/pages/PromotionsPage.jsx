@@ -6,6 +6,7 @@ import ProductCard from '../components/ProductCard';
 import TablePagination from '../../shared/components/ui/TablePagination';
 import { productService } from '../../shared/services/productService';
 import './CategoryPage.css';
+import { FormDropdown } from "../../shared/components/ui/FilterDropdown";
 
 const formatVND = (amount) =>
   new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount ?? 0);
@@ -91,7 +92,7 @@ const PromotionsPage = () => {
             </div>
             <div className="toolbar-right">
               <label>Sắp xếp theo:</label>
-              <select
+              <FormDropdown aria-label="Sắp xếp theo:"
                 value={sortBy}
                 onChange={(e) => { setSortBy(e.target.value); setPage(1); }}
                 className="sort-select"
@@ -99,7 +100,7 @@ const PromotionsPage = () => {
                 <option value="newest">Mới nhất</option>
                 <option value="price-asc">Giá tăng dần</option>
                 <option value="price-desc">Giá giảm dần</option>
-              </select>
+              </FormDropdown>
             </div>
           </div>
 

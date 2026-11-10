@@ -71,14 +71,7 @@ public class WarrantyQuoteEventTransactions {
     OffsetDateTime deadline = history.time(saved.get("han_phan_hoi"));
     if (deadline == null) throw invalidHistory();
     if (!deadline.isAfter(now()) || at.isAfter(deadline)) throw expired();
-    for (var event : events) {
-      var quote = history.object(history.payload(event).get("bao_gia"));
-      if (quote != null && Objects.equals(history.id(quote.get("phien_ban")), (long) version)) {
-        if (event.getNgayTao() == null) throw invalidHistory();
-        if (at.isBefore(WarrantyReadValidation.time(event.getNgayTao()))) throw transition();
-        break;
-      }
-    }
+    requireCreationTime(saved, events, version, at);
     String action = input.get("hanh_dong").toString();
     if (action.equals("GUI") ? !state.equals("NHAP") : !state.equals("CHO_PHAN_HOI"))
       throw transition();
@@ -257,6 +250,27 @@ public class WarrantyQuoteEventTransactions {
         "Ghi nhận hết thời hạn phản hồi khi kiểm tra báo giá",
         mapper.writeValueAsString(fields("thoi_diem", iso(at), "bao_gia", expired)));
     repository.flush();
+  }
+
+  private void requireCreationTime(
+      Map<String, Object> saved, List<LichSuBaoHanh> events, int version, OffsetDateTime at) {
+    // Bản mới dùng thời điểm chính xác trong JSON, tránh DATETIME làm tròn lên giây kế tiếp.
+    var createdAt = history.time(saved.get("thoi_diem_lap"));
+    if (createdAt != null) {
+      if (at.isBefore(createdAt)) throw transition();
+      return;
+    }
+    for (var event : events) {
+      var quote = history.object(history.payload(event).get("bao_gia"));
+      if (quote == null || !Objects.equals(history.id(quote.get("phien_ban")), (long) version))
+        continue;
+      if (event.getNgayTao() == null) throw invalidHistory();
+      // Bản cũ chỉ có mốc DATETIME; dung sai làm tròn tối đa nửa giây.
+      var earliest = WarrantyReadValidation.time(event.getNgayTao()).minusNanos(500_000_000);
+      if (at.isBefore(earliest)) throw transition();
+      return;
+    }
+    throw invalidHistory();
   }
 
   private PhieuBaoHanh lockTicket(Long id) {

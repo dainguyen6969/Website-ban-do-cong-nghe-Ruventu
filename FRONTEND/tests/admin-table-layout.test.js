@@ -8,6 +8,20 @@ import { createServer } from 'vite';
 const server = await createServer({ configFile: false, cacheDir: 'node_modules/.vite-admin-table-test', server: { middlewareMode: true, ws: false }, appType: 'custom' });
 after(() => server.close());
 
+test('cashbook filters can start collapsed without changing the shared default', async () => {
+  const { default: Filters } = await server.ssrLoadModule('/src/features/admin/cashbook/components/CashbookSourceFilters.jsx');
+  const expanded = renderToStaticMarkup(React.createElement(Filters, { extended: true }));
+  assert.match(expanded, /aria-expanded="true"/);
+  assert.match(expanded, /<input/);
+
+  const collapsed = renderToStaticMarkup(React.createElement(Filters, {
+    extended: true, defaultCollapsed: true, value: { keyword: 'BH' },
+  }));
+  assert.match(collapsed, /aria-expanded="false"/);
+  assert.doesNotMatch(collapsed, /<input/);
+  assert.match(collapsed, /XÓA LỌC BỔ SUNG/);
+});
+
 for (const page of ['catalog/products/pages/QuanLyPhienBan', 'inventory/pages/DanhSachSerial', 'purchasing/pages/DanhSachNhapHang', 'catalog/products/pages/DanhSachSanPham', 'catalog/combos/pages/ComboSanPham']) {
   test(`${page}: table scroll contains the table, never pagination`, async () => {
     const { default: Page } = await server.ssrLoadModule(`/src/features/admin/${page}.jsx`);

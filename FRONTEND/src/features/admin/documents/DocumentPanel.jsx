@@ -8,6 +8,7 @@ import {
   withIdempotency,
 } from '../../../shared/services/mutationUtils';
 import './DocumentPanel.css';
+import { FormDropdown } from "../../../shared/components/ui/FilterDropdown";
 
 const API = '/api/v1/admin/documents';
 const yes = (value) => value === true || Number(value) === 1;
@@ -830,13 +831,13 @@ export default function DocumentPanel({ mode, id, locked = false, onEditingChang
                   {input('name', 'TÊN HIỂN THỊ', 'text', { maxLength: 150 })}
 
                   <Field label="LOẠI">
-                    <select
+                    <FormDropdown aria-label="LOẠI"
                       value={form.kind}
                       onChange={(event) => update('kind', event.target.value)}
                     >
                       <option value="TIEN_MAT">Quỹ tiền mặt</option>
                       <option value="NGAN_HANG">Tài khoản ngân hàng</option>
-                    </select>
+                    </FormDropdown>
                   </Field>
 
                   {form.kind === 'NGAN_HANG' && (
@@ -860,7 +861,7 @@ export default function DocumentPanel({ mode, id, locked = false, onEditingChang
                   </p>
 
                   <Field label={cash ? 'QUỸ TIỀN MẶT' : 'TÀI KHOẢN NHẬN / CHI TIỀN'}>
-                    <select
+                    <FormDropdown aria-label={cash ? 'QUỸ TIỀN MẶT' : 'TÀI KHOẢN NHẬN / CHI TIỀN'}
                       value={form.fundId}
                       onChange={(event) => update('fundId', event.target.value)}
                     >
@@ -873,12 +874,12 @@ export default function DocumentPanel({ mode, id, locked = false, onEditingChang
                             {!yes(fund.active) ? ' · Đã ngừng sử dụng' : ''}
                           </option>
                         ))}
-                    </select>
+                    </FormDropdown>
                   </Field>
 
                   {cash ? (
                     <Field label="NHÂN VIÊN THỰC THU / CHI">
-                      <select
+                      <FormDropdown aria-label="NHÂN VIÊN THỰC THU / CHI"
                         value={form.cashEmployeeId}
                         onChange={(event) => update('cashEmployeeId', event.target.value)}
                       >
@@ -888,7 +889,7 @@ export default function DocumentPanel({ mode, id, locked = false, onEditingChang
                             {employee.ho_ten}
                           </option>
                         ))}
-                      </select>
+                      </FormDropdown>
                     </Field>
                   ) : (
                     input('transactionReference', 'MÃ GIAO DỊCH NGÂN HÀNG / THẺ', 'text', {
@@ -903,7 +904,7 @@ export default function DocumentPanel({ mode, id, locked = false, onEditingChang
               {dialog.kind === 'document' && (
                 <>
                   <Field label="CHỨNG TỪ">
-                    <select
+                    <FormDropdown aria-label="CHỨNG TỪ"
                       value={form.documentId}
                       onChange={(event) => selectDocument(event.target.value)}
                     >
@@ -914,11 +915,11 @@ export default function DocumentPanel({ mode, id, locked = false, onEditingChang
                           {kindLabel(document.kind)} · {document.external_number}
                         </option>
                       ))}
-                    </select>
+                    </FormDropdown>
                   </Field>
 
                   <Field label="LOẠI CHỨNG TỪ">
-                    <select
+                    <FormDropdown aria-label="LOẠI CHỨNG TỪ"
                       value={form.kind}
                       disabled={Boolean(form.documentId)}
                       onChange={(event) => update('kind', event.target.value)}
@@ -926,7 +927,7 @@ export default function DocumentPanel({ mode, id, locked = false, onEditingChang
                       <option value="HOA_DON">Hóa đơn Nhà Cung Cấp</option>
 
                       <option value="PHIEU_GIAO_HANG">Phiếu giao hàng Nhà Cung Cấp</option>
-                    </select>
+                    </FormDropdown>
                   </Field>
 
                   {input('externalNumber', 'SỐ CHỨNG TỪ CỦA NHÀ CUNG CẤP', 'text', {
@@ -1043,7 +1044,7 @@ export default function DocumentPanel({ mode, id, locked = false, onEditingChang
                   </p>
 
                   <Field label="DÒNG NGUỒN NHẬN THỰC TẾ">
-                    <select
+                    <FormDropdown aria-label="DÒNG NGUỒN NHẬN THỰC TẾ"
                       value={form.receiptLineId}
                       onChange={(event) => update('receiptLineId', event.target.value)}
                     >
@@ -1066,7 +1067,7 @@ export default function DocumentPanel({ mode, id, locked = false, onEditingChang
                           Nhận {line.quantity}
                         </option>
                       ))}
-                    </select>
+                    </FormDropdown>
                   </Field>
 
                   {input('note', 'THÔNG TIN ĐỐI CHIẾU NGUỒN', 'text', {

@@ -96,7 +96,7 @@ class AdminOrderPaymentTest {
         .thenAnswer(
             call ->
                 SoQuyThuChi.builder()
-                    .maPhieu(call.<CashbookService.AutomaticVoucher>getArgument(0).maPhieu())
+                    .maPhieu(call.<CashbookService.AutomaticVoucher>getArgument(0).khoaNghiepVu())
                     .build());
   }
 
@@ -124,7 +124,7 @@ class AdminOrderPaymentTest {
     pay();
     var voucher = ArgumentCaptor.forClass(CashbookService.AutomaticVoucher.class);
     verify(cashbookService).createAutomatic(voucher.capture());
-    assertEquals("THU-DH-1", voucher.getValue().maPhieu());
+    assertEquals("THU-DH-1", voucher.getValue().khoaNghiepVu());
     assertEquals(NhomNguoiNopNhanEnum.KHACH_HANG, voucher.getValue().nhomNguoiNopNhan());
     assertEquals(new BigDecimal("1000"), voucher.getValue().soTien());
     assertEquals(request.getNgayThanhToan(), voucher.getValue().ngayGhiNhan());
@@ -200,7 +200,7 @@ class AdminOrderPaymentTest {
     pay();
     var voucher = ArgumentCaptor.forClass(CashbookService.AutomaticVoucher.class);
     verify(cashbookService).createAutomatic(voucher.capture());
-    assertEquals("THU-COD-3", voucher.getValue().maPhieu());
+    assertEquals("THU-COD-3", voucher.getValue().khoaNghiepVu());
     assertEquals(NhomNguoiNopNhanEnum.DOI_TAC_GIAO_HANG, voucher.getValue().nhomNguoiNopNhan());
     assertSame(delivery.getDoiTacVanChuyen(), voucher.getValue().doiTacVanChuyen());
     assertEquals("TIEN_MAT", order.getPhuongThucThanhToan());

@@ -43,3 +43,27 @@ export function selectHighlights(rows, category = '') {
   return rows.filter(row => !/^(thuong hieu|hang san xuat|model|ma san pham|bao hanh)$/.test(normalize(row.label)))
     .map((row,index) => ({row,index})).sort((a,b) => score(a.row)-score(b.row) || a.index-b.index).slice(0,6).map(item => item.row);
 }
+
+export function laptopVariantHighlights(title) {
+  // shortcut: only read the catalog's CPU / RAM / storage / display title format until the import supplies structured specs.
+  const fields = String(title ?? '').match(/\(([^()]*)\)\s*$/)?.[1].split(/\s*\/\s*/) || [];
+  const [cpu] = fields;
+  const displayIndex = fields.findIndex(field => /^\d+(?:\.\d+)?\s*["″]\s+/.test(field));
+  if (!/\b(?:intel|amd|ryzen|core|ultra|celeron|pentium|snapdragon|i[3579]-\d+[a-z]*|m[1-5])\b/i.test(cpu || '') || displayIndex < 3) return [];
+
+  const capacities = fields.slice(1, displayIndex).filter(field =>
+    /^(?:SSD\s+)?\d+\s*(?:GB|TB)(?:\s+(?:(?:LP)?DDR\dX?|SSD|NVMe))?$/i.test(field));
+  const [ram, storage] = capacities;
+  const ramSize = Number(ram?.match(/^(\d+)\s*GB(?:\s|$)/i)?.[1]);
+  const storageSizeGb = Number(storage?.match(/^(\d+)\s*GB(?:\s|$)/i)?.[1]);
+  const isSsd = /SSD|NVMe/i.test(storage || '');
+  if (capacities.length !== 2 || !(ramSize > 0 && ramSize <= 128)
+    || !(isSsd || /TB/i.test(storage) || storageSizeGb >= 128)) return [];
+
+  return [
+    { label: 'CPU', value: cpu },
+    { label: 'RAM', value: ram },
+    { label: isSsd ? 'SSD' : 'Lưu trữ', value: storage },
+    { label: 'Màn hình', value: fields[displayIndex] },
+  ];
+}

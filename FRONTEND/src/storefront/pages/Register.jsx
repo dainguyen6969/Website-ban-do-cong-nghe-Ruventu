@@ -1,3 +1,4 @@
+import { scaledFontSize } from '../../typography/projectFontSize.js';
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, AlertCircle, Check, X, Loader2 } from 'lucide-react';
@@ -248,7 +249,7 @@ const Register = () => {
               padding: '12px',
               borderRadius: '6px',
               marginBottom: '16px',
-              fontSize: '14px',
+              fontSize: scaledFontSize(14),
               display: 'flex',
               alignItems: 'center',
               gap: '8px',
@@ -525,7 +526,7 @@ const Register = () => {
                   border: 'none',
                   color: otpTimer > 0 ? '#9ca3af' : '#dc2626',
                   cursor: otpTimer > 0 ? 'not-allowed' : 'pointer',
-                  fontSize: '14px',
+                  fontSize: scaledFontSize(14),
                   fontWeight: '500',
                 }}
               >
@@ -542,7 +543,7 @@ const Register = () => {
                   border: 'none',
                   color: '#6b7280',
                   cursor: 'pointer',
-                  fontSize: '14px',
+                  fontSize: scaledFontSize(14),
                   textDecoration: 'underline',
                 }}
               >

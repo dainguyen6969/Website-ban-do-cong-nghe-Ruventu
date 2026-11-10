@@ -1,3 +1,4 @@
+import { scaledFontSize } from '../../../../typography/projectFontSize.js';
 // Admin customer returns screen: KhachTraHang (UC-027 TH001-TH012)
 // Connected with Backend APIs: /api/v1/admin/returns
 import React, { useEffect, useMemo, useState } from 'react';
@@ -1449,7 +1450,6 @@ function ReturnDetail({ returnId }) {
                 </WarrantyPanel>
               </>
             )}
-
             {/* TAB 2: TIẾP NHẬN & CUSTODY */}
             {activeTab === 'TIEP_NHAN' && (
               <WarrantyPanel

@@ -158,6 +158,7 @@
 }
 
 .serial-table-shell {
+  --admin-table-header-height: 44px;
   width: 100%;
   max-width: 100%;
   min-width: 0;
@@ -171,7 +172,6 @@
   border-collapse: collapse;
 }
 .serial-table thead {
-  height: 44px;
   background: #090909;
   color: #fff;
 }
@@ -220,11 +220,15 @@
 .serial-table__row--error:hover {
   background: #fff6f6 !important;
 }
-.serial-table td small {
+.serial-table td small:not(.recall-badge) {
   display: block;
   margin-top: 3px;
   color: #989ba0;
   font-size: 10.5px;
+}
+.serial-table td .recall-badge {
+  display: flex;
+  margin-top: 3px;
 }
 .serial-product-name {
   display: block;
