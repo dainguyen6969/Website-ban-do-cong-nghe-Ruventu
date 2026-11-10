@@ -28,10 +28,12 @@ import './VaiTro.css';
 
 const ACTION_LABELS = { xem: 'XEM', them: 'THÊM', sua: 'SỬA', xoa: 'XÓA' };
 
-const copyPermissions = (permissions) =>
-  Object.fromEntries(
-    PERMISSION_MODULES.map((module) => [module.id, [...(permissions[module.id] ?? [])]])
+const copyPermissions = (perms) => {
+  const p = typeof perms === 'function' ? perms() : (perms || {});
+  return Object.fromEntries(
+    PERMISSION_MODULES.map((module) => [module.id, [...(p[module.id] || [])]])
   );
+};
 
 function MatrixCheckbox({ checked, indeterminate = false, onChange, label }) {
   const ref = useRef(null);
@@ -59,16 +61,21 @@ export default function VaiTro() {
   const [roles, setRoles] = useState([]);
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
-  const [permissions, setPermissions] = useState(emptyPermissions);
-  const [selectedPreset, setSelectedPreset] = useState('');
+  const [permissions, setPermissions] = useState(() => emptyPermissions());
+  const [selectedPreset, setSelectedPreset] = useState('new');
   const [editingRoleId, setEditingRoleId] = useState('');
   const [collapsedGroups, setCollapsedGroups] = useState([]);
   const [submitted, setSubmitted] = useState(false);
   const [saved, setSaved] = useState(false);
   const [serverError, setServerError] = useState('');
+  const [successMsg, setSuccessMsg] = useState('');
 
   const loadRoles = () => {
-    getAllRoles().then(setRoles).catch(console.error);
+    getAllRoles()
+      .then((data) => {
+        setRoles(data || []);
+      })
+      .catch(console.error);
   };
 
   useEffect(() => {
@@ -76,13 +83,18 @@ export default function VaiTro() {
   }, []);
 
   const permissionCount = useMemo(
-    () => Object.values(permissions).reduce((sum, actions) => sum + actions.length, 0),
+    () =>
+      Object.values(permissions || {}).reduce(
+        (sum, actions) => sum + (Array.isArray(actions) ? actions.length : 0),
+        0
+      ),
     [permissions]
   );
+
   const errors = submitted
     ? [
         !name.trim() ? 'Tên vai trò không được để trống.' : '',
-        !permissionCount ? 'Vui lòng cấp ít nhất một quyền cho vai trò này.' : '',
+        !permissionCount ? 'Vui lòng cấp ít nhất một quyền trên ma trận phân quyền.' : '',
         serverError,
       ].filter(Boolean)
     : [];
@@ -93,7 +105,7 @@ export default function VaiTro() {
         ROLE_ACTIONS.map((action) => {
           const applicable = PERMISSION_MODULES.filter((module) => module.actions.includes(action));
           const checked = applicable.filter((module) =>
-            permissions[module.id]?.includes(action)
+            (permissions[module.id] || []).includes(action)
           ).length;
           return [action, { checked, total: applicable.length }];
         })
@@ -104,34 +116,44 @@ export default function VaiTro() {
   const togglePermission = (moduleId, action) => {
     setSaved(false);
     setServerError('');
-    setPermissions((current) => ({
-      ...current,
-      [moduleId]: current[moduleId].includes(action)
-        ? current[moduleId].filter((item) => item !== action)
-        : [...current[moduleId], action],
-    }));
+    setSuccessMsg('');
+    setPermissions((current) => {
+      const currentActions = current[moduleId] || [];
+      return {
+        ...current,
+        [moduleId]: currentActions.includes(action)
+          ? currentActions.filter((item) => item !== action)
+          : [...currentActions, action],
+      };
+    });
   };
 
   const toggleRow = (module) => {
     setSaved(false);
     setServerError('');
-    setPermissions((current) => ({
-      ...current,
-      [module.id]: current[module.id].length ? [] : ['xem'],
-    }));
+    setSuccessMsg('');
+    setPermissions((current) => {
+      const currentActions = current[module.id] || [];
+      return {
+        ...current,
+        [module.id]: currentActions.length ? [] : ['xem'],
+      };
+    });
   };
 
   const toggleColumn = (action) => {
     setSaved(false);
     setServerError('');
+    setSuccessMsg('');
     const applicable = PERMISSION_MODULES.filter((module) => module.actions.includes(action));
-    const allChecked = applicable.every((module) => permissions[module.id].includes(action));
+    const allChecked = applicable.every((module) => (permissions[module.id] || []).includes(action));
     setPermissions((current) => {
       const next = copyPermissions(current);
       applicable.forEach((module) => {
+        const currentActions = next[module.id] || [];
         next[module.id] = allChecked
-          ? next[module.id].filter((item) => item !== action)
-          : [...new Set([...next[module.id], action])];
+          ? currentActions.filter((item) => item !== action)
+          : [...new Set([...currentActions, action])];
       });
       return next;
     });
@@ -140,8 +162,9 @@ export default function VaiTro() {
   const toggleGroup = (group) => {
     setSaved(false);
     setServerError('');
+    setSuccessMsg('');
     const allChecked = group.modules.every((module) =>
-      module.actions.every((action) => permissions[module.id].includes(action))
+      module.actions.every((action) => (permissions[module.id] || []).includes(action))
     );
     setPermissions((current) => {
       const next = copyPermissions(current);
@@ -155,14 +178,15 @@ export default function VaiTro() {
   const loadRoleDetail = async (role) => {
     try {
       const detail = await getRoleDetail(role.id);
-      const { description: desc, permissions: perms } = parseRoleDescription(detail.mo_ta);
-      setName(detail.ten_vai_tro);
-      setDescription(desc);
+      const { description: desc, permissions: perms } = parseRoleDescription(detail.mo_ta || detail.moTa);
+      setName(detail.ten_vai_tro || detail.tenVaiTro || '');
+      setDescription(desc || '');
       setPermissions(copyPermissions(perms));
       setSelectedPreset(role.id);
       setEditingRoleId(role.id);
       setSaved(false);
       setServerError('');
+      setSuccessMsg('');
       setSubmitted(false);
     } catch (e) {
       setServerError(e.message || 'Lỗi tải chi tiết vai trò');
@@ -172,48 +196,55 @@ export default function VaiTro() {
   const handleAddNew = () => {
     setName('');
     setDescription('');
-    setPermissions(copyPermissions(emptyPermissions));
+    setPermissions(copyPermissions(emptyPermissions()));
     setSelectedPreset('new');
     setEditingRoleId('');
     setSaved(false);
     setServerError('');
+    setSuccessMsg('');
     setSubmitted(false);
   };
 
   const submit = async () => {
     setSubmitted(true);
     setServerError('');
+    setSuccessMsg('');
     if (!name.trim() || !permissionCount) return;
 
     try {
       const payload = {
-        tenVaiTro: name,
-        moTa: description,
+        tenVaiTro: name.trim(),
+        moTa: description.trim(),
         permissions: copyPermissions(permissions),
       };
       if (editingRoleId) {
         await updateRole(editingRoleId, payload);
+        setSuccessMsg(`Đã cập nhật vai trò "${name.trim()}" thành công!`);
       } else {
         const res = await createRole(payload);
-        setEditingRoleId(res.id);
-        setSelectedPreset(res.id);
+        const newId = res?.id || res?.data?.id;
+        if (newId) {
+          setEditingRoleId(newId);
+          setSelectedPreset(newId);
+        }
+        setSuccessMsg(`Đã tạo mới vai trò "${name.trim()}" thành công!`);
       }
       setSaved(true);
       loadRoles();
     } catch (e) {
-      setServerError(e.message || 'Đã có lỗi xảy ra khi lưu.');
+      setServerError(e.message || 'Đã có lỗi xảy ra khi lưu vai trò.');
     }
   };
 
   const handleDelete = async () => {
     if (!editingRoleId) return;
-    if (!window.confirm('Bạn có chắc chắn muốn xóa vai trò này?')) return;
+    if (!window.confirm(`Bạn có chắc chắn muốn xóa vai trò "${name}"?`)) return;
     try {
       await deleteRole(editingRoleId);
       handleAddNew();
       loadRoles();
     } catch (e) {
-      setServerError(e.message || 'Không thể xóa vai trò.');
+      setServerError(e.message || 'Không thể xóa vai trò này.');
     }
   };
 
@@ -237,8 +268,8 @@ export default function VaiTro() {
       </section>
       {errors.length > 0 && (
         <div className="role-error-banner" role="alert">
-          {errors.map((error) => (
-            <p key={error}>
+          {errors.map((error, idx) => (
+            <p key={idx}>
               <HiOutlineExclamationCircle />
               {error}
             </p>
@@ -247,7 +278,7 @@ export default function VaiTro() {
       )}
       {saved && (
         <div className="role-saved" role="status">
-          ĐÃ LƯU VAI TRÒ VÀ MA TRẬN PHÂN QUYỀN
+          {successMsg || 'ĐÃ LƯU VAI TRÒ VÀ MA TRẬN PHÂN QUYỀN THÀNH CÔNG'}
         </div>
       )}
       <div className="role-workspace">
@@ -267,6 +298,7 @@ export default function VaiTro() {
                   setName(event.target.value);
                   setSaved(false);
                   setServerError('');
+                  setSuccessMsg('');
                 }}
                 placeholder="VD: Nhân viên bán hàng"
               />
@@ -279,6 +311,7 @@ export default function VaiTro() {
                   setDescription(event.target.value);
                   setSaved(false);
                   setServerError('');
+                  setSuccessMsg('');
                 }}
                 placeholder="Mô tả ngắn về vai trò và phạm vi công việc..."
               />
@@ -304,8 +337,8 @@ export default function VaiTro() {
                 }
                 onClick={() => loadRoleDetail(preset)}
               >
-                <strong>{preset.ten_vai_tro}</strong>
-                <span>{preset.so_luong_nhan_vien} NV</span>
+                <strong>{preset.ten_vai_tro || preset.tenVaiTro}</strong>
+                <span>{preset.so_luong_nhan_vien || preset.soLuongNhanVien || 0} NV</span>
                 <HiOutlineChevronRight />
               </button>
             ))}
@@ -367,9 +400,9 @@ export default function VaiTro() {
               <tbody>
                 {PERMISSION_GROUPS.map((group) => {
                   const groupValues = group.modules.flatMap((module) =>
-                    module.actions.map((action) => permissions[module.id].includes(action))
+                    module.actions.map((action) => (permissions[module.id] || []).includes(action))
                   );
-                  const groupAll = groupValues.every(Boolean);
+                  const groupAll = groupValues.length > 0 && groupValues.every(Boolean);
                   const groupSome = groupValues.some(Boolean);
                   const collapsed = collapsedGroups.includes(group.id);
                   return [
@@ -399,7 +432,8 @@ export default function VaiTro() {
                     </tr>,
                     ...(!collapsed
                       ? group.modules.map((module) => {
-                          const selectedActions = permissions[module.id].length;
+                          const modActions = permissions[module.id] || [];
+                          const selectedActions = modActions.length;
                           const rowChecked = selectedActions === module.actions.length;
                           const rowIndeterminate = selectedActions > 0 && !rowChecked;
                           return (
@@ -425,7 +459,7 @@ export default function VaiTro() {
                                 <td key={action}>
                                   {module.actions.includes(action) ? (
                                     <MatrixCheckbox
-                                      checked={permissions[module.id].includes(action)}
+                                      checked={modActions.includes(action)}
                                       onChange={() => togglePermission(module.id, action)}
                                       label={`${ACTION_LABELS[action]} ${module.label}`}
                                     />

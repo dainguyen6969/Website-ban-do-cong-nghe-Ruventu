@@ -56,11 +56,6 @@ export default function PermissionGate({ children }) {
             </p>
             <p>Role ID: {String(roleId)}</p>
             <p>Module ID: {String(moduleId)}</p>
-            <p>Roles fetched: {roles.length}</p>
-            <p>
-              All Roles Names:{' '}
-              {roles.map((r) => r.ten_vai_tro || r.tenVaiTro || r.label).join(', ')}
-            </p>
           </div>
         </div>
       </main>
