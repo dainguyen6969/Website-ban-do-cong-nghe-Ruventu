@@ -69,26 +69,76 @@
   color: var(--recall-muted);
 }
 
-.recall-page .recall-list-status {
+.recall-page.admin-list-page .admin-list-toolbar {
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.recall-page.admin-list-page .admin-list-search {
+  flex: 1 1 260px;
+  width: auto;
+  min-width: 0;
+}
+
+.recall-page.admin-list-page .recall-list-status {
   flex: 0 1 180px;
   width: 180px;
+  min-width: min(150px, 100%);
   max-width: 100%;
+}
+
+.recall-page.admin-list-page .admin-list-primary-action {
+  min-height: 42px;
+  height: auto;
+  max-width: 100%;
+  padding: 6px 12px;
+  text-align: center;
 }
 
 .recall-page .admin-list-frame {
   margin-top: 16px;
 }
 
-.recall-progress {
-  display: grid;
-  gap: 6px;
-  min-width: 80px;
+.recall-page .recall-list-table {
+  min-width: 700px;
 }
 
-.recall-progress progress {
+.admin-app .recall-page .recall-list-table td:nth-child(-n + 2) {
+  overflow-wrap: anywhere;
+}
+
+.recall-page .recall-list-table td > strong {
+  font-weight: var(--admin-weight-semibold, 600);
+}
+
+.recall-page .recall-progress {
+  display: grid;
+  gap: 4px;
+  min-width: 84px;
+  max-width: 170px;
+  font-weight: var(--admin-weight-medium, 500);
+}
+
+.recall-page .recall-progress progress {
+  display: block;
   width: 100%;
   height: 6px;
-  accent-color: #1a1d23;
+  accent-color: #111;
+}
+
+.recall-page .recall-progress progress.is-complete {
+  accent-color: #15803d;
+}
+
+@media (max-width: 600px) {
+  .recall-page.admin-list-page .admin-list-search {
+    flex-basis: 100%;
+  }
+
+  .recall-page.admin-list-page .recall-list-status {
+    flex: 1 1 150px;
+    width: auto;
+  }
 }
 
 .recall-detail-grid {
@@ -121,15 +171,40 @@
   border: 0;
 }
 
-.recall-page .recall-detail-grid .recall-facts {
+.admin-app .recall-page .recall-details .recall-facts {
   grid-template-columns: minmax(0, 1fr);
-  gap: 10px;
+  gap: 0;
 }
 
-.recall-page .recall-detail-grid .recall-facts > div {
+.admin-app .recall-page .recall-details .recall-facts > div {
   display: grid;
   grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
+  align-items: baseline;
   gap: 8px;
+  padding: 8px 0;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.admin-app .recall-page .recall-details .recall-facts > div:first-child {
+  padding-top: 0;
+}
+
+.admin-app .recall-page .recall-details .recall-facts > div:last-child {
+  padding-bottom: 0;
+  border-bottom: 0;
+}
+
+.admin-app .recall-page .recall-details .recall-facts dt {
+  margin: 0;
+  color: #475569;
+  font-size: 12px;
+  font-weight: var(--admin-weight-medium, 500);
+}
+
+.admin-app .recall-page .recall-details .recall-facts dd {
+  color: #111;
+  font-size: 13px;
+  font-weight: var(--admin-weight-regular, 400);
 }
 
 .recall-details .recall-notice {
@@ -188,18 +263,33 @@
   color: #fff;
 }
 
-.admin-app .recall-page :is(.recall-heading, .recall-table) .recall-button {
+.admin-app .recall-page :is(.recall-heading, .recall-table, .recall-list-table) .recall-button {
+  --admin-weight-button: var(--admin-weight-semibold, 600);
   border-color: #111;
-  font-size: 12px;
-  font-weight: 700;
+  text-align: center;
   text-transform: uppercase;
 }
 
-.admin-app .recall-page .recall-table .recall-button--sm {
-  min-height: 30px;
-  padding: 4px 8px;
-  font-size: 11px;
+.admin-app .recall-page :is(.recall-table, .recall-list-table) .recall-button--sm {
+  min-height: 32px;
+  max-width: 100%;
+  padding: 4px 10px;
   text-decoration: none;
+}
+
+.admin-app .recall-page .recall-list-table .recall-button--sm {
+  white-space: nowrap;
+}
+
+.admin-app .recall-page .recall-button.is-dark:hover:not(:disabled) {
+  border-color: #2a2a2a !important;
+  background: #2a2a2a !important;
+  color: #fff;
+}
+
+.admin-app .recall-page :is(.admin-list-primary-action, .recall-button):focus-visible {
+  outline: 2px solid var(--recall-red);
+  outline-offset: 2px;
 }
 
 .recall-button:disabled {
@@ -282,7 +372,7 @@
 }
 
 .recall-facts a,
-.recall-list-table a:not(.admin-list-detail-action),
+.recall-list-table a:not(.recall-button),
 .recall-table a,
 .recall-history-line a {
   color: #235f97;
@@ -667,39 +757,68 @@
   overflow-wrap: anywhere;
 }
 
-.recall-page .recall-case .recall-table {
+.admin-app .recall-page .recall-detail-content .admin-table-scroll > .recall-table {
   table-layout: fixed;
   min-width: 780px;
 }
 
-.recall-page .recall-case .recall-table th:nth-child(1) {
-  width: 28%;
+.admin-app .recall-page .recall-detail-content .recall-table :is(thead, th) {
+  color: #334155;
+  background: #f5f5f5;
 }
 
-.recall-page .recall-case .recall-table th:nth-child(2) {
-  width: 19%;
+.admin-app .recall-page .recall-detail-content .recall-table :is(th, td) {
+  padding: 10px 12px;
 }
 
-.recall-page .recall-case .recall-table th:nth-child(3) {
-  width: 22%;
+.admin-app .recall-page .recall-detail-content .recall-table th {
+  border-bottom: 1px solid #e5e7eb;
+  white-space: normal;
 }
 
-.recall-page .recall-case .recall-table th:nth-child(4) {
+.recall-page .recall-detail-content .recall-table th:nth-child(1) {
+  width: 27%;
+}
+.recall-page .recall-detail-content .recall-table th:nth-child(2) {
+  width: 18%;
+}
+.recall-page .recall-detail-content .recall-table th:nth-child(3) {
   width: 21%;
 }
-
-.recall-page .recall-case .recall-table th:nth-child(5) {
-  width: 10%;
+.recall-page .recall-detail-content .recall-table th:nth-child(4) {
+  width: 21%;
+}
+.recall-page .recall-detail-content .recall-table th:nth-child(5) {
+  width: 13%;
 }
 
-.recall-page .recall-case .recall-table td {
+.admin-app .recall-page .recall-detail-content .recall-table td {
+  vertical-align: top;
   white-space: normal;
   overflow-wrap: anywhere;
 }
 
-.recall-page .recall-case .recall-table td .recall-button {
+.admin-app .recall-page .recall-detail-content .recall-table :is(th, td):last-child {
+  text-align: center;
+}
+
+.recall-page .recall-detail-content .recall-table td .recall-button {
   white-space: normal;
   line-height: 1.4;
+}
+
+.admin-app .recall-page .recall-detail-content .recall-history-line {
+  margin-bottom: 8px;
+  padding: 10px 12px;
+}
+
+.admin-app .recall-page .recall-detail-content .recall-history-line:last-child {
+  margin-bottom: 0;
+}
+
+.admin-app .recall-page .recall-detail-content .recall-history-line > p {
+  margin-top: 4px;
+  font-size: 13px;
 }
 
 .recall-dialog-summary,
