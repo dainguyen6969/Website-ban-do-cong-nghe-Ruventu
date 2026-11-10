@@ -10,7 +10,7 @@
   min-height: 0;
   height: 100%;
   overflow: hidden;
-  background: #f8f9fa;
+  background: #fff;
 }
 
 .returns-detail-shell {
@@ -20,7 +20,7 @@
   height: 100%;
   overflow-y: auto !important;
   overflow-x: hidden;
-  background: #f2f2f2;
+  background: #fff;
 }
 
 .returns-detail-shell .w-shell-content {
@@ -69,7 +69,7 @@
   margin-bottom: 6px;
   color: #888e99;
   font-size: 11px;
-  font-weight: 800;
+  font-weight: var(--admin-weight-medium, 500);
   letter-spacing: 0.5px;
   text-transform: uppercase;
 }
@@ -78,7 +78,7 @@
   margin: 0;
   font-size: 26px;
   line-height: 1.2;
-  font-weight: 900;
+  font-weight: var(--admin-weight-bold, 700);
   letter-spacing: -0.3px;
   color: #111;
   display: flex;
@@ -90,7 +90,7 @@
   margin: 6px 0 0;
   color: #6b7280;
   font-size: 13px;
-  font-weight: 500;
+  font-weight: var(--admin-weight-regular, 400);
 }
 
 .returns-hero__order-id {
@@ -123,7 +123,7 @@
   color: #111;
   background: #fff !important;
   font-size: 11px;
-  font-weight: 800;
+  font-weight: var(--admin-weight-semibold, 600);
   letter-spacing: 0.5px;
   white-space: nowrap;
   cursor: pointer;
@@ -329,7 +329,7 @@
 
 .returns-date-label {
   font-size: 10px;
-  font-weight: 800;
+  font-weight: var(--admin-weight-medium, 500);
   color: #4b5563;
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -387,30 +387,33 @@
 
 .returns-table {
   width: 100%;
-  min-width: 880px;
+  min-width: 860px;
   border-collapse: collapse;
   background: #fff;
+}
+
+.returns-modal .returns-table {
+  min-width: 700px;
 }
 
 .returns-table th {
   height: 40px;
   padding: 8px 14px;
+  background: #111;
   color: #fff;
-  background: #000000;
-  font-size: 10px;
-  font-weight: 900;
-  letter-spacing: 0.6px;
+  font-size: 11px;
+  font-weight: var(--admin-weight-semibold, 600);
   text-align: left;
   white-space: nowrap;
-  border-bottom: 1px solid #000;
 }
 
 .returns-table td {
-  padding: 12px 14px;
+  padding: 10px 14px;
   border-bottom: 1px solid #e5e7eb;
   color: #111;
   font-size: 12px;
-  line-height: 1.4;
+  font-weight: var(--admin-weight-regular, 400);
+  line-height: 1.5;
   vertical-align: middle;
 }
 
@@ -418,29 +421,30 @@
   background: #fafafa;
 }
 
-.returns-table td strong {
-  font-weight: 800;
+.returns-code {
+  color: #111;
+  font-weight: var(--admin-weight-semibold, 600);
+  overflow-wrap: anywhere;
 }
 
-.returns-code {
-  font-weight: 900;
-  color: #000;
-  letter-spacing: 0.2px;
+.returns-table td:nth-child(2) .returns-code {
+  font-weight: var(--admin-weight-medium, 500);
 }
 
 .returns-money {
-  font-weight: 900;
   color: #111;
+  font-weight: var(--admin-weight-semibold, 600);
+  font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
 
 .returns-muted {
-  color: #9ca3af !important;
+  color: #555b64;
   font-style: normal;
 }
 
-.returns-table th:nth-child(6),
-.returns-table td:nth-child(6) {
+.admin-app .returns-page .returns-table :is(th, td):nth-child(6),
+.returns-modal .returns-table :is(th, td):last-child {
   text-align: center;
 }
 
@@ -448,63 +452,58 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
   gap: 4px;
-  text-align: center;
 }
 
-.returns-status-badge {
+:is(.returns-page, .returns-detail-shell) :is(.returns-status-badge, .kth-payment-pill) {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  max-width: 100%;
   min-height: 24px;
-  padding: 3px 10px;
-  border: 1px solid;
-  border-radius: 2px;
-  background: #ffffff;
+  padding: 3px 8px;
+  border: 1px solid var(--returns-badge-border, #d8dce2);
+  border-radius: 0;
+  background: var(--returns-badge-bg, #fff);
+  color: var(--returns-badge-ink, #444);
   font-size: 11px;
-  line-height: 1.2;
-  font-weight: 800;
+  font-weight: var(--admin-weight-semibold, 600);
+  line-height: 1.3;
+  text-align: center;
   text-transform: uppercase;
-  white-space: nowrap;
-  letter-spacing: 0.3px;
+  overflow-wrap: anywhere;
 }
 
-.returns-status-badge--blue {
-  color: #1d4ed8;
-  border-color: #3b82f6;
-  background: #ffffff;
+.returns-status-badge--blue,
+.kth-payment-pill--bank {
+  --returns-badge-ink: #1d4ed8;
+  --returns-badge-border: #bfdbfe;
+  --returns-badge-bg: #eff6ff;
 }
 
 .returns-status-badge--green {
-  color: #15803d;
-  border-color: #22c55e;
-  background: #ffffff;
+  --returns-badge-ink: #166534;
+  --returns-badge-border: #b8dfc2;
+  --returns-badge-bg: #f0fdf4;
 }
 
 .returns-status-badge--amber,
 .returns-status-badge--orange {
-  color: #c2410c;
-  border-color: #f97316;
-  background: #ffffff;
+  --returns-badge-ink: #92400e;
+  --returns-badge-border: #f5d6a2;
+  --returns-badge-bg: #fffbeb;
 }
 
 .returns-status-badge--teal {
-  color: #0f766e;
-  border-color: #14b8a6;
-  background: #ffffff;
+  --returns-badge-ink: #0f766e;
+  --returns-badge-border: #a7e5dd;
+  --returns-badge-bg: #f0fdfa;
 }
 
 .returns-status-badge--red {
-  color: #b91c1c;
-  border-color: #ef4444;
-  background: #ffffff;
-}
-
-.returns-status-badge--neutral {
-  color: #4b5563;
-  border-color: #9ca3af;
-  background: #ffffff;
+  --returns-badge-ink: #b91c1c;
+  --returns-badge-border: #fecaca;
+  --returns-badge-bg: #fef2f2;
 }
 
 .returns-status-note {
@@ -514,13 +513,13 @@
 }
 
 .returns-action-btn {
-  height: 30px;
+  min-height: 32px;
   padding: 0 12px;
   border: 1px solid #111 !important;
   background: #fff !important;
   color: #111;
   font-size: 10px;
-  font-weight: 800;
+  font-weight: var(--admin-weight-semibold, 600);
   letter-spacing: 0.4px;
   text-transform: uppercase;
   cursor: pointer;
@@ -623,7 +622,8 @@
 }
 
 .returns-modal {
-  width: min(1040px, 96vw);
+  width: min(1040px, 100%);
+  min-width: 0;
   max-height: calc(100vh - 48px);
   display: flex;
   flex-direction: column;
@@ -645,19 +645,19 @@
 .returns-modal__header h2 {
   margin: 0;
   font-size: 16px;
-  font-weight: 900;
+  font-weight: var(--admin-weight-bold, 700);
   letter-spacing: 0.4px;
   color: #000;
 }
 
 .returns-modal__close-btn {
-  height: 32px;
+  min-height: 32px;
   padding: 0 14px;
   border: 1px solid #000 !important;
   background: #fff !important;
   color: #000;
   font-size: 11px;
-  font-weight: 900;
+  font-weight: var(--admin-weight-semibold, 600);
   letter-spacing: 0.5px;
   cursor: pointer;
 }
@@ -689,6 +689,7 @@
 
 .returns-modal-search input {
   flex: 1;
+  min-width: 0;
   border: none !important;
   outline: none;
   font-size: 12px;
@@ -726,14 +727,28 @@
   border: 1px solid #000;
 }
 
+.returns-order-rule {
+  display: inline-block;
+  color: #454951;
+  font-size: 11px;
+  font-weight: var(--admin-weight-medium, 500);
+}
+
+.returns-order-rule--all {
+  padding: 2px 6px;
+  border: 1px solid #f5d6a2;
+  background: #fffbeb;
+  color: #92400e;
+}
+
 .returns-select-order-btn {
-  min-height: 34px;
+  min-height: 32px;
   padding: 4px 12px;
   border: 1px solid #000 !important;
   background: #000 !important;
   color: #fff !important;
   font-size: 10px;
-  font-weight: 900;
+  font-weight: var(--admin-weight-semibold, 600);
   letter-spacing: 0.4px;
   text-transform: uppercase;
   cursor: pointer;
@@ -751,6 +766,8 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
   border-top: 1px solid #e5e7eb;
   background: #fff;
   font-size: 12px;
@@ -1563,172 +1580,173 @@
   margin-left: auto;
 }
 
+/* Khách trả hàng — phần chi tiết */
+.returns-detail-shell[data-refund-positive='true'] {
+  --kth-refund-ink: #b91c1c;
+}
 
-/* Highlights for KhachTraHang (Task 2) */
-.kth-contact-hero-bar {
+.returns-detail-shell .w-shell-hero h1 {
+  font-weight: var(--admin-weight-bold, 700);
+  overflow-wrap: anywhere;
+}
+
+.returns-detail-shell :is(.w-shell-breadcrumb, .w-shell-fields dt, .kth-field-label) {
+  color: #555b64;
+  font-weight: var(--admin-weight-medium, 500);
+}
+
+.returns-detail-shell .w-shell-fields dd {
+  font-weight: var(--admin-weight-regular, 400);
+}
+
+.returns-detail-shell .form-card__title,
+.returns-detail-shell .w-contact-card strong {
+  font-weight: var(--admin-weight-semibold, 600);
+}
+
+.returns-detail-shell :is(.w-shell-note, .w-contact-card p, .w-empty-inline) {
+  color: #555b64;
+}
+
+.returns-detail-shell .w-shell-button {
+  min-height: 38px;
+  padding: 7px 12px;
+  border-width: 1px;
+}
+
+.returns-detail-shell .w-shell-actions .w-full-width {
+  margin-top: 0;
+}
+
+.returns-detail-shell .w-shell-tabs button:not([aria-current='page']) {
+  color: #454951;
+}
+
+.kth-order-reference {
+  max-width: 100%;
+  padding: 3px 8px;
+  border: 1px solid #d8dce2;
+  color: #454951;
+  font-weight: var(--admin-weight-medium, 500);
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.kth-contact-hero-bar,
+.kth-contact-item {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 10px;
+  gap: 6px 10px;
+  min-width: 0;
+}
+
+.kth-contact-hero-bar {
   margin-top: 8px;
-  font-size: 13px;
-}
-
-.kth-contact-item {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.kth-contact-label {
-  color: #6b7280;
   font-size: 12px;
-  font-weight: 600;
 }
-
+.kth-contact-label {
+  color: #555b64;
+}
 .kth-contact-name {
-  color: #111827;
-  font-weight: 800;
-  background: #f3f4f6;
-  border: 1px solid #d1d5db;
-  padding: 3px 10px;
-  border-radius: 3px;
-  letter-spacing: 0.3px;
+  color: #111;
+  font-weight: var(--admin-weight-semibold, 600);
 }
 
 .kth-contact-phone {
-  color: #1d4ed8;
-  font-weight: 800;
-  background: #eff6ff;
-  border: 1px solid #bfdbfe;
-  padding: 3px 10px;
-  border-radius: 3px;
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  font-family: monospace;
+  color: #111;
+  font-weight: var(--admin-weight-medium, 500);
+  font-variant-numeric: tabular-nums;
 }
 
-/* Status in Overview Strip */
-.kth-summary-status-cell {
+.returns-detail-shell .kth-overview-strip {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 170px), 1fr));
+  margin-top: 0;
+  gap: 1px;
+  border: 1px solid #d8dce2;
+  border-left: 3px solid var(--color-brand-red, #e31e24);
+  background: #e5e7eb;
+}
+
+.returns-detail-shell .kth-overview-strip > div {
   display: flex;
   flex-direction: column;
+  align-items: flex-start;
+  min-width: 0;
+  gap: 6px;
+  padding: 12px 14px;
+  border: 0;
+  background: #fff;
 }
 
-.kth-overview-status-badge {
-  font-size: 11px !important;
-  font-weight: 900 !important;
-  padding: 4px 12px !important;
-  border-width: 1.5px !important;
-  border-radius: 3px !important;
-  letter-spacing: 0.5px !important;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
-}
-
-.kth-refund-hero-amount {
-  display: block;
-  margin-top: 5px;
-  color: #dc2626 !important;
-  font-size: 17px !important;
-  font-weight: 900 !important;
-  letter-spacing: -0.3px;
-}
-
-.kth-payment-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 3px 9px;
-  border-radius: 3px;
+.kth-overview-strip > div > span:first-child,
+.kth-aside-stat-row > span:first-child {
+  color: #555b64;
   font-size: 11px;
-  font-weight: 800;
-  text-transform: uppercase;
+  font-weight: var(--admin-weight-medium, 500);
 }
 
-.kth-payment-pill--cash {
-  background: #f0fdf4;
-  color: #15803d;
-  border: 1px solid #bbf7d0;
+.kth-aside-stat-row {
+  display: grid;
+  justify-items: start;
+  gap: 5px;
 }
 
-.kth-payment-pill--bank {
-  background: #eff6ff;
-  color: #1d4ed8;
-  border: 1px solid #bfdbfe;
+.returns-detail-shell .kth-date-highlight {
+  margin-top: 0;
+  color: #111;
+  font-weight: var(--admin-weight-medium, 500);
+}
+
+.returns-detail-shell
+  :is(.kth-refund-hero-amount, .kth-aside-refund-hero, .kth-refund-amount-text) {
+  margin-top: 0;
+  color: var(--kth-refund-ink, #111);
+  font-weight: var(--admin-weight-bold, 700);
+  font-variant-numeric: tabular-nums;
+}
+
+.returns-detail-shell :is(.kth-refund-hero-amount, .kth-aside-refund-hero) {
+  font-size: 16px;
 }
 
 .kth-code-pill {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  padding: 2px 8px;
-  font-family: monospace;
+  max-width: 100%;
+  padding: 2px 6px;
+  border: 1px solid #d8dce2;
+  border-radius: 0;
+  background: #fff;
+  color: #111;
   font-size: 11px;
-  font-weight: 800;
-  border-radius: 3px;
+  font-weight: var(--admin-weight-medium, 500);
+  overflow-wrap: anywhere;
 }
 
-.kth-code-pill--ticket {
-  background: #111827 !important;
-  color: #ffffff !important;
-  border: 1px solid #111827 !important;
+.kth-code-pill.kth-code-pill--ticket {
+  border-color: #111;
+  background: #111;
+  color: #fff;
 }
 
-.kth-code-pill--order {
-  background: #f3f4f6;
-  color: #1e293b;
-  border: 1px solid #cbd5e1;
-}
-
-.kth-qty-badge {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 24px;
-  height: 22px;
-  padding: 0 6px;
-  background: #f1f5f9;
-  border: 1px solid #cbd5e1;
-  border-radius: 3px;
-  font-size: 12px;
-  font-weight: 800;
-  color: #0f172a;
-}
-
-.kth-product-name {
-  color: #111827;
-  font-weight: 800;
-}
-
+.kth-product-name,
 .kth-line-total {
-  color: #dc2626 !important;
-  font-weight: 800 !important;
-  font-size: 13px !important;
+  font-weight: var(--admin-weight-semibold, 600);
 }
 
-.kth-aside-refund-hero {
+.kth-qty-badge,
+.kth-line-total {
+  font-variant-numeric: tabular-nums;
+}
+.kth-field-label {
   display: block;
-  font-size: 20px !important;
-  font-weight: 900 !important;
-  color: #dc2626 !important;
-  letter-spacing: -0.5px;
+  font-size: 11px;
 }
-
-.kth-refund-amount-text {
-  color: #dc2626;
-  font-weight: 800;
-}
-
-.kth-reason-text {
-  color: #374151;
-  font-weight: 600;
-}
-
-.kth-date-highlight {
-  font-weight: 700;
-  color: #111827;
-}
-
 
 /* Modal Xác nhận Hoàn tiền chuyên nghiệp */
 .kth-confirm-modal {
@@ -1758,7 +1776,7 @@
 
 .kth-refund-modal-label {
   font-size: 11px;
-  font-weight: 800;
+  font-weight: 600;
   color: #9f1239;
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -1766,7 +1784,7 @@
 
 .kth-refund-modal-amount {
   font-size: 26px;
-  font-weight: 900;
+  font-weight: 700;
   color: #e11d48;
   letter-spacing: -0.5px;
 }
@@ -1775,7 +1793,7 @@
   display: flex;
   flex-direction: column;
   gap: 10px;
-  background: #f8fafc;
+  background: #fff;
   padding: 14px 18px;
   border: 1px solid #e2e8f0;
 }
