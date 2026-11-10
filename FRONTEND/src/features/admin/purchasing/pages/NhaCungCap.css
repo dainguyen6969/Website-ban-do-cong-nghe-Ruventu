@@ -34,13 +34,13 @@
 .supplier-hero h1 {
   font-size: 24px;
   line-height: 1.1;
-  font-weight: 900;
+  font-weight: 700;
 }
 .supplier-hero p {
   margin-top: 7px;
   color: #8a9098;
   font-size: 10px;
-  font-weight: 700;
+  font-weight: 400;
 }
 .supplier-btn {
   min-height: 40px;
@@ -95,7 +95,7 @@
   color: #111;
   background: transparent;
   font-size: 11px;
-  font-weight: 700;
+  font-weight: 400;
 }
 .supplier-filter .filter__dropdown {
   width: 100%;
@@ -153,24 +153,22 @@
 .supplier-table tbody tr:last-child td {
   border-bottom: 0;
 }
-.supplier-table th:nth-child(1) {
-  width: 140px;
+.supplier-table th:first-child {
+  width: 22%;
 }
-.supplier-table th:nth-child(2) {
-  width: auto;
+
+.supplier-table th:nth-child(n + 3) {
+  width: 1%;
 }
-.supplier-table th:nth-child(3) {
-  width: 160px;
+
+.admin-app .supplier-table-wrap > .supplier-table td.supplier-code {
+  font-weight: var(--admin-weight-medium);
+  overflow-wrap: anywhere;
 }
-.supplier-table th:nth-child(4) {
-  width: 140px;
-}
-.supplier-table th:nth-child(5) {
-  width: 110px;
-}
-.supplier-code,
-.supplier-name {
-  font-weight: 900;
+
+.admin-app .supplier-table-wrap > .supplier-table td.supplier-name {
+  font-weight: var(--admin-weight-semibold);
+  overflow-wrap: anywhere;
 }
 .supplier-status {
   display: inline-flex;
@@ -179,7 +177,7 @@
   padding: 2px 8px;
   border: 1px solid;
   font-size: 8px;
-  font-weight: 900;
+  font-weight: 600;
   white-space: nowrap;
 }
 .supplier-status--dang_hop_tac {
@@ -193,12 +191,14 @@
   background: #fff1f1;
 }
 .supplier-row-action {
-  min-height: 27px;
-  padding: 0 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 30px;
+  padding: 4px 10px;
   border: 1px solid #d6d6d6;
   background: #fff;
-  font-size: 8px;
-  font-weight: 900;
+  white-space: nowrap;
 }
 .supplier-row-action:hover {
   color: #fff;

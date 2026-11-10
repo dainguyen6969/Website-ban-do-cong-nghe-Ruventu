@@ -20,12 +20,7 @@ import './NhapHang.css';
 // Reusable Filter Dropdown
 // ========================================
 
-function PurchaseFilterDropdown({
-  label,
-  value,
-  options,
-  onChange,
-}) {
+function PurchaseFilterDropdown({ label, value, options, onChange }) {
   const choices = [
     { value: '', label },
     ...options.map((option) => ({
@@ -38,10 +33,7 @@ function PurchaseFilterDropdown({
   const labelCounts = new Map();
 
   choices.forEach((option) => {
-    labelCounts.set(
-      option.label,
-      (labelCounts.get(option.label) || 0) + 1
-    );
+    labelCounts.set(option.label, (labelCounts.get(option.label) || 0) + 1);
   });
 
   const displayChoices = choices.map((option) => ({
@@ -53,9 +45,7 @@ function PurchaseFilterDropdown({
   }));
 
   const selected =
-    displayChoices.find(
-      (option) => option.value === String(value ?? '')
-    ) || displayChoices[0];
+    displayChoices.find((option) => option.value === String(value ?? '')) || displayChoices[0];
 
   return (
     <FilterDropdown
@@ -64,9 +54,7 @@ function PurchaseFilterDropdown({
       defaultValue={displayChoices[0].displayLabel}
       selectedDark
       onSelect={(selectedLabel) => {
-        const option = displayChoices.find(
-          (item) => item.displayLabel === selectedLabel
-        );
+        const option = displayChoices.find((item) => item.displayLabel === selectedLabel);
 
         onChange({
           target: {
@@ -136,7 +124,9 @@ export default function DanhSachNhapHang() {
     previousSearch.current = filters.keyword;
     const timer = setTimeout(() => {
       getPurchaseOrderPage(filters, controller.signal)
-        .then(result => { if (!controller.signal.aborted) setData(result); })
+        .then((result) => {
+          if (!controller.signal.aborted) setData(result);
+        })
         .catch((reason) => {
           if (!controller.signal.aborted && reason.name !== 'AbortError') {
             setError(reason.message);
@@ -167,10 +157,7 @@ export default function DanhSachNhapHang() {
     }));
   };
 
-  const hasFilters =
-    filters.supplierId ||
-    filters.importStatus ||
-    filters.paymentStatus;
+  const hasFilters = filters.supplierId || filters.importStatus || filters.paymentStatus;
 
   const clearFilters = () => {
     setFilters((old) => ({
@@ -191,19 +178,15 @@ export default function DanhSachNhapHang() {
     label: item.name,
   }));
 
-  const importStatusOptions = Object.entries(IMPORT_STATUS).map(
-    ([code, label]) => ({
-      value: code,
-      label,
-    })
-  );
+  const importStatusOptions = Object.entries(IMPORT_STATUS).map(([code, label]) => ({
+    value: code,
+    label,
+  }));
 
-  const paymentStatusOptions = Object.entries(PAYMENT_STATUS).map(
-    ([code, label]) => ({
-      value: code,
-      label,
-    })
-  );
+  const paymentStatusOptions = Object.entries(PAYMENT_STATUS).map(([code, label]) => ({
+    value: code,
+    label,
+  }));
 
   // ========================================
   // Render
@@ -221,9 +204,7 @@ export default function DanhSachNhapHang() {
         <button
           type="button"
           className="purchase-btn black"
-          onClick={() =>
-            navigate('/kho-hang/nhap-hang/tao-moi')
-          }
+          onClick={() => navigate('/kho-hang/nhap-hang/tao-moi')}
         >
           <HiOutlinePlus />
           TẠO ĐƠN NHẬP HÀNG
@@ -234,9 +215,11 @@ export default function DanhSachNhapHang() {
       <div className="purchase-toolbar">
         {/* Tìm kiếm */}
         <label className="purchase-search">
-          <HiOutlineSearch />
+          <HiOutlineSearch aria-hidden="true" />
 
           <input
+            type="search"
+            aria-label="Tìm mã đơn nhập hoặc nhà cung cấp"
             value={filters.keyword}
             onChange={update('keyword')}
             placeholder="TÌM MÃ ĐƠN NHẬP / NHÀ CUNG CẤP..."
@@ -269,49 +252,37 @@ export default function DanhSachNhapHang() {
 
         {/* Xóa bộ lọc */}
         {hasFilters && (
-          <button
-            type="button"
-            className="clear-filters"
-            onClick={clearFilters}
-          >
+          <button type="button" className="clear-filters" onClick={clearFilters}>
             XÓA BỘ LỌC
           </button>
         )}
       </div>
 
       {/* Thông báo lỗi */}
-      {error && (
-        <p className="purchase-message error">
-          {error}
-        </p>
-      )}
+      {error && <p className="purchase-message error">{error}</p>}
 
       {/* Bảng đơn nhập hàng */}
-      <section className="purchase-list-results admin-list-body admin-list-frame" aria-label="Danh sách đơn nhập hàng">
+      <section
+        className="purchase-list-results admin-list-body admin-list-frame"
+        aria-label="Danh sách đơn nhập hàng"
+      >
         <div className="admin-table-scroll" tabIndex={0} role="region" aria-label="Bảng danh sách">
-<table className="purchase-table admin-data-table" aria-busy={loading}>
-          <thead>
-            <tr>
-              <th>MÃ ĐƠN NHẬP</th>
-              <th>NHÀ CUNG CẤP</th>
-              <th>TRẠNG THÁI NHẬP</th>
-              <th>THANH TOÁN</th>
-              <th>TỔNG TIỀN</th>
-              <th>NGÀY TẠO</th>
-              <th>THAO TÁC</th>
-            </tr>
-          </thead>
+          <table className="purchase-table admin-data-table" aria-busy={loading}>
+            <thead>
+              <tr>
+                <th>MÃ ĐƠN NHẬP</th>
+                <th>NHÀ CUNG CẤP</th>
+                <th>TRẠNG THÁI NHẬP</th>
+                <th>THANH TOÁN</th>
+                <th>TỔNG TIỀN</th>
+                <th>NGÀY TẠO</th>
+                <th>THAO TÁC</th>
+              </tr>
+            </thead>
 
-          <tbody>
-            {data.items.map((order) => (
-                <tr
-                  key={order.id}
-                  className={
-                    order.importStatus === 'HUY'
-                      ? 'cancelled'
-                      : ''
-                  }
-                >
+            <tbody>
+              {data.items.map((order) => (
+                <tr key={order.id} className={order.importStatus === 'HUY' ? 'cancelled' : ''}>
                   {/* Mã đơn nhập */}
                   <td>
                     <strong>{order.code}</strong>
@@ -319,34 +290,24 @@ export default function DanhSachNhapHang() {
 
                   {/* Nhà cung cấp */}
                   <td>
-                    <strong>
-                      {order.supplier.name}
-                    </strong>
+                    <strong>{order.supplier.name}</strong>
                   </td>
 
                   {/* Trạng thái nhập */}
                   <td>
-                    <StatusBadge>
-                      {order.importStatusLabel}
-                    </StatusBadge>
+                    <StatusBadge>{order.importStatusLabel}</StatusBadge>
                   </td>
 
                   {/* Thanh toán */}
                   <td>
-                    <StatusBadge>
-                      {order.paymentStatusLabel}
-                    </StatusBadge>
+                    <StatusBadge>{order.paymentStatusLabel}</StatusBadge>
                   </td>
 
                   {/* Tổng tiền */}
-                  <td className="purchase-money">
-                    {money(order.total)}
-                  </td>
+                  <td className="purchase-money">{money(order.total)}</td>
 
                   {/* Ngày tạo */}
-                  <td>
-                    {order.createdAtLabel}
-                  </td>
+                  <td>{order.createdAtLabel}</td>
 
                   {/* Thao tác */}
                   <td>
@@ -354,11 +315,7 @@ export default function DanhSachNhapHang() {
                       type="button"
                       className="purchase-btn outline small"
                       disabled={loading}
-                      onClick={() =>
-                        navigate(
-                          `/kho-hang/nhap-hang/${order.id}`
-                        )
-                      }
+                      onClick={() => navigate(`/kho-hang/nhap-hang/${order.id}`)}
                     >
                       XEM CHI TIẾT
                     </button>
@@ -366,22 +323,21 @@ export default function DanhSachNhapHang() {
                 </tr>
               ))}
 
-            {/* Trạng thái tải dữ liệu / rỗng */}
-            {!data.items.length && (
-              <tr className="purchase-empty">
-                <td colSpan="7">
-                  {loading
-                    ? 'Đang tải dữ liệu...'
-                    : 'Không tìm thấy đơn nhập hàng phù hợp.'}
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-</div>
+              {/* Trạng thái tải dữ liệu / rỗng */}
+              {!data.items.length && (
+                <tr className="purchase-empty">
+                  <td colSpan="7">
+                    {loading ? 'Đang tải dữ liệu...' : 'Không tìm thấy đơn nhập hàng phù hợp.'}
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
 
         {/* Phân trang */}
-        <TablePagination className="admin-table-footer"
+        <TablePagination
+          className="admin-table-footer"
           totalItems={data.totalItems}
           pageSize={10}
           currentPage={filters.page}
