@@ -1,11 +1,13 @@
 package com.example.dantruventu.DTO.Response.order;
 
 import com.example.dantruventu.DTO.Response.PaginationResponse;
+import com.example.dantruventu.DTO.catalog.CatalogFields;
 import com.example.dantruventu.Enum.*;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.Map;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -48,11 +50,29 @@ public final class CustomerOrderResponse {
 
     @JsonProperty("thanh_tien")
     private BigDecimal thanhTien;
+
+    @JsonProperty("ma_dong")
+    private String maDong;
+
+    @JsonProperty("la_qua_tang")
+    private Boolean laQuaTang;
+
+    @JsonProperty("ten_san_pham")
+    private String tenSanPham;
+
+    @JsonProperty("ten_phien_ban")
+    private String tenPhienBan;
+
+    @JsonProperty("don_gia_da_gom_vat")
+    private BigDecimal donGiaDaGomVat;
+
+    @JsonProperty("thanh_tien_da_gom_vat")
+    private BigDecimal thanhTienDaGomVat;
   }
 
   @Getter
   @Builder
-  public static class Preview {
+  public static class Preview extends SalePreviewData {
 
     @JsonProperty("tong_tien_hang")
     private BigDecimal tongTienHang;
@@ -74,6 +94,15 @@ public final class CustomerOrderResponse {
 
     @JsonProperty("thong_tin_nguoi_nhan")
     private Recipient thongTinNguoiNhan;
+
+    @JsonProperty("gia_da_bao_gom_vat")
+    private Boolean giaDaBaoGomVat;
+
+    @JsonProperty("tong_tien_hang_da_gom_vat")
+    private BigDecimal tongTienHangDaGomVat;
+
+    @JsonProperty("tien_giam_da_gom_vat")
+    private BigDecimal tienGiamDaGomVat;
   }
 
   @Getter
@@ -125,7 +154,22 @@ public final class CustomerOrderResponse {
     private Recipient thongTinNguoiNhan;
 
     @JsonProperty("san_pham")
-    private List<CreatedProduct> sanPham;
+    private List<AdminDeliveryResponse.ProductData> sanPham;
+
+    @JsonProperty("khuyen_mai")
+    private AdminSalesResponse.AppliedPromotion khuyenMai;
+
+    @JsonProperty("ngay_hoan_thanh")
+    private OffsetDateTime ngayHoanThanh;
+
+    @JsonProperty("thiet_bi_da_giao")
+    private List<SoldDeviceData> thietBiDaGiao;
+
+    @JsonProperty("canh_bao_thiet_bi")
+    private String canhBaoThietBi;
+
+    @JsonProperty("tiep_nhan")
+    private Map<String, Object> tiepNhan;
   }
 
   @Getter
@@ -214,6 +258,25 @@ public final class CustomerOrderResponse {
 
     @JsonProperty("quan_ly_serial")
     private Boolean quanLySerial;
+
+    @JsonProperty("loai_san_pham")
+    private LoaiSanPham loaiSanPham;
+
+    @Builder.Default
+    @JsonProperty("thanh_phan")
+    private List<CatalogFields.ComboPart> thanhPhan = List.of();
+
+    @JsonProperty("ma_dong")
+    private String maDong;
+
+    @JsonProperty("la_qua_tang")
+    private Boolean laQuaTang;
+
+    @JsonProperty("thanh_toan_dong")
+    private BigDecimal thanhToanDong;
+
+    @JsonProperty("canh_bao_du_lieu")
+    private String canhBaoDuLieu;
   }
 
   @Getter
@@ -327,9 +390,27 @@ public final class CustomerOrderResponse {
 
     @JsonProperty("ngay_tao")
     private OffsetDateTime ngayTao;
+
+    @JsonProperty("khuyen_mai")
+    private AdminSalesResponse.AppliedPromotion khuyenMai;
+
+    @JsonProperty("ngay_hoan_thanh")
+    private OffsetDateTime ngayHoanThanh;
+
+    @JsonProperty("thiet_bi_da_giao")
+    private List<SoldDeviceData> thietBiDaGiao;
+
+    @JsonProperty("canh_bao_thiet_bi")
+    private String canhBaoThietBi;
+
+    @JsonProperty("tiep_nhan")
+    private Map<String, Object> tiepNhan;
   }
 
   @Getter
+  @Setter
+  @NoArgsConstructor
+  @AllArgsConstructor
   @Builder
   public static class Cancelled {
     private Long id;
@@ -342,7 +423,25 @@ public final class CustomerOrderResponse {
 
     @JsonProperty("trang_thai_xuat_kho")
     private TrangThaiXuatKho trangThaiXuatKho;
+
+    @JsonProperty("trang_thai_dong_goi")
+    private TrangThaiDongGoi trangThaiDongGoi;
+
+    @JsonProperty("trang_thai_thanh_toan")
+    private TrangThaiThanhToanDonHang trangThaiThanhToan;
+
+    @JsonProperty("khuyen_mai")
+    private AdminSalesResponse.AppliedPromotion khuyenMai;
+
+    @JsonProperty("giai_phong_giu_kho")
+    private List<ReleasedStock> giaiPhongGiuKho;
+
+    @JsonProperty("tien_can_doi_soat_hoan")
+    private BigDecimal tienCanDoiSoatHoan;
   }
+
+  public record ReleasedStock(
+      @JsonProperty("phien_ban_id") Long phienBanId, @JsonProperty("so_luong") Integer soLuong) {}
 
   @Getter
   @Builder

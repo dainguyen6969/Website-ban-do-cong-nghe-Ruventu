@@ -43,6 +43,13 @@ public class TonKho {
   @Column(name = "hang_loi")
   private Integer hangLoi = 0;
 
+  @Builder.Default
+  @NotNull
+  @Min(0)
+  @ColumnDefault("0")
+  @Column(name = "so_luong_cach_ly_thu_hoi", nullable = false)
+  private Integer soLuongCachLyThuHoi = 0;
+
   @Column(name = "vi_tri_luu_kho", length = 100)
   private String viTriLuuKho;
 

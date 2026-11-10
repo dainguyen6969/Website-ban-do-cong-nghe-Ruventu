@@ -7,6 +7,7 @@ import DetailTablePagination from "../../../../../shared/components/ui/DetailTab
 import useDetailTablePagination from "../../../../../hooks/useDetailTablePagination";
 import { deactivateCombo, getComboDetail } from "../api/comboApi";
 import fallbackImage from "../../../../../assets/hero.png";
+import { WarrantySummary } from "../../components/CatalogPolicies";
 import "./ChiTietCombo.css";
 
 const money = (value) => `${Number(value || 0).toLocaleString("vi-VN")}đ`;
@@ -24,6 +25,12 @@ export default function ChiTietCombo() {
   const [reloadKey, setReloadKey] = useState(0);
   const [selectedImage, setSelectedImage] = useState(0);
   const [showStopModal, setShowStopModal] = useState(false);
+
+  useEffect(() => {
+    const refresh = () => setReloadKey((value) => value + 1);
+    window.addEventListener("focus", refresh);
+    return () => window.removeEventListener("focus", refresh);
+  }, []);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -44,13 +51,17 @@ export default function ChiTietCombo() {
   const detail = useMemo(() => {
     if (!combo) return null;
 
+    const components = combo.components.map((item) => ({
+      ...item,
+      image: item.image || fallbackImage,
+    }));
+
     return {
-      components: combo.components.map((item) => ({
-        ...item,
-        image: item.image || fallbackImage,
-      })),
+      components,
       sellable: combo.assemblyCapacity,
-      bottleneck: null,
+      bottleneck: components.find(
+        (item) => item.capacity != null && item.capacity === combo.assemblyCapacity,
+      ),
     };
   }, [combo]);
   const componentPagination = useDetailTablePagination(detail?.components);
@@ -179,6 +190,11 @@ export default function ChiTietCombo() {
             </div>
           </div>
         </FormCard>
+        <WarrantySummary
+          isCombo
+          components={combo.components}
+          capacity={combo.assemblyCapacity}
+        />
         <FormCard title="Hình ảnh combo">
           <div className="combo-gallery">
             <div className="gallery-preview">
@@ -228,7 +244,7 @@ export default function ChiTietCombo() {
         </FormCard>
         <FormCard title="Thành phần combo" className="detail-components-card">
           <div className="detail-components">
-            <table>
+            <div className="admin-table-scroll admin-table-scroll--embedded" tabIndex={0} role="region" aria-label="Bảng dữ liệu liên quan"><table className="admin-data-table admin-data-table--records">
               <thead>
                 <tr>
                   <th>ẢNH</th>
@@ -297,7 +313,7 @@ export default function ChiTietCombo() {
                   );
                 })}
               </tbody>
-            </table>
+            </table></div>
           </div>
           <DetailTablePagination
             totalItems={detail.components.length}
@@ -309,7 +325,7 @@ export default function ChiTietCombo() {
         <FormCard title="Tồn combo">
           <div className="combo-inventory-summary">
             <div className="inventory-total">
-              <small>CÓ THỂ BÁN</small>
+              <small>SỐ BỘ CÓ THỂ LẮP</small>
               <strong>{detail.sellable ?? "—"}</strong>
               <p>
                 Tính tự động: MIN(tồn khả dụng ÷ số lượng cần) qua tất cả thành

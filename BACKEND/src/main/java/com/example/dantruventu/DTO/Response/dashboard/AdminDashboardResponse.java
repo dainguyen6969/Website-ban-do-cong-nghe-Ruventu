@@ -201,8 +201,7 @@ public final class AdminDashboardResponse {
       @JsonProperty("chenh_lech") BigDecimal chenhLech) {}
 
   public record PaymentMethodAmount(
-      @JsonProperty("phuong_thuc") String phuongThuc,
-      @JsonProperty("so_tien") BigDecimal soTien) {}
+      @JsonProperty("phuong_thuc") String phuongThuc, @JsonProperty("so_tien") BigDecimal soTien) {}
 
   public record CashPoint(
       @JsonProperty("tu_ngay") LocalDate tuNgay,

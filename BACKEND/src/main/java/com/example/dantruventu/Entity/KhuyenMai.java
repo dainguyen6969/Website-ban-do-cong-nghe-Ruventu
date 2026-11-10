@@ -1,5 +1,6 @@
 package com.example.dantruventu.Entity;
 
+import com.example.dantruventu.Config.TrangThaiCoBanConverter;
 import com.example.dantruventu.Enum.DoiTuongKhuyenMai;
 import com.example.dantruventu.Enum.LoaiChietKhau;
 import com.example.dantruventu.Enum.PhuongThucKhuyenMai;
@@ -75,6 +76,7 @@ public class KhuyenMai {
   private LocalDateTime ngayKetThuc;
 
   @Builder.Default
+  @Convert(converter = TrangThaiCoBanConverter.class)
   @ColumnDefault("1")
   @Column(name = "trang_thai", nullable = false, columnDefinition = "SMALLINT")
   private TrangThaiCoBanEnum trangThai = TrangThaiCoBanEnum.HOAT_DONG;

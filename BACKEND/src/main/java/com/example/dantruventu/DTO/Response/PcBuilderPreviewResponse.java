@@ -26,7 +26,11 @@ public record PcBuilderPreviewResponse(
       @JsonProperty("so_luong") int soLuong,
       @JsonProperty("don_gia") BigDecimal donGia,
       @JsonProperty("thanh_tien") BigDecimal thanhTien,
-      @JsonProperty("ton_co_the_ban") long tonCoTheBan) {}
+      @JsonProperty("ton_co_the_ban") long tonCoTheBan,
+      @JsonProperty("bao_hanh_thang") Integer baoHanhThang,
+      @JsonProperty("thuoc_tinh_phien_ban")
+          List<com.example.dantruventu.DTO.catalog.CatalogFields.AttributeData>
+              thuocTinhPhienBan) {}
 
   public record CpuMainCheck(
       @JsonProperty("trang_thai") String trangThai,

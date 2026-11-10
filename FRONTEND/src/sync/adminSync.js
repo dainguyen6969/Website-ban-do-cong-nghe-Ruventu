@@ -3,9 +3,10 @@ const FALLBACK_EVENT_KEY = 'ruventu_admin_sync_event_v1';
 
 const listeners = new Set();
 const seenMessageIds = new Set();
-const sourceId = typeof crypto !== 'undefined' && crypto.randomUUID
-  ? crypto.randomUUID()
-  : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+const sourceId =
+  typeof crypto !== 'undefined' && crypto.randomUUID
+    ? crypto.randomUUID()
+    : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 
 let channel = null;
 let isListening = false;
@@ -32,7 +33,11 @@ function startListening() {
 
   window.addEventListener('storage', (event) => {
     if (event.key !== FALLBACK_EVENT_KEY || !event.newValue) return;
-    try { deliver(JSON.parse(event.newValue)); } catch { /* Ignore malformed external messages. */ }
+    try {
+      deliver(JSON.parse(event.newValue));
+    } catch {
+      /* Ignore malformed external messages. */
+    }
   });
 }
 
@@ -50,7 +55,10 @@ export function publishAdminChange(slice, detail = {}) {
   if (typeof window === 'undefined') return;
   startListening();
   const message = {
-    id: typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`,
+    id:
+      typeof crypto !== 'undefined' && crypto.randomUUID
+        ? crypto.randomUUID()
+        : `${Date.now()}-${Math.random()}`,
     sourceId,
     slice,
     timestamp: Date.now(),
@@ -69,7 +77,9 @@ export function writeSharedState(storageKey, value, change) {
 
 export function subscribeToAdminSlice(slice, listener) {
   startListening();
-  const scopedListener = (message) => { if (message.slice === slice) listener(message); };
+  const scopedListener = (message) => {
+    if (message.slice === slice) listener(message);
+  };
   listeners.add(scopedListener);
   return () => listeners.delete(scopedListener);
 }

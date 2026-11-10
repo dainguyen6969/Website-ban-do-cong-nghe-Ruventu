@@ -1,6 +1,7 @@
 package com.example.dantruventu.DTO.Response.warehouse;
 
 import com.example.dantruventu.DTO.Response.product.AdminProductDetailResponse;
+import com.example.dantruventu.DTO.catalog.CatalogFields;
 import com.example.dantruventu.Enum.LoaiSanPham;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import java.math.BigDecimal;
@@ -13,7 +14,7 @@ import tools.jackson.databind.JsonNode;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class AdminComboDetailResponse {
+public class AdminComboDetailResponse extends CatalogFields.Metadata {
 
   private Long id;
 

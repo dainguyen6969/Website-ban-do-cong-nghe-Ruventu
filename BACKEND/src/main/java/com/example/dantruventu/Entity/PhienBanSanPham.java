@@ -1,5 +1,6 @@
 package com.example.dantruventu.Entity;
 
+import com.example.dantruventu.Config.TrangThaiCoBanConverter;
 import com.example.dantruventu.Enum.TrangThaiCoBanEnum;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
@@ -43,6 +44,7 @@ public class PhienBanSanPham {
   private BigDecimal khoiLuong = BigDecimal.ZERO;
 
   @Builder.Default
+  @Convert(converter = TrangThaiCoBanConverter.class)
   @ColumnDefault("1")
   @Column(name = "trang_thai", nullable = false, columnDefinition = "SMALLINT")
   private TrangThaiCoBanEnum trangThai = TrangThaiCoBanEnum.HOAT_DONG;

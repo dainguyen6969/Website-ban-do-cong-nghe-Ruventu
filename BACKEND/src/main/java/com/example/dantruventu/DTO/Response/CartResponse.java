@@ -1,5 +1,6 @@
 package com.example.dantruventu.DTO.Response;
 
+import com.example.dantruventu.DTO.Response.order.SalePreviewData;
 import java.math.BigDecimal;
 import java.util.List;
 import lombok.AllArgsConstructor;
@@ -13,7 +14,7 @@ import lombok.Setter;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class CartResponse {
+public class CartResponse extends SalePreviewData {
 
   private List<CartItemResponse> items;
   private Integer tongSoLuong;

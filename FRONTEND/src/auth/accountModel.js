@@ -1,8 +1,7 @@
 export const ACCOUNTS_STORAGE_KEY = 'ruventu.mock.accounts';
 
-export const isStaffAccount = (account) => Boolean(
-  account && (account.role === 'admin' || account.employeeId),
-);
+export const isStaffAccount = (account) =>
+  Boolean(account && (account.role === 'admin' || account.employeeId));
 
 export const canAccessAdmin = (account, roles = []) => {
   if (!account || account.trangThai !== 'hoat_dong') {
@@ -22,21 +21,23 @@ export const canAccessAdmin = (account, roles = []) => {
   return roles.some(
     (role) =>
       role.id === roleId &&
-      Object.values(role.permissions ?? {}).some(
-        (actions) => actions.includes('xem')
-      )
+      Object.values(role.permissions ?? {}).some((actions) => actions.includes('xem'))
   );
 };
 
-export const employeeRoleLabel = (value, roles = []) => roles.find((role) => role.id === value)?.label ?? value;
+export const employeeRoleLabel = (value, roles = []) =>
+  roles.find((role) => role.id === value)?.label ?? value;
 
-export const employeeStatusLabel = (value) => value === 'ngung_hoat_dong' ? 'NGỪNG HOẠT ĐỘNG' : 'HOẠT ĐỘNG';
+export const employeeStatusLabel = (value) =>
+  value === 'ngung_hoat_dong' ? 'NGỪNG HOẠT ĐỘNG' : 'HOẠT ĐỘNG';
 
 export const makeGeneratedPassword = (role, accounts, roles = []) => {
   if (role === 'admin_toan_quyen') return 'Admin@123';
   const roleInfo = roles.find((item) => item.id === role);
   if (!roleInfo) return '';
-  const sameRoleCount = accounts.filter((account) => isStaffAccount(account) && account.vaiTro === role).length;
+  const sameRoleCount = accounts.filter(
+    (account) => isStaffAccount(account) && account.vaiTro === role
+  ).length;
   return `${roleInfo.abbreviation}Ruventu@${sameRoleCount + 1}`;
 };
 
@@ -100,13 +101,28 @@ const SEEDED_ACCOUNTS = Object.freeze([
     updatedAt: '2026-09-18T13:36:00.000Z',
   },
   {
-    id: 'user-1', name: 'Nguyễn Văn An', email: 'user1@ruventu.com', phone: '0900000002', password: 'User@123', role: 'user',
+    id: 'user-1',
+    name: 'Nguyễn Văn An',
+    email: 'user1@ruventu.com',
+    phone: '0900000002',
+    password: 'User@123',
+    role: 'user',
   },
   {
-    id: 'user-2', name: 'Trần Minh Anh', email: 'user2@ruventu.com', phone: '0900000003', password: 'User@123', role: 'user',
+    id: 'user-2',
+    name: 'Trần Minh Anh',
+    email: 'user2@ruventu.com',
+    phone: '0900000003',
+    password: 'User@123',
+    role: 'user',
   },
   {
-    id: 'user-3', name: 'Lê Hoàng Nam', email: 'user3@ruventu.com', phone: '0900000004', password: 'User@123', role: 'user',
+    id: 'user-3',
+    name: 'Lê Hoàng Nam',
+    email: 'user3@ruventu.com',
+    phone: '0900000004',
+    password: 'User@123',
+    role: 'user',
   },
   {
     id: 'employee-2',
@@ -125,16 +141,36 @@ const SEEDED_ACCOUNTS = Object.freeze([
     updatedAt: '2026-09-18T08:00:00.000Z',
   },
   {
-    id: 'employee-3', employeeId: 'NV #3', name: 'Lê Minh Khoa', hoTen: 'Lê Minh Khoa',
-    email: 'khoa.le@ruventu.vn', phone: '0923456789', soDienThoai: '0923456789',
-    password: 'qlkRuventu@1', passwordHash: 'qlkRuventu@1', role: 'quan_ly_kho', vaiTro: 'quan_ly_kho',
-    trangThai: 'hoat_dong', createdAt: '2026-09-18T08:10:00.000Z', updatedAt: '2026-09-18T08:10:00.000Z',
+    id: 'employee-3',
+    employeeId: 'NV #3',
+    name: 'Lê Minh Khoa',
+    hoTen: 'Lê Minh Khoa',
+    email: 'khoa.le@ruventu.vn',
+    phone: '0923456789',
+    soDienThoai: '0923456789',
+    password: 'qlkRuventu@1',
+    passwordHash: 'qlkRuventu@1',
+    role: 'quan_ly_kho',
+    vaiTro: 'quan_ly_kho',
+    trangThai: 'hoat_dong',
+    createdAt: '2026-09-18T08:10:00.000Z',
+    updatedAt: '2026-09-18T08:10:00.000Z',
   },
   {
-    id: 'employee-4', employeeId: 'NV #4', name: 'Phạm Thị Lan', hoTen: 'Phạm Thị Lan',
-    email: 'lan.pham@ruventu.vn', phone: '0934567890', soDienThoai: '0934567890',
-    password: 'ktRuventu@1', passwordHash: 'ktRuventu@1', role: 'ke_toan', vaiTro: 'ke_toan',
-    trangThai: 'hoat_dong', createdAt: '2026-09-18T08:20:00.000Z', updatedAt: '2026-09-18T08:20:00.000Z',
+    id: 'employee-4',
+    employeeId: 'NV #4',
+    name: 'Phạm Thị Lan',
+    hoTen: 'Phạm Thị Lan',
+    email: 'lan.pham@ruventu.vn',
+    phone: '0934567890',
+    soDienThoai: '0934567890',
+    password: 'ktRuventu@1',
+    passwordHash: 'ktRuventu@1',
+    role: 'ke_toan',
+    vaiTro: 'ke_toan',
+    trangThai: 'hoat_dong',
+    createdAt: '2026-09-18T08:20:00.000Z',
+    updatedAt: '2026-09-18T08:20:00.000Z',
   },
 ]);
 

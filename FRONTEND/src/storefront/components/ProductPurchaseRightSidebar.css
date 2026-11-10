@@ -48,6 +48,18 @@
   color: #666;
 }
 
+.selected-variant-name {
+  margin: 0 0 12px;
+  color: #555;
+  font-size: 13px;
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+}
+
 .sku-label {
   text-transform: uppercase;
 }
@@ -86,19 +98,23 @@
   font-weight: 700;
 }
 
-.price-bottom-row {
+.purchase-right-sidebar-container .price-bottom-row {
   display: flex;
+  flex-wrap: wrap;
   align-items: baseline;
-  gap: 10px;
+  gap: 4px 10px;
 }
 
-.current-price {
+.purchase-right-sidebar-container .current-price {
+  white-space: nowrap;
   color: #ff0000;
   font-size: 38px;
   font-weight: 900;
 }
 
-.vat-note {
+.purchase-right-sidebar-container .vat-note {
+  flex: 0 0 auto;
+  white-space: nowrap;
   color: #888;
   font-size: 13px;
 }
@@ -305,7 +321,7 @@
 }
 
 /* Disabled States for Out of Stock */
-.sidebar-btn-buy-now:disabled, 
+.sidebar-btn-buy-now:disabled,
 .sidebar-btn-add-cart:disabled {
   background-color: #555;
   border-color: #555;
@@ -320,4 +336,21 @@
 
 .qty-input:disabled {
   color: #999;
+}
+
+.stock-status-box .stock-dot--muted {
+  background-color: #666;
+}
+
+.stock-status-box .stock-in-cart {
+  margin-left: 8px;
+  color: #ffb3b3;
+  font-size: 11px;
+}
+
+.purchase-stock-message {
+  margin: 8px 0 16px;
+  color: #666;
+  font-size: 12px;
+  line-height: 1.5;
 }

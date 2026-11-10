@@ -3,6 +3,8 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { HiOutlinePlus, HiOutlineSearch } from "react-icons/hi";
 import TablePagination from "../../../../../shared/components/ui/TablePagination";
+import syncTableHeaderOffset from "../../../../../shared/components/ui/syncTableHeaderOffset";
+import FilterDropdown from "../../../../../shared/components/ui/FilterDropdown";
 import StopComboModal from "../components/StopComboModal";
 import fallbackImage from "../../../../../assets/hero.png";
 import { deactivateCombo, getComboPage, getComboStats } from "../api/comboApi";
@@ -27,6 +29,12 @@ export default function ComboSanPham() {
   const [error, setError] = useState("");
   const [reloadKey, setReloadKey] = useState(0);
   const [comboToStop, setComboToStop] = useState(null);
+
+  useEffect(() => {
+    const refresh = () => setReloadKey((value) => value + 1);
+    window.addEventListener("focus", refresh);
+    return () => window.removeEventListener("focus", refresh);
+  }, []);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -70,7 +78,7 @@ export default function ComboSanPham() {
   };
 
   return (
-    <main className="combo-list-page">
+    <main className="combo-list-page admin-list-page">
       <div className="combo-page-heading">
         <div>
           <div className="combo-secondary-breadcrumb">
@@ -116,28 +124,41 @@ export default function ComboSanPham() {
             placeholder="Tìm tên Combo hoặc mã Combo..."
           />
         </label>
-        <select
+        <FilterDropdown
           id="combo-status-filter"
           value={status}
           onChange={(e) => {
             setStatus(e.target.value);
             setPage(1);
           }}
+          selectedDark
         >
           <option>Tất cả trạng thái</option>
           <option>Đang kinh doanh</option>
           <option>Ngưng kinh doanh</option>
-        </select>
+        </FilterDropdown>
       </div>
-      <div className="combo-table-wrap">
-        <table className="combo-table">
+      <div className="admin-list-body admin-list-body--inset">
+<div ref={syncTableHeaderOffset} className="combo-table-wrap admin-table-scroll" tabIndex={0} role="region" aria-label="Bảng danh sách">
+        <table className="combo-table admin-data-table">
+          <colgroup>
+            <col className="combo-col-image" />
+            <col className="combo-col-code" />
+            <col className="combo-col-name" />
+            <col />
+            <col className="combo-col-capacity" />
+            <col className="combo-col-stock" />
+            <col className="combo-col-price" />
+            <col className="combo-col-status" />
+            <col className="combo-col-actions" />
+          </colgroup>
           <thead>
             <tr>
               <th>ẢNH</th>
               <th>MÃ COMBO</th>
               <th>TÊN COMBO</th>
               <th>THÀNH PHẦN</th>
-              <th>CÓ THỂ BÁN</th>
+              <th>SỐ BỘ CÓ THỂ LẮP</th>
               <th>TỒN THỰC TẾ</th>
               <th>GIÁ BÁN</th>
               <th>TRẠNG THÁI</th>
@@ -165,10 +186,10 @@ export default function ComboSanPham() {
                     <div className="component-preview">
                       {combo.components.slice(0, 2).map((item) => (
                         <div key={`${item.sku}-${item.name}`}>
-                          <b>
-                            {item.name} <em>×{item.qty}</em>
+                          <b title={`${item.name} ×${item.qty}`}>
+                            <span>{item.name}</span><em>×{item.qty}</em>
                           </b>
-                          <small>
+                          <small title={`${item.variant} · ${item.sku}`}>
                             {item.variant} · {item.sku}
                           </small>
                         </div>
@@ -183,7 +204,7 @@ export default function ComboSanPham() {
                   <td className="number-strong">
                     {combo.assemblyCapacity ?? "—"}
                   </td>
-                  <td>{combo.stock}</td>
+                  <td>—</td>
                   <td className="number-strong">{money(combo.price)}</td>
                   <td>
                     <span
@@ -245,13 +266,14 @@ export default function ComboSanPham() {
           </tbody>
         </table>
       </div>
-      <TablePagination
+      <TablePagination className="admin-table-footer"
         totalItems={totalItems}
         pageSize={PAGE_SIZE}
         currentPage={page}
         onPageChange={setPage}
         idPrefix="combo"
       />
+</div>
       <StopComboModal
         combo={comboToStop}
         onCancel={() => setComboToStop(null)}

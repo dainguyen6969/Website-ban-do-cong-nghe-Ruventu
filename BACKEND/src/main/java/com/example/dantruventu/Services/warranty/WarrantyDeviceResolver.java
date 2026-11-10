@@ -175,7 +175,7 @@ public class WarrantyDeviceResolver {
     }
   }
 
-  private boolean hasHandoverEvidence(PhieuBaoHanh ticket, ThietBiBaoHanh replacement) {
+  public boolean hasHandoverEvidence(PhieuBaoHanh ticket, ThietBiBaoHanh replacement) {
     for (LichSuBaoHanh event :
         historyRepository.findByPhieuBaoHanh_IdOrderByNgayTaoAscIdAsc(ticket.getId())) {
       if (!"HANDOVER".equals(event.getLoaiSuKien())) {

@@ -7,21 +7,22 @@ import com.example.dantruventu.Error.ErrorCode;
 import com.example.dantruventu.Repository.cashbook.LoaiThuChiRepository;
 import com.example.dantruventu.Repository.cashbook.SoQuyThuChiRepository;
 import com.example.dantruventu.Repository.order.SalesIdempotencyRepository;
+import com.example.dantruventu.Services.documents.DocumentNumberService;
+import com.example.dantruventu.Services.order.OrderEvents;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
-import java.time.Instant;
-import java.time.LocalDateTime;
-import java.time.OffsetDateTime;
-import java.time.ZoneId;
+import java.time.*;
 import java.time.temporal.ChronoUnit;
 import java.util.HexFormat;
+import java.util.Locale;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
 import lombok.Builder;
 import lombok.RequiredArgsConstructor;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -43,7 +44,12 @@ public class CashbookService {
           "CHI_HOAN_BAO_HANH",
           "CHI_DON_VI_BAO_HANH",
           "THU_HOAN_DON_VI_BAO_HANH",
-          "THU_DOI_SOAT_BAO_HANH");
+          "THU_DOI_SOAT_BAO_HANH",
+          "BH-THU",
+          "BH-CHI",
+          "THU_KHACH_BAO_HANH",
+          "HOAN_KHACH_BAO_HANH",
+          "HOAN_TIEN_TRA_HANG");
 
   private static final ZoneId CASHBOOK_ZONE = ZoneId.of("Asia/Ho_Chi_Minh");
 
@@ -53,6 +59,9 @@ public class CashbookService {
   private final LoaiThuChiRepository cashTypeRepository;
   private final SalesIdempotencyRepository idempotencyRepository;
   private final ObjectMapper objectMapper;
+  private final OrderEvents orderEvents;
+  private final JdbcTemplate jdbc;
+  private final DocumentNumberService documentNumbers;
 
   /*
    * Command nội bộ.
@@ -62,7 +71,7 @@ public class CashbookService {
    */
   @Builder
   public record AutomaticVoucher(
-      String maPhieu,
+      String khoaNghiepVu,
       LoaiPhieuThuChi loaiPhieu,
       String maLoaiThuChi,
       NhomNguoiNopNhanEnum nhomNguoiNopNhan,
@@ -78,7 +87,11 @@ public class CashbookService {
       String tags,
       NguoiDung nguoiTao,
       HoaDonBaoHanh hoaDonBaoHanh,
-      PhieuBaoHanh phieuBaoHanh) {}
+      PhieuBaoHanh phieuBaoHanh,
+      PhieuTraHang phieuTraHang,
+      DonHang donHang,
+      DonNhapHang donNhapHang,
+      PhieuGiaoHang phieuGiaoHang) {}
 
   @Transactional(propagation = Propagation.MANDATORY)
   public SoQuyThuChi createAutomatic(AutomaticVoucher command) {
@@ -89,7 +102,7 @@ public class CashbookService {
       throw invalid("Thiếu dữ liệu lập phiếu");
     }
 
-    String code = requiredText(command.maPhieu(), "Mã phiếu", 50);
+    String businessKey = requiredText(command.khoaNghiepVu(), "Khóa nghiệp vụ", 100);
 
     String typeCode = requiredText(command.maLoaiThuChi(), "Mã loại thu/chi", 50);
 
@@ -110,6 +123,9 @@ public class CashbookService {
 
     LocalDateTime occurredAt = normalizeOccurredAt(command.ngayGhiNhan());
 
+    validateSourceLinks(command, occurredAt);
+    validateDocumentLinks(command, sourceCode);
+
     String counterpartyName = resolveCounterpartyName(command);
 
     String tags = optionalText(command.tags(), "Tags", 255);
@@ -118,7 +134,7 @@ public class CashbookService {
       requirePersistedId(command.nguoiTao().getId(), "Người tạo");
     }
 
-    if (cashRepository.findByMaPhieu(code).isPresent()) {
+    if (cashRepository.findByBusinessKey(businessKey).isPresent()) {
       throw conflict("Khoản thu/chi này đã được ghi nhận");
     }
 
@@ -135,9 +151,15 @@ public class CashbookService {
       throw invalid("Loại thu/chi không khớp THU hoặc CHI");
     }
 
+    String voucherCode = nextVoucherCode(command.loaiPhieu());
+
     SoQuyThuChi voucher =
         SoQuyThuChi.builder()
-            .maPhieu(code)
+            .maPhieu(voucherCode)
+            .khoaNghiepVu(businessKey)
+            .donHang(command.donHang())
+            .donNhapHang(command.donNhapHang())
+            .phieuGiaoHang(command.phieuGiaoHang())
             .loaiPhieu(command.loaiPhieu())
             .loaiThuChi(cashType)
             .nhomNguoiNopNhan(command.nhomNguoiNopNhan())
@@ -154,18 +176,51 @@ public class CashbookService {
             .nguoiTao(command.nguoiTao())
             .hoaDonBaoHanh(command.hoaDonBaoHanh())
             .phieuBaoHanh(command.phieuBaoHanh())
+            .phieuTraHang(command.phieuTraHang())
             .nguonTao(NguonTaoPhieuThuChi.TU_DONG)
             .trangThai(TrangThaiPhieuThuChi.DA_GHI_NHAN)
             .build();
 
-    /*
-     * UNIQUE(ma_phieu) tại database là ràng buộc cuối cùng
-     * khi có các yêu cầu đồng thời.
-     *
-     * Không bắt lỗi rồi tiếp tục trong transaction đã thất bại.
-     * GlobalExceptionHandler hiện có xử lý lỗi ràng buộc thành 409.
-     */
-    return cashRepository.saveAndFlush(voucher);
+    voucher = cashRepository.saveAndFlush(voucher);
+
+    orderEvents.receipt(voucher);
+
+    return voucher;
+  }
+
+  @Transactional(propagation = Propagation.MANDATORY)
+  public String nextVoucherCode(LoaiPhieuThuChi type) {
+
+    if (type != LoaiPhieuThuChi.THU && type != LoaiPhieuThuChi.CHI) {
+      throw invalid("Loại phiếu không hợp lệ để cấp mã.");
+    }
+
+    return documentNumbers.next(type == LoaiPhieuThuChi.THU ? "PT" : "PC");
+  }
+
+  public static String businessKey(SoQuyThuChi voucher) {
+
+    if (voucher == null) {
+      return null;
+    }
+
+    String key = voucher.getKhoaNghiepVu();
+
+    return key == null || key.isBlank() ? voucher.getMaPhieu() : key;
+  }
+
+  public static boolean isReservedManualCode(String value) {
+
+    if (value == null) {
+      return false;
+    }
+
+    String code = value.strip().toUpperCase(Locale.ROOT);
+
+    return code.startsWith("THU-")
+        || code.startsWith("CHI-")
+        || code.startsWith("PT-")
+        || code.startsWith("PC-");
   }
 
   /*
@@ -235,6 +290,166 @@ public class CashbookService {
     idempotencyRepository.complete(key, serialize(result));
 
     return result;
+  }
+
+  private void validateDocumentLinks(AutomaticVoucher command, String sourceCode) {
+
+    DonHang order = command.donHang();
+    DonNhapHang purchase = command.donNhapHang();
+    PhieuGiaoHang delivery = command.phieuGiaoHang();
+    PhieuTraHang returned = command.phieuTraHang();
+
+    boolean warranty = command.hoaDonBaoHanh() != null || command.phieuBaoHanh() != null;
+
+    if (order != null && purchase != null) {
+      throw invalid("Một phiếu không được trộn nguồn đơn bán và đơn nhập.");
+    }
+
+    if (warranty && (order != null || purchase != null || delivery != null)) {
+      throw invalid("Chứng từ bảo hành phải sử dụng liên kết bảo hành riêng.");
+    }
+
+    if (order != null) {
+      requirePersistedId(order.getId(), "Đơn hàng nguồn");
+
+      if (returned != null) {
+        if (returned.getDonHang() == null
+            || !Objects.equals(returned.getDonHang().getId(), order.getId())
+            || !Objects.equals(sourceCode, returned.getMaTraHang())) {
+
+          throw invalid("Phiếu trả hoặc mã tham chiếu không khớp đơn hàng nguồn.");
+        }
+      } else if (!Objects.equals(sourceCode, order.getMaDonHang())) {
+        throw invalid("Mã tham chiếu không khớp đơn hàng nguồn.");
+      }
+    }
+
+    if (purchase != null) {
+      requirePersistedId(purchase.getId(), "Đơn nhập nguồn");
+
+      if (returned != null
+          || delivery != null
+          || !Objects.equals(sourceCode, purchase.getMaDonNhap())
+          || command.nhaCungCap() == null
+          || purchase.getNhaCungCap() == null
+          || !Objects.equals(command.nhaCungCap().getId(), purchase.getNhaCungCap().getId())) {
+
+        throw invalid("Đơn nhập, Nhà Cung Cấp hoặc mã tham chiếu không khớp.");
+      }
+    }
+
+    if (delivery != null) {
+      requirePersistedId(delivery.getId(), "Phiếu giao hàng nguồn");
+
+      if (order == null
+          || delivery.getDonHang() == null
+          || !Objects.equals(delivery.getDonHang().getId(), order.getId())
+          || command.loaiPhieu() != LoaiPhieuThuChi.THU
+          || command.nhomNguoiNopNhan() != NhomNguoiNopNhanEnum.DOI_TAC_GIAO_HANG
+          || command.doiTacVanChuyen() == null
+          || delivery.getDoiTacVanChuyen() == null
+          || !Objects.equals(
+              command.doiTacVanChuyen().getId(), delivery.getDoiTacVanChuyen().getId())) {
+
+        throw invalid("Phiếu thu COD không khớp đơn hàng hoặc đối tác giao hàng.");
+      }
+    }
+  }
+
+  private void validateSourceLinks(AutomaticVoucher command, LocalDateTime occurredAt) {
+
+    var invoice = command.hoaDonBaoHanh();
+    var warranty = command.phieuBaoHanh();
+    var returned = command.phieuTraHang();
+
+    if (returned != null && (invoice != null || warranty != null)) {
+      throw invalid("Phiếu trả hàng không được trộn liên kết bảo hành");
+    }
+
+    if (invoice != null) {
+      requirePersistedId(invoice.getId(), "Hóa đơn bảo hành");
+
+      if (warranty == null
+          || !Objects.equals(invoice.getPhieuBaoHanh().getId(), warranty.getId())) {
+        throw invalid("Hóa đơn không thuộc phiếu bảo hành đã liên kết");
+      }
+    }
+
+    if (warranty != null) {
+      requirePersistedId(warranty.getId(), "Phiếu bảo hành");
+    }
+
+    if (returned != null) {
+      requirePersistedId(returned.getId(), "Phiếu trả hàng");
+
+      if (command.loaiPhieu() != LoaiPhieuThuChi.CHI
+          || command.nhomNguoiNopNhan() != NhomNguoiNopNhanEnum.KHACH_HANG
+          || returned.getTrangThaiTraHang() != TrangThaiTraHang.DA_NHAN_HANG) {
+        throw conflict("Phiếu trả chưa đủ điều kiện ghi nhận hoàn tiền");
+      }
+
+      if (returned.getNgayNhanHang() == null || occurredAt.isBefore(returned.getNgayNhanHang())) {
+        throw invalid("Ngày hoàn tiền phải từ thời điểm đã nhận hàng trả");
+      }
+
+      if (returned.getTongTienHoan() == null
+          || command.soTien().compareTo(returned.getTongTienHoan()) != 0) {
+        throw conflict("MVP phải hoàn đủ khoản tiền của phiếu trả");
+      }
+    }
+  }
+
+  public static boolean protectedVoucher(SoQuyThuChi voucher) {
+    return voucher.getNguonTao() != NguonTaoPhieuThuChi.THU_CONG
+        || voucher.getHoaDonBaoHanh() != null
+        || voucher.getPhieuBaoHanh() != null
+        || voucher.getPhieuTraHang() != null;
+  }
+
+  public static String sourceBusiness(SoQuyThuChi voucher) {
+    boolean warranty = voucher.getHoaDonBaoHanh() != null || voucher.getPhieuBaoHanh() != null;
+
+    if (voucher.getPhieuTraHang() != null) {
+      return !warranty
+              && voucher.getLoaiPhieu() == LoaiPhieuThuChi.CHI
+              && voucher.getNhomNguoiNopNhan() == NhomNguoiNopNhanEnum.KHACH_HANG
+          ? "HOAN_TIEN_TRA_HANG"
+          : null;
+    }
+
+    if (!warranty) return null;
+
+    if (voucher.getNhomNguoiNopNhan() == NhomNguoiNopNhanEnum.KHACH_HANG) {
+      return voucher.getLoaiPhieu() == LoaiPhieuThuChi.THU
+          ? "THU_KHACH_BAO_HANH"
+          : "HOAN_KHACH_BAO_HANH";
+    }
+
+    if (voucher.getNhomNguoiNopNhan() == NhomNguoiNopNhanEnum.NHA_CUNG_CAP) {
+      return voucher.getLoaiPhieu() == LoaiPhieuThuChi.THU
+          ? "THU_HOAN_DON_VI_BAO_HANH"
+          : "CHI_DON_VI_BAO_HANH";
+    }
+
+    return null;
+  }
+
+  public static String uuidKey(String prefix, String value) {
+    try {
+      var uuid = java.util.UUID.fromString(value);
+
+      if (!uuid.toString().equalsIgnoreCase(value)) {
+        throw new IllegalArgumentException();
+      }
+
+      return prefix + uuid;
+    } catch (IllegalArgumentException | NullPointerException exception) {
+      throw new AppException(
+          ErrorCode.INVALID_DATA,
+          "Idempotency-Key",
+          "IDEMPOTENCY_KEY_INVALID",
+          "Idempotency-Key phải là UUID hợp lệ");
+    }
   }
 
   private String resolveCounterpartyName(AutomaticVoucher command) {

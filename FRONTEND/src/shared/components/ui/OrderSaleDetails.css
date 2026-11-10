@@ -1,0 +1,63 @@
+.sale-history-gift {
+  display: inline-flex;
+  align-items: center;
+  margin: 6px 0;
+  padding: 3px 8px;
+  border: 1px solid #b8dfbd;
+  background: #eff8f0;
+  color: #237331;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.sale-history-warning {
+  margin: 8px 0 0;
+  color: #b91c1c;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.6;
+}
+
+.sale-history-amount {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+}
+
+.sale-history-amount > strong {
+  color: #d60000;
+}
+
+.sale-history-amount > small {
+  color: #64748b;
+  font-size: 11px;
+}
+
+.sale-history-promotion {
+  padding: 14px 16px;
+}
+
+.sale-history-promotion > strong,
+.sale-history-promotion > span,
+.sale-history-promotion > small {
+  display: block;
+}
+
+.sale-history-promotion > span {
+  margin-top: 5px;
+  color: #64748b;
+  font-size: 12px;
+}
+
+.sale-history-promotion > p {
+  margin: 10px 0;
+}
+
+.sale-history-note {
+  margin: 0;
+  padding: 14px 16px;
+  color: #64748b;
+  line-height: 1.6;
+}

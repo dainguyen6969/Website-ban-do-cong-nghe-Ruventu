@@ -15,7 +15,14 @@ import com.example.dantruventu.Repository.partner.NhaCungCapRepository;
 import com.example.dantruventu.Repository.product.PhienBanSanPhamRepository;
 import com.example.dantruventu.Repository.warehouse.*;
 import com.example.dantruventu.Services.cashbook.CashbookService;
+import com.example.dantruventu.Services.documents.DocumentNumberService;
+import com.example.dantruventu.Services.order.OrderEvents;
+import com.example.dantruventu.Services.warehouse.NccAccountingService;
+import com.example.dantruventu.Services.warehouse.RecallSafety;
+import com.example.dantruventu.Services.warehouse.SourceTraceService;
+import com.example.dantruventu.Services.warehouse.WarehouseSupport;
 import com.example.dantruventu.Specification.PurchaseOrderSpecification;
+import jakarta.persistence.EntityManager;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.*;
@@ -23,6 +30,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -31,6 +39,7 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
@@ -43,27 +52,28 @@ public class AdminPurchaseOrderService {
   private static final BigDecimal ZERO = BigDecimal.ZERO.setScale(2);
 
   private final DonNhapHangRepository donNhapHangRepository;
-
   private final ChiTietDonNhapRepository chiTietDonNhapRepository;
-
   private final NhaCungCapRepository nhaCungCapRepository;
-
   private final PhienBanSanPhamRepository phienBanSanPhamRepository;
-
   private final KhoHangRepository khoHangRepository;
-
   private final TonKhoRepository tonKhoRepository;
-
   private final TheKhoRepository theKhoRepository;
-
   private final SoSerialSanPhamRepository soSerialSanPhamRepository;
-
   private final SoQuyThuChiRepository soQuyThuChiRepository;
-
   private final NguoiDungRepository nguoiDungRepository;
 
   private final AdminPurchaseOrderMapper mapper;
   private final CashbookService cashbookService;
+  private final OrderEvents orderEvents;
+  private final WarehouseSupport warehouseSupport;
+  private final NccAccountingService nccAccounting;
+
+  private final SourceTraceService sourceTraceService;
+  private final RecallSafety recallSafety;
+
+  private final DocumentNumberService documentNumbers;
+
+  private final EntityManager entityManager;
 
   @Value("${ruventu.inventory.default-warehouse-id:1}")
   private Long defaultWarehouseId;
@@ -126,17 +136,14 @@ public class AdminPurchaseOrderService {
 
     BigDecimal taxAmount = order.getTongTien().subtract(goodsAmount);
 
-    BigDecimal paid = sumCash(order, LoaiPhieuThuChi.CHI);
+    PurchaseRefundBalance balance = readPurchaseRefundBalance(order);
 
-    BigDecimal refundReceived = sumCash(order, LoaiPhieuThuChi.THU);
-
-    BigDecimal returnedValue = calculateReturnedValue(order, details);
-
-    BigDecimal adjustedTotal = order.getTongTien().subtract(returnedValue).max(BigDecimal.ZERO);
-
+    BigDecimal paid = balance.paid();
+    BigDecimal refundReceived = balance.refundReceived();
+    BigDecimal returnedValue = balance.returnedValue();
+    BigDecimal adjustedTotal = balance.adjustedTotal();
     BigDecimal netPaid = paid.subtract(refundReceived);
-
-    BigDecimal debt = adjustedTotal.subtract(netPaid).max(BigDecimal.ZERO);
+    BigDecimal debt = balance.debt();
 
     List<AdminPurchaseOrderDetailResponse.Item> responseItems =
         details.stream()
@@ -147,10 +154,27 @@ public class AdminPurchaseOrderService {
                   int imported =
                       Math.max(0, sumMovement(order.getId(), variantId, LoaiGiaoDichKho.NHAP_HANG));
 
-                  int returned =
+                  int legacyReturned =
                       Math.abs(sumMovement(order.getId(), variantId, LoaiGiaoDichKho.TRA_NCC));
 
+                  int returned =
+                      legacyReturned + nccAccounting.finalReturned(order.getId(), variantId);
+
+                  int legacyReturnLimit =
+                      Math.max(
+                          0,
+                          imported
+                              - legacyReturned
+                              - nccAccounting.legacyAssigned(order.getId(), variantId));
+
                   SerialMode mode = resolveSerialMode(variantId);
+
+                  List<TonKho> currentStocks =
+                      tonKhoRepository.findByKhoHang_IdAndPhienBan_IdOrderByIdAsc(
+                          warehouse.getId(), variantId);
+
+                  String storageLocation =
+                      currentStocks.size() == 1 ? currentStocks.getFirst().getViTriLuuKho() : null;
 
                   return AdminPurchaseOrderDetailResponse.Item.builder()
                       .id(detail.getId())
@@ -161,8 +185,10 @@ public class AdminPurchaseOrderService {
                       .thanhTien(detail.getThanhTien())
                       .soLuongDaNhapKho(imported)
                       .soLuongDaTra(returned)
+                      .soLuongTraTheoLuongCuToiDa(legacyReturnLimit)
                       .quanLySerial(mode.value())
                       .cheDoSerialDaXacLap(mode.established())
+                      .viTriLuuKho(storageLocation)
                       .build();
                 })
             .toList();
@@ -196,13 +222,45 @@ public class AdminPurchaseOrderService {
         .soTienDaThanhToan(paid)
         .soTienConNo(debt)
         .giaTriHangTra(returnedValue)
+        .giaTriDieuChinhNcc(nccAccounting.adjustments(order.getId()))
         .giaTriSauTra(adjustedTotal)
         .soTienDaNhanHoan(refundReceived)
         .soTienDaThanhToanThuan(netPaid)
         .soTienNccConPhaiHoan(netPaid.subtract(adjustedTotal).max(BigDecimal.ZERO))
         .ngayTao(order.getNgayTao())
         .items(responseItems)
+        .serialDaNhan(readReceivedSerialsForPurchase(order.getId()))
         .build();
+  }
+
+  private List<AdminPurchaseOrderDetailResponse.ReceivedSerial> readReceivedSerialsForPurchase(
+      Long purchaseId) {
+
+    return entityManager
+        .createQuery(
+            """
+                        SELECT s
+                        FROM SoSerialSanPham s
+                        JOIN FETCH s.phienBan v
+                        WHERE s.donNhapHang.id = :purchaseId
+                        ORDER BY v.id, s.id
+                        """,
+            SoSerialSanPham.class)
+        .setParameter("purchaseId", purchaseId)
+        .getResultList()
+        .stream()
+        .map(
+            serial ->
+                AdminPurchaseOrderDetailResponse.ReceivedSerial.builder()
+                    .id(serial.getId())
+                    .phienBanId(serial.getPhienBan().getId())
+                    .tenPhienBan(serial.getPhienBan().getTenPhienBan())
+                    .soSerial(serial.getSoSerial())
+                    .trangThai(serial.getTrangThai() == null ? null : serial.getTrangThai().name())
+                    .biThuHoi(Boolean.TRUE.equals(serial.getBiThuHoi()))
+                    .dangDongGoi(serial.getChiTietDongGoi() != null)
+                    .build())
+        .toList();
   }
 
   // =========================================================
@@ -226,7 +284,7 @@ public class AdminPurchaseOrderService {
 
     DonNhapHang order =
         DonNhapHang.builder()
-            .maDonNhap("TMP-" + UUID.randomUUID())
+            .maDonNhap(documentNumbers.next("DN"))
             .nhaCungCap(supplier)
             .nguoiTao(currentUser())
             .tongTien(total)
@@ -237,12 +295,9 @@ public class AdminPurchaseOrderService {
 
     order = donNhapHangRepository.saveAndFlush(order);
 
-    order.setMaDonNhap("DN" + String.format("%07d", order.getId()));
-
-    order = donNhapHangRepository.save(order);
-
     saveDetails(order, request.getItems(), variants);
 
+    orderEvents.createdPurchase(order);
     return getDetail(order.getId());
   }
 
@@ -313,7 +368,7 @@ public class AdminPurchaseOrderService {
   // PAYMENT
   // =========================================================
 
-  @Transactional
+  @Transactional(isolation = Isolation.READ_COMMITTED)
   public AdminPurchaseOrderPaymentResponse pay(
       Long id, String idempotencyKey, AdminPurchaseOrderPaymentRequest request) {
 
@@ -333,7 +388,7 @@ public class AdminPurchaseOrderService {
 
     String voucherCode = "CHI-NCC-" + idempotencyKey;
 
-    Optional<SoQuyThuChi> existing = soQuyThuChiRepository.findByMaPhieu(voucherCode);
+    Optional<SoQuyThuChi> existing = soQuyThuChiRepository.findByBusinessKey(voucherCode);
 
     if (existing.isPresent()) {
 
@@ -367,12 +422,13 @@ public class AdminPurchaseOrderService {
     SoQuyThuChi voucher =
         cashbookService.createAutomatic(
             CashbookService.AutomaticVoucher.builder()
-                .maPhieu(voucherCode)
+                .khoaNghiepVu(voucherCode)
                 .loaiPhieu(LoaiPhieuThuChi.CHI)
                 .maLoaiThuChi("CHI_NHAP_HANG")
                 .nhomNguoiNopNhan(NhomNguoiNopNhanEnum.NHA_CUNG_CAP)
                 .nhaCungCap(order.getNhaCungCap())
                 .maChungTuThamChieu(order.getMaDonNhap())
+                .donNhapHang(order)
                 .soTien(request.getSoTienThanhToan())
                 .phuongThucThanhToan(request.getPhuongThucThanhToan())
                 .ngayGhiNhan(request.getNgayThanhToan())
@@ -397,7 +453,14 @@ public class AdminPurchaseOrderService {
 
     DonNhapHang order = requireOrderForUpdate(id);
 
-    if (order.getTrangThaiNhap() != TrangThaiNhapHang.DA_DUYET) {
+    var allowed =
+        EnumSet.of(
+            TrangThaiNhapHang.DA_DUYET,
+            TrangThaiNhapHang.NHAP_MOT_PHAN,
+            TrangThaiNhapHang.HOAN_TRA_MOT_PHAN,
+            TrangThaiNhapHang.HOAN_TRA_TOAN_BO);
+
+    if (!allowed.contains(order.getTrangThaiNhap())) {
       throw new AppException(ErrorCode.CONFLICT, "Đơn nhập không ở trạng thái cho phép nhập kho");
     }
 
@@ -409,102 +472,169 @@ public class AdminPurchaseOrderService {
         details.stream().collect(Collectors.toMap(ChiTietDonNhap::getId, Function.identity()));
 
     validateReceiveRequest(request, detailMap);
+    validateReceiptMetadata(request);
+
+    Map<Long, PhienBanSanPham> lockedVariants = new TreeMap<>();
+
+    for (Long variantId :
+        details.stream().map(detail -> detail.getPhienBan().getId()).distinct().sorted().toList()) {
+
+      lockedVariants.put(variantId, warehouseSupport.lockVariant(variantId));
+    }
+
+    for (var item : request.getItems()) {
+      var detail = detailMap.get(item.getChiTietDonNhapId());
+      var variant = lockedVariants.get(detail.getPhienBan().getId());
+
+      if (variant.getSanPham().getLoaiSanPham() != LoaiSanPham.DON) {
+        throw new AppException(ErrorCode.CONFLICT, "Chỉ nhập kho phiên bản sản phẩm đơn");
+      }
+
+      Boolean configured = variant.getCoQuanLySerial();
+
+      if (configured == null) {
+        throw new AppException(
+            ErrorCode.CONFLICT, "Phiên bản chưa có cấu hình quản lý serial: " + variant.getId());
+      }
+
+      if (!Objects.equals(configured, item.getQuanLySerial())) {
+        throw new AppException(
+            ErrorCode.CONFLICT, "Chế độ serial không khớp cấu hình phiên bản " + variant.getId());
+      }
+    }
 
     Set<String> allSerials = collectAndValidateSerials(request, detailMap);
 
-    if (!allSerials.isEmpty() && soSerialSanPhamRepository.existsBySoSerialIn(allSerials)) {
+    if (!allSerials.isEmpty()) {
+      Set<String> existing = new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
+      existing.addAll(soSerialSanPhamRepository.findExistingSerialCodes(allSerials));
 
-      throw new AppException(ErrorCode.CONFLICT, "Có Serial đã tồn tại trong hệ thống");
+      if (!existing.isEmpty()) {
+        for (int index = 0; index < request.getItems().size(); index++) {
+          var item = request.getItems().get(index);
+
+          List<String> duplicated =
+              item.getSoSerials().stream().map(String::trim).filter(existing::contains).toList();
+
+          if (!duplicated.isEmpty()) {
+            throw new AppException(
+                ErrorCode.CONFLICT,
+                "items[" + index + "].so_serials",
+                "RECEIPT_SERIAL_EXISTS",
+                "Serial đã tồn tại: " + String.join(", ", duplicated.stream().limit(8).toList()));
+          }
+        }
+      }
     }
 
     List<AdminPurchaseOrderReceiveResponse.Item> responseItems = new ArrayList<>();
 
-    for (AdminPurchaseOrderReceiveRequest.Item item : request.getItems()) {
+    var sortedItems =
+        request.getItems().stream()
+            .sorted(
+                Comparator.comparing(
+                    item -> detailMap.get(item.getChiTietDonNhapId()).getPhienBan().getId()))
+            .toList();
 
-      ChiTietDonNhap detail = detailMap.get(item.getChiTietDonNhapId());
+    for (var item : sortedItems) {
+      var detail = detailMap.get(item.getChiTietDonNhapId());
+      var variant = lockedVariants.get(detail.getPhienBan().getId());
 
-      PhienBanSanPham variant = detail.getPhienBan();
-
-      SerialMode existingMode = resolveSerialMode(variant.getId());
-
-      if (existingMode.established()
-          && !Objects.equals(existingMode.value(), item.getQuanLySerial())) {
-
-        throw new AppException(
-            ErrorCode.CONFLICT,
-            "Không được thay đổi chế độ quản lý Serial của phiên bản " + variant.getId());
-      }
-
-      int alreadyReceived =
-          Math.max(0, sumMovement(id, variant.getId(), LoaiGiaoDichKho.NHAP_HANG));
+      int previouslyReceived = grossReceived(detail);
+      int quantity = item.getSoLuongNhapKho();
+      int cumulativeReceived = previouslyReceived + quantity;
 
       TonKho inventory = lockOrCreateInventory(warehouse, variant);
 
-      inventory.setTonThucTe(inventory.getTonThucTe() + item.getSoLuongNhapKho());
+      String storageLocation =
+          receiptText(
+              item.getViTriLuuKho(),
+              "items[" + request.getItems().indexOf(item) + "].vi_tri_luu_kho",
+              "Vị trí lưu kho");
 
-      inventory.setTonCoTheBan(inventory.getTonCoTheBan() + item.getSoLuongNhapKho());
+      if (storageLocation != null) {
+        inventory.setViTriLuuKho(storageLocation);
+      }
 
-      inventory = tonKhoRepository.save(inventory);
+      WarehouseSupport.numbers(inventory);
 
-      TheKho warehouseCard =
+      try {
+        inventory.setTonThucTe(Math.addExact(inventory.getTonThucTe(), quantity));
+
+        inventory.setTonCoTheBan(Math.addExact(inventory.getTonCoTheBan(), quantity));
+
+      } catch (ArithmeticException exception) {
+        throw new AppException(ErrorCode.CONFLICT, "Số lượng tồn kho vượt giới hạn cho phép");
+      }
+
+      tonKhoRepository.save(inventory);
+
+      theKhoRepository.save(
           TheKho.builder()
               .khoHang(warehouse)
               .phienBan(variant)
               .loaiGiaoDich(LoaiGiaoDichKho.NHAP_HANG)
               .maChungTuGoc(order.getId())
-              .soLuongThayDoi(item.getSoLuongNhapKho())
+              .soLuongThayDoi(quantity)
               .tonCuoi(inventory.getTonThucTe())
               .ghiChu("Nhập hàng từ đơn " + order.getMaDonNhap())
-              .build();
-
-      theKhoRepository.save(warehouseCard);
+              .build());
 
       List<AdminPurchaseOrderReceiveResponse.SerialData> serialResponses = new ArrayList<>();
 
-      if (Boolean.TRUE.equals(item.getQuanLySerial())) {
-
-        List<SoSerialSanPham> serialEntities =
+      if (Boolean.TRUE.equals(variant.getCoQuanLySerial())) {
+        var serialEntities =
             item.getSoSerials().stream()
                 .map(String::trim)
                 .map(
-                    serial ->
+                    code ->
                         SoSerialSanPham.builder()
                             .phienBan(variant)
-                            .soSerial(serial)
+                            .donNhapHang(order)
+                            .soSerial(code)
                             .trangThai(TrangThaiSerial.TRONG_KHO)
+                            .donHang(null)
+                            .ngayKichHoat(null)
+                            .hanBaoHanh(null)
                             .build())
                 .toList();
 
-        List<SoSerialSanPham> saved = soSerialSanPhamRepository.saveAll(serialEntities);
+        try {
+          serialResponses =
+              soSerialSanPhamRepository.saveAllAndFlush(serialEntities).stream()
+                  .map(
+                      serial ->
+                          AdminPurchaseOrderReceiveResponse.SerialData.builder()
+                              .id(serial.getId())
+                              .soSerial(serial.getSoSerial())
+                              .trangThai(serial.getTrangThai())
+                              .build())
+                  .toList();
+        } catch (DataIntegrityViolationException exception) {
+          Throwable root = exception.getMostSpecificCause();
 
-        serialResponses =
-            saved.stream()
-                .map(
-                    serial ->
-                        AdminPurchaseOrderReceiveResponse.SerialData.builder()
-                            .id(serial.getId())
-                            .soSerial(serial.getSoSerial())
-                            .trangThai(serial.getTrangThai())
-                            .build())
-                .toList();
+          if (root instanceof java.sql.SQLException sql && sql.getErrorCode() == 1062) {
+            throw new AppException(
+                ErrorCode.CONFLICT,
+                "items[" + request.getItems().indexOf(item) + "].so_serials",
+                "RECEIPT_SERIAL_CONCURRENT",
+                "Serial của dòng này đã tồn tại hoặc vừa được giao dịch khác sử dụng.");
+          }
+
+          throw exception;
+        }
       }
-
-      int totalReceivedAfter = alreadyReceived + item.getSoLuongNhapKho();
-
-      int remainingAccordingToOrder = Math.max(detail.getSoLuong() - totalReceivedAfter, 0);
-
-      int difference = totalReceivedAfter - detail.getSoLuong();
 
       responseItems.add(
           AdminPurchaseOrderReceiveResponse.Item.builder()
               .chiTietDonNhapId(detail.getId())
               .phienBanId(variant.getId())
-              .soLuongNhapKho(item.getSoLuongNhapKho())
+              .soLuongNhapKho(quantity)
               .soLuongDat(detail.getSoLuong())
-              .soLuongDaNhapKho(totalReceivedAfter)
-              .conTheoDon(remainingAccordingToOrder)
-              .chenhLech(difference)
-              .quanLySerial(item.getQuanLySerial())
+              .soLuongDaNhapKho(cumulativeReceived)
+              .conTheoDon(detail.getSoLuong() - cumulativeReceived)
+              .chenhLech(cumulativeReceived - detail.getSoLuong())
+              .quanLySerial(variant.getCoQuanLySerial())
               .cheDoSerialDaXacLap(true)
               .tonThucTeSauNhap(inventory.getTonThucTe())
               .serials(serialResponses)
@@ -512,8 +642,11 @@ public class AdminPurchaseOrderService {
     }
 
     theKhoRepository.flush();
-    order.setTrangThaiNhap(TrangThaiNhapHang.DA_NHAP_KHO);
+    entityManager.flush();
 
+    sourceTraceService.recordPurchaseReceipt(order.getId(), request, responseItems);
+
+    refreshImportStatus(order, details);
     donNhapHangRepository.save(order);
 
     return AdminPurchaseOrderReceiveResponse.builder()
@@ -532,8 +665,12 @@ public class AdminPurchaseOrderService {
 
     DonNhapHang order = requireOrderForUpdate(id);
 
-    if (order.getTrangThaiNhap() != TrangThaiNhapHang.DA_NHAP_KHO
-        && order.getTrangThaiNhap() != TrangThaiNhapHang.HOAN_TRA_MOT_PHAN) {
+    if (!EnumSet.of(
+            TrangThaiNhapHang.NHAP_MOT_PHAN,
+            TrangThaiNhapHang.DA_NHAP_KHO,
+            TrangThaiNhapHang.HOAN_TRA_MOT_PHAN)
+        .contains(order.getTrangThaiNhap())) {
+
       throw new AppException(ErrorCode.CONFLICT, "Đơn nhập không ở trạng thái cho phép hoàn trả");
     }
 
@@ -555,6 +692,12 @@ public class AdminPurchaseOrderService {
      * chưa bao gồm VAT.
      */
     BigDecimal returnedGoods = BigDecimal.ZERO;
+
+    for (Long variantId :
+        details.stream().map(detail -> detail.getPhienBan().getId()).distinct().sorted().toList()) {
+
+      warehouseSupport.lockVariant(variantId);
+    }
 
     for (AdminPurchaseOrderReturnRequest.Item item : request.getItems()) {
 
@@ -581,17 +724,6 @@ public class AdminPurchaseOrderService {
       Long variantId = detail.getPhienBan().getId();
 
       /*
-       * MVP hiện tại:
-       * chưa hỗ trợ xuất trả NCC đối với hàng quản lý Serial.
-       */
-      SerialMode mode = resolveSerialMode(variantId);
-
-      if (Boolean.TRUE.equals(mode.value())) {
-        throw new AppException(
-            ErrorCode.CONFLICT, "MVP chưa hỗ trợ trả NCC đối với hàng quản lý Serial");
-      }
-
-      /*
        * Tổng số lượng đã nhập từ PO này.
        */
       int imported = Math.max(0, sumMovement(id, variantId, LoaiGiaoDichKho.NHAP_HANG));
@@ -608,7 +740,8 @@ public class AdminPurchaseOrderService {
        */
       int alreadyReturned = Math.abs(sumMovement(id, variantId, LoaiGiaoDichKho.TRA_NCC));
 
-      int remainingReturnable = imported - alreadyReturned;
+      int remainingReturnable =
+          imported - alreadyReturned - nccAccounting.legacyAssigned(id, variantId);
 
       if (remainingReturnable <= 0) {
         throw new AppException(
@@ -648,18 +781,21 @@ public class AdminPurchaseOrderService {
 
       if (inventory.getTonThucTe() < item.getSoLuongTra()) {
 
-        throw new AppException(ErrorCode.CONFLICT, "Tồn thực tế không đủ để trả NCC");
+        throw new AppException(ErrorCode.CONFLICT, "Tồn thực tế không đủ để trả Nhà Cung Cấp");
       }
 
       if (inventory.getTonCoTheBan() < normalReturn) {
 
-        throw new AppException(ErrorCode.CONFLICT, "Tồn có thể bán không đủ để trả NCC");
+        throw new AppException(ErrorCode.CONFLICT, "Tồn có thể bán không đủ để trả Nhà Cung Cấp");
       }
 
       if (inventory.getHangLoi() < item.getSoLuongLoi()) {
 
         throw new AppException(ErrorCode.CONFLICT, "Số lượng hàng lỗi trong kho không đủ");
       }
+
+      WarehouseSupport.numbers(inventory);
+      markSupplierSerialsReturned(order, detail, item);
 
       /*
        * Giảm tồn thực tế.
@@ -748,7 +884,9 @@ public class AdminPurchaseOrderService {
 
                   int imported = Math.max(0, sumMovement(id, variantId, LoaiGiaoDichKho.NHAP_HANG));
 
-                  int totalReturned = Math.abs(sumMovement(id, variantId, LoaiGiaoDichKho.TRA_NCC));
+                  int totalReturned =
+                      Math.abs(sumMovement(id, variantId, LoaiGiaoDichKho.TRA_NCC))
+                          + nccAccounting.finalReturned(id, variantId);
 
                   return totalReturned >= imported;
                 });
@@ -773,8 +911,7 @@ public class AdminPurchaseOrderService {
      *
      * Không dùng currentReturnValue ở đây.
      */
-    BigDecimal adjustedTotal =
-        order.getTongTien().subtract(cumulativeReturnValue).max(BigDecimal.ZERO);
+    BigDecimal adjustedTotal = nccAccounting.effectiveTotal(order, cumulativeReturnValue);
 
     /*
      * Số tiền thực tế cửa hàng đã trả NCC,
@@ -820,12 +957,13 @@ public class AdminPurchaseOrderService {
       SoQuyThuChi voucher =
           cashbookService.createAutomatic(
               CashbookService.AutomaticVoucher.builder()
-                  .maPhieu(refundVoucherCode)
+                  .khoaNghiepVu(refundVoucherCode)
                   .loaiPhieu(LoaiPhieuThuChi.THU)
                   .maLoaiThuChi("THU_HOAN_NCC")
                   .nhomNguoiNopNhan(NhomNguoiNopNhanEnum.NHA_CUNG_CAP)
                   .nhaCungCap(order.getNhaCungCap())
                   .maChungTuThamChieu(order.getMaDonNhap())
+                  .donNhapHang(order)
                   .soTien(refundDue)
                   .phuongThucThanhToan(request.getPhuongThucHoan())
                   .ngayGhiNhan(request.getNgayNhanTien())
@@ -872,7 +1010,7 @@ public class AdminPurchaseOrderService {
         .build();
   }
 
-  @Transactional
+  @Transactional(isolation = Isolation.READ_COMMITTED)
   public AdminPurchaseOrderReturnResponse returnToSupplier(
       Long id, String idempotencyKey, AdminPurchaseOrderReturnRequest request) {
 
@@ -889,7 +1027,7 @@ public class AdminPurchaseOrderService {
         () -> doReturnToSupplier(id, request, actor, "THU-NCC-" + normalizedKey));
   }
 
-  @Transactional
+  @Transactional(isolation = Isolation.READ_COMMITTED)
   public AdminPurchaseOrderRefundResponse receiveRefund(
       Long id, String idempotencyKey, AdminPurchaseOrderRefundRequest request) {
 
@@ -898,7 +1036,8 @@ public class AdminPurchaseOrderService {
     }
 
     if (request == null || !Boolean.TRUE.equals(request.getXacNhanDaNhanTien())) {
-      throw new AppException(ErrorCode.INVALID_DATA, "Phải xác nhận đã nhận tiền NCC hoàn");
+      throw new AppException(
+          ErrorCode.INVALID_DATA, "Phải xác nhận đã nhận tiền Nhà Cung Cấp hoàn");
     }
 
     String method = request.getPhuongThucHoan();
@@ -941,15 +1080,24 @@ public class AdminPurchaseOrderService {
 
     DonNhapHang order = requireOrderForUpdate(id);
 
-    if (order.getTrangThaiNhap() != TrangThaiNhapHang.HOAN_TRA_MOT_PHAN
-        && order.getTrangThaiNhap() != TrangThaiNhapHang.HOAN_TRA_TOAN_BO) {
-      throw new AppException(ErrorCode.CONFLICT, "Đơn nhập chưa có nghiệp vụ trả hàng NCC hợp lệ");
+    if (order.getTrangThaiNhap() == TrangThaiNhapHang.DAT_HANG
+        || order.getTrangThaiNhap() == TrangThaiNhapHang.HUY) {
+      throw new AppException(ErrorCode.CONFLICT, "Đơn nhập chưa được duyệt hoặc đã bị hủy");
     }
 
     PurchaseRefundBalance before = readPurchaseRefundBalance(order);
 
     if (before.refundDue().signum() <= 0) {
       throw new AppException(ErrorCode.CONFLICT, "Nhà cung cấp không còn khoản tiền phải hoàn");
+    }
+
+    BigDecimal amount =
+        request.getSoTienNhan() == null ? before.refundDue() : request.getSoTienNhan();
+
+    if (amount.signum() <= 0 || amount.scale() > 2 || amount.compareTo(before.refundDue()) > 0) {
+      throw new AppException(
+          ErrorCode.INVALID_DATA,
+          "Số tiền nhận phải lớn hơn 0 và không vượt khoản Nhà Cung Cấp còn phải hoàn");
     }
 
     String transaction =
@@ -963,20 +1111,21 @@ public class AdminPurchaseOrderService {
             : request.getGhiChu().strip();
 
     String description =
-        "Nhận tiền NCC hoàn sau trả hàng"
+        "Nhận tiền Nhà Cung Cấp hoàn sau trả hàng hoặc điều chỉnh"
             + (transaction == null ? "" : "\nMã giao dịch: " + transaction)
             + (note == null ? "" : "\nGhi chú: " + note);
 
     SoQuyThuChi voucher =
         cashbookService.createAutomatic(
             CashbookService.AutomaticVoucher.builder()
-                .maPhieu(voucherCode)
+                .khoaNghiepVu(voucherCode)
                 .loaiPhieu(LoaiPhieuThuChi.THU)
                 .maLoaiThuChi("THU_HOAN_NCC")
                 .nhomNguoiNopNhan(NhomNguoiNopNhanEnum.NHA_CUNG_CAP)
                 .nhaCungCap(order.getNhaCungCap())
                 .maChungTuThamChieu(order.getMaDonNhap())
-                .soTien(before.refundDue())
+                .donNhapHang(order)
+                .soTien(amount)
                 .phuongThucThanhToan(request.getPhuongThucHoan())
                 .ngayGhiNhan(request.getNgayNhanTien())
                 .moTa(description)
@@ -1035,34 +1184,6 @@ public class AdminPurchaseOrderService {
       throw new AppException(ErrorCode.CONFLICT, "Tổng tiền đơn nhập không khớp chi tiết và thuế");
     }
 
-    // Không dùng nhầm phiếu của đối tượng hoặc nghiệp vụ khác
-    // có cùng mã chứng từ tham chiếu.
-    for (SoQuyThuChi entry : soQuyThuChiRepository.findByMaChungTuThamChieu(order.getMaDonNhap())) {
-
-      if (entry.getTrangThai() != TrangThaiPhieuThuChi.DA_GHI_NHAN) {
-        continue;
-      }
-
-      String expectedType =
-          entry.getLoaiPhieu() == LoaiPhieuThuChi.CHI
-              ? "CHI_NHAP_HANG"
-              : entry.getLoaiPhieu() == LoaiPhieuThuChi.THU ? "THU_HOAN_NCC" : null;
-
-      if (entry.getNhomNguoiNopNhan() != NhomNguoiNopNhanEnum.NHA_CUNG_CAP
-          || entry.getNhaCungCap() == null
-          || !Objects.equals(entry.getNhaCungCap().getId(), order.getNhaCungCap().getId())
-          || entry.getNguoiNopNhan() != null
-          || entry.getDoiTacVanChuyen() != null
-          || expectedType == null
-          || entry.getLoaiThuChi() == null
-          || !expectedType.equals(entry.getLoaiThuChi().getMaLoai())
-          || entry.getLoaiThuChi().getLoaiPhieu() != entry.getLoaiPhieu()
-          || entry.getSoTien() == null
-          || entry.getSoTien().signum() <= 0) {
-        throw new AppException(ErrorCode.CONFLICT, "Phiếu thu/chi của đơn nhập không nhất quán");
-      }
-    }
-
     BigDecimal returnedValue = calculateReturnedValue(order, details);
     BigDecimal paid = sumCash(order, LoaiPhieuThuChi.CHI);
     BigDecimal refundReceived = sumCash(order, LoaiPhieuThuChi.THU);
@@ -1070,24 +1191,22 @@ public class AdminPurchaseOrderService {
     if (returnedValue.signum() < 0
         || returnedValue.compareTo(total) > 0
         || paid.signum() < 0
-        || paid.compareTo(total) > 0
-        || refundReceived.signum() < 0) {
+        || refundReceived.signum() < 0
+        || refundReceived.compareTo(paid) > 0) {
       throw new AppException(ErrorCode.CONFLICT, "Dữ liệu tiền của đơn nhập không nhất quán");
     }
 
-    BigDecimal adjustedTotal = total.subtract(returnedValue);
-    BigDecimal refundableTotal = paid.subtract(adjustedTotal).max(BigDecimal.ZERO);
-
-    if (refundReceived.compareTo(refundableTotal) > 0) {
-      throw new AppException(ErrorCode.CONFLICT, "Tiền đã nhận hoàn vượt khoản NCC phải hoàn");
-    }
+    BigDecimal adjustedTotal = nccAccounting.effectiveTotal(order, returnedValue);
 
     BigDecimal netPaid = paid.subtract(refundReceived);
-    BigDecimal debt = adjustedTotal.subtract(netPaid).max(BigDecimal.ZERO);
-    BigDecimal refundDue = netPaid.subtract(adjustedTotal).max(BigDecimal.ZERO);
 
     return new PurchaseRefundBalance(
-        returnedValue, adjustedTotal, paid, refundReceived, debt, refundDue);
+        returnedValue,
+        adjustedTotal,
+        paid,
+        refundReceived,
+        adjustedTotal.subtract(netPaid).max(BigDecimal.ZERO),
+        netPaid.subtract(adjustedTotal).max(BigDecimal.ZERO));
   }
 
   private record PurchaseRefundBalance(
@@ -1221,9 +1340,13 @@ public class AdminPurchaseOrderService {
 
   private DonNhapHang requireOrderForUpdate(Long id) {
 
-    return donNhapHangRepository
-        .findByIdForUpdate(id)
-        .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "Đơn nhập không tồn tại"));
+    DonNhapHang order =
+        donNhapHangRepository
+            .findByIdForUpdate(id)
+            .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "Đơn nhập không tồn tại"));
+    entityManager.refresh(order);
+    orderEvents.watchPurchase(order);
+    return order;
   }
 
   private NhaCungCap requireActiveSupplier(Long id) {
@@ -1292,26 +1415,48 @@ public class AdminPurchaseOrderService {
 
   private BigDecimal sumCash(DonNhapHang order, LoaiPhieuThuChi type) {
 
-    BigDecimal amount =
-        soQuyThuChiRepository.sumByPurchaseOrder(
-            order.getMaDonNhap(), type, TrangThaiPhieuThuChi.DA_GHI_NHAN);
+    return soQuyThuChiRepository.findByMaChungTuThamChieu(order.getMaDonNhap()).stream()
+        .filter(entry -> isPurchaseCash(entry, order, type))
+        .map(
+            entry -> {
+              if (entry.getSoTien() == null || entry.getSoTien().signum() <= 0) {
 
-    return amount == null ? BigDecimal.ZERO : amount;
+                throw new AppException(
+                    ErrorCode.CONFLICT, "Phiếu thu/chi của đơn nhập có số tiền không hợp lệ");
+              }
+
+              return entry.getSoTien();
+            })
+        .reduce(BigDecimal.ZERO, BigDecimal::add);
+  }
+
+  private boolean isPurchaseCash(SoQuyThuChi entry, DonNhapHang order, LoaiPhieuThuChi type) {
+
+    if (type == null || order.getNhaCungCap() == null) {
+      return false;
+    }
+
+    String expectedCode = type == LoaiPhieuThuChi.CHI ? "CHI_NHAP_HANG" : "THU_HOAN_NCC";
+
+    return entry.getLoaiPhieu() == type
+        && entry.getTrangThai() == TrangThaiPhieuThuChi.DA_GHI_NHAN
+        && entry.getNguonTao() == NguonTaoPhieuThuChi.TU_DONG
+        && entry.getNhomNguoiNopNhan() == NhomNguoiNopNhanEnum.NHA_CUNG_CAP
+        && entry.getNhaCungCap() != null
+        && Objects.equals(entry.getNhaCungCap().getId(), order.getNhaCungCap().getId())
+        && entry.getNguoiNopNhan() == null
+        && entry.getDoiTacVanChuyen() == null
+        && entry.getPhieuBaoHanh() == null
+        && entry.getHoaDonBaoHanh() == null
+        && entry.getPhieuTraHang() == null
+        && entry.getLoaiThuChi() != null
+        && entry.getLoaiThuChi().getLoaiPhieu() == type
+        && expectedCode.equals(entry.getLoaiThuChi().getMaLoai())
+        && Objects.equals(entry.getMaChungTuThamChieu(), order.getMaDonNhap());
   }
 
   private BigDecimal calculateDebt(DonNhapHang order) {
-
-    List<ChiTietDonNhap> details =
-        chiTietDonNhapRepository.findByDonNhapHangIdOrderByIdAsc(order.getId());
-
-    BigDecimal returned = calculateReturnedValue(order, details);
-
-    BigDecimal adjustedTotal = order.getTongTien().subtract(returned).max(BigDecimal.ZERO);
-
-    BigDecimal netPaid =
-        sumCash(order, LoaiPhieuThuChi.CHI).subtract(sumCash(order, LoaiPhieuThuChi.THU));
-
-    return adjustedTotal.subtract(netPaid).max(BigDecimal.ZERO);
+    return readPurchaseRefundBalance(order).debt();
   }
 
   private BigDecimal calculateReturnedValue(DonNhapHang order, List<ChiTietDonNhap> details) {
@@ -1339,7 +1484,9 @@ public class AdminPurchaseOrderService {
        * Chỉ phần trả vượt quá lượng giao thừa mới
        * làm giảm giá trị đơn/công nợ.
        */
-      int excessReceived = Math.max(imported - ordered, 0);
+      int excessReceived =
+          Math.max(
+              imported - ordered - nccAccounting.legacyExtraAssigned(order.getId(), variantId), 0);
 
       int financiallyReturnedQuantity = Math.max(returned - excessReceived, 0);
 
@@ -1361,89 +1508,208 @@ public class AdminPurchaseOrderService {
   }
 
   private SerialMode resolveSerialMode(Long variantId) {
+    PhienBanSanPham variant =
+        phienBanSanPhamRepository
+            .findById(variantId)
+            .orElseThrow(
+                () ->
+                    new AppException(ErrorCode.NOT_FOUND, "Không tìm thấy phiên bản " + variantId));
 
-    if (soSerialSanPhamRepository.countByPhienBanId(variantId) > 0) {
+    Boolean configured = variant.getCoQuanLySerial();
 
-      return new SerialMode(true, true);
+    if (configured == null) {
+      throw new AppException(
+          ErrorCode.CONFLICT, "Phiên bản " + variantId + " chưa có cấu hình quản lý serial");
     }
 
-    if (theKhoRepository.existsByPhienBanId(variantId)
-        || tonKhoRepository.existsByPhienBanId(variantId)) {
-
-      return new SerialMode(false, true);
-    }
-
-    return new SerialMode(null, false);
+    return new SerialMode(configured, true);
   }
 
   private void validateReceiveRequest(
       AdminPurchaseOrderReceiveRequest request, Map<Long, ChiTietDonNhap> detailMap) {
 
-    Set<Long> seen = new HashSet<>();
-
-    if (request.getItems().size() != detailMap.size()) {
+    if (request.getItems() == null || request.getItems().isEmpty()) {
       throw new AppException(
-          ErrorCode.INVALID_DATA, "Phải nhập đủ toàn bộ dòng của đơn trong một lần");
+          ErrorCode.UNPROCESSABLE_ENTITY, "Phải chọn ít nhất một dòng để nhập kho");
     }
 
-    for (AdminPurchaseOrderReceiveRequest.Item item : request.getItems()) {
+    Set<Long> seen = new HashSet<>();
 
-      if (!seen.add(item.getChiTietDonNhapId())) {
-
-        throw new AppException(ErrorCode.INVALID_DATA, "Chi tiết đơn nhập bị trùng");
+    for (var item : request.getItems()) {
+      if (item == null
+          || item.getChiTietDonNhapId() == null
+          || !seen.add(item.getChiTietDonNhapId())) {
+        throw new AppException(ErrorCode.UNPROCESSABLE_ENTITY, "Dòng nhập kho bị thiếu hoặc trùng");
       }
 
-      ChiTietDonNhap detail = detailMap.get(item.getChiTietDonNhapId());
+      var detail = detailMap.get(item.getChiTietDonNhapId());
 
       if (detail == null) {
-        throw new AppException(ErrorCode.NOT_FOUND, "Chi tiết đơn nhập không tồn tại");
+        throw new AppException(
+            ErrorCode.UNPROCESSABLE_ENTITY, "Có dòng không thuộc đơn nhập hiện tại");
       }
 
-      if (!Objects.equals(item.getSoLuongNhapKho(), detail.getSoLuong())) {
-        throw new AppException(ErrorCode.INVALID_DATA, "Số lượng nhập kho phải bằng số lượng đặt");
+      int received = grossReceived(detail);
+      int remaining = detail.getSoLuong() - received;
+
+      Integer quantity = item.getSoLuongNhapKho();
+
+      if (quantity == null || quantity <= 0 || quantity > remaining) {
+        throw new AppException(
+            ErrorCode.UNPROCESSABLE_ENTITY,
+            "Dòng " + detail.getId() + " chỉ còn " + remaining + " sản phẩm chưa nhập");
       }
+    }
+  }
+
+  private int grossReceived(ChiTietDonNhap detail) {
+    int received =
+        sumMovement(
+            detail.getDonNhapHang().getId(),
+            detail.getPhienBan().getId(),
+            LoaiGiaoDichKho.NHAP_HANG);
+
+    if (received < 0) {
+      throw new AppException(
+          ErrorCode.CONFLICT, "Số lượng đã nhập không nhất quán ở dòng " + detail.getId());
+    }
+
+    return received;
+  }
+
+  private void refreshImportStatus(DonNhapHang order, List<ChiTietDonNhap> details) {
+
+    boolean hasReturn =
+        details.stream()
+            .anyMatch(
+                detail ->
+                    sumMovement(
+                                order.getId(),
+                                detail.getPhienBan().getId(),
+                                LoaiGiaoDichKho.TRA_NCC)
+                            < 0
+                        || nccAccounting.finalReturned(order.getId(), detail.getPhienBan().getId())
+                            > 0);
+
+    if (hasReturn) {
+      boolean allReturned =
+          details.stream()
+              .allMatch(
+                  detail -> {
+                    Long variantId = detail.getPhienBan().getId();
+
+                    int returned =
+                        Math.abs(sumMovement(order.getId(), variantId, LoaiGiaoDichKho.TRA_NCC))
+                            + nccAccounting.finalReturned(order.getId(), variantId);
+
+                    return returned >= grossReceived(detail);
+                  });
+
+      order.setTrangThaiNhap(
+          allReturned ? TrangThaiNhapHang.HOAN_TRA_TOAN_BO : TrangThaiNhapHang.HOAN_TRA_MOT_PHAN);
+      return;
+    }
+
+    boolean fullyReceived =
+        details.stream().allMatch(detail -> grossReceived(detail) >= detail.getSoLuong());
+
+    boolean anyReceived = details.stream().anyMatch(detail -> grossReceived(detail) > 0);
+
+    order.setTrangThaiNhap(
+        fullyReceived
+            ? TrangThaiNhapHang.DA_NHAP_KHO
+            : anyReceived ? TrangThaiNhapHang.NHAP_MOT_PHAN : TrangThaiNhapHang.DA_DUYET);
+  }
+
+  private String receiptText(String value, String field, String label) {
+    if (value == null || value.isBlank()) {
+      return null;
+    }
+
+    String normalized = value.strip();
+
+    if (normalized.length() > 100 || normalized.chars().anyMatch(Character::isISOControl)) {
+      throw new AppException(
+          ErrorCode.INVALID_DATA,
+          field,
+          "RECEIPT_TEXT_INVALID",
+          label + " tối đa 100 ký tự và không chứa ký tự điều khiển.");
+    }
+
+    return normalized;
+  }
+
+  private void validateReceiptMetadata(AdminPurchaseOrderReceiveRequest request) {
+    receiptText(request.getMaPhieuXuatNcc(), "ma_phieu_xuat_ncc", "Mã chứng từ Nhà Cung Cấp");
+
+    for (int index = 0; index < request.getItems().size(); index++) {
+      var item = request.getItems().get(index);
+      String prefix = "items[" + index + "].";
+
+      receiptText(item.getMaLoNcc(), prefix + "ma_lo_ncc", "Mã lô Nhà Cung Cấp");
+      receiptText(item.getViTriLuuKho(), prefix + "vi_tri_luu_kho", "Vị trí lưu kho");
     }
   }
 
   private Set<String> collectAndValidateSerials(
       AdminPurchaseOrderReceiveRequest request, Map<Long, ChiTietDonNhap> detailMap) {
 
-    Set<String> globalSerials = new HashSet<>();
+    Set<String> globalSerials = new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
 
-    for (AdminPurchaseOrderReceiveRequest.Item item : request.getItems()) {
-
+    for (int index = 0; index < request.getItems().size(); index++) {
+      var item = request.getItems().get(index);
       List<String> serials = item.getSoSerials();
+      String field = "items[" + index + "].so_serials";
 
-      if (Boolean.TRUE.equals(item.getQuanLySerial())) {
+      if (serials == null || item.getQuanLySerial() == null) {
+        throw new AppException(
+            ErrorCode.INVALID_DATA,
+            field,
+            "RECEIPT_SERIAL_REQUIRED",
+            "Thiếu cấu hình serial hoặc danh sách serial.");
+      }
 
-        if (serials.size() != item.getSoLuongNhapKho()) {
-
-          throw new AppException(
-              ErrorCode.INVALID_DATA, "Số lượng Serial phải bằng " + "số lượng nhập kho");
-        }
-
-        for (String serial : serials) {
-
-          if (serial == null || serial.isBlank()) {
-
-            throw new AppException(ErrorCode.INVALID_DATA, "Serial không được để trống");
-          }
-
-          String normalized = serial.trim();
-
-          if (!globalSerials.add(normalized)) {
-
-            throw new AppException(ErrorCode.CONFLICT, "Serial bị trùng trong request");
-          }
-        }
-
-      } else {
-
+      if (!Boolean.TRUE.equals(item.getQuanLySerial())) {
         if (!serials.isEmpty()) {
+          throw new AppException(
+              ErrorCode.UNPROCESSABLE_ENTITY,
+              field,
+              "RECEIPT_SERIAL_NOT_MANAGED",
+              "Hàng không quản lý serial phải gửi danh sách serial rỗng.");
+        }
+        continue;
+      }
 
+      if (serials.size() != item.getSoLuongNhapKho()) {
+        throw new AppException(
+            ErrorCode.UNPROCESSABLE_ENTITY,
+            field,
+            "RECEIPT_SERIAL_COUNT",
+            "Số serial phải bằng số lượng nhận của dòng này.");
+      }
+
+      for (String raw : serials) {
+        if (raw == null || raw.isBlank()) {
+          throw new AppException(
+              ErrorCode.INVALID_DATA, field, "RECEIPT_SERIAL_EMPTY", "Serial không được để trống.");
+        }
+
+        String code = raw.trim();
+
+        if (code.length() > 100 || code.chars().anyMatch(Character::isISOControl)) {
           throw new AppException(
               ErrorCode.INVALID_DATA,
-              "Phiên bản không quản lý Serial " + "thì so_serials phải rỗng");
+              field,
+              "RECEIPT_SERIAL_INVALID",
+              "Serial tối đa 100 ký tự và không chứa ký tự điều khiển.");
+        }
+
+        if (!globalSerials.add(code)) {
+          throw new AppException(
+              ErrorCode.CONFLICT,
+              field,
+              "RECEIPT_SERIAL_DUPLICATED",
+              "Serial bị trùng trong lần nhập: " + code);
         }
       }
     }
@@ -1461,16 +1727,24 @@ public class AdminPurchaseOrderService {
     }
 
     if (!rows.isEmpty()) {
-      return rows.get(0);
+      TonKho stock = rows.get(0);
+      recallSafety.track(stock);
+      return stock;
     }
 
-    return TonKho.builder()
-        .khoHang(warehouse)
-        .phienBan(variant)
-        .tonThucTe(0)
-        .tonCoTheBan(0)
-        .hangLoi(0)
-        .build();
+    TonKho created =
+        TonKho.builder()
+            .khoHang(warehouse)
+            .phienBan(variant)
+            .tonThucTe(0)
+            .tonCoTheBan(0)
+            .hangLoi(0)
+            .build();
+
+    created = tonKhoRepository.saveAndFlush(created);
+    recallSafety.track(created);
+
+    return created;
   }
 
   private TonKho lockExistingInventory(KhoHang warehouse, PhienBanSanPham variant) {
@@ -1487,34 +1761,22 @@ public class AdminPurchaseOrderService {
       throw new AppException(ErrorCode.CONFLICT, "Dữ liệu tồn kho bị trùng");
     }
 
-    return rows.get(0);
+    TonKho stock = rows.get(0);
+    recallSafety.track(stock);
+    return stock;
   }
 
   private void updatePaymentStatus(DonNhapHang order) {
 
-    BigDecimal debt = calculateDebt(order);
+    PurchaseRefundBalance balance = readPurchaseRefundBalance(order);
 
-    BigDecimal adjustedTotal =
-        order
-            .getTongTien()
-            .subtract(
-                calculateReturnedValue(
-                    order, chiTietDonNhapRepository.findByDonNhapHangIdOrderByIdAsc(order.getId())))
-            .max(BigDecimal.ZERO);
+    BigDecimal netPaid = balance.paid().subtract(balance.refundReceived());
 
-    BigDecimal netPaid =
-        sumCash(order, LoaiPhieuThuChi.CHI).subtract(sumCash(order, LoaiPhieuThuChi.THU));
-
-    if (adjustedTotal.compareTo(BigDecimal.ZERO) == 0 || netPaid.compareTo(adjustedTotal) >= 0) {
-
+    if (balance.adjustedTotal().signum() == 0 || netPaid.compareTo(balance.adjustedTotal()) >= 0) {
       order.setTrangThaiThanhToan(TrangThaiThanhToanNhap.DA_TRA);
-
-    } else if (netPaid.compareTo(BigDecimal.ZERO) <= 0) {
-
+    } else if (netPaid.signum() <= 0) {
       order.setTrangThaiThanhToan(TrangThaiThanhToanNhap.CHUA_TRA);
-
     } else {
-
       order.setTrangThaiThanhToan(TrangThaiThanhToanNhap.TRA_MOT_PHAN);
     }
   }
@@ -1539,6 +1801,149 @@ public class AdminPurchaseOrderService {
                 .soTien(voucher.getSoTien())
                 .build())
         .build();
+  }
+
+  public List<AdminPurchaseOrderReceiveResponse.SerialData> getReturnSerials(
+      Long orderId, Long detailId) {
+
+    requireOrder(orderId);
+
+    var detail =
+        chiTietDonNhapRepository.findByDonNhapHangIdOrderByIdAsc(orderId).stream()
+            .filter(item -> Objects.equals(item.getId(), detailId))
+            .findFirst()
+            .orElseThrow(
+                () -> new AppException(ErrorCode.NOT_FOUND, "Chi tiết không thuộc đơn nhập"));
+
+    return warehouseSupport.shopSerials(List.of(detail.getPhienBan().getId()), false).stream()
+        .filter(
+            serial ->
+                serial.getDonNhapHang() != null
+                    && Objects.equals(serial.getDonNhapHang().getId(), orderId))
+        .filter(
+            serial ->
+                serial.getTrangThai() == TrangThaiSerial.TRONG_KHO
+                    || serial.getTrangThai() == TrangThaiSerial.LOI)
+        .filter(serial -> serial.getChiTietDongGoi() == null)
+        .filter(serial -> !nccAccounting.trackedSerial(serial.getId()))
+        .filter(serial -> !Boolean.TRUE.equals(serial.getBiThuHoi()))
+        .map(
+            serial ->
+                AdminPurchaseOrderReceiveResponse.SerialData.builder()
+                    .id(serial.getId())
+                    .soSerial(serial.getSoSerial())
+                    .trangThai(serial.getTrangThai())
+                    .build())
+        .toList();
+  }
+
+  private void markSupplierSerialsReturned(
+      DonNhapHang order, ChiTietDonNhap detail, AdminPurchaseOrderReturnRequest.Item item) {
+
+    Boolean managed = detail.getPhienBan().getCoQuanLySerial();
+
+    if (managed == null) {
+      throw new AppException(ErrorCode.CONFLICT, "Phiên bản chưa có cấu hình quản lý serial");
+    }
+
+    List<Long> ids = item.getSoSerialIds();
+
+    if (ids == null) {
+      throw new AppException(ErrorCode.INVALID_DATA, "so_serial_ids không được null");
+    }
+
+    if (!managed) {
+      if (!ids.isEmpty()) {
+        throw new AppException(
+            ErrorCode.INVALID_DATA, "Hàng không quản lý serial phải gửi so_serial_ids: []");
+      }
+
+      return;
+    }
+
+    if (ids.stream().anyMatch(value -> value == null || value <= 0)
+        || new HashSet<>(ids).size() != ids.size()
+        || ids.size() != item.getSoLuongTra()) {
+
+      throw new AppException(
+          ErrorCode.INVALID_DATA, "Phải chọn đúng số lượng serial trả và không được trùng");
+    }
+
+    var serials = soSerialSanPhamRepository.findAllByIdsForUpdate(ids);
+
+    if (serials.size() != ids.size()) {
+      throw new AppException(ErrorCode.NOT_FOUND, "Có serial không tồn tại");
+    }
+
+    int defects = 0;
+
+    for (var serial : serials) {
+      recallSafety.requireSerialClear(serial);
+      if (nccAccounting.trackedSerial(serial.getId())) {
+        throw new AppException(
+            ErrorCode.CONFLICT,
+            "Serial đã có lịch sử xử lý Nhà Cung Cấp; hãy trả theo hồ sơ Nhà Cung Cấp: "
+                + serial.getSoSerial());
+      }
+
+      boolean correctSource =
+          Objects.equals(serial.getPhienBan().getId(), detail.getPhienBan().getId())
+              && serial.getDonNhapHang() != null
+              && Objects.equals(serial.getDonNhapHang().getId(), order.getId());
+
+      boolean warehouseState =
+          serial.getTrangThai() == TrangThaiSerial.TRONG_KHO
+              || serial.getTrangThai() == TrangThaiSerial.LOI;
+
+      if (!correctSource
+          || serial.getDonHang() != null
+          || serial.getChiTietDongGoi() != null
+          || !warehouseState) {
+
+        throw new AppException(
+            ErrorCode.CONFLICT,
+            "Serial " + serial.getSoSerial() + " không còn đủ điều kiện trả cho đơn nhập này");
+      }
+
+      if (serial.getTrangThai() == TrangThaiSerial.LOI) {
+        defects++;
+      }
+    }
+
+    if (defects != item.getSoLuongLoi()) {
+      throw new AppException(
+          ErrorCode.INVALID_DATA, "Số lượng lỗi phải khớp trạng thái các serial đã chọn");
+    }
+
+    Long activeWarranty =
+        entityManager
+            .createQuery(
+                """
+      select count(p.id)
+      from PhieuBaoHanh p
+      left join p.soSerial sourceSerial
+      left join p.thietBi device
+      left join device.soSerial deviceSerial
+      left join p.thietBiThayThe replacement
+      left join replacement.soSerial replacementSerial
+      where p.trangThaiXuLy <> :completed
+        and (
+          sourceSerial.id in :ids
+          or deviceSerial.id in :ids
+          or replacementSerial.id in :ids
+        )
+      """,
+                Long.class)
+            .setParameter("completed", TrangThaiBaoHanh.HOAN_TAT)
+            .setParameter("ids", ids)
+            .getSingleResult();
+
+    if (activeWarranty > 0) {
+      throw new AppException(
+          ErrorCode.CONFLICT, "Có serial đang thuộc hồ sơ bảo hành chưa hoàn tất");
+    }
+
+    serials.forEach(serial -> serial.setTrangThai(TrangThaiSerial.DA_TRA_NCC));
   }
 
   private void validateIdempotencyKey(String value) {
@@ -1601,4 +2006,20 @@ public class AdminPurchaseOrderService {
   }
 
   private record SerialMode(Boolean value, boolean established) {}
+
+  @Transactional(isolation = Isolation.READ_COMMITTED)
+  public DonNhapHang lockForNcc(Long id) {
+    return requireOrderForUpdate(id);
+  }
+
+  @Transactional(isolation = Isolation.READ_COMMITTED)
+  public void synchronizeNcc(Long id) {
+    DonNhapHang order = requireOrderForUpdate(id);
+
+    List<ChiTietDonNhap> details = chiTietDonNhapRepository.findByDonNhapHangIdOrderByIdAsc(id);
+
+    refreshImportStatus(order, details);
+    updatePaymentStatus(order);
+    donNhapHangRepository.saveAndFlush(order);
+  }
 }

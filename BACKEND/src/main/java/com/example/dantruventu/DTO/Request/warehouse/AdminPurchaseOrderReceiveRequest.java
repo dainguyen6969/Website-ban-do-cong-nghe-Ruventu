@@ -1,10 +1,12 @@
 package com.example.dantruventu.DTO.Request.warehouse;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 import java.util.List;
 import lombok.*;
 
@@ -18,6 +20,10 @@ public class AdminPurchaseOrderReceiveRequest {
   @JsonProperty("kho_hang_id")
   @NotNull(message = "Kho hàng không được để trống")
   private Long khoHangId;
+
+  @JsonProperty("ma_phieu_xuat_ncc")
+  @Size(max = 100)
+  private String maPhieuXuatNcc;
 
   @Valid
   @NotEmpty(message = "Danh sách nhập kho không được trống")
@@ -34,6 +40,10 @@ public class AdminPurchaseOrderReceiveRequest {
     @NotNull(message = "Chi tiết đơn nhập không được để trống")
     private Long chiTietDonNhapId;
 
+    @JsonProperty("ma_lo_ncc")
+    @Size(max = 100)
+    private String maLoNcc;
+
     @JsonProperty("so_luong_nhap_kho")
     @NotNull
     @Min(value = 1, message = "Số lượng nhập kho phải lớn hơn 0")
@@ -46,5 +56,10 @@ public class AdminPurchaseOrderReceiveRequest {
     @JsonProperty("so_serials")
     @NotNull(message = "Danh sách Serial không được null")
     private List<String> soSerials;
+
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    @JsonProperty("vi_tri_luu_kho")
+    @Size(max = 100, message = "Vị trí lưu kho tối đa 100 ký tự")
+    private String viTriLuuKho;
   }
 }

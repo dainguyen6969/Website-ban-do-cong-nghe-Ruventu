@@ -53,9 +53,11 @@ public class AdminDeliveryController {
 
   @PatchMapping("/{id}/status")
   public ApiResponse<Action> changeStatus(
-      @PathVariable("id") Long id, @Valid @RequestBody AdminDeliveryStatusRequest request) {
+      @PathVariable("id") Long id,
+      @RequestHeader("Idempotency-Key") String idempotencyKey,
+      @Valid @RequestBody AdminDeliveryStatusRequest request) {
 
-    Action response = service.changeStatus(id, request);
+    Action response = service.changeStatus(id, idempotencyKey, request);
 
     String message =
         switch (request.getTrangThaiGiaoHang()) {
@@ -78,10 +80,13 @@ public class AdminDeliveryController {
 
   @PostMapping("/{id}/return-receipt")
   public ApiResponse<Action> receiveReturn(
-      @PathVariable("id") Long id, @Valid @RequestBody AdminDeliveryReturnRequest request) {
+      @PathVariable("id") Long id,
+      @RequestHeader("Idempotency-Key") String idempotencyKey,
+      @Valid @RequestBody AdminDeliveryReturnRequest request) {
 
     return success(
-        "Xác nhận nhận hàng hoàn và nhập lại kho thành công", service.receiveReturn(id, request));
+        "Xác nhận nhận hàng hoàn và nhập lại kho thành công",
+        service.receiveReturn(id, idempotencyKey, request));
   }
 
   private <T> ApiResponse<T> success(String message, T data) {

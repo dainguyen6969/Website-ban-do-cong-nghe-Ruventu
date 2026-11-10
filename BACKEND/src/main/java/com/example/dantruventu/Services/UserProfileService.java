@@ -43,7 +43,7 @@ public class UserProfileService {
         .email(nguoiDung.getEmail())
         .soDienThoai(nguoiDung.getSoDienThoai())
         .anhDaiDien(nguoiDung.getAnhDaiDien())
-        .trangThai(nguoiDung.getTrangThai().name())
+        .trangThai(nguoiDung.getTrangThai().getValue())
         .diaChiMacDinh(diaChiResponse)
         .build();
   }

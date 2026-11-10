@@ -1,0 +1,30 @@
+.storefront-app .back-to-top {
+  position: fixed;
+  right: max(20px, env(safe-area-inset-right));
+  bottom: max(24px, env(safe-area-inset-bottom));
+  z-index: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 2px solid #000;
+  border-radius: 0;
+  background-color: var(--primary-red);
+  color: #fff;
+  opacity: .55;
+  cursor: pointer;
+  transition: background-color .2s ease, opacity .2s ease;
+}
+
+.storefront-app .back-to-top:is(:hover, :focus-visible) {
+  background-color: #000;
+  color: #fff;
+  opacity: 1;
+}
+
+.storefront-app .back-to-top:focus-visible {
+  outline: 2px solid var(--primary-red);
+  outline-offset: 3px;
+}

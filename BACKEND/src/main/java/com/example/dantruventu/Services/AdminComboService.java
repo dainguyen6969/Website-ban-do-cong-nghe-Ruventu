@@ -10,6 +10,7 @@ import com.example.dantruventu.Entity.*;
 import com.example.dantruventu.Enum.LoaiSanPham;
 import com.example.dantruventu.Enum.TrangThaiCoBanEnum;
 import com.example.dantruventu.Error.AppException;
+import com.example.dantruventu.Error.CatalogException;
 import com.example.dantruventu.Error.ErrorCode;
 import com.example.dantruventu.Mapper.product.SanPhamMapper;
 import com.example.dantruventu.Mapper.warehouse.ComboMapper;
@@ -21,10 +22,9 @@ import com.example.dantruventu.Repository.product.SanPhamRepository;
 import com.example.dantruventu.Repository.warehouse.ComboRepository;
 import com.example.dantruventu.Repository.warehouse.ThanhPhanComboRepository;
 import com.example.dantruventu.Repository.warehouse.TonKhoRepository;
+import com.example.dantruventu.Services.catalog.CatalogSupport;
 import com.example.dantruventu.Specification.ComboSpecification;
 import java.math.BigDecimal;
-import java.net.URI;
-import java.net.URISyntaxException;
 import java.util.*;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
@@ -53,19 +53,19 @@ public class AdminComboService {
   private final ThuongHieuRepository thuongHieuRepository;
   private final ComboMapper comboMapper;
   private final SanPhamMapper sanPhamMapper;
+  private final CatalogSupport catalog;
 
   public AdminComboListResponse getCombos(String keyword, Short trangThai, int page, int limit) {
 
     validatePagination(page, limit);
 
-    var status = trangThai == null ? null : parseStatus(trangThai);
-
     var result =
         comboRepository.findAll(
-            ComboSpecification.build(keywordPattern(keyword), status),
+            ComboSpecification.build(
+                keywordPattern(keyword), trangThai == null ? null : parseStatus(trangThai)),
             PageRequest.of(page, limit, Sort.by("id").descending()));
 
-    List<Long> ids = result.getContent().stream().map(SanPham::getId).toList();
+    var ids = result.getContent().stream().map(SanPham::getId).toList();
 
     if (ids.isEmpty()) {
       return AdminComboListResponse.builder()
@@ -74,26 +74,33 @@ public class AdminComboService {
           .build();
     }
 
-    var components = thanhPhanComboRepository.findByComboIds(ids);
+    var variants = phienBanSanPhamRepository.findBySanPhamIdInOrderByIdAsc(ids);
+    var components = catalog.components(ids);
+    var stocks = catalog.stocks(catalog.ids(variants, components));
+    var images = catalog.primaryImages(ids);
 
-    var componentsByProduct =
+    var variantsByProduct =
+        variants.stream().collect(Collectors.groupingBy(v -> v.getSanPham().getId()));
+
+    var partsByProduct =
         components.stream().collect(Collectors.groupingBy(c -> c.getSanPhamCombo().getId()));
-
-    var componentStocks = componentStockMap(components);
-    var comboStocks = comboStockMap(ids);
 
     var items =
         result.getContent().stream()
             .map(
                 combo -> {
-                  var response = comboMapper.toListItem(combo);
-                  long stock = comboStocks.getOrDefault(combo.getId(), 0L);
-                  var comboComponents = componentsByProduct.getOrDefault(combo.getId(), List.of());
+                  var saleVariants = variantsByProduct.getOrDefault(combo.getId(), List.of());
+                  var saleVariant = singleSaleVariant(saleVariants);
+                  var parts = partsByProduct.getOrDefault(combo.getId(), List.of());
 
-                  response.setGiaBan(componentTotal(comboComponents, false));
-                  response.setTonCoTheBan(stock);
-                  response.setTonThucTe(stock);
-                  response.setThanhPhan(componentResponses(comboComponents, componentStocks));
+                  var response = comboMapper.toListItem(combo);
+                  response.setPhienBanId(saleVariant.getId());
+                  response.setGiaBan(saleVariant.getGiaBanLe());
+                  response.setAnhChinh(images.get(combo.getId()));
+                  response.setTonCoTheBan(null);
+                  response.setTonThucTe(null);
+                  response.setThanhPhan(catalog.componentResponses(parts, stocks));
+                  catalog.metadata(response, combo, saleVariants, parts, stocks);
 
                   return response;
                 })
@@ -105,17 +112,23 @@ public class AdminComboService {
   public AdminComboDetailResponse getDetail(Long id) {
     SanPham combo = requireCombo(id, false);
 
-    var components = thanhPhanComboRepository.findByComboIds(List.of(id));
-
-    long stock = comboStockMap(List.of(id)).getOrDefault(id, 0L);
+    var variants = phienBanSanPhamRepository.findBySanPhamIdInOrderByIdAsc(List.of(id));
+    var saleVariant = singleSaleVariant(variants);
+    var components = catalog.components(List.of(id));
+    var stocks = catalog.stocks(catalog.ids(variants, components));
 
     var response = comboMapper.toDetail(combo);
-    response.setGiaBanLe(componentTotal(components, false));
-    response.setGiaNhap(componentTotal(components, true));
-    response.setTonCoTheBan(stock);
-    response.setTonThucTe(stock);
+    response.setPhienBanId(saleVariant.getId());
+    response.setTenPhienBan(saleVariant.getTenPhienBan());
+    response.setMaVach(saleVariant.getMaVach());
+    response.setTrangThaiPhienBan(saleVariant.getTrangThai().getValue());
+    response.setGiaBanLe(saleVariant.getGiaBanLe());
+    response.setGiaNhap(saleVariant.getGiaNhap());
+    response.setKhoiLuong(saleVariant.getKhoiLuong());
+    response.setTonCoTheBan(null);
+    response.setTonThucTe(null);
     response.setCauHinhBiKhoa(comboRepository.countConfigurationReferences(id) > 0);
-    response.setThanhPhan(componentResponses(components, componentStockMap(components)));
+    response.setThanhPhan(catalog.componentResponses(components, stocks));
 
     response.setAnhSanPham(
         Optional.ofNullable(combo.getDanhSachAnhSanPham()).orElseGet(List::of).stream()
@@ -126,6 +139,7 @@ public class AdminComboService {
             .map(sanPhamMapper::toImageResponse)
             .toList());
 
+    catalog.metadata(response, combo, variants, components, stocks);
     return response;
   }
 
@@ -141,14 +155,50 @@ public class AdminComboService {
             TrangThaiCoBanEnum.HOAT_DONG,
             PageRequest.of(page, limit));
 
+    var ids =
+        result.getContent().stream()
+            .map(ComboRepository.ComponentOptionProjection::getPhienBanId)
+            .toList();
+
+    var variants =
+        ids.isEmpty() ? List.<PhienBanSanPham>of() : phienBanSanPhamRepository.findAllById(ids);
+
+    var byId = variants.stream().collect(Collectors.toMap(PhienBanSanPham::getId, v -> v));
+
+    var stocks = catalog.stocks(ids);
+    var images =
+        catalog.primaryImages(
+            variants.stream().map(v -> v.getSanPham().getId()).distinct().toList());
+
+    var items =
+        result.getContent().stream()
+            .map(
+                item -> {
+                  var variant = byId.get(item.getPhienBanId());
+                  var response = comboMapper.toComponentOption(item);
+
+                  response.setTonCoTheBan(
+                      stocks
+                          .getOrDefault(item.getPhienBanId(), CatalogSupport.Stock.ZERO)
+                          .available());
+                  response.setCoQuanLySerial(variant.getCoQuanLySerial());
+                  response.setThoiHanBaoHanhThang(variant.getSanPham().getThoiHanBaoHanhThang());
+                  response.setAnhChinh(images.get(variant.getSanPham().getId()));
+                  return response;
+                })
+            .toList();
+
     return AdminComboComponentOptionListResponse.builder()
-        .items(result.getContent().stream().map(comboMapper::toComponentOption).toList())
+        .items(items)
         .pagination(pagination(result))
         .build();
   }
 
   @Transactional(isolation = Isolation.READ_COMMITTED)
   public AdminComboMutationResponse create(AdminComboCreateRequest request) {
+
+    catalog.rejectComboWarranty(request);
+    catalog.checkComponentWarranties(request.getThanhPhan());
 
     String code = request.getMaSanPham().trim();
     validateCode(code, null);
@@ -187,6 +237,7 @@ public class AdminComboService {
     combo.setLoaiSanPham(LoaiSanPham.BO_PC);
     combo.setTrangThai(status);
     combo.setThueVat(request.getThueVat() == null ? BigDecimal.ZERO : request.getThueVat());
+    combo.setThoiHanBaoHanhThang(0);
 
     combo = sanPhamRepository.save(combo);
 
@@ -195,6 +246,8 @@ public class AdminComboService {
 
     var saleVariant =
         PhienBanSanPham.builder()
+            .coQuanLySerial(false)
+            .khoiLuong(request.getKhoiLuong() == null ? BigDecimal.ZERO : request.getKhoiLuong())
             .sanPham(combo)
             .tenPhienBan(defaultVariantName(request.getTenPhienBan()))
             .maVach(validBarcode(request.getMaVach(), null))
@@ -220,6 +273,9 @@ public class AdminComboService {
   @Transactional(isolation = Isolation.READ_COMMITTED)
   public AdminComboMutationResponse update(Long id, AdminComboUpdateRequest request) {
 
+    catalog.rejectComboWarranty(request);
+    catalog.checkComponentWarranties(request.getThanhPhan());
+
     SanPham combo = requireCombo(id, true);
 
     var saleVariant = singleSaleVariant(phienBanSanPhamRepository.findSaleVariantsForUpdate(id));
@@ -232,10 +288,10 @@ public class AdminComboService {
     boolean configurationChanged = !currentQuantities.equals(requestedQuantities);
 
     if (configurationChanged && comboRepository.countConfigurationReferences(id) > 0) {
-      throw new AppException(
-          ErrorCode.CONFLICT,
-          "Cấu hình combo đang được đơn hàng sử dụng hoặc đã từng xuất. "
-              + "Vui lòng tạo mã combo mới để thay đổi thành phần.");
+      throw CatalogException.conflict(
+          "thanh_phan",
+          "COMBO_CONFIGURATION_LOCKED",
+          "Không được thay thành phần combo đang được sử dụng; hãy tạo cấu hình mới");
     }
 
     var status = parseStatus(request.getTrangThai());
@@ -268,25 +324,49 @@ public class AdminComboService {
     combo.setMaSanPham(code);
     combo.setTenSanPham(request.getTenSanPham().trim());
     combo.setTrangThai(status);
-    combo.setDanhMuc(
-        danhMucRepository
-            .findById(request.getDanhMucId())
-            .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "Không tìm thấy danh mục")));
-    combo.setThuongHieu(
-        request.getThuongHieuId() == null
-            ? null
-            : thuongHieuRepository
-                .findById(request.getThuongHieuId())
-                .orElseThrow(
-                    () -> new AppException(ErrorCode.NOT_FOUND, "Không tìm thấy thương hiệu")));
-    combo.setMoTa(request.getMoTa());
-    combo.setThongSoKyThuat(
-        request.getThongSoKyThuat() == null ? null : request.getThongSoKyThuat().toString());
-    combo.setThueVat(request.getThueVat() == null ? BigDecimal.ZERO : request.getThueVat());
+    if (request.getDanhMucId() != null) {
+      combo.setDanhMuc(
+          danhMucRepository
+              .findById(request.getDanhMucId())
+              .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "Không tìm thấy danh mục")));
+    }
+
+    if (request.isThuongHieuProvided()) {
+      combo.setThuongHieu(
+          request.getThuongHieuId() == null
+              ? null
+              : thuongHieuRepository
+                  .findById(request.getThuongHieuId())
+                  .orElseThrow(
+                      () -> new AppException(ErrorCode.NOT_FOUND, "Không tìm thấy thương hiệu")));
+    }
+
+    if (request.getMoTa() != null) {
+      combo.setMoTa(request.getMoTa());
+    }
+
+    if (request.getThongSoKyThuat() != null) {
+      combo.setThongSoKyThuat(request.getThongSoKyThuat().toString());
+    }
+
+    if (request.getThueVat() != null) {
+      combo.setThueVat(request.getThueVat());
+    }
+
+    combo.setThoiHanBaoHanhThang(0);
 
     saleVariant.setGiaBanLe(request.getGiaBanLe());
-    saleVariant.setTenPhienBan(defaultVariantName(request.getTenPhienBan()));
-    saleVariant.setMaVach(validBarcode(request.getMaVach(), saleVariant.getId()));
+    if (request.getTenPhienBan() != null) {
+      saleVariant.setTenPhienBan(defaultVariantName(request.getTenPhienBan()));
+    }
+
+    if (request.getMaVach() != null) {
+      saleVariant.setMaVach(validBarcode(request.getMaVach(), saleVariant.getId()));
+    }
+
+    if (request.getKhoiLuong() != null) {
+      saleVariant.setKhoiLuong(request.getKhoiLuong());
+    }
     saleVariant.setTrangThai(variantStatus);
 
     if (request.getGiaNhap() != null) {
@@ -398,8 +478,10 @@ public class AdminComboService {
         throw invalid("Thành phần phải có ID và số lượng nguyên dương");
       }
 
-      if (result.putIfAbsent(component.getPhienBanThanhPhanId(), component.getSoLuong()) != null) {
-        throw unprocessable("Một phiên bản chỉ được xuất hiện một lần trong thanh_phan");
+      try {
+        result.merge(component.getPhienBanThanhPhanId(), component.getSoLuong(), Math::addExact);
+      } catch (ArithmeticException exception) {
+        throw invalid("Tổng số lượng linh kiện vượt giới hạn");
       }
     }
 
@@ -538,44 +620,7 @@ public class AdminComboService {
   }
 
   private void validateImages(List<ProductImageRequest> images) {
-    if (images == null) {
-      return;
-    }
-
-    int mainCount = 0;
-
-    for (var image : images) {
-      if (image == null || image.getDuongDanAnh() == null || image.getDuongDanAnh().isBlank()) {
-        throw invalid("Đường dẫn ảnh không được để trống");
-      }
-
-      String url = image.getDuongDanAnh().trim();
-
-      if (url.length() > 255) {
-        throw invalid("Đường dẫn ảnh tối đa 255 ký tự");
-      }
-
-      try {
-        URI uri = new URI(url);
-
-        if ((!"http".equalsIgnoreCase(uri.getScheme())
-                && !"https".equalsIgnoreCase(uri.getScheme()))
-            || uri.getHost() == null
-            || uri.getUserInfo() != null) {
-          throw invalid("Ảnh phải có URL HTTP/HTTPS hợp lệ");
-        }
-      } catch (URISyntaxException exception) {
-        throw invalid("Đường dẫn ảnh không hợp lệ");
-      }
-
-      if (Boolean.TRUE.equals(image.getLaAnhChinh())) {
-        mainCount++;
-      }
-    }
-
-    if (mainCount > 1) {
-      throw invalid("Chỉ được chọn một ảnh chính");
-    }
+    catalog.validateImages(images);
   }
 
   private void saveImages(SanPham combo, List<ProductImageRequest> requests) {
@@ -687,8 +732,23 @@ public class AdminComboService {
   private AdminComboMutationResponse mutationResponse(
       SanPham combo, PhienBanSanPham variant, Map<Long, Integer> quantities) {
 
+    var components = catalog.components(List.of(combo.getId()));
+    var componentVariants =
+        components.stream()
+            .collect(
+                Collectors.toMap(
+                    c -> c.getPhienBanThanhPhan().getId(),
+                    ThanhPhanCombo::getPhienBanThanhPhan,
+                    (first, second) -> first));
+
     var response = comboMapper.toMutation(combo);
     response.setPhienBanId(variant.getId());
+    response.setGiaBanLe(variant.getGiaBanLe());
+    response.setGiaNhap(variant.getGiaNhap());
+    response.setKhoiLuong(variant.getKhoiLuong());
+    response.setTonThucTe(null);
+    response.setTonCoTheBan(null);
+
     response.setThanhPhan(
         quantities.entrySet().stream()
             .map(
@@ -696,8 +756,20 @@ public class AdminComboService {
                     AdminComboMutationResponse.ThanhPhanData.builder()
                         .phienBanThanhPhanId(entry.getKey())
                         .soLuong(entry.getValue())
+                        .thoiHanBaoHanhThang(
+                            componentVariants
+                                .get(entry.getKey())
+                                .getSanPham()
+                                .getThoiHanBaoHanhThang())
                         .build())
             .toList());
+
+    catalog.metadata(
+        response,
+        combo,
+        List.of(variant),
+        components,
+        catalog.stocks(catalog.ids(List.of(variant), components)));
 
     return response;
   }

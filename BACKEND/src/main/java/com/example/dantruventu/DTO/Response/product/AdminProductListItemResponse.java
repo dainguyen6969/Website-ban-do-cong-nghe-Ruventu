@@ -1,6 +1,7 @@
 // Complete row contract for the paginated admin product-list table.
 package com.example.dantruventu.DTO.Response.product;
 
+import com.example.dantruventu.DTO.catalog.CatalogFields;
 import com.example.dantruventu.Enum.LoaiSanPham;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import java.math.BigDecimal;
@@ -11,7 +12,7 @@ import lombok.*;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class AdminProductListItemResponse {
+public class AdminProductListItemResponse extends CatalogFields.Metadata {
 
   private Long id;
 
@@ -50,4 +51,7 @@ public class AdminProductListItemResponse {
 
   @JsonProperty("trang_thai")
   private Short trangThai;
+
+  @JsonProperty("ton_thuc_te")
+  private Long tonThucTe;
 }

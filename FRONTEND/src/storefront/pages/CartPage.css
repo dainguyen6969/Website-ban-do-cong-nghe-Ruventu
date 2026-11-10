@@ -357,3 +357,77 @@
   align-items: center;
   gap: 5px;
 }
+
+.cart-pricing-note {
+  color: #64748b;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.cart-pricing-error {
+  padding: 12px;
+  border: 1px solid #fecaca;
+  background: #fff7f7;
+  color: #b91c1c;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.cart-applied-promotion {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 10px;
+  padding: 12px;
+  border: 1px solid #fecaca;
+  background: #fff7f7;
+}
+
+.cart-promotion-name {
+  margin-top: 5px;
+  color: #64748b;
+  font-size: 12px;
+}
+
+.cart-applied-promotion > button {
+  align-self: flex-start;
+  border: 0;
+  background: transparent;
+  color: #b91c1c;
+  cursor: pointer;
+}
+
+.cart-discount-row {
+  color: #dc2626;
+}
+
+.cart-gifts {
+  margin-top: 16px;
+  padding: 16px;
+  border: 1px solid #bbdfc3;
+  background: #f3faf5;
+}
+
+.cart-gifts h3 {
+  margin: 0 0 12px;
+  color: #237331;
+  font-size: 13px;
+}
+
+.cart-gift-item {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 10px 0;
+}
+
+.cart-gift-item small {
+  display: block;
+  margin-top: 4px;
+  color: #64748b;
+}
+
+.btn-checkout-full:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

@@ -15,6 +15,7 @@ import com.example.dantruventu.Error.AppException;
 import com.example.dantruventu.Error.ErrorCode;
 import com.example.dantruventu.Repository.DanhMucRepository;
 import com.example.dantruventu.Repository.product.PhienBanSanPhamRepository;
+import com.example.dantruventu.Services.catalog.CatalogSupport;
 import com.example.dantruventu.Services.order.sales.SalesContext;
 import java.math.BigDecimal;
 import java.util.List;
@@ -34,13 +35,14 @@ class PcBuilderCategoryMappingTest {
   @Mock private SalesContext sales;
   @Mock private PcBuilderSocketSupport socket;
   @Mock private PcBuilderStockSupport stock;
+  @Mock private CatalogSupport catalog;
   private PcBuilderProperties properties;
   private PcBuilderService service;
 
   @BeforeEach
   void setUp() {
     properties = new PcBuilderProperties();
-    service = new PcBuilderService(categories, properties, variants, sales, socket, stock);
+    service = new PcBuilderService(categories, properties, variants, sales, socket, stock, catalog);
   }
 
   @Test
@@ -154,6 +156,8 @@ class PcBuilderCategoryMappingTest {
     verifyNoInteractions(sales);
 
     var row = mock(PhienBanSanPhamRepository.PcBuilderProduct.class);
+    when(row.getPhienBanId()).thenReturn(9L);
+    when(row.getGiaBanLe()).thenReturn(new BigDecimal("3200000"));
     when(row.getTonCoTheBan()).thenReturn(5L);
     when(row.getThongSoKyThuat()).thenReturn("{\"socket\":\"AM5\"}");
     when(socket.compare(null, row.getThongSoKyThuat())).thenReturn("CHUA_DU_DU_LIEU");

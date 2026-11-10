@@ -1,12 +1,20 @@
 // Shared layout for admin order screens.
-import { useLocation, useNavigate, Outlet } from 'react-router-dom';
-import { HiOutlineDownload, HiOutlinePlus } from 'react-icons/hi';
+import { Link, useLocation, useNavigate, Outlet } from 'react-router-dom';
+import { HiOutlineClipboardList, HiOutlineDownload, HiOutlinePlus } from 'react-icons/hi';
 import '../../../../shared/components/layout/MainContent.css';
 
 const tabs = [
-  { id: 'danh-sach-don-hang', label: 'Danh sách đơn hàng', path: '/admin/don-hang/danh-sach-don-hang' },
-  { id: 'dat-hang-online', label: 'Đặt hàng online', path: '/admin/don-hang/dat-hang-online' },
-  { id: 'quan-ly-giao-hang', label: 'Quản lý giao hàng', path: '/admin/don-hang/quan-ly-giao-hang' },
+  {
+    id: 'danh-sach-don-hang',
+    label: 'Danh sách đơn hàng',
+    path: '/admin/don-hang/danh-sach-don-hang',
+  },
+  { id: 'dat-hang-online', label: 'Tạo đơn chờ hàng', path: '/admin/don-hang/dat-hang-online' },
+  {
+    id: 'quan-ly-giao-hang',
+    label: 'Quản lý giao hàng',
+    path: '/admin/don-hang/quan-ly-giao-hang',
+  },
   { id: 'khach-tra-hang', label: 'Khách trả hàng', path: '/admin/don-hang/khach-tra-hang' },
 ];
 
@@ -20,21 +28,66 @@ export default function OrderLayout() {
   const isDeliveryDetail = /^\/admin\/don-hang\/quan-ly-giao-hang\/[^/]+$/.test(location.pathname);
   const isDeliveryList = location.pathname === '/admin/don-hang/quan-ly-giao-hang';
 
-  if (isOrderDetail) return <main className="order-detail-shell" role="main"><Outlet /></main>;
-  if (isCustomerReturns) return <main className="return-shell" role="main"><Outlet /></main>;
-  if (isDeliveryDetail) return <main className="delivery-detail-shell" role="main"><Outlet /></main>;
-  if (isDeliveryList) return <main className="delivery-detail-shell" role="main"><Outlet /></main>;
+  if (location.pathname === '/admin/don-hang/cho-hang-can-xu-ly') {
+    return (
+      <main className="order-list-shell" role="main">
+        <Outlet />
+      </main>
+    );
+  }
+
+  if (isOrderDetail)
+    return (
+      <main className="order-detail-shell" role="main">
+        <Outlet />
+      </main>
+    );
+  if (isCustomerReturns)
+    return (
+      <main className="return-shell" role="main">
+        <Outlet />
+      </main>
+    );
+  if (isDeliveryDetail)
+    return (
+      <main className="delivery-detail-shell" role="main">
+        <Outlet />
+      </main>
+    );
+  if (isDeliveryList)
+    return (
+      <main className="delivery-detail-shell" role="main">
+        <Outlet />
+      </main>
+    );
 
   if (isOrderList) {
     return (
-      <main className="order-list-shell" role="main">
+      <main className="order-list-shell admin-list-page" role="main">
         <section className="order-list-hero">
           <div>
-            <nav className="content__breadcrumb" aria-label="Breadcrumb nội dung"><span className="content__breadcrumb-item">Đơn hàng</span><span className="content__breadcrumb-sep">›</span><span className="content__breadcrumb-item content__breadcrumb-item--current">Danh sách đơn hàng</span></nav>
+            <nav className="content__breadcrumb" aria-label="Breadcrumb nội dung">
+              <span className="content__breadcrumb-item">Đơn hàng</span>
+              <span className="content__breadcrumb-sep">›</span>
+              <span className="content__breadcrumb-item content__breadcrumb-item--current">
+                Danh sách đơn hàng
+              </span>
+            </nav>
             <h1>DANH SÁCH ĐƠN HÀNG</h1>
             <p>QUẢN LÝ TOÀN BỘ ĐƠN ONLINE VÀ TẠI QUẦY</p>
           </div>
-          <button className="order-create-button" type="button" onClick={() => navigate('/admin/don-hang/dat-hang-online')}><HiOutlinePlus size={16} /> TẠO ĐƠN HÀNG</button>
+          <div className="order-list-actions" role="group" aria-label="Thao tác đơn hàng">
+            <Link className="order-waiting-button" to="/admin/don-hang/cho-hang-can-xu-ly">
+              <HiOutlineClipboardList size={16} aria-hidden="true" /> ĐƠN CHỜ HÀNG CẦN XỬ LÝ
+            </Link>
+            <button
+              className="order-create-button"
+              type="button"
+              onClick={() => navigate('/admin/don-hang/dat-hang-online')}
+            >
+              <HiOutlinePlus size={16} /> TẠO ĐƠN CHỜ HÀNG
+            </button>
+          </div>
         </section>
         <Outlet />
       </main>
@@ -46,7 +99,9 @@ export default function OrderLayout() {
       {/* Secondary breadcrumb */}
       <nav className="content__breadcrumb" aria-label="Breadcrumb nội dung">
         <span className="content__breadcrumb-item">Đơn hàng</span>
-        <span className="content__breadcrumb-sep" aria-hidden="true">›</span>
+        <span className="content__breadcrumb-sep" aria-hidden="true">
+          ›
+        </span>
         <span className="content__breadcrumb-item content__breadcrumb-item--current">
           Quản lý đơn hàng
         </span>
@@ -62,7 +117,7 @@ export default function OrderLayout() {
           </button>
           <button className="btn btn--primary" id="btn-dat-hang-online">
             <HiOutlinePlus size={16} />
-            <span>ĐẶT HÀNG ONLINE</span>
+            <span>TẠO ĐƠN CHỜ HÀNG</span>
           </button>
         </div>
       </div>

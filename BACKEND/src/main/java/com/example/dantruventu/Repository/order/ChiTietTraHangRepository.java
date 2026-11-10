@@ -20,6 +20,31 @@ public interface ChiTietTraHangRepository extends JpaRepository<ChiTietTraHang, 
       })
   List<ChiTietTraHang> findByPhieuTraHang_IdOrderByIdAsc(Long returnId);
 
+  @Query(
+      """
+            SELECT c.chiTietDonHang.id AS chiTietDonHangId,
+                   SUM(c.soLuong) AS soLuongDaYeuCauTra,
+                   SUM(c.thanhTienHoan) AS tongTienDaYeuCauTra
+            FROM ChiTietTraHang c
+            WHERE c.chiTietDonHang.donHang.id = :orderId
+              AND c.phieuTraHang.trangThaiTraHang NOT IN (
+                com.example.dantruventu.Enum.TrangThaiTraHang.HUY,
+                com.example.dantruventu.Enum.TrangThaiTraHang.TU_CHOI
+              )
+            GROUP BY c.chiTietDonHang.id
+            """)
+  List<ReturnedQuantityProjection> sumReturnedQuantityByOrder(@Param("orderId") Long orderId);
+
+  @Query(
+      """
+      SELECT line
+      FROM ChiTietTraHang line
+      JOIN FETCH line.chiTietDonHang
+      WHERE line.phieuTraHang.id = :returnId
+      ORDER BY line.id
+      """)
+  List<ChiTietTraHang> findSavedDetailLines(@Param("returnId") Long returnId);
+
   interface ReturnedQuantityProjection {
 
     Long getChiTietDonHangId();
@@ -43,10 +68,12 @@ public interface ChiTietTraHangRepository extends JpaRepository<ChiTietTraHang, 
              SUM(c.thanhTienHoan) AS tongTienDaYeuCauTra
       FROM ChiTietTraHang c
       WHERE c.chiTietDonHang.donHang.id = :orderId
+        AND c.phieuTraHang.trangThaiTraHang NOT IN :releasedStatuses
       GROUP BY c.chiTietDonHang.id
       """)
   List<ReturnedQuantityProjection> sumReturnedQuantityByOrder(
-      @Param("orderId") Long orderId);
+      @Param("orderId") Long orderId,
+      @Param("releasedStatuses") Collection<TrangThaiTraHang> releasedStatuses);
 
   @Query(
       """
@@ -58,6 +85,5 @@ public interface ChiTietTraHangRepository extends JpaRepository<ChiTietTraHang, 
       GROUP BY c.chiTietDonHang.id
       """)
   List<ReceivedQuantityProjection> sumReceivedQuantityByOrder(
-      @Param("orderId") Long orderId,
-      @Param("statuses") Collection<TrangThaiTraHang> statuses);
+      @Param("orderId") Long orderId, @Param("statuses") Collection<TrangThaiTraHang> statuses);
 }

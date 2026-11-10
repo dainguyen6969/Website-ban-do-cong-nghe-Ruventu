@@ -1,5 +1,6 @@
 package com.example.dantruventu.DTO.Response;
 
+import com.example.dantruventu.DTO.Response.order.SalePreviewData;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import java.math.BigDecimal;
@@ -27,7 +28,7 @@ public class CartPromotionResponse {
   @AllArgsConstructor
   @Builder
   @JsonInclude(JsonInclude.Include.NON_NULL)
-  public static class PromotionData {
+  public static class PromotionData extends SalePreviewData {
 
     @JsonProperty("ma_chuong_trinh")
     private String maChuongTrinh;

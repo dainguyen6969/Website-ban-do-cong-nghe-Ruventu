@@ -49,7 +49,7 @@
   display: flex;
   gap: 0; /* Keep it tight like the design */
   background-color: #fff; /* The whole middle container background seems white/black split, we handle background inside children */
-  box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
   min-height: 600px;
   align-items: stretch;
 }
@@ -85,28 +85,29 @@
   .product-main-container {
     flex-wrap: wrap;
   }
-  
+
   .components-sidebar-column {
     flex: 1 1 100%;
     max-width: 100%;
     order: 3; /* Move to bottom on smaller screens */
   }
-  
+
   .gallery-column {
     flex: 1 1 50%;
   }
-  
+
   .purchase-sidebar-column {
     flex: 1 1 50%;
   }
 }
 
 @media (max-width: 900px) {
-  .gallery-column, .purchase-sidebar-column {
+  .gallery-column,
+  .purchase-sidebar-column {
     flex: 1 1 100%;
     max-width: 100%;
   }
-  
+
   .purchase-sidebar-column {
     order: 2;
   }

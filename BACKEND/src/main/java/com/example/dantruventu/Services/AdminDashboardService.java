@@ -45,12 +45,13 @@ public class AdminDashboardService {
   private static final List<String> ORDER_TASK_STATUSES =
       List.of(
           "CHO_DUYET",
+          "CHO_HANG",
           "CHO_THANH_TOAN",
           "CHO_DONG_GOI",
           "CHO_LAY_HANG",
           "DANG_GIAO_HANG");
   private static final Set<String> LONG_WAIT_STATUSES =
-      Set.of("CHO_DUYET", "CHO_THANH_TOAN", "CHO_DONG_GOI", "CHO_LAY_HANG");
+      Set.of("CHO_DUYET", "CHO_HANG", "CHO_THANH_TOAN", "CHO_DONG_GOI", "CHO_LAY_HANG");
   private static final List<String> WARRANTY_STATUSES =
       List.of(
           "TIEP_NHAN",
@@ -76,11 +77,9 @@ public class AdminDashboardService {
       String rawPeriod, String rawFrom, String rawTo, String rawChannel) {
     DashboardFilter filter = filter(rawPeriod, rawFrom, rawTo, rawChannel);
     SalesAggregate current = sales(filter.from(), filter.to(), filter.channel());
-    SalesAggregate previous =
-        sales(filter.previousFrom(), filter.previousTo(), filter.channel());
+    SalesAggregate previous = sales(filter.previousFrom(), filter.previousTo(), filter.channel());
     BigDecimal currentReceipt = cashTotals(filter.from(), filter.to()).receipt();
-    BigDecimal previousReceipt =
-        cashTotals(filter.previousFrom(), filter.previousTo()).receipt();
+    BigDecimal previousReceipt = cashTotals(filter.previousFrom(), filter.previousTo()).receipt();
 
     AdminDashboardResponse.Kpi kpi =
         new AdminDashboardResponse.Kpi(
@@ -130,15 +129,13 @@ public class AdminDashboardService {
     List<AdminDashboardRepository.TaskOrderRow> orders = repository.findTaskOrders(channel);
     Map<String, Long> orderCounts = initializedCounts(ORDER_TASK_STATUSES);
     orders.forEach(
-        order ->
-            orderCounts.computeIfPresent(order.status(), (key, value) -> value + 1));
+        order -> orderCounts.computeIfPresent(order.status(), (key, value) -> value + 1));
 
     List<AdminDashboardRepository.DeliveryRow> deliveries =
         repository.findCurrentDeliveryIssues(channel);
     Map<String, Long> deliveryCounts = initializedCounts(List.of("GIAO_THAT_BAI", "CHO_HOAN_HANG"));
     deliveries.forEach(
-        delivery ->
-            deliveryCounts.computeIfPresent(delivery.status(), (key, value) -> value + 1));
+        delivery -> deliveryCounts.computeIfPresent(delivery.status(), (key, value) -> value + 1));
 
     Set<Long> actionableOrderIds =
         orders.stream().map(AdminDashboardRepository.TaskOrderRow::id).collect(Collectors.toSet());
@@ -203,16 +200,11 @@ public class AdminDashboardService {
   }
 
   public AdminDashboardResponse.BusinessChart getBusinessChart(
-      String rawPeriod,
-      String rawFrom,
-      String rawTo,
-      String rawChannel,
-      String rawGrouping) {
+      String rawPeriod, String rawFrom, String rawTo, String rawChannel, String rawGrouping) {
     DashboardFilter filter = filter(rawPeriod, rawFrom, rawTo, rawChannel);
     Grouping grouping = parseGrouping(rawGrouping, filter.period());
     SalesAggregate current = sales(filter.from(), filter.to(), filter.channel());
-    SalesAggregate previous =
-        sales(filter.previousFrom(), filter.previousTo(), filter.channel());
+    SalesAggregate previous = sales(filter.previousFrom(), filter.previousTo(), filter.channel());
     return new AdminDashboardResponse.BusinessChart(
         updatedAt(),
         grouping.name(),
@@ -241,8 +233,7 @@ public class AdminDashboardService {
     for (LineMetric line : aggregate.lines()) {
       ProductAccumulator product =
           byVariant.computeIfAbsent(
-              line.source().variantId(),
-              ignored -> new ProductAccumulator(line.source()));
+              line.source().variantId(), ignored -> new ProductAccumulator(line.source()));
       product.quantity += line.source().quantity();
       product.returnedQuantity += line.source().returnedQuantity();
       product.netRevenue = product.netRevenue.add(line.netRevenue());
@@ -295,9 +286,7 @@ public class AdminDashboardService {
     long totalAvailable = rows.stream().mapToLong(InventoryRow::availableStock).sum();
     BigDecimal inventoryValue =
         rows.stream()
-            .map(
-                row ->
-                    row.currentCost().multiply(BigDecimal.valueOf(row.physicalStock())))
+            .map(row -> row.currentCost().multiply(BigDecimal.valueOf(row.physicalStock())))
             .reduce(BigDecimal.ZERO, BigDecimal::add);
 
     List<InventoryRow> active =
@@ -364,8 +353,7 @@ public class AdminDashboardService {
                 })
             .filter(item -> item.days() == null || item.days() >= days)
             .sorted(
-                Comparator.comparing(
-                        (SlowMetric item) -> item.source().lastSale() != null)
+                Comparator.comparing((SlowMetric item) -> item.source().lastSale() != null)
                     .thenComparing(
                         item -> item.source().lastSale(),
                         Comparator.nullsFirst(Comparator.naturalOrder()))
@@ -469,11 +457,7 @@ public class AdminDashboardService {
   }
 
   public AdminDashboardResponse.Cashflow getCashflow(
-      String rawPeriod,
-      String rawFrom,
-      String rawTo,
-      String rawChannel,
-      String rawGrouping) {
+      String rawPeriod, String rawFrom, String rawTo, String rawChannel, String rawGrouping) {
     DashboardFilter filter = filter(rawPeriod, rawFrom, rawTo, rawChannel);
     Grouping grouping = parseGrouping(rawGrouping, filter.period());
     List<CashRow> rows = repository.findCashRows(start(filter.from()), endExclusive(filter.to()));
@@ -547,8 +531,7 @@ public class AdminDashboardService {
     LocalDateTime now = nowLocal();
     LocalDateTime threshold = now.plusDays(PROMOTION_THRESHOLD_DAYS);
     List<AdminDashboardRepository.PromotionRow> rows = repository.findPromotions();
-    long inApplicationWindow =
-        rows.stream().filter(row -> isRunningPromotion(row, now)).count();
+    long inApplicationWindow = rows.stream().filter(row -> isRunningPromotion(row, now)).count();
     long stillAvailable =
         rows.stream()
             .filter(row -> isRunningPromotion(row, now))
@@ -656,8 +639,7 @@ public class AdminDashboardService {
             limit);
     if (content.length == 0) {
       throw new AppException(
-          ErrorCode.INTERNAL_SERVER_ERROR,
-          "Xuất báo cáo không thành công, vui lòng thử lại");
+          ErrorCode.INTERNAL_SERVER_ERROR, "Xuất báo cáo không thành công, vui lòng thử lại");
     }
     String filename =
         "Ruventu_TongQuat_"
@@ -711,8 +693,7 @@ public class AdminDashboardService {
         BigDecimal lineNet =
             source.lineTotal().subtract(lineDiscount).subtract(source.returnedAmount());
         long netCostQuantity = Math.max(0, source.quantity() - source.returnedQuantity());
-        BigDecimal lineCost =
-            source.currentCost().multiply(BigDecimal.valueOf(netCostQuantity));
+        BigDecimal lineCost = source.currentCost().multiply(BigDecimal.valueOf(netCostQuantity));
         lines.add(new LineMetric(source, money(lineDiscount), money(lineNet), money(lineCost)));
         orderReturns = orderReturns.add(source.returnedAmount());
         orderNet = orderNet.add(lineNet);
@@ -771,9 +752,7 @@ public class AdminDashboardService {
       BigDecimal amount =
           index == priced.size() - 1
               ? discount.subtract(allocated)
-              : discount
-                  .multiply(line.lineTotal())
-                  .divide(gross, 2, RoundingMode.DOWN);
+              : discount.multiply(line.lineTotal()).divide(gross, 2, RoundingMode.DOWN);
       amount = money(amount);
       result.put(line.lineId(), amount);
       allocated = allocated.add(amount);
@@ -859,9 +838,7 @@ public class AdminDashboardService {
     LocalDate cursor = from;
     while (!cursor.isAfter(to)) {
       LocalDate bucketEnd =
-          grouping == Grouping.NGAY
-              ? cursor
-              : cursor.with(TemporalAdjusters.lastDayOfMonth());
+          grouping == Grouping.NGAY ? cursor : cursor.with(TemporalAdjusters.lastDayOfMonth());
       if (bucketEnd.isAfter(to)) {
         bucketEnd = to;
       }
@@ -960,13 +937,7 @@ public class AdminDashboardService {
     LocalDate previousTo = from.minusDays(1);
     LocalDate previousFrom = previousTo.minusDays(length - 1);
     return new DashboardFilter(
-        period,
-        from,
-        to,
-        previousFrom,
-        previousTo,
-        parseChannel(rawChannel),
-        !to.isBefore(today));
+        period, from, to, previousFrom, previousTo, parseChannel(rawChannel), !to.isBefore(today));
   }
 
   private PeriodKind parsePeriod(String rawPeriod, String rawFrom, String rawTo) {
@@ -976,8 +947,7 @@ public class AdminDashboardService {
     try {
       return PeriodKind.valueOf(rawPeriod.trim().toUpperCase(Locale.ROOT));
     } catch (IllegalArgumentException exception) {
-      throw invalid(
-          "ky chỉ nhận HOM_NAY, HOM_QUA, TUAN_NAY, THANG_NAY, NAM_NAY hoặc TUY_CHINH");
+      throw invalid("ky chỉ nhận HOM_NAY, HOM_QUA, TUAN_NAY, THANG_NAY, NAM_NAY hoặc TUY_CHINH");
     }
   }
 
@@ -1051,8 +1021,7 @@ public class AdminDashboardService {
     Long warehouseId = repository.findDefaultWarehouseId(configuredWarehouseId);
     if (warehouseId == null) {
       throw new AppException(
-          ErrorCode.INTERNAL_SERVER_ERROR,
-          "Không xác định được kho mặc định đang hoạt động");
+          ErrorCode.INTERNAL_SERVER_ERROR, "Không xác định được kho mặc định đang hoạt động");
     }
     return warehouseId;
   }
@@ -1076,8 +1045,7 @@ public class AdminDashboardService {
     return buildable == null || buildable <= 0 ? "HET_HANG" : "BINH_THUONG";
   }
 
-  private boolean isRunningPromotion(
-      AdminDashboardRepository.PromotionRow row, LocalDateTime now) {
+  private boolean isRunningPromotion(AdminDashboardRepository.PromotionRow row, LocalDateTime now) {
     return row.active() && !now.isBefore(row.startsAt()) && !now.isAfter(row.endsAt());
   }
 
@@ -1189,10 +1157,7 @@ public class AdminDashboardService {
       boolean incomplete) {}
 
   private record LineMetric(
-      SalesLineRow source,
-      BigDecimal allocatedDiscount,
-      BigDecimal netRevenue,
-      BigDecimal cost) {}
+      SalesLineRow source, BigDecimal allocatedDiscount, BigDecimal netRevenue, BigDecimal cost) {}
 
   private record OrderMetric(
       Long id,
@@ -1231,8 +1196,7 @@ public class AdminDashboardService {
 
   private record SlowMetric(AdminDashboardRepository.SlowStockRow source, Long days) {}
 
-  private record CustomerMetric(
-      Long id, String name, long orderCount, BigDecimal netValue) {}
+  private record CustomerMetric(Long id, String name, long orderCount, BigDecimal netValue) {}
 
   private record CashTotals(BigDecimal receipt, BigDecimal disbursement) {}
 

@@ -1,8 +1,8 @@
 package com.example.dantruventu.DTO.Request.warehouse;
 
 import com.example.dantruventu.DTO.Request.product.ProductImageRequest;
-import com.fasterxml.jackson.annotation.JsonAnySetter;
-import com.fasterxml.jackson.annotation.JsonProperty;
+import com.example.dantruventu.DTO.catalog.CatalogFields;
+import com.fasterxml.jackson.annotation.*;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;
 import java.math.BigDecimal;
@@ -12,19 +12,37 @@ import tools.jackson.databind.JsonNode;
 
 @Getter
 @Setter
-@NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class AdminComboUpdateRequest {
+public class AdminComboUpdateRequest extends CatalogFields.WarrantyInput {
+
+  @JsonCreator
+  public AdminComboUpdateRequest() {}
+
+  @JsonIgnore
+  @Getter(AccessLevel.NONE)
+  @Setter(AccessLevel.NONE)
+  private boolean thuongHieuProvided;
+
+  @JsonIgnore
+  public boolean isThuongHieuProvided() {
+    return thuongHieuProvided;
+  }
 
   @JsonProperty("danh_muc_id")
-  @NotNull
   @Positive
   private Long danhMucId;
 
   @JsonProperty("thuong_hieu_id")
   @Positive
+  @Setter(AccessLevel.NONE)
   private Long thuongHieuId;
+
+  @JsonSetter(value = "thuong_hieu_id", nulls = Nulls.SET)
+  public void setThuongHieuId(Long value) {
+    this.thuongHieuId = value;
+    this.thuongHieuProvided = true;
+  }
 
   @JsonProperty("ten_san_pham")
   @NotBlank(message = "Tên combo không được để trống")
@@ -87,8 +105,8 @@ public class AdminComboUpdateRequest {
   @Size(max = 100)
   private List<@NotNull @Valid ComboComponentRequest> thanhPhan;
 
-  @JsonAnySetter
-  public void rejectUnknownField(String name, JsonNode value) {
-    throw new IllegalArgumentException("Trường không được hỗ trợ: " + name);
-  }
+  @JsonProperty("khoi_luong")
+  @DecimalMin("0")
+  @Digits(integer = 8, fraction = 2)
+  private BigDecimal khoiLuong;
 }

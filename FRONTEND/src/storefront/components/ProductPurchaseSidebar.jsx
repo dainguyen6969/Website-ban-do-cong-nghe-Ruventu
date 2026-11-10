@@ -8,42 +8,42 @@ const ProductPurchaseSidebar = ({ selectedComponent, onClearSelection }) => {
   const [quantity, setQuantity] = useState(1);
   const navigate = useNavigate();
 
-  const increaseQuantity = () => setQuantity(prev => (prev < 5 ? prev + 1 : prev));
-  const decreaseQuantity = () => setQuantity(prev => (prev > 1 ? prev - 1 : 1));
+  const increaseQuantity = () => setQuantity((prev) => (prev < 5 ? prev + 1 : prev));
+  const decreaseQuantity = () => setQuantity((prev) => (prev > 1 ? prev - 1 : 1));
 
   const handleAddToCart = () => {
     const existingCart = JSON.parse(localStorage.getItem('ruventu_cart') || '[]');
-    
-    const existingItemIndex = existingCart.findIndex(item => item.id === 'RVT-BUILD-502');
+
+    const existingItemIndex = existingCart.findIndex((item) => item.id === 'RVT-BUILD-502');
     if (existingItemIndex >= 0) {
       existingCart[existingItemIndex].quantity += quantity;
     } else {
-      existingCart.push({ 
-        id: 'RVT-BUILD-502', 
+      existingCart.push({
+        id: 'RVT-BUILD-502',
         title: 'REVENTU WARLORD PRO — HIGH-END GAMING',
-        image: pcWarlordImg, 
+        image: pcWarlordImg,
         price: '54.900.000đ',
         originalPrice: '62.000.000đ',
-        quantity: quantity, 
-        variant: 'Mặc định' 
+        quantity: quantity,
+        variant: 'Mặc định',
       });
     }
-    
+
     localStorage.setItem('ruventu_cart', JSON.stringify(existingCart));
     window.dispatchEvent(new CustomEvent('cartUpdated', { detail: { quantity } }));
   };
 
   const handleBuyNow = () => {
-    const item = { 
-      id: 'RVT-BUILD-502', 
+    const item = {
+      id: 'RVT-BUILD-502',
       title: 'REVENTU WARLORD PRO — HIGH-END GAMING',
-      image: pcWarlordImg, 
+      image: pcWarlordImg,
       price: '54.900.000đ',
       originalPrice: '62.000.000đ',
-      quantity: quantity, 
-      variant: 'Mặc định' 
+      quantity: quantity,
+      variant: 'Mặc định',
     };
-    
+
     navigate('/checkout', { state: { buyNowItem: item } });
   };
 
@@ -68,20 +68,28 @@ const ProductPurchaseSidebar = ({ selectedComponent, onClearSelection }) => {
 
       <div className="tags-wrapper">
         <span className="tag-red">{selectedComponent ? 'LINH KIỆN' : 'PC BUILD SẴN'}</span>
-        <span className="tag-outline">{selectedComponent ? selectedComponent.type : 'REVENTU'}</span>
+        <span className="tag-outline">
+          {selectedComponent ? selectedComponent.type : 'REVENTU'}
+        </span>
       </div>
 
-      <h1 className="product-title">{selectedComponent ? selectedComponent.name : 'REVENTU WARLORD PRO — HIGH-END GAMING'}</h1>
-      
+      <h1 className="product-title">
+        {selectedComponent ? selectedComponent.name : 'REVENTU WARLORD PRO — HIGH-END GAMING'}
+      </h1>
+
       <div className="sku-container">
         <span className="sku-label">MÃ SẢN PHẨM:</span>
-        <span className="sku-value">{selectedComponent ? selectedComponent.code : 'RVT-BUILD-502'}</span>
+        <span className="sku-value">
+          {selectedComponent ? selectedComponent.code : 'RVT-BUILD-502'}
+        </span>
       </div>
 
       <div className="price-container">
         <div className="price-top-row">
           <span className="original-price">{originalPrice}</span>
-          {saveAmount > 0 && <div className="save-badge">TIẾT KIỆM {saveAmount.toLocaleString('vi-VN')}đ</div>}
+          {saveAmount > 0 && (
+            <div className="save-badge">TIẾT KIỆM {saveAmount.toLocaleString('vi-VN')}đ</div>
+          )}
         </div>
         <div className="price-bottom-row">
           <span className="current-price">{currentPrice}</span>
@@ -97,13 +105,19 @@ const ProductPurchaseSidebar = ({ selectedComponent, onClearSelection }) => {
       <div className="quantity-section">
         <div className="qty-label">SỐ LƯỢNG</div>
         <div className="qty-controls">
-          <button className="qty-btn" onClick={decreaseQuantity} disabled={quantity <= 1}>-</button>
+          <button className="qty-btn" onClick={decreaseQuantity} disabled={quantity <= 1}>
+            -
+          </button>
           <input type="text" className="qty-input" value={quantity} readOnly />
-          <button className="qty-btn" onClick={increaseQuantity} disabled={quantity >= 5}>+</button>
+          <button className="qty-btn" onClick={increaseQuantity} disabled={quantity >= 5}>
+            +
+          </button>
         </div>
         <div className="total-calc">
           <span className="total-label">TỔNG CỘNG</span>
-          <span className="total-price">{(numCurrentPrice * quantity).toLocaleString('vi-VN')}đ</span>
+          <span className="total-price">
+            {(numCurrentPrice * quantity).toLocaleString('vi-VN')}đ
+          </span>
         </div>
       </div>
 
@@ -112,10 +126,7 @@ const ProductPurchaseSidebar = ({ selectedComponent, onClearSelection }) => {
           <ChevronRight size={20} className="btn-icon" />
           MUA NGAY
         </button>
-        <button 
-          className="sidebar-btn-add-cart"
-          onClick={handleAddToCart}
-        >
+        <button className="sidebar-btn-add-cart" onClick={handleAddToCart}>
           <ShoppingCart size={20} className="btn-icon" />
           THÊM VÀO GIỎ HÀNG
         </button>

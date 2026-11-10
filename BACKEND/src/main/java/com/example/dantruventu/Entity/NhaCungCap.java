@@ -1,9 +1,11 @@
 package com.example.dantruventu.Entity;
 
+import com.example.dantruventu.Config.TrangThaiCoBanConverter;
 import com.example.dantruventu.Enum.TrangThaiCoBanEnum;
 import jakarta.persistence.*;
 import java.util.List;
 import lombok.*;
+import org.hibernate.annotations.ColumnDefault;
 
 @Entity
 @Table(
@@ -39,7 +41,9 @@ public class NhaCungCap {
   private String diaChi;
 
   @Builder.Default
-  @Column(name = "trang_thai", nullable = false)
+  @Convert(converter = TrangThaiCoBanConverter.class)
+  @ColumnDefault("1")
+  @Column(name = "trang_thai", nullable = false, columnDefinition = "SMALLINT")
   private TrangThaiCoBanEnum trangThai = TrangThaiCoBanEnum.HOAT_DONG;
 
   @OneToMany(mappedBy = "nhaCungCap", fetch = FetchType.LAZY)

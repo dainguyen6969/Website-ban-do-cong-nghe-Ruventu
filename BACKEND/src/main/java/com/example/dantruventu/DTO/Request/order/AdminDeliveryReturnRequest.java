@@ -1,11 +1,10 @@
 package com.example.dantruventu.DTO.Request.order;
 
-import com.example.dantruventu.Enum.TrangThaiSerial;
 import com.fasterxml.jackson.annotation.JsonAnySetter;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;
-import java.util.ArrayList;
+import java.time.OffsetDateTime;
 import java.util.List;
 import lombok.Getter;
 import lombok.Setter;
@@ -31,15 +30,24 @@ public class AdminDeliveryReturnRequest {
   @JsonProperty("hinh_thuc_hoan_tien")
   private String hinhThucHoanTien;
 
-  @Size(max = 2000, message = "Ghi chú tối đa 2000 ký tự")
-  @JsonProperty("ghi_chu")
-  private String ghiChu;
+  @NotNull(message = "Vui lòng nhập thời điểm thực nhận")
+  @PastOrPresent(message = "Thời điểm thực nhận không được nằm trong tương lai")
+  @JsonProperty("thoi_diem_nhan")
+  private OffsetDateTime thoiDiemNhan;
 
   @NotEmpty(message = "Danh sách hàng nhận không được rỗng")
   @Size(max = 1000, message = "Tối đa 1000 dòng hàng nhận")
   @Valid
   @JsonProperty("hang_nhan")
   private List<@NotNull Item> hangNhan;
+
+  @NotEmpty(message = "Cần có ít nhất một ảnh bằng chứng")
+  @Size(max = 50, message = "Tối đa 50 ảnh bằng chứng")
+  @JsonProperty("bang_chung_urls")
+  private List<
+          @NotBlank(message = "Đường dẫn bằng chứng không được để trống")
+          @Size(max = 2048, message = "Đường dẫn bằng chứng quá dài") String>
+      bangChungUrls;
 
   @JsonAnySetter
   public void rejectUnknownField(String name, Object value) {
@@ -61,11 +69,6 @@ public class AdminDeliveryReturnRequest {
     private Long phienBanId;
 
     @NotNull
-    @Positive
-    @JsonProperty("kho_hang_id")
-    private Long khoHangId;
-
-    @NotNull
     @Min(0)
     @JsonProperty("so_luong_nguyen_ven")
     private Integer soLuongNguyenVen;
@@ -75,7 +78,21 @@ public class AdminDeliveryReturnRequest {
     @JsonProperty("so_luong_loi")
     private Integer soLuongLoi;
 
-    @NotNull @Valid private List<@NotNull SerialItem> serials = new ArrayList<>();
+    @NotNull(message = "Phải gửi serials; hàng không serial gửi []")
+    @Size(max = 10000)
+    @Valid
+    private List<@NotNull SerialItem> serials;
+
+    /*
+     * Chỉ sử dụng cho hàng không quản lý serial.
+     * Với hàng quản lý serial, kết luận nằm trên từng serial.
+     */
+    @JsonProperty("du_dieu_kien_ban_lai")
+    private Boolean duDieuKienBanLai;
+
+    @Size(max = 2000, message = "Ghi chú kiểm tra tối đa 2000 ký tự")
+    @JsonProperty("ghi_chu_kiem_tra")
+    private String ghiChuKiemTra;
 
     @JsonAnySetter
     public void rejectUnknownField(String name, Object value) {
@@ -92,9 +109,9 @@ public class AdminDeliveryReturnRequest {
     @JsonProperty("so_serial_id")
     private Long soSerialId;
 
-    @NotNull
-    @JsonProperty("trang_thai_sau_nhan")
-    private TrangThaiSerial trangThaiSauNhan;
+    @NotNull(message = "Phải kết luận điều kiện bán lại cho từng serial")
+    @JsonProperty("du_dieu_kien_ban_lai")
+    private Boolean duDieuKienBanLai;
 
     @JsonAnySetter
     public void rejectUnknownField(String name, Object value) {

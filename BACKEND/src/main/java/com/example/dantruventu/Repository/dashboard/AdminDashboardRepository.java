@@ -69,12 +69,12 @@ public class AdminDashboardRepository {
 
   public List<TaskOrderRow> findTaskOrders(String channel) {
     String sql =
-        """
+"""
         SELECT id, ma_don_hang, trang_thai_don_hang, ngay_tao
         FROM don_hang
-        WHERE trang_thai_don_hang IN
-              ('CHO_DUYET', 'CHO_THANH_TOAN', 'CHO_DONG_GOI', 'CHO_LAY_HANG',
-               'DANG_GIAO_HANG')
+WHERE trang_thai_don_hang IN
+      ('CHO_DUYET', 'CHO_HANG', 'CHO_THANH_TOAN', 'CHO_DONG_GOI',
+       'CHO_LAY_HANG', 'DANG_GIAO_HANG')
           AND (:channel IS NULL OR loai_don_hang = :channel)
         ORDER BY ngay_tao, id
         """;
@@ -282,11 +282,11 @@ public class AdminDashboardRepository {
         WHERE component.so_luong > 0
         GROUP BY component.san_pham_combo_id
         """;
-    return jdbc.query(
+    return jdbc
+        .query(
             sql,
             new MapSqlParameterSource("warehouseId", warehouseId),
-            (rs, row) ->
-                Map.entry(rs.getLong("san_pham_combo_id"), rs.getLong("capacity")))
+            (rs, row) -> Map.entry(rs.getLong("san_pham_combo_id"), rs.getLong("capacity")))
         .stream()
         .collect(java.util.stream.Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
   }
@@ -313,8 +313,7 @@ public class AdminDashboardRepository {
             sql,
             (rs, row) ->
                 new PurchaseRow(
-                    rs.getString("trang_thai_nhap"),
-                    rs.getString("trang_thai_thanh_toan")));
+                    rs.getString("trang_thai_nhap"), rs.getString("trang_thai_thanh_toan")));
   }
 
   public long countCustomers() {
@@ -333,7 +332,7 @@ public class AdminDashboardRepository {
         SELECT COALESCE(SUM(tong_thanh_toan), 0)
         FROM don_hang
         WHERE trang_thai_thanh_toan = 'CHUA_THANH_TOAN'
-          AND trang_thai_don_hang NOT IN ('CHO_DUYET', 'HUY_HANG')
+          AND trang_thai_don_hang NOT IN ('CHO_DUYET', 'CHO_HANG', 'HUY_HANG')
           AND trang_thai_xuat_kho <> 'DA_HOAN_KHO'
           AND (:channel IS NULL OR loai_don_hang = :channel)
         """;

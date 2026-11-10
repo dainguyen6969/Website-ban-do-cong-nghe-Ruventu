@@ -18,9 +18,7 @@ const AuthLayout = ({ leftContent, children }) => {
         </div>
       </div>
       <div className="auth-right">
-        <div className="auth-right-content">
-          {children}
-        </div>
+        <div className="auth-right-content">{children}</div>
       </div>
     </div>
   );

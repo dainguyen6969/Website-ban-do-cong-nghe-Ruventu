@@ -11,8 +11,8 @@
   --border-color: #dddddd;
   --bg-light: #f5f5f5;
   --bg-white: #ffffff;
-  
-  --font-main: 'Roboto', sans-serif;
+
+  --font-main: var(--project-font-family, 'Inter', Arial, sans-serif);
 }
 
 html:has(.storefront-app) body {

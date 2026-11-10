@@ -12,7 +12,7 @@
   --font-family-admin: var(--font-family-base);
 
   /* Brand Colors */
-  --color-brand-red: #E31E24;
+  --color-brand-red: #e31e24;
   --color-brand-red-hover: #c9181d;
   --color-brand-red-light: rgba(227, 30, 36, 0.12);
   --color-brand-red-lighter: rgba(227, 30, 36, 0.06);
@@ -20,8 +20,10 @@
   /* Sidebar */
   --color-sidebar-bg: #000000;
   --color-sidebar-bg-dark: #000000;
-  --color-sidebar-text: #a0a4b0;
-  --color-sidebar-text-hover: #ffffff;
+  --color-sidebar-text: #b1b6bf;
+  --color-sidebar-text-hover: #f3f4f6;
+  --color-sidebar-text-active: #f58c94;
+  --color-sidebar-text-expanded: #e5e7eb;
   --color-sidebar-active-bg: rgba(227, 30, 36, 0.1);
   --color-sidebar-border: rgba(255, 255, 255, 0.06);
   --color-sidebar-width: 260px;
@@ -43,19 +45,19 @@
   --color-text-white: #ffffff;
 
   /* Status Colors */
-  --color-status-yellow: #F59E0B;
+  --color-status-yellow: #f59e0b;
   --color-status-yellow-bg: rgba(245, 158, 11, 0.1);
-  --color-status-blue: #3B82F6;
+  --color-status-blue: #3b82f6;
   --color-status-blue-bg: rgba(59, 130, 246, 0.1);
-  --color-status-green: #10B981;
+  --color-status-green: #10b981;
   --color-status-green-bg: rgba(16, 185, 129, 0.1);
-  --color-status-red: #EF4444;
+  --color-status-red: #ef4444;
   --color-status-red-bg: rgba(239, 68, 68, 0.1);
-  --color-status-purple: #8B5CF6;
+  --color-status-purple: #8b5cf6;
   --color-status-purple-bg: rgba(139, 92, 246, 0.1);
-  --color-status-orange: #F97316;
+  --color-status-orange: #f97316;
   --color-status-orange-bg: rgba(249, 115, 22, 0.1);
-  --color-status-gray: #6B7280;
+  --color-status-gray: #6b7280;
   --color-status-gray-bg: rgba(107, 114, 128, 0.1);
 
   /* Borders / Shadows */
@@ -78,7 +80,6 @@
   --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
   --transition-base: 250ms cubic-bezier(0.4, 0, 0.2, 1);
   --transition-slow: 350ms cubic-bezier(0.4, 0, 0.2, 1);
-
 }
 
 /* Global Reset */
@@ -158,8 +159,10 @@ html:has(.storefront-app) {
 }
 
 :where(.admin-app) button {
+  appearance: none;
   cursor: pointer;
   border: none;
+  border-radius: 0;
   background: none;
   outline: none;
 }
@@ -180,22 +183,68 @@ html:has(.storefront-app) {
   display: block;
 }
 
-/* Scrollbar styling */
-:where(.admin-app) ::-webkit-scrollbar {
-  width: 5px;
+/* Ruventu scrollbars retain native scrolling and keyboard controls. */
+@media (forced-colors: none) {
+  @supports not selector(::-webkit-scrollbar) {
+    :where(.admin-app .app-layout__main, .admin-app .app-layout__main *),
+    .admin-app .app-layout__main .admin-table-scroll,
+    .storefront-app .catalog-nav-item > .mega-menu {
+      scrollbar-width: thin;
+      scrollbar-color: #111 #f3f4f6;
+    }
+  }
+
+  @supports selector(::-webkit-scrollbar) {
+    .admin-app .app-layout__main :is(.admin-table-scroll, .waiting-products, [class*='-tabs']),
+    .storefront-app .catalog-nav-item > .mega-menu {
+      /* Standard scrollbar properties otherwise suppress the WebKit design. */
+      scrollbar-width: auto !important;
+      scrollbar-color: auto !important;
+    }
+
+    :is(.admin-app :is(.app-layout__main, .app-layout__main *), .storefront-app :where(.catalog-nav-item) > .mega-menu) {
+      &::-webkit-scrollbar {
+        width: 10px;
+        height: 10px;
+      }
+
+      &::-webkit-scrollbar-track,
+      &::-webkit-scrollbar-corner {
+        background: #f3f4f6;
+      }
+
+      &::-webkit-scrollbar-thumb {
+        min-width: 28px;
+        min-height: 28px;
+        border: 2px solid #f3f4f6;
+        border-radius: 0;
+        background: #111;
+      }
+
+      &::-webkit-scrollbar-thumb:hover,
+      &::-webkit-scrollbar-thumb:active {
+        background: var(--color-brand-red, #e31e24);
+      }
+
+      &::-webkit-scrollbar-button {
+        display: none;
+      }
+    }
+  }
 }
 
-:where(.admin-app) ::-webkit-scrollbar-track {
-  background: transparent;
+/* Sidebar scrollbar: ẩn thanh kéo để menu đen gọn gàng, vẫn cuộn mượt bằng chuột */
+:where(.admin-app) .sidebar,
+:where(.admin-app) .sidebar__nav {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
 }
 
-:where(.admin-app) ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.15);
-  border-radius: var(--radius-full);
-}
-
-:where(.admin-app) ::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.25);
+:where(.admin-app) .sidebar::-webkit-scrollbar,
+:where(.admin-app) .sidebar__nav::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
 }
 
 /* Utility classes */
@@ -211,4 +260,898 @@ html:has(.storefront-app) {
   border: 0;
 }
 
+/* Giao diện serial, nhập hàng và thu hồi */
+.admin-app .ruventu-ops,
+.admin-app .ruventu-ops :where(*) {
+  font-family: var(--font-family-admin, var(--project-font-family, var(--font-family-base)));
+}
 
+.admin-app .ruventu-ops {
+  color: #1a1d23;
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.admin-app .ruventu-ops [hidden] {
+  display: none !important;
+}
+
+.admin-app .ruventu-ops :is(p, table, dd, label, input, select, textarea, button, code) {
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.admin-app .ruventu-ops :is(td, dd) {
+  font-weight: 400;
+}
+
+.admin-app .ruventu-ops :is(strong, b, th) {
+  font-weight: 600;
+}
+
+.admin-app .ruventu-ops :is(small, dt, .recall-muted, .ncc-muted, .info-rows dt) {
+  font-size: 12px;
+  line-height: 1.5;
+  color: #626b77;
+}
+
+.admin-app .ruventu-ops :is(h1, .purchase-heading h1) {
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1.3;
+  letter-spacing: normal;
+}
+
+.admin-app .ruventu-ops :is(.purchase-badge, .ncc-badge, .serial-status) {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  padding: 4px 8px;
+  border-radius: 0;
+  font-family: var(--project-font-family, var(--font-family-admin));
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+.admin-app .ruventu-ops :is(.form-card, .serial-info-card, .serial-note) {
+  border: 1px solid #dfe2e6;
+}
+
+.admin-app .ruventu-ops :is(.serial-info-card > h2, .serial-note > h2) {
+  height: auto;
+  min-height: 44px;
+  gap: 9px;
+  padding: 10px 16px;
+  background: #1a1d23;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: normal;
+}
+
+.admin-app .ruventu-ops :is(.serial-info-card > h2, .serial-note > h2)::before {
+  content: '';
+  width: 3px;
+  height: 16px;
+  flex-shrink: 0;
+  background: #e31e24;
+}
+
+.admin-app .ruventu-ops .form-card__title {
+  font-size: 13px;
+  letter-spacing: normal;
+}
+
+.admin-app .ruventu-ops :is(.recall-table, .purchase-detail-table) :is(th, td) {
+  padding: 12px 14px;
+  vertical-align: top;
+}
+
+.admin-app .ruventu-ops a {
+  overflow-wrap: anywhere;
+  text-underline-offset: 3px;
+}
+
+.admin-app .ruventu-ops .ncc-field-error {
+  display: block;
+  color: #b42318;
+  font-size: 12px;
+}
+
+.admin-app .ruventu-ops [aria-invalid='true'] {
+  border-color: #b42318 !important;
+  outline-color: #b42318;
+}
+
+.admin-app
+  .ruventu-ops
+  :is(
+    .purchase-btn.black,
+    .purchase-btn.blue,
+    .purchase-btn.green,
+    .recall-button.is-dark,
+    .ncc-btn--primary,
+    .ncc-btn--dark,
+    .order-action--black
+  ) {
+  border-color: #1a1d23 !important;
+  background: #1a1d23 !important;
+  color: #fff;
+}
+
+.admin-app .ruventu-ops button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.admin-app .ruventu-ops :is(button, input, select, textarea, a):focus-visible {
+  outline: 2px solid #e31e24;
+  outline-offset: 2px;
+}
+
+.admin-app .ruventu-ops .ops-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  border-bottom: 1px solid #dfe2e6;
+  margin: 16px 0;
+}
+
+.admin-app .ruventu-ops .ops-tabs button {
+  padding: 10px 14px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: #626b77;
+}
+
+.admin-app .ruventu-ops .ops-tabs button.is-active {
+  border-bottom-color: #e31e24;
+  color: #1a1d23;
+  font-weight: 600;
+}
+
+.admin-app .ruventu-ops .ops-tabs button span {
+  margin-left: 5px;
+  color: #626b77;
+}
+
+.admin-app .ruventu-ops .trace-content h3 {
+  font-size: 15px;
+  margin-bottom: 12px;
+}
+
+.admin-app .ruventu-ops .recall-history-line {
+  margin: 0 0 12px;
+  padding: 12px 16px;
+  border: 1px solid #e5e7eb;
+  border-left: 3px solid #d6d9de;
+  overflow-wrap: anywhere;
+}
+
+.admin-app .ruventu-ops .recall-history-line > strong {
+  display: block;
+}
+
+.admin-app .ruventu-ops .recall-trace .recall-facts {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.admin-app .ruventu-ops .purchase-detail-tabs {
+  margin: 16px 24px 0;
+}
+
+.admin-app .ruventu-ops .purchase-detail-grid {
+  grid-template-columns: minmax(0, 1fr) minmax(260px, 320px);
+  gap: 18px;
+  padding: 20px 24px;
+}
+
+.admin-app .ruventu-ops .purchase-section {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+}
+
+.admin-app .ruventu-ops .purchase-section > .purchase-card {
+  margin: 0;
+}
+
+.admin-app .ruventu-ops .purchase-heading-actions {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.admin-app .ruventu-ops .info-rows > div {
+  grid-template-columns: 105px minmax(0, 1fr);
+}
+
+.admin-app .ruventu-ops .info-rows dd {
+  font-size: 14px;
+  overflow-wrap: anywhere;
+}
+
+.admin-app .ruventu-ops .detail-payment {
+  gap: 12px 18px;
+}
+
+.admin-app .ruventu-ops .detail-payment b {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.admin-app .ruventu-ops :is(.receipt-source-items, .purchase-receive-list) {
+  display: grid;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.admin-app .ruventu-ops :is(.receipt-source-item, .purchase-receive-item) {
+  border: 1px solid #dfe2e6;
+  padding: 14px;
+}
+
+.admin-app .ruventu-ops .receipt-source-item dl,
+.admin-app .ruventu-ops .purchase-receive-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.admin-app .ruventu-ops .receipt-serial-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.admin-app .ruventu-ops .receipt-serial-chips a {
+  padding: 4px 8px;
+  border: 1px solid #dfe2e6;
+}
+
+.admin-app .ruventu-ops .purchase-receive-item header {
+  display: grid;
+  gap: 4px;
+}
+
+.admin-app .ruventu-ops .purchase-receive-fields label {
+  display: grid;
+  gap: 6px;
+}
+
+.admin-app .ruventu-ops .purchase-receive-fields :is(input, textarea) {
+  width: 100%;
+  min-width: 0;
+  padding: 9px 10px;
+  border: 1px solid #cdd2d9;
+}
+
+.admin-app .ruventu-ops .purchase-receive-serials {
+  grid-column: 1 / -1;
+}
+
+.admin-app .ruventu-ops .ncc-workspace-layout {
+  display: grid;
+  grid-template-columns: minmax(220px, 270px) minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.admin-app .ruventu-ops .ncc-workspace-layout :is(.ncc-case-picker, .ncc-case) {
+  margin-top: 0;
+}
+
+.admin-app .ruventu-ops .ncc-case-picker {
+  max-height: 650px;
+  overflow: auto;
+}
+
+.admin-app .ruventu-ops .ncc-case-row {
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  padding: 12px;
+}
+
+.admin-app .ruventu-ops .ncc-case-row > div {
+  grid-column: 1 / -1;
+}
+
+.admin-app .ruventu-ops .ncc-receive-summary {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.admin-app .ruventu-ops .ncc-receive-summary > div {
+  display: grid;
+  gap: 5px;
+  padding: 12px;
+  background: #f6f7f9;
+}
+
+.admin-app .ruventu-ops .ncc-agreement {
+  border-left: 3px solid #1a1d23;
+  background: #f6f7f9;
+}
+
+.admin-app .ruventu-ops .ncc-tabs > button {
+  background: transparent;
+  color: #626b77;
+}
+
+.admin-app .ruventu-ops .ncc-tabs > button.is-active {
+  color: #1a1d23;
+  background: #fff;
+  border-bottom-color: #e31e24;
+  text-decoration: none;
+}
+
+@media (max-width: 1200px) {
+  .admin-app .ruventu-ops .ncc-workspace-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .admin-app .ruventu-ops .ncc-case-picker {
+    max-height: 260px;
+  }
+}
+
+@media (max-width: 950px) {
+  .admin-app .ruventu-ops :is(.purchase-detail-grid, .serial-detail-grid) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .admin-app .ruventu-ops .recall-trace .recall-facts {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 600px) {
+  .admin-app
+    .ruventu-ops
+    :is(.ncc-receive-summary, .purchase-receive-fields, .recall-trace .recall-facts) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* Thông tin và kiểm tra từng dòng nhận hàng */
+.admin-app .ruventu-ops .receipt-modal .purchase-receive-fields {
+  grid-template-columns: minmax(130px, 0.65fr) repeat(2, minmax(0, 1fr));
+  align-items: start;
+}
+
+.admin-app .ruventu-ops .receipt-modal .purchase-receive-item {
+  padding: 16px;
+  border: 1px solid #dce0e5;
+  border-left: 3px solid #b5bdc7;
+  background: #fff;
+}
+
+.admin-app .ruventu-ops .receipt-modal .purchase-receive-item.is-receiving {
+  border-left-color: #1a1d23;
+}
+
+.admin-app .ruventu-ops .receipt-modal .purchase-receive-item > header {
+  padding-bottom: 12px;
+  border-bottom: 1px solid #e5e8ec;
+}
+
+.admin-app .ruventu-ops .receipt-modal .purchase-receive-item > header strong {
+  font-weight: 650;
+}
+
+.admin-app .ruventu-ops .receipt-modal .purchase-receive-item > header > span {
+  color: #626c78;
+  font-size: 13px;
+}
+
+.admin-app .ruventu-ops .receipt-modal .receipt-field {
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid #e1e5ea;
+  background: #fafbfc;
+}
+
+.admin-app .ruventu-ops .receipt-modal .receipt-field > span {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 7px;
+  color: #252b32;
+  font-weight: 600;
+}
+
+.admin-app .ruventu-ops .receipt-modal .receipt-field--lot {
+  border-color: #e9c8c4;
+  background: #fff8f7;
+}
+
+.admin-app .ruventu-ops .receipt-modal .receipt-field-tag {
+  padding: 2px 6px;
+  background: #a9241c;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 650;
+}
+
+.admin-app .ruventu-ops .receipt-modal .receipt-field--location {
+  background: #f4f6f8;
+}
+
+.admin-app .ruventu-ops .receipt-modal .receipt-field :is(input, textarea) {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  padding: 9px 10px;
+  border: 1px solid #cbd1d9;
+  border-radius: 0;
+  background: #fff;
+  color: #20242a;
+  font: inherit;
+}
+
+.admin-app .ruventu-ops .receipt-modal .receipt-field textarea {
+  resize: vertical;
+}
+
+.admin-app .ruventu-ops .receipt-modal .receipt-field [aria-invalid='true'] {
+  border-color: #b42318 !important;
+  background: #fffafa;
+}
+
+.admin-app .ruventu-ops .receipt-modal .receipt-field-error {
+  display: block;
+  margin-top: 5px;
+  color: #b42318;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.admin-app .ruventu-ops .receipt-modal .receipt-serial-count {
+  margin-left: auto;
+  padding: 3px 8px;
+  background: #eceff3;
+  color: #252b32;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.admin-app .ruventu-ops .receipt-modal .purchase-receive-serials,
+.admin-app .ruventu-ops .receipt-modal .receipt-no-serial {
+  grid-column: 1 / -1;
+}
+
+.admin-app .ruventu-ops .receipt-modal .receipt-no-serial {
+  margin: 0;
+  padding: 10px;
+  color: #626c78;
+}
+
+@media (max-width: 760px) {
+  .admin-app .ruventu-ops .receipt-modal .purchase-receive-fields {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* Chi tiết nhập hàng — kích thước theo mẫu Figma Make */
+.admin-app .purchase-detail-page.ruventu-ops {
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.admin-app
+  .purchase-detail-page.ruventu-ops
+  :is(p, table, dd, label, input, select, textarea, button, code) {
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+/* Đầu trang */
+.admin-app .purchase-detail-page.ruventu-ops .purchase-heading {
+  min-height: auto;
+  padding: 16px 24px;
+  gap: 16px;
+  align-items: center;
+}
+
+.admin-app .purchase-detail-page.ruventu-ops .purchase-crumb {
+  gap: 6px;
+  margin-bottom: 12px;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+}
+
+.admin-app .purchase-detail-page.ruventu-ops .purchase-title-badges {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.admin-app .purchase-detail-page.ruventu-ops .purchase-heading h1 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 900;
+  line-height: 1.2;
+  letter-spacing: 0.04em;
+}
+
+.admin-app .purchase-detail-page.ruventu-ops .purchase-heading p {
+  margin: 4px 0 0;
+  color: #888;
+  font-size: 12px;
+}
+
+.admin-app .purchase-detail-page.ruventu-ops .purchase-badge {
+  padding: 2px 8px;
+  border-radius: 0;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.4;
+  letter-spacing: 0.04em;
+}
+
+/* Các nút đầu trang */
+.admin-app .purchase-detail-page.ruventu-ops .purchase-heading-actions {
+  gap: 6px;
+  align-items: center;
+}
+
+.admin-app .purchase-detail-page.ruventu-ops .purchase-btn {
+  height: auto;
+  min-height: 34px;
+  padding: 8px 14px;
+  border-radius: 0;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.4;
+  letter-spacing: 0.04em;
+}
+
+.admin-app .purchase-detail-page.ruventu-ops .purchase-btn.purchase-btn--receive {
+  border-color: #2e7d32 !important;
+  background: #2e7d32 !important;
+  color: #fff !important;
+}
+
+.admin-app
+  .purchase-detail-page.ruventu-ops
+  .purchase-btn.purchase-btn--receive:hover:not(:disabled) {
+  border-color: #256529 !important;
+  background: #256529 !important;
+}
+
+/* Thanh chuyển nội dung */
+.admin-app .purchase-detail-page.ruventu-ops .purchase-detail-tabs {
+  margin: 16px 24px 0;
+}
+
+.admin-app .purchase-detail-page.ruventu-ops .purchase-detail-tabs > button {
+  padding: 10px 12px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.admin-app .purchase-detail-page.ruventu-ops .purchase-detail-tabs > button.is-active {
+  color: #111;
+  font-weight: 700;
+}
+
+/* Nội dung bên trái rộng gấp đôi cột thông tin */
+.admin-app .purchase-detail-page.ruventu-ops .purchase-detail-grid {
+  grid-template-columns: minmax(0, 2fr) minmax(280px, 1fr);
+  align-items: start;
+  gap: 24px;
+  padding: 24px;
+}
+
+.admin-app .purchase-detail-page.ruventu-ops :is(.purchase-detail-main, .purchase-detail-side) {
+  min-width: 0;
+  gap: 16px;
+}
+
+/* Khung nội dung */
+.admin-app .purchase-detail-page.ruventu-ops .purchase-card {
+  border: 2px solid #111;
+  border-radius: 0;
+}
+
+.admin-app .purchase-detail-page.ruventu-ops .purchase-card .form-card__header {
+  min-height: 36px;
+  padding: 10px 16px;
+  background: #0a0a0a;
+}
+
+.admin-app .purchase-detail-page.ruventu-ops .purchase-card .form-card__header-left {
+  gap: 8px;
+}
+
+.admin-app .purchase-detail-page.ruventu-ops .purchase-card .form-card__accent {
+  width: 3px;
+  height: 16px;
+}
+
+.admin-app .purchase-detail-page.ruventu-ops .purchase-card .form-card__title {
+  font-size: 11px;
+  font-weight: 900;
+  line-height: 1.3;
+  letter-spacing: 0.1em;
+}
+
+.admin-app .purchase-detail-page.ruventu-ops .purchase-card .form-card__body {
+  padding: 16px;
+}
+
+/* Bảng sản phẩm và serial */
+.admin-app
+  .purchase-detail-page.ruventu-ops
+  :is(.purchase-detail-table, .purchase-received-serial-table) {
+  width: 100%;
+  min-width: 620px;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.admin-app
+  .purchase-detail-page.ruventu-ops
+  :is(.purchase-detail-table, .purchase-received-serial-table)
+  :is(th, td) {
+  padding: 10px;
+  vertical-align: top;
+  line-height: 1.4;
+}
+
+.admin-app
+  .purchase-detail-page.ruventu-ops
+  :is(.purchase-detail-table, .purchase-received-serial-table)
+  th {
+  color: #888;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+.admin-app
+  .purchase-detail-page.ruventu-ops
+  :is(.purchase-detail-table, .purchase-received-serial-table)
+  td {
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.admin-app .purchase-detail-page.ruventu-ops .purchase-detail-table strong {
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.admin-app .purchase-detail-page.ruventu-ops .purchase-received-serial-table small {
+  font-size: 10px;
+}
+
+/* Nhà Cung Cấp và kho nhập */
+.admin-app .purchase-detail-page.ruventu-ops .info-rows {
+  gap: 8px;
+}
+
+.admin-app .purchase-detail-page.ruventu-ops .info-rows > div {
+  grid-template-columns: 130px minmax(0, 1fr);
+  align-items: start;
+  gap: 8px;
+}
+
+.admin-app .purchase-detail-page.ruventu-ops .info-rows dt {
+  color: #888;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.45;
+  letter-spacing: 0.04em;
+}
+
+.admin-app .purchase-detail-page.ruventu-ops .info-rows dd {
+  margin: 0;
+  color: #111;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.admin-app .purchase-detail-page.ruventu-ops .status-info > span:not(.purchase-badge) {
+  color: #888;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.admin-app .purchase-detail-page.ruventu-ops .status-info p {
+  padding: 8px 10px;
+  font-size: 10px;
+}
+
+/* Tiến độ nhập kho */
+.admin-app .purchase-detail-page.ruventu-ops .progress-stats {
+  flex-wrap: wrap;
+  gap: 16px 24px;
+}
+
+.admin-app .purchase-detail-page.ruventu-ops .progress-stats b {
+  font-size: 18px;
+  font-weight: 900;
+  line-height: 1.2;
+}
+
+.admin-app .purchase-detail-page.ruventu-ops .progress-stats span {
+  margin-top: 4px;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+
+.admin-app .purchase-detail-page.ruventu-ops .progress-line > span {
+  font-size: 12px;
+}
+
+/* Thanh toán và công nợ */
+.admin-app .purchase-detail-page.ruventu-ops .purchase-finance {
+  display: grid;
+  gap: 10px;
+}
+
+.admin-app .purchase-detail-page.ruventu-ops .purchase-finance__rows {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+}
+
+.admin-app .purchase-detail-page.ruventu-ops .purchase-finance__rows > div {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: 16px;
+}
+
+.admin-app .purchase-detail-page.ruventu-ops .purchase-finance__rows dt {
+  color: #777;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.4;
+  letter-spacing: 0.04em;
+}
+
+.admin-app .purchase-detail-page.ruventu-ops .purchase-finance__rows dd {
+  margin: 0;
+  color: #111;
+  font-size: 12px;
+  font-weight: 700;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.admin-app .purchase-detail-page.ruventu-ops .purchase-finance__rows > .purchase-finance__total {
+  margin-top: 4px;
+  padding-top: 10px;
+  border-top: 2px solid #111;
+}
+
+.admin-app .purchase-detail-page.ruventu-ops .purchase-finance__total dt {
+  color: #111;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.admin-app .purchase-detail-page.ruventu-ops .purchase-finance__total dd {
+  font-size: 16px;
+  font-weight: 900;
+}
+
+.admin-app .purchase-detail-page.ruventu-ops .purchase-finance__paid :is(dt, dd) {
+  color: #2e7d32;
+  font-weight: 800;
+}
+
+.admin-app .purchase-detail-page.ruventu-ops .purchase-finance__balance {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 16px;
+  padding: 10px 12px;
+  border: 1px solid #ddd;
+}
+
+.admin-app .purchase-detail-page.ruventu-ops .purchase-finance__balance > span {
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.4;
+}
+
+.admin-app .purchase-detail-page.ruventu-ops .purchase-finance__balance > strong {
+  font-size: 16px;
+  font-weight: 900;
+  line-height: 1.3;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.admin-app .purchase-detail-page.ruventu-ops .purchase-finance__balance.is-debt {
+  border-color: #e31e24;
+  background: #fff0f0;
+  color: #d71920;
+}
+
+.admin-app .purchase-detail-page.ruventu-ops .purchase-finance__balance.is-clear {
+  border-color: #a5d6a7;
+  background: #f0fff4;
+  color: #2e7d32;
+}
+
+.admin-app .purchase-detail-page.ruventu-ops .purchase-finance__balance.is-refund {
+  border-color: #90b8ec;
+  background: #eff6ff;
+  color: #175cd3;
+}
+
+.admin-app .purchase-detail-page.ruventu-ops .purchase-finance__balance.is-neutral {
+  border-color: #e5e7eb;
+  background: #fafafa;
+  color: #777;
+}
+
+.admin-app .purchase-detail-page.ruventu-ops .purchase-finance__balance.is-unknown {
+  border-color: #e3c76a;
+  background: #fff8e5;
+  color: #8a6100;
+}
+
+.admin-app .purchase-detail-page.ruventu-ops .purchase-finance__status {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 2px;
+}
+
+/* Màn hình hẹp */
+@media (max-width: 1100px) {
+  .admin-app .purchase-detail-page.ruventu-ops .purchase-detail-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .admin-app .purchase-detail-page.ruventu-ops .purchase-heading {
+    align-items: flex-start;
+  }
+}
+
+@media (max-width: 700px) {
+  .admin-app .purchase-detail-page.ruventu-ops .purchase-heading {
+    padding: 16px;
+  }
+
+  .admin-app .purchase-detail-page.ruventu-ops .purchase-detail-tabs {
+    margin: 12px 16px 0;
+  }
+
+  .admin-app .purchase-detail-page.ruventu-ops .purchase-detail-grid {
+    gap: 16px;
+    padding: 16px;
+  }
+
+  .admin-app .purchase-detail-page.ruventu-ops .purchase-card .form-card__body {
+    padding: 12px;
+  }
+
+  .admin-app
+    .purchase-detail-page.ruventu-ops
+    :is(.purchase-finance__rows > div, .purchase-finance__balance) {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 4px;
+  }
+
+  .admin-app
+    .purchase-detail-page.ruventu-ops
+    :is(.purchase-finance__rows dd, .purchase-finance__balance > strong) {
+    text-align: left;
+  }
+}

@@ -12,8 +12,10 @@ test('admin request refreshes an expired access token once and retries', async (
   const calls = [];
   globalThis.fetch = async (url, options = {}) => {
     calls.push({ url, options });
-    if (calls.length === 1) return new Response(JSON.stringify({ message: 'expired' }), { status: 401 });
-    if (calls.length === 2) return new Response(JSON.stringify({ data: { access_token: 'fresh' } }), { status: 200 });
+    if (calls.length === 1)
+      return new Response(JSON.stringify({ message: 'expired' }), { status: 401 });
+    if (calls.length === 2)
+      return new Response(JSON.stringify({ data: { access_token: 'fresh' } }), { status: 200 });
     return new Response(JSON.stringify({ data: { items: [1] } }), { status: 200 });
   };
 

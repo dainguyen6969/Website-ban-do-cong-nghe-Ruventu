@@ -1,8 +1,61 @@
 export const SERIAL_STATUS_META = {
-  DA_BAN: { label: 'Đã bán', key: 'sold', description: 'Sản phẩm đã được xuất bán và kích hoạt bảo hành.' },
-  TRONG_KHO: { label: 'Trong kho', key: 'stock', description: 'Sản phẩm đang trong kho, chưa bán.' },
-  DANG_BAO_HANH: { label: 'Đang bảo hành', key: 'warranty', description: 'Sản phẩm đang được tiếp nhận và xử lý bảo hành.' },
-  LOI: { label: 'Lỗi', key: 'error', description: 'Sản phẩm được ghi nhận lỗi và đang chờ xử lý.' },
+  DANG_GUI_NCC: {
+    label: 'Đang gửi NCC',
+    key: 'warranty',
+    description: 'Thiết bị đã được gửi ra khỏi kho để nhà cung cấp xử lý.',
+  },
+
+  DA_DOI_NCC: {
+    label: 'Đã đổi NCC',
+    key: 'replaced',
+    description: 'Serial cũ đã được thay bằng thiết bị khác trong hồ sơ NCC.',
+  },
+
+  TRONG_KHO: {
+    label: 'Trong kho',
+    key: 'stock',
+    description: 'Serial đang trong kho cửa hàng.',
+  },
+
+  DA_BAN: {
+    label: 'Đã bán',
+    key: 'sold',
+    description: 'Serial đã được xuất bán.',
+  },
+
+  DANG_BAO_HANH: {
+    label: 'Đang bảo hành',
+    key: 'warranty',
+    description: 'Serial đang được xử lý bảo hành.',
+  },
+
+  LOI: {
+    label: 'Lỗi',
+    key: 'error',
+    description: 'Serial được ghi nhận là hàng lỗi.',
+  },
+
+  GIU_CHO_BAO_HANH: {
+    label: 'Giữ cho bảo hành',
+    key: 'held',
+    description: 'Serial đang được giữ cho nghiệp vụ bảo hành.',
+  },
+
+  DA_THAY_THE_BAO_HANH: {
+    label: 'Đã thay thế bảo hành',
+    key: 'replaced',
+    description: 'Serial cũ đã được thay bằng thiết bị khác.',
+  },
+
+  DA_TRA_NCC: {
+    label: 'Đã trả NCC',
+    key: 'returned-supplier',
+    description: 'Serial đã được xuất trả nhà cung cấp.',
+  },
 };
 
-export const nextWarehouseStatus = (status) => ({ TRONG_KHO: 'LOI', LOI: 'TRONG_KHO' })[status] || null;
+export const nextWarehouseStatus = (status) =>
+  ({
+    TRONG_KHO: 'LOI',
+    LOI: 'TRONG_KHO',
+  })[status] || null;

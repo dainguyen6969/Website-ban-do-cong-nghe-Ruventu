@@ -1,5 +1,7 @@
 package com.example.dantruventu.DTO.Response.product;
 
+import com.example.dantruventu.DTO.Response.warehouse.ComboComponentResponse;
+import com.example.dantruventu.DTO.catalog.CatalogFields;
 import com.example.dantruventu.Enum.LoaiSanPham;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import java.math.BigDecimal;
@@ -12,7 +14,7 @@ import tools.jackson.databind.JsonNode;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class AdminProductDetailResponse {
+public class AdminProductDetailResponse extends CatalogFields.Metadata {
 
   private Long id;
 
@@ -48,6 +50,15 @@ public class AdminProductDetailResponse {
 
   @JsonProperty("danh_sach_phien_ban")
   private List<PhienBanData> danhSachPhienBan;
+
+  @JsonProperty("ton_thuc_te")
+  private Long tonThucTe;
+
+  @JsonProperty("ton_co_the_ban")
+  private Long tonCoTheBan;
+
+  @JsonProperty("thanh_phan")
+  private List<ComboComponentResponse> thanhPhan;
 
   @Getter
   @Setter
@@ -123,5 +134,26 @@ public class AdminProductDetailResponse {
 
     @JsonProperty("ton_co_the_ban")
     private Long tonCoTheBan;
+
+    @JsonProperty("ton_thuc_te")
+    private Long tonThucTe;
+
+    @JsonProperty("hang_loi")
+    private Long hangLoi;
+
+    @JsonProperty("so_luong_giu_cho_bao_hanh")
+    private Long soLuongGiuChoBaoHanh;
+
+    @JsonProperty("co_quan_ly_serial")
+    private Boolean coQuanLySerial;
+
+    @JsonProperty("che_do_serial_bi_khoa")
+    private Boolean cheDoSerialBiKhoa;
+
+    @JsonProperty("con_hang")
+    private Boolean conHang;
+
+    @JsonProperty("thuoc_tinh_phien_ban")
+    private List<CatalogFields.AttributeData> thuocTinhPhienBan;
   }
 }

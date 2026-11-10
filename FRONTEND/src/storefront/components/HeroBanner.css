@@ -38,12 +38,32 @@
   transition: transform 0.5s ease;
 }
 
-/* Removed hover scale effect for banners 
-.main-banner:hover .banner-img,
-.side-banner:hover .banner-img {
-  transform: scale(1.05);
+.hero-section .side-banner {
+  background-color: #0a0a0a;
 }
-*/
+
+.hero-section .side-banner .banner-img {
+  opacity: .5;
+  transition: transform .5s ease, opacity .5s ease;
+}
+
+.hero-section .side-banner:last-child .banner-img {
+  opacity: .4;
+}
+
+.hero-section .side-banner:is(:hover, :focus-visible) .banner-img {
+  transform: scale(1.05);
+  opacity: .65;
+}
+
+.hero-section .side-banner:last-child:is(:hover, :focus-visible) .banner-img {
+  opacity: .55;
+}
+
+.hero-section .side-banner:focus-visible {
+  outline: 2px solid white;
+  outline-offset: -4px;
+}
 
 .banner-overlay {
   position: absolute;
@@ -55,8 +75,10 @@
   z-index: 2;
 }
 
-.side-banner .banner-overlay {
-  background: linear-gradient(to top, rgba(0, 0, 0, 0.9) 0%, rgba(0, 0, 0, 0.1) 100%);
+.hero-section .side-banner .small-content {
+  flex: 1;
+  min-height: 200px;
+  padding: 24px;
 }
 
 .banner-content {
@@ -133,7 +155,21 @@
   gap: 16px;
 }
 
-.btn-primary {
+.hero-section .hero-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid transparent;
+  border-radius: 0;
+  padding: 12px 24px;
+  font-weight: 700;
+  font-size: 14px;
+  line-height: 1.5;
+  text-align: center;
+  transition: background-color .2s ease, color .2s ease;
+}
+
+.hero-section .hero-button--primary {
   background-color: var(--primary-red);
   color: white;
   padding: 12px 24px;
@@ -141,20 +177,20 @@
   font-size: 14px;
 }
 
-.btn-primary:hover {
+.hero-section .hero-button--primary:is(:hover, :focus-visible) {
   background-color: var(--primary-red-hover);
 }
 
-.btn-outline {
+.hero-section .hero-button--outline {
   background-color: transparent;
   color: white;
-  border: 1px solid white;
+  border-color: white;
   padding: 12px 24px;
   font-weight: 700;
   font-size: 14px;
 }
 
-.btn-outline:hover {
+.hero-section .hero-button--outline:is(:hover, :focus-visible) {
   background-color: white;
   color: black;
 }
@@ -180,15 +216,22 @@
   font-weight: 700;
 }
 
-.arrow-link {
-  position: absolute;
-  bottom: 40px;
-  right: 40px;
+.hero-section .side-banner-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.hero-section .arrow-link {
+  position: static;
+  margin-top: 0;
+  flex-shrink: 0;
   font-size: 14px;
   color: #888;
 }
 
-.side-banner:hover .arrow-link {
+.side-banner:is(:hover, :focus-visible) .arrow-link {
   color: white;
 }
 

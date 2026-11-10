@@ -6,6 +6,7 @@ import com.example.dantruventu.DTO.Request.product.AdminProductUpdateRequest;
 import com.example.dantruventu.DTO.Request.product.ProductVariantCreateRequest;
 import com.example.dantruventu.DTO.Response.ApiResponse;
 import com.example.dantruventu.DTO.Response.product.*;
+import com.example.dantruventu.DTO.catalog.CatalogFields;
 import com.example.dantruventu.Enum.LoaiSanPham;
 import com.example.dantruventu.Services.AdminProductService;
 import jakarta.validation.Valid;
@@ -118,6 +119,20 @@ public class AdminProductController {
         .status(200)
         .message("Ngừng kinh doanh sản phẩm thành công")
         .data(adminProductService.softDelete(id))
+        .build();
+  }
+
+  @PutMapping("/{productId}/variants/{variantId}/attributes")
+  @PreAuthorize("hasRole('ADMIN')")
+  public ApiResponse<CatalogFields.AttributesResponse> replaceVariantAttributes(
+      @PathVariable Long productId,
+      @PathVariable Long variantId,
+      @RequestBody CatalogFields.AttributesRequest request) {
+
+    return ApiResponse.<CatalogFields.AttributesResponse>builder()
+        .status(200)
+        .message("Cập nhật thuộc tính phiên bản thành công")
+        .data(adminProductService.replaceVariantAttributes(productId, variantId, request))
         .build();
   }
 }

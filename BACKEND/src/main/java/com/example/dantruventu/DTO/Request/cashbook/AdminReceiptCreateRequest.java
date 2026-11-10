@@ -1,5 +1,8 @@
 package com.example.dantruventu.DTO.Request.cashbook;
 
+import com.example.dantruventu.Error.AppException;
+import com.example.dantruventu.Error.ErrorCode;
+import com.fasterxml.jackson.annotation.JsonAnySetter;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.AssertFalse;
@@ -110,5 +113,14 @@ public class AdminReceiptCreateRequest {
   @JsonIgnore
   public boolean isBackendManagedFieldProvided() {
     return backendManagedFieldProvided;
+  }
+
+  @JsonAnySetter
+  public void rejectUnknownField(String field, Object value) {
+    throw new AppException(
+        ErrorCode.INVALID_DATA,
+        field,
+        "BUSINESS_SOURCE_LINK_NOT_ALLOWED",
+        "Không được tự khai liên kết hoặc trường ngoài hợp đồng phiếu thủ công");
   }
 }
