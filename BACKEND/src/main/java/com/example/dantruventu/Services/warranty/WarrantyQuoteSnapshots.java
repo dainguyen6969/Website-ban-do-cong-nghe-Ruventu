@@ -23,6 +23,10 @@ final class WarrantyQuoteSnapshots {
       if (raw == null || raw > Integer.MAX_VALUE) throw invalidHistory();
       int version = raw.intValue();
       var merged = new LinkedHashMap<>(result.getOrDefault(version, Map.of()));
+      if (merged.containsKey("thoi_diem_lap")
+          && quote.containsKey("thoi_diem_lap")
+          && !Objects.equals(merged.get("thoi_diem_lap"), quote.get("thoi_diem_lap")))
+        throw invalidHistory();
       var oldDecision = history.object(merged.get("quyet_dinh"));
       if (oldDecision != null) {
         var decision = history.object(quote.get("quyet_dinh"));

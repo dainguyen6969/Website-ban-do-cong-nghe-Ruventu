@@ -541,6 +541,80 @@ class AdminWarrantyQuoteEventServiceTest {
   }
 
   @Test
+  void immediateSendUsesPreciseCreationTimeWhenDatabaseTimeRoundsForward() {
+    var f = new Fixture();
+    f.create(first());
+    var event = f.events.getLast();
+    var quote = f.history.object(f.history.payload(event).get("bao_gia"));
+    var created = f.history.time(quote.get("thoi_diem_lap"));
+    assertNotNull(created);
+    event.setNgayTao(created.withNano(0).plusSeconds(1).toLocalDateTime());
+    var input = send();
+    input.put("thoi_diem", created.toString());
+
+    assertEquals("CHO_PHAN_HOI", f.event(1, input).get("trang_thai_bao_gia"));
+    assertTrue(f.invoices.isEmpty());
+    assertTrue(f.cash.isEmpty());
+  }
+
+  @Test
+  void preciseCreationTimeStillRejectsAnEarlierSend() {
+    var f = new Fixture();
+    f.create(first());
+    var quote = f.history.object(f.history.payload(f.events.getLast()).get("bao_gia"));
+    var input = send();
+    input.put("thoi_diem", f.history.time(quote.get("thoi_diem_lap")).minusNanos(1).toString());
+
+    error(ErrorCode.WARRANTY_QUOTE_EVENT_TRANSITION_INVALID, () -> f.event(1, input));
+    assertEquals(TrangThaiBaoGiaBaoHanh.NHAP, f.ticket.getTrangThaiBaoGia());
+  }
+
+  @TestFactory
+  Stream<DynamicTest> legacyCreationTimeAcceptsOnlyTheRoundingWindow() {
+    return Stream.of(200_000_000L, 2_000_000_000L)
+        .map(
+            nanos ->
+                DynamicTest.dynamicTest(
+                    "legacy-" + nanos,
+                    () -> {
+                      var f = new Fixture();
+                      f.create(first());
+                      var event = f.events.getLast();
+                      var payload = f.history.payload(event);
+                      var quote = f.history.object(payload.get("bao_gia"));
+                      quote.remove("thoi_diem_lap");
+                      payload.put("bao_gia", quote);
+                      event.setDuLieuChiTiet(JSON.writeValueAsString(payload));
+                      var recorded = OffsetDateTime.now(VN).withNano(0);
+                      event.setNgayTao(recorded.toLocalDateTime());
+                      var input = send();
+                      input.put("thoi_diem", recorded.minusNanos(nanos).toString());
+                      if (nanos < 500_000_000L)
+                        assertEquals("CHO_PHAN_HOI", f.event(1, input).get("trang_thai_bao_gia"));
+                      else
+                        error(
+                            ErrorCode.WARRANTY_QUOTE_EVENT_TRANSITION_INVALID,
+                            () -> f.event(1, input));
+                    }));
+  }
+
+  @Test
+  void laterSnapshotsCannotRewritePreciseCreationTime() {
+    var f = new Fixture();
+    f.create(first());
+    f.event(1, send());
+    var event = f.events.getLast();
+    var payload = f.history.payload(event);
+    var quote = f.history.object(payload.get("bao_gia"));
+    quote.put("thoi_diem_lap", f.history.time(quote.get("thoi_diem_lap")).minusSeconds(1).toString());
+    payload.put("bao_gia", quote);
+    event.setDuLieuChiTiet(JSON.writeValueAsString(payload));
+
+    error(ErrorCode.INVALID_WARRANTY_HISTORY, () -> f.event(1, decision("DONG_Y")));
+    assertTrue(f.invoices.isEmpty());
+  }
+
+  @Test
   void invalidPathMissingVersionWrongStateAndMissingKeyNeverWriteInvoice() {
     var f = new Fixture();
     f.create(first());
