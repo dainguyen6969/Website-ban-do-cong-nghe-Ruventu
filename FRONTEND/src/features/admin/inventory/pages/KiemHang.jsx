@@ -93,88 +93,79 @@ export default function KiemHang() {
 
       <section className="stock-check-filters" aria-label="Bộ lọc phiếu kiểm hàng">
         <div className="stock-check-toolbar">
-{/* Tìm kiếm phiếu kiểm hàng */}
-<label className="stock-check-search">
-  <HiOutlineSearch aria-hidden="true" />
+          {/* Tìm kiếm phiếu kiểm hàng */}
+          <label className="stock-check-search">
+            <HiOutlineSearch aria-hidden="true" />
 
-  <span className="sr-only">
-    Tìm phiếu kiểm hàng
-  </span>
+            <span className="sr-only">Tìm phiếu kiểm hàng</span>
 
-  <input
-    type="search"
-    value={draftFilters.keyword}
-    onChange={updateDraft('keyword')}
-    placeholder="Tìm mã phiếu..."
-  />
-</label>
+            <input
+              type="search"
+              value={draftFilters.keyword}
+              onChange={updateDraft('keyword')}
+              placeholder="Tìm mã phiếu..."
+            />
+          </label>
 
-{/* Lọc trạng thái */}
-<FilterDropdown
-  options={[
-    'TRẠNG THÁI',
-    'Đang kiểm',
-    'Đã cân bằng',
-    'Đã hủy',
-  ]}
-  value={
-    {
-      DANG_KIEM: 'Đang kiểm',
-      DA_CAN_BANG: 'Đã cân bằng',
-      DA_HUY: 'Đã hủy',
-    }[draftFilters.status] || 'TRẠNG THÁI'
-  }
-  defaultValue="TRẠNG THÁI"
-  onSelect={(selected) => {
-    const statusMap = {
-      'TRẠNG THÁI': '',
-      'Đang kiểm': 'DANG_KIEM',
-      'Đã cân bằng': 'DA_CAN_BANG',
-      'Đã hủy': 'DA_HUY',
-    };
+          {/* Lọc trạng thái */}
+          <FilterDropdown
+            options={['TRẠNG THÁI', 'Đang kiểm', 'Đã cân bằng', 'Đã hủy']}
+            value={
+              {
+                DANG_KIEM: 'Đang kiểm',
+                DA_CAN_BANG: 'Đã cân bằng',
+                DA_HUY: 'Đã hủy',
+              }[draftFilters.status] || 'TRẠNG THÁI'
+            }
+            defaultValue="TRẠNG THÁI"
+            onSelect={(selected) => {
+              const statusMap = {
+                'TRẠNG THÁI': '',
+                'Đang kiểm': 'DANG_KIEM',
+                'Đã cân bằng': 'DA_CAN_BANG',
+                'Đã hủy': 'DA_HUY',
+              };
 
-    updateDraft('status')({
-      target: {
-        value: statusMap[selected] ?? '',
-      },
-    });
-  }}
-  selectedDark
-/>
+              updateDraft('status')({
+                target: {
+                  value: statusMap[selected] ?? '',
+                },
+              });
+            }}
+            selectedDark
+          />
 
-{/* Hiển thị / Ẩn bộ lọc nâng cao */}
-<button
-  type="button"
-  className={`stock-check-button stock-check-filter-toggle ${
-    showMoreFilters ? 'is-active' : ''
-  }`}
-  aria-expanded={showMoreFilters}
-  aria-controls="stock-check-extra-filters"
-  onClick={() =>
-    setShowMoreFilters((current) => !current)
-  }
->
-  {showMoreFilters ? (
-    <>
-      ÍT BỘ LỌC
-      <HiOutlineChevronUp />
-    </>
-  ) : (
-    <>
-      BỘ LỌC
-      <HiOutlineChevronDown />
-    </>
-  )}
-</button>
+          {/* Hiển thị / Ẩn bộ lọc nâng cao */}
+          <button
+            type="button"
+            className={`stock-check-button stock-check-filter-toggle ${
+              showMoreFilters ? 'is-active' : ''
+            }`}
+            aria-expanded={showMoreFilters}
+            aria-controls="stock-check-extra-filters"
+            onClick={() => setShowMoreFilters((current) => !current)}
+          >
+            {showMoreFilters ? (
+              <>
+                ÍT BỘ LỌC
+                <HiOutlineChevronUp />
+              </>
+            ) : (
+              <>
+                BỘ LỌC
+                <HiOutlineChevronDown />
+              </>
+            )}
+          </button>
 
-{/* Áp dụng bộ lọc */}
-<button
-  type="button"
-  className="stock-check-button stock-check-button--primary"
-  onClick={applyFilters}
->
-  ÁP DỤNG
-</button>
+          {/* Áp dụng bộ lọc */}
+          <button
+            type="button"
+            className="stock-check-button stock-check-button--primary"
+            onClick={applyFilters}
+          >
+            ÁP DỤNG
+          </button>
         </div>
 
         <div
@@ -213,7 +204,10 @@ export default function KiemHang() {
         </div>
       </section>
 
-      <section className="stock-check-list admin-list-body admin-list-frame" aria-label="Danh sách phiếu kiểm hàng">
+      <section
+        className="stock-check-list admin-list-body admin-list-frame"
+        aria-label="Danh sách phiếu kiểm hàng"
+      >
         {error && (
           <div className="stock-check-error" style={{ padding: 20, color: 'red' }}>
             {error}

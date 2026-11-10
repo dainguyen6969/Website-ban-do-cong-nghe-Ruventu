@@ -13,8 +13,8 @@ export const statusClass = (value) =>
     'Hoàn trả một phần': 'orange',
     'Hoàn trả toàn bộ': 'orange',
     'Đã hủy': 'red',
-    'Chưa trả': 'red',
-    'Trả một phần': 'orange',
+    'Chưa trả': 'amber',
+    'Trả một phần': 'amber',
     'Đã trả': 'green',
   })[value] || 'neutral';
 
