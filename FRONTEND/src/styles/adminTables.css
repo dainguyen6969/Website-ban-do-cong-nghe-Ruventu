@@ -426,7 +426,7 @@ a.admin-list-detail-action {
     justify-content: center !important;
     width: max-content !important;
     max-width: 100% !important;
-    min-height: 20px !important;
+    min-height: 25px !important;
     height: auto !important;
     padding: 2px 7px !important;
     border: 1px solid var(--admin-status-line) !important;
@@ -434,8 +434,8 @@ a.admin-list-detail-action {
     background: var(--admin-status-bg) !important;
     color: var(--admin-status-fg) !important;
     font-family: var(--project-font-family, var(--font-family-admin, inherit)) !important;
-    font-size: 8px !important;
-    font-weight: 900 !important;
+    font-size: 9.5px !important;
+    font-weight: 800 !important;
     line-height: 1.3 !important;
     letter-spacing: normal !important;
     text-align: center !important;
