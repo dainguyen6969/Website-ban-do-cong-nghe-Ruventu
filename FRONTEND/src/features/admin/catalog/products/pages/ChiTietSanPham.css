@@ -160,7 +160,7 @@
   color: #1874d1 !important;
 }
 .detail-green {
-  color: #148a38 !important;
+  color: #16aa43 !important;
 }
 .detail-grid {
   display: grid;
@@ -295,8 +295,7 @@
 .detail-card h4 {
   margin-bottom: 12px;
 }
-.detail-description div {
-  max-width: 1050px;
+.detail-page--product .detail-description > div {
   color: #4b5563;
   font-size: 13px;
   line-height: 1.75;
@@ -337,5 +336,189 @@
   }
   .detail-header-total {
     margin-left: 0;
+  }
+}
+
+/* Chi tiết sản phẩm */
+.detail-page--product .detail-breadcrumb {
+  flex-wrap: wrap;
+  color: #475569;
+  font-weight: var(--admin-weight-semibold, 600);
+}
+
+.detail-page--product .detail-hero {
+  align-items: flex-start;
+  padding-block: 14px 16px;
+}
+
+.detail-page--product .detail-hero__identity {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  min-width: 0;
+  gap: 6px;
+}
+
+.detail-page--product .detail-hero h1 {
+  font-weight: var(--admin-weight-semibold, 600);
+  overflow-wrap: anywhere;
+}
+
+.detail-page--product .detail-hero__meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.detail-page--product .detail-hero__meta .detail-code {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
+.detail-page--product .detail-hero__actions {
+  flex-shrink: 0;
+}
+
+.detail-page--product .detail-btn {
+  white-space: nowrap;
+}
+
+.detail-page--product .detail-stats {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.detail-page--product .detail-stat {
+  padding: 12px 14px;
+  overflow-wrap: anywhere;
+}
+
+.detail-page--product :is(.detail-stat span, .detail-info dt, .detail-card h4) {
+  color: #475569;
+  font-size: 11px;
+  font-weight: var(--admin-weight-semibold, 600);
+}
+
+.detail-page--product :is(.detail-stat small, .detail-info small) {
+  color: #5b6574;
+}
+
+.detail-page--product
+  :is(
+    .detail-stat strong,
+    .detail-badge,
+    .detail-name,
+    .detail-total-row td,
+    .detail-spec-table td:first-child
+  ) {
+  font-weight: var(--admin-weight-semibold, 600);
+}
+
+.detail-page--product .detail-stat strong {
+  font-variant-numeric: tabular-nums;
+}
+
+.detail-page--product .detail-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.detail-page--product .detail-info {
+  grid-template-columns: minmax(90px, 28%) minmax(0, 1fr);
+  min-height: 0;
+}
+
+.detail-page--product .detail-info :is(dt, dd) {
+  padding: 10px 12px;
+  overflow-wrap: anywhere;
+}
+
+.detail-page--product .detail-info dd {
+  min-width: 0;
+  font-weight: var(--admin-weight-medium, 500);
+}
+
+.detail-page--product .detail-stats .detail-stat strong,
+.detail-page--product .detail-info .detail-stock-pair strong {
+  font-weight: var(--admin-weight-bold, 700);
+}
+
+.detail-page--product .detail-info dd small {
+  font-weight: var(--admin-weight-regular, 400);
+}
+
+.detail-page--product .detail-info .detail-badge {
+  max-width: 100%;
+  white-space: normal;
+}
+
+.detail-page--product .detail-image {
+  width: 88px;
+  height: 88px;
+  max-width: 100%;
+  object-fit: contain;
+}
+
+.detail-page--product .detail-warranty-value {
+  color: #155e9e;
+  font-weight: var(--admin-weight-semibold, 600);
+}
+
+.detail-page--product .detail-description {
+  margin-bottom: 20px;
+  overflow-wrap: anywhere;
+}
+
+.detail-page--product .detail-description :is(h2, h3) {
+  color: #1f2937;
+  font-weight: var(--admin-weight-semibold, 600);
+}
+
+.detail-page--product .detail-content-card {
+  container: product-detail / inline-size;
+}
+
+.detail-page--product .detail-content-card > .form-card__body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: start;
+  gap: 24px;
+}
+
+.detail-page--product .detail-content-card > .form-card__body > section {
+  min-width: 0;
+}
+
+.detail-page--product .detail-content-card .detail-description {
+  margin-bottom: 0;
+}
+
+@container product-detail (min-width: 960px) {
+  .detail-page--product .detail-content-card > .form-card__body {
+    grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+  }
+}
+
+.detail-page--product .detail-description img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin: 16px auto;
+}
+
+.detail-page--product .detail-content-card .detail-spec-table {
+  min-width: 0;
+  max-width: none;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 950px) {
+  .detail-page--product .detail-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .detail-page--product .detail-grid {
+    grid-template-columns: minmax(0, 1fr);
   }
 }
