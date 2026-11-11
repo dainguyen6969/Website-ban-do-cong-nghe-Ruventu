@@ -49,6 +49,12 @@ function transactionClass(type) {
   return 'is-neutral';
 }
 
+function inventoryQuantityTone(value) {
+  if (value < 0) return 'inventory-number--red';
+  if (value > 0) return 'inventory-number--green';
+  return 'inventory-number--gray';
+}
+
 export default function ChiTietTonKho() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -232,8 +238,10 @@ export default function ChiTietTonKho() {
                 <dd>{detail.stats.actual}</dd>
                 <dt>TỒN THỰC TẾ</dt>
               </div>
-              <div className={detail.stats.available < 0 ? 'is-negative' : 'is-available'}>
-                <dd>{detail.stats.available}</dd>
+              <div>
+                <dd className={inventoryQuantityTone(detail.stats.available)}>
+                  {detail.stats.available}
+                </dd>
                 <dt>KHẢ DỤNG</dt>
               </div>
               <div>
@@ -292,11 +300,7 @@ export default function ChiTietTonKho() {
                           <strong>{version.actual}</strong>
                         </td>
                         <td>
-                          <strong
-                            className={
-                              inStock ? 'inventory-number--green' : 'inventory-number--red'
-                            }
-                          >
+                          <strong className={inventoryQuantityTone(version.available)}>
                             {version.available}
                           </strong>
                         </td>
@@ -371,7 +375,9 @@ export default function ChiTietTonKho() {
                           <strong>{row.actual}</strong>
                         </td>
                         <td>
-                          <strong className="inventory-number--green">{row.available}</strong>
+                          <strong className={inventoryQuantityTone(row.available)}>
+                            {row.available}
+                          </strong>
                         </td>
                         <td>
                           <span
@@ -396,7 +402,9 @@ export default function ChiTietTonKho() {
                       TỔNG CỘNG
                     </th>
                     <td>{allocationTotals.actual}</td>
-                    <td className="inventory-number--green">{allocationTotals.available}</td>
+                    <td className={inventoryQuantityTone(allocationTotals.available)}>
+                      {allocationTotals.available}
+                    </td>
                     <td />
                   </tr>
                 </tfoot>
