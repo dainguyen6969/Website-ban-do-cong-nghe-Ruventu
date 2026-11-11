@@ -214,10 +214,10 @@
   flex-wrap: wrap;
   gap: 8px;
 }
-.order-table-scroll {
+.admin-app .order-list-shell .order-table-scroll {
   width: 100%;
   min-height: 0;
-  flex: 1;
+  flex: 0 1 auto;
   overflow: auto;
   border: 2px solid #111;
   background: #fff;
@@ -340,79 +340,22 @@
 }
 
 @media (min-width: 1200px) {
-  .admin-app .admin-table-scroll.order-table-scroll {
-    overflow-x: hidden !important;
-  }
-  .admin-app .order-list-shell .order-table-scroll > .order-list-table {
-    table-layout: fixed;
-    min-width: 0;
-  }
   .admin-app .order-list-shell .order-table-scroll > .order-list-table :is(th, td) {
-    width: auto;
-    min-width: 0;
     padding-inline: 8px;
+  }
+
+  .admin-app .order-list-shell .order-table-scroll > .order-list-table th {
+    white-space: normal;
+  }
+
+  .admin-app .order-list-shell .order-table-scroll > .order-list-table :is(td strong, td small) {
     white-space: normal;
     overflow-wrap: anywhere;
   }
-  .admin-app .order-list-shell .order-table-scroll > .order-list-table th:nth-child(1) {
-    width: 5%;
-  }
-  .admin-app .order-list-shell .order-table-scroll > .order-list-table th:nth-child(2) {
-    width: 14%;
-  }
-  .admin-app .order-list-shell .order-table-scroll > .order-list-table th:nth-child(3) {
-    width: 8%;
-  }
-  .admin-app .order-list-shell .order-table-scroll > .order-list-table th:nth-child(4) {
-    width: 9%;
-  }
-  .admin-app .order-list-shell .order-table-scroll > .order-list-table th:nth-child(5) {
-    width: 9%;
-  }
-  .admin-app .order-list-shell .order-table-scroll > .order-list-table th:nth-child(6) {
-    width: 8%;
-  }
-  .admin-app .order-list-shell .order-table-scroll > .order-list-table th:nth-child(7) {
-    width: 7%;
-  }
-  .admin-app .order-list-shell .order-table-scroll > .order-list-table th:nth-child(8) {
-    width: 7%;
-  }
-  .admin-app .order-list-shell .order-table-scroll > .order-list-table th:nth-child(9) {
-    width: 9%;
-  }
-  .admin-app .order-list-shell .order-table-scroll > .order-list-table th:nth-child(10) {
-    width: 10%;
-  }
-  .admin-app .order-list-shell .order-table-scroll > .order-list-table th:nth-child(11) {
-    width: 14%;
-  }
-  .admin-app .order-list-shell .order-table-scroll > .order-list-table td strong {
-    white-space: normal;
-    overflow-wrap: anywhere;
-    font-size: 11px;
-  }
-  .admin-app .order-list-shell .order-table-scroll > .order-list-table td small {
-    white-space: normal;
-    overflow-wrap: anywhere;
-  }
+
   .order-list-shell .order-thumbnail {
     width: 32px;
     height: 32px;
-  }
-  .order-list-shell .order-state-badge {
-    max-width: 100%;
-    white-space: normal;
-  }
-  .order-list-shell .order-row-actions {
-    min-width: 0;
-    flex-wrap: wrap;
-  }
-  .admin-app .order-list-shell .order-row-actions > .order-detail-button {
-    min-width: 0;
-    max-width: 100%;
-    padding-inline: 6px !important;
-    white-space: normal;
   }
 }
 
@@ -526,12 +469,7 @@
 
 /* Các nút thao tác trong danh sách đơn hàng */
 .order-list-table th:last-child {
-  min-width: 260px;
-}
-
-.order-list-table td.order-actions-cell {
-  min-width: 260px;
-  vertical-align: middle;
+  width: 13%;
 }
 
 .order-row-actions {
@@ -539,10 +477,10 @@
   flex-wrap: wrap;
   align-items: center;
   gap: 6px;
-  max-width: 360px;
 }
 
 .order-row-actions > .order-detail-button {
+  flex: 0 0 auto;
   min-height: 32px;
   padding: 6px 10px !important;
   white-space: nowrap;
@@ -588,17 +526,6 @@
   line-height: 1.5;
   white-space: normal;
   overflow-wrap: anywhere;
-}
-
-@media (max-width: 760px) {
-  .order-list-table th:last-child,
-  .order-list-table td.order-actions-cell {
-    min-width: 200px;
-  }
-
-  .order-row-actions {
-    max-width: 230px;
-  }
 }
 
 .order-list-table {

@@ -10,6 +10,7 @@ import {
   HiOutlineTrendingUp,
 } from 'react-icons/hi';
 import DetailTablePagination from '../../../../shared/components/ui/DetailTablePagination';
+import { DETAIL_TABLE_PAGE_SIZE } from '../../../../hooks/useDetailTablePagination';
 import { formatMoney } from '../../../../data/mockOrders';
 import { customerService } from '../../../../shared/services/customerService';
 import { cashbookService } from '../../../../shared/services/cashbookService';
@@ -29,7 +30,7 @@ export default function ChiTietKhachHang() {
   const [orderSearch, setOrderSearch] = useState('');
   const [debouncedOrderSearch, setDebouncedOrderSearch] = useState('');
   const [orderPage, setOrderPage] = useState(1);
-  const orderPageSize = 10;
+  const orderPageSize = DETAIL_TABLE_PAGE_SIZE;
 
   const [modalMode, setModalMode] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -286,7 +287,6 @@ export default function ChiTietKhachHang() {
               totalItems={orderTotalElements}
               currentPage={orderPage}
               onPageChange={setOrderPage}
-              pageSize={orderPageSize}
               idPrefix="customer-orders"
             />
           </section>

@@ -509,7 +509,8 @@ function EmployeeFormModal({ mode, accounts, roles, employee, onClose, onSubmit 
           </div>
           <div className="employee-form-grid">
             <FormField label="VAI TRÒ *" error={errors.vaiTro}>
-              <FormDropdown aria-label="VAI TRÒ *"
+              <FormDropdown
+                aria-label="VAI TRÒ *"
                 value={form.vaiTro}
                 onChange={(event) => change('vaiTro', event.target.value)}
               >
@@ -523,7 +524,8 @@ function EmployeeFormModal({ mode, accounts, roles, employee, onClose, onSubmit 
             </FormField>
             {!creating && (
               <FormField label="TRẠNG THÁI">
-                <FormDropdown aria-label="TRẠNG THÁI"
+                <FormDropdown
+                  aria-label="TRẠNG THÁI"
                   value={form.trangThai}
                   onChange={(event) => change('trangThai', event.target.value)}
                 >

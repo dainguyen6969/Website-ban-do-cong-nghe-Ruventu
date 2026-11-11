@@ -8,7 +8,7 @@ import useDetailTablePagination, {
   DETAIL_TABLE_PAGE_SIZE,
 } from '../../../../../hooks/useDetailTablePagination';
 import { getProductDetail } from '../api/productApi';
-import { WarrantySummary } from '../../components/CatalogPolicies';
+import { WarrantySummary, warrantyText } from '../../components/CatalogPolicies';
 import './ChiTietSanPham.css';
 
 const money = (value) => `${Number(value || 0).toLocaleString('vi-VN')}đ`;
@@ -82,15 +82,17 @@ export default function ChiTietSanPham() {
   const hasVariantTable = !isCombo && variants.length > 0;
   const components = product.comboItems || [];
   const componentTotal = total(components, 'giaNhap') || total(components, 'donGia');
-  const margin = product.giaNhap
-    ? Math.round(((product.giaBanLe - product.giaNhap) / product.giaNhap) * 100)
-    : 0;
+  const hasVariantPrice = !isCombo && variants.length > 0;
+  const profitOnCost =
+    hasVariantPrice && product.giaNhap > 0
+      ? Math.round(((product.giaBanLe - product.giaNhap) / product.giaNhap) * 100)
+      : null;
   const storage = warehouses(product);
   const storageIncoming = total(storage, 'dangVe');
   const edit = () => navigate(`/admin/san-pham/them-san-pham/${encodeURIComponent(product.id)}`);
 
   return (
-    <main className="detail-page">
+    <main className="detail-page detail-page--product">
       <nav className="detail-breadcrumb">
         <span>SẢN PHẨM</span>
         <b>›</b>
@@ -100,15 +102,11 @@ export default function ChiTietSanPham() {
       </nav>
       <section className="detail-hero">
         <div className="detail-hero__identity">
-          <StatusPill>{product.trangThaiBan}</StatusPill>
           <h1>{product.tenSanPham}</h1>
-          <span className="detail-code">{product.maSanPham}</span>
-          <span className="detail-separator">·</span>
-          <span className="detail-type-text">
-            {isCombo ? 'Sản phẩm theo bộ (Combo)' : 'Sản phẩm đơn'}
-          </span>
-          <span className="detail-separator">·</span>
-          <strong className="detail-hero-price">{money(product.giaBanLe)}</strong>
+          <div className="detail-hero__meta">
+            <span className="detail-code">{product.maSanPham || '—'}</span>
+            <StatusPill>{product.trangThaiBan}</StatusPill>
+          </div>
         </div>
         <div className="detail-hero__actions">
           <button
@@ -124,39 +122,45 @@ export default function ChiTietSanPham() {
           </button>
         </div>
       </section>
-      <section className="detail-stats">
+
+      <section className="detail-stats" aria-label="Giá và tỷ lệ lãi">
         <Stat
           label="GIÁ BÁN LẺ"
-          value={money(product.giaBanLe)}
-          caption="Giá niêm yết"
-          tone="red"
+          value={hasVariantPrice ? money(product.giaBanLe) : '—'}
+          caption={hasVariantPrice ? 'Phiên bản đầu tiên' : 'Chưa có dữ liệu'}
+          tone={hasVariantPrice ? 'red' : ''}
         />
-        <Stat label="GIÁ NHẬP" value={money(product.giaNhap)} caption="Giá vốn bình quân" />
+        <Stat
+          label="GIÁ NHẬP"
+          value={hasVariantPrice ? money(product.giaNhap) : '—'}
+          caption={hasVariantPrice ? 'Giá vốn bình quân' : 'Chưa có dữ liệu'}
+        />
         <Stat
           label="GIÁ BÁN BUÔN"
-          value={money(product.giaBanBuon)}
-          caption="Cho đại lý"
-          tone="blue"
+          value={product.giaBanBuon == null ? '—' : money(product.giaBanBuon)}
+          caption={product.giaBanBuon == null ? 'Chưa có dữ liệu' : 'Cho đại lý'}
+          tone={product.giaBanBuon == null ? '' : 'blue'}
         />
-        <Stat label="BIÊN LỢI NHUẬN" value={`${margin}%`} caption="Trên giá vốn" tone="green" />
+        <Stat
+          label="LÃI TRÊN GIÁ VỐN"
+          value={profitOnCost == null ? '—' : `${profitOnCost}%`}
+          caption={profitOnCost == null ? 'Chưa có giá vốn' : 'So với giá nhập'}
+          tone={profitOnCost > 0 ? 'green' : profitOnCost < 0 ? 'red' : ''}
+        />
       </section>
 
-      <WarrantySummary
-        isCombo={product.isCombo}
-        months={product.warrantyMonths}
-        components={product.components}
-        capacity={product.assemblyCapacity}
-      />
+      {isCombo && (
+        <WarrantySummary
+          isCombo
+          months={product.warrantyMonths}
+          components={product.components}
+          capacity={product.assemblyCapacity}
+        />
+      )}
 
       <div className="detail-grid">
         <FormCard title="Thông tin chính">
           <dl className="detail-info-list">
-            <Info label="Tên sản phẩm">{product.tenSanPham}</Info>
-            <Info label="Mã sản phẩm">
-              <span className="detail-code">{product.maSanPham}</span>
-            </Info>
-            <Info label="Đơn vị tính">{product.donViTinh}</Info>
-            <Info label="Khối lượng">{product.khoiLuong || '—'}</Info>
             <Info label="Ảnh sản phẩm">
               {product.hinhAnh ? (
                 <img className="detail-image" src={product.hinhAnh} alt={product.tenSanPham} />
@@ -164,56 +168,73 @@ export default function ChiTietSanPham() {
                 <div className="detail-image detail-image--empty">Chưa có ảnh</div>
               )}
             </Info>
+            <Info label="Đơn vị tính">{product.donViTinh || '—'}</Info>
+            <Info label="Khối lượng">{product.khoiLuong || '—'}</Info>
           </dl>
         </FormCard>
+
         <FormCard title="Thuộc tính & phân loại">
           <dl className="detail-info-list">
             <Info label="Loại sản phẩm">
               <Badge>{isCombo ? 'SẢN PHẨM THEO BỘ (COMBO)' : 'SẢN PHẨM ĐƠN'}</Badge>
             </Info>
             <Info label="Thương hiệu">{product.thuongHieu || '—'}</Info>
-            <Info label="Trạng thái">
-              <StatusPill>{product.trangThaiBan}</StatusPill>
-            </Info>
-            <Info label="Thuế">VAT {product.vat || '10%'}</Info>
-            <Info label="Tags">
-              <div className="detail-chip-set">
-                {(product.tags || []).map((tag) => (
-                  <span className="detail-chip" key={tag}>
-                    {tag}
-                  </span>
-                ))}
+            <Info label="Danh mục">{product.danhMuc || '—'}</Info>
+            <Info label="Thuế">{product.vat ? `VAT ${product.vat}` : '—'}</Info>
+
+            {!isCombo && (
+              <Info label="Bảo hành">
+                <span className={product.warrantyMonths > 0 ? 'detail-warranty-value' : undefined}>
+                  {warrantyText(product.warrantyMonths)}
+                </span>
+              </Info>
+            )}
+
+            <Info label="Tồn kho tổng">
+              <div className="detail-stock-pair">
+                <div>
+                  <strong>{product.tonKho ?? '—'}</strong>
+                  <small>Tổng tồn</small>
+                </div>
+                <div>
+                  <strong className={product.coTheBan > 0 ? 'detail-green' : undefined}>
+                    {product.coTheBan ?? '—'}
+                  </strong>
+                  <small>Có thể bán</small>
+                </div>
               </div>
             </Info>
-            <Info label="Thuộc tính">
-              <div className="detail-chip-set">
-                {(product.attributes || []).length
-                  ? (product.attributes || []).map((tag) => (
-                      <Badge key={typeof tag === 'string' ? tag : tag.name}>
-                        {typeof tag === 'string' ? tag : `${tag.name}: ${tag.values.join(', ')}`}
-                      </Badge>
-                    ))
-                  : '—'}
-              </div>
-            </Info>
+
+            {product.tags?.length > 0 && (
+              <Info label="Tags">
+                <div className="detail-chip-set">
+                  {product.tags.map((tag) => (
+                    <span className="detail-chip" key={tag}>
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+              </Info>
+            )}
+
+            {product.attributes?.length > 0 && (
+              <Info label="Thuộc tính">
+                <div className="detail-chip-set">
+                  {product.attributes.map((tag) => (
+                    <Badge key={typeof tag === 'string' ? tag : tag.name}>
+                      {typeof tag === 'string' ? tag : `${tag.name}: ${tag.values.join(', ')}`}
+                    </Badge>
+                  ))}
+                </div>
+              </Info>
+            )}
+
             {isCombo && (
               <Info label="Tổng vốn linh kiện">
                 <strong className="detail-red">{money(componentTotal)}</strong>
                 <small>Tổng từ {components.length} linh kiện</small>
               </Info>
             )}
-            <Info label="Tồn kho tổng">
-              <div className="detail-stock-pair">
-                <div>
-                  <strong>{product.tonKho}</strong>
-                  <small>Tổng tồn</small>
-                </div>
-                <div>
-                  <strong className="detail-green">{product.coTheBan ?? product.tonKho}</strong>
-                  <small>Có thể bán</small>
-                </div>
-              </div>
-            </Info>
           </dl>
         </FormCard>
       </div>
@@ -225,7 +246,7 @@ export default function ChiTietSanPham() {
             <HiOutlinePencilAlt /> Sửa
           </button>
         }
-        className="detail-card"
+        className="detail-card detail-content-card"
       >
         <section className="detail-description">
           <h4>Mô tả sản phẩm</h4>
@@ -379,17 +400,7 @@ export default function ChiTietSanPham() {
 
       <FormCard
         title="Thông tin tồn kho"
-        headerRight={
-          <>
-            <Badge>{storage.length} KHO</Badge>
-            <span>
-              Tổng tồn: <b>{product.tonKho}</b>
-            </span>
-            <span>
-              Có thể bán: <b className="detail-green">{product.coTheBan ?? product.tonKho}</b>
-            </span>
-          </>
-        }
+        headerRight={storage.length > 0 ? <Badge>{storage.length} KHO</Badge> : null}
         className="detail-card"
       >
         <div
