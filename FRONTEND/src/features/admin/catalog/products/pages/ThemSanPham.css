@@ -244,41 +244,6 @@ body:has(.admin-app .add-product-page--create),
   gap: 16px;
 }
 
-/* Full-width dropdown inside form */
-.form-dropdown-full {
-  width: 100%;
-  min-width: unset !important;
-}
-
-.filter-dropdown-container--open {
-  z-index: 2000;
-}
-
-.filter-dropdown--error .filter__dropdown {
-  border-color: var(--color-brand-red) !important;
-  background-color: #fffafa !important;
-}
-
-.form-dropdown-full .filter__dropdown {
-  height: 38px;
-  border: 1px solid #d1d5db;
-  border-radius: 0;
-  font-size: 13px;
-  color: var(--color-text-primary);
-  font-weight: 600;
-  background: #ffffff;
-  padding: 0 12px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  width: 100%;
-  gap: 8px;
-}
-
-.form-dropdown-full .filter__dropdown:hover {
-  background: #f9fafb;
-}
-
 /* ── Rich text editor ── */
 .richtext-wrapper {
   border: 1px solid #d1d5db;

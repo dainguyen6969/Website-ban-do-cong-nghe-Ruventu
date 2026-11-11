@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { HiOutlinePlus, HiOutlineSearch } from 'react-icons/hi';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import TablePagination from '../../../../shared/components/ui/TablePagination';
-import FilterDropdown from '../../../../shared/components/ui/FilterDropdown';
+import FilterDropdown, { FormDropdown } from '../../../../shared/components/ui/FilterDropdown';
 import OrderModal from '../../orders/components/OrderModal';
 import {
   apiFieldErrors,
@@ -443,7 +444,8 @@ export default function ThuHoiHang() {
           setForm((current) => {
             const nextMode = !hasSerial && hasNonSerial ? 'receipt' : current.mode;
             const nextReceiptLineId =
-              current.receiptLineId && lines.some((l) => String(l.id) === String(current.receiptLineId))
+              current.receiptLineId &&
+              lines.some((l) => String(l.id) === String(current.receiptLineId))
                 ? current.receiptLineId
                 : String(lines[0]?.id || '');
             return {
@@ -575,7 +577,7 @@ export default function ThuHoiHang() {
       );
 
       setDialog(null);
-      setNotice('Đã ghi nhận thao tác thu hồi.');
+      setNotice(scope === 'recall:create' ? 'Đã tạo đợt thu hồi.' : 'Đã cập nhật đợt thu hồi.');
 
       if (scope === 'recall:create') {
         navigate(`/kho-hang/thu-hoi/${result.id}`);
@@ -677,33 +679,74 @@ export default function ThuHoiHang() {
   };
 
   return (
-    <main className="serial-page recall-page ruventu-ops">
-      <div className="serial-page__inner">
-        <div className="serial-heading-row recall-heading">
-          <h1>{recallId ? 'CHI TIẾT THU HỒI' : 'THU HỒI HÀNG'}</h1>
+    <main
+      className={`serial-page recall-page ${recallId ? 'ruventu-ops' : 'admin-list-page'}`}
+      aria-label="Thu hồi hàng"
+    >
+      <div className={recallId ? 'serial-page__inner' : 'admin-list-content admin-list-body'}>
+        {recallId ? (
+          <header className="serial-heading-row recall-heading">
+            <div>
+              {detail && <p className="recall-heading-label">Chi tiết đợt thu hồi</p>}
+              <div className="recall-title">
+                <h1>{detail?.code || 'CHI TIẾT THU HỒI'}</h1>
+                {detail && (
+                  <span
+                    className={`recall-badge ${detail.status === 'HOAN_TAT' ? 'is-done' : 'is-active'}`}
+                  >
+                    {RECALL_STATUS[detail.status]}
+                  </span>
+                )}
+              </div>
+            </div>
 
-          <div className="recall-actions">
-            {recallId && (
+            <div className="recall-actions">
+              {detail &&
+                (detail.status === 'DANG_XU_LY' ? (
+                  <button
+                    type="button"
+                    className="recall-button is-dark"
+                    disabled={frozen || !flag(detail.can_close)}
+                    onClick={() => openAction('KET_THUC')}
+                  >
+                    Kết thúc đợt thu hồi
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    className="recall-button is-dark"
+                    disabled={frozen}
+                    onClick={() => openAction('MO_LAI')}
+                  >
+                    Mở lại đợt thu hồi
+                  </button>
+                ))}
               <button
                 type="button"
                 className="recall-button"
                 disabled={frozen}
                 onClick={() => navigate('/kho-hang/thu-hoi')}
               >
-                Danh sách
+                ‹ Danh sách
               </button>
-            )}
 
-            <button
-              type="button"
-              className="recall-button is-dark"
-              disabled={frozen || Boolean(recallId && !detail)}
-              onClick={openCreate}
-            >
-              {recallId ? 'Tạo đợt thu hồi mới' : 'Tạo đợt thu hồi'}
-            </button>
-          </div>
-        </div>
+              <button
+                type="button"
+                className="recall-button is-dark"
+                disabled={frozen || !detail}
+                onClick={openCreate}
+              >
+                Tạo đợt thu hồi mới
+              </button>
+            </div>
+          </header>
+        ) : (
+          <nav className="admin-list-breadcrumb" aria-label="Breadcrumb nội dung">
+            <span>Kho hàng</span>
+            <span aria-hidden="true">›</span>
+            <strong aria-current="page">Thu hồi hàng</strong>
+          </nav>
+        )}
 
         {error && !dialog && (
           <p className="recall-error" role="alert">
@@ -718,10 +761,12 @@ export default function ThuHoiHang() {
 
         {!recallId && (
           <>
-            <section className="serial-toolbar">
-              <label className="serial-search">
+            <section className="admin-list-toolbar" aria-label="Bộ lọc thu hồi hàng">
+              <label className="admin-list-search">
+                <HiOutlineSearch size={18} aria-hidden="true" />
                 <input
                   type="search"
+                  aria-label="Tìm đợt thu hồi"
                   value={keyword}
                   placeholder="Mã thu hồi / đơn nhập / Nhà Cung Cấp..."
                   onChange={(event) => {
@@ -731,7 +776,10 @@ export default function ThuHoiHang() {
                 />
               </label>
               <FilterDropdown
+                className="recall-list-status"
+                aria-label="Trạng thái đợt thu hồi"
                 value={status}
+                selectedDark
                 onChange={(event) => {
                   setStatus(event.target.value);
                   setPage(1);
@@ -741,11 +789,25 @@ export default function ThuHoiHang() {
                 <option value="DANG_XU_LY">Đang xử lý</option>
                 <option value="HOAN_TAT">Hoàn tất</option>
               </FilterDropdown>
+              <button
+                type="button"
+                className="admin-list-primary-action"
+                disabled={frozen}
+                onClick={openCreate}
+              >
+                <HiOutlinePlus size={17} aria-hidden="true" />
+                TẠO ĐỢT THU HỒI
+              </button>
             </section>
 
-            <div className="serial-table-shell">
-              <div className="recall-table-scroll">
-                <table className="recall-table">
+            <section className="admin-list-frame" aria-label="Danh sách đợt thu hồi">
+              <div
+                className="admin-table-scroll"
+                tabIndex={0}
+                role="region"
+                aria-label="Bảng đợt thu hồi"
+              >
+                <table className="recall-list-table admin-data-table" aria-busy={loading}>
                   <thead>
                     <tr>
                       <th>MÃ ĐỢT THU HỒI</th>
@@ -769,8 +831,8 @@ export default function ThuHoiHang() {
                       list.items.map((record) => (
                         <tr key={record.id}>
                           <td>
-                            <strong>{record.reason}</strong>
-                            <small className="recall-reference-code">{record.code}</small>
+                            <strong>{record.code}</strong>
+                            <small>{record.reason}</small>
                           </td>
                           <td>
                             <Link to={`/kho-hang/nhap-hang/${record.purchase_id}`}>
@@ -784,6 +846,8 @@ export default function ThuHoiHang() {
                                 {record.resolved_items}/{record.total_items}
                               </span>
                               <progress
+                                className={record.status === 'HOAN_TAT' ? 'is-complete' : undefined}
+                                aria-label={`Tiến độ ${record.code}`}
                                 value={Number(record.resolved_items)}
                                 max={Math.max(1, Number(record.total_items))}
                               />
@@ -800,7 +864,12 @@ export default function ThuHoiHang() {
                             </span>
                           </td>
                           <td>
-                            <Link to={`/kho-hang/thu-hoi/${record.id}`} className="recall-button recall-button--sm">XEM CHI TIẾT</Link>
+                            <Link
+                              to={`/kho-hang/thu-hoi/${record.id}`}
+                              className="recall-button is-dark recall-button--sm"
+                            >
+                              XEM CHI TIẾT
+                            </Link>
                           </td>
                         </tr>
                       ))
@@ -809,13 +878,14 @@ export default function ThuHoiHang() {
                 </table>
               </div>
               <TablePagination
+                className="admin-table-footer"
                 totalItems={Number(list.totalItems)}
                 pageSize={20}
                 currentPage={page}
                 onPageChange={setPage}
                 idPrefix="recalls"
               />
-            </div>
+            </section>
           </>
         )}
 
@@ -823,82 +893,6 @@ export default function ThuHoiHang() {
 
         {recallId && detail && (
           <>
-            <section className="serial-info-card recall-case">
-              <h2>THÔNG TIN ĐỢT THU HỒI</h2>
-              <div className="recall-body">
-                <div className="recall-toolbar">
-                  <div>
-                    <strong>{detail.code}</strong>
-                    <p>{detail.reason}</p>
-                  </div>
-                  <div className="recall-actions">
-                    <span
-                      className={`recall-badge ${detail.status === 'HOAN_TAT' ? 'is-done' : 'is-active'}`}
-                    >
-                      {RECALL_STATUS[detail.status]}
-                    </span>
-                    {detail.status === 'DANG_XU_LY' ? (
-                      <button
-                        type="button"
-                        className="recall-button is-dark"
-                        disabled={frozen || !flag(detail.can_close)}
-                        onClick={() => openAction('KET_THUC')}
-                      >
-                        Kết thúc đợt thu hồi
-                      </button>
-                    ) : (
-                      <button
-                        type="button"
-                        className="recall-button"
-                        disabled={frozen}
-                        onClick={() => openAction('MO_LAI')}
-                      >
-                        Mở lại đợt thu hồi
-                      </button>
-                    )}
-                  </div>
-                </div>
-
-                <dl className="recall-facts">
-                  <div>
-                    <dt>Nguồn nhập</dt>
-                    <dd>
-                      <Link to={`/kho-hang/nhap-hang/${detail.purchase_id}`}>
-                        {detail.ma_don_nhap}
-                      </Link>
-                    </dd>
-                  </div>
-                  <div>
-                    <dt>Nhà Cung Cấp</dt>
-                    <dd>{detail.ten_nha_cung_cap}</dd>
-                  </div>
-                  <div>
-                    <dt>Thông báo thu hồi</dt>
-                    <dd>{detail.notice_document}</dd>
-                  </div>
-                  <div>
-                    <dt>Người phụ trách</dt>
-                    <dd>{detail.employee_name}</dd>
-                  </div>
-                  <div>
-                    <dt>Hạn xử lý</dt>
-                    <dd>{detail.deadline ? formatDateTimeVN(detail.deadline) : 'Không đặt hạn'}</dd>
-                  </div>
-                  <div>
-                    <dt>Đã giải quyết</dt>
-                    <dd>
-                      {detail.items.filter((item) => item.status === 'DA_GIAI_QUYET').length}/
-                      {detail.items.length}
-                    </dd>
-                  </div>
-                </dl>
-
-                {detail.status === 'DANG_XU_LY' && !flag(detail.can_close) && (
-                  <p className="recall-muted">Chưa thể kết thúc: {detail.close_blocker}</p>
-                )}
-              </div>
-            </section>
-
             <nav className="ops-tabs" aria-label="Nội dung đợt thu hồi">
               {[
                 ['devices', 'Thiết bị trong phạm vi'],
@@ -917,103 +911,165 @@ export default function ThuHoiHang() {
               ))}
             </nav>
 
-            <section className="serial-info-card recall-case" hidden={recallTab !== 'devices'}>
-              <h2>THIẾT BỊ TRONG PHẠM VI</h2>
-              <div className="recall-table-scroll">
-                <table className="recall-table">
-                  <thead>
-                    <tr>
-                      <th>THIẾT BỊ / NGUỒN</th>
-                      <th>VỊ TRÍ THEO SỰ KIỆN</th>
-                      <th>ĐƠN BÁN / LIÊN HỆ</th>
-                      <th>KẾT QUẢ</th>
-                      <th>THAO TÁC</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {detail.items.map((item) => (
-                      <tr key={item.id}>
-                        <td>
-                          <strong>{item.ten_phien_ban}</strong>
-                          <small>
-                            {item.serial_id ? (
-                              <Link to={`/kho-hang/danh-sach-serial/${item.serial_id}`}>
-                                {item.so_serial}
-                              </Link>
-                            ) : (
-                              `Theo dõi nội bộ #${item.id} ${item.ma_theo_doi || ''}`
-                            )}
-                          </small>
-                          <small>
-                            {item.supplier_lot ? `Lô: ${item.supplier_lot}` : 'Chưa có mã lô'}
-                          </small>
-                        </td>
-                        <td>
-                          <Location item={item} />
-                        </td>
-                        <td>
-                          {item.order_id ? (
-                            <>
-                              <Link to={`/admin/don-hang/danh-sach-don-hang/${item.order_id}`}>
-                                {item.ma_don_hang}
-                              </Link>
-                              <small>
-                                {item.ten_nguoi_nhan} · {item.sdt_nguoi_nhan}
-                              </small>
-                            </>
-                          ) : (
-                            'Chưa có đơn hiện tại; xem lịch sử serial nếu có'
-                          )}
-                          {item.next_contact_at && (
-                            <small>Hẹn: {formatDateTimeVN(item.next_contact_at)}</small>
-                          )}
-                        </td>
-                        <td>
-                          <span
-                            className={`recall-badge ${item.status === 'DA_GIAI_QUYET' ? 'is-done' : 'is-pending'}`}
-                          >
-                            {RECALL_STATUS[item.status]}
-                          </span>
-                          {item.result && <small>{RECALL_ACTIONS[item.result]}</small>}
-                          {item.contact_note && <small>{item.contact_note}</small>}
-                        </td>
-                        <td>
-                          {detail.status === 'DANG_XU_LY' && item.status !== 'DA_GIAI_QUYET' && (
-                            <button
-                              type="button"
-                              className="recall-button is-dark recall-button--sm"
-                              disabled={frozen}
-                              onClick={() => openAction(recallDefaultAction(item), item)}
-                            >
-                              CẬP NHẬT
-                            </button>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </section>
+            <div className="recall-detail-grid">
+              <aside className="serial-info-card recall-case recall-details">
+                <h2>THÔNG TIN ĐỢT THU HỒI</h2>
+                <div className="recall-body">
+                  <dl className="recall-facts">
+                    <div>
+                      <dt>Lý do thu hồi</dt>
+                      <dd>{detail.reason}</dd>
+                    </div>
+                    <div>
+                      <dt>Nguồn nhập</dt>
+                      <dd>
+                        <Link to={`/kho-hang/nhap-hang/${detail.purchase_id}`}>
+                          {detail.ma_don_nhap}
+                        </Link>
+                      </dd>
+                    </div>
+                    <div>
+                      <dt>Nhà Cung Cấp</dt>
+                      <dd>{detail.ten_nha_cung_cap}</dd>
+                    </div>
+                    <div>
+                      <dt>Thông báo thu hồi</dt>
+                      <dd>{detail.notice_document}</dd>
+                    </div>
+                    <div>
+                      <dt>Người phụ trách</dt>
+                      <dd>{detail.employee_name}</dd>
+                    </div>
+                    <div>
+                      <dt>Hạn xử lý</dt>
+                      <dd>
+                        {detail.deadline ? formatDateTimeVN(detail.deadline) : 'Không đặt hạn'}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt>Đã giải quyết</dt>
+                      <dd>
+                        {detail.items.filter((item) => item.status === 'DA_GIAI_QUYET').length}/
+                        {detail.items.length}
+                      </dd>
+                    </div>
+                  </dl>
 
-            <section className="serial-info-card recall-case" hidden={recallTab !== 'history'}>
-              <h2>CHỨNG TỪ VÀ LỊCH SỬ</h2>
-              <div className="recall-body">
-                {detail.events.map((event) => (
-                  <article className="recall-history-line" key={event.id}>
-                    <strong>
-                      {RECALL_ACTIONS[event.action] || event.action}
-                      {event.item_id ? ` · Thiết bị #${event.item_id}` : ''}
-                    </strong>
-                    <small>
-                      {formatDateTimeVN(event.occurred_at)} · {event.actor_name}
-                      {event.document ? ` · ${event.document}` : ''}
-                    </small>
-                    <p>{event.note}</p>
-                  </article>
-                ))}
-              </div>
-            </section>
+                  {detail.status === 'DANG_XU_LY' && !flag(detail.can_close) && (
+                    <p className="recall-notice">Chưa thể kết thúc: {detail.close_blocker}</p>
+                  )}
+                </div>
+              </aside>
+
+              <section
+                className="serial-info-card recall-case recall-detail-content"
+                hidden={recallTab !== 'devices'}
+              >
+                <h2>THIẾT BỊ TRONG PHẠM VI</h2>
+                <div
+                  className="admin-table-scroll admin-table-scroll--embedded"
+                  tabIndex={0}
+                  role="region"
+                  aria-label="Bảng thiết bị thu hồi"
+                >
+                  <table className="recall-table admin-data-table admin-data-table--records">
+                    <thead>
+                      <tr>
+                        <th>THIẾT BỊ / NGUỒN</th>
+                        <th>VỊ TRÍ THEO SỰ KIỆN</th>
+                        <th>ĐƠN BÁN / LIÊN HỆ</th>
+                        <th>KẾT QUẢ</th>
+                        <th>THAO TÁC</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {detail.items.map((item) => (
+                        <tr key={item.id}>
+                          <td>
+                            <strong>{item.ten_phien_ban}</strong>
+                            <small>
+                              {item.serial_id ? (
+                                <Link to={`/kho-hang/danh-sach-serial/${item.serial_id}`}>
+                                  {item.so_serial}
+                                </Link>
+                              ) : (
+                                `Theo dõi nội bộ #${item.id} ${item.ma_theo_doi || ''}`
+                              )}
+                            </small>
+                            <small>
+                              {item.supplier_lot ? `Lô: ${item.supplier_lot}` : 'Chưa có mã lô'}
+                            </small>
+                          </td>
+                          <td>
+                            <Location item={item} />
+                          </td>
+                          <td>
+                            {item.order_id ? (
+                              <>
+                                <Link to={`/admin/don-hang/danh-sach-don-hang/${item.order_id}`}>
+                                  {item.ma_don_hang}
+                                </Link>
+                                <small>
+                                  {item.ten_nguoi_nhan} · {item.sdt_nguoi_nhan}
+                                </small>
+                              </>
+                            ) : (
+                              'Chưa có đơn hiện tại; xem lịch sử serial nếu có'
+                            )}
+                            {item.next_contact_at && (
+                              <small>Hẹn: {formatDateTimeVN(item.next_contact_at)}</small>
+                            )}
+                          </td>
+                          <td>
+                            <span
+                              className={`recall-badge ${item.status === 'DA_GIAI_QUYET' ? 'is-done' : 'is-pending'}`}
+                            >
+                              {RECALL_STATUS[item.status]}
+                            </span>
+                            {item.result && <small>{RECALL_ACTIONS[item.result]}</small>}
+                            {item.contact_note && <small>{item.contact_note}</small>}
+                          </td>
+                          <td>
+                            {detail.status === 'DANG_XU_LY' && item.status !== 'DA_GIAI_QUYET' && (
+                              <button
+                                type="button"
+                                className="recall-button is-dark recall-button--sm"
+                                disabled={frozen}
+                                onClick={() => openAction(recallDefaultAction(item), item)}
+                              >
+                                CẬP NHẬT
+                              </button>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </section>
+
+              <section
+                className="serial-info-card recall-case recall-detail-content"
+                hidden={recallTab !== 'history'}
+              >
+                <h2>CHỨNG TỪ VÀ LỊCH SỬ</h2>
+                <div className="recall-body">
+                  {detail.events.map((event) => (
+                    <article className="recall-history-line" key={event.id}>
+                      <strong>
+                        {RECALL_ACTIONS[event.action] || event.action}
+                        {event.item_id ? ` · Thiết bị #${event.item_id}` : ''}
+                      </strong>
+                      <small>
+                        {formatDateTimeVN(event.occurred_at)} · {event.actor_name}
+                        {event.document ? ` · ${event.document}` : ''}
+                      </small>
+                      <p>{event.note}</p>
+                    </article>
+                  ))}
+                </div>
+              </section>
+            </div>
           </>
         )}
 
@@ -1025,8 +1081,9 @@ export default function ThuHoiHang() {
                 ? currentItem.so_serial || currentItem.ma_theo_doi || `Thiết bị #${currentItem.id}`
                 : detail?.code
             }
-            className="recall-modal"
+            className={recallId ? 'recall-modal' : 'recall-modal ruventu-ops'}
             showClose
+            scrollBody
             busy={busy}
             error={error}
             disabled={!attempt.current && (!form.confirmed || !referenceReady)}
@@ -1062,7 +1119,8 @@ export default function ThuHoiHang() {
                   </Field>
 
                   <Field label="Đơn nhập nguồn" wide>
-                    <select
+                    <FormDropdown
+                      aria-label="Đơn nhập nguồn"
                       required
                       value={form.purchaseId}
                       onChange={(event) => {
@@ -1078,21 +1136,25 @@ export default function ThuHoiHang() {
                           {purchase.ten_nha_cung_cap}
                         </option>
                       ))}
-                    </select>
+                    </FormDropdown>
                   </Field>
 
                   <Field label="Phạm vi thu hồi" wide>
-                    <select
+                    <FormDropdown
+                      aria-label="Phạm vi thu hồi"
                       value={form.mode}
                       onChange={(event) => change('mode', event.target.value)}
                     >
                       <option value="serials">Theo danh sách serial</option>
                       <option value="receipt">Theo dòng/lô của nguồn nhận</option>
-                    </select>
+                    </FormDropdown>
                   </Field>
 
                   {form.purchaseId && !sourceLoading && receipts.length === 0 && (
-                    <div className="recall-empty-reference recall-wide" style={{ marginBottom: '12px' }}>
+                    <div
+                      className="recall-empty-reference recall-wide"
+                      style={{ marginBottom: '12px' }}
+                    >
                       <p style={{ color: '#dc2626', margin: '0 0 6px 0' }}>
                         ⚠️ Đơn nhập này chưa có dữ liệu nguồn nhận đối soát.
                       </p>
@@ -1124,7 +1186,8 @@ export default function ThuHoiHang() {
                   ) : (
                     <>
                       <Field label="Dòng nguồn nhận" wide error={fieldErrors.receiptLineId}>
-                        <select
+                        <FormDropdown
+                          aria-label="Dòng nguồn nhận"
                           required
                           aria-invalid={Boolean(fieldErrors.receiptLineId)}
                           disabled={sourceLoading || !form.purchaseId || !sourceLines.length}
@@ -1152,7 +1215,7 @@ export default function ThuHoiHang() {
                               {line.quantity} sản phẩm
                             </option>
                           ))}
-                        </select>
+                        </FormDropdown>
                       </Field>
 
                       {selectedLine && !flag(selectedLine.serial_managed) && (
@@ -1213,7 +1276,8 @@ export default function ThuHoiHang() {
 
                   {currentItem && (
                     <Field label="Việc cần ghi nhận" wide>
-                      <select
+                      <FormDropdown
+                        aria-label="Việc cần ghi nhận"
                         value={form.action}
                         onChange={(event) => change('action', event.target.value)}
                       >
@@ -1249,13 +1313,14 @@ export default function ThuHoiHang() {
                             </optgroup>
                           ) : null;
                         })}
-                      </select>
+                      </FormDropdown>
                     </Field>
                   )}
 
                   {form.action === 'GAN_THIET_BI' && (
                     <Field label="Thiết bị bán đã xác định đúng nguồn" wide>
-                      <select
+                      <FormDropdown
+                        aria-label="Thiết bị bán đã xác định đúng nguồn"
                         required
                         value={form.deviceId}
                         onChange={(event) => change('deviceId', event.target.value)}
@@ -1273,7 +1338,7 @@ export default function ThuHoiHang() {
                               {device.ma_don_hang}
                             </option>
                           ))}
-                      </select>
+                      </FormDropdown>
                     </Field>
                   )}
 
@@ -1287,7 +1352,12 @@ export default function ThuHoiHang() {
                               : 'Phiếu đổi đã hoàn tất, đúng thiết bị'
                           }
                         >
-                          <select
+                          <FormDropdown
+                            aria-label={
+                              form.action === 'TRA_NCC'
+                                ? 'Phiếu trả đã hoàn tất, đúng thiết bị'
+                                : 'Phiếu đổi đã hoàn tất, đúng thiết bị'
+                            }
                             required
                             value={form.nccUnitId}
                             onChange={(event) => change('nccUnitId', event.target.value)}
@@ -1302,7 +1372,7 @@ export default function ThuHoiHang() {
                                 {proof.new_serial ? ` → ${proof.new_serial}` : ''}
                               </option>
                             ))}
-                          </select>
+                          </FormDropdown>
                         </Field>
                       ) : (
                         <div className="recall-empty-reference">
@@ -1332,7 +1402,8 @@ export default function ThuHoiHang() {
                     <div className="recall-wide">
                       {warrantyOptions.length ? (
                         <Field label="Phiếu đổi đã có bằng chứng bàn giao">
-                          <select
+                          <FormDropdown
+                            aria-label="Phiếu đổi đã có bằng chứng bàn giao"
                             required
                             value={form.warrantyId}
                             onChange={(event) => change('warrantyId', event.target.value)}
@@ -1343,7 +1414,7 @@ export default function ThuHoiHang() {
                                 {ticket.ma_phieu}
                               </option>
                             ))}
-                          </select>
+                          </FormDropdown>
                         </Field>
                       ) : (
                         <div className="recall-empty-reference">

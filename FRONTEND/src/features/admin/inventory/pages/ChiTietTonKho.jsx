@@ -210,7 +210,19 @@ export default function ChiTietTonKho() {
                 </div>
                 <div>
                   <dt>TRẠNG THÁI</dt>
-                  <dd className="is-status">{detail.status}</dd>
+                  <dd>
+                    <span
+                      data-admin-status={
+                        detail.status === 'Đang kinh doanh'
+                          ? 'green'
+                          : detail.status === 'Ngừng kinh doanh'
+                            ? 'red'
+                            : 'neutral'
+                      }
+                    >
+                      {detail.status || '—'}
+                    </span>
+                  </dd>
                 </div>
               </dl>
             </div>
@@ -238,60 +250,69 @@ export default function ChiTietTonKho() {
             <small>— chọn phiên bản để lọc thẻ kho</small>
           </header>
           <div className="inventory-table-wrap">
-            <div className="admin-table-scroll admin-table-scroll--embedded" tabIndex={0} role="region" aria-label="Bảng dữ liệu liên quan"><table className="inventory-table inventory-version-table admin-data-table admin-data-table--records">
-              <thead>
-                <tr>
-                  <th>TÊN PHIÊN BẢN</th>
-                  <th>SKU</th>
-                  <th>TỒN THỰC TẾ</th>
-                  <th>TỒN KHẢ DỤNG</th>
-                  <th>TRẠNG THÁI</th>
-                </tr>
-              </thead>
-              <tbody>
-                {versionPagination.visibleItems.map((version) => {
-                  const active = version.id === selectedVersion.id;
-                  const inStock = version.available > 0;
-                  return (
-                    <tr
-                      key={version.id}
-                      className={active ? 'is-active' : ''}
-                      onClick={() => setSelectedVersionId(version.id)}
-                      tabIndex="0"
-                      onKeyDown={(event) => {
-                        if (event.key === 'Enter' || event.key === ' ')
-                          setSelectedVersionId(version.id);
-                      }}
-                    >
-                      <td>
-                        <strong>{version.name}</strong>
-                        {active && <span className="inventory-viewing-badge">ĐANG XEM</span>}
-                      </td>
-                      <td>
-                        <span className="inventory-code-badge">{version.sku}</span>
-                      </td>
-                      <td>
-                        <strong>{version.actual}</strong>
-                      </td>
-                      <td>
-                        <strong
-                          className={inStock ? 'inventory-number--green' : 'inventory-number--red'}
-                        >
-                          {version.available}
-                        </strong>
-                      </td>
-                      <td>
-                        <span
-                          className={`inventory-status-badge ${inStock ? 'is-green' : 'is-red'}`}
-                        >
-                          {inStock ? 'Còn hàng' : 'Hết hàng'}
-                        </span>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table></div>
+            <div
+              className="admin-table-scroll admin-table-scroll--embedded"
+              tabIndex={0}
+              role="region"
+              aria-label="Bảng dữ liệu liên quan"
+            >
+              <table className="inventory-table inventory-version-table admin-data-table admin-data-table--records">
+                <thead>
+                  <tr>
+                    <th>TÊN PHIÊN BẢN</th>
+                    <th>SKU</th>
+                    <th>TỒN THỰC TẾ</th>
+                    <th>TỒN KHẢ DỤNG</th>
+                    <th>TRẠNG THÁI</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {versionPagination.visibleItems.map((version) => {
+                    const active = version.id === selectedVersion.id;
+                    const inStock = version.available > 0;
+                    return (
+                      <tr
+                        key={version.id}
+                        className={active ? 'is-active' : ''}
+                        onClick={() => setSelectedVersionId(version.id)}
+                        tabIndex="0"
+                        onKeyDown={(event) => {
+                          if (event.key === 'Enter' || event.key === ' ')
+                            setSelectedVersionId(version.id);
+                        }}
+                      >
+                        <td>
+                          <strong>{version.name}</strong>
+                          {active && <span className="inventory-viewing-badge">ĐANG XEM</span>}
+                        </td>
+                        <td>
+                          <span className="inventory-code-badge">{version.sku}</span>
+                        </td>
+                        <td>
+                          <strong>{version.actual}</strong>
+                        </td>
+                        <td>
+                          <strong
+                            className={
+                              inStock ? 'inventory-number--green' : 'inventory-number--red'
+                            }
+                          >
+                            {version.available}
+                          </strong>
+                        </td>
+                        <td>
+                          <span
+                            className={`inventory-status-badge ${inStock ? 'is-green' : 'is-red'}`}
+                          >
+                            {inStock ? 'Còn hàng' : 'Hết hàng'}
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           </div>
           <DetailTablePagination
             totalItems={detail.versions.length}
@@ -315,63 +336,72 @@ export default function ChiTietTonKho() {
           )}
 
           <div className="inventory-table-wrap">
-            <div className="admin-table-scroll admin-table-scroll--embedded" tabIndex={0} role="region" aria-label="Bảng dữ liệu liên quan"><table className="inventory-table inventory-allocation-table admin-data-table admin-data-table--records">
-              <thead>
-                <tr>
-                  <th>KHO HÀNG</th>
-                  <th>VỊ TRÍ LƯU KHO</th>
-                  <th>TỒN THỰC TẾ</th>
-                  <th>TỒN KHẢ DỤNG</th>
-                  <th>TRẠNG THÁI</th>
-                </tr>
-              </thead>
-              <tbody>
-                {selectedVersion.allocations.length > 0 ? (
-                  allocationPagination.visibleItems.map((row) => (
-                    <tr key={row.code}>
-                      <td>
-                        <span className="inventory-warehouse">
-                          <HiOutlineHome size={15} aria-hidden="true" />
-                          <strong>
-                            {row.name} ({row.code})
-                          </strong>
-                        </span>
-                      </td>
-                      <td>
-                        <span className="inventory-location-badge">{row.location}</span>
-                      </td>
-                      <td>
-                        <strong>{row.actual}</strong>
-                      </td>
-                      <td>
-                        <strong className="inventory-number--green">{row.available}</strong>
-                      </td>
-                      <td>
-                        <span
-                          className={`inventory-status-badge ${row.available > 0 ? 'is-green' : 'is-red'}`}
-                        >
-                          {row.available > 0 ? 'CÒN HÀNG' : 'HẾT HÀNG'}
-                        </span>
+            <div
+              className="admin-table-scroll admin-table-scroll--embedded"
+              tabIndex={0}
+              role="region"
+              aria-label="Bảng dữ liệu liên quan"
+            >
+              <table className="inventory-table inventory-allocation-table admin-data-table admin-data-table--records">
+                <thead>
+                  <tr>
+                    <th>KHO HÀNG</th>
+                    <th>VỊ TRÍ LƯU KHO</th>
+                    <th>TỒN THỰC TẾ</th>
+                    <th>TỒN KHẢ DỤNG</th>
+                    <th>TRẠNG THÁI</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {selectedVersion.allocations.length > 0 ? (
+                    allocationPagination.visibleItems.map((row) => (
+                      <tr key={row.code}>
+                        <td>
+                          <span className="inventory-warehouse">
+                            <HiOutlineHome size={15} aria-hidden="true" />
+                            <strong>
+                              {row.name} ({row.code})
+                            </strong>
+                          </span>
+                        </td>
+                        <td>
+                          <span className="inventory-location-badge">{row.location}</span>
+                        </td>
+                        <td>
+                          <strong>{row.actual}</strong>
+                        </td>
+                        <td>
+                          <strong className="inventory-number--green">{row.available}</strong>
+                        </td>
+                        <td>
+                          <span
+                            className={`inventory-status-badge ${row.available > 0 ? 'is-green' : 'is-red'}`}
+                          >
+                            {row.available > 0 ? 'CÒN HÀNG' : 'HẾT HÀNG'}
+                          </span>
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan="5" className="inventory-empty">
+                        Chưa có tồn kho tại kho hàng nào.
                       </td>
                     </tr>
-                  ))
-                ) : (
+                  )}
+                </tbody>
+                <tfoot>
                   <tr>
-                    <td colSpan="5" className="inventory-empty">
-                      Chưa có tồn kho tại kho hàng nào.
-                    </td>
+                    <th scope="row" colSpan={2}>
+                      TỔNG CỘNG
+                    </th>
+                    <td>{allocationTotals.actual}</td>
+                    <td className="inventory-number--green">{allocationTotals.available}</td>
+                    <td />
                   </tr>
-                )}
-              </tbody>
-              <tfoot>
-                <tr>
-                  <td colSpan="2">TỔNG CỘNG</td>
-                  <td>{allocationTotals.actual}</td>
-                  <td className="inventory-number--green">{allocationTotals.available}</td>
-                  <td />
-                </tr>
-              </tfoot>
-            </table></div>
+                </tfoot>
+              </table>
+            </div>
           </div>
           <DetailTablePagination
             totalItems={selectedVersion.allocations.length}
@@ -463,76 +493,83 @@ export default function ChiTietTonKho() {
           </div>
 
           <div className="inventory-table-wrap">
-            <div className="admin-table-scroll admin-table-scroll--embedded" tabIndex={0} role="region" aria-label="Bảng dữ liệu liên quan"><table className="inventory-table inventory-history-table admin-data-table admin-data-table--records">
-              <thead>
-                <tr>
-                  <th>THỜI GIAN</th>
-                  <th>LOẠI GIAO DỊCH</th>
-                  <th>MÃ CHỨNG TỪ</th>
-                  <th>NGƯỜI THỰC HIỆN</th>
-                  <th>SỐ LƯỢNG THAY ĐỔI</th>
-                  <th>TỒN CUỐI</th>
-                  <th>GHI CHÚ</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredHistory.length > 0 ? (
-                  historyPagination.visibleItems.map((entry) => (
-                    <tr key={entry.id}>
-                      <td>{formatDateTime(entry.date)}</td>
-                      <td>
-                        <span
-                          className={`inventory-transaction-badge ${transactionClass(entry.transactionType)}`}
-                        >
-                          {entry.transactionType.toLocaleUpperCase('vi')}
-                        </span>
-                      </td>
-                      <td>
-                        <button type="button" className="inventory-link">
-                          {entry.documentCode}
-                        </button>
-                      </td>
-                      <td>{entry.user}</td>
-                      <td>
-                        <strong
-                          className={
-                            entry.change > 0
-                              ? 'inventory-number--green'
+            <div
+              className="admin-table-scroll admin-table-scroll--embedded"
+              tabIndex={0}
+              role="region"
+              aria-label="Bảng dữ liệu liên quan"
+            >
+              <table className="inventory-table inventory-history-table admin-data-table admin-data-table--records">
+                <thead>
+                  <tr>
+                    <th>THỜI GIAN</th>
+                    <th>LOẠI GIAO DỊCH</th>
+                    <th>MÃ CHỨNG TỪ</th>
+                    <th>NGƯỜI THỰC HIỆN</th>
+                    <th>SỐ LƯỢNG THAY ĐỔI</th>
+                    <th>TỒN CUỐI</th>
+                    <th>GHI CHÚ</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredHistory.length > 0 ? (
+                    historyPagination.visibleItems.map((entry) => (
+                      <tr key={entry.id}>
+                        <td>{formatDateTime(entry.date)}</td>
+                        <td>
+                          <span
+                            className={`inventory-transaction-badge ${transactionClass(entry.transactionType)}`}
+                          >
+                            {entry.transactionType.toLocaleUpperCase('vi')}
+                          </span>
+                        </td>
+                        <td>
+                          <button type="button" className="inventory-link">
+                            {entry.documentCode}
+                          </button>
+                        </td>
+                        <td>{entry.user}</td>
+                        <td>
+                          <strong
+                            className={
+                              entry.change > 0
+                                ? 'inventory-number--green'
+                                : entry.change < 0
+                                  ? 'inventory-number--red'
+                                  : 'inventory-number--gray'
+                            }
+                          >
+                            {entry.change > 0
+                              ? `+${entry.change}`
                               : entry.change < 0
-                                ? 'inventory-number--red'
-                                : 'inventory-number--gray'
+                                ? entry.change
+                                : '±0'}
+                          </strong>
+                        </td>
+                        <td>
+                          <strong>{entry.closing}</strong>
+                        </td>
+                        <td
+                          className={
+                            entry.note.startsWith('Trả ') || entry.note.startsWith('Đối chiếu')
+                              ? 'inventory-note--link'
+                              : ''
                           }
                         >
-                          {entry.change > 0
-                            ? `+${entry.change}`
-                            : entry.change < 0
-                              ? entry.change
-                              : '±0'}
-                        </strong>
-                      </td>
-                      <td>
-                        <strong>{entry.closing}</strong>
-                      </td>
-                      <td
-                        className={
-                          entry.note.startsWith('Trả ') || entry.note.startsWith('Đối chiếu')
-                            ? 'inventory-note--link'
-                            : ''
-                        }
-                      >
-                        {entry.note}
+                          {entry.note}
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan="7" className="inventory-empty">
+                        Không có bản ghi phù hợp với bộ lọc.
                       </td>
                     </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan="7" className="inventory-empty">
-                      Không có bản ghi phù hợp với bộ lọc.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table></div>
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
           <DetailTablePagination
             totalItems={filteredHistory.length}

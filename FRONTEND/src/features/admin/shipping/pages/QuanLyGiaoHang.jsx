@@ -13,10 +13,10 @@ import {
 } from '../../orders/api/orderApi';
 
 import OrderModal from '../../orders/components/OrderModal';
-import { OrderStateBadge } from '../../orders/pages/DanhSachDonHang';
+import { OrderDeliveryBadge, OrderStateBadge } from '../../orders/pages/DanhSachDonHang';
 
 import TablePagination from '../../../../shared/components/ui/TablePagination';
-import FilterDropdown from '../../../../shared/components/ui/FilterDropdown';
+import FilterDropdown, { FormDropdown } from '../../../../shared/components/ui/FilterDropdown';
 import DetailTablePagination from '../../../../shared/components/ui/DetailTablePagination';
 
 import useDetailTablePagination from '../../../../hooks/useDetailTablePagination';
@@ -296,216 +296,221 @@ function ShipmentList() {
       )}
 
       <div className="admin-list-body admin-list-body--inset">
-<div className="delivery-table-scroll admin-table-scroll" tabIndex={0} role="region" aria-label="Bảng danh sách">
-        <table className="delivery-table admin-data-table" aria-label="Danh sách phiếu giao hàng" aria-busy={state.loading}>
-          <colgroup>
-            {Array.from({ length: 13 }, (_, index) => (
-              <col key={index} />
-            ))}
-          </colgroup>
+        <div
+          className="delivery-table-scroll admin-table-scroll"
+          tabIndex={0}
+          role="region"
+          aria-label="Bảng danh sách"
+        >
+          <table
+            className="delivery-table admin-data-table"
+            aria-label="Danh sách phiếu giao hàng"
+            aria-busy={state.loading}
+          >
+            <colgroup>
+              {Array.from({ length: 13 }, (_, index) => (
+                <col key={index} />
+              ))}
+            </colgroup>
 
-          <thead>
-            <tr>
-              <th>MÃ PHIẾU</th>
-              <th>MÃ VẬN ĐƠN</th>
-              <th>MÃ ĐƠN HÀNG</th>
-              <th>ĐÓNG GÓI</th>
-              <th>TRẠNG THÁI GIAO</th>
-              <th>ĐỐI TÁC</th>
-              <th>COD</th>
-              <th>PHÍ ĐỐI TÁC</th>
-              <th>NGƯỜI NHẬN</th>
-              <th>SĐT</th>
-              <th>ĐỊA CHỈ</th>
-              <th>CẬP NHẬT</th>
-              <th>THAO TÁC</th>
-            </tr>
-          </thead>
-
-          <tbody>
-            {state.loading && !state.items.length ? (
+            <thead>
               <tr>
-                <td colSpan={13} className="delivery-list-empty">
-                  Đang tải phiếu giao hàng...
-                </td>
+                <th>MÃ PHIẾU</th>
+                <th>MÃ VẬN ĐƠN</th>
+                <th>MÃ ĐƠN HÀNG</th>
+                <th>ĐÓNG GÓI</th>
+                <th>TRẠNG THÁI GIAO</th>
+                <th>ĐỐI TÁC</th>
+                <th>COD</th>
+                <th>PHÍ ĐỐI TÁC</th>
+                <th>NGƯỜI NHẬN</th>
+                <th>SĐT</th>
+                <th>ĐỊA CHỈ</th>
+                <th>CẬP NHẬT</th>
+                <th>THAO TÁC</th>
               </tr>
-            ) : state.error ? (
-              <tr>
-                <td colSpan={13} className="delivery-list-empty">
-                  Không thể tải danh sách. Nhấn nút tải lại để thử lại.
-                </td>
-              </tr>
-            ) : state.items.length === 0 ? (
-              <tr>
-                <td colSpan={13} className="delivery-list-empty">
-                  Không tìm thấy phiếu giao hàng phù hợp.
-                </td>
-              </tr>
-            ) : (
-              state.items.map((item) => {
-                const partner = item.doi_tac_van_chuyen;
-                const cod = Number(item.tien_thu_ho_cod) || 0;
+            </thead>
 
-                return (
-                  <tr key={item.id}>
-                    <td>
-                      <strong
-                        className="delivery-list-code delivery-list-ellipsis"
-                        title={item.ma_phieu_giao_hang}
-                      >
-                        {item.ma_phieu_giao_hang}
-                      </strong>
-                    </td>
+            <tbody>
+              {state.loading && !state.items.length ? (
+                <tr>
+                  <td colSpan={13} className="delivery-list-empty">
+                    Đang tải phiếu giao hàng...
+                  </td>
+                </tr>
+              ) : state.error ? (
+                <tr>
+                  <td colSpan={13} className="delivery-list-empty">
+                    Không thể tải danh sách. Nhấn nút tải lại để thử lại.
+                  </td>
+                </tr>
+              ) : state.items.length === 0 ? (
+                <tr>
+                  <td colSpan={13} className="delivery-list-empty">
+                    Không tìm thấy phiếu giao hàng phù hợp.
+                  </td>
+                </tr>
+              ) : (
+                state.items.map((item) => {
+                  const partner = item.doi_tac_van_chuyen;
+                  const cod = Number(item.tien_thu_ho_cod) || 0;
 
-                    <td>
-                      <span
-                        className="delivery-list-code delivery-list-ellipsis"
-                        title={item.ma_van_don || ''}
-                      >
-                        {item.ma_van_don || '—'}
-                      </span>
-                    </td>
+                  return (
+                    <tr key={item.id}>
+                      <td>
+                        <strong
+                          className="delivery-list-code delivery-list-ellipsis"
+                          title={item.ma_phieu_giao_hang}
+                        >
+                          {item.ma_phieu_giao_hang}
+                        </strong>
+                      </td>
 
-                    <td>
-                      <button
-                        type="button"
-                        className="delivery-link delivery-list-ellipsis"
-                        title={item.ma_don_hang}
-                        onClick={() =>
-                          navigate(`/admin/don-hang/danh-sach-don-hang/${item.don_hang_id}`)
-                        }
-                      >
-                        {item.ma_don_hang}
-                      </button>
-                    </td>
+                      <td>
+                        <span
+                          className="delivery-list-code delivery-list-ellipsis"
+                          title={item.ma_van_don || ''}
+                        >
+                          {item.ma_van_don || '—'}
+                        </span>
+                      </td>
 
-                    <td>
-                      <OrderStateBadge value={item.trang_thai_dong_goi} />
-                    </td>
-
-                    <td>
-                      <ShipmentBadge value={item.trang_thai_giao_hang} />
-                    </td>
-
-                    <td>
-                      {partner?.id ? (
+                      <td>
                         <button
                           type="button"
-                          className="delivery-partner-link"
-                          title={partner.ten_doi_tac}
+                          className="delivery-link delivery-list-ellipsis"
+                          title={item.ma_don_hang}
                           onClick={() =>
-                            navigate('/admin/khach-hang-doi-tac/doi-tac-van-chuyen', {
-                              state: {
-                                partnerId: Number(partner.id),
-                              },
-                            })
+                            navigate(`/admin/don-hang/danh-sach-don-hang/${item.don_hang_id}`)
                           }
                         >
-                          <b className="delivery-list-ellipsis">{partner.ten_doi_tac}</b>
-                          <small>{partner.ma_doi_tac}</small>
+                          {item.ma_don_hang}
                         </button>
-                      ) : (
-                        <span className="delivery-muted">—</span>
-                      )}
-                    </td>
+                      </td>
 
-                    <td>
-                      {cod > 0 ? (
-                        <strong className="delivery-money-red">{money(cod)}</strong>
-                      ) : (
-                        <span className="delivery-muted">Không thu</span>
-                      )}
-                    </td>
+                      <td>
+                        <OrderStateBadge value={item.trang_thai_dong_goi} />
+                      </td>
 
-                    <td>
-                      <strong className="delivery-money">{money(item.phi_tra_doi_tac ?? 0)}</strong>
-                    </td>
+                      <td>
+                        <ShipmentBadge value={item.trang_thai_giao_hang} />
+                      </td>
 
-                    <td>
-                      <span className="delivery-list-ellipsis" title={item.ten_nguoi_nhan || ''}>
-                        {item.ten_nguoi_nhan || '—'}
-                      </span>
-                    </td>
+                      <td>
+                        {partner?.id ? (
+                          <button
+                            type="button"
+                            className="delivery-partner-link"
+                            title={partner.ten_doi_tac}
+                            onClick={() =>
+                              navigate('/admin/khach-hang-doi-tac/doi-tac-van-chuyen', {
+                                state: {
+                                  partnerId: Number(partner.id),
+                                },
+                              })
+                            }
+                          >
+                            <b className="delivery-list-ellipsis">{partner.ten_doi_tac}</b>
+                            <small>{partner.ma_doi_tac}</small>
+                          </button>
+                        ) : (
+                          <span className="delivery-muted">—</span>
+                        )}
+                      </td>
 
-                    <td className="delivery-list-phone">{item.sdt_nguoi_nhan || '—'}</td>
+                      <td>
+                        {cod > 0 ? (
+                          <strong className="delivery-money-red">{money(cod)}</strong>
+                        ) : (
+                          <span className="delivery-muted">Không thu</span>
+                        )}
+                      </td>
 
-                    <td>
-                      <span
-                        className="delivery-list-address delivery-list-ellipsis"
-                        title={item.dia_chi_giao_hang || ''}
-                      >
-                        {item.dia_chi_giao_hang || '—'}
-                      </span>
-                    </td>
+                      <td>
+                        <strong className="delivery-money">
+                          {money(item.phi_tra_doi_tac ?? 0)}
+                        </strong>
+                      </td>
 
-                    <td className="delivery-list-updated">
-                      {dateTime(item.ngay_cap_nhat || item.ngay_tao)}
-                    </td>
+                      <td>
+                        <span className="delivery-list-ellipsis" title={item.ten_nguoi_nhan || ''}>
+                          {item.ten_nguoi_nhan || '—'}
+                        </span>
+                      </td>
 
-                    <td>
-                      <button
-                        type="button"
-                        className="delivery-detail-btn"
-                        onClick={() => navigate(`${LIST}/${encodeURIComponent(item.id)}`)}
-                      >
-                        XEM CHI TIẾT
-                      </button>
-                    </td>
-                  </tr>
-                );
-              })
-            )}
-          </tbody>
-        </table>
-      </div>
+                      <td className="delivery-list-phone">{item.sdt_nguoi_nhan || '—'}</td>
 
-      <footer className="delivery-list-footer admin-table-footer">
-        <div
-          className="delivery-status-counts"
-          role="group"
-          aria-label="Số lượng phiếu theo trạng thái"
-        >
-          {STATUSES.map((value) => (
-            <button
-              key={value}
-              type="button"
-              className={[
-                'delivery-status-count',
-                `delivery-status--${value}`,
-                status === value ? 'is-selected' : '',
-              ]
-                .filter(Boolean)
-                .join(' ')}
-              aria-pressed={status === value}
-              disabled={state.loading}
-              onClick={() => {
-                setStatus((current) => (current === value ? '' : value));
-                setPage(1);
-              }}
-            >
-              <span>{label(value)}</span>
+                      <td>
+                        <span
+                          className="delivery-list-address delivery-list-ellipsis"
+                          title={item.dia_chi_giao_hang || ''}
+                        >
+                          {item.dia_chi_giao_hang || '—'}
+                        </span>
+                      </td>
 
-              <strong>{state.loading ? '—' : (state.counts?.[value] ?? '—')}</strong>
-            </button>
-          ))}
+                      <td className="delivery-list-updated">
+                        {dateTime(item.ngay_cap_nhat || item.ngay_tao)}
+                      </td>
+
+                      <td>
+                        <button
+                          type="button"
+                          className="delivery-detail-btn"
+                          onClick={() => navigate(`${LIST}/${encodeURIComponent(item.id)}`)}
+                        >
+                          XEM CHI TIẾT
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
         </div>
 
-        <fieldset
-          className="delivery-list-pagination"
-          aria-label="Phân trang phiếu giao hàng"
-          disabled={Boolean(state.error)}
-        >
-          <TablePagination
-            currentPage={page}
-            pageSize={PAGE_SIZE}
-            totalItems={total}
-            onPageChange={setPage}
-            idPrefix="deliveries"
-            showSummary={false}
-          />
-        </fieldset>
-      </footer>
-</div>
+        <footer className="delivery-list-footer admin-table-footer">
+          <div
+            className="delivery-status-counts"
+            role="group"
+            aria-label="Số lượng phiếu theo trạng thái"
+          >
+            {STATUSES.map((value) => (
+              <button
+                key={value}
+                type="button"
+                className={`delivery-status-count${status === value ? ' is-selected' : ''}`}
+                aria-pressed={status === value}
+                disabled={state.loading}
+                onClick={() => {
+                  setStatus((current) => (current === value ? '' : value));
+                  setPage(1);
+                }}
+              >
+                <span>{label(value)}</span>
+
+                <strong>{state.loading ? '—' : (state.counts?.[value] ?? '—')}</strong>
+              </button>
+            ))}
+          </div>
+
+          <fieldset
+            className="delivery-list-pagination"
+            aria-label="Phân trang phiếu giao hàng"
+            disabled={Boolean(state.error)}
+          >
+            <TablePagination
+              currentPage={page}
+              pageSize={PAGE_SIZE}
+              totalItems={total}
+              onPageChange={setPage}
+              idPrefix="deliveries"
+              showSummary={false}
+            />
+          </fieldset>
+        </footer>
+      </div>
     </section>
   );
 }
@@ -733,7 +738,7 @@ function ShipmentDetail({ id }) {
             ADMIN <span>›</span> GIAO HÀNG <span>›</span>
             <strong>CHI TIẾT PHIẾU GIAO HÀNG</strong>
           </nav>
-          <p className="delivery-detail-code">{delivery.ma_phieu_giao_hang}</p>
+          <h1 className="delivery-detail-code">{delivery.ma_phieu_giao_hang}</h1>
         </div>
 
         <button
@@ -804,7 +809,11 @@ function ShipmentDetail({ id }) {
           </div>
         )}
 
-        <div className="delivery-status-strip">
+        <div
+          className="delivery-status-strip"
+          role="group"
+          aria-label="Trạng thái đơn và phiếu giao"
+        >
           {stages.map(([title, value]) => (
             <div key={title}>
               <span>{title}</span>
@@ -812,7 +821,7 @@ function ShipmentDetail({ id }) {
             </div>
           ))}
 
-          <div>
+          <div className="delivery-status-current">
             <span>GIAO HÀNG</span>
             <ShipmentBadge value={status} />
           </div>
@@ -871,39 +880,46 @@ function ShipmentDetail({ id }) {
 
             <ShipmentPanel title="CHI TIẾT HÀNG HÓA">
               <div className="delivery-items-wrap">
-                <div className="admin-table-scroll admin-table-scroll--embedded" tabIndex={0} role="region" aria-label="Bảng dữ liệu liên quan"><table className="delivery-items admin-data-table admin-data-table--records">
-                  <thead>
-                    <tr>
-                      <th>SẢN PHẨM</th>
-                      <th>PHIÊN BẢN</th>
-                      <th>ĐƠN GIÁ</th>
-                      <th>SL</th>
-                      <th>THÀNH TIỀN</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {productPages.visibleItems.map((item) => (
-                      <tr key={item.chi_tiet_don_hang_id}>
-                        <td>
-                          <strong>{item.ten_san_pham}</strong>
-                          <small>{item.ma_san_pham}</small>
-                        </td>
-                        <td>{item.ten_phien_ban || '—'}</td>
-                        <td>{money(item.don_gia)}</td>
-                        <td>{item.so_luong}</td>
-                        <td className="delivery-money-red">{money(item.thanh_tien)}</td>
-                      </tr>
-                    ))}
-
-                    {!products.length && (
+                <div
+                  className="admin-table-scroll admin-table-scroll--embedded"
+                  tabIndex={0}
+                  role="region"
+                  aria-label="Bảng dữ liệu liên quan"
+                >
+                  <table className="delivery-items admin-data-table admin-data-table--records">
+                    <thead>
                       <tr>
-                        <td colSpan={5} className="delivery-empty">
-                          Không có dữ liệu hàng hóa.
-                        </td>
+                        <th>SẢN PHẨM</th>
+                        <th>PHIÊN BẢN</th>
+                        <th>ĐƠN GIÁ</th>
+                        <th>SL</th>
+                        <th>THÀNH TIỀN</th>
                       </tr>
-                    )}
-                  </tbody>
-                </table></div>
+                    </thead>
+                    <tbody>
+                      {productPages.visibleItems.map((item) => (
+                        <tr key={item.chi_tiet_don_hang_id}>
+                          <td>
+                            <strong>{item.ten_san_pham}</strong>
+                            <small>{item.ma_san_pham}</small>
+                          </td>
+                          <td>{item.ten_phien_ban || '—'}</td>
+                          <td>{money(item.don_gia)}</td>
+                          <td>{item.so_luong}</td>
+                          <td className="delivery-money-red">{money(item.thanh_tien)}</td>
+                        </tr>
+                      ))}
+
+                      {!products.length && (
+                        <tr>
+                          <td colSpan={5} className="delivery-empty">
+                            Không có dữ liệu hàng hóa.
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
               </div>
 
               <DetailTablePagination
@@ -1188,7 +1204,8 @@ function ShipmentEditDialog({ delivery, busy, error, close, submit }) {
     >
       <label className="delivery-field">
         <span>ĐỐI TÁC VẬN CHUYỂN *</span>
-        <select
+        <FormDropdown
+          aria-label="ĐỐI TÁC VẬN CHUYỂN"
           required
           value={partnerId}
           disabled={loading}
@@ -1200,7 +1217,7 @@ function ShipmentEditDialog({ delivery, busy, error, close, submit }) {
               {item.ten_doi_tac} — {item.ma_doi_tac}
             </option>
           ))}
-        </select>
+        </FormDropdown>
       </label>
 
       {loadError && (
@@ -1715,7 +1732,7 @@ export function ShipmentReturnDialog({
                             <small>{serial.ma_theo_doi || ''}</small>
                           </span>
 
-                          <select
+                          <FormDropdown
                             required
                             value={serial.resale}
                             onChange={(event) =>
@@ -1727,7 +1744,7 @@ export function ShipmentReturnDialog({
                             <option value="true">Đủ điều kiện bán lại</option>
 
                             <option value="false">Không đủ điều kiện bán lại</option>
-                          </select>
+                          </FormDropdown>
                         </label>
                       ))}
                     </div>
@@ -1735,7 +1752,8 @@ export function ShipmentReturnDialog({
                     <label className="delivery-field">
                       <span>KẾT LUẬN HÀNG NGUYÊN VẸN *</span>
 
-                      <select
+                      <FormDropdown
+                        aria-label="KẾT LUẬN HÀNG NGUYÊN VẸN"
                         required
                         value={row.resale}
                         onChange={(event) =>
@@ -1749,7 +1767,7 @@ export function ShipmentReturnDialog({
                         <option value="true">Đủ điều kiện bán lại</option>
 
                         <option value="false">Không đủ điều kiện bán lại</option>
-                      </select>
+                      </FormDropdown>
                     </label>
                   )}
 
@@ -1817,14 +1835,15 @@ export function ShipmentReturnDialog({
             <label className="delivery-field">
               <span>HÌNH THỨC HOÀN TIỀN DỰ KIẾN *</span>
 
-              <select
+              <FormDropdown
+                aria-label="HÌNH THỨC HOÀN TIỀN DỰ KIẾN"
                 required
                 value={refundMethod}
                 onChange={(event) => setRefundMethod(event.target.value)}
               >
                 <option value="CHUYEN_KHOAN">Chuyển khoản</option>
                 <option value="TIEN_MAT">Tiền mặt</option>
-              </select>
+              </FormDropdown>
             </label>
           )}
 
@@ -1957,7 +1976,5 @@ function ShipmentInfo({ title, wide = false, children }) {
 }
 
 function ShipmentBadge({ value }) {
-  return (
-    <span className={`delivery-badge delivery-badge--${value}`}>{label(value).toUpperCase()}</span>
-  );
+  return <OrderDeliveryBadge order={{ trang_thai_giao_hang: value }} />;
 }

@@ -96,6 +96,11 @@
   background: #fff;
 }
 
+.pt-filter-bar > .filter-dropdown-container {
+  flex: 0 1 200px;
+  width: 200px;
+}
+
 .pt-filter-bar select {
   height: 38px;
   padding: 0 12px;

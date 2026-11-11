@@ -1,3 +1,4 @@
+import { scaledFontSize } from '../../typography/projectFontSize.js';
 import React, { useEffect, useState, useRef } from "react";
 import { Link, NavLink, useNavigate } from "react-router-dom";
 import useMockAuth from "../../auth/useMockAuth";
@@ -373,7 +374,7 @@ const Header = () => {
                         right: "-10px",
                         background: "#f11919",
                         color: "white",
-                        fontSize: "10px",
+                        fontSize: scaledFontSize(10),
                         width: "18px",
                         height: "18px",
                         borderRadius: "50%",

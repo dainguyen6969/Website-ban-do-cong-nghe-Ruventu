@@ -185,8 +185,8 @@ class AdminWarrantyEventHttpTest {
       context.refresh();
       var jwt = context.getBean(JwtService.class);
       var users = context.getBean(NguoiDungRepository.class);
-      for (int n = 0; n < 3; n++) {
-        String token = List.of("admin", "user", "blocked").get(n);
+      for (int n = 0; n < 4; n++) {
+        String token = List.of("admin", "user", "blocked", "employee").get(n);
         long id = 8L + n;
         when(jwt.isAccessTokenValid(token)).thenReturn(true);
         when(jwt.getUserIdFromToken(token)).thenReturn(id);
@@ -202,7 +202,7 @@ class AdminWarrantyEventHttpTest {
                         .vaiTro(
                             VaiTro.builder()
                                 .id((long) n + 1)
-                                .tenVaiTro(n == 1 ? "USER" : "ADMIN")
+                                .tenVaiTro(n == 1 ? "USER" : n == 3 ? "EMPLOYEE" : "ADMIN")
                                 .build())
                         .build()));
       }
@@ -326,6 +326,24 @@ class AdminWarrantyEventHttpTest {
       assertEquals(401, invoice(mvc, "expired", invoiceKey, "501", invoiceBody).getStatus());
       assertEquals(403, invoice(mvc, "user", invoiceKey, "501", invoiceBody).getStatus());
       assertEquals(403, invoice(mvc, "blocked", invoiceKey, "501", invoiceBody).getStatus());
+      int eventsBeforeEmployeeRequest = f.events.size();
+      for (var deniedBody :
+          List.of(
+              AdminWarrantyInvoiceServiceTest.discount(50000),
+              invoiceBody,
+              AdminWarrantyInvoiceServiceTest.cancel(),
+              AdminWarrantyInvoiceServiceTest.apply(1))) {
+        var denied = invoice(mvc, "employee", UUID.randomUUID().toString(), "501", deniedBody);
+        assertEquals(403, denied.getStatus());
+        var deniedJson = AdminWarrantyEventServiceTest.JSON.readTree(denied.getContentAsString());
+        assertEquals("hanh_dong", deniedJson.at("/errors/0/field").asString());
+        assertEquals("FINANCIAL_APPROVAL_FORBIDDEN", deniedJson.at("/errors/0/code").asString());
+        assertTrue(deniedJson.get("data").isNull());
+      }
+      assertEquals(eventsBeforeEmployeeRequest, f.events.size());
+      assertEquals(new java.math.BigDecimal("150000.00"), f.invoices.getFirst().getTongTien());
+      assertEquals(
+          403, request(mvc, "employee", UUID.randomUUID().toString(), "501", body).getStatus());
       assertEquals(400, invoice(mvc, "admin", null, "501", invoiceBody).getStatus());
       assertEquals(400, invoice(mvc, "admin", invoiceKey, "bad", invoiceBody).getStatus());
       assertEquals(

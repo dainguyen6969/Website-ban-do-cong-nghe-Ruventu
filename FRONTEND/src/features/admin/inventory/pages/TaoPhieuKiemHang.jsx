@@ -18,6 +18,7 @@ import {
 } from "../../../../shared/services/mutationUtils";
 
 import "./StockCheckFlow.css";
+import { FormDropdown } from "../../../../shared/components/ui/FilterDropdown";
 
 const REASONS = [
   "Kiểm kê định kỳ",
@@ -609,7 +610,7 @@ export default function TaoPhieuKiemHang() {
                                 </td>
 
                                 <td>
-                                  <select
+                                  <FormDropdown
                                     required
                                     aria-label={`Lý do kiểm ${row.ten_phien_ban}`}
                                     value={row.reasonChoice}
@@ -632,7 +633,7 @@ export default function TaoPhieuKiemHang() {
                                     <option value={CUSTOM_REASON}>
                                       Nhập lý do khác...
                                     </option>
-                                  </select>
+                                  </FormDropdown>
 
                                   {row.reasonChoice === CUSTOM_REASON && (
                                     <input

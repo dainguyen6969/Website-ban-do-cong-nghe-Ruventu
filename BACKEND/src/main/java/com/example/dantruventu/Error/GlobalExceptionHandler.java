@@ -1,5 +1,6 @@
 package com.example.dantruventu.Error;
 
+import jakarta.servlet.http.HttpServletRequest;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -11,6 +12,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingRequestHeaderException;
@@ -18,6 +20,7 @@ import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.servlet.HandlerMapping;
 
 @Slf4j
 @RestControllerAdvice
@@ -209,7 +212,22 @@ public class GlobalExceptionHandler {
   }
 
   @ExceptionHandler(AccessDeniedException.class)
-  public ResponseEntity<ErrorResponse> handleAccessDenied(AccessDeniedException exception) {
+  public ResponseEntity<?> handleAccessDenied(
+      AccessDeniedException exception, HttpServletRequest request) {
+
+    var auth = SecurityContextHolder.getContext().getAuthentication();
+    // Giữ chặn quyền ở controller; chuẩn hóa lỗi hóa đơn bảo hành cho nhân viên bị từ chối.
+    if ("PATCH".equals(request.getMethod())
+        && "/api/v1/admin/warranties/{id}/invoice"
+            .equals(request.getAttribute(HandlerMapping.BEST_MATCHING_PATTERN_ATTRIBUTE))
+        && auth != null
+        && auth.isAuthenticated()
+        && auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_EMPLOYEE")))
+      return handleAppException(
+          WarrantyReadException.of(
+              ErrorCode.WARRANTY_FINANCIAL_APPROVAL_FORBIDDEN,
+              "hanh_dong",
+              "FINANCIAL_APPROVAL_FORBIDDEN"));
 
     ErrorResponse response =
         new ErrorResponse(

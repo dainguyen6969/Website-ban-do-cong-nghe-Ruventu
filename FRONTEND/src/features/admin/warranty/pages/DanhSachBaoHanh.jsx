@@ -4,7 +4,7 @@ import { Search, SlidersHorizontal, Plus, ArrowRight, RefreshCw } from 'lucide-r
 import { statusLabels, quoteLabels, paymentLabels, refundLabels, quickFilters, displayDate } from '../data/warrantyContract';
 import { getWarrantyList, warrantyError } from '../api/warrantyApi';
 import { WarrantyBadge } from '../components/WarrantyShell';
-import FilterDropdown from '../../../../shared/components/ui/FilterDropdown';
+import FilterDropdown, { FormDropdown } from '../../../../shared/components/ui/FilterDropdown';
 import TablePagination from '../../../../shared/components/ui/TablePagination';
 import '../styles/warrantyShell.css';
 
@@ -83,7 +83,7 @@ export default function DanhSachBaoHanh() {
           <td><button type="button" className="w-shell-button" aria-label={`Xem chi tiết ${item.id}`} onClick={() => navigate(`/admin/bao-hanh/chi-tiet/${item.id}`)}>Mở phiếu<ArrowRight size={15} /></button></td>
         </tr>)}{!loading && !error && !visible.length && <tr><td colSpan={6} className="w-shell-empty">Không tìm thấy phiếu bảo hành phù hợp.</td></tr>}</tbody>
       </table></div>
-      <footer className="w-shell-list-footer admin-table-footer"><div>Hiển thị {items.length ? `${start + 1}–${start + visible.length}` : '0'} / tổng {total}</div><div className="w-shell-pager"><select aria-label="Số phiếu mỗi trang" value={pageSize} onChange={event => { setPageSize(Number(event.target.value)); setPage(1); }}>{[10, 20, 50, 100].map(size => <option key={size} value={size}>{size} / trang</option>)}</select><TablePagination totalItems={total} pageSize={pageSize} currentPage={currentPage} onPageChange={setPage} showSummary={false} idPrefix="warranty" /></div></footer>
+      <footer className="w-shell-list-footer admin-table-footer"><div>Hiển thị {items.length ? `${start + 1}–${start + visible.length}` : '0'} / tổng {total}</div><div className="w-shell-pager"><FormDropdown aria-label="Số phiếu mỗi trang" value={pageSize} onChange={event => { setPageSize(Number(event.target.value)); setPage(1); }}>{[10, 20, 50, 100].map(size => <option key={size} value={size}>{size} / trang</option>)}</FormDropdown><TablePagination totalItems={total} pageSize={pageSize} currentPage={currentPage} onPageChange={setPage} showSummary={false} idPrefix="warranty" /></div></footer>
     </section></div>
   </div>;
 }

@@ -153,8 +153,8 @@ export default function QuanLyPhienBan() {
 
   return (
     <main className="version-page admin-list-page" role="main">
-      <div className="version-page__inner admin-list-body">
-        <nav className="version-breadcrumb" aria-label="Breadcrumb nội dung">
+      <div className="admin-list-content admin-list-body">
+        <nav className="admin-list-breadcrumb" aria-label="Breadcrumb nội dung">
           <span>Sản phẩm</span>
           <span aria-hidden="true">›</span>
           <span>Quản lý kho</span>
@@ -163,10 +163,10 @@ export default function QuanLyPhienBan() {
         </nav>
 
         <section
-          className="version-toolbar"
+          className="admin-list-toolbar"
           aria-label="Tìm kiếm và lọc phiên bản"
         >
-          <label className="version-search">
+          <label className="admin-list-search">
             <HiOutlineSearch size={18} aria-hidden="true" />
             <span className="sr-only">Tìm phiên bản</span>
             <input
@@ -234,7 +234,7 @@ export default function QuanLyPhienBan() {
 
           <button
             type="button"
-            className="version-export"
+            className="admin-list-primary-action"
             onClick={() => exportExcel(false)}
           >
             <HiOutlineDownload size={17} aria-hidden="true" />
@@ -300,7 +300,7 @@ export default function QuanLyPhienBan() {
                     Đã xảy ra lỗi hệ thống.{" "}
                     <button
                       type="button"
-                      className="version-detail"
+                      className="admin-list-detail-action"
                       onClick={() => setReloadKey((value) => value + 1)}
                     >
                       THỬ LẠI
@@ -395,7 +395,7 @@ export default function QuanLyPhienBan() {
                       <td>
                         <button
                           type="button"
-                          className="version-detail"
+                          className="admin-list-detail-action"
                           onClick={() =>
                             navigate(
                               item.type === "Combo"

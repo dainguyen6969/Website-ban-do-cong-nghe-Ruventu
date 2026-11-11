@@ -1,3 +1,4 @@
+import { scaledFontSize } from '../../../typography/projectFontSize.js';
 // Reusable admin UI primitive: PermissionGate.
 import { HiOutlineLockClosed } from 'react-icons/hi';
 import { useLocation } from 'react-router-dom';
@@ -43,7 +44,7 @@ export default function PermissionGate({ children }) {
           <div
             style={{
               marginTop: 20,
-              fontSize: 12,
+              fontSize: scaledFontSize(12),
               color: '#666',
               background: '#f5f5f5',
               padding: 10,

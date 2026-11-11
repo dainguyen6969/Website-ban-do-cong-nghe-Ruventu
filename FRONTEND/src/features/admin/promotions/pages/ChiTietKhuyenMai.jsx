@@ -29,6 +29,7 @@ import { findDemoPromotion, updateStoredPromotion } from '../demoPromotions.js';
 import { WarrantyBadge, WarrantyFields, WarrantyPanel, WarrantyTable } from '../../warranty/components/WarrantyShell';
 import '../../warranty/styles/warrantyShell.css';
 import './ChiTietKhuyenMai.css';
+import { FormDropdown } from "../../../../shared/components/ui/FilterDropdown";
 
 const TABS = [
     { key: 'TONG_QUAN', label: 'TỔNG QUAN', icon: FileText },

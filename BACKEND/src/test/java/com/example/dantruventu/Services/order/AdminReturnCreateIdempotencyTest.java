@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -75,7 +76,13 @@ class AdminReturnCreateIdempotencyTest {
   void useTheActualIdempotencyService() {
     var cashbook =
         new CashbookService(
-            cashRepository, cashTypeRepository, idempotencyRepository, mapper, orderEvents);
+            cashRepository,
+            cashTypeRepository,
+            idempotencyRepository,
+            mapper,
+            orderEvents,
+            mock(org.springframework.jdbc.core.JdbcTemplate.class),
+            mock(com.example.dantruventu.Services.documents.DocumentNumberService.class));
     service =
         new AdminReturnService(
             returnRepository,

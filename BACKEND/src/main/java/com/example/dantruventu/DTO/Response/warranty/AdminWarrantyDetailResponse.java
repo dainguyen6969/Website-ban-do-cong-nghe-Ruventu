@@ -35,7 +35,14 @@ public record AdminWarrantyDetailResponse(
     @JsonProperty("ngay_cap_nhat") OffsetDateTime ngayCapNhat,
     @JsonProperty("hoa_don_da_huy") List<Invoice> hoaDonDaHuy,
     @JsonProperty("thiet_bi_hien_hanh") Device thietBiHienHanh,
-    @JsonProperty("noi_dang_giu_thiet_bi_cu") Map<String, Object> noiDangGiuThietBiCu) {
+    @JsonProperty("noi_dang_giu_thiet_bi_cu") Map<String, Object> noiDangGiuThietBiCu,
+    @JsonProperty("xu_ly_tiep") NextWork xuLyTiep) {
+
+  @JsonInclude(JsonInclude.Include.ALWAYS)
+  public record NextWork(
+      @JsonProperty("thao_tac") List<String> thaoTac,
+      @JsonProperty("giu_cho_lich_su_id") Long giuChoLichSuId,
+      @JsonProperty("phu_kien_san_sang_tra") List<Map<String, Object>> phuKienSanSangTra) {}
 
   @JsonInclude(JsonInclude.Include.ALWAYS)
   public record Order(
@@ -55,7 +62,32 @@ public record AdminWarrantyDetailResponse(
       @JsonProperty("so_serial") String soSerial,
       @JsonProperty("la_thiet_bi_hien_hanh") Boolean laThietBiHienHanh,
       @JsonProperty("han_bao_hanh") OffsetDateTime hanBaoHanh,
-      @JsonProperty("can_cu_tinh_han") String canCuTinhHan) {}
+      @JsonProperty("can_cu_tinh_han") String canCuTinhHan,
+      @JsonProperty("ten_san_pham") String tenSanPham,
+      @JsonProperty("ten_phien_ban") String tenPhienBan) {
+
+    public Device(
+        Long id,
+        String maTheoDoi,
+        Long phienBanId,
+        Long soSerialId,
+        String soSerial,
+        Boolean laThietBiHienHanh,
+        OffsetDateTime hanBaoHanh,
+        String canCuTinhHan) {
+      this(
+          id,
+          maTheoDoi,
+          phienBanId,
+          soSerialId,
+          soSerial,
+          laThietBiHienHanh,
+          hanBaoHanh,
+          canCuTinhHan,
+          null,
+          null);
+    }
+  }
 
   @JsonInclude(JsonInclude.Include.ALWAYS)
   public record Intake(
@@ -94,6 +126,17 @@ public record AdminWarrantyDetailResponse(
       String loai,
       @JsonProperty("so_tien") BigDecimal soTien,
       @JsonProperty("phieu_thu_chi_id") Long phieuThuChiId) {}
+
+  @JsonInclude(JsonInclude.Include.ALWAYS)
+  public record HistoryDetail(
+      Long id,
+      @JsonProperty("phieu_bao_hanh_id") Long phieuBaoHanhId,
+      @JsonProperty("loai_su_kien") String loaiSuKien,
+      @JsonProperty("nguoi_thuc_hien_id") Long nguoiThucHienId,
+      @JsonProperty("ten_nguoi_thuc_hien") String tenNguoiThucHien,
+      @JsonProperty("ngay_tao") OffsetDateTime ngayTao,
+      @JsonProperty("noi_dung") String noiDung,
+      @JsonProperty("chi_tiet") Map<String, Object> chiTiet) {}
 
   @JsonInclude(JsonInclude.Include.ALWAYS)
   public record History(List<HistoryItem> items, PaginationResponse pagination) {}

@@ -10,7 +10,7 @@ import {
   HiOutlineX,
   HiOutlineExclamationCircle,
 } from 'react-icons/hi';
-import FilterDropdown from '../../../../shared/components/ui/FilterDropdown';
+import FilterDropdown, { FormDropdown } from '../../../../shared/components/ui/FilterDropdown';
 import TablePagination from '../../../../shared/components/ui/TablePagination';
 import { employeeStatusLabel, makeGeneratedPassword } from '../../../../auth/accountModel';
 import {
@@ -590,7 +590,7 @@ function EmployeeFormModal({ mode, roles, employee, onClose, onSubmit }) {
           </div>
           <div className="employee-form-grid">
             <FormField label="VAI TRÒ *" error={errors.vai_tro_id}>
-              <select
+              <FormDropdown aria-label="VAI TRÒ *"
                 value={form.vai_tro_id}
                 onChange={(event) => change('vai_tro_id', event.target.value)}
               >
@@ -600,17 +600,17 @@ function EmployeeFormModal({ mode, roles, employee, onClose, onSubmit }) {
                     {role.ten_vai_tro}
                   </option>
                 ))}
-              </select>
+              </FormDropdown>
             </FormField>
             {!creating && (
               <FormField label="TRẠNG THÁI">
-                <select
+                <FormDropdown aria-label="TRẠNG THÁI"
                   value={form.trang_thai}
                   onChange={(event) => change('trang_thai', Number(event.target.value))}
                 >
                   <option value={1}>Hoạt động</option>
                   <option value={0}>Ngừng hoạt động</option>
-                </select>
+                </FormDropdown>
               </FormField>
             )}
           </div>

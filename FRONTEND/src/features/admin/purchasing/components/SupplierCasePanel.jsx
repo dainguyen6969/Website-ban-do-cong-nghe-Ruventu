@@ -13,6 +13,7 @@ import {
   withIdempotency,
 } from '../../../../shared/services/mutationUtils';
 import './SupplierCasePanel.css';
+import { FormDropdown } from "../../../../shared/components/ui/FilterDropdown";
 
 const ACTIONS = {
   OPEN: 'Tạo hồ sơ',
@@ -1524,7 +1525,7 @@ export default function SupplierCasePanel({ order, locked = false, onRefresh, on
                 <label className="ncc-field-wide">
                   <span>Loại hồ sơ</span>
 
-                  <select
+                  <FormDropdown aria-label="Loại hồ sơ"
                     required
                     value={form.purpose}
                     onChange={(event) => {
@@ -1540,14 +1541,14 @@ export default function SupplierCasePanel({ order, locked = false, onRefresh, on
                         {!bool(item.can_create) ? ' — chưa thể tạo' : ''}
                       </option>
                     ))}
-                  </select>
+                  </FormDropdown>
                 </label>
               )}
 
               {isSourceAction && (
                 <label className="ncc-field-wide">
                   <span>DÒNG ĐƠN NHẬP</span>
-                  <select
+                  <FormDropdown aria-label="DÒNG ĐƠN NHẬP"
                     value={form.detailId}
                     onChange={(event) => {
                       change('detailId', event.target.value);
@@ -1562,7 +1563,7 @@ export default function SupplierCasePanel({ order, locked = false, onRefresh, on
                         {action === 'GUI' ? ` · Chưa đưa vào hồ sơ: ${item.capacity}` : ''}
                       </option>
                     ))}
-                  </select>
+                  </FormDropdown>
                 </label>
               )}
 
@@ -1573,7 +1574,7 @@ export default function SupplierCasePanel({ order, locked = false, onRefresh, on
               {action === 'GUI' && (
                 <label>
                   <span>MỤC ĐÍCH GỬI</span>
-                  <select
+                  <FormDropdown aria-label="MỤC ĐÍCH GỬI"
                     value={form.method}
                     onChange={(event) => change('method', event.target.value)}
                   >
@@ -1582,7 +1583,7 @@ export default function SupplierCasePanel({ order, locked = false, onRefresh, on
                         {label}
                       </option>
                     ))}
-                  </select>
+                  </FormDropdown>
                 </label>
               )}
 
@@ -1629,7 +1630,7 @@ export default function SupplierCasePanel({ order, locked = false, onRefresh, on
 
                   <label>
                     <span>Phương án đã thống nhất *</span>
-                    <select
+                    <FormDropdown aria-label="Phương án đã thống nhất"
                       {...inputProps('method')}
                       value={form.method}
                       onChange={(event) => {
@@ -1653,7 +1654,7 @@ export default function SupplierCasePanel({ order, locked = false, onRefresh, on
                           {label}
                         </option>
                       ))}
-                    </select>
+                    </FormDropdown>
                     {fieldError('method')}
                   </label>
 
@@ -1673,7 +1674,7 @@ export default function SupplierCasePanel({ order, locked = false, onRefresh, on
 
                       <label>
                         <span>Phiên bản hàng đổi *</span>
-                        <select
+                        <FormDropdown aria-label="Phiên bản hàng đổi"
                           {...inputProps('variantId')}
                           value={form.variantId}
                           onChange={(event) => change('variantId', event.target.value)}
@@ -1684,7 +1685,7 @@ export default function SupplierCasePanel({ order, locked = false, onRefresh, on
                               {item.ten_san_pham} · {item.ten_phien_ban}
                             </option>
                           ))}
-                        </select>
+                        </FormDropdown>
                         {fieldError('variantId')}
                       </label>
                     </>
@@ -1851,7 +1852,7 @@ export default function SupplierCasePanel({ order, locked = false, onRefresh, on
                 <>
                   <label>
                     <span>Tình trạng hàng thực nhận{form.passed ? ' *' : ''}</span>
-                    <select
+                    <FormDropdown
                       {...inputProps('condition')}
                       value={form.condition}
                       onChange={(event) => change('condition', event.target.value)}
@@ -1861,7 +1862,7 @@ export default function SupplierCasePanel({ order, locked = false, onRefresh, on
                           {label}
                         </option>
                       ))}
-                    </select>
+                    </FormDropdown>
                     {fieldError('condition')}
                   </label>
 
@@ -1911,14 +1912,14 @@ export default function SupplierCasePanel({ order, locked = false, onRefresh, on
                   <p>Khoản này được đối chiếu vào công nợ chung của đơn nhập {order.code}.</p>
                   <label>
                     <span>PHƯƠNG THỨC</span>
-                    <select
+                    <FormDropdown aria-label="PHƯƠNG THỨC"
                       value={form.paymentMethod}
                       onChange={(event) => change('paymentMethod', event.target.value)}
                     >
                       <option value="CHUYEN_KHOAN">Chuyển khoản</option>
                       <option value="TIEN_MAT">Tiền mặt</option>
                       <option value="THE">Thẻ</option>
-                    </select>
+                    </FormDropdown>
                   </label>
                   {form.paymentMethod !== 'TIEN_MAT' && (
                     <label>
@@ -1937,7 +1938,7 @@ export default function SupplierCasePanel({ order, locked = false, onRefresh, on
                 <>
                   <label>
                     <span>NGƯỜI PHỤ TRÁCH</span>
-                    <select
+                    <FormDropdown aria-label="NGƯỜI PHỤ TRÁCH"
                       value={form.employeeId}
                       onChange={(event) => change('employeeId', event.target.value)}
                     >
@@ -1947,7 +1948,7 @@ export default function SupplierCasePanel({ order, locked = false, onRefresh, on
                           {employee.name}
                         </option>
                       ))}
-                    </select>
+                    </FormDropdown>
                   </label>
                   <label>
                     <span>HẠN XỬ LÝ</span>

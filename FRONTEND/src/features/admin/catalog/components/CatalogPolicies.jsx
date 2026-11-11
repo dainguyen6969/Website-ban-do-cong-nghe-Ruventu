@@ -1,5 +1,7 @@
 import PriceInput from "../../../../shared/components/ui/PriceInput";
+import FormCard from "../../../../shared/components/ui/FormCard";
 import "./CatalogPolicies.css";
+import { FormDropdown } from "../../../../shared/components/ui/FilterDropdown";
 
 export function warrantyText(months) {
   if (months == null) return "Chưa có thông tin";
@@ -13,9 +15,7 @@ export function WarrantySummary({
   capacity,
 }) {
   return (
-    <section className="catalog-policy">
-      <strong>BẢO HÀNH</strong>
-
+    <FormCard title="Bảo hành" className="catalog-policy">
       {!isCombo ? (
         <p>{warrantyText(months)}</p>
       ) : (
@@ -29,7 +29,10 @@ export function WarrantySummary({
               {components.map((item) => (
                 <li key={item.variantId ?? item.id}>
                   <span>
-                    {item.name} · {item.variant} × {item.qty}
+                    {item.name} × {item.qty}
+                    {item.variant && item.variant !== item.name && (
+                      <small className="catalog-muted">{item.variant}</small>
+                    )}
                   </span>
                   <strong>{warrantyText(item.warrantyMonths)}</strong>
                 </li>
@@ -42,7 +45,7 @@ export function WarrantySummary({
           </p>
         </>
       )}
-    </section>
+    </FormCard>
   );
 }
 
@@ -118,7 +121,7 @@ export function VariantEditor({
 
         <label>
           Quản lý serial *
-          <select
+          <FormDropdown
             value={
               combo
                 ? "false"
@@ -141,7 +144,7 @@ export function VariantEditor({
             <option value="">Chọn chế độ</option>
             <option value="true">Có quản lý serial</option>
             <option value="false">Không quản lý serial</option>
-          </select>
+          </FormDropdown>
         </label>
       </div>
 

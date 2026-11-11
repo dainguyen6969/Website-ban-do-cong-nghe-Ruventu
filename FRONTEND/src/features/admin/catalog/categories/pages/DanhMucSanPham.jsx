@@ -1046,7 +1046,7 @@ export default function DanhMucSanPham() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [parentFilter, setParentFilter] = useState('all');
-  const [expanded, setExpanded] = useState(null);
+  const [expanded, setExpanded] = useState(() => new Set());
   const [modal, setModal] = useState(null);
   const [actionError, setActionError] = useState('');
   const [restoringId, setRestoringId] = useState(null);
@@ -1094,22 +1094,6 @@ export default function DanhMucSanPham() {
     [childrenMap, roots]
   );
 
-  const defaultExpanded = useMemo(() => {
-    return new Set(
-      categories
-        .filter(
-          (category) =>
-            (childrenMap.get(category.id)?.length || 0) > 0
-        )
-        .map((category) => category.id)
-    );
-  }, [categories, childrenMap]);
-
-  const visibleExpanded = useMemo(
-    () => expanded || defaultExpanded,
-    [expanded, defaultExpanded]
-  );
-
   // ========================================
   // Filters
   // ========================================
@@ -1154,13 +1138,14 @@ export default function DanhMucSanPham() {
     const makeRow = (
       item,
       depth,
-      autoExpanded = false
+      canExpand = false,
+      isExpanded = false
     ) => ({
       ...item,
       depth,
-      hasChildren:
-        (childrenMap.get(item.id)?.length || 0) > 0,
-      autoExpanded,
+      childCount: childrenMap.get(item.id)?.length ?? 0,
+      canExpand,
+      isExpanded,
     });
 
     if (parentFilter !== 'all') {
@@ -1233,27 +1218,14 @@ export default function DanhMucSanPham() {
           continue;
         }
 
-        const autoExpanded =
-          expanded === null &&
-          hasMatchBelow;
+        const children = childrenMap.get(item.id) || [];
+        const canExpand = !isFiltering && children.length > 0;
+        const isExpanded = isFiltering ? hasMatchBelow : expanded.has(item.id);
 
-        result.push(
-          makeRow(
-            item,
-            depth,
-            autoExpanded
-          )
-        );
+        result.push(makeRow(item, depth, canExpand, isExpanded));
 
-        if (
-          visibleExpanded.has(item.id) ||
-          autoExpanded
-        ) {
-          visit(
-            childrenMap.get(item.id) || [],
-            depth + 1,
-            seen
-          );
+        if (isExpanded) {
+          visit(children, depth + 1, seen);
         }
       }
     };
@@ -1269,7 +1241,6 @@ export default function DanhMucSanPham() {
     roots,
     search,
     statusFilter,
-    visibleExpanded,
   ]);
 
   const stats = {
@@ -1308,16 +1279,13 @@ export default function DanhMucSanPham() {
     setParentFilter('all');
   };
 
-  const toggleExpanded = (id) => {
+  const toggleExpanded = (id, open) => {
     setExpanded((current) => {
-      const next = new Set(
-        current || visibleExpanded
-      );
-
-      if (next.has(id)) {
-        next.delete(id);
-      } else {
+      const next = new Set(current);
+      if (open ?? !current.has(id)) {
         next.add(id);
+      } else {
+        next.delete(id);
       }
 
       return next;
@@ -1524,72 +1492,36 @@ export default function DanhMucSanPham() {
                       item.parentId
                   );
 
-                  const isExpanded =
-                    visibleExpanded.has(item.id) ||
-                    item.autoExpanded;
-
                   return (
                     <tr
                       key={item.id}
-                      className={`${
-                        isRoot
-                          ? 'category-root-row'
-                          : ''
-                      } ${
-                        item.hasChildren
-                          ? 'category-has-children'
-                          : ''
-                      }`}
+                      className={isRoot ? 'category-root-row' : undefined}
                       onClick={(event) => {
-                        if (
-                          !item.hasChildren ||
-                          event.target.closest?.(
-                            '.category-actions'
-                          )
-                        ) {
-                          return;
+                        if (item.canExpand && !event.target.closest('.category-actions')) {
+                          toggleExpanded(item.id);
                         }
-
-                        toggleExpanded(item.id);
                       }}
                     >
                       <td>#{item.id}</td>
 
                       <td>
                         <div
-                          className={`category-name-cell ${
-                            isRoot
-                              ? ''
-                              : 'category-name-cell--child'
-                          }`}
-                          style={{
-                            paddingLeft: `${
-                              item.depth * 24
-                            }px`,
-                          }}
+                          className="category-name-cell"
+                          style={{ '--category-depth': Math.min(item.depth, 6) }}
                         >
                           <span className="category-name-cell__indent-wrapper">
-                            {item.hasChildren ? (
+                            {item.canExpand ? (
                               <button
                                 type="button"
                                 className="category-toggle-expand"
-                                aria-label={
-                                  isExpanded
-                                    ? 'Thu gọn'
-                                    : 'Mở rộng'
-                                }
-                                aria-expanded={
-                                  isExpanded
-                                }
+                                aria-label={`${item.isExpanded ? 'Thu gọn' : 'Mở'} danh mục con của ${item.name}`}
+                                aria-expanded={item.isExpanded}
                                 onClick={(event) => {
                                   event.stopPropagation();
-
-                                  toggleExpanded(
-                                    item.id
-                                  );
+                                  toggleExpanded(item.id);
                                 }}
                               >
-                                {isExpanded ? (
+                                {item.isExpanded ? (
                                   <HiOutlineChevronDown />
                                 ) : (
                                   <HiOutlineChevronRight />
@@ -1597,9 +1529,7 @@ export default function DanhMucSanPham() {
                               </button>
                             ) : (
                               !isRoot && (
-                                <span className="category-tree-indent">
-                                  ↳
-                                </span>
+                                <span className="category-tree-indent" aria-hidden="true" />
                               )
                             )}
                           </span>
@@ -1608,7 +1538,14 @@ export default function DanhMucSanPham() {
                             category={item}
                           />
 
-                          <span className="category-name-copy">
+                          <span
+                            className="category-name-copy"
+                            onPointerEnter={(event) => {
+                              if (item.canExpand && !item.isExpanded && event.pointerType === 'mouse') {
+                                toggleExpanded(item.id, true);
+                              }
+                            }}
+                          >
                             <strong>
                               {item.name}
                             </strong>
@@ -1630,6 +1567,9 @@ export default function DanhMucSanPham() {
                           isRoot={isRoot}
                           depth={item.depth}
                         />
+                        {item.childCount > 0 && (
+                          <small className="category-child-count">{item.childCount} danh mục con</small>
+                        )}
                       </td>
 
                       <td>

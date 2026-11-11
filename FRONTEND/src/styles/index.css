@@ -18,10 +18,15 @@
   --color-brand-red-lighter: rgba(227, 30, 36, 0.06);
 
   /* Sidebar */
+  --color-sidebar-bg: #0a0a0a;
+  --color-sidebar-width: 252px;
+  --color-sidebar-collapsed: 56px;
   --color-sidebar-bg: #000000;
   --color-sidebar-bg-dark: #000000;
-  --color-sidebar-text: #a0a4b0;
-  --color-sidebar-text-hover: #ffffff;
+  --color-sidebar-text: #b1b6bf;
+  --color-sidebar-text-hover: #f3f4f6;
+  --color-sidebar-text-active: #f58c94;
+  --color-sidebar-text-expanded: #e5e7eb;
   --color-sidebar-active-bg: rgba(227, 30, 36, 0.1);
   --color-sidebar-border: rgba(255, 255, 255, 0.06);
   --color-sidebar-width: 260px;
@@ -100,6 +105,11 @@ textarea {
 }
 
 html:has(.admin-app) {
+  --admin-weight-regular: 400;
+  --admin-weight-medium: 500;
+  --admin-weight-semibold: 600;
+  --admin-weight-bold: 700;
+  --admin-weight-button: var(--admin-weight-semibold);
   font-size: 14px;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -157,8 +167,10 @@ html:has(.storefront-app) {
 }
 
 :where(.admin-app) button {
+  appearance: none;
   cursor: pointer;
   border: none;
+  border-radius: 0;
   background: none;
   outline: none;
 }
@@ -179,37 +191,57 @@ html:has(.storefront-app) {
   display: block;
 }
 
-/* Scrollbar styling for main content area (nội dung trang cần rõ ràng) */
-:where(.admin-app) .app-layout__main ::-webkit-scrollbar,
-:where(.admin-app) [class*='-page']::-webkit-scrollbar,
-:where(.admin-app) [class*='-page'] ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
+/* Ruventu scrollbars retain native scrolling and keyboard controls. */
+@media (forced-colors: none) {
+  @supports not selector(::-webkit-scrollbar) {
+    :where(.admin-app .app-layout__main, .admin-app .app-layout__main *),
+    .admin-app .app-layout__main .admin-table-scroll,
+    .storefront-app .catalog-nav-item > .mega-menu {
+      scrollbar-width: thin;
+      scrollbar-color: #111 #f3f4f6;
+    }
+  }
 
-:where(.admin-app) .app-layout__main ::-webkit-scrollbar-track,
-:where(.admin-app) [class*='-page']::-webkit-scrollbar-track,
-:where(.admin-app) [class*='-page'] ::-webkit-scrollbar-track {
-  background: #f1f5f9;
-}
+  @supports selector(::-webkit-scrollbar) {
+    .admin-app .app-layout__main :is(.admin-table-scroll, .waiting-products, [class*='-tabs']),
+    .storefront-app .catalog-nav-item > .mega-menu {
+      /* Standard scrollbar properties otherwise suppress the WebKit design. */
+      scrollbar-width: auto !important;
+      scrollbar-color: auto !important;
+    }
 
-:where(.admin-app) .app-layout__main ::-webkit-scrollbar-thumb,
-:where(.admin-app) [class*='-page']::-webkit-scrollbar-thumb,
-:where(.admin-app) [class*='-page'] ::-webkit-scrollbar-thumb {
-  background: #94a3b8;
-  border-radius: 4px;
-}
+    :is(
+      .admin-app :is(.app-layout__main, .app-layout__main *),
+      .storefront-app :where(.catalog-nav-item) > .mega-menu
+    ) {
+      &::-webkit-scrollbar {
+        width: 10px;
+        height: 10px;
+      }
 
-:where(.admin-app) .app-layout__main ::-webkit-scrollbar-thumb:hover,
-:where(.admin-app) [class*='-page']::-webkit-scrollbar-thumb:hover,
-:where(.admin-app) [class*='-page'] ::-webkit-scrollbar-thumb:hover {
-  background: #64748b;
-}
+      &::-webkit-scrollbar-track,
+      &::-webkit-scrollbar-corner {
+        background: #f3f4f6;
+      }
 
-:where(.admin-app) .app-layout__main,
-:where(.admin-app) [class*='-page'] {
-  scrollbar-width: thin;
-  scrollbar-color: #94a3b8 #f1f5f9;
+      &::-webkit-scrollbar-thumb {
+        min-width: 28px;
+        min-height: 28px;
+        border: 2px solid #f3f4f6;
+        border-radius: 0;
+        background: #111;
+      }
+
+      &::-webkit-scrollbar-thumb:hover,
+      &::-webkit-scrollbar-thumb:active {
+        background: var(--color-brand-red, #e31e24);
+      }
+
+      &::-webkit-scrollbar-button {
+        display: none;
+      }
+    }
+  }
 }
 
 /* Sidebar scrollbar: ẩn thanh kéo để menu đen gọn gàng, vẫn cuộn mượt bằng chuột */
@@ -281,12 +313,13 @@ html:has(.storefront-app) {
   letter-spacing: normal;
 }
 
-.admin-app .ruventu-ops :is(.purchase-badge, .ncc-badge, .recall-badge, .serial-status) {
+.admin-app .ruventu-ops :is(.purchase-badge, .ncc-badge, .serial-status) {
   display: inline-flex;
   align-items: center;
   width: fit-content;
   padding: 4px 8px;
-  border-radius: 3px;
+  border-radius: 0;
+  font-family: var(--project-font-family, var(--font-family-admin));
   font-size: 12px;
   font-weight: 500;
   line-height: 1.4;
@@ -570,29 +603,6 @@ html:has(.storefront-app) {
   text-decoration: none;
 }
 
-.admin-app .ruventu-ops.recall-page .serial-toolbar {
-  display: grid;
-  grid-template-columns: minmax(220px, 1fr) minmax(180px, 240px);
-  gap: 12px;
-}
-
-.admin-app .ruventu-ops.recall-page .serial-search {
-  width: 100%;
-  min-width: 0;
-}
-
-.admin-app .ruventu-ops .recall-progress {
-  display: grid;
-  gap: 6px;
-  min-width: 80px;
-}
-
-.admin-app .ruventu-ops .recall-progress progress {
-  width: 100%;
-  height: 6px;
-  accent-color: #1a1d23;
-}
-
 @media (max-width: 1200px) {
   .admin-app .ruventu-ops .ncc-workspace-layout {
     grid-template-columns: minmax(0, 1fr);
@@ -616,8 +626,7 @@ html:has(.storefront-app) {
 @media (max-width: 600px) {
   .admin-app
     .ruventu-ops
-    :is(.ncc-receive-summary, .purchase-receive-fields, .recall-trace .recall-facts),
-  .admin-app .ruventu-ops.recall-page .serial-toolbar {
+    :is(.ncc-receive-summary, .purchase-receive-fields, .recall-trace .recall-facts) {
     grid-template-columns: minmax(0, 1fr);
   }
 }
@@ -758,8 +767,14 @@ html:has(.storefront-app) {
 .admin-app .purchase-detail-page.ruventu-ops .purchase-heading {
   min-height: auto;
   padding: 16px 24px;
-  gap: 16px;
+  gap: 12px 16px;
+  flex-wrap: wrap;
   align-items: center;
+}
+
+.admin-app .purchase-detail-page.ruventu-ops .purchase-heading > div {
+  min-width: 0;
+  max-width: 100%;
 }
 
 .admin-app .purchase-detail-page.ruventu-ops .purchase-crumb {
@@ -767,6 +782,8 @@ html:has(.storefront-app) {
   margin-bottom: 12px;
   font-size: 11px;
   letter-spacing: 0.06em;
+  flex-wrap: wrap;
+  overflow-wrap: anywhere;
 }
 
 .admin-app .purchase-detail-page.ruventu-ops .purchase-title-badges {
@@ -779,24 +796,16 @@ html:has(.storefront-app) {
 .admin-app .purchase-detail-page.ruventu-ops .purchase-heading h1 {
   margin: 0;
   font-size: 20px;
-  font-weight: 900;
+  font-weight: var(--admin-weight-bold, 700);
   line-height: 1.2;
-  letter-spacing: 0.04em;
+  letter-spacing: normal;
+  overflow-wrap: anywhere;
 }
 
 .admin-app .purchase-detail-page.ruventu-ops .purchase-heading p {
   margin: 4px 0 0;
-  color: #888;
+  color: #475569;
   font-size: 12px;
-}
-
-.admin-app .purchase-detail-page.ruventu-ops .purchase-badge {
-  padding: 2px 8px;
-  border-radius: 0;
-  font-size: 10px;
-  font-weight: 700;
-  line-height: 1.4;
-  letter-spacing: 0.04em;
 }
 
 /* Các nút đầu trang */
@@ -807,13 +816,15 @@ html:has(.storefront-app) {
 
 .admin-app .purchase-detail-page.ruventu-ops .purchase-btn {
   height: auto;
-  min-height: 34px;
-  padding: 8px 14px;
+  min-height: 36px;
+  padding: 6px 12px;
   border-radius: 0;
-  font-size: 10px;
-  font-weight: 700;
+  font-size: 11px;
+  font-weight: var(--admin-weight-button, 600);
   line-height: 1.4;
-  letter-spacing: 0.04em;
+  letter-spacing: normal;
+  max-width: 100%;
+  white-space: normal;
 }
 
 .admin-app .purchase-detail-page.ruventu-ops .purchase-btn.purchase-btn--receive {
@@ -881,9 +892,9 @@ html:has(.storefront-app) {
 
 .admin-app .purchase-detail-page.ruventu-ops .purchase-card .form-card__title {
   font-size: 11px;
-  font-weight: 900;
+  font-weight: var(--admin-weight-semibold, 600);
   line-height: 1.3;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.04em;
 }
 
 .admin-app .purchase-detail-page.ruventu-ops .purchase-card .form-card__body {
@@ -913,10 +924,11 @@ html:has(.storefront-app) {
   .purchase-detail-page.ruventu-ops
   :is(.purchase-detail-table, .purchase-received-serial-table)
   th {
-  color: #888;
-  font-size: 9px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
+  color: #374151;
+  background: #f8fafc;
+  font-size: 11px;
+  font-weight: var(--admin-weight-semibold, 600);
+  letter-spacing: 0.03em;
 }
 
 .admin-app
@@ -924,12 +936,14 @@ html:has(.storefront-app) {
   :is(.purchase-detail-table, .purchase-received-serial-table)
   td {
   font-size: 12px;
-  font-weight: 700;
+  font-weight: var(--admin-weight-regular, 400);
+  font-variant-numeric: tabular-nums;
 }
 
 .admin-app .purchase-detail-page.ruventu-ops .purchase-detail-table strong {
   font-size: 12px;
-  font-weight: 800;
+  font-weight: var(--admin-weight-semibold, 600);
+  overflow-wrap: anywhere;
 }
 
 .admin-app .purchase-detail-page.ruventu-ops .purchase-received-serial-table small {
@@ -942,15 +956,15 @@ html:has(.storefront-app) {
 }
 
 .admin-app .purchase-detail-page.ruventu-ops .info-rows > div {
-  grid-template-columns: 130px minmax(0, 1fr);
+  grid-template-columns: minmax(0, min(130px, 42%)) minmax(0, 1fr);
   align-items: start;
   gap: 8px;
 }
 
 .admin-app .purchase-detail-page.ruventu-ops .info-rows dt {
-  color: #888;
+  color: #475569;
   font-size: 10px;
-  font-weight: 700;
+  font-weight: var(--admin-weight-medium, 500);
   line-height: 1.45;
   letter-spacing: 0.04em;
 }
@@ -959,15 +973,15 @@ html:has(.storefront-app) {
   margin: 0;
   color: #111;
   font-size: 12px;
-  font-weight: 700;
+  font-weight: var(--admin-weight-regular, 400);
   line-height: 1.45;
   overflow-wrap: anywhere;
 }
 
 .admin-app .purchase-detail-page.ruventu-ops .status-info > span:not(.purchase-badge) {
-  color: #888;
+  color: #475569;
   font-size: 10px;
-  font-weight: 700;
+  font-weight: var(--admin-weight-medium, 500);
 }
 
 .admin-app .purchase-detail-page.ruventu-ops .status-info p {
@@ -983,19 +997,21 @@ html:has(.storefront-app) {
 
 .admin-app .purchase-detail-page.ruventu-ops .progress-stats b {
   font-size: 18px;
-  font-weight: 900;
+  font-weight: var(--admin-weight-bold, 700);
   line-height: 1.2;
 }
 
 .admin-app .purchase-detail-page.ruventu-ops .progress-stats span {
   margin-top: 4px;
   font-size: 9px;
-  font-weight: 700;
+  font-weight: var(--admin-weight-medium, 500);
   letter-spacing: 0.06em;
+  color: #475569;
 }
 
 .admin-app .purchase-detail-page.ruventu-ops .progress-line > span {
   font-size: 12px;
+  font-weight: var(--admin-weight-semibold, 600);
 }
 
 /* Thanh toán và công nợ */
@@ -1006,7 +1022,7 @@ html:has(.storefront-app) {
 
 .admin-app .purchase-detail-page.ruventu-ops .purchase-finance__rows {
   display: grid;
-  gap: 8px;
+  gap: 0;
   margin: 0;
 }
 
@@ -1015,21 +1031,23 @@ html:has(.storefront-app) {
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: baseline;
   gap: 16px;
+  padding: 7px 0;
+  border-bottom: 1px solid #e5e7eb;
 }
 
 .admin-app .purchase-detail-page.ruventu-ops .purchase-finance__rows dt {
-  color: #777;
+  color: #374151;
   font-size: 11px;
-  font-weight: 700;
+  font-weight: var(--admin-weight-medium, 500);
   line-height: 1.4;
-  letter-spacing: 0.04em;
+  letter-spacing: normal;
 }
 
 .admin-app .purchase-detail-page.ruventu-ops .purchase-finance__rows dd {
   margin: 0;
   color: #111;
   font-size: 12px;
-  font-weight: 700;
+  font-weight: var(--admin-weight-regular, 400);
   text-align: right;
   font-variant-numeric: tabular-nums;
 }
@@ -1043,17 +1061,17 @@ html:has(.storefront-app) {
 .admin-app .purchase-detail-page.ruventu-ops .purchase-finance__total dt {
   color: #111;
   font-size: 12px;
-  font-weight: 900;
+  font-weight: var(--admin-weight-bold, 700);
 }
 
 .admin-app .purchase-detail-page.ruventu-ops .purchase-finance__total dd {
   font-size: 16px;
-  font-weight: 900;
+  font-weight: var(--admin-weight-bold, 700);
 }
 
 .admin-app .purchase-detail-page.ruventu-ops .purchase-finance__paid :is(dt, dd) {
-  color: #2e7d32;
-  font-weight: 800;
+  color: #166534;
+  font-weight: var(--admin-weight-semibold, 600);
 }
 
 .admin-app .purchase-detail-page.ruventu-ops .purchase-finance__balance {
@@ -1067,13 +1085,13 @@ html:has(.storefront-app) {
 
 .admin-app .purchase-detail-page.ruventu-ops .purchase-finance__balance > span {
   font-size: 12px;
-  font-weight: 800;
+  font-weight: var(--admin-weight-semibold, 600);
   line-height: 1.4;
 }
 
 .admin-app .purchase-detail-page.ruventu-ops .purchase-finance__balance > strong {
   font-size: 16px;
-  font-weight: 900;
+  font-weight: var(--admin-weight-semibold, 700);
   line-height: 1.3;
   text-align: right;
   font-variant-numeric: tabular-nums;
