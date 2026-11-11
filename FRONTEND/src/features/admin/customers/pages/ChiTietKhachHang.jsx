@@ -13,6 +13,8 @@ import DetailTablePagination from '../../../../shared/components/ui/DetailTableP
 import { formatMoney } from '../../../../data/mockOrders';
 import { customerService } from '../../../../shared/services/customerService';
 import { cashbookService } from '../../../../shared/services/cashbookService';
+import { dateTime } from '../../orders/api/orderApi';
+import { OrderStateBadge } from '../../orders/pages/DanhSachDonHang';
 import { StatusBadge } from './DanhSachKhachHang';
 import './KhachHang.css';
 
@@ -168,22 +170,14 @@ export default function ChiTietKhachHang() {
             <h2>THÔNG TIN KHÁCH HÀNG</h2>
             <dl className="customer-info-list">
               <InfoRow label="TRẠNG THÁI">
-                <span
-                  className={`customer-status-text customer-status-text--${mapStatusStr(customer.trang_thai)}`}
-                >
-                  {isActive ? 'HOẠT ĐỘNG' : 'NGỪNG HOẠT ĐỘNG'}
-                </span>
+                <StatusBadge status={mapStatusStr(customer.trang_thai)} />
               </InfoRow>
               <InfoRow label="MÃ KHÁCH HÀNG">#{customer.id}</InfoRow>
               <InfoRow label="HỌ TÊN">{customer.ho_ten}</InfoRow>
               <InfoRow label="SỐ ĐIỆN THOẠI">{customer.so_dien_thoai?.replaceAll(' ', '')}</InfoRow>
               <InfoRow label="EMAIL">{customer.email || '—'}</InfoRow>
-              <InfoRow label="NGÀY TẠO">
-                {customer.ngay_tao ? new Date(customer.ngay_tao).toLocaleString() : '—'}
-              </InfoRow>
-              <InfoRow label="CẬP NHẬT CUỐI">
-                {customer.ngay_cap_nhat ? new Date(customer.ngay_cap_nhat).toLocaleString() : '—'}
-              </InfoRow>
+              <InfoRow label="NGÀY TẠO">{dateTime(customer.ngay_tao)}</InfoRow>
+              <InfoRow label="CẬP NHẬT CUỐI">{dateTime(customer.ngay_cap_nhat)}</InfoRow>
             </dl>
           </section>
 
@@ -201,7 +195,7 @@ export default function ChiTietKhachHang() {
                 </p>
               </div>
             ) : (
-              <p>Chưa có địa chỉ mặc định.</p>
+              <p className="customer-address">Chưa có địa chỉ mặc định.</p>
             )}
           </section>
         </aside>
@@ -211,10 +205,7 @@ export default function ChiTietKhachHang() {
             <header>
               <h2>LỊCH SỬ MUA HÀNG</h2>
 
-              <label
-                className="customer-order-search"
-                htmlFor="customer-order-search"
-              >
+              <label className="customer-order-search" htmlFor="customer-order-search">
                 <HiOutlineSearch size={16} />
                 <input
                   id="customer-order-search"
@@ -248,47 +239,31 @@ export default function ChiTietKhachHang() {
                   <tbody>
                     {orders.map((order) => (
                       <tr key={order.id}>
-                        <td className="customer-order-code">
-                          {order.ma_don_hang}
+                        <td className="customer-order-code">{order.ma_don_hang}</td>
+
+                        <td>
+                          <OrderStateBadge value={order.loai_don_hang} />
                         </td>
 
                         <td>
-                          <OrderBadge type={order.loai_don_hang}>
-                            {order.loai_don_hang?.toUpperCase()}
-                          </OrderBadge>
+                          <OrderStateBadge value={order.trang_thai_don_hang} />
                         </td>
 
                         <td>
-                          <OrderBadge type={order.trang_thai_don_hang}>
-                            {order.trang_thai_don_hang?.toUpperCase()}
-                          </OrderBadge>
-                        </td>
-
-                        <td
-                          className={
-                            order.trang_thai_thanh_toan === 'Đã thanh toán'
-                              ? 'customer-order-paid'
-                              : ''
-                          }
-                        >
-                          {order.trang_thai_thanh_toan?.toUpperCase()}
+                          <OrderStateBadge value={order.trang_thai_thanh_toan} />
                         </td>
 
                         <td className="customer-order-value">
                           {formatMoney(order.tong_thanh_toan)}
                         </td>
 
-                        <td>
-                          {new Date(order.ngay_tao).toLocaleString()}
-                        </td>
+                        <td>{dateTime(order.ngay_tao)}</td>
 
                         <td>
                           <button
                             className="customer-action-btn"
                             onClick={() =>
-                              navigate(
-                                `/admin/don-hang/danh-sach-don-hang/${order.id}`
-                              )
+                              navigate(`/admin/don-hang/danh-sach-don-hang/${order.id}`)
                             }
                           >
                             XEM ĐƠN HÀNG
@@ -299,9 +274,7 @@ export default function ChiTietKhachHang() {
 
                     {!orders.length && (
                       <tr className="customer-empty-row">
-                        <td colSpan="7">
-                          Không tìm thấy đơn hàng phù hợp.
-                        </td>
+                        <td colSpan="7">Không tìm thấy đơn hàng phù hợp.</td>
                       </tr>
                     )}
                   </tbody>
@@ -341,20 +314,6 @@ function InfoRow({ label, children }) {
       <dd>{children}</dd>
     </div>
   );
-}
-
-export function OrderBadge({ type, children }) {
-  const variant =
-    type === 'Online'
-      ? 'blue'
-      : type === 'Tại quầy'
-        ? 'neutral'
-        : type === 'Hoàn thành'
-          ? 'green'
-          : type === 'Đã hủy'
-            ? 'red'
-            : 'amber';
-  return <span className={`order-badge order-badge--${variant}`}>{children}</span>;
 }
 
 function StatusConfirmModal({ mode, customer, onCancel, onConfirm }) {
@@ -466,7 +425,9 @@ function CustomerCashbookPanel({ customerId, orders = [] }) {
   const handleDocClick = (docCode) => {
     if (!docCode) return;
     const cleanCode = docCode.trim();
-    const matched = (orders || []).find((o) => o.ma_don_hang === cleanCode || String(o.id) === cleanCode);
+    const matched = (orders || []).find(
+      (o) => o.ma_don_hang === cleanCode || String(o.id) === cleanCode
+    );
     if (matched) {
       navigate(`/admin/don-hang/danh-sach-don-hang/${matched.id}`);
       return;
@@ -479,21 +440,6 @@ function CustomerCashbookPanel({ customerId, orders = [] }) {
       navigate(`/admin/so-quy-tien-mat/phieu-chi/${item.id}`);
     } else {
       navigate(`/admin/so-quy-tien-mat/phieu-thu/${item.id}`);
-    }
-  };
-
-  const formatDateTime = (dateStr) => {
-    if (!dateStr) return '—';
-    try {
-      return new Date(dateStr).toLocaleString('vi-VN', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-      });
-    } catch {
-      return String(dateStr);
     }
   };
 
@@ -567,7 +513,9 @@ function CustomerCashbookPanel({ customerId, orders = [] }) {
             onClick={() => handleTabChange('ALL')}
           >
             TẤT CẢ
-            {typeFilter === 'ALL' && <span className="customer-cashbook-tab-count">{totalElements}</span>}
+            {typeFilter === 'ALL' && (
+              <span className="customer-cashbook-tab-count">{totalElements}</span>
+            )}
           </button>
           <button
             type="button"
@@ -575,7 +523,9 @@ function CustomerCashbookPanel({ customerId, orders = [] }) {
             onClick={() => handleTabChange('THU')}
           >
             PHIẾU THU (THU TIỀN VỀ)
-            {typeFilter === 'THU' && <span className="customer-cashbook-tab-count">{totalElements}</span>}
+            {typeFilter === 'THU' && (
+              <span className="customer-cashbook-tab-count">{totalElements}</span>
+            )}
           </button>
           <button
             type="button"
@@ -583,14 +533,21 @@ function CustomerCashbookPanel({ customerId, orders = [] }) {
             onClick={() => handleTabChange('CHI')}
           >
             PHIẾU CHI (HOÀN TIỀN)
-            {typeFilter === 'CHI' && <span className="customer-cashbook-tab-count">{totalElements}</span>}
+            {typeFilter === 'CHI' && (
+              <span className="customer-cashbook-tab-count">{totalElements}</span>
+            )}
           </button>
         </div>
       </div>
 
       {/* Table */}
-      <div className="customer-history-table-wrap">
-        <table className="customer-history-table">
+      <div
+        className="customer-history-table-wrap admin-table-scroll admin-table-scroll--embedded"
+        tabIndex={0}
+        role="region"
+        aria-label="Phiếu thu và phiếu chi của khách hàng"
+      >
+        <table className="customer-history-table admin-data-table admin-data-table--records">
           <thead>
             <tr>
               <th style={{ width: '48px' }}>STT</th>
@@ -598,7 +555,7 @@ function CustomerCashbookPanel({ customerId, orders = [] }) {
               <th>LOẠI PHIẾU</th>
               <th>CHỨNG TỪ THAM CHIẾU</th>
               <th>HÌNH THỨC</th>
-              <th style={{ textAlign: 'right' }}>SỐ TIỀN</th>
+              <th>SỐ TIỀN</th>
               <th>NGÀY GHI NHẬN</th>
               <th>TRẠNG THÁI</th>
               <th>GHI CHÚ / MÔ TẢ</th>
@@ -623,6 +580,8 @@ function CustomerCashbookPanel({ customerId, orders = [] }) {
             ) : items.length > 0 ? (
               items.map((item, idx) => {
                 const isChi = item.loai_phieu === 'CHI';
+                const isRecorded = ['DA_GHI_NHAN', 'DA_GHI_SO'].includes(item.trang_thai);
+                const isCanceled = item.trang_thai === 'HUY';
                 const amount = isChi
                   ? Number(item.tien_chi || item.so_tien || 0)
                   : Number(item.tien_thu || item.so_tien || 0);
@@ -641,11 +600,7 @@ function CustomerCashbookPanel({ customerId, orders = [] }) {
                       </button>
                     </td>
                     <td>
-                      <span
-                        className={`customer-cashbook-badge ${
-                          isChi ? 'customer-cashbook-badge--chi' : 'customer-cashbook-badge--thu'
-                        }`}
-                      >
+                      <span data-admin-status={isChi ? 'red' : 'green'}>
                         {isChi ? 'PHIẾU CHI' : 'PHIẾU THU'}
                       </span>
                     </td>
@@ -664,7 +619,7 @@ function CustomerCashbookPanel({ customerId, orders = [] }) {
                       )}
                     </td>
                     <td>{formatPaymentMethod(item.phuong_thuc_thanh_toan)}</td>
-                    <td style={{ textAlign: 'right' }}>
+                    <td>
                       <span
                         className={`customer-cashbook-amount ${
                           isChi ? 'customer-cashbook-amount--chi' : 'customer-cashbook-amount--thu'
@@ -673,22 +628,12 @@ function CustomerCashbookPanel({ customerId, orders = [] }) {
                         {isChi ? `-${formatMoney(amount)}` : `+${formatMoney(amount)}`}
                       </span>
                     </td>
-                    <td>{formatDateTime(item.ngay_ghi_nhan)}</td>
+                    <td>{dateTime(item.ngay_ghi_nhan)}</td>
                     <td>
                       <span
-                        className={`customer-cashbook-badge ${
-                          item.trang_thai === 'DA_GHI_NHAN' || item.trang_thai === 'DA_GHI_SO'
-                            ? 'customer-cashbook-badge--success'
-                            : item.trang_thai === 'HUY'
-                            ? 'customer-cashbook-badge--cancelled'
-                            : 'customer-cashbook-badge--default'
-                        }`}
+                        data-admin-status={isRecorded ? 'green' : isCanceled ? 'red' : 'neutral'}
                       >
-                        {item.trang_thai === 'DA_GHI_NHAN' || item.trang_thai === 'DA_GHI_SO'
-                          ? 'ĐÃ GHI SỔ'
-                          : item.trang_thai === 'HUY'
-                          ? 'ĐÃ HỦY'
-                          : item.trang_thai}
+                        {isRecorded ? 'Đã ghi sổ' : isCanceled ? 'Đã hủy' : 'Chưa rõ'}
                       </span>
                     </td>
                     <td className="customer-col-notes" title={item.mo_ta || ''}>
