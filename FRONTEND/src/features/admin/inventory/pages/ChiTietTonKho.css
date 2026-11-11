@@ -379,3 +379,84 @@
     margin-left: 0;
   }
 }
+
+.inventory-detail-page :is(.inventory-detail__title-row h1, .inventory-stat-stack dd) {
+  font-weight: var(--admin-weight-bold, 700);
+}
+
+.inventory-detail-page .inventory-section-heading {
+  padding-block: 8px;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+}
+
+.inventory-detail-page .inventory-section-heading small {
+  min-width: 0;
+  color: #cbd5e1;
+  overflow-wrap: anywhere;
+}
+
+.inventory-detail-page
+  :is(
+    .inventory-section-heading > span,
+    .inventory-product-identity strong,
+    .inventory-viewing-badge,
+    .inventory-transaction-badge,
+    .inventory-table td strong
+  ) {
+  font-weight: var(--admin-weight-semibold, 600);
+}
+
+.inventory-detail-page .inventory-product-grid {
+  margin-left: 0;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.inventory-detail-page .inventory-product-grid > div {
+  min-height: 56px;
+  padding: 10px 12px;
+}
+
+.inventory-detail-page .inventory-product-grid dd {
+  font-weight: var(--admin-weight-medium, 500);
+  overflow-wrap: anywhere;
+}
+
+.inventory-detail-page .inventory-history-filters {
+  flex-wrap: wrap;
+}
+
+.inventory-detail-page .inventory-number--gray {
+  color: #5b6574 !important;
+}
+
+.admin-app .inventory-detail-page .inventory-allocation-table tfoot :is(th, td) {
+  font-weight: var(--admin-weight-semibold, 600);
+}
+
+.admin-app
+  .inventory-detail-page
+  :is(.inventory-version-table, .inventory-allocation-table)
+  :is(thead, tbody)
+  :is(th, td):is(:nth-child(3), :nth-child(4)),
+.admin-app
+  .inventory-detail-page
+  .inventory-allocation-table
+  tfoot
+  td:is(:nth-child(2), :nth-child(3)),
+.admin-app
+  .inventory-detail-page
+  .inventory-history-table
+  :is(th, td):is(:nth-child(5), :nth-child(6)) {
+  text-align: right;
+}
+
+.admin-app .inventory-detail-page .inventory-version-table tbody tr.is-active {
+  background: #fff0f0;
+}
+
+@media (max-width: 900px) {
+  .inventory-detail-page .inventory-product-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

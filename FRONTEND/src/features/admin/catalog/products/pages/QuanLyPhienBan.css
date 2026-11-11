@@ -54,70 +54,98 @@
 
 .version-table-shell {
   --admin-table-header-height: 44px;
-  width: 100%;
+}
+
+.admin-app .version-page .admin-table-scroll > .version-table {
+  min-width: 960px;
+}
+
+.admin-app .version-page .admin-table-scroll > .version-table th {
+  padding-inline: 10px;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  letter-spacing: 0.03em;
+}
+
+.admin-app .version-page .admin-table-scroll > .version-table td {
+  height: 54px;
+  padding: 8px 10px;
+  font-weight: var(--admin-weight-regular, 400);
+}
+
+.version-page .version-table th:nth-child(2) {
+  width: 64px;
+}
+.version-page .version-table th:nth-child(3) {
+  width: 12%;
+}
+.version-page .version-table th:nth-child(6) {
+  width: 12%;
+}
+.version-page .version-table th:nth-child(7) {
+  width: 9%;
+}
+.version-page .version-table th:nth-child(8) {
+  width: 13%;
+}
+.version-page .version-table th:nth-child(9) {
+  width: 1%;
+}
+
+.admin-app
+  .version-page
+  .admin-table-scroll
+  > .version-table
+  :is(th, td):is(:nth-child(6), :nth-child(7)) {
+  text-align: right;
+}
+
+.version-page .version-thumb {
+  width: 38px;
+  height: 38px;
+}
+
+.version-page :is(.version-code, .version-type, .version-location) {
   max-width: 100%;
-  overflow-x: auto;
-  border: 1px solid #dedede;
-  background: #fff;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
-.version-table {
-  width: 100%;
-  border-collapse: collapse;
-  table-layout: auto;
+.version-page :is(.version-code, .version-location) {
+  font-weight: var(--admin-weight-medium, 500);
 }
 
-.version-table thead {
-  background: #090909;
-  color: #fff;
+.version-page
+  :is(.version-name, .version-type, .version-available, .version-actual, .version-thumb) {
+  font-weight: var(--admin-weight-semibold, 600);
 }
 
-.version-table th {
-  padding: 0 12px;
-  text-align: left;
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
+.version-page :is(.version-name, .version-meta) {
+  overflow-wrap: anywhere;
+}
+
+.version-page .version-meta {
+  color: #64748b;
+}
+
+.version-page .version-available:not(.version-available--negative) {
+  justify-content: flex-end;
+}
+
+.version-page .version-available--positive {
+  color: #168314;
+}
+
+.admin-app .version-page .admin-table-scroll > .version-table tr.version-table__row--negative {
+  background: #fff0f0;
+}
+
+.version-page .admin-list-detail-action {
   white-space: nowrap;
 }
 
-.version-table th:nth-child(2) {
-  width: 78px;
-}
-.version-table th:nth-child(3) {
-  width: 130px;
-}
-.version-table th:nth-child(4) {
-  width: 38%;
-}
-.version-table th:nth-child(5) {
-  width: 112px;
-}
-.version-table th:nth-child(6),
-.version-table th:nth-child(7) {
-  width: 110px;
-}
-.version-table th:nth-child(8) {
-  width: 126px;
-}
-.version-table th:nth-child(9) {
-  width: 98px;
-}
-
-.version-table td {
-  height: 64px;
-  padding: 9px 12px;
-  border-bottom: 1px solid #e6e6e6;
-  color: #111;
-  font-size: 13px;
-  vertical-align: middle;
-}
-
-.version-table tbody tr:last-child td {
-  border-bottom: 0;
-}
-.version-table tbody tr:hover {
-  background: #fafafa;
+.version-page .admin-list-toolbar {
+  flex-wrap: wrap;
 }
 
 .version-table__check {
