@@ -30,9 +30,13 @@ export function WarrantyBadge({ children, tone }) {
   return <span className={`w-shell-badge w-shell-badge--${variant}`}>{children}</span>;
 }
 
-export function WarrantyPanel({ title, note, action, children }) {
+export function WarrantyPanel({ title, note, action, className = '', children }) {
   return (
-    <FormCard title={title} headerRight={action} className="w-shell-panel">
+    <FormCard
+      title={title}
+      headerRight={action}
+      className={`w-shell-panel ${className}`.trim()}
+    >
       <div className="w-shell-panel-body">
         {note && <p className="w-shell-note w-panel-note">{note}</p>}
         {children}

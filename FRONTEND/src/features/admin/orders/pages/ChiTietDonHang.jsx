@@ -1509,7 +1509,7 @@ function OrderDetailView({ orderId }) {
                               </Link>
                             </td>
                             <td>
-                              <span className="order-payment-method-badge">
+                              <span className={`order-payment-method-badge order-payment-method-badge--${getPaymentMethodBadgeClass(receipt.phuong_thuc_thanh_toan)}`}>
                                 {label(receipt.phuong_thuc_thanh_toan)}
                               </span>
                             </td>
@@ -2203,6 +2203,16 @@ function DeviceExchangeHistory({ order }) {
       ))}
     </div>
   );
+}
+
+function getPaymentMethodBadgeClass(method) {
+  const m = String(method || '').toUpperCase();
+  if (m === 'TIEN_MAT' || m.includes('TIỀN MẶT') || m.includes('TIEN MAT') || m === 'CASH') return 'cash';
+  if (m === 'CHUYEN_KHOAN' || m.includes('CHUYỂN KHOẢN') || m.includes('CHUYEN KHOAN') || m === 'BANK') return 'bank';
+  if (m === 'THE' || m.includes('THẺ') || m === 'CARD' || m === 'POS') return 'card';
+  if (m.includes('COD')) return 'cod';
+  if (m.includes('VNPAY') || m.includes('MOMO') || m.includes('ZALOPAY') || m.includes('VIETQR')) return 'ewallet';
+  return 'default';
 }
 
 function Action({ children, click, danger = false, secondary = false, disabled = false }) {
