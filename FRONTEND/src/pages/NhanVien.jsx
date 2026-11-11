@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useNavigate, useParams, Link } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import {
   HiOutlineArrowLeft,
   HiOutlineEye,
@@ -18,10 +18,6 @@ import {
   makeGeneratedPassword,
   toEmployee,
 } from '../auth/accountModel';
-
-import { dateTime, money } from '../../orders/api/orderApi';
-import { OrderStateBadge } from '../../orders/pages/DanhSachDonHang';
-
 import './NhanVien.css';
 
 const PAGE_SIZE = 8;
@@ -35,8 +31,15 @@ const normalize = (value = '') =>
     .replace(/đ/g, 'd')
     .replace(/Đ/g, 'D')
     .toLowerCase();
-const formatPhone = (phone) =>
-  String(phone ?? '').replace(/(\d{4})(\d{3})(\d{3})/, '$1 $2 $3') || '—';
+const formatPhone = (phone = '') => phone.replace(/(\d{4})(\d{3})(\d{3})/, '$1 $2 $3');
+const formatDate = (value) =>
+  value
+    ? new Intl.DateTimeFormat('vi-VN', {
+        dateStyle: 'short',
+        timeStyle: 'short',
+        hour12: false,
+      }).format(new Date(value))
+    : '—';
 
 function useSuccessBanner() {
   const [message, setMessage] = useState('');
@@ -304,26 +307,23 @@ export function ChiTietNhanVien() {
       </section>
       <div className="employee-detail-body">
         <SuccessBanner message={success} />
-        <div className="employee-detail-grid">
-          <section className="employee-info-card">
-            <header>
-              <span />
-              THÔNG TIN NHÂN VIÊN
-            </header>
-            <dl>
-              <Info label="MÃ NHÂN VIÊN" value={employee.id} />
-              <Info label="TÊN NHÂN VIÊN" value={employee.hoTen} />
-              <Info label="SỐ ĐIỆN THOẠI" value={formatPhone(employee.soDienThoai)} />
-              <Info label="EMAIL" value={employee.email} />
-              <Info label="VAI TRÒ" value={employeeRoleLabel(employee.vaiTro, roles)} />
-              <Info label="TRẠNG THÁI" value={<EmployeeStatus value={employee.trang_thai} />} />
-              <Info label="NGÀY TẠO" value={formatDate(employee.createdAt)} />
-              <Info label="CẬP NHẬT CUỐI" value={formatDate(employee.updatedAt)} />
-            </dl>
-          </section>
-        </div>
-        <EmployeeReconciliation key={employee.id} employeeId={employee.id} />
-      </div>{' '}
+        <section className="employee-info-card">
+          <header>
+            <span />
+            THÔNG TIN NHÂN VIÊN
+          </header>
+          <dl>
+            <Info label="MÃ NHÂN VIÊN" value={employee.id} />
+            <Info label="TÊN NHÂN VIÊN" value={employee.hoTen} />
+            <Info label="SỐ ĐIỆN THOẠI" value={formatPhone(employee.soDienThoai)} />
+            <Info label="EMAIL" value={employee.email} />
+            <Info label="VAI TRÒ" value={employeeRoleLabel(employee.vaiTro, roles)} />
+            <Info label="TRẠNG THÁI" value={employeeStatusLabel(employee.trangThai)} />
+            <Info label="NGÀY TẠO" value={formatDate(employee.createdAt)} />
+            <Info label="CẬP NHẬT CUỐI" value={formatDate(employee.updatedAt)} />
+          </dl>
+        </section>
+      </div>
       {modal === 'edit' && (
         <EmployeeFormModal
           mode="edit"
@@ -352,237 +352,6 @@ function Info({ label, value }) {
       <dt>{label}</dt>
       <dd>{value}</dd>
     </div>
-  );
-}
-
-const EMPLOYEE_ACTIVITY_LIMIT = 5;
-const employeeActivityOptions = [
-  ['GAN_TREN_DON', 'Đơn đứng tên'],
-  ['DA_DUYET', 'Đơn đã duyệt'],
-  ['DA_THAO_TAC', 'Đơn có thao tác'],
-  ['THU', 'Phiếu thu'],
-  ['CHI', 'Phiếu chi'],
-];
-const employeeOrderPath = (id) => `/admin/don-hang/danh-sach-don-hang/${id}`;
-
-function EmployeeReconciliation({ employeeId }) {
-  const [kind, setKind] = useState('GAN_TREN_DON');
-  const [voucherRole, setVoucherRole] = useState('LAP_PHIEU');
-  const [page, setPage] = useState(1);
-  const [retry, setRetry] = useState(0);
-  const [response, setResponse] = useState(null);
-
-  const isVoucher = kind === 'THU' || kind === 'CHI';
-  const requestKey = `${employeeId}:${kind}:${voucherRole}:${page}:${retry}`;
-  const result = response?.key === requestKey ? response : null;
-
-  useEffect(() => {
-    const controller = new AbortController();
-
-    getEmployeeActivityPage(
-      employeeId,
-      { kind, voucherRole, page, limit: EMPLOYEE_ACTIVITY_LIMIT },
-      controller.signal
-    )
-      .then((data) => {
-        if (controller.signal.aborted) return;
-        if (!Array.isArray(data?.items)) throw new Error('Dữ liệu đối soát không hợp lệ.');
-
-        const total = Number(data.pagination?.total_elements ?? 0);
-        const lastPage = Math.max(1, Math.ceil(total / EMPLOYEE_ACTIVITY_LIMIT));
-        if (page > lastPage) {
-          setPage(lastPage);
-          return;
-        }
-        setResponse({ key: requestKey, items: data.items, total, error: '' });
-      })
-      .catch((error) => {
-        if (!controller.signal.aborted) {
-          setResponse({ key: requestKey, error: error?.message || 'Không tải được dữ liệu.' });
-        }
-      });
-
-    return () => controller.abort();
-  }, [employeeId, kind, voucherRole, page, requestKey]);
-
-  const columns = isVoucher
-    ? [
-        'Mã phiếu',
-        'Người lập',
-        kind === 'THU' ? 'Bên nộp' : 'Bên nhận',
-        'Chứng từ',
-        'Số tiền',
-        'Ngày ghi nhận',
-        'Trạng thái',
-      ]
-    : ['Mã đơn', 'Loại đơn', 'Trạng thái', 'Thanh toán', 'Giá trị đơn', 'Ngày tạo'];
-  const voucherPath = kind === 'THU' ? 'phieu-thu' : 'phieu-chi';
-
-  return (
-    <section className="employee-activity-card" aria-labelledby="employee-activity-title">
-      <header>
-        <span aria-hidden="true" />
-        <h2 id="employee-activity-title">ĐỐI SOÁT NGHIỆP VỤ</h2>
-      </header>
-
-      <div className="employee-activity-toolbar">
-        <div className="employee-activity-tabs" role="group" aria-label="Nhóm đối soát">
-          {employeeActivityOptions.map(([value, label]) => (
-            <button
-              type="button"
-              key={value}
-              aria-pressed={kind === value}
-              onClick={() => {
-                setKind(value);
-                setPage(1);
-              }}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
-        {isVoucher && (
-          <FilterDropdown
-            id="employee-voucher-role"
-            aria-label="Vai trò trên phiếu"
-            options={[
-              ['LAP_PHIEU', 'Đứng tên lập phiếu'],
-              ['BEN_NOP_NHAN', kind === 'THU' ? 'Là bên nộp tiền' : 'Là bên nhận tiền'],
-            ]}
-            value={voucherRole}
-            onSelect={(value) => {
-              setVoucherRole(value);
-              setPage(1);
-            }}
-          />
-        )}
-      </div>
-
-      <p className="employee-activity-note">
-        {isVoucher
-          ? 'Người lập phiếu và bên nộp/nhận là hai vai trò riêng. Số tiền là giá trị trên phiếu.'
-          : 'Một đơn có thể thuộc nhiều nhóm. Đơn hệ thống tự duyệt không được tính là nhân viên duyệt.'}
-      </p>
-
-      <div
-        className="admin-table-scroll admin-table-scroll--embedded"
-        tabIndex={0}
-        role="region"
-        aria-label="Kết quả đối soát"
-        aria-busy={!result}
-      >
-        <table className="admin-data-table admin-data-table--records">
-          <thead>
-            <tr>
-              {columns.map((title) => (
-                <th key={title} scope="col">
-                  {title}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {!result || result.error || !result.items.length ? (
-              <tr>
-                <td colSpan={columns.length} className="employee-empty">
-                  {result?.error ? (
-                    <>
-                      <span role="alert">{result.error}</span>{' '}
-                      <button
-                        type="button"
-                        className="employee-row-action"
-                        onClick={() => setRetry((value) => value + 1)}
-                      >
-                        Thử lại
-                      </button>
-                    </>
-                  ) : !result ? (
-                    'Đang tải dữ liệu…'
-                  ) : (
-                    'Không có bản ghi phù hợp.'
-                  )}
-                </td>
-              </tr>
-            ) : (
-              result.items.map((item) => {
-                if (!isVoucher) {
-                  return (
-                    <tr key={item.id}>
-                      <td>
-                        <Link className="employee-activity-link" to={employeeOrderPath(item.id)}>
-                          {item.ma_don_hang}
-                        </Link>
-                      </td>
-                      <td>
-                        <OrderStateBadge value={item.loai_don_hang} />
-                      </td>
-                      <td>
-                        <OrderStateBadge value={item.trang_thai_don_hang} />
-                      </td>
-                      <td>
-                        <OrderStateBadge value={item.trang_thai_thanh_toan} />
-                      </td>
-                      <td>{money(item.tong_thanh_toan)}</td>
-                      <td>{dateTime(item.ngay_tao)}</td>
-                    </tr>
-                  );
-                }
-
-                const recorded = item.trang_thai === 'DA_GHI_NHAN';
-                const canceled = item.trang_thai === 'HUY';
-                return (
-                  <tr key={item.id}>
-                    <td>
-                      <Link
-                        className="employee-activity-link"
-                        to={`/admin/so-quy-tien-mat/${voucherPath}/${item.id}`}
-                      >
-                        {item.ma_phieu}
-                      </Link>
-                    </td>
-                    <td>{item.ten_nguoi_tao || '—'}</td>
-                    <td>{item.ten_nguoi_nop_nhan || '—'}</td>
-                    <td>
-                      {item.don_hang_id ? (
-                        <Link
-                          className="employee-activity-link"
-                          to={employeeOrderPath(item.don_hang_id)}
-                        >
-                          {item.ma_don_hang || 'Xem đơn'}
-                        </Link>
-                      ) : (
-                        item.ma_chung_tu_tham_chieu || '—'
-                      )}
-                      {item.ma_phieu_giao_hang && (
-                        <small className="employee-activity-ref">{item.ma_phieu_giao_hang}</small>
-                      )}
-                    </td>
-                    <td>{money(item.so_tien)}</td>
-                    <td>{dateTime(item.ngay_ghi_nhan)}</td>
-                    <td>
-                      <span data-admin-status={recorded ? 'green' : canceled ? 'red' : 'neutral'}>
-                        {recorded ? 'Đã ghi nhận' : canceled ? 'Đã hủy' : 'Chưa rõ'}
-                      </span>
-                    </td>
-                  </tr>
-                );
-              })
-            )}
-          </tbody>
-        </table>
-      </div>
-
-      {result?.total > 0 && (
-        <TablePagination
-          className="employee-activity-pagination"
-          totalItems={result.total}
-          pageSize={EMPLOYEE_ACTIVITY_LIMIT}
-          currentPage={page}
-          onPageChange={setPage}
-          idPrefix="employee-activity"
-        />
-      )}
-    </section>
   );
 }
 
