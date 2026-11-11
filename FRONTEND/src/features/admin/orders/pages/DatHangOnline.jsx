@@ -1146,6 +1146,7 @@ function Section({ n, title, children, disabled = false }) {
     <section className="online-section">
       <header>
         <h2>
+          <i aria-hidden="true" />
           {n}. {title}
         </h2>
       </header>
@@ -1310,7 +1311,10 @@ function Summary({
 }) {
   return (
     <aside className="order-summary">
-      <h2>TỔNG KẾT ĐƠN HÀNG</h2>
+      <h2>
+        <i aria-hidden="true" />
+        TỔNG KẾT ĐƠN HÀNG
+      </h2>
       <div className="summary-body">
         <SummaryLine label="Tiền hàng" value={data ? formatMoney(data.tong_tien_hang) : '—'} />
         <SummaryLine

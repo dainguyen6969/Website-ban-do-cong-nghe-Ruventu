@@ -392,6 +392,7 @@ public class AdminReturnService {
         .chiTietTra(returnLines.stream().map(this::toDetailReturnLine).toList())
         .tongTienHoan(returnSlip.getTongTienHoan())
         .hinhThucHoanTien(returnSlip.getHinhThucHoanTien())
+        .ngayTao(toOffsetDateTime(returnSlip.getNgayTao()))
         .ngayTiepNhanThucTe(toOffsetDateTime(returnSlip.getNgayTiepNhanThucTe()))
         .ngayNhanHang(toOffsetDateTime(returnSlip.getNgayNhanHang()))
         .ngayKetThuc(toOffsetDateTime(returnSlip.getNgayKetThuc()))
