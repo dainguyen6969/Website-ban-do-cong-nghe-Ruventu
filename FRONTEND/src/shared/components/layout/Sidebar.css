@@ -423,6 +423,7 @@
     width: min(290px, 86vw);
   }
   .sidebar--mobile-open {
+    visibility: visible;
     transform: translateX(0);
   }
   .sidebar--collapsed .sidebar__header {

@@ -1,14 +1,12 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
   ArrowLeft,
-  ArrowRight,
   SquareCheck as CheckCircle2,
   ChevronRight,
   ClipboardCheck,
   FileText,
   History,
-  MessageSquareText as Info,
   Package,
   Phone,
   RefreshCw,
@@ -29,8 +27,10 @@ import {
   actionHints,
   custodyBlocker,
   custodyLabels,
-  eventLabels,
   workflowGuide,
+  activeWarrantyTrip,
+  warrantyAlternativeKeys,
+  warrantyDeviceLabel,
 } from '../data/warrantyExperience';
 import {
   WarrantyBadge,
@@ -66,19 +66,6 @@ const groups = {
   3: { plan: 'Phương án đổi', items: 'Thiết bị thay thế', settlement: 'Đối soát nhà cung cấp' },
 };
 
-const groupNotes = {
-  inspection: 'Ghi lỗi, hướng xử lý và chi phí.',
-  custody: 'Đối chiếu thiết bị, phụ kiện và chứng từ.',
-  work: 'Miễn phí: có kết luận. Có phí: khách duyệt báo giá.',
-  handover: 'Sẵn sàng trả → Khách nhận thực tế → Bàn giao & hoàn tất.',
-  quotes: 'Lập báo giá và ghi quyết định của khách.',
-  invoice: 'Đối chiếu hóa đơn và khoản còn phải trả.',
-  money: 'Ghi đúng số tiền thực thu, chi hoặc hoàn.',
-  plan: 'Chọn hàng thay thế và xin duyệt.',
-  items: 'Giữ chỗ, xuất hoặc nhận hàng đổi.',
-  settlement: 'Đối chiếu hàng bù và tiền với đơn vị.',
-};
-
 const stages = ['Tiếp nhận', 'Kiểm tra', 'Xử lý / nhận về', 'Chờ trả khách', 'Hoàn tất'];
 
 export default function ChiTietBaoHanh() {
@@ -87,21 +74,18 @@ export default function ChiTietBaoHanh() {
 }
 
 function WarrantyDetail({ id }) {
-  const navigate = useNavigate(),
-    workbench = useRef(null);
+  const navigate = useNavigate();
   const [data, setData] = useState(null),
     [loading, setLoading] = useState(true),
     [error, setError] = useState('');
-  const [tab, setTab] = useState(0),
-    [group, setGroup] = useState('inspection');
+  const [tab, setTab] = useState(0);
   const [locked, setLocked] = useState(false);
   const [page, setPage] = useState(1),
     [reload, setReload] = useState(0);
   const [quoteVersion, setQuoteVersion] = useState(null),
     [form, setForm] = useState(null),
     [drafts, setDrafts] = useState({});
-  const [quickChoice, setQuickChoice] = useState(null);
-  const [quickCollapsed, setQuickCollapsed] = useState(false);
+  const [recordGroupKey, setRecordGroupKey] = useState(null);
   const [message, setMessage] = useState(''),
     [lastResult, setLastResult] = useState(null);
 
@@ -113,6 +97,7 @@ function WarrantyDetail({ id }) {
     const controller = new AbortController();
     setLoading(true);
     setError('');
+
     getWarranty(id, page - 1, controller.signal)
       .then((result) => {
         if (!controller.signal.aborted) setData(result);
@@ -123,16 +108,27 @@ function WarrantyDetail({ id }) {
       .finally(() => {
         if (!controller.signal.aborted) setLoading(false);
       });
+
     return () => controller.abort();
   }, [id, page, reload]);
-  useEffect(() => {
-    if (form) workbench.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  }, [form]);
+
+  const handlePrint = async (type, invoiceId) => {
+    if (printing || locked || loading || error) return;
+    setPrinting(true);
+    setPrintError('');
+
+    try {
+      await printWarrantyDocument(id, type, invoiceId);
+    } catch (cause) {
+      setPrintError(warrantyError(cause));
+    } finally {
+      setPrinting(false);
+    }
+  };
 
   const changeTab = (value) => {
     setTab(value);
-    setGroup(Object.keys(groups[value] || {})[0] || '');
-    setForm(null);
+    setRecordGroupKey(null);
     setHistoryEventId(null);
   };
 
@@ -178,9 +174,10 @@ function WarrantyDetail({ id }) {
     };
   };
 
-  const open = (operation) => {
-    if (locked) return;
-    setForm(formEntry(operation, quote));
+  const open = (operation, selectedQuote = quote) => {
+    if (locked || unavailable(operation, selectedQuote)) return;
+    setHistoryEventId(null);
+    setForm(formEntry(operation, selectedQuote));
     setMessage('');
   };
 
@@ -212,12 +209,11 @@ function WarrantyDetail({ id }) {
     return custodyBlocker(operation.key, data);
   };
 
-  const followGuide = () => {
-    setTab(guide.group === 'plan' ? 3 : 1);
-    setGroup(guide.group);
-    setForm(null);
-    const operation = actions.find((item) => item.key === guide.action);
-    if (!data.xu_ly_tiep && operation && !unavailable(operation)) open(operation);
+  const showRecords = (name) => {
+    const target = Object.keys(groups).find((index) => groups[index][name]);
+    if (locked || !target) return;
+    changeTab(Number(target));
+    setRecordGroupKey(name);
   };
 
   const saved = (entry, result) => {
@@ -234,8 +230,6 @@ function WarrantyDetail({ id }) {
       delete next[entry.key];
       return next;
     });
-    setQuickChoice(null);
-    setQuickCollapsed(false);
     setForm(null);
     setPage(1);
     setReload((value) => value + 1);
@@ -248,33 +242,110 @@ function WarrantyDetail({ id }) {
     }
   };
 
-  const renderForm = (entry, inline = false) => (
-    <WarrantyActionForm
-      key={entry.key}
-      operation={entry.operation}
-      detail={data}
-      quoteVersion={entry.version}
-      values={drafts[entry.key]}
-      inline={inline}
-      disabled={loading || Boolean(error)}
-      setValues={(values) => setDrafts((current) => ({ ...current, [entry.key]: values }))}
-      close={() => (inline ? setQuickCollapsed(true) : setForm(null))}
-      saved={(result) => saved(entry, result)}
-      onLockChange={setLocked}
-    />
+  const workDisabled = locked || loading || Boolean(error);
+  const finished = data.trang_thai_xu_ly === 'HOAN_TAT';
+  const supplierOpen = data.doi_soat_nha_cung_cap?.da_giai_quyet === false;
+  const due = Number(invoice?.con_phai_thu ?? 0);
+  const wrongReturn = activeWarrantyTrip(data)?.wrong === true;
+  const activePlan = plan && plan.da_huy !== true && plan.quyet_dinh_khach !== 'TU_CHOI';
+
+  const toOperations = (keys) =>
+    [...new Set(keys)]
+      .map((key) => actions.find((item) => item.key === key))
+      .filter((item) => item && !unavailable(item, latestQuote));
+  const suggested = toOperations(
+    wrongReturn && !activePlan && !finished ? ['NHAN_LAI'] : data.xu_ly_tiep?.thao_tac || []
+  );
+  const alternatives = toOperations(warrantyAlternativeKeys(data)).filter(
+    (item) => !suggested.includes(item)
+  );
+  const primary = suggested.length === 1 ? suggested[0] : null;
+  const quoteReply = suggested.some((item) => ['ACCEPT_QUOTE', 'REJECT_QUOTE'].includes(item.key));
+  const planReply = suggested.some((item) => ['PLAN_ACCEPT', 'PLAN_REJECT'].includes(item.key));
+
+  const workLabels = {
+    ACCEPT_QUOTE: 'Khách đồng ý',
+    REJECT_QUOTE: 'Khách từ chối',
+    PLAN_ACCEPT: 'Khách đồng ý đổi',
+    PLAN_REJECT: 'Khách từ chối đổi',
+    HOLD_SERIAL: 'Giữ hàng có serial',
+    HOLD_UNIT: 'Giữ hàng không serial',
+    PLAN_CREATE: 'Lập phương án đổi',
+    GUI_DON_VI: 'Gửi đơn vị bảo hành',
+    DON_VI_TIEP_NHAN: 'Xác nhận đơn vị nhận đúng',
+    YEU_CAU_THU_HOI: 'Yêu cầu lấy lại thiết bị',
+    NHAN_LAI: wrongReturn ? 'Ghi nhận lần nhận mới' : 'Ghi nhận thiết bị đã về',
+  };
+  const workTitle = finished
+    ? 'Đã bàn giao thiết bị'
+    : wrongReturn && !activePlan
+      ? 'Chưa nhận lại đúng thiết bị'
+      : quoteReply
+        ? 'Chờ khách phản hồi báo giá'
+        : planReply
+          ? 'Chờ khách phản hồi phương án đổi'
+          : suggested.length > 1
+            ? 'Chọn hướng xử lý'
+            : primary?.key === 'SAN_SANG_TRA'
+              ? 'Chuẩn bị trả khách'
+              : primary?.key === 'DON_VI_TIEP_NHAN'
+                ? 'Chờ đơn vị xác nhận'
+                : primary?.key === 'NHAN_LAI'
+                  ? 'Chờ thiết bị về cửa hàng'
+                  : primary?.label || guide.title;
+  const workNote = finished
+    ? 'Xem hồ sơ và các nghĩa vụ còn lại.'
+    : wrongReturn && !activePlan
+      ? 'Đã lưu lần nhận sai. Liên hệ đơn vị và ghi lần nhận mới khi thiết bị thực sự về.'
+      : quoteReply || planReply
+        ? 'Chỉ ghi khi đã có phản hồi thực tế của khách.'
+        : actionHints[primary?.key] || guide.text;
+
+  const actionButton = (item, selectedQuote = quote, main = false) => (
+    <button
+      key={item.key}
+      type="button"
+      disabled={workDisabled}
+      className={`w-shell-button${main ? ' w-shell-button--black' : ''}`}
+      onClick={() => open(item, selectedQuote)}
+    >
+      {workLabels[item.key] || item.label}
+    </button>
   );
 
-  const quickOperations = (data.xu_ly_tiep?.thao_tac || [])
-    .map((key) => actions.find((item) => item.key === key))
-    .filter((operation) => operation && !unavailable(operation, latestQuote));
-  const quickOperation =
-    quickOperations.find((item) => item.key === quickChoice) ||
-    (quickOperations.length === 1 ? quickOperations[0] : null);
-  const quickOpen = tab === 0 && !quickCollapsed && quickOperations.length > 0;
-  const quickTitle =
-    quickOperation?.key === 'THU_KHACH' && data.trang_thai_xu_ly === 'CHO_TRA_KHACH'
-      ? 'Thu phần còn lại'
-      : quickOperation?.label || (quickOpen ? 'Chọn cách xử lý' : guide.title);
+  const formQuote = form
+    ? data.bao_gia.find((item) => item.phien_ban === Number(form.version))
+    : null;
+  const formBlocker = form ? unavailable(form.operation, formQuote) : '';
+  const tabGroups = groups[tab] || {};
+  const group = tabGroups[recordGroupKey] ? recordGroupKey : Object.keys(tabGroups)[0];
+
+  const recordGroup = (name, children) => {
+    if (group !== name) return null;
+    const operations = actions.filter((item) => item.group === name);
+    const ready = operations.filter((item) => !unavailable(item));
+    const blocked = operations.filter((item) => unavailable(item));
+    return (
+      <WarrantyPanel title={tabGroups[name]}>
+        {ready.length > 0 && (
+          <div className="w-work-buttons w-record-actions">
+            {ready.map((item) => actionButton(item))}
+          </div>
+        )}
+        <div className="w-record-content">{children}</div>
+        {blocked.length > 0 && (
+          <details className="w-reference-details">
+            <summary>Điều kiện của các thao tác khác</summary>
+            {blocked.map((item) => (
+              <p className="w-shell-note" key={item.key}>
+                <strong>{workLabels[item.key] || item.label}:</strong> {unavailable(item)}
+              </p>
+            ))}
+          </details>
+        )}
+      </WarrantyPanel>
+    );
+  };
 
   const changeHistoryPage = (value) => {
     if (locked || loading || value === page) return;
@@ -286,22 +357,18 @@ function WarrantyDetail({ id }) {
   const historyTable = (
     <>
       <WarrantyTable
-        columns={['Thời điểm', 'Hoạt động', 'Nội dung', 'Tham chiếu', 'Chi tiết']}
+        columns={['Thời điểm', 'Hoạt động', 'Nội dung', 'Người ghi nhận', 'Chi tiết']}
         rows={(data.lich_su?.items || []).map((event) => [
           displayDate(event.ngay_tao),
           warrantyHistoryEventName(event.loai_su_kien),
           event.noi_dung,
-          `#${event.id} · ${
-            event.nguoi_thuc_hien_id
-              ? `Nhân viên #${event.nguoi_thuc_hien_id}`
-              : 'Chưa có người thực hiện'
-          }`,
+          event.ten_nguoi_thuc_hien || 'Chưa có tên người ghi nhận',
           <button
             key={`history-${event.id}`}
             type="button"
             className="w-shell-button"
             disabled={loading || Boolean(error)}
-            aria-expanded={String(historyEventId) === String(event.id)}
+            aria-haspopup="dialog"
             onClick={() => setHistoryEventId(event.id)}
           >
             Xem chi tiết
@@ -314,10 +381,7 @@ function WarrantyDetail({ id }) {
         totalItems={data.lich_su?.pagination?.total_elements || 0}
         pageSize={20}
         currentPage={page}
-        onPageChange={(nextPage) => {
-          setHistoryEventId(null);
-          setPage(nextPage);
-        }}
+        onPageChange={changeHistoryPage}
         idPrefix="warranty-history"
       />
     </>
@@ -372,9 +436,10 @@ function WarrantyDetail({ id }) {
                 type="button"
                 className="w-shell-button"
                 disabled={loading || Boolean(error)}
+                aria-haspopup="dialog"
                 onClick={() => setHistoryEventId(item.lich_su_id)}
               >
-                Chi tiết #{item.lich_su_id}
+                Xem chi tiết
               </button>
             </div>
             <WarrantyTable
@@ -404,49 +469,54 @@ function WarrantyDetail({ id }) {
     </>
   );
 
+  const custodyText = custodyLabels[custody?.loai] || 'Chưa xác định nơi giữ';
   const delivery = (
     <>
       {custody && (
         <div className="w-custody-banner">
-          <Truck size={22} />
+          <Truck size={19} />
           <div>
-            <strong>{custodyLabels[custody.loai] || 'Chưa xác định nơi giữ'}</strong>
-            <p>
-              {custody.ten ||
-                (custody.loai === 'KHACH_HANG'
-                  ? 'Thiết bị đã bàn giao cho khách.'
-                  : custody.nha_cung_cap_id
-                    ? `Nhà cung cấp #${custody.nha_cung_cap_id}`
-                    : custodyLabels[custody.loai] || 'Chưa xác định nơi giữ')}
-            </p>
+            <strong>{custodyText}</strong>
+            {custody.ten && custody.ten !== custodyText && <p>{custody.ten}</p>}
           </div>
         </div>
       )}
-
       <ol className="w-delivery-timeline">
-        {(data.giao_nhan || []).map((item) => (
-          <li key={item.lich_su_id}>
-            <span className="w-timeline-dot" />
-            <div>
-              <strong>{warrantyHistoryEventName(item.su_kien)}</strong>
-              <p>{displayDate(item.ngay)}</p>
-              <small>
-                Thiết bị #{item.thiet_bi_id} · Tham chiếu #{item.lich_su_id}
-              </small>
-
-              <div className="w-shell-actions">
+        {(data.giao_nhan || []).map((item) => {
+          const matched = item.da_nhan_dung_thiet_bi ?? item.da_cap_cho_phuong_an;
+          return (
+            <li key={item.lich_su_id}>
+              <span className="w-timeline-dot" aria-hidden="true" />
+              <div className="w-delivery-row">
+                <div>
+                  <strong>{warrantyHistoryEventName(item.su_kien)}</strong>
+                  <p>
+                    {displayDate(item.ngay)}
+                    {item.ten_don_vi && ` · ${item.ten_don_vi}`}
+                  </p>
+                  {item.thiet_bi_id != null && <p>{warrantyDeviceLabel(data, item.thiet_bi_id)}</p>}
+                  {matched === false && (
+                    <WarrantyBadge tone="red">
+                      {item.da_cap_cho_phuong_an === false
+                        ? 'Chưa cấp cho phương án đổi'
+                        : 'Chưa nhận đúng thiết bị'}
+                    </WarrantyBadge>
+                  )}
+                  {item.so_serial_thuc_nhan && <p>Serial thực nhận: {item.so_serial_thuc_nhan}</p>}
+                </div>
                 <button
                   type="button"
                   className="w-shell-button"
-                  disabled={loading || Boolean(error)}
+                  disabled={workDisabled}
+                  aria-haspopup="dialog"
                   onClick={() => setHistoryEventId(item.lich_su_id)}
                 >
                   Xem chi tiết
                 </button>
               </div>
-            </div>
-          </li>
-        ))}
+            </li>
+          );
+        })}
       </ol>
     </>
   );
@@ -500,7 +570,6 @@ function WarrantyDetail({ id }) {
             onClick={() => {
               setForm(null);
               setHistoryEventId(null);
-              setQuickChoice(null);
               setLoading(true);
               setReload((value) => value + 1);
             }}
@@ -532,10 +601,26 @@ function WarrantyDetail({ id }) {
       )}
 
       {message && (
-        <p className="w-intake-message" role="status">
-          <CheckCircle2 size={18} />
-          {message}
-        </p>
+        <div className="w-ticket-notice">
+          <p className="w-intake-message" role="status">
+            <CheckCircle2 size={18} />
+            {message}
+          </p>
+          {lastResult && (
+            <button
+              type="button"
+              className="w-shell-button"
+              disabled={workDisabled}
+              onClick={() => {
+                const event = lastResult.lich_su_id ?? lastResult.lich_su_nhan_id;
+                if (event != null) setHistoryEventId(event);
+                else changeTab(4);
+              }}
+            >
+              Xem thao tác vừa ghi
+            </button>
+          )}
+        </div>
       )}
       {error && (
         <p className="w-shell-error" role="alert">
@@ -548,102 +633,68 @@ function WarrantyDetail({ id }) {
         </p>
       )}
       <div className="w-detail-overview">
-        <div className="w-process" aria-label="Vị trí hiện tại trong quy trình">
+        <ol className="w-ticket-steps" aria-label="Giai đoạn hiện tại">
           {stages.map((label, index) => (
-            <div
-              key={label}
-              className={guide.step === index ? 'is-current' : ''}
-              aria-current={guide.step === index ? 'step' : undefined}
-            >
+            <li key={label} aria-current={guide.step === index ? 'step' : undefined}>
               <span>{index + 1}</span>
               <strong>{label}</strong>
-              {index < stages.length - 1 && <ChevronRight size={16} />}
-            </div>
+            </li>
           ))}
-        </div>
-        <div className="w-summary-strip">
-          <div
-            className={
-              ['DON_VI_BAO_HANH', 'DANG_VAN_CHUYEN'].includes(custody?.loai)
-                ? 'w-summary-outside'
-                : ''
-            }
-          >
-            <span>Đang giữ thiết bị</span>
-            <strong>{custodyLabels[custody?.loai] || 'Chưa xác định'}</strong>
-          </div>
-          <div>
-            <span>Tiếp nhận</span>
-            <strong>{displayDate(data.ngay_tiep_nhan)}</strong>
-          </div>
-          <div className={Number(invoice?.con_phai_thu) > 0 ? 'w-summary-due' : ''}>
-            <span>Khách còn phải trả</span>
-            <strong>{invoice ? money(invoice.con_phai_thu) : 'Chưa có hóa đơn'}</strong>
-          </div>
-          {refundTotal > 0 && (
-            <div className="w-summary-refund">
-              <span>Cần hoàn cho khách</span>
-              <strong>{money(refundTotal)}</strong>
-            </div>
-          )}
-        </div>
+        </ol>
 
-        <section className="w-next-step w-guided-workspace" aria-label="Việc tiếp theo">
+        <section
+          className="w-next-step w-guided-workspace w-unified-work"
+          aria-labelledby="w-next-work-title"
+        >
           <div className="w-guided-heading">
             <div>
-              <span className="w-eyebrow">Việc tiếp theo</span>
-              <h2>{quickTitle}</h2>
-              <p>
-                {quickOperation
-                  ? actionHints[quickOperation.key] || 'Đối chiếu thông tin trước khi ghi nhận.'
-                  : guide.text}
-              </p>
+              <span className="w-eyebrow">{finished ? 'Kết quả xử lý' : 'Việc tiếp theo'}</span>
+              <h2 id="w-next-work-title">{workTitle}</h2>
+              <p>{loading ? 'Đang cập nhật hồ sơ…' : workNote}</p>
+              {quoteReply && latestQuote && (
+                <p>
+                  Báo giá phiên bản {latestQuote.phien_ban} · {money(latestQuote.tong_tien_khach)}
+                </p>
+              )}
             </div>
-
-            {quickOperations.length > 0 && !quickOpen && (
-              <button
-                type="button"
-                className="w-shell-button w-shell-button--black"
-                disabled={locked}
-                onClick={() => {
-                  changeTab(0);
-                  setQuickCollapsed(false);
-                }}
-              >
-                Mở việc tiếp theo <ArrowRight size={17} />
-              </button>
-            )}
-
-            {quickOperations.length === 0 && guide.group && (
-              <button
-                type="button"
-                className="w-shell-button w-shell-button--black"
-                disabled={locked || loading || Boolean(error)}
-                onClick={followGuide}
-              >
-                Mở nhóm xử lý <ArrowRight size={17} />
-              </button>
-            )}
+            {primary && actionButton(primary, latestQuote, true)}
           </div>
 
-          {quickOpen && quickOperations.length > 1 && (
-            <div className="w-shell-actions w-guided-choices">
-              {quickOperations.map((operation) => (
-                <button
-                  type="button"
-                  key={operation.key}
-                  disabled={locked}
-                  className={`w-shell-button ${quickChoice === operation.key ? 'w-shell-button--black' : ''}`}
-                  aria-pressed={quickChoice === operation.key}
-                  onClick={() => setQuickChoice(operation.key)}
-                >
-                  {operation.label}
-                </button>
-              ))}
+          {suggested.length > 1 && (
+            <div className="w-work-buttons">
+              {suggested.map((item) => actionButton(item, latestQuote))}
             </div>
           )}
-
-          {quickOpen && quickOperation && renderForm(formEntry(quickOperation, latestQuote), true)}
+          {alternatives.length > 0 && (
+            <div className="w-work-alternatives">
+              <strong>Hướng xử lý khác</strong>
+              <div className="w-work-buttons">
+                {alternatives.map((item) => actionButton(item, latestQuote))}
+              </div>
+            </div>
+          )}
+          {finished && (due > 0 || refundTotal > 0 || supplierOpen) && (
+            <div className="w-work-buttons">
+              {(due > 0 || refundTotal > 0) && (
+                <button
+                  type="button"
+                  className="w-shell-button"
+                  onClick={() => showRecords('money')}
+                >
+                  Xem khoản còn thu hoặc hoàn
+                </button>
+              )}
+              {supplierOpen && (
+                <button
+                  type="button"
+                  className="w-shell-button"
+                  onClick={() => showRecords('settlement')}
+                >
+                  Xem đối soát nhà cung cấp
+                </button>
+              )}
+            </div>
+          )}
         </section>
       </div>
       <nav className="w-shell-tabs" aria-label="Các nhóm thông tin phiếu bảo hành">
@@ -661,118 +712,21 @@ function WarrantyDetail({ id }) {
         ))}
       </nav>
       <div className="w-shell-content">
-        <div className="w-detail-controls">
-          {groups[tab] && (
-            <div className="w-group-nav" aria-label="Nhóm thao tác">
-              {Object.entries(groups[tab]).map(([key, label]) => (
-                <button
-                  type="button"
-                  key={key}
-                  aria-pressed={group === key}
-                  disabled={locked}
-                  onClick={() => {
-                    setGroup(key);
-                    setForm(null);
-                  }}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-          )}
-          <details className="w-reference-details w-workflow-help">
-            <summary>Xem luồng xử lý</summary>
-            <p>
-              <strong>Tại cửa hàng:</strong> Tiếp nhận → Bắt đầu kiểm tra → Ghi kết luận → Bắt đầu
-              công việc miễn phí → Kiểm tra thiết bị thực tế → Sẵn sàng trả → Bàn giao & hoàn tất.
-            </p>
-            <p>
-              <strong>Khách chịu phí:</strong> Sau kết luận, lập báo giá → Gửi khách → Khách đồng ý
-              → Thu cọc nếu có → Bắt đầu công việc có phí.
-            </p>
-            <p>
-              <strong>Gửi đơn vị:</strong> Gửi thiết bị → Đơn vị đã nhận → Xử lý → Nhận lại thiết bị
-              → Kiểm tra tiếp → Sẵn sàng trả.
-            </p>
-            <p>
-              <strong>Đổi thiết bị:</strong> Lập phương án → Phê duyệt và khách đồng ý → Xuất hoặc
-              nhận hàng đổi → Kiểm tra → Sẵn sàng trả.
-            </p>
-            <p>
-              Sẵn sàng trả là chờ khách nhận. Sau khi khách nhận thực tế, chọn Bàn giao & hoàn tất.
-            </p>
-          </details>
-        </div>
         <div className="w-shell-detail-grid">
           <main>
-            {groups[tab] && (
-              <div ref={workbench} className="w-workbench">
-                <WarrantyPanel title={groups[tab][group]} note={groupNotes[group]}>
-                  {form && form.operation.group === group ? (
-                    renderForm(form)
-                  ) : (
-                    <>
-                      <div className="w-operation-grid">
-                        {actions
-                          .filter(
-                            (operation) => operation.group === group && !unavailable(operation)
-                          )
-                          .map((operation) => (
-                            <button
-                              className="w-operation-card"
-                              key={operation.key}
-                              onClick={() => open(operation)}
-                            >
-                              <span>
-                                <strong>{operation.label}</strong>
-                              </span>
-                              <ChevronRight size={17} />
-                            </button>
-                          ))}
-                      </div>
-                      {actions
-                        .filter((operation) => operation.group === group)
-                        .every((operation) => unavailable(operation)) && (
-                        <p className="w-form-guide">
-                          <Info size={18} />
-                          Chưa có thao tác phù hợp. Xem điều kiện bên dưới hoặc kiểm tra bước trước.
-                        </p>
-                      )}
-                      <details className="w-unavailable">
-                        <summary>Điều kiện của các thao tác khác</summary>
-                        {actions
-                          .filter(
-                            (operation) => operation.group === group && unavailable(operation)
-                          )
-                          .map((operation) => (
-                            <div key={operation.key}>
-                              <strong>{operation.label}</strong>
-                              <p>{unavailable(operation)}</p>
-                            </div>
-                          ))}
-                      </details>
-                    </>
-                  )}
-                </WarrantyPanel>
-              </div>
-            )}
-
-            {historyEventId != null && (
-              <WarrantyHistoryDetail
-                key={`${id}:${historyEventId}:${reload}`}
-                ticketId={id}
-                eventId={historyEventId}
-                onClose={() => setHistoryEventId(null)}
-              />
-            )}
-
-            {lastResult && (
-              <details className="w-saved-result">
-                <summary>
-                  <CheckCircle2 size={17} /> Thao tác vừa lưu — xem thông tin tham chiếu
-                </summary>
-                <WarrantySnapshot value={lastResult} />
-              </details>
+            {group && (
+              <nav className="w-group-nav" aria-label="Nhóm hồ sơ">
+                {Object.entries(tabGroups).map(([key, label]) => (
+                  <button
+                    type="button"
+                    key={key}
+                    aria-pressed={group === key}
+                    onClick={() => setRecordGroupKey(key)}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </nav>
             )}
             {tab === 0 && (
               <>
@@ -812,115 +766,101 @@ function WarrantyDetail({ id }) {
             )}
             {tab === 1 && (
               <>
-                {group === 'inspection' && (
+                {recordGroup(
+                  'inspection',
                   <>
-                    <WarrantyPanel title="Kết luận đã lưu">{conclusions}</WarrantyPanel>
-                    <WarrantyPanel title="Chi phí đơn vị đã xác nhận">
+                    {conclusions}
+                    <section className="w-shell-subsection">
+                      <h3>Chi phí đơn vị đã xác nhận</h3>
                       <WarrantySnapshot value={data.chi_phi_don_vi} />
-                    </WarrantyPanel>
+                    </section>
                   </>
                 )}
-                {group === 'custody' && (
-                  <WarrantyPanel title="Lịch sử giao nhận">{delivery}</WarrantyPanel>
-                )}
-                {group === 'work' && (
-                  <WarrantyPanel title="Hoạt động đã ghi nhận">{historyTable}</WarrantyPanel>
-                )}
-                {group === 'handover' && (
-                  <WarrantyPanel title="Lưu ý trước khi trả khách">
-                    <div className="w-form-guide">
-                      <Info size={20} />
-                      <p>
-                        “Sẵn sàng trả” là bước chuẩn bị, chưa phải bàn giao thực tế. Đối chiếu đúng
-                        thiết bị, phụ kiện, tình trạng và các nghĩa vụ thanh toán.
-                      </p>
-                    </div>
-                    <p className="w-shell-note">
-                      Khi khách nhận thực tế, chọn BÀN GIAO & HOÀN TẤT. Tiền phải thu cần thanh toán
-                      đủ hoặc có duyệt công nợ hợp lệ.
-                    </p>
-                  </WarrantyPanel>
+                {recordGroup('custody', delivery)}
+                {recordGroup('work', historyTable)}
+                {recordGroup(
+                  'handover',
+                  <p className="w-shell-note">
+                    Sẵn sàng trả là bước chuẩn bị. Chỉ bàn giao khi khách thực tế đã nhận thiết bị
+                    và đủ điều kiện thanh toán hoặc có duyệt công nợ hợp lệ.
+                  </p>
                 )}
               </>
             )}
             {tab === 2 && (
               <>
-                <div className="w-finance-cards">
-                  <div>
-                    <span>Khách còn phải trả</span>
-                    <strong>{money(invoice?.con_phai_thu)}</strong>
-                  </div>
-                  <div>
-                    <span>Cần hoàn cho khách</span>
-                    <strong>{money(refundTotal)}</strong>
-                  </div>
-                  <div>
-                    <span>Báo giá đang xem</span>
-                    <strong>{quoteLabels[quote?.trang_thai] || 'Chưa có'}</strong>
-                  </div>
-                </div>
-                {group === 'quotes' && (
-                  <WarrantyPanel title="Báo giá đã lưu">
-                    <div className="w-shell-actions">
+                {recordGroup(
+                  'quotes',
+                  <>
+                    <p className="w-shell-note">
+                      Đang xem: {quoteLabels[quote?.trang_thai] || 'Chưa có báo giá'}
+                    </p>
+                    <div className="w-work-buttons">
                       {data.bao_gia.map((item) => (
                         <button
                           type="button"
                           key={item.phien_ban}
                           disabled={locked}
-                          className={`w-shell-button ${quote?.phien_ban === item.phien_ban ? 'w-shell-button--black' : ''}`}
-                          onClick={() => {
-                            setQuoteVersion(item.phien_ban);
-                            setForm(null);
-                          }}
+                          className="w-shell-button"
+                          aria-pressed={quote?.phien_ban === item.phien_ban}
+                          onClick={() => setQuoteVersion(item.phien_ban)}
                         >
                           Phiên bản {item.phien_ban}
                         </button>
                       ))}
                     </div>
                     <WarrantySnapshot value={quote} />
-                  </WarrantyPanel>
+                  </>
                 )}
-                {group === 'invoice' && (
-                  <WarrantyPanel
-                    title="Hóa đơn & nghĩa vụ"
-                    note="Hóa đơn hủy vẫn giữ lịch sử tiền và các khoản cần hoàn."
-                  >
+                {recordGroup(
+                  'invoice',
+                  <>
                     {invoiceTable}
                     <p className="w-shell-note">
-                      {paymentLabels[invoice?.trang_thai_thanh_toan]} ·{' '}
-                      {refundLabels[invoice?.trang_thai_hoan_tien]}
+                      Hóa đơn hủy vẫn giữ lịch sử tiền và khoản cần hoàn.
                     </p>
-                  </WarrantyPanel>
+                    {invoice && (
+                      <p className="w-shell-note">
+                        {paymentLabels[invoice.trang_thai_thanh_toan]} ·{' '}
+                        {refundLabels[invoice.trang_thai_hoan_tien]}
+                      </p>
+                    )}
+                  </>
                 )}
-                {group === 'money' && (
+                {recordGroup(
+                  'money',
                   <>
-                    <WarrantyPanel title="Giao dịch tiền">
-                      <WarrantyTable
-                        columns={['Tham chiếu', 'Giao dịch', 'Số tiền', 'Phiếu thu / chi']}
-                        rows={(data.giao_dich_tien || []).map((item) => [
-                          `#${item.id}`,
-                          actions.find((operation) => operation.key === item.loai)?.label ||
-                            item.loai,
-                          money(item.so_tien),
-                          item.phieu_thu_chi_id,
-                        ])}
-                        empty="Chưa có giao dịch tiền được ghi nhận."
-                      />
-                    </WarrantyPanel>
-                    <WarrantyPanel title="Chi phí đơn vị">
+                    <WarrantyTable
+                      columns={['Tham chiếu', 'Giao dịch', 'Số tiền', 'Phiếu thu / chi']}
+                      rows={(data.giao_dich_tien || []).map((item) => [
+                        '#' + item.id,
+                        actions.find((operation) => operation.key === item.loai)?.label ||
+                          item.loai,
+                        money(item.so_tien),
+                        item.phieu_thu_chi_id,
+                      ])}
+                      empty="Chưa có giao dịch tiền được ghi nhận."
+                    />
+                    <section className="w-shell-subsection">
+                      <h3>Chi phí đơn vị</h3>
                       <WarrantySnapshot value={data.chi_phi_don_vi} />
-                    </WarrantyPanel>
+                    </section>
                   </>
                 )}
               </>
             )}
             {tab === 3 && (
-              <WarrantyPanel title="Thông tin đã lưu">
-                <WarrantySnapshot
-                  value={group === 'settlement' ? data.doi_soat_nha_cung_cap : plan}
-                />
-                {group === 'items' && delivery}
-              </WarrantyPanel>
+              <>
+                {recordGroup('plan', <WarrantySnapshot value={plan} />)}
+                {recordGroup(
+                  'items',
+                  <>
+                    <WarrantySnapshot value={plan} />
+                    {delivery}
+                  </>
+                )}
+                {recordGroup('settlement', <WarrantySnapshot value={data.doi_soat_nha_cung_cap} />)}
+              </>
             )}
             {tab === 4 && (
               <WarrantyPanel
@@ -932,6 +872,36 @@ function WarrantyDetail({ id }) {
             )}
           </main>
           <aside>
+            <WarrantyPanel title="Tóm tắt phiếu">
+              <dl className="w-ticket-summary">
+                <div className={custody?.loai !== 'CUA_HANG' ? 'w-summary-outside' : undefined}>
+                  <dt>Đang giữ thiết bị</dt>
+                  <dd>
+                    <strong>{custodyText}</strong>
+                  </dd>
+                </div>
+                <div>
+                  <dt>Tiếp nhận</dt>
+                  <dd>
+                    <strong>{displayDate(data.ngay_tiep_nhan)}</strong>
+                  </dd>
+                </div>
+                <div className={due > 0 ? 'w-summary-due' : undefined}>
+                  <dt>Khách còn phải trả</dt>
+                  <dd>
+                    <strong>{invoice ? money(due) : 'Chưa có hóa đơn'}</strong>
+                  </dd>
+                </div>
+                {refundTotal > 0 && (
+                  <div className="w-summary-refund">
+                    <dt>Cần hoàn cho khách</dt>
+                    <dd>
+                      <strong>{money(refundTotal)}</strong>
+                    </dd>
+                  </div>
+                )}
+              </dl>
+            </WarrantyPanel>
             <WarrantyPanel title="Khách hàng & đơn gốc">
               <div className="w-contact-card">
                 <div>
@@ -971,7 +941,6 @@ function WarrantyDetail({ id }) {
                       data.thiet_bi_hien_hanh?.han_bao_hanh || data.thiet_bi?.han_bao_hanh
                     ),
                   ],
-                  ['Nơi đang giữ', custodyLabels[custody?.loai] || 'Chưa xác định'],
                 ]}
               />
               <details className="w-reference-details">
@@ -985,6 +954,31 @@ function WarrantyDetail({ id }) {
           </aside>
         </div>
       </div>
+
+      {form && (
+        <WarrantyActionForm
+          key={form.key}
+          operation={form.operation}
+          detail={data}
+          quoteVersion={form.version}
+          values={drafts[form.key]}
+          disabled={Boolean(formBlocker)}
+          blockReason={formBlocker}
+          setValues={(values) => setDrafts((current) => ({ ...current, [form.key]: values }))}
+          close={() => setForm(null)}
+          saved={(result) => saved(form, result)}
+          onLockChange={setLocked}
+        />
+      )}
+      {historyEventId != null && (
+        <WarrantyHistoryDetail
+          key={`${id}:${historyEventId}:${reload}`}
+          ticketId={id}
+          eventId={historyEventId}
+          ticket={data}
+          onClose={() => setHistoryEventId(null)}
+        />
+      )}
     </div>
   );
 }

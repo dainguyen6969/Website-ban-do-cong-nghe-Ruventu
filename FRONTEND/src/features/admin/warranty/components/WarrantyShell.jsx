@@ -1,3 +1,6 @@
+import { useEffect, useId, useRef } from 'react';
+import FormCard from '../../../../shared/components/ui/FormCard';
+
 export function WarrantyBadge({ children, tone }) {
   if (!children)
     return (
@@ -32,11 +35,7 @@ export function WarrantyBadge({ children, tone }) {
 
 export function WarrantyPanel({ title, note, action, className = '', children }) {
   return (
-    <FormCard
-      title={title}
-      headerRight={action}
-      className={`w-shell-panel ${className}`.trim()}
-    >
+    <FormCard title={title} headerRight={action} className={`w-shell-panel ${className}`.trim()}>
       <div className="w-shell-panel-body">
         {note && <p className="w-shell-note w-panel-note">{note}</p>}
         {children}
@@ -97,4 +96,46 @@ export function WarrantyTable({ columns, rows = [], empty }) {
     </div>
   );
 }
-import FormCard from '../../../../shared/components/ui/FormCard';
+
+export function WarrantyDialog({
+  title,
+  subtitle,
+  onClose,
+  blocked = false,
+  closeLabel = 'Đóng',
+  children,
+}) {
+  const ref = useRef(null);
+  const titleId = useId();
+
+  useEffect(() => {
+    const dialog = ref.current;
+    dialog.showModal();
+    return () => {
+      if (dialog.open) dialog.close();
+    };
+  }, []);
+
+  return (
+    <dialog
+      ref={ref}
+      className="w-warranty-dialog"
+      aria-labelledby={titleId}
+      onCancel={(event) => {
+        event.preventDefault();
+        if (!blocked) onClose();
+      }}
+    >
+      <header className="w-warranty-dialog-head">
+        <div>
+          <h2 id={titleId}>{title}</h2>
+          {subtitle && <p>{subtitle}</p>}
+        </div>
+        <button type="button" className="w-shell-button" disabled={blocked} onClick={onClose}>
+          {closeLabel}
+        </button>
+      </header>
+      <div className="w-warranty-dialog-body">{children}</div>
+    </dialog>
+  );
+}
