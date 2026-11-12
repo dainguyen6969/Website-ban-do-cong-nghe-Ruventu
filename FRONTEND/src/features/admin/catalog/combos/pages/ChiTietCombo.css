@@ -245,17 +245,7 @@
   background: #fafafa;
   font-size: 9px;
 }
-.detail-number {
-  font-size: 13px !important;
-  font-weight: 900;
-  text-align: center;
-}
-.detail-stock {
-  color: #16853e;
-  font-size: 13px !important;
-  font-weight: 900;
-  text-align: center;
-}
+
 .detail-bottleneck {
   color: #e31e24;
   font-size: 14px !important;
@@ -420,4 +410,291 @@
   .detail-classification {
     grid-template-columns: 1fr;
   }
+}
+
+/* Tóm tắt và thông tin chi tiết combo */
+.combo-detail-page {
+  min-width: 0;
+}
+
+.combo-detail-page .heading-actions,
+.combo-detail-page .overview-badges {
+  flex-wrap: wrap;
+}
+
+.combo-detail-page .heading-actions > button {
+  height: auto;
+  min-height: 39px;
+  padding: 8px 12px;
+  font-size: 0.85rem;
+  font-weight: var(--admin-weight-semibold, 600);
+  line-height: 1.4;
+}
+
+.combo-detail-page .combo-identity,
+.combo-detail-page .combo-identity > div {
+  min-width: 0;
+}
+
+.combo-detail-page .combo-identity > img {
+  flex-shrink: 0;
+  object-fit: contain;
+}
+
+.combo-detail-page .combo-identity h2 {
+  overflow-wrap: anywhere;
+  font-weight: var(--admin-weight-semibold, 600);
+}
+
+.combo-detail-page .overview-badges code {
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.combo-detail-page .overview-stats > div {
+  height: auto;
+  min-height: 64px;
+  padding: 8px 12px;
+  text-align: center;
+}
+
+.combo-detail-page :is(.overview-stats, .detail-classification) small {
+  color: #4b5563;
+  font-size: 0.85em;
+  letter-spacing: normal;
+  font-weight: var(--admin-weight-medium, 500);
+}
+
+.combo-detail-page .combo-detail-pair {
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+  gap: 14px;
+  align-items: start;
+}
+
+.combo-detail-page .detail-specs :is(th, td) {
+  font-size: 0.92em;
+  overflow-wrap: anywhere;
+}
+
+.combo-detail-page .detail-specs th {
+  width: 35%;
+  background: #fff;
+  color: #4b5563;
+  font-weight: var(--admin-weight-medium, 500);
+}
+
+.combo-detail-page .combo-detail-muted {
+  color: #4b5563;
+}
+
+@media (max-width: 1000px) {
+  .combo-detail-page .combo-detail-pair {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* Chi tiết Combo: chữ thống nhất, bảo hành và ảnh gọn */
+.combo-detail-page {
+  --combo-detail-line: var(--border-color, #e5e7eb);
+  --combo-detail-label: #4b5563;
+  --combo-detail-ready: #147346;
+}
+
+.admin-app .combo-detail-page,
+.admin-app .combo-detail-page :where(*) {
+  font-family: var(--project-font-family, var(--font-family-admin, inherit));
+}
+
+.combo-detail-page :is(.form-card__title, .detail-components strong) {
+  font-weight: var(--admin-weight-semibold, 600);
+}
+
+.admin-app .combo-detail-page .detail-components td:is(.detail-number, .detail-stock) {
+  text-align: center;
+  font-weight: var(--admin-weight-semibold, 600);
+  font-variant-numeric: tabular-nums;
+}
+
+.combo-detail-page .detail-components code {
+  font-size: 0.92em;
+  overflow-wrap: anywhere;
+}
+
+.combo-detail-page .combo-capacity-value[data-tone='ready'],
+.combo-detail-page .detail-stock[data-stock-positive='true'],
+.combo-detail-page .combo-warranty-list strong[data-warranty-set='true'] {
+  color: var(--combo-detail-ready);
+}
+
+.combo-detail-page .combo-capacity-value[data-tone='empty'] {
+  color: #854d0e;
+}
+
+.combo-detail-page .combo-price-value,
+.combo-detail-page .combo-limit-tag {
+  color: var(--color-brand-red-hover, #c9181d);
+}
+
+.combo-detail-page .combo-limit-tag {
+  display: block;
+  margin-top: 4px;
+  font-weight: var(--admin-weight-semibold, 600);
+}
+
+.combo-detail-page :is(.inventory-total, .inventory-limit) :is(small, p) {
+  color: var(--combo-detail-label);
+  font-size: 0.9em;
+  letter-spacing: normal;
+  font-weight: var(--admin-weight-medium, 500);
+}
+
+.combo-detail-page .inventory-limit > small {
+  color: var(--color-brand-red-hover, #c9181d);
+}
+
+.combo-detail-page .inventory-total > strong {
+  font-size: 2rem;
+}
+
+.combo-detail-page .combo-media-pair {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+  gap: 14px;
+  align-items: start;
+}
+
+.combo-detail-page .combo-media-pair .form-card__body {
+  padding: 12px 14px;
+}
+
+.combo-detail-page .combo-warranty-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.combo-detail-page .combo-warranty-list li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 8px 12px;
+  padding: 7px 0;
+  border-bottom: 1px solid var(--combo-detail-line);
+  overflow-wrap: anywhere;
+}
+
+.combo-detail-page .combo-warranty-list li:last-child {
+  border-bottom: 0;
+}
+
+.combo-detail-page .combo-warranty-list small {
+  display: block;
+  color: var(--combo-detail-label);
+}
+
+.combo-detail-page .combo-warranty-name {
+  font-weight: var(--admin-weight-medium, 500);
+}
+
+.combo-detail-page .combo-warranty-qty {
+  margin-inline-start: 6px;
+  color: var(--combo-detail-label);
+}
+
+.combo-detail-page .combo-warranty-list strong {
+  font-weight: var(--admin-weight-semibold, 600);
+}
+
+.combo-detail-page .combo-warranty-more {
+  margin-top: 6px;
+  border-top: 1px solid var(--combo-detail-line);
+}
+
+.combo-detail-page .combo-warranty-more > summary {
+  width: fit-content;
+  padding: 7px 0;
+  cursor: pointer;
+  font-weight: var(--admin-weight-semibold, 600);
+}
+
+.combo-detail-page .combo-media-preview {
+  height: clamp(150px, 20vw, 220px);
+  border: 1px solid var(--combo-detail-line);
+  background: #fff;
+}
+
+.combo-detail-page .combo-media-preview img,
+.combo-detail-page .combo-media-thumbs img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.combo-detail-page .combo-media-thumbs {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+  padding-bottom: 4px;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+.combo-detail-page .combo-media-thumbs > button {
+  flex: 0 0 48px;
+  height: 44px;
+  padding: 2px;
+  border: 1px solid var(--combo-detail-line);
+  background: #fff;
+  cursor: pointer;
+}
+
+.combo-detail-page .combo-media-thumbs > button[aria-pressed='true'] {
+  border-color: var(--color-brand-red, #e31e24);
+  box-shadow: inset 0 0 0 1px var(--color-brand-red, #e31e24);
+}
+
+.combo-detail-page .combo-media-thumbs > button:focus-visible {
+  outline: 2px solid var(--color-brand-red, #e31e24);
+  outline-offset: -2px;
+}
+
+@media (max-width: 1000px) {
+  .combo-detail-page .combo-media-pair {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.admin-app .combo-detail-page .detail-components .admin-table-scroll--embedded {
+  min-height: 0;
+  max-height: none;
+  overscroll-behavior-y: auto;
+}
+
+.combo-detail-page .detail-components .combo-warranty-cell {
+  font-weight: var(--admin-weight-semibold, 600);
+}
+
+.combo-detail-page .detail-components .combo-warranty-cell[data-warranty-active='true'] {
+  color: #146c43;
+}
+
+.combo-detail-page .combo-detail-aside {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  min-width: 0;
+  gap: 12px;
+}
+
+.combo-detail-page .inventory-total p {
+  color: #475569;
+  font-size: 0.9em;
+  line-height: 1.45;
+}
+
+.combo-detail-page .combo-detail-error {
+  margin: 0;
+  color: #9f1a1a;
 }

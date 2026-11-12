@@ -1,51 +1,50 @@
 // Admin product-combo screen: ComboSanPham.
-import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { HiOutlinePlus, HiOutlineSearch } from "react-icons/hi";
-import TablePagination from "../../../../../shared/components/ui/TablePagination";
-import syncTableHeaderOffset from "../../../../../shared/components/ui/syncTableHeaderOffset";
-import FilterDropdown from "../../../../../shared/components/ui/FilterDropdown";
-import StopComboModal from "../components/StopComboModal";
-import fallbackImage from "../../../../../assets/hero.png";
-import { deactivateCombo, getComboPage, getComboStats } from "../api/comboApi";
-import "./ComboSanPham.css";
+import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { HiOutlinePlus, HiOutlineSearch } from 'react-icons/hi';
+import TablePagination from '../../../../../shared/components/ui/TablePagination';
+import syncTableHeaderOffset from '../../../../../shared/components/ui/syncTableHeaderOffset';
+import FilterDropdown from '../../../../../shared/components/ui/FilterDropdown';
+import StopComboModal from '../components/StopComboModal';
+import fallbackImage from '../../../../../assets/hero.png';
+import { deactivateCombo, getComboPage, getComboStats } from '../api/comboApi';
+import './ComboSanPham.css';
 
 const PAGE_SIZE = 10;
-const money = (value) => `${Number(value || 0).toLocaleString("vi-VN")}đ`;
+const money = (value) => `${Number(value || 0).toLocaleString('vi-VN')}đ`;
 const isStopped = (combo) =>
-  String(combo.status || "")
+  String(combo.status || '')
     .trim()
-    .startsWith("Ng");
+    .startsWith('Ng');
 
 export default function ComboSanPham() {
   const navigate = useNavigate();
   const [combos, setCombos] = useState([]);
-  const [search, setSearch] = useState("");
-  const [status, setStatus] = useState("Tất cả trạng thái");
+  const [search, setSearch] = useState('');
+  const [status, setStatus] = useState('Tất cả trạng thái');
   const [page, setPage] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
   const [stats, setStats] = useState({ total: 0, active: 0, inactive: 0 });
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const [error, setError] = useState('');
   const [reloadKey, setReloadKey] = useState(0);
   const [comboToStop, setComboToStop] = useState(null);
 
   useEffect(() => {
     const refresh = () => setReloadKey((value) => value + 1);
-    window.addEventListener("focus", refresh);
-    return () => window.removeEventListener("focus", refresh);
+    window.addEventListener('focus', refresh);
+    return () => window.removeEventListener('focus', refresh);
   }, []);
 
   useEffect(() => {
     const controller = new AbortController();
     setLoading(true);
-    setError("");
-    const statusValue =
-      status === "Đang kinh doanh" ? 1 : status === "Ngưng kinh doanh" ? 0 : "";
+    setError('');
+    const statusValue = status === 'Đang kinh doanh' ? 1 : status === 'Ngưng kinh doanh' ? 0 : '';
     Promise.all([
       getComboPage(
         { page, limit: PAGE_SIZE, keyword: search, status: statusValue },
-        controller.signal,
+        controller.signal
       ),
       getComboStats(controller.signal),
     ])
@@ -53,12 +52,11 @@ export default function ComboSanPham() {
         setCombos(result.items);
         setTotalItems(result.totalItems);
         setStats(totals);
-        if (result.totalPages && page > result.totalPages)
-          setPage(result.totalPages);
+        if (result.totalPages && page > result.totalPages) setPage(result.totalPages);
       })
       .catch((requestError) => {
-        if (requestError.name !== "AbortError")
-          setError(requestError.message || "Không thể tải danh sách combo.");
+        if (requestError.name !== 'AbortError')
+          setError(requestError.message || 'Không thể tải danh sách combo.');
       })
       .finally(() => {
         if (!controller.signal.aborted) setLoading(false);
@@ -73,7 +71,7 @@ export default function ComboSanPham() {
       setReloadKey((value) => value + 1);
     } catch (requestError) {
       setComboToStop(null);
-      setError(requestError.message || "Không thể ngưng kinh doanh combo.");
+      setError(requestError.message || 'Không thể ngưng kinh doanh combo.');
     }
   };
 
@@ -92,7 +90,7 @@ export default function ComboSanPham() {
         </div>
         <button
           className="combo-primary-btn"
-          onClick={() => navigate("/kho-hang/combo-san-pham/them-moi")}
+          onClick={() => navigate('/kho-hang/combo-san-pham/them-moi')}
         >
           <HiOutlinePlus /> THÊM COMBO SẢN PHẨM
         </button>
@@ -139,141 +137,139 @@ export default function ComboSanPham() {
         </FilterDropdown>
       </div>
       <div className="admin-list-body admin-list-body--inset">
-<div ref={syncTableHeaderOffset} className="combo-table-wrap admin-table-scroll" tabIndex={0} role="region" aria-label="Bảng danh sách">
-        <table className="combo-table admin-data-table">
-          <colgroup>
-            <col className="combo-col-image" />
-            <col className="combo-col-code" />
-            <col className="combo-col-name" />
-            <col />
-            <col className="combo-col-capacity" />
-            <col className="combo-col-stock" />
-            <col className="combo-col-price" />
-            <col className="combo-col-status" />
-            <col className="combo-col-actions" />
-          </colgroup>
-          <thead>
-            <tr>
-              <th>ẢNH</th>
-              <th>MÃ COMBO</th>
-              <th>TÊN COMBO</th>
-              <th>THÀNH PHẦN</th>
-              <th>SỐ BỘ CÓ THỂ LẮP</th>
-              <th>TỒN THỰC TẾ</th>
-              <th>GIÁ BÁN</th>
-              <th>TRẠNG THÁI</th>
-              <th>THAO TÁC</th>
-            </tr>
-          </thead>
-          <tbody>
-            {!loading && !error && combos.length ? (
-              combos.map((combo) => (
-                <tr key={combo.id}>
-                  <td>
-                    <img
-                      className="combo-thumb"
-                      src={combo.image || fallbackImage}
-                      alt={combo.name}
-                    />
-                  </td>
-                  <td>
-                    <code>{combo.code}</code>
-                  </td>
-                  <td>
-                    <strong>{combo.name}</strong>
-                  </td>
-                  <td>
-                    <div className="component-preview">
-                      {combo.components.slice(0, 2).map((item) => (
-                        <div key={`${item.sku}-${item.name}`}>
-                          <b title={`${item.name} ×${item.qty}`}>
-                            <span>{item.name}</span><em>×{item.qty}</em>
-                          </b>
-                          <small title={`${item.variant} · ${item.sku}`}>
-                            {item.variant} · {item.sku}
-                          </small>
+        <div
+          ref={syncTableHeaderOffset}
+          className="combo-table-wrap admin-table-scroll"
+          tabIndex={0}
+          role="region"
+          aria-label="Bảng danh sách"
+        >
+          <table className="combo-table admin-data-table">
+            <colgroup>
+              <col className="combo-col-item" />
+              <col className="combo-col-components" />
+              <col className="combo-col-capacity" />
+              <col className="combo-col-price" />
+              <col className="combo-col-status" />
+              <col className="combo-col-actions" />
+            </colgroup>
+            <thead>
+              <tr>
+                <th scope="col">COMBO</th>
+                <th scope="col">THÀNH PHẦN</th>
+                <th scope="col" className="combo-cell-center">
+                  CÓ THỂ LẮP
+                </th>
+                <th scope="col" className="combo-cell-price">
+                  GIÁ BÁN
+                </th>
+                <th scope="col" className="combo-cell-center">
+                  TRẠNG THÁI
+                </th>
+                <th scope="col">THAO TÁC</th>
+              </tr>
+            </thead>
+            <tbody>
+              {!loading && !error && combos.length ? (
+                combos.map((combo) => (
+                  <tr key={combo.id}>
+                    <td>
+                      <div className="combo-list-item">
+                        <img
+                          className="combo-thumb"
+                          src={combo.image || fallbackImage}
+                          alt=""
+                          loading="lazy"
+                        />
+                        <div>
+                          <strong>{combo.name || '—'}</strong>
+                          <small>{combo.code || '—'}</small>
                         </div>
-                      ))}
-                      {combo.components.length > 2 && (
-                        <span>
-                          +{combo.components.length - 2} thành phần khác
-                        </span>
-                      )}
-                    </div>
-                  </td>
-                  <td className="number-strong">
-                    {combo.assemblyCapacity ?? "—"}
-                  </td>
-                  <td>—</td>
-                  <td className="number-strong">{money(combo.price)}</td>
-                  <td>
-                    <span
-                      className={`combo-status ${isStopped(combo) ? "inactive" : "active"}`}
-                    >
-                      {combo.status.toUpperCase()}
-                    </span>
-                  </td>
-                  <td>
-                    <div className="combo-actions">
-                      <button
-                        onClick={() =>
-                          navigate(
-                            `/kho-hang/combo-san-pham/chi-tiet/${combo.id}`,
-                          )
-                        }
-                      >
-                        XEM CHI TIẾT
-                      </button>
-                      <button
-                        onClick={() =>
-                          navigate(
-                            `/kho-hang/combo-san-pham/them-moi?id=${combo.id}`,
-                          )
-                        }
-                      >
-                        SỬA
-                      </button>
-                      {!isStopped(combo) && (
+                      </div>
+                    </td>
+                    <td>
+                      <div className="component-preview">
+                        {combo.components.slice(0, 2).map((item, index) => {
+                          const meta = [item.variant !== item.name ? item.variant : '', item.sku]
+                            .filter(Boolean)
+                            .join(' · ');
+
+                          return (
+                            <div key={`${item.variantId}-${index}`}>
+                              <b title={`${item.name} ×${item.qty}`}>
+                                <span>{item.name}</span>
+                                <em>×{item.qty}</em>
+                              </b>
+                              {meta && <small title={meta}>{meta}</small>}
+                            </div>
+                          );
+                        })}
+                        {!combo.components.length && <span>Chưa cấu hình</span>}
+                        {combo.components.length > 2 && (
+                          <span>+{combo.components.length - 2} thành phần khác</span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="combo-cell-center number-strong">
+                      {combo.assemblyCapacity ?? '—'}
+                    </td>
+                    <td className="combo-cell-price number-strong">{money(combo.price)}</td>
+                    <td className="combo-cell-center">
+                      <span className={`combo-status ${isStopped(combo) ? 'inactive' : 'active'}`}>
+                        {combo.status.toUpperCase()}
+                      </span>
+                    </td>
+                    <td>
+                      <div className="combo-actions">
                         <button
-                          className="danger"
-                          onClick={() => setComboToStop(combo)}
+                          onClick={() => navigate(`/kho-hang/combo-san-pham/chi-tiet/${combo.id}`)}
                         >
-                          NGƯNG KD
+                          XEM CHI TIẾT
                         </button>
-                      )}
-                    </div>
+                        <button
+                          onClick={() =>
+                            navigate(`/kho-hang/combo-san-pham/them-moi?id=${combo.id}`)
+                          }
+                        >
+                          SỬA
+                        </button>
+                        {!isStopped(combo) && (
+                          <button className="danger" onClick={() => setComboToStop(combo)}>
+                            NGƯNG KINH DOANH
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td
+                    colSpan="6"
+                    className="combo-empty"
+                    role={error ? 'button' : undefined}
+                    onClick={error ? () => setReloadKey((value) => value + 1) : undefined}
+                  >
+                    {loading
+                      ? 'Đang tải dữ liệu combo...'
+                      : error
+                        ? `${error} Nhấn để thử lại.`
+                        : 'Không tìm thấy combo phù hợp.'}
                   </td>
                 </tr>
-              ))
-            ) : (
-              <tr>
-                <td
-                  colSpan="9"
-                  className="combo-empty"
-                  role={error ? "button" : undefined}
-                  onClick={
-                    error ? () => setReloadKey((value) => value + 1) : undefined
-                  }
-                >
-                  {loading
-                    ? "Đang tải dữ liệu combo..."
-                    : error
-                      ? `${error} Nhấn để thử lại.`
-                      : "Không tìm thấy combo phù hợp."}
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+              )}
+            </tbody>
+          </table>
+        </div>
+        <TablePagination
+          className="admin-table-footer"
+          totalItems={totalItems}
+          pageSize={PAGE_SIZE}
+          currentPage={page}
+          onPageChange={setPage}
+          idPrefix="combo"
+        />
       </div>
-      <TablePagination className="admin-table-footer"
-        totalItems={totalItems}
-        pageSize={PAGE_SIZE}
-        currentPage={page}
-        onPageChange={setPage}
-        idPrefix="combo"
-      />
-</div>
       <StopComboModal
         combo={comboToStop}
         onCancel={() => setComboToStop(null)}
