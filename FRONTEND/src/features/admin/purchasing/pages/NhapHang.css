@@ -239,9 +239,24 @@
   width: 1%;
 }
 
-.purchase-list-page .purchase-table td:first-child strong {
+.purchase-list-page .purchase-table .purchase-order-code {
+  color: #111;
   font-weight: var(--admin-weight-semibold, 600);
   overflow-wrap: anywhere;
+}
+
+.purchase-list-page .purchase-table a.purchase-order-code {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.purchase-list-page .purchase-table a.purchase-order-code:is(:hover, :focus-visible) {
+  color: var(--color-brand-red-hover, #b91c1c);
+}
+
+.purchase-list-page .purchase-table a.purchase-order-code:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
 }
 
 .purchase-list-page .purchase-table td:nth-child(2) strong {
@@ -542,39 +557,57 @@
 .received span {
   color: #aaa;
 }
-.progress-line {
-  height: 8px;
-  margin-bottom: 18px;
-  background: #dedede;
-  position: relative;
+.purchase-detail-page .purchase-progress {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
 }
-.progress-line > div {
+
+.purchase-detail-page .purchase-progress__track {
+  height: 8px;
+  overflow: hidden;
+  background: #e5e7eb;
+}
+
+.purchase-detail-page .purchase-progress__track > div {
   height: 100%;
   background: #2d8238;
 }
-.progress-line > span {
-  position: absolute;
-  left: calc(100% + 10px);
-  top: -6px;
-  font-weight: 900;
+
+.purchase-detail-page .purchase-progress > span {
+  font-weight: var(--admin-weight-semibold, 600);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
-.progress-stats {
-  display: flex;
-  gap: 35px;
+
+.purchase-detail-page .progress-stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
 }
-.progress-stats div {
-  display: flex;
-  flex-direction: column;
+
+.purchase-detail-page .progress-stats > div {
+  display: grid;
+  align-content: start;
+  gap: 4px;
+  overflow-wrap: anywhere;
 }
-.progress-stats b {
-  font-size: 15px;
+
+.purchase-detail-page .progress-stats > div > b {
+  font-size: 18px;
+  font-weight: var(--admin-weight-bold, 700);
+  line-height: 1.2;
 }
-.progress-stats span {
-  color: #999;
-  font-size: 11px;
+
+.purchase-detail-page .progress-stats > div > span {
+  color: #475569;
+  font-size: 0.9em;
 }
-.orange-text b {
-  color: #f57c00;
+
+.purchase-detail-page .progress-stats .orange-text b {
+  color: #9a3412;
 }
 .detail-payment {
   display: grid;
@@ -859,33 +892,7 @@
   text-align: center;
   font-weight: 700;
 }
-.progress-line {
-  margin-right: 34px;
-  min-width: 0;
-}
-.progress-line > div {
-  max-width: 100%;
-}
-.progress-line > span {
-  left: calc(100% + 9px);
-  white-space: nowrap;
-}
-.progress-stats {
-  width: 100%;
-  min-width: 0;
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 12px;
-}
-.progress-stats div {
-  min-width: 0;
-}
-.progress-stats span {
-  max-width: 100%;
-  line-height: 1.25;
-  white-space: normal;
-  overflow-wrap: anywhere;
-}
+
 .purchase-btn.orange-solid {
   border-color: #d94b00 !important;
   background: #d94b00 !important;
@@ -1035,9 +1042,8 @@
   justify-content: space-between;
 }
 @media (max-width: 700px) {
-  .progress-stats {
+  .purchase-detail-page .progress-stats {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 14px;
   }
   .refund-fields {
     grid-template-columns: 1fr;

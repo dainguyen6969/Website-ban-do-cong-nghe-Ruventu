@@ -25,9 +25,9 @@
   align-items: center;
   gap: 7px;
   margin-bottom: 12px;
-  color: #979ca3;
-  font-size: 9px;
-  font-weight: 700;
+  color: var(--order-text-secondary);
+  font-size: var(--order-type-label);
+  font-weight: var(--admin-weight-medium, 500);
 }
 .order-detail-hero nav strong {
   color: #f31a21;
@@ -36,19 +36,21 @@
   display: flex;
   align-items: center;
   gap: 10px;
+  flex-wrap: wrap;
 }
 .order-detail-heading h1 {
-  font-size: 22px;
-  line-height: 1;
-  font-weight: 900;
+  font-size: var(--order-type-title);
+  line-height: 1.25;
+  font-weight: var(--admin-weight-bold, 700);
+  overflow-wrap: anywhere;
 }
 .order-detail-heading .order-state-badge {
   margin: 0;
 }
 .order-detail-hero p {
   margin-top: 9px;
-  color: #90969e;
-  font-size: 10px;
+  color: var(--order-text-secondary);
+  font-size: var(--order-type-label);
 }
 .order-detail-statuses {
   margin-top: 10px;
@@ -101,7 +103,7 @@
 .order-detail-content {
   padding: 24px;
   display: grid;
-  grid-template-columns: minmax(620px, 2fr) minmax(330px, 1fr);
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
   gap: 22px;
   align-items: start;
 }
@@ -117,15 +119,15 @@
   background: #fff;
 }
 .order-detail-panel > h2 {
-  height: 38px;
-  padding: 0 14px;
+  min-height: 40px;
+  padding: 8px 14px;
   display: flex;
   align-items: center;
   gap: 9px;
   color: #fff;
-  background: #0b0b0b;
-  font-size: 10px;
-  font-weight: 900;
+  background: #1a1d23;
+  font-size: var(--order-type-body);
+  font-weight: var(--admin-weight-semibold, 600);
 }
 .order-detail-panel > h2 span {
   width: 3px;
@@ -151,17 +153,15 @@
 .order-detail-kv dt,
 .order-sidebar-kv dt,
 .order-summary dt {
-  color: #8b9199;
-  font-size: 8px;
-  font-weight: 800;
+  color: var(--order-text-secondary);
+  font-size: var(--order-type-label);
+  font-weight: var(--admin-weight-medium, 500);
 }
 .order-detail-kv dd,
 .order-sidebar-kv dd,
 .order-summary dd {
   min-width: 0;
   color: #090909;
-  font-size: 10px;
-  font-weight: 800;
   overflow-wrap: anywhere;
 }
 .order-alert-text {
@@ -188,9 +188,9 @@
   gap: 8px;
 }
 .order-fulfillment-grid > div > span:not(.order-state-badge) {
-  color: #8b9199;
-  font-size: 8px;
-  font-weight: 800;
+  color: var(--order-text-secondary);
+  font-size: var(--order-type-label);
+  font-weight: var(--admin-weight-medium, 500);
 }
 .order-fulfillment-grid .order-state-badge {
   margin: 0;
@@ -226,18 +226,18 @@
 }
 .order-summary-total dt {
   color: #0a0a0a;
-  font-size: 10px;
+  font-weight: var(--admin-weight-semibold, 600);
 }
 .order-summary-total dd {
-  color: #f20d15;
-  font-size: 16px;
+  color: var(--color-brand-red-hover, #b91c1c);
+  font-size: calc(16px * var(--project-font-scale, 1));
+  font-weight: var(--admin-weight-bold, 700);
   text-align: right;
 }
 .order-note {
   min-height: 48px;
   padding: 14px;
   color: #313131;
-  font-size: 11px;
 }
 
 .order-timeline {
@@ -274,15 +274,14 @@
 }
 .order-timeline time {
   display: block;
-  color: #90969e;
-  font-size: 8px;
-  font-weight: 700;
+  color: var(--order-text-secondary);
+  font-size: var(--order-type-label);
+  font-weight: var(--admin-weight-medium, 500);
 }
 .order-timeline strong {
   display: block;
   margin-top: 4px;
-  font-size: 10px;
-  font-weight: 900;
+  font-weight: var(--admin-weight-semibold, 600);
 }
 .order-timeline p {
   margin-top: 3px;
@@ -314,8 +313,8 @@
   background: #f10e16;
 }
 .order-cancel-modal h2 {
-  font-size: 11px;
-  font-weight: 900;
+  font-size: var(--order-type-body, 11px);
+  font-weight: var(--admin-weight-semibold, 600);
 }
 .order-cancel-modal__body {
   padding: 18px 20px 20px;
@@ -339,7 +338,8 @@
   border-radius: 0;
   outline: none;
   color: #111;
-  font-family: inherit; font-size: 11px;
+  font-family: inherit;
+  font-size: 11px;
 }
 .order-cancel-modal textarea:focus {
   border-color: #f10e16;
@@ -364,11 +364,10 @@
 
 @media (max-width: 1080px) {
   .order-detail-content {
-    grid-template-columns: minmax(600px, 1fr);
-    overflow-x: auto;
+    grid-template-columns: minmax(0, 1fr);
   }
   .order-detail-sidebar {
-    grid-template-columns: repeat(2, minmax(280px, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 @media (max-width: 700px) {
@@ -764,7 +763,9 @@
   background: #fdfdfd;
   border: 1px solid #e2e8f0;
   cursor: pointer;
-  transition: border-color 0.15s, background-color 0.15s;
+  transition:
+    border-color 0.15s,
+    background-color 0.15s;
 }
 
 .order-export-serial-card:hover {
@@ -1176,9 +1177,6 @@
 }
 
 /* Các nghiệp vụ mới sử dụng giao diện gốc. */
-.admin-order-detail {
-  font-family: var(--font-family-admin, inherit);
-}
 
 .admin-order-detail .order-detail-hero,
 .admin-order-detail .order-detail-panel,
@@ -1283,153 +1281,97 @@
   line-height: 1.4;
 }
 
-/* 2. Hiển thị tiền tệ trong THANH TOÁN */
+/* Thanh toán: số tiền, lịch sử và ghi nhận đến muộn. */
 .order-amount-text {
-  font-weight: 800;
+  font-weight: var(--admin-weight-semibold, 600);
+  font-variant-numeric: tabular-nums;
 }
 
 .order-amount-text--received {
-  color: #059669;
-  font-size: 12px;
+  color: #047857;
 }
-
 .order-amount-text--due {
-  color: #dc2626;
-  font-size: 12px;
+  color: #b91c1c;
 }
-
 .order-amount-text--cod {
-  color: #d97706;
-  font-size: 12px;
+  color: #92400e;
 }
-
 .order-amount-text--refunded {
-  color: #7c3aed;
-  font-size: 12px;
+  color: #6d28d9;
 }
 
-/* 3. Lịch sử thu tiền (Receipts Table) */
 .order-collapsible-panel {
+  min-width: 0;
   margin: 0 14px 14px;
-  border: 1px solid #111;
-  background: #fff;
+  border: 1px solid #dfe3e8;
 }
 
 .order-collapsible-summary {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  height: 38px;
-  padding: 0 14px;
-  background: #0b0b0b;
+  display: list-item;
+  padding: 9px 10px;
+  background: #f6f7f9;
+  color: #111;
+  font-weight: var(--admin-weight-semibold, 600);
   cursor: pointer;
-  user-select: none;
-  font-size: 10px;
-  font-weight: 900;
-  letter-spacing: 0.5px;
-  color: #fff;
-  border-bottom: 1px solid #111;
-}
-
-.order-collapsible-summary > span:first-child {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  color: #fff;
-}
-
-.order-collapsible-summary > span:first-child::before {
-  content: '';
-  display: inline-block;
-  width: 3px;
-  height: 15px;
-  background: #f00c13;
-  flex-shrink: 0;
 }
 
 .order-collapsible-summary:hover {
-  background: #1a1a1a;
+  background: #eceff2;
 }
 
-.order-collapsible-panel:not([open]) .order-collapsible-summary {
-  border-bottom: none;
+.order-collapsible-panel[open] > .order-collapsible-summary {
+  border-bottom: 1px solid #dfe3e8;
 }
 
 .order-count-pill {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 18px;
-  height: 18px;
-  padding: 0 6px;
-  background: #222;
-  color: #fff;
-  border: 1px solid #444;
-  font-size: 10px;
-  font-weight: 800;
+  margin-inline-start: 8px;
+  padding: 1px 6px;
+  border: 1px solid #cfd5dc;
+  background: #fff;
+  color: var(--order-text-secondary);
+  font-size: var(--order-type-label);
 }
 
-.order-receipts-table-wrap {
-  overflow-x: auto;
+.order-late-payment {
+  border-inline-start: 3px solid #b45309;
 }
 
-.order-receipts-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 11px;
+.order-late-payment__body {
+  display: grid;
+  justify-items: start;
+  gap: 10px;
+  padding: 10px;
 }
 
-.order-receipts-table th {
-  height: 32px;
-  padding: 6px 14px;
-  background: #f7f7f7;
-  border-bottom: 1px solid #ddd;
-  color: #777;
-  font-size: 9px;
-  font-weight: 800;
-  text-align: left;
-  letter-spacing: 0.05em;
+.order-late-payment__body > p {
+  margin: 0;
+  color: var(--order-text-secondary);
 }
 
-.order-receipts-table td {
-  padding: 10px 14px;
-  border-bottom: 1px solid #eee;
-  color: #111;
-  vertical-align: middle;
-  font-size: 11px;
+.order-late-payment__body > .order-action {
+  max-width: 100%;
+  white-space: normal;
 }
 
-.order-receipts-table tr:hover td {
-  background: #fafafa;
-}
-
-.order-receipts-table tr:last-child td {
-  border-bottom: none;
-}
-
-.order-receipt-code {
-  font-family: monospace;
-  font-weight: 700;
-  color: #0969da;
-  text-decoration: underline;
-}
-
-.order-receipt-code:hover {
-  color: #0550ae;
+.order-late-payment__notice {
+  margin: 0;
+  padding: 9px 10px;
+  border-inline-start: 3px solid #b45309;
+  background: #fffbeb;
+  color: #78350f;
 }
 
 .order-payment-method-badge {
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-  padding: 3px 10px;
-  border-radius: 3px;
-  font-size: 10px;
-  font-weight: 800;
+  min-height: 25px;
+  max-width: 100%;
+  padding: 2px 7px;
+  font-size: var(--order-type-label);
+  font-weight: var(--admin-weight-semibold, 600);
   line-height: 1.3;
   text-transform: uppercase;
-  letter-spacing: 0.02em;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
 }
 
 /* Tiền mặt - Xanh lá tươi */
@@ -1468,17 +1410,6 @@
   border: 1px solid #fbcfe8;
 }
 
-.order-receipt-date {
-  color: #666;
-  font-size: 11px;
-}
-
-.order-receipt-amount {
-  font-weight: 900;
-  color: #111;
-  font-size: 12px;
-}
-
 /* 4. Giao vận & Thu COD */
 .order-delivery-item + .order-delivery-item {
   margin-top: 14px;
@@ -1487,15 +1418,13 @@
 }
 
 .order-tracking-num {
-  font-family: monospace;
-  font-weight: 700;
+  font-weight: var(--admin-weight-semibold, 600);
   color: #0f172a;
 }
 
 .order-cod-amount {
-  color: #d97706;
-  font-size: 12px;
-  font-weight: 800;
+  color: #e79230;
+  font-weight: var(--admin-weight-semibold, 600);
 }
 
 .order-cod-status-badge {
@@ -1646,44 +1575,8 @@
   font-size: 9px !important;
 }
 
-.order-devices-table-wrap {
-  overflow-x: auto;
-}
-
-.order-devices-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 11px;
-  background: #fff;
-}
-
-.order-devices-table th {
-  height: 31px;
-  padding: 6px 12px;
-  background: #fff;
-  border-bottom: 1px solid #e2e8f0;
-  color: #64748b;
-  font-size: 9px;
-  font-weight: 800;
-  letter-spacing: 0.03em;
-  text-align: left;
-  white-space: nowrap;
-}
-
-.order-devices-table td {
-  padding: 10px 12px;
-  border-bottom: 1px solid #f1f5f9;
-  color: #1e293b;
-  vertical-align: middle;
-}
-
-.order-devices-table tr:hover td {
-  background: #f8fafc;
-}
-
 .order-device-code {
-  font-family: monospace;
-  font-size: 10px;
+  font-size: var(--order-type-label);
   color: #475569;
 }
 
@@ -1744,7 +1637,6 @@
 
 .order-device-identity strong {
   display: block;
-  font-size: 11px;
   color: #0f172a;
 }
 
@@ -1768,17 +1660,6 @@
   background: #ecfdf5;
   color: #059669;
   border-color: #a7f3d0;
-}
-
-.order-warranty-link {
-  font-family: monospace;
-  font-weight: 700;
-  color: #2563eb;
-  text-decoration: underline;
-}
-
-.order-warranty-link:hover {
-  color: #1d4ed8;
 }
 
 .order-exchange-handover {
@@ -1819,14 +1700,16 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  font-size: 11px;
+  font-size: var(--order-type-body, 11px);
   color: #475569;
+  flex-wrap: wrap;
+  gap: 4px 12px;
 }
 
 .order-operation-amount-highlight {
   color: #dc2626;
-  font-size: 14px;
-  font-weight: 900;
+  font-size: var(--order-type-body, 14px);
+  font-weight: var(--admin-weight-semibold, 600);
 }
 
 .order-operation-refund-note {
@@ -1875,258 +1758,229 @@
   }
 }
 
-/* Bảng trong chi tiết đơn hàng: nền trắng theo mẫu Figma */
-.admin-app .admin-order-detail .order-warranty .admin-data-table {
+/* Kiểu chung cho bảng sản phẩm, phiếu thu và thiết bị trong chi tiết đơn. */
+.admin-app .admin-order-detail .order-record-scroll {
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.admin-app .admin-order-detail :is(.order-record-scroll, .order-collapsible-summary):focus-visible {
+  outline: 2px solid var(--color-brand-red, #e31e24);
+  outline-offset: -2px;
+}
+
+.admin-app .admin-order-detail :is(.order-record-table, .sold-devices-table) {
   width: 100%;
-  min-width: 760px;
   margin: 0;
-  border-collapse: collapse;
+  border-collapse: separate;
   border-spacing: 0;
-  font-family: inherit;
-  font-size: 12px;
 }
 
-.admin-app .admin-order-detail .order-warranty .admin-data-table > thead {
-  background: #fff;
-  color: #888;
-}
-
-.admin-app .admin-order-detail .order-warranty .admin-data-table > thead > tr > th {
+.admin-app .admin-order-detail :is(.order-record-table, .sold-devices-table) > thead > tr > th {
   height: auto;
   padding: 8px 10px;
   border: 0;
-  border-bottom: 1px solid #dedede;
-  background: #fff;
-  color: #888;
-  font-size: 9px;
-  font-weight: 700;
+  border-bottom: 1px solid #dfe3e8;
+  background: #f6f7f9;
+  color: var(--order-text-secondary);
+  font-size: var(--order-type-label);
+  font-weight: var(--admin-weight-semibold, 600);
   line-height: 1.4;
-  letter-spacing: 0.08em;
+  letter-spacing: normal;
   text-align: left;
-  vertical-align: bottom;
+  vertical-align: middle;
   white-space: normal;
 }
 
-.admin-app .admin-order-detail .order-warranty .admin-data-table > tbody > tr > td {
+.admin-app .admin-order-detail :is(.order-record-table, .sold-devices-table) > tbody > tr > td {
   height: auto;
-  padding: 10px;
+  padding: 9px 10px;
   border: 0;
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid #edf0f2;
+  background: #fff;
   color: #111;
-  font-size: 12px;
-  font-weight: 500;
+  font-size: var(--order-type-body);
+  font-weight: var(--admin-weight-regular, 400);
   line-height: 1.45;
   text-align: left;
-  vertical-align: top;
+  vertical-align: middle;
   overflow-wrap: anywhere;
+  font-variant-numeric: tabular-nums;
 }
 
-.admin-app .admin-order-detail .order-warranty .admin-data-table > tbody > tr {
-  background: #fff;
-}
-
-.admin-app .admin-order-detail .order-warranty .admin-data-table > tbody > tr:hover {
+.admin-app
+  .admin-order-detail
+  :is(.order-record-table, .sold-devices-table)
+  > tbody
+  > tr:hover
+  > td {
   background: #fafafa;
 }
 
-.admin-app .admin-order-detail .order-warranty .admin-data-table td small {
-  font-size: 11px;
-  line-height: 1.45;
+.admin-app
+  .admin-order-detail
+  :is(.order-record-table, .sold-devices-table)
+  > tbody:last-child
+  > tr:last-child
+  > td {
+  border-bottom: 0;
 }
 
-/* Thiết bị và bảo hành */
+.admin-app .admin-order-detail .order-record-table .align-right {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.admin-app .admin-order-detail .sold-devices-table .align-center {
+  text-align: center;
+}
+
+.admin-app .admin-order-detail :is(.order-receipt-code, .order-warranty-link) {
+  color: #111;
+  font-family: inherit;
+  font-weight: var(--admin-weight-semibold, 600);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.admin-app
+  .admin-order-detail
+  :is(.order-receipt-code, .order-warranty-link):is(:hover, :focus-visible) {
+  color: var(--color-brand-red-hover, #b91c1c);
+}
+
+.admin-app .admin-order-detail .order-receipts-table {
+  min-width: 420px;
+}
+
+.admin-app .admin-order-detail .order-receipts-table .order-receipt-amount {
+  font-weight: var(--admin-weight-semibold, 600);
+}
+
 .admin-app .admin-order-detail .order-warranty {
   display: grid;
-  gap: 14px;
+  gap: 12px;
   min-width: 0;
   padding: 14px;
 }
 
+.admin-app .admin-order-detail .order-warranty > h3 {
+  margin: 0;
+  font-size: var(--order-type-body);
+  font-weight: var(--admin-weight-semibold, 600);
+}
+
 .admin-app .admin-order-detail .order-warranty > .order-note {
+  min-height: 0;
   margin: 0;
   padding: 0;
-  color: #777;
-  font-size: 11px;
-  line-height: 1.5;
 }
 
 .admin-app .admin-order-detail .order-warranty > .order-panel-actions {
+  min-height: 0;
   margin: 0;
   padding: 0;
+  border: 0;
 }
 
-.admin-app .admin-order-detail .order-warranty h3 {
-  margin: 0 0 10px;
-  color: #111;
-  font-size: 11px;
-  font-weight: 800;
-  line-height: 1.45;
+.admin-app .admin-order-detail .order-current-devices-table {
+  min-width: 520px;
 }
 
-.admin-app .admin-order-detail .order-warranty .sold-devices-table td strong {
-  font-size: 12px;
-  font-weight: 700;
-}
-
-/* Bảng thiết bị hiện hành */
-.admin-app .admin-order-detail .order-warranty .order-current-devices-table {
-  table-layout: fixed;
-}
-
-.admin-app .admin-order-detail .order-current-devices-table th:nth-child(1) {
-  width: 32%;
-}
-
-.admin-app .admin-order-detail .order-current-devices-table th:nth-child(2) {
-  width: 34%;
-}
-
-.admin-app .admin-order-detail .order-current-devices-table th:nth-child(3) {
-  width: 12%;
-}
-
-.admin-app .admin-order-detail .order-current-devices-table th:nth-child(4) {
-  width: 22%;
-}
-
-.admin-app
-  .admin-order-detail
-  .order-warranty
-  .order-current-devices-table
-  :is(th, td):nth-child(3) {
+.admin-app .admin-order-detail .order-current-devices-table :is(th, td):nth-child(3) {
   text-align: center;
 }
 
-.admin-app .admin-order-detail .order-warranty .order-current-devices-table :is(th, td):last-child {
+.admin-app .admin-order-detail .order-current-devices-table :is(th, td):last-child {
   text-align: right;
 }
 
-.admin-app .admin-order-detail .order-warranty .order-current-devices-table td:first-child {
-  color: #666;
-  font-size: 11px;
-}
-
-.admin-app .admin-order-detail .order-warranty .order-current-devices-table .order-action {
-  min-height: 30px;
-  height: auto;
+.admin-app .admin-order-detail .order-current-devices-table .order-action {
+  min-height: 32px;
   padding: 6px 10px !important;
-  font-size: 10px;
   line-height: 1.4;
   white-space: normal;
 }
 
-/* Thiết bị của lần xuất gốc */
-.admin-app .admin-order-detail .order-warranty .order-original-devices {
+.admin-app .admin-order-detail .order-original-devices {
   margin: 0;
-  padding: 12px 0 0;
-  border: 0;
-  border-top: 1px solid #dedede;
-  background: #fff;
-}
-
-.admin-app .admin-order-detail .order-original-devices > summary {
-  color: #111;
-  font-size: 10px;
-  font-weight: 700;
-  cursor: pointer;
 }
 
 .admin-app .admin-order-detail .order-original-devices .sold-devices {
-  padding: 12px 0 0;
+  min-width: 0;
+  padding: 0;
 }
 
-.admin-app .admin-order-detail .order-original-devices .sold-devices-note {
-  margin: 0 0 10px;
-  font-size: 11px;
+.admin-app .admin-order-detail .order-original-devices .sold-devices-scroll {
+  overflow: visible;
+}
+
+.admin-app .admin-order-detail .order-original-devices .admin-table-scroll {
+  min-height: 0;
+  border: 0;
 }
 
 .admin-app .admin-order-detail .order-original-devices .sold-devices-table {
-  min-width: 840px;
-  table-layout: fixed;
-}
-
-.admin-app .admin-order-detail .order-original-devices .sold-devices-table th:nth-child(1) {
-  width: 24%;
-}
-
-.admin-app .admin-order-detail .order-original-devices .sold-devices-table th:nth-child(2) {
-  width: 30%;
-}
-
-.admin-app .admin-order-detail .order-original-devices .sold-devices-table th:nth-child(3) {
-  width: 20%;
-}
-
-.admin-app .admin-order-detail .order-original-devices .sold-devices-table th:nth-child(4) {
-  width: 8%;
-}
-
-.admin-app .admin-order-detail .order-original-devices .sold-devices-table th:nth-child(5) {
-  width: 9%;
-}
-
-.admin-app .admin-order-detail .order-original-devices .sold-devices-table th:nth-child(6) {
-  width: 9%;
+  min-width: 640px;
 }
 
 .admin-app
   .admin-order-detail
-  .order-warranty
   .order-original-devices
-  .sold-devices-table
-  td:first-child {
-  color: #666;
-  font-size: 11px;
+  :is(.sold-devices-notice, .sold-devices-warning, .sold-devices-empty) {
+  margin: 10px;
+  font-size: var(--order-type-label);
+}
+
+.admin-app .admin-order-detail .order-original-devices :is(.sold-device-code, .sold-device-serial) {
+  font-family: inherit;
 }
 
 .admin-app
   .admin-order-detail
-  .order-warranty
   .order-original-devices
-  .sold-devices-table
-  td:nth-child(n + 4) {
-  font-size: 11px;
+  :is(.sold-device-product-name, .sold-device-serial) {
+  font-size: var(--order-type-body);
+  font-weight: var(--admin-weight-semibold, 600);
 }
 
-@media (max-width: 700px) {
-  .admin-app .admin-order-detail .order-warranty {
-    padding: 12px;
-  }
+.admin-app
+  .admin-order-detail
+  .order-original-devices
+  :is(
+    .sold-device-code,
+    .sold-device-version-name,
+    .sold-device-no-serial,
+    .sold-device-warranty-badge
+  ) {
+  font-size: var(--order-type-label);
 }
 
-/* Sản phẩm trong đơn theo bố cục Figma Make */
+.admin-app
+  .admin-order-detail
+  .order-original-devices
+  :is(.sold-devices-notice strong, .sold-device-warranty-badge) {
+  font-weight: var(--admin-weight-semibold, 600);
+}
+
+.admin-app .admin-order-detail .order-original-devices .sold-device-date {
+  font-size: inherit;
+  white-space: normal;
+}
+
+.admin-app .admin-order-detail .order-devices-table {
+  min-width: 680px;
+}
+
 .admin-app .admin-order-detail .order-items-figma {
   min-width: 0;
-  padding: 14px 16px;
-  background: #fff;
-  font-family: var(--font-family-admin, var(--font-family-base));
-  font-size: 12px;
-  line-height: 1.45;
+  padding: 14px;
 }
 
-.admin-app .admin-order-detail .order-items-figma__scroll {
-  min-width: 0;
-  max-width: 100%;
-  overflow-x: auto;
-  border: 0;
-  background: #fff;
-}
-
-.admin-app .admin-order-detail .order-items-figma__scroll:focus-visible {
-  outline: 2px solid #e31e24;
-  outline-offset: 2px;
-}
-
-.admin-app .admin-order-detail .order-items-figma .order-items-figma__table {
-  width: 100%;
-  min-width: 820px;
-  margin: 0;
-  border: 0;
-  border-collapse: collapse;
-  border-spacing: 0;
+.admin-app .admin-order-detail .order-items-figma__table {
+  min-width: 740px;
   table-layout: fixed;
-  background: #fff;
-  font-family: inherit;
 }
 
 /* Dành phần chiều rộng còn lại cho tên sản phẩm */
@@ -2150,61 +2004,11 @@
   width: 140px;
 }
 
-/* Tiêu đề cột */
-.admin-app .admin-order-detail .order-items-figma__table > thead {
-  background: #fff;
-}
-
-.admin-app .admin-order-detail .order-items-figma__table > thead > tr > th {
-  width: auto;
-  min-width: 0;
-  height: auto;
-  padding: 0 12px 8px 0;
-  border: 0;
-  border-bottom: 2px solid #e0e0e0;
-  background: #fff;
-  color: #888;
-  font-size: 9px;
-  font-weight: 700;
-  line-height: 1.4;
-  letter-spacing: 0.1em;
-  text-align: left;
-  vertical-align: bottom;
-}
-
-/* Nội dung từng dòng */
-.admin-app .admin-order-detail .order-items-figma__table > tbody > tr {
-  background: #fff;
-}
-
-.admin-app .admin-order-detail .order-items-figma__table > tbody > tr > td {
-  width: auto;
-  min-width: 0;
-  height: auto;
-  padding: 10px 12px 10px 0;
-  border: 0;
-  border-bottom: 1px solid #f0f0f0;
-  background: #fff;
-  color: #111;
-  font-size: 12px;
-  font-weight: 500;
-  line-height: 1.45;
-  text-align: left;
-  vertical-align: top;
-  overflow-wrap: anywhere;
-}
-
-.admin-app .admin-order-detail .order-items-figma__table > thead > tr > th:last-child,
-.admin-app .admin-order-detail .order-items-figma__table > tbody > tr > td:last-child {
-  padding-right: 0;
-}
-
 .admin-app .admin-order-detail .order-items-figma .order-items-figma__name {
   display: block;
   margin: 0;
   color: #111;
-  font-size: 12px;
-  font-weight: 800;
+  font-weight: var(--admin-weight-semibold, 600);
   line-height: 1.45;
   overflow-wrap: anywhere;
 }
@@ -2212,8 +2016,8 @@
 .admin-app .admin-order-detail .order-items-figma .order-items-figma__variant {
   display: block;
   margin-top: 3px;
-  color: #888;
-  font-size: 11px;
+  color: var(--order-text-secondary);
+  font-size: var(--order-type-label);
   font-weight: 400;
   line-height: 1.45;
 }
@@ -2250,13 +2054,12 @@
 
 .admin-app .admin-order-detail .order-items-figma .order-items-figma__amount strong {
   display: block;
-  font-size: 12px;
-  font-weight: 800;
+  font-weight: var(--admin-weight-semibold, 600);
   text-align: right;
 }
 
 .admin-app .admin-order-detail .order-items-figma .order-items-figma__amount :is(span, small) {
-  font-size: 10px;
+  font-size: var(--order-type-label);
   font-weight: 400;
   line-height: 1.45;
 }

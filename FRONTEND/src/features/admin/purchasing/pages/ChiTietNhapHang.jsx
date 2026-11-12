@@ -235,7 +235,7 @@ export default function ChiTietNhapHang() {
       received,
       returned,
       waiting: Math.max(0, ordered - received),
-      progress: ordered ? Math.round((received / ordered) * 100) : 0,
+      progress: ordered ? Math.min(100, Math.max(0, Math.round((received / ordered) * 100))) : 0,
     };
   }, [order]);
 
@@ -576,6 +576,39 @@ export default function ChiTietNhapHang() {
       <div className="purchase-detail-grid">
         <div className="purchase-detail-main">
           <section className="purchase-section" hidden={detailTab !== 'overview'}>
+            <PurchaseCard title="TIẾN ĐỘ NHẬP KHO">
+              <div className="purchase-progress">
+                <div
+                  className="purchase-progress__track"
+                  role="progressbar"
+                  aria-label="Tiến độ nhập kho"
+                  aria-valuemin={0}
+                  aria-valuemax={100}
+                  aria-valuenow={totals.progress}
+                >
+                  <div style={{ width: `${totals.progress}%` }} />
+                </div>
+                <span aria-hidden="true">{totals.progress}%</span>
+              </div>
+              <div className="progress-stats">
+                <div>
+                  <b>{totals.ordered}</b>
+                  <span>TỔNG ĐẶT</span>
+                </div>
+                <div className="orange-text">
+                  <b>{totals.received}</b>
+                  <span>ĐÃ NHẬP</span>
+                </div>
+                <div>
+                  <b>{totals.returned}</b>
+                  <span>ĐÃ TRẢ NHÀ CUNG CẤP</span>
+                </div>
+                <div>
+                  <b>{totals.waiting}</b>
+                  <span>CÒN CHỜ</span>
+                </div>
+              </div>
+            </PurchaseCard>
             <PurchaseCard title="SẢN PHẨM TRONG ĐƠN NHẬP">
               <div
                 className="purchase-detail-table-scroll"
@@ -670,31 +703,6 @@ export default function ChiTietNhapHang() {
                 </div>
               </PurchaseCard>
             )}
-
-            <PurchaseCard title="TIẾN ĐỘ NHẬP KHO">
-              <div className="progress-line">
-                <div style={{ width: `${totals.progress}%` }} />
-                <span>{totals.progress}%</span>
-              </div>
-              <div className="progress-stats">
-                <div>
-                  <b>{totals.ordered}</b>
-                  <span>TỔNG ĐẶT</span>
-                </div>
-                <div className="orange-text">
-                  <b>{totals.received}</b>
-                  <span>ĐÃ NHẬP</span>
-                </div>
-                <div>
-                  <b>{totals.returned}</b>
-                  <span>ĐÃ TRẢ NHÀ CUNG CẤP</span>
-                </div>
-                <div>
-                  <b>{totals.waiting}</b>
-                  <span>CÒN CHỜ</span>
-                </div>
-              </div>
-            </PurchaseCard>
           </section>
 
           <section className="purchase-section" hidden={detailTab !== 'sources'}>

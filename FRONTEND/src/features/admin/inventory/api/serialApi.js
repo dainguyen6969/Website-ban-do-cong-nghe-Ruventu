@@ -80,23 +80,36 @@ export async function getAvailableSerials(versionId, serial, signal) {
 }
 
 export async function getSerialCounts(signal) {
-  const entries = await Promise.all(Object.keys(SERIAL_STATUS_META).map(async (status) => {
-    try {
-      const data = await adminRequest(`/api/v1/admin/serials?trang_thai=${status}&page=0&limit=1`, { signal });
-      return [status, Number(data?.pagination?.total_elements || 0)];
-    } catch (cause) {
-      // Backend cũ chưa có đủ enum serial; thiếu hỗ trợ khác với số lượng bằng 0.
-      if (cause.status === 400 && cause.message === 'Tham số không đúng kiểu dữ liệu: trang_thai') return [status, null];
-      throw cause;
-    }
-  }));
+  const entries = await Promise.all(
+    Object.keys(SERIAL_STATUS_META).map(async (status) => {
+      try {
+        const data = await adminRequest(
+          `/api/v1/admin/serials?trang_thai=${status}&page=0&limit=1`,
+          { signal }
+        );
+        return [status, Number(data?.pagination?.total_elements || 0)];
+      } catch (cause) {
+        // Backend cũ chưa có đủ enum serial; thiếu hỗ trợ khác với số lượng bằng 0.
+        if (cause.status === 400 && cause.message === 'Tham số không đúng kiểu dữ liệu: trang_thai')
+          return [status, null];
+        throw cause;
+      }
+    })
+  );
   return Object.fromEntries(entries);
 }
 
 export async function getSerialDetail(id, signal) {
-  return normalize(
-    await adminRequest(`/api/v1/admin/serials/${encodeURIComponent(id)}`, { signal })
-  );
+  const item = await adminRequest(`/api/v1/admin/serials/${encodeURIComponent(id)}`, {
+    signal,
+  });
+
+  return {
+    ...normalize(item),
+    productId: item.san_pham_id ?? null,
+    activatedAtRaw: item.ngay_kich_hoat ?? null,
+    warrantyUntilRaw: item.han_bao_hanh ?? null,
+  };
 }
 
 export async function updateSerialStatus(id, key, body) {
