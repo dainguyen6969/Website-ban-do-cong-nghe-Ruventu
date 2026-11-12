@@ -1,4 +1,4 @@
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { HiOutlineArrowLeft } from 'react-icons/hi';
 import DetailTablePagination from '../../../../shared/components/ui/DetailTablePagination';
 import useDetailTablePagination from '../../../../hooks/useDetailTablePagination';
@@ -54,7 +54,7 @@ import { canExport, exportPayload } from '../components/exportSelection';
 import SoldDevices from '../../../../shared/components/ui/SoldDevices';
 import ComboContents from '../../../../shared/components/ui/ComboContents';
 import { ShipmentReturnDialog } from '../../shipping/pages/QuanLyGiaoHang';
-import { FormDropdown } from "../../../../shared/components/ui/FilterDropdown";
+import { FormDropdown } from '../../../../shared/components/ui/FilterDropdown';
 
 function OrderProductImage({ item }) {
   const [failedUrl, setFailedUrl] = useState(null);
@@ -230,6 +230,15 @@ function OrderDetailView({ orderId }) {
   const refundEditing = useRef(false);
   const documentEditing = useRef(false);
   const navigate = useNavigate();
+
+  const { state: locationState } = useLocation();
+  const orderListReturn = locationState?.orderListReturn;
+
+  const backToOrderList = () =>
+    navigate('/admin/don-hang/danh-sach-don-hang', {
+      state: orderListReturn ? { orderListReturn } : undefined,
+      replace: Boolean(orderListReturn),
+    });
 
   const [screen, setScreen] = useState({
     don_hang: null,
@@ -437,7 +446,7 @@ function OrderDetailView({ orderId }) {
         <button type="button" disabled={sync.refreshing} onClick={load}>
           THỬ LẠI
         </button>
-        <button type="button" onClick={() => navigate('/admin/don-hang/danh-sach-don-hang')}>
+        <button type="button" onClick={backToOrderList}>
           QUAY LẠI DANH SÁCH
         </button>
       </section>
@@ -1143,7 +1152,7 @@ function OrderDetailView({ orderId }) {
           <button
             type="button"
             className="order-action order-action--back"
-            onClick={() => navigate('/admin/don-hang/danh-sach-don-hang')}
+            onClick={backToOrderList}
           >
             <HiOutlineArrowLeft size={14} /> QUAY LẠI DANH SÁCH
           </button>
@@ -1272,10 +1281,13 @@ function OrderDetailView({ orderId }) {
           <div className="order-cod-settlement-alert__body">
             <strong>ĐÃ GIAO HÀNG — CHỜ ĐỐI TÁC VẬN CHUYỂN NỘP TIỀN COD</strong>
             <p>
-              Khách đã nhận hàng và thanh toán COD cho đối tác giao hàng. Cửa hàng chưa ghi nhận thực nhận khoản tiền này nên đơn chưa hoàn thành.
+              Khách đã nhận hàng và thanh toán COD cho đối tác giao hàng. Cửa hàng chưa ghi nhận
+              thực nhận khoản tiền này nên đơn chưa hoàn thành.
             </p>
             <div className="order-cod-settlement-alert__guide">
-              Vui lòng kiểm tra đối soát với đối tác giao hàng và bấm <strong>GHI NHẬN ĐỐI TÁC NỘP COD</strong> trong mục <strong>GIAO VẬN</strong> bên dưới khi đã nhận đủ tiền.
+              Vui lòng kiểm tra đối soát với đối tác giao hàng và bấm{' '}
+              <strong>GHI NHẬN ĐỐI TÁC NỘP COD</strong> trong mục <strong>GIAO VẬN</strong> bên dưới
+              khi đã nhận đủ tiền.
             </div>
           </div>
         </div>
@@ -1319,12 +1331,12 @@ function OrderDetailView({ orderId }) {
           <Panel title="SẢN PHẨM TRONG ĐƠN">
             <div className="order-items-figma">
               <div
-                className="order-items-figma__scroll"
+                className="order-record-scroll"
                 tabIndex={0}
                 role="region"
                 aria-label="Sản phẩm và linh kiện trong đơn"
               >
-                <table className="order-products-table order-items-figma__table">
+                <table className="order-products-table order-items-figma__table order-record-table">
                   <colgroup>
                     <col className="order-items-figma__col-image" />
                     <col />
@@ -1481,14 +1493,19 @@ function OrderDetailView({ orderId }) {
               order.doi_soat_thanh_toan.phieu_thu?.length > 0 && (
                 <details className="order-collapsible-panel" open>
                   <summary className="order-collapsible-summary">
-                    <span>LỊCH SỬ THU TIỀN</span>
+                    <span>Lịch sử thu tiền</span>
                     <span className="order-count-pill">
                       {order.doi_soat_thanh_toan.phieu_thu.length}
                     </span>
                   </summary>
 
-                  <div className="order-receipts-table-wrap">
-                    <table className="order-receipts-table">
+                  <div
+                    className="order-record-scroll"
+                    tabIndex={0}
+                    role="region"
+                    aria-label="Bảng lịch sử thu tiền"
+                  >
+                    <table className="order-receipts-table order-record-table">
                       <thead>
                         <tr>
                           <th>MÃ PHIẾU THU</th>
@@ -1509,7 +1526,9 @@ function OrderDetailView({ orderId }) {
                               </Link>
                             </td>
                             <td>
-                              <span className={`order-payment-method-badge order-payment-method-badge--${getPaymentMethodBadgeClass(receipt.phuong_thuc_thanh_toan)}`}>
+                              <span
+                                className={`order-payment-method-badge order-payment-method-badge--${getPaymentMethodBadgeClass(receipt.phuong_thuc_thanh_toan)}`}
+                              >
                                 {label(receipt.phuong_thuc_thanh_toan)}
                               </span>
                             </td>
@@ -1529,22 +1548,24 @@ function OrderDetailView({ orderId }) {
 
             {canPay &&
               (order.trang_thai_don_hang === 'HUY_HANG' ? (
-                <details>
-                  <summary>Khách đã chuyển tiền nhưng cửa hàng ghi nhận khi đơn đã hủy?</summary>
+                <details className="order-collapsible-panel order-late-payment">
+                  <summary className="order-collapsible-summary">Ghi nhận tiền đến muộn</summary>
 
-                  <p>
-                    Chỉ dùng khi đã đối chiếu và xác nhận thực nhận tiền. Đơn tiếp tục giữ trạng
-                    thái hủy; khoản cần hoàn được theo dõi ở bên dưới.
-                  </p>
+                  <div className="order-late-payment__body">
+                    <p>
+                      Chỉ ghi nhận khi đã đối chiếu và xác nhận thực nhận tiền. Đơn vẫn ở trạng thái
+                      đã hủy. Khoản cần hoàn cho khách được theo dõi bên dưới.
+                    </p>
 
-                  <Action
-                    disabled={
-                      state.busy || Boolean(orderAttempt.current) || Boolean(cashAttempt.current)
-                    }
-                    click={() => payment()}
-                  >
-                    GHI NHẬN TIỀN ĐẾN MUỘN
-                  </Action>
+                    <Action
+                      disabled={
+                        state.busy || Boolean(orderAttempt.current) || Boolean(cashAttempt.current)
+                      }
+                      click={() => payment()}
+                    >
+                      GHI NHẬN TIỀN ĐẾN MUỘN
+                    </Action>
+                  </div>
                 </details>
               ) : (
                 <div className="order-panel-actions">
@@ -1721,7 +1742,8 @@ function OrderDetailView({ orderId }) {
                           </strong>
                         </div>
                         <p className="order-cod-collection-box__desc">
-                          Xác nhận khi đối tác giao hàng đã thực sự nộp số tiền thu hộ trên về quỹ cửa hàng.
+                          Xác nhận khi đối tác giao hàng đã thực sự nộp số tiền thu hộ trên về quỹ
+                          cửa hàng.
                         </p>
                       </div>
                       <div className="order-cod-collection-box__action">
@@ -1773,10 +1795,15 @@ function OrderDetailView({ orderId }) {
 
                 {counterDevices.length > 0 && (
                   <>
-                    <h3>THIẾT BỊ HIỆN HÀNH</h3>
+                    <h3>Thiết bị hiện hành</h3>
 
-                    <div className="sold-devices-scroll">
-                      <table className="sold-devices-table order-current-devices-table admin-data-table admin-data-table--records">
+                    <div
+                      className="order-record-scroll"
+                      tabIndex={0}
+                      role="region"
+                      aria-label="Bảng thiết bị hiện hành"
+                    >
+                      <table className="order-current-devices-table order-record-table">
                         <thead>
                           <tr>
                             <th>Mã theo dõi</th>
@@ -1831,8 +1858,8 @@ function OrderDetailView({ orderId }) {
                   </>
                 )}
 
-                <details className="order-original-devices">
-                  <summary>THIẾT BỊ CỦA LẦN XUẤT GỐC</summary>
+                <details className="order-collapsible-panel order-original-devices">
+                  <summary className="order-collapsible-summary">Thiết bị của lần xuất gốc</summary>
                   <SoldDevices order={order} />
                 </details>
 
@@ -2118,8 +2145,13 @@ function DeviceExchangeHistory({ order }) {
             </div>
           </div>
 
-          <div className="order-devices-table-wrap">
-            <table className="order-devices-table">
+          <div
+            className="order-record-scroll"
+            tabIndex={0}
+            role="region"
+            aria-label="Bảng lịch sử đổi thiết bị"
+          >
+            <table className="order-devices-table order-record-table">
               <thead>
                 <tr>
                   <th style={{ width: '48px' }}>LẦN</th>
@@ -2207,11 +2239,19 @@ function DeviceExchangeHistory({ order }) {
 
 function getPaymentMethodBadgeClass(method) {
   const m = String(method || '').toUpperCase();
-  if (m === 'TIEN_MAT' || m.includes('TIỀN MẶT') || m.includes('TIEN MAT') || m === 'CASH') return 'cash';
-  if (m === 'CHUYEN_KHOAN' || m.includes('CHUYỂN KHOẢN') || m.includes('CHUYEN KHOAN') || m === 'BANK') return 'bank';
+  if (m === 'TIEN_MAT' || m.includes('TIỀN MẶT') || m.includes('TIEN MAT') || m === 'CASH')
+    return 'cash';
+  if (
+    m === 'CHUYEN_KHOAN' ||
+    m.includes('CHUYỂN KHOẢN') ||
+    m.includes('CHUYEN KHOAN') ||
+    m === 'BANK'
+  )
+    return 'bank';
   if (m === 'THE' || m.includes('THẺ') || m === 'CARD' || m === 'POS') return 'card';
   if (m.includes('COD')) return 'cod';
-  if (m.includes('VNPAY') || m.includes('MOMO') || m.includes('ZALOPAY') || m.includes('VIETQR')) return 'ewallet';
+  if (m.includes('VNPAY') || m.includes('MOMO') || m.includes('ZALOPAY') || m.includes('VIETQR'))
+    return 'ewallet';
   return 'default';
 }
 
@@ -2307,7 +2347,8 @@ function OrderActionDialog({ dialog, setDialog, order, options, busy, error, sub
           <label className="order-operation-field">
             <span>ĐỐI TÁC GIAO HÀNG *</span>
 
-            <FormDropdown aria-label="ĐỐI TÁC GIAO HÀNG"
+            <FormDropdown
+              aria-label="ĐỐI TÁC GIAO HÀNG"
               required
               disabled={busy}
               value={dialog.partner}
@@ -2391,7 +2432,7 @@ function OrderActionDialog({ dialog, setDialog, order, options, busy, error, sub
       )}
 
       {receiving && order.trang_thai_don_hang === 'HUY_HANG' && (
-        <p role="status">
+        <p role="status" className="order-late-payment__notice">
           Khoản tiền được ghi nhận để xử lý hoàn cho khách. Đơn hàng vẫn giữ trạng thái đã hủy.
         </p>
       )}
@@ -2402,7 +2443,9 @@ function OrderActionDialog({ dialog, setDialog, order, options, busy, error, sub
             <div className="order-operation-monetary-summary">
               <div className="order-operation-summary-row">
                 <span>Nguồn thu:</span>
-                <strong>{dialog.source === 'KHACH_HANG' ? 'Khách hàng' : 'Đối tác giao hàng'}</strong>
+                <strong>
+                  {dialog.source === 'KHACH_HANG' ? 'Khách hàng' : 'Đối tác giao hàng'}
+                </strong>
               </div>
 
               <div className="order-operation-summary-row">
@@ -2413,7 +2456,9 @@ function OrderActionDialog({ dialog, setDialog, order, options, busy, error, sub
                       ? 'Giới hạn ghi nhận tiền đến muộn:'
                       : 'Còn phải thu:'}
                 </span>
-                <strong className="order-operation-amount-highlight">{money(dialog.maxAmount)}</strong>
+                <strong className="order-operation-amount-highlight">
+                  {money(dialog.maxAmount)}
+                </strong>
               </div>
 
               {field('SỐ TIỀN THỰC NHẬN LẦN NÀY (đ) *', 'amount', 'number', {
@@ -2434,7 +2479,8 @@ function OrderActionDialog({ dialog, setDialog, order, options, busy, error, sub
 
           <label className="order-operation-field">
             <span>PHƯƠNG THỨC *</span>
-            <FormDropdown aria-label="PHƯƠNG THỨC"
+            <FormDropdown
+              aria-label="PHƯƠNG THỨC"
               required
               value={dialog.method}
               onChange={(event) => change('method', event.target.value)}
