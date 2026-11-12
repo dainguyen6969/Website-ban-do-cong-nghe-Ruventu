@@ -259,6 +259,9 @@ export default function DanhSachSerial() {
                   <th>TRẠNG THÁI</th>
                   <th>NGÀY KÍCH HOẠT</th>
                   <th>HẠN BẢO HÀNH</th>
+                  <th scope="col" className="serial-actions-cell">
+                    THAO TÁC
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -288,49 +291,69 @@ export default function DanhSachSerial() {
                     </td>
                   </tr>
                 ) : (
-                  rows.map((item) => (
-                    <tr
-                      key={item.id}
-                      className={item.status === 'LOI' ? 'serial-table__row--error' : ''}
-                      onClick={() => openDetail(item.id)}
-                      tabIndex="0"
-                      onKeyDown={(event) => {
-                        if (event.key === 'Enter') openDetail(item.id);
-                      }}
-                    >
-                      <td>
-                        <strong className="serial-product-name">
-                          {item.productName} · {item.version}
-                        </strong>
-                        <small>{item.productCode}</small>
-                        <button
-                          type="button"
-                          className="serial-view"
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            openDetail(item.id);
-                          }}
-                        >
-                          XEM CHI TIẾT
-                        </button>
-                      </td>
-                      <td>
-                        <span className="serial-barcode">{item.barcode}</span>
-                      </td>
-                      <td>
-                        <strong className="serial-code">{item.serial}</strong>
-                      </td>
-                      <td>
-                        <StatusBadge status={item.status} />
+                  rows.map((item) => {
+                    const productName = item.productName?.trim() || '';
+                    const versionName = item.version?.trim() || '';
+                    const prefix = `${productName} - `;
+                    const shortVersion =
+                      productName && versionName.startsWith(prefix)
+                        ? versionName.slice(prefix.length).trim()
+                        : versionName;
 
-                        {item.recallBlocked && (
-                          <small className="recall-badge is-blocked">Thu hồi · chặn bán</small>
-                        )}
-                      </td>
-                      <td>{item.activatedAt}</td>
-                      <td>{item.warrantyUntil}</td>
-                    </tr>
-                  ))
+                    const subtitle = [
+                      productName && shortVersion !== productName ? shortVersion : '',
+                      item.productCode,
+                    ]
+                      .filter(Boolean)
+                      .join(' · ');
+
+                    return (
+                      <tr
+                        key={item.id}
+                        className={item.status === 'LOI' ? 'serial-table__row--error' : ''}
+                        onClick={() => openDetail(item.id)}
+                        tabIndex={0}
+                        onKeyDown={(event) => {
+                          if (event.key === 'Enter' && event.target === event.currentTarget) {
+                            openDetail(item.id);
+                          }
+                        }}
+                      >
+                        <td>
+                          <strong className="serial-product-name">
+                            {productName || versionName || '—'}
+                          </strong>
+                          {subtitle && <small>{subtitle}</small>}
+                        </td>
+                        <td>
+                          <span className="serial-barcode">{item.barcode || '—'}</span>
+                        </td>
+                        <td>
+                          <strong className="serial-code">{item.serial}</strong>
+                        </td>
+                        <td>
+                          <StatusBadge status={item.status} />
+                          {item.recallBlocked && (
+                            <small className="recall-badge is-blocked">Thu hồi · chặn bán</small>
+                          )}
+                        </td>
+                        <td>{item.activatedAt}</td>
+                        <td>{item.warrantyUntil}</td>
+                        <td className="serial-actions-cell">
+                          <button
+                            type="button"
+                            className="serial-view"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              openDetail(item.id);
+                            }}
+                          >
+                            XEM CHI TIẾT
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })
                 )}
               </tbody>
             </table>

@@ -889,3 +889,209 @@
     flex: 1;
   }
 }
+
+/* Nguồn hàng và 5 tab truy vết trong Chi tiết Serial */
+.serial-trace-panel {
+  min-width: 0;
+  border: 1px solid var(--recall-line, #dfe2e6);
+  background: #fff;
+}
+
+.serial-trace-panel > h2 {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-height: 44px;
+  margin: 0;
+  padding: 10px 16px;
+  background: #1a1d23;
+  color: #fff;
+  font-size: 0.95em;
+  font-weight: var(--admin-weight-semibold, 600);
+}
+
+.serial-trace-panel > h2::before {
+  content: '';
+  width: 3px;
+  height: 16px;
+  flex: none;
+  background: var(--color-brand-red, #e31e24);
+}
+
+.serial-trace-panel .serial-trace-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 175px), 1fr));
+  gap: 8px 16px;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.serial-trace-panel .serial-trace-summary dd {
+  margin: 3px 0 0;
+}
+
+.serial-trace-panel .serial-trace-source-status {
+  display: block;
+  margin-top: 6px;
+  padding-inline-start: 8px;
+  border-inline-start: 2px solid #bb832d;
+}
+
+.serial-trace-panel .serial-trace-source-status > strong {
+  display: block;
+  color: #754613;
+  font-size: 0.92em;
+}
+
+.serial-trace-panel .serial-trace-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 12px;
+  border-bottom: 1px solid var(--recall-line, #e5e7eb);
+}
+
+.serial-trace-panel .serial-trace-tabs > button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  padding: 7px 10px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: #475569;
+  text-align: left;
+  cursor: pointer;
+}
+
+.serial-trace-panel .serial-trace-tabs > button:hover {
+  color: var(--color-brand-red-hover, #c9181d);
+}
+
+.serial-trace-panel .serial-trace-tabs > button[aria-pressed='true'] {
+  border-bottom-color: var(--color-brand-red, #e31e24);
+  color: #111;
+  font-weight: var(--admin-weight-semibold, 600);
+}
+
+.serial-trace-panel .serial-trace-count {
+  min-width: 18px;
+  padding: 0 4px;
+  border: 1px solid var(--serial-detail-line, #e5e7eb);
+  background: #fff;
+  color: var(--serial-detail-label, #4b5563);
+  text-align: center;
+  font-size: 0.85em;
+}
+
+.serial-trace-panel .serial-trace-tabs > button[aria-pressed='true'] .serial-trace-count {
+  border-color: #efc8ca;
+  background: var(--color-brand-red-lighter, #fff4f4);
+  color: #a52329;
+}
+
+.serial-trace-panel .serial-trace-rows {
+  display: grid;
+  gap: 8px;
+  margin: 10px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.serial-trace-panel .serial-trace-row {
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--recall-line, #e5e7eb);
+  background: #fff;
+  overflow-wrap: anywhere;
+}
+
+.serial-trace-panel .serial-trace-row-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 3px 14px;
+}
+
+.serial-trace-panel .serial-trace-row-head > div {
+  flex: 1 1 220px;
+  min-width: 0;
+}
+
+.serial-trace-panel :is(.serial-trace-summary dd, .serial-trace-row-head) small {
+  display: block;
+  margin-top: 3px;
+}
+
+.serial-trace-panel .serial-trace-facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 160px), 1fr));
+  gap: 8px 16px;
+  margin: 8px 0 0;
+  padding: 8px 0 0;
+  border-top: 1px solid var(--serial-detail-line, #e5e7eb);
+  background: #fff;
+}
+
+.serial-trace-panel .serial-trace-facts > div {
+  min-width: 0;
+}
+
+.serial-trace-panel .serial-trace-facts dd {
+  margin: 2px 0 0;
+}
+
+.serial-trace-panel .serial-trace-fact--wide {
+  grid-column: 1 / -1;
+}
+
+.serial-trace-panel .serial-trace-fact--wide dd {
+  white-space: pre-wrap;
+}
+
+.serial-trace-panel .serial-trace-record-details {
+  margin-top: 8px;
+}
+
+.serial-trace-panel .serial-trace-record-details > .serial-trace-facts {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.serial-trace-panel .serial-trace-record-details > summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 8px;
+  border: 1px solid var(--recall-line, #e5e7eb);
+  color: #111;
+  font-size: 0.92em;
+  list-style: none;
+  cursor: pointer;
+}
+
+.serial-trace-panel .serial-trace-record-details > summary::-webkit-details-marker {
+  display: none;
+}
+
+.serial-trace-panel .serial-trace-record-details > summary::before {
+  content: '+';
+}
+
+.serial-trace-panel .serial-trace-record-details[open] > summary::before {
+  content: '−';
+}
+
+.serial-trace-panel .serial-trace-record-details > summary:is(:hover, :focus-visible) {
+  color: var(--color-brand-red-hover, #c9181d);
+}
+
+@media (max-width: 520px) {
+  .serial-trace-panel .serial-trace-record-details > .serial-trace-facts {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+.serial-trace-panel .serial-trace-empty {
+  margin: 9px 0 0;
+}
