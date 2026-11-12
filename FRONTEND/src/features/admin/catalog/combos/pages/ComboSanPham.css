@@ -232,30 +232,119 @@
   width: auto;
 }
 
-.admin-app .combo-list-page .combo-table-wrap { margin: 0; }
-.admin-app .combo-list-page .combo-table-wrap > .combo-table { min-width: 1180px; table-layout: fixed; }
-.combo-col-image { width: 64px; }
-.combo-col-code { width: 100px; }
-.combo-col-name { width: 17%; }
-.combo-col-capacity { width: 110px; }
-.combo-col-stock { width: 100px; }
-.combo-col-price { width: 128px; }
-.combo-col-status { width: 150px; }
-.combo-col-actions { width: 120px; }
-.admin-app .combo-list-page .combo-table-wrap > .combo-table th { white-space: normal; letter-spacing: normal; }
-.admin-app .combo-list-page .combo-table-wrap > .combo-table td:nth-child(2) { white-space: nowrap; }
-.admin-app .combo-list-page .combo-table-wrap > .combo-table td:nth-child(3) strong { display: block; white-space: normal; overflow-wrap: anywhere; }
-.admin-app .combo-list-page .combo-table-wrap > .combo-table :is(th, td):nth-child(5),
-.admin-app .combo-list-page .combo-table-wrap > .combo-table :is(th, td):nth-child(6),
-.admin-app .combo-list-page .combo-table-wrap > .combo-table :is(th, td):nth-child(8) { text-align: center; }
-.admin-app .combo-list-page .combo-table-wrap > .combo-table :is(th, td):nth-child(7) { text-align: right; white-space: nowrap; }
-.combo-list-page .component-preview { min-width: 0; }
-.combo-list-page .component-preview :is(b, small) { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.combo-list-page .component-preview b { display: flex; align-items: baseline; gap: 4px; }
-.combo-list-page .component-preview b > span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
-.combo-list-page .component-preview em { flex-shrink: 0; }
-.admin-app .combo-list-page .combo-table-wrap > .combo-table td:last-child > .combo-actions { min-width: 0; width: 100%; grid-template-columns: minmax(0, 1fr); justify-content: stretch; }
-.combo-list-page .combo-actions button { height: 30px; padding: 0 6px; font-size: 10px; white-space: nowrap; }
+.admin-app .combo-list-page .combo-table-wrap {
+  margin: 0;
+}
+
+.admin-app .combo-list-page .combo-table-wrap > .combo-table {
+  min-width: calc(1000px * var(--project-font-scale, 1));
+  table-layout: fixed;
+}
+
+.combo-list-page .combo-col-item {
+  width: 30%;
+}
+.combo-list-page .combo-col-components {
+  width: 27%;
+}
+.combo-list-page .combo-col-capacity {
+  width: 9%;
+}
+.combo-list-page .combo-col-price {
+  width: 11%;
+}
+.combo-list-page .combo-col-status {
+  width: 10%;
+}
+.combo-list-page .combo-col-actions {
+  width: 13%;
+}
+
+.admin-app .combo-list-page .combo-table-wrap > .combo-table th {
+  white-space: normal;
+  letter-spacing: normal;
+}
+
+.admin-app .combo-list-page .combo-table :is(th, td).combo-cell-center {
+  text-align: center;
+}
+
+.admin-app .combo-list-page .combo-table :is(th, td).combo-cell-price {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.combo-list-page .combo-list-item {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+}
+
+.combo-list-page .combo-list-item .combo-thumb {
+  object-fit: contain;
+  background: #fff;
+}
+
+.combo-list-page .combo-list-item :is(strong, small) {
+  display: block;
+  overflow-wrap: anywhere;
+}
+
+.combo-list-page .combo-list-item small,
+.combo-list-page .component-preview small,
+.combo-list-page .component-preview > span {
+  color: #4b5563;
+}
+
+.combo-list-page .component-preview {
+  min-width: 0;
+}
+
+.combo-list-page .component-preview b {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+  font-weight: var(--admin-weight-semibold, 600);
+}
+
+.combo-list-page .component-preview :is(b > span, small) {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.combo-list-page .component-preview b > span {
+  flex: 1;
+}
+.combo-list-page .component-preview em {
+  flex-shrink: 0;
+}
+
+.combo-list-page :is(.number-strong, .combo-stats span) {
+  font-weight: var(--admin-weight-semibold, 600);
+}
+
+.combo-list-page .combo-stats span {
+  color: #4b5563;
+  letter-spacing: normal;
+}
+
+.combo-list-page .combo-actions {
+  min-width: 0;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.combo-list-page .combo-actions button {
+  height: auto;
+  min-height: 2em;
+  padding: 4px 6px;
+  font-size: inherit;
+  font-weight: var(--admin-weight-semibold, 600);
+  white-space: nowrap;
+}
 
 .combo-create-grid {
   display: grid;
@@ -742,9 +831,7 @@
     border-right: 0;
     border-bottom: 1px solid #ddd;
   }
-  .combo-toolbar,
-  .combo-two-cols,
-  .variant-fields {
+  .combo-toolbar {
     grid-template-columns: 1fr;
   }
   .combo-create-grid {
@@ -755,7 +842,6 @@
     margin-right: 14px;
     width: auto;
   }
-  .combo-table-wrap,
   .combo-toolbar,
   .combo-stats {
     margin-left: 14px;
