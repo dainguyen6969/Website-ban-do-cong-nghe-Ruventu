@@ -158,50 +158,79 @@
 }
 
 .serial-table-shell {
-  width: 100%;
-  max-width: 100%;
-  min-width: 0;
-  overflow-x: auto;
-  border: 1px solid #dedede;
-  border-top: 0;
-  background: #fff;
+  --admin-table-header-height: 44px;
 }
-.serial-table {
-  width: 100%;
-  border-collapse: collapse;
+
+.admin-app .serial-list-page .admin-table-scroll > .serial-table {
+  min-width: 900px;
 }
-.serial-table thead {
-  height: 44px;
-  background: #090909;
-  color: #fff;
+
+.admin-app .serial-list-page .admin-table-scroll > .serial-table th {
+  padding-inline: 10px;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  letter-spacing: 0.03em;
 }
-.serial-table th {
-  padding: 0 15px;
-  text-align: left;
-  font-size: 10px;
-  font-weight: 750;
-  letter-spacing: 0.065em;
-  white-space: nowrap;
+
+.admin-app .serial-list-page .admin-table-scroll > .serial-table td {
+  height: 54px;
+  padding: 8px 10px;
+  font-weight: var(--admin-weight-regular, 400);
 }
-.serial-table th:first-child {
-  width: 31%;
+
+.serial-list-page .serial-table th:nth-child(2) {
+  width: 12%;
 }
-.serial-table th:nth-child(2) {
-  width: 17%;
+.serial-list-page .serial-table th:nth-child(3) {
+  width: 15%;
 }
-.serial-table th:nth-child(3) {
+.serial-list-page .serial-table th:nth-child(4) {
   width: 16%;
 }
-.serial-table th:nth-child(4) {
-  width: 14%;
+.serial-list-page .serial-table th:nth-child(5),
+.serial-list-page .serial-table th:nth-child(6) {
+  width: 12%;
 }
-.serial-table td {
-  height: 84px;
-  padding: 10px 15px;
-  border-bottom: 1px solid #e5e5e5;
-  vertical-align: middle;
-  font-size: 12.5px;
+.serial-list-page .serial-table th:last-child {
+  width: 1%;
 }
+
+.admin-app .serial-list-page .admin-table-scroll > .serial-table .serial-actions-cell {
+  text-align: center;
+  white-space: nowrap;
+}
+
+.serial-list-page .serial-table :is(.serial-product-name, .serial-code) {
+  max-width: none;
+  font-weight: var(--admin-weight-semibold, 600);
+  overflow-wrap: anywhere;
+}
+
+.serial-list-page .serial-table .serial-barcode {
+  font-weight: var(--admin-weight-medium, 500);
+  overflow-wrap: anywhere;
+}
+
+.serial-list-page .serial-table td small:not(.recall-badge) {
+  color: #64748b;
+  overflow-wrap: anywhere;
+}
+
+.serial-list-page .serial-table .serial-view {
+  margin-top: 0;
+  min-height: 30px;
+  height: auto;
+  padding: 4px 10px;
+  font-weight: var(--admin-weight-button, 600);
+  letter-spacing: normal;
+  white-space: nowrap;
+}
+
+.admin-app .serial-list-page .serial-table tbody tr:focus-visible {
+  outline: 2px solid var(--color-brand-red, #e31e24);
+  outline-offset: -2px;
+}
+
 .serial-table tbody tr {
   cursor: pointer;
   transition: background 0.15s ease;
@@ -220,11 +249,15 @@
 .serial-table__row--error:hover {
   background: #fff6f6 !important;
 }
-.serial-table td small {
+.serial-table td small:not(.recall-badge) {
   display: block;
   margin-top: 3px;
   color: #989ba0;
   font-size: 10.5px;
+}
+.serial-table td .recall-badge {
+  display: flex;
+  margin-top: 3px;
 }
 .serial-product-name {
   display: block;
@@ -893,5 +926,214 @@
 
   .admin-app .serial-list-page .serial-toolbar-actions > .serial-export {
     flex: 1 1 140px;
+  }
+}
+/* Đồng bộ chữ và bố cục trên hai màn hình Serial */
+.admin-app .serial-list-page .serial-heading-row h1,
+.admin-app .serial-detail-page .serial-detail-heading h1 {
+  font-weight: var(--admin-weight-bold, 700);
+}
+
+.admin-app .serial-list-page .serial-stat > span:last-child {
+  font-weight: var(--admin-weight-semibold, 600);
+}
+
+.serial-detail-page .serial-detail-heading {
+  min-height: 76px;
+  padding-block: 12px;
+}
+
+.serial-detail-page .serial-detail-heading > div:first-child {
+  min-width: 0;
+}
+
+.serial-detail-page .serial-id-box {
+  max-width: 100%;
+  font-weight: var(--admin-weight-semibold, 600);
+  overflow-wrap: anywhere;
+}
+
+.serial-detail-page .serial-detail-actions {
+  flex-wrap: wrap;
+  max-width: 100%;
+}
+
+.serial-detail-page .serial-banner {
+  min-height: 0;
+  padding: 12px 14px;
+}
+
+.serial-detail-page .serial-banner--held {
+  color: #8a6116;
+}
+
+.serial-detail-page .serial-banner--replaced {
+  color: #655080;
+}
+
+.serial-detail-page .serial-banner--returned-supplier {
+  border-color: #ff9d65;
+  background: #fff4ec;
+  color: #a6400b;
+}
+
+.serial-detail-page .serial-detail-grid {
+  grid-template-columns: minmax(0, 1fr) minmax(220px, 260px);
+  gap: 16px;
+}
+
+.serial-detail-page .serial-detail-main {
+  min-width: 0;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 380px), 1fr));
+  align-items: start;
+  gap: 16px;
+}
+
+.serial-detail-page .serial-detail-main .serial-info-card dl > div {
+  min-width: 0;
+  min-height: 56px;
+  padding: 10px 14px;
+}
+
+.serial-detail-page :is(.serial-detail-main .serial-info-card, .serial-warehouse-card) dt {
+  margin-bottom: 4px;
+  color: #475569;
+  font-weight: var(--admin-weight-medium, 500);
+}
+
+.serial-detail-page :is(.serial-detail-main .serial-info-card, .serial-warehouse-card) dd {
+  font-weight: var(--admin-weight-medium, 500);
+  overflow-wrap: anywhere;
+}
+
+.serial-detail-page .serial-detail-main .serial-info-card dd.serial-code {
+  font-weight: var(--admin-weight-semibold, 600);
+}
+
+@media (max-width: 1050px) {
+  .serial-detail-page .serial-detail-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .serial-detail-page .serial-detail-sidebar {
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+  }
+}
+
+/* Tóm tắt trên trang Chi tiết Serial */
+
+.admin-app .serial-detail-page {
+  --serial-detail-label: #4b5563;
+  --serial-detail-line: var(--border-color, #e5e7eb);
+}
+
+.admin-app .serial-detail-page .serial-secondary-breadcrumb {
+  color: var(--serial-detail-label);
+}
+
+.admin-app .serial-detail-page .serial-secondary-breadcrumb strong {
+  color: var(--color-brand-red-hover, #c9181d);
+  font-weight: var(--admin-weight-semibold, 600);
+}
+
+.admin-app .serial-detail-page .serial-detail-actions button {
+  font-weight: var(--admin-weight-semibold, 600);
+}
+
+.admin-app
+  .serial-detail-page.ruventu-ops
+  :is(.serial-overview-card, .serial-trace-panel)
+  :is(dt, small) {
+  color: var(--serial-detail-label);
+}
+
+.admin-app .serial-detail-page.ruventu-ops :is(.serial-overview-card, .serial-trace-panel) dt {
+  font-weight: var(--admin-weight-medium, 500);
+}
+
+.admin-app .serial-detail-page.ruventu-ops :is(.serial-overview-card, .serial-trace-panel) dd {
+  color: var(--color-text-primary, #1a1d23);
+  font-weight: var(--admin-weight-regular, 400);
+}
+
+.serial-detail-page .serial-summary-id {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+  margin-top: 6px;
+}
+
+.serial-detail-page .serial-summary-id .serial-id-box {
+  margin: 0;
+  font-size: 1em;
+}
+
+.serial-detail-page .serial-overview {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr));
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+.serial-detail-page .serial-overview-card {
+  min-width: 0;
+  background: #fff;
+  border: 1px solid #dfe2e6;
+}
+
+.serial-detail-page .serial-overview-card h2 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  padding: 8px 12px;
+  background: #1a1d23;
+  color: #fff;
+  font-size: 0.95em;
+  font-weight: var(--admin-weight-semibold, 600);
+}
+
+.serial-detail-page .serial-overview-card h2::before {
+  content: '';
+  width: 3px;
+  height: 14px;
+  flex: none;
+  background: var(--color-brand-red, #e31e24);
+}
+
+.serial-detail-page .serial-overview-card dl {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px 14px;
+  margin: 0;
+  padding: 12px;
+}
+
+.serial-detail-page .serial-overview-card dd {
+  margin: 2px 0 0;
+  overflow-wrap: anywhere;
+}
+
+.serial-detail-page .serial-overview-card small {
+  display: block;
+  margin-top: 2px;
+}
+
+.admin-app .serial-detail-page a[href] {
+  color: #111;
+  font-weight: var(--admin-weight-semibold, 600);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  transition: color 150ms ease;
+}
+
+.admin-app .serial-detail-page a[href]:is(:hover, :focus-visible) {
+  color: var(--color-brand-red-hover, #c9181d);
+}
+
+@media (max-width: 520px) {
+  .serial-detail-page .serial-overview-card dl {
+    grid-template-columns: minmax(0, 1fr);
   }
 }

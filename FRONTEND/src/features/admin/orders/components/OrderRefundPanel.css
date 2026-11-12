@@ -1,6 +1,6 @@
 .order-refund-panel {
   margin: 14px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid #111;
   background: #fff;
 }
 
@@ -8,9 +8,11 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 10px 14px;
-  background: #f8fafc;
-  border-bottom: 1px solid #e2e8f0;
+  height: 38px;
+  padding: 0 14px;
+  background: #0b0b0b;
+  border-bottom: 1px solid #111;
+  color: #fff;
 }
 
 .order-refund-panel__title {
@@ -19,16 +21,16 @@
   gap: 8px;
   font-size: 10px;
   font-weight: 900;
-  letter-spacing: 0.04em;
-  color: #0f172a;
+  letter-spacing: 0.5px;
+  color: #fff;
 }
 
 .order-refund-panel__title::before {
   content: '';
   display: inline-block;
   width: 3px;
-  height: 12px;
-  background: #e60012;
+  height: 15px;
+  background: #f00c13;
 }
 
 .order-refund-panel__item {

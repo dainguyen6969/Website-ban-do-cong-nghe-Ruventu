@@ -149,6 +149,7 @@ public class AdminWarrantyQuoteService {
     var quote = new LinkedHashMap<>(input);
     quote.put("phien_ban", version);
     quote.put("trang_thai", "NHAP");
+    quote.put("thoi_diem_lap", OffsetDateTime.now(ZoneId.of("Asia/Ho_Chi_Minh")).toString());
     quote.put("hang_muc", savedItems);
     quote.put("han_phan_hoi", deadline.format(DateTimeFormatter.ISO_OFFSET_DATE_TIME));
     quote.put("quyet_dinh", null);

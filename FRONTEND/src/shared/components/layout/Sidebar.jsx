@@ -222,6 +222,7 @@ const menuItems = [
         id: 'danh-sach-san-pham',
         label: 'Danh sách sản phẩm',
         path: '/admin/san-pham/danh-sach-san-pham',
+        activePaths: ['/admin/san-pham/them-san-pham', '/admin/san-pham/chi-tiet-san-pham'],
       },
       {
         id: 'quan-ly-kho',
@@ -255,7 +256,7 @@ const menuItems = [
         label: 'Danh sách đơn hàng',
         path: '/admin/don-hang/danh-sach-don-hang',
       },
-      { id: 'dat-hang-online', label: 'Đặt hàng online', path: '/admin/don-hang/dat-hang-online' },
+      { id: 'dat-hang-online', label: 'Tạo đơn chờ hàng', path: '/admin/don-hang/dat-hang-online' },
       {
         id: 'quan-ly-giao-hang',
         label: 'Quản lý giao hàng',
@@ -353,8 +354,18 @@ const menuItems = [
         label: 'Danh sách phiếu bảo hành',
         path: '/admin/bao-hanh',
         exact: true,
+        activePaths: [
+          '/admin/bao-hanh/danh-sach',
+          '/admin/bao-hanh/chi-tiet',
+          /^\/admin\/bao-hanh\/\d+\/?$/,
+        ],
       },
-      { id: 'lap-phieu-bao-hanh', label: 'Lập phiếu bảo hành', path: '/admin/bao-hanh/lap-phieu' },
+      {
+        id: 'lap-phieu-bao-hanh',
+        label: 'Lập phiếu bảo hành',
+        path: '/admin/bao-hanh/lap-phieu',
+        activePaths: ['/admin/bao-hanh/tao-moi'],
+      },
     ],
   },
   {
@@ -384,9 +395,25 @@ const shouldShowBadge = (badge) => {
   return String(badge).trim().length > 0 && badge !== '0';
 };
 
+const matchesMenuPath = (pathname, path, exact = false) => {
+  if (!path) return false;
+  const current = pathname.replace(/\/+$/, '') || '/';
+  return current === path || (!exact && current.startsWith(`${path}/`));
+};
+
 const hasActivePath = (item, pathname) =>
-  (item.path ? (item.exact ? pathname === item.path : pathname.startsWith(item.path)) : false) ||
-  item.children?.some((child) => hasActivePath(child, pathname));
+  matchesMenuPath(pathname, item.path, item.exact) ||
+  Boolean(
+    item.activePaths?.some((pattern) =>
+      typeof pattern === 'string' ? matchesMenuPath(pathname, pattern) : pattern.test(pathname)
+    )
+  ) ||
+  Boolean(item.children?.some((child) => hasActivePath(child, pathname)));
+
+const getMenuCurrent = (item, pathname) => {
+  if (!hasActivePath(item, pathname)) return undefined;
+  return matchesMenuPath(pathname, item.path, true) ? 'page' : 'location';
+};
 
 import useMockAuth from '../../../auth/useMockAuth';
 
@@ -394,7 +421,7 @@ export default function Sidebar({ collapsed, mobileOpen = false, onToggle, onNav
   const location = useLocation();
   const navigate = useNavigate();
   const { currentAccount } = useMockAuth();
-  const [expandedMenus, setExpandedMenus] = useState(['don-hang']);
+  const [expandedMenus, setExpandedMenus] = useState([]);
   const showDetails = !collapsed || mobileOpen;
 
   // Auto-expand menu if current route matches sub-item or section
@@ -403,7 +430,7 @@ export default function Sidebar({ collapsed, mobileOpen = false, onToggle, onNav
       if (item.subItems && item.subItems.length > 0) {
         const isSubActive =
           item.subItems.some((sub) => hasActivePath(sub, location.pathname)) ||
-          location.pathname.startsWith(item.path);
+          matchesMenuPath(location.pathname, item.path);
         if (isSubActive) {
           setExpandedMenus((prev) => (prev.includes(item.id) ? prev : [...prev, item.id]));
         }
@@ -425,17 +452,18 @@ export default function Sidebar({ collapsed, mobileOpen = false, onToggle, onNav
   const isExpanded = (menuId) => expandedMenus.includes(menuId);
 
   const handleParentClick = (item) => {
-    if (item.expandable) {
-      toggleMenu(item.id);
-      // If it has subitems, don't navigate top-level. If it has no subitems, navigate to its path
-      if (!item.subItems || item.subItems.length === 0) {
-        navigate(item.path);
-        onNavigate?.();
+    if (item.expandable && item.subItems?.length) {
+      if (!showDetails) {
+        setExpandedMenus((prev) => (prev.includes(item.id) ? prev : [...prev, item.id]));
+        onToggle?.();
+      } else {
+        toggleMenu(item.id);
       }
-    } else {
-      navigate(item.path);
-      onNavigate?.();
+      return;
     }
+
+    navigate(item.path);
+    onNavigate?.();
   };
 
   const handleSubClick = (subPath) => {
@@ -472,7 +500,7 @@ export default function Sidebar({ collapsed, mobileOpen = false, onToggle, onNav
           {menuItems.map((item) => {
             const Icon = item.icon;
             // Check active parent item based on URL route
-            const isDirectActive = location.pathname === item.path;
+            const isDirectActive = matchesMenuPath(location.pathname, item.path, !item.expandable);
             const isChildActive = item.subItems?.some((sub) =>
               hasActivePath(sub, location.pathname)
             );
@@ -489,7 +517,11 @@ export default function Sidebar({ collapsed, mobileOpen = false, onToggle, onNav
                   onClick={() => handleParentClick(item)}
                   id={`menu-${item.id}`}
                   title={showDetails ? undefined : item.label}
-                  aria-expanded={item.expandable ? isMenuExpanded : undefined}
+                  aria-expanded={item.expandable ? showDetails && isMenuExpanded : undefined}
+                  aria-current={
+                    item.expandable ? undefined : getMenuCurrent(item, location.pathname)
+                  }
+                  aria-label={showDetails ? undefined : item.label}
                 >
                   <span className="sidebar__menu-icon">
                     <Icon size={20} />
@@ -501,18 +533,15 @@ export default function Sidebar({ collapsed, mobileOpen = false, onToggle, onNav
                         <span className="sidebar__badge sidebar__badge--red">{item.badge}</span>
                       )}
                       {item.expandable && (
-                        <span className="sidebar__chevron">
-                          {isMenuExpanded ? (
-                            <HiOutlineChevronUp size={16} />
-                          ) : (
-                            <HiOutlineChevronDown size={16} />
-                          )}
+                        <span className="sidebar__chevron" aria-hidden="true">
+                          <HiOutlineChevronDown size={14} />
                         </span>
                       )}
                     </>
                   )}
                 </button>
 
+                {/* Sub-items */}
                 {/* Sub-items */}
                 {item.expandable &&
                   item.subItems &&
@@ -521,8 +550,11 @@ export default function Sidebar({ collapsed, mobileOpen = false, onToggle, onNav
                   showDetails && (
                     <ul className="sidebar__submenu">
                       {item.subItems.map((sub) => {
-                        const isSubActive = hasActivePath(sub, location.pathname);
                         const isSubExpanded = isExpanded(sub.id);
+                        const isSubActive =
+                          hasActivePath(sub, location.pathname) &&
+                          (!sub.children?.length || !isSubExpanded);
+
                         return (
                           <li
                             key={sub.id}
@@ -538,16 +570,18 @@ export default function Sidebar({ collapsed, mobileOpen = false, onToggle, onNav
                                 }
                               }}
                               id={`submenu-${sub.id}`}
+                              aria-expanded={sub.children?.length ? isSubExpanded : undefined}
+                              aria-current={
+                                sub.children?.length
+                                  ? undefined
+                                  : getMenuCurrent(sub, location.pathname)
+                              }
                             >
-                              <span className="sidebar__submenu-bullet">—</span>
+                              <span className="sidebar__submenu-bullet" aria-hidden="true" />
                               <span className="sidebar__submenu-label">{sub.label}</span>
                               {sub.children && (
-                                <span className="sidebar__submenu-chevron">
-                                  {isSubExpanded ? (
-                                    <HiOutlineChevronUp size={14} />
-                                  ) : (
-                                    <HiOutlineChevronDown size={14} />
-                                  )}
+                                <span className="sidebar__submenu-chevron" aria-hidden="true">
+                                  <HiOutlineChevronDown size={12} />
                                 </span>
                               )}
                               {shouldShowBadge(sub.badge) && (
@@ -561,11 +595,14 @@ export default function Sidebar({ collapsed, mobileOpen = false, onToggle, onNav
                                 {sub.children.map((child) => (
                                   <li key={child.id}>
                                     <button
-                                      className={`sidebar__nested-submenu-btn ${location.pathname.startsWith(child.path) ? 'sidebar__nested-submenu-btn--active' : ''}`}
+                                      className={`sidebar__nested-submenu-btn ${hasActivePath(child, location.pathname) ? 'sidebar__nested-submenu-btn--active' : ''}`}
                                       onClick={() => handleSubClick(child.path)}
                                     >
-                                      <span>—</span>
-                                      {child.label}
+                                      <span
+                                        className="sidebar__submenu-bullet"
+                                        aria-hidden="true"
+                                      />
+                                      <span className="sidebar__submenu-label">{child.label}</span>
                                     </button>
                                   </li>
                                 ))}

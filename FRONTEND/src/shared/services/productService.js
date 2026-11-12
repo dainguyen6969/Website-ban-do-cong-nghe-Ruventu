@@ -1,5 +1,5 @@
 import axios from "axios";
-import { parseSpecifications, selectHighlights, toSpecRows } from './productSpecifications';
+import { laptopVariantHighlights, parseSpecifications, selectHighlights, toSpecRows } from './productSpecifications';
 import { createReadCache, queryKey } from './readCache';
 
 const API_BASE_URL =
@@ -44,6 +44,9 @@ export function toProductCard(product) {
   const selected = specifications.phien_ban?.[defaultVariantId];
   const mainSpecs = toSpecRows(selected?.thong_so_chinh);
   const specs = selectHighlights(mainSpecs.length ? mainSpecs : toSpecRows(selected?.thong_so_ky_thuat ?? specifications), category).slice(0, 4);
+  const laptopSpecs = !specs.length && /laptop/i.test(category)
+    ? laptopVariantHighlights(variants.find(variant => variant.id === defaultVariantId)?.tenPhienBan)
+    : specs;
   const priceValue = Number(product.giaThapNhat ?? firstVariant?.giaBanLe ?? 0);
   const highestPrice = Number(product.giaCaoNhat ?? variants.at(-1)?.giaBanLe ?? priceValue);
   const images = [...(product.anhSanPham || [])]
@@ -68,7 +71,7 @@ export function toProductCard(product) {
     brandId: product.thuongHieuId ?? product.thuongHieu?.id ?? null,
     priceValue,
     defaultVariantId,
-    specs,
+    specs: laptopSpecs,
     loaiSanPham: product.loaiSanPham,
     soBoCoTheLap: product.soBoCoTheLap ?? firstVariant?.soBoCoTheLap ?? null,
     thanhPhan: product.thanhPhan ?? [],

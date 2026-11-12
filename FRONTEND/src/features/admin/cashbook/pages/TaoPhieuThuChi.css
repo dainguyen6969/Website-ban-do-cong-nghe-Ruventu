@@ -301,7 +301,7 @@
   border-right: none !important;
 }
 
-.btn-auto-code {
+.tao-phieu-thu-chi-wrapper .btn-auto-code {
   height: 40px;
   padding: 0 16px;
   background: #e2e8f0;
@@ -315,7 +315,7 @@
   transition: background 0.15s ease;
 }
 
-.btn-auto-code:hover {
+.tao-phieu-thu-chi-wrapper .btn-auto-code:hover {
   background: #cbd5e1;
 }
 

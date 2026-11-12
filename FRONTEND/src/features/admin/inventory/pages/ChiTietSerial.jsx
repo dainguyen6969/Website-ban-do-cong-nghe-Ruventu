@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { HiOutlineArrowLeft, HiOutlinePencilAlt, HiX } from 'react-icons/hi';
 import {
   getSerialDetail,
@@ -10,6 +10,7 @@ import {
 import SerialTracePanel from '../recall/SerialTracePanel';
 import { withIdempotency } from '../../../../shared/services/mutationUtils';
 import './SerialPages.css';
+import { FormDropdown } from '../../../../shared/components/ui/FilterDropdown';
 
 function StatusBadge({ status }) {
   const meta = SERIAL_STATUS_META[status];
@@ -18,6 +19,113 @@ function StatusBadge({ status }) {
       <span aria-hidden="true" />
       {meta.label}
     </span>
+  );
+}
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+function getSerialWarranty(serial, now = Date.now()) {
+  const start = Date.parse(serial.activatedAtRaw ?? '');
+  const end = Date.parse(serial.warrantyUntilRaw ?? '');
+  const unknown = { tone: 'neutral', until: '—', duration: '—' };
+
+  if (!serial.activatedAtRaw) return { ...unknown, label: 'Chưa kích hoạt' };
+  if (!Number.isFinite(start)) return { ...unknown, label: 'Chưa rõ ngày kích hoạt' };
+  if (start > now) return { ...unknown, label: 'Chưa đến ngày kích hoạt' };
+  if (!Number.isFinite(end) || end < start) {
+    return { ...unknown, label: 'Chưa xác định hạn' };
+  }
+
+  const dates = {
+    until: serial.warrantyUntil,
+    duration: `${Math.round((end - start) / DAY_MS)} ngày`,
+  };
+
+  if (now >= end) return { ...dates, tone: 'red', label: 'Hết hạn' };
+
+  const days = Math.floor((end - now) / DAY_MS);
+  return {
+    ...dates,
+    tone: 'green',
+    label: 'Còn bảo hành',
+    remaining: days > 0 ? `Còn ${days} ngày` : 'Còn dưới 1 ngày',
+  };
+}
+
+function serialRecordPath(base, id) {
+  const key = String(id ?? '');
+  return /^[1-9]\d*$/.test(key) ? `${base}/${key}` : '';
+}
+
+function SerialRecordLink({ to, children }) {
+  return to ? <Link to={to}>{children}</Link> : children;
+}
+
+function SerialFact({ label, children }) {
+  return (
+    <div>
+      <dt>{label}</dt>
+      <dd>{children}</dd>
+    </div>
+  );
+}
+
+function SerialOverview({ serial }) {
+  const productHref = serialRecordPath('/admin/san-pham/chi-tiet-san-pham', serial.productId);
+  const variantHref = serialRecordPath('/kho-hang/quan-ly-phien-ban/chi-tiet', serial.versionId);
+  const orderHref = serialRecordPath('/admin/don-hang/danh-sach-don-hang', serial.order?.id);
+  const productName = serial.productName.trim();
+  const variantName = serial.version.trim();
+  const prefix = `${productName} - `;
+  const warranty = getSerialWarranty(serial);
+
+  let variantLabel = variantName || '—';
+  if (productName && variantName === productName) {
+    variantLabel = variantHref ? 'Xem phiên bản' : 'Cùng tên sản phẩm';
+  } else if (productName && variantName.startsWith(prefix)) {
+    variantLabel = variantName.slice(prefix.length);
+  }
+
+  return (
+    <div className="serial-overview">
+      <section className="serial-overview-card">
+        <h2>SẢN PHẨM LIÊN KẾT</h2>
+        <dl>
+          <SerialFact label="Sản phẩm">
+            <SerialRecordLink to={productHref}>
+              {productName || serial.productCode || (productHref ? 'Xem sản phẩm' : '—')}
+            </SerialRecordLink>
+            {productName && serial.productCode && serial.productCode !== productName && (
+              <small>{serial.productCode}</small>
+            )}
+          </SerialFact>
+          <SerialFact label="Phiên bản">
+            <SerialRecordLink to={variantHref}>{variantLabel}</SerialRecordLink>
+          </SerialFact>
+          <SerialFact label="Mã vạch/SKU">{serial.barcode || '—'}</SerialFact>
+          {serial.order?.ma_don_hang && (
+            <SerialFact label="Đơn hàng liên kết">
+              <SerialRecordLink to={orderHref}>{serial.order.ma_don_hang}</SerialRecordLink>
+            </SerialFact>
+          )}
+        </dl>
+      </section>
+
+      <section className="serial-overview-card">
+        <h2>BẢO HÀNH</h2>
+        <dl>
+          <SerialFact label="Ngày kích hoạt">{serial.activatedAt}</SerialFact>
+          <SerialFact label="Hạn bảo hành">
+            <strong>{warranty.until}</strong>
+          </SerialFact>
+          <SerialFact label="Thời hạn theo hồ sơ">{warranty.duration}</SerialFact>
+          <SerialFact label="Trạng thái bảo hành">
+            <span data-admin-status={warranty.tone}>{warranty.label}</span>
+            {warranty.remaining && <small>{warranty.remaining}</small>}
+          </SerialFact>
+        </dl>
+      </section>
+    </div>
   );
 }
 
@@ -71,7 +179,6 @@ export default function ChiTietSerial() {
     );
   }
 
-  const meta = SERIAL_STATUS_META[serial.status];
   const nextStatus = nextWarehouseStatus(serial.status);
   const canEdit = Boolean(nextStatus) && !serial.recallBlocked;
   const nextMeta = nextStatus ? SERIAL_STATUS_META[nextStatus] : null;
@@ -132,7 +239,10 @@ export default function ChiTietSerial() {
         <div className="serial-detail-heading">
           <div>
             <h1>CHI TIẾT SERIAL</h1>
-            <div className="serial-id-box">{serial.serial}</div>
+            <div className="serial-summary-id">
+              <span className="serial-id-box">{serial.serial}</span>
+              <StatusBadge status={serial.status} />
+            </div>
           </div>
           <div className="serial-detail-actions">
             <button
@@ -162,84 +272,7 @@ export default function ChiTietSerial() {
           </p>
         )}
 
-        <div className={`serial-banner serial-banner--${meta.key}`}>
-          <span className="serial-banner__square" aria-hidden="true" />
-          <div>
-            <strong>{meta.label.toLocaleUpperCase('vi')}</strong>
-            <p>{meta.description}</p>
-          </div>
-        </div>
-        <div className="serial-detail-grid">
-          <div className="serial-detail-main">
-            <section className="serial-info-card">
-              <h2>THÔNG TIN SERIAL</h2>
-              <dl>
-                <div>
-                  <dt>Số serial</dt>
-                  <dd className="serial-code">{serial.serial}</dd>
-                </div>
-                <div>
-                  <dt>Trạng thái</dt>
-                  <dd>
-                    <StatusBadge status={serial.status} />
-                  </dd>
-                </div>
-                <div>
-                  <dt>Ngày kích hoạt</dt>
-                  <dd>{serial.activatedAt}</dd>
-                </div>
-                <div>
-                  <dt>Hạn bảo hành</dt>
-                  <dd>{serial.warrantyUntil}</dd>
-                </div>
-              </dl>
-            </section>
-            <section className="serial-info-card">
-              <h2>PHIÊN BẢN SẢN PHẨM</h2>
-              <dl>
-                <div>
-                  <dt>Sản phẩm</dt>
-                  <dd>
-                    {serial.productName}
-                    <small>{serial.productCode}</small>
-                  </dd>
-                </div>
-                <div>
-                  <dt>Tên phiên bản</dt>
-                  <dd>{serial.version}</dd>
-                </div>
-                <div>
-                  <dt>Mã vạch/SKU</dt>
-                  <dd className={`serial-status-text--${meta.key}`}>{serial.barcode}</dd>
-                </div>
-                <div>
-                  <dt>ID phiên bản</dt>
-                  <dd>{serial.versionId}</dd>
-                </div>
-              </dl>
-            </section>
-          </div>
-          <aside className="serial-detail-sidebar">
-            {serial.order && (
-              <section className="serial-warehouse-card">
-                <h2>ĐƠN HÀNG LIÊN KẾT</h2>
-                <dl>
-                  <div>
-                    <dt>Mã đơn hàng</dt>
-                    <dd>{serial.order.ma_don_hang}</dd>
-                  </div>
-                </dl>
-              </section>
-            )}
-            <section className="serial-note">
-              <h2>GHI CHÚ HỆ THỐNG</h2>
-              <p>
-                Dữ liệu Serial là hồ sơ lưu trữ vĩnh viễn. Chỉ serial trong kho hoặc lỗi mới được
-                chuyển đổi trạng thái tại đây.
-              </p>
-            </section>
-          </aside>
-        </div>
+        <SerialOverview serial={serial} />
 
         <SerialTracePanel serialId={serialId} refreshKey={serial.status} />
       </div>
@@ -267,14 +300,14 @@ export default function ChiTietSerial() {
             </header>
             <div className="serial-status-modal__body">
               <label htmlFor="new-serial-status">Trạng thái mới</label>
-              <select
+              <FormDropdown
                 id="new-serial-status"
                 value={nextStatus}
                 disabled
                 className={`serial-modal-select--${nextMeta.key}`}
               >
                 <option value={nextStatus}>{nextMeta.label}</option>
-              </select>
+              </FormDropdown>
               <label htmlFor="serial-status-reason">Lý do</label>
               <input
                 disabled={saving || statusAttempt.current !== null}

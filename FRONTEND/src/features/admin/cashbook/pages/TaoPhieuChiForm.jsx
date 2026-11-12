@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { disbursementService } from '../../../../shared/services/disbursementService';
 import './TaoPhieuForm.css';
+import { FormDropdown } from "../../../../shared/components/ui/FilterDropdown";
 
 const fallbackPersonData = {
   NHAN_VIEN: [
@@ -326,7 +327,7 @@ export default function TaoPhieuChiForm() {
 
             <div className="tpf-form-group">
               <label>NHÓM NGƯỜI NHẬN *</label>
-              <select
+              <FormDropdown aria-label="NHÓM NGƯỜI NHẬN"
                 value={group}
                 onChange={(e) => {
                   const newGroup = e.target.value;
@@ -341,7 +342,7 @@ export default function TaoPhieuChiForm() {
                 <option value="NHA_CUNG_CAP">NHÀ CUNG CẤP</option>
                 <option value="DOI_TAC_GIAO_HANG">ĐỐI TÁC GIAO HÀNG</option>
                 <option value="KHAC">KHÁC</option>
-              </select>
+              </FormDropdown>
             </div>
 
             <div className="tpf-form-group">
@@ -397,7 +398,7 @@ export default function TaoPhieuChiForm() {
             <div className="tpf-form-group">
               <label>LOẠI CHI *</label>
               <div className="tpf-select-add-group">
-                <select
+                <FormDropdown
                   value={selectedTypeId}
                   onChange={(e) => {
                     setSelectedTypeId(e.target.value);
@@ -411,7 +412,7 @@ export default function TaoPhieuChiForm() {
                       {t.ten_loai}
                     </option>
                   ))}
-                </select>
+                </FormDropdown>
                 <button
                   type="button"
                   className="btn-add-type-label"
@@ -469,11 +470,11 @@ export default function TaoPhieuChiForm() {
 
             <div className="tpf-form-group">
               <label>PHƯƠNG THỨC THANH TOÁN *</label>
-              <select value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value)}>
+              <FormDropdown aria-label="PHƯƠNG THỨC THANH TOÁN" value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value)}>
                 <option value="TIEN_MAT">TIỀN MẶT</option>
                 <option value="CHUYEN_KHOAN">CHUYỂN KHOẢN</option>
                 <option value="THE">QUẸT THẺ</option>
-              </select>
+              </FormDropdown>
             </div>
 
             <div className="tpf-form-group">

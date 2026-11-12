@@ -54,6 +54,7 @@ import { canExport, exportPayload } from '../components/exportSelection';
 import SoldDevices from '../../../../shared/components/ui/SoldDevices';
 import ComboContents from '../../../../shared/components/ui/ComboContents';
 import { ShipmentReturnDialog } from '../../shipping/pages/QuanLyGiaoHang';
+import { FormDropdown } from "../../../../shared/components/ui/FilterDropdown";
 
 function OrderProductImage({ item }) {
   const [failedUrl, setFailedUrl] = useState(null);
@@ -1508,7 +1509,7 @@ function OrderDetailView({ orderId }) {
                               </Link>
                             </td>
                             <td>
-                              <span className="order-payment-method-badge">
+                              <span className={`order-payment-method-badge order-payment-method-badge--${getPaymentMethodBadgeClass(receipt.phuong_thuc_thanh_toan)}`}>
                                 {label(receipt.phuong_thuc_thanh_toan)}
                               </span>
                             </td>
@@ -2204,6 +2205,16 @@ function DeviceExchangeHistory({ order }) {
   );
 }
 
+function getPaymentMethodBadgeClass(method) {
+  const m = String(method || '').toUpperCase();
+  if (m === 'TIEN_MAT' || m.includes('TIỀN MẶT') || m.includes('TIEN MAT') || m === 'CASH') return 'cash';
+  if (m === 'CHUYEN_KHOAN' || m.includes('CHUYỂN KHOẢN') || m.includes('CHUYEN KHOAN') || m === 'BANK') return 'bank';
+  if (m === 'THE' || m.includes('THẺ') || m === 'CARD' || m === 'POS') return 'card';
+  if (m.includes('COD')) return 'cod';
+  if (m.includes('VNPAY') || m.includes('MOMO') || m.includes('ZALOPAY') || m.includes('VIETQR')) return 'ewallet';
+  return 'default';
+}
+
 function Action({ children, click, danger = false, secondary = false, disabled = false }) {
   return (
     <button
@@ -2296,7 +2307,7 @@ function OrderActionDialog({ dialog, setDialog, order, options, busy, error, sub
           <label className="order-operation-field">
             <span>ĐỐI TÁC GIAO HÀNG *</span>
 
-            <select
+            <FormDropdown aria-label="ĐỐI TÁC GIAO HÀNG"
               required
               disabled={busy}
               value={dialog.partner}
@@ -2309,7 +2320,7 @@ function OrderActionDialog({ dialog, setDialog, order, options, busy, error, sub
                   {partner.ten_doi_tac} — {partner.ma_doi_tac}
                 </option>
               ))}
-            </select>
+            </FormDropdown>
           </label>
 
           {field('PHÍ TRẢ ĐỐI TÁC (đ) *', 'fee', 'number', {
@@ -2423,7 +2434,7 @@ function OrderActionDialog({ dialog, setDialog, order, options, busy, error, sub
 
           <label className="order-operation-field">
             <span>PHƯƠNG THỨC *</span>
-            <select
+            <FormDropdown aria-label="PHƯƠNG THỨC"
               required
               value={dialog.method}
               onChange={(event) => change('method', event.target.value)}
@@ -2433,7 +2444,7 @@ function OrderActionDialog({ dialog, setDialog, order, options, busy, error, sub
                   {label(method)}
                 </option>
               ))}
-            </select>
+            </FormDropdown>
           </label>
 
           {field(

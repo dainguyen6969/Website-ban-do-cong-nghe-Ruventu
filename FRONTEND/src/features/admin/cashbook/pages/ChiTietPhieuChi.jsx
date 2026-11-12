@@ -1,3 +1,4 @@
+import { scaledFontSize } from '../../../../typography/projectFontSize.js';
 import React, { useState, useEffect, useCallback } from 'react';
 
 import { CashSourceInfo } from '../components/CashbookEnhancements';
@@ -286,7 +287,7 @@ export default function ChiTietPhieuChi() {
                   </span>
                 ))}
                 {(!currentItem.tags || currentItem.tags.length === 0) && (
-                  <span style={{ color: '#9ca3af', fontSize: '13px' }}>Không có tags</span>
+                  <span style={{ color: '#9ca3af', fontSize: scaledFontSize(13) }}>Không có tags</span>
                 )}
               </div>
             </div>

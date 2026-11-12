@@ -13,6 +13,7 @@ import { catalogScopes, inCatalogScope, categoryTreeIds, componentCategoryIds } 
 import useCatalogOptions from '../hooks/useCatalogOptions';
 import { getRecommendedProducts, isRecommendationQuery, selectRecommendedProducts } from '../services/recommendationService';
 import "./SearchPage.css";
+import { FormDropdown } from "../../shared/components/ui/FilterDropdown";
 
 const SearchPage = ({ categorySlug } = {}) => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -319,7 +320,7 @@ const handleSuggestKeyword = (k) => {
                         checked={selectedBrands.includes(brand.id)}
                         onChange={() => handleBrandChange(brand.id)}
                       />
-                      <span className="checkbox-custom"></span>
+                      <span className="checkbox-custom" aria-hidden="true" />
                       <span className="checkbox-label">{brand.name}</span>
                     </div>
                     <span className="item-count">{brand.count}</span>
@@ -342,7 +343,7 @@ const handleSuggestKeyword = (k) => {
                         checked={selectedCategories.includes(cat.id)}
                         onChange={() => handleCategoryChange(cat.id)}
                       />
-                      <span className="checkbox-custom"></span>
+                      <span className="checkbox-custom" aria-hidden="true" />
                       <span className="checkbox-label">{cat.name}</span>
                     </div>
                     <span className="item-count">{cat.count}</span>
@@ -367,9 +368,9 @@ const handleSuggestKeyword = (k) => {
               {hasActiveFilters && <button type="button" className="clear-all-btn" onClick={clearAllFilters}>XÓA TẤT CẢ</button>}
             </div>
             <div className="toolbar-right">
-              <select className="custom-sort-btn" aria-label="Sắp xếp sản phẩm" value={sortBy} onChange={event => { setSortBy(event.target.value); setPage(1); }}>
+              <FormDropdown className="custom-sort-btn" aria-label="Sắp xếp sản phẩm" value={sortBy} onChange={event => { setSortBy(event.target.value); setPage(1); }}>
                 {sortOptions.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
-              </select>
+              </FormDropdown>
             </div>
           </div>
           {/* Active Filters */}

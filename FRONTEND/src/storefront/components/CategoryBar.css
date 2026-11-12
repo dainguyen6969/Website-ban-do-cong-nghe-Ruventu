@@ -1,7 +1,7 @@
 .category-bar {
   background: var(--bg-white);
   border-block: 1px solid var(--border-color);
-  padding: 8px 0;
+  padding: 5px 0;
 }
 
 .category-bar .brands-container { display:block; height:auto; }
@@ -10,7 +10,7 @@
   display:flex;
   flex-wrap:nowrap;
   align-items:center;
-  gap:12px;
+  gap:11px;
   width:100%;
   min-width:0;
   overflow-x:auto;
@@ -25,18 +25,18 @@
   display:flex;
   align-items:center;
   justify-content:center;
-  flex:0 0 136px;
-  height:60px;
-  padding:8px 12px;
+  flex:0 0 122px;
+  height:54px;
+  padding:7px 11px;
 }
 
 .category-bar .brand-logo {
-  width:104px;
-  height:40px;
+  width:94px;
+  height:36px;
   object-fit:contain;
 }
 
-.category-bar .brand-name { font-size:16px; font-weight:800; color:#111; text-align:center; }
+.category-bar .brand-name { font-size:14.4px; font-weight:800; color:#111; text-align:center; }
 .category-bar .brand-item:has(.brand-logo:not([hidden])) .brand-name { display:none; }
 .category-bar .brand-logo[hidden] { display:none; }
 .category-bar .brand-item:focus-visible, .category-bar .brands-list:focus-visible { outline:2px solid #e60000; outline-offset:-2px; }

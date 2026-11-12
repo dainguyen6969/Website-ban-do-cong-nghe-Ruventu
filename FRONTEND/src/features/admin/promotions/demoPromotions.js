@@ -20,7 +20,7 @@ const INITIAL_DEMO_PROMOTIONS = [
         configVersion: 1,
         hasHistory: true,
         canEditConfig: false,
-        description: 'Tình huống prototype KM01: không ghi dữ liệu lên backend.',
+        description: 'Chương trình áp dụng ưu đãi theo danh mục cấu hình.',
         giftProducts: [
             { name: 'Chuột máy tính', version: 'Màu đen - #301', sku: 'MS-BLK-01', giftQuantity: 1 }
         ],
@@ -62,7 +62,7 @@ const INITIAL_DEMO_PROMOTIONS = [
         configVersion: 1,
         hasHistory: true,
         canEditConfig: false,
-        description: 'Tình huống prototype KM01: không ghi dữ liệu lên backend.',
+        description: 'Chương trình áp dụng ưu đãi theo danh mục cấu hình.',
         giftProducts: [
             { name: 'Chuột máy tính', version: 'Màu đen - #301', sku: 'MS-BLK-01', giftQuantity: 1 }
         ],
@@ -105,7 +105,7 @@ const INITIAL_DEMO_PROMOTIONS = [
         hasHistory: true,
         canEditConfig: false,
         minOrderValue: 2000000,
-        description: 'Đơn đủ 2 triệu tặng bộ quà – báo cáo. Tình huống prototype KM01: không ghi dữ liệu lên backend.',
+        description: 'Đơn đủ 2 triệu tặng bộ quà – báo cáo. Chương trình áp dụng ưu đãi theo danh mục cấu hình.',
         giftProducts: [
             { name: 'Chuột máy tính', version: 'Màu đen - #301', sku: 'MS-BLK-01', giftQuantity: 1 }
         ],
@@ -148,7 +148,7 @@ const INITIAL_DEMO_PROMOTIONS = [
         configVersion: 1,
         hasHistory: true,
         canEditConfig: false,
-        description: 'Khuyến mại giảm RAM không giới hạn lượt. Tình huống prototype KM01: không ghi dữ liệu lên backend.',
+        description: 'Khuyến mại giảm RAM không giới hạn lượt. Chương trình áp dụng ưu đãi theo danh mục cấu hình.',
         buyProducts: [
             { name: 'RAM Kingston Fury Beast RGB', version: '16GB DDR5 5600MHz - Black', sku: 'RAM-KF5-16G', reqQuantity: 1 }
         ],

@@ -22,6 +22,30 @@ export async function getEmployeeDetail(id) {
   return await adminRequest(`/api/v1/admin/employees/${encodeURIComponent(id)}`);
 }
 
+export function getEmployeeActivityPage(id, { kind, voucherRole, page, limit }, signal) {
+  const params = new URLSearchParams({
+    page: String(page - 1),
+    limit: String(limit),
+  });
+
+  if (kind === 'THU' || kind === 'CHI') {
+    if (voucherRole === 'BEN_NOP_NHAN') {
+      params.set('nhom_nguoi_nop_nhan', 'NHAN_VIEN');
+      params.set('nguoi_nop_nhan_id', String(id));
+    } else {
+      params.set('nguoi_tao_id', String(id));
+    }
+
+    const resource = kind === 'THU' ? 'receipts' : 'disbursements';
+    return adminRequest(`/api/v1/admin/${resource}?${params}`, { signal });
+  }
+
+  params.set('lien_ket', kind);
+  return adminRequest(`/api/v1/admin/employees/${encodeURIComponent(id)}/orders?${params}`, {
+    signal,
+  });
+}
+
 export async function createEmployee(payload) {
   return await adminRequest('/api/v1/admin/employees', {
     method: 'POST',

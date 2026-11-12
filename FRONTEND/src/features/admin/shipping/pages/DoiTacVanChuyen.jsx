@@ -1,78 +1,70 @@
-import { useEffect, useRef, useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
-import {
-  HiOutlineArrowLeft,
-  HiOutlinePlus,
-  HiOutlineSearch,
-  HiOutlineX,
-} from "react-icons/hi";
+import { useEffect, useRef, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { HiOutlineArrowLeft, HiOutlinePlus, HiOutlineSearch, HiOutlineX } from 'react-icons/hi';
 
-import FilterDropdown from "../../../../shared/components/ui/FilterDropdown";
-import TablePagination from "../../../../shared/components/ui/TablePagination";
-import { adminRequest } from "../../catalog/products/api/versionApi";
-import { label, money } from "../../orders/api/orderApi";
+import FilterDropdown, { FormDropdown } from '../../../../shared/components/ui/FilterDropdown';
+import TablePagination from '../../../../shared/components/ui/TablePagination';
+import { adminRequest } from '../../catalog/products/api/versionApi';
+import { label, money } from '../../orders/api/orderApi';
 
-import { basicStatusValue } from "../../../../shared/services/mutationUtils";
+import { basicStatusValue } from '../../../../shared/services/mutationUtils';
 
-import "./DoiTacVanChuyen.css";
+import './DoiTacVanChuyen.css';
 
-const ROUTE = "/admin/khach-hang-doi-tac/doi-tac-van-chuyen";
-const PATH = "/api/v1/admin/shipping-partners";
+const ROUTE = '/admin/khach-hang-doi-tac/doi-tac-van-chuyen';
+const PATH = '/api/v1/admin/shipping-partners';
 const PAGE_SIZE = 10;
 
 const TYPE_LABELS = {
-  SHIP_CUA_HANG: "Ship cửa hàng",
-  SHIP_CA_NHAN: "Ship cá nhân",
+  SHIP_CUA_HANG: 'Ship cửa hàng',
+  SHIP_CA_NHAN: 'Ship cá nhân',
 };
 
-const TYPE_OPTIONS = ["Tất cả loại", "Ship cửa hàng", "Ship cá nhân"];
+const TYPE_OPTIONS = ['Tất cả loại', 'Ship cửa hàng', 'Ship cá nhân'];
 
 const TYPE_CODES = {
-  "Ship cửa hàng": "SHIP_CUA_HANG",
-  "Ship cá nhân": "SHIP_CA_NHAN",
+  'Ship cửa hàng': 'SHIP_CUA_HANG',
+  'Ship cá nhân': 'SHIP_CA_NHAN',
 };
 
-const STATUS_OPTIONS = ["Tất cả trạng thái", "Hoạt động", "Ngừng hoạt động"];
+const STATUS_OPTIONS = ['Tất cả trạng thái', 'Hoạt động', 'Ngừng hoạt động'];
 
 const STATUS_CODES = {
-  "Hoạt động": 1,
-  "Ngừng hoạt động": 0,
+  'Hoạt động': 1,
+  'Ngừng hoạt động': 0,
 };
 
 const DELIVERY_CODES = [
-  "CHO_GIAO",
-  "DA_NHAN_HANG",
-  "DANG_GIAO",
-  "GIAO_THANH_CONG",
-  "GIAO_THAT_BAI",
-  "CHO_HOAN_HANG",
-  "DA_HOAN_HANG",
-  "HUY_GIAO_HANG",
+  'CHO_GIAO',
+  'DA_NHAN_HANG',
+  'DANG_GIAO',
+  'GIAO_THANH_CONG',
+  'GIAO_THAT_BAI',
+  'CHO_HOAN_HANG',
+  'DA_HOAN_HANG',
+  'HUY_GIAO_HANG',
 ];
 
-const DELIVERY_OPTIONS = [
-  "Tất cả trạng thái",
-  ...DELIVERY_CODES.map((code) => label(code)),
-];
+const DELIVERY_OPTIONS = ['Tất cả trạng thái', ...DELIVERY_CODES.map((code) => label(code))];
 
 const DELIVERY_CODE_BY_LABEL = Object.fromEntries(
-  DELIVERY_CODES.map((code) => [label(code), code]),
+  DELIVERY_CODES.map((code) => [label(code), code])
 );
 
 const EMPTY_FORM = {
-  ten_doi_tac: "",
-  so_dien_thoai: "",
-  loai_doi_tac: "",
-  email: "",
-  dia_chi: "",
-  ghi_chu: "",
+  ten_doi_tac: '',
+  so_dien_thoai: '',
+  loai_doi_tac: '',
+  email: '',
+  dia_chi: '',
+  ghi_chu: '',
 };
 
 function queryString(values) {
   const params = new URLSearchParams();
 
   Object.entries(values).forEach(([key, value]) => {
-    if (value !== "" && value != null) {
+    if (value !== '' && value != null) {
       params.set(key, String(value));
     }
   });
@@ -84,23 +76,23 @@ function errorMessage(error) {
   return (
     error?.response?.data?.message ||
     error?.message ||
-    "Không thể thực hiện yêu cầu. Vui lòng thử lại."
+    'Không thể thực hiện yêu cầu. Vui lòng thử lại.'
   );
 }
 
 function formatDateTimeVN(value) {
-  if (!value) return "—";
+  if (!value) return '—';
 
-  const text = String(value).trim().replace(" ", "T");
+  const text = String(value).trim().replace(' ', 'T');
   const hasZone = /(?:Z|[+-]\d{2}:?\d{2})$/i.test(text);
   const date = new Date(hasZone ? text : `${text}+07:00`);
 
-  if (Number.isNaN(date.getTime())) return "—";
+  if (Number.isNaN(date.getTime())) return '—';
 
-  return new Intl.DateTimeFormat("vi-VN", {
-    timeZone: "Asia/Ho_Chi_Minh",
-    dateStyle: "short",
-    timeStyle: "short",
+  return new Intl.DateTimeFormat('vi-VN', {
+    timeZone: 'Asia/Ho_Chi_Minh',
+    dateStyle: 'short',
+    timeStyle: 'short',
   }).format(date);
 }
 
@@ -111,37 +103,37 @@ function partnerStatus(value) {
 function formatPartnerStatus(value) {
   const status = partnerStatus(value);
 
-  if (status === 1) return "Hoạt động";
-  if (status === 0) return "Ngừng hoạt động";
+  if (status === 1) return 'Hoạt động';
+  if (status === 0) return 'Ngừng hoạt động';
 
-  return "—";
+  return '—';
 }
 
 function formatPartnerType(value) {
-  return TYPE_LABELS[value] || value || "—";
+  return TYPE_LABELS[value] || value || '—';
 }
 
 function totalPagesOf(data) {
   return Math.max(
     1,
     Number(data?.pagination?.total_pages) ||
-      Math.ceil(Number(data?.pagination?.total_elements || 0) / PAGE_SIZE),
+      Math.ceil(Number(data?.pagination?.total_elements || 0) / PAGE_SIZE)
   );
 }
 
 // Chỉ đọc dữ liệu. Hủy request cũ khi thay bộ lọc hoặc rời trang.
 function useBackendData(path, revision, enabled = true, delay = 250) {
-  const requestId = enabled ? `${revision}:${path}` : "";
+  const requestId = enabled ? `${revision}:${path}` : '';
   const scope = path.replace(/([?&]page=)\d+/, '$1*');
   const keyword = new URL(path, 'http://localhost').searchParams.get('keyword') || '';
   const previousSearch = useRef(keyword);
 
   const [state, setState] = useState({
-    requestId: "",
-    scope: "",
+    requestId: '',
+    scope: '',
     data: null,
     loading: false,
-    error: "",
+    error: '',
   });
 
   useEffect(() => {
@@ -150,12 +142,12 @@ function useBackendData(path, revision, enabled = true, delay = 250) {
     const controller = new AbortController();
     let active = true;
 
-    setState(current => ({
+    setState((current) => ({
       requestId,
       scope,
       data: current.scope === scope ? current.data : null,
       loading: true,
-      error: "",
+      error: '',
     }));
 
     const wait = previousSearch.current === keyword ? 0 : delay;
@@ -172,11 +164,11 @@ function useBackendData(path, revision, enabled = true, delay = 250) {
             scope,
             data,
             loading: false,
-            error: "",
+            error: '',
           });
         }
       } catch (reason) {
-        if (active && reason?.name !== "AbortError") {
+        if (active && reason?.name !== 'AbortError') {
           setState({
             requestId,
             scope,
@@ -196,12 +188,12 @@ function useBackendData(path, revision, enabled = true, delay = 250) {
   }, [path, revision, enabled, delay, requestId, scope, keyword]);
 
   if (!enabled) {
-    return { data: null, loading: false, error: "" };
+    return { data: null, loading: false, error: '' };
   }
 
   // Không hiển thị kết quả của bộ lọc hoặc đối tác trước đó.
   if (state.requestId !== requestId) {
-    return { data: state.scope === scope ? state.data : null, loading: true, error: "" };
+    return { data: state.scope === scope ? state.data : null, loading: true, error: '' };
   }
 
   return state;
@@ -212,7 +204,7 @@ function buildPartnerBody(form) {
 
   return {
     ten_doi_tac: form.ten_doi_tac.trim(),
-    so_dien_thoai: form.so_dien_thoai.trim().replace(/[\s().-]/g, ""),
+    so_dien_thoai: form.so_dien_thoai.trim().replace(/[\s().-]/g, ''),
     loai_doi_tac: form.loai_doi_tac,
     email: optionalText(form.email),
     dia_chi: optionalText(form.dia_chi),
@@ -224,29 +216,23 @@ function validatePartner(body) {
   const errors = {};
 
   if (!body.ten_doi_tac || body.ten_doi_tac.length > 100) {
-    errors.ten_doi_tac = "Nhập tên đối tác, tối đa 100 ký tự.";
+    errors.ten_doi_tac = 'Nhập tên đối tác, tối đa 100 ký tự.';
   }
 
-  if (
-    !/^\+?\d{8,15}$/.test(body.so_dien_thoai) ||
-    body.so_dien_thoai.length > 15
-  ) {
-    errors.so_dien_thoai = "Số điện thoại không hợp lệ.";
+  if (!/^\+?\d{8,15}$/.test(body.so_dien_thoai) || body.so_dien_thoai.length > 15) {
+    errors.so_dien_thoai = 'Số điện thoại không hợp lệ.';
   }
 
   if (!TYPE_LABELS[body.loai_doi_tac]) {
-    errors.loai_doi_tac = "Vui lòng chọn loại đối tác.";
+    errors.loai_doi_tac = 'Vui lòng chọn loại đối tác.';
   }
 
-  if (
-    body.email &&
-    (body.email.length > 100 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(body.email))
-  ) {
-    errors.email = "Email không hợp lệ hoặc vượt quá 100 ký tự.";
+  if (body.email && (body.email.length > 100 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(body.email))) {
+    errors.email = 'Email không hợp lệ hoặc vượt quá 100 ký tự.';
   }
 
   if (body.dia_chi && body.dia_chi.length > 255) {
-    errors.dia_chi = "Địa chỉ tối đa 255 ký tự.";
+    errors.dia_chi = 'Địa chỉ tối đa 255 ký tự.';
   }
 
   return errors;
@@ -258,7 +244,7 @@ export default function DoiTacVanChuyen() {
   const mutationBusy = useRef(false);
 
   const [filters, setFilters] = useState({
-    keyword: "",
+    keyword: '',
     type: TYPE_OPTIONS[0],
     status: STATUS_OPTIONS[0],
     page: 1,
@@ -270,11 +256,11 @@ export default function DoiTacVanChuyen() {
   const [fieldErrors, setFieldErrors] = useState({});
   const [pendingAction, setPendingAction] = useState(null);
   const [busy, setBusy] = useState(false);
-  const [mutationError, setMutationError] = useState("");
-  const [successMessage, setSuccessMessage] = useState("");
+  const [mutationError, setMutationError] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
 
   const rawSelectedId = location.state?.partnerId;
-  const detailMode = rawSelectedId != null && rawSelectedId !== "";
+  const detailMode = rawSelectedId != null && rawSelectedId !== '';
   const selectedId = Number(rawSelectedId);
   const validSelectedId = Number.isSafeInteger(selectedId) && selectedId > 0;
 
@@ -292,7 +278,7 @@ export default function DoiTacVanChuyen() {
     `${PATH}/${encodeURIComponent(selectedId)}`,
     revision,
     detailMode && validSelectedId,
-    0,
+    0
   );
 
   const partners = list.data?.items || [];
@@ -300,7 +286,7 @@ export default function DoiTacVanChuyen() {
   useEffect(() => {
     if (!successMessage) return undefined;
 
-    const timer = setTimeout(() => setSuccessMessage(""), 4000);
+    const timer = setTimeout(() => setSuccessMessage(''), 4000);
     return () => clearTimeout(timer);
   }, [successMessage]);
 
@@ -328,7 +314,7 @@ export default function DoiTacVanChuyen() {
   function openDetail(partnerId) {
     if (mutationBusy.current) return;
 
-    setSuccessMessage("");
+    setSuccessMessage('');
     navigate(ROUTE, {
       state: { partnerId: Number(partnerId) },
     });
@@ -337,7 +323,7 @@ export default function DoiTacVanChuyen() {
   function backToList() {
     if (mutationBusy.current) return;
 
-    setSuccessMessage("");
+    setSuccessMessage('');
     navigate(ROUTE, {
       replace: true,
       state: null,
@@ -349,8 +335,8 @@ export default function DoiTacVanChuyen() {
 
     setForm({ ...EMPTY_FORM });
     setFieldErrors({});
-    setMutationError("");
-    setSuccessMessage("");
+    setMutationError('');
+    setSuccessMessage('');
     setShowAdd(true);
   }
 
@@ -361,7 +347,7 @@ export default function DoiTacVanChuyen() {
     setPendingAction(null);
     setForm({ ...EMPTY_FORM });
     setFieldErrors({});
-    setMutationError("");
+    setMutationError('');
   }
 
   function updateField(name, value) {
@@ -372,10 +358,10 @@ export default function DoiTacVanChuyen() {
 
     setFieldErrors((current) => ({
       ...current,
-      [name]: "",
+      [name]: '',
     }));
 
-    setMutationError("");
+    setMutationError('');
   }
 
   function openStatusAction(partner) {
@@ -384,12 +370,12 @@ export default function DoiTacVanChuyen() {
     const currentStatus = partnerStatus(partner.trang_thai);
     if (currentStatus == null) return;
 
-    setMutationError("");
-    setSuccessMessage("");
+    setMutationError('');
+    setSuccessMessage('');
     setPendingAction({
       partner,
       targetStatus: currentStatus === 1 ? 0 : 1,
-      action: currentStatus === 1 ? "suspend" : "restore",
+      action: currentStatus === 1 ? 'suspend' : 'restore',
     });
   }
 
@@ -398,7 +384,7 @@ export default function DoiTacVanChuyen() {
 
     mutationBusy.current = true;
     setBusy(true);
-    setMutationError("");
+    setMutationError('');
 
     try {
       const data = await send();
@@ -425,7 +411,7 @@ export default function DoiTacVanChuyen() {
     return runMutation(
       () =>
         adminRequest(PATH, {
-          method: "POST",
+          method: 'POST',
           body: JSON.stringify(body),
         }),
       (created) => {
@@ -434,18 +420,14 @@ export default function DoiTacVanChuyen() {
         setFieldErrors({});
 
         setFilters({
-          keyword: "",
+          keyword: '',
           type: TYPE_OPTIONS[0],
           status: STATUS_OPTIONS[0],
           page: 1,
         });
 
-        setSuccessMessage(
-          `Đã thêm đối tác ${
-            created?.ma_doi_tac || body.ten_doi_tac
-          } thành công.`,
-        );
-      },
+        setSuccessMessage(`Đã thêm đối tác ${created?.ma_doi_tac || body.ten_doi_tac} thành công.`);
+      }
     );
   }
 
@@ -457,7 +439,7 @@ export default function DoiTacVanChuyen() {
     return runMutation(
       () =>
         adminRequest(`${PATH}/${encodeURIComponent(partner.id)}/status`, {
-          method: "PATCH",
+          method: 'PATCH',
           body: JSON.stringify({
             trang_thai: targetStatus,
           }),
@@ -466,14 +448,12 @@ export default function DoiTacVanChuyen() {
         setPendingAction(null);
 
         setSuccessMessage(
-          targetStatus === 1
-            ? "Đã khôi phục hoạt động đối tác."
-            : "Đã ngừng hoạt động đối tác.",
+          targetStatus === 1 ? 'Đã khôi phục hoạt động đối tác.' : 'Đã ngừng hoạt động đối tác.'
         );
 
         // GET lại dữ liệu vì response đổi trạng thái
         // có thể chỉ chứa một phần thông tin đối tác.
-      },
+      }
     );
   }
 
@@ -483,11 +463,7 @@ export default function DoiTacVanChuyen() {
         !validSelectedId ? (
           <div className="partner-not-found">
             <h1>ID ĐỐI TÁC KHÔNG HỢP LỆ</h1>
-            <button
-              type="button"
-              className="partner-btn partner-btn--outline"
-              onClick={backToList}
-            >
+            <button type="button" className="partner-btn partner-btn--outline" onClick={backToList}>
               QUAY LẠI DANH SÁCH
             </button>
           </div>
@@ -495,13 +471,9 @@ export default function DoiTacVanChuyen() {
           <p style={{ padding: 24 }}>Đang tải thông tin đối tác...</p>
         ) : detail.error || !detail.data ? (
           <div className="partner-not-found">
-            <p role="alert">{detail.error || "Không tìm thấy đối tác."}</p>
+            <p role="alert">{detail.error || 'Không tìm thấy đối tác.'}</p>
 
-            <button
-              type="button"
-              className="partner-btn partner-btn--outline"
-              onClick={backToList}
-            >
+            <button type="button" className="partner-btn partner-btn--outline" onClick={backToList}>
               QUAY LẠI DANH SÁCH
             </button>
 
@@ -552,9 +524,7 @@ export default function DoiTacVanChuyen() {
               <HiOutlineSearch />
               <input
                 value={filters.keyword}
-                onChange={(event) =>
-                  changeFilter("keyword", event.target.value)
-                }
+                onChange={(event) => changeFilter('keyword', event.target.value)}
                 placeholder="Tìm theo tên hoặc số điện thoại..."
                 aria-label="Tìm đối tác"
               />
@@ -564,19 +534,24 @@ export default function DoiTacVanChuyen() {
               className="partner-filter"
               options={TYPE_OPTIONS}
               value={filters.type}
-              onSelect={(value) => changeFilter("type", value)}
+              onSelect={(value) => changeFilter('type', value)}
             />
 
             <FilterDropdown
               className="partner-filter"
               options={STATUS_OPTIONS}
               value={filters.status}
-              onSelect={(value) => changeFilter("status", value)}
+              onSelect={(value) => changeFilter('status', value)}
             />
           </section>
 
           <section className="partner-list-content admin-list-body">
-            <div className="partner-table-wrap admin-table-scroll" tabIndex={0} role="region" aria-label="Bảng danh sách">
+            <div
+              className="partner-table-wrap admin-table-scroll"
+              tabIndex={0}
+              role="region"
+              aria-label="Bảng danh sách"
+            >
               <table className="partner-table admin-data-table" aria-busy={list.loading}>
                 <thead>
                   <tr>
@@ -598,7 +573,7 @@ export default function DoiTacVanChuyen() {
                   ) : list.error ? (
                     <tr className="partner-empty">
                       <td colSpan={7}>
-                        <span role="alert">{list.error}</span>{" "}
+                        <span role="alert">{list.error}</span>{' '}
                         <button
                           type="button"
                           className="partner-row-btn"
@@ -623,20 +598,15 @@ export default function DoiTacVanChuyen() {
                           tabIndex={0}
                           onClick={() => openDetail(partner.id)}
                           onKeyDown={(event) => {
-                            if (
-                              event.key === "Enter" &&
-                              event.target === event.currentTarget
-                            ) {
+                            if (event.key === 'Enter' && event.target === event.currentTarget) {
                               openDetail(partner.id);
                             }
                           }}
                         >
                           <td className="partner-code">{partner.ma_doi_tac}</td>
-                          <td className="partner-name">
-                            {partner.ten_doi_tac}
-                          </td>
+                          <td className="partner-name">{partner.ten_doi_tac}</td>
                           <td>{partner.so_dien_thoai}</td>
-                          <td>{partner.email || "—"}</td>
+                          <td>{partner.email || '—'}</td>
                           <td>
                             <PartnerTypeBadge type={partner.loai_doi_tac} />
                           </td>
@@ -660,7 +630,7 @@ export default function DoiTacVanChuyen() {
                               <button
                                 type="button"
                                 className={`partner-row-btn partner-row-btn--${
-                                  active ? "danger" : "success"
+                                  active ? 'danger' : 'success'
                                 }`}
                                 disabled={busy || status == null}
                                 onClick={(event) => {
@@ -668,7 +638,7 @@ export default function DoiTacVanChuyen() {
                                   openStatusAction(partner);
                                 }}
                               >
-                                {active ? "NGỪNG" : "KHÔI PHỤC"}
+                                {active ? 'NGỪNG' : 'KHÔI PHỤC'}
                               </button>
                             </div>
                           </td>
@@ -684,9 +654,7 @@ export default function DoiTacVanChuyen() {
               <ServerPagination
                 data={list.data}
                 page={filters.page}
-                onPageChange={(page) =>
-                  setFilters((current) => ({ ...current, page }))
-                }
+                onPageChange={(page) => setFilters((current) => ({ ...current, page }))}
                 noun="ĐỐI TÁC"
                 idPrefix="shipping-partner"
               />
@@ -747,8 +715,7 @@ function SuccessBanner({ message }) {
 
 function PartnerStatusBadge({ status }) {
   const value = partnerStatus(status);
-  const variant =
-    value === 1 ? "hoat_dong" : value === 0 ? "ngung_hoat_dong" : "";
+  const variant = value === 1 ? 'hoat_dong' : value === 0 ? 'ngung_hoat_dong' : '';
 
   return (
     <span className={`partner-status partner-status--${variant}`}>
@@ -758,39 +725,11 @@ function PartnerStatusBadge({ status }) {
 }
 
 function PartnerTypeBadge({ type }) {
-  return (
-    <span className={`partner-type partner-type--${type}`}>
-      {formatPartnerType(type)}
-    </span>
-  );
+  return <span className={`partner-type partner-type--${type}`}>{formatPartnerType(type)}</span>;
 }
 
 function DeliveryStatusBadge({ status }) {
-  const colors = {
-    CHO_GIAO: "#737373",
-    DA_NHAN_HANG: "#1677d2",
-    DANG_GIAO: "#4338ca",
-    GIAO_THANH_CONG: "#16812b",
-    GIAO_THAT_BAI: "#d71920",
-    CHO_HOAN_HANG: "#d66b00",
-    DA_HOAN_HANG: "#d66b00",
-    HUY_GIAO_HANG: "#d71920",
-  };
-
-  const color = colors[status] || "#737373";
-
-  return (
-    <span
-      className="partner-status"
-      style={{
-        color,
-        borderColor: color,
-        backgroundColor: `${color}12`,
-      }}
-    >
-      {label(status)}
-    </span>
-  );
+  return <span className={`delivery-badge delivery-badge--${status}`}>{label(status)}</span>;
 }
 
 function PartnerPanel({ title, headerTools, children }) {
@@ -812,7 +751,7 @@ function InfoRow({ title, children }) {
   return (
     <div>
       <dt>{title}</dt>
-      <dd>{children ?? "—"}</dd>
+      <dd>{children ?? '—'}</dd>
     </div>
   );
 }
@@ -842,29 +781,20 @@ function ServerPagination({ data, page, onPageChange, noun, idPrefix }) {
   );
 }
 
-function PartnerDetail({
-  partner,
-  revision,
-  busy,
-  successMessage,
-  onBack,
-  onAction,
-}) {
+function PartnerDetail({ partner, revision, busy, successMessage, onBack, onAction }) {
   const navigate = useNavigate();
 
-  const [keyword, setKeyword] = useState("");
+  const [keyword, setKeyword] = useState('');
   const [statusFilter, setStatusFilter] = useState(DELIVERY_OPTIONS[0]);
   const [page, setPage] = useState(1);
   const [historyRevision, setHistoryRevision] = useState(0);
 
-  const path = `${PATH}/${encodeURIComponent(partner.id)}/deliveries?${queryString(
-    {
-      keyword: keyword.trim(),
-      trang_thai_giao_hang: DELIVERY_CODE_BY_LABEL[statusFilter],
-      page: page - 1,
-      limit: PAGE_SIZE,
-    },
-  )}`;
+  const path = `${PATH}/${encodeURIComponent(partner.id)}/deliveries?${queryString({
+    keyword: keyword.trim(),
+    trang_thai_giao_hang: DELIVERY_CODE_BY_LABEL[statusFilter],
+    page: page - 1,
+    limit: PAGE_SIZE,
+  })}`;
 
   const history = useBackendData(path, `${revision}:${historyRevision}`);
 
@@ -933,13 +863,11 @@ function PartnerDetail({
 
           <button
             type="button"
-            className={`partner-btn partner-btn--outline-${
-              active ? "danger" : "success"
-            }`}
+            className={`partner-btn partner-btn--outline-${active ? 'danger' : 'success'}`}
             disabled={busy || status == null}
             onClick={onAction}
           >
-            {active ? "NGỪNG HOẠT ĐỘNG" : "KHÔI PHỤC HOẠT ĐỘNG"}
+            {active ? 'NGỪNG HOẠT ĐỘNG' : 'KHÔI PHỤC HOẠT ĐỘNG'}
           </button>
         </div>
       </section>
@@ -952,137 +880,128 @@ function PartnerDetail({
             <InfoRow title="MÃ ĐỐI TÁC">{partner.ma_doi_tac}</InfoRow>
             <InfoRow title="TÊN ĐỐI TÁC">{partner.ten_doi_tac}</InfoRow>
             <InfoRow title="SỐ ĐIỆN THOẠI">{partner.so_dien_thoai}</InfoRow>
-            <InfoRow title="LOẠI ĐỐI TÁC">
-              {formatPartnerType(partner.loai_doi_tac)}
-            </InfoRow>
-            <InfoRow title="EMAIL">{partner.email || "—"}</InfoRow>
-            <InfoRow title="ĐỊA CHỈ">{partner.dia_chi || "—"}</InfoRow>
-            <InfoRow title="GHI CHÚ">{partner.ghi_chu || "—"}</InfoRow>
-            <InfoRow title="TRẠNG THÁI">
-              {formatPartnerStatus(partner.trang_thai)}
-            </InfoRow>
-            <InfoRow title="NGÀY TẠO">
-              {formatDateTimeVN(partner.ngay_tao)}
-            </InfoRow>
-            <InfoRow title="CẬP NHẬT CUỐI">
-              {formatDateTimeVN(partner.ngay_cap_nhat)}
-            </InfoRow>
+            <InfoRow title="LOẠI ĐỐI TÁC">{formatPartnerType(partner.loai_doi_tac)}</InfoRow>
+            <InfoRow title="EMAIL">{partner.email || '—'}</InfoRow>
+            <InfoRow title="ĐỊA CHỈ">{partner.dia_chi || '—'}</InfoRow>
+            <InfoRow title="GHI CHÚ">{partner.ghi_chu || '—'}</InfoRow>
+            <InfoRow title="TRẠNG THÁI">{formatPartnerStatus(partner.trang_thai)}</InfoRow>
+            <InfoRow title="NGÀY TẠO">{formatDateTimeVN(partner.ngay_tao)}</InfoRow>
+            <InfoRow title="CẬP NHẬT CUỐI">{formatDateTimeVN(partner.ngay_cap_nhat)}</InfoRow>
           </dl>
         </PartnerPanel>
 
         <PartnerPanel title="LỊCH SỬ GIAO HÀNG" headerTools={historyTools}>
           <div className="partner-history-wrap">
-            <div className="admin-table-scroll admin-table-scroll--embedded" tabIndex={0} role="region" aria-label="Bảng dữ liệu liên quan"><table className="partner-history admin-data-table admin-data-table--records">
-              <thead>
-                <tr>
-                  <th>MÃ PHIẾU</th>
-                  <th>MÃ VẬN ĐƠN</th>
-                  <th>MÃ ĐƠN HÀNG</th>
-                  <th>TRẠNG THÁI GIAO</th>
-                  <th>THU HỘ COD</th>
-                  <th>PHÍ ĐỐI TÁC</th>
-                  <th>GHI CHÚ ĐƠN HÀNG</th>
-                  <th>NGÀY TẠO</th>
-                  <th>THAO TÁC</th>
-                </tr>
-              </thead>
-
-              <tbody>
-                {history.loading && !history.data ? (
-                  <tr className="partner-empty">
-                    <td colSpan={9}>Đang tải lịch sử giao hàng...</td>
+            <div
+              className="admin-table-scroll admin-table-scroll--embedded"
+              tabIndex={0}
+              role="region"
+              aria-label="Bảng dữ liệu liên quan"
+            >
+              <table className="partner-history admin-data-table admin-data-table--records">
+                <thead>
+                  <tr>
+                    <th>MÃ PHIẾU</th>
+                    <th>MÃ VẬN ĐƠN</th>
+                    <th>MÃ ĐƠN HÀNG</th>
+                    <th>TRẠNG THÁI GIAO</th>
+                    <th>THU HỘ COD</th>
+                    <th>PHÍ ĐỐI TÁC</th>
+                    <th>GHI CHÚ ĐƠN HÀNG</th>
+                    <th>NGÀY TẠO</th>
+                    <th>THAO TÁC</th>
                   </tr>
-                ) : history.error ? (
-                  <tr className="partner-empty">
-                    <td colSpan={9}>
-                      <span role="alert">{history.error}</span>{" "}
-                      <button
-                        type="button"
-                        className="partner-row-btn"
-                        onClick={() =>
-                          setHistoryRevision((current) => current + 1)
-                        }
-                      >
-                        THỬ LẠI
-                      </button>
-                    </td>
-                  </tr>
-                ) : deliveries.length === 0 ? (
-                  <tr className="partner-empty">
-                    <td colSpan={9}>
-                      {keyword.trim() || statusFilter !== DELIVERY_OPTIONS[0]
-                        ? "Không có phiếu giao hàng phù hợp với bộ lọc."
-                        : "Đối tác chưa có phiếu giao hàng."}
-                    </td>
-                  </tr>
-                ) : (
-                  deliveries.map((delivery) => (
-                    <tr key={delivery.id}>
-                      <td>
-                        <strong>{delivery.ma_phieu_giao_hang}</strong>
-                      </td>
+                </thead>
 
-                      <td>{delivery.ma_van_don || "—"}</td>
-
-                      <td>
+                <tbody>
+                  {history.loading && !history.data ? (
+                    <tr className="partner-empty">
+                      <td colSpan={9}>Đang tải lịch sử giao hàng...</td>
+                    </tr>
+                  ) : history.error ? (
+                    <tr className="partner-empty">
+                      <td colSpan={9}>
+                        <span role="alert">{history.error}</span>{' '}
                         <button
                           type="button"
-                          className="partner-order-link"
-                          disabled={!delivery.don_hang_id}
-                          onClick={() =>
-                            navigate(
-                              `/admin/don-hang/danh-sach-don-hang/${encodeURIComponent(
-                                delivery.don_hang_id,
-                              )}`,
-                            )
-                          }
+                          className="partner-row-btn"
+                          onClick={() => setHistoryRevision((current) => current + 1)}
                         >
-                          {delivery.ma_don_hang || "—"}
-                        </button>
-                      </td>
-
-                      <td>
-                        <DeliveryStatusBadge
-                          status={delivery.trang_thai_giao_hang}
-                        />
-                      </td>
-
-                      <td className="partner-money">
-                        {money(delivery.tien_thu_ho_cod)}
-                      </td>
-
-                      <td className="partner-money">
-                        {money(delivery.phi_tra_doi_tac)}
-                      </td>
-
-                      <td>{delivery.ghi_chu_don_hang || "—"}</td>
-
-                      <td>{formatDateTimeVN(delivery.ngay_tao)}</td>
-
-                      <td>
-                        <button
-                          type="button"
-                          className="partner-view-order"
-                          onClick={() =>
-                            navigate(
-                              `/admin/don-hang/quan-ly-giao-hang/${encodeURIComponent(
-                                delivery.id,
-                              )}`,
-                            )
-                          }
-                        >
-                          XEM PHIẾU
+                          THỬ LẠI
                         </button>
                       </td>
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </table></div>
+                  ) : deliveries.length === 0 ? (
+                    <tr className="partner-empty">
+                      <td colSpan={9}>
+                        {keyword.trim() || statusFilter !== DELIVERY_OPTIONS[0]
+                          ? 'Không có phiếu giao hàng phù hợp với bộ lọc.'
+                          : 'Đối tác chưa có phiếu giao hàng.'}
+                      </td>
+                    </tr>
+                  ) : (
+                    deliveries.map((delivery) => (
+                      <tr key={delivery.id}>
+                        <td>
+                          <strong>{delivery.ma_phieu_giao_hang}</strong>
+                        </td>
+
+                        <td>{delivery.ma_van_don || '—'}</td>
+
+                        <td>
+                          <button
+                            type="button"
+                            className="partner-order-link"
+                            disabled={!delivery.don_hang_id}
+                            onClick={() =>
+                              navigate(
+                                `/admin/don-hang/danh-sach-don-hang/${encodeURIComponent(
+                                  delivery.don_hang_id
+                                )}`
+                              )
+                            }
+                          >
+                            {delivery.ma_don_hang || '—'}
+                          </button>
+                        </td>
+
+                        <td>
+                          <DeliveryStatusBadge status={delivery.trang_thai_giao_hang} />
+                        </td>
+
+                        <td className="partner-money">{money(delivery.tien_thu_ho_cod)}</td>
+
+                        <td className="partner-money">{money(delivery.phi_tra_doi_tac)}</td>
+
+                        <td>{delivery.ghi_chu_don_hang || '—'}</td>
+
+                        <td>{formatDateTimeVN(delivery.ngay_tao)}</td>
+
+                        <td>
+                          <button
+                            type="button"
+                            className="partner-view-order"
+                            onClick={() =>
+                              navigate(
+                                `/admin/don-hang/quan-ly-giao-hang/${encodeURIComponent(
+                                  delivery.id
+                                )}`
+                              )
+                            }
+                          >
+                            XEM PHIẾU
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
 
           {!history.error && history.data && (
-            <div style={{ padding: "0 14px" }}>
+            <div style={{ padding: '0 14px' }}>
               <ServerPagination
                 data={history.data}
                 page={page}
@@ -1101,7 +1020,7 @@ function PartnerDetail({
 function PartnerDialog({
   title,
   titleId,
-  className = "partner-modal",
+  className = 'partner-modal',
   showClose = true,
   busy,
   onClose,
@@ -1111,37 +1030,32 @@ function PartnerDialog({
 
   useEffect(() => {
     const previousFocus = document.activeElement;
-    const firstControl = dialogRef.current?.querySelector(
-      "input, select, textarea, button",
-    );
+    const firstControl = dialogRef.current?.querySelector('input, select, textarea, button');
 
     (firstControl || dialogRef.current)?.focus();
 
     return () => {
-      if (
-        previousFocus instanceof HTMLElement &&
-        document.contains(previousFocus)
-      ) {
+      if (previousFocus instanceof HTMLElement && document.contains(previousFocus)) {
         previousFocus.focus();
       }
     };
   }, []);
 
   function handleKeyDown(event) {
-    if (event.key === "Escape") {
+    if (event.key === 'Escape') {
       event.stopPropagation();
       if (!busy) onClose();
       return;
     }
 
-    if (event.key !== "Tab") return;
+    if (event.key !== 'Tab') return;
 
     const controls = Array.from(
       dialogRef.current?.querySelectorAll(
-        "button:not([disabled]), input:not([disabled]), " +
-          "select:not([disabled]), textarea:not([disabled]), " +
-          'a[href], [tabindex="0"]',
-      ) || [],
+        'button:not([disabled]), input:not([disabled]), ' +
+          'select:not([disabled]), textarea:not([disabled]), ' +
+          'a[href], [tabindex="0"]'
+      ) || []
     ).filter((element) => element.getClientRects().length > 0);
 
     if (controls.length === 0) {
@@ -1155,15 +1069,13 @@ function PartnerDialog({
 
     if (
       event.shiftKey &&
-      (document.activeElement === first ||
-        document.activeElement === dialogRef.current)
+      (document.activeElement === first || document.activeElement === dialogRef.current)
     ) {
       event.preventDefault();
       last.focus();
     } else if (
       !event.shiftKey &&
-      (document.activeElement === last ||
-        document.activeElement === dialogRef.current)
+      (document.activeElement === last || document.activeElement === dialogRef.current)
     ) {
       event.preventDefault();
       first.focus();
@@ -1196,12 +1108,7 @@ function PartnerDialog({
           </h2>
 
           {showClose && (
-            <button
-              type="button"
-              aria-label="Đóng"
-              disabled={busy}
-              onClick={onClose}
-            >
+            <button type="button" aria-label="Đóng" disabled={busy} onClick={onClose}>
               <HiOutlineX size={20} />
             </button>
           )}
@@ -1215,11 +1122,7 @@ function PartnerDialog({
 
 function PartnerField({ title, error, children }) {
   return (
-    <label
-      className={`partner-form-field ${
-        error ? "partner-form-field--error" : ""
-      }`}
-    >
+    <label className={`partner-form-field ${error ? 'partner-form-field--error' : ''}`}>
       <span>{title}</span>
       {children}
       {error && <small>{error}</small>}
@@ -1227,15 +1130,7 @@ function PartnerField({ title, error, children }) {
   );
 }
 
-function AddPartnerModal({
-  form,
-  errors,
-  error,
-  busy,
-  onChange,
-  onClose,
-  onSubmit,
-}) {
+function AddPartnerModal({ form, errors, error, busy, onChange, onClose, onSubmit }) {
   return (
     <PartnerDialog
       title="THÊM ĐỐI TÁC VẬN CHUYỂN"
@@ -1245,7 +1140,7 @@ function AddPartnerModal({
     >
       <form onSubmit={onSubmit} noValidate>
         {error && (
-          <p role="alert" style={{ color: "#c91f25" }}>
+          <p role="alert" style={{ color: '#c91f25' }}>
             {error}
           </p>
         )}
@@ -1253,7 +1148,7 @@ function AddPartnerModal({
         <fieldset
           disabled={busy}
           style={{
-            display: "grid",
+            display: 'grid',
             gap: 11,
             margin: 0,
             padding: 0,
@@ -1266,7 +1161,7 @@ function AddPartnerModal({
               value={form.ten_doi_tac}
               maxLength={100}
               aria-invalid={Boolean(errors.ten_doi_tac)}
-              onChange={(event) => onChange("ten_doi_tac", event.target.value)}
+              onChange={(event) => onChange('ten_doi_tac', event.target.value)}
             />
           </PartnerField>
 
@@ -1276,17 +1171,15 @@ function AddPartnerModal({
               value={form.so_dien_thoai}
               maxLength={25}
               aria-invalid={Boolean(errors.so_dien_thoai)}
-              onChange={(event) =>
-                onChange("so_dien_thoai", event.target.value)
-              }
+              onChange={(event) => onChange('so_dien_thoai', event.target.value)}
             />
           </PartnerField>
 
           <PartnerField title="LOẠI ĐỐI TÁC *" error={errors.loai_doi_tac}>
-            <select
+            <FormDropdown
               value={form.loai_doi_tac}
               aria-invalid={Boolean(errors.loai_doi_tac)}
-              onChange={(event) => onChange("loai_doi_tac", event.target.value)}
+              onChange={(event) => onChange('loai_doi_tac', event.target.value)}
             >
               <option value="">CHỌN LOẠI ĐỐI TÁC</option>
 
@@ -1295,7 +1188,7 @@ function AddPartnerModal({
                   {text}
                 </option>
               ))}
-            </select>
+            </FormDropdown>
           </PartnerField>
 
           <PartnerField title="EMAIL" error={errors.email}>
@@ -1304,7 +1197,7 @@ function AddPartnerModal({
               value={form.email}
               maxLength={100}
               aria-invalid={Boolean(errors.email)}
-              onChange={(event) => onChange("email", event.target.value)}
+              onChange={(event) => onChange('email', event.target.value)}
             />
           </PartnerField>
 
@@ -1313,7 +1206,7 @@ function AddPartnerModal({
               value={form.dia_chi}
               maxLength={255}
               aria-invalid={Boolean(errors.dia_chi)}
-              onChange={(event) => onChange("dia_chi", event.target.value)}
+              onChange={(event) => onChange('dia_chi', event.target.value)}
             />
           </PartnerField>
 
@@ -1321,7 +1214,7 @@ function AddPartnerModal({
             <textarea
               rows={3}
               value={form.ghi_chu}
-              onChange={(event) => onChange("ghi_chu", event.target.value)}
+              onChange={(event) => onChange('ghi_chu', event.target.value)}
             />
           </PartnerField>
         </fieldset>
@@ -1336,12 +1229,8 @@ function AddPartnerModal({
             HỦY BỎ
           </button>
 
-          <button
-            type="submit"
-            className="partner-btn partner-btn--black"
-            disabled={busy}
-          >
-            {busy ? "ĐANG LƯU..." : "THÊM ĐỐI TÁC"}
+          <button type="submit" className="partner-btn partner-btn--black" disabled={busy}>
+            {busy ? 'ĐANG LƯU...' : 'THÊM ĐỐI TÁC'}
           </button>
         </footer>
       </form>
@@ -1349,21 +1238,13 @@ function AddPartnerModal({
   );
 }
 
-function ConfirmActionModal({
-  pendingAction,
-  busy,
-  error,
-  onCancel,
-  onConfirm,
-}) {
+function ConfirmActionModal({ pendingAction, busy, error, onCancel, onConfirm }) {
   const { partner, action } = pendingAction;
-  const suspending = action === "suspend";
+  const suspending = action === 'suspend';
 
   return (
     <PartnerDialog
-      title={
-        suspending ? "NGỪNG HOẠT ĐỘNG ĐỐI TÁC" : "KHÔI PHỤC HOẠT ĐỘNG ĐỐI TÁC"
-      }
+      title={suspending ? 'NGỪNG HOẠT ĐỘNG ĐỐI TÁC' : 'KHÔI PHỤC HOẠT ĐỘNG ĐỐI TÁC'}
       titleId="partner-status-title"
       className={`partner-confirm partner-confirm--${action}`}
       showClose={false}
@@ -1377,12 +1258,12 @@ function ConfirmActionModal({
 
         <p>
           {suspending
-            ? "Đối tác sẽ ngừng hoạt động và không được chọn cho phiếu giao mới. Các phiếu giao đã có vẫn được giữ nguyên."
-            : "Đối tác sẽ được khôi phục hoạt động để có thể chọn cho phiếu giao mới."}
+            ? 'Đối tác sẽ ngừng hoạt động và không được chọn cho phiếu giao mới. Các phiếu giao đã có vẫn được giữ nguyên.'
+            : 'Đối tác sẽ được khôi phục hoạt động để có thể chọn cho phiếu giao mới.'}
         </p>
 
         {error && (
-          <p role="alert" style={{ color: "#c91f25", marginTop: 12 }}>
+          <p role="alert" style={{ color: '#c91f25', marginTop: 12 }}>
             {error}
           </p>
         )}
@@ -1400,13 +1281,11 @@ function ConfirmActionModal({
 
         <button
           type="button"
-          className={`partner-btn partner-btn--${
-            suspending ? "danger" : "success"
-          }`}
+          className={`partner-btn partner-btn--${suspending ? 'danger' : 'success'}`}
           disabled={busy}
           onClick={onConfirm}
         >
-          {busy ? "ĐANG XỬ LÝ..." : "XÁC NHẬN"}
+          {busy ? 'ĐANG XỬ LÝ...' : 'XÁC NHẬN'}
         </button>
       </footer>
     </PartnerDialog>

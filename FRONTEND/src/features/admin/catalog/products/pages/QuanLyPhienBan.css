@@ -9,66 +9,6 @@
   background: #f7f7f7;
 }
 
-.version-page__inner {
-  width: 100%;
-  min-width: 0;
-  max-width: 100%;
-  padding: 0 22px 32px;
-}
-
-.version-breadcrumb {
-  height: 42px;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  color: #9a9ca2;
-  font-size: 12px;
-  border-bottom: 1px solid #e2e2e2;
-}
-
-.version-breadcrumb strong {
-  color: var(--color-brand-red);
-  font-weight: 700;
-}
-
-.version-toolbar {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  min-height: 72px;
-  padding: 12px 4px;
-  border-bottom: 2px solid #111;
-}
-
-.version-search {
-  width: min(480px, 42vw);
-  height: 42px;
-  display: flex;
-  align-items: center;
-  gap: 11px;
-  padding: 0 13px;
-  background: #fff;
-  border: 1px solid #cfd1d4;
-  color: #9a9da3;
-}
-
-.version-search:focus-within {
-  border-color: #111;
-}
-
-.version-search input {
-  flex: 1;
-  min-width: 0;
-  height: 100%;
-  font-size: 14px;
-  color: #111;
-  background: transparent;
-}
-
-.version-search input::placeholder {
-  color: #a7a9ad;
-}
-
 .version-select-wrap {
   position: relative;
 }
@@ -84,25 +24,6 @@
   font-size: 13px;
   font-weight: 650;
   cursor: pointer;
-}
-
-.version-export {
-  height: 42px;
-  margin-left: auto;
-  padding: 0 19px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  background: #080808 !important;
-  color: #fff;
-  font-size: 12px;
-  font-weight: 800;
-  letter-spacing: 0.02em;
-}
-
-.version-export:hover {
-  background: #2a2a2a !important;
 }
 
 .version-warning {
@@ -132,71 +53,99 @@
 }
 
 .version-table-shell {
-  width: 100%;
+  --admin-table-header-height: 44px;
+}
+
+.admin-app .version-page .admin-table-scroll > .version-table {
+  min-width: 960px;
+}
+
+.admin-app .version-page .admin-table-scroll > .version-table th {
+  padding-inline: 10px;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  letter-spacing: 0.03em;
+}
+
+.admin-app .version-page .admin-table-scroll > .version-table td {
+  height: 54px;
+  padding: 8px 10px;
+  font-weight: var(--admin-weight-regular, 400);
+}
+
+.version-page .version-table th:nth-child(2) {
+  width: 64px;
+}
+.version-page .version-table th:nth-child(3) {
+  width: 12%;
+}
+.version-page .version-table th:nth-child(6) {
+  width: 12%;
+}
+.version-page .version-table th:nth-child(7) {
+  width: 9%;
+}
+.version-page .version-table th:nth-child(8) {
+  width: 13%;
+}
+.version-page .version-table th:nth-child(9) {
+  width: 1%;
+}
+
+.admin-app
+  .version-page
+  .admin-table-scroll
+  > .version-table
+  :is(th, td):is(:nth-child(6), :nth-child(7)) {
+  text-align: right;
+}
+
+.version-page .version-thumb {
+  width: 38px;
+  height: 38px;
+}
+
+.version-page :is(.version-code, .version-type, .version-location) {
   max-width: 100%;
-  overflow-x: auto;
-  border: 1px solid #dedede;
-  background: #fff;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
-.version-table {
-  width: 100%;
-  border-collapse: collapse;
-  table-layout: auto;
+.version-page :is(.version-code, .version-location) {
+  font-weight: var(--admin-weight-medium, 500);
 }
 
-.version-table thead {
-  height: 44px;
-  background: #090909;
-  color: #fff;
+.version-page
+  :is(.version-name, .version-type, .version-available, .version-actual, .version-thumb) {
+  font-weight: var(--admin-weight-semibold, 600);
 }
 
-.version-table th {
-  padding: 0 12px;
-  text-align: left;
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
+.version-page :is(.version-name, .version-meta) {
+  overflow-wrap: anywhere;
+}
+
+.version-page .version-meta {
+  color: #64748b;
+}
+
+.version-page .version-available:not(.version-available--negative) {
+  justify-content: flex-end;
+}
+
+.version-page .version-available--positive {
+  color: #168314;
+}
+
+.admin-app .version-page .admin-table-scroll > .version-table tr.version-table__row--negative {
+  background: #fff0f0;
+}
+
+.version-page .admin-list-detail-action {
   white-space: nowrap;
 }
 
-.version-table th:nth-child(2) {
-  width: 78px;
-}
-.version-table th:nth-child(3) {
-  width: 130px;
-}
-.version-table th:nth-child(4) {
-  width: 38%;
-}
-.version-table th:nth-child(5) {
-  width: 112px;
-}
-.version-table th:nth-child(6),
-.version-table th:nth-child(7) {
-  width: 110px;
-}
-.version-table th:nth-child(8) {
-  width: 126px;
-}
-.version-table th:nth-child(9) {
-  width: 98px;
-}
-
-.version-table td {
-  height: 64px;
-  padding: 9px 12px;
-  border-bottom: 1px solid #e6e6e6;
-  color: #111;
-  font-size: 13px;
-  vertical-align: middle;
-}
-
-.version-table tbody tr:last-child td {
-  border-bottom: 0;
-}
-.version-table tbody tr:hover {
-  background: #fafafa;
+.version-page .admin-list-toolbar {
+  flex-wrap: wrap;
 }
 
 .version-table__check {
@@ -315,22 +264,6 @@
   font-size: 13px;
 }
 
-.version-detail {
-  min-width: 70px;
-  height: 30px;
-  padding: 0 10px;
-  border: 2px solid var(--color-brand-red) !important;
-  background: #fff !important;
-  color: var(--color-brand-red);
-  font-size: 10px;
-  font-weight: 800;
-}
-
-.version-detail:hover {
-  background: var(--color-brand-red) !important;
-  color: #fff;
-}
-
 .version-selection-strip {
   min-height: 44px;
   margin-bottom: 10px;
@@ -371,19 +304,6 @@
 }
 
 @media (max-width: 900px) {
-  .version-page__inner {
-    min-width: 0;
-    padding: 0 14px 24px;
-  }
-  .version-toolbar {
-    flex-wrap: wrap;
-  }
-  .version-search {
-    width: 100%;
-  }
-  .version-export {
-    margin-left: 0;
-  }
   .version-table-shell {
     width: 100%;
   }

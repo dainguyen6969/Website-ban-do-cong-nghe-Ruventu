@@ -1,3 +1,4 @@
+import { scaledFontSize } from '../../../../typography/projectFontSize.js';
 // Admin order screen: DatHangOnline.
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -20,6 +21,7 @@ import './DatHangOnline.css';
 import { canEditOnlineOrder, getOrder } from '../api/orderApi';
 import OrderModal from '../components/OrderModal';
 import { errorMessage, withIdempotency } from '../../../../shared/services/mutationUtils';
+import { FormDropdown } from "../../../../shared/components/ui/FilterDropdown";
 
 const money = new Intl.NumberFormat('vi-VN', {
   style: 'currency',
@@ -694,9 +696,9 @@ export default function DatHangOnline() {
       <div className="online-order-hero">
         <div>
           <nav>
-            ĐƠN HÀNG <span>/</span> ĐẶT HÀNG ONLINE
+            ĐƠN HÀNG <span>/</span> {editId ? 'CHỈNH SỬA ĐƠN HÀNG ONLINE' : 'TẠO ĐƠN CHỜ HÀNG'}
           </nav>
-          <h1>{editId ? 'CHỈNH SỬA ĐƠN HÀNG ONLINE' : 'TẠO ĐƠN HÀNG ONLINE'}</h1>
+          <h1>{editId ? 'CHỈNH SỬA ĐƠN HÀNG ONLINE' : 'TẠO ĐƠN CHỜ HÀNG'}</h1>
           <p>LÊN ĐƠN THỦ CÔNG CHO KHÁCH HÀNG VÀ KIỂM TRA GIÁ / TỒN / KHUYẾN MẠI TRƯỚC KHI LƯU</p>
         </div>
         <button
@@ -801,7 +803,7 @@ export default function DatHangOnline() {
               />
               <div className="online-field">
                 <span>TỈNH / THÀNH PHỐ *</span>
-                <select
+                <FormDropdown aria-label="TỈNH / THÀNH PHỐ"
                   value={recipient.province}
                   onChange={(e) => handleProvinceChange(e.target.value)}
                 >
@@ -810,11 +812,11 @@ export default function DatHangOnline() {
                       {prov}
                     </option>
                   ))}
-                </select>
+                </FormDropdown>
               </div>
               <div className="online-field">
                 <span>QUẬN / HUYỆN / PHƯỜNG *</span>
-                <select
+                <FormDropdown aria-label="QUẬN / HUYỆN / PHƯỜNG"
                   value={recipient.ward}
                   onChange={(e) => updateRecipient('ward', e.target.value)}
                 >
@@ -823,7 +825,7 @@ export default function DatHangOnline() {
                       {w}
                     </option>
                   ))}
-                </select>
+                </FormDropdown>
               </div>
               <div
                 className={`online-field online-field--wide ${
@@ -843,7 +845,7 @@ export default function DatHangOnline() {
                     alignItems: 'center',
                   }}
                 >
-                  <span className="field-label" style={{ color: '#333', fontSize: '9px', fontWeight: 900 }}>
+                  <span className="field-label" style={{ color: '#333', fontSize: scaledFontSize(9), fontWeight: 900 }}>
                     {`ĐỊA CHỈ CỤ THỂ${delivery === 'GIAO_HANG' ? ' *' : ''}`}
                   </span>
                   <button
@@ -854,7 +856,7 @@ export default function DatHangOnline() {
                       background: 'transparent',
                       border: 'none',
                       color: '#f11919',
-                      fontSize: '10px',
+                      fontSize: scaledFontSize(10),
                       fontWeight: 800,
                       cursor: locatingUser ? 'not-allowed' : 'pointer',
                       display: 'flex',
@@ -1146,6 +1148,7 @@ function Section({ n, title, children, disabled = false }) {
     <section className="online-section">
       <header>
         <h2>
+          <i aria-hidden="true" />
           {n}. {title}
         </h2>
       </header>
@@ -1310,7 +1313,10 @@ function Summary({
 }) {
   return (
     <aside className="order-summary">
-      <h2>TỔNG KẾT ĐƠN HÀNG</h2>
+      <h2>
+        <i aria-hidden="true" />
+        TỔNG KẾT ĐƠN HÀNG
+      </h2>
       <div className="summary-body">
         <SummaryLine label="Tiền hàng" value={data ? formatMoney(data.tong_tien_hang) : '—'} />
         <SummaryLine
@@ -1361,7 +1367,7 @@ function Summary({
               ? 'THỬ LẠI YÊU CẦU'
               : edit
                 ? 'LƯU THAY ĐỔI'
-                : 'ĐẶT HÀNG'}
+                : 'TẠO ĐƠN CHỜ HÀNG'}
         </button>
       </div>
     </aside>

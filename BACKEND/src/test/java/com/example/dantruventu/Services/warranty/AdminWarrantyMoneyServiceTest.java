@@ -32,7 +32,14 @@ class AdminWarrantyMoneyServiceTest {
     LoaiThuChiRepository types = mock(LoaiThuChiRepository.class);
     WarrantyMoneySources sources = new WarrantyMoneySources(history);
     CashbookService cashbook =
-        new CashbookService(cashRepository, types, dedup, JSON, mock(OrderEvents.class));
+        new CashbookService(
+            cashRepository,
+            types,
+            dedup,
+            JSON,
+            mock(OrderEvents.class),
+            mock(org.springframework.jdbc.core.JdbcTemplate.class),
+            mock(com.example.dantruventu.Services.documents.DocumentNumberService.class));
     WarrantyMoneyTransactions moneyTransactions;
     AdminWarrantyMoneyService moneyService;
     long nextCashId = 10000;

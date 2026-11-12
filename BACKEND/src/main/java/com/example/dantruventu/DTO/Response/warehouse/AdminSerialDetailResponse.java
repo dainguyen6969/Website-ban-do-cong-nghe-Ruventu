@@ -19,6 +19,9 @@ public class AdminSerialDetailResponse {
   @JsonProperty("phien_ban_id")
   private Long phienBanId;
 
+  @JsonProperty("san_pham_id")
+  private Long sanPhamId;
+
   @JsonProperty("ma_san_pham")
   private String maSanPham;
 

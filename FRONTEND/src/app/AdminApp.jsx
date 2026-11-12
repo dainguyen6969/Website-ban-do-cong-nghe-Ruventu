@@ -95,6 +95,8 @@ export default function AdminApp() {
               className="app-layout admin-app"
               style={{
                 '--font-family-admin': fontPreference.font.family,
+                '--font-family-base': fontPreference.font.family,
+                '--project-font-family': fontPreference.font.family,
                 '--project-font-scale': fontPreference.fontSize / 14,
               }}
             >
@@ -240,6 +242,10 @@ export default function AdminApp() {
                       element={<ChiTietKhuyenMai />}
                     />
                     <Route path="/admin/khuyen-mai/tao-khuyen-mai" element={<TaoKhuyenMai />} />
+                    <Route
+                      path="/admin/khuyen-mai/tao-moi"
+                      element={<Navigate to="/admin/khuyen-mai/tao-khuyen-mai" replace />}
+                    />
 
                     <Route
                       path="/admin/so-quy-tien-mat"

@@ -219,6 +219,14 @@ public final class AdminReturnResponse {
     @JsonProperty("hinh_thuc_hoan_tien")
     private String hinhThucHoanTien;
 
+    @JsonProperty("ngay_tao")
+    @JsonFormat(
+        shape = JsonFormat.Shape.STRING,
+        pattern = "yyyy-MM-dd'T'HH:mm:ssXXX",
+        timezone = "Asia/Ho_Chi_Minh",
+        without = JsonFormat.Feature.ADJUST_DATES_TO_CONTEXT_TIME_ZONE)
+    private OffsetDateTime ngayTao;
+
     @JsonFormat(
         shape = JsonFormat.Shape.STRING,
         pattern = "yyyy-MM-dd'T'HH:mm:ssXXX",

@@ -9,6 +9,7 @@ import './NhapHang.css';
 import OrderModal from '../../orders/components/OrderModal';
 import SupplierCasePanel from '../components/SupplierCasePanel';
 import PurchaseSourcePanel from '../../inventory/recall/PurchaseSourcePanel';
+import { SERIAL_STATUS_META } from '../../inventory/api/serialStatus';
 import DocumentPanel from '../../documents/DocumentPanel';
 
 import {
@@ -30,6 +31,7 @@ import {
   receivePurchaseRefund,
   returnPurchaseOrder,
 } from '../api/purchaseOrderApi';
+import { FormDropdown } from '../../../../shared/components/ui/FilterDropdown';
 
 const METHODS = [
   ['CHUYEN_KHOAN', 'Chuyển khoản'],
@@ -575,34 +577,41 @@ export default function ChiTietNhapHang() {
         <div className="purchase-detail-main">
           <section className="purchase-section" hidden={detailTab !== 'overview'}>
             <PurchaseCard title="SẢN PHẨM TRONG ĐƠN NHẬP">
-              <table className="purchase-detail-table">
-                <thead>
-                  <tr>
-                    <th>PHIÊN BẢN</th>
-                    <th>SL ĐẶT</th>
-                    <th>ĐƠN GIÁ NHẬP</th>
-                    <th>THÀNH TIỀN</th>
-                    <th>ĐÃ NHẬP</th>
-                    <th>ĐÃ TRẢ</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {pagination.visibleItems.map((item) => (
-                    <tr key={item.id}>
-                      <td>
-                        <strong>{item.name}</strong>
-                      </td>
-                      <td>{item.qty}</td>
-                      <td>{money(item.unitPrice)}</td>
-                      <td>{money(item.lineTotal)}</td>
-                      <td className="received">
-                        {item.received} <span>/ {item.qty}</span>
-                      </td>
-                      <td>{item.returned}</td>
+              <div
+                className="purchase-detail-table-scroll"
+                role="region"
+                aria-label="Bảng sản phẩm trong đơn nhập"
+                tabIndex={0}
+              >
+                <table className="purchase-detail-table">
+                  <thead>
+                    <tr>
+                      <th>PHIÊN BẢN</th>
+                      <th>SL ĐẶT</th>
+                      <th>ĐƠN GIÁ NHẬP</th>
+                      <th>THÀNH TIỀN</th>
+                      <th>ĐÃ NHẬP</th>
+                      <th>ĐÃ TRẢ</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {pagination.visibleItems.map((item) => (
+                      <tr key={item.id}>
+                        <td>
+                          <strong>{item.name}</strong>
+                        </td>
+                        <td>{item.qty}</td>
+                        <td>{money(item.unitPrice)}</td>
+                        <td>{money(item.lineTotal)}</td>
+                        <td className="received">
+                          {item.received} <span>/ {item.qty}</span>
+                        </td>
+                        <td>{item.returned}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
               <DetailTablePagination
                 totalItems={order.items.length}
                 currentPage={pagination.currentPage}
@@ -643,7 +652,9 @@ export default function ChiTietNhapHang() {
                               </Link>
                             </td>
                             <td>
-                              <span>
+                              <span
+                                className={`serial-status serial-status--${SERIAL_STATUS_META[serial.status]?.key ?? 'unknown'}`}
+                              >
                                 {RECEIVED_SERIAL_LABELS[serial.status] || 'Chưa xác định'}
                               </span>
                               {serial.packingHeld && <small>Đang phân bổ đóng gói</small>}
@@ -766,7 +777,7 @@ export default function ChiTietNhapHang() {
                     <dd>{order.refunded == null ? 'Chưa xác định' : money(order.refunded)}</dd>
                   </div>
 
-                  <div className="purchase-finance__paid">
+                  <div className={order.netPaid > 0 ? 'purchase-finance__paid' : undefined}>
                     <dt>ĐÃ THANH TOÁN SAU HOÀN TIỀN</dt>
                     <dd>{order.netPaid == null ? 'Chưa xác định' : money(order.netPaid)}</dd>
                   </div>
@@ -1025,7 +1036,6 @@ export default function ChiTietNhapHang() {
                 </article>
               );
             })}
-
           </div>
 
           {purchaseAttempt.current?.scope === receiptScope && (
@@ -1501,13 +1511,17 @@ function PurchaseOperationDialog({ kind, order, returnable, attempt, busy, error
         <>
           <label className="order-operation-field">
             <span>PHƯƠNG THỨC</span>
-            <select value={form.method} onChange={(event) => change('method', event.target.value)}>
+            <FormDropdown
+              aria-label="PHƯƠNG THỨC"
+              value={form.method}
+              onChange={(event) => change('method', event.target.value)}
+            >
               {METHODS.map(([code, text]) => (
                 <option key={code} value={code}>
                   {text}
                 </option>
               ))}
-            </select>
+            </FormDropdown>
           </label>
 
           <label className="order-operation-field">

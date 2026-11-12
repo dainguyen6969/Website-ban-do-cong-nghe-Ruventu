@@ -287,14 +287,14 @@
 .combo-field:last-child {
   margin-bottom: 0;
 }
-.combo-field label {
+.combo-field :is(label, .combo-field__label) {
   display: block;
   margin-bottom: 7px;
   font-size: 10px;
   font-weight: 800;
   letter-spacing: 0.05em;
 }
-.combo-field label i {
+.combo-field :is(label, .combo-field__label) i {
   color: #e31e24;
   font-style: normal;
 }

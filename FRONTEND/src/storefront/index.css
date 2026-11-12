@@ -20,7 +20,7 @@ html:has(.storefront-app) body {
   background-color: var(--bg-light);
   color: var(--text-dark);
   line-height: 1.5;
-  overflow-x: hidden;
+  overflow-x: clip;
 }
 
 :where(.storefront-app) a {
