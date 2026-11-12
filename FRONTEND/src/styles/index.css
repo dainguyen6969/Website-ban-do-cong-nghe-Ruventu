@@ -989,31 +989,6 @@ html:has(.storefront-app) {
   font-size: 10px;
 }
 
-/* Tiến độ nhập kho */
-.admin-app .purchase-detail-page.ruventu-ops .progress-stats {
-  flex-wrap: wrap;
-  gap: 16px 24px;
-}
-
-.admin-app .purchase-detail-page.ruventu-ops .progress-stats b {
-  font-size: 18px;
-  font-weight: var(--admin-weight-bold, 700);
-  line-height: 1.2;
-}
-
-.admin-app .purchase-detail-page.ruventu-ops .progress-stats span {
-  margin-top: 4px;
-  font-size: 9px;
-  font-weight: var(--admin-weight-medium, 500);
-  letter-spacing: 0.06em;
-  color: #475569;
-}
-
-.admin-app .purchase-detail-page.ruventu-ops .progress-line > span {
-  font-size: 12px;
-  font-weight: var(--admin-weight-semibold, 600);
-}
-
 /* Thanh toán và công nợ */
 .admin-app .purchase-detail-page.ruventu-ops .purchase-finance {
   display: grid;

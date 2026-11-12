@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { HiOutlinePlus, HiOutlineSearch } from 'react-icons/hi';
 
 import TablePagination from '../../../../shared/components/ui/TablePagination';
@@ -285,7 +285,13 @@ export default function DanhSachNhapHang() {
                 <tr key={order.id} className={order.importStatus === 'HUY' ? 'cancelled' : ''}>
                   {/* Mã đơn nhập */}
                   <td>
-                    <strong>{order.code}</strong>
+                    {loading ? (
+                      <span className="purchase-order-code">{order.code}</span>
+                    ) : (
+                      <Link className="purchase-order-code" to={`/kho-hang/nhap-hang/${order.id}`}>
+                        {order.code}
+                      </Link>
+                    )}
                   </td>
 
                   {/* Nhà cung cấp */}
