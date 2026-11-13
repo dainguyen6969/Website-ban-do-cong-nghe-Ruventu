@@ -103,6 +103,7 @@ export function WarrantyDialog({
   onClose,
   blocked = false,
   closeLabel = 'Đóng',
+  footer,
   children,
 }) {
   const ref = useRef(null);
@@ -131,11 +132,19 @@ export function WarrantyDialog({
           <h2 id={titleId}>{title}</h2>
           {subtitle && <p>{subtitle}</p>}
         </div>
-        <button type="button" className="w-shell-button" disabled={blocked} onClick={onClose}>
-          {closeLabel}
+        <button
+          type="button"
+          className="w-shell-button"
+          aria-label={closeLabel}
+          title={closeLabel}
+          disabled={blocked}
+          onClick={onClose}
+        >
+          ×
         </button>
       </header>
       <div className="w-warranty-dialog-body">{children}</div>
+      {footer && <footer className="w-warranty-dialog-footer">{footer}</footer>}
     </dialog>
   );
 }

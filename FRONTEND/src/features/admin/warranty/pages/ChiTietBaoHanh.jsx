@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, Link } from 'react-router-dom';
 import {
   ArrowLeft,
   SquareCheck as CheckCircle2,
@@ -66,7 +66,211 @@ const groups = {
   3: { plan: 'Phương án đổi', items: 'Thiết bị thay thế', settlement: 'Đối soát nhà cung cấp' },
 };
 
-const stages = ['Tiếp nhận', 'Kiểm tra', 'Xử lý / nhận về', 'Chờ trả khách', 'Hoàn tất'];
+const sameWarrantyId = (a, b) => a != null && b != null && String(a) === String(b);
+
+function warrantyProgress(detail) {
+  const status = detail.trang_thai_xu_ly;
+  const custody = detail.noi_dang_giu;
+  const held = custody?.loai;
+  const next = detail.xu_ly_tiep?.thao_tac || [];
+  const plan = detail.phuong_an_doi;
+  const quote = detail.bao_gia?.at(-1);
+  const invoice = detail.hoa_don;
+  const activePlan = plan && plan.da_huy !== true && plan.quyet_dinh_khach !== 'TU_CHOI';
+  const exchangeRoute =
+    plan?.nguon === 'DON_VI_BAO_HANH'
+      ? 'Đổi từ đơn vị bảo hành'
+      : plan?.nguon === 'TON_KHO_CUA_HANG'
+        ? 'Đổi từ kho cửa hàng'
+        : 'Đổi bảo hành';
+
+  const sent = (detail.giao_nhan || []).findLast(
+    (event) =>
+      event.su_kien === 'GUI_DON_VI' && sameWarrantyId(event.thiet_bi_id, detail.thiet_bi?.id)
+  );
+  const trip = activeWarrantyTrip(detail);
+  const returned = status === 'DA_NHAN_LAI' || Boolean(sent && !trip);
+  const inspected = Boolean(detail.ket_luan?.length);
+  const first = inspected ? ['Tiếp nhận', 'Kết luận kiểm tra'] : ['Tiếp nhận'];
+  const supplierSteps = sent ? ['Tiếp nhận', 'Gửi đơn vị'] : ['Tiếp nhận'];
+
+  const quoteStep = next.includes('SEND_QUOTE')
+    ? 'Gửi báo giá'
+    : next.some((key) => ['ACCEPT_QUOTE', 'REJECT_QUOTE'].includes(key))
+      ? 'Chờ khách phản hồi báo giá'
+      : next.includes('QUOTE') && quote?.trang_thai === 'CHO_PHAN_HOI'
+        ? 'Lập lại báo giá'
+        : '';
+  const paid =
+    Number(invoice?.tong_tien) > 0 &&
+    (detail.bao_gia || []).some(
+      (item) =>
+        item.trang_thai === 'DONG_Y' && sameWarrantyId(item.phien_ban, invoice.phien_ban_bao_gia)
+    );
+  const path = (route, reached, current, future = []) => ({
+    route,
+    steps: [...reached, current, ...future],
+    current: reached.length,
+  });
+
+  if (status === 'TIEP_NHAN') return path('Tiếp nhận', [], 'Tiếp nhận', ['Kiểm tra']);
+
+  const finished = status === 'HOAN_TAT';
+  if (finished || status === 'CHO_TRA_KHACH') {
+    const result = detail.ket_qua_xu_ly;
+    const exchanged = finished
+      ? plan?.da_ban_giao === true || result === 'DOI_SAN_PHAM'
+      : activePlan && sameWarrantyId(custody?.thiet_bi_id, plan.thiet_bi_thay_the_id);
+    const unrepaired = ['KHONG_THUC_HIEN_SUA', 'KHONG_SUA_DUOC'].includes(result);
+    const route = exchanged
+      ? exchangeRoute
+      : sent && returned
+        ? 'Qua đơn vị bảo hành'
+        : unrepaired
+          ? 'Trả thiết bị gốc'
+          : paid
+            ? 'Xử lý có phí'
+            : 'Xử lý tại cửa hàng';
+    const reached = exchanged
+      ? [...first, 'Có thiết bị thay thế']
+      : sent && returned
+        ? [...supplierSteps, 'Nhận lại']
+        : paid
+          ? [...first, 'Báo giá đã duyệt']
+          : first;
+    const device = exchanged
+      ? 'hàng đổi'
+      : result === 'SUA_THANH_CONG'
+        ? 'thiết bị đã sửa'
+        : unrepaired
+          ? 'thiết bị gốc'
+          : 'thiết bị';
+    const destination = (finished ? 'Đã bàn giao ' : 'Chờ bàn giao ') + device;
+
+    return !finished && next.includes('THU_KHACH')
+      ? path(route, reached, 'Còn phải thu', [destination])
+      : path(route, reached, destination);
+  }
+
+  if (activePlan) {
+    if (plan.da_duyet !== true)
+      return path(exchangeRoute, first, 'Phê duyệt phương án', ['Chốt với khách']);
+    const approved = [...first, 'Phương án đã duyệt'];
+    if (plan.khach_dong_y !== true)
+      return path(exchangeRoute, approved, quoteStep || 'Chờ khách xác nhận đổi');
+    const agreed = [...approved, 'Khách đồng ý đổi'];
+    if (plan.thiet_bi_thay_the_id != null)
+      return path(exchangeRoute, [...agreed, 'Có hàng đổi'], 'Kiểm tra hàng đổi', [
+        'Chờ giao hàng đổi',
+      ]);
+    return path(
+      exchangeRoute,
+      agreed,
+      plan.nguon === 'DON_VI_BAO_HANH'
+        ? 'Nhận hàng đơn vị cấp'
+        : next.includes('ISSUE')
+          ? 'Xuất hàng đổi'
+          : 'Chuẩn bị hàng trong kho',
+      ['Kiểm tra hàng đổi']
+    );
+  }
+
+  if (trip?.wrong)
+    return path('Qua đơn vị bảo hành', supplierSteps, 'Chờ nhận đúng thiết bị', ['Kiểm tra lại']);
+
+  if (['DANG_VAN_CHUYEN', 'DON_VI_BAO_HANH'].includes(held) || status === 'DA_GUI_BAO_HANH') {
+    const step = next.includes('YEU_CAU_THU_HOI')
+      ? 'Yêu cầu lấy lại'
+      : next.includes('NHAN_LAI')
+        ? 'Chờ nhận lại'
+        : held === 'DON_VI_BAO_HANH'
+          ? 'Đơn vị đang xử lý'
+          : 'Chờ đơn vị nhận';
+    return path(
+      'Qua đơn vị bảo hành',
+      supplierSteps,
+      step,
+      step === 'Chờ nhận lại' ? ['Kiểm tra lại'] : ['Nhận lại', 'Kiểm tra lại']
+    );
+  }
+
+  if (
+    status === 'DA_NHAN_LAI' ||
+    (returned &&
+      status === 'DANG_KIEM_TRA' &&
+      !quoteStep &&
+      !next.includes('THU_KHACH') &&
+      !next.includes('BAT_DAU_CONG_VIEC'))
+  )
+    return path('Kiểm tra sau nhận lại', [...supplierSteps, 'Nhận lại'], 'Kiểm tra lại', [
+      'Chờ trả khách',
+    ]);
+
+  if (quoteStep) return path('Báo giá', first, quoteStep);
+  if (
+    next.includes('THU_KHACH') ||
+    next.includes('BAT_DAU_CONG_VIEC') ||
+    (paid && status === 'DANG_BAO_HANH')
+  ) {
+    const step = next.includes('THU_KHACH')
+      ? 'Chờ thu tiền'
+      : next.includes('BAT_DAU_CONG_VIEC')
+        ? 'Bắt đầu xử lý'
+        : 'Đang xử lý';
+    return path('Xử lý có phí', paid ? [...first, 'Báo giá đã duyệt'] : first, step, [
+      'Chờ trả khách',
+    ]);
+  }
+
+  if (status === 'CHO_DOI_SAN_PHAM') return path('Đổi bảo hành', first, 'Đối chiếu phương án');
+  if (status === 'DANG_BAO_HANH')
+    return path('Xử lý tại cửa hàng', first, 'Đang xử lý', ['Chờ trả khách']);
+  return path('Kiểm tra tại cửa hàng', first, inspected ? 'Chọn hướng xử lý' : 'Kiểm tra');
+}
+
+function TrackedWarrantyDevice({ device }) {
+  if (!device) return <p className="w-shell-note">Chưa có thông tin thiết bị.</p>;
+
+  const recordLink = (base, id, label) => {
+    const key = String(id ?? '');
+    return /^[1-9]\d*$/.test(key) ? (
+      <Link className="w-device-link" to={base + '/' + key}>
+        {label}
+      </Link>
+    ) : (
+      label
+    );
+  };
+
+  return (
+    <div className="w-tracked-device">
+      <WarrantyFields
+        fields={[
+          ['Sản phẩm', device.ten_san_pham],
+          [
+            'Phiên bản',
+            recordLink(
+              '/kho-hang/quan-ly-phien-ban/chi-tiet',
+              device.phien_ban_id,
+              device.ten_phien_ban || (device.phien_ban_id ? 'Xem phiên bản' : '—')
+            ),
+          ],
+          [
+            'Serial',
+            recordLink(
+              '/kho-hang/danh-sach-serial',
+              device.so_serial_id,
+              device.so_serial || (device.so_serial_id ? 'Xem serial' : 'Không có serial')
+            ),
+          ],
+          ['Hạn bảo hành', displayDate(device.han_bao_hanh)],
+          ...(device.ma_theo_doi ? [['Mã theo dõi', device.ma_theo_doi]] : []),
+          ...(device.can_cu_tinh_han ? [['Căn cứ tính hạn', device.can_cu_tinh_han]] : []),
+        ]}
+      />
+    </div>
+  );
+}
 
 export default function ChiTietBaoHanh() {
   const { id } = useParams();
@@ -162,6 +366,8 @@ function WarrantyDetail({ id }) {
   const plan = data.phuong_an_doi;
   const custody = data.noi_dang_giu;
   const guide = workflowGuide(data);
+  const progress = warrantyProgress(data);
+  const trackedDevice = data.thiet_bi_hien_hanh ?? data.thiet_bi;
   const invoices = [invoice, ...(data.hoa_don_da_huy || [])].filter(Boolean);
   const refundTotal = invoices.reduce((total, item) => total + Number(item.con_phai_hoan ?? 0), 0);
 
@@ -633,14 +839,23 @@ function WarrantyDetail({ id }) {
         </p>
       )}
       <div className="w-detail-overview">
-        <ol className="w-ticket-steps" aria-label="Giai đoạn hiện tại">
-          {stages.map((label, index) => (
-            <li key={label} aria-current={guide.step === index ? 'step' : undefined}>
-              <span>{index + 1}</span>
-              <strong>{label}</strong>
-            </li>
-          ))}
-        </ol>
+        <div className="w-ticket-route">
+          <p className="w-ticket-route-label">
+            Hiện tại: <strong>{progress.route}</strong>
+          </p>
+          <ol className="w-ticket-steps" aria-label={progress.route} tabIndex={0}>
+            {progress.steps.map((label, index) => (
+              <li
+                key={label}
+                aria-current={index === progress.current ? 'step' : undefined}
+                data-reached={index < progress.current ? '' : undefined}
+              >
+                <span aria-hidden="true">{index + 1}</span>
+                <strong>{label}</strong>
+              </li>
+            ))}
+          </ol>
+        </div>
 
         <section
           className="w-next-step w-guided-workspace w-unified-work"
@@ -874,20 +1089,27 @@ function WarrantyDetail({ id }) {
           <aside>
             <WarrantyPanel title="Tóm tắt phiếu">
               <dl className="w-ticket-summary">
-                <div className={custody?.loai !== 'CUA_HANG' ? 'w-summary-outside' : undefined}>
-                  <dt>Đang giữ thiết bị</dt>
+                <div
+                  className={
+                    ['DANG_VAN_CHUYEN', 'DON_VI_BAO_HANH'].includes(custody?.loai)
+                      ? 'w-summary-outside'
+                      : undefined
+                  }
+                >
+                  <dt>Nơi giữ thiết bị</dt>
                   <dd>
                     <strong>{custodyText}</strong>
+                    {custody?.ten && custody.ten !== custodyText && <small>{custody.ten}</small>}
                   </dd>
                 </div>
                 <div>
-                  <dt>Tiếp nhận</dt>
+                  <dt>Thời điểm tiếp nhận</dt>
                   <dd>
                     <strong>{displayDate(data.ngay_tiep_nhan)}</strong>
                   </dd>
                 </div>
                 <div className={due > 0 ? 'w-summary-due' : undefined}>
-                  <dt>Khách còn phải trả</dt>
+                  <dt>{invoice ? 'Còn phải thu' : 'Thanh toán'}</dt>
                   <dd>
                     <strong>{invoice ? money(due) : 'Chưa có hóa đơn'}</strong>
                   </dd>
@@ -926,30 +1148,15 @@ function WarrantyDetail({ id }) {
               )}
             </WarrantyPanel>
             <WarrantyPanel title="Thiết bị đang theo dõi">
-              <div className="w-device-card">
-                <strong>
-                  {data.thiet_bi_hien_hanh?.so_serial ||
-                    data.thiet_bi?.so_serial ||
-                    data.thiet_bi?.ma_theo_doi}
-                </strong>
-              </div>
-              <WarrantyFields
-                fields={[
-                  [
-                    'Hạn bảo hành',
-                    displayDate(
-                      data.thiet_bi_hien_hanh?.han_bao_hanh || data.thiet_bi?.han_bao_hanh
-                    ),
-                  ],
-                ]}
-              />
-              <details className="w-reference-details">
-                <summary>Thông tin đối chiếu thiết bị</summary>
-                <WarrantySnapshot value={data.thiet_bi} />
-                {data.thiet_bi_hien_hanh?.id !== data.thiet_bi?.id && (
-                  <WarrantySnapshot value={data.thiet_bi_hien_hanh} />
+              <TrackedWarrantyDevice device={trackedDevice} />
+              {data.thiet_bi &&
+                trackedDevice &&
+                !sameWarrantyId(data.thiet_bi.id, trackedDevice.id) && (
+                  <details className="w-reference-details">
+                    <summary>Thiết bị gốc</summary>
+                    <TrackedWarrantyDevice device={data.thiet_bi} />
+                  </details>
                 )}
-              </details>
             </WarrantyPanel>
           </aside>
         </div>

@@ -1,5 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
-import { SquareCheck as CheckCircle2, MessageSquareText as Info } from 'lucide-react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { getWarrantyHistory, mutateWarranty, warrantyError } from '../api/warrantyApi';
 import {
   actionBody,
@@ -21,9 +20,7 @@ import {
 } from '../data/warrantyExperience';
 import { getSupplierOptions } from '../../purchasing/api/purchaseOrderApi';
 import { getAllVersions } from '../../catalog/products/api/versionApi';
-import { displayValue } from './WarrantySnapshot';
-import { WarrantyFields, WarrantyDialog } from './WarrantyShell';
-import { FormDropdown } from '../../../../shared/components/ui/FilterDropdown';
+import { WarrantyDialog } from './WarrantyShell';
 import { displayDate } from '../data/warrantyContract';
 
 function InputField({
@@ -297,8 +294,6 @@ export default function WarrantyActionForm({
 }) {
   const [defaults] = useState(() => initialActionValues(operation, ticket, quoteVersion));
   const values = draft ?? defaults;
-  const [confirm, setConfirm] = useState(false);
-  const [confirmed, setConfirmed] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [body, setBody] = useState(null);
@@ -316,14 +311,17 @@ export default function WarrantyActionForm({
     [referencesLoading, setReferencesLoading] = useState(false),
     [referenceReload, setReferenceReload] = useState(0);
 
-  const reviewRequired = !['BAT_DAU_KIEM_TRA', 'KIEM_TRA_TIEP', 'CAP_NHAT_TIEN_DO'].includes(
-    operation.key
-  );
-  const reviewHeading = useRef(null);
-
-  useEffect(() => {
-    if (confirm) reviewHeading.current?.focus();
-  }, [confirm]);
+  const formId = useId();
+  const hasHandoverCheck = operation.fields.includes('xac_nhan_khach');
+  const needsConfirmation =
+    !hasHandoverCheck &&
+    !['BAT_DAU_KIEM_TRA', 'KIEM_TRA_TIEP', 'CAP_NHAT_TIEN_DO'].includes(operation.key);
+  const confirmationReady = hasHandoverCheck
+    ? values.xac_nhan_khach === true
+    : !needsConfirmation || confirmed;
+  const dialogBlocked = busy || uncertain;
+  const inputsLocked = disabled || dialogBlocked || referencesLoading;
+  const cannotSubmit = inputsLocked || Boolean(referenceError);
 
   useEffect(() => {
     onLockChange?.(busy || uncertain);
@@ -375,7 +373,11 @@ export default function WarrantyActionForm({
   const prepare = (event) => {
     event.preventDefault();
 
-    if (disabled || submitting.current || uncertain || referencesLoading || referenceError) return;
+    if (cannotSubmit || submitting.current) return;
+    if (!confirmationReady) {
+      setError('Tích xác nhận trước khi ghi nhận.');
+      return;
+    }
 
     try {
       for (const raw of operation.fields) {
@@ -424,15 +426,7 @@ export default function WarrantyActionForm({
         throw new Error('Chọn phiên bản phương án đổi trước khi bàn giao hàng thay thế.');
       }
 
-      if (!reviewRequired) {
-        submit(prepared);
-        return;
-      }
-
-      setBody(prepared);
-      setError('');
-      setConfirmed(false);
-      setConfirm(true);
+      submit(prepared);
     } catch (cause) {
       setError(cause.message);
     }
@@ -462,7 +456,6 @@ export default function WarrantyActionForm({
       );
       request.current = null;
       setUncertain(false);
-      setConfirm(false);
       saved(result);
     } catch (cause) {
       const unknown = !cause.status || cause.status >= 500;
@@ -483,14 +476,43 @@ export default function WarrantyActionForm({
   return (
     <WarrantyDialog
       title={operation.label}
-      subtitle={
+      subtitle={[
+        ticket.ma_phieu,
         operation.endpoint === 'quote-events' && quoteVersion != null
-          ? `Báo giá phiên bản ${quoteVersion}`
-          : undefined
-      }
-      blocked={busy || uncertain}
+          ? 'Báo giá phiên bản ' + quoteVersion
+          : null,
+      ]
+        .filter(Boolean)
+        .join(' · ')}
+      blocked={dialogBlocked}
       onClose={close}
       closeLabel="Đóng, giữ bản nháp"
+      footer={
+        <>
+          <button type="button" className="w-shell-button" disabled={dialogBlocked} onClick={close}>
+            Quay lại
+          </button>
+          {uncertain ? (
+            <button
+              type="button"
+              className="w-shell-button w-shell-button--black"
+              disabled={busy}
+              onClick={() => submit(request.current?.payload)}
+            >
+              {busy ? 'Đang ghi nhận…' : 'Thử lại cùng yêu cầu'}
+            </button>
+          ) : (
+            <button
+              type="submit"
+              form={formId}
+              className="w-shell-button w-shell-button--black"
+              disabled={cannotSubmit || !confirmationReady}
+            >
+              {busy ? 'Đang ghi nhận…' : 'Ghi nhận'}
+            </button>
+          )}
+        </>
+      }
     >
       <section className="w-action-form">
         {blockReason && (
@@ -498,10 +520,12 @@ export default function WarrantyActionForm({
             {blockReason}
           </p>
         )}
-        <p className="w-form-guide">
-          <Info size={18} />
-          {actionHints[operation.key] || 'Điền các mục có dấu *.'}
-        </p>
+
+        <details className="w-operation-note">
+          <summary>Ghi chú thao tác</summary>
+          <p>{actionHints[operation.key] || 'Điền các mục có dấu *.'}</p>
+        </details>
+
         {referencesLoading && <p role="status">Đang tải danh sách lựa chọn…</p>}
         {referenceError && (
           <div className="w-shell-error" role="alert">
@@ -515,11 +539,9 @@ export default function WarrantyActionForm({
             </button>
           </div>
         )}
-        <form onSubmit={prepare} hidden={confirm}>
-          <fieldset
-            disabled={disabled || busy || uncertain || referencesLoading}
-            className="w-action-fields"
-          >
+
+        <form id={formId} onSubmit={prepare}>
+          <fieldset disabled={inputsLocked} className="w-action-fields">
             <div className="w-shell-fields">
               {operation.fields.map((field) => (
                 <InputField
@@ -547,183 +569,37 @@ export default function WarrantyActionForm({
                           }
                         : {}),
                     });
+                    setConfirmed(false);
                     setError('');
                   }}
                 />
               ))}
             </div>
           </fieldset>
-          {!confirm && error && (
+
+          {needsConfirmation && (
+            <label className="w-action-confirm">
+              <input
+                type="checkbox"
+                required
+                checked={confirmed}
+                disabled={inputsLocked}
+                onChange={(event) => setConfirmed(event.target.checked)}
+              />
+              <span>
+                {operation.group === 'money'
+                  ? 'Tôi xác nhận giao dịch tiền này đã thực sự phát sinh.'
+                  : 'Tôi xác nhận thông tin và chứng từ phù hợp với thao tác thực tế.'}
+              </span>
+            </label>
+          )}
+
+          {error && (
             <p className="w-shell-error" role="alert">
               {error}
             </p>
           )}
-          <div className="w-form-footer">
-            <span>Kiểm tra trước khi lưu.</span>
-            {uncertain ? (
-              <button
-                type="button"
-                className="w-shell-button w-shell-button--black"
-                disabled={busy}
-                onClick={() => submit(request.current?.payload)}
-              >
-                Thử lại cùng yêu cầu
-              </button>
-            ) : (
-              <button
-                type="submit"
-                className="w-shell-button w-shell-button--black"
-                disabled={
-                  disabled || busy || uncertain || referencesLoading || Boolean(referenceError)
-                }
-              >
-                <CheckCircle2 size={17} />{' '}
-                {busy
-                  ? 'Đang ghi nhận…'
-                  : reviewRequired
-                    ? 'Kiểm tra trước khi ghi nhận'
-                    : 'Ghi nhận'}
-              </button>
-            )}
-          </div>
         </form>
-        {confirm && (
-          <section className="w-inline-review" aria-labelledby="w-inline-review-title">
-            <h3 id="w-inline-review-title" ref={reviewHeading} tabIndex={-1}>
-              Kiểm tra trước khi ghi nhận
-            </h3>
-            <WarrantyFields
-              fields={[
-                [
-                  operation.key === 'NHAN_LAI' ? 'Thiết bị theo lần gửi' : 'Thiết bị',
-                  warrantyDeviceLabel(
-                    detail,
-                    body?.thiet_bi_ban_giao_id ??
-                      body?.thiet_bi_se_tra_id ??
-                      body?.thiet_bi_id ??
-                      detail.thiet_bi?.id
-                  ),
-                ],
-                ...(operation.key === 'NHAN_LAI'
-                  ? [
-                      [
-                        'Kết quả đối chiếu',
-                        fieldOptions.doi_chieu_thiet_bi[values.doi_chieu_thiet_bi],
-                      ],
-                      ['Serial thực nhận', body?.so_serial_thuc_nhan || 'Không ghi nhận serial'],
-                    ]
-                  : []),
-              ]}
-            />
-            {[
-              'nha_cung_cap_id',
-              'lan_gui_lich_su_id',
-              'ket_luan_lich_su_id',
-              'so_tien',
-              'so_tien_mien_giam',
-              'hoa_don_bao_hanh_id',
-              'phien_ban_phuong_an',
-              'ket_qua_xu_ly',
-              'tinh_trang',
-              'ly_do',
-            ]
-              .filter((field) => body?.[field] != null)
-              .map((field) => (
-                <p key={field}>
-                  <strong>{fieldLabels[field]}: </strong>
-                  {referenceOptions(field, detail, suppliers, versions)?.find(
-                    (item) => String(item.value) === String(body[field])
-                  )?.label || displayValue(body[field], field)}
-                </p>
-              ))}
-            {body?.ma_hang_muc && (
-              <p>
-                <strong>Hạng mục miễn phí: </strong>
-                {body.ma_hang_muc.join(', ')}
-              </p>
-            )}
-            {operation.key === 'HANDOVER' && (
-              <>
-                <WarrantyFields
-                  fields={[
-                    ['Người nhận', body.ten_nguoi_nhan],
-                    ['Số điện thoại', body.sdt_nguoi_nhan],
-                    ['Thời điểm bàn giao', displayValue(body.thoi_diem, 'thoi_diem')],
-                    [
-                      'Duyệt công nợ',
-                      referenceOptions('phe_duyet_cong_no_lich_su_id', detail)?.find(
-                        (item) => String(item.value) === String(body.phe_duyet_cong_no_lich_su_id)
-                      )?.label || 'Không dùng ngoại lệ công nợ',
-                    ],
-                    ['Bằng chứng', body.bang_chung_urls.join('\n')],
-                  ]}
-                />
-                <p className="w-shell-note">
-                  Xác nhận này sẽ hoàn tất phiếu. Nghĩa vụ hoàn tiền và đối soát còn lại vẫn được
-                  giữ.
-                </p>
-              </>
-            )}
-            {body?.hang_muc?.map((item, index) => (
-              <article className="w-confirm-item" key={index}>
-                <h3>
-                  Hạng mục {index + 1}: {item.ma_hang_muc}
-                </h3>
-                <WarrantyFields
-                  fields={Object.entries(item)
-                    .filter(([key]) => key !== 'ma_hang_muc')
-                    .map(([key, value]) => [fieldLabels[key] || key, displayValue(value, key)])}
-                />
-              </article>
-            ))}
-            {body?.phu_kien?.length > 0 && (
-              <p>
-                <strong>Phụ kiện: </strong>
-                {body.phu_kien.map((item) => `${item.ten} × ${item.so_luong}`).join(', ')}
-              </p>
-            )}
-            <label className="w-shell-modal-confirm w-guided-confirm">
-              <input
-                type="checkbox"
-                checked={confirmed}
-                disabled={busy || uncertain}
-                onChange={(event) => setConfirmed(event.target.checked)}
-              />
-              {operation.group === 'money'
-                ? 'Tôi xác nhận giao dịch tiền trên đã thực sự phát sinh.'
-                : 'Tôi đã đối chiếu thông tin và xác nhận thao tác này.'}
-            </label>
-
-            {error && (
-              <p className="w-shell-error" role="alert">
-                {error}
-              </p>
-            )}
-
-            <div className="w-form-footer">
-              <button
-                type="button"
-                className="w-shell-button"
-                disabled={busy || uncertain}
-                onClick={() => {
-                  setConfirm(false);
-                  setConfirmed(false);
-                  setError('');
-                }}
-              >
-                Quay lại chỉnh sửa
-              </button>
-              <button
-                type="button"
-                className="w-shell-button w-shell-button--black"
-                disabled={busy || !confirmed || (disabled && !uncertain)}
-                onClick={() => submit(body)}
-              >
-                {busy ? 'Đang ghi nhận…' : uncertain ? 'Thử lại cùng yêu cầu' : 'Xác nhận ghi nhận'}
-              </button>
-            </div>
-          </section>
-        )}
       </section>
     </WarrantyDialog>
   );
