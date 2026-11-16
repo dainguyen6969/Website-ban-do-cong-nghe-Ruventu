@@ -16,8 +16,9 @@ export async function getRolePage(page = 1, limit = 20, keyword = '') {
   };
 }
 
-export async function getAllRoles() {
-  const data = await apiRequest('/api/v1/admin/roles?page=0&limit=100');
+export async function getAllRoles(signal) {
+  const data = await apiRequest('/api/v1/admin/roles?page=0&limit=100', { signal });
+  signal?.throwIfAborted();
   const roles = (data?.items || []).map((role) => {
     const isSystemAdmin = String(role.ten_vai_tro || role.tenVaiTro || '').toUpperCase() === 'ADMIN';
     const parsed = parseRoleDescription(role.moTa || role.mo_ta);

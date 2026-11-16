@@ -81,7 +81,7 @@ export default function DanhSachDonHang() {
   });
   const [data, setData] = useState({ items: [], pagination: {} });
   const [state, setState] = useState({ loading: true, error: '' });
-  const [revision, setRevision] = useState(0);
+  const [revision, setRevision] = useState(null);
   const loadedRequest = useRef(null);
   const request = useMemo(
     () => ({
@@ -94,13 +94,22 @@ export default function DanhSachDonHang() {
   );
 
   useEffect(() => {
-    return subscribeOrderUpdates(() => setRevision((value) => value + 1));
+    // Subscribe before reading so the first snapshot covers changes up to socket readiness.
+    const fallback = window.setTimeout(() => setRevision(0), 750);
+    const unsubscribe = subscribeOrderUpdates(() => {
+      window.clearTimeout(fallback);
+      setRevision((value) => (value == null ? 0 : value + 1));
+    });
+    return () => {
+      window.clearTimeout(fallback);
+      unsubscribe();
+    };
   }, []);
 
   useEffect(() => {
     const refreshVisible = () => {
       if (document.visibilityState === 'visible') {
-        setRevision((value) => value + 1);
+        setRevision((value) => (value == null ? value : value + 1));
       }
     };
 
@@ -115,6 +124,7 @@ export default function DanhSachDonHang() {
   }, []);
 
   useEffect(() => {
+    if (revision == null) return;
     const controller = new AbortController();
     const background = loadedRequest.current === request;
 

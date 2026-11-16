@@ -421,6 +421,7 @@ export default function TongQuat() {
     den_ngay: filters.den_ngay,
   });
   const cash = useSection(`/api/v1/admin/cashbook/overview?${cashQuery}`, refresh);
+  const business = summary.data?.kinh_doanh;
   function apply(event) {
     event.preventDefault();
     try {
@@ -720,30 +721,28 @@ export default function TongQuat() {
             </Content>
           </div>
         </div>
-        <Content resource={summary}>
-          {(data) => (
-            <div className="tq-kpi-sub-grid">
-              <Stat
-                label="Doanh thu bán hàng"
-                value={data.kinh_doanh.doanh_thu_ban_hang}
-                currency
-              />
-              <Stat label="Giá trị hàng trả" value={data.kinh_doanh.gia_tri_hang_tra} currency />
-              <Stat label="Tổng giảm giá" value={data.kinh_doanh.tong_giam_gia} currency />
-              <Stat
-                label="Giá trị trung bình / đơn"
-                value={data.kinh_doanh.gia_tri_trung_binh_don}
-                currency
-              />
-              <Stat
-                label="Lợi nhuận gộp ước tính"
-                value={data.kinh_doanh.loi_nhuan_gop_uoc_tinh}
-                currency
-                note="Theo giá nhập hiện tại; chưa phải giá vốn lịch sử."
-              />
-            </div>
-          )}
-        </Content>
+        {business && (
+          <div className="tq-kpi-sub-grid">
+            <Stat
+              label="Doanh thu bán hàng"
+              value={business.doanh_thu_ban_hang}
+              currency
+            />
+            <Stat label="Giá trị hàng trả" value={business.gia_tri_hang_tra} currency />
+            <Stat label="Tổng giảm giá" value={business.tong_giam_gia} currency />
+            <Stat
+              label="Giá trị trung bình / đơn"
+              value={business.gia_tri_trung_binh_don}
+              currency
+            />
+            <Stat
+              label="Lợi nhuận gộp ước tính"
+              value={business.loi_nhuan_gop_uoc_tinh}
+              currency
+              note="Theo giá nhập hiện tại; chưa phải giá vốn lịch sử."
+            />
+          </div>
+        )}
       </section>
 
       <div className="tq-2col">

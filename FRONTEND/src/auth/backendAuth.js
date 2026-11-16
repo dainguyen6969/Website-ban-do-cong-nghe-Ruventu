@@ -211,6 +211,12 @@ export async function apiRequest(path, options = {}, retry = true) {
     throw apiError('Vui lòng đăng nhập.', 401);
   }
 
+  if (options.signal && (!options.method || options.method === 'GET')) {
+    // A mount that React immediately cleans up should never send the read.
+    await Promise.resolve();
+    options.signal.throwIfAborted();
+  }
+
   const headers = new Headers(options.headers);
   if (!headers.has('Accept')) headers.set('Accept', 'application/json');
   headers.set('Authorization', `Bearer ${token}`);

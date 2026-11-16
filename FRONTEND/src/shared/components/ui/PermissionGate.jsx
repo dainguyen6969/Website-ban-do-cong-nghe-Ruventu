@@ -15,16 +15,22 @@ export default function PermissionGate({ children }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    getAllRoles()
+    const controller = new AbortController();
+    getAllRoles(controller.signal)
       .then((fetchedRoles) => {
-        if (fetchedRoles && fetchedRoles.length > 0) {
+        if (!controller.signal.aborted && fetchedRoles?.length) {
           setRoles(fetchedRoles);
         }
       })
       .catch((err) => {
-        console.warn('Cannot fetch roles from backend, falling back to mock roles', err);
+        if (!controller.signal.aborted) {
+          console.warn('Cannot fetch roles from backend, falling back to mock roles', err);
+        }
       })
-      .finally(() => setLoading(false));
+      .finally(() => {
+        if (!controller.signal.aborted) setLoading(false);
+      });
+    return () => controller.abort();
   }, []);
 
   if (loading) return null;

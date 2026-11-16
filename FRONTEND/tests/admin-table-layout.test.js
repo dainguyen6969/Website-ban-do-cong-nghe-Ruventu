@@ -22,7 +22,7 @@ test('cashbook filters can start collapsed without changing the shared default',
   assert.match(collapsed, /XÓA LỌC BỔ SUNG/);
 });
 
-for (const page of ['catalog/products/pages/QuanLyPhienBan', 'inventory/pages/DanhSachSerial', 'purchasing/pages/DanhSachNhapHang', 'catalog/products/pages/DanhSachSanPham', 'catalog/combos/pages/ComboSanPham']) {
+for (const page of ['catalog/products/pages/QuanLyPhienBan', 'inventory/pages/DanhSachSerial', 'purchasing/pages/DanhSachNhapHang', 'catalog/products/pages/DanhSachSanPham', 'catalog/combos/pages/ComboSanPham', 'shipping/pages/QuanLyGiaoHang']) {
   test(`${page}: table scroll contains the table, never pagination`, async () => {
     const { default: Page } = await server.ssrLoadModule(`/src/features/admin/${page}.jsx`);
     const html = renderToStaticMarkup(React.createElement(MemoryRouter, null, React.createElement(Page)));
