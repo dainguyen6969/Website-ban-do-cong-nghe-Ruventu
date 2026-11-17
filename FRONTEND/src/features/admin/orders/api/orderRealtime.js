@@ -72,7 +72,8 @@ function connectRealtime(onUpdate) {
     }
   }
 
-  connect();
+  // Wait for synchronous subscription cleanup before requesting a one-use ticket.
+  queueMicrotask(connect);
   return () => {
     disposed = true;
     ticketRequest?.abort();

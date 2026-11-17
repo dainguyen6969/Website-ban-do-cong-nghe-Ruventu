@@ -3,11 +3,11 @@ import { lazy, Suspense } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import '../styles/index.css';
 import '../typography/buttonTypography.css';
-import StorefrontApp from '../storefront/App';
 import useMockAuth from '../auth/useMockAuth';
 import { canAccessAdmin } from '../auth/accountModel';
 
 const AdminApp = lazy(() => import('./AdminApp'));
+const StorefrontApp = lazy(() => import('../storefront/App'));
 
 export default function App() {
   const { pathname } = useLocation();
@@ -19,7 +19,9 @@ export default function App() {
     return <Navigate to="/login" replace state={{ from: pathname }} />;
   }
 
-  return isAdminRoute
-    ? <Suspense fallback={<p role="status">Đang tải trang quản trị…</p>}><AdminApp /></Suspense>
-    : <StorefrontApp />;
+  return (
+    <Suspense fallback={<p role="status">{isAdminRoute ? 'Đang tải trang quản trị…' : 'Đang tải trang…'}</p>}>
+      {isAdminRoute ? <AdminApp /> : <StorefrontApp />}
+    </Suspense>
+  );
 }

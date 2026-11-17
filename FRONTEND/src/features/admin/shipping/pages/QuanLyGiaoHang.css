@@ -869,13 +869,20 @@
 }
 
 /* Danh sách giao hàng */
+.delivery-list-page .delivery-list-heading {
+  margin: 0;
+  padding: 14px 24px 0;
+  font-size: 20px;
+  font-weight: var(--admin-weight-bold, 700);
+}
+
 .delivery-list-page .delivery-toolbar {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(145px, 165px) minmax(150px, 190px) max-content 36px;
+  grid-template-columns: minmax(0, 1fr) minmax(145px, 165px) minmax(150px, 190px) 36px;
   align-items: center;
   gap: 8px;
-  padding: 8px 24px;
-  border-bottom: 1px solid #111;
+  padding: 12px 24px;
+  border-bottom: 1px solid #e2e8f0;
   background: #fff;
 }
 
@@ -918,13 +925,6 @@
   padding: 0 10px;
 }
 
-.delivery-list-page .delivery-count {
-  color: #475569;
-  font-size: 11px;
-  font-weight: var(--admin-weight-medium, 500);
-  white-space: nowrap;
-}
-
 .delivery-list-page :is(.delivery-list-refresh, .delivery-detail-btn) {
   display: inline-flex;
   align-items: center;
@@ -941,8 +941,11 @@
   padding: 0;
 }
 .delivery-list-page .delivery-detail-btn {
-  min-height: 30px;
+  gap: 5px;
+  min-height: 32px;
   padding: 4px 8px;
+  text-decoration: none;
+  font-weight: var(--admin-weight-bold, 700);
 }
 
 .delivery-list-page :is(.delivery-list-refresh, .delivery-detail-btn):hover:not(:disabled) {
@@ -965,46 +968,34 @@
 
 .admin-app .delivery-list-page .admin-table-scroll > .delivery-table {
   --delivery-col-unit: max(1px, calc(1px * var(--project-font-scale, 1)));
-  min-width: calc(1510 * var(--delivery-col-unit));
+  min-width: calc(1130 * var(--delivery-col-unit));
   table-layout: fixed;
 }
 
-/* Cột 11 (địa chỉ) nhận phần rộng còn lại. */
+/* Dành phần chiều rộng còn lại cho thông tin người nhận. */
 .delivery-list-page .delivery-table col:nth-child(1) {
-  width: calc(132 * var(--delivery-col-unit));
+  width: calc(140 * var(--delivery-col-unit));
 }
 .delivery-list-page .delivery-table col:nth-child(2) {
-  width: calc(106 * var(--delivery-col-unit));
+  width: calc(184 * var(--delivery-col-unit));
 }
 .delivery-list-page .delivery-table col:nth-child(3) {
-  width: calc(148 * var(--delivery-col-unit));
+  width: calc(130 * var(--delivery-col-unit));
 }
 .delivery-list-page .delivery-table col:nth-child(4) {
-  width: calc(99 * var(--delivery-col-unit));
+  width: calc(112 * var(--delivery-col-unit));
 }
 .delivery-list-page .delivery-table col:nth-child(5) {
-  width: calc(127 * var(--delivery-col-unit));
+  width: calc(96 * var(--delivery-col-unit));
 }
 .delivery-list-page .delivery-table col:nth-child(6) {
-  width: calc(125 * var(--delivery-col-unit));
-}
-.delivery-list-page .delivery-table col:nth-child(7) {
-  width: calc(105 * var(--delivery-col-unit));
+  width: calc(94 * var(--delivery-col-unit));
 }
 .delivery-list-page .delivery-table col:nth-child(8) {
-  width: calc(89 * var(--delivery-col-unit));
+  width: calc(106 * var(--delivery-col-unit));
 }
 .delivery-list-page .delivery-table col:nth-child(9) {
-  width: calc(118 * var(--delivery-col-unit));
-}
-.delivery-list-page .delivery-table col:nth-child(10) {
-  width: calc(102 * var(--delivery-col-unit));
-}
-.delivery-list-page .delivery-table col:nth-child(12) {
-  width: calc(121 * var(--delivery-col-unit));
-}
-.delivery-list-page .delivery-table col:nth-child(13) {
-  width: calc(112 * var(--delivery-col-unit));
+  width: calc(96 * var(--delivery-col-unit));
 }
 
 .admin-app .delivery-list-page .admin-table-scroll > .delivery-table :is(th, td) {
@@ -1015,7 +1006,7 @@
   .delivery-list-page
   .admin-table-scroll
   > .delivery-table
-  :is(th, td):is(:nth-child(7), :nth-child(8)) {
+  :is(th, td):is(:nth-child(5), :nth-child(6)) {
   text-align: right;
 }
 
@@ -1028,15 +1019,47 @@
   white-space: nowrap;
 }
 
-.delivery-list-page :is(.delivery-link, .delivery-partner-link, .delivery-status-count) {
-  --admin-weight-button: var(--admin-weight-medium, 500);
-  color: #111;
+.admin-app .delivery-list-page .delivery-table :is(.delivery-tracking-code, .delivery-order-link) {
+  font-size: 13px;
+  font-weight: var(--admin-weight-bold, 700);
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
 }
 
-.delivery-list-page .delivery-link {
+.delivery-list-page .delivery-order-link {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 5px;
+  max-width: 100%;
+  color: #111;
   text-align: left;
-  text-decoration: underline;
-  text-underline-offset: 2px;
+  text-decoration: none;
+}
+
+.delivery-list-page .delivery-order-link span {
+  min-width: 0;
+  word-break: break-all;
+}
+
+.delivery-list-page :is(.delivery-order-link, .delivery-detail-btn) svg {
+  flex: none;
+}
+
+.delivery-list-page .delivery-list-meta {
+  display: block;
+  margin-top: 2px;
+  color: #475569;
+  overflow-wrap: anywhere;
+}
+
+.delivery-list-page .delivery-recipient {
+  overflow-wrap: anywhere;
+}
+
+.delivery-list-page .delivery-progress {
+  display: grid;
+  justify-items: start;
+  gap: 5px;
 }
 
 .delivery-list-page .delivery-partner-link {
@@ -1047,7 +1070,7 @@
   text-align: left;
 }
 
-.delivery-list-page :is(.delivery-link, .delivery-partner-link):hover {
+.delivery-list-page .delivery-partner-link:hover {
   color: var(--color-brand-red, #e31e24);
 }
 
@@ -1055,89 +1078,131 @@
   color: #475569;
 }
 
-.delivery-list-page
-  :is(.delivery-list-phone, .delivery-list-updated, .delivery-money, .delivery-money-red) {
+.delivery-list-page :is(.delivery-money, .delivery-money-red) {
   white-space: nowrap;
+}
+
+.delivery-list-page .delivery-list-updated {
+  overflow-wrap: anywhere;
 }
 
 .delivery-list-page .delivery-money {
   font-weight: var(--admin-weight-medium, 500);
 }
-.delivery-list-page :is(strong.delivery-list-code, .delivery-money-red) {
-  font-weight: var(--admin-weight-semibold, 600);
-}
 .delivery-list-page .delivery-money-red {
+  font-weight: var(--admin-weight-bold, 700);
   color: #d42115;
+}
+
+.admin-app .delivery-list-page .delivery-list-footer {
+  display: block;
+  padding: 0;
 }
 
 .delivery-list-page .delivery-status-counts {
   display: flex;
-  flex: 1 1 500px;
-  flex-wrap: wrap;
-  gap: 4px 10px;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
   min-width: 0;
+  overflow-x: auto;
+  background: #f6f7f9;
+  border-bottom: 1px solid #dce1e7;
+}
+
+.delivery-list-page .delivery-status-caption {
+  flex: none;
+  margin-right: 4px;
+  font-size: 11px;
+  color: #475569;
 }
 
 .delivery-list-page .delivery-status-count {
+  --admin-weight-button: var(--admin-weight-bold, 700);
   display: inline-flex;
+  flex: none;
   align-items: center;
-  gap: 5px;
-  min-height: 28px;
-  padding: 3px 5px;
-  border-bottom: 2px solid transparent;
-  color: #475569;
+  gap: 7px;
+  min-height: 34px;
+  padding: 3px 9px;
+  border: 1px solid var(--admin-status-fg, #475569);
+  background: #fff;
+  color: color-mix(in srgb, var(--admin-status-fg, #475569) 78%, #111);
   white-space: nowrap;
 }
 
 .delivery-list-page .delivery-status-count strong {
-  color: #111;
+  min-width: 3ch;
+  padding-left: 7px;
+  border-left: 1px solid var(--admin-status-line, #d4d9e1);
   font-variant-numeric: tabular-nums;
+  text-align: center;
 }
 
-.delivery-list-page .delivery-status-count:hover:not(:disabled),
-.delivery-list-page .delivery-status-count.is-selected {
-  border-bottom-color: var(--color-brand-red, #e31e24);
-  color: #9f1239;
-  background: #fff1f2;
+.delivery-list-page .delivery-status-count[aria-pressed='true'] {
+  background: var(--admin-status-bg, #eef0f3);
+  box-shadow: inset 0 0 0 1px var(--admin-status-fg, #475569);
+}
+
+.delivery-list-page .delivery-status-count:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 1px;
 }
 
 .delivery-list-page .delivery-list-pagination {
   min-width: 0;
-  margin: 0 0 0 auto;
+  margin: 0;
+  padding: 0;
   border: 0;
+}
+
+.delivery-list-page .delivery-list-pagination .product-pagination-bar {
+  border: 0;
+  padding: 8px 12px;
+}
+
+.delivery-list-page .product-pagination-range__text {
+  color: #475569;
 }
 
 .delivery-list-page
   :is(
-    .delivery-link,
+    .delivery-order-link,
     .delivery-partner-link,
     .delivery-detail-btn,
-    .delivery-list-refresh,
-    .delivery-status-count
+    .delivery-list-refresh
   ):focus-visible {
   outline: 2px solid var(--color-brand-red, #e31e24);
   outline-offset: 1px;
 }
 
 @media (max-width: 1100px) {
+  .delivery-list-page .delivery-list-heading {
+    padding-inline: 16px;
+  }
+
   .delivery-list-page .delivery-toolbar {
-    grid-template-columns: repeat(2, minmax(0, 1fr)) max-content 36px;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) 36px;
     padding-inline: 16px;
   }
 
   .delivery-list-page .delivery-search {
-    grid-column: 1 / -1;
+    grid-column: 1 / 3;
+  }
+
+  .delivery-list-page .delivery-list-refresh {
+    grid-column: 3;
+    grid-row: 1;
+  }
+
+  .delivery-list-page .delivery-toolbar > .filter-dropdown-container:nth-of-type(2) {
+    grid-column: 2 / -1;
   }
 }
 
 @media (max-width: 600px) {
-  .delivery-list-page .delivery-toolbar {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+  .delivery-list-page :is(.delivery-list-heading, .delivery-toolbar) {
     padding-inline: 12px;
-  }
-
-  .delivery-list-page .delivery-list-refresh {
-    justify-self: end;
   }
 }
 
