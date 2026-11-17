@@ -6,6 +6,12 @@
   font-family: var(--project-font-family, var(--font-family-base, Arial, sans-serif));
 }
 
+.warranty-lookup-page .warranty-banner,
+.warranty-lookup-page .warranty-main-container,
+.warranty-lookup-page .warranty-verify-dialog {
+  --warranty-button-font-weight: 600;
+}
+
 .warranty-lookup-page .warranty-banner {
   background-color: #111;
   color: white;
@@ -27,8 +33,8 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  font-size: 11px;
-  font-weight: 500;
+  --warranty-button-font-size: calc(11px * var(--project-font-scale, 1));
+  --warranty-button-font-weight: 500;
   cursor: pointer;
   margin-bottom: 30px;
 }
@@ -93,8 +99,8 @@
   color: white;
   border: none;
   padding: 0 30px;
-  font-size: 14px;
-  font-weight: 600;
+  --warranty-button-font-size: calc(14px * var(--project-font-scale, 1));
+  --warranty-button-font-weight: 600;
   cursor: pointer;
   text-transform: uppercase;
 }
@@ -427,16 +433,17 @@
   padding-left: 15px;
 }
 
-.warranty-lookup-page .tag-processing {
-  display: inline-block;
-  border: 1px solid #f97316;
-  color: #b45309;
-  font-size: 10px;
-  font-weight: 600;
-  padding: 4px 8px;
-  margin-top: 12px;
+.warranty-lookup-page .warranty-timeline-note {
+  margin: 0 0 24px;
+  padding: 12px 14px;
+  border-left: 2px solid #111;
+  background-color: #f5f5f5;
+  color: #666;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
 }
-
 .warranty-lookup-page .floating-help {
   position: fixed;
   bottom: 30px;
@@ -492,8 +499,8 @@
   padding: 12px 24px;
   background: transparent;
   color: #111;
-  font-size: 13px;
-  font-weight: 500;
+  --warranty-button-font-size: calc(13px * var(--project-font-scale, 1));
+  --warranty-button-font-weight: 500;
   cursor: pointer;
 }
 
@@ -522,8 +529,8 @@
   border: 0;
   background: transparent;
   color: #ddd;
-  font-size: inherit;
-  font-weight: 500;
+  --warranty-button-font-size: calc(12px * var(--project-font-scale, 1));
+  --warranty-button-font-weight: 500;
   text-decoration: underline;
   cursor: pointer;
 }

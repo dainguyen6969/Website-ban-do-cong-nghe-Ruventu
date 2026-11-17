@@ -19,6 +19,9 @@ const pickTicket = (item, keyword) => {
 
   return (
     tickets.find((ticket) => ticket.ma_phieu.toLocaleLowerCase('vi') === value) ||
+    (value
+      ? tickets.find((ticket) => ticket.ma_phieu.toLocaleLowerCase('vi').includes(value))
+      : null) ||
     tickets[0] ||
     null
   );
@@ -239,6 +242,18 @@ export default function WarrantyLookupPage() {
   const renderResult = (item) => {
     const ticket = pickTicket(item, submitted.current?.keyword || '');
     const processingTimeline = getTicketTimeline(ticket);
+
+    const onlyBoundaryTimeline =
+      processingTimeline.length === 2 &&
+      processingTimeline[0].trang_thai_xu_ly === 'TIEP_NHAN' &&
+      processingTimeline[1].trang_thai_xu_ly === 'HOAN_TAT';
+
+    const timelineNote = onlyBoundaryTimeline
+      ? 'Dữ liệu tra cứu hiện chỉ có mốc tiếp nhận và bàn giao. Các chặng trung gian chưa có đủ dữ liệu để hiển thị.'
+      : processingTimeline.some((point) => !point.thoi_diem)
+        ? 'Một số mốc chưa ghi nhận thời điểm chuyển trạng thái. Tiến trình chỉ hiển thị thông tin hiện có.'
+        : '';
+
     const otherTickets = (item.phieu_bao_hanh || []).filter(
       (value) => value.ma_phieu !== ticket?.ma_phieu
     );
@@ -332,6 +347,12 @@ export default function WarrantyLookupPage() {
             <h3>TRẠNG THÁI XỬ LÝ</h3>
           </div>
 
+          {timelineNote && (
+            <p className="warranty-timeline-note" role="status">
+              {timelineNote}
+            </p>
+          )}
+
           {ticket ? (
             <>
               <div className="timeline">
@@ -358,8 +379,8 @@ export default function WarrantyLookupPage() {
                       <div className="timeline-content">
                         <h4 className={'step-title' + (!done ? ' highlight' : '')}>
                           {statusLabels[point.trang_thai_xu_ly] || 'Chưa xác định trạng thái'}
+                          {isCurrent && !isFinished ? ' · Hiện tại' : ''}
                         </h4>
-
                         <span className="step-date">
                           {point.thoi_diem
                             ? 'Ghi nhận: ' + displayDate(point.thoi_diem)
@@ -370,12 +391,6 @@ export default function WarrantyLookupPage() {
                           {statusDescriptions[point.trang_thai_xu_ly] ||
                             'Vui lòng liên hệ cửa hàng để đối chiếu.'}
                         </p>
-
-                        {isCurrent && (
-                          <div className="tag-processing">
-                            {isFinished ? 'ĐÃ BÀN GIAO' : 'TRẠNG THÁI HIỆN TẠI'}
-                          </div>
-                        )}
                       </div>
                     </div>
                   );
