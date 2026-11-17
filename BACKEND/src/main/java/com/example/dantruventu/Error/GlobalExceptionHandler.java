@@ -22,6 +22,12 @@ import org.springframework.web.servlet.HandlerMapping;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
+  @ExceptionHandler(PcBuilderExportException.class)
+  public ResponseEntity<ErrorResponse> handlePcBuilderExport(PcBuilderExportException exception) {
+    return ResponseEntity.status(exception.getErrorCode().getStatus())
+        .body(new PcBuilderExportException.Response(exception));
+  }
+
   @ExceptionHandler(AppException.class)
   public ResponseEntity<ErrorResponse> handleAppException(AppException exception) {
 

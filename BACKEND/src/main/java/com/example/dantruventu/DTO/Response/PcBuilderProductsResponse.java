@@ -15,7 +15,8 @@ public record PcBuilderProductsResponse(
   public record CompatibilityFilter(
       @JsonProperty("dang_ap_dung") boolean dangApDung,
       @JsonProperty("phien_ban_doi_chieu_id") Long phienBanDoiChieuId,
-      @JsonProperty("socket_doi_chieu") String socketDoiChieu) {}
+      @JsonProperty("hang_cpu_doi_chieu") String hangCpuDoiChieu,
+      @JsonProperty("cpu_ho_tro_doi_chieu") String cpuHoTroDoiChieu) {}
 
   public record Brand(Long id, @JsonProperty("ten_thuong_hieu") String tenThuongHieu) {}
 
@@ -33,6 +34,6 @@ public record PcBuilderProductsResponse(
       @JsonProperty("ton_co_the_ban") long tonCoTheBan,
       @JsonProperty("tinh_trang_hang") String tinhTrangHang,
       @JsonProperty("thong_so_chinh") Map<String, Object> thongSoChinh,
-      @JsonProperty("ket_qua_socket") String ketQuaSocket,
+      @JsonProperty("ket_qua_tuong_thich") String ketQuaTuongThich,
       @JsonProperty("co_the_chon") boolean coTheChon) {}
 }

@@ -101,7 +101,7 @@ public class CartService {
                 current.put(id, row.getSoLuong());
               }
               CartPcBuildResponse result = evaluatePcBuild(build, current, true);
-              // Chỉ ghi sau khi TẤT CẢ giá/socket/tồn đã hợp lệ; không gọi addItem từng dòng.
+              // Chỉ ghi sau khi giá và tồn đã hợp lệ; tương thích CPU/MAIN chỉ là cảnh báo.
               for (var item : result.items()) {
                 GioHang row = byVariant.get(item.phienBanId());
                 if (row == null)
@@ -189,16 +189,12 @@ public class CartService {
       added = Math.addExact(added, entry.getValue());
     }
     var catalog = calculationService.catalog(after.keySet(), lock);
-    // Preview dùng lại chính mapper hạng mục, giá hiện tại, socket và tổng nhu cầu tồn.
+    // Preview dùng chung hạng mục, giá, CPU hỗ trợ và tổng nhu cầu tồn.
     var preview = pcBuilderService.preview(build.previewRequest());
     for (int i = 0; i < preview.items().size(); i++) {
       if (preview.items().get(i).donGia().compareTo(build.confirmedPrices().get(i)) != 0) {
         throw new AppException(ErrorCode.CART_PC_BUILD_PRICE_CHANGED);
       }
-    }
-    String socketStatus = preview.kiemTraCpuMain().trangThai();
-    if ("KHONG_KHOP_SOCKET".equals(socketStatus) || "CHUA_DU_DU_LIEU".equals(socketStatus)) {
-      throw new AppException(ErrorCode.CART_PC_BUILD_SOCKET_INVALID);
     }
     Long warehouseId = pcBuilderService.resolveWarehouse(ErrorCode.CART_PC_BUILD_FAILED);
     // Bao gồm nhu cầu linh kiện dùng chung của combo đã có trong giỏ, cùng phép tính của đơn hàng.

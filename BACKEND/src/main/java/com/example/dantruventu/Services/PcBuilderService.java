@@ -46,7 +46,7 @@ public class PcBuilderService {
   private final PcBuilderProperties properties;
   private final PhienBanSanPhamRepository variantRepository;
   private final SalesContext salesContext;
-  private final PcBuilderSocketSupport socketSupport;
+  private final PcBuilderCompatibilitySupport compatibilitySupport;
   private final PcBuilderStockSupport stockSupport;
 
   public PcBuilderPreviewResponse preview(PcBuilderPreviewRequest request) {
@@ -110,10 +110,11 @@ public class PcBuilderService {
       }
       var compatibility = cpuMainCheck(variantBySlot);
       List<String> errors = new ArrayList<>();
-      if ("KHONG_KHOP_SOCKET".equals(compatibility.trangThai())) {
-        errors.add("Socket CPU và MAIN không khớp nhau.");
+      if (PcBuilderCompatibilitySupport.MISMATCH.equals(compatibility.trangThai())) {
+        errors.add("Hãng CPU không khớp với thông số CPU hỗ trợ của MAIN.");
       } else if ("CHUA_DU_DU_LIEU".equals(compatibility.trangThai())) {
-        errors.add("Thiếu thông tin socket CPU hoặc MAIN để kiểm tra tương thích.");
+        errors.add(
+            "Chưa xác định được AMD/Intel từ tên CPU hoặc MAIN thiếu thông số CPU hỗ trợ hợp lệ.");
       }
       if (!stockValid) {
         errors.add("Số lượng lựa chọn vượt quá số lượng có thể bán.");
@@ -135,6 +136,14 @@ public class PcBuilderService {
 
   /** Dùng chung kiểm tra phiên bản/hạng mục cho preview và lần ghi giỏ. */
   public Map<Long, PhienBanSanPham> validateVariants(List<Selection> selected) {
+    return validateVariants(selected, false);
+  }
+
+  public Map<Long, PhienBanSanPham> validateExportVariants(List<Selection> selected) {
+    return validateVariants(selected, true);
+  }
+
+  private Map<Long, PhienBanSanPham> validateVariants(List<Selection> selected, boolean exporting) {
     var mappings = resolveCategoryMappings();
     var ids = selected.stream().map(Selection::variantId).collect(Collectors.toSet());
     var variants =
@@ -146,6 +155,14 @@ public class PcBuilderService {
       var variant = variants.get(selection.variantId());
       var product = variant.getSanPham();
       var category = mappings.get(selection.category());
+      if (exporting && category == null)
+        throw new AppException(ErrorCode.PC_BUILDER_CONFIGURATION_INVALID);
+      if (exporting && product.getLoaiSanPham() != LoaiSanPham.DON)
+        throw new AppException(ErrorCode.PC_BUILDER_EXPORT_PUBLIC_VARIANT_NOT_FOUND);
+      if (exporting
+          && mappings.values().stream()
+              .noneMatch(mapped -> mapped.getId().equals(product.getDanhMuc().getId())))
+        throw new AppException(ErrorCode.PC_BUILDER_EXPORT_PUBLIC_VARIANT_NOT_FOUND);
       if (category == null
           || variant.getTrangThai() != TrangThaiCoBanEnum.HOAT_DONG
           || product.getTrangThai() != TrangThaiCoBanEnum.HOAT_DONG
@@ -155,6 +172,7 @@ public class PcBuilderService {
         throw new AppException(ErrorCode.PC_BUILDER_PREVIEW_UNAVAILABLE);
       }
       if (!category.getId().equals(product.getDanhMuc().getId())) {
+        if (exporting) throw new AppException(ErrorCode.PC_BUILDER_EXPORT_UNAVAILABLE);
         throw invalidPreview("Phiên bản đặt sai hạng mục: " + selection.category().name() + ".");
       }
       if (variant.getGiaBanLe() == null || variant.getGiaBanLe().signum() < 0) {
@@ -221,21 +239,24 @@ public class PcBuilderService {
       Map<PcBuilderCategory, PhienBanSanPham> variants) {
     var cpu = variants.get(PcBuilderCategory.CPU);
     var main = variants.get(PcBuilderCategory.MAIN);
-    String cpuSocket =
-        cpu == null ? null : socketSupport.extractSocket(cpu.getSanPham().getThongSoKyThuat());
-    String mainSocket =
-        main == null ? null : socketSupport.extractSocket(main.getSanPham().getThongSoKyThuat());
+    String cpuBrand =
+        cpu == null ? null : compatibilitySupport.cpuBrand(cpu.getSanPham().getTenSanPham());
+    String supportedCpu =
+        main == null
+            ? null
+            : compatibilitySupport.supportedCpuText(main.getSanPham().getThongSoKyThuat());
     String status =
         cpu == null || main == null
             ? "CHUA_CHON_DU"
-            : socketSupport.compare(cpuSocket, main.getSanPham().getThongSoKyThuat());
+            : compatibilitySupport.compare(
+                cpu.getSanPham().getTenSanPham(), main.getSanPham().getThongSoKyThuat());
     return new PcBuilderPreviewResponse.CpuMainCheck(
         status,
         cpu == null ? null : cpu.getId(),
         main == null ? null : main.getId(),
-        cpuSocket,
-        mainSocket,
-        "SOCKET_CPU_MAIN");
+        cpuBrand,
+        supportedCpu,
+        PcBuilderCompatibilitySupport.SCOPE);
   }
 
   private PcBuilderPreviewResponse previewResponse(
@@ -245,7 +266,7 @@ public class PcBuilderService {
       PcBuilderPreviewResponse.CpuMainCheck compatibility,
       PcBuilderPreviewResponse.StockCheck stock,
       List<String> errors) {
-    // Cờ thêm giỏ chỉ xét cấu hình gửi lên; chưa cộng số lượng đang có trong giỏ.
+    // Tương thích CPU/MAIN chỉ để cảnh báo; quyền thêm giỏ chưa cộng giỏ hiện tại.
     return new PcBuilderPreviewResponse(
         OffsetDateTime.now(ZoneId.of("Asia/Ho_Chi_Minh")).truncatedTo(ChronoUnit.SECONDS),
         items.size(),
@@ -255,7 +276,7 @@ public class PcBuilderService {
         subtotal,
         compatibility,
         stock,
-        !items.isEmpty() && errors.isEmpty(),
+        !items.isEmpty() && stock.hopLe(),
         !items.isEmpty(),
         List.copyOf(errors));
   }
@@ -288,7 +309,7 @@ public class PcBuilderService {
       String rawPage,
       String rawLimit,
       String rawReferenceId,
-      String rawSocketOnly) {
+      String rawCompatibilityOnly) {
     try {
       PcBuilderCategory category = parseCategory(rawCategory);
       Long brandId = positiveId(rawBrandId, "thuong_hieu_id");
@@ -306,14 +327,14 @@ public class PcBuilderService {
       if (page < 0 || limit < 1 || limit > 100 || (long) page * limit > Integer.MAX_VALUE) {
         throw invalidProducts("Phân trang không hợp lệ; page từ 0, limit từ 1 đến 100.");
       }
-      boolean socketOnly = socketOnly(rawSocketOnly, referenceId != null);
+      boolean compatibilityOnly = compatibilityOnly(rawCompatibilityOnly, false);
       if (category != PcBuilderCategory.CPU
           && category != PcBuilderCategory.MAIN
-          && (referenceId != null || rawSocketOnly != null)) {
-        throw invalidProducts("Chỉ dùng đối chiếu socket cho hạng mục CPU/MAIN.");
+          && (referenceId != null || rawCompatibilityOnly != null)) {
+        throw invalidProducts("Chỉ dùng đối chiếu CPU hỗ trợ cho hạng mục CPU/MAIN.");
       }
-      if (socketOnly && referenceId == null) {
-        throw invalidProducts("Bật lọc socket nhưng thiếu phiên bản đối chiếu.");
+      if (compatibilityOnly && referenceId == null) {
+        throw invalidProducts("Bật lọc tương thích nhưng thiếu phiên bản đối chiếu.");
       }
 
       var mappings = resolveCategoryMappings();
@@ -321,7 +342,7 @@ public class PcBuilderService {
       if (mappedCategory == null || mappedCategory.getTrangThai() != TrangThaiCoBanEnum.HOAT_DONG) {
         return new PcBuilderProductsResponse(
             category.name(),
-            new PcBuilderProductsResponse.CompatibilityFilter(false, referenceId, null),
+            new PcBuilderProductsResponse.CompatibilityFilter(false, referenceId, null, null),
             List.of(),
             List.of(),
             PaginationResponse.builder()
@@ -332,7 +353,8 @@ public class PcBuilderService {
                 .build());
       }
       Long categoryId = mappedCategory.getId();
-      String referenceSocket = null;
+      String referenceCpuName = null;
+      String referenceMainSpecifications = null;
       if (referenceId != null) {
         var reference =
             variantRepository
@@ -353,11 +375,20 @@ public class PcBuilderService {
         if (product.getLoaiSanPham() != LoaiSanPham.DON) {
           throw invalidProducts("Phiên bản đối chiếu phải là sản phẩm đơn.");
         }
-        referenceSocket = socketSupport.extractSocket(product.getThongSoKyThuat());
-        if (socketOnly && referenceSocket == null) {
-          throw new AppException(ErrorCode.PC_BUILDER_REFERENCE_SOCKET_MISSING);
-        }
+        if (category == PcBuilderCategory.MAIN) referenceCpuName = product.getTenSanPham();
+        else referenceMainSpecifications = product.getThongSoKyThuat();
       }
+
+      String referenceCpuBrand = compatibilitySupport.cpuBrand(referenceCpuName);
+      String referenceSupportedCpu =
+          compatibilitySupport.supportedCpuText(referenceMainSpecifications);
+      String cpuNamePattern = compatibilitySupport.cpuNamePattern(referenceMainSpecifications);
+      // Thiếu dữ liệu hãng/CPU hỗ trợ vẫn cho xem và chọn sản phẩm.
+      boolean applyCompatibilityFilter =
+          compatibilityOnly
+              && (category == PcBuilderCategory.MAIN
+                  ? referenceCpuBrand != null
+                  : cpuNamePattern != null);
 
       Long warehouseId = resolveWarehouse(ErrorCode.PC_BUILDER_PRODUCTS_FAILED);
       var result =
@@ -369,14 +400,16 @@ public class PcBuilderService {
               minPrice,
               maxPrice,
               stockStatus,
-              socketOnly ? referenceSocket : null,
+              applyCompatibilityFilter ? referenceCpuBrand : null,
+              applyCompatibilityFilter ? cpuNamePattern : null,
               sortMode,
               PageRequest.of(page, limit));
       var brands =
           variantRepository.findPcBuilderBrands(categoryId).stream()
               .map(row -> new PcBuilderProductsResponse.Brand(row.getId(), row.getTenThuongHieu()))
               .toList();
-      String finalReferenceSocket = referenceSocket;
+      String finalReferenceCpuName = referenceCpuName;
+      String finalReferenceMainSpecifications = referenceMainSpecifications;
       var items =
           result.getContent().stream()
               .map(
@@ -398,10 +431,14 @@ public class PcBuilderService {
                         null,
                         stock,
                         stock > 0 ? "CON_HANG" : "HET_HANG",
-                        socketSupport.mainSpecifications(row.getThongSoKyThuat()),
+                        compatibilitySupport.mainSpecifications(row.getThongSoKyThuat()),
                         referenceId == null
                             ? null
-                            : socketSupport.compare(finalReferenceSocket, row.getThongSoKyThuat()),
+                            : category == PcBuilderCategory.MAIN
+                                ? compatibilitySupport.compare(
+                                    finalReferenceCpuName, row.getThongSoKyThuat())
+                                : compatibilitySupport.compare(
+                                    row.getTenSanPham(), finalReferenceMainSpecifications),
                         stock > 0);
                   })
               .toList();
@@ -415,7 +452,7 @@ public class PcBuilderService {
       return new PcBuilderProductsResponse(
           category.name(),
           new PcBuilderProductsResponse.CompatibilityFilter(
-              socketOnly, referenceId, referenceSocket),
+              applyCompatibilityFilter, referenceId, referenceCpuBrand, referenceSupportedCpu),
           brands,
           items,
           pagination);
@@ -486,14 +523,14 @@ public class PcBuilderService {
     return result;
   }
 
-  private boolean socketOnly(String value, boolean fallback) {
+  private boolean compatibilityOnly(String value, boolean fallback) {
     if (value == null) {
       return fallback;
     }
     return switch (value.strip()) {
       case "true" -> true;
       case "false" -> false;
-      default -> throw invalidProducts("chi_khop_socket chỉ nhận true hoặc false.");
+      default -> throw invalidProducts("chi_tuong_thich chỉ nhận true hoặc false.");
     };
   }
 
@@ -539,7 +576,7 @@ public class PcBuilderService {
         groups,
         java.util.List.of("TAT_CA", "CON_HANG", "HET_HANG"),
         java.util.List.of("MAC_DINH", "GIA_TANG", "GIA_GIAM"),
-        "SOCKET_CPU_MAIN");
+        PcBuilderCompatibilitySupport.SCOPE);
   }
 
   /** Dùng cùng mapping này cho các endpoint chọn sản phẩm/preview sau này. */
