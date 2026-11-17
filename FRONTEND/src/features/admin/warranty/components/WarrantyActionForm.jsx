@@ -294,6 +294,7 @@ export default function WarrantyActionForm({
 }) {
   const [defaults] = useState(() => initialActionValues(operation, ticket, quoteVersion));
   const values = draft ?? defaults;
+  const [confirmed, setConfirmed] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [body, setBody] = useState(null);
