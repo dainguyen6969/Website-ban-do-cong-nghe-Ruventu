@@ -147,5 +147,11 @@ public record AdminWarrantyDetailResponse(
       @JsonProperty("loai_su_kien") String loaiSuKien,
       @JsonProperty("nguoi_thuc_hien_id") Long nguoiThucHienId,
       @JsonProperty("ngay_tao") OffsetDateTime ngayTao,
-      @JsonProperty("noi_dung") String noiDung) {}
+      @JsonProperty("noi_dung") String noiDung,
+      @JsonProperty("ten_nguoi_thuc_hien") String tenNguoiThucHien) {
+    public HistoryItem(
+        Long id, String loaiSuKien, Long nguoiThucHienId, OffsetDateTime ngayTao, String noiDung) {
+      this(id, loaiSuKien, nguoiThucHienId, ngayTao, noiDung, null);
+    }
+  }
 }

@@ -1,10 +1,10 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { getWarrantyHistoryDetail, warrantyError } from '../api/warrantyApi';
 import { actions, fieldLabels } from '../data/warrantyActions';
 import { displayDate } from '../data/warrantyContract';
-import { eventLabels } from '../data/warrantyExperience';
+import { eventLabels, warrantyDeviceLabel } from '../data/warrantyExperience';
 import { displayValue } from './WarrantySnapshot';
-import { WarrantyBadge, WarrantyFields, WarrantyPanel, WarrantyTable } from './WarrantyShell';
+import { WarrantyBadge, WarrantyDialog, WarrantyFields, WarrantyTable } from './WarrantyShell';
 
 const labels = {
   ...fieldLabels,
@@ -109,6 +109,8 @@ const values = {
   THIEU_PHU_KIEN: 'Thiếu phụ kiện',
   THUA_PHU_KIEN: 'Thừa phụ kiện',
   SAI_THIET_BI: 'Sai thiết bị',
+  THIET_BI_CU: 'Thiết bị gốc',
+  THIET_BI_THAY_THE: 'Thiết bị thay thế',
   CUA_HANG: 'Cửa hàng',
   DON_VI_BAO_HANH: 'Đơn vị bảo hành',
   KHACH_HANG: 'Khách hàng',
@@ -137,12 +139,11 @@ function fieldName(key) {
 }
 
 function reference(value) {
-  return value == null ? '—' : `#${value}`;
+  return value == null ? '—' : String(value);
 }
 
 function safeHref(value) {
   const text = String(value || '').trim();
-
   if (/[\u0000-\u001f\\]/.test(text)) return null;
   if (text.startsWith('/') && !text.startsWith('//')) return text;
 
@@ -154,7 +155,9 @@ function safeHref(value) {
   }
 }
 
-function scalar(value, field) {
+const deviceIdField = /^thiet_bi(?:_cu|_thay_the|_se_tra|_ban_giao|_thuc_nhan|_cap_doi)?_id$/;
+
+function scalar(value, field, ticket) {
   if (value == null || value === '') return 'Chưa ghi nhận';
 
   if (field === 'su_kien' || field === 'loai_su_kien') {
@@ -169,10 +172,18 @@ function scalar(value, field) {
     );
   }
 
+  if (deviceIdField.test(field)) return warrantyDeviceLabel(ticket ?? {}, value);
+
+  if (field === 'lan_gui_lich_su_id') {
+    const sent = ticket?.giao_nhan?.find((item) => String(item.lich_su_id) === String(value));
+    return sent
+      ? [displayDate(sent.ngay), sent.ten_don_vi].filter(Boolean).join(' · ')
+      : 'Lần gửi đã ghi nhận';
+  }
+
   if (/^id$|_id$/.test(field)) return reference(value);
 
   const text = values[value] || displayValue(value, field);
-
   return (
     <span>
       {String(text)
@@ -187,10 +198,8 @@ function scalar(value, field) {
   );
 }
 
-function HistoryData({ value, field = '' }) {
-  if (value == null) {
-    return <p className="w-shell-note">Chưa ghi nhận.</p>;
-  }
+function HistoryData({ value, field = '', ticket }) {
+  if (value == null) return <p className="w-shell-note">Chưa ghi nhận.</p>;
 
   if (Array.isArray(value)) {
     if (!value.length) {
@@ -210,7 +219,6 @@ function HistoryData({ value, field = '' }) {
         <ul>
           {value.map((item, index) => {
             const href = safeHref(item);
-
             return (
               <li key={index}>
                 {href ? (
@@ -239,12 +247,11 @@ function HistoryData({ value, field = '' }) {
     if (field === 'sai_lech') {
       return (
         <WarrantyTable
-          columns={['ID sai lệch', 'Loại sai lệch', 'Nội dung', 'Thiết bị', 'Xử lý lúc ghi nhận']}
+          columns={['Mã sai lệch', 'Loại sai lệch', 'Nội dung', 'Xử lý lúc ghi nhận']}
           rows={value.map((item) => [
             reference(item.id),
             values[item.loai] || item.loai,
             item.noi_dung,
-            reference(item.thiet_bi_id),
             <WarrantyBadge
               key={item.id}
               tone={
@@ -275,7 +282,7 @@ function HistoryData({ value, field = '' }) {
                 {fieldName(field)} {index + 1}
               </strong>
             </div>
-            <HistoryData value={item} />
+            <HistoryData value={item} ticket={ticket} />
           </article>
         ))}
       </>
@@ -283,36 +290,55 @@ function HistoryData({ value, field = '' }) {
   }
 
   if (typeof value !== 'object') {
-    return <p>{scalar(value, field)}</p>;
+    return <p>{scalar(value, field, ticket)}</p>;
   }
 
-  const entries = Object.entries(value);
+  const entries = Object.entries(value).filter(
+    ([key, item]) =>
+      item != null &&
+      item !== '' &&
+      key !== 'su_kien' &&
+      !(key === 'san_sang_tra' && item.su_kien && value.trang_thai?.su_kien === item.su_kien)
+  );
+  const isReference = (key) => /(^id$|_ids?$)/.test(key);
+  const references = entries.filter(([key]) => isReference(key));
+  const visible = entries.filter(
+    ([key]) => !isReference(key) || deviceIdField.test(key) || key === 'lan_gui_lich_su_id'
+  );
+  const simple = visible.filter(([, item]) => typeof item !== 'object');
+  const nested = visible.filter(([, item]) => typeof item === 'object');
 
-  if (!entries.length) {
-    return <p className="w-shell-note">Bản ghi này chưa có dữ liệu chi tiết.</p>;
-  }
-
-  const simple = entries.filter(([, item]) => item == null || typeof item !== 'object');
-  const nested = entries.filter(([, item]) => item != null && typeof item === 'object');
+  if (!entries.length) return <p className="w-shell-note">Chưa có nội dung chi tiết.</p>;
 
   return (
     <>
       {simple.length > 0 && (
-        <WarrantyFields fields={simple.map(([key, item]) => [fieldName(key), scalar(item, key)])} />
+        <WarrantyFields
+          fields={simple.map(([key, item]) => [fieldName(key), scalar(item, key, ticket)])}
+        />
       )}
-
       {nested.map(([key, item]) => (
         <section className="w-shell-subsection" key={key}>
           <h3>{fieldName(key)}</h3>
-          <HistoryData value={item} field={key} />
+          <HistoryData value={item} field={key} ticket={ticket} />
         </section>
       ))}
+      {references.length > 0 && (
+        <details className="w-reference-details">
+          <summary>Mã nội bộ để đối chiếu</summary>
+          <WarrantyFields
+            fields={references.map(([key, item]) => [
+              fieldName(key),
+              Array.isArray(item) ? item.map(reference).join(', ') : reference(item),
+            ])}
+          />
+        </details>
+      )}
     </>
   );
 }
 
-export default function WarrantyHistoryDetail({ ticketId, eventId, onClose }) {
-  const panelRef = useRef(null);
+export default function WarrantyHistoryDetail({ ticketId, eventId, ticket = {}, onClose }) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -339,66 +365,40 @@ export default function WarrantyHistoryDetail({ ticketId, eventId, onClose }) {
     return () => controller.abort();
   }, [ticketId, eventId, retry]);
 
-  useEffect(() => {
-    panelRef.current?.focus({ preventScroll: true });
-    panelRef.current?.scrollIntoView({ block: 'nearest' });
-  }, []);
-
   return (
-    <div
-      ref={panelRef}
-      className="w-shell-panel"
-      tabIndex={-1}
-      aria-label={`Chi tiết thao tác ${eventId}`}
+    <WarrantyDialog
+      title={data ? warrantyHistoryEventName(data.loai_su_kien) : 'Chi tiết thao tác'}
+      subtitle="Bản ghi tại thời điểm thực hiện"
+      onClose={onClose}
     >
-      <WarrantyPanel
-        title={`Chi tiết thao tác #${eventId}`}
-        note="Dữ liệu tại thời điểm thao tác được ghi nhận. Các lần xử lý sau được lưu thành sự kiện riêng."
-        action={
-          <button type="button" className="w-shell-button" onClick={onClose}>
-            Đóng chi tiết
+      {loading && <p role="status">Đang tải chi tiết thao tác…</p>}
+      {error && (
+        <div className="w-shell-error" role="alert">
+          <p>{error}</p>
+          <button
+            type="button"
+            className="w-shell-button"
+            onClick={() => setRetry((value) => value + 1)}
+          >
+            Thử lại
           </button>
-        }
-      >
-        {loading && <p role="status">Đang tải chi tiết thao tác…</p>}
-
-        {error && (
-          <div className="w-shell-error" role="alert">
-            <p>{error}</p>
-            <button
-              type="button"
-              className="w-shell-button"
-              onClick={() => setRetry((current) => current + 1)}
-            >
-              Thử lại
-            </button>
-          </div>
-        )}
-
-        {data && (
-          <>
-            <WarrantyFields
-              fields={[
-                ['Thao tác', warrantyHistoryEventName(data.loai_su_kien)],
-                ['Thời điểm ghi nhận', displayDate(data.ngay_tao)],
-                [
-                  'Người thực hiện',
-                  data.ten_nguoi_thuc_hien ||
-                    (data.nguoi_thuc_hien_id
-                      ? `Nhân viên #${data.nguoi_thuc_hien_id}`
-                      : 'Chưa ghi nhận'),
-                ],
-                ['Nội dung', data.noi_dung || 'Chưa ghi nhận'],
-              ]}
-            />
-
-            <section className="w-shell-subsection">
-              <h3>Nội dung chi tiết đã lưu</h3>
-              <HistoryData value={data.chi_tiet} />
-            </section>
-          </>
-        )}
-      </WarrantyPanel>
-    </div>
+        </div>
+      )}
+      {data && (
+        <>
+          <WarrantyFields
+            fields={[
+              ['Người ghi nhận', data.ten_nguoi_thuc_hien || 'Chưa có tên người ghi nhận'],
+              ['Thời điểm ghi nhận', displayDate(data.ngay_tao)],
+              ['Nội dung', data.noi_dung],
+              ['Mã lịch sử', String(data.id ?? eventId)],
+            ]}
+          />
+          <section className="w-shell-subsection">
+            <HistoryData value={data.chi_tiet} ticket={ticket} />
+          </section>
+        </>
+      )}
+    </WarrantyDialog>
   );
 }

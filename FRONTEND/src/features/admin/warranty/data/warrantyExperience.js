@@ -60,6 +60,7 @@ export const fieldHelp = {
   tinh_trang: 'Ngoại quan, tem và hoạt động.',
   can_cu_kiem_tra: 'Ghi kết quả kiểm tra trước khi trả.',
   xac_nhan_nghia_vu: 'Xác nhận đã đối chiếu phí.',
+  so_serial_thuc_nhan: 'Đọc serial trên thiết bị thực nhận. Hàng không có serial thì để trống.',
 };
 
 export function freeWorkItems(detail, conclusionId) {
@@ -163,29 +164,191 @@ export function workflowGuide(detail) {
   };
 }
 
+const sameId = (a, b) => a != null && b != null && String(a) === String(b);
+
+export const discrepancyLabels = {
+  SAI_THIET_BI: 'Sai thiết bị',
+  SAI_PHIEN_BAN: 'Sai phiên bản',
+  THIEU_PHU_KIEN: 'Thiếu phụ kiện',
+  THUA_PHU_KIEN: 'Thừa phụ kiện',
+  KHAC_TINH_TRANG: 'Tình trạng khác hồ sơ',
+  KHAC: 'Sai lệch khác',
+};
+
+export function warrantyDeviceLabel(detail, id) {
+  if (id == null) return 'Chưa xác định thiết bị';
+  const device = [detail.thiet_bi, detail.thiet_bi_hien_hanh].find((item) => sameId(item?.id, id));
+
+  if (device?.so_serial) return `Serial ${device.so_serial}`;
+  if (device?.ma_theo_doi) return `Mã theo dõi ${device.ma_theo_doi}`;
+  if (sameId(id, detail.phuong_an_doi?.thiet_bi_thay_the_id)) return 'Thiết bị thay thế';
+  return device?.ten_san_pham || 'Thiết bị theo hồ sơ';
+}
+
+export function activeWarrantyTrip(detail) {
+  const moves = detail.giao_nhan || [];
+  const sent = moves.findLast(
+    (item) => item.su_kien === 'GUI_DON_VI' && sameId(item.thiet_bi_id, detail.thiet_bi?.id)
+  );
+  if (!sent) return null;
+
+  const receipt = moves.findLast(
+    (item) =>
+      item.su_kien === 'NHAN_LAI' &&
+      (item.lan_gui_lich_su_id != null
+        ? sameId(item.lan_gui_lich_su_id, sent.lich_su_id)
+        : sameId(item.thiet_bi_id, sent.thiet_bi_id) && item.lich_su_id > sent.lich_su_id)
+  );
+
+  return receipt?.da_nhan_dung_thiet_bi === true
+    ? null
+    : { sent, wrong: receipt?.da_nhan_dung_thiet_bi === false };
+}
+
+export function pendingWarrantyDifferences(detail, deviceId) {
+  if (deviceId == null || deviceId === '') return [];
+  const pending = new Map();
+
+  for (const event of detail.giao_nhan || []) {
+    for (const item of event.sai_lech || []) {
+      const id = Number(item.id);
+      if (!Number.isSafeInteger(id) || id < 1 || item.da_xu_ly === true) continue;
+      if (item.thiet_bi_id != null && !sameId(item.thiet_bi_id, deviceId)) continue;
+      pending.set(id, { ...item, id, event });
+    }
+  }
+
+  return [...pending.values()];
+}
+
+export function warrantyAlternativeKeys(detail) {
+  const status = detail.trang_thai_xu_ly;
+  const custody = detail.noi_dang_giu;
+  const result = (detail.thao_tac_duoc_phep || []).filter((key) =>
+    ['KIEM_TRA_TIEP', 'HOAN_KHACH'].includes(key)
+  );
+
+  if (status === 'HOAN_TAT') return result;
+
+  const trip = activeWarrantyTrip(detail);
+  const atShop = custody?.loai === 'CUA_HANG';
+  const atSupplier = custody?.loai === 'DON_VI_BAO_HANH';
+  const outside = atSupplier || custody?.loai === 'DANG_VAN_CHUYEN';
+
+  if (trip && outside && ['DA_GUI_BAO_HANH', 'DANG_BAO_HANH'].includes(status)) {
+    result.push('YEU_CAU_THU_HOI', 'NHAN_LAI', 'YEU_CAU_DUNG');
+  }
+  if (
+    trip &&
+    detail.noi_dang_giu_thiet_bi_cu &&
+    ['DANG_BAO_HANH', 'CHO_DOI_SAN_PHAM'].includes(status)
+  ) {
+    result.push('NHAN_LAI');
+  }
+  if (trip?.wrong && outside) return result;
+
+  if (
+    (atShop || atSupplier) &&
+    ['DANG_KIEM_TRA', 'DANG_BAO_HANH', 'DA_NHAN_LAI'].includes(status)
+  ) {
+    result.push('GHI_KET_LUAN');
+  }
+  if (atShop && status === 'DANG_KIEM_TRA') {
+    if (sameId(custody.thiet_bi_id, detail.thiet_bi?.id)) result.push('GUI_DON_VI');
+
+    const report = detail.ket_luan?.at(-1);
+    const plan = detail.phuong_an_doi;
+    const activePlan = plan && plan.da_huy !== true && plan.quyet_dinh_khach !== 'TU_CHOI';
+    const quote = detail.bao_gia?.at(-1);
+    if (!activePlan && freeWorkItems(detail, report?.lich_su_id).length) {
+      result.push('BAT_DAU_MIEN_PHI', 'PLAN_CREATE');
+    }
+    if (
+      !activePlan &&
+      report?.hang_muc?.some((item) => item.ben_chiu_phi === 'KHACH_HANG' && item.can_cu?.trim()) &&
+      !['NHAP', 'CHO_PHAN_HOI', 'DONG_Y'].includes(quote?.trang_thai)
+    ) {
+      result.push('QUOTE');
+    }
+    if (report) result.push('YEU_CAU_DUNG');
+  }
+
+  return result;
+}
+
 export function custodyBlocker(key, detail) {
-  const held = detail.noi_dang_giu?.loai;
-  if (key === 'HANDOVER' && detail.trang_thai_xu_ly !== 'CHO_TRA_KHACH')
+  const status = detail.trang_thai_xu_ly;
+  const custody = detail.noi_dang_giu;
+  const held = custody?.loai;
+  const atShop = held === 'CUA_HANG';
+  const outside = ['DANG_VAN_CHUYEN', 'DON_VI_BAO_HANH'];
+  const trip = activeWarrantyTrip(detail);
+  const original = detail.thiet_bi?.id;
+  const plan = detail.phuong_an_doi;
+  const replacement = plan?.thiet_bi_thay_the_id;
+
+  if (['KIEM_TRA_TIEP', 'SAN_SANG_TRA', 'HANDOVER'].includes(key) && trip?.wrong && !replacement)
+    return 'Chưa nhận lại đúng thiết bị. Chỉ tiếp tục sau khi nhận và đối chiếu đúng.';
+  if (['BAT_DAU_KIEM_TRA', 'KIEM_TRA_TIEP'].includes(key) && !atShop)
+    return 'Chỉ kiểm tra khi cửa hàng đang giữ thiết bị.';
+  if (key === 'HANDOVER' && status !== 'CHO_TRA_KHACH')
     return 'Cần ghi sẵn sàng trả trước khi bàn giao.';
-  if (key === 'HANDOVER' && held !== 'CUA_HANG')
-    return 'Chỉ bàn giao khi cửa hàng đang giữ thiết bị.';
-  if (key === 'SAN_SANG_TRA' && held !== 'CUA_HANG')
-    return 'Cần nhận thiết bị về cửa hàng trước khi sẵn sàng trả.';
+  if (['SAN_SANG_TRA', 'HANDOVER'].includes(key)) {
+    if (!atShop || !sameId(custody?.thiet_bi_id, replacement ?? original))
+      return 'Cửa hàng phải đang giữ đúng thiết bị sẽ trả.';
+    if (replacement != null && plan.da_huy === true)
+      return 'Cần xử lý hàng đổi của phương án đã hủy trước.';
+  }
+  if (key === 'SAN_SANG_TRA' && status === 'CHO_DOI_SAN_PHAM' && !replacement)
+    return 'Chưa có đúng thiết bị thay thế theo phương án đã duyệt.';
   if (
     key === 'SAN_SANG_TRA' &&
-    !['DANG_KIEM_TRA', 'DA_NHAN_LAI', 'DANG_BAO_HANH', 'CHO_DOI_SAN_PHAM'].includes(
-      detail.trang_thai_xu_ly
-    )
+    !['DANG_KIEM_TRA', 'DA_NHAN_LAI', 'DANG_BAO_HANH', 'CHO_DOI_SAN_PHAM'].includes(status)
   )
     return 'Chỉ đánh dấu sau khi kiểm tra hoặc xử lý thiết bị.';
-  if (key === 'GUI_DON_VI' && held !== 'CUA_HANG') return 'Chỉ gửi khi cửa hàng đang giữ thiết bị.';
-  if (key === 'DON_VI_TIEP_NHAN' && held !== 'DANG_VAN_CHUYEN')
-    return 'Cần có lần gửi đang chờ đơn vị nhận.';
   if (
-    ['NHAN_LAI', 'YEU_CAU_THU_HOI'].includes(key) &&
-    !['DON_VI_BAO_HANH', 'DANG_VAN_CHUYEN'].includes(held)
+    key === 'GUI_DON_VI' &&
+    (status !== 'DANG_KIEM_TRA' || !atShop || !sameId(custody.thiet_bi_id, original))
   )
-    return 'Thiết bị hiện không được ghi nhận đang gửi hoặc ở đơn vị.';
+    return 'Chỉ gửi thiết bị gốc đang kiểm tra tại cửa hàng.';
+  if (
+    key === 'DON_VI_TIEP_NHAN' &&
+    (status !== 'DA_GUI_BAO_HANH' || held !== 'DANG_VAN_CHUYEN' || !trip)
+  )
+    return 'Cần có lần gửi đang chờ đơn vị xác nhận.';
+  if (
+    key === 'YEU_CAU_THU_HOI' &&
+    (!trip || !outside.includes(held) || !['DA_GUI_BAO_HANH', 'DANG_BAO_HANH'].includes(status))
+  )
+    return 'Chỉ yêu cầu lấy lại khi có lần gửi đang mở.';
+  if (
+    key === 'NHAN_LAI' &&
+    (!trip ||
+      !['DA_GUI_BAO_HANH', 'DANG_BAO_HANH', 'CHO_DOI_SAN_PHAM'].includes(status) ||
+      !outside.includes(
+        sameId(custody?.thiet_bi_id, original) ? held : detail.noi_dang_giu_thiet_bi_cu?.loai
+      ))
+  )
+    return 'Cần có lần gửi thiết bị gốc chưa nhận đúng.';
+  if (
+    key === 'GHI_KET_LUAN' &&
+    (!['DANG_KIEM_TRA', 'DANG_BAO_HANH', 'DA_NHAN_LAI'].includes(status) ||
+      !['CUA_HANG', 'DON_VI_BAO_HANH'].includes(held))
+  )
+    return 'Chỉ ghi kết luận khi thiết bị đang được kiểm tra hoặc xử lý.';
+  if (
+    key === 'YEU_CAU_DUNG' &&
+    (![
+      'DANG_KIEM_TRA',
+      'DA_GUI_BAO_HANH',
+      'DANG_BAO_HANH',
+      'DA_NHAN_LAI',
+      'CHO_TRA_KHACH',
+    ].includes(status) ||
+      !['CUA_HANG', ...outside].includes(held))
+  )
+    return 'Phiếu chưa có bước xử lý để dừng.';
+
   return '';
 }
 
@@ -199,18 +362,15 @@ export function referenceOptions(name, detail, suppliers = [], versions = []) {
       label: `${item.displayName} · ${item.barcode || `#${item.id}`}`,
     }));
   if (name === 'lan_gui_lich_su_id') {
-    const received = Math.max(
-      0,
-      ...(detail.giao_nhan || [])
-        .filter((item) => item.su_kien === 'NHAN_LAI' && item.da_nhan_dung_thiet_bi !== false)
-        .map((item) => item.lich_su_id)
-    );
-    return (detail.giao_nhan || [])
-      .filter((item) => item.su_kien === 'GUI_DON_VI' && item.lich_su_id > received)
-      .map((item) => ({
-        value: item.lich_su_id,
-        label: `Lần gửi #${item.lich_su_id} · ${displayDate(item.ngay)} · Thiết bị #${item.thiet_bi_id}`,
-      }));
+    const sent = activeWarrantyTrip(detail)?.sent;
+    return sent
+      ? [
+          {
+            value: sent.lich_su_id,
+            label: `${displayDate(sent.ngay)} · ${sent.ten_don_vi || warrantyDeviceLabel(detail, sent.thiet_bi_id)}`,
+          },
+        ]
+      : [];
   }
   if (name === 'ket_luan_lich_su_id')
     return (detail.ket_luan || []).map((item) => ({
@@ -257,7 +417,7 @@ export function referenceOptions(name, detail, suppliers = [], versions = []) {
             item.id,
             {
               value: item.id,
-              label: `${item.so_serial || item.ma_theo_doi || 'Thiết bị'} · #${item.id}`,
+              label: `${item.so_serial || item.ma_theo_doi || 'Thiết bị'} label: warrantyDeviceLabel(detail, item.id),`,
             },
           ])
       ).values(),

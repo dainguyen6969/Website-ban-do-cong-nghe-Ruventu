@@ -21,7 +21,7 @@ import './DatHangOnline.css';
 import { canEditOnlineOrder, getOrder } from '../api/orderApi';
 import OrderModal from '../components/OrderModal';
 import { errorMessage, withIdempotency } from '../../../../shared/services/mutationUtils';
-import { FormDropdown } from "../../../../shared/components/ui/FilterDropdown";
+import { FormDropdown } from '../../../../shared/components/ui/FilterDropdown';
 
 const money = new Intl.NumberFormat('vi-VN', {
   style: 'currency',
@@ -417,8 +417,7 @@ export default function DatHangOnline() {
       address: '',
     }));
   };
-  const updateRecipient = (key, value) =>
-    setRecipient((current) => ({ ...current, [key]: value }));
+  const updateRecipient = (key, value) => setRecipient((current) => ({ ...current, [key]: value }));
 
   const handleProvinceChange = (newProvince) => {
     const availableWards = VIETNAM_LOCATIONS[newProvince] || [];
@@ -803,7 +802,8 @@ export default function DatHangOnline() {
               />
               <div className="online-field">
                 <span>TỈNH / THÀNH PHỐ *</span>
-                <FormDropdown aria-label="TỈNH / THÀNH PHỐ"
+                <FormDropdown
+                  aria-label="TỈNH / THÀNH PHỐ"
                   value={recipient.province}
                   onChange={(e) => handleProvinceChange(e.target.value)}
                 >
@@ -816,7 +816,8 @@ export default function DatHangOnline() {
               </div>
               <div className="online-field">
                 <span>QUẬN / HUYỆN / PHƯỜNG *</span>
-                <FormDropdown aria-label="QUẬN / HUYỆN / PHƯỜNG"
+                <FormDropdown
+                  aria-label="QUẬN / HUYỆN / PHƯỜNG"
                   value={recipient.ward}
                   onChange={(e) => updateRecipient('ward', e.target.value)}
                 >
@@ -845,7 +846,10 @@ export default function DatHangOnline() {
                     alignItems: 'center',
                   }}
                 >
-                  <span className="field-label" style={{ color: '#333', fontSize: scaledFontSize(9), fontWeight: 900 }}>
+                  <span
+                    className="field-label"
+                    style={{ color: '#333', fontSize: scaledFontSize(9), fontWeight: 900 }}
+                  >
                     {`ĐỊA CHỈ CỤ THỂ${delivery === 'GIAO_HANG' ? ' *' : ''}`}
                   </span>
                   <button
@@ -906,9 +910,7 @@ export default function DatHangOnline() {
                 </div>
                 {(touched.address || submitted) &&
                   delivery === 'GIAO_HANG' &&
-                  !recipient.address.trim() && (
-                    <small>Vui lòng nhập địa chỉ giao hàng.</small>
-                  )}
+                  !recipient.address.trim() && <small>Vui lòng nhập địa chỉ giao hàng.</small>}
                 {showAddressDropdown && addressSuggestions.length > 0 && (
                   <div className="goong-autocomplete-dropdown">
                     {addressSuggestions.map((item, idx) => (
@@ -1367,7 +1369,7 @@ function Summary({
               ? 'THỬ LẠI YÊU CẦU'
               : edit
                 ? 'LƯU THAY ĐỔI'
-                : 'TẠO ĐƠN CHỜ HÀNG'}
+                : 'TẠO ĐƠN HÀNG'}
         </button>
       </div>
     </aside>
