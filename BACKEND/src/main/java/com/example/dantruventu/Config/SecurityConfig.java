@@ -40,6 +40,9 @@ public class SecurityConfig {
         .authorizeHttpRequests(
             auth ->
                 auth.requestMatchers(
+                        org.springframework.http.HttpMethod.POST, "/api/v1/orders/warranty-lookup")
+                    .permitAll()
+                    .requestMatchers(
                         "/api/v1/system-settings/status",
                         "/api/v1/auth/register",
                         "/api/v1/auth/otp/resend",

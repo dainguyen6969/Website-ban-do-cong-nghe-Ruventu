@@ -7,6 +7,7 @@ import com.example.dantruventu.DTO.Response.order.CustomerOrderResponse;
 import com.example.dantruventu.Entity.NguoiDung;
 import com.example.dantruventu.Services.order.BackorderService;
 import com.example.dantruventu.Services.order.CustomerOrderService;
+import com.example.dantruventu.Services.warranty.AdminWarrantyLookupService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -32,6 +33,7 @@ public class CustomerOrderController {
 
   private final CustomerOrderService customerOrderService;
   private final BackorderService backorders;
+  private final AdminWarrantyLookupService warrantyLookupService;
 
   @PostMapping("/stock-notifications")
   public ApiResponse<BackorderService.Result> registerStockNotice(
@@ -149,6 +151,27 @@ public class CustomerOrderController {
         .message("Tra cứu đơn hàng thành công")
         .data(customerOrderService.trackOrder(orderCode, recipientPhone))
         .build();
+  }
+
+  @PostMapping("/warranty-lookup")
+  public ResponseEntity<ApiResponse<CustomerOrderResponse.CustomerResult>> lookupWarranty(
+      Authentication authentication,
+      @RequestBody CustomerOrderRequest.CustomerSearch request,
+      HttpServletRequest httpRequest) {
+
+    var data =
+        warrantyLookupService.getCustomerLookup(
+            getAuthenticatedUser(authentication), request, httpRequest.getRemoteAddr());
+
+    return ResponseEntity.ok()
+        .cacheControl(org.springframework.http.CacheControl.noStore())
+        .header("Pragma", "no-cache")
+        .body(
+            ApiResponse.<CustomerOrderResponse.CustomerResult>builder()
+                .status(HttpStatus.OK.value())
+                .message("Tra cứu bảo hành thành công")
+                .data(data)
+                .build());
   }
 
   private NguoiDung getAuthenticatedUser(Authentication authentication) {

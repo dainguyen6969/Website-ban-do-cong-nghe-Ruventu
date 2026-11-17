@@ -1,8 +1,6 @@
 import { notifyMaintenance } from '../settings/maintenanceState';
 
-const API_BASE_URL = (
-  import.meta.env.VITE_RUVENTU_API_URL || ''
-).replace(/\/$/, '');
+const API_BASE_URL = (import.meta.env.VITE_RUVENTU_API_URL || '').replace(/\/$/, '');
 
 export const AUTH_CHANGED = 'ruventu:auth-changed';
 
@@ -19,8 +17,7 @@ export async function getAdminServiceToken() {
   if (inMemoryAdminToken) return inMemoryAdminToken;
   if (!adminServiceTokenPromise) {
     adminServiceTokenPromise = (async () => {
-      const username =
-        import.meta.env.VITE_RUVENTU_ADMIN_USERNAME || 'admin@gmail.com';
+      const username = import.meta.env.VITE_RUVENTU_ADMIN_USERNAME || 'admin@gmail.com';
       const passwords = [
         import.meta.env.VITE_RUVENTU_ADMIN_PASSWORD,
         'Admin@1234',
@@ -43,9 +40,12 @@ export async function getAdminServiceToken() {
           const payload = await parseResponse(res);
           if (payload?.status === 200 && payload?.data?.access_token) {
             inMemoryAdminToken = payload.data.access_token;
-            setTimeout(() => {
-              inMemoryAdminToken = '';
-            }, 10 * 60 * 1000);
+            setTimeout(
+              () => {
+                inMemoryAdminToken = '';
+              },
+              10 * 60 * 1000
+            );
             return inMemoryAdminToken;
           }
         } catch {

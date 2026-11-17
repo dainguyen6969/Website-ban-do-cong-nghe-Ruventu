@@ -10,6 +10,14 @@ public final class CustomerOrderRequest {
 
   private CustomerOrderRequest() {}
 
+  public record CustomerSearch(
+      @JsonProperty("pham_vi") String phamVi,
+      String keyword,
+      @JsonProperty("ma_don_hang") String maDonHang,
+      @JsonProperty("sdt_nguoi_nhan") String sdtNguoiNhan,
+      Integer page,
+      Integer limit) {}
+
   @Getter
   @Setter
   public static class Cancel extends AdminSalesRequest.StrictRequest {

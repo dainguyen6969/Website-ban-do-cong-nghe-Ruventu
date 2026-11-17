@@ -1,16 +1,13 @@
 package com.example.dantruventu.Services.warranty;
 
+import com.example.dantruventu.DTO.Request.order.CustomerOrderRequest;
+import com.example.dantruventu.DTO.Response.order.CustomerOrderResponse;
+import com.example.dantruventu.DTO.Response.order.SoldDeviceData;
 import com.example.dantruventu.DTO.Response.warranty.AdminWarrantyLookupResponse;
 import com.example.dantruventu.DTO.Response.warranty.AdminWarrantyLookupResponse.BlockReason;
 import com.example.dantruventu.DTO.Response.warranty.AdminWarrantyLookupResponse.IntakeRequest;
 import com.example.dantruventu.DTO.Response.warranty.AdminWarrantyLookupResponse.Item;
-import com.example.dantruventu.Entity.ChiTietDonHang;
-import com.example.dantruventu.Entity.ChiTietTraHang;
-import com.example.dantruventu.Entity.DonHang;
-import com.example.dantruventu.Entity.LichSuBaoHanh;
-import com.example.dantruventu.Entity.PhieuBaoHanh;
-import com.example.dantruventu.Entity.SoSerialSanPham;
-import com.example.dantruventu.Entity.ThietBiBaoHanh;
+import com.example.dantruventu.Entity.*;
 import com.example.dantruventu.Enum.KetQuaTiepNhanBaoHanh;
 import com.example.dantruventu.Enum.LoaiSanPham;
 import com.example.dantruventu.Enum.TrangThaiBaoHanh;
@@ -24,7 +21,10 @@ import com.example.dantruventu.Repository.warranty.WarrantyHistoryRepository;
 import com.example.dantruventu.Repository.warranty.WarrantyLookupRepository;
 import com.example.dantruventu.Repository.warranty.WarrantyLookupRepository.Candidate;
 import com.example.dantruventu.Repository.warranty.WarrantyLookupRepository.Filter;
+import com.example.dantruventu.Services.order.sales.SoldDeviceService;
 import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -35,6 +35,7 @@ import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -54,6 +55,8 @@ public class AdminWarrantyLookupService {
   private final WarrantyHistoryRepository historyRepository;
   private final WarrantyHistorySupport history;
   private final WarrantyDeviceResolver deviceResolver;
+  private final StringRedisTemplate redisTemplate;
+  private final SoldDeviceService soldDevices;
 
   public AdminWarrantyLookupResponse getLookup(
       String soSerial,
@@ -183,6 +186,265 @@ public class AdminWarrantyLookupService {
         history.text(data.get("so_serial")),
         history.text(data.get("ma_theo_doi")),
         history.text(data.get("ma_don_hang")));
+  }
+
+  @Transactional(
+      readOnly = true,
+      isolation = org.springframework.transaction.annotation.Isolation.REPEATABLE_READ)
+  public CustomerOrderResponse.CustomerResult getCustomerLookup(
+      NguoiDung user, CustomerOrderRequest.CustomerSearch request, String remoteAddress) {
+    if (request == null) throw invalidSearch();
+    limitCustomerLookup(user, remoteAddress);
+
+    boolean own = "TAI_KHOAN".equals(request.phamVi());
+    if (!own && !"DON_HANG".equals(request.phamVi())) throw invalidSearch();
+    if (own && user == null) throw new AppException(ErrorCode.UNAUTHORIZED);
+
+    String keyword = customerText(request.keyword(), 100);
+    String orderCode = null;
+    String phone = null;
+
+    if (!own) {
+      orderCode = customerText(request.maDonHang(), 50);
+      String rawPhone = customerText(request.sdtNguoiNhan(), 20);
+      if (orderCode == null || rawPhone == null || !rawPhone.matches("\\+?[0-9][0-9 .()-]{6,19}")) {
+        throw invalidSearch();
+      }
+      phone = rawPhone.replaceAll("[^0-9]", "");
+      if (phone.length() < 7) throw invalidSearch();
+    }
+
+    int page = request.page() == null ? 0 : request.page();
+    int limit = request.limit() == null ? 20 : request.limit();
+    WarrantyReadValidation.validateOffset(page, limit, ErrorCode.INVALID_WARRANTY_LOOKUP);
+    if (limit > 50) throw invalidSearch();
+
+    Page<WarrantyLookupRepository.CustomerDevice> devices =
+        repository.findCustomerDevices(
+            own ? user.getId() : null, orderCode, phone, keyword, PageRequest.of(page, limit));
+
+    OffsetDateTime now = OffsetDateTime.now(ZoneId.of("Asia/Ho_Chi_Minh"));
+    Map<Long, List<SoldDeviceData>> snapshots = new LinkedHashMap<>();
+    List<CustomerOrderResponse.CustomerItem> items =
+        devices.getContent().stream().map(row -> customerItem(row, now, snapshots)).toList();
+
+    return new CustomerOrderResponse.CustomerResult(
+        items, WarrantyReadValidation.pagination(page, limit, devices.getTotalElements()), now);
+  }
+
+  private CustomerOrderResponse.CustomerItem customerItem(
+      WarrantyLookupRepository.CustomerDevice row,
+      OffsetDateTime now,
+      Map<Long, List<SoldDeviceData>> snapshots) {
+    Candidate candidate = row.candidate();
+    ThietBiBaoHanh device = repository.device(candidate.deviceId());
+    var line = repository.line(candidate.lineId());
+    var order = line.getDonHang();
+    var serial = repository.serial(candidate.serialId());
+    var variant = device != null ? device.getPhienBan() : serial.getPhienBan();
+
+    if (device != null) {
+      var state = deviceResolver.resolve(repository.device(row.rootId()));
+      if (state.thietBiHienHanh() == null
+          || !Objects.equals(state.thietBiHienHanh().getId(), device.getId())) {
+        throw invalidData();
+      }
+    }
+
+    Item lookup = toItem(candidate);
+    if (!lookup.daGiaoKhach() || !lookup.laThietBiHienHanh() || lookup.hanBaoHanh() == null) {
+      throw invalidData();
+    }
+
+    LocalDateTime activated =
+        device != null && device.getNgayKichHoat() != null
+            ? device.getNgayKichHoat()
+            : serial == null ? null : serial.getNgayKichHoat();
+    OffsetDateTime activatedAt = WarrantyReadValidation.time(activated);
+    if (activatedAt == null || activatedAt.isAfter(now)) throw invalidData();
+
+    SoldDeviceData sold =
+        snapshots.computeIfAbsent(order.getId(), soldDevices::details).stream()
+            .filter(value -> device != null && Objects.equals(value.thietBiId(), device.getId()))
+            .findFirst()
+            .orElse(null);
+
+    String name =
+        sold != null && sold.tenSanPham() != null
+            ? sold.tenSanPham()
+            : variant.getSanPham().getTenSanPham();
+    String variantName =
+        sold != null && sold.tenPhienBan() != null ? sold.tenPhienBan() : variant.getTenPhienBan();
+
+    boolean verify =
+        device == null
+            || lookup.lyDoChan().stream()
+                .anyMatch(reason -> !"WARRANTY_DEVICE_LOCKED".equals(reason.code()));
+
+    List<CustomerOrderResponse.CustomerTicket> tickets =
+        device == null
+            ? List.of()
+            : repository.findCustomerTickets(device.getId(), order.getId()).stream()
+                .map(
+                    ticket ->
+                        new CustomerOrderResponse.CustomerTicket(
+                            ticket.getMaPhieu(),
+                            ticket.getTrangThaiXuLy().name(),
+                            WarrantyReadValidation.time(ticket.getNgayTiepNhan()),
+                            WarrantyReadValidation.time(ticket.getNgayCapNhat()),
+                            ticket.getLyDoBaoHanh(),
+                            customerTimeline(ticket)))
+                .toList();
+
+    return new CustomerOrderResponse.CustomerItem(
+        device == null ? null : device.getId(),
+        order.getId(),
+        order.getMaDonHang(),
+        name,
+        variantName,
+        variant.getSanPham().getMaSanPham(),
+        variant.getMaVach(),
+        device == null ? null : device.getMaTheoDoi(),
+        serial == null ? null : serial.getId(),
+        serial == null ? null : serial.getSoSerial(),
+        activatedAt,
+        lookup.hanBaoHanh(),
+        now.isAfter(lookup.hanBaoHanh()) ? "HET_HAN" : "CON_HAN",
+        verify,
+        tickets);
+  }
+
+  private List<CustomerOrderResponse.CustomerStatusEvent> customerTimeline(PhieuBaoHanh ticket) {
+
+    List<CustomerOrderResponse.CustomerStatusEvent> points = new ArrayList<>();
+
+    if (ticket.getNgayTiepNhan() != null) {
+      points.add(
+          new CustomerOrderResponse.CustomerStatusEvent(
+              TrangThaiBaoHanh.TIEP_NHAN.name(),
+              WarrantyReadValidation.time(ticket.getNgayTiepNhan())));
+    }
+
+    Map<String, Object> custody = null;
+
+    for (var event :
+        historyRepository.findByPhieuBaoHanh_IdOrderByNgayTaoAscIdAsc(ticket.getId())) {
+
+      Map<String, Object> payload = history.payload(event);
+
+      if (payload.containsKey("noi_dang_giu")) {
+        custody = history.object(payload.get("noi_dang_giu"));
+      }
+
+      Map<String, Object> change = history.object(payload.get("trang_thai"));
+      Map<String, Object> transfer = history.object(payload.get("giao_nhan"));
+
+      String code = change == null ? null : history.text(change.get("trang_thai_sau"));
+
+      if (code == null) {
+        String type = event.getLoaiSuKien() == null ? "" : event.getLoaiSuKien();
+
+        code =
+            switch (type) {
+              case "TIEP_NHAN" -> TrangThaiBaoHanh.TIEP_NHAN.name();
+
+              case "BAT_DAU_KIEM_TRA", "KIEM_TRA_TIEP" -> TrangThaiBaoHanh.DANG_KIEM_TRA.name();
+
+              case "GUI_DON_VI" -> TrangThaiBaoHanh.DA_GUI_BAO_HANH.name();
+
+              case "DON_VI_TIEP_NHAN", "BAT_DAU_CONG_VIEC" -> TrangThaiBaoHanh.DANG_BAO_HANH.name();
+
+              case "NHAN_LAI" ->
+                  transfer != null && Boolean.TRUE.equals(transfer.get("da_nhan_dung_thiet_bi"))
+                      ? TrangThaiBaoHanh.DA_NHAN_LAI.name()
+                      : null;
+
+              case "SAN_SANG_TRA" -> TrangThaiBaoHanh.CHO_TRA_KHACH.name();
+
+              case "HANDOVER" -> TrangThaiBaoHanh.HOAN_TAT.name();
+
+              case "YEU_CAU_DUNG" ->
+                  custody != null && "CUA_HANG".equals(history.text(custody.get("loai")))
+                      ? TrangThaiBaoHanh.DANG_KIEM_TRA.name()
+                      : null;
+
+              default -> null;
+            };
+      }
+
+      if (code == null) continue;
+
+      try {
+        TrangThaiBaoHanh.valueOf(code);
+      } catch (IllegalArgumentException failure) {
+        throw invalidHistory();
+      }
+
+      OffsetDateTime at = change == null ? null : history.time(change.get("thoi_diem"));
+
+      if (at == null) {
+        at = history.time(payload.get("thoi_diem"));
+      }
+      if (at == null && transfer != null) {
+        at = history.time(transfer.get("thoi_diem"));
+      }
+      if (at == null && transfer != null) {
+        at = history.time(transfer.get("ngay"));
+      }
+      if (at == null) {
+        at = WarrantyReadValidation.time(event.getNgayTao());
+      }
+
+      if (at != null) {
+        points.add(new CustomerOrderResponse.CustomerStatusEvent(code, at));
+      }
+    }
+
+    points.sort((first, second) -> first.thoiDiem().compareTo(second.thoiDiem()));
+
+    List<CustomerOrderResponse.CustomerStatusEvent> timeline = new ArrayList<>();
+
+    for (var point : points) {
+      if (timeline.isEmpty() || !timeline.getLast().trangThaiXuLy().equals(point.trangThaiXuLy())) {
+        timeline.add(point);
+      }
+    }
+
+    String current = ticket.getTrangThaiXuLy().name();
+
+    if (timeline.isEmpty() || !timeline.getLast().trangThaiXuLy().equals(current)) {
+      timeline.add(new CustomerOrderResponse.CustomerStatusEvent(current, null));
+    }
+
+    return List.copyOf(timeline);
+  }
+
+  private String customerText(String value, int max) {
+    if (value == null || value.isBlank()) return null;
+    if (value.codePoints().anyMatch(Character::isISOControl)) throw invalidSearch();
+    return normalize(value, max);
+  }
+
+  private void limitCustomerLookup(NguoiDung user, String remoteAddress) {
+    String subject = user == null ? "ip:" + String.valueOf(remoteAddress) : "user:" + user.getId();
+    String key =
+        "warranty:customer:lookup:"
+            + org.springframework.util.DigestUtils.md5DigestAsHex(
+                subject.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+
+    var script =
+        new org.springframework.data.redis.core.script.DefaultRedisScript<Long>(
+            "local n=redis.call('INCR',KEYS[1]); "
+                + "if n==1 then redis.call('EXPIRE',KEYS[1],600) end; return n",
+            Long.class);
+
+    Long attempts = redisTemplate.execute(script, List.of(key));
+    if (attempts == null) {
+      throw new IllegalStateException("Không đọc được giới hạn tra cứu");
+    }
+    if (attempts > (user == null ? 60 : 120)) {
+      throw new AppException(ErrorCode.TOO_MANY_REQUESTS);
+    }
   }
 
   private Item toItem(Candidate candidate) {
@@ -362,7 +624,9 @@ public class AdminWarrantyLookupService {
       throw invalidHistory();
     }
     LocalDateTime deadline =
-        serial == null ? device == null ? null : device.getHanBaoHanh() : serial.getHanBaoHanh();
+        device != null && device.getHanBaoHanh() != null
+            ? device.getHanBaoHanh()
+            : serial == null ? null : serial.getHanBaoHanh();
     java.time.OffsetDateTime deadlineResponse = WarrantyReadValidation.time(deadline);
     if (deadlineResponse == null && deviceSnapshot != null) {
       // The snapshot has already been scoped to this exact device/source ticket above.
