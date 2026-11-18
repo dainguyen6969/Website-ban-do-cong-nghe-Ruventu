@@ -56,80 +56,83 @@ public class AdminRoleService {
           Map.entry("so_quy", List.of("xem", "them", "sua")),
           Map.entry("bao_cao", List.of("xem")));
 
-    private static final Map<String, List<String>> ADMIN_ONLY_ACTIONS =
-            Map.of("nhan_vien", CRUD, "vai_tro_quyen", CRUD);
+  private static final Map<String, List<String>> ADMIN_ONLY_ACTIONS =
+      Map.of("nhan_vien", CRUD, "vai_tro_quyen", CRUD);
 
-    private VaiTro activeRole(Object principal) {
-        if (!(principal instanceof NguoiDung user)
-                || user.getTrangThai() != TrangThaiCoBanEnum.HOAT_DONG) {
-            return null;
-        }
-
-        VaiTro role = user.getVaiTro();
-        if (role == null || role.getMaVaiTro() == null || role.getMaVaiTro().isBlank()) {
-            return null;
-        }
-        return role;
+  private VaiTro activeRole(Object principal) {
+    if (!(principal instanceof NguoiDung user)
+        || user.getTrangThai() != TrangThaiCoBanEnum.HOAT_DONG) {
+      return null;
     }
 
-    public boolean isSystemAdmin(Object principal) {
-        VaiTro role = activeRole(principal);
-        return role != null && PROTECTED_ROLE_NAME.equals(role.getMaVaiTro());
+    VaiTro role = user.getVaiTro();
+    if (role == null || role.getMaVaiTro() == null || role.getMaVaiTro().isBlank()) {
+      return null;
+    }
+    return role;
+  }
+
+  public boolean isSystemAdmin(Object principal) {
+    VaiTro role = activeRole(principal);
+    return role != null && PROTECTED_ROLE_NAME.equals(role.getMaVaiTro());
+  }
+
+  public Map<String, List<String>> effectivePermissions(Object principal) {
+    VaiTro role = activeRole(principal);
+    if (role == null || CUSTOMER_ROLE_NAME.equals(role.getMaVaiTro())) {
+      return Map.of();
     }
 
-    public Map<String, List<String>> effectivePermissions(Object principal) {
-        VaiTro role = activeRole(principal);
-        if (role == null || CUSTOMER_ROLE_NAME.equals(role.getMaVaiTro())) {
-            return Map.of();
-        }
+    Map<String, List<String>> result = new LinkedHashMap<>();
+    if (PROTECTED_ROLE_NAME.equals(role.getMaVaiTro())) {
+      result.putAll(ASSIGNABLE_ACTIONS);
+      result.putAll(ADMIN_ONLY_ACTIONS);
+      return result;
+    }
 
-        Map<String, List<String>> result = new LinkedHashMap<>();
-        if (PROTECTED_ROLE_NAME.equals(role.getMaVaiTro())) {
-            result.putAll(ASSIGNABLE_ACTIONS);
-            result.putAll(ADMIN_ONLY_ACTIONS);
-            return result;
-        }
+    Map<String, List<String>> stored = role.getQuyen();
+    if (stored == null) return Map.of();
 
-        Map<String, List<String>> stored = role.getQuyen();
-        if (stored == null) return Map.of();
-
-        ASSIGNABLE_ACTIONS.forEach((module, allowed) -> {
-            List<String> granted = stored.get(module);
-            if (granted != null) {
-                List<String> actions = allowed.stream().filter(granted::contains).toList();
-                if (!actions.isEmpty()) result.put(module, actions);
-            }
+    ASSIGNABLE_ACTIONS.forEach(
+        (module, allowed) -> {
+          List<String> granted = stored.get(module);
+          if (granted != null) {
+            List<String> actions = allowed.stream().filter(granted::contains).toList();
+            if (!actions.isEmpty()) result.put(module, actions);
+          }
         });
-        return result;
-    }
+    return result;
+  }
 
-    public boolean hasPermission(Object principal, String module, String action) {
-        if (module == null || action == null) return false;
-        return effectivePermissions(principal).getOrDefault(module, List.of()).contains(action);
-    }
+  public boolean hasPermission(Object principal, String module, String action) {
+    if (module == null || action == null) return false;
+    return effectivePermissions(principal).getOrDefault(module, List.of()).contains(action);
+  }
 
-    public Map<String, Object> getMyPermissions(Object principal) {
-        VaiTro role = activeRole(principal);
-        if (role == null) throw new AppException(ErrorCode.FORBIDDEN);
+  public Map<String, Object> getMyPermissions(Object principal) {
+    VaiTro role = activeRole(principal);
+    if (role == null) throw new AppException(ErrorCode.FORBIDDEN);
 
-        NguoiDung user = (NguoiDung) principal;
-        String accountType = switch (role.getMaVaiTro()) {
-            case PROTECTED_ROLE_NAME -> "QUAN_TRI";
-            case CUSTOMER_ROLE_NAME -> "KHACH_HANG";
-            default -> "NHAN_VIEN";
+    NguoiDung user = (NguoiDung) principal;
+    String accountType =
+        switch (role.getMaVaiTro()) {
+          case PROTECTED_ROLE_NAME -> "QUAN_TRI";
+          case CUSTOMER_ROLE_NAME -> "KHACH_HANG";
+          default -> "NHAN_VIEN";
         };
 
-        return Map.of(
-                "nguoi_dung_id", user.getId(),
-                "trang_thai", user.getTrangThai().getValue(),
-                "loai_tai_khoan", accountType,
-                "vai_tro", Map.of(
-                        "id", role.getId(),
-                        "ma_vai_tro", role.getMaVaiTro(),
-                        "ten_vai_tro", role.getTenVaiTro(),
-                        "phien_ban", role.getPhienBan()),
-                "quyen", effectivePermissions(user));
-    }
+    return Map.of(
+        "nguoi_dung_id", user.getId(),
+        "trang_thai", user.getTrangThai().getValue(),
+        "loai_tai_khoan", accountType,
+        "vai_tro",
+            Map.of(
+                "id", role.getId(),
+                "ma_vai_tro", role.getMaVaiTro(),
+                "ten_vai_tro", role.getTenVaiTro(),
+                "phien_ban", role.getPhienBan()),
+        "quyen", effectivePermissions(user));
+  }
 
   public AdminRoleListResponse getRoles(String keyword, int page, int limit) {
 
@@ -388,11 +391,11 @@ public class AdminRoleService {
     return normalized;
   }
 
-    private boolean isCustomerRole(VaiTro vaiTro) {
-        return vaiTro != null && CUSTOMER_ROLE_NAME.equals(vaiTro.getMaVaiTro());
-    }
+  private boolean isCustomerRole(VaiTro vaiTro) {
+    return vaiTro != null && CUSTOMER_ROLE_NAME.equals(vaiTro.getMaVaiTro());
+  }
 
-    private boolean isProtectedAdminRole(VaiTro vaiTro) {
-        return vaiTro != null && PROTECTED_ROLE_NAME.equals(vaiTro.getMaVaiTro());
-    }
+  private boolean isProtectedAdminRole(VaiTro vaiTro) {
+    return vaiTro != null && PROTECTED_ROLE_NAME.equals(vaiTro.getMaVaiTro());
+  }
 }

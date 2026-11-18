@@ -23,7 +23,7 @@ public final class EmployeeSpecification {
 
       Join<NguoiDung, VaiTro> vaiTroJoin = root.join("vaiTro", JoinType.INNER);
 
-        predicates.add(cb.notEqual(vaiTroJoin.get("maVaiTro"), "USER"));
+      predicates.add(cb.notEqual(vaiTroJoin.get("maVaiTro"), "USER"));
 
       if (keyword != null && !keyword.isBlank()) {
         String trimmed = keyword.trim();

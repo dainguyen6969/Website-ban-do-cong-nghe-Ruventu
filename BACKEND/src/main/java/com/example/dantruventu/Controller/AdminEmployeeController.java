@@ -63,43 +63,41 @@ public class AdminEmployeeController {
         .build();
   }
 
-    @PostMapping
-    public ResponseEntity<ApiResponse<EmployeeListItemResponse>> createEmployee(
-            @Valid @RequestBody CreateEmployeeRequest request,
-            @AuthenticationPrincipal NguoiDung actor) {
+  @PostMapping
+  public ResponseEntity<ApiResponse<EmployeeListItemResponse>> createEmployee(
+      @Valid @RequestBody CreateEmployeeRequest request, @AuthenticationPrincipal NguoiDung actor) {
 
-        var response =
-                ApiResponse.<EmployeeListItemResponse>builder()
-                        .status(HttpStatus.CREATED.value())
-                        .message("Thêm nhân viên thành công")
-                        .data(adminEmployeeService.createEmployee(request, actor.getId()))
-                        .build();
+    var response =
+        ApiResponse.<EmployeeListItemResponse>builder()
+            .status(HttpStatus.CREATED.value())
+            .message("Thêm nhân viên thành công")
+            .data(adminEmployeeService.createEmployee(request, actor.getId()))
+            .build();
 
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
-    }
+    return ResponseEntity.status(HttpStatus.CREATED).body(response);
+  }
 
-    @PutMapping("/{id}")
-    public ApiResponse<EmployeeListItemResponse> updateEmployee(
-            @PathVariable Long id,
-            @Valid @RequestBody UpdateEmployeeRequest request,
-            @AuthenticationPrincipal NguoiDung actor) {
+  @PutMapping("/{id}")
+  public ApiResponse<EmployeeListItemResponse> updateEmployee(
+      @PathVariable Long id,
+      @Valid @RequestBody UpdateEmployeeRequest request,
+      @AuthenticationPrincipal NguoiDung actor) {
 
-        return ApiResponse.<EmployeeListItemResponse>builder()
-                .status(200)
-                .message("Cập nhật nhân viên thành công")
-                .data(adminEmployeeService.updateEmployee(id, request, actor.getId()))
-                .build();
-    }
+    return ApiResponse.<EmployeeListItemResponse>builder()
+        .status(200)
+        .message("Cập nhật nhân viên thành công")
+        .data(adminEmployeeService.updateEmployee(id, request, actor.getId()))
+        .build();
+  }
 
-    @DeleteMapping("/{id}")
-    public ApiResponse<EmployeeListItemResponse> deleteEmployee(
-            @PathVariable Long id,
-            @AuthenticationPrincipal NguoiDung actor) {
+  @DeleteMapping("/{id}")
+  public ApiResponse<EmployeeListItemResponse> deleteEmployee(
+      @PathVariable Long id, @AuthenticationPrincipal NguoiDung actor) {
 
-        return ApiResponse.<EmployeeListItemResponse>builder()
-                .status(200)
-                .message("Hủy nhân viên thành công")
-                .data(adminEmployeeService.deleteEmployee(id, actor.getId()))
-                .build();
-    }
+    return ApiResponse.<EmployeeListItemResponse>builder()
+        .status(200)
+        .message("Hủy nhân viên thành công")
+        .data(adminEmployeeService.deleteEmployee(id, actor.getId()))
+        .build();
+  }
 }

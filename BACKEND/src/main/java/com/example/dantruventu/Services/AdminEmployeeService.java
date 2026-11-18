@@ -178,8 +178,8 @@ public class AdminEmployeeService {
 
   @Transactional
   public EmployeeListItemResponse createEmployee(
-          CreateEmployeeRequest request, Long currentAdminId) {
-      requireActiveAdminForWrite(currentAdminId);
+      CreateEmployeeRequest request, Long currentAdminId) {
+    requireActiveAdminForWrite(currentAdminId);
 
     if (!request.getMatKhau().equals(request.getXacNhanMatKhau())) {
       throw new AppException(ErrorCode.INVALID_PARAM, "Mật khẩu xác nhận không khớp");
@@ -229,7 +229,7 @@ public class AdminEmployeeService {
       throw new AppException(ErrorCode.INVALID_ID, "ID không hợp lệ.");
     }
 
-      requireActiveAdminForWrite(currentAdminId);
+    requireActiveAdminForWrite(currentAdminId);
 
     NguoiDung employee =
         nguoiDungRepository
@@ -319,11 +319,11 @@ public class AdminEmployeeService {
       throw new AppException(ErrorCode.INVALID_ID, "ID không hợp lệ.");
     }
 
-      requireActiveAdminForWrite(currentAdminId);
-      if (Objects.equals(currentAdminId, id)) {
-          throw new AppException(
-                  ErrorCode.CANNOT_LOCK_OWN_ACCOUNT, "Không thể tự khóa tài khoản của chính mình.");
-      }
+    requireActiveAdminForWrite(currentAdminId);
+    if (Objects.equals(currentAdminId, id)) {
+      throw new AppException(
+          ErrorCode.CANNOT_LOCK_OWN_ACCOUNT, "Không thể tự khóa tài khoản của chính mình.");
+    }
 
     NguoiDung employee =
         nguoiDungRepository
@@ -352,27 +352,28 @@ public class AdminEmployeeService {
     return toListItemResponse(saved);
   }
 
-    private void requireActiveAdminForWrite(Long currentAdminId) {
-        if (currentAdminId == null) {
-            throw new AppException(ErrorCode.FORBIDDEN);
-        }
-
-        vaiTroRepository.findForUpdateByMaVaiTro("ADMIN")
-                .orElseThrow(() -> new AppException(ErrorCode.FORBIDDEN));
-
-        if (!nguoiDungRepository.existsByIdAndVaiTro_MaVaiTroAndTrangThai(
-                currentAdminId, "ADMIN", TrangThaiCoBanEnum.HOAT_DONG)) {
-            throw new AppException(ErrorCode.FORBIDDEN);
-        }
+  private void requireActiveAdminForWrite(Long currentAdminId) {
+    if (currentAdminId == null) {
+      throw new AppException(ErrorCode.FORBIDDEN);
     }
 
-    private boolean isCustomerRole(VaiTro vaiTro) {
-        return vaiTro != null && "USER".equals(vaiTro.getMaVaiTro());
-    }
+    vaiTroRepository
+        .findForUpdateByMaVaiTro("ADMIN")
+        .orElseThrow(() -> new AppException(ErrorCode.FORBIDDEN));
 
-    private boolean isAdminRole(VaiTro vaiTro) {
-        return vaiTro != null && "ADMIN".equals(vaiTro.getMaVaiTro());
+    if (!nguoiDungRepository.existsByIdAndVaiTro_MaVaiTroAndTrangThai(
+        currentAdminId, "ADMIN", TrangThaiCoBanEnum.HOAT_DONG)) {
+      throw new AppException(ErrorCode.FORBIDDEN);
     }
+  }
+
+  private boolean isCustomerRole(VaiTro vaiTro) {
+    return vaiTro != null && "USER".equals(vaiTro.getMaVaiTro());
+  }
+
+  private boolean isAdminRole(VaiTro vaiTro) {
+    return vaiTro != null && "ADMIN".equals(vaiTro.getMaVaiTro());
+  }
 
   private EmployeeListItemResponse toListItemResponse(NguoiDung user) {
     EmployeeRoleResponse roleResponse = null;

@@ -14,7 +14,6 @@ import com.example.dantruventu.Services.UserProfileService;
 import jakarta.validation.Valid;
 import java.util.List;
 import java.util.Map;
-
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.CacheControl;
 import org.springframework.http.HttpStatus;
@@ -30,7 +29,7 @@ public class UserController {
 
   private final UserProfileService userProfileService;
   private final AddressService addressService;
-    private final AdminRoleService adminRoleService;
+  private final AdminRoleService adminRoleService;
 
   @GetMapping("/me")
   public ResponseEntity<ApiResponse<UserMeResponse>> getMyProfile(Authentication authentication) {
@@ -49,20 +48,19 @@ public class UserController {
     return ResponseEntity.ok(response);
   }
 
-    @GetMapping("/me/permissions")
-    public ResponseEntity<ApiResponse<Map<String, Object>>> getMyPermissions(
-            @AuthenticationPrincipal NguoiDung user) {
+  @GetMapping("/me/permissions")
+  public ResponseEntity<ApiResponse<Map<String, Object>>> getMyPermissions(
+      @AuthenticationPrincipal NguoiDung user) {
 
-        var response = ApiResponse.<Map<String, Object>>builder()
-                .status(HttpStatus.OK.value())
-                .message("Lấy quyền tài khoản thành công")
-                .data(adminRoleService.getMyPermissions(user))
-                .build();
+    var response =
+        ApiResponse.<Map<String, Object>>builder()
+            .status(HttpStatus.OK.value())
+            .message("Lấy quyền tài khoản thành công")
+            .data(adminRoleService.getMyPermissions(user))
+            .build();
 
-        return ResponseEntity.ok()
-                .cacheControl(CacheControl.noStore())
-                .body(response);
-    }
+    return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(response);
+  }
 
   @PutMapping("/me")
   public ResponseEntity<ApiResponse<UpdateUserProfileResponse>> updateMyProfile(

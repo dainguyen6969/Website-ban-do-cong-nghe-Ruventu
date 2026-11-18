@@ -90,8 +90,8 @@ public interface NguoiDungRepository
             """)
   Optional<NguoiDung> findByIdWithVaiTro(@Param("id") Long id);
 
-    boolean existsByIdAndVaiTro_MaVaiTroAndTrangThai(
-            Long id, String maVaiTro, TrangThaiCoBanEnum trangThai);
+  boolean existsByIdAndVaiTro_MaVaiTroAndTrangThai(
+      Long id, String maVaiTro, TrangThaiCoBanEnum trangThai);
 
   // NEW: GET role list - count employees for a role
   long countByVaiTroId(Long vaiTroId);

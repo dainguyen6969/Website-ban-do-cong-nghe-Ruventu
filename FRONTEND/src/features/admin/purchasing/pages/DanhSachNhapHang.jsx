@@ -14,6 +14,9 @@ import {
 
 import { money, PageCrumb, StatusBadge } from './PurchaseShared';
 
+import { hasAdminPermission } from '../../../../auth/roleModel';
+import { useAdminPermissions } from '../../../../shared/components/ui/PermissionGate';
+
 import './NhapHang.css';
 
 // ========================================
@@ -72,6 +75,9 @@ function PurchaseFilterDropdown({ label, value, options, onChange }) {
 
 export default function DanhSachNhapHang() {
   const navigate = useNavigate();
+
+  const access = useAdminPermissions()?.access;
+  const canCreatePurchase = hasAdminPermission(access, 'nhap_hang', 'them');
 
   const [filters, setFilters] = useState({
     keyword: '',
@@ -201,14 +207,16 @@ export default function DanhSachNhapHang() {
           <h1>DANH SÁCH ĐƠN NHẬP HÀNG</h1>
         </div>
 
-        <button
-          type="button"
-          className="purchase-btn black"
-          onClick={() => navigate('/kho-hang/nhap-hang/tao-moi')}
-        >
-          <HiOutlinePlus />
-          TẠO ĐƠN NHẬP HÀNG
-        </button>
+        {canCreatePurchase && (
+          <button
+            type="button"
+            className="purchase-btn black"
+            onClick={() => navigate('/kho-hang/nhap-hang/tao-moi')}
+          >
+            <HiOutlinePlus />
+            TẠO ĐƠN NHẬP HÀNG
+          </button>
+        )}
       </div>
 
       {/* Bộ lọc */}

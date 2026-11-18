@@ -33,6 +33,9 @@ import {
 } from '../api/purchaseOrderApi';
 import { FormDropdown } from '../../../../shared/components/ui/FilterDropdown';
 
+import { hasAdminPermission } from '../../../../auth/roleModel';
+import { useAdminPermissions } from '../../../../shared/components/ui/PermissionGate';
+
 const METHODS = [
   ['CHUYEN_KHOAN', 'Chuyển khoản'],
   ['TIEN_MAT', 'Tiền mặt'],
@@ -183,6 +186,11 @@ export default function ChiTietNhapHang() {
   const purchaseAttempt = useRef(null);
   const { id } = useParams();
   const navigate = useNavigate();
+
+  const access = useAdminPermissions()?.access;
+  const canEditPurchase = hasAdminPermission(access, 'nhap_hang', 'sua');
+  const canOperatePurchase = canEditPurchase && access?.vai_tro?.ma_vai_tro === 'ADMIN';
+
   const [order, setOrder] = useState(null);
   const [modal, setModal] = useState('');
   const [detailTab, setDetailTab] = useState('overview');
@@ -240,7 +248,15 @@ export default function ChiTietNhapHang() {
   }, [order]);
 
   const run = async (request) => {
-    if (operationBusy.current || nccLocked || sourceLocked || documentLocked) return;
+    if (
+      !canOperatePurchase ||
+      operationBusy.current ||
+      nccLocked ||
+      sourceLocked ||
+      documentLocked
+    ) {
+      return;
+    }
 
     operationBusy.current = true;
     setBusy(true);
@@ -478,23 +494,35 @@ export default function ChiTietNhapHang() {
           <p>{order.createdAtLabel}</p>
         </div>
         <div className="purchase-heading-actions">
-          {order.importStatus === 'DAT_HANG' && (
+          {canEditPurchase && order.importStatus === 'DAT_HANG' && (
+            <button
+              type="button"
+              className="purchase-btn outline"
+              onClick={() => navigate(`/kho-hang/nhap-hang/tao-moi?edit=${order.id}`)}
+            >
+              − CHỈNH SỬA
+            </button>
+          )}
+
+          {canOperatePurchase && order.importStatus === 'DAT_HANG' && (
             <>
               <button
-                className="purchase-btn outline"
-                onClick={() => navigate(`/kho-hang/nhap-hang/tao-moi?edit=${order.id}`)}
+                type="button"
+                className="purchase-btn blue"
+                onClick={() => setModal('approve')}
               >
-                − CHỈNH SỬA
-              </button>
-              <button className="purchase-btn blue" onClick={() => setModal('approve')}>
                 DUYỆT ĐƠN
               </button>
-              <button className="purchase-btn red-outline" onClick={() => setModal('cancel')}>
+              <button
+                type="button"
+                className="purchase-btn red-outline"
+                onClick={() => setModal('cancel')}
+              >
                 HỦY ĐƠN
               </button>
             </>
           )}
-          {approved && order.debt > 0 && (
+          {canOperatePurchase && approved && order.debt > 0 && (
             <button
               type="button"
               className="purchase-btn black"
@@ -507,7 +535,8 @@ export default function ChiTietNhapHang() {
               THANH TOÁN
             </button>
           )}
-          {canReceive && (
+
+          {canOperatePurchase && canReceive && (
             <button
               type="button"
               className="purchase-btn green purchase-btn--receive"
@@ -517,7 +546,9 @@ export default function ChiTietNhapHang() {
               NHẬP KHO
             </button>
           )}
-          {['NHAP_MOT_PHAN', 'DA_NHAP_KHO', 'HOAN_TRA_MOT_PHAN'].includes(order.importStatus) &&
+
+          {canOperatePurchase &&
+            ['NHAP_MOT_PHAN', 'DA_NHAP_KHO', 'HOAN_TRA_MOT_PHAN'].includes(order.importStatus) &&
             returnable.length > 0 && (
               <button
                 type="button"
@@ -532,7 +563,7 @@ export default function ChiTietNhapHang() {
               </button>
             )}
 
-          {order.refundDue > 0 && (
+          {canOperatePurchase && order.refundDue > 0 && (
             <button
               type="button"
               className="purchase-btn green"
@@ -708,7 +739,9 @@ export default function ChiTietNhapHang() {
           <section className="purchase-section" hidden={detailTab !== 'sources'}>
             <PurchaseSourcePanel
               order={order}
-              locked={pageBusy || nccLocked || documentLocked || Boolean(modal)}
+              locked={
+                pageBusy || nccLocked || documentLocked || !canOperatePurchase || Boolean(modal)
+              }
               onLockChange={setSourceLocked}
             />
           </section>
@@ -721,6 +754,7 @@ export default function ChiTietNhapHang() {
                 pageBusy ||
                 sourceLocked ||
                 documentLocked ||
+                !canOperatePurchase ||
                 Boolean(modal) ||
                 Boolean(purchaseAttempt.current)
               }
@@ -738,6 +772,7 @@ export default function ChiTietNhapHang() {
                 pageBusy ||
                 sourceLocked ||
                 nccLocked ||
+                !canOperatePurchase ||
                 Boolean(modal) ||
                 Boolean(purchaseAttempt.current)
               }
@@ -868,7 +903,7 @@ export default function ChiTietNhapHang() {
         </aside>
       </div>
 
-      {modal === 'approve' && (
+      {canOperatePurchase && modal === 'approve' && (
         <Modal onClose={() => setModal('')}>
           <h2>XÁC NHẬN DUYỆT ĐƠN</h2>
           <InfoRows
@@ -889,7 +924,7 @@ export default function ChiTietNhapHang() {
           />
         </Modal>
       )}
-      {modal === 'cancel' && (
+      {canOperatePurchase && modal === 'cancel' && (
         <Modal onClose={() => setModal('')} className="danger-modal">
           <h2>HỦY ĐƠN NHẬP HÀNG</h2>
           <p>
@@ -905,7 +940,7 @@ export default function ChiTietNhapHang() {
           />
         </Modal>
       )}
-      {modal === 'receipt' && (
+      {canOperatePurchase && modal === 'receipt' && (
         <Modal
           className="receipt-modal"
           onClose={() => {
@@ -1068,7 +1103,7 @@ export default function ChiTietNhapHang() {
           />
         </Modal>
       )}
-      {['payment', 'return', 'refund'].includes(modal) && (
+      {canOperatePurchase && ['payment', 'return', 'refund'].includes(modal) && (
         <PurchaseOperationDialog
           key={`${order.id}:${modal}`}
           kind={modal}
