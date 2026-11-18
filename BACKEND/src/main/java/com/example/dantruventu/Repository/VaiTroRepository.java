@@ -3,8 +3,11 @@ package com.example.dantruventu.Repository;
 import com.example.dantruventu.Entity.VaiTro;
 import java.util.List;
 import java.util.Optional;
+
+import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -12,6 +15,10 @@ public interface VaiTroRepository
     extends JpaRepository<VaiTro, Long>, JpaSpecificationExecutor<VaiTro> {
 
   Optional<VaiTro> findByTenVaiTro(String tenVaiTro);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT v FROM VaiTro v WHERE v.maVaiTro = :maVaiTro")
+    Optional<VaiTro> findForUpdateByMaVaiTro(@Param("maVaiTro") String maVaiTro);
 
   boolean existsByTenVaiTroIgnoreCase(String tenVaiTro);
 

@@ -23,18 +23,7 @@ public final class EmployeeSpecification {
 
       Join<NguoiDung, VaiTro> vaiTroJoin = root.join("vaiTro", JoinType.INNER);
 
-      Predicate notUser = cb.notEqual(cb.upper(vaiTroJoin.get("tenVaiTro")), "USER");
-      Predicate notKhachHang = cb.notEqual(cb.lower(vaiTroJoin.get("tenVaiTro")), "khách hàng");
-      Predicate notKhachHangNoAccent =
-          cb.notEqual(cb.lower(vaiTroJoin.get("tenVaiTro")), "khach hang");
-      Predicate notKhachHangCode = cb.notEqual(cb.upper(vaiTroJoin.get("tenVaiTro")), "KHACH_HANG");
-      Predicate notKhachHangDesc =
-          cb.or(
-              cb.isNull(vaiTroJoin.get("moTa")),
-              cb.notLike(cb.lower(vaiTroJoin.get("moTa")), "%khách hàng%"));
-
-      predicates.add(
-          cb.and(notUser, notKhachHang, notKhachHangNoAccent, notKhachHangCode, notKhachHangDesc));
+        predicates.add(cb.notEqual(vaiTroJoin.get("maVaiTro"), "USER"));
 
       if (keyword != null && !keyword.isBlank()) {
         String trimmed = keyword.trim();
