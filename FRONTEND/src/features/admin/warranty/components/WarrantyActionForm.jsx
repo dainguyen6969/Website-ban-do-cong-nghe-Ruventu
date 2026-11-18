@@ -289,6 +289,7 @@ export default function WarrantyActionForm({
   close,
   saved,
   onLockChange,
+  canWrite = true,
   disabled = false,
   blockReason = '',
 }) {
@@ -320,13 +321,14 @@ export default function WarrantyActionForm({
   const confirmationReady = hasHandoverCheck
     ? values.xac_nhan_khach === true
     : !needsConfirmation || confirmed;
-  const dialogBlocked = busy || uncertain;
-  const inputsLocked = disabled || dialogBlocked || referencesLoading;
+
+  const dialogBlocked = busy || (uncertain && canWrite);
+  const inputsLocked = !canWrite || disabled || dialogBlocked || referencesLoading;
   const cannotSubmit = inputsLocked || Boolean(referenceError);
 
   useEffect(() => {
-    onLockChange?.(busy || uncertain);
-  }, [busy, uncertain, onLockChange]);
+    onLockChange?.(dialogBlocked);
+  }, [dialogBlocked, onLockChange]);
   useEffect(() => {
     const needsSupplier = operation.fields.includes('nha_cung_cap_id');
     const needsHistory = operation.key === 'HANDOVER';
@@ -434,7 +436,7 @@ export default function WarrantyActionForm({
   };
 
   const submit = async (payload) => {
-    if (!payload || submitting.current || (disabled && !uncertain)) return;
+    if (!canWrite || !payload || submitting.current || (disabled && !uncertain)) return;
 
     const endpoint =
       operation.endpoint === 'quote-events' ? `quotes/${quoteVersion}/events` : operation.endpoint;
@@ -497,7 +499,7 @@ export default function WarrantyActionForm({
             <button
               type="button"
               className="w-shell-button w-shell-button--black"
-              disabled={busy}
+              disabled={busy || !canWrite}
               onClick={() => submit(request.current?.payload)}
             >
               {busy ? 'Đang ghi nhận…' : 'Thử lại cùng yêu cầu'}

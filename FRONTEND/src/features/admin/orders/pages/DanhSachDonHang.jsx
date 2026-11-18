@@ -6,6 +6,13 @@ import TablePagination from '../../../../shared/components/ui/TablePagination';
 import syncTableHeaderOffset from '../../../../shared/components/ui/syncTableHeaderOffset';
 import { dateTime, getOrders, label, money, orderDisplayStatus } from '../api/orderApi';
 import { subscribeOrderUpdates } from '../api/orderRealtime';
+
+import { hasAdminPermission } from '../../../../auth/roleModel';
+import { useAdminPermissions } from '../../../../shared/components/ui/PermissionGate';
+
+import { hasAdminPermission } from '../../../../auth/roleModel';
+import { useAdminPermissions } from '../../../../shared/components/ui/PermissionGate';
+
 import './DanhSachDonHang.css';
 
 const PAGE_SIZE = 10;
@@ -63,6 +70,13 @@ const selectedLabel = (field, value) =>
 
 export default function DanhSachDonHang() {
   const navigate = useNavigate();
+
+  const access = useAdminPermissions()?.access;
+  const canCreateWarranty = hasAdminPermission(access, 'bao_hanh', 'them');
+
+  const access = useAdminPermissions()?.access;
+  const canViewShipment = hasAdminPermission(access, 'giao_hang', 'xem');
+
   const [params] = useSearchParams();
   const { state: locationState } = useLocation();
   const restored = locationState?.orderListReturn;
@@ -426,7 +440,7 @@ export default function DanhSachDonHang() {
                         XEM CHI TIẾT
                       </button>
 
-                      {Number(order.phieu_giao_hang_gan_nhat_id) > 0 && (
+                      {canViewShipment && Number(order.phieu_giao_hang_gan_nhat_id) > 0 && (
                         <button
                           className="order-detail-button order-shipment-button"
                           type="button"

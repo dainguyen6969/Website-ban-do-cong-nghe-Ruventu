@@ -349,6 +349,10 @@ export function hasAdminPermission(access, moduleId, action = 'xem') {
   return Array.isArray(actions) && actions.includes(action);
 }
 
+export function hasSystemAdminPermission(access, moduleId, action = 'sua') {
+  return access?.vai_tro?.ma_vai_tro === 'ADMIN' && hasAdminPermission(access, moduleId, action);
+}
+
 function adminRouteAction(path, search) {
   const params = new URLSearchParams(search);
   if (path === '/kho-hang/nhap-hang/tao-moi') return params.get('edit') ? 'sua' : 'them';
