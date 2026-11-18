@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import AdminLink from '../../../../shared/components/ui/AdminLink';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -187,9 +188,9 @@ function Section({ title, note, to, resource, children, controls }) {
         </div>
         {controls}
         {to && (
-          <Link className="tq-card-header-link" to={to}>
+          <AdminLink className="tq-card-header-link" to={to}>
             Xem chi tiết →
-          </Link>
+          </AdminLink>
         )}
       </div>
       <Content resource={resource}>{children}</Content>
@@ -775,7 +776,7 @@ export default function TongQuat() {
                 </h3>
                 {data.can_uu_tien.length ? (
                   data.can_uu_tien.map((item) => (
-                    <Link
+                    <AdminLink variant="plain"
                       key={item.don_hang_id}
                       className="tq-priority-row tq-stat-link"
                       to={`${ORDER_PATH}/${item.don_hang_id}`}
@@ -785,7 +786,7 @@ export default function TongQuat() {
                       <span className="tq-priority-time">
                         {number(item.so_phut_tu_khi_tao)} phút
                       </span>
-                    </Link>
+                    </AdminLink>
                   ))
                 ) : (
                   <p>Không có đơn chờ quá ngưỡng.</p>
@@ -1196,11 +1197,11 @@ export default function TongQuat() {
               <div className="tq-scope">
                 <h3 className="tq-sub-label">Khách giá trị cao nhất trong kỳ</h3>
                 {data.khach_gia_tri_cao_nhat ? (
-                  <Link to={`${CUSTOMER_PATH}/${data.khach_gia_tri_cao_nhat.khach_hang_id}`}>
+                  <AdminLink to={`${CUSTOMER_PATH}/${data.khach_gia_tri_cao_nhat.khach_hang_id}`}>
                     {data.khach_gia_tri_cao_nhat.ho_ten} ·{' '}
                     {money(data.khach_gia_tri_cao_nhat.gia_tri_mua_thuan)} ·{' '}
                     {number(data.khach_gia_tri_cao_nhat.so_don)} đơn
-                  </Link>
+                  </AdminLink>
                 ) : data.khach_co_mua_trong_ky > 0 ? (
                   'Chưa đủ căn cứ để xếp hạng giá trị mua.'
                 ) : (

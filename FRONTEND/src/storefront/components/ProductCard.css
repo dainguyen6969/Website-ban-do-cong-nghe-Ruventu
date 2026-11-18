@@ -81,8 +81,7 @@
 .product-card .product-title {
   flex: 1;
   min-width: 0;
-  height: 2.8em;
-  max-height: 2.8em;
+  min-height: 2lh;
   margin: 0;
   display: -webkit-box;
   -webkit-box-orient: vertical;

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
+import AdminLink from '../../../../shared/components/ui/AdminLink';
 import { HiOutlineAdjustments, HiOutlineSearch } from 'react-icons/hi';
 import FilterDropdown from '../../../../shared/components/ui/FilterDropdown';
 import TablePagination from '../../../../shared/components/ui/TablePagination';
@@ -366,9 +367,9 @@ export default function DanhSachDonHang() {
                       {state.loading ? (
                         order.ma_don_hang
                       ) : (
-                        <Link to={detailPath(order.id)} state={detailState}>
+                        <AdminLink to={detailPath(order.id)}>
                           {order.ma_don_hang}
-                        </Link>
+                        </AdminLink>
                       )}
                     </strong>
                     <OrderStateBadge value={order.loai_don_hang} />

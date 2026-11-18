@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
+import AdminLink from '../../../../shared/components/ui/AdminLink';
 import TablePagination from '../../../../shared/components/ui/TablePagination';
 import OrderModal from '../components/OrderModal';
 import {
@@ -291,7 +292,7 @@ function WaitingQueueRow({ row, onOpen, locked }) {
           {notice ? (
             <strong>{row.code}</strong>
           ) : (
-            <Link to={`/admin/don-hang/danh-sach-don-hang/${row.id}`}>{row.code}</Link>
+            <AdminLink to={`/admin/don-hang/danh-sach-don-hang/${row.id}`}>{row.code}</AdminLink>
           )}
         </div>
 
@@ -398,12 +399,12 @@ function WaitingQueueRow({ row, onOpen, locked }) {
           </button>
 
           {!notice && (
-            <Link
+            <AdminLink
               className="waiting-open-order"
               to={`/admin/don-hang/danh-sach-don-hang/${row.id}`}
             >
               Mở chi tiết đơn
-            </Link>
+            </AdminLink>
           )}
         </div>
       </td>

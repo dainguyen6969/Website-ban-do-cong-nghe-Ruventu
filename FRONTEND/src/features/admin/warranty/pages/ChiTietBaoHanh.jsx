@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { useNavigate, useParams, Link } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
+import AdminLink from '../../../../shared/components/ui/AdminLink';
 import {
   ArrowLeft,
   SquareCheck as CheckCircle2,
@@ -234,9 +235,9 @@ function TrackedWarrantyDevice({ device }) {
   const recordLink = (base, id, label) => {
     const key = String(id ?? '');
     return /^[1-9]\d*$/.test(key) ? (
-      <Link className="w-device-link" to={base + '/' + key}>
+      <AdminLink className="w-device-link" to={base + '/' + key}>
         {label}
-      </Link>
+      </AdminLink>
     ) : (
       label
     );
