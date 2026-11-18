@@ -26,7 +26,12 @@ public class DataInitializer implements CommandLineRunner {
             .findByTenVaiTro("ADMIN")
             .orElseGet(
                 () -> {
-                  VaiTro vaiTro = VaiTro.builder().tenVaiTro("ADMIN").moTa("Quản trị viên").build();
+                  VaiTro vaiTro =
+                      VaiTro.builder()
+                          .maVaiTro("ADMIN")
+                          .tenVaiTro("ADMIN")
+                          .moTa("Quản trị viên")
+                          .build();
 
                   return vaiTroRepository.save(vaiTro);
                 });
@@ -35,7 +40,8 @@ public class DataInitializer implements CommandLineRunner {
         .findByTenVaiTro("USER")
         .orElseGet(
             () -> {
-              VaiTro vaiTro = VaiTro.builder().tenVaiTro("USER").moTa("Khách hàng").build();
+              VaiTro vaiTro =
+                  VaiTro.builder().maVaiTro("USER").tenVaiTro("USER").moTa("Khách hàng").build();
 
               return vaiTroRepository.save(vaiTro);
             });
