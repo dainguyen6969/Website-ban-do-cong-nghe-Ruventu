@@ -61,8 +61,8 @@ public class SecurityConfig {
                         "/api/v1/pc-builder/options",
                         "/api/v1/pc-builder/products",
                         "/api/v1/pc-builder/preview",
-                        "/api/v1/products/**",
-                        "/api/v1/pc-builder/export")
+                        "/api/v1/pc-builder/export",
+                        "/api/v1/products/**")
                     .permitAll()
                     .anyRequest()
                     .authenticated())

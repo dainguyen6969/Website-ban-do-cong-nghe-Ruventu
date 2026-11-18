@@ -223,7 +223,7 @@ public enum ErrorCode {
 
   INVALID_PC_BUILDER_PRODUCTS_FILTER(
       HttpStatus.BAD_REQUEST,
-      "Hạng mục, giá, phân trang, sắp xếp hoặc đối chiếu socket không hợp lệ."),
+      "Hạng mục, giá, phân trang, sắp xếp hoặc đối chiếu CPU hỗ trợ không hợp lệ."),
 
   PC_BUILDER_REFERENCE_NOT_FOUND(HttpStatus.NOT_FOUND, "Phiên bản đối chiếu không tồn tại."),
 
@@ -244,6 +244,17 @@ public enum ErrorCode {
       "Sản phẩm/phiên bản vừa ngừng hoạt động hoặc hạng mục không còn cho phép sản phẩm đó."),
 
   PC_BUILDER_PREVIEW_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "Không kiểm tra được cấu hình."),
+
+  INVALID_PC_BUILDER_EXPORT(
+      HttpStatus.BAD_REQUEST, "Cấu hình rỗng hoặc dữ liệu xuất không hợp lệ."),
+  PC_BUILDER_EXPORT_PRICE_CHANGED(
+      HttpStatus.CONFLICT, "Giá linh kiện đã thay đổi, cần xác nhận lại"),
+  PC_BUILDER_EXPORT_SOURCE_FAILED(
+      HttpStatus.INTERNAL_SERVER_ERROR, "Không tạo được file xuất từ dữ liệu nguồn"),
+  PC_BUILDER_EXPORT_PUBLIC_VARIANT_NOT_FOUND(
+      HttpStatus.NOT_FOUND, "Không tìm thấy linh kiện công khai để xuất"),
+  PC_BUILDER_EXPORT_UNAVAILABLE(
+      HttpStatus.CONFLICT, "Linh kiện đã ngừng bán hoặc không còn thuộc hạng mục đã chọn."),
 
   INVALID_CART_PC_BUILD(
       HttpStatus.BAD_REQUEST,

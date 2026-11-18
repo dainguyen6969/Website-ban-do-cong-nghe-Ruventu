@@ -36,8 +36,8 @@ public record PcBuilderPreviewResponse(
       @JsonProperty("trang_thai") String trangThai,
       @JsonProperty("cpu_phien_ban_id") Long cpuPhienBanId,
       @JsonProperty("main_phien_ban_id") Long mainPhienBanId,
-      @JsonProperty("socket_cpu") String socketCpu,
-      @JsonProperty("socket_main") String socketMain,
+      @JsonProperty("hang_cpu") String hangCpu,
+      @JsonProperty("cpu_ho_tro_main") String cpuHoTroMain,
       @JsonProperty("pham_vi") String phamVi) {}
 
   public record StockCheck(
