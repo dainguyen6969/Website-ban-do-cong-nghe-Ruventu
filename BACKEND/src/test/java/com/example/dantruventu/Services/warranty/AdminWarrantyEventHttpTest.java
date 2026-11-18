@@ -337,8 +337,7 @@ class AdminWarrantyEventHttpTest {
         assertEquals(403, denied.getStatus());
         var deniedJson = AdminWarrantyEventServiceTest.JSON.readTree(denied.getContentAsString());
         assertEquals("hanh_dong", deniedJson.at("/errors/0/field").asString());
-        assertEquals(
-            "FINANCIAL_APPROVAL_FORBIDDEN", deniedJson.at("/errors/0/code").asString());
+        assertEquals("FINANCIAL_APPROVAL_FORBIDDEN", deniedJson.at("/errors/0/code").asString());
         assertTrue(deniedJson.get("data").isNull());
       }
       assertEquals(eventsBeforeEmployeeRequest, f.events.size());

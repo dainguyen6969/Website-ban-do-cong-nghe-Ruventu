@@ -4,11 +4,8 @@ import com.example.dantruventu.Enum.TrangThaiSerial;
 import com.fasterxml.jackson.annotation.JsonAnySetter;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.Min;
-import jakarta.validation.constraints.NotEmpty;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Positive;
-import jakarta.validation.constraints.Size;
+import jakarta.validation.constraints.*;
+import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import lombok.Getter;
@@ -17,6 +14,11 @@ import lombok.Setter;
 @Getter
 @Setter
 public class AdminReturnReceiveRequest {
+
+  @NotNull(message = "Ngày nhận hàng không được để trống")
+  @PastOrPresent(message = "Ngày nhận hàng không được ở tương lai")
+  @JsonProperty("ngay_nhan_hang")
+  private OffsetDateTime ngayNhanHang;
 
   @NotEmpty(message = "Danh sách hàng nhận không được rỗng")
   @Size(max = 1000, message = "Tối đa 1000 dòng hàng nhận")

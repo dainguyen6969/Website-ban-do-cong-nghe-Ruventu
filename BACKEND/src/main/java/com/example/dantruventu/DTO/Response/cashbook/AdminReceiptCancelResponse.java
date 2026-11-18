@@ -34,4 +34,16 @@ public class AdminReceiptCancelResponse {
 
   @JsonProperty("updated_at")
   private OffsetDateTime updatedAt;
+
+  @JsonProperty("hoa_don_bao_hanh_id")
+  private Long hoaDonBaoHanhId;
+
+  @JsonProperty("phieu_bao_hanh_id")
+  private Long phieuBaoHanhId;
+
+  @JsonProperty("phieu_tra_hang_id")
+  private Long phieuTraHangId;
+
+  @JsonProperty("nghiep_vu_nguon")
+  private String nghiepVuNguon;
 }

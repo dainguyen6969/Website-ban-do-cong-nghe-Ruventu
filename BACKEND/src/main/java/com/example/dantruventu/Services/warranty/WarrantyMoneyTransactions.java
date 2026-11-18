@@ -190,7 +190,7 @@ public class WarrantyMoneyTransactions {
     var voucher =
         cashbook.createAutomatic(
             CashbookService.AutomaticVoucher.builder()
-                .maPhieu(prefix + UUID.randomUUID())
+                .khoaNghiepVu(prefix + UUID.randomUUID())
                 .maLoaiThuChi(code)
                 .loaiPhieu(outgoing ? LoaiPhieuThuChi.CHI : LoaiPhieuThuChi.THU)
                 .nhomNguoiNopNhan(
@@ -208,9 +208,11 @@ public class WarrantyMoneyTransactions {
                 .hoaDonBaoHanh(customer ? selected : null)
                 .phieuBaoHanh(ticket)
                 .build());
+
     if (voucher.getId() == null) throw invalidHistory();
-    voucher.setMaPhieu(prefix + voucher.getId());
+
     vouchers.add(voucher);
+
     var transaction =
         fields(
             "loai",

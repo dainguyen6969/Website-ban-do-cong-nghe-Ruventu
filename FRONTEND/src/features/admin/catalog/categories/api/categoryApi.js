@@ -1,6 +1,4 @@
-import {
-  apiRequest as sharedRequest,
-} from '../../../../../auth/backendAuth';
+import { apiRequest as sharedRequest } from '../../../../../auth/backendAuth';
 
 const CATEGORY_PATH = '/api/v1/admin/categories';
 
@@ -23,11 +21,7 @@ async function apiRequest(path, options = {}) {
       throw error;
     }
 
-    throw new CategoryApiError(
-      error.message,
-      error.status || 0,
-      error.data ?? null,
-    );
+    throw new CategoryApiError(error.message, error.status || 0, error.data ?? null);
   }
 }
 
@@ -39,10 +33,7 @@ function normalizeCategory(item) {
   return {
     id: Number(item.id),
     name: item.ten_danh_muc || '',
-    parentId:
-      item.danh_muc_cha_id == null
-        ? null
-        : Number(item.danh_muc_cha_id),
+    parentId: item.danh_muc_cha_id == null ? null : Number(item.danh_muc_cha_id),
     parentName: item.ten_danh_muc_cha || '',
     image: item.anh_dai_dien || '',
     imageMode: 'url',
@@ -66,32 +57,23 @@ function normalizeProduct(item) {
 function toMutationBody(category) {
   return {
     ten_danh_muc: category.name.trim(),
-    danh_muc_cha_id:
-      category.parentId == null
-        ? null
-        : Number(category.parentId),
+    danh_muc_cha_id: category.parentId == null ? null : Number(category.parentId),
     trang_thai: category.status === 'active' ? 1 : 0,
     anh_dai_dien: category.image || null,
   };
 }
 
 export async function getAllCategories() {
-  const first = await apiRequest(
-    `${CATEGORY_PATH}?page=0&limit=100`,
-  );
+  const first = await apiRequest(`${CATEGORY_PATH}?page=0&limit=100`);
 
   const items = [...(first?.items || [])];
   const totalPages = Number(first?.pagination?.total_pages || 1);
 
   if (totalPages > 1) {
     const remaining = await Promise.all(
-      Array.from(
-        { length: totalPages - 1 },
-        (_, index) =>
-          apiRequest(
-            `${CATEGORY_PATH}?page=${index + 1}&limit=100`,
-          ),
-      ),
+      Array.from({ length: totalPages - 1 }, (_, index) =>
+        apiRequest(`${CATEGORY_PATH}?page=${index + 1}&limit=100`)
+      )
     );
 
     remaining.forEach((page) => {

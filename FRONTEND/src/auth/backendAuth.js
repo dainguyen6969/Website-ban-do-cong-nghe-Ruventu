@@ -1,6 +1,6 @@
-const API_BASE_URL = (
-  import.meta.env.VITE_RUVENTU_API_URL || ''
-).replace(/\/$/, '');
+import { notifyMaintenance } from '../settings/maintenanceState';
+
+const API_BASE_URL = (import.meta.env.VITE_RUVENTU_API_URL || '').replace(/\/$/, '');
 
 export const AUTH_CHANGED = 'ruventu:auth-changed';
 
@@ -9,8 +9,12 @@ const USER_KEY = 'user';
 
 let refreshPromise = null;
 
-export const getAccessToken = () =>
-  localStorage.getItem(TOKEN_KEY) || '';
+export const getAccessToken = () => localStorage.getItem(TOKEN_KEY) || '';
+
+export async function getAdminServiceToken() {
+  // Giữ tương thích với các chỗ đang import hàm này.
+  return getAccessToken() || null;
+}
 
 function notifyAuthChanged() {
   window.dispatchEvent(new Event(AUTH_CHANGED));
@@ -41,15 +45,9 @@ export function clearAuth() {
 function decodeClaims(token) {
   const segment = token.split('.')[1];
   const base64 = segment.replace(/-/g, '+').replace(/_/g, '/');
-  const padded = base64.padEnd(
-    Math.ceil(base64.length / 4) * 4,
-    '='
-  );
+  const padded = base64.padEnd(Math.ceil(base64.length / 4) * 4, '=');
 
-  const bytes = Uint8Array.from(
-    atob(padded),
-    (char) => char.charCodeAt(0)
-  );
+  const bytes = Uint8Array.from(atob(padded), (char) => char.charCodeAt(0));
 
   return JSON.parse(new TextDecoder().decode(bytes));
 }
@@ -65,7 +63,7 @@ export function saveLogin(data, identifier = '') {
   // Backend hiện đã đưa vai_tro vào JWT.
   // Việc đọc này dùng cho giao diện; backend vẫn xác thực quyền API.
   const claims = decodeClaims(token);
-  
+
   const roleName = claims.vai_tro ? claims.vai_tro.toUpperCase() : '';
   const isCustomer = roleName === 'USER' || roleName === 'KHACH_HANG' || roleName === 'KHÁCH HÀNG';
   const isAdmin = !isCustomer && roleName !== '';
@@ -106,19 +104,16 @@ function apiError(message, status, data = null) {
   return Object.assign(new Error(message), { status, data });
 }
 
-async function refreshAccessToken() {
+export async function refreshAccessToken() {
   if (!refreshPromise) {
     const previousToken = getAccessToken();
 
     refreshPromise = (async () => {
-      const response = await fetch(
-        `${API_BASE_URL}/api/v1/auth/refresh`,
-        {
-          method: 'POST',
-          credentials: 'include',
-          headers: { Accept: 'application/json' },
-        }
-      );
+      const response = await fetch(`${API_BASE_URL}/api/v1/auth/refresh`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { Accept: 'application/json' },
+      });
 
       // Không ghi đè phiên mới nếu người dùng đã logout/login
       // trong lúc request refresh đang chạy.
@@ -170,15 +165,17 @@ export async function apiRequest(path, options = {}, retry = true) {
     throw apiError('Vui lòng đăng nhập.', 401);
   }
 
+  if (options.signal && (!options.method || options.method === 'GET')) {
+    // A mount that React immediately cleans up should never send the read.
+    await Promise.resolve();
+    options.signal.throwIfAborted();
+  }
+
   const headers = new Headers(options.headers);
   if (!headers.has('Accept')) headers.set('Accept', 'application/json');
   headers.set('Authorization', `Bearer ${token}`);
 
-  if (
-    options.body != null &&
-    !(options.body instanceof FormData) &&
-    !headers.has('Content-Type')
-  ) {
+  if (options.body != null && !(options.body instanceof FormData) && !headers.has('Content-Type')) {
     headers.set('Content-Type', 'application/json');
   }
 
@@ -201,11 +198,15 @@ export async function apiRequest(path, options = {}, retry = true) {
     clearAuth();
   }
 
-  if (response.ok && options.responseType === 'blob') return response.blob();
+  if (response.ok && options.responseType === 'blob') {
+    return response.blob();
+  }
 
   const payload = await parseResponse(response);
 
   if (!response.ok) {
+    notifyMaintenance(response.status, payload);
+
     throw apiError(
       payload?.message || `Yêu cầu thất bại (${response.status}).`,
       response.status,
@@ -220,13 +221,10 @@ export async function logoutBackend() {
   // Xóa phiên FE ngay để request cũ không khôi phục token.
   clearAuth();
 
-  const response = await fetch(
-    `${API_BASE_URL}/api/v1/auth/logout`,
-    {
-      method: 'POST',
-      credentials: 'include',
-    }
-  );
+  const response = await fetch(`${API_BASE_URL}/api/v1/auth/logout`, {
+    method: 'POST',
+    credentials: 'include',
+  });
 
   if (!response.ok) {
     throw apiError('Không thể kết thúc phiên trên backend.', response.status);

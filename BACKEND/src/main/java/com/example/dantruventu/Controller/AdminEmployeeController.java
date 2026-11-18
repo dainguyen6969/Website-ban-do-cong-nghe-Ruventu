@@ -8,6 +8,7 @@ import com.example.dantruventu.DTO.Response.employee.EmployeeListItemResponse;
 import com.example.dantruventu.Entity.NguoiDung;
 import com.example.dantruventu.Services.AdminEmployeeService;
 import jakarta.validation.Valid;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -45,6 +46,20 @@ public class AdminEmployeeController {
         .status(200)
         .message("Lấy chi tiết nhân viên thành công")
         .data(adminEmployeeService.getEmployeeDetail(id))
+        .build();
+  }
+
+  @GetMapping("/{id}/orders")
+  public ApiResponse<Map<String, Object>> getEmployeeOrders(
+      @PathVariable("id") Long id,
+      @RequestParam(name = "lien_ket", defaultValue = "GAN_TREN_DON") String relation,
+      @RequestParam(name = "page", defaultValue = "0") int page,
+      @RequestParam(name = "limit", defaultValue = "5") int limit) {
+
+    return ApiResponse.<Map<String, Object>>builder()
+        .status(200)
+        .message("Lấy danh sách đơn liên quan đến nhân viên thành công")
+        .data(adminEmployeeService.getEmployeeOrders(id, relation, page, limit))
         .build();
   }
 

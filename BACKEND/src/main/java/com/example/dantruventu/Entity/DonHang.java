@@ -88,6 +88,12 @@ public class DonHang {
   @Column(name = "trang_thai_xuat_kho", nullable = false, length = 50)
   private TrangThaiXuatKho trangThaiXuatKho = TrangThaiXuatKho.CHUA_XUAT_KHO;
 
+  @Column(name = "da_giu_hang")
+  private Boolean daGiuHang;
+
+  @Column(name = "han_giu_hang", columnDefinition = "DATETIME(6)")
+  private LocalDateTime hanGiuHang;
+
   @Enumerated(EnumType.STRING)
   @JdbcTypeCode(SqlTypes.VARCHAR)
   @Column(name = "trang_thai_don_hang", nullable = false, length = 50)
@@ -123,4 +129,16 @@ public class DonHang {
 
   @OneToMany(mappedBy = "donHang", fetch = FetchType.LAZY)
   private List<PhieuTraHang> danhSachPhieuTraHang;
+
+  @Column(name = "ngay_hoan_thanh", columnDefinition = "DATETIME")
+  private LocalDateTime ngayHoanThanh;
+
+  @Column(name = "ly_do_cho_xac_minh", length = 50)
+  private String lyDoChoXacMinh;
+
+  @Column(name = "han_xu_ly", columnDefinition = "DATETIME(6)")
+  private LocalDateTime hanXuLy;
+
+  @Column(name = "han_giu_uu_dai", columnDefinition = "DATETIME(6)")
+  private LocalDateTime hanGiuUuDai;
 }

@@ -11,11 +11,14 @@ const ToastContainer = () => {
       // Không hiển thị khi xóa giỏ hàng (logout) hoặc tăng giảm số lượng
       if (event.detail) {
         const id = Date.now();
-        setToasts((prev) => [...prev, { id, message: 'Đã thêm sản phẩm vào giỏ hàng thành công!' }]);
-        
+        setToasts((prev) => [
+          ...prev,
+          { id, message: 'Đã thêm sản phẩm vào giỏ hàng thành công!' },
+        ]);
+
         // Auto remove after 3 seconds
         setTimeout(() => {
-          setToasts((prev) => prev.filter(toast => toast.id !== id));
+          setToasts((prev) => prev.filter((toast) => toast.id !== id));
         }, 3000);
       }
     };
@@ -25,19 +28,17 @@ const ToastContainer = () => {
   }, []);
 
   const removeToast = (id) => {
-    setToasts((prev) => prev.filter(toast => toast.id !== id));
+    setToasts((prev) => prev.filter((toast) => toast.id !== id));
   };
 
   return (
     <div className="toast-container">
-      {toasts.map(toast => (
+      {toasts.map((toast) => (
         <div key={toast.id} className="toast-item">
           <div className="toast-icon">
             <Check size={24} color="#fff" strokeWidth={3} />
           </div>
-          <div className="toast-content">
-            {toast.message}
-          </div>
+          <div className="toast-content">{toast.message}</div>
           <button className="toast-close" onClick={() => removeToast(toast.id)}>
             <X size={20} strokeWidth={2.5} />
           </button>

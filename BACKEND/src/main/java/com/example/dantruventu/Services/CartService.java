@@ -1,5 +1,7 @@
 package com.example.dantruventu.Services;
 
+import static com.example.dantruventu.Services.order.sales.SalesSupport.money;
+
 import com.example.dantruventu.DTO.Request.AddCartItemRequest;
 import com.example.dantruventu.DTO.Request.CartPcBuildRequest;
 import com.example.dantruventu.DTO.Request.PcBuilderPreviewRequest;
@@ -591,7 +593,7 @@ public class CartService {
       CartResponse cartResponse,
       String message) {
 
-    BigDecimal donGia = phienBan.getGiaBanLe();
+    BigDecimal donGia = money(phienBan.getGiaBanLe());
 
     BigDecimal thanhTien = donGia.multiply(BigDecimal.valueOf(soLuong));
 
@@ -694,7 +696,7 @@ public class CartService {
 
     boolean conHang = isActiveVariant(phienBan) && tonKhoKhaDung >= soLuong;
 
-    BigDecimal donGia = phienBan.getGiaBanLe();
+    BigDecimal donGia = money(phienBan.getGiaBanLe());
 
     BigDecimal thanhTien = donGia.multiply(BigDecimal.valueOf(soLuong));
 
@@ -714,13 +716,13 @@ public class CartService {
 
   private int calculateAvailableStock(PhienBanSanPham phienBan) {
 
-    if (phienBan.getDanhSachTonKho() == null) {
+    var availability = calculationService.readSaleAvailability(phienBan.getId());
+
+    if (!availability.canSell()) {
       return 0;
     }
 
-    return phienBan.getDanhSachTonKho().stream()
-        .mapToInt(tonKho -> tonKho.getTonCoTheBan() == null ? 0 : tonKho.getTonCoTheBan())
-        .sum();
+    return (int) Math.min(availability.quantity(), (long) Integer.MAX_VALUE);
   }
 
   private boolean isActiveVariant(PhienBanSanPham phienBan) {

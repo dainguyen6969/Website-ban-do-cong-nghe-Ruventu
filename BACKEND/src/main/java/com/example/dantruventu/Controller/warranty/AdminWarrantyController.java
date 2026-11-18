@@ -188,6 +188,17 @@ public class AdminWarrantyController {
         .build();
   }
 
+  @GetMapping("/{id}/history/{historyId}")
+  public ApiResponse<AdminWarrantyDetailResponse.HistoryDetail> getHistoryDetail(
+      @PathVariable("id") String id, @PathVariable("historyId") String historyId) {
+
+    return ApiResponse.<AdminWarrantyDetailResponse.HistoryDetail>builder()
+        .status(200)
+        .message("Lấy chi tiết thao tác bảo hành thành công")
+        .data(detailService.getHistoryDetail(id, historyId))
+        .build();
+  }
+
   @GetMapping
   public ApiResponse<AdminWarrantyListResponse> getWarranties(
       @RequestParam(required = false) String keyword,

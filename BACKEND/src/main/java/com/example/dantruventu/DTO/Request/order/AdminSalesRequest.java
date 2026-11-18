@@ -2,6 +2,7 @@ package com.example.dantruventu.DTO.Request.order;
 
 import com.example.dantruventu.Enum.LoaiDonHang;
 import com.fasterxml.jackson.annotation.JsonAnySetter;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;
@@ -108,6 +109,10 @@ public final class AdminSalesRequest {
     @JsonProperty("phi_giao_hang")
     private BigDecimal phiGiaoHang = BigDecimal.ZERO;
 
+    @JsonProperty("cho_phep_cho_hang")
+    @JsonInclude(JsonInclude.Include.NON_DEFAULT)
+    private Boolean choPhepChoHang = false;
+
     @Size(max = 2000)
     @JsonProperty("ghi_chu")
     private String ghiChu;
@@ -120,6 +125,10 @@ public final class AdminSalesRequest {
     @NotNull
     @JsonProperty("loai_don_hang")
     private LoaiDonHang loaiDonHang;
+
+    @Positive
+    @JsonProperty("don_hang_id")
+    private Long donHangId;
   }
 
   @Getter
@@ -165,6 +174,10 @@ public final class AdminSalesRequest {
     @Digits(integer = 13, fraction = 2)
     @JsonProperty("tong_thanh_toan_xac_nhan")
     private BigDecimal tongThanhToanXacNhan;
+
+    @Size(max = 100)
+    @JsonProperty("ma_xac_nhan_gia")
+    private String maXacNhanGia;
   }
 
   @Getter
@@ -245,5 +258,10 @@ public final class AdminSalesRequest {
     @Valid
     @JsonProperty("thanh_toan")
     private Payment thanhToan;
+
+    @NotBlank
+    @Size(max = 100)
+    @JsonProperty("ma_xac_nhan_gia")
+    private String maXacNhanGia;
   }
 }

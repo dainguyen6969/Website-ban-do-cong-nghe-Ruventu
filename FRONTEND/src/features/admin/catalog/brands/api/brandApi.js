@@ -1,4 +1,8 @@
 import { apiRequest as request } from '../../../../../auth/backendAuth';
+import {
+  basicStatusLabel,
+  requireBasicStatus,
+} from "../../../../../shared/services/mutationUtils";
 
 const BRAND_PATH = '/api/v1/admin/brands';
 
@@ -61,7 +65,9 @@ async function getToken(force = false) {
   return loginPromise;
 }
 
-const normalizeStatus = (value) => Number(value) === 1 ? 'active' : 'inactive';
+function normalizeStatus(value) {
+  return basicStatusLabel(value, "active", "inactive");
+}
 
 function normalizeBrand(item) {
   return {

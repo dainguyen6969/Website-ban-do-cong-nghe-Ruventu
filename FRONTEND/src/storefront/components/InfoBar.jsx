@@ -14,7 +14,7 @@ const InfoBar = () => {
               <p>Tư vấn cấu hình & lắp ráp</p>
             </div>
           </div>
-          
+
           <div className="info-divider"></div>
 
           <div className="info-item">
@@ -24,7 +24,7 @@ const InfoBar = () => {
               <p>Miễn phí đơn trên 5 triệu</p>
             </div>
           </div>
-          
+
           <div className="info-divider"></div>
 
           <div className="info-item">

@@ -121,11 +121,12 @@
   align-items: center;
   gap: 10px;
   flex-wrap: wrap;
+  width: 100%;
 }
 
 /* Search input with thin light-gray border */
 .product-search {
-  height: 35px;
+  height: 42px;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -133,7 +134,7 @@
   border: 1px solid #d1d5db;
   border-radius: 0;
   padding: 0 12px;
-  width: 380px;
+  width: min(560px, 100%);
   max-width: 100%;
   transition: border-color var(--transition-fast);
 }
@@ -164,7 +165,7 @@
 
 /* "Bộ lọc" toggle button */
 .btn-product-filter-toggle {
-  height: 35px;
+  height: 42px;
   background: #ffffff;
   color: var(--color-text-primary);
   font-weight: 600;
@@ -213,55 +214,55 @@
   padding: 0 4px;
   font-size: 11px;
   font-weight: 700;
-  border-radius: 9999px;
+  border-radius: 0;
   background: var(--color-brand-red);
   color: #ffffff;
   line-height: 1;
   margin-left: 2px;
 }
 
-/* 4-dropdown row */
-.product-dropdowns-row {
-  padding: 12px 24px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+.product-filter-panel {
+  padding: 18px 24px 20px;
+  background: #f7f7f7;
+  border-top: 1px solid #ddd;
   flex-shrink: 0;
-  background: #ffffff;
 }
 
 .product-dropdowns-group {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
 }
 
-/* Dynamic result count at far right of dropdown row */
-.product-dropdowns-count {
-  font-size: 13px;
+.product-filter-field {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.product-filter-field__label {
+  font-size: 12px;
   font-weight: 700;
-  color: var(--color-text-primary);
-  white-space: nowrap;
-  margin-left: auto;
-  padding-left: 16px;
+  color: #555;
 }
 
 /* Dropdown styling with thin light-gray border */
 .product-dropdown {
-  flex: 0 1 auto;
-  min-width: 140px;
+  width: 100%;
+  min-width: 0;
 }
 
-.product-dropdown .filter__dropdown {
-  height: 35px;
-  border: 1px solid #d1d5db;
+.admin-app .product-page .product-dropdown .filter__dropdown {
+  min-height: 44px;
+  height: auto;
+  border: 1px solid #111;
   border-radius: 0;
-  font-size: 12px;
+  font-size: 13px;
   color: var(--color-text-primary);
   font-weight: 700;
   background: #ffffff;
-  padding: 0 12px;
+  padding: 10px 12px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -272,6 +273,69 @@
 
 .product-dropdown .filter__dropdown:hover {
   background: #f9fafb;
+}
+
+.product-page .product-dropdown .filter__dropdown:focus-visible {
+  outline: 2px solid var(--color-brand-red);
+  outline-offset: 2px;
+}
+
+.product-page .product-dropdown .filter__dropdown-menu {
+  top: calc(100% - 1px);
+  padding: 4px 0;
+  border-color: #111;
+}
+
+.product-page .product-dropdown .filter__dropdown-item {
+  min-height: 38px;
+  padding: 10px 12px;
+  font-size: 13px;
+}
+
+.product-page .product-dropdown .filter__dropdown-item--selected {
+  background: #111 !important;
+  color: #fff !important;
+}
+
+.product-page .product-dropdown .filter__dropdown-item:hover {
+  background: var(--color-brand-red) !important;
+  color: #fff !important;
+}
+
+.product-active-filters {
+  padding: 12px 24px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  border-top: 1px solid #ddd;
+}
+
+.product-active-filters__label {
+  margin-right: 4px;
+  font-size: 11px;
+  font-weight: 800;
+  color: #666;
+}
+
+.product-filter-chip {
+  max-width: 100%;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 10px;
+  border: 1px solid #111;
+  border-radius: 0;
+  background: #fff;
+  color: #111;
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.product-filter-chip:is(:hover, :focus-visible) {
+  border-color: var(--color-brand-red);
+  color: var(--color-brand-red);
 }
 
 /* Conditional "Xóa lọc" button inline with 4 dropdowns */
@@ -563,90 +627,6 @@
   color: var(--color-text-muted);
 }
 
-/* ========================================
-   Pagination Bar
-   ======================================== */
-.product-pagination-bar {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 14px 24px;
-  border-top: 1px solid #e5e7eb;
-  background: #ffffff;
-  flex-shrink: 0;
-}
-
-/* Results-range label (bottom-left) */
-.product-pagination-range {
-  display: flex;
-  align-items: baseline;
-  gap: 0;
-}
-
-.product-pagination-range__text {
-  font-size: 12px;
-  font-weight: 400;
-  color: #9ca3af;
-}
-
-.product-pagination-range__number {
-  font-size: 13.5px;
-  font-weight: 800;
-  color: var(--color-text-primary);
-}
-
-/* Pagination controls (bottom-right) */
-.product-pagination-controls {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.product-pagination-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 34px;
-  height: 34px;
-  padding: 0 10px;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--color-text-primary);
-  background: #ffffff;
-  border: 1px solid var(--color-text-primary);
-  border-radius: 0;
-  cursor: pointer;
-  transition: all var(--transition-fast);
-  user-select: none;
-}
-
-.product-pagination-btn:hover:not(:disabled):not(.product-pagination-btn--active) {
-  background: var(--color-text-primary);
-  color: #ffffff;
-}
-
-.product-pagination-btn:active:not(:disabled) {
-  background: var(--color-text-primary);
-  color: #ffffff;
-}
-
-/* Active page button — always black bg / white text */
-.product-pagination-btn--active {
-  background: var(--color-text-primary);
-  color: #ffffff;
-  border-color: var(--color-text-primary);
-  cursor: default;
-}
-
-/* Disabled nav buttons — light gray */
-.product-pagination-btn:disabled {
-  color: #d1d5db;
-  border-color: #d1d5db;
-  background: #ffffff;
-  cursor: not-allowed;
-}
-
 /* Responsive adjustments */
 @media (max-width: 900px) {
   .product-search {
@@ -656,10 +636,12 @@
   .product-filter-search-group {
     width: 100%;
   }
+}
 
-  .product-pagination-bar {
-    flex-direction: column;
-    gap: 12px;
-    align-items: flex-start;
-  }
+@media (max-width: 1100px) {
+  .product-dropdowns-group { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 600px) {
+  .product-dropdowns-group { grid-template-columns: minmax(0, 1fr); }
 }

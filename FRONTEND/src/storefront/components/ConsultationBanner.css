@@ -10,7 +10,7 @@
   align-items: center;
 }
 
-.consultation-subtitle {
+.consultation-banner .consultation-subtitle {
   color: #ff0000;
   font-size: 14px;
   font-weight: 800;
@@ -42,38 +42,46 @@
   align-items: center;
 }
 
-.consultation-actions .btn-primary {
+.consultation-banner .consultation-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 56px;
+  height: auto;
+  border: 2px solid;
+  border-radius: 0;
+  padding: 16px 32px;
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 800;
+  line-height: 1.5;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  text-align: center;
+  cursor: pointer;
+  transition: background-color .2s ease, color .2s ease;
+}
+
+.consultation-banner .consultation-button--primary {
   background-color: #ff0000;
   color: #fff;
-  border: none;
-  padding: 15px 30px;
-  font-size: 14px;
-  font-weight: 800;
-  text-transform: uppercase;
-  cursor: pointer;
-  transition: background-color 0.3s;
+  border-color: #ff0000;
 }
 
-.consultation-actions .btn-primary:hover {
+.consultation-banner .consultation-button--primary:enabled:is(:hover, :focus-visible) {
   background-color: #cc0000;
 }
+.consultation-banner .consultation-button:disabled { opacity: .5; cursor: not-allowed; }
 
-.consultation-actions .btn-secondary {
+.consultation-banner .consultation-button--phone {
   background-color: transparent;
-  color: #888;
-  border: 1px solid #222;
-  padding: 15px 30px;
-  font-size: 14px;
-  font-weight: 800;
-  text-transform: uppercase;
-  cursor: pointer;
-  transition: all 0.3s;
+  color: #fff;
+  border-color: #fff;
 }
 
-.consultation-actions .btn-secondary:hover {
-  background-color: #111;
-  color: #fff;
-  border-color: #444;
+.consultation-banner .consultation-button--phone:is(:hover, :focus-visible) {
+  background-color: #fff;
+  color: #000;
 }
 
 /* Responsive */

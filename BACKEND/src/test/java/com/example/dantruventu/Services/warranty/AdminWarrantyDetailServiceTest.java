@@ -55,7 +55,8 @@ class AdminWarrantyDetailServiceTest {
             repository, histories, new WarrantyHistorySupport(json), devices);
   }
 
-  private void obligation(long id, int required, int supplied, BigDecimal money, boolean versioned) {
+  private void obligation(
+      long id, int required, int supplied, BigDecimal money, boolean versioned) {
     var value = new LinkedHashMap<String, Object>();
     value.put("nghia_vu_lich_su_id", id);
     value.put("nha_cung_cap_id", 3);
@@ -103,25 +104,29 @@ class AdminWarrantyDetailServiceTest {
   void stillOffersSupplierSettlementForLegacyIntegerQuantity() {
     obligation(880L, 1, 0, BigDecimal.ZERO, false);
 
-    assertTrue(service.getDetail("501", "0", "1").thaoTacDuocPhep().contains("SUPPLIER_SETTLEMENT"));
+    assertTrue(
+        service.getDetail("501", "0", "1").thaoTacDuocPhep().contains("SUPPLIER_SETTLEMENT"));
   }
 
   @Test
   void stillOffersSupplierSettlementForOutstandingMoneyOnly() {
     obligation(880L, 0, 0, new BigDecimal("50000.00"), true);
 
-    assertTrue(service.getDetail("501", "0", "1").thaoTacDuocPhep().contains("SUPPLIER_SETTLEMENT"));
+    assertTrue(
+        service.getDetail("501", "0", "1").thaoTacDuocPhep().contains("SUPPLIER_SETTLEMENT"));
   }
 
   @Test
   void doesNotOfferSupplierSettlementOnceAllObligationsAreResolved() {
     obligation(880L, 1, 1, BigDecimal.ZERO, true);
 
-    assertFalse(service.getDetail("501", "0", "1").thaoTacDuocPhep().contains("SUPPLIER_SETTLEMENT"));
+    assertFalse(
+        service.getDetail("501", "0", "1").thaoTacDuocPhep().contains("SUPPLIER_SETTLEMENT"));
   }
 
   @Test
   void doesNotOfferSupplierSettlementWithoutAnObligation() {
-    assertFalse(service.getDetail("501", "0", "1").thaoTacDuocPhep().contains("SUPPLIER_SETTLEMENT"));
+    assertFalse(
+        service.getDetail("501", "0", "1").thaoTacDuocPhep().contains("SUPPLIER_SETTLEMENT"));
   }
 }

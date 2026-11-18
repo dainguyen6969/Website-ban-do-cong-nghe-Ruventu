@@ -1,8 +1,6 @@
 import axios from 'axios';
 
-const BASE_URL =
-  (import.meta.env.VITE_RUVENTU_API_URL || '')
-    .replace(/\/$/, '');
+const BASE_URL = (import.meta.env.VITE_RUVENTU_API_URL || '').replace(/\/$/, '');
 
 const cashbookAxios = axios.create({
   baseURL: `${BASE_URL}/api/v1/admin/cashbook`,

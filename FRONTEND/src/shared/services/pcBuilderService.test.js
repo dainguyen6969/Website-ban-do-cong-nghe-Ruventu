@@ -25,7 +25,7 @@ test('Hợp đồng API public, giỏ khách và giỏ đăng nhập dùng đún
     const previewBody = { items: [{ ma_hang_muc: 'MAIN', phien_ban_id: 7, so_luong: 2 }] };
     await pcBuilderService.preview(previewBody, signal);
     assert.equal(calls[0].url, '/options');
-    assert.equal(calls[0].signal, signal);
+    assert.equal(calls[0].signal, undefined, 'Consumer cancellation must not cancel a shared transport');
     assert.equal(calls[0].withCredentials, true);
     assert.equal(calls[0].headers.Authorization, undefined);
     assert.deepEqual(calls[1].params, filters);

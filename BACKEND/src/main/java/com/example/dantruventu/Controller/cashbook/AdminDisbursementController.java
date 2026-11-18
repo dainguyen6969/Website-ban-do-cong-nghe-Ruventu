@@ -4,13 +4,15 @@ import com.example.dantruventu.DTO.Request.cashbook.AdminDisbursementCancelReque
 import com.example.dantruventu.DTO.Request.cashbook.AdminDisbursementCreateRequest;
 import com.example.dantruventu.DTO.Response.ApiResponse;
 import com.example.dantruventu.DTO.Response.cashbook.AdminDisbursementCancelResponse;
-import com.example.dantruventu.DTO.Response.cashbook.AdminDisbursementListResponse;
 import com.example.dantruventu.DTO.Response.cashbook.AdminDisbursementResponse;
 import com.example.dantruventu.DTO.Response.cashbook.PayerSuggestionListResponse;
 import com.example.dantruventu.Entity.NguoiDung;
+import com.example.dantruventu.Enum.LoaiPhieuThuChi;
 import com.example.dantruventu.Error.AppException;
 import com.example.dantruventu.Error.ErrorCode;
 import com.example.dantruventu.Services.AdminDisbursementService;
+import com.example.dantruventu.Services.cashbook.CashbookReadService;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -25,37 +27,16 @@ import org.springframework.web.bind.annotation.*;
 public class AdminDisbursementController {
 
   private final AdminDisbursementService service;
+  private final CashbookReadService reads;
 
   @GetMapping
-  public ApiResponse<AdminDisbursementListResponse> getDisbursements(
-      @RequestParam(required = false) String keyword,
-      @RequestParam(name = "loai_thu_chi_id", required = false) String loaiThuChiId,
-      @RequestParam(name = "nhom_nguoi_nop_nhan", required = false) String nhomNguoiNopNhan,
-      @RequestParam(name = "phuong_thuc_thanh_toan", required = false) String phuongThucThanhToan,
-      @RequestParam(name = "nguoi_tao_id", required = false) String nguoiTaoId,
-      @RequestParam(name = "nguon_tao", required = false) String nguonTao,
-      @RequestParam(name = "trang_thai", required = false) String trangThai,
-      @RequestParam(name = "tu_ngay", required = false) String tuNgay,
-      @RequestParam(name = "den_ngay", required = false) String denNgay,
-      @RequestParam(defaultValue = "0") String page,
-      @RequestParam(defaultValue = "20") String limit) {
+  public ApiResponse<Map<String, Object>> getDisbursements(
+      @RequestParam Map<String, String> params) {
 
-    return ApiResponse.<AdminDisbursementListResponse>builder()
-        .status(HttpStatus.OK.value())
+    return ApiResponse.<Map<String, Object>>builder()
+        .status(200)
         .message("Lấy danh sách phiếu chi thành công")
-        .data(
-            service.getDisbursements(
-                keyword,
-                loaiThuChiId,
-                nhomNguoiNopNhan,
-                phuongThucThanhToan,
-                nguoiTaoId,
-                nguonTao,
-                trangThai,
-                tuNgay,
-                denNgay,
-                page,
-                limit))
+        .data(reads.vouchers(params, LoaiPhieuThuChi.CHI))
         .build();
   }
 
@@ -74,12 +55,12 @@ public class AdminDisbursementController {
   }
 
   @GetMapping("/{id}")
-  public ApiResponse<AdminDisbursementResponse> getDisbursementDetail(@PathVariable String id) {
+  public ApiResponse<Map<String, Object>> getDisbursementDetail(@PathVariable String id) {
 
-    return ApiResponse.<AdminDisbursementResponse>builder()
-        .status(HttpStatus.OK.value())
+    return ApiResponse.<Map<String, Object>>builder()
+        .status(200)
         .message("Lấy chi tiết phiếu chi thành công")
-        .data(service.getDisbursementDetail(id))
+        .data(reads.detail(id, LoaiPhieuThuChi.CHI))
         .build();
   }
 
@@ -106,12 +87,18 @@ public class AdminDisbursementController {
   @PostMapping("/{id}/cancel")
   public ApiResponse<AdminDisbursementCancelResponse> cancelDisbursement(
       @PathVariable String id,
-      @RequestBody(required = false) AdminDisbursementCancelRequest request) {
+      @RequestHeader("Idempotency-Key") String requestKey,
+      @RequestBody AdminDisbursementCancelRequest request,
+      Authentication authentication) {
+
+    if (authentication == null || !(authentication.getPrincipal() instanceof NguoiDung actor)) {
+      throw new AppException(ErrorCode.UNAUTHORIZED);
+    }
 
     return ApiResponse.<AdminDisbursementCancelResponse>builder()
-        .status(HttpStatus.OK.value())
+        .status(200)
         .message("Hủy phiếu chi thành công")
-        .data(service.cancelDisbursement(id, request))
+        .data(service.cancelDisbursement(id, request, actor, requestKey))
         .build();
   }
 }

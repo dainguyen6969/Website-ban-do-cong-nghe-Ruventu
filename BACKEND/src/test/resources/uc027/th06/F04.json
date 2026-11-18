@@ -1,0 +1,52 @@
+{
+  "status": 200,
+  "message": "Lấy chi tiết phiếu trả thành công",
+  "data": {
+    "id": 304,
+    "ma_tra_hang": "TH000304",
+    "don_hang": {
+      "id": 1007,
+      "ma_don_hang": "ORD-007"
+    },
+    "khach_hang_id": null,
+    "ten_nguoi_lien_he": "Nguyễn Văn An",
+    "sdt_nguoi_lien_he": "0912345678",
+    "ly_do_tra": "Không còn nhu cầu",
+    "trang_thai_tra_hang": "HOAN_TAT",
+    "chi_tiet_tra": [
+      {
+        "id": 507,
+        "chi_tiet_don_hang_id": 2007,
+        "so_luong": 1,
+        "don_gia_hoan": 0,
+        "thanh_tien_hoan": 0
+      }
+    ],
+    "tong_tien_hoan": 0,
+    "hinh_thuc_hoan_tien": "TIEN_MAT",
+    "ngay_tiep_nhan_thuc_te": "2026-10-12T11:30:00+07:00",
+    "ngay_nhan_hang": "2026-10-12T11:45:00+07:00",
+    "ngay_ket_thuc": "2026-10-12T11:45:00+07:00",
+    "ly_do_ket_thuc": null,
+    "muc_dich_ket_thuc": null,
+    "ket_qua_kiem_tra": "Đã kiểm tra hoạt động, đủ tem và hộp",
+    "hang_dang_giu": [],
+    "hang_da_nhan": [
+      {
+        "chi_tiet_tra_hang_id": 507,
+        "thiet_bi_id": 807,
+        "phien_ban_id": 301,
+        "so_serial_id": null,
+        "kho_hang_id": 1,
+        "du_dieu_kien_ban_lai": true,
+        "bang_chung_urls": [
+          "/uploads/nhan-tra-304.jpg"
+        ]
+      }
+    ],
+    "ban_giao_lai": null,
+    "phe_duyet_ngoai_le": null,
+    "phieu_chi": null,
+    "thao_tac_duoc_phep": []
+  }
+}

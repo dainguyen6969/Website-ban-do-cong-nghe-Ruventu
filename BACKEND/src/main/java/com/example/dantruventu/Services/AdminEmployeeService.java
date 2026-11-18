@@ -6,6 +6,8 @@ import com.example.dantruventu.DTO.Response.PaginationResponse;
 import com.example.dantruventu.DTO.Response.employee.AdminEmployeeListResponse;
 import com.example.dantruventu.DTO.Response.employee.EmployeeListItemResponse;
 import com.example.dantruventu.DTO.Response.employee.EmployeeRoleResponse;
+import com.example.dantruventu.Entity.DonHang;
+import com.example.dantruventu.Entity.LichSuXuLyDonHang;
 import com.example.dantruventu.Entity.NguoiDung;
 import com.example.dantruventu.Entity.VaiTro;
 import com.example.dantruventu.Enum.TrangThaiCoBanEnum;
@@ -13,14 +15,14 @@ import com.example.dantruventu.Error.AppException;
 import com.example.dantruventu.Error.ErrorCode;
 import com.example.dantruventu.Repository.NguoiDungRepository;
 import com.example.dantruventu.Repository.VaiTroRepository;
+import com.example.dantruventu.Repository.order.DonHangRepository;
 import com.example.dantruventu.Specification.EmployeeSpecification;
-import java.util.List;
-import java.util.Locale;
-import java.util.Objects;
+import java.util.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -33,6 +35,7 @@ public class AdminEmployeeService {
   private final NguoiDungRepository nguoiDungRepository;
   private final VaiTroRepository vaiTroRepository;
   private final PasswordEncoder passwordEncoder;
+  private final DonHangRepository donHangRepository;
 
   public AdminEmployeeListResponse getEmployees(
       String keyword, Short trangThai, Long vaiTroId, int page, int limit) {
@@ -103,6 +106,74 @@ public class AdminEmployeeService {
     }
 
     return toListItemResponse(employee);
+  }
+
+  public Map<String, Object> getEmployeeOrders(Long id, String relation, int page, int limit) {
+    if (page < 0 || limit < 1 || limit > 100 || (long) page * limit > Integer.MAX_VALUE) {
+      throw new AppException(ErrorCode.INVALID_PARAM, "page hoặc limit không hợp lệ");
+    }
+
+    boolean assigned = "GAN_TREN_DON".equals(relation);
+    boolean approved = "DA_DUYET".equals(relation);
+    if (!assigned && !approved && !"DA_THAO_TAC".equals(relation)) {
+      throw new AppException(ErrorCode.INVALID_PARAM, "lien_ket không hợp lệ");
+    }
+
+    getEmployeeDetail(id);
+
+    Specification<DonHang> related =
+        (root, query, cb) -> {
+          if (assigned) {
+            return cb.equal(root.get("nhanVien").get("id"), id);
+          }
+
+          var subquery = query.subquery(Long.class);
+          var event = subquery.from(LichSuXuLyDonHang.class);
+          var belongsToEmployee =
+              cb.and(
+                  cb.equal(event.get("donHang").get("id"), root.get("id")),
+                  cb.equal(event.get("nguoiThucHien").get("id"), id));
+          subquery
+              .select(event.<Long>get("id"))
+              .where(
+                  approved
+                      ? cb.and(belongsToEmployee, cb.equal(event.get("hanhDong"), "DUYET_DON"))
+                      : belongsToEmployee);
+          return cb.exists(subquery);
+        };
+
+    var orders =
+        donHangRepository.findAll(
+            related, PageRequest.of(page, limit, Sort.by("ngayTao", "id").descending()));
+
+    var items =
+        orders
+            .map(
+                order -> {
+                  Map<String, Object> row = new LinkedHashMap<>();
+                  row.put("id", order.getId());
+                  row.put("ma_don_hang", order.getMaDonHang());
+                  row.put("loai_don_hang", order.getLoaiDonHang());
+                  row.put("trang_thai_don_hang", order.getTrangThaiDonHang());
+                  row.put("trang_thai_thanh_toan", order.getTrangThaiThanhToan());
+                  row.put("tong_thanh_toan", order.getTongThanhToan());
+                  row.put(
+                      "ngay_tao",
+                      order.getNgayTao() == null ? null : order.getNgayTao().toString());
+                  return row;
+                })
+            .getContent();
+
+    return Map.of(
+        "items",
+        items,
+        "pagination",
+        PaginationResponse.builder()
+            .page(orders.getNumber())
+            .limit(orders.getSize())
+            .totalElements(orders.getTotalElements())
+            .totalPages(orders.getTotalPages())
+            .build());
   }
 
   @Transactional

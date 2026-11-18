@@ -1,8 +1,6 @@
 import axios from 'axios';
 
-const BASE_URL =
-  (import.meta.env.VITE_RUVENTU_API_URL || '')
-    .replace(/\/$/, '');
+const BASE_URL = (import.meta.env.VITE_RUVENTU_API_URL || '').replace(/\/$/, '');
 
 const receiptAxios = axios.create({
   baseURL: `${BASE_URL}/api/v1/admin/receipts`,
@@ -59,7 +57,7 @@ export const receiptService = {
   cancelReceipt: async (id, data) => {
     return receiptAxios.post(`/${id}/cancel`, data);
   },
-  
+
   getPayerSuggestions: async (params) => {
     return receiptAxios.get('/payers', { params });
   },
@@ -70,5 +68,5 @@ export const receiptService = {
 
   createReceiptType: async (data) => {
     return receiptTypeAxios.post('', data);
-  }
+  },
 };

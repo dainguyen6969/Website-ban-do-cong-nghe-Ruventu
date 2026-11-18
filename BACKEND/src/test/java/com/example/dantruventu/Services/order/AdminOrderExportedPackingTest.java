@@ -42,6 +42,7 @@ class AdminOrderExportedPackingTest {
   @Mock OrderInventoryService inventory;
   @Mock DeliveryInventoryService deliveryInventory;
   @Mock EntityManager entityManager;
+  @Mock OrderEvents orderEvents;
   @Spy SalesProperties properties = new SalesProperties();
   @InjectMocks AdminOrderService service;
   DonHang order;

@@ -5,6 +5,7 @@ import com.example.dantruventu.Enum.TrangThaiCoBanEnum;
 import jakarta.persistence.*;
 import java.util.List;
 import lombok.*;
+import org.hibernate.annotations.ColumnDefault;
 
 @Entity
 @Table(name = "danh_muc")
@@ -34,7 +35,8 @@ public class DanhMuc {
 
   @Builder.Default
   @Convert(converter = TrangThaiCoBanConverter.class)
-  @Column(name = "trang_thai", nullable = false)
+  @ColumnDefault("1")
+  @Column(name = "trang_thai", nullable = false, columnDefinition = "SMALLINT")
   private TrangThaiCoBanEnum trangThai = TrangThaiCoBanEnum.HOAT_DONG;
 
   @OneToMany(mappedBy = "danhMucCha", fetch = FetchType.LAZY)

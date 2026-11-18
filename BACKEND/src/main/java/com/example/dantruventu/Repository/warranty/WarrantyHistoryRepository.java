@@ -17,6 +17,9 @@ public interface WarrantyHistoryRepository extends JpaRepository<LichSuBaoHanh, 
   @EntityGraph(attributePaths = "nguoiThucHien")
   Page<LichSuBaoHanh> findByPhieuBaoHanh_Id(Long ticketId, Pageable pageable);
 
+  @EntityGraph(attributePaths = "nguoiThucHien")
+  Optional<LichSuBaoHanh> findByIdAndPhieuBaoHanh_Id(Long id, Long ticketId);
+
   @Query(
       "SELECT h FROM LichSuBaoHanh h WHERE h.id = :id AND h.phieuBaoHanh IS NULL AND h.loaiSuKien = 'YEU_CAU_TIEP_NHAN'")
   Optional<LichSuBaoHanh> findIntakeById(@Param("id") Long id);

@@ -41,6 +41,7 @@ class AdminOrderPaymentTest {
   @Mock AdminSalesService salesService;
   @Mock SalesContext context;
   @Mock EntityManager entityManager;
+  @Mock OrderEvents orderEvents;
   @Spy SalesProperties properties = new SalesProperties();
   @InjectMocks AdminOrderService service;
   DonHang order;
@@ -95,7 +96,7 @@ class AdminOrderPaymentTest {
         .thenAnswer(
             call ->
                 SoQuyThuChi.builder()
-                    .maPhieu(call.<CashbookService.AutomaticVoucher>getArgument(0).maPhieu())
+                    .maPhieu(call.<CashbookService.AutomaticVoucher>getArgument(0).khoaNghiepVu())
                     .build());
   }
 
@@ -123,7 +124,7 @@ class AdminOrderPaymentTest {
     pay();
     var voucher = ArgumentCaptor.forClass(CashbookService.AutomaticVoucher.class);
     verify(cashbookService).createAutomatic(voucher.capture());
-    assertEquals("THU-DH-1", voucher.getValue().maPhieu());
+    assertEquals("THU-DH-1", voucher.getValue().khoaNghiepVu());
     assertEquals(NhomNguoiNopNhanEnum.KHACH_HANG, voucher.getValue().nhomNguoiNopNhan());
     assertEquals(new BigDecimal("1000"), voucher.getValue().soTien());
     assertEquals(request.getNgayThanhToan(), voucher.getValue().ngayGhiNhan());
@@ -139,6 +140,7 @@ class AdminOrderPaymentTest {
     verify(historyRepository).save(event.capture());
     assertEquals("XAC_NHAN_THU_TIEN", event.getValue().getHanhDong());
     assertTrue(event.getValue().getMoTa().contains("THU-DH-1"));
+    verify(orderEvents).changed(1L, "XAC_NHAN_THU_TIEN");
   }
 
   @ParameterizedTest
@@ -149,6 +151,7 @@ class AdminOrderPaymentTest {
     order.setTrangThaiDonHang(status);
     assertThrows(AppException.class, this::pay);
     verify(cashbookService, never()).createAutomatic(any());
+    verifyNoInteractions(orderEvents);
   }
 
   @ParameterizedTest
@@ -197,7 +200,7 @@ class AdminOrderPaymentTest {
     pay();
     var voucher = ArgumentCaptor.forClass(CashbookService.AutomaticVoucher.class);
     verify(cashbookService).createAutomatic(voucher.capture());
-    assertEquals("THU-COD-3", voucher.getValue().maPhieu());
+    assertEquals("THU-COD-3", voucher.getValue().khoaNghiepVu());
     assertEquals(NhomNguoiNopNhanEnum.DOI_TAC_GIAO_HANG, voucher.getValue().nhomNguoiNopNhan());
     assertSame(delivery.getDoiTacVanChuyen(), voucher.getValue().doiTacVanChuyen());
     assertEquals("TIEN_MAT", order.getPhuongThucThanhToan());

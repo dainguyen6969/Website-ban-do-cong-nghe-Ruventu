@@ -5,12 +5,15 @@ import com.example.dantruventu.DTO.Response.dashboard.AdminDashboardResponse;
 import com.example.dantruventu.Error.AppException;
 import com.example.dantruventu.Error.ErrorCode;
 import com.example.dantruventu.Services.AdminDashboardService;
+import com.example.dantruventu.Services.dashboard.DashboardReadService;
+import jakarta.servlet.http.HttpServletRequest;
+import java.nio.charset.StandardCharsets;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.*;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.util.MultiValueMap;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -22,151 +25,99 @@ import org.springframework.web.bind.annotation.RestController;
 @PreAuthorize("hasRole('ADMIN')")
 public class AdminDashboardController {
 
-  private static final MediaType XLSX =
-      MediaType.parseMediaType(
-          "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+  private final DashboardReadService reads;
+  private final AdminDashboardService legacy;
 
-  private final AdminDashboardService service;
+  @GetMapping({
+    "/summary",
+    "/tasks",
+    "/business-chart",
+    "/top-products",
+    "/inventory",
+    "/customers",
+    "/cashflow",
+    "/after-sales",
+    "/promotions"
+  })
+  public ApiResponse<Map<String, Object>> read(
+      HttpServletRequest request, @RequestParam MultiValueMap<String, String> query) {
 
-  @GetMapping("/summary")
-  public ApiResponse<AdminDashboardResponse.Summary> getSummary(
-      @RequestParam(required = false) String ky,
-      @RequestParam(name = "tu_ngay", required = false) String tuNgay,
-      @RequestParam(name = "den_ngay", required = false) String denNgay,
-      @RequestParam(name = "kenh_ban", required = false) String kenhBan) {
-    return ok("Lấy tổng quát thành công", service.getSummary(ky, tuNgay, denNgay, kenhBan));
-  }
+    String path = request.getServletPath();
 
-  @GetMapping("/tasks")
-  public ApiResponse<AdminDashboardResponse.Tasks> getTasks(
-      @RequestParam(name = "kenh_ban", required = false) String kenhBan,
-      @RequestParam(defaultValue = "5") String limit) {
-    return ok("Lấy việc cần xử lý thành công", service.getTasks(kenhBan, limit));
-  }
+    String endpoint = path.substring(path.lastIndexOf('/') + 1);
 
-  @GetMapping("/business-chart")
-  public ApiResponse<AdminDashboardResponse.BusinessChart> getBusinessChart(
-      @RequestParam(required = false) String ky,
-      @RequestParam(name = "tu_ngay", required = false) String tuNgay,
-      @RequestParam(name = "den_ngay", required = false) String denNgay,
-      @RequestParam(name = "kenh_ban", required = false) String kenhBan,
-      @RequestParam(name = "nhom_theo", required = false) String nhomTheo) {
-    return ok(
-        "Lấy biểu đồ kinh doanh thành công",
-        service.getBusinessChart(ky, tuNgay, denNgay, kenhBan, nhomTheo));
-  }
+    String message =
+        switch (endpoint) {
+          case "summary" -> "Lấy tổng quát thành công";
+          case "tasks" -> "Lấy việc cần xử lý thành công";
+          case "business-chart" -> "Lấy biểu đồ kinh doanh thành công";
+          case "top-products" -> "Lấy sản phẩm bán chạy thành công";
+          case "inventory" -> "Lấy tổng quát tồn kho thành công";
+          case "customers" -> "Lấy tổng quát khách hàng thành công";
+          case "cashflow" -> "Lấy tổng quát sổ quỹ thành công";
+          case "after-sales" -> "Lấy tổng quát bảo hành và trả hàng thành công";
+          case "promotions" -> "Lấy tổng quát khuyến mại thành công";
+          default -> throw new AppException(ErrorCode.NOT_FOUND);
+        };
 
-  @GetMapping("/top-products")
-  public ApiResponse<AdminDashboardResponse.TopProducts> getTopProducts(
-      @RequestParam(required = false) String ky,
-      @RequestParam(name = "tu_ngay", required = false) String tuNgay,
-      @RequestParam(name = "den_ngay", required = false) String denNgay,
-      @RequestParam(name = "kenh_ban", required = false) String kenhBan,
-      @RequestParam(name = "xep_hang_theo", required = false) String xepHangTheo,
-      @RequestParam(defaultValue = "5") String limit) {
-    return ok(
-        "Lấy sản phẩm bán chạy thành công",
-        service.getTopProducts(ky, tuNgay, denNgay, kenhBan, xepHangTheo, limit));
-  }
-
-  @GetMapping("/inventory")
-  public ApiResponse<AdminDashboardResponse.Inventory> getInventory(
-      @RequestParam(defaultValue = "5") String limit) {
-    return ok("Lấy tổng quát tồn kho thành công", service.getInventory(limit));
+    return ok(message, reads.read(endpoint, parameters(query)));
   }
 
   @GetMapping("/slow-moving-products")
   public ApiResponse<AdminDashboardResponse.SlowMovingProducts> getSlowMovingProducts(
-      @RequestParam(name = "so_ngay_khong_ban", defaultValue = "30") String soNgayKhongBan,
+      @RequestParam(name = "so_ngay_khong_ban", defaultValue = "30") String days,
       @RequestParam(defaultValue = "5") String limit) {
-    return ok(
-        "Lấy sản phẩm tồn lâu thành công",
-        service.getSlowMovingProducts(soNgayKhongBan, limit));
+
+    return ok("Lấy sản phẩm tồn lâu thành công", legacy.getSlowMovingProducts(days, limit));
   }
 
   @GetMapping("/purchases")
   public ApiResponse<AdminDashboardResponse.Purchases> getPurchases() {
-    return ok("Lấy tổng quát nhập hàng thành công", service.getPurchases());
-  }
 
-  @GetMapping("/customers")
-  public ApiResponse<AdminDashboardResponse.Customers> getCustomers(
-      @RequestParam(required = false) String ky,
-      @RequestParam(name = "tu_ngay", required = false) String tuNgay,
-      @RequestParam(name = "den_ngay", required = false) String denNgay,
-      @RequestParam(name = "kenh_ban", required = false) String kenhBan) {
-    return ok(
-        "Lấy tổng quát khách hàng thành công",
-        service.getCustomers(ky, tuNgay, denNgay, kenhBan));
-  }
-
-  @GetMapping("/cashflow")
-  public ApiResponse<AdminDashboardResponse.Cashflow> getCashflow(
-      @RequestParam(required = false) String ky,
-      @RequestParam(name = "tu_ngay", required = false) String tuNgay,
-      @RequestParam(name = "den_ngay", required = false) String denNgay,
-      @RequestParam(name = "kenh_ban", required = false) String kenhBan,
-      @RequestParam(name = "nhom_theo", required = false) String nhomTheo) {
-    return ok(
-        "Lấy tổng quát sổ quỹ thành công",
-        service.getCashflow(ky, tuNgay, denNgay, kenhBan, nhomTheo));
-  }
-
-  @GetMapping("/after-sales")
-  public ApiResponse<AdminDashboardResponse.AfterSales> getAfterSales(
-      @RequestParam(name = "kenh_ban", required = false) String kenhBan) {
-    return ok(
-        "Lấy tổng quát bảo hành và trả hàng thành công",
-        service.getAfterSales(kenhBan));
-  }
-
-  @GetMapping("/promotions")
-  public ApiResponse<AdminDashboardResponse.Promotions> getPromotions() {
-    return ok("Lấy tổng quát khuyến mại thành công", service.getPromotions());
+    return ok("Lấy tổng quát nhập hàng thành công", legacy.getPurchases());
   }
 
   @GetMapping("/export")
-  public ResponseEntity<byte[]> export(
-      @RequestParam(required = false) String ky,
-      @RequestParam(name = "tu_ngay", required = false) String tuNgay,
-      @RequestParam(name = "den_ngay", required = false) String denNgay,
-      @RequestParam(name = "kenh_ban", required = false) String kenhBan,
-      @RequestParam(name = "nhom_theo", required = false) String nhomTheo,
-      @RequestParam(name = "xep_hang_theo", required = false) String xepHangTheo,
-      @RequestParam(name = "so_ngay_khong_ban", defaultValue = "30") String soNgayKhongBan,
-      @RequestParam(defaultValue = "5") String limit) {
-    try {
-      AdminDashboardService.ExportResult result =
-          service.export(
-              ky,
-              tuNgay,
-              denNgay,
-              kenhBan,
-              nhomTheo,
-              xepHangTheo,
-              soNgayKhongBan,
-              limit);
-      return ResponseEntity.ok()
-          .contentType(XLSX)
-          .header(
-              HttpHeaders.CONTENT_DISPOSITION,
-              "attachment; filename=\"" + result.filename() + "\"")
-          .contentLength(result.content().length)
-          .body(result.content());
-    } catch (AppException exception) {
-      throw exception;
-    } catch (Exception exception) {
-      throw new AppException(
-          ErrorCode.INTERNAL_SERVER_ERROR,
-          "Xuất báo cáo không thành công, vui lòng thử lại");
-    }
+  public ResponseEntity<byte[]> export(@RequestParam MultiValueMap<String, String> query) {
+
+    var result = reads.export(parameters(query));
+
+    return ResponseEntity.ok()
+        .contentType(
+            MediaType.parseMediaType(
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
+        .header(
+            HttpHeaders.CONTENT_DISPOSITION,
+            ContentDisposition.attachment()
+                .filename(result.filename(), StandardCharsets.UTF_8)
+                .build()
+                .toString())
+        .contentLength(result.content().length)
+        .body(result.content());
+  }
+
+  private Map<String, String> parameters(MultiValueMap<String, String> query) {
+
+    Map<String, String> result = new LinkedHashMap<>();
+
+    query.forEach(
+        (key, values) -> {
+          if (values == null || values.size() != 1) {
+            throw new AppException(
+                ErrorCode.INVALID_DATA,
+                key,
+                "DUPLICATE_QUERY_PARAMETER",
+                "Mỗi tham số chỉ được xuất hiện một lần");
+          }
+
+          result.put(key, values.get(0));
+        });
+
+    return result;
   }
 
   private <T> ApiResponse<T> ok(String message, T data) {
-    return ApiResponse.<T>builder()
-        .status(HttpStatus.OK.value())
-        .message(message)
-        .data(data)
-        .build();
+
+    return ApiResponse.<T>builder().status(200).message(message).data(data).build();
   }
 }

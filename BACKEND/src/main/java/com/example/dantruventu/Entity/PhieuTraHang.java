@@ -34,8 +34,8 @@ public class PhieuTraHang {
   @JoinColumn(name = "don_hang_id", nullable = false)
   private DonHang donHang;
 
-  @ManyToOne(fetch = FetchType.LAZY)
-  @JoinColumn(name = "khach_hang_id")
+  @ManyToOne(fetch = FetchType.LAZY, optional = true)
+  @JoinColumn(name = "khach_hang_id", nullable = true)
   private NguoiDung khachHang;
 
   @Column(name = "tong_tien_hoan", nullable = false, precision = 15, scale = 2)

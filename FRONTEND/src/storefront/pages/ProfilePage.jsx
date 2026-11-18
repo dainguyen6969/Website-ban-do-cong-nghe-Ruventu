@@ -1,10 +1,12 @@
 import React, { useEffect, useState } from "react";
+import { VIETNAM_LOCATIONS } from "../../data/vietnamLocations";
 import { useNavigate, useLocation } from "react-router-dom";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 import { User, Edit, Lock, Check } from "lucide-react";
 import "./ProfilePage.css";
 import { orderService } from "../../shared/services/orderService";
+import TablePagination from '../../shared/components/ui/TablePagination';
 
 import {
   errorMessage,
@@ -12,6 +14,7 @@ import {
 } from "../../shared/services/mutationUtils";
 
 import { label, money } from "../../features/admin/orders/api/orderApi";
+import { FormDropdown } from "../../shared/components/ui/FilterDropdown";
 
 const ProfilePage = () => {
   const navigate = useNavigate();
@@ -121,7 +124,12 @@ const ProfilePage = () => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    if (name === "city") {
+      const defaultWard = VIETNAM_LOCATIONS[value]?.[0] || "";
+      setFormData((prev) => ({ ...prev, city: value, ward: defaultWard }));
+    } else {
+      setFormData((prev) => ({ ...prev, [name]: value }));
+    }
   };
 
   const renderProfileTab = () => (
@@ -200,7 +208,7 @@ const ProfilePage = () => {
         <div className="form-row">
           <div className="form-group">
             <label>TỈNH / THÀNH PHỐ</label>
-            <select
+            <FormDropdown aria-label="TỈNH / THÀNH PHỐ"
               name="city"
               value={formData.city}
               onChange={handleChange}
@@ -211,14 +219,14 @@ const ProfilePage = () => {
                   : "input-disabled select-disabled"
               }
             >
-              <option>Hà Nội</option>
-              <option>TP. Hồ Chí Minh</option>
-              <option>Đà Nẵng</option>
-            </select>
+              {Object.keys(VIETNAM_LOCATIONS).map((prov) => (
+                <option key={prov} value={prov}>{prov}</option>
+              ))}
+            </FormDropdown>
           </div>
           <div className="form-group">
             <label>PHƯỜNG / XÃ</label>
-            <select
+            <FormDropdown aria-label="PHƯỜNG / XÃ"
               name="ward"
               value={formData.ward}
               onChange={handleChange}
@@ -229,10 +237,10 @@ const ProfilePage = () => {
                   : "input-disabled select-disabled"
               }
             >
-              <option>Cầu Giấy</option>
-              <option>Đống Đa</option>
-              <option>Thanh Xuân</option>
-            </select>
+              {(VIETNAM_LOCATIONS[formData.city] || []).map((w) => (
+                <option key={w} value={w}>{w}</option>
+              ))}
+            </FormDropdown>
           </div>
         </div>
 
@@ -279,7 +287,7 @@ const ProfilePage = () => {
       </header>
 
       {ordersError && <p role="alert">{ordersError}</p>}
-      {ordersLoading && <p>Đang tải đơn hàng...</p>}
+      {ordersLoading && !customerOrders.items.length && <p>Đang tải đơn hàng...</p>}
 
       <div className="list-container">
         {customerOrders.items.map((order) => (
@@ -329,28 +337,7 @@ const ProfilePage = () => {
           Tổng {customerOrders.pagination.total_elements || 0} đơn hàng
         </span>
 
-        <button
-          type="button"
-          className="btn-outline"
-          disabled={ordersLoading || orderPage <= 1}
-          onClick={() => setOrderPage((current) => current - 1)}
-        >
-          TRƯỚC
-        </button>
-
-        <span>Trang {orderPage}</span>
-
-        <button
-          type="button"
-          className="btn-outline"
-          disabled={
-            ordersLoading ||
-            orderPage >= Number(customerOrders.pagination.total_pages || 0)
-          }
-          onClick={() => setOrderPage((current) => current + 1)}
-        >
-          SAU
-        </button>
+        <TablePagination totalItems={Number(customerOrders.pagination.total_elements) || 0} pageSize={10} currentPage={orderPage} onPageChange={setOrderPage} showSummary={false} idPrefix="profile-orders" />
       </div>
     </div>
   );

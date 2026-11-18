@@ -59,5 +59,10 @@ public class AdminPurchaseOrderReturnRequest {
     @NotNull
     @Min(value = 0, message = "Số lượng lỗi không được âm")
     private Integer soLuongLoi;
+
+    @Builder.Default
+    @JsonProperty("so_serial_ids")
+    @NotNull
+    private List<@NotNull @Positive Long> soSerialIds = List.of();
   }
 }

@@ -1,5 +1,6 @@
 package com.example.dantruventu.DTO.Response;
 
+import com.example.dantruventu.DTO.Response.order.SalePreviewData;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import java.math.BigDecimal;
 import lombok.AllArgsConstructor;
@@ -40,7 +41,7 @@ public class CartItemMutationResponse {
   @NoArgsConstructor
   @AllArgsConstructor
   @Builder
-  public static class CartSummary {
+  public static class CartSummary extends SalePreviewData {
 
     private Integer tongSoLuong;
     private BigDecimal tamTinh;

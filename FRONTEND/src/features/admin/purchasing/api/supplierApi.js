@@ -7,9 +7,10 @@ export const SUPPLIER_STATUS = {
   inactive: 'ngung_hop_tac',
 };
 
-const statusFromApi = (value) => Number(value) === 1 ? SUPPLIER_STATUS.active : SUPPLIER_STATUS.inactive;
-const statusToApi = (value) => value === SUPPLIER_STATUS.active ? 1 : 0;
-const date = (value) => value ? new Intl.DateTimeFormat('vi-VN').format(new Date(value)) : '—';
+const statusFromApi = (value) =>
+  Number(value) === 1 ? SUPPLIER_STATUS.active : SUPPLIER_STATUS.inactive;
+const statusToApi = (value) => (value === SUPPLIER_STATUS.active ? 1 : 0);
+const date = (value) => (value ? new Intl.DateTimeFormat('vi-VN').format(new Date(value)) : '—');
 
 export function normalizeSupplier(item = {}) {
   return {
@@ -69,12 +70,15 @@ const bodyOf = (form, includeCode) => ({
   trang_thai: statusToApi(form.trangThai),
 });
 
-export const createSupplier = async (form) => normalizeSupplier(
-  await adminRequest(PATH, { method: 'POST', body: JSON.stringify(bodyOf(form, true)) }),
-);
+export const createSupplier = async (form) =>
+  normalizeSupplier(
+    await adminRequest(PATH, { method: 'POST', body: JSON.stringify(bodyOf(form, true)) })
+  );
 
-export const updateSupplier = async (id, form) => normalizeSupplier(
-  await adminRequest(`${PATH}/${encodeURIComponent(id)}`, {
-    method: 'PUT', body: JSON.stringify(bodyOf(form, false)),
-  }),
-);
+export const updateSupplier = async (id, form) =>
+  normalizeSupplier(
+    await adminRequest(`${PATH}/${encodeURIComponent(id)}`, {
+      method: 'PUT',
+      body: JSON.stringify(bodyOf(form, false)),
+    })
+  );

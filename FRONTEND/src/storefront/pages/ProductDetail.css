@@ -114,3 +114,56 @@
     padding-right: 20px;
   }
 }
+
+.product-detail-status {
+  min-height: 320px;
+  display: grid;
+  place-items: center;
+  padding: 40px 20px;
+  text-align: center;
+}
+
+.product-detail-status--error {
+  color: #c51d25;
+}
+
+.product-detail-page .product-main-container { --product-media-height: 520px; align-items: start; grid-template-columns: 280px minmax(0,1fr) 410px; }
+.product-detail-page .product-main-container > * { min-width: 0; }
+.product-detail-page .product-main-container { grid-template-areas: 'info gallery purchase' 'description description purchase'; grid-template-rows: auto 1fr; row-gap: 24px; }
+.product-detail-page .info-sidebar-column { grid-area: info; }
+.product-detail-page .gallery-column { grid-area: gallery; }
+.product-detail-page .purchase-right-sidebar-column { grid-area: purchase; }
+.product-detail-page .product-description-column { grid-area: description; }
+.product-detail-page .product-main-container--without-sidebar { grid-template-columns: minmax(0,1fr) 410px; grid-template-areas: 'gallery purchase' 'description purchase'; }
+.product-detail-page .product-info-sidebar .section-title { margin: 0; font-size: 14px; line-height: 1.4; }
+.product-detail-page .breadcrumb { display: flex; align-items: center; min-width: 0; overflow: hidden; }
+.product-detail-page .breadcrumb > :not(.current) { flex-shrink: 0; }
+.product-detail-page .breadcrumb .current { min-width: 0; white-space: nowrap; text-overflow: ellipsis; overflow: hidden; }
+.product-detail-page .purchase-right-sidebar-column .product-title { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; font-size: 22px; line-height: 1.35; overflow: hidden; overflow-wrap: anywhere; }
+.product-detail-page .variant-item { display: grid; grid-template-columns: 16px minmax(0,1fr); gap: 6px 12px; }
+.product-detail-page .variant-checkbox { margin-right: 0; }
+.product-detail-page .variant-details { min-width: 0; }
+.product-detail-page .variant-name { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; overflow: hidden; line-height: 1.4; overflow-wrap: anywhere; }
+.product-detail-page .variant-price-stock { grid-column: 2; align-items: flex-start; }
+@media (min-width: 993px) and (max-width: 1200px) { .product-detail-page .product-main-container { grid-template-columns: 240px minmax(0,1fr) 360px; } }
+@media (min-width: 993px) and (max-width: 1200px) { .product-detail-page .product-main-container--without-sidebar { grid-template-columns: minmax(0,1fr) 360px; } }
+@media (max-width: 992px) { .product-detail-page .product-main-container { grid-template-columns: minmax(0,1fr); grid-template-areas: 'gallery' 'purchase' 'info' 'description'; grid-template-rows: auto; row-gap: 20px; } }
+@media (max-width: 992px) { .product-detail-page .product-main-container--without-sidebar { grid-template-areas: 'gallery' 'purchase' 'description'; } }
+
+/* One bounded height keeps the combo panel and the complete gallery aligned. */
+.product-detail-page .product-gallery-container,
+.product-detail-page .combo-contents--scrollable { box-sizing: border-box; height: var(--product-media-height); border: 2px solid #111; }
+.product-detail-page .product-gallery-container { overflow: hidden; }
+.product-detail-page .main-image-wrapper { flex: 1 1 0; min-width: 0; min-height: 0; }
+.product-detail-page .main-gallery-image { display: block; width: 100%; height: 100%; max-width: 100%; max-height: 100%; object-fit: contain; }
+.product-detail-page .thumbnail-strip { box-sizing: border-box; flex: 0 0 86px; height: 86px; padding: 10px; align-items: center; border-top: 1px solid #111; }
+.product-detail-page .thumbnail-item { height: 64px; }
+.product-detail-page .combo-contents--scrollable { display: flex; flex-direction: column; }
+.product-detail-page .combo-contents--scrollable .combo-contents__header { flex-shrink: 0; border-bottom: 1px solid #111; }
+.product-detail-page .combo-contents--scrollable .combo-contents__list { flex: 1 1 0; min-height: 0; max-height: none; }
+@media (max-width: 992px) { .product-detail-page .product-main-container { --product-media-height: 460px; } }
+@media (max-width: 600px) { .product-detail-page .product-main-container { --product-media-height: 420px; } }
+@media (max-width: 600px) {
+  .product-detail-page .quantity-section { flex-wrap: wrap; gap: 12px; }
+  .product-detail-page .total-calc { min-width: 0; margin-left: auto; }
+}

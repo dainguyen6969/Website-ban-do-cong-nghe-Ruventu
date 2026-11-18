@@ -1,5 +1,6 @@
 package com.example.dantruventu.DTO.Request.product;
 
+import com.example.dantruventu.DTO.catalog.CatalogFields;
 import com.example.dantruventu.Enum.LoaiSanPham;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.Valid;
@@ -14,7 +15,7 @@ import tools.jackson.databind.JsonNode;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class AdminProductCreateRequest {
+public class AdminProductCreateRequest extends CatalogFields.WarrantyInput {
 
   @JsonProperty("danh_muc_id")
   @NotNull(message = "Danh mục không được để trống")

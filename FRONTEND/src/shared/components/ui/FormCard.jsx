@@ -19,9 +19,7 @@ export default function FormCard({ title, headerRight, children, id, className =
           <span className="form-card__accent" aria-hidden="true" />
           <h3 className="form-card__title">{title}</h3>
         </div>
-        {headerRight && (
-          <div className="form-card__header-right">{headerRight}</div>
-        )}
+        {headerRight && <div className="form-card__header-right">{headerRight}</div>}
       </div>
       <div className="form-card__body">{children}</div>
     </div>

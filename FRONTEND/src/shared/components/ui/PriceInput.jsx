@@ -20,7 +20,9 @@ export default function PriceInput({
   // Extract raw digits from value
   const parseRaw = useCallback((val) => {
     if (!val && val !== 0) return '';
-    return String(val).replace(/\.000$/, '').replace(/\D/g, '');
+    return String(val)
+      .replace(/\.000$/, '')
+      .replace(/\D/g, '');
   }, []);
 
   const [raw, setRaw] = useState(() => parseRaw(value));
@@ -40,20 +42,23 @@ export default function PriceInput({
   const displayText = isConfirmed && raw ? `${raw}.000` : raw;
 
   // Clamp selection range so cursor cannot enter or select past the raw digits
-  const clampCursor = useCallback((targetPos) => {
-    if (!inputRef.current) return;
-    const max = raw.length;
-    if (targetPos !== undefined) {
-      const clamped = Math.min(Math.max(0, targetPos), max);
-      inputRef.current.setSelectionRange(clamped, clamped);
-    } else {
-      const s = inputRef.current.selectionStart ?? 0;
-      const e = inputRef.current.selectionEnd ?? 0;
-      if (s > max || e > max) {
-        inputRef.current.setSelectionRange(Math.min(s, max), Math.min(e, max));
+  const clampCursor = useCallback(
+    (targetPos) => {
+      if (!inputRef.current) return;
+      const max = raw.length;
+      if (targetPos !== undefined) {
+        const clamped = Math.min(Math.max(0, targetPos), max);
+        inputRef.current.setSelectionRange(clamped, clamped);
+      } else {
+        const s = inputRef.current.selectionStart ?? 0;
+        const e = inputRef.current.selectionEnd ?? 0;
+        if (s > max || e > max) {
+          inputRef.current.setSelectionRange(Math.min(s, max), Math.min(e, max));
+        }
       }
-    }
-  }, [raw]);
+    },
+    [raw]
+  );
 
   const handleFocus = () => {
     if (isConfirmed && raw) {

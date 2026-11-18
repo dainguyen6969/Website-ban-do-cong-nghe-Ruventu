@@ -1,7 +1,5 @@
 export const errorMessage = (error) =>
-  error.response?.data?.message ||
-  error.message ||
-  'Không thể thực hiện thao tác.';
+  error?.response?.data?.message || error?.message || 'Không thể thực hiện thao tác.';
 
 export function createRequestKey() {
   const cryptoApi = globalThis.crypto;
@@ -18,9 +16,7 @@ export function createRequestKey() {
   bytes[6] = (bytes[6] & 0x0f) | 0x40;
   bytes[8] = (bytes[8] & 0x3f) | 0x80;
 
-  const hex = Array.from(bytes, (value) =>
-    value.toString(16).padStart(2, '0'),
-  ).join('');
+  const hex = Array.from(bytes, (value) => value.toString(16).padStart(2, '0')).join('');
 
   return [
     hex.slice(0, 8),
@@ -29,6 +25,27 @@ export function createRequestKey() {
     hex.slice(16, 20),
     hex.slice(20),
   ].join('-');
+}
+
+export function apiFieldErrors(error) {
+  const payload = error?.data ?? error?.response?.data;
+  const rows = Array.isArray(payload?.errors) ? payload.errors : [];
+  const result = {};
+
+  for (const row of rows) {
+    if (typeof row?.field === 'string' && typeof row?.message === 'string') {
+      const field = row.field.replace(/\[\d+\]$/, '');
+      result[field] ??= row.message;
+    }
+  }
+
+  return result;
+}
+
+export function apiHasCode(error, code) {
+  const payload = error?.data ?? error?.response?.data;
+
+  return Array.isArray(payload?.errors) && payload.errors.some((row) => row?.code === code);
 }
 
 export function parseApiTime(value) {
@@ -46,6 +63,7 @@ export function parseApiTime(value) {
   }
 
   const result = new Date(text);
+
   return Number.isNaN(result.getTime()) ? null : result;
 }
 
@@ -60,17 +78,16 @@ function localInputValue(date) {
     hourCycle: 'h23',
   }).formatToParts(date);
 
-  const values = Object.fromEntries(
-    parts.map((part) => [part.type, part.value]),
-  );
+  const values = Object.fromEntries(parts.map((part) => [part.type, part.value]));
 
-  return `${values.year}-${values.month}-${values.day}T${values.hour}:${values.minute}`;
+  return `${values.year}-${values.month}-${values.day}` + `T${values.hour}:${values.minute}`;
 }
 
 export const nowLocalInput = () => localInputValue(new Date());
 
 export const inputFromApiTime = (value) => {
   const date = parseApiTime(value);
+
   return date ? localInputValue(date) : nowLocalInput();
 };
 
@@ -107,18 +124,15 @@ export function formatDateTimeVN(value, timeStyle = 'short') {
 
 /**
  * Giữ UUID và body khi lỗi mạng/5xx chưa xác định kết quả.
- * Không cho đổi body rồi gửi UUID mới khi yêu cầu trước còn chưa rõ.
  */
 export async function withIdempotency(slot, scope, body, send) {
   const signature = JSON.stringify(body);
   let attempt = slot.current;
 
-  if (attempt && (
-    attempt.scope !== scope ||
-    attempt.signature !== signature
-  )) {
+  if (attempt && (attempt.scope !== scope || attempt.signature !== signature)) {
     throw new Error(
-      'Yêu cầu trước chưa xác định kết quả. Hãy giữ nguyên dữ liệu để thử lại hoặc kiểm tra kết quả trước.',
+      'Yêu cầu trước chưa xác định kết quả. ' +
+        'Hãy giữ nguyên dữ liệu để thử lại hoặc kiểm tra kết quả trước.'
     );
   }
 
@@ -130,6 +144,7 @@ export async function withIdempotency(slot, scope, body, send) {
       body: JSON.parse(signature),
       inFlight: false,
     };
+
     slot.current = attempt;
   }
 
@@ -141,12 +156,12 @@ export async function withIdempotency(slot, scope, body, send) {
 
   try {
     const result = await send(attempt.key, attempt.body);
+
     slot.current = null;
     return result;
   } catch (error) {
     const status = Number(error.status || error.response?.status);
 
-    // Các lỗi bị từ chối rõ ràng: cho phép sửa dữ liệu và gửi yêu cầu mới.
     if ([400, 401, 403, 404, 409, 422].includes(status)) {
       slot.current = null;
     }
@@ -155,4 +170,26 @@ export async function withIdempotency(slot, scope, body, send) {
   } finally {
     attempt.inFlight = false;
   }
+}
+
+// Chỉ dùng cho trạng thái hoạt động/ngừng hoạt động.
+export function basicStatusValue(value) {
+  if (value === 1 || value === '1') return 1;
+  if (value === 0 || value === '0') return 0;
+
+  return null;
+}
+
+export function requireBasicStatus(value) {
+  const status = basicStatusValue(value);
+
+  if (status === null) {
+    throw new Error('Trạng thái cơ bản phải là 0 hoặc 1. Kiểm tra dữ liệu API.');
+  }
+
+  return status;
+}
+
+export function basicStatusLabel(value, activeText, inactiveText) {
+  return requireBasicStatus(value) === 1 ? activeText : inactiveText;
 }

@@ -1,7 +1,7 @@
 package com.example.dantruventu.DTO.Request.warehouse;
 
 import com.example.dantruventu.DTO.Request.product.ProductImageRequest;
-import com.fasterxml.jackson.annotation.JsonAnySetter;
+import com.example.dantruventu.DTO.catalog.CatalogFields;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;
@@ -15,7 +15,7 @@ import tools.jackson.databind.JsonNode;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class AdminComboCreateRequest {
+public class AdminComboCreateRequest extends CatalogFields.WarrantyInput {
 
   @JsonProperty("danh_muc_id")
   @NotNull(message = "Danh mục không được để trống")
@@ -87,8 +87,8 @@ public class AdminComboCreateRequest {
   @Size(max = 100)
   private List<@NotNull @Valid ComboComponentRequest> thanhPhan;
 
-  @JsonAnySetter
-  public void rejectUnknownField(String name, JsonNode value) {
-    throw new IllegalArgumentException("Trường không được hỗ trợ: " + name);
-  }
+  @JsonProperty("khoi_luong")
+  @DecimalMin("0")
+  @Digits(integer = 8, fraction = 2)
+  private BigDecimal khoiLuong;
 }

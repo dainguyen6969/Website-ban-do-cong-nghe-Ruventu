@@ -1,23 +1,18 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
-import MockAuthContext from "./mockAuthContext";
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import MockAuthContext from './mockAuthContext';
 import {
   ACCOUNTS_STORAGE_KEY,
   createEmployeeAccount,
   isStaffAccount,
   upgradeAccounts,
-} from "./accountModel";
-import {
-  AUTH_CHANGED,
-  readCurrentUser,
-  saveLogin,
-  logoutBackend,
-} from "./backendAuth";
+} from './accountModel';
+import { AUTH_CHANGED, readCurrentUser, saveLogin, logoutBackend } from './backendAuth';
 import {
   ROLES_STORAGE_KEY,
   roleAbbreviationFromName,
   roleIdFromName,
   upgradeRoles,
-} from "./roleModel";
+} from './roleModel';
 
 const readStoredJson = (key) => {
   try {
@@ -71,11 +66,11 @@ export function MockAuthProvider({ children }) {
     };
 
     window.addEventListener(AUTH_CHANGED, syncAuth);
-    window.addEventListener("storage", syncFromStorage);
+    window.addEventListener('storage', syncFromStorage);
 
     return () => {
       window.removeEventListener(AUTH_CHANGED, syncAuth);
-      window.removeEventListener("storage", syncFromStorage);
+      window.removeEventListener('storage', syncFromStorage);
     };
   }, []);
 
@@ -94,25 +89,21 @@ export function MockAuthProvider({ children }) {
   const register = useCallback(
     ({ fullName, email, phone, password }) => {
       const normalizedEmail = email.trim().toLowerCase();
-      if (
-        accounts.some(
-          (account) => account.email.toLowerCase() === normalizedEmail,
-        )
-      ) {
-        return { account: null, error: "Email này đã được sử dụng." };
+      if (accounts.some((account) => account.email.toLowerCase() === normalizedEmail)) {
+        return { account: null, error: 'Email này đã được sử dụng.' };
       }
       const account = {
         id: `user-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
         name: fullName.trim(),
         email: normalizedEmail,
-        phone: phone.replace(/\s+/g, ""),
+        phone: phone.replace(/\s+/g, ''),
         password,
-        role: "user",
+        role: 'user',
       };
       setAccounts((current) => [...current, account]);
       return { account, error: null };
     },
-    [accounts],
+    [accounts]
   );
 
   const updateCurrentAccount = useCallback(
@@ -122,48 +113,42 @@ export function MockAuthProvider({ children }) {
         current.map((account) =>
           account.id === currentAccount.id
             ? { ...account, ...updates, id: account.id, role: account.role }
-            : account,
-        ),
+            : account
+        )
       );
     },
-    [currentAccount],
+    [currentAccount]
   );
 
   const createEmployee = useCallback(
     (payload) => {
       const normalizedEmail = payload.email.trim().toLowerCase();
-      if (
-        accounts.some(
-          (account) => account.email.toLowerCase() === normalizedEmail,
-        )
-      ) {
+      if (accounts.some((account) => account.email.toLowerCase() === normalizedEmail)) {
         return {
           employee: null,
-          error: "Email này đã được sử dụng bởi một tài khoản khác.",
+          error: 'Email này đã được sử dụng bởi một tài khoản khác.',
         };
       }
       const account = createEmployeeAccount(payload, accounts);
       setAccounts((current) => [...current, account]);
       return { employee: account, error: null };
     },
-    [accounts],
+    [accounts]
   );
 
   const updateEmployee = useCallback((accountId, updates) => {
     const now = new Date().toISOString();
     setAccounts((current) =>
       current.map((account) => {
-        if (account.id !== accountId || !isStaffAccount(account))
-          return account;
+        if (account.id !== accountId || !isStaffAccount(account)) return account;
         const nextRole = updates.vaiTro ?? account.vaiTro;
         const updated = {
           ...account,
           name: updates.hoTen?.trim() ?? account.name,
           hoTen: updates.hoTen?.trim() ?? account.hoTen,
-          phone: updates.soDienThoai?.replace(/\s+/g, "") ?? account.phone,
-          soDienThoai:
-            updates.soDienThoai?.replace(/\s+/g, "") ?? account.soDienThoai,
-          role: account.role === "admin" ? "admin" : nextRole,
+          phone: updates.soDienThoai?.replace(/\s+/g, '') ?? account.phone,
+          soDienThoai: updates.soDienThoai?.replace(/\s+/g, '') ?? account.soDienThoai,
+          role: account.role === 'admin' ? 'admin' : nextRole,
           vaiTro: nextRole,
           trangThai: updates.trangThai ?? account.trangThai,
           updatedAt: now,
@@ -173,7 +158,7 @@ export function MockAuthProvider({ children }) {
           updated.passwordHash = updates.password;
         }
         return updated;
-      }),
+      })
     );
   }, []);
 
@@ -181,23 +166,19 @@ export function MockAuthProvider({ children }) {
     (accountId, trangThai) => {
       updateEmployee(accountId, { trangThai });
     },
-    [updateEmployee],
+    [updateEmployee]
   );
 
   const saveRole = useCallback(
     (payload) => {
       const now = new Date().toISOString();
-      const existing = payload.id
-        ? roles.find((role) => role.id === payload.id)
-        : null;
+      const existing = payload.id ? roles.find((role) => role.id === payload.id) : null;
       const savedRole = {
         id: existing?.id ?? roleIdFromName(payload.label, roles),
         label: payload.label.trim(),
         description: payload.description.trim(),
         abbreviation:
-          existing?.abbreviation ??
-          payload.abbreviation ??
-          roleAbbreviationFromName(payload.label),
+          existing?.abbreviation ?? payload.abbreviation ?? roleAbbreviationFromName(payload.label),
         permissions: payload.permissions,
         createdAt: existing?.createdAt ?? now,
         updatedAt: now,
@@ -205,11 +186,11 @@ export function MockAuthProvider({ children }) {
       setRoles((current) =>
         existing
           ? current.map((role) => (role.id === existing.id ? savedRole : role))
-          : [...current, savedRole],
+          : [...current, savedRole]
       );
       return savedRole;
     },
-    [roles],
+    [roles]
   );
 
   const value = useMemo(
@@ -238,12 +219,8 @@ export function MockAuthProvider({ children }) {
       updateEmployee,
       setEmployeeStatus,
       saveRole,
-    ],
+    ]
   );
 
-  return (
-    <MockAuthContext.Provider value={value}>
-      {children}
-    </MockAuthContext.Provider>
-  );
+  return <MockAuthContext.Provider value={value}>{children}</MockAuthContext.Provider>;
 }

@@ -8,12 +8,12 @@ import com.example.dantruventu.DTO.Response.warehouse.AdminSerialListResponse;
 import com.example.dantruventu.DTO.Response.warehouse.AdminSerialStatusResponse;
 import com.example.dantruventu.Enum.TrangThaiSerial;
 import com.example.dantruventu.Services.AdminSerialService;
+import com.example.dantruventu.Services.warehouse.WarehouseOperations;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -23,6 +23,7 @@ import org.springframework.web.bind.annotation.*;
 public class AdminSerialController {
 
   private final AdminSerialService adminSerialService;
+  private final WarehouseOperations warehouseOperations;
 
   @GetMapping
   public ApiResponse<AdminSerialListResponse> getSerials(
@@ -53,13 +54,13 @@ public class AdminSerialController {
   @PatchMapping("/{id}/status")
   public ApiResponse<AdminSerialStatusResponse> updateStatus(
       @PathVariable("id") Long id,
-      @Valid @RequestBody AdminSerialStatusRequest request,
-      @AuthenticationPrincipal Long actorId) {
+      @RequestHeader("Idempotency-Key") String idempotencyKey,
+      @Valid @RequestBody AdminSerialStatusRequest request) {
 
     return ApiResponse.<AdminSerialStatusResponse>builder()
         .status(200)
         .message("Cập nhật trạng thái serial thành công")
-        .data(adminSerialService.updateStatus(id, request, actorId))
+        .data(warehouseOperations.changeSerialStatus(id, idempotencyKey, request))
         .build();
   }
 

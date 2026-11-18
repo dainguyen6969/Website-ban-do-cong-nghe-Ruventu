@@ -96,6 +96,7 @@
 .brand-detail-stats strong { line-height:1.2; white-space:nowrap; }
 .brand-detail-stats span { margin-top:0; line-height:1.25; white-space:nowrap; }
 .brand-section { margin-top:20px; border:2px solid #ddd; }
+.brand-accent { display: inline-block; vertical-align: middle; width: 3px; height: 16px; background: #e31e24; margin-right: 9px; flex-shrink: 0; }
 .brand-section>header { min-height:44px; padding:0 18px; display:flex; align-items:center; justify-content:space-between; background:#080808; color:#fff; font-size:10px; font-weight:900; }
 .brand-info-grid { min-height:175px; display:grid; grid-template-columns:1fr 280px; }
 .brand-info-grid dl { padding:12px 18px; }
