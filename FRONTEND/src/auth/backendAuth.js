@@ -217,6 +217,13 @@ export async function apiRequest(path, options = {}, retry = true) {
   return options.responseType === 'payload' ? payload : payload?.data;
 }
 
+export function getMyPermissions(signal) {
+  return apiRequest('/api/v1/users/me/permissions', {
+    signal,
+    cache: 'no-store',
+  });
+}
+
 export async function logoutBackend() {
   // Xóa phiên FE ngay để request cũ không khôi phục token.
   clearAuth();

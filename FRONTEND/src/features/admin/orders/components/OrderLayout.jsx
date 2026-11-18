@@ -2,6 +2,8 @@
 import { Link, useLocation, useNavigate, Outlet } from 'react-router-dom';
 import { HiOutlineClipboardList, HiOutlineDownload, HiOutlinePlus } from 'react-icons/hi';
 import '../../../../shared/components/layout/MainContent.css';
+import { canOpenAdminPath } from '../../../../auth/roleModel';
+import { useAdminPermissions } from '../../../../shared/components/ui/PermissionGate';
 
 const tabs = [
   {
@@ -21,6 +23,11 @@ const tabs = [
 export default function OrderLayout() {
   const location = useLocation();
   const navigate = useNavigate();
+
+  const access = useAdminPermissions()?.access;
+  const createOrderPath = '/admin/don-hang/dat-hang-online';
+  const canCreateOrder = canOpenAdminPath(access, createOrderPath);
+  const visibleTabs = tabs.filter((tab) => canOpenAdminPath(access, tab.path));
 
   const isOrderList = location.pathname === '/admin/don-hang/danh-sach-don-hang';
   const isOrderDetail = /^\/admin\/don-hang\/danh-sach-don-hang\/[^/]+$/.test(location.pathname);
@@ -115,16 +122,24 @@ export default function OrderLayout() {
             <HiOutlineDownload size={16} />
             <span>XUẤT EXCEL</span>
           </button>
-          <button className="btn btn--primary" id="btn-dat-hang-online">
-            <HiOutlinePlus size={16} />
-            <span>TẠO ĐƠN CHỜ HÀNG</span>
-          </button>
+
+          {canCreateOrder && (
+            <button
+              className="btn btn--primary"
+              id="btn-dat-hang-online"
+              type="button"
+              onClick={() => navigate(createOrderPath)}
+            >
+              <HiOutlinePlus size={16} />
+              <span>TẠO ĐƠN CHỜ HÀNG</span>
+            </button>
+          )}
         </div>
       </div>
 
       {/* Tabs matching URL route */}
       <div className="content__tabs" role="tablist" aria-label="Tabs đơn hàng">
-        {tabs.map((tab) => {
+        {visibleTabs.map((tab) => {
           const isActive = location.pathname.startsWith(tab.path);
           return (
             <button
