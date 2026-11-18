@@ -4,8 +4,20 @@ export const paymentLabels = { CHUA_THANH_TOAN: 'Chưa thanh toán', THANH_TOAN_
 export const refundLabels = { KHONG_CAN_HOAN: 'Không cần hoàn', CHO_HOAN: 'Chờ hoàn tiền', HOAN_MOT_PHAN: 'Hoàn tiền một phần', DA_HOAN: 'Đã hoàn tiền' };
 export const eligibilityLabels = { CHUA_XAC_MINH: 'Chưa xác minh', DU_DIEU_KIEN: 'Đủ điều kiện miễn phí', KHONG_DU_DIEU_KIEN: 'Không đủ điều kiện miễn phí' };
 export const quickFilters = { 'TẤT CẢ': [], 'MỚI TIẾP NHẬN': ['TIEP_NHAN'], 'ĐANG KIỂM TRA': ['DANG_KIEM_TRA'], 'ĐANG XỬ LÝ': ['DA_GUI_BAO_HANH', 'DANG_BAO_HANH', 'DA_NHAN_LAI', 'CHO_DOI_SAN_PHAM'], 'CHỜ TRẢ KHÁCH': ['CHO_TRA_KHACH'], 'HOÀN TẤT': ['HOAN_TAT'] };
-export const intakeCriteria = { serial: 'Serial / sản phẩm (tìm gần đúng)', trackingCode: 'Mã theo dõi', requestId: 'ID yêu cầu tiếp nhận', orderId: 'Mã đơn hàng', customerPhone: 'Số điện thoại' };
 export const lookupFields = { serial: 'so_serial', trackingCode: 'ma_theo_doi', requestId: 'yeu_cau_tiep_nhan_id', orderId: 'ma_don_hang', customerPhone: 'sdt_nguoi_lien_he' };
+export function intakeSearch(value) {
+  const text = value.trim();
+  const phone = text.replace(/[\s().-]/g, '');
+  if (/^(?:0\d{9}|(?:\+?84)\d{9})$/.test(phone)) {
+    return { criterion: 'customerPhone', value: phone.replace(/^\+?84/, '0') };
+  }
+  if (/^#\s*[1-9]\d{0,17}$/.test(text)) {
+    return { criterion: 'requestId', value: text.replace(/^#\s*/, '') };
+  }
+  if (/^DH[\d-]+$/i.test(text)) return { criterion: 'orderId', value: text.toUpperCase() };
+  if (/^TB-/i.test(text)) return { criterion: 'trackingCode', value: text };
+  return { criterion: 'serial', value: text };
+}
 export const receiptNow = () => new Date(Date.now() + 7 * 3600000).toISOString().slice(0, 23);
 export const localTimestamp = value => value ? `${value.length === 16 ? `${value}:00` : value}+07:00` : null;
 export const displayDate = value => value ? new Date(value).toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' }) : '—';

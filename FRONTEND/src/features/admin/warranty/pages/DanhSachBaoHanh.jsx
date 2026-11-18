@@ -47,7 +47,7 @@ export default function DanhSachBaoHanh() {
   const update = (field, value) => { setFilters(current => ({ ...current, [field]: value, ...(field === 'status' ? { quick: 'TẤT CẢ' } : field === 'quick' ? { status: '' } : {}) })); setPage(1); };
   const date = displayDate;
 
-  return <div className="w-shell warranty-list">
+  return <div className="w-shell warranty-list admin-list-page">
     <header className="w-shell-hero">
       <div><div className="w-shell-title-row"><h1>DANH SÁCH PHIẾU BẢO HÀNH</h1></div><p>Tiếp nhận → Kiểm tra → Xử lý → Trả khách</p></div>
       <button type="button" className="w-shell-button w-shell-button--red" onClick={() => navigate('/admin/bao-hanh/tao-moi')}><Plus size={18} /> Tiếp nhận bảo hành mới</button>
@@ -69,7 +69,7 @@ export default function DanhSachBaoHanh() {
       </div>}
       {invalidDates && <p className="w-shell-error" role="alert">Từ ngày phải nhỏ hơn hoặc bằng đến ngày.</p>}
     </section>
-    {error && <p className="w-shell-error" role="alert">{error}</p>}<div className="w-shell-content"><section className="w-shell-list-frame">
+    {error && <p className="w-shell-error" role="alert">{error}</p>}<div className="w-shell-content admin-list-body"><section className="w-shell-list-frame admin-list-frame">
       <div className="w-list-count">{loading ? 'Đang tải…' : <><strong>{total}</strong> phiếu bảo hành</>}</div>
       <div className="w-shell-table-scroll admin-table-scroll" tabIndex={0} role="region" aria-label="Bảng danh sách"><table className="w-shell-list-table admin-data-table">
         <colgroup><col style={{ width: '12%' }} /><col style={{ width: '17%' }} /><col style={{ width: '28%' }} /><col style={{ width: '16%' }} /><col style={{ width: '17%' }} /><col style={{ width: '10%' }} /></colgroup>

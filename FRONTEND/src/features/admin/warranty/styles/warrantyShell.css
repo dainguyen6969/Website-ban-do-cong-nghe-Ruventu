@@ -704,8 +704,8 @@
   color: #111;
   font-size: 13px;
 }
-.admin-app .warranty-list .admin-table-scroll {
-  flex: none;
+.warranty-list .admin-table-scroll {
+  flex: 1 1 0;
   height: auto;
   min-height: 0;
   max-height: none;

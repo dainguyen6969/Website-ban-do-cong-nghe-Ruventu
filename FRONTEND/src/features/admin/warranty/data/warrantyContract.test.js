@@ -1,8 +1,22 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { actionBody, actions, initialActionValues } from './warrantyActions.js';
-import { intakeBody, intakeErrors, intakeReachableStep, intakeStepErrors, localTimestamp, listParams, receiptNow } from './warrantyContract.js';
+import { intakeBody, intakeErrors, intakeReachableStep, intakeSearch, intakeStepErrors, localTimestamp, listParams, receiptNow } from './warrantyContract.js';
 import { validateImageFiles } from '../../../media/api/imageValidation.js';
+
+test('intake search identifies codes and formatted phones while preserving numeric serials and product names', () => {
+  for (const [input, criterion, value] of [
+    [' SN-ABC123 ', 'serial', 'SN-ABC123'],
+    ['1234567890123', 'serial', '1234567890123'],
+    ['ASUS RTX 5070', 'serial', 'ASUS RTX 5070'],
+    ['dh20261118001', 'orderId', 'DH20261118001'],
+    ['TB-f84a-1234', 'trackingCode', 'TB-f84a-1234'],
+    ['090 123 4567', 'customerPhone', '0901234567'],
+    ['+84 (90) 123-4567', 'customerPhone', '0901234567'],
+    ['# 123', 'requestId', '123'],
+    ['', 'serial', ''],
+  ]) assert.deepEqual(intakeSearch(input), { criterion, value });
+});
 
 test('wizard requires each step and invalidates later steps when earlier information changes', () => {
   const form = { contact: '', phone: '', reason: '', condition: '', verification: '', eligibility: '', receivedAt: receiptNow(), identification: '', photos: [], accessories: [] };
