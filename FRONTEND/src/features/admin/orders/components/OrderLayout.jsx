@@ -87,13 +87,15 @@ export default function OrderLayout() {
             <Link className="order-waiting-button" to="/admin/don-hang/cho-hang-can-xu-ly">
               <HiOutlineClipboardList size={16} aria-hidden="true" /> ĐƠN CHỜ HÀNG CẦN XỬ LÝ
             </Link>
-            <button
-              className="order-create-button"
-              type="button"
-              onClick={() => navigate('/admin/don-hang/dat-hang-online')}
-            >
-              <HiOutlinePlus size={16} /> TẠO ĐƠN CHỜ HÀNG
-            </button>
+            {canCreateOrder && (
+              <button
+                className="order-create-button"
+                type="button"
+                onClick={() => navigate(createOrderPath)}
+              >
+                <HiOutlinePlus size={16} /> TẠO ĐƠN CHỜ HÀNG
+              </button>
+            )}
           </div>
         </section>
         <Outlet />
