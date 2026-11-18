@@ -157,6 +157,9 @@ public enum ErrorCode {
 
   CANNOT_EDIT_PROTECTED_ROLE(HttpStatus.CONFLICT, "Không thể chỉnh sửa vai trò hệ thống mặc định."),
 
+  ROLE_VERSION_CONFLICT(
+      HttpStatus.CONFLICT, "Vai trò đã thay đổi. Vui lòng tải lại vai trò trước khi lưu."),
+
   EMAIL_OR_PHONE_EXISTS(HttpStatus.CONFLICT, "Email hoặc SĐT đã tồn tại."),
 
   PHONE_OR_EMAIL_ALREADY_EXISTS(

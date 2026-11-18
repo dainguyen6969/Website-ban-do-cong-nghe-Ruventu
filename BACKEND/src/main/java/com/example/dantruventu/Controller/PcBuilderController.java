@@ -1,7 +1,6 @@
 package com.example.dantruventu.Controller;
 
 import com.example.dantruventu.DTO.Request.PcBuilderExportRequest;
-import com.example.dantruventu.DTO.Request.CartPcBuildRequest;
 import com.example.dantruventu.DTO.Request.PcBuilderPreviewRequest;
 import com.example.dantruventu.DTO.Response.ApiResponse;
 import com.example.dantruventu.DTO.Response.PcBuilderOptionsResponse;
@@ -103,21 +102,5 @@ public class PcBuilderController {
         .message("Lấy tùy chọn Build PC thành công")
         .data(service.getOptions())
         .build();
-  }
-
-  @PostMapping("/export")
-  public ResponseEntity<byte[]> export(@RequestBody(required = false) CartPcBuildRequest request) {
-
-    var file = exportService.export(request);
-
-    return ResponseEntity.ok()
-        .contentType(
-            MediaType.parseMediaType(
-                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
-        .header(
-            HttpHeaders.CONTENT_DISPOSITION,
-            ContentDisposition.attachment().filename(file.filename()).build().toString())
-        .contentLength(file.content().length)
-        .body(file.content());
   }
 }

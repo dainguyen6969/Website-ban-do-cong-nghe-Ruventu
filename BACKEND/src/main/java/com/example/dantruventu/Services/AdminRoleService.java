@@ -11,11 +11,9 @@ import com.example.dantruventu.Error.ErrorCode;
 import com.example.dantruventu.Repository.NguoiDungRepository;
 import com.example.dantruventu.Repository.VaiTroRepository;
 import com.example.dantruventu.Specification.RoleSpecification;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
+import java.util.*;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -32,6 +30,29 @@ public class AdminRoleService {
 
   private static final String PROTECTED_ROLE_NAME = "ADMIN";
   private static final String CUSTOMER_ROLE_NAME = "USER";
+
+  private static final List<String> CRUD = List.of("xem", "them", "sua", "xoa");
+
+  private static final Map<String, List<String>> ASSIGNABLE_ACTIONS =
+      Map.ofEntries(
+          Map.entry("tong_quat", List.of("xem")),
+          Map.entry("san_pham", CRUD),
+          Map.entry("danh_muc", CRUD),
+          Map.entry("combo_san_pham", CRUD),
+          Map.entry("kho_hang", List.of("xem", "sua")),
+          Map.entry("nhap_hang", CRUD),
+          Map.entry("kiem_hang", List.of("xem", "them", "sua")),
+          Map.entry("ban_hang_pos", List.of("xem", "them")),
+          Map.entry("don_hang", CRUD),
+          Map.entry("giao_hang", List.of("xem", "them", "sua")),
+          Map.entry("khach_tra_hang", CRUD),
+          Map.entry("khach_hang", CRUD),
+          Map.entry("nha_cung_cap", CRUD),
+          Map.entry("doi_tac_van_chuyen", CRUD),
+          Map.entry("khuyen_mai", CRUD),
+          Map.entry("bao_hanh", List.of("xem", "them", "sua")),
+          Map.entry("so_quy", List.of("xem", "them", "sua")),
+          Map.entry("bao_cao", List.of("xem")));
 
   public AdminRoleListResponse getRoles(String keyword, int page, int limit) {
 
@@ -68,14 +89,7 @@ public class AdminRoleService {
 
     List<RoleListItemResponse> items =
         content.stream()
-            .map(
-                role ->
-                    RoleListItemResponse.builder()
-                        .id(role.getId())
-                        .tenVaiTro(role.getTenVaiTro())
-                        .moTa(role.getMoTa())
-                        .soLuongNhanVien(userCountMap.getOrDefault(role.getId(), 0L))
-                        .build())
+            .map(role -> toResponse(role, userCountMap.getOrDefault(role.getId(), 0L)))
             .toList();
 
     long totalElements = rolePage.getTotalElements();
@@ -114,16 +128,14 @@ public class AdminRoleService {
       moTa = request.getMoTa().trim();
     }
 
-    VaiTro vaiTro = VaiTro.builder().tenVaiTro(trimmedName).moTa(moTa).build();
+    VaiTro vaiTro =
+        VaiTro.builder()
+            .tenVaiTro(trimmedName)
+            .moTa(moTa)
+            .quyen(validatePermissions(request.getQuyen()))
+            .build();
 
-    VaiTro savedRole = vaiTroRepository.save(vaiTro);
-
-    return RoleListItemResponse.builder()
-        .id(savedRole.getId())
-        .tenVaiTro(savedRole.getTenVaiTro())
-        .moTa(savedRole.getMoTa())
-        .soLuongNhanVien(0L)
-        .build();
+    return toResponse(vaiTroRepository.saveAndFlush(vaiTro), 0L);
   }
 
   public RoleListItemResponse getRole(Long id) {
@@ -149,12 +161,7 @@ public class AdminRoleService {
 
     long soLuongNhanVien = nguoiDungRepository.countByVaiTroId(id);
 
-    return RoleListItemResponse.builder()
-        .id(role.getId())
-        .tenVaiTro(role.getTenVaiTro())
-        .moTa(role.getMoTa())
-        .soLuongNhanVien(soLuongNhanVien)
-        .build();
+    return toResponse(role, soLuongNhanVien);
   }
 
   @Transactional
@@ -195,6 +202,15 @@ public class AdminRoleService {
       throw new AppException(ErrorCode.ROLE_NAME_EXISTS, "Tên vai trò đã tồn tại.");
     }
 
+    if (request.getPhienBan() == null) {
+      throw new AppException(ErrorCode.INVALID_DATA, "Thiếu trường phien_ban.");
+    }
+    if (request.getPhienBan().longValue() != role.getPhienBan()) {
+      throw new AppException(ErrorCode.ROLE_VERSION_CONFLICT);
+    }
+
+    role.setQuyen(validatePermissions(request.getQuyen()));
+
     role.setTenVaiTro(trimmedName);
 
     if (hasMoTa) {
@@ -205,16 +221,15 @@ public class AdminRoleService {
       role.setMoTa(newMoTa);
     }
 
-    VaiTro savedRole = vaiTroRepository.save(role);
+    VaiTro savedRole;
+    try {
+      savedRole = vaiTroRepository.saveAndFlush(role);
+    } catch (OptimisticLockingFailureException exception) {
+      throw new AppException(ErrorCode.ROLE_VERSION_CONFLICT);
+    }
 
     long soLuongNhanVien = nguoiDungRepository.countByVaiTroId(savedRole.getId());
-
-    return RoleListItemResponse.builder()
-        .id(savedRole.getId())
-        .tenVaiTro(savedRole.getTenVaiTro())
-        .moTa(savedRole.getMoTa())
-        .soLuongNhanVien(soLuongNhanVien)
-        .build();
+    return toResponse(savedRole, soLuongNhanVien);
   }
 
   @Transactional
@@ -239,6 +254,11 @@ public class AdminRoleService {
           "Vai trò không tồn tại hoặc là vai trò Khách hàng ngoài phạm vi quản lý.");
     }
 
+    if (isProtectedAdminRole(role)) {
+      throw new AppException(
+          ErrorCode.CANNOT_EDIT_PROTECTED_ROLE, "Không thể xóa vai trò hệ thống mặc định.");
+    }
+
     long soNhanVien = nguoiDungRepository.countByVaiTroId(id);
 
     if (soNhanVien > 0) {
@@ -246,7 +266,49 @@ public class AdminRoleService {
           ErrorCode.ROLE_HAS_EMPLOYEES, "Vai trò đang có nhân viên, không thể xóa.");
     }
 
-    vaiTroRepository.delete(role);
+    try {
+      vaiTroRepository.delete(role);
+      vaiTroRepository.flush();
+    } catch (OptimisticLockingFailureException exception) {
+      throw new AppException(ErrorCode.ROLE_VERSION_CONFLICT);
+    }
+  }
+
+  private RoleListItemResponse toResponse(VaiTro role, long employeeCount) {
+    return RoleListItemResponse.builder()
+        .id(role.getId())
+        .maVaiTro(role.getMaVaiTro())
+        .tenVaiTro(role.getTenVaiTro())
+        .moTa(role.getMoTa())
+        .quyen(role.getQuyen())
+        .phienBan(role.getPhienBan())
+        .soLuongNhanVien(employeeCount)
+        .build();
+  }
+
+  private Map<String, List<String>> validatePermissions(Map<String, List<String>> requested) {
+    if (requested == null) {
+      throw new AppException(ErrorCode.INVALID_DATA, "Thiếu trường quyen.");
+    }
+
+    Map<String, List<String>> normalized = new LinkedHashMap<>();
+    for (var entry : requested.entrySet()) {
+      String module = entry.getKey();
+      List<String> actions = entry.getValue();
+      List<String> allowed = module == null ? null : ASSIGNABLE_ACTIONS.get(module);
+
+      if (allowed == null
+          || actions == null
+          || actions.stream().anyMatch(action -> action == null || !allowed.contains(action))) {
+        throw new AppException(
+            ErrorCode.INVALID_DATA, "Module hoặc thao tác không được cấp: " + module);
+      }
+
+      if (!actions.isEmpty()) {
+        normalized.put(module, allowed.stream().filter(actions::contains).toList());
+      }
+    }
+    return normalized;
   }
 
   private boolean isCustomerRole(VaiTro vaiTro) {
@@ -265,9 +327,8 @@ public class AdminRoleService {
   }
 
   private boolean isProtectedAdminRole(VaiTro vaiTro) {
-    if (vaiTro == null || vaiTro.getTenVaiTro() == null) {
-      return false;
-    }
-    return vaiTro.getTenVaiTro().equalsIgnoreCase(PROTECTED_ROLE_NAME);
+    return vaiTro != null
+        && (PROTECTED_ROLE_NAME.equals(vaiTro.getMaVaiTro())
+            || PROTECTED_ROLE_NAME.equalsIgnoreCase(vaiTro.getTenVaiTro()));
   }
 }
