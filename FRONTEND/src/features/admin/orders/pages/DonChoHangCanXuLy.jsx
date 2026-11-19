@@ -20,9 +20,6 @@ import {
 import { hasAdminPermission } from '../../../../auth/roleModel';
 import { useAdminPermissions } from '../../../../shared/components/ui/PermissionGate';
 
-import { hasAdminPermission } from '../../../../auth/roleModel';
-import { useAdminPermissions } from '../../../../shared/components/ui/PermissionGate';
-
 import './DonChoHangCanXuLy.css';
 import { FormDropdown } from '../../../../shared/components/ui/FilterDropdown';
 
@@ -465,10 +462,9 @@ export default function DonChoHangCanXuLy() {
     [kind, keyword, priority, orderId, page]
   );
 
-    useEffect(() => {
+  useEffect(() => {
     const refresh = () => {
-      const operationPending =
-        writing.current || (canHandleWaiting && Boolean(attempt.current));
+      const operationPending = writing.current || (canHandleWaiting && Boolean(attempt.current));
 
       if (!document.hidden && !editing.current && !operationPending) {
         setRevision((value) => value + 1);
