@@ -23,6 +23,14 @@ import {
   cashbookQuery,
   businessChartData,
 } from '../dashboardModel';
+
+import {
+  canOpenAdminPath,
+  hasAdminPermission,
+  hasSystemAdminPermission,
+} from '../../../../auth/roleModel';
+import { useAdminPermissions } from '../../../../shared/components/ui/PermissionGate';
+
 import '../styles/tongquat.css';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Tooltip, Legend);
@@ -95,11 +103,14 @@ const inventoryTo = (data, warning) =>
 const returnTo = (status) => filteredTo(RETURN_PATH, { trang_thai_tra_hang: status });
 
 // Mỗi vùng tải độc lập; hủy request cũ khi đổi bộ lọc để không trộn hai kỳ.
-function useSection(path, refresh) {
+function useSection(path, refresh, enabled = true) {
   const [result, setResult] = useState({});
   const [attempt, setAttempt] = useState(0);
-  const key = `${path}|${refresh}|${attempt}`;
+  const key = `${path}|${refresh}|${attempt}|${enabled}`;
+
   useEffect(() => {
+    if (!enabled) return undefined;
+
     const controller = new AbortController();
     apiRequest(path, { signal: controller.signal })
       .then((data) => {
@@ -111,8 +122,12 @@ function useSection(path, refresh) {
         if (!controller.signal.aborted)
           setResult({ key, error: error.message, status: error.status });
       });
+
     return () => controller.abort();
-  }, [path, key]);
+  }, [path, key, enabled]);
+
+  if (!enabled) return { hidden: true };
+
   return {
     ...(result.key === key ? result : { loading: true }),
     retry: () => setAttempt((value) => value + 1),
@@ -148,6 +163,8 @@ function DashboardDataQuality({ data }) {
 }
 
 function Content({ resource, children }) {
+  if (resource.hidden) return null;
+
   if (resource.error) {
     return (
       <div className="tq-status tq-error" role="alert">
@@ -177,7 +194,22 @@ function Content({ resource, children }) {
   );
 }
 
+function DashboardLink({ to, children, className }) {
+  const access = useAdminPermissions()?.access;
+  const [pathname, search = ''] = to.split('?');
+
+  return canOpenAdminPath(access, pathname, search) ? (
+    <Link className={className} to={to}>
+      {children}
+    </Link>
+  ) : (
+    <span className={className}>{children}</span>
+  );
+}
+
 function Section({ title, note, to, resource, children, controls }) {
+  if (resource.hidden) return null;
+
   return (
     <section className="tq-card" aria-label={title}>
       <div className="tq-card-header">
@@ -187,9 +219,9 @@ function Section({ title, note, to, resource, children, controls }) {
         </div>
         {controls}
         {to && (
-          <Link className="tq-card-header-link" to={to}>
+          <DashboardLink className="tq-card-header-link" to={to}>
             Xem chi tiết →
-          </Link>
+          </DashboardLink>
         )}
       </div>
       <Content resource={resource}>{children}</Content>
@@ -205,9 +237,9 @@ function Stat({ label, value, currency = false, note, to }) {
     </>
   );
   return to ? (
-    <Link className="tq-sub-box tq-stat-link" to={to}>
+    <DashboardLink className="tq-sub-box tq-stat-link" to={to}>
       {content}
-    </Link>
+    </DashboardLink>
   ) : (
     <div className="tq-sub-box">{content}</div>
   );
@@ -215,26 +247,33 @@ function Stat({ label, value, currency = false, note, to }) {
 function Table({ headers, items, children, empty }) {
   return (
     <div className="tq-table-scroll">
-      <div className="admin-table-scroll admin-table-scroll--embedded" tabIndex={0} role="region" aria-label="Bảng dữ liệu liên quan"><table className="tq-table admin-data-table admin-data-table--records">
-        <thead>
-          <tr>
-            {headers.map((header) => (
-              <th key={header} scope="col">
-                {header}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {items.length ? (
-            items.map(children)
-          ) : (
+      <div
+        className="admin-table-scroll admin-table-scroll--embedded"
+        tabIndex={0}
+        role="region"
+        aria-label="Bảng dữ liệu liên quan"
+      >
+        <table className="tq-table admin-data-table admin-data-table--records">
+          <thead>
             <tr>
-              <td colSpan={headers.length}>{empty}</td>
+              {headers.map((header) => (
+                <th key={header} scope="col">
+                  {header}
+                </th>
+              ))}
             </tr>
-          )}
-        </tbody>
-      </table></div>
+          </thead>
+          <tbody>
+            {items.length ? (
+              items.map(children)
+            ) : (
+              <tr>
+                <td colSpan={headers.length}>{empty}</td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }
@@ -260,9 +299,7 @@ function CashFilters({ draft, onChange, onApply, error, busy }) {
 
     const selectedValue = draft[key] || '';
 
-    const selectedLabel =
-      entries.find(([value]) => value === selectedValue)?.[1] ||
-      'Tất cả';
+    const selectedLabel = entries.find(([value]) => value === selectedValue)?.[1] || 'Tất cả';
 
     return (
       <label key={key}>
@@ -270,36 +307,22 @@ function CashFilters({ draft, onChange, onApply, error, busy }) {
 
         {options ? (
           <FilterDropdown
-            options={[
-              'Tất cả',
-              ...entries.map(([, text]) => text),
-            ]}
+            options={['Tất cả', ...entries.map(([, text]) => text)]}
             value={selectedLabel}
             defaultValue="Tất cả"
             selectedDark
             onSelect={(selected) => {
-              const selectedOption = entries.find(
-                ([, text]) => text === selected
-              );
+              const selectedOption = entries.find(([, text]) => text === selected);
 
-              onChange(
-                key,
-                selectedOption?.[0] ?? ''
-              );
+              onChange(key, selectedOption?.[0] ?? '');
             }}
           />
         ) : (
           <input
             type="text"
-            inputMode={
-              key.endsWith('_id')
-                ? 'numeric'
-                : undefined
-            }
+            inputMode={key.endsWith('_id') ? 'numeric' : undefined}
             value={draft[key] || ''}
-            onChange={(event) =>
-              onChange(key, event.target.value)
-            }
+            onChange={(event) => onChange(key, event.target.value)}
           />
         )}
       </label>
@@ -366,6 +389,15 @@ function CashFilters({ draft, onChange, onApply, error, busy }) {
 }
 
 export default function TongQuat() {
+  const access = useAdminPermissions()?.access;
+  const canView = (module) => hasAdminPermission(access, module, 'xem');
+  const canViewReports = canView('bao_cao');
+  const canViewInventory = canView('kho_hang');
+  const canViewCashbook = canView('so_quy');
+  const canViewAfterSales = canView('bao_hanh') && canView('khach_tra_hang');
+  const canViewTasks = canViewAfterSales && canView('don_hang') && canView('giao_hang');
+  const canExportDashboard = hasSystemAdminPermission(access, 'tong_quat', 'xem');
+
   const { font, fontSize } = useFontPreference();
   const chartFont = { family: font.family, size: (12 * fontSize) / 14 };
   const initial = () => ({
@@ -393,34 +425,38 @@ export default function TongQuat() {
   };
   const channel = { kenh_ban: filters.kenh_ban };
   const summary = useSection(apiPath('summary', period), refresh);
-  const tasks = useSection(apiPath('tasks', { ...channel, limit: 5 }), refresh);
+  const tasks = useSection(apiPath('tasks', { ...channel, limit: 5 }), refresh, canViewTasks);
   const chart = useSection(
     apiPath('business-chart', { ...period, nhom_theo: filters.nhom_theo }),
-    refresh
+    refresh,
+    canViewReports
   );
   const products = useSection(
     apiPath('top-products', { ...period, xep_hang_theo: ranking, limit: 5 }),
-    refresh
+    refresh,
+    canViewReports
   );
-  const inventory = useSection(apiPath('inventory', { limit: 5 }), refresh);
+  const inventory = useSection(apiPath('inventory', { limit: 5 }), refresh, canViewInventory);
   const slow = useSection(
     apiPath('slow-moving-products', { so_ngay_khong_ban: 30, limit: 5 }),
-    refresh
+    refresh,
+    canViewInventory
   );
-  const purchases = useSection(apiPath('purchases'), refresh);
-  const customers = useSection(apiPath('customers', period), refresh);
+  const purchases = useSection(apiPath('purchases'), refresh, canView('nhap_hang'));
+  const customers = useSection(apiPath('customers', period), refresh, canView('khach_hang'));
   const cashflow = useSection(
     apiPath('cashflow', { ...period, nhom_theo: filters.nhom_theo }),
-    refresh
+    refresh,
+    canViewCashbook
   );
-  const afterSales = useSection(apiPath('after-sales', channel), refresh);
-  const promotions = useSection(apiPath('promotions', period), refresh);
+  const afterSales = useSection(apiPath('after-sales', channel), refresh, canViewAfterSales);
+  const promotions = useSection(apiPath('promotions', period), refresh, canView('khuyen_mai'));
   const cashQuery = cashbookQuery({
     ...cashFilters,
     tu_ngay: filters.tu_ngay,
     den_ngay: filters.den_ngay,
   });
-  const cash = useSection(`/api/v1/admin/cashbook/overview?${cashQuery}`, refresh);
+  const cash = useSection(`/api/v1/admin/cashbook/overview?${cashQuery}`, refresh, canViewCashbook);
   const business = summary.data?.kinh_doanh;
   function apply(event) {
     event.preventDefault();
@@ -464,6 +500,8 @@ export default function TongQuat() {
     setExportError('');
   }
   async function exportFile(kind) {
+    if (kind === 'cash' ? !canViewCashbook : !canExportDashboard) return;
+
     setExporting(kind);
     setExportError('');
     try {
@@ -534,7 +572,7 @@ export default function TongQuat() {
             </button>
             <button
               className="btn-black-excel"
-              disabled={Boolean(exporting)}
+              disabled={!canExportDashboard || Boolean(exporting)}
               onClick={() => exportFile('dashboard')}
             >
               {exporting === 'dashboard' ? 'Đang xuất…' : 'Xuất Excel Tổng quát'}
@@ -667,7 +705,7 @@ export default function TongQuat() {
                       doanh_thu_thuan: 'Doanh thu thuần',
                       so_don: 'Số đơn',
                       so_luong_ban: 'Số lượng bán',
-                      thuc_thu: 'Thực thu',
+                      ...(canViewCashbook && data.kpi.thuc_thu ? { thuc_thu: 'Thực thu' } : {}),
                     }).map(([key, label]) => {
                       const metric = data.kpi[key];
                       const rate = metric.ty_le_thay_doi;
@@ -710,24 +748,20 @@ export default function TongQuat() {
           <div className="tq-cash-kpi">
             <Content resource={cash}>
               {(data) => (
-                <Link className="tq-kpi-box tq-stat-link" to={cashTo}>
+                <DashboardLink className="tq-kpi-box tq-stat-link" to={cashTo}>
                   <div className="tq-kpi-label">Số dư quỹ cuối kỳ</div>
                   <div className="tq-kpi-value">{money(data.ton_quy)}</div>
                   <p className="tq-note">
                     Cuối ngày {date(data.bo_loc.den_ngay)} · bộ lọc Sổ quỹ · toàn cửa hàng
                   </p>
-                </Link>
+                </DashboardLink>
               )}
             </Content>
           </div>
         </div>
         {business && (
           <div className="tq-kpi-sub-grid">
-            <Stat
-              label="Doanh thu bán hàng"
-              value={business.doanh_thu_ban_hang}
-              currency
-            />
+            <Stat label="Doanh thu bán hàng" value={business.doanh_thu_ban_hang} currency />
             <Stat label="Giá trị hàng trả" value={business.gia_tri_hang_tra} currency />
             <Stat label="Tổng giảm giá" value={business.tong_giam_gia} currency />
             <Stat
@@ -735,12 +769,14 @@ export default function TongQuat() {
               value={business.gia_tri_trung_binh_don}
               currency
             />
-            <Stat
-              label="Lợi nhuận gộp ước tính"
-              value={business.loi_nhuan_gop_uoc_tinh}
-              currency
-              note="Theo giá nhập hiện tại; chưa phải giá vốn lịch sử."
-            />
+            {canViewReports && (
+              <Stat
+                label="Lợi nhuận gộp ước tính"
+                value={business.loi_nhuan_gop_uoc_tinh}
+                currency
+                note="Theo giá nhập hiện tại; chưa phải giá vốn lịch sử."
+              />
+            )}
           </div>
         )}
       </section>
@@ -775,7 +811,7 @@ export default function TongQuat() {
                 </h3>
                 {data.can_uu_tien.length ? (
                   data.can_uu_tien.map((item) => (
-                    <Link
+                    <DashboardLink
                       key={item.don_hang_id}
                       className="tq-priority-row tq-stat-link"
                       to={`${ORDER_PATH}/${item.don_hang_id}`}
@@ -785,7 +821,7 @@ export default function TongQuat() {
                       <span className="tq-priority-time">
                         {number(item.so_phut_tu_khi_tao)} phút
                       </span>
-                    </Link>
+                    </DashboardLink>
                   ))
                 ) : (
                   <p>Không có đơn chờ quá ngưỡng.</p>
@@ -1196,11 +1232,13 @@ export default function TongQuat() {
               <div className="tq-scope">
                 <h3 className="tq-sub-label">Khách giá trị cao nhất trong kỳ</h3>
                 {data.khach_gia_tri_cao_nhat ? (
-                  <Link to={`${CUSTOMER_PATH}/${data.khach_gia_tri_cao_nhat.khach_hang_id}`}>
+                  <DashboardLink
+                    to={`${CUSTOMER_PATH}/${data.khach_gia_tri_cao_nhat.khach_hang_id}`}
+                  >
                     {data.khach_gia_tri_cao_nhat.ho_ten} ·{' '}
                     {money(data.khach_gia_tri_cao_nhat.gia_tri_mua_thuan)} ·{' '}
                     {number(data.khach_gia_tri_cao_nhat.so_don)} đơn
-                  </Link>
+                  </DashboardLink>
                 ) : data.khach_co_mua_trong_ky > 0 ? (
                   'Chưa đủ căn cứ để xếp hạng giá trị mua.'
                 ) : (
@@ -1214,7 +1252,7 @@ export default function TongQuat() {
           title="Nhân viên"
           note="Hiện tại · toàn cửa hàng"
           to="/admin/nhan-vien/danh-sach"
-          resource={summary}
+          resource={canExportDashboard ? summary : { hidden: true }}
         >
           {(data) => (
             <Stat
@@ -1225,121 +1263,122 @@ export default function TongQuat() {
           )}
         </Section>
       </div>
-
-      <section className="tq-card" aria-label="Sổ quỹ & thanh toán">
-        <div className="tq-card-header">
-          <div>
-            <h2 className="tq-card-title">Sổ quỹ & thanh toán</h2>
-            <p className="tq-note">
-              Quỹ toàn cửa hàng · chỉ phiếu đã ghi nhận · ngày tiền là ngày ghi nhận
-            </p>
+      {canViewCashbook && (
+        <section className="tq-card" aria-label="Sổ quỹ & thanh toán">
+          <div className="tq-card-header">
+            <div>
+              <h2 className="tq-card-title">Sổ quỹ & thanh toán</h2>
+              <p className="tq-note">
+                Quỹ toàn cửa hàng · chỉ phiếu đã ghi nhận · ngày tiền là ngày ghi nhận
+              </p>
+            </div>
+            <DashboardLink className="tq-card-header-link" to={cashTo}>
+              Xem Sổ quỹ →
+            </DashboardLink>
           </div>
-          <Link className="tq-card-header-link" to={cashTo}>
-            Xem Sổ quỹ →
-          </Link>
-        </div>
-        <CashFilters
-          draft={cashDraft}
-          onChange={(key, value) => setCashDraft({ ...cashDraft, [key]: value })}
-          onApply={applyCash}
-          error={cashError}
-          busy={cash.loading}
-        />
-        <Content resource={cash}>
-          {(data) => (
-            <>
-              <div className="tq-kpi-sub-grid">
-                <Stat label="Số dư đầu kỳ" value={data.so_du_dau_ky} currency />
-                <Stat label="Tổng thu trong kỳ" value={data.tong_thu} currency />
-                <Stat label="Tổng chi trong kỳ" value={data.tong_chi} currency />
-                <Stat label="Số dư cuối kỳ" value={data.ton_quy} currency />
-              </div>
-              <p className="tq-note tq-scope">
-                {date(data.bo_loc.tu_ngay)} – {date(data.bo_loc.den_ngay)} · Đầu kỳ + thu − chi =
-                cuối kỳ. Thu không đồng nghĩa doanh thu; COD chưa nộp không vào quỹ.
-              </p>
-              <div className="tq-scope">
-                <button
-                  className="btn-black-outline"
-                  disabled={Boolean(exporting)}
-                  onClick={() => exportFile('cash')}
-                >
-                  {exporting === 'cash' ? 'Đang xuất…' : 'Xuất Excel Sổ quỹ theo bộ lọc riêng'}
-                </button>
-              </div>
-            </>
-          )}
-        </Content>
-        <div className="tq-card-header">
-          <h3 className="tq-card-title">Thanh toán toàn cửa hàng</h3>
-        </div>
-        <Content resource={cashflow}>
-          {(data) => (
-            <>
-              <p className="tq-note tq-scope">
-                Phần này dùng khoảng ngày chung; bộ lọc riêng Sổ quỹ không áp dụng. Tiền đơn chưa
-                thu/COD là hiện tại, theo kênh đang chọn.
-              </p>
-              <div className="tq-kpi-sub-grid">
-                <Stat label="Số dư quỹ hiện tại" value={data.so_du_quy_hien_tai} currency />
-                <Stat
-                  label="Chênh lệch thu − chi trong kỳ"
-                  value={data.trong_ky.chenh_lech}
-                  currency
-                />
-                {data.thu_theo_phuong_thuc.map((item) => (
+          <CashFilters
+            draft={cashDraft}
+            onChange={(key, value) => setCashDraft({ ...cashDraft, [key]: value })}
+            onApply={applyCash}
+            error={cashError}
+            busy={cash.loading}
+          />
+          <Content resource={cash}>
+            {(data) => (
+              <>
+                <div className="tq-kpi-sub-grid">
+                  <Stat label="Số dư đầu kỳ" value={data.so_du_dau_ky} currency />
+                  <Stat label="Tổng thu trong kỳ" value={data.tong_thu} currency />
+                  <Stat label="Tổng chi trong kỳ" value={data.tong_chi} currency />
+                  <Stat label="Số dư cuối kỳ" value={data.ton_quy} currency />
+                </div>
+                <p className="tq-note tq-scope">
+                  {date(data.bo_loc.tu_ngay)} – {date(data.bo_loc.den_ngay)} · Đầu kỳ + thu − chi =
+                  cuối kỳ. Thu không đồng nghĩa doanh thu; COD chưa nộp không vào quỹ.
+                </p>
+                <div className="tq-scope">
+                  <button
+                    className="btn-black-outline"
+                    disabled={Boolean(exporting)}
+                    onClick={() => exportFile('cash')}
+                  >
+                    {exporting === 'cash' ? 'Đang xuất…' : 'Xuất Excel Sổ quỹ theo bộ lọc riêng'}
+                  </button>
+                </div>
+              </>
+            )}
+          </Content>
+          <div className="tq-card-header">
+            <h3 className="tq-card-title">Thanh toán toàn cửa hàng</h3>
+          </div>
+          <Content resource={cashflow}>
+            {(data) => (
+              <>
+                <p className="tq-note tq-scope">
+                  Phần này dùng khoảng ngày chung; bộ lọc riêng Sổ quỹ không áp dụng. Tiền đơn chưa
+                  thu/COD là hiện tại, theo kênh đang chọn.
+                </p>
+                <div className="tq-kpi-sub-grid">
+                  <Stat label="Số dư quỹ hiện tại" value={data.so_du_quy_hien_tai} currency />
                   <Stat
-                    key={item.phuong_thuc}
-                    label={`Thu trong kỳ · ${STATUS[item.phuong_thuc] || 'Phương thức khác'}`}
-                    value={item.so_tien}
+                    label="Chênh lệch thu − chi trong kỳ"
+                    value={data.trong_ky.chenh_lech}
                     currency
                   />
-                ))}
-                <Stat
-                  label="Giá trị đơn chưa thanh toán"
-                  value={data.don_hang_hien_tai.gia_tri_chua_thanh_toan}
-                  currency
-                  note="Hiện tại · chưa phải tiền đã vào quỹ"
-                />
-                <Stat
-                  label="COD đang vận chuyển"
-                  value={data.don_hang_hien_tai.cod_dang_van_chuyen}
-                  currency
-                  note="Hiện tại · chưa phải tiền đã vào quỹ"
-                />
-              </div>
+                  {data.thu_theo_phuong_thuc.map((item) => (
+                    <Stat
+                      key={item.phuong_thuc}
+                      label={`Thu trong kỳ · ${STATUS[item.phuong_thuc] || 'Phương thức khác'}`}
+                      value={item.so_tien}
+                      currency
+                    />
+                  ))}
+                  <Stat
+                    label="Giá trị đơn chưa thanh toán"
+                    value={data.don_hang_hien_tai.gia_tri_chua_thanh_toan}
+                    currency
+                    note="Hiện tại · chưa phải tiền đã vào quỹ"
+                  />
+                  <Stat
+                    label="COD đang vận chuyển"
+                    value={data.don_hang_hien_tai.cod_dang_van_chuyen}
+                    currency
+                    note="Hiện tại · chưa phải tiền đã vào quỹ"
+                  />
+                </div>
 
-              <DashboardCashBreakdown
-                data={data.trong_ky.phan_tich_bao_hanh_tra_hang}
-                from={filters.tu_ngay}
-                to={filters.den_ngay}
-              />
+                <DashboardCashBreakdown
+                  data={data.trong_ky.phan_tich_bao_hanh_tra_hang}
+                  from={filters.tu_ngay}
+                  to={filters.den_ngay}
+                />
 
-              <details className="tq-scope">
-                <summary>Dòng tiền trong kỳ</summary>
-                <Table
-                  headers={['Từ ngày', 'Đến ngày', 'Tổng thu', 'Tổng chi']}
-                  items={data.bieu_do}
-                  empty="Không có dữ liệu dòng tiền."
-                >
-                  {(item) => (
-                    <tr key={item.tu_ngay}>
-                      <td>{date(item.tu_ngay)}</td>
-                      <td>{date(item.den_ngay)}</td>
-                      <td>{money(item.tong_thu)}</td>
-                      <td>{money(item.tong_chi)}</td>
-                    </tr>
-                  )}
-                </Table>
-              </details>
-            </>
-          )}
-        </Content>
-        <p className="tq-note tq-scope">
-          Excel Tổng quát dùng bộ lọc thời gian/kênh và số dư quỹ hiện tại. Để xuất bốn số quỹ và bộ
-          lọc riêng, chọn Xuất Excel Sổ quỹ.
-        </p>
-      </section>
+                <details className="tq-scope">
+                  <summary>Dòng tiền trong kỳ</summary>
+                  <Table
+                    headers={['Từ ngày', 'Đến ngày', 'Tổng thu', 'Tổng chi']}
+                    items={data.bieu_do}
+                    empty="Không có dữ liệu dòng tiền."
+                  >
+                    {(item) => (
+                      <tr key={item.tu_ngay}>
+                        <td>{date(item.tu_ngay)}</td>
+                        <td>{date(item.den_ngay)}</td>
+                        <td>{money(item.tong_thu)}</td>
+                        <td>{money(item.tong_chi)}</td>
+                      </tr>
+                    )}
+                  </Table>
+                </details>
+              </>
+            )}
+          </Content>
+          <p className="tq-note tq-scope">
+            Excel Tổng quát dùng bộ lọc thời gian/kênh và số dư quỹ hiện tại. Để xuất bốn số quỹ và
+            bộ lọc riêng, chọn Xuất Excel Sổ quỹ.
+          </p>
+        </section>
+      )}
       <div className="tq-2col-equal">
         <Section title="Bảo hành & trả hàng" note={currentNote} resource={afterSales}>
           {(data) => <DashboardAfterSales data={data} />}
@@ -1357,18 +1396,18 @@ export default function TongQuat() {
       <nav className="tq-quick-access" aria-label="Truy cập nhanh">
         <h2 className="tq-qa-title">Truy cập nhanh</h2>
         <div className="tq-qa-links">
-          <Link className="tq-qa-link" to="/admin/don-hang/dat-hang-online">
+          <DashboardLink className="tq-qa-link" to="/admin/don-hang/dat-hang-online">
             Tạo đơn chờ hàng →
-          </Link>
-          <Link className="tq-qa-link" to={`${PURCHASE_PATH}/tao-moi`}>
+          </DashboardLink>
+          <DashboardLink className="tq-qa-link" to={`${PURCHASE_PATH}/tao-moi`}>
             Tạo đơn nhập →
-          </Link>
-          <Link className="tq-qa-link" to="/admin/so-quy-tien-mat/tao-phieu-thu">
+          </DashboardLink>
+          <DashboardLink className="tq-qa-link" to="/admin/so-quy-tien-mat/tao-phieu-thu">
             Tạo phiếu thu →
-          </Link>
-          <Link className="tq-qa-link" to="/admin/so-quy-tien-mat/tao-phieu-chi">
+          </DashboardLink>
+          <DashboardLink className="tq-qa-link" to="/admin/so-quy-tien-mat/tao-phieu-chi">
             Tạo phiếu chi →
-          </Link>
+          </DashboardLink>
         </div>
       </nav>
     </main>

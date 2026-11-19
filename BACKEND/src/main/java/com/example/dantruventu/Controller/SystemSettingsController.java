@@ -34,7 +34,7 @@ public class SystemSettingsController {
   }
 
   @PutMapping("/admin/system-settings/maintenance")
-  @PreAuthorize("hasRole('ADMIN')")
+  @PreAuthorize("@adminRoleService.isSystemAdmin(principal)")
   public ApiResponse<Status> maintenance(@Valid @RequestBody MaintenanceRequest request) {
     settings.setMaintenance(request.enabled());
     var typography = settings.getTypography();
@@ -48,7 +48,7 @@ public class SystemSettingsController {
   }
 
   @PutMapping("/users/me/typography")
-  @PreAuthorize("hasRole('ADMIN')")
+  @PreAuthorize("@adminRoleService.isSystemAdmin(principal)")
   public ApiResponse<SystemSettingsService.Typography> typography(
       Authentication authentication, @RequestBody SystemSettingsService.Typography request) {
     return response(settings.saveTypography((NguoiDung) authentication.getPrincipal(), request));

@@ -25,8 +25,19 @@ class SystemSettingsServiceTest {
         .id(5L)
         .matKhau("hash")
         .trangThai(TrangThaiCoBanEnum.HOAT_DONG)
-        .vaiTro(VaiTro.builder().id(1L).tenVaiTro(role).build())
+        .vaiTro(VaiTro.builder().id(1L).maVaiTro(role).tenVaiTro(role).build())
         .build();
+  }
+
+  @Test
+  void adminIdentityUsesStableRoleCode() {
+    var admin = user("ADMIN");
+    admin.getVaiTro().setTenVaiTro("Quản trị viên");
+    assertTrue(SystemSettingsService.isAdmin(admin));
+
+    var employee = user("STAFF");
+    employee.getVaiTro().setTenVaiTro("ADMIN");
+    assertFalse(SystemSettingsService.isAdmin(employee));
   }
 
   private void maintenance() {

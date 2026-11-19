@@ -26,7 +26,8 @@ public class AdminBrandController {
   @PreAuthorize(
       "@adminRoleService.hasModuleAction(principal, 'danh_muc', 'xem')"
           + " or @adminRoleService.hasModuleAction(principal, 'san_pham', 'xem')"
-          + " or @adminRoleService.hasModuleAction(principal, 'combo_san_pham', 'xem')")
+          + " or @adminRoleService.hasModuleAction(principal, 'combo_san_pham', 'xem')"
+          + " or @adminRoleService.hasModuleAction(principal, 'khuyen_mai', 'them')")
   public ApiResponse<AdminBrandListResponse> getBrands(
       @RequestParam(required = false) String keyword,
       @RequestParam(name = "trang_thai", required = false) Short trangThai,

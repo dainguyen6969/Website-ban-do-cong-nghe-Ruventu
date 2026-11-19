@@ -46,7 +46,7 @@ public class SystemSettingsService {
     return user != null
         && user.getTrangThai() == TrangThaiCoBanEnum.HOAT_DONG
         && user.getVaiTro() != null
-        && "ADMIN".equals(user.getVaiTro().getTenVaiTro());
+        && "ADMIN".equals(user.getVaiTro().getMaVaiTro());
   }
 
   public static AppException maintenanceError() {

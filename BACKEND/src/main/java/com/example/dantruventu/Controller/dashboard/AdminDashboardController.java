@@ -2,9 +2,11 @@ package com.example.dantruventu.Controller.dashboard;
 
 import com.example.dantruventu.DTO.Response.ApiResponse;
 import com.example.dantruventu.DTO.Response.dashboard.AdminDashboardResponse;
+import com.example.dantruventu.Entity.NguoiDung;
 import com.example.dantruventu.Error.AppException;
 import com.example.dantruventu.Error.ErrorCode;
 import com.example.dantruventu.Services.AdminDashboardService;
+import com.example.dantruventu.Services.AdminRoleService;
 import com.example.dantruventu.Services.dashboard.DashboardReadService;
 import jakarta.servlet.http.HttpServletRequest;
 import java.nio.charset.StandardCharsets;
@@ -13,6 +15,7 @@ import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.*;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -22,11 +25,12 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/api/v1/admin/dashboard")
 @RequiredArgsConstructor
-@PreAuthorize("hasRole('ADMIN')")
+@PreAuthorize("@adminRoleService.hasModuleAction(principal, 'tong_quat', 'xem')")
 public class AdminDashboardController {
 
   private final DashboardReadService reads;
   private final AdminDashboardService legacy;
+  private final AdminRoleService adminRoleService;
 
   @GetMapping({
     "/summary",
@@ -40,11 +44,17 @@ public class AdminDashboardController {
     "/promotions"
   })
   public ApiResponse<Map<String, Object>> read(
-      HttpServletRequest request, @RequestParam MultiValueMap<String, String> query) {
+      HttpServletRequest request,
+      @RequestParam MultiValueMap<String, String> query,
+      @AuthenticationPrincipal NguoiDung actor) {
 
     String path = request.getServletPath();
 
     String endpoint = path.substring(path.lastIndexOf('/') + 1);
+
+    if (!canReadPanel(actor, endpoint)) {
+      throw new AppException(ErrorCode.FORBIDDEN);
+    }
 
     String message =
         switch (endpoint) {
@@ -60,10 +70,29 @@ public class AdminDashboardController {
           default -> throw new AppException(ErrorCode.NOT_FOUND);
         };
 
-    return ok(message, reads.read(endpoint, parameters(query)));
+    var data = reads.read(endpoint, parameters(query));
+
+    if ("summary".equals(endpoint)) {
+      if (!canView(actor, "so_quy")) {
+        removeField(data, "kpi", "thuc_thu");
+        removeField(data, "hien_tai", "so_du_quy");
+      }
+      if (!canView(actor, "bao_cao")) {
+        removeField(data, "kinh_doanh", "gia_von_uoc_tinh");
+        removeField(data, "kinh_doanh", "loi_nhuan_gop_uoc_tinh");
+      }
+      if (!adminRoleService.isSystemAdmin(actor)) {
+        removeField(data, "hien_tai", "nhan_vien_dang_hoat_dong");
+      }
+    }
+
+    return ok(message, data);
   }
 
   @GetMapping("/slow-moving-products")
+  @PreAuthorize(
+      "@adminRoleService.hasModuleAction(principal, 'tong_quat', 'xem')"
+          + " and @adminRoleService.hasModuleAction(principal, 'kho_hang', 'xem')")
   public ApiResponse<AdminDashboardResponse.SlowMovingProducts> getSlowMovingProducts(
       @RequestParam(name = "so_ngay_khong_ban", defaultValue = "30") String days,
       @RequestParam(defaultValue = "5") String limit) {
@@ -72,12 +101,16 @@ public class AdminDashboardController {
   }
 
   @GetMapping("/purchases")
+  @PreAuthorize(
+      "@adminRoleService.hasModuleAction(principal, 'tong_quat', 'xem')"
+          + " and @adminRoleService.hasModuleAction(principal, 'nhap_hang', 'xem')")
   public ApiResponse<AdminDashboardResponse.Purchases> getPurchases() {
 
     return ok("Lấy tổng quát nhập hàng thành công", legacy.getPurchases());
   }
 
   @GetMapping("/export")
+  @PreAuthorize("@adminRoleService.isSystemAdmin(principal)")
   public ResponseEntity<byte[]> export(@RequestParam MultiValueMap<String, String> query) {
 
     var result = reads.export(parameters(query));
@@ -94,6 +127,34 @@ public class AdminDashboardController {
                 .toString())
         .contentLength(result.content().length)
         .body(result.content());
+  }
+
+  private boolean canView(NguoiDung actor, String module) {
+    return adminRoleService.hasModuleAction(actor, module, "xem");
+  }
+
+  private boolean canReadPanel(NguoiDung actor, String endpoint) {
+    return switch (endpoint) {
+      case "summary" -> true;
+      case "business-chart", "top-products" -> canView(actor, "bao_cao");
+      case "tasks" ->
+          canView(actor, "don_hang")
+              && canView(actor, "giao_hang")
+              && canView(actor, "khach_tra_hang")
+              && canView(actor, "bao_hanh");
+      case "inventory" -> canView(actor, "kho_hang");
+      case "customers" -> canView(actor, "khach_hang");
+      case "cashflow" -> canView(actor, "so_quy");
+      case "after-sales" -> canView(actor, "bao_hanh") && canView(actor, "khach_tra_hang");
+      case "promotions" -> canView(actor, "khuyen_mai");
+      default -> false;
+    };
+  }
+
+  private void removeField(Map<String, Object> data, String section, String field) {
+    if (data.get(section) instanceof Map<?, ?> values) {
+      values.remove(field);
+    }
   }
 
   private Map<String, String> parameters(MultiValueMap<String, String> query) {
