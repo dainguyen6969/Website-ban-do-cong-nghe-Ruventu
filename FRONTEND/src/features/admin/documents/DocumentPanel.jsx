@@ -166,7 +166,14 @@ function TraceView({ data }) {
   );
 }
 
-export default function DocumentPanel({ mode, id, locked = false, onEditingChange }) {
+export default function DocumentPanel({
+  mode,
+  id,
+  locked: parentLocked = false,
+  canWrite = true,
+  onEditingChange,
+}) {
+  const locked = parentLocked || !canWrite;
   const [options, setOptions] = useState(null);
   const [data, setData] = useState(null);
   const [readError, setReadError] = useState('');
@@ -222,7 +229,7 @@ export default function DocumentPanel({ mode, id, locked = false, onEditingChang
     };
   }, [load]);
 
-  const editing = Boolean(dialog || busy || attempt.current);
+  const editing = busy || (canWrite && Boolean(dialog || attempt.current));
 
   useEffect(() => {
     onEditingChange?.(editing);
@@ -265,7 +272,7 @@ export default function DocumentPanel({ mode, id, locked = false, onEditingChang
   };
 
   const execute = async (scope, body) => {
-    if (writing.current) return;
+        if (locked || writing.current) return;
 
     writing.current = true;
     setBusy(true);
@@ -773,7 +780,7 @@ export default function DocumentPanel({ mode, id, locked = false, onEditingChang
       {attempt.current && !dialog && (
         <div className="rv-doc-warning">
           <p>Chưa xác định được kết quả yêu cầu vừa gửi.</p>
-          <button type="button" disabled={busy} onClick={retry}>
+          <button type="button" disabled={busy || locked} onClick={retry}>
             THỬ LẠI YÊU CẦU CŨ
           </button>
         </div>
@@ -808,9 +815,9 @@ export default function DocumentPanel({ mode, id, locked = false, onEditingChang
                 ? 'LƯU LIÊN KẾT'
                 : 'LƯU ĐỐI CHIẾU'
           }
-          disabled={dialog.kind === 'trace' || (!attempt.current && !form.confirmed)}
+          disabled={locked || dialog.kind === 'trace' || (!attempt.current && !form.confirmed)}
           close={() => {
-            if (!busy && !attempt.current) {
+            if (!busy && (!canWrite || !attempt.current)) {
               setDialog(null);
               setOperationError('');
             }

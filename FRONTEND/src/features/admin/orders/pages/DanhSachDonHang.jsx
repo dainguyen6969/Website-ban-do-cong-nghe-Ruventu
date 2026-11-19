@@ -10,9 +10,6 @@ import { subscribeOrderUpdates } from '../api/orderRealtime';
 import { hasAdminPermission } from '../../../../auth/roleModel';
 import { useAdminPermissions } from '../../../../shared/components/ui/PermissionGate';
 
-import { hasAdminPermission } from '../../../../auth/roleModel';
-import { useAdminPermissions } from '../../../../shared/components/ui/PermissionGate';
-
 import './DanhSachDonHang.css';
 
 const PAGE_SIZE = 10;
@@ -70,9 +67,6 @@ const selectedLabel = (field, value) =>
 
 export default function DanhSachDonHang() {
   const navigate = useNavigate();
-
-  const access = useAdminPermissions()?.access;
-  const canCreateWarranty = hasAdminPermission(access, 'bao_hanh', 'them');
 
   const access = useAdminPermissions()?.access;
   const canViewShipment = hasAdminPermission(access, 'giao_hang', 'xem');

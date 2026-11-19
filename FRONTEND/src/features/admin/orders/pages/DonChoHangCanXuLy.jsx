@@ -465,9 +465,12 @@ export default function DonChoHangCanXuLy() {
     [kind, keyword, priority, orderId, page]
   );
 
-  useEffect(() => {
+    useEffect(() => {
     const refresh = () => {
-      if (!document.hidden && !editing.current && !attempt.current) {
+      const operationPending =
+        writing.current || (canHandleWaiting && Boolean(attempt.current));
+
+      if (!document.hidden && !editing.current && !operationPending) {
         setRevision((value) => value + 1);
       }
     };
@@ -481,7 +484,7 @@ export default function DonChoHangCanXuLy() {
       window.removeEventListener('focus', refresh);
       unsubscribe();
     };
-  }, []);
+  }, [canHandleWaiting]);
 
   useEffect(() => {
     const controller = new AbortController();

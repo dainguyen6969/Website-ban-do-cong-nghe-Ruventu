@@ -1597,15 +1597,11 @@ function OrderDetailView({ orderId }) {
                 </div>
               ))}
 
-            <OrderRefundPanel
+           <OrderRefundPanel
               order={order}
               data={screen.hoan_tien}
-              busy={
-                !canOperateOrder ||
-                state.busy ||
-                Boolean(orderAttempt.current) ||
-                Boolean(cashAttempt.current)
-              }
+              canWrite={canOperateOrder}
+              busy={state.busy || Boolean(orderAttempt.current) || Boolean(cashAttempt.current)}
               perform={run}
               onEditingChange={onRefundEditing}
             />
@@ -1615,8 +1611,8 @@ function OrderDetailView({ orderId }) {
             key={`order-${order.id}`}
             mode="order"
             id={order.id}
+            canWrite={canOperateOrder}
             locked={
-              !canOperateOrder ||
               state.busy ||
               Boolean(dialog) ||
               isCancelOpen ||
