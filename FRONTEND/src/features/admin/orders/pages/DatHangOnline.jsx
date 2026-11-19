@@ -1149,7 +1149,7 @@ function Section({ n, title, children, disabled = false }) {
       <header>
         <h2>
           <i aria-hidden="true" />
-          {n}. {title}
+          {title}
         </h2>
       </header>
 

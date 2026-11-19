@@ -6,6 +6,7 @@ import '../typography/buttonTypography.css';
 import StorefrontApp from '../storefront/App';
 import useMockAuth from '../auth/useMockAuth';
 import { canAccessAdmin } from '../auth/accountModel';
+import LoadingSpinner from '../shared/components/ui/LoadingSpinner';
 
 const AdminApp = lazy(() => import('./AdminApp'));
 
@@ -20,6 +21,6 @@ export default function App() {
   }
 
   return isAdminRoute
-    ? <Suspense fallback={<p role="status">Đang tải trang quản trị…</p>}><AdminApp /></Suspense>
+    ? <Suspense fallback={<LoadingSpinner text="Đang tải trang quản trị..." fullscreen size="lg" />}><AdminApp /></Suspense>
     : <StorefrontApp />;
 }

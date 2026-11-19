@@ -3,9 +3,10 @@ import React, { useState, useEffect, useCallback } from 'react';
 
 import { CashSourceInfo } from '../components/CashbookEnhancements';
 import { formatDateTimeVN } from '../../../../shared/services/mutationUtils';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import { disbursementService } from '../../../../shared/services/disbursementService';
 import DocumentPanel from '../../documents/DocumentPanel';
+import LoadingSpinner from '../../../../shared/components/ui/LoadingSpinner';
 import './ChiTietPhieu.css';
 
 export default function ChiTietPhieuChi() {
@@ -126,8 +127,8 @@ export default function ChiTietPhieuChi() {
 
   if (isLoading) {
     return (
-      <div className="ctp-page" style={{ padding: 40, textAlign: 'center' }}>
-        Đang tải dữ liệu phiếu chi...
+      <div className="ctp-page">
+        <LoadingSpinner text="Đang tải dữ liệu phiếu chi..." fullPage />
       </div>
     );
   }
@@ -154,13 +155,19 @@ export default function ChiTietPhieuChi() {
       {/* Top Breadcrumb Header Bar */}
       <div className="ctp-top-bar">
         <div className="ctp-breadcrumb">
-          ADMIN <span>&rsaquo;</span> PHIẾU CHI <span>&rsaquo;</span> CHI TIẾT PHIẾU CHI
+          <Link to="/admin">ADMIN</Link> <span>&rsaquo;</span>{' '}
+          <Link to="/admin/so-quy-tien-mat/phieu-chi">PHIẾU CHI</Link> <span>&rsaquo;</span>{' '}
+          <span>CHI TIẾT PHIẾU CHI</span>
         </div>
       </div>
 
       {/* Sub-Header Row */}
       <div className="ctp-header">
-        <div className="ctp-sub-breadcrumb">SỔ QUỸ TIỀN MẶT / PHIẾU CHI / CHI TIẾT PHIẾU CHI</div>
+        <div className="ctp-sub-breadcrumb">
+          <Link to="/admin/so-quy-tien-mat/so-quy">SỔ QUỸ TIỀN MẶT</Link> /{' '}
+          <Link to="/admin/so-quy-tien-mat/phieu-chi">PHIẾU CHI</Link> /{' '}
+          <span>CHI TIẾT PHIẾU CHI</span>
+        </div>
         <div className="ctp-title-row">
           <div className="ctp-title-left">
             <span className="ctp-badge-box">PHIẾU CHI</span>

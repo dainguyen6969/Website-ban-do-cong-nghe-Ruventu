@@ -1,9 +1,10 @@
 // Admin product screen: QuanLyPhienBan.
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { HiOutlineDownload, HiOutlineSearch } from 'react-icons/hi';
 import TablePagination from '../../../../../shared/components/ui/TablePagination';
 import FilterDropdown from '../../../../../shared/components/ui/FilterDropdown';
+import LoadingSpinner from '../../../../../shared/components/ui/LoadingSpinner';
 import { getAllVersions } from '../api/versionApi';
 import './QuanLyPhienBan.css';
 
@@ -137,9 +138,9 @@ export default function QuanLyPhienBan() {
     <main className="version-page admin-list-page" role="main">
       <div className="admin-list-content admin-list-body">
         <nav className="admin-list-breadcrumb" aria-label="Breadcrumb nội dung">
-          <span>Sản phẩm</span>
+          <Link to="/kho-hang/quan-ly-phien-ban">Sản phẩm</Link>
           <span aria-hidden="true">›</span>
-          <span>Quản lý kho</span>
+          <Link to="/kho-hang/quan-ly-phien-ban">Quản lý kho</Link>
           <span aria-hidden="true">›</span>
           <strong>Toàn bộ phiên bản</strong>
         </nav>
@@ -278,8 +279,8 @@ export default function QuanLyPhienBan() {
               <tbody>
                 {loading ? (
                   <tr>
-                    <td className="version-empty" colSpan="9">
-                      Đang tải dữ liệu...
+                    <td className="version-empty" colSpan="9" style={{ padding: 24, textAlign: 'center' }}>
+                      <LoadingSpinner text="Đang tải danh sách phiên bản..." size="md" />
                     </td>
                   </tr>
                 ) : error ? (

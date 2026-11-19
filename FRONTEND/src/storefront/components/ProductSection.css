@@ -209,11 +209,15 @@
 .home-page .product-card .product-title {
   flex: 1;
   min-width: 0;
-  height: 37.5px;
+  min-height: calc(2 * 1.35em);
+  height: auto;
   margin: 0;
   padding: 0;
   color: #000;
-  font: 700 15px/1.25 var(--project-font-family, var(--font-family-base));
+  font-weight: 700;
+  font-size: 15px;
+  line-height: 1.35;
+  font-family: var(--project-font-family, var(--font-family-base));
   text-transform: none;
   letter-spacing: normal;
   display: -webkit-box;

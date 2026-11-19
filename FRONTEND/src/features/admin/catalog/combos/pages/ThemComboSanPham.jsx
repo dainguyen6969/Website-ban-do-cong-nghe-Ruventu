@@ -1,6 +1,6 @@
 // Existing combo form; its custom image layout uses the shared Cloudinary media API.
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import {
   HiCheck,
   HiOutlinePlus,
@@ -399,11 +399,11 @@ export default function ThemComboSanPham() {
       <div className="combo-page-heading">
         <div>
           <div className="combo-secondary-breadcrumb">
-            <span>Sản phẩm</span>
+            <Link to="/kho-hang/combo-san-pham">Sản phẩm</Link>
             <b>›</b>
-            <span>Quản lý kho</span>
+            <Link to="/kho-hang/combo-san-pham">Quản lý kho</Link>
             <b>›</b>
-            <span>Combo sản phẩm</span>
+            <Link to="/kho-hang/combo-san-pham">Combo sản phẩm</Link>
             <b>›</b>
             <strong>{editId ? "Chỉnh sửa" : "Thêm mới"}</strong>
           </div>

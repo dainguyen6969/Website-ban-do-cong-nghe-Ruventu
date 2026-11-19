@@ -1,6 +1,7 @@
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { HiOutlineArrowLeft } from 'react-icons/hi';
 import DetailTablePagination from '../../../../shared/components/ui/DetailTablePagination';
+import LoadingSpinner from '../../../../shared/components/ui/LoadingSpinner';
 import useDetailTablePagination from '../../../../hooks/useDetailTablePagination';
 import {
   approveOrder,
@@ -378,6 +379,9 @@ function OrderDetailView({ orderId }) {
   }, [dialog, isCancelOpen, state.busy]);
 
   const products = useDetailTablePagination(order?.san_pham || []);
+  const waitingPagination = useDetailTablePagination(order?.giu_hang_cho_hang || []);
+  const receiptsPagination = useDetailTablePagination(order?.doi_soat_thanh_toan?.phieu_thu || []);
+  const counterDevicesPagination = useDetailTablePagination(order?.thiet_bi_hien_hanh || []);
 
   const run = async (work) => {
     if (actionBusy.current) return;
@@ -431,12 +435,9 @@ function OrderDetailView({ orderId }) {
     return () => document.removeEventListener('keydown', close);
   }, [isCancelOpen]);
 
-  if (state.loading)
-    return (
-      <section className="admin-order-detail admin-order-not-found">
-        <h1>ĐANG TẢI ĐƠN HÀNG...</h1>
-      </section>
-    );
+  if (state.loading) {
+    return <LoadingSpinner text="Đang tải thông tin đơn hàng..." fullPage />;
+  }
   if (!order)
     return (
       <section className="admin-order-detail admin-order-not-found">
@@ -1010,9 +1011,9 @@ function OrderDetailView({ orderId }) {
       <header className="order-detail-hero">
         <div>
           <nav aria-label="Breadcrumb nội dung">
-            <span>ĐƠN HÀNG</span>
+            <Link to="/admin/don-hang/danh-sach-don-hang">ĐƠN HÀNG</Link>
             <span>›</span>
-            <span>DANH SÁCH ĐƠN HÀNG</span>
+            <Link to="/admin/don-hang/danh-sach-don-hang">DANH SÁCH ĐƠN HÀNG</Link>
             <span>›</span>
             <strong>{order.ma_don_hang}</strong>
           </nav>
@@ -1357,7 +1358,7 @@ function OrderDetailView({ orderId }) {
                     </tr>
                   </thead>
 
-                  {products.visibleItems.map((item) => {
+                  {(order.san_pham || []).map((item) => {
                     const isPc = item.loai_san_pham === 'BO_PC';
 
                     const productName = item.ten_san_pham || `Phiên bản #${item.phien_ban_id}`;
@@ -1420,13 +1421,6 @@ function OrderDetailView({ orderId }) {
                 </table>
               </div>
             </div>
-
-            <DetailTablePagination
-              totalItems={(order.san_pham || []).length}
-              currentPage={products.currentPage}
-              onPageChange={products.onPageChange}
-              idPrefix="order-products"
-            />
           </Panel>
 
           <Panel title="THANH TOÁN">
@@ -1515,7 +1509,7 @@ function OrderDetailView({ orderId }) {
                         </tr>
                       </thead>
                       <tbody>
-                        {order.doi_soat_thanh_toan.phieu_thu.map((receipt) => (
+                        {(order?.doi_soat_thanh_toan?.phieu_thu || []).map((receipt) => (
                           <tr key={receipt.id}>
                             <td>
                               <Link
@@ -1826,7 +1820,7 @@ function OrderDetailView({ orderId }) {
                                 <td>
                                   {device.so_serial ||
                                     device.dau_hieu_nhan_dang ||
-                                    'Không quản lý serial'}
+                                    '-'}
                                 </td>
 
                                 <td>{count}</td>
@@ -2115,6 +2109,107 @@ function OrderDetailView({ orderId }) {
   );
 }
 
+function ExchangeHistoryCard({ root, identity }) {
+  const pagination = useDetailTablePagination(root?.chuoi_thay_the || []);
+
+  return (
+    <div className="order-exchange-root-card">
+      <div className="order-subsection-bar">
+        <div className="order-subsection-title">
+          <span>LỊCH SỬ ĐỔI THIẾT BỊ — {root.so_serial || root.ma_theo_doi}</span>
+        </div>
+      </div>
+
+      <div
+        className="order-record-scroll"
+        tabIndex={0}
+        role="region"
+        aria-label="Bảng lịch sử đổi thiết bị"
+      >
+        <table className="order-devices-table order-record-table">
+          <thead>
+            <tr>
+              <th style={{ width: '48px' }}>LẦN</th>
+              <th>THIẾT BỊ ĐƯỢC NHẬN LẠI</th>
+              <th>THIẾT BỊ THAY THẾ</th>
+              <th>PHIẾU XỬ LÝ</th>
+              <th>BÀN GIAO / NHÂN VIÊN</th>
+              <th>LÝ DO</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            {(root?.chuoi_thay_the || []).map((edge, index) => {
+              const isCurrent =
+                root.thiet_bi_hien_hanh_id != null &&
+                String(edge.thiet_bi_moi_id) === String(root.thiet_bi_hien_hanh_id);
+
+              const isLast = index === (root.chuoi_thay_the || []).length - 1;
+
+              const status = isCurrent
+                ? 'Thiết bị hiện hành'
+                : isLast && root.thiet_bi_cuoi_chuoi_da_tra === true
+                  ? 'Đã nhận trả'
+                  : isLast
+                    ? 'Cần xác minh quyền hiện hành'
+                    : 'Đã thay thế ở lần tiếp theo';
+
+              return (
+                <tr key={edge.phieu_bao_hanh_id}>
+                  <td>
+                    <span className="order-round-number">{edge.lan_doi}</span>
+                  </td>
+
+                  <td>{identity(edge.thiet_bi_cu)}</td>
+
+                  <td>
+                    {identity(edge.thiet_bi_moi)}
+                    <span
+                      className={`order-exchange-status-pill ${
+                        isCurrent ? 'order-exchange-status-pill--current' : ''
+                      }`}
+                    >
+                      {status}
+                    </span>
+                  </td>
+
+                  <td>
+                    <Link
+                      to={'/admin/bao-hanh/chi-tiet/' + edge.phieu_bao_hanh_id}
+                      className="order-warranty-link"
+                    >
+                      {edge.ma_phieu_bao_hanh || '#' + edge.phieu_bao_hanh_id}
+                    </Link>
+                  </td>
+
+                  <td>
+                    <div className="order-exchange-handover">
+                      <span className="order-exchange-time">
+                        {edge.ngay_ban_giao
+                          ? dateTime(edge.ngay_ban_giao)
+                          : 'Chưa ghi nhận thời điểm'}
+                      </span>
+                      <small className="order-exchange-staff">
+                        {edge.nguoi_thuc_hien || 'Chưa ghi nhận nhân viên'}
+                      </small>
+                    </div>
+                  </td>
+
+                  <td>
+                    <span className="order-exchange-reason">
+                      {edge.ly_do || 'Chưa ghi nhận lý do'}
+                    </span>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
 function DeviceExchangeHistory({ order }) {
   const roots = (Array.isArray(order.thiet_bi_da_ban) ? order.thiet_bi_da_ban : []).filter(
     (device) => Array.isArray(device.chuoi_thay_the) && device.chuoi_thay_the.length
@@ -2138,100 +2233,7 @@ function DeviceExchangeHistory({ order }) {
       )}
 
       {roots.map((root) => (
-        <div key={root.thiet_bi_id} className="order-exchange-root-card">
-          <div className="order-subsection-bar">
-            <div className="order-subsection-title">
-              <span>LỊCH SỬ ĐỔI THIẾT BỊ — {root.so_serial || root.ma_theo_doi}</span>
-            </div>
-          </div>
-
-          <div
-            className="order-record-scroll"
-            tabIndex={0}
-            role="region"
-            aria-label="Bảng lịch sử đổi thiết bị"
-          >
-            <table className="order-devices-table order-record-table">
-              <thead>
-                <tr>
-                  <th style={{ width: '48px' }}>LẦN</th>
-                  <th>THIẾT BỊ ĐƯỢC NHẬN LẠI</th>
-                  <th>THIẾT BỊ THAY THẾ</th>
-                  <th>PHIẾU XỬ LÝ</th>
-                  <th>BÀN GIAO / NHÂN VIÊN</th>
-                  <th>LÝ DO</th>
-                </tr>
-              </thead>
-
-              <tbody>
-                {root.chuoi_thay_the.map((edge, index) => {
-                  const isCurrent =
-                    root.thiet_bi_hien_hanh_id != null &&
-                    String(edge.thiet_bi_moi_id) === String(root.thiet_bi_hien_hanh_id);
-
-                  const isLast = index === root.chuoi_thay_the.length - 1;
-
-                  const status = isCurrent
-                    ? 'Thiết bị hiện hành'
-                    : isLast && root.thiet_bi_cuoi_chuoi_da_tra === true
-                      ? 'Đã nhận trả'
-                      : isLast
-                        ? 'Cần xác minh quyền hiện hành'
-                        : 'Đã thay thế ở lần tiếp theo';
-
-                  return (
-                    <tr key={edge.phieu_bao_hanh_id}>
-                      <td>
-                        <span className="order-round-number">{edge.lan_doi}</span>
-                      </td>
-
-                      <td>{identity(edge.thiet_bi_cu)}</td>
-
-                      <td>
-                        {identity(edge.thiet_bi_moi)}
-                        <span
-                          className={`order-exchange-status-pill ${
-                            isCurrent ? 'order-exchange-status-pill--current' : ''
-                          }`}
-                        >
-                          {status}
-                        </span>
-                      </td>
-
-                      <td>
-                        <Link
-                          to={'/admin/bao-hanh/chi-tiet/' + edge.phieu_bao_hanh_id}
-                          className="order-warranty-link"
-                        >
-                          {edge.ma_phieu_bao_hanh || '#' + edge.phieu_bao_hanh_id}
-                        </Link>
-                      </td>
-
-                      <td>
-                        <div className="order-exchange-handover">
-                          <span className="order-exchange-time">
-                            {edge.ngay_ban_giao
-                              ? dateTime(edge.ngay_ban_giao)
-                              : 'Chưa ghi nhận thời điểm'}
-                          </span>
-                          <small className="order-exchange-staff">
-                            {edge.nguoi_thuc_hien || 'Chưa ghi nhận nhân viên'}
-                          </small>
-                        </div>
-                      </td>
-
-                      <td>
-                        <span className="order-exchange-reason">
-                          {edge.ly_do || 'Chưa ghi nhận lý do'}
-                        </span>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        </div>
+        <ExchangeHistoryCard key={root.thiet_bi_id} root={root} identity={identity} />
       ))}
     </div>
   );

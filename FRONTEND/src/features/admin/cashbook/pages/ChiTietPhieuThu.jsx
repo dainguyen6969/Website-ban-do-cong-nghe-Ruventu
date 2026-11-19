@@ -2,9 +2,10 @@ import React, { useState, useEffect, useCallback } from 'react';
 
 import { CashSourceInfo } from '../components/CashbookEnhancements';
 import { formatDateTimeVN } from '../../../../shared/services/mutationUtils';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import { receiptService } from '../../../../shared/services/receiptService';
 import DocumentPanel from '../../documents/DocumentPanel';
+import LoadingSpinner from '../../../../shared/components/ui/LoadingSpinner';
 import './ChiTietPhieu.css';
 
 export default function ChiTietPhieuThu() {
@@ -105,8 +106,8 @@ export default function ChiTietPhieuThu() {
 
   if (isLoading) {
     return (
-      <div className="ctp-page" style={{ padding: 40, textAlign: 'center' }}>
-        Đang tải dữ liệu...
+      <div className="ctp-page">
+        <LoadingSpinner text="Đang tải dữ liệu phiếu thu..." fullPage />
       </div>
     );
   }
@@ -124,13 +125,19 @@ export default function ChiTietPhieuThu() {
       {/* Top Breadcrumb Header Bar */}
       <div className="ctp-top-bar">
         <div className="ctp-breadcrumb">
-          ADMIN <span>&rsaquo;</span> PHIẾU THU <span>&rsaquo;</span> CHI TIẾT PHIẾU THU
+          <Link to="/admin">ADMIN</Link> <span>&rsaquo;</span>{' '}
+          <Link to="/admin/so-quy-tien-mat/phieu-thu">PHIẾU THU</Link> <span>&rsaquo;</span>{' '}
+          <span>CHI TIẾT PHIẾU THU</span>
         </div>
       </div>
 
       {/* Sub-Header Row */}
       <div className="ctp-header">
-        <div className="ctp-sub-breadcrumb">SỔ QUỸ TIỀN MẶT / PHIẾU THU / CHI TIẾT PHIẾU THU</div>
+        <div className="ctp-sub-breadcrumb">
+          <Link to="/admin/so-quy-tien-mat/so-quy">SỔ QUỸ TIỀN MẶT</Link> /{' '}
+          <Link to="/admin/so-quy-tien-mat/phieu-thu">PHIẾU THU</Link> /{' '}
+          <span>CHI TIẾT PHIẾU THU</span>
+        </div>
         <div className="ctp-title-row">
           <div className="ctp-title-left">
             <span className="ctp-badge-box">PHIẾU THU</span>

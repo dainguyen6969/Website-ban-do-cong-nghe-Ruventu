@@ -81,8 +81,8 @@
 .product-card .product-title {
   flex: 1;
   min-width: 0;
-  height: 2.8em;
-  max-height: 2.8em;
+  min-height: calc(2 * 1.35em);
+  height: auto;
   margin: 0;
   display: -webkit-box;
   -webkit-box-orient: vertical;
@@ -91,7 +91,7 @@
   text-overflow: ellipsis;
   font-size: 15px;
   font-weight: 700;
-  line-height: 1.4;
+  line-height: 1.35;
   color: var(--text-dark);
   padding: 0;
   text-transform: none;

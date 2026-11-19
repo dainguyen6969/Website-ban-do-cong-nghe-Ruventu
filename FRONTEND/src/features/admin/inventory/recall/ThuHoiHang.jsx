@@ -2,6 +2,8 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { HiOutlinePlus, HiOutlineSearch } from 'react-icons/hi';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import TablePagination from '../../../../shared/components/ui/TablePagination';
+import DetailTablePagination from '../../../../shared/components/ui/DetailTablePagination';
+import useDetailTablePagination from '../../../../hooks/useDetailTablePagination';
 import FilterDropdown, { FormDropdown } from '../../../../shared/components/ui/FilterDropdown';
 import OrderModal from '../../orders/components/OrderModal';
 import {
@@ -283,6 +285,7 @@ export default function ThuHoiHang() {
   const [page, setPage] = useState(1);
   const [list, setList] = useState({ items: [], totalItems: 0 });
   const [detail, setDetail] = useState(null);
+  const recallDevicesPagination = useDetailTablePagination(detail?.items || []);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
@@ -742,7 +745,7 @@ export default function ThuHoiHang() {
           </header>
         ) : (
           <nav className="admin-list-breadcrumb" aria-label="Breadcrumb nội dung">
-            <span>Kho hàng</span>
+            <Link to="/kho-hang/ton-kho">Kho hàng</Link>
             <span aria-hidden="true">›</span>
             <strong aria-current="page">Thu hồi hàng</strong>
           </nav>
@@ -983,7 +986,7 @@ export default function ThuHoiHang() {
                       </tr>
                     </thead>
                     <tbody>
-                      {detail.items.map((item) => (
+                      {recallDevicesPagination.visibleItems.map((item) => (
                         <tr key={item.id}>
                           <td>
                             <strong>{item.ten_phien_ban}</strong>
@@ -1046,6 +1049,14 @@ export default function ThuHoiHang() {
                     </tbody>
                   </table>
                 </div>
+                <DetailTablePagination
+                  totalItems={(detail?.items || []).length}
+                  currentPage={recallDevicesPagination.currentPage}
+                  onPageChange={recallDevicesPagination.onPageChange}
+                  pageSize={recallDevicesPagination.pageSize}
+                  onPageSizeChange={recallDevicesPagination.onPageSizeChange}
+                  idPrefix="recall-devices"
+                />
               </section>
 
               <section

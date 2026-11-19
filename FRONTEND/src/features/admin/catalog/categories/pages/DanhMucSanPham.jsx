@@ -2102,6 +2102,8 @@ export function ChiTietDanhMuc() {
             onPageChange={
               childPagination.onPageChange
             }
+            pageSize={childPagination.pageSize}
+            onPageSizeChange={childPagination.onPageSizeChange}
             idPrefix="category-children"
           />
         </section>
@@ -2164,6 +2166,8 @@ export function ChiTietDanhMuc() {
               onPageChange={
                 productPagination.onPageChange
               }
+              pageSize={productPagination.pageSize}
+              onPageSizeChange={productPagination.onPageSizeChange}
               idPrefix="category-products"
             />
           </>
