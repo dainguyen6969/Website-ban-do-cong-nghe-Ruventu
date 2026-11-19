@@ -25,7 +25,7 @@ export const fieldLabels = {
   noi_dung_xu_ly: 'Nội dung xử lý',
   ly_do: 'Lý do',
   can_cu: 'Căn cứ',
-  don_vi_ket_luan: 'Đơn vị kết luận',
+  don_vi_ket_luan: 'Kết luận',
   dieu_kien_bao_hanh: 'Điều kiện miễn phí',
   ben_chiu_phi: 'Bên chịu phí',
   hang_muc: 'Hạng mục',
