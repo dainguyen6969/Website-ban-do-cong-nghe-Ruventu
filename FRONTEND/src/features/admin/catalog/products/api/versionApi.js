@@ -11,43 +11,6 @@ const TRANSACTION_CODES = Object.fromEntries(
   Object.entries(TRANSACTION_LABELS).map(([code, label]) => [label, code])
 );
 
-let token = '';
-let loginPromise = null;
-
-function storeToken(value) {
-  token = value;
-  if (value) localStorage.setItem(ACCESS_TOKEN_KEY, value);
-  else localStorage.removeItem(ACCESS_TOKEN_KEY);
-}
-
-async function parseResponse(response) {
-  const text = await response.text();
-  if (!text) return null;
-  try {
-    return JSON.parse(text);
-  } catch {
-    throw new Error('Backend trả về dữ liệu không hợp lệ.');
-  }
-}
-
-async function login() {
-  const username = import.meta.env.VITE_RUVENTU_ADMIN_USERNAME;
-  const password = import.meta.env.VITE_RUVENTU_ADMIN_PASSWORD;
-  if (!username || !password) throw new Error('Chưa có phiên đăng nhập backend.');
-  const response = await fetch(`${API_BASE_URL}/api/v1/auth/login`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    credentials: 'include',
-    body: JSON.stringify({ tai_khoan: username, mat_khau: password, ghi_nho_dang_nhap: false }),
-  });
-  const payload = await parseResponse(response);
-  const accessToken = payload?.data?.access_token;
-  if (!response.ok || !accessToken)
-    throw new Error(payload?.message || 'Không thể đăng nhập backend.');
-  storeToken(accessToken);
-  return accessToken;
-}
-
 export { request as adminRequest };
 
 async function allPages(path, params, signal) {

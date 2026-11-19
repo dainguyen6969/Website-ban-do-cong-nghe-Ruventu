@@ -760,7 +760,11 @@ export function ChiTietThuongHieu() {
         <div className="brand-detail-actions">
           <StatusBadge status={detail.status} />
           <div>
-            <button type="button" onClick={() => setModal({ type: 'form', id: detail.id })}>
+            <button
+              type="button"
+              disabled={!canEditBrand}
+              onClick={() => setModal({ type: 'form', id: detail.id })}
+            >
               CHỈNH SỬA
             </button>
             {detail.status === 'active' ? (

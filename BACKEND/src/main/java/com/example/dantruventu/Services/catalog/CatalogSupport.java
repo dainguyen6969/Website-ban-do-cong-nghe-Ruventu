@@ -14,6 +14,8 @@ import java.text.Normalizer;
 import java.util.*;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
+import org.jsoup.Jsoup;
+import org.jsoup.safety.Safelist;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -575,6 +577,10 @@ public class CatalogSupport {
 
     entityManager.flush();
     return attributes(List.of(variant.getId())).getOrDefault(variant.getId(), List.of());
+  }
+
+  public String cleanDescription(String html) {
+    return html == null ? null : Jsoup.clean(html, Safelist.relaxed());
   }
 
   public void validateImages(List<ProductImageRequest> images) {

@@ -1,24 +1,26 @@
-import { Fragment, useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
-import {
-  HiOutlinePlus,
-  HiOutlineSave,
-  HiOutlineSearch,
-  HiOutlineX,
-} from "react-icons/hi";
+import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
+import { HiOutlinePlus, HiOutlineSave, HiOutlineSearch, HiOutlineX } from 'react-icons/hi';
 
-import FormCard from "../../../../../shared/components/ui/FormCard";
-import { FormDropdown } from "../../../../../shared/components/ui/FilterDropdown";
-import ImageUploader from "../../../../../shared/components/ui/ImageUploader";
-import { apiRequest } from "../../../../../auth/backendAuth";
-import { getAllCategories } from "../../categories/api/categoryApi";
-import { getAllBrands } from "../../brands/api/brandApi";
-import { createProduct, updateProduct } from "../api/productApi";
-import { defaultVariantName } from "./variantNames";
-import "./ThemSanPham.css";
+import FormCard from '../../../../../shared/components/ui/FormCard';
+import { FormDropdown } from '../../../../../shared/components/ui/FilterDropdown';
+import ImageUploader from '../../../../../shared/components/ui/ImageUploader';
 
-const PRODUCTS = "/api/v1/admin/products";
-const COMBOS = "/api/v1/admin/combos";
+import { uploadProductImage } from '../../../../media/api/imageUploadApi';
+
+import { apiRequest } from '../../../../../auth/backendAuth';
+import { getAllCategories } from '../../categories/api/categoryApi';
+import { getAllBrands } from '../../brands/api/brandApi';
+import { createProduct, updateProduct } from '../api/productApi';
+import { defaultVariantName } from './variantNames';
+
+import { hasAdminPermission } from '../../../../../auth/roleModel';
+import { useAdminPermissions } from '../../../../../shared/components/ui/PermissionGate';
+
+import './ThemSanPham.css';
+
+const PRODUCTS = '/api/v1/admin/products';
+const COMBOS = '/api/v1/admin/combos';
 const MAX_VARIANTS = 100;
 const MAX_QUANTITY = 2147483647;
 
@@ -30,14 +32,14 @@ function localId() {
 }
 
 function normalizeText(value) {
-  return String(value ?? "")
-    .normalize("NFKC")
+  return String(value ?? '')
+    .normalize('NFKC')
     .trim()
-    .replace(/\s+/gu, " ");
+    .replace(/\s+/gu, ' ');
 }
 
 function comparisonKey(value) {
-  return normalizeText(value).toLocaleLowerCase("vi");
+  return normalizeText(value).toLocaleLowerCase('vi');
 }
 
 function uniqueValues(values) {
@@ -55,33 +57,30 @@ function uniqueValues(values) {
 }
 
 function rowValues(row) {
-  return uniqueValues([
-    ...row.values,
-    ...String(row.draft || "").split(/[,;\n]+/u),
-  ]);
+  return uniqueValues([...row.values, ...String(row.draft || '').split(/[,;\n]+/u)]);
 }
 
 function newAttributeRow() {
   return {
     key: localId(),
-    name: "",
+    name: '',
     values: [],
-    draft: "",
+    draft: '',
   };
 }
 
-function newManualVariant(label = "") {
+function newManualVariant(label = '') {
   return {
     key: localId(),
     id: null,
     label,
     autoName: true,
-    sku: "",
-    retail: "",
-    cost: "",
-    weight: "",
+    sku: '',
+    retail: '',
+    cost: '',
+    weight: '',
     status: 1,
-    serialMode: "",
+    serialMode: '',
     serialModeLocked: false,
     attributes: [],
   };
@@ -101,7 +100,7 @@ function makeVariantPlan(attributeRows, manualRows) {
 
   for (const group of groups) {
     if (!group.name || group.name.length > 100) {
-      problems.push("Tên thuộc tính phải có từ 1 đến 100 ký tự.");
+      problems.push('Tên thuộc tính phải có từ 1 đến 100 ký tự.');
     }
 
     if (!group.values.length) {
@@ -123,22 +122,14 @@ function makeVariantPlan(attributeRows, manualRows) {
     }
   }
 
-  const completeGroups = groups.filter(
-    (group) => group.name && group.values.length,
-  );
-  const count = completeGroups.reduce(
-    (total, group) => total * group.values.length,
-    1,
-  );
+  const completeGroups = groups.filter((group) => group.name && group.values.length);
+  const count = completeGroups.reduce((total, group) => total * group.values.length, 1);
 
   if (count > MAX_VARIANTS) {
     return {
       rows: [],
       groups: completeGroups,
-      problems: [
-        ...problems,
-        `Chỉ tạo tối đa ${MAX_VARIANTS} phiên bản một lần.`,
-      ],
+      problems: [...problems, `Chỉ tạo tối đa ${MAX_VARIANTS} phiên bản một lần.`],
       count,
     };
   }
@@ -162,20 +153,20 @@ function makeVariantPlan(attributeRows, manualRows) {
             ten_thuoc_tinh: group.name,
             gia_tri: value,
           },
-        ]),
+        ])
       ),
-    [[]],
+    [[]]
   );
 
   return {
     rows: combinations.map((items) => ({
       key: `generated:${JSON.stringify(
-        items.map((item) => [item.groupKey, comparisonKey(item.gia_tri)]),
+        items.map((item) => [item.groupKey, comparisonKey(item.gia_tri)])
       )}`,
       id: null,
       generated: true,
       autoName: true,
-      label: items.map((item) => item.gia_tri).join(" - "),
+      label: items.map((item) => item.gia_tri).join(' - '),
       attributes: items.map(({ ten_thuoc_tinh, gia_tri }) => ({
         ten_thuoc_tinh,
         gia_tri,
@@ -192,12 +183,10 @@ function cleanAttributes(items) {
 
   return items.map((item, index) => {
     const name = normalizeText(item.ten_thuoc_tinh);
-    const value = String(item.gia_tri ?? "").trim();
+    const value = String(item.gia_tri ?? '').trim();
 
     if (!name || name.length > 100 || !value || value.length > 255) {
-      throw new Error(
-        `Thuộc tính ${index + 1}: tên dài 1–100 và giá trị dài 1–255 ký tự.`,
-      );
+      throw new Error(`Thuộc tính ${index + 1}: tên dài 1–100 và giá trị dài 1–255 ký tự.`);
     }
 
     const key = comparisonKey(name);
@@ -216,42 +205,38 @@ function cleanAttributes(items) {
 }
 
 function moneyValue(value, label, positive = false) {
-  const text = String(value ?? "").trim();
+  const text = String(value ?? '').trim();
 
   if (!/^\d{1,13}(?:\.\d{1,2})?$/u.test(text)) {
-    throw new Error(
-      `${label} phải là số tiền hợp lệ, tối đa hai chữ số thập phân.`,
-    );
+    throw new Error(`${label} phải là số tiền hợp lệ, tối đa hai chữ số thập phân.`);
   }
 
   const number = Number(text);
 
   if (!Number.isFinite(number) || number < 0 || (positive && number <= 0)) {
-    throw new Error(
-      `${label} ${positive ? "phải lớn hơn 0" : "không được âm"}.`,
-    );
+    throw new Error(`${label} ${positive ? 'phải lớn hơn 0' : 'không được âm'}.`);
   }
 
   return number;
 }
 
 function showValue(value) {
-  return typeof value === "string" ? value : JSON.stringify(value);
+  return typeof value === 'string' ? value : JSON.stringify(value);
 }
 
 function warrantyText(months) {
-  if (months == null) return "Chưa có thông tin";
-  return Number(months) === 0 ? "Không bảo hành" : `${months} tháng`;
+  if (months == null) return 'Chưa có thông tin';
+  return Number(months) === 0 ? 'Không bảo hành' : `${months} tháng`;
 }
 
 function normalizePart(item) {
   return {
     id: Number(item.phien_ban_id ?? item.phien_ban_thanh_phan_id),
-    name: item.ten_san_pham || "",
-    variant: item.ten_phien_ban || "",
-    code: item.ma_san_pham || "",
-    barcode: item.ma_vach || "",
-    image: item.anh_chinh || "",
+    name: item.ten_san_pham || '',
+    variant: item.ten_phien_ban || '',
+    code: item.ma_san_pham || '',
+    barcode: item.ma_vach || '',
+    image: item.anh_chinh || '',
     stock: item.ton_co_the_ban,
     warrantyMonths: item.thoi_han_bao_hanh_thang,
     qty: String(item.so_luong ?? 1),
@@ -262,10 +247,7 @@ function VariantAttributes({ items, change }) {
   return (
     <div className="product-editor__variant-attributes">
       {items.map((item, index) => (
-        <div
-          className="product-editor__attribute-pair"
-          key={item.key ?? item.id ?? index}
-        >
+        <div className="product-editor__attribute-pair" key={item.key ?? item.id ?? index}>
           <input
             aria-label={`Tên thuộc tính ${index + 1}`}
             placeholder="Tên thuộc tính"
@@ -274,10 +256,8 @@ function VariantAttributes({ items, change }) {
             onChange={(event) =>
               change(
                 items.map((entry, itemIndex) =>
-                  itemIndex === index
-                    ? { ...entry, ten_thuoc_tinh: event.target.value }
-                    : entry,
-                ),
+                  itemIndex === index ? { ...entry, ten_thuoc_tinh: event.target.value } : entry
+                )
               )
             }
           />
@@ -290,10 +270,8 @@ function VariantAttributes({ items, change }) {
             onChange={(event) =>
               change(
                 items.map((entry, itemIndex) =>
-                  itemIndex === index
-                    ? { ...entry, gia_tri: event.target.value }
-                    : entry,
-                ),
+                  itemIndex === index ? { ...entry, gia_tri: event.target.value } : entry
+                )
               )
             }
           />
@@ -302,9 +280,7 @@ function VariantAttributes({ items, change }) {
             type="button"
             className="product-editor__icon-button"
             aria-label="Xóa thuộc tính"
-            onClick={() =>
-              change(items.filter((_, itemIndex) => itemIndex !== index))
-            }
+            onClick={() => change(items.filter((_, itemIndex) => itemIndex !== index))}
           >
             <HiOutlineX />
           </button>
@@ -319,8 +295,8 @@ function VariantAttributes({ items, change }) {
             ...items,
             {
               key: localId(),
-              ten_thuoc_tinh: "",
-              gia_tri: "",
+              ten_thuoc_tinh: '',
+              gia_tri: '',
             },
           ])
         }
@@ -336,6 +312,13 @@ export default function ThemSanPham() {
   const navigate = useNavigate();
   const isEditing = Boolean(productId);
 
+  const access = useAdminPermissions()?.access;
+  const action = isEditing ? 'sua' : 'them';
+  const canWriteProduct = hasAdminPermission(access, 'san_pham', action);
+  const canWriteCombo =
+    hasAdminPermission(access, 'combo_san_pham', 'xem') &&
+    hasAdminPermission(access, 'combo_san_pham', action);
+
   const busyRef = useRef(false);
   const descriptionRef = useRef(null);
   const specNameRef = useRef(null);
@@ -343,65 +326,70 @@ export default function ThemSanPham() {
   const createdVariantIds = useRef(new Map());
 
   const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState("");
+  const [loadError, setLoadError] = useState('');
   const [reload, setReload] = useState(0);
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState("");
+  const [error, setError] = useState('');
 
   const [categories, setCategories] = useState([]);
   const [brands, setBrands] = useState([]);
   const [images, setImages] = useState([]);
-  const [initialDescription, setInitialDescription] = useState("");
+  const [initialDescription, setInitialDescription] = useState('');
 
   const [form, setForm] = useState({
-    name: "",
-    code: "",
-    type: "DON",
-    categoryId: "",
-    brandId: "",
+    name: '',
+    code: '',
+    type: 'DON',
+    categoryId: '',
+    brandId: '',
     status: 1,
-    vat: "10",
-    warrantyMonths: "",
+    vat: '10',
+    warrantyMonths: '',
   });
 
   const [specs, setSpecs] = useState([]);
-  const [specDraft, setSpecDraft] = useState({ name: "", value: "" });
-  const [specError, setSpecError] = useState("");
+  const [specDraft, setSpecDraft] = useState({ name: '', value: '' });
+  const [specError, setSpecError] = useState('');
 
   const [attributeRows, setAttributeRows] = useState(() => [newAttributeRow()]);
   const [manualRows, setManualRows] = useState(() => [newManualVariant()]);
   const [variantDrafts, setVariantDrafts] = useState({});
-  const [attributeEditor, setAttributeEditor] = useState("");
+  const [attributeEditor, setAttributeEditor] = useState('');
 
   const [parts, setParts] = useState([]);
-  const [comboPrice, setComboPrice] = useState("");
+  const [comboPrice, setComboPrice] = useState('');
   const [originalCombo, setOriginalCombo] = useState(null);
   const [configurationLocked, setConfigurationLocked] = useState(false);
-  const [comboSearch, setComboSearch] = useState("");
+  const [comboSearch, setComboSearch] = useState('');
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchResults, setSearchResults] = useState([]);
   const [searchLoading, setSearchLoading] = useState(false);
-  const [searchError, setSearchError] = useState("");
+  const [searchError, setSearchError] = useState('');
 
-  const isCombo = form.type === "BO_PC";
+  const isCombo = form.type === 'BO_PC';
+
+  const canSaveProduct = canWriteProduct && (!isCombo || canWriteCombo);
 
   useEffect(() => {
     const controller = new AbortController();
     let current = true;
 
     setLoading(true);
-    setLoadError("");
+    setLoadError('');
     createdVariantIds.current.clear();
 
     const productTask = isEditing
       ? (async () => {
-          const product = await apiRequest(
-            `${PRODUCTS}/${encodeURIComponent(productId)}`,
-            { signal: controller.signal },
-          );
+          const product = await apiRequest(`${PRODUCTS}/${encodeURIComponent(productId)}`, {
+            signal: controller.signal,
+          });
+
+          if (product.loai_san_pham === 'BO_PC' && !canWriteCombo) {
+            throw new Error('Không có quyền sửa combo.');
+          }
 
           const combo =
-            product.loai_san_pham === "BO_PC"
+            product.loai_san_pham === 'BO_PC'
               ? await apiRequest(`${COMBOS}/${encodeURIComponent(productId)}`, {
                   signal: controller.signal,
                 })
@@ -419,26 +407,26 @@ export default function ThemSanPham() {
         setBrands(brandItems);
         setVariantDrafts({});
         setAttributeRows([newAttributeRow()]);
-        setSpecDraft({ name: "", value: "" });
-        setSpecError("");
+        setSpecDraft({ name: '', value: '' });
+        setSpecError('');
 
         if (!data) {
           setForm({
-            name: "",
-            code: "",
-            type: "DON",
-            categoryId: "",
-            brandId: "",
+            name: '',
+            code: '',
+            type: 'DON',
+            categoryId: '',
+            brandId: '',
             status: 1,
-            vat: "10",
-            warrantyMonths: "",
+            vat: '10',
+            warrantyMonths: '',
           });
           setManualRows([newManualVariant()]);
           setSpecs([]);
           setImages([]);
-          setInitialDescription("");
+          setInitialDescription('');
           setParts([]);
-          setComboPrice("");
+          setComboPrice('');
           setOriginalCombo(null);
           setConfigurationLocked(false);
           return;
@@ -448,34 +436,32 @@ export default function ThemSanPham() {
         const sourceVariants = product.danh_sach_phien_ban || [];
 
         setForm({
-          name: product.ten_san_pham || "",
-          code: product.ma_san_pham || "",
+          name: product.ten_san_pham || '',
+          code: product.ma_san_pham || '',
           type: product.loai_san_pham,
-          categoryId: String(product.danh_muc?.id ?? combo?.danh_muc_id ?? ""),
-          brandId: String(
-            product.thuong_hieu?.id ?? combo?.thuong_hieu_id ?? "",
-          ),
+          categoryId: String(product.danh_muc?.id ?? combo?.danh_muc_id ?? ''),
+          brandId: String(product.thuong_hieu?.id ?? combo?.thuong_hieu_id ?? ''),
           status: Number(product.trang_thai),
           vat: String(product.thue_vat ?? 0),
           warrantyMonths:
-            product.thoi_han_bao_hanh_thang == null
-              ? ""
-              : String(product.thoi_han_bao_hanh_thang),
+            product.thoi_han_bao_hanh_thang == null ? '' : String(product.thoi_han_bao_hanh_thang),
         });
 
-        setInitialDescription(product.mo_ta || "");
+        setInitialDescription(product.mo_ta || '');
 
         setImages(
           (product.anh_san_pham || []).map((item) => ({
             id: item.id,
             url: item.duong_dan_anh,
-          })),
+          }))
         );
 
         setSpecs(
-          Object.entries(product.thong_so_ky_thuat || {}).map(
-            ([name, value]) => ({ key: localId(), name, value }),
-          ),
+          Object.entries(product.thong_so_ky_thuat || {}).map(([name, value]) => ({
+            key: localId(),
+            name,
+            value,
+          }))
         );
 
         setManualRows(
@@ -483,42 +469,35 @@ export default function ThemSanPham() {
             const attributes = item.thuoc_tinh_phien_ban || [];
             const automaticName =
               sourceVariants.length === 1 &&
-              (item.ten_phien_ban === product.ten_san_pham ||
-                item.ten_phien_ban === "Mặc định");
+              (item.ten_phien_ban === product.ten_san_pham || item.ten_phien_ban === 'Mặc định');
 
             return {
               key: `saved-${item.id}`,
               id: Number(item.id),
-              label: attributes
-                .map((attribute) => attribute.gia_tri)
-                .join(" - "),
+              label: attributes.map((attribute) => attribute.gia_tri).join(' - '),
               name: automaticName ? undefined : item.ten_phien_ban,
               autoName: automaticName,
-              sku: item.ma_vach || "",
-              retail: String(item.gia_ban_le ?? ""),
-              cost: String(item.gia_nhap ?? ""),
-              weight: String(item.khoi_luong ?? ""),
+              sku: item.ma_vach || '',
+              retail: String(item.gia_ban_le ?? ''),
+              cost: String(item.gia_nhap ?? ''),
+              weight: String(item.khoi_luong ?? ''),
               status: Number(item.trang_thai),
               serialMode:
-                typeof item.co_quan_ly_serial === "boolean"
-                  ? String(item.co_quan_ly_serial)
-                  : "",
+                typeof item.co_quan_ly_serial === 'boolean' ? String(item.co_quan_ly_serial) : '',
               serialModeLocked: Boolean(item.che_do_serial_bi_khoa),
               attributes,
             };
-          }),
+          })
         );
 
         setOriginalCombo(combo);
         setConfigurationLocked(Boolean(combo?.cau_hinh_bi_khoa));
         setParts((combo?.thanh_phan || []).map(normalizePart));
-        setComboPrice(
-          String(combo?.gia_ban_le ?? sourceVariants[0]?.gia_ban_le ?? ""),
-        );
+        setComboPrice(String(combo?.gia_ban_le ?? sourceVariants[0]?.gia_ban_le ?? ''));
       })
       .catch((cause) => {
-        if (current && cause.name !== "AbortError") {
-          setLoadError(cause.message || "Không thể tải dữ liệu biểu mẫu.");
+        if (current && cause.name !== 'AbortError') {
+          setLoadError(cause.message || 'Không thể tải dữ liệu biểu mẫu.');
         }
       })
       .finally(() => {
@@ -529,7 +508,7 @@ export default function ThemSanPham() {
       current = false;
       controller.abort();
     };
-  }, [isEditing, productId, reload]);
+  }, [isEditing, productId, reload, canWriteCombo]);
 
   useEffect(() => {
     if (!loading && descriptionRef.current) {
@@ -538,19 +517,19 @@ export default function ThemSanPham() {
   }, [loading, initialDescription]);
 
   useEffect(() => {
-    if (!isCombo || !searchOpen || configurationLocked) return undefined;
+    if (!canWriteCombo || !isCombo || !searchOpen || configurationLocked) return undefined;
 
     const controller = new AbortController();
 
     const timer = window.setTimeout(async () => {
       setSearchLoading(true);
-      setSearchError("");
+      setSearchError('');
 
       try {
         const params = new URLSearchParams({
           keyword: comboSearch.trim(),
-          page: "0",
-          limit: "20",
+          page: '0',
+          limit: '20',
         });
 
         const data = await apiRequest(`${COMBOS}/component-options?${params}`, {
@@ -561,7 +540,7 @@ export default function ThemSanPham() {
           setSearchResults(data?.items || []);
         }
       } catch (cause) {
-        if (cause.name !== "AbortError") setSearchError(cause.message);
+        if (cause.name !== 'AbortError') setSearchError(cause.message);
       } finally {
         if (!controller.signal.aborted) setSearchLoading(false);
       }
@@ -571,7 +550,7 @@ export default function ThemSanPham() {
       window.clearTimeout(timer);
       controller.abort();
     };
-  }, [isCombo, searchOpen, comboSearch, configurationLocked]);
+  }, [isCombo, searchOpen, comboSearch, configurationLocked, canWriteCombo]);
 
   const plan = useMemo(
     () =>
@@ -583,7 +562,7 @@ export default function ThemSanPham() {
             count: manualRows.length,
           }
         : makeVariantPlan(attributeRows, manualRows),
-    [attributeRows, manualRows, isEditing],
+    [attributeRows, manualRows, isEditing]
   );
 
   const variants = useMemo(
@@ -596,22 +575,20 @@ export default function ThemSanPham() {
           : row.name;
 
         return {
-          sku: "",
-          retail: "",
-          cost: "",
-          weight: "",
+          sku: '',
+          retail: '',
+          cost: '',
+          weight: '',
           status: 1,
-          serialMode: "",
+          serialMode: '',
           serialModeLocked: false,
           ...row,
           ...draft,
-          name: draft.name ?? defaultName ?? "",
-          attributes: row.generated
-            ? row.attributes
-            : (draft.attributes ?? row.attributes ?? []),
+          name: draft.name ?? defaultName ?? '',
+          attributes: row.generated ? row.attributes : (draft.attributes ?? row.attributes ?? []),
         };
       }),
-    [plan, variantDrafts, form.name],
+    [plan, variantDrafts, form.name]
   );
 
   const updateForm = (field, value) => {
@@ -627,15 +604,13 @@ export default function ThemSanPham() {
 
   const updateAttribute = (key, patch) => {
     setAttributeRows((current) =>
-      current.map((row) => (row.key === key ? { ...row, ...patch } : row)),
+      current.map((row) => (row.key === key ? { ...row, ...patch } : row))
     );
   };
 
   const commitAttributeValues = (key) => {
     setAttributeRows((current) =>
-      current.map((row) =>
-        row.key === key ? { ...row, values: rowValues(row), draft: "" } : row,
-      ),
+      current.map((row) => (row.key === key ? { ...row, values: rowValues(row), draft: '' } : row))
     );
   };
 
@@ -653,13 +628,11 @@ export default function ThemSanPham() {
     const value = specDraft.value.trim();
 
     if (!name || !value) {
-      setSpecError("Nhập đủ tên thông số và giá trị trước khi thêm.");
+      setSpecError('Nhập đủ tên thông số và giá trị trước khi thêm.');
       return;
     }
 
-    if (
-      specs.some((item) => comparisonKey(item.name) === comparisonKey(name))
-    ) {
+    if (specs.some((item) => comparisonKey(item.name) === comparisonKey(name))) {
       setSpecError(`Thông số "${name}" đã tồn tại.`);
       return;
     }
@@ -667,8 +640,8 @@ export default function ThemSanPham() {
     const item = { key: localId(), name, value };
 
     setSpecs((current) => [...current, item]);
-    setSpecDraft({ name: "", value: "" });
-    setSpecError("");
+    setSpecDraft({ name: '', value: '' });
+    setSpecError('');
 
     requestAnimationFrame(() => specNameRef.current?.focus());
   };
@@ -683,20 +656,15 @@ export default function ThemSanPham() {
 
     if (configurationLocked || parts.some((part) => part.id === id)) return;
 
-    setParts((current) => [
-      ...current,
-      normalizePart({ ...item, so_luong: 1 }),
-    ]);
-    setComboSearch("");
+    setParts((current) => [...current, normalizePart({ ...item, so_luong: 1 })]);
+    setComboSearch('');
     setSearchOpen(false);
   };
 
   const updatePart = (id, patch) => {
     if (configurationLocked) return;
 
-    setParts((current) =>
-      current.map((part) => (part.id === id ? { ...part, ...patch } : part)),
-    );
+    setParts((current) => current.map((part) => (part.id === id ? { ...part, ...patch } : part)));
   };
 
   const stepQuantity = (part, step) => {
@@ -709,23 +677,21 @@ export default function ThemSanPham() {
   };
 
   const save = async () => {
-    if (busyRef.current || loading || loadError) return;
-    setError("");
+    if (!canSaveProduct || busyRef.current || loading || loadError) return;
+    setError('');
 
     try {
       const name = form.name.trim();
       const code = form.code.trim();
 
       if (!name || name.length > 255 || !code || code.length > 50) {
-        throw new Error(
-          "Nhập tên sản phẩm tối đa 255 và mã sản phẩm tối đa 50 ký tự.",
-        );
+        throw new Error('Nhập tên sản phẩm tối đa 255 và mã sản phẩm tối đa 50 ký tự.');
       }
 
-      if (!form.categoryId) throw new Error("Vui lòng chọn danh mục.");
+      if (!form.categoryId) throw new Error('Vui lòng chọn danh mục.');
 
       if (images.some((item) => item.uploading)) {
-        throw new Error("Ảnh đang tải lên. Vui lòng chờ hoàn tất.");
+        throw new Error('Ảnh đang tải lên. Vui lòng chờ hoàn tất.');
       }
 
       if (images.some((item) => item.error)) {
@@ -735,17 +701,14 @@ export default function ThemSanPham() {
       const vat = Number(form.vat);
 
       if (!Number.isFinite(vat) || vat < 0 || vat > 100) {
-        throw new Error("VAT phải nằm trong khoảng 0–100.");
+        throw new Error('VAT phải nằm trong khoảng 0–100.');
       }
 
       if (
         !isCombo &&
-        (!/^\d+$/u.test(form.warrantyMonths) ||
-          Number(form.warrantyMonths) > MAX_QUANTITY)
+        (!/^\d+$/u.test(form.warrantyMonths) || Number(form.warrantyMonths) > MAX_QUANTITY)
       ) {
-        throw new Error(
-          "Nhập số tháng bảo hành nguyên không âm; nhập 0 nếu không bảo hành.",
-        );
+        throw new Error('Nhập số tháng bảo hành nguyên không âm; nhập 0 nếu không bảo hành.');
       }
 
       const specifications = [...specs];
@@ -753,7 +716,7 @@ export default function ThemSanPham() {
       // Giữ cả thông số đã nhập đủ nhưng chưa nhấn THÊM.
       if (specDraft.name.trim() || specDraft.value.trim()) {
         if (!specDraft.name.trim() || !specDraft.value.trim()) {
-          throw new Error("Thông số đang nhập còn thiếu tên hoặc giá trị.");
+          throw new Error('Thông số đang nhập còn thiếu tên hoặc giá trị.');
         }
 
         specifications.push({
@@ -762,12 +725,10 @@ export default function ThemSanPham() {
         });
       }
 
-      const specificationNames = specifications.map((item) =>
-        comparisonKey(item.name),
-      );
+      const specificationNames = specifications.map((item) => comparisonKey(item.name));
 
       if (new Set(specificationNames).size !== specificationNames.length) {
-        throw new Error("Tên thông số kỹ thuật bị trùng.");
+        throw new Error('Tên thông số kỹ thuật bị trùng.');
       }
 
       const body = {
@@ -777,7 +738,7 @@ export default function ThemSanPham() {
         ma_san_pham: code,
         mo_ta: descriptionRef.current?.innerHTML ?? initialDescription,
         thong_so_ky_thuat: Object.fromEntries(
-          specifications.map((item) => [normalizeText(item.name), item.value]),
+          specifications.map((item) => [normalizeText(item.name), item.value])
         ),
         thue_vat: vat,
         trang_thai: Number(form.status),
@@ -786,9 +747,7 @@ export default function ThemSanPham() {
           la_anh_chinh: index === 0,
           thu_tu_hien_thi: index,
         })),
-        ...(!isCombo
-          ? { thoi_han_bao_hanh_thang: Number(form.warrantyMonths) }
-          : {}),
+        ...(!isCombo ? { thoi_han_bao_hanh_thang: Number(form.warrantyMonths) } : {}),
       };
 
       let preparedVariants = [];
@@ -796,7 +755,7 @@ export default function ThemSanPham() {
       let price = null;
 
       if (isCombo) {
-        price = moneyValue(comboPrice, "Giá bán combo", true);
+        price = moneyValue(comboPrice, 'Giá bán combo', true);
 
         preparedParts = parts.map((part) => {
           const quantity = Number(part.qty);
@@ -807,9 +766,7 @@ export default function ThemSanPham() {
             quantity <= 0 ||
             quantity > MAX_QUANTITY
           ) {
-            throw new Error(
-              `Số lượng của "${part.name}" phải là số nguyên dương.`,
-            );
+            throw new Error(`Số lượng của "${part.name}" phải là số nguyên dương.`);
           }
 
           return {
@@ -820,18 +777,16 @@ export default function ThemSanPham() {
 
         if (isEditing && !preparedParts.length) {
           if ((originalCombo?.thanh_phan || []).length) {
-            throw new Error("Combo phải giữ ít nhất một linh kiện.");
+            throw new Error('Combo phải giữ ít nhất một linh kiện.');
           }
 
           if (price !== Number(originalCombo?.gia_ban_le)) {
-            throw new Error(
-              "Chọn linh kiện để cấu hình bộ PC trước khi đổi giá bán.",
-            );
+            throw new Error('Chọn linh kiện để cấu hình bộ PC trước khi đổi giá bán.');
           }
         }
       } else {
         if (plan.problems.length) {
-          throw new Error([...new Set(plan.problems)].join("\n"));
+          throw new Error([...new Set(plan.problems)].join('\n'));
         }
 
         if (!variants.length || variants.length > MAX_VARIANTS) {
@@ -843,20 +798,14 @@ export default function ThemSanPham() {
         preparedVariants = variants.map((variant) => {
           const variantName = variant.name.trim();
           const key = comparisonKey(variantName);
-          const weight = variant.weight === "" ? 0 : Number(variant.weight);
+          const weight = variant.weight === '' ? 0 : Number(variant.weight);
 
-          if (
-            !variantName ||
-            variantName.length > 150 ||
-            variantNames.has(key)
-          ) {
-            throw new Error(
-              "Tên phiên bản phải có 1–150 ký tự và không được trùng.",
-            );
+          if (!variantName || variantName.length > 150 || variantNames.has(key)) {
+            throw new Error('Tên phiên bản phải có 1–150 ký tự và không được trùng.');
           }
           variantNames.add(key);
 
-          if (!["true", "false"].includes(variant.serialMode)) {
+          if (!['true', 'false'].includes(variant.serialMode)) {
             throw new Error(`Chọn chế độ quản lý serial cho "${variantName}".`);
           }
 
@@ -870,15 +819,11 @@ export default function ThemSanPham() {
             body: {
               ten_phien_ban: variantName,
               ma_vach: variant.sku.trim() || null,
-              gia_ban_le: moneyValue(
-                variant.retail,
-                `Giá bán "${variantName}"`,
-                true,
-              ),
+              gia_ban_le: moneyValue(variant.retail, `Giá bán "${variantName}"`, true),
               gia_nhap: moneyValue(variant.cost, `Giá nhập "${variantName}"`),
               khoi_luong: weight,
               trang_thai: Number(variant.status),
-              co_quan_ly_serial: variant.serialMode === "true",
+              co_quan_ly_serial: variant.serialMode === 'true',
             },
             attributes: cleanAttributes(variant.attributes),
           };
@@ -898,15 +843,12 @@ export default function ThemSanPham() {
           thanh_phan: preparedParts,
         };
 
-        console.debug("COMBO_REQUEST:", JSON.stringify(comboBody, null, 2));
+        console.debug('COMBO_REQUEST:', JSON.stringify(comboBody, null, 2));
 
-        await apiRequest(
-          isEditing ? `${COMBOS}/${encodeURIComponent(productId)}` : COMBOS,
-          {
-            method: isEditing ? "PUT" : "POST",
-            body: JSON.stringify(comboBody),
-          },
-        );
+        await apiRequest(isEditing ? `${COMBOS}/${encodeURIComponent(productId)}` : COMBOS, {
+          method: isEditing ? 'PUT' : 'POST',
+          body: JSON.stringify(comboBody),
+        });
       } else if (!isEditing) {
         await createProduct({
           ...body,
@@ -936,8 +878,7 @@ export default function ThemSanPham() {
           const productPath = `${PRODUCTS}/${encodeURIComponent(productId)}`;
 
           for (const item of preparedVariants) {
-            const variantId =
-              item.id || createdVariantIds.current.get(item.key);
+            const variantId = item.id || createdVariantIds.current.get(item.key);
 
             // DTO hiện tại yêu cầu mảng thuộc tính cho cả POST và PUT.
             const variantPayload = {
@@ -946,19 +887,18 @@ export default function ThemSanPham() {
             };
 
             if (variantId) {
-              const variantPath =
-                `${productPath}/variants/` + encodeURIComponent(variantId);
+              const variantPath = `${productPath}/variants/` + encodeURIComponent(variantId);
 
               // Cập nhật thông tin phiên bản.
               await apiRequest(variantPath, {
-                method: "PUT",
+                method: 'PUT',
                 body: JSON.stringify(variantPayload),
               });
 
               // Service cập nhật phiên bản chưa lưu thuộc tính,
               // nên tiếp tục lưu bằng API thuộc tính riêng.
               await apiRequest(`${variantPath}/attributes`, {
-                method: "PUT",
+                method: 'PUT',
                 body: JSON.stringify({
                   thuoc_tinh_phien_ban: item.attributes,
                 }),
@@ -966,7 +906,7 @@ export default function ThemSanPham() {
             } else {
               // Thêm phiên bản mới kèm thuộc tính.
               const created = await apiRequest(`${productPath}/variants`, {
-                method: "POST",
+                method: 'POST',
                 body: JSON.stringify(variantPayload),
               });
 
@@ -974,22 +914,20 @@ export default function ThemSanPham() {
               createdVariantIds.current.set(item.key, created.id);
 
               setManualRows((current) =>
-                current.map((row) =>
-                  row.key === item.key ? { ...row, id: created.id } : row,
-                ),
+                current.map((row) => (row.key === item.key ? { ...row, id: created.id } : row))
               );
             }
           }
         }
       }
 
-      navigate("/admin/san-pham/danh-sach-san-pham");
+      navigate('/admin/san-pham/danh-sach-san-pham');
     } catch (cause) {
       const details = cause.data?.errors
         ?.map((item) => `${item.field}: ${item.message}`)
-        .join("\n");
+        .join('\n');
 
-      setError(details || cause.message || "Không thể lưu sản phẩm.");
+      setError(details || cause.message || 'Không thể lưu sản phẩm.');
     } finally {
       busyRef.current = false;
       setSaving(false);
@@ -1023,10 +961,10 @@ export default function ThemSanPham() {
         <div>
           <nav className="product-editor__breadcrumb" aria-label="Breadcrumb">
             SẢN PHẨM <span>›</span> DANH SÁCH <span>›</span>
-            <strong>{isEditing ? "CHỈNH SỬA" : "THÊM MỚI"}</strong>
+            <strong>{isEditing ? 'CHỈNH SỬA' : 'THÊM MỚI'}</strong>
           </nav>
 
-          <h1>{isEditing ? "CHỈNH SỬA SẢN PHẨM" : "THÊM SẢN PHẨM MỚI"}</h1>
+          <h1>{isEditing ? 'CHỈNH SỬA SẢN PHẨM' : 'THÊM SẢN PHẨM MỚI'}</h1>
         </div>
 
         <div className="product-editor__actions">
@@ -1034,7 +972,7 @@ export default function ThemSanPham() {
             type="button"
             className="product-editor__button"
             disabled={saving}
-            onClick={() => navigate("/admin/san-pham/danh-sach-san-pham")}
+            onClick={() => navigate('/admin/san-pham/danh-sach-san-pham')}
           >
             HỦY
           </button>
@@ -1042,11 +980,11 @@ export default function ThemSanPham() {
           <button
             type="button"
             className="product-editor__button product-editor__button--red"
-            disabled={saving}
+            disabled={saving || !canSaveProduct}
             onClick={save}
           >
             <HiOutlineSave />
-            {saving ? "ĐANG LƯU..." : "LƯU SẢN PHẨM"}
+            {saving ? 'ĐANG LƯU...' : 'LƯU SẢN PHẨM'}
           </button>
         </div>
       </header>
@@ -1057,7 +995,7 @@ export default function ThemSanPham() {
         </div>
       )}
 
-      <fieldset className="product-editor__fieldset" disabled={saving}>
+      <fieldset className="product-editor__fieldset" disabled={saving || !canSaveProduct}>
         <div className="product-editor__layout">
           <div className="product-editor__main">
             <FormCard title="Thông tin chung">
@@ -1069,7 +1007,7 @@ export default function ThemSanPham() {
                   maxLength={255}
                   placeholder="Ví dụ: Bàn phím cơ Keychron Q1 Pro"
                   value={form.name}
-                  onChange={(event) => updateForm("name", event.target.value)}
+                  onChange={(event) => updateForm('name', event.target.value)}
                 />
               </label>
 
@@ -1082,13 +1020,13 @@ export default function ThemSanPham() {
                     maxLength={50}
                     placeholder="SP-KEY-Q1P"
                     value={form.code}
-                    onChange={(event) => updateForm("code", event.target.value)}
+                    onChange={(event) => updateForm('code', event.target.value)}
                   />
                 </label>
 
                 <label className="product-editor__field">
                   <span>ĐƠN VỊ TÍNH</span>
-                  <input readOnly value={isCombo ? "Bộ" : "Cái"} />
+                  <input readOnly value={isCombo ? 'Bộ' : 'Cái'} />
                 </label>
               </div>
             </FormCard>
@@ -1099,25 +1037,23 @@ export default function ThemSanPham() {
                   images={images}
                   onImagesChange={setImages}
                   folder="products"
+                  uploadFile={uploadProductImage}
                 />
               </div>
             </FormCard>
 
             <FormCard title="Chi tiết sản phẩm">
-              <label
-                className="product-editor__label"
-                htmlFor="product-description"
-              >
+              <label className="product-editor__label" htmlFor="product-description">
                 MÔ TẢ SẢN PHẨM
               </label>
 
               <div className="product-editor__richtext">
                 <div className="product-editor__toolbar">
                   {[
-                    ["bold", <b key="b">B</b>, "In đậm"],
-                    ["italic", <i key="i">I</i>, "In nghiêng"],
-                    ["underline", <u key="u">U</u>, "Gạch chân"],
-                    ["insertUnorderedList", "≡", "Danh sách"],
+                    ['bold', <b key="b">B</b>, 'In đậm'],
+                    ['italic', <i key="i">I</i>, 'In nghiêng'],
+                    ['underline', <u key="u">U</u>, 'Gạch chân'],
+                    ['insertUnorderedList', '≡', 'Danh sách'],
                   ].map(([command, content, title]) => (
                     <button
                       key={command}
@@ -1136,7 +1072,7 @@ export default function ThemSanPham() {
                     title="Tiêu đề"
                     aria-label="Tiêu đề"
                     onMouseDown={(event) => event.preventDefault()}
-                    onClick={() => descriptionCommand("formatBlock", "h3")}
+                    onClick={() => descriptionCommand('formatBlock', 'h3')}
                   >
                     H
                   </button>
@@ -1148,9 +1084,9 @@ export default function ThemSanPham() {
                     onMouseDown={(event) => event.preventDefault()}
                     onClick={() =>
                       descriptionCommand(
-                        "insertHTML",
-                        "<table><tbody><tr><td><br></td><td><br></td></tr>" +
-                          "<tr><td><br></td><td><br></td></tr></tbody></table><p><br></p>",
+                        'insertHTML',
+                        '<table><tbody><tr><td><br></td><td><br></td></tr>' +
+                          '<tr><td><br></td><td><br></td></tr></tbody></table><p><br></p>'
                       )
                     }
                   >
@@ -1200,9 +1136,7 @@ export default function ThemSanPham() {
                           className="product-editor__icon-button"
                           aria-label={`Xóa thông số ${item.name}`}
                           onClick={() =>
-                            setSpecs((current) =>
-                              current.filter((row) => row.key !== item.key),
-                            )
+                            setSpecs((current) => current.filter((row) => row.key !== item.key))
                           }
                         >
                           <HiOutlineX />
@@ -1232,13 +1166,10 @@ export default function ThemSanPham() {
                       ...current,
                       name: event.target.value,
                     }));
-                    setSpecError("");
+                    setSpecError('');
                   }}
                   onKeyDown={(event) => {
-                    if (
-                      event.key === "Enter" &&
-                      !event.nativeEvent.isComposing
-                    ) {
+                    if (event.key === 'Enter' && !event.nativeEvent.isComposing) {
                       event.preventDefault();
                       addSpec();
                     }
@@ -1254,13 +1185,10 @@ export default function ThemSanPham() {
                       ...current,
                       value: event.target.value,
                     }));
-                    setSpecError("");
+                    setSpecError('');
                   }}
                   onKeyDown={(event) => {
-                    if (
-                      event.key === "Enter" &&
-                      !event.nativeEvent.isComposing
-                    ) {
+                    if (event.key === 'Enter' && !event.nativeEvent.isComposing) {
                       event.preventDefault();
                       addSpec();
                     }
@@ -1288,8 +1216,7 @@ export default function ThemSanPham() {
                 <FormCard title="Thuộc tính sản phẩm">
                   {isEditing ? (
                     <p className="product-editor__hint">
-                      Nhấn “Thuộc tính” tại từng phiên bản để chỉnh tên và giá
-                      trị.
+                      Nhấn “Thuộc tính” tại từng phiên bản để chỉnh tên và giá trị.
                     </p>
                   ) : (
                     <>
@@ -1340,19 +1267,14 @@ export default function ThemSanPham() {
                                                 item.key === row.key
                                                   ? {
                                                       ...item,
-                                                      values:
-                                                        item.values.filter(
-                                                          (entry) =>
-                                                            comparisonKey(
-                                                              entry,
-                                                            ) !==
-                                                            comparisonKey(
-                                                              value,
-                                                            ),
-                                                        ),
+                                                      values: item.values.filter(
+                                                        (entry) =>
+                                                          comparisonKey(entry) !==
+                                                          comparisonKey(value)
+                                                      ),
                                                     }
-                                                  : item,
-                                              ),
+                                                  : item
+                                              )
                                             )
                                           }
                                         >
@@ -1370,18 +1292,11 @@ export default function ThemSanPham() {
                                           draft: event.target.value,
                                         })
                                       }
-                                      onBlur={() =>
-                                        commitAttributeValues(row.key)
-                                      }
+                                      onBlur={() => commitAttributeValues(row.key)}
                                       onKeyDown={(event) => {
-                                        if (event.nativeEvent.isComposing)
-                                          return;
+                                        if (event.nativeEvent.isComposing) return;
 
-                                        if (
-                                          ["Enter", ",", ";"].includes(
-                                            event.key,
-                                          )
-                                        ) {
+                                        if (['Enter', ',', ';'].includes(event.key)) {
                                           event.preventDefault();
                                           commitAttributeValues(row.key);
                                         }
@@ -1396,9 +1311,7 @@ export default function ThemSanPham() {
                                     className="product-editor__button product-editor__button--small"
                                     onClick={() =>
                                       setAttributeRows((current) =>
-                                        current.filter(
-                                          (item) => item.key !== row.key,
-                                        ),
+                                        current.filter((item) => item.key !== row.key)
                                       )
                                     }
                                   >
@@ -1421,18 +1334,15 @@ export default function ThemSanPham() {
                       </button>
 
                       <p className="product-editor__hint">
-                        Nhấn Enter hoặc dấu phẩy để thêm giá trị. Thuộc tính
-                        dùng để sinh phiên bản.
+                        Nhấn Enter hoặc dấu phẩy để thêm giá trị. Thuộc tính dùng để sinh phiên bản.
                       </p>
                     </>
                   )}
                 </FormCard>
 
-                <FormCard
-                  title={`Chi tiết phiên bản (${variants.length} phiên bản)`}
-                >
+                <FormCard title={`Chi tiết phiên bản (${variants.length} phiên bản)`}>
                   <div className="product-editor__generation">
-                    <strong>{isEditing ? "PHIÊN BẢN" : "SẼ TẠO"}</strong>
+                    <strong>{isEditing ? 'PHIÊN BẢN' : 'SẼ TẠO'}</strong>
 
                     {plan.groups.map((group) => (
                       <span key={group.key}>
@@ -1440,9 +1350,7 @@ export default function ThemSanPham() {
                       </span>
                     ))}
 
-                    <strong className="product-editor__red">
-                      = {plan.count} PHIÊN BẢN
-                    </strong>
+                    <strong className="product-editor__red">= {plan.count} PHIÊN BẢN</strong>
                   </div>
 
                   <div className="product-editor__table-wrap">
@@ -1480,11 +1388,8 @@ export default function ThemSanPham() {
                                 {variant.generated && (
                                   <small className="product-editor__variant-meta">
                                     {variant.attributes
-                                      .map(
-                                        (item) =>
-                                          `${item.ten_thuoc_tinh}: ${item.gia_tri}`,
-                                      )
-                                      .join(" · ")}
+                                      .map((item) => `${item.ten_thuoc_tinh}: ${item.gia_tri}`)
+                                      .join(' · ')}
                                   </small>
                                 )}
 
@@ -1492,14 +1397,10 @@ export default function ThemSanPham() {
                                   <button
                                     type="button"
                                     className="product-editor__text-button"
-                                    aria-expanded={
-                                      attributeEditor === variant.key
-                                    }
+                                    aria-expanded={attributeEditor === variant.key}
                                     onClick={() =>
                                       setAttributeEditor((current) =>
-                                        current === variant.key
-                                          ? ""
-                                          : variant.key,
+                                        current === variant.key ? '' : variant.key
                                       )
                                     }
                                   >
@@ -1574,11 +1475,7 @@ export default function ThemSanPham() {
                                 <FormDropdown
                                   aria-label={`Quản lý serial ${variant.name}`}
                                   disabled={variant.serialModeLocked}
-                                  title={
-                                    variant.serialModeLocked
-                                      ? "Chế độ serial đã bị khóa"
-                                      : ""
-                                  }
+                                  title={variant.serialModeLocked ? 'Chế độ serial đã bị khóa' : ''}
                                   value={variant.serialMode}
                                   onChange={(event) =>
                                     updateVariant(variant.key, {
@@ -1606,42 +1503,37 @@ export default function ThemSanPham() {
                               </td>
 
                               <td>
-                                {!variant.id &&
-                                  !variant.generated &&
-                                  variants.length > 1 && (
-                                    <button
-                                      type="button"
-                                      className="product-editor__icon-button"
-                                      aria-label={`Xóa phiên bản ${variant.name}`}
-                                      onClick={() =>
-                                        setManualRows((current) =>
-                                          current.filter(
-                                            (row) => row.key !== variant.key,
-                                          ),
-                                        )
-                                      }
-                                    >
-                                      <HiOutlineX />
-                                    </button>
-                                  )}
+                                {!variant.id && !variant.generated && variants.length > 1 && (
+                                  <button
+                                    type="button"
+                                    className="product-editor__icon-button"
+                                    aria-label={`Xóa phiên bản ${variant.name}`}
+                                    onClick={() =>
+                                      setManualRows((current) =>
+                                        current.filter((row) => row.key !== variant.key)
+                                      )
+                                    }
+                                  >
+                                    <HiOutlineX />
+                                  </button>
+                                )}
                               </td>
                             </tr>
 
-                            {!variant.generated &&
-                              attributeEditor === variant.key && (
-                                <tr>
-                                  <td colSpan={8}>
-                                    <VariantAttributes
-                                      items={variant.attributes}
-                                      change={(attributes) =>
-                                        updateVariant(variant.key, {
-                                          attributes,
-                                        })
-                                      }
-                                    />
-                                  </td>
-                                </tr>
-                              )}
+                            {!variant.generated && attributeEditor === variant.key && (
+                              <tr>
+                                <td colSpan={8}>
+                                  <VariantAttributes
+                                    items={variant.attributes}
+                                    change={(attributes) =>
+                                      updateVariant(variant.key, {
+                                        attributes,
+                                      })
+                                    }
+                                  />
+                                </td>
+                              </tr>
+                            )}
                           </Fragment>
                         ))}
                       </tbody>
@@ -1654,9 +1546,7 @@ export default function ThemSanPham() {
                       className="product-editor__button product-editor__add-variant"
                       disabled={variants.length >= MAX_VARIANTS}
                       onClick={() => {
-                        const row = newManualVariant(
-                          `Phiên bản ${manualRows.length + 1}`,
-                        );
+                        const row = newManualVariant(`Phiên bản ${manualRows.length + 1}`);
                         setManualRows((current) => [...current, row]);
                       }}
                     >
@@ -1669,8 +1559,7 @@ export default function ThemSanPham() {
               <FormCard title="Sản phẩm thành phần">
                 {configurationLocked && (
                   <p className="product-editor__hint">
-                    Cấu hình đã được sử dụng. Thành phần và số lượng được giữ cố
-                    định.
+                    Cấu hình đã được sử dụng. Thành phần và số lượng được giữ cố định.
                   </p>
                 )}
 
@@ -1688,7 +1577,7 @@ export default function ThemSanPham() {
                       setSearchOpen(true);
                     }}
                     onKeyDown={(event) => {
-                      if (event.key === "Escape") setSearchOpen(false);
+                      if (event.key === 'Escape') setSearchOpen(false);
                     }}
                   />
 
@@ -1702,7 +1591,7 @@ export default function ThemSanPham() {
                         <>
                           {searchResults.map((item) => {
                             const selected = parts.some(
-                              (part) => part.id === Number(item.phien_ban_id),
+                              (part) => part.id === Number(item.phien_ban_id)
                             );
 
                             return (
@@ -1716,23 +1605,18 @@ export default function ThemSanPham() {
                                 <span>
                                   <strong>{item.ten_san_pham}</strong>
                                   <small>
-                                    {item.ten_phien_ban} ·{" "}
-                                    {item.ma_vach || item.ma_san_pham}
+                                    {item.ten_phien_ban} · {item.ma_vach || item.ma_san_pham}
                                   </small>
                                 </span>
 
                                 <span>
-                                  {selected
-                                    ? "ĐÃ CHỌN"
-                                    : `Tồn: ${item.ton_co_the_ban ?? "—"}`}
+                                  {selected ? 'ĐÃ CHỌN' : `Tồn: ${item.ton_co_the_ban ?? '—'}`}
                                 </span>
                               </button>
                             );
                           })}
 
-                          {!searchResults.length && (
-                            <p>Không tìm thấy linh kiện phù hợp.</p>
-                          )}
+                          {!searchResults.length && <p>Không tìm thấy linh kiện phù hợp.</p>}
                         </>
                       )}
 
@@ -1770,12 +1654,10 @@ export default function ThemSanPham() {
                           <tr key={part.id}>
                             <td>
                               <strong>{part.name}</strong>
-                              <small className="product-editor__variant-meta">
-                                {part.variant}
-                              </small>
+                              <small className="product-editor__variant-meta">{part.variant}</small>
                             </td>
                             <td>{part.code}</td>
-                            <td>{part.stock ?? "—"}</td>
+                            <td>{part.stock ?? '—'}</td>
                             <td>{warrantyText(part.warrantyMonths)}</td>
                             <td>
                               <div className="product-editor__stepper">
@@ -1821,9 +1703,7 @@ export default function ThemSanPham() {
                                 aria-label={`Xóa linh kiện ${part.name}`}
                                 onClick={() =>
                                   setParts((current) =>
-                                    current.filter(
-                                      (item) => item.id !== part.id,
-                                    ),
+                                    current.filter((item) => item.id !== part.id)
                                   )
                                 }
                               >
@@ -1857,30 +1737,20 @@ export default function ThemSanPham() {
           <aside className="product-editor__side">
             <FormCard title="Loại sản phẩm">
               {[
-                [
-                  "DON",
-                  "Sản phẩm đơn / Có phiên bản",
-                  "Quản lý biến thể màu, dung lượng...",
-                ],
-                [
-                  "BO_PC",
-                  "Sản phẩm theo bộ (Combo)",
-                  "Tập hợp nhiều sản phẩm đơn",
-                ],
+                ['DON', 'Sản phẩm đơn / Có phiên bản', 'Quản lý biến thể màu, dung lượng...'],
+                ['BO_PC', 'Sản phẩm theo bộ (Combo)', 'Tập hợp nhiều sản phẩm đơn'],
               ].map(([value, title, hint]) => (
                 <label
                   key={value}
-                  className={`product-editor__type ${
-                    form.type === value ? "is-selected" : ""
-                  }`}
+                  className={`product-editor__type ${form.type === value ? 'is-selected' : ''}`}
                 >
                   <input
                     type="radio"
                     name="product-kind"
                     value={value}
-                    disabled={isEditing}
+                    disabled={isEditing || (value === 'BO_PC' && !canWriteCombo)}
                     checked={form.type === value}
-                    onChange={() => updateForm("type", value)}
+                    onChange={() => updateForm('type', value)}
                   />
                   <span>
                     <strong>{title}</strong>
@@ -1898,9 +1768,7 @@ export default function ThemSanPham() {
                 <FormDropdown
                   aria-label="Danh mục"
                   value={form.categoryId}
-                  onChange={(event) =>
-                    updateForm("categoryId", event.target.value)
-                  }
+                  onChange={(event) => updateForm('categoryId', event.target.value)}
                 >
                   <option value="">Chọn danh mục</option>
                   {categories.map((item) => (
@@ -1916,9 +1784,7 @@ export default function ThemSanPham() {
                 <FormDropdown
                   aria-label="Thương hiệu"
                   value={form.brandId}
-                  onChange={(event) =>
-                    updateForm("brandId", event.target.value)
-                  }
+                  onChange={(event) => updateForm('brandId', event.target.value)}
                 >
                   <option value="">Không chọn</option>
                   {brands.map((item) => (
@@ -1932,24 +1798,20 @@ export default function ThemSanPham() {
 
             <FormCard title="Trạng thái">
               {[
-                [1, "Đang kinh doanh"],
-                [0, "Ngừng kinh doanh"],
+                [1, 'Đang kinh doanh'],
+                [0, 'Ngừng kinh doanh'],
               ].map(([value, title]) => (
                 <label
                   key={value}
-                  className={`product-editor__status ${
-                    form.status === value ? "is-selected" : ""
-                  }`}
+                  className={`product-editor__status ${form.status === value ? 'is-selected' : ''}`}
                 >
                   <input
                     type="radio"
                     name="product-status"
                     checked={form.status === value}
-                    onChange={() => updateForm("status", value)}
+                    onChange={() => updateForm('status', value)}
                   />
-                  <span
-                    className={`product-editor__status-dot status-${value}`}
-                  />
+                  <span className={`product-editor__status-dot status-${value}`} />
                   <strong>{title}</strong>
                 </label>
               ))}
@@ -1957,13 +1819,13 @@ export default function ThemSanPham() {
 
             <FormCard title="Thuế VAT">
               <div className="product-editor__vat">
-                {[...new Set(["0", "5", "10", form.vat])].map((value) => (
+                {[...new Set(['0', '5', '10', form.vat])].map((value) => (
                   <button
                     key={value}
                     type="button"
-                    className={form.vat === value ? "is-selected" : ""}
+                    className={form.vat === value ? 'is-selected' : ''}
                     aria-pressed={form.vat === value}
-                    onClick={() => updateForm("vat", value)}
+                    onClick={() => updateForm('vat', value)}
                   >
                     {value}%
                   </button>
@@ -1976,8 +1838,7 @@ export default function ThemSanPham() {
                 <>
                   <strong>Bảo hành theo từng linh kiện.</strong>
                   <p className="product-editor__hint">
-                    Thời hạn được hiển thị tại từng linh kiện trong bảng thành
-                    phần.
+                    Thời hạn được hiển thị tại từng linh kiện trong bảng thành phần.
                   </p>
                 </>
               ) : (
@@ -1992,9 +1853,7 @@ export default function ThemSanPham() {
                     step="1"
                     placeholder="Nhập số tháng"
                     value={form.warrantyMonths}
-                    onChange={(event) =>
-                      updateForm("warrantyMonths", event.target.value)
-                    }
+                    onChange={(event) => updateForm('warrantyMonths', event.target.value)}
                   />
                   <small>Nhập 0 nếu không bảo hành.</small>
                 </label>
@@ -2014,9 +1873,7 @@ export default function ThemSanPham() {
                       <span>Tồn khởi tạo</span>
                       <strong className="product-editor__red">0</strong>
                     </div>
-                    <p className="product-editor__hint">
-                      Nhập hàng sau khi tạo sản phẩm.
-                    </p>
+                    <p className="product-editor__hint">Nhập hàng sau khi tạo sản phẩm.</p>
                   </>
                 )}
               </FormCard>

@@ -9,6 +9,10 @@ export function uploadImage(file, folder = 'general') {
   return sendImage(file, folder, endpoint);
 }
 
+export function uploadProductImage(file) {
+  return sendImage(file, 'products', '/api/v1/admin/uploads/images/products');
+}
+
 export function uploadWarrantyIntakeImage(file) {
   return sendImage(file, 'general', '/api/v1/admin/uploads/images/warranty-intake');
 }

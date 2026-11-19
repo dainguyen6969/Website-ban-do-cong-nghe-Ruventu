@@ -9,6 +9,10 @@ import useDetailTablePagination, {
 } from '../../../../../hooks/useDetailTablePagination';
 import { getProductDetail } from '../api/productApi';
 import { WarrantySummary, warrantyText } from '../../components/CatalogPolicies';
+
+import { hasAdminPermission } from '../../../../../auth/roleModel';
+import { useAdminPermissions } from '../../../../../shared/components/ui/PermissionGate';
+
 import './ChiTietSanPham.css';
 
 const money = (value) => `${Number(value || 0).toLocaleString('vi-VN')}đ`;
@@ -42,6 +46,7 @@ function Badge({ children }) {
 export default function ChiTietSanPham() {
   const { productId } = useParams();
   const navigate = useNavigate();
+  const access = useAdminPermissions()?.access;
   const [product, setProduct] = useState(null);
   const [error, setError] = useState('');
   const componentPagination = useDetailTablePagination(product?.comboItems);
@@ -78,6 +83,13 @@ export default function ChiTietSanPham() {
     );
 
   const isCombo = product.phanLoai === 'Theo bộ (Combo)';
+
+  const canEdit =
+    hasAdminPermission(access, 'san_pham', 'sua') &&
+    (!isCombo ||
+      (hasAdminPermission(access, 'combo_san_pham', 'xem') &&
+        hasAdminPermission(access, 'combo_san_pham', 'sua')));
+
   const variants = product.variants || [];
   const hasVariantTable = !isCombo && variants.length > 0;
   const components = product.comboItems || [];
@@ -89,7 +101,9 @@ export default function ChiTietSanPham() {
       : null;
   const storage = warehouses(product);
   const storageIncoming = total(storage, 'dangVe');
-  const edit = () => navigate(`/admin/san-pham/them-san-pham/${encodeURIComponent(product.id)}`);
+  const edit = () => {
+    if (canEdit) navigate(`/admin/san-pham/them-san-pham/${encodeURIComponent(product.id)}`);
+  };
 
   return (
     <main className="detail-page detail-page--product">
@@ -116,7 +130,7 @@ export default function ChiTietSanPham() {
             <HiOutlineArrowLeft />
             Quay lại
           </button>
-          <button className="detail-btn detail-btn--red" onClick={edit}>
+          <button className="detail-btn detail-btn--red" disabled={!canEdit} onClick={edit}>
             <HiOutlinePencilAlt />
             Sửa sản phẩm
           </button>
@@ -242,7 +256,7 @@ export default function ChiTietSanPham() {
       <FormCard
         title="Chi tiết sản phẩm"
         headerRight={
-          <button className="detail-edit-mini" onClick={edit}>
+          <button className="detail-edit-mini" disabled={!canEdit} onClick={edit}>
             <HiOutlinePencilAlt /> Sửa
           </button>
         }

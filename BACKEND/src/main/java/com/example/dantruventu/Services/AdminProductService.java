@@ -252,6 +252,7 @@ public class AdminProductService {
     }
 
     SanPham product = sanPhamMapper.toEntity(request);
+    product.setMoTa(catalog.cleanDescription(request.getMoTa()));
     product.setDanhMuc(requireDanhMuc(request.getDanhMucId()));
     product.setThuongHieu(
         request.getThuongHieuId() == null ? null : requireThuongHieu(request.getThuongHieuId()));
@@ -308,9 +309,10 @@ public class AdminProductService {
   }
 
   @Transactional
-  public AdminProductUpdateResponse updateProduct(Long id, AdminProductUpdateRequest request) {
+  public AdminProductUpdateResponse updateProduct(
+      Long id, AdminProductUpdateRequest request, boolean canEditCombo) {
 
-    SanPham product = requireProduct(id, true);
+    SanPham product = requireProductForCatalogUpdate(id, canEditCombo);
     int warranty = catalog.warranty(request, product.getLoaiSanPham());
 
     String code = request.getMaSanPham().trim();
@@ -328,6 +330,7 @@ public class AdminProductService {
     }
 
     sanPhamMapper.updateEntity(request, product);
+    product.setMoTa(catalog.cleanDescription(request.getMoTa()));
     product.setDanhMuc(requireDanhMuc(request.getDanhMucId()));
     product.setThuongHieu(
         request.getThuongHieuId() == null ? null : requireThuongHieu(request.getThuongHieuId()));
@@ -586,9 +589,12 @@ public class AdminProductService {
 
   @Transactional
   public CatalogFields.AttributesResponse replaceVariantAttributes(
-      Long productId, Long variantId, CatalogFields.AttributesRequest request) {
+      Long productId,
+      Long variantId,
+      CatalogFields.AttributesRequest request,
+      boolean canEditCombo) {
 
-    requireProduct(productId, true);
+    requireProductForCatalogUpdate(productId, canEditCombo);
 
     var variant =
         phienBanSanPhamRepository
@@ -600,6 +606,14 @@ public class AdminProductService {
     var attributes = catalog.replaceAttributes(variant, request.thuocTinhPhienBan());
 
     return new CatalogFields.AttributesResponse(variantId, productId, attributes);
+  }
+
+  private SanPham requireProductForCatalogUpdate(Long id, boolean canEditCombo) {
+    SanPham product = requireProduct(id, true);
+    if (product.getLoaiSanPham() == LoaiSanPham.BO_PC && !canEditCombo) {
+      throw new AppException(ErrorCode.FORBIDDEN);
+    }
+    return product;
   }
 
   private SanPham requireProduct(Long id, boolean lock) {

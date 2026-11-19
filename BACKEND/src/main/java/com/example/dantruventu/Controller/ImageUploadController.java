@@ -42,6 +42,21 @@ public class ImageUploadController {
         .build();
   }
 
+  @PostMapping("/images/products")
+  @PreAuthorize(
+      "@adminRoleService.hasModuleAction(principal, 'san_pham', 'them')"
+          + " or @adminRoleService.hasModuleAction(principal, 'san_pham', 'sua')"
+          + " or @adminRoleService.hasModuleAction(principal, 'combo_san_pham', 'them')"
+          + " or @adminRoleService.hasModuleAction(principal, 'combo_san_pham', 'sua')")
+  public ApiResponse<ImageUploadResponse> uploadProductImage(
+      @RequestParam("file") MultipartFile file) {
+    return ApiResponse.<ImageUploadResponse>builder()
+        .status(200)
+        .message("Tải ảnh sản phẩm thành công")
+        .data(imageUploadService.upload(file, "products"))
+        .build();
+  }
+
   @PostMapping("/images")
   public ApiResponse<ImageUploadResponse> uploadImage(
       @RequestParam("file") MultipartFile file,

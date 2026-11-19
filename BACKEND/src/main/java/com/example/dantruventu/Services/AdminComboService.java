@@ -230,6 +230,7 @@ public class AdminComboService {
     var status = parseStatus(request.getTrangThai());
 
     SanPham combo = comboMapper.toEntity(request);
+    combo.setMoTa(catalog.cleanDescription(request.getMoTa()));
     combo.setDanhMuc(category);
     combo.setThuongHieu(brand);
     combo.setMaSanPham(code);
@@ -342,7 +343,7 @@ public class AdminComboService {
     }
 
     if (request.getMoTa() != null) {
-      combo.setMoTa(request.getMoTa());
+      combo.setMoTa(catalog.cleanDescription(request.getMoTa()));
     }
 
     if (request.getThongSoKyThuat() != null) {
