@@ -160,7 +160,7 @@ public class AdminOrderController {
   }
 
   @PutMapping("/{id}")
-  @PreAuthorize("@adminRoleService.hasModuleAction(principal, 'don_hang', 'them')")
+  @PreAuthorize("@adminRoleService.hasModuleAction(principal, 'don_hang', 'sua')")
   public ApiResponse<AdminOrderResponse.Action> update(
       @PathVariable("id") Long id,
       @RequestHeader(name = "Idempotency-Key", required = false) String key,

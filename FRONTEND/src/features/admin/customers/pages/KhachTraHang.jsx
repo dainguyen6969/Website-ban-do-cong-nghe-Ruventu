@@ -641,10 +641,6 @@ function SelectOrderModal({ onClose, onSelect }) {
 function CreateReturn({ orderId }) {
   const navigate = useNavigate();
 
-  const access = useAdminPermissions()?.access;
-  const canReceiveReturn = hasAdminPermission(access, 'khach_tra_hang', 'sua');
-  const canRefundReturn = hasSystemAdminPermission(access, 'khach_tra_hang', 'sua');
-
   const [eligibleData, setEligibleData] = useState(null);
   const [loadingEligible, setLoadingEligible] = useState(true);
   const [eligibleError, setEligibleError] = useState('');
@@ -1252,6 +1248,10 @@ function CreateReturn({ orderId }) {
    ========================================================================== */
 function ReturnDetail({ returnId }) {
   const navigate = useNavigate();
+
+  const access = useAdminPermissions()?.access;
+  const canReceiveReturn = hasAdminPermission(access, 'khach_tra_hang', 'sua');
+  const canRefundReturn = hasSystemAdminPermission(access, 'khach_tra_hang', 'sua');
 
   // All Hooks at top level
   const [activeTab, setActiveTab] = useState('TONG_QUAN');

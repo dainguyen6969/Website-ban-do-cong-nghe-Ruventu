@@ -238,6 +238,10 @@ function OrderDetailView({ orderId }) {
 
   const canOperateOrder = hasSystemAdminPermission(access, 'don_hang', 'sua');
 
+  const canCreateDelivery =
+    hasAdminPermission(access, 'giao_hang', 'xem') &&
+    hasAdminPermission(access, 'giao_hang', 'them');
+
   const { state: locationState } = useLocation();
   const orderListReturn = locationState?.orderListReturn;
 
