@@ -15,6 +15,8 @@ public interface VaiTroRepository
 
   Optional<VaiTro> findByTenVaiTro(String tenVaiTro);
 
+  Optional<VaiTro> findByMaVaiTro(String maVaiTro);
+
   @Lock(LockModeType.PESSIMISTIC_WRITE)
   @Query("SELECT v FROM VaiTro v WHERE v.maVaiTro = :maVaiTro")
   Optional<VaiTro> findForUpdateByMaVaiTro(@Param("maVaiTro") String maVaiTro);

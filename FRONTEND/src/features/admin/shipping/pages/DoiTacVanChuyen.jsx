@@ -9,6 +9,9 @@ import { label, money } from '../../orders/api/orderApi';
 
 import { basicStatusValue } from '../../../../shared/services/mutationUtils';
 
+import { hasAdminPermission } from '../../../../auth/roleModel';
+import { useAdminPermissions } from '../../../../shared/components/ui/PermissionGate';
+
 import './DoiTacVanChuyen.css';
 
 const ROUTE = '/admin/khach-hang-doi-tac/doi-tac-van-chuyen';
@@ -241,6 +244,11 @@ function validatePartner(body) {
 export default function DoiTacVanChuyen() {
   const location = useLocation();
   const navigate = useNavigate();
+
+  const access = useAdminPermissions()?.access;
+  const canCreatePartner = hasAdminPermission(access, 'doi_tac_van_chuyen', 'them');
+  const canEditPartner = hasAdminPermission(access, 'doi_tac_van_chuyen', 'sua');
+
   const mutationBusy = useRef(false);
 
   const [filters, setFilters] = useState({
@@ -331,7 +339,7 @@ export default function DoiTacVanChuyen() {
   }
 
   function openAdd() {
-    if (mutationBusy.current) return;
+    if (!canCreatePartner || mutationBusy.current) return;
 
     setForm({ ...EMPTY_FORM });
     setFieldErrors({});
@@ -365,7 +373,7 @@ export default function DoiTacVanChuyen() {
   }
 
   function openStatusAction(partner) {
-    if (mutationBusy.current) return;
+    if (!canEditPartner || mutationBusy.current) return;
 
     const currentStatus = partnerStatus(partner.trang_thai);
     if (currentStatus == null) return;
@@ -400,7 +408,7 @@ export default function DoiTacVanChuyen() {
 
   function addPartner(event) {
     event.preventDefault();
-    if (mutationBusy.current) return;
+    if (!canCreatePartner || mutationBusy.current) return;
 
     const body = buildPartnerBody(form);
     const errors = validatePartner(body);
@@ -432,7 +440,7 @@ export default function DoiTacVanChuyen() {
   }
 
   function confirmStatusAction() {
-    if (!pendingAction || mutationBusy.current) return;
+    if (!canEditPartner || !pendingAction || mutationBusy.current) return;
 
     const { partner, targetStatus } = pendingAction;
 
@@ -495,6 +503,7 @@ export default function DoiTacVanChuyen() {
             successMessage={successMessage}
             onBack={backToList}
             onAction={() => openStatusAction(detail.data)}
+            canEdit={canEditPartner}
           />
         )
       ) : (
@@ -509,7 +518,7 @@ export default function DoiTacVanChuyen() {
             <button
               type="button"
               className="partner-btn partner-btn--black"
-              disabled={busy}
+              disabled={busy || !canCreatePartner}
               onClick={openAdd}
             >
               <HiOutlinePlus />
@@ -632,7 +641,7 @@ export default function DoiTacVanChuyen() {
                                 className={`partner-row-btn partner-row-btn--${
                                   active ? 'danger' : 'success'
                                 }`}
-                                disabled={busy || status == null}
+                                disabled={!canEditPartner || busy || status == null}
                                 onClick={(event) => {
                                   event.stopPropagation();
                                   openStatusAction(partner);
@@ -663,7 +672,7 @@ export default function DoiTacVanChuyen() {
         </>
       )}
 
-      {showAdd && (
+      {canCreatePartner && showAdd && (
         <AddPartnerModal
           form={form}
           errors={fieldErrors}
@@ -675,7 +684,7 @@ export default function DoiTacVanChuyen() {
         />
       )}
 
-      {pendingAction && (
+      {canEditPartner && pendingAction && (
         <ConfirmActionModal
           pendingAction={pendingAction}
           busy={busy}
@@ -781,8 +790,12 @@ function ServerPagination({ data, page, onPageChange, noun, idPrefix }) {
   );
 }
 
-function PartnerDetail({ partner, revision, busy, successMessage, onBack, onAction }) {
+function PartnerDetail({ partner, revision, busy, successMessage, onBack, onAction, canEdit }) {
   const navigate = useNavigate();
+
+  const access = useAdminPermissions()?.access;
+  const canViewOrders = hasAdminPermission(access, 'don_hang', 'xem');
+  const canViewDeliveries = hasAdminPermission(access, 'giao_hang', 'xem');
 
   const [keyword, setKeyword] = useState('');
   const [statusFilter, setStatusFilter] = useState(DELIVERY_OPTIONS[0]);
@@ -864,7 +877,7 @@ function PartnerDetail({ partner, revision, busy, successMessage, onBack, onActi
           <button
             type="button"
             className={`partner-btn partner-btn--outline-${active ? 'danger' : 'success'}`}
-            disabled={busy || status == null}
+            disabled={!canEdit || busy || status == null}
             onClick={onAction}
           >
             {active ? 'NGỪNG HOẠT ĐỘNG' : 'KHÔI PHỤC HOẠT ĐỘNG'}
@@ -952,7 +965,7 @@ function PartnerDetail({ partner, revision, busy, successMessage, onBack, onActi
                           <button
                             type="button"
                             className="partner-order-link"
-                            disabled={!delivery.don_hang_id}
+                            disabled={!canViewOrders || !delivery.don_hang_id}
                             onClick={() =>
                               navigate(
                                 `/admin/don-hang/danh-sach-don-hang/${encodeURIComponent(
@@ -981,6 +994,7 @@ function PartnerDetail({ partner, revision, busy, successMessage, onBack, onActi
                           <button
                             type="button"
                             className="partner-view-order"
+                            disabled={!canViewDeliveries}
                             onClick={() =>
                               navigate(
                                 `/admin/don-hang/quan-ly-giao-hang/${encodeURIComponent(

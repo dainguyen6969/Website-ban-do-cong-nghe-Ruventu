@@ -18,14 +18,14 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/v1/admin/suppliers")
 @RequiredArgsConstructor
-@PreAuthorize("hasRole('ADMIN')")
+@PreAuthorize("@adminRoleService.hasModuleAction(principal, 'nha_cung_cap', 'xem')")
 public class AdminSupplierController {
 
   private final AdminSupplierService adminSupplierService;
 
   @GetMapping
   @PreAuthorize(
-      "@adminRoleService.isSystemAdmin(principal)"
+      "@adminRoleService.hasModuleAction(principal, 'nha_cung_cap', 'xem')"
           + " or @adminRoleService.hasModuleAction(principal, 'nhap_hang', 'xem')")
   public ApiResponse<AdminSupplierListResponse> getSuppliers(
       @RequestParam(name = "keyword", required = false) String keyword,
@@ -105,6 +105,7 @@ public class AdminSupplierController {
   }
 
   @PostMapping
+  @PreAuthorize("@adminRoleService.hasModuleAction(principal, 'nha_cung_cap', 'them')")
   public ResponseEntity<ApiResponse<AdminSupplierResponse>> create(
       @Valid @RequestBody AdminSupplierCreateRequest request) {
 
@@ -119,6 +120,7 @@ public class AdminSupplierController {
   }
 
   @PutMapping("/{id}")
+  @PreAuthorize("@adminRoleService.hasModuleAction(principal, 'nha_cung_cap', 'sua')")
   public ApiResponse<AdminSupplierResponse> update(
       @PathVariable("id") Long id, @Valid @RequestBody AdminSupplierUpdateRequest request) {
 

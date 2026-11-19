@@ -17,11 +17,21 @@ import { cashbookService } from '../../../../shared/services/cashbookService';
 import { dateTime } from '../../orders/api/orderApi';
 import { OrderStateBadge } from '../../orders/pages/DanhSachDonHang';
 import { StatusBadge } from './DanhSachKhachHang';
+
+import { hasAdminPermission } from '../../../../auth/roleModel';
+import { useAdminPermissions } from '../../../../shared/components/ui/PermissionGate';
+
 import './KhachHang.css';
 
 export default function ChiTietKhachHang() {
   const navigate = useNavigate();
   const { customerId } = useParams();
+
+  const access = useAdminPermissions()?.access;
+  const canEditCustomer = hasAdminPermission(access, 'khach_hang', 'sua');
+  const canViewOrders = hasAdminPermission(access, 'don_hang', 'xem');
+  const canViewCashbook = hasAdminPermission(access, 'so_quy', 'xem');
+
   const [customer, setCustomer] = useState(null);
 
   const [orders, setOrders] = useState([]);
@@ -117,6 +127,9 @@ export default function ChiTietKhachHang() {
 
   const isActive = customer.trang_thai === 1;
   const confirmStatusChange = async () => {
+
+if (!canEditCustomer || !modalMode) return;
+
     try {
       const newStatus = modalMode === 'lock' ? 0 : 1;
       await customerService.updateCustomerStatus(customer.id, newStatus);
@@ -158,7 +171,7 @@ export default function ChiTietKhachHang() {
           <button
             type="button"
             className={`customer-btn customer-btn--status customer-btn--${isActive ? 'danger' : 'success'}`}
-            onClick={() => setModalMode(isActive ? 'lock' : 'unlock')}
+            disabled={!canEditCustomer} onClick={() => setModalMode(isActive ? 'lock' : 'unlock')}
           >
             {isActive ? 'KHÓA TÀI KHOẢN' : 'MỞ TÀI KHOẢN'}
           </button>
@@ -263,6 +276,7 @@ export default function ChiTietKhachHang() {
                         <td>
                           <button
                             className="customer-action-btn"
+                            disabled={!canViewOrders}
                             onClick={() =>
                               navigate(`/admin/don-hang/danh-sach-don-hang/${order.id}`)
                             }
@@ -291,11 +305,17 @@ export default function ChiTietKhachHang() {
             />
           </section>
 
-          <CustomerCashbookPanel customerId={customer.id} orders={orders} />
+            {canViewCashbook && (
+            <CustomerCashbookPanel
+              customerId={customer.id}
+              orders={orders}
+              canViewOrders={canViewOrders}
+            />
+          )}
         </div>
       </section>
 
-      {modalMode && (
+      {canEditCustomer && modalMode && (
         <StatusConfirmModal
           mode={modalMode}
           customer={customer}
@@ -362,7 +382,7 @@ function StatusConfirmModal({ mode, customer, onCancel, onConfirm }) {
   );
 }
 
-function CustomerCashbookPanel({ customerId, orders = [] }) {
+function CustomerCashbookPanel({ customerId, orders = [], canViewOrders }) {
   const navigate = useNavigate();
   const [items, setItems] = useState([]);
   const [summary, setSummary] = useState({
@@ -423,7 +443,7 @@ function CustomerCashbookPanel({ customerId, orders = [] }) {
   };
 
   const handleDocClick = (docCode) => {
-    if (!docCode) return;
+    if (!canViewOrders || !docCode) return;
     const cleanCode = docCode.trim();
     const matched = (orders || []).find(
       (o) => o.ma_don_hang === cleanCode || String(o.id) === cleanCode
@@ -609,6 +629,7 @@ function CustomerCashbookPanel({ customerId, orders = [] }) {
                         <button
                           type="button"
                           className="customer-doc-link"
+                          disabled={!canViewOrders}
                           onClick={() => handleDocClick(item.ma_chung_tu_tham_chieu)}
                           title="Đi đến chứng từ tham chiếu"
                         >

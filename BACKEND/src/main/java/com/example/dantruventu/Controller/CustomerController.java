@@ -35,7 +35,7 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/v1/admin/customers")
 @RequiredArgsConstructor
-@PreAuthorize("hasRole('ADMIN')")
+@PreAuthorize("@adminRoleService.hasModuleAction(principal, 'khach_hang', 'xem')")
 public class CustomerController {
 
   private final CustomerService customerService;
@@ -212,6 +212,7 @@ public class CustomerController {
   }
 
   @PatchMapping("/{id}/status")
+  @PreAuthorize("@adminRoleService.hasModuleAction(principal, 'khach_hang', 'sua')")
   @Transactional
   public ApiResponse<Object> updateCustomerStatus(
       @PathVariable Long id, @RequestBody(required = false) Map<String, Object> body) {
@@ -301,6 +302,7 @@ public class CustomerController {
   }
 
   @PostMapping
+  @PreAuthorize("@adminRoleService.hasModuleAction(principal, 'khach_hang', 'them')")
   public ResponseEntity<ApiResponse<CustomerResponse>> createCustomer(
       @RequestBody CreateCustomerRequest request) {
 
@@ -315,17 +317,6 @@ public class CustomerController {
   }
 
   private boolean isCustomerRole(VaiTro vaiTro) {
-    if (vaiTro == null) {
-      return false;
-    }
-    String roleName =
-        vaiTro.getTenVaiTro() != null ? vaiTro.getTenVaiTro().toUpperCase(Locale.ROOT) : "";
-    String roleDesc = vaiTro.getMoTa() != null ? vaiTro.getMoTa().toLowerCase(Locale.ROOT) : "";
-    return "USER".equals(roleName)
-        || "KHACH_HANG".equals(roleName)
-        || "KHÁCH HÀNG".equalsIgnoreCase(vaiTro.getTenVaiTro())
-        || "KHACH HANG".equalsIgnoreCase(vaiTro.getTenVaiTro())
-        || roleDesc.contains("khách hàng")
-        || roleDesc.contains("khach hang");
+    return vaiTro != null && "USER".equals(vaiTro.getMaVaiTro());
   }
 }

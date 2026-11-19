@@ -7,6 +7,10 @@ import TablePagination from '../../../../shared/components/ui/TablePagination';
 import AddCustomerModal from '../components/AddCustomerModal';
 import { formatCustomerStatus } from '../../../../data/mockCustomers';
 import { customerService } from '../../../../shared/services/customerService';
+
+import { hasAdminPermission } from '../../../../auth/roleModel';
+import { useAdminPermissions } from '../../../../shared/components/ui/PermissionGate';
+
 import './KhachHang.css';
 
 const PAGE_SIZE = 10;
@@ -14,6 +18,10 @@ const statusOptions = ['Tất cả trạng thái', 'Hoạt động', 'Ngừng ho
 
 export default function DanhSachKhachHang() {
   const navigate = useNavigate();
+
+  const access = useAdminPermissions()?.access;
+  const canCreateCustomer = hasAdminPermission(access, 'khach_hang', 'them');
+
   const [customers, setCustomers] = useState([]);
   const [totalElements, setTotalElements] = useState(0);
 
@@ -94,6 +102,7 @@ export default function DanhSachKhachHang() {
         <button
           type="button"
           className="customer-btn customer-btn--black"
+          disabled={!canCreateCustomer}
           onClick={() => setIsAddOpen(true)}
         >
           <HiOutlinePlus size={16} />
@@ -124,7 +133,12 @@ export default function DanhSachKhachHang() {
       </section>
 
       <section className="customer-list-content admin-list-body">
-        <div className="customer-table-wrap admin-table-scroll" tabIndex={0} role="region" aria-label="Bảng danh sách">
+        <div
+          className="customer-table-wrap admin-table-scroll"
+          tabIndex={0}
+          role="region"
+          aria-label="Bảng danh sách"
+        >
           <table className="customer-table admin-data-table">
             <thead>
               <tr>
@@ -200,7 +214,7 @@ export default function DanhSachKhachHang() {
       </section>
 
       <AddCustomerModal
-        open={isAddOpen}
+        open={canCreateCustomer && isAddOpen}
         onClose={() => setIsAddOpen(false)}
         onCreated={customerCreated}
       />
