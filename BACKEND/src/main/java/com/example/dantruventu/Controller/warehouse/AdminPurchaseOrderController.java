@@ -49,6 +49,7 @@ public class AdminPurchaseOrderController {
   }
 
   @PostMapping
+  @PreAuthorize("@adminRoleService.hasModuleAction(principal, 'nhap_hang', 'them')")
   public ResponseEntity<ApiResponse<AdminPurchaseOrderDetailResponse>> create(
       @Valid @RequestBody AdminPurchaseOrderSaveRequest request) {
 
@@ -63,6 +64,7 @@ public class AdminPurchaseOrderController {
   }
 
   @PutMapping("/{id}")
+  @PreAuthorize("@adminRoleService.hasModuleAction(principal, 'nhap_hang', 'sua')")
   public ApiResponse<AdminPurchaseOrderStatusResponse> update(
       @PathVariable Long id, @Valid @RequestBody AdminPurchaseOrderSaveRequest request) {
 
@@ -97,6 +99,7 @@ public class AdminPurchaseOrderController {
   }
 
   @PostMapping("/{id}/receive")
+  @PreAuthorize("@adminRoleService.hasModuleAction(principal, 'nhap_hang', 'sua')")
   public ApiResponse<AdminPurchaseOrderReceiveResponse> receive(
       @PathVariable Long id,
       @RequestHeader("Idempotency-Key") String idempotencyKey,

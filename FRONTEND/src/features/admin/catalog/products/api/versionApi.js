@@ -99,7 +99,10 @@ export async function getAllVersions(warehouseId, signal, includeCombos = true, 
           );
           const productId = detail.phien_ban.san_pham_id;
           if (!products.has(productId))
-            products.set(productId, request(`/api/v1/admin/products/${productId}`, { signal }));
+            products.set(
+              productId,
+              request(`/api/v1/admin/products/${productId}/inventory-summary`, { signal })
+            );
           const product = await products.get(productId);
           const below = detail.ton_kho_theo_kho.some(
             (stock) =>
@@ -171,7 +174,10 @@ export async function getVersionDetail(variantId, signal) {
     ),
     getWarehouses(signal),
   ]);
-  const product = await request(`/api/v1/admin/products/${item.phien_ban.san_pham_id}`, { signal });
+  const product = await request(
+    `/api/v1/admin/products/${item.phien_ban.san_pham_id}/inventory-summary`,
+    { signal }
+  );
   const versions = await Promise.all(
     (product.danh_sach_phien_ban || []).map(async (variant) => {
       const stock = await request(

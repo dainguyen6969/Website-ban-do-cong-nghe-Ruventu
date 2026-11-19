@@ -37,6 +37,10 @@ import {
   refundReturn,
 } from '../api/customerReturnApi.js';
 import '../../warranty/styles/warrantyShell.css';
+
+import { hasAdminPermission, hasSystemAdminPermission } from '../../../../auth/roleModel';
+import { useAdminPermissions } from '../../../../shared/components/ui/PermissionGate';
+
 import './KhachTraHang.css';
 
 const LIST_ROUTE = '/admin/don-hang/khach-tra-hang';
@@ -125,6 +129,10 @@ export default function KhachTraHang() {
    ========================================================================== */
 function ReturnList() {
   const navigate = useNavigate();
+
+  const access = useAdminPermissions()?.access;
+  const canCreateReturn = hasAdminPermission(access, 'khach_tra_hang', 'them');
+
   const location = useLocation();
   const [params] = useSearchParams();
 
@@ -216,7 +224,12 @@ function ReturnList() {
           <h1>KHÁCH TRẢ HÀNG</h1>
           <p>Theo dõi phiếu, người liên hệ và quyền trả hàng từ dữ liệu hệ thống.</p>
         </div>
-        <button className="return-btn return-btn--black" onClick={() => setSelecting(true)}>
+        <button
+          type="button"
+          className="return-btn return-btn--black"
+          disabled={!canCreateReturn}
+          onClick={() => setSelecting(true)}
+        >
           + LẬP PHIẾU TRẢ HÀNG
         </button>
       </section>
@@ -426,7 +439,7 @@ function ReturnList() {
       </section>
 
       {/* Modal: CHỌN ĐƠN HÀNG CẦN TRẢ (TH002) */}
-      {selecting && (
+      {canCreateReturn && selecting && (
         <SelectOrderModal
           onClose={() => setSelecting(false)}
           onSelect={(selectedId) => {
@@ -628,6 +641,10 @@ function SelectOrderModal({ onClose, onSelect }) {
 function CreateReturn({ orderId }) {
   const navigate = useNavigate();
 
+  const access = useAdminPermissions()?.access;
+  const canReceiveReturn = hasAdminPermission(access, 'khach_tra_hang', 'sua');
+  const canRefundReturn = hasSystemAdminPermission(access, 'khach_tra_hang', 'sua');
+
   const [eligibleData, setEligibleData] = useState(null);
   const [loadingEligible, setLoadingEligible] = useState(true);
   const [eligibleError, setEligibleError] = useState('');
@@ -706,60 +723,60 @@ function CreateReturn({ orderId }) {
   const numSelectedLines = selectedEntries.length;
   const numSelectedUnits = selectedEntries.reduce((sum, [, qty]) => sum + Number(qty || 0), 0);
 
- const [previewRetry, setPreviewRetry] = useState(0);
+  const [previewRetry, setPreviewRetry] = useState(0);
 
-useEffect(() => {
-  const entries = Object.entries(selectedLines);
-  setPreviewResult(null);
-  setSubmitError('');
+  useEffect(() => {
+    const entries = Object.entries(selectedLines);
+    setPreviewResult(null);
+    setSubmitError('');
 
-  if (entries.length === 0) {
-    setIsCalculating(false);
-    return;
-  }
-
-  const controller = new AbortController();
-  setIsCalculating(true);
-
-  const timer = setTimeout(async () => {
-    try {
-      const data = await previewReturn(
-        {
-          don_hang_id: Number(orderId),
-          chi_tiet_tra: entries.map(([id, qty]) => ({
-            chi_tiet_don_hang_id: Number(id),
-            so_luong: Number(qty),
-          })),
-        },
-        controller.signal
-      );
-
-      if (controller.signal.aborted) return;
-
-      if (data?.du_dieu_kien === false || data?.tong_tien_hoan == null) {
-        throw new Error('Chưa thể xác nhận số tiền hoàn từ máy chủ.');
-      }
-
-      setPreviewResult(data);
-    } catch (err) {
-      if (!controller.signal.aborted) {
-        setSubmitError(err?.message || 'Không thể tính thử tiền hoàn.');
-      }
-    } finally {
-      if (!controller.signal.aborted) setIsCalculating(false);
+    if (entries.length === 0) {
+      setIsCalculating(false);
+      return;
     }
-  }, 250);
 
-  return () => {
-    clearTimeout(timer);
-    controller.abort();
+    const controller = new AbortController();
+    setIsCalculating(true);
+
+    const timer = setTimeout(async () => {
+      try {
+        const data = await previewReturn(
+          {
+            don_hang_id: Number(orderId),
+            chi_tiet_tra: entries.map(([id, qty]) => ({
+              chi_tiet_don_hang_id: Number(id),
+              so_luong: Number(qty),
+            })),
+          },
+          controller.signal
+        );
+
+        if (controller.signal.aborted) return;
+
+        if (data?.du_dieu_kien === false || data?.tong_tien_hoan == null) {
+          throw new Error('Chưa thể xác nhận số tiền hoàn từ máy chủ.');
+        }
+
+        setPreviewResult(data);
+      } catch (err) {
+        if (!controller.signal.aborted) {
+          setSubmitError(err?.message || 'Không thể tính thử tiền hoàn.');
+        }
+      } finally {
+        if (!controller.signal.aborted) setIsCalculating(false);
+      }
+    }, 250);
+
+    return () => {
+      clearTimeout(timer);
+      controller.abort();
+    };
+  }, [selectedLines, orderId, previewRetry]);
+
+  const handleCalculatePreview = () => {
+    setPreviewResult(null);
+    setPreviewRetry((value) => value + 1);
   };
-}, [selectedLines, orderId, previewRetry]);
-
-const handleCalculatePreview = () => {
-  setPreviewResult(null);
-  setPreviewRetry((value) => value + 1);
-};
 
   // Call Create Return API
   const handleCreateReturn = async () => {
@@ -782,7 +799,11 @@ const handleCalculatePreview = () => {
       return;
     }
     if (!previewResult) {
-      setSubmitError(isCalculating ? 'Đang tự động tính tiền hoàn, vui lòng chờ trong giây lát...' : 'Chưa thể xác nhận số tiền hoàn. Vui lòng kiểm tra lại sản phẩm cần trả.');
+      setSubmitError(
+        isCalculating
+          ? 'Đang tự động tính tiền hoàn, vui lòng chờ trong giây lát...'
+          : 'Chưa thể xác nhận số tiền hoàn. Vui lòng kiểm tra lại sản phẩm cần trả.'
+      );
       return;
     }
 
@@ -874,7 +895,10 @@ const handleCalculatePreview = () => {
         {/* 01 / ĐƠN HÀNG GỐC */}
         <section className="return-section-box">
           <div className="return-section-box__header">
-            <h2><i aria-hidden="true" />01 / ĐƠN HÀNG GỐC</h2>
+            <h2>
+              <i aria-hidden="true" />
+              01 / ĐƠN HÀNG GỐC
+            </h2>
           </div>
           <div className="return-section-box__body">
             <div className="return-order-info-grid">
@@ -901,7 +925,10 @@ const handleCalculatePreview = () => {
         {/* 02 / CHỌN SẢN PHẨM & SỐ LƯỢNG TRẢ */}
         <section className="return-section-box">
           <div className="return-section-box__header">
-            <h2><i aria-hidden="true" />02 / CHỌN SẢN PHẨM & SỐ LƯỢNG TRẢ</h2>
+            <h2>
+              <i aria-hidden="true" />
+              02 / CHỌN SẢN PHẨM & SỐ LƯỢNG TRẢ
+            </h2>
             <div className="return-section-box__actions">
               <span>
                 Đã chọn:{' '}
@@ -1005,7 +1032,10 @@ const handleCalculatePreview = () => {
         {/* 03 / THÔNG TIN TIẾP NHẬN & PHƯƠNG THỨC HOÀN */}
         <section className="return-section-box">
           <div className="return-section-box__header">
-            <h2><i aria-hidden="true" />03 / THÔNG TIN TIẾP NHẬN & HOÀN TIỀN</h2>
+            <h2>
+              <i aria-hidden="true" />
+              03 / THÔNG TIN TIẾP NHẬN & HOÀN TIỀN
+            </h2>
           </div>
           <div className="return-section-box__body">
             <div
@@ -1127,45 +1157,50 @@ const handleCalculatePreview = () => {
         {/* 04 / TÍNH THỬ & XÁC NHẬN TẠO PHIẾU */}
         <section className="return-section-box">
           <div className="return-section-box__header">
-            <h2><i aria-hidden="true" />04 / KẾT QUẢ TÍNH & XÁC NHẬN TẠO PHIẾU</h2>
+            <h2>
+              <i aria-hidden="true" />
+              04 / KẾT QUẢ TÍNH & XÁC NHẬN TẠO PHIẾU
+            </h2>
           </div>
           <div className="return-section-box__body">
-<div style={{ display: 'flex', gap: 16, alignItems: 'center', marginBottom: 16 }}>
-  <button
-    type="button"
-    className="return-btn return-btn--outline"
-    disabled={isCalculating || isSubmitting || numSelectedLines === 0}
-    onClick={handleCalculatePreview}
-  >
-    TÍNH THỬ TIỀN HOÀN
-  </button>
-  <span style={{ fontSize: 12, color: '#6b7280' }}>
-    Hệ thống tự tính lại khi đổi sản phẩm hoặc số lượng.
-  </span>
-</div>
+            <div style={{ display: 'flex', gap: 16, alignItems: 'center', marginBottom: 16 }}>
+              <button
+                type="button"
+                className="return-btn return-btn--outline"
+                disabled={isCalculating || isSubmitting || numSelectedLines === 0}
+                onClick={handleCalculatePreview}
+              >
+                TÍNH THỬ TIỀN HOÀN
+              </button>
+              <span style={{ fontSize: 12, color: '#6b7280' }}>
+                Hệ thống tự tính lại khi đổi sản phẩm hoặc số lượng.
+              </span>
+            </div>
 
-{isCalculating ? (
-  <div
-    role="status"
-    style={{
-      background: '#f8fafc',
-      border: '1px solid #cbd5e1',
-      padding: 16,
-      marginBottom: 16,
-    }}
-  >
-    Đang tính tiền hoàn...
-  </div>
-) : previewResult ? (
-  <div
-    style={{
-      background: '#f8fafc',
-      border: '1px solid #cbd5e1',
-      padding: 16,
-      marginBottom: 16,
-    }}
-  >
-    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            {isCalculating ? (
+              <div
+                role="status"
+                style={{
+                  background: '#f8fafc',
+                  border: '1px solid #cbd5e1',
+                  padding: 16,
+                  marginBottom: 16,
+                }}
+              >
+                Đang tính tiền hoàn...
+              </div>
+            ) : previewResult ? (
+              <div
+                style={{
+                  background: '#f8fafc',
+                  border: '1px solid #cbd5e1',
+                  padding: 16,
+                  marginBottom: 16,
+                }}
+              >
+                <div
+                  style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
+                >
                   <span style={{ fontSize: 13, fontWeight: 700 }}>TỔNG TIỀN HOÀN DỰ KIẾN:</span>
                   <strong style={{ fontSize: 18, color: '#e31e24' }}>
                     {money(previewResult.tong_tien_hoan)}
@@ -1173,8 +1208,18 @@ const handleCalculatePreview = () => {
                 </div>
               </div>
             ) : numSelectedLines === 0 ? (
-              <div style={{ background: '#f8fafc', border: '1px dashed #cbd5e1', padding: 16, marginBottom: 16, color: '#64748b', fontSize: 13 }}>
-                Vui lòng chọn sản phẩm và số lượng cần trả ở mục 02 để hệ thống tự động tính tiền hoàn.
+              <div
+                style={{
+                  background: '#f8fafc',
+                  border: '1px dashed #cbd5e1',
+                  padding: 16,
+                  marginBottom: 16,
+                  color: '#64748b',
+                  fontSize: 13,
+                }}
+              >
+                Vui lòng chọn sản phẩm và số lượng cần trả ở mục 02 để hệ thống tự động tính tiền
+                hoàn.
               </div>
             ) : null}
 
@@ -1279,8 +1324,7 @@ function ReturnDetail({ returnId }) {
     detail.don_hang?.ma_don_hang || (detail.don_hang?.id ? `ORD-${detail.don_hang.id}` : '—');
   const contactNameText = detail.ten_nguoi_lien_he || 'Chưa có tên';
   const contactPhoneText = detail.sdt_nguoi_lien_he || 'Chưa có SĐT';
-  const createdDate =
-  detail.ngay_tao || detail.ngayTao || detail.created_at || detail.createdAt;
+  const createdDate = detail.ngay_tao || detail.ngayTao || detail.created_at || detail.createdAt;
   const refundAmount = detail.tong_tien_hoan != null ? detail.tong_tien_hoan : 0;
   const statusVal = detail.trang_thai_tra_hang;
   const statusTone = getReturnStatusVariant(statusVal);
@@ -1296,6 +1340,8 @@ function ReturnDetail({ returnId }) {
 
   // Submit TH007: Ghi nhận tiếp nhận kiện
   const handleSaveTH007 = async () => {
+    if (!canReceiveReturn) return;
+
     setIsReceiving(true);
     try {
       let orderLines = [];
@@ -1355,11 +1401,15 @@ function ReturnDetail({ returnId }) {
   };
 
   const openRefundModal = () => {
+    if (!canRefundReturn) return;
+
     setRefundError(null);
     setShowRefundModal(true);
   };
 
   const handleConfirmRefund = async () => {
+    if (!canRefundReturn) return;
+
     setIsRefunding(true);
     setRefundError(null);
     try {
@@ -1440,7 +1490,7 @@ function ReturnDetail({ returnId }) {
               <ExternalLink size={15} /> Xem đơn gốc
             </button>
           )}
-          {statusVal === 'CHO_TIEP_NHAN' && (
+          {canReceiveReturn && statusVal === 'CHO_TIEP_NHAN' && (
             <button
               type="button"
               className={`w-shell-button ${showTH007 ? 'w-shell-button--red' : 'w-shell-button--black'}`}
@@ -1452,7 +1502,6 @@ function ReturnDetail({ returnId }) {
           )}
         </div>
       </header>
-
       {/* TABS NAVIGATION */}
       <nav className="w-shell-tabs" aria-label="Các nhóm thông tin yêu cầu trả hàng">
         {RETURN_DETAIL_TABS.map(({ key, label, icon: Icon }) => (
@@ -1473,7 +1522,7 @@ function ReturnDetail({ returnId }) {
           {/* MAIN COLUMN */}
           <main>
             {/* TH007 Panel if toggled */}
-            {showTH007 && (
+            {canReceiveReturn && showTH007 && (
               <WarrantyPanel
                 title="TH007 — TIẾP NHẬN KIỆN & NGOẠI QUAN"
                 note="Biên bản tiếp nhận thực tế kiện hàng khách mang tới cửa hàng."
@@ -1652,7 +1701,7 @@ function ReturnDetail({ returnId }) {
                   <div className="w-empty-inline">
                     <Package size={24} />
                     <p>Chưa có biên bản tiếp nhận kiểm tra thực tế.</p>
-                    {statusVal === 'CHO_TIEP_NHAN' && (
+                    {canReceiveReturn && statusVal === 'CHO_TIEP_NHAN' && (
                       <button
                         type="button"
                         className="w-shell-button w-shell-button--black"
@@ -1691,7 +1740,7 @@ function ReturnDetail({ returnId }) {
                   <div className="w-empty-inline">
                     <Wallet size={24} />
                     <p>Chưa có chứng từ hoàn tiền chính thức.</p>
-                    {statusVal === 'DA_NHAN_HANG' && (
+                    {canRefundReturn && statusVal === 'DA_NHAN_HANG' && (
                       <button
                         type="button"
                         className="w-shell-button w-shell-button--red"
@@ -1754,9 +1803,7 @@ function ReturnDetail({ returnId }) {
                 </div>
                 <div className="kth-aside-stat-row" style={{ marginTop: 12 }}>
                   <span>NGÀY LẬP PHIẾU</span>
-                  <strong className="kth-date-highlight">
-                    {formatDisplayDate(createdDate)}
-                  </strong>
+                  <strong className="kth-date-highlight">{formatDisplayDate(createdDate)}</strong>
                 </div>
               </div>
             </WarrantyPanel>
@@ -1766,7 +1813,7 @@ function ReturnDetail({ returnId }) {
                 className="w-shell-actions"
                 style={{ flexDirection: 'column', alignItems: 'stretch', margin: 0, gap: 8 }}
               >
-                {statusVal === 'CHO_TIEP_NHAN' && (
+                {canReceiveReturn && statusVal === 'CHO_TIEP_NHAN' && (
                   <button
                     type="button"
                     className={`w-shell-button w-full-width ${showTH007 ? 'w-shell-button--red' : 'w-shell-button--black'}`}
@@ -1776,7 +1823,7 @@ function ReturnDetail({ returnId }) {
                     {showTH007 ? 'Đóng form tiếp nhận' : 'Tiếp nhận kiện'}
                   </button>
                 )}
-                {statusVal === 'DA_NHAN_HANG' && !detail.phieu_chi && (
+                {canRefundReturn && statusVal === 'DA_NHAN_HANG' && !detail.phieu_chi && (
                   <button
                     type="button"
                     className="w-shell-button w-shell-button--red w-full-width"
@@ -1803,7 +1850,9 @@ function ReturnDetail({ returnId }) {
             <div className="kth-summary-status-cell">
               <span>TRẠNG THÁI HIỆN TẠI</span>
               <div style={{ marginTop: '6px' }}>
-                <span className={`returns-status-badge returns-status-badge--${statusTone} kth-overview-status-badge`}>
+                <span
+                  className={`returns-status-badge returns-status-badge--${statusTone} kth-overview-status-badge`}
+                >
                   {statusDisplay}
                 </span>
               </div>
@@ -1815,7 +1864,9 @@ function ReturnDetail({ returnId }) {
             <div>
               <span>HÌNH THỨC HOÀN TIỀN</span>
               <div style={{ marginTop: '6px' }}>
-                <span className={`kth-payment-pill kth-payment-pill--${detail.hinh_thuc_hoan_tien === 'CHUYEN_KHOAN' ? 'bank' : 'cash'}`}>
+                <span
+                  className={`kth-payment-pill kth-payment-pill--${detail.hinh_thuc_hoan_tien === 'CHUYEN_KHOAN' ? 'bank' : 'cash'}`}
+                >
                   {detail.hinh_thuc_hoan_tien === 'CHUYEN_KHOAN' ? 'Chuyển khoản' : 'Tiền mặt'}
                 </span>
               </div>
@@ -1828,7 +1879,7 @@ function ReturnDetail({ returnId }) {
         </div>
       </div>
       {/* MODAL XÁC NHẬN HOÀN TIỀN (Thay thế window.confirm mặc định) */}
-      {showRefundModal && (
+      {canRefundReturn && showRefundModal && (
         <div
           className="returns-modal-backdrop"
           onClick={() => !isRefunding && setShowRefundModal(false)}

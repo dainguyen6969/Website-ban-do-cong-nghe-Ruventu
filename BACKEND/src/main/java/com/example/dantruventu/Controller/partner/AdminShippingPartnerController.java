@@ -24,6 +24,10 @@ public class AdminShippingPartnerController {
   private final AdminShippingPartnerService service;
 
   @GetMapping
+  @PreAuthorize(
+      "@adminRoleService.isSystemAdmin(principal)"
+          + " or @adminRoleService.hasModuleAction(principal, 'giao_hang', 'xem')"
+          + " or @adminRoleService.hasModuleAction(principal, 'don_hang', 'xem')")
   public ApiResponse<AdminShippingPartnerListResponse> getPartners(
       @RequestParam(name = "keyword", required = false) String keyword,
       @RequestParam(name = "loai_doi_tac", required = false) String loaiDoiTac,

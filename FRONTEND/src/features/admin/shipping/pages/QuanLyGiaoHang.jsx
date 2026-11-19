@@ -1,8 +1,16 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { HiOutlineArrowRight, HiOutlineEye, HiOutlineRefresh, HiOutlineSearch } from 'react-icons/hi';
+import {
+  HiOutlineArrowRight,
+  HiOutlineEye,
+  HiOutlineRefresh,
+  HiOutlineSearch,
+} from 'react-icons/hi';
 
 import { apiRequest } from '../../../../auth/backendAuth';
+
+import { hasAdminPermission, hasSystemAdminPermission } from '../../../../auth/roleModel';
+import { useAdminPermissions } from '../../../../shared/components/ui/PermissionGate';
 
 import {
   dateTime,
@@ -212,7 +220,9 @@ function ShipmentList() {
       aria-labelledby="delivery-list-heading"
       aria-busy={state.loading}
     >
-      <h1 id="delivery-list-heading" className="delivery-list-heading">Quản lý giao hàng</h1>
+      <h1 id="delivery-list-heading" className="delivery-list-heading">
+        Quản lý giao hàng
+      </h1>
       <div className="delivery-toolbar">
         <label className="delivery-search">
           <HiOutlineSearch size={16} aria-hidden="true" />
@@ -418,9 +428,7 @@ function ShipmentList() {
                       </td>
 
                       <td>
-                        <strong className="delivery-recipient">
-                          {item.ten_nguoi_nhan || '—'}
-                        </strong>
+                        <strong className="delivery-recipient">{item.ten_nguoi_nhan || '—'}</strong>
                         {item.sdt_nguoi_nhan && (
                           <small className="delivery-list-meta">{item.sdt_nguoi_nhan}</small>
                         )}
@@ -502,6 +510,11 @@ function ShipmentList() {
 
 function ShipmentDetail({ id }) {
   const navigate = useNavigate();
+
+  const access = useAdminPermissions()?.access;
+  const canEditDelivery = hasAdminPermission(access, 'giao_hang', 'sua');
+  const canReceiveReturned = hasSystemAdminPermission(access, 'giao_hang', 'sua');
+
   const operationBusy = useRef(false);
   const mounted = useRef(true);
   const deliveryAttempt = useRef(null);
@@ -561,7 +574,8 @@ function ShipmentDetail({ id }) {
   }, [id, revision]);
 
   const open = (kind) => {
-    if (operationBusy.current || loading || deliveryAttempt.current) {
+    const allowed = kind === 'return' ? canReceiveReturned : canEditDelivery;
+    if (!allowed || operationBusy.current || loading || deliveryAttempt.current) {
       return;
     }
 
@@ -578,7 +592,8 @@ function ShipmentDetail({ id }) {
   };
 
   const save = async (method, suffix, body, message) => {
-    if (operationBusy.current) return;
+    const allowed = suffix === 'return-receipt' ? canReceiveReturned : canEditDelivery;
+    if (!allowed || operationBusy.current) return;
 
     operationBusy.current = true;
     setBusy(true);
@@ -681,7 +696,7 @@ function ShipmentDetail({ id }) {
   const partner = delivery.doi_tac_van_chuyen || {};
   const totals = delivery.tong_tien || {};
   const status = delivery.trang_thai_giao_hang;
-  const locked = busy || loading;
+  const locked = !canEditDelivery || busy || loading;
   const waitingCod = isWaitingCodSettlement(order, delivery);
 
   const openOrder =
@@ -741,7 +756,16 @@ function ShipmentDetail({ id }) {
           <div className="delivery-feedback is-warning" role="status">
             <span>Chưa xác định được kết quả. Dữ liệu đang được giữ nguyên để thử lại.</span>
 
-            <button type="button" disabled={busy} onClick={retryDeliveryOperation}>
+            <button
+              type="button"
+              disabled={
+                busy ||
+                (deliveryAttempt.current.body.suffix === 'return-receipt'
+                  ? !canReceiveReturned
+                  : !canEditDelivery)
+              }
+              onClick={retryDeliveryOperation}
+            >
               THỬ LẠI YÊU CẦU CŨ
             </button>
           </div>
@@ -1027,7 +1051,7 @@ function ShipmentDetail({ id }) {
                     <button
                       type="button"
                       className="delivery-action return"
-                      disabled={locked || !inTransit}
+                      disabled={!canReceiveReturned || locked || !inTransit}
                       onClick={() => open('return')}
                     >
                       XÁC NHẬN ĐÃ NHẬN HÀNG HOÀN
@@ -1069,7 +1093,7 @@ function ShipmentDetail({ id }) {
         </div>
       </div>
 
-      {!deliveryAttempt.current && modal === 'edit' && (
+      {canEditDelivery && !deliveryAttempt.current && modal === 'edit' && (
         <ShipmentEditDialog
           delivery={delivery}
           busy={busy}
@@ -1079,7 +1103,7 @@ function ShipmentDetail({ id }) {
         />
       )}
 
-      {!deliveryAttempt.current && modal === 'return' && (
+      {canReceiveReturned && !deliveryAttempt.current && modal === 'return' && (
         <ShipmentReturnDialog
           delivery={delivery}
           busy={busy}
@@ -1089,7 +1113,8 @@ function ShipmentDetail({ id }) {
         />
       )}
 
-      {!deliveryAttempt.current &&
+      {canEditDelivery &&
+        !deliveryAttempt.current &&
         ['handoff', 'transit', 'success', 'failure', 'cancel'].includes(modal) && (
           <ShipmentStatusDialog
             key={modal}

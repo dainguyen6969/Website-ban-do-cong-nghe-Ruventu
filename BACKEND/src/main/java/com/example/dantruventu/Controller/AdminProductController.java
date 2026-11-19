@@ -10,6 +10,8 @@ import com.example.dantruventu.DTO.catalog.CatalogFields;
 import com.example.dantruventu.Enum.LoaiSanPham;
 import com.example.dantruventu.Services.AdminProductService;
 import jakarta.validation.Valid;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -52,6 +54,40 @@ public class AdminProductController {
         .status(200)
         .message("Lấy chi tiết sản phẩm thành công")
         .data(adminProductService.getProductDetail(id))
+        .build();
+  }
+
+  @GetMapping("/{id}/inventory-summary")
+  @PreAuthorize("@adminRoleService.hasModuleAction(principal, 'kho_hang', 'xem')")
+  public ApiResponse<Map<String, Object>> inventorySummary(@PathVariable Long id) {
+    var product = adminProductService.getProductDetail(id);
+    var variants =
+        product.getDanhSachPhienBan().stream()
+            .map(
+                variant -> {
+                  Map<String, Object> row = new LinkedHashMap<>();
+                  row.put("id", variant.getId());
+                  row.put("ten_phien_ban", variant.getTenPhienBan());
+                  row.put("ma_vach", variant.getMaVach());
+                  row.put("trang_thai", variant.getTrangThai());
+                  return row;
+                })
+            .toList();
+
+    Map<String, Object> data = new LinkedHashMap<>();
+    data.put("id", product.getId());
+    data.put("ma_san_pham", product.getMaSanPham());
+    data.put("ten_san_pham", product.getTenSanPham());
+    data.put("trang_thai", product.getTrangThai());
+    data.put("thuong_hieu", product.getThuongHieu());
+    data.put("danh_muc", product.getDanhMuc());
+    data.put("anh_san_pham", product.getAnhSanPham());
+    data.put("danh_sach_phien_ban", variants);
+
+    return ApiResponse.<Map<String, Object>>builder()
+        .status(200)
+        .message("Lấy thông tin sản phẩm của kho")
+        .data(data)
         .build();
   }
 

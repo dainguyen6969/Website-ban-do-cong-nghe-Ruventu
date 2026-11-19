@@ -247,14 +247,8 @@ export default function ChiTietNhapHang() {
     };
   }, [order]);
 
-  const run = async (request) => {
-    if (
-      !canOperatePurchase ||
-      operationBusy.current ||
-      nccLocked ||
-      sourceLocked ||
-      documentLocked
-    ) {
+  const run = async (request, allowed = canOperatePurchase) => {
+    if (!allowed || operationBusy.current || nccLocked || sourceLocked || documentLocked) {
       return;
     }
 
@@ -311,7 +305,7 @@ export default function ChiTietNhapHang() {
     ) && waitingReceipt.length > 0;
 
   const openReceive = () => {
-    if (busy || operationBusy.current) return;
+    if (!canEditPurchase || !canReceive || busy || operationBusy.current) return;
 
     const pending = purchaseAttempt.current;
 
@@ -445,7 +439,7 @@ export default function ChiTietNhapHang() {
         setReceiptServerErrors(receiptErrorsFromApi(error, body.items));
         throw error;
       }
-    });
+    }, canEditPurchase);
 
   const returnable = order.items.filter(
     (item) => (item.legacyReturnLimit ?? item.received - item.returned) > 0
@@ -536,7 +530,7 @@ export default function ChiTietNhapHang() {
             </button>
           )}
 
-          {canOperatePurchase && canReceive && (
+          {canEditPurchase && canReceive && (
             <button
               type="button"
               className="purchase-btn green purchase-btn--receive"
@@ -940,7 +934,7 @@ export default function ChiTietNhapHang() {
           />
         </Modal>
       )}
-      {canOperatePurchase && modal === 'receipt' && (
+      {canEditPurchase && modal === 'receipt' && (
         <Modal
           className="receipt-modal"
           onClose={() => {

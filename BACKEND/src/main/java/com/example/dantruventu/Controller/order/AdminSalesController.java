@@ -12,7 +12,9 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/v1/admin/sales")
 @RequiredArgsConstructor
-@PreAuthorize("hasRole('ADMIN')")
+@PreAuthorize(
+    "@adminRoleService.hasModuleAction(principal, 'ban_hang_pos', 'xem')"
+        + " or @adminRoleService.hasModuleAction(principal, 'don_hang', 'xem')")
 public class AdminSalesController {
 
   private final AdminSalesService service;
@@ -23,6 +25,10 @@ public class AdminSalesController {
   }
 
   @GetMapping("/customers")
+  @PreAuthorize(
+      "@adminRoleService.hasModuleAction(principal, 'ban_hang_pos', 'xem')"
+          + " or @adminRoleService.hasModuleAction(principal, 'don_hang', 'them')"
+          + " or @adminRoleService.hasModuleAction(principal, 'don_hang', 'sua')")
   public ApiResponse<AdminSalesResponse.PageData<AdminSalesResponse.Customer>> customers(
       @RequestParam(name = "keyword", required = false) String keyword,
       @RequestParam(name = "page", defaultValue = "0") int page,
@@ -32,12 +38,21 @@ public class AdminSalesController {
   }
 
   @PostMapping("/customers")
+  @PreAuthorize(
+      "(@adminRoleService.hasModuleAction(principal, 'ban_hang_pos', 'them')"
+          + " or @adminRoleService.hasModuleAction(principal, 'don_hang', 'them')"
+          + " or @adminRoleService.hasModuleAction(principal, 'don_hang', 'sua'))"
+          + " and @adminRoleService.hasModuleAction(principal, 'khach_hang', 'them')")
   public ApiResponse<AdminSalesResponse.Customer> createCustomer(
       @Valid @RequestBody AdminSalesRequest.Customer request) {
     return ok("Tạo khách hàng thành công", service.createCustomer(request));
   }
 
   @GetMapping("/products")
+  @PreAuthorize(
+      "@adminRoleService.hasModuleAction(principal, 'ban_hang_pos', 'xem')"
+          + " or @adminRoleService.hasModuleAction(principal, 'don_hang', 'them')"
+          + " or @adminRoleService.hasModuleAction(principal, 'don_hang', 'sua')")
   public ApiResponse<AdminSalesResponse.PageData<AdminSalesResponse.Product>> products(
       @RequestParam(name = "keyword", required = false) String keyword,
       @RequestParam(name = "kho_hang_id") Long warehouseId,
@@ -51,6 +66,12 @@ public class AdminSalesController {
   }
 
   @PostMapping("/preview")
+  @PreAuthorize(
+      "(#p0.loaiDonHang.name() == 'TAI_QUAY'"
+          + " and @adminRoleService.hasModuleAction(principal, 'ban_hang_pos', 'xem'))"
+          + " or (#p0.loaiDonHang.name() == 'ONLINE'"
+          + " and @adminRoleService.hasModuleAction(principal, 'don_hang',"
+          + " (#p0.donHangId == null ? 'them' : 'sua')))")
   public ApiResponse<AdminSalesResponse.Preview> preview(
       @Valid @RequestBody AdminSalesRequest.Preview request) {
 

@@ -11,7 +11,7 @@ import SerialTracePanel from '../recall/SerialTracePanel';
 import { withIdempotency } from '../../../../shared/services/mutationUtils';
 import './SerialPages.css';
 import { FormDropdown } from '../../../../shared/components/ui/FilterDropdown';
-import { hasAdminPermission } from '../../../../auth/roleModel';
+import { hasAdminPermission, hasSystemAdminPermission } from '../../../../auth/roleModel';
 import { useAdminPermissions } from '../../../../shared/components/ui/PermissionGate';
 
 function StatusBadge({ status }) {
@@ -281,7 +281,9 @@ export default function ChiTietSerial() {
 
         <SerialOverview serial={serial} />
 
-        <SerialTracePanel serialId={serialId} refreshKey={serial.status} />
+        {hasSystemAdminPermission(access, 'kho_hang', 'xem') && (
+          <SerialTracePanel serialId={serialId} refreshKey={serial.status} />
+        )}
       </div>
 
       {canEdit && modalOpen && (

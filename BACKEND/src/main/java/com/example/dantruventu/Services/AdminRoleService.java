@@ -109,6 +109,11 @@ public class AdminRoleService {
     return effectivePermissions(principal).getOrDefault(module, List.of()).contains(action);
   }
 
+  public boolean hasModuleAction(Object principal, String module, String action) {
+    var actions = effectivePermissions(principal).getOrDefault(module, List.of());
+    return actions.contains("xem") && actions.contains(action);
+  }
+
   public Map<String, Object> getMyPermissions(Object principal) {
     VaiTro role = activeRole(principal);
     if (role == null) throw new AppException(ErrorCode.FORBIDDEN);

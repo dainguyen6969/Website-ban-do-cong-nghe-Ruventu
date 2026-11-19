@@ -23,6 +23,9 @@ import OrderModal from '../components/OrderModal';
 import { errorMessage, withIdempotency } from '../../../../shared/services/mutationUtils';
 import { FormDropdown } from '../../../../shared/components/ui/FilterDropdown';
 
+import { hasAdminPermission } from '../../../../auth/roleModel';
+import { useAdminPermissions } from '../../../../shared/components/ui/PermissionGate';
+
 const money = new Intl.NumberFormat('vi-VN', {
   style: 'currency',
   currency: 'VND',
@@ -43,6 +46,12 @@ const labels = {
 export default function DatHangOnline() {
   const navigate = useNavigate();
   const { orderId: editId } = useParams();
+
+  const access = useAdminPermissions()?.access;
+  const canCreateSalesCustomer =
+    hasAdminPermission(access, 'khach_hang', 'xem') &&
+    hasAdminPermission(access, 'khach_hang', 'them');
+
   const [options, setOptions] = useState(null);
   const [optionsError, setOptionsError] = useState('');
   const [editReady, setEditReady] = useState(false);
@@ -657,6 +666,8 @@ export default function DatHangOnline() {
   };
 
   const saveCustomer = async () => {
+    if (!canCreateSalesCustomer) return;
+
     if (!newCustomer.name.trim() || !validPhone(newCustomer.phone)) return;
     setCustomerSaving(true);
     setCustomerError('');
@@ -730,6 +741,7 @@ export default function DatHangOnline() {
             <button
               type="button"
               className="online-outline-btn"
+              disabled={!canCreateSalesCustomer}
               onClick={() => {
                 setCustomerError('');
                 setNewCustomer({ name: '', phone: '' });
@@ -1101,7 +1113,7 @@ export default function DatHangOnline() {
           edit={Boolean(editId)}
         />
       </div>
-      {newCustomer && (
+      {canCreateSalesCustomer && newCustomer && (
         <OrderModal
           title="THÊM KHÁCH HÀNG"
           busy={customerSaving}

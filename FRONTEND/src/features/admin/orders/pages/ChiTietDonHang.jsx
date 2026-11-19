@@ -235,6 +235,7 @@ function OrderDetailView({ orderId }) {
   const navigate = useNavigate();
 
   const access = useAdminPermissions()?.access;
+
   const canOperateOrder = hasSystemAdminPermission(access, 'don_hang', 'sua');
 
   const { state: locationState } = useLocation();
@@ -278,7 +279,8 @@ function OrderDetailView({ orderId }) {
     updatedAt: null,
   });
 
-  editingRef.current = canOperateOrder && Boolean(dialog || isCancelOpen);
+  const canUseDialog = dialog?.type === 'startDelivery' ? canCreateDelivery : canOperateOrder;
+  editingRef.current = Boolean((canUseDialog && dialog) || (canOperateOrder && isCancelOpen));
 
   const load = useCallback(() => readerRef.current?.refresh(), []);
 
@@ -381,12 +383,12 @@ function OrderDetailView({ orderId }) {
 
   useEffect(() => {
     readerRef.current?.resume();
-  }, [dialog, isCancelOpen, state.busy, canOperateOrder]);
+  }, [dialog, isCancelOpen, state.busy, canOperateOrder, canUseDialog]);
 
   const products = useDetailTablePagination(order?.san_pham || []);
 
-  const run = async (work) => {
-    if (!canOperateOrder || actionBusy.current) return;
+  const run = async (work, allowed = canOperateOrder) => {
+    if (!allowed || actionBusy.current) return;
 
     const reader = readerRef.current;
     actionBusy.current = true;
@@ -459,7 +461,8 @@ function OrderDetailView({ orderId }) {
     );
 
   const open = (type, title, fields = {}) => {
-    if (!canOperateOrder || refundEditing.current || documentEditing.current) return;
+    const allowed = type === 'startDelivery' ? canCreateDelivery : canOperateOrder;
+    if (!allowed || refundEditing.current || documentEditing.current) return;
 
     setState((current) => ({ ...current, error: '' }));
     editingRef.current = true;
@@ -948,7 +951,7 @@ function OrderDetailView({ orderId }) {
       }
 
       throw new Error('Thao tác không hợp lệ.');
-    });
+    }, canUseDialog);
   };
 
   const waitingRows = Array.isArray(order.giu_hang_cho_hang) ? order.giu_hang_cho_hang : [];
@@ -1061,13 +1064,19 @@ function OrderDetailView({ orderId }) {
             </Action>
           )}
 
-          {openOnlineOrder &&
+          {canCreateDelivery &&
+            openOnlineOrder &&
             isShipping &&
             (!activeDelivery || activeDelivery.trang_thai_giao_hang === 'CHO_GIAO') && (
               <div className="order-handover-action">
-                <Action disabled={state.busy || !canStartDelivery} click={beginDelivery}>
+                <button
+                  type="button"
+                  className="order-action order-action--black"
+                  disabled={state.busy || !canStartDelivery}
+                  onClick={beginDelivery}
+                >
                   BẮT ĐẦU GIAO HÀNG
-                </Action>
+                </button>
 
                 {!canStartDelivery && (
                   <small className="order-handover-warning" role="status">
@@ -1597,7 +1606,7 @@ function OrderDetailView({ orderId }) {
                 </div>
               ))}
 
-           <OrderRefundPanel
+            <OrderRefundPanel
               order={order}
               data={screen.hoan_tien}
               canWrite={canOperateOrder}
@@ -2023,7 +2032,7 @@ function OrderDetailView({ orderId }) {
         </div>
       )}
 
-      {!canOperateOrder ? null : dialog?.type === 'cancelBeforeHandover' ? (
+      {!canUseDialog ? null : dialog?.type === 'cancelBeforeHandover' ? (
         <ShipmentReturnDialog
           delivery={{ id: order.id }}
           beforeHandover

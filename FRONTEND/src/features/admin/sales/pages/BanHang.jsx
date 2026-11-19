@@ -1,5 +1,5 @@
 // Admin point-of-sale screen.
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from 'react';
 import {
   HiOutlineCheck,
   HiOutlinePlus,
@@ -7,8 +7,8 @@ import {
   HiOutlineShoppingCart,
   HiOutlineTrash,
   HiOutlineX,
-} from "react-icons/hi";
-import { getAvailableSerials } from "../../inventory/api/serialApi";
+} from 'react-icons/hi';
+import { getAvailableSerials } from '../../inventory/api/serialApi';
 import {
   buildPosCheckoutBody,
   buildPosPreviewBody,
@@ -20,7 +20,7 @@ import {
   searchSalesCustomers,
   searchSalesProducts,
   posSerialGroups,
-} from "../../orders/api/onlineOrderApi";
+} from '../../orders/api/onlineOrderApi';
 import {
   addProduct,
   applyOrderPreview,
@@ -32,24 +32,24 @@ import {
   resetOrder,
   setProductQuantity,
   updateOrder,
-} from "../state/salesState";
-import PaymentSuccessModal from "../components/PaymentSuccessModal";
-import { sameQuotedPrice } from "../../../../shared/services/saleQuote";
+} from '../state/salesState';
+import PaymentSuccessModal from '../components/PaymentSuccessModal';
+import { sameQuotedPrice } from '../../../../shared/services/saleQuote';
 
-import { createRequestKey } from "../../../../shared/services/mutationUtils";
-import "./BanHang.css";
-import { FormDropdown } from "../../../../shared/components/ui/FilterDropdown";
+import { createRequestKey } from '../../../../shared/services/mutationUtils';
+import './BanHang.css';
+import { FormDropdown } from '../../../../shared/components/ui/FilterDropdown';
 
-const money = (value) =>
-  value == null ? "—" : `${Number(value).toLocaleString("vi-VN")}đ`;
+import { hasAdminPermission } from '../../../../auth/roleModel';
+import { useAdminPermissions } from '../../../../shared/components/ui/PermissionGate';
+
+const money = (value) => (value == null ? '—' : `${Number(value).toLocaleString('vi-VN')}đ`);
 const productName = (product) => product.name || product.tenSanPham;
 const productCode = (product) =>
-  [product.code || product.maSanPham, product.variant]
-    .filter(Boolean)
-    .join(" · ");
+  [product.code || product.maSanPham, product.variant].filter(Boolean).join(' · ');
 const productPrice = (product, priceList) =>
   Number(product.unitPrice ?? product.prices?.[priceList] ?? 0);
-const pendingCheckoutKey = "ruventu_pos_pending_checkout";
+const pendingCheckoutKey = 'ruventu_pos_pending_checkout';
 
 function Heading({ children }) {
   return <h2 className="pos-heading">{children}</h2>;
@@ -78,24 +78,33 @@ function PosDialog({ children, className, labelledBy, onClose }) {
 }
 
 export default function BanHang() {
+  const access = useAdminPermissions()?.access;
+  const canCheckout =
+    hasAdminPermission(access, 'ban_hang_pos', 'xem') &&
+    hasAdminPermission(access, 'ban_hang_pos', 'them');
+  const canCreateSalesCustomer =
+    canCheckout &&
+    hasAdminPermission(access, 'khach_hang', 'xem') &&
+    hasAdminPermission(access, 'khach_hang', 'them');
+
   const [orders, setOrders] = useState(() => [createOrder(1)]);
   const [activeId, setActiveId] = useState(1);
   const [salesOptions, setSalesOptions] = useState(null);
   const [optionsError, setOptionsError] = useState(false);
-  const [productSearch, setProductSearch] = useState("");
+  const [productSearch, setProductSearch] = useState('');
   const [productResults, setProductResults] = useState([]);
-  const [productStatus, setProductStatus] = useState("idle");
-  const [customerSearch, setCustomerSearch] = useState("");
+  const [productStatus, setProductStatus] = useState('idle');
+  const [customerSearch, setCustomerSearch] = useState('');
   const [customerResults, setCustomerResults] = useState([]);
-  const [customerStatus, setCustomerStatus] = useState("idle");
+  const [customerStatus, setCustomerStatus] = useState('idle');
   const [productFocused, setProductFocused] = useState(false);
   const [customerFocused, setCustomerFocused] = useState(false);
   const [receipt, setReceipt] = useState(null);
   const [customerModal, setCustomerModal] = useState(null);
-  const [customerCreateError, setCustomerCreateError] = useState("");
+  const [customerCreateError, setCustomerCreateError] = useState('');
   const [serialModal, setSerialModal] = useState(null);
-  const [serialSearch, setSerialSearch] = useState("");
-  const [checkoutError, setCheckoutError] = useState("");
+  const [serialSearch, setSerialSearch] = useState('');
+  const [checkoutError, setCheckoutError] = useState('');
   const [checkoutBusy, setCheckoutBusy] = useState(false);
   const [checkoutPending, setCheckoutPending] = useState(() => {
     try {
@@ -111,7 +120,7 @@ export default function BanHang() {
   const previewSignature =
     salesOptions && order.cart.length
       ? JSON.stringify(buildPosPreviewBody(order, salesOptions))
-      : "";
+      : '';
   const previewKey = `${activeId}|${previewSignature}`;
   const previewReady =
     Boolean(previewSignature) &&
@@ -133,27 +142,20 @@ export default function BanHang() {
     setPreviewState({ key: previewKey, loading: true });
     const timer = setTimeout(async () => {
       try {
-        const data = await previewOnlineOrder(
-          JSON.parse(previewSignature),
-          controller.signal,
-        );
+        const data = await previewOnlineOrder(JSON.parse(previewSignature), controller.signal);
         if (controller.signal.aborted) return;
         setOrders((current) =>
           current.map((item) =>
-            item.id === activeId
-              ? applyOrderPreview(item, previewSignature, data)
-              : item,
-          ),
+            item.id === activeId ? applyOrderPreview(item, previewSignature, data) : item
+          )
         );
         setPreviewState({ key: previewKey });
       } catch (error) {
         if (!controller.signal.aborted) {
           setOrders((current) =>
             current.map((item) =>
-              item.id === activeId
-                ? { ...item, preview: null, paymentReceived: false }
-                : item,
-            ),
+              item.id === activeId ? { ...item, preview: null, paymentReceived: false } : item
+            )
           );
           setPreviewState({ key: previewKey, error: error.message });
         }
@@ -171,14 +173,12 @@ export default function BanHang() {
         setSalesOptions(data);
         setOrders((current) =>
           current.map((item) =>
-            item.employee
-              ? item
-              : { ...item, employee: data.nhan_vien_mac_dinh },
-          ),
+            item.employee ? item : { ...item, employee: data.nhan_vien_mac_dinh }
+          )
         );
       })
       .catch((error) => {
-        if (error.name !== "AbortError") setOptionsError(true);
+        if (error.name !== 'AbortError') setOptionsError(true);
       });
     return () => controller.abort();
   }, []);
@@ -188,14 +188,12 @@ export default function BanHang() {
     const controller = new AbortController();
     const timer = setTimeout(async () => {
       try {
-        setCustomerResults(
-          await searchSalesCustomers(keyword, controller.signal),
-        );
-        setCustomerStatus("done");
+        setCustomerResults(await searchSalesCustomers(keyword, controller.signal));
+        setCustomerStatus('done');
       } catch (error) {
-        if (error.name !== "AbortError") {
+        if (error.name !== 'AbortError') {
           setCustomerResults([]);
-          setCustomerStatus("error");
+          setCustomerStatus('error');
         }
       }
     }, 250);
@@ -210,28 +208,22 @@ export default function BanHang() {
     const controller = new AbortController();
     const timer = setTimeout(async () => {
       try {
-        const results = await searchSalesProducts(
-          keyword,
-          salesOptions,
-          controller.signal,
-        );
+        const results = await searchSalesProducts(keyword, salesOptions, controller.signal);
         setProductResults(results);
         setOrders((current) =>
           current.map((entry) => ({
             ...entry,
             cart: entry.cart.map((line) => ({
               ...line,
-              product:
-                results.find((product) => product.id === line.product.id) ||
-                line.product,
+              product: results.find((product) => product.id === line.product.id) || line.product,
             })),
-          })),
+          }))
         );
-        setProductStatus("done");
+        setProductStatus('done');
       } catch (error) {
-        if (error.name !== "AbortError") {
+        if (error.name !== 'AbortError') {
           setProductResults([]);
-          setProductStatus("error");
+          setProductStatus('error');
         }
       }
     }, 250);
@@ -244,23 +236,20 @@ export default function BanHang() {
     setOrders((current) =>
       current.map((item) =>
         item.id === activeId
-          ? updateOrder(
-              item,
-              typeof change === "function" ? change(item) : change,
-            )
-          : item,
-      ),
+          ? updateOrder(item, typeof change === 'function' ? change(item) : change)
+          : item
+      )
     );
   const clearSearch = () => {
-    setProductSearch("");
-    setCustomerSearch("");
+    setProductSearch('');
+    setCustomerSearch('');
     setProductFocused(false);
     setCustomerFocused(false);
   };
   const newOrder = () => {
     const next = createOrder(
       nextOrderNumber(orders),
-      salesOptions?.nhan_vien_mac_dinh || order.employee,
+      salesOptions?.nhan_vien_mac_dinh || order.employee
     );
     setOrders((current) => [...current, next]);
     setActiveId(next.id);
@@ -274,44 +263,47 @@ export default function BanHang() {
   };
   const dismissPayment = (print = false) => {
     if (!receipt) return;
-    if (print) console.log("printing invoice", receipt);
+    if (print) console.log('printing invoice', receipt);
     setOrders((current) =>
-      current.map((item) =>
-        item.id === receipt.tabId ? resetOrder(item) : item,
-      ),
+      current.map((item) => (item.id === receipt.tabId ? resetOrder(item) : item))
     );
     setReceipt(null);
     clearSearch();
   };
   const selectProduct = (product) => {
     patch((current) => ({ cart: addProduct(current.cart, product) }));
-    setProductSearch("");
+    setProductSearch('');
     setProductFocused(false);
   };
   const selectCustomer = (customer) => {
     patch({ customer });
-    setCustomerSearch("");
+    setCustomerSearch('');
     setCustomerFocused(false);
   };
   const openCustomerModal = () => {
+    if (!canCreateSalesCustomer) return;
+
     const value = customerSearch.trim();
     const phone = /^[\d\s.+-]+$/.test(value)
-      ? value.replace(/[^\d+]/g, "").replace(/(?!^)\+/g, "")
-      : "";
-    setCustomerModal({ name: phone ? "" : value, phone });
-    setCustomerCreateError("");
+      ? value.replace(/[^\d+]/g, '').replace(/(?!^)\+/g, '')
+      : '';
+    setCustomerModal({ name: phone ? '' : value, phone });
+    setCustomerCreateError('');
     setCustomerFocused(false);
   };
   const submitCustomer = async (event) => {
     event.preventDefault();
-    setCustomerCreateError("");
+
+    if (!canCreateSalesCustomer) return;
+
+    setCustomerCreateError('');
     setCustomerModal((current) => ({ ...current, saving: true }));
     try {
       const customer = await createSalesCustomer(customerModal);
       selectCustomer(customer);
       setCustomerModal(null);
     } catch (error) {
-      setCustomerCreateError(error.message || "Không thể tạo khách hàng.");
+      setCustomerCreateError(error.message || 'Không thể tạo khách hàng.');
       setCustomerModal((current) => current && { ...current, saving: false });
     }
   };
@@ -322,7 +314,7 @@ export default function BanHang() {
     }));
 
   const openSerialModal = (group) => {
-    setSerialSearch("");
+    setSerialSearch('');
 
     setSerialModal({
       ...group,
@@ -330,7 +322,7 @@ export default function BanHang() {
       total: 0,
       loading: true,
       candidates: [],
-      error: "",
+      error: '',
     });
   };
 
@@ -346,17 +338,13 @@ export default function BanHang() {
     const productId = serialModal.productId;
 
     const updateModal = (patchValue) => {
-      setSerialModal((current) =>
-        current?.key === key
-          ? { ...current, ...patchValue }
-          : current,
-      );
+      setSerialModal((current) => (current?.key === key ? { ...current, ...patchValue } : current));
     };
 
     updateModal({
       loading: true,
       candidates: [],
-      error: "",
+      error: '',
     });
 
     const timer = setTimeout(async () => {
@@ -376,7 +364,7 @@ export default function BanHang() {
         updateModal({
           loading: false,
           candidates: [],
-          error: error.message || "Không thể tải serial khả dụng.",
+          error: error.message || 'Không thể tải serial khả dụng.',
         });
       }
     }, 250);
@@ -385,27 +373,20 @@ export default function BanHang() {
       clearTimeout(timer);
       controller.abort();
     };
-  }, [
-    serialModal?.key,
-    serialModal?.productId,
-    serialSearch,
-  ]);
+  }, [serialModal?.key, serialModal?.productId, serialSearch]);
 
   const serialIssue = serialGroups.find(
-    (group) =>
-      (order.serialSelections?.[group.key]?.length || 0) !== group.quantity,
+    (group) => (order.serialSelections?.[group.key]?.length || 0) !== group.quantity
   );
 
   const stockIssue = findStockIssue(order.cart);
 
   const transactionMissing =
-    order.paymentMethod !== "cash" && !(order.transactionCode || "").trim();
+    order.paymentMethod !== 'cash' && !(order.transactionCode || '').trim();
 
   const paymentIssue =
     previewReady &&
-    (order.paymentMethod === "cash"
-      ? order.paid < totals.total
-      : order.paid !== totals.total);
+    (order.paymentMethod === 'cash' ? order.paid < totals.total : order.paid !== totals.total);
 
   const serialLine = serialModal
     ? {
@@ -425,21 +406,20 @@ export default function BanHang() {
 
     const usedElsewhere = Object.entries(order.serialSelections || {}).some(
       ([key, selected]) =>
-        key !== serialModal.key &&
-        selected.some((serial) => serial.id === candidate.id),
+        key !== serialModal.key && selected.some((serial) => serial.id === candidate.id)
     );
 
     if (usedElsewhere) {
       setSerialModal((current) => ({
         ...current,
-        error: "Serial này đã được chọn cho dòng hoặc linh kiện khác.",
+        error: 'Serial này đã được chọn cho dòng hoặc linh kiện khác.',
       }));
       return;
     }
 
     setSerialModal((current) => ({
       ...current,
-      error: "",
+      error: '',
     }));
 
     patch((current) => {
@@ -463,11 +443,9 @@ export default function BanHang() {
   };
 
   const checkout = async () => {
-    if (
-      checkoutLock.current ||
-      receipt ||
-      (!checkoutPending && !salesOptions)
-    ) {
+    if (!canCheckout) return;
+
+    if (checkoutLock.current || receipt || (!checkoutPending && !salesOptions)) {
       return;
     }
 
@@ -486,7 +464,7 @@ export default function BanHang() {
 
     checkoutLock.current = true;
     setCheckoutBusy(true);
-    setCheckoutError("");
+    setCheckoutError('');
 
     try {
       let attempt = checkoutPending;
@@ -494,8 +472,8 @@ export default function BanHang() {
       if (!attempt) {
         if (order.discount) {
           throw new Error(
-            "Chiết khấu thủ công chưa được hỗ trợ. " +
-              "Vui lòng đặt về 0 và chọn chương trình khuyến mại.",
+            'Chiết khấu thủ công chưa được hỗ trợ. ' +
+              'Vui lòng đặt về 0 và chọn chương trình khuyến mại.'
           );
         }
 
@@ -509,13 +487,13 @@ export default function BanHang() {
                     ...applyOrderPreview(item, previewSignature, freshPreview),
                     paymentReceived: false,
                   }
-                : item,
-            ),
+                : item
+            )
           );
 
           throw new Error(
-            "Giá hoặc cấu hình khuyến mại đã thay đổi. " +
-              "Vui lòng kiểm tra lại và xác nhận thanh toán.",
+            'Giá hoặc cấu hình khuyến mại đã thay đổi. ' +
+              'Vui lòng kiểm tra lại và xác nhận thanh toán.'
           );
         }
 
@@ -540,7 +518,7 @@ export default function BanHang() {
       sessionStorage.removeItem(pendingCheckoutKey);
       setCheckoutPending(null);
     } catch (error) {
-      setCheckoutError(error.message || "Không thể thanh toán.");
+      setCheckoutError(error.message || 'Không thể thanh toán.');
 
       const status = Number(error.status || error.response?.status);
 
@@ -556,8 +534,8 @@ export default function BanHang() {
                   preview: null,
                   paymentReceived: false,
                 }
-              : item,
-          ),
+              : item
+          )
         );
 
         setPreviewRevision((value) => value + 1);
@@ -573,20 +551,27 @@ export default function BanHang() {
       {checkoutPending && !checkoutBusy && (
         <div className="pos-block" role="alert">
           <p className="pos-error">
-            {checkoutError} Chưa xác định được kết quả thanh toán. Giữ nguyên
-            đơn để thử lại với cùng mã chống lặp.
+            {checkoutError} Chưa xác định được kết quả thanh toán. Giữ nguyên đơn để thử lại với
+            cùng mã chống lặp.
           </p>
-          <button type="button" className="pos-red-button" onClick={checkout}>
+          <button
+            type="button"
+            className="pos-red-button"
+            disabled={!canCheckout}
+            onClick={checkout}
+          >
             THỬ LẠI THANH TOÁN
           </button>
         </div>
       )}
-      <fieldset
-        className="pos-controls"
-        disabled={checkoutBusy || Boolean(checkoutPending)}
-      >
+      <fieldset className="pos-controls" disabled={checkoutBusy || Boolean(checkoutPending)}>
         <div className="pos-toolbar">
-          <button type="button" className="pos-red-button" onClick={newOrder}>
+          <button
+            type="button"
+            className="pos-red-button"
+            disabled={!canCheckout}
+            onClick={newOrder}
+          >
             <HiOutlinePlus /> TẠO HOÁ ĐƠN
           </button>
         </div>
@@ -594,7 +579,7 @@ export default function BanHang() {
           {orders.map((item) => (
             <div
               key={item.id}
-              className={`pos-order-tab ${item.id === activeId ? "is-active" : ""}`}
+              className={`pos-order-tab ${item.id === activeId ? 'is-active' : ''}`}
             >
               <button
                 type="button"
@@ -628,7 +613,7 @@ export default function BanHang() {
                 <div className="pos-customer-card">
                   <strong>{order.customer.name}</strong>
                   {order.customer.phone && (
-                    <a href={`tel:${order.customer.phone.replace(/\s/g, "")}`}>
+                    <a href={`tel:${order.customer.phone.replace(/\s/g, '')}`}>
                       {order.customer.phone}
                     </a>
                   )}
@@ -648,7 +633,7 @@ export default function BanHang() {
                       setCustomerFocused(false);
                   }}
                   onKeyDown={(event) => {
-                    if (event.key === "Escape") setCustomerFocused(false);
+                    if (event.key === 'Escape') setCustomerFocused(false);
                   }}
                 >
                   <em className="pos-customer-guest">KHÁCH LẺ</em>
@@ -659,8 +644,8 @@ export default function BanHang() {
                     onFocus={() => setCustomerFocused(true)}
                     onKeyDown={(event) => {
                       if (
-                        event.key === "Enter" &&
-                        customerStatus === "done" &&
+                        event.key === 'Enter' &&
+                        customerStatus === 'done' &&
                         !customerResults.length
                       ) {
                         event.preventDefault();
@@ -671,19 +656,17 @@ export default function BanHang() {
                       const value = event.target.value;
                       setCustomerSearch(value);
                       setCustomerResults([]);
-                      setCustomerStatus(value.trim() ? "loading" : "idle");
+                      setCustomerStatus(value.trim() ? 'loading' : 'idle');
                       setCustomerFocused(true);
                     }}
                   />
                   {customerFocused && customerSearch.trim() && (
                     <div className="pos-customer-results">
-                      {customerStatus === "loading" && (
-                        <p>Đang tìm khách hàng...</p>
-                      )}
-                      {customerStatus === "error" && (
+                      {customerStatus === 'loading' && <p>Đang tìm khách hàng...</p>}
+                      {customerStatus === 'error' && (
                         <p>Không thể tải khách hàng. Vui lòng thử lại.</p>
                       )}
-                      {customerStatus === "done" &&
+                      {customerStatus === 'done' &&
                         customerResults.map((customer) => (
                           <button
                             type="button"
@@ -692,18 +675,18 @@ export default function BanHang() {
                           >
                             <strong>{customer.name}</strong>
                             <small>
-                              {[customer.phone, customer.email]
-                                .filter(Boolean)
-                                .join(" · ") || "Không có thông tin liên hệ"}
+                              {[customer.phone, customer.email].filter(Boolean).join(' · ') ||
+                                'Không có thông tin liên hệ'}
                             </small>
                           </button>
                         ))}
-                      {customerStatus === "done" && !customerResults.length && (
+                      {customerStatus === 'done' && !customerResults.length && (
                         <p>Không tìm thấy khách hàng.</p>
                       )}
                       <button
                         type="button"
                         className="pos-customer-new-result"
+                        disabled={!canCreateSalesCustomer}
                         onClick={openCustomerModal}
                       >
                         + TẠO KHÁCH HÀNG MỚI
@@ -716,6 +699,7 @@ export default function BanHang() {
                 <button
                   type="button"
                   className="pos-customer-create"
+                  disabled={!canCreateSalesCustomer}
                   onClick={openCustomerModal}
                 >
                   + TẠO KHÁCH HÀNG MỚI
@@ -728,11 +712,10 @@ export default function BanHang() {
                 {order.tax && (
                   <label className="pos-vat-mode">
                     <span>Chế độ giá</span>
-                    <FormDropdown aria-label="Chế độ giá"
-                      value={order.taxMode || "CHUA_BAO_GOM"}
-                      onChange={(event) =>
-                        patch({ taxMode: event.target.value })
-                      }
+                    <FormDropdown
+                      aria-label="Chế độ giá"
+                      value={order.taxMode || 'CHUA_BAO_GOM'}
+                      onChange={(event) => patch({ taxMode: event.target.value })}
                     >
                       <option value="CHUA_BAO_GOM">CHƯA BAO GỒM THUẾ</option>
                       <option value="DA_BAO_GOM">ĐÃ BAO GỒM THUẾ</option>
@@ -745,7 +728,7 @@ export default function BanHang() {
                 role="switch"
                 aria-label="Áp dụng VAT"
                 aria-checked={order.tax}
-                className={`pos-switch ${order.tax ? "is-on" : ""}`}
+                className={`pos-switch ${order.tax ? 'is-on' : ''}`}
                 onClick={() => patch({ tax: !order.tax })}
               >
                 <span />
@@ -757,14 +740,12 @@ export default function BanHang() {
             </div>
             <div className="pos-block pos-readonly">
               <span>Nhân viên thanh toán</span>
-              <strong>
-                {order.employee?.ho_ten || "Đang tải phiên đăng nhập..."}
-              </strong>
+              <strong>{order.employee?.ho_ten || 'Đang tải phiên đăng nhập...'}</strong>
             </div>
             <label className="pos-block pos-field">
               <span>Ghi chú</span>
               <textarea
-                value={order.note || ""}
+                value={order.note || ''}
                 onChange={(event) => patch({ note: event.target.value })}
               />
             </label>
@@ -773,15 +754,14 @@ export default function BanHang() {
             <div
               className="pos-search-wrap"
               onBlur={(event) => {
-                if (!event.currentTarget.contains(event.relatedTarget))
-                  setProductFocused(false);
+                if (!event.currentTarget.contains(event.relatedTarget)) setProductFocused(false);
               }}
               onKeyDown={(event) => {
-                if (event.key === "Escape") setProductFocused(false);
+                if (event.key === 'Escape') setProductFocused(false);
               }}
             >
               <div
-                className={`pos-search ${productFocused && productSearch.trim() ? "is-active" : ""}`}
+                className={`pos-search ${productFocused && productSearch.trim() ? 'is-active' : ''}`}
               >
                 <HiOutlineSearch />
                 <input
@@ -792,9 +772,7 @@ export default function BanHang() {
                   onChange={(event) => {
                     setProductSearch(event.target.value);
                     setProductResults([]);
-                    setProductStatus(
-                      event.target.value.trim() ? "loading" : "idle",
-                    );
+                    setProductStatus(event.target.value.trim() ? 'loading' : 'idle');
                     setProductFocused(true);
                   }}
                 />
@@ -802,7 +780,7 @@ export default function BanHang() {
                   <button
                     type="button"
                     aria-label="Xóa tìm kiếm sản phẩm"
-                    onClick={() => setProductSearch("")}
+                    onClick={() => setProductSearch('')}
                   >
                     <HiOutlineX />
                   </button>
@@ -810,13 +788,11 @@ export default function BanHang() {
               </div>
               {productFocused && productSearch.trim() && (
                 <div className="pos-product-results">
-                  {productStatus === "loading" && !optionsError && (
-                    <p>Đang tìm sản phẩm...</p>
-                  )}
-                  {(productStatus === "error" || optionsError) && (
+                  {productStatus === 'loading' && !optionsError && <p>Đang tìm sản phẩm...</p>}
+                  {(productStatus === 'error' || optionsError) && (
                     <p>Không thể tải sản phẩm. Vui lòng thử lại.</p>
                   )}
-                  {productStatus === "done" &&
+                  {productStatus === 'done' &&
                     productResults.map((product) => (
                       <button
                         type="button"
@@ -830,20 +806,16 @@ export default function BanHang() {
                           <small>
                             CÒN BÁN: {product.stock}
                             {product.serialManaged && (
-                              <b className="pos-serial-required">
-                                YÊU CẦU SERIAL
-                              </b>
+                              <b className="pos-serial-required">YÊU CẦU SERIAL</b>
                             )}
                           </small>
                         </span>
                         <span className="pos-result-price">
-                          <strong>
-                            {money(productPrice(product, order.priceList))}
-                          </strong>
+                          <strong>{money(productPrice(product, order.priceList))}</strong>
                         </span>
                       </button>
                     ))}
-                  {productStatus === "done" && !productResults.length && (
+                  {productStatus === 'done' && !productResults.length && (
                     <p>Không tìm thấy sản phẩm.</p>
                   )}
                 </div>
@@ -869,15 +841,13 @@ export default function BanHang() {
                 <tbody>
                   {order.cart.map(({ product, quantity }, index) => {
                     const previewLine = previewData?.san_pham.find(
-                      (line) => line.ma_dong === `d${product.id}`,
+                      (line) => line.ma_dong === `d${product.id}`
                     );
                     const price = previewLine
                       ? Number(previewLine.don_gia)
                       : productPrice(product, order.priceList);
                     const subtotal = price * quantity;
-                    const lineTotal = previewLine
-                      ? Number(previewLine.thanh_toan_dong)
-                      : null;
+                    const lineTotal = previewLine ? Number(previewLine.thanh_toan_dong) : null;
                     return (
                       <tr key={product.id}>
                         <td>{index + 1}</td>
@@ -896,9 +866,7 @@ export default function BanHang() {
                               type="button"
                               aria-label={`Giảm số lượng ${productName(product)}`}
                               disabled={quantity === 1}
-                              onClick={() =>
-                                changeQuantity(product.id, quantity - 1)
-                              }
+                              onClick={() => changeQuantity(product.id, quantity - 1)}
                             >
                               −
                             </button>
@@ -909,17 +877,13 @@ export default function BanHang() {
                               min="1"
                               max={product.stock}
                               value={quantity}
-                              onChange={(event) =>
-                                changeQuantity(product.id, event.target.value)
-                              }
+                              onChange={(event) => changeQuantity(product.id, event.target.value)}
                             />
                             <button
                               type="button"
                               aria-label={`Tăng số lượng ${productName(product)}`}
                               disabled={quantity >= product.stock}
-                              onClick={() =>
-                                changeQuantity(product.id, quantity + 1)
-                              }
+                              onClick={() => changeQuantity(product.id, quantity + 1)}
                             >
                               +
                             </button>
@@ -927,39 +891,27 @@ export default function BanHang() {
                         </td>
                         <td className="pos-price">{money(price)}</td>
                         <td>
-                          {order.tax && (
-                            <span className="pos-vat-badge">
-                              {product.vatRate}%
-                            </span>
-                          )}
+                          {order.tax && <span className="pos-vat-badge">{product.vatRate}%</span>}
                         </td>
                         <td>
                           {previewLine?.tien_chiet_khau > 0
                             ? `−${money(previewLine.tien_chiet_khau)}`
-                            : "—"}
+                            : '—'}
                         </td>
                         <td className="pos-line-total">{money(lineTotal)}</td>
                         <td>
                           {serialGroups
-                            .filter(
-                              (group) => group.lineKey === `d${product.id}`,
-                            )
+                            .filter((group) => group.lineKey === `d${product.id}`)
                             .map((group) => {
-                              const selected =
-                                order.serialSelections?.[group.key] || [];
+                              const selected = order.serialSelections?.[group.key] || [];
 
                               return (
-                                <div
-                                  className="pos-serial-group"
-                                  key={group.key}
-                                >
+                                <div className="pos-serial-group" key={group.key}>
                                   <button
                                     type="button"
                                     className={
-                                      "pos-serial-badge " +
-                                      (selected.length === group.quantity
-                                        ? "is-complete"
-                                        : "")
+                                      'pos-serial-badge ' +
+                                      (selected.length === group.quantity ? 'is-complete' : '')
                                     }
                                     onClick={() => openSerialModal(group)}
                                   >
@@ -976,9 +928,7 @@ export default function BanHang() {
                             aria-label={`Xóa ${productName(product)}`}
                             onClick={() =>
                               patch((current) => ({
-                                cart: current.cart.filter(
-                                  (item) => item.product.id !== product.id,
-                                ),
+                                cart: current.cart.filter((item) => item.product.id !== product.id),
                               }))
                             }
                           >
@@ -1001,30 +951,22 @@ export default function BanHang() {
                         <td>{money(line.don_gia)}</td>
                         <td>—</td>
                         <td>—</td>
-                        <td className="pos-line-total">
-                          {money(line.thanh_toan_dong)}
-                        </td>
+                        <td className="pos-line-total">{money(line.thanh_toan_dong)}</td>
                         <td>
                           {giftRequirements
                             .filter((group) => group.lineKey === line.ma_dong)
                             .map((group) => {
-                              const selected =
-                                order.serialSelections?.[group.key] || [];
+                              const selected = order.serialSelections?.[group.key] || [];
 
                               return (
-                                <div
-                                  className="pos-serial-group"
-                                  key={group.key}
-                                >
+                                <div className="pos-serial-group" key={group.key}>
                                   <button
                                     type="button"
                                     title={group.label}
                                     aria-label={`Chọn serial cho quà tặng ${group.label}`}
                                     className={
-                                      "pos-serial-badge " +
-                                      (selected.length === group.quantity
-                                        ? "is-complete"
-                                        : "")
+                                      'pos-serial-badge ' +
+                                      (selected.length === group.quantity ? 'is-complete' : '')
                                     }
                                     onClick={() => openSerialModal(group)}
                                   >
@@ -1060,10 +1002,10 @@ export default function BanHang() {
               <div>
                 <span>
                   {!order.tax
-                    ? "VAT · không áp dụng trong đơn"
-                    : order.taxMode === "DA_BAO_GOM"
-                      ? "VAT · đã nằm trong giá"
-                      : "VAT · cộng thêm"}
+                    ? 'VAT · không áp dụng trong đơn'
+                    : order.taxMode === 'DA_BAO_GOM'
+                      ? 'VAT · đã nằm trong giá'
+                      : 'VAT · cộng thêm'}
                 </span>
                 <strong>{money(totals.vat)}</strong>
               </div>
@@ -1076,16 +1018,13 @@ export default function BanHang() {
               {order.cart.length > 0 && !previewReady && (
                 <p className="pos-promotion-note" role="status">
                   {previewState.key === previewKey && previewState.error
-                    ? "Chưa lấy được tổng thanh toán."
-                    : "Đang lấy tổng thanh toán từ hệ thống..."}
+                    ? 'Chưa lấy được tổng thanh toán.'
+                    : 'Đang lấy tổng thanh toán từ hệ thống...'}
                 </p>
               )}
 
               {previewState.key === previewKey && previewState.error && (
-                <button
-                  type="button"
-                  onClick={() => setPreviewRevision((value) => value + 1)}
-                >
+                <button type="button" onClick={() => setPreviewRevision((value) => value + 1)}>
                   TÍNH LẠI
                 </button>
               )}
@@ -1096,18 +1035,15 @@ export default function BanHang() {
               </div>
             </section>
             {order.cart.length > 0 && (
-              <section
-                className="pos-block pos-promotions"
-                aria-label="Khuyến mại"
-              >
+              <section className="pos-block pos-promotions" aria-label="Khuyến mại">
                 <div className="pos-promotion-header">
                   <Heading>Khuyến mại</Heading>
                   {order.promotion && (
                     <button
                       type="button"
                       onClick={() => {
-                        patch({ promotion: "" });
-                        setCheckoutError("");
+                        patch({ promotion: '' });
+                        setCheckoutError('');
                       }}
                     >
                       ✕ BỎ KHUYẾN MẠI
@@ -1129,13 +1065,13 @@ export default function BanHang() {
                     key={promotion.ma_chuong_trinh}
                     type="button"
                     aria-pressed={order.promotion === promotion.ma_chuong_trinh}
-                    className={`pos-promotion-card ${order.promotion === promotion.ma_chuong_trinh ? "is-selected" : ""}`}
+                    className={`pos-promotion-card ${order.promotion === promotion.ma_chuong_trinh ? 'is-selected' : ''}`}
                     onClick={() => {
                       patch({
                         promotion: promotion.ma_chuong_trinh,
                         discount: 0,
                       });
-                      setCheckoutError("");
+                      setCheckoutError('');
                     }}
                   >
                     <strong>{promotion.ma_chuong_trinh}</strong>
@@ -1143,9 +1079,7 @@ export default function BanHang() {
                   </button>
                 ))}
                 {previewReady && !order.promotions?.length && (
-                  <p className="pos-promotion-note">
-                    Không có chương trình khả dụng cho giỏ hàng.
-                  </p>
+                  <p className="pos-promotion-note">Không có chương trình khả dụng cho giỏ hàng.</p>
                 )}
               </section>
             )}
@@ -1153,15 +1087,15 @@ export default function BanHang() {
               <span>Phương thức thanh toán</span>
               <div className="pos-payment-method">
                 {[
-                  ["cash", "TIỀN MẶT"],
-                  ["transfer", "CHUYỂN KHOẢN"],
-                  ["card", "THẺ"],
+                  ['cash', 'TIỀN MẶT'],
+                  ['transfer', 'CHUYỂN KHOẢN'],
+                  ['card', 'THẺ'],
                 ].map(([id, label]) => (
                   <button
                     type="button"
                     key={id}
                     aria-pressed={order.paymentMethod === id}
-                    className={order.paymentMethod === id ? "is-selected" : ""}
+                    className={order.paymentMethod === id ? 'is-selected' : ''}
                     onClick={() => patch({ paymentMethod: id })}
                   >
                     ○ {label}
@@ -1170,51 +1104,37 @@ export default function BanHang() {
               </div>
             </section>
             <label className="pos-block pos-field">
-              <span>
-                {order.paymentMethod === "cash"
-                  ? "Tiền khách đưa"
-                  : "Số tiền đã nhận"}
-              </span>
+              <span>{order.paymentMethod === 'cash' ? 'Tiền khách đưa' : 'Số tiền đã nhận'}</span>
               <div className="pos-paid">
                 <input
-                  aria-label={
-                    order.paymentMethod === "cash"
-                      ? "Tiền khách đưa"
-                      : "Số tiền đã nhận"
-                  }
+                  aria-label={order.paymentMethod === 'cash' ? 'Tiền khách đưa' : 'Số tiền đã nhận'}
                   inputMode="numeric"
-                  value={Number(order.paid).toLocaleString("vi-VN")}
+                  value={Number(order.paid).toLocaleString('vi-VN')}
                   onChange={(event) =>
                     patch({
-                      paid: Number(event.target.value.replace(/\D/g, "")) || 0,
+                      paid: Number(event.target.value.replace(/\D/g, '')) || 0,
                     })
                   }
                 />
                 <span>đ</span>
               </div>
-              {order.paymentMethod === "cash" && (
+              {order.paymentMethod === 'cash' && (
                 <small className="pos-change">
-                  TIỀN THỪA TRẢ KHÁCH{" "}
+                  TIỀN THỪA TRẢ KHÁCH{' '}
                   <strong>
-                    {money(
-                      previewReady
-                        ? Math.max(0, order.paid - totals.total)
-                        : null,
-                    )}
+                    {money(previewReady ? Math.max(0, order.paid - totals.total) : null)}
                   </strong>
                 </small>
               )}
             </label>
-            {order.paymentMethod !== "cash" && (
+            {order.paymentMethod !== 'cash' && (
               <label className="pos-block pos-field">
                 <span>Mã giao dịch *</span>
                 <input
                   aria-label="Mã giao dịch"
                   placeholder="Nhập mã giao dịch..."
-                  value={order.transactionCode || ""}
-                  onChange={(event) =>
-                    patch({ transactionCode: event.target.value })
-                  }
+                  value={order.transactionCode || ''}
+                  onChange={(event) => patch({ transactionCode: event.target.value })}
                 />
               </label>
             )}
@@ -1222,39 +1142,34 @@ export default function BanHang() {
               <input
                 type="checkbox"
                 checked={Boolean(order.paymentReceived)}
-                onChange={(event) =>
-                  patch({ paymentReceived: event.target.checked })
-                }
+                onChange={(event) => patch({ paymentReceived: event.target.checked })}
               />
               Xác nhận đã nhận tiền từ khách
             </label>
             <div className="pos-checkout">
               {order.discount > 0 && (
                 <p className="pos-error" role="alert">
-                  Chiết khấu thủ công chưa được hỗ trợ khi thanh toán. Vui lòng
-                  đặt về 0 và chọn chương trình khuyến mại.
+                  Chiết khấu thủ công chưa được hỗ trợ khi thanh toán. Vui lòng đặt về 0 và chọn
+                  chương trình khuyến mại.
                 </p>
               )}
               {stockIssue && (
                 <p className="pos-error">
-                  Số lượng {productName(stockIssue.product)} vượt tồn có thể bán
-                  ({stockIssue.product.stock}).
+                  Số lượng {productName(stockIssue.product)} vượt tồn có thể bán (
+                  {stockIssue.product.stock}).
                 </p>
               )}
               {serialIssue && (
                 <p className="pos-error">
-                  Cần chọn đủ {serialIssue.quantity} serial cho{" "}
-                  {serialIssue.label}.
+                  Cần chọn đủ {serialIssue.quantity} serial cho {serialIssue.label}.
                 </p>
               )}
-              {transactionMissing && (
-                <p className="pos-error">Vui lòng nhập mã giao dịch</p>
-              )}
+              {transactionMissing && <p className="pos-error">Vui lòng nhập mã giao dịch</p>}
               {paymentIssue && (
                 <p className="pos-error">
-                  {order.paymentMethod === "cash"
-                    ? "Tiền khách đưa chưa đủ."
-                    : "Số tiền đã nhận phải bằng đúng tổng thanh toán."}
+                  {order.paymentMethod === 'cash'
+                    ? 'Tiền khách đưa chưa đủ.'
+                    : 'Số tiền đã nhận phải bằng đúng tổng thanh toán.'}
                 </p>
               )}
               {checkoutError && checkoutError !== previewState.error && (
@@ -1266,6 +1181,7 @@ export default function BanHang() {
                 type="button"
                 className="pos-red-button"
                 disabled={
+                  !canCheckout ||
                   checkoutBusy ||
                   !previewReady ||
                   order.discount > 0 ||
@@ -1279,15 +1195,14 @@ export default function BanHang() {
                 }
                 onClick={checkout}
               >
-                <HiOutlineCheck />{" "}
-                {checkoutBusy ? "ĐANG THANH TOÁN..." : "THANH TOÁN"}
+                <HiOutlineCheck /> {checkoutBusy ? 'ĐANG THANH TOÁN...' : 'THANH TOÁN'}
               </button>
               <small>Đơn hoàn thành ngay sau khi thanh toán.</small>
             </div>
           </aside>
         </div>
       </fieldset>
-      {customerModal && (
+      {canCreateSalesCustomer && customerModal && (
         <PosDialog
           className="pos-form-modal"
           labelledBy="pos-create-customer-title"
@@ -1324,16 +1239,12 @@ export default function BanHang() {
                 onChange={(event) =>
                   setCustomerModal({
                     ...customerModal,
-                    phone: event.target.value
-                      .replace(/[^\d+]/g, "")
-                      .replace(/(?!^)\+/g, ""),
+                    phone: event.target.value.replace(/[^\d+]/g, '').replace(/(?!^)\+/g, ''),
                   })
                 }
               />
             </label>
-            {customerCreateError && (
-              <p className="pos-error">{customerCreateError}</p>
-            )}
+            {customerCreateError && <p className="pos-error">{customerCreateError}</p>}
             <footer>
               <button
                 type="button"
@@ -1343,7 +1254,7 @@ export default function BanHang() {
                 HỦY
               </button>
               <button type="submit" disabled={customerModal.saving}>
-                {customerModal.saving ? "ĐANG LƯU..." : "TẠO KHÁCH HÀNG"}
+                {customerModal.saving ? 'ĐANG LƯU...' : 'TẠO KHÁCH HÀNG'}
               </button>
             </footer>
           </form>
@@ -1359,8 +1270,8 @@ export default function BanHang() {
             <div>
               <h2 id="pos-serial-title">CHỌN SERIAL</h2>
               <small>
-                {productName(serialLine.product)} — CẦN {serialLine.quantity}{" "}
-                SERIAL, ĐÃ CHỌN {serialLine.serials?.length || 0}
+                {productName(serialLine.product)} — CẦN {serialLine.quantity} SERIAL, ĐÃ CHỌN{' '}
+                {serialLine.serials?.length || 0}
               </small>
             </div>
             <button type="button" aria-label="Đóng" onClick={closeSerialModal}>
@@ -1376,41 +1287,33 @@ export default function BanHang() {
                 setSerialSearch(event.target.value);
               }}
               onKeyDown={(event) => {
-                if (event.key === "Enter") {
+                if (event.key === 'Enter') {
                   event.preventDefault();
                   const exact = shownSerials.find(
-                    (item) =>
-                      item.serial.toLowerCase() ===
-                      serialSearch.trim().toLowerCase(),
+                    (item) => item.serial.toLowerCase() === serialSearch.trim().toLowerCase()
                   );
                   if (exact) {
                     toggleSerial(exact);
-                    setSerialSearch("");
+                    setSerialSearch('');
                   }
                 }
               }}
             />
             {serialModal.loading && <p>Đang tải serial...</p>}
-            {serialModal.error && (
-              <p className="pos-error">{serialModal.error}</p>
+            {serialModal.error && <p className="pos-error">{serialModal.error}</p>}
+            {!serialModal.loading && serialLine.quantity > serialModal.total && (
+              <p className="pos-error">
+                Chỉ có {serialModal.total} serial khả dụng, cần {serialLine.quantity}
+              </p>
             )}
-            {!serialModal.loading &&
-              serialLine.quantity > serialModal.total && (
-                <p className="pos-error">
-                  Chỉ có {serialModal.total} serial khả dụng, cần{" "}
-                  {serialLine.quantity}
-                </p>
-              )}
             <div className="pos-serial-list">
               {shownSerials.map((candidate) => {
-                const selected = serialLine.serials?.some(
-                  (item) => item.id === candidate.id,
-                );
+                const selected = serialLine.serials?.some((item) => item.id === candidate.id);
                 return (
                   <button
                     type="button"
                     key={candidate.id}
-                    className={selected ? "is-selected" : ""}
+                    className={selected ? 'is-selected' : ''}
                     onClick={() => toggleSerial(candidate)}
                   >
                     <strong>{candidate.serial}</strong>
@@ -1432,12 +1335,9 @@ export default function BanHang() {
               XONG ({serialLine.serials?.length || 0}/{serialLine.quantity})
             </button>
           </footer>
-
         </PosDialog>
       )}
-      {receipt && (
-        <PaymentSuccessModal receipt={receipt} onDismiss={dismissPayment} />
-      )}
+      {receipt && <PaymentSuccessModal receipt={receipt} onDismiss={dismissPayment} />}
     </main>
   );
 }

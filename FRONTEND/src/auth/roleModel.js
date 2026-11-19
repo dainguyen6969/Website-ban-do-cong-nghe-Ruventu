@@ -393,6 +393,10 @@ export function canOpenAdminPath(access, pathname, search = '') {
   const path = normalizeAdminPath(pathname);
   if (path === '/admin/tai-khoan') return true;
 
+  if (path === '/kho-hang/thu-hoi' || path.startsWith('/kho-hang/thu-hoi/')) {
+    return hasSystemAdminPermission(access, 'kho_hang', 'xem');
+  }
+
   const moduleId = routePermissionModule(path);
   return (
     moduleId !== null &&

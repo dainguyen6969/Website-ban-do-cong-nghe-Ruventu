@@ -17,6 +17,7 @@ public class NccCaseController {
   private final NccCaseService service;
 
   @GetMapping
+  @PreAuthorize("@adminRoleService.hasModuleAction(principal, 'nhap_hang', 'xem')")
   public ApiResponse<Object> screen(@PathVariable Long poId) {
     return ApiResponse.builder()
         .status(200)

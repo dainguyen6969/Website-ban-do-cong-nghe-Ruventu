@@ -23,6 +23,9 @@ public class AdminSupplierController {
   private final AdminSupplierService adminSupplierService;
 
   @GetMapping
+  @PreAuthorize(
+      "@adminRoleService.isSystemAdmin(principal)"
+          + " or @adminRoleService.hasModuleAction(principal, 'nhap_hang', 'xem')")
   public ApiResponse<AdminSupplierListResponse> getSuppliers(
       @RequestParam(name = "keyword", required = false) String keyword,
       @RequestParam(name = "trang_thai", required = false) Short trangThai,
@@ -46,6 +49,30 @@ public class AdminSupplierController {
         .status(200)
         .message("Lấy chi tiết nhà cung cấp thành công")
         .data(adminSupplierService.getDetail(id, page, limit))
+        .build();
+  }
+
+  @GetMapping("/{id}/purchase-option")
+  @PreAuthorize(
+      "@adminRoleService.hasModuleAction(principal, 'nhap_hang', 'them')"
+          + " or @adminRoleService.hasModuleAction(principal, 'nhap_hang', 'sua')")
+  public ApiResponse<AdminSupplierResponse> purchaseOption(@PathVariable Long id) {
+    var supplier = adminSupplierService.getDetail(id, 0, 1);
+    var option =
+        AdminSupplierResponse.builder()
+            .id(supplier.getId())
+            .maNhaCungCap(supplier.getMaNhaCungCap())
+            .tenNhaCungCap(supplier.getTenNhaCungCap())
+            .soDienThoai(supplier.getSoDienThoai())
+            .email(supplier.getEmail())
+            .diaChi(supplier.getDiaChi())
+            .trangThai(supplier.getTrangThai())
+            .build();
+
+    return ApiResponse.<AdminSupplierResponse>builder()
+        .status(200)
+        .message("Lấy thông tin nhà cung cấp cho đơn nhập")
+        .data(option)
         .build();
   }
 

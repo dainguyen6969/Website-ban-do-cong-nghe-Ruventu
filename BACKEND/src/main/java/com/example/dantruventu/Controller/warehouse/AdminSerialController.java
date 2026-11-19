@@ -2,10 +2,7 @@ package com.example.dantruventu.Controller.warehouse;
 
 import com.example.dantruventu.DTO.Request.warehouse.AdminSerialStatusRequest;
 import com.example.dantruventu.DTO.Response.ApiResponse;
-import com.example.dantruventu.DTO.Response.warehouse.AdminSerialDeleteBlockedResponse;
-import com.example.dantruventu.DTO.Response.warehouse.AdminSerialDetailResponse;
-import com.example.dantruventu.DTO.Response.warehouse.AdminSerialListResponse;
-import com.example.dantruventu.DTO.Response.warehouse.AdminSerialStatusResponse;
+import com.example.dantruventu.DTO.Response.warehouse.*;
 import com.example.dantruventu.Enum.TrangThaiSerial;
 import com.example.dantruventu.Services.AdminSerialService;
 import com.example.dantruventu.Services.warehouse.WarehouseOperations;
@@ -26,6 +23,7 @@ public class AdminSerialController {
   private final WarehouseOperations warehouseOperations;
 
   @GetMapping
+  @PreAuthorize("@adminRoleService.hasModuleAction(principal, 'kho_hang', 'xem')")
   public ApiResponse<AdminSerialListResponse> getSerials(
       @RequestParam(name = "keyword", required = false) String keyword,
       @RequestParam(name = "so_serial", required = false) String soSerial,
@@ -41,7 +39,43 @@ public class AdminSerialController {
         .build();
   }
 
+  @GetMapping("/available-for-pos")
+  @PreAuthorize("@adminRoleService.hasModuleAction(principal, 'ban_hang_pos', 'xem')")
+  public ApiResponse<AdminSerialListResponse> availableForPos(
+      @RequestParam("phien_ban_id") Long phienBanId,
+      @RequestParam(name = "so_serial", required = false) String soSerial,
+      @RequestParam(defaultValue = "0") int page,
+      @RequestParam(defaultValue = "20") int limit) {
+    var result =
+        adminSerialService.getSerials(
+            null, soSerial, TrangThaiSerial.TRONG_KHO, phienBanId, page, limit);
+
+    var items =
+        result.getItems().stream()
+            .map(
+                item ->
+                    AdminSerialListItemResponse.builder()
+                        .id(item.getId())
+                        .phienBanId(item.getPhienBanId())
+                        .soSerial(item.getSoSerial())
+                        .trangThai(item.getTrangThai())
+                        .biThuHoi(item.getBiThuHoi())
+                        .build())
+            .toList();
+
+    return ApiResponse.<AdminSerialListResponse>builder()
+        .status(200)
+        .message("Lấy serial cho POS")
+        .data(
+            AdminSerialListResponse.builder()
+                .items(items)
+                .pagination(result.getPagination())
+                .build())
+        .build();
+  }
+
   @GetMapping("/{id}")
+  @PreAuthorize("@adminRoleService.hasModuleAction(principal, 'kho_hang', 'xem')")
   public ApiResponse<AdminSerialDetailResponse> getDetail(@PathVariable("id") Long id) {
 
     return ApiResponse.<AdminSerialDetailResponse>builder()
@@ -52,6 +86,7 @@ public class AdminSerialController {
   }
 
   @PatchMapping("/{id}/status")
+  @PreAuthorize("@adminRoleService.hasModuleAction(principal, 'kho_hang', 'sua')")
   public ApiResponse<AdminSerialStatusResponse> updateStatus(
       @PathVariable("id") Long id,
       @RequestHeader("Idempotency-Key") String idempotencyKey,
