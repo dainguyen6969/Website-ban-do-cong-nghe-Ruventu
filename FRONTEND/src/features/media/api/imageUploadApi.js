@@ -1,7 +1,12 @@
 import { apiRequest } from '../../../auth/backendAuth';
 
 export function uploadImage(file, folder = 'general') {
-  return sendImage(file, folder, '/api/v1/admin/uploads/images');
+  const endpoint =
+    folder === 'categories' || folder === 'brands'
+      ? `/api/v1/admin/uploads/images/catalog/${folder}`
+      : '/api/v1/admin/uploads/images';
+
+  return sendImage(file, folder, endpoint);
 }
 
 export function uploadWarrantyIntakeImage(file) {

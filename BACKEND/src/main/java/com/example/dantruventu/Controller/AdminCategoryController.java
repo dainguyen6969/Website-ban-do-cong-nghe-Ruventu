@@ -18,12 +18,15 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/v1/admin/categories")
 @RequiredArgsConstructor
-@PreAuthorize("hasRole('ADMIN')")
+@PreAuthorize("@adminRoleService.hasModuleAction(principal, 'danh_muc', 'xem')")
 public class AdminCategoryController {
 
   private final AdminCategoryService adminCategoryService;
 
   @GetMapping
+  @PreAuthorize(
+      "@adminRoleService.hasModuleAction(principal, 'danh_muc', 'xem')"
+          + " or @adminRoleService.hasModuleAction(principal, 'san_pham', 'xem')")
   public ApiResponse<AdminCategoryListResponse> getCategories(
       @RequestParam(required = false) String keyword,
       @RequestParam(name = "trang_thai", required = false) Short trangThai,
@@ -49,6 +52,7 @@ public class AdminCategoryController {
   }
 
   @PostMapping
+  @PreAuthorize("@adminRoleService.hasModuleAction(principal, 'danh_muc', 'them')")
   public ResponseEntity<ApiResponse<AdminCategoryResponse>> create(
       @Valid @RequestBody AdminCategoryCreateRequest request) {
 
@@ -63,6 +67,7 @@ public class AdminCategoryController {
   }
 
   @PutMapping("/{id}")
+  @PreAuthorize("@adminRoleService.hasModuleAction(principal, 'danh_muc', 'sua')")
   public ApiResponse<AdminCategoryResponse> update(
       @PathVariable Long id, @Valid @RequestBody AdminCategoryUpdateRequest request) {
 
@@ -74,6 +79,7 @@ public class AdminCategoryController {
   }
 
   @DeleteMapping("/{id}")
+  @PreAuthorize("@adminRoleService.hasModuleAction(principal, 'danh_muc', 'xoa')")
   public ApiResponse<AdminCategoryStatusResponse> delete(@PathVariable Long id) {
 
     return ApiResponse.<AdminCategoryStatusResponse>builder()

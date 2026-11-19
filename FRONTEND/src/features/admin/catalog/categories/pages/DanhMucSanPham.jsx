@@ -22,6 +22,9 @@ import {
   updateCategory,
 } from '../api/categoryApi';
 
+import { hasAdminPermission } from '../../../../../auth/roleModel';
+import { useAdminPermissions } from '../../../../../shared/components/ui/PermissionGate';
+
 import './DanhMucSanPham.css';
 
 const ROOT_FILTER = 'root';
@@ -33,11 +36,7 @@ const DEFAULT_FORM = {
   status: 'active',
 };
 
-const STATUS_OPTIONS = [
-  'TẤT CẢ TRẠNG THÁI',
-  'HOẠT ĐỘNG',
-  'NGỪNG HOẠT ĐỘNG',
-];
+const STATUS_OPTIONS = ['TẤT CẢ TRẠNG THÁI', 'HOẠT ĐỘNG', 'NGỪNG HOẠT ĐỘNG'];
 
 const STATUS_VALUES = {
   'TẤT CẢ TRẠNG THÁI': 'all',
@@ -54,8 +53,7 @@ const PARENT_ROOT_OPTION = 'DANH MỤC GỐC';
 // ========================================
 
 const errorMessage = (error) =>
-  error?.message ||
-  'Không thể kết nối tới backend. Vui lòng thử lại.';
+  error?.message || 'Không thể kết nối tới backend. Vui lòng thử lại.';
 
 function isDescendant(targetParentId, categoryId, categories) {
   if (!targetParentId || !categoryId) return false;
@@ -72,14 +70,9 @@ function isDescendant(targetParentId, categoryId, categories) {
 
     visited.add(currentId);
 
-    const parentCategory = categories.find(
-      (item) => item.id === currentId
-    );
+    const parentCategory = categories.find((item) => item.id === currentId);
 
-    currentId =
-      parentCategory?.parentId != null
-        ? Number(parentCategory.parentId)
-        : null;
+    currentId = parentCategory?.parentId != null ? Number(parentCategory.parentId) : null;
   }
 
   return false;
@@ -91,10 +84,7 @@ function getDepth(category, categoriesById) {
 
   const visited = new Set([Number(category?.id)]);
 
-  while (
-    parentId != null &&
-    !visited.has(Number(parentId))
-  ) {
+  while (parentId != null && !visited.has(Number(parentId))) {
     const id = Number(parentId);
 
     visited.add(id);
@@ -113,16 +103,9 @@ function getDepth(category, categoriesById) {
 function buildNestedOptions(roots, childrenMap, exclude) {
   const result = [];
 
-  const visit = (
-    nodes,
-    depth = 0,
-    seen = new Set()
-  ) => {
+  const visit = (nodes, depth = 0, seen = new Set()) => {
     for (const item of nodes) {
-      if (
-        seen.has(item.id) ||
-        (exclude && exclude(item))
-      ) {
+      if (seen.has(item.id) || (exclude && exclude(item))) {
         continue;
       }
 
@@ -135,11 +118,7 @@ function buildNestedOptions(roots, childrenMap, exclude) {
         depth,
       });
 
-      visit(
-        childrenMap.get(item.id) || [],
-        depth + 1,
-        nextSeen
-      );
+      visit(childrenMap.get(item.id) || [], depth + 1, nextSeen);
     }
   };
 
@@ -154,71 +133,36 @@ function buildNestedOptions(roots, childrenMap, exclude) {
 
 function StatusBadge({ status }) {
   return (
-    <span
-      className={`category-status category-status--${status}`}
-    >
-      {status === 'active'
-        ? 'HOẠT ĐỘNG'
-        : 'NGỪNG HOẠT ĐỘNG'}
+    <span className={`category-status category-status--${status}`}>
+      {status === 'active' ? 'HOẠT ĐỘNG' : 'NGỪNG HOẠT ĐỘNG'}
     </span>
   );
 }
 
 function StructureBadge({ isRoot, depth = 0 }) {
   return (
-    <span
-      className={`category-structure ${
-        isRoot ? 'category-structure--root' : ''
-      }`}
-    >
-      {isRoot
-        ? 'GỐC'
-        : depth > 1
-          ? `CON CẤP ${depth}`
-          : 'CON'}
+    <span className={`category-structure ${isRoot ? 'category-structure--root' : ''}`}>
+      {isRoot ? 'GỐC' : depth > 1 ? `CON CẤP ${depth}` : 'CON'}
     </span>
   );
 }
 
-function ImageWithFallback({
-  src,
-  alt,
-  fallback = 'DM',
-}) {
+function ImageWithFallback({ src, alt, fallback = 'DM' }) {
   const [failed, setFailed] = useState(false);
 
   return src && !failed ? (
-    <img
-      src={src}
-      alt={alt}
-      onError={() => setFailed(true)}
-    />
+    <img src={src} alt={alt} onError={() => setFailed(true)} />
   ) : (
     <span>{fallback}</span>
   );
 }
 
-function CategoryImage({
-  category,
-  large = false,
-}) {
-  const src =
-    category?.image ||
-    category?.anhDaiDien ||
-    category?.anh_dai_dien ||
-    '';
+function CategoryImage({ category, large = false }) {
+  const src = category?.image || category?.anhDaiDien || category?.anh_dai_dien || '';
 
   return (
-    <div
-      className={`category-image ${
-        large ? 'category-image--large' : ''
-      }`}
-    >
-      <ImageWithFallback
-        key={src}
-        src={src}
-        alt={`Ảnh đại diện ${category?.name || ''}`}
-      />
+    <div className={`category-image ${large ? 'category-image--large' : ''}`}>
+      <ImageWithFallback key={src} src={src} alt={`Ảnh đại diện ${category?.name || ''}`} />
     </div>
   );
 }
@@ -234,12 +178,8 @@ function SectionHeader({ children, meta }) {
 
 function LoadingState() {
   return (
-    <div
-      className="category-network-state"
-      role="status"
-    >
+    <div className="category-network-state" role="status">
       <span className="category-spinner" />
-
       Đang tải dữ liệu danh mục...
     </div>
   );
@@ -247,18 +187,12 @@ function LoadingState() {
 
 function ErrorState({ message, onRetry }) {
   return (
-    <div
-      className="category-network-state category-network-state--error"
-      role="alert"
-    >
+    <div className="category-network-state category-network-state--error" role="alert">
       <strong>Không thể tải dữ liệu</strong>
 
       <span>{message}</span>
 
-      <button
-        type="button"
-        onClick={onRetry}
-      >
+      <button type="button" onClick={onRetry}>
         THỬ LẠI
       </button>
     </div>
@@ -282,10 +216,7 @@ function CategoryFormModal({
     category
       ? {
           name: category.name,
-          parentId:
-            category.parentId == null
-              ? ''
-              : String(category.parentId),
+          parentId: category.parentId == null ? '' : String(category.parentId),
           image: category.image || '',
           status: category.status,
         }
@@ -295,9 +226,7 @@ function CategoryFormModal({
   const [imageMode, setImageMode] = useState('upload');
 
   const [images, setImages] = useState(() =>
-    category?.image
-      ? [{ id: 'current', url: category.image }]
-      : []
+    category?.image ? [{ id: 'current', url: category.image }] : []
   );
 
   const [errors, setErrors] = useState({});
@@ -319,21 +248,13 @@ function CategoryFormModal({
   // ========================================
 
   const handleImagesChange = (next) => {
-    const list = Array.isArray(next)
-      ? next
-      : typeof next === 'function'
-        ? next(images)
-        : [];
+    const list = Array.isArray(next) ? next : typeof next === 'function' ? next(images) : [];
 
     const latest = list.slice(-1);
 
     setImages(latest);
 
-    if (
-      latest[0]?.url &&
-      !latest[0]?.uploading &&
-      !latest[0]?.error
-    ) {
+    if (latest[0]?.url && !latest[0]?.uploading && !latest[0]?.error) {
       update('image', latest[0].url);
     } else if (!latest[0]) {
       update('image', '');
@@ -347,9 +268,7 @@ function CategoryFormModal({
   const selectableParents = useMemo(() => {
     const childrenMap = new Map();
 
-    const ids = new Set(
-      categories.map((item) => item.id)
-    );
+    const ids = new Set(categories.map((item) => item.id));
 
     categories.forEach((item) => {
       if (item.parentId == null) return;
@@ -361,34 +280,19 @@ function CategoryFormModal({
       childrenMap.get(item.parentId).push(item);
     });
 
-    const roots = categories.filter(
-      (item) =>
-        item.parentId == null ||
-        !ids.has(item.parentId)
-    );
+    const roots = categories.filter((item) => item.parentId == null || !ids.has(item.parentId));
 
     return buildNestedOptions(
       roots,
       childrenMap,
-      (item) =>
-        category &&
-        isDescendant(
-          item.id,
-          category.id,
-          categories
-        )
+      (item) => category && isDescendant(item.id, category.id, categories)
     );
   }, [categories, category]);
 
   const parentValue =
-    selectableParents.find(
-      (item) => item.id === form.parentId
-    )?.text || ROOT_OPTION;
+    selectableParents.find((item) => item.id === form.parentId)?.text || ROOT_OPTION;
 
-  const parentOptions = [
-    ROOT_OPTION,
-    ...selectableParents.map((item) => item.text),
-  ];
+  const parentOptions = [ROOT_OPTION, ...selectableParents.map((item) => item.text)];
 
   // ========================================
   // Submit & Validation
@@ -403,14 +307,12 @@ function CategoryFormModal({
     if (!name) {
       nextErrors.name = 'Vui lòng nhập tên danh mục.';
     } else if (name.length < 2) {
-      nextErrors.name =
-        'Tên danh mục phải có ít nhất 2 ký tự.';
+      nextErrors.name = 'Tên danh mục phải có ít nhất 2 ký tự.';
     } else if (
       categories.some(
         (item) =>
           item.id !== category?.id &&
-          item.name.toLocaleLowerCase('vi') ===
-            name.toLocaleLowerCase('vi')
+          item.name.toLocaleLowerCase('vi') === name.toLocaleLowerCase('vi')
       )
     ) {
       nextErrors.name = 'Tên danh mục đã tồn tại.';
@@ -418,34 +320,19 @@ function CategoryFormModal({
 
     // Kiểm tra danh mục cha
     const parent = form.parentId
-      ? categories.find(
-          (item) =>
-            item.id === Number(form.parentId)
-        )
+      ? categories.find((item) => item.id === Number(form.parentId))
       : null;
 
     if (form.parentId && !parent) {
-      nextErrors.parentId =
-        'Danh mục cha không tồn tại.';
-    } else if (
-      category &&
-      parent &&
-      isDescendant(
-        parent.id,
-        category.id,
-        categories
-      )
-    ) {
+      nextErrors.parentId = 'Danh mục cha không tồn tại.';
+    } else if (category && parent && isDescendant(parent.id, category.id, categories)) {
       nextErrors.parentId =
         'Không thể chọn chính danh mục hoặc danh mục con của nó làm danh mục cha.';
     }
 
     // Không ngừng hoạt động khi còn dữ liệu liên quan
     const hasChildren = Boolean(
-      category &&
-        categories.some(
-          (item) => item.parentId === category.id
-        )
+      category && categories.some((item) => item.parentId === category.id)
     );
 
     if (
@@ -458,36 +345,21 @@ function CategoryFormModal({
     }
 
     // Kiểm tra ảnh
-    const activeImage =
-      imageMode === 'upload'
-        ? images[0]?.url || ''
-        : form.image.trim();
+    const activeImage = imageMode === 'upload' ? images[0]?.url || '' : form.image.trim();
 
-    if (
-      imageMode === 'upload' &&
-      images[0]?.uploading
-    ) {
-      nextErrors.image =
-        'Ảnh đang được tải lên. Vui lòng chờ hoàn tất.';
-    } else if (
-      imageMode === 'upload' &&
-      images[0]?.error
-    ) {
+    if (imageMode === 'upload' && images[0]?.uploading) {
+      nextErrors.image = 'Ảnh đang được tải lên. Vui lòng chờ hoàn tất.';
+    } else if (imageMode === 'upload' && images[0]?.error) {
       nextErrors.image = images[0].error;
     } else if (activeImage) {
       try {
         const parsed = new URL(activeImage);
 
-        if (
-          !['http:', 'https:'].includes(
-            parsed.protocol
-          )
-        ) {
+        if (!['http:', 'https:'].includes(parsed.protocol)) {
           throw new Error('invalid');
         }
       } catch {
-        nextErrors.image =
-          'URL ảnh phải bắt đầu bằng http:// hoặc https://.';
+        nextErrors.image = 'URL ảnh phải bắt đầu bằng http:// hoặc https://.';
       }
     }
 
@@ -512,11 +384,7 @@ function CategoryFormModal({
     <div
       className="category-modal-backdrop"
       role="presentation"
-      onMouseDown={(event) =>
-        !saving &&
-        event.target === event.currentTarget &&
-        onClose()
-      }
+      onMouseDown={(event) => !saving && event.target === event.currentTarget && onClose()}
     >
       <section
         className="category-modal"
@@ -525,32 +393,17 @@ function CategoryFormModal({
         aria-labelledby="category-form-title"
       >
         <header className="category-modal__header">
-          <h2 id="category-form-title">
-            {category
-              ? 'SỬA DANH MỤC'
-              : 'THÊM DANH MỤC'}
-          </h2>
+          <h2 id="category-form-title">{category ? 'SỬA DANH MỤC' : 'THÊM DANH MỤC'}</h2>
 
-          <button
-            type="button"
-            disabled={saving}
-            onClick={onClose}
-            aria-label="Đóng"
-          >
+          <button type="button" disabled={saving} onClick={onClose} aria-label="Đóng">
             <HiOutlineX size={24} />
           </button>
         </header>
 
-        <form
-          onSubmit={submit}
-          noValidate
-        >
+        <form onSubmit={submit} noValidate>
           <div className="category-modal__body">
             {serverError && (
-              <div
-                className="category-inline-error"
-                role="alert"
-              >
+              <div className="category-inline-error" role="alert">
                 {serverError}
               </div>
             )}
@@ -563,19 +416,12 @@ function CategoryFormModal({
 
               <input
                 value={form.name}
-                onChange={(event) =>
-                  update(
-                    'name',
-                    event.target.value
-                  )
-                }
+                onChange={(event) => update('name', event.target.value)}
                 placeholder="Ví dụ: Laptop Gaming"
                 autoFocus
               />
 
-              {errors.name && (
-                <small>{errors.name}</small>
-              )}
+              {errors.name && <small>{errors.name}</small>}
             </label>
 
             {/* Danh mục cha */}
@@ -588,18 +434,11 @@ function CategoryFormModal({
                 defaultValue={ROOT_OPTION}
                 selectedDark
                 onSelect={(text) =>
-                  update(
-                    'parentId',
-                    selectableParents.find(
-                      (item) => item.text === text
-                    )?.id || ''
-                  )
+                  update('parentId', selectableParents.find((item) => item.text === text)?.id || '')
                 }
               />
 
-              {errors.parentId && (
-                <small>{errors.parentId}</small>
-              )}
+              {errors.parentId && <small>{errors.parentId}</small>}
             </div>
 
             {/* Ảnh đại diện */}
@@ -609,11 +448,7 @@ function CategoryFormModal({
               <div className="category-mode-tabs">
                 <button
                   type="button"
-                  className={
-                    imageMode === 'upload'
-                      ? 'is-active'
-                      : ''
-                  }
+                  className={imageMode === 'upload' ? 'is-active' : ''}
                   onClick={() => {
                     setImageMode('upload');
 
@@ -624,11 +459,7 @@ function CategoryFormModal({
 
                     const src = form.image.trim();
 
-                    if (
-                      src &&
-                      (!images.length ||
-                        images[0]?.url !== src)
-                    ) {
+                    if (src && (!images.length || images[0]?.url !== src)) {
                       setImages([
                         {
                           id: 'current',
@@ -643,11 +474,7 @@ function CategoryFormModal({
 
                 <button
                   type="button"
-                  className={
-                    imageMode === 'url'
-                      ? 'is-active'
-                      : ''
-                  }
+                  className={imageMode === 'url' ? 'is-active' : ''}
                   onClick={() => {
                     setImageMode('url');
 
@@ -656,15 +483,8 @@ function CategoryFormModal({
                       image: '',
                     }));
 
-                    if (
-                      images[0]?.url &&
-                      !images[0]?.uploading &&
-                      !images[0]?.error
-                    ) {
-                      update(
-                        'image',
-                        images[0].url
-                      );
+                    if (images[0]?.url && !images[0]?.uploading && !images[0]?.error) {
+                      update('image', images[0].url);
                     }
                   }}
                 >
@@ -675,9 +495,7 @@ function CategoryFormModal({
               {imageMode === 'upload' ? (
                 <ImageUploader
                   images={images}
-                  onImagesChange={
-                    handleImagesChange
-                  }
+                  onImagesChange={handleImagesChange}
                   maxSizeMB={5}
                   folder="categories"
                   multiple={false}
@@ -687,12 +505,7 @@ function CategoryFormModal({
                   <input
                     className="category-url-input"
                     value={form.image}
-                    onChange={(event) =>
-                      update(
-                        'image',
-                        event.target.value
-                      )
-                    }
+                    onChange={(event) => update('image', event.target.value)}
                     placeholder="URL ảnh đại diện (tùy chọn)"
                   />
 
@@ -709,11 +522,7 @@ function CategoryFormModal({
                 </>
               )}
 
-              {errors.image && (
-                <small className="category-field-error">
-                  {errors.image}
-                </small>
-              )}
+              {errors.image && <small className="category-field-error">{errors.image}</small>}
             </fieldset>
 
             {/* Trạng thái */}
@@ -723,59 +532,32 @@ function CategoryFormModal({
               <div>
                 <button
                   type="button"
-                  className={
-                    form.status === 'active'
-                      ? 'is-active'
-                      : ''
-                  }
-                  onClick={() =>
-                    update('status', 'active')
-                  }
+                  className={form.status === 'active' ? 'is-active' : ''}
+                  onClick={() => update('status', 'active')}
                 >
                   HOẠT ĐỘNG
                 </button>
 
                 <button
                   type="button"
-                  className={
-                    form.status === 'inactive'
-                      ? 'is-active'
-                      : ''
-                  }
-                  onClick={() =>
-                    update('status', 'inactive')
-                  }
+                  className={form.status === 'inactive' ? 'is-active' : ''}
+                  onClick={() => update('status', 'inactive')}
                 >
                   NGỪNG HOẠT ĐỘNG
                 </button>
               </div>
 
-              {errors.status && (
-                <small className="category-field-error">
-                  {errors.status}
-                </small>
-              )}
+              {errors.status && <small className="category-field-error">{errors.status}</small>}
             </fieldset>
           </div>
 
           <footer className="category-modal__footer">
-            <button
-              type="button"
-              disabled={saving}
-              onClick={onClose}
-            >
+            <button type="button" disabled={saving} onClick={onClose}>
               HỦY
             </button>
 
-            <button
-              type="submit"
-              disabled={saving}
-            >
-              {saving
-                ? 'ĐANG LƯU...'
-                : category
-                  ? 'LƯU THAY ĐỔI'
-                  : 'THÊM DANH MỤC'}
+            <button type="submit" disabled={saving}>
+              {saving ? 'ĐANG LƯU...' : category ? 'LƯU THAY ĐỔI' : 'THÊM DANH MỤC'}
             </button>
           </footer>
         </form>
@@ -797,27 +579,17 @@ function DeactivateModal({
   onClose,
   onConfirm,
 }) {
-  const parent = categories.find(
-    (item) => item.id === category.parentId
-  );
+  const parent = categories.find((item) => item.id === category.parentId);
 
-  const children = categories.filter(
-    (item) => item.parentId === category.id
-  );
+  const children = categories.filter((item) => item.parentId === category.id);
 
-  const blocked =
-    children.length > 0 ||
-    productCount > 0;
+  const blocked = children.length > 0 || productCount > 0;
 
   return (
     <div
       className="category-modal-backdrop"
       role="presentation"
-      onMouseDown={(event) =>
-        !saving &&
-        event.target === event.currentTarget &&
-        onClose()
-      }
+      onMouseDown={(event) => !saving && event.target === event.currentTarget && onClose()}
     >
       <section
         className="category-modal category-modal--confirm"
@@ -826,17 +598,12 @@ function DeactivateModal({
         aria-labelledby="category-deactivate-title"
       >
         <header className="category-modal__header">
-          <h2 id="category-deactivate-title">
-            NGỪNG HOẠT ĐỘNG DANH MỤC?
-          </h2>
+          <h2 id="category-deactivate-title">NGỪNG HOẠT ĐỘNG DANH MỤC?</h2>
         </header>
 
         <div className="category-modal__body">
           {serverError && (
-            <div
-              className="category-inline-error"
-              role="alert"
-            >
+            <div className="category-inline-error" role="alert">
               {serverError}
             </div>
           )}
@@ -846,9 +613,7 @@ function DeactivateModal({
             <dd>{category.name}</dd>
 
             <dt>DANH MỤC CHA</dt>
-            <dd>
-              {parent?.name || 'DANH MỤC GỐC'}
-            </dd>
+            <dd>{parent?.name || 'DANH MỤC GỐC'}</dd>
 
             <dt>SỐ SẢN PHẨM</dt>
             <dd>{productCount} SP</dd>
@@ -858,39 +623,25 @@ function DeactivateModal({
           </dl>
 
           <div className="category-warning">
-            Danh mục ngừng hoạt động sẽ không còn hiển thị
-            trong điều hướng khách hàng.
+            Danh mục ngừng hoạt động sẽ không còn hiển thị trong điều hướng khách hàng.
           </div>
 
           {blocked && (
-            <div
-              className="category-blocked"
-              role="alert"
-            >
-              <strong>
-                KHÔNG THỂ NGỪNG HOẠT ĐỘNG DANH MỤC
-              </strong>
+            <div className="category-blocked" role="alert">
+              <strong>KHÔNG THỂ NGỪNG HOẠT ĐỘNG DANH MỤC</strong>
 
               <p>
-                Backend không cho phép ngừng danh mục
-                đang có sản phẩm hoặc bất kỳ danh mục
-                con trực thuộc nào.
+                Backend không cho phép ngừng danh mục đang có sản phẩm hoặc bất kỳ danh mục con trực
+                thuộc nào.
               </p>
 
-              <p>
-                Vui lòng chuyển dữ liệu liên quan
-                trước khi tiếp tục.
-              </p>
+              <p>Vui lòng chuyển dữ liệu liên quan trước khi tiếp tục.</p>
             </div>
           )}
         </div>
 
         <footer className="category-modal__footer">
-          <button
-            type="button"
-            disabled={saving}
-            onClick={onClose}
-          >
+          <button type="button" disabled={saving} onClick={onClose}>
             HỦY
           </button>
 
@@ -900,9 +651,7 @@ function DeactivateModal({
             disabled={blocked || saving}
             onClick={onConfirm}
           >
-            {saving
-              ? 'ĐANG XỬ LÝ...'
-              : 'XÁC NHẬN NGỪNG HOẠT ĐỘNG'}
+            {saving ? 'ĐANG XỬ LÝ...' : 'XÁC NHẬN NGỪNG HOẠT ĐỘNG'}
           </button>
         </footer>
       </section>
@@ -949,16 +698,16 @@ function useCategoryData() {
 // Category Modals
 // ========================================
 
-function CategoryModals({
-  modal,
-  setModal,
-  categories,
-  reload,
-}) {
+function CategoryModals({ modal, setModal, categories, reload }) {
   const [saving, setSaving] = useState(false);
   const [serverError, setServerError] = useState('');
 
+  const access = useAdminPermissions()?.access;
+
   if (!modal) return null;
+
+  const action = modal.type === 'form' ? (modal.id == null ? 'them' : 'sua') : 'xoa';
+  if (!hasAdminPermission(access, 'danh_muc', action)) return null;
 
   const runMutation = async (mutation) => {
     setSaving(true);
@@ -976,37 +725,28 @@ function CategoryModals({
   };
 
   if (modal.type === 'form') {
-    const editing = categories.find(
-      (item) => item.id === modal.id
-    );
+    const editing = categories.find((item) => item.id === modal.id);
+
+    if (modal.id != null && !editing) return null;
 
     return (
       <CategoryFormModal
         category={editing}
         categories={categories}
-        productCount={
-          editing?.productCount || 0
-        }
+        productCount={editing?.productCount || 0}
         saving={saving}
         serverError={serverError}
         onClose={() => setModal(null)}
         onSave={(payload) =>
           runMutation(() =>
-            editing
-              ? updateCategory(
-                  editing.id,
-                  payload
-                )
-              : createCategory(payload)
+            editing ? updateCategory(editing.id, payload) : createCategory(payload)
           )
         }
       />
     );
   }
 
-  const category = categories.find(
-    (item) => item.id === modal.id
-  );
+  const category = categories.find((item) => item.id === modal.id);
 
   if (!category) return null;
 
@@ -1014,17 +754,11 @@ function CategoryModals({
     <DeactivateModal
       category={category}
       categories={categories}
-      productCount={
-        category.productCount || 0
-      }
+      productCount={category.productCount || 0}
       saving={saving}
       serverError={serverError}
       onClose={() => setModal(null)}
-      onConfirm={() =>
-        runMutation(() =>
-          deactivateCategory(category.id)
-        )
-      }
+      onConfirm={() => runMutation(() => deactivateCategory(category.id))}
     />
   );
 }
@@ -1036,12 +770,12 @@ function CategoryModals({
 export default function DanhMucSanPham() {
   const navigate = useNavigate();
 
-  const {
-    categories,
-    loading,
-    error,
-    reload,
-  } = useCategoryData();
+  const access = useAdminPermissions()?.access;
+  const canEditCategory = hasAdminPermission(access, 'danh_muc', 'sua');
+  const canDeactivateCategory = hasAdminPermission(access, 'danh_muc', 'xoa');
+  const canCreateCategory = hasAdminPermission(access, 'danh_muc', 'them');
+
+  const { categories, loading, error, reload } = useCategoryData();
 
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -1074,23 +808,15 @@ export default function DanhMucSanPham() {
   }, [categories]);
 
   const roots = useMemo(() => {
-    const allIds = new Set(
-      categories.map((category) => category.id)
-    );
+    const allIds = new Set(categories.map((category) => category.id));
 
     return categories.filter(
-      (category) =>
-        category.parentId == null ||
-        !allIds.has(category.parentId)
+      (category) => category.parentId == null || !allIds.has(category.parentId)
     );
   }, [categories]);
 
   const parentFilterOptions = useMemo(
-    () =>
-      buildNestedOptions(
-        roots,
-        childrenMap
-      ),
+    () => buildNestedOptions(roots, childrenMap),
     [childrenMap, roots]
   );
 
@@ -1098,49 +824,23 @@ export default function DanhMucSanPham() {
   // Filters
   // ========================================
 
-  const clearVisible =
-    Boolean(search.trim()) ||
-    statusFilter !== 'all' ||
-    parentFilter !== 'all';
+  const clearVisible = Boolean(search.trim()) || statusFilter !== 'all' || parentFilter !== 'all';
 
   const rows = useMemo(() => {
-    const query = search
-      .trim()
-      .toLocaleLowerCase('vi');
+    const query = search.trim().toLocaleLowerCase('vi');
 
-    const isFiltering =
-      Boolean(query) ||
-      statusFilter !== 'all';
+    const isFiltering = Boolean(query) || statusFilter !== 'all';
 
-    const byId = new Map(
-      categories.map((item) => [
-        item.id,
-        item,
-      ])
-    );
+    const byId = new Map(categories.map((item) => [item.id, item]));
 
     const matches = (item) =>
-      (
-        statusFilter === 'all' ||
-        item.status === statusFilter
-      ) &&
-      (
-        !query ||
-        item.name
-          .toLocaleLowerCase('vi')
-          .includes(query) ||
-        `/${item.slug || ''}`
-          .toLocaleLowerCase('vi')
-          .includes(query) ||
-        String(item.id).includes(query)
-      );
+      (statusFilter === 'all' || item.status === statusFilter) &&
+      (!query ||
+        item.name.toLocaleLowerCase('vi').includes(query) ||
+        `/${item.slug || ''}`.toLocaleLowerCase('vi').includes(query) ||
+        String(item.id).includes(query));
 
-    const makeRow = (
-      item,
-      depth,
-      canExpand = false,
-      isExpanded = false
-    ) => ({
+    const makeRow = (item, depth, canExpand = false, isExpanded = false) => ({
       ...item,
       depth,
       childCount: childrenMap.get(item.id)?.length ?? 0,
@@ -1150,71 +850,37 @@ export default function DanhMucSanPham() {
 
     if (parentFilter !== 'all') {
       if (parentFilter === ROOT_FILTER) {
-        return roots
-          .filter(matches)
-          .map((item) =>
-            makeRow(item, 0)
-          );
+        return roots.filter(matches).map((item) => makeRow(item, 0));
       }
 
       return categories
-        .filter(
-          (item) =>
-            item.parentId ===
-              Number(parentFilter) &&
-            matches(item)
-        )
-        .map((item) =>
-          makeRow(
-            item,
-            getDepth(item, byId)
-          )
-        );
+        .filter((item) => item.parentId === Number(parentFilter) && matches(item))
+        .map((item) => makeRow(item, getDepth(item, byId)));
     }
 
-    const descendantMatches = (
-      id,
-      visited = new Set()
-    ) => {
+    const descendantMatches = (id, visited = new Set()) => {
       if (visited.has(id)) return false;
 
       const seen = new Set(visited);
       seen.add(id);
 
-      return (
-        childrenMap.get(id) || []
-      ).some(
-        (child) =>
-          matches(child) ||
-          descendantMatches(
-            child.id,
-            seen
-          )
+      return (childrenMap.get(id) || []).some(
+        (child) => matches(child) || descendantMatches(child.id, seen)
       );
     };
 
     const result = [];
 
-    const visit = (
-      nodes,
-      depth = 0,
-      visited = new Set()
-    ) => {
+    const visit = (nodes, depth = 0, visited = new Set()) => {
       for (const item of nodes) {
         if (visited.has(item.id)) continue;
 
         const seen = new Set(visited);
         seen.add(item.id);
 
-        const hasMatchBelow =
-          isFiltering &&
-          descendantMatches(item.id);
+        const hasMatchBelow = isFiltering && descendantMatches(item.id);
 
-        if (
-          isFiltering &&
-          !matches(item) &&
-          !hasMatchBelow
-        ) {
+        if (isFiltering && !matches(item) && !hasMatchBelow) {
           continue;
         }
 
@@ -1233,24 +899,13 @@ export default function DanhMucSanPham() {
     visit(roots);
 
     return result;
-  }, [
-    categories,
-    childrenMap,
-    expanded,
-    parentFilter,
-    roots,
-    search,
-    statusFilter,
-  ]);
+  }, [categories, childrenMap, expanded, parentFilter, roots, search, statusFilter]);
 
   const stats = {
     total: categories.length,
     roots: roots.length,
     children: categories.length - roots.length,
-    inactive: categories.filter(
-      (item) =>
-        item.status === 'inactive'
-    ).length,
+    inactive: categories.filter((item) => item.status === 'inactive').length,
   };
 
   // ========================================
@@ -1258,6 +913,8 @@ export default function DanhMucSanPham() {
   // ========================================
 
   const restore = async (category) => {
+    if (!canEditCategory) return;
+
     setRestoringId(category.id);
     setActionError('');
 
@@ -1265,9 +922,7 @@ export default function DanhMucSanPham() {
       await reactivateCategory(category);
       await reload();
     } catch (requestError) {
-      setActionError(
-        errorMessage(requestError)
-      );
+      setActionError(errorMessage(requestError));
     } finally {
       setRestoringId(null);
     }
@@ -1302,19 +957,13 @@ export default function DanhMucSanPham() {
         <div>
           <h1>DANH MỤC SẢN PHẨM</h1>
 
-          <p>
-            Quản lý cấu trúc phân cấp danh mục và
-            sản phẩm thuộc danh mục
-          </p>
+          <p>Quản lý cấu trúc phân cấp danh mục và sản phẩm thuộc danh mục</p>
         </div>
 
         <button
           type="button"
           className="category-primary-button"
-          disabled={
-            loading ||
-            Boolean(error)
-          }
+          disabled={!canCreateCategory || loading || Boolean(error)}
           onClick={() =>
             setModal({
               type: 'form',
@@ -1328,35 +977,21 @@ export default function DanhMucSanPham() {
       {loading ? (
         <LoadingState />
       ) : error ? (
-        <ErrorState
-          message={error}
-          onRetry={reload}
-        />
+        <ErrorState message={error} onRetry={reload} />
       ) : (
         <>
           {actionError && (
-            <div
-              className="category-inline-error category-page-error"
-              role="alert"
-            >
+            <div className="category-inline-error category-page-error" role="alert">
               {actionError}
 
-              <button
-                type="button"
-                onClick={() =>
-                  setActionError('')
-                }
-              >
+              <button type="button" onClick={() => setActionError('')}>
                 ×
               </button>
             </div>
           )}
 
           {/* Thống kê */}
-          <section
-            className="category-stats"
-            aria-label="Thống kê danh mục"
-          >
+          <section className="category-stats" aria-label="Thống kê danh mục">
             <div>
               <strong>{stats.total}</strong>
               <span>TỔNG DANH MỤC</span>
@@ -1373,9 +1008,7 @@ export default function DanhMucSanPham() {
             </div>
 
             <div>
-              <strong className="is-red">
-                {stats.inactive}
-              </strong>
+              <strong className="is-red">{stats.inactive}</strong>
               <span>NGỪNG HOẠT ĐỘNG</span>
             </div>
           </section>
@@ -1384,9 +1017,7 @@ export default function DanhMucSanPham() {
           <div className="category-toolbar">
             <input
               value={search}
-              onChange={(event) =>
-                setSearch(event.target.value)
-              }
+              onChange={(event) => setSearch(event.target.value)}
               placeholder="Tìm tên danh mục / đường dẫn..."
               aria-label="Tìm danh mục"
             />
@@ -1394,80 +1025,57 @@ export default function DanhMucSanPham() {
             <FilterDropdown
               options={STATUS_OPTIONS}
               value={
-                STATUS_OPTIONS.find(
-                  (label) =>
-                    STATUS_VALUES[label] ===
-                    statusFilter
-                ) || STATUS_OPTIONS[0]
-              }
-              defaultValue={
+                STATUS_OPTIONS.find((label) => STATUS_VALUES[label] === statusFilter) ||
                 STATUS_OPTIONS[0]
               }
+              defaultValue={STATUS_OPTIONS[0]}
               selectedDark
-              onSelect={(label) =>
-                setStatusFilter(
-                  STATUS_VALUES[label] || 'all'
-                )
-              }
+              onSelect={(label) => setStatusFilter(STATUS_VALUES[label] || 'all')}
             />
 
             <FilterDropdown
               options={[
                 PARENT_ALL_OPTION,
                 PARENT_ROOT_OPTION,
-                ...parentFilterOptions.map(
-                  (item) => item.text
-                ),
+                ...parentFilterOptions.map((item) => item.text),
               ]}
               value={
                 parentFilter === 'all'
                   ? PARENT_ALL_OPTION
                   : parentFilter === ROOT_FILTER
                     ? PARENT_ROOT_OPTION
-                    : parentFilterOptions.find(
-                        (item) =>
-                          item.id === parentFilter
-                      )?.text || PARENT_ALL_OPTION
+                    : parentFilterOptions.find((item) => item.id === parentFilter)?.text ||
+                      PARENT_ALL_OPTION
               }
-              defaultValue={
-                PARENT_ALL_OPTION
-              }
+              defaultValue={PARENT_ALL_OPTION}
               selectedDark
               onSelect={(label) => {
-                if (
-                  label ===
-                  PARENT_ALL_OPTION
-                ) {
+                if (label === PARENT_ALL_OPTION) {
                   setParentFilter('all');
-                } else if (
-                  label ===
-                  PARENT_ROOT_OPTION
-                ) {
+                } else if (label === PARENT_ROOT_OPTION) {
                   setParentFilter(ROOT_FILTER);
                 } else {
                   setParentFilter(
-                    parentFilterOptions.find(
-                      (item) =>
-                        item.text === label
-                    )?.id || 'all'
+                    parentFilterOptions.find((item) => item.text === label)?.id || 'all'
                   );
                 }
               }}
             />
 
             {clearVisible && (
-              <button
-                type="button"
-                className="category-clear-button"
-                onClick={clearFilters}
-              >
+              <button type="button" className="category-clear-button" onClick={clearFilters}>
                 XÓA BỘ LỌC
               </button>
             )}
           </div>
 
           {/* Bảng danh mục */}
-          <div className="category-table-wrap admin-table-scroll" tabIndex={0} role="region" aria-label="Bảng danh sách">
+          <div
+            className="category-table-wrap admin-table-scroll"
+            tabIndex={0}
+            role="region"
+            aria-label="Bảng danh sách"
+          >
             <table className="category-table admin-data-table">
               <thead>
                 <tr>
@@ -1483,14 +1091,9 @@ export default function DanhMucSanPham() {
 
               <tbody>
                 {rows.map((item) => {
-                  const isRoot =
-                    item.depth === 0;
+                  const isRoot = item.depth === 0;
 
-                  const parent = categories.find(
-                    (candidate) =>
-                      candidate.id ===
-                      item.parentId
-                  );
+                  const parent = categories.find((candidate) => candidate.id === item.parentId);
 
                   return (
                     <tr
@@ -1534,79 +1137,64 @@ export default function DanhMucSanPham() {
                             )}
                           </span>
 
-                          <CategoryImage
-                            category={item}
-                          />
+                          <CategoryImage category={item} />
 
                           <span
                             className="category-name-copy"
                             onPointerEnter={(event) => {
-                              if (item.canExpand && !item.isExpanded && event.pointerType === 'mouse') {
+                              if (
+                                item.canExpand &&
+                                !item.isExpanded &&
+                                event.pointerType === 'mouse'
+                              ) {
                                 toggleExpanded(item.id, true);
                               }
                             }}
                           >
-                            <strong>
-                              {item.name}
-                            </strong>
+                            <strong>{item.name}</strong>
 
                             {!isRoot && (
-                              <small>
-                                Trực thuộc:{' '}
-                                {parent?.name ||
-                                  item.parentName ||
-                                  'GỐC'}
-                              </small>
+                              <small>Trực thuộc: {parent?.name || item.parentName || 'GỐC'}</small>
                             )}
                           </span>
                         </div>
                       </td>
 
                       <td>
-                        <StructureBadge
-                          isRoot={isRoot}
-                          depth={item.depth}
-                        />
+                        <StructureBadge isRoot={isRoot} depth={item.depth} />
                         {item.childCount > 0 && (
-                          <small className="category-child-count">{item.childCount} danh mục con</small>
+                          <small className="category-child-count">
+                            {item.childCount} danh mục con
+                          </small>
                         )}
                       </td>
 
                       <td>
-                        <strong>
-                          {item.productCount}
-                        </strong>
+                        <strong>{item.productCount}</strong>
 
                         <small>sản phẩm</small>
                       </td>
 
                       <td>
-                        <code>
-                          /{item.slug}
-                        </code>
+                        <code>/{item.slug}</code>
                       </td>
 
                       <td>
-                        <StatusBadge
-                          status={item.status}
-                        />
+                        <StatusBadge status={item.status} />
                       </td>
 
                       <td>
                         <div className="category-actions">
                           <button
                             type="button"
-                            onClick={() =>
-                              navigate(
-                                `/admin/danh-muc/danh-muc-san-pham/${item.id}`
-                              )
-                            }
+                            onClick={() => navigate(`/admin/danh-muc/danh-muc-san-pham/${item.id}`)}
                           >
                             CHI TIẾT
                           </button>
 
                           <button
                             type="button"
+                            disabled={!canEditCategory}
                             onClick={() =>
                               setModal({
                                 type: 'form',
@@ -1621,6 +1209,7 @@ export default function DanhMucSanPham() {
                             <button
                               type="button"
                               className="is-danger"
+                              disabled={!canDeactivateCategory}
                               onClick={() =>
                                 setModal({
                                   type: 'deactivate',
@@ -1634,17 +1223,10 @@ export default function DanhMucSanPham() {
                             <button
                               type="button"
                               className="is-success"
-                              disabled={
-                                restoringId ===
-                                item.id
-                              }
-                              onClick={() =>
-                                restore(item)
-                              }
+                              disabled={!canEditCategory || restoringId === item.id}
+                              onClick={() => restore(item)}
                             >
-                              {restoringId === item.id
-                                ? 'ĐANG KHÔI PHỤC...'
-                                : 'KHÔI PHỤC'}
+                              {restoringId === item.id ? 'ĐANG KHÔI PHỤC...' : 'KHÔI PHỤC'}
                             </button>
                           )}
                         </div>
@@ -1655,10 +1237,7 @@ export default function DanhMucSanPham() {
 
                 {!rows.length && (
                   <tr>
-                    <td
-                      colSpan="7"
-                      className="category-empty"
-                    >
+                    <td colSpan="7" className="category-empty">
                       {categories.length
                         ? 'Không tìm thấy danh mục phù hợp.'
                         : 'Chưa có danh mục nào.'}
@@ -1670,11 +1249,7 @@ export default function DanhMucSanPham() {
           </div>
 
           <CategoryModals
-            key={`${
-              modal?.type || 'none'
-            }-${
-              modal?.id || 'new'
-            }`}
+            key={`${modal?.type || 'none'}-${modal?.id || 'new'}`}
             modal={modal}
             setModal={setModal}
             categories={categories}
@@ -1694,12 +1269,11 @@ export function ChiTietDanhMuc() {
   const { categoryId } = useParams();
   const navigate = useNavigate();
 
-  const {
-    categories,
-    loading: listLoading,
-    error: listError,
-    reload,
-  } = useCategoryData();
+  const access = useAdminPermissions()?.access;
+  const canEditCategory = hasAdminPermission(access, 'danh_muc', 'sua');
+  const canDeactivateCategory = hasAdminPermission(access, 'danh_muc', 'xoa');
+
+  const { categories, loading: listLoading, error: listError, reload } = useCategoryData();
 
   const [detail, setDetail] = useState(null);
   const [detailLoading, setDetailLoading] = useState(true);
@@ -1713,13 +1287,9 @@ export function ChiTietDanhMuc() {
     setDetailError('');
 
     try {
-      setDetail(
-        await getCategoryDetail(categoryId)
-      );
+      setDetail(await getCategoryDetail(categoryId));
     } catch (error) {
-      setDetailError(
-        errorMessage(error)
-      );
+      setDetailError(errorMessage(error));
     } finally {
       setDetailLoading(false);
     }
@@ -1735,20 +1305,11 @@ export function ChiTietDanhMuc() {
     loadDetail();
   };
 
-  const childCategories = categories.filter(
-    (item) =>
-      item.parentId === Number(categoryId)
-  );
+  const childCategories = categories.filter((item) => item.parentId === Number(categoryId));
 
-  const childPagination =
-    useDetailTablePagination(
-      childCategories
-    );
+  const childPagination = useDetailTablePagination(childCategories);
 
-  const productPagination =
-    useDetailTablePagination(
-      detail?.products
-    );
+  const productPagination = useDetailTablePagination(detail?.products);
 
   if (listLoading || detailLoading) {
     return (
@@ -1761,37 +1322,20 @@ export function ChiTietDanhMuc() {
   if (listError || detailError) {
     return (
       <main className="category-page">
-        <ErrorState
-          message={
-            listError || detailError
-          }
-          onRetry={retry}
-        />
+        <ErrorState message={listError || detailError} onRetry={retry} />
       </main>
     );
   }
 
-  const listCategory = categories.find(
-    (item) =>
-      item.id === Number(categoryId)
-  );
+  const listCategory = categories.find((item) => item.id === Number(categoryId));
 
   if (!detail || !listCategory) {
     return (
       <main className="category-page">
         <div className="category-not-found">
-          <h1>
-            KHÔNG TÌM THẤY DANH MỤC
-          </h1>
+          <h1>KHÔNG TÌM THẤY DANH MỤC</h1>
 
-          <button
-            type="button"
-            onClick={() =>
-              navigate(
-                '/admin/danh-muc/danh-muc-san-pham'
-              )
-            }
-          >
+          <button type="button" onClick={() => navigate('/admin/danh-muc/danh-muc-san-pham')}>
             QUAY LẠI DANH SÁCH
           </button>
         </div>
@@ -1805,51 +1349,34 @@ export function ChiTietDanhMuc() {
     productCount: detail.products.length,
   };
 
-  const parent = categories.find(
-    (item) =>
-      item.id === category.parentId
-  );
+  const parent = categories.find((item) => item.id === category.parentId);
 
   const children = childCategories;
   const products = detail.products;
 
-  const categoriesById = new Map(
-    categories.map((item) => [
-      item.id,
-      item,
-    ])
-  );
+  const categoriesById = new Map(categories.map((item) => [item.id, item]));
 
-  const depth = getDepth(
-    category,
-    categoriesById
-  );
+  const depth = getDepth(category, categoriesById);
 
   const restore = async () => {
+    if (!canEditCategory) return;
+
     setRestoring(true);
     setActionError('');
 
     try {
       await reactivateCategory(category);
 
-      await Promise.all([
-        reload(),
-        loadDetail(),
-      ]);
+      await Promise.all([reload(), loadDetail()]);
     } catch (error) {
-      setActionError(
-        errorMessage(error)
-      );
+      setActionError(errorMessage(error));
     } finally {
       setRestoring(false);
     }
   };
 
   const reloadAll = async () => {
-    await Promise.all([
-      reload(),
-      loadDetail(),
-    ]);
+    await Promise.all([reload(), loadDetail()]);
   };
 
   return (
@@ -1857,28 +1384,16 @@ export function ChiTietDanhMuc() {
       <button
         type="button"
         className="category-back"
-        onClick={() =>
-          navigate(
-            '/admin/danh-muc/danh-muc-san-pham'
-          )
-        }
+        onClick={() => navigate('/admin/danh-muc/danh-muc-san-pham')}
       >
         ← QUAY LẠI DANH SÁCH
       </button>
 
       {actionError && (
-        <div
-          className="category-inline-error category-page-error"
-          role="alert"
-        >
+        <div className="category-inline-error category-page-error" role="alert">
           {actionError}
 
-          <button
-            type="button"
-            onClick={() =>
-              setActionError('')
-            }
-          >
+          <button type="button" onClick={() => setActionError('')}>
             ×
           </button>
         </div>
@@ -1887,39 +1402,25 @@ export function ChiTietDanhMuc() {
       {/* Header chi tiết */}
       <section className="category-detail-hero">
         <div className="category-detail-identity">
-          <CategoryImage
-            category={category}
-            large
-          />
+          <CategoryImage category={category} large />
 
           <div>
             <h1>{category.name}</h1>
 
             <p>
-              <StructureBadge
-                isRoot={
-                  category.parentId == null
-                }
-                depth={depth}
-              />
-
-              {' '}
-
-              <code>
-                /{category.slug}
-              </code>
+              <StructureBadge isRoot={category.parentId == null} depth={depth} />{' '}
+              <code>/{category.slug}</code>
             </p>
           </div>
         </div>
 
         <div className="category-detail-actions">
-          <StatusBadge
-            status={category.status}
-          />
+          <StatusBadge status={category.status} />
 
           <div>
             <button
               type="button"
+              disabled={!canEditCategory}
               onClick={() =>
                 setModal({
                   type: 'form',
@@ -1934,6 +1435,7 @@ export function ChiTietDanhMuc() {
               <button
                 type="button"
                 className="is-danger"
+                disabled={!canDeactivateCategory}
                 onClick={() =>
                   setModal({
                     type: 'deactivate',
@@ -1947,12 +1449,10 @@ export function ChiTietDanhMuc() {
               <button
                 type="button"
                 className="is-success"
-                disabled={restoring}
+                disabled={!canEditCategory || restoring}
                 onClick={restore}
               >
-                {restoring
-                  ? 'ĐANG KHÔI PHỤC...'
-                  : 'KHÔI PHỤC'}
+                {restoring ? 'ĐANG KHÔI PHỤC...' : 'KHÔI PHỤC'}
               </button>
             )}
           </div>
@@ -1962,35 +1462,25 @@ export function ChiTietDanhMuc() {
       {/* Thống kê */}
       <section className="category-detail-stats">
         <div>
-          <strong>
-            #{category.id}
-          </strong>
+          <strong>#{category.id}</strong>
 
           <span>MÃ DANH MỤC</span>
         </div>
 
         <div>
-          <strong>
-            {parent?.name || 'GỐC'}
-          </strong>
+          <strong>{parent?.name || 'GỐC'}</strong>
 
           <span>DANH MỤC CHA</span>
         </div>
 
         <div>
-          <strong>
-            {products.length}
-          </strong>
+          <strong>{products.length}</strong>
 
           <span>SỐ SẢN PHẨM</span>
         </div>
 
         <div>
-          <strong>
-            {category.status === 'active'
-              ? 'HOẠT ĐỘNG'
-              : 'NGỪNG HOẠT ĐỘNG'}
-          </strong>
+          <strong>{category.status === 'active' ? 'HOẠT ĐỘNG' : 'NGỪNG HOẠT ĐỘNG'}</strong>
 
           <span>TRẠNG THÁI</span>
         </div>
@@ -1998,9 +1488,7 @@ export function ChiTietDanhMuc() {
 
       {/* Thông tin danh mục */}
       <section className="category-detail-card">
-        <SectionHeader>
-          THÔNG TIN DANH MỤC
-        </SectionHeader>
+        <SectionHeader>THÔNG TIN DANH MỤC</SectionHeader>
 
         <div className="category-information">
           <dl>
@@ -2008,31 +1496,19 @@ export function ChiTietDanhMuc() {
             <dd>{category.name}</dd>
 
             <dt>DANH MỤC CHA</dt>
-            <dd>
-              {parent?.name ||
-                'DANH MỤC GỐC'}
-            </dd>
+            <dd>{parent?.name || 'DANH MỤC GỐC'}</dd>
 
             <dt>ĐƯỜNG DẪN</dt>
-            <dd>
-              /{category.slug}
-            </dd>
+            <dd>/{category.slug}</dd>
 
             <dt>TRẠNG THÁI</dt>
-            <dd>
-              {category.status === 'active'
-                ? 'HOẠT ĐỘNG'
-                : 'NGỪNG HOẠT ĐỘNG'}
-            </dd>
+            <dd>{category.status === 'active' ? 'HOẠT ĐỘNG' : 'NGỪNG HOẠT ĐỘNG'}</dd>
           </dl>
 
           <div className="category-information-image">
             <span>ẢNH ĐẠI DIỆN</span>
 
-            <CategoryImage
-              category={category}
-              large
-            />
+            <CategoryImage category={category} large />
           </div>
         </div>
       </section>
@@ -2040,68 +1516,55 @@ export function ChiTietDanhMuc() {
       {/* Danh mục con */}
       {children.length > 0 && (
         <section className="category-detail-card">
-          <SectionHeader
-            meta={`${children.length} MỤC`}
-          >
-            DANH MỤC CON
-          </SectionHeader>
+          <SectionHeader meta={`${children.length} MỤC`}>DANH MỤC CON</SectionHeader>
 
           <div className="category-detail-table-wrap">
-            <div className="admin-table-scroll admin-table-scroll--embedded" tabIndex={0} role="region" aria-label="Bảng dữ liệu liên quan"><table className="admin-data-table admin-data-table--records">
-              <thead>
-                <tr>
-                  <th>MÃ</th>
-                  <th>DANH MỤC</th>
-                  <th>SỐ SP</th>
-                  <th>TRẠNG THÁI</th>
-                </tr>
-              </thead>
+            <div
+              className="admin-table-scroll admin-table-scroll--embedded"
+              tabIndex={0}
+              role="region"
+              aria-label="Bảng dữ liệu liên quan"
+            >
+              <table className="admin-data-table admin-data-table--records">
+                <thead>
+                  <tr>
+                    <th>MÃ</th>
+                    <th>DANH MỤC</th>
+                    <th>SỐ SP</th>
+                    <th>TRẠNG THÁI</th>
+                  </tr>
+                </thead>
 
-              <tbody>
-                {childPagination.visibleItems.map(
-                  (child) => (
+                <tbody>
+                  {childPagination.visibleItems.map((child) => (
                     <tr key={child.id}>
-                      <td>
-                        #{child.id}
-                      </td>
+                      <td>#{child.id}</td>
 
                       <td>
                         <button
                           type="button"
-                          onClick={() =>
-                            navigate(
-                              `/admin/danh-muc/danh-muc-san-pham/${child.id}`
-                            )
-                          }
+                          onClick={() => navigate(`/admin/danh-muc/danh-muc-san-pham/${child.id}`)}
                         >
                           {child.name}
                         </button>
                       </td>
 
-                      <td>
-                        {child.productCount}
-                      </td>
+                      <td>{child.productCount}</td>
 
                       <td>
-                        <StatusBadge
-                          status={child.status}
-                        />
+                        <StatusBadge status={child.status} />
                       </td>
                     </tr>
-                  )
-                )}
-              </tbody>
-            </table></div>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
 
           <DetailTablePagination
             totalItems={children.length}
-            currentPage={
-              childPagination.currentPage
-            }
-            onPageChange={
-              childPagination.onPageChange
-            }
+            currentPage={childPagination.currentPage}
+            onPageChange={childPagination.onPageChange}
             idPrefix="category-children"
           />
         </section>
@@ -2109,74 +1572,58 @@ export function ChiTietDanhMuc() {
 
       {/* Sản phẩm thuộc danh mục */}
       <section className="category-detail-card">
-        <SectionHeader
-          meta={`${products.length} SẢN PHẨM`}
-        >
-          SẢN PHẨM THUỘC DANH MỤC
-        </SectionHeader>
+        <SectionHeader meta={`${products.length} SẢN PHẨM`}>SẢN PHẨM THUỘC DANH MỤC</SectionHeader>
 
         {products.length ? (
           <>
             <div className="category-detail-table-wrap">
-              <div className="admin-table-scroll admin-table-scroll--embedded" tabIndex={0} role="region" aria-label="Bảng dữ liệu liên quan"><table className="admin-data-table admin-data-table--records">
-                <thead>
-                  <tr>
-                    <th>MÃ SẢN PHẨM</th>
-                    <th>TÊN SẢN PHẨM</th>
-                    <th>THƯƠNG HIỆU</th>
-                    <th>TRẠNG THÁI</th>
-                  </tr>
-                </thead>
+              <div
+                className="admin-table-scroll admin-table-scroll--embedded"
+                tabIndex={0}
+                role="region"
+                aria-label="Bảng dữ liệu liên quan"
+              >
+                <table className="admin-data-table admin-data-table--records">
+                  <thead>
+                    <tr>
+                      <th>MÃ SẢN PHẨM</th>
+                      <th>TÊN SẢN PHẨM</th>
+                      <th>THƯƠNG HIỆU</th>
+                      <th>TRẠNG THÁI</th>
+                    </tr>
+                  </thead>
 
-                <tbody>
-                  {productPagination.visibleItems.map(
-                    (product) => (
+                  <tbody>
+                    {productPagination.visibleItems.map((product) => (
                       <tr key={product.id}>
-                        <td>
-                          {product.maSanPham}
-                        </td>
+                        <td>{product.maSanPham}</td>
 
-                        <td>
-                          {product.tenSanPham}
-                        </td>
+                        <td>{product.tenSanPham}</td>
 
                         <td>—</td>
 
                         <td>
-                          <StatusBadge
-                            status={
-                              product.trangThai
-                            }
-                          />
+                          <StatusBadge status={product.trangThai} />
                         </td>
                       </tr>
-                    )
-                  )}
-                </tbody>
-              </table></div>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
 
             <DetailTablePagination
               totalItems={products.length}
-              currentPage={
-                productPagination.currentPage
-              }
-              onPageChange={
-                productPagination.onPageChange
-              }
+              currentPage={productPagination.currentPage}
+              onPageChange={productPagination.onPageChange}
               idPrefix="category-products"
             />
           </>
         ) : (
           <div className="category-products-empty">
-            <strong>
-              Chưa có sản phẩm thuộc danh mục này.
-            </strong>
+            <strong>Chưa có sản phẩm thuộc danh mục này.</strong>
 
-            <span>
-              Backend chưa trả về sản phẩm nào
-              được gán trực tiếp cho danh mục.
-            </span>
+            <span>Backend chưa trả về sản phẩm nào được gán trực tiếp cho danh mục.</span>
           </div>
         )}
       </section>
