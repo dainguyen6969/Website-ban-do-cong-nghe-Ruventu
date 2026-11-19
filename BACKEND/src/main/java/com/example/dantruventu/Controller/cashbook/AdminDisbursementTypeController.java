@@ -16,12 +16,13 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/v1/admin/disbursement-types")
 @RequiredArgsConstructor
-@PreAuthorize("hasRole('ADMIN')")
+@PreAuthorize("@adminRoleService.isSystemAdmin(principal)")
 public class AdminDisbursementTypeController {
 
   private final AdminDisbursementTypeService service;
 
   @GetMapping
+  @PreAuthorize("@adminRoleService.hasModuleAction(principal, 'so_quy', 'them')")
   public ApiResponse<AdminReceiptTypeListResponse> getDisbursementTypes(
       @RequestParam(required = false) String keyword,
       @RequestParam(name = "trang_thai", required = false) String trangThai,

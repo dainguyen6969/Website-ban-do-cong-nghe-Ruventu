@@ -54,8 +54,10 @@ export const receiptService = {
     return receiptAxios.post('', data, config);
   },
 
-  cancelReceipt: async (id, data) => {
-    return receiptAxios.post(`/${id}/cancel`, data);
+  cancelReceipt: async (id, data, requestKey) => {
+    return receiptAxios.post(`/${id}/cancel`, data, {
+      headers: { 'Idempotency-Key': requestKey },
+    });
   },
 
   getPayerSuggestions: async (params) => {

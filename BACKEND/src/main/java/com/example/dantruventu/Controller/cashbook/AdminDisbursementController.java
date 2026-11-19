@@ -23,7 +23,7 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/v1/admin/disbursements")
 @RequiredArgsConstructor
-@PreAuthorize("hasRole('ADMIN')")
+@PreAuthorize("@adminRoleService.hasModuleAction(principal, 'so_quy', 'xem')")
 public class AdminDisbursementController {
 
   private final AdminDisbursementService service;
@@ -41,6 +41,7 @@ public class AdminDisbursementController {
   }
 
   @GetMapping("/payees")
+  @PreAuthorize("@adminRoleService.hasModuleAction(principal, 'so_quy', 'them')")
   public ApiResponse<PayerSuggestionListResponse> getPayeeSuggestions(
       @RequestParam(name = "nhom_nguoi_nop_nhan", required = false) String nhomNguoiNopNhan,
       @RequestParam(required = false) String keyword,
@@ -65,6 +66,7 @@ public class AdminDisbursementController {
   }
 
   @PostMapping
+  @PreAuthorize("@adminRoleService.hasModuleAction(principal, 'so_quy', 'them')")
   public ResponseEntity<ApiResponse<AdminDisbursementResponse>> createDisbursement(
       @RequestBody(required = false) AdminDisbursementCreateRequest request,
       @RequestHeader(name = "Idempotency-Key", required = false) String requestKey,
@@ -85,6 +87,7 @@ public class AdminDisbursementController {
   }
 
   @PostMapping("/{id}/cancel")
+  @PreAuthorize("@adminRoleService.hasModuleAction(principal, 'so_quy', 'sua')")
   public ApiResponse<AdminDisbursementCancelResponse> cancelDisbursement(
       @PathVariable String id,
       @RequestHeader("Idempotency-Key") String requestKey,

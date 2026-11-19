@@ -33,6 +33,17 @@ public class AdminRoleService {
   private static final String PROTECTED_ROLE_NAME = "ADMIN";
   private static final String CUSTOMER_ROLE_NAME = "USER";
 
+  private static final Set<String> WARRANTY_STAFF_EVENTS =
+      Set.of(
+          "GHI_KET_LUAN",
+          "GUI_DON_VI",
+          "DON_VI_TIEP_NHAN",
+          "YEU_CAU_THU_HOI",
+          "NHAN_LAI",
+          "BAT_DAU_CONG_VIEC",
+          "CAP_NHAT_TIEN_DO",
+          "YEU_CAU_DUNG");
+
   private static final List<String> CRUD = List.of("xem", "them", "sua", "xoa");
 
   private static final Map<String, List<String>> ASSIGNABLE_ACTIONS =
@@ -112,6 +123,13 @@ public class AdminRoleService {
   public boolean hasModuleAction(Object principal, String module, String action) {
     var actions = effectivePermissions(principal).getOrDefault(module, List.of());
     return actions.contains("xem") && actions.contains(action);
+  }
+
+  public boolean canSaveWarrantyEvent(Object principal, Object event) {
+    return isSystemAdmin(principal)
+        || (event instanceof String type
+            && WARRANTY_STAFF_EVENTS.contains(type.trim())
+            && hasModuleAction(principal, "bao_hanh", "sua"));
   }
 
   public Map<String, Object> getMyPermissions(Object principal) {

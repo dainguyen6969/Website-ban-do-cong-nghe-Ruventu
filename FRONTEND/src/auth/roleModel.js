@@ -393,6 +393,15 @@ export function canOpenAdminPath(access, pathname, search = '') {
   const path = normalizeAdminPath(pathname);
   if (path === '/admin/tai-khoan') return true;
 
+  if (
+    path === '/admin/so-quy-tien-mat/loai-phieu-thu' ||
+    path.startsWith('/admin/so-quy-tien-mat/loai-phieu-thu/') ||
+    path === '/admin/so-quy-tien-mat/loai-phieu-chi' ||
+    path.startsWith('/admin/so-quy-tien-mat/loai-phieu-chi/')
+  ) {
+    return hasSystemAdminPermission(access, 'so_quy', 'xem');
+  }
+
   if (path === '/kho-hang/thu-hoi' || path.startsWith('/kho-hang/thu-hoi/')) {
     return hasSystemAdminPermission(access, 'kho_hang', 'xem');
   }

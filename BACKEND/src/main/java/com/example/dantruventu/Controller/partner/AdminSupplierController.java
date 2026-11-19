@@ -4,6 +4,7 @@ import com.example.dantruventu.DTO.Request.partner.AdminSupplierCreateRequest;
 import com.example.dantruventu.DTO.Request.partner.AdminSupplierUpdateRequest;
 import com.example.dantruventu.DTO.Response.ApiResponse;
 import com.example.dantruventu.DTO.Response.partner.AdminSupplierDetailResponse;
+import com.example.dantruventu.DTO.Response.partner.AdminSupplierListItemResponse;
 import com.example.dantruventu.DTO.Response.partner.AdminSupplierListResponse;
 import com.example.dantruventu.DTO.Response.partner.AdminSupplierResponse;
 import com.example.dantruventu.Services.AdminSupplierService;
@@ -36,6 +37,33 @@ public class AdminSupplierController {
         .status(200)
         .message("Lấy danh sách nhà cung cấp thành công")
         .data(adminSupplierService.getSuppliers(keyword, trangThai, page, limit))
+        .build();
+  }
+
+  @GetMapping("/warranty-options")
+  @PreAuthorize("@adminRoleService.hasModuleAction(principal, 'bao_hanh', 'sua')")
+  public ApiResponse<AdminSupplierListResponse> warrantyOptions(
+      @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "20") int limit) {
+    var result = adminSupplierService.getSuppliers(null, (short) 1, page, limit);
+    var items =
+        result.getItems().stream()
+            .map(
+                item ->
+                    AdminSupplierListItemResponse.builder()
+                        .id(item.getId())
+                        .maNhaCungCap(item.getMaNhaCungCap())
+                        .tenNhaCungCap(item.getTenNhaCungCap())
+                        .build())
+            .toList();
+
+    return ApiResponse.<AdminSupplierListResponse>builder()
+        .status(200)
+        .message("Lấy đơn vị xử lý bảo hành")
+        .data(
+            AdminSupplierListResponse.builder()
+                .items(items)
+                .pagination(result.getPagination())
+                .build())
         .build();
   }
 

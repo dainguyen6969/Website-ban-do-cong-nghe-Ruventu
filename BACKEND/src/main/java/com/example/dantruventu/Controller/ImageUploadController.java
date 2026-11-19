@@ -21,6 +21,17 @@ public class ImageUploadController {
 
   private final ImageUploadService imageUploadService;
 
+  @PostMapping("/images/warranty-intake")
+  @PreAuthorize("@adminRoleService.hasModuleAction(principal, 'bao_hanh', 'them')")
+  public ApiResponse<ImageUploadResponse> uploadWarrantyIntakeImage(
+      @RequestParam("file") MultipartFile file) {
+    return ApiResponse.<ImageUploadResponse>builder()
+        .status(200)
+        .message("Tải ảnh tiếp nhận bảo hành thành công")
+        .data(imageUploadService.upload(file, "general"))
+        .build();
+  }
+
   @PostMapping("/images")
   public ApiResponse<ImageUploadResponse> uploadImage(
       @RequestParam("file") MultipartFile file,

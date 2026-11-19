@@ -18,7 +18,7 @@ import {
   pendingWarrantyDifferences,
   warrantyDeviceLabel,
 } from '../data/warrantyExperience';
-import { getSupplierOptions } from '../../purchasing/api/purchaseOrderApi';
+import { getWarrantySupplierOptions } from '../../purchasing/api/purchaseOrderApi';
 import { getAllVersions } from '../../catalog/products/api/versionApi';
 import { WarrantyDialog } from './WarrantyShell';
 import { displayDate } from '../data/warrantyContract';
@@ -350,7 +350,7 @@ export default function WarrantyActionForm({
       );
     if (needsSupplier)
       jobs.push(
-        getSupplierOptions(controller.signal).then((items) => {
+        getWarrantySupplierOptions(controller.signal).then((items) => {
           if (!controller.signal.aborted) setSuppliers(items);
         })
       );

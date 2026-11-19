@@ -52,7 +52,9 @@ export async function getSerialPage(filters, signal) {
 
   const endpoint = filters.forPos
     ? '/api/v1/admin/serials/available-for-pos'
-    : '/api/v1/admin/serials';
+    : filters.forWarranty
+      ? '/api/v1/admin/serials/warranty-candidates'
+      : '/api/v1/admin/serials';
   const data = await adminRequest(`${endpoint}?${params}`, { signal });
 
   return {

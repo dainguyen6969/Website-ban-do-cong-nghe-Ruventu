@@ -54,8 +54,10 @@ export const disbursementService = {
     return disbursementAxios.post('', data, config);
   },
 
-  cancelDisbursement: async (id, data) => {
-    return disbursementAxios.post(`/${id}/cancel`, data);
+  cancelDisbursement: async (id, data, requestKey) => {
+    return disbursementAxios.post(`/${id}/cancel`, data, {
+      headers: { 'Idempotency-Key': requestKey },
+    });
   },
 
   getPayeeSuggestions: async (params) => {

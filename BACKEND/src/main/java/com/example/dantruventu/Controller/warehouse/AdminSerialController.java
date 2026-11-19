@@ -4,6 +4,8 @@ import com.example.dantruventu.DTO.Request.warehouse.AdminSerialStatusRequest;
 import com.example.dantruventu.DTO.Response.ApiResponse;
 import com.example.dantruventu.DTO.Response.warehouse.*;
 import com.example.dantruventu.Enum.TrangThaiSerial;
+import com.example.dantruventu.Error.AppException;
+import com.example.dantruventu.Error.ErrorCode;
 import com.example.dantruventu.Services.AdminSerialService;
 import com.example.dantruventu.Services.warehouse.WarehouseOperations;
 import jakarta.validation.Valid;
@@ -66,6 +68,42 @@ public class AdminSerialController {
     return ApiResponse.<AdminSerialListResponse>builder()
         .status(200)
         .message("Lấy serial cho POS")
+        .data(
+            AdminSerialListResponse.builder()
+                .items(items)
+                .pagination(result.getPagination())
+                .build())
+        .build();
+  }
+
+  @GetMapping("/warranty-candidates")
+  @PreAuthorize("@adminRoleService.hasModuleAction(principal, 'bao_hanh', 'them')")
+  public ApiResponse<AdminSerialListResponse> warrantyCandidates(
+      @RequestParam("keyword") String keyword,
+      @RequestParam(defaultValue = "0") int page,
+      @RequestParam(defaultValue = "20") int limit) {
+    if (keyword.isBlank()) {
+      throw new AppException(ErrorCode.INVALID_PARAM);
+    }
+
+    var result = adminSerialService.getSerials(keyword, null, null, null, page, limit);
+    var items =
+        result.getItems().stream()
+            .map(
+                item ->
+                    AdminSerialListItemResponse.builder()
+                        .id(item.getId())
+                        .phienBanId(item.getPhienBanId())
+                        .soSerial(item.getSoSerial())
+                        .tenSanPham(item.getTenSanPham())
+                        .tenPhienBan(item.getTenPhienBan())
+                        .trangThai(item.getTrangThai())
+                        .build())
+            .toList();
+
+    return ApiResponse.<AdminSerialListResponse>builder()
+        .status(200)
+        .message("Lấy serial để tiếp nhận bảo hành")
         .data(
             AdminSerialListResponse.builder()
                 .items(items)

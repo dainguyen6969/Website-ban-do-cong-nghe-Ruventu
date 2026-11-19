@@ -186,6 +186,10 @@ export async function getSupplierOptions(signal) {
   return (await allPages('/api/v1/admin/suppliers', { trang_thai: '1' }, signal)).map(supplier);
 }
 
+export async function getWarrantySupplierOptions(signal) {
+  return (await allPages('/api/v1/admin/suppliers/warranty-options', {}, signal)).map(supplier);
+}
+
 export const getSupplierDetail = async (id, signal) =>
   supplier(
     await adminRequest(`/api/v1/admin/suppliers/${encodeURIComponent(id)}/purchase-option`, {
