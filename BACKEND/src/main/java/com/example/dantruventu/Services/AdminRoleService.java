@@ -20,6 +20,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
@@ -113,6 +114,14 @@ public class AdminRoleService {
           }
         });
     return result;
+  }
+
+  @Transactional(readOnly = true, propagation = Propagation.REQUIRES_NEW)
+  public Map<String, List<String>> effectivePermissionsForUser(Long userId) {
+    return nguoiDungRepository
+        .findByIdWithVaiTro(userId)
+        .map(this::effectivePermissions)
+        .orElseGet(Map::of);
   }
 
   public boolean hasPermission(Object principal, String module, String action) {

@@ -53,6 +53,7 @@ public class AdminOrderController {
   }
 
   @PostMapping("/realtime-ticket")
+  @PreAuthorize("isAuthenticated()")
   public ApiResponse<java.util.Map<String, String>> realtimeTicket(
       @RequestHeader("Authorization") String authorization) {
     return ok(

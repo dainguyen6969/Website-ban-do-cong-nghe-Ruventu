@@ -9,10 +9,14 @@ import com.example.dantruventu.Entity.NguoiDung;
 import com.example.dantruventu.Entity.VaiTro;
 import com.example.dantruventu.Enum.TrangThaiCoBanEnum;
 import com.example.dantruventu.Repository.NguoiDungRepository;
+import com.example.dantruventu.Repository.VaiTroRepository;
+import com.example.dantruventu.Services.AdminRoleService;
 import com.example.dantruventu.Services.JwtService;
 import java.io.IOException;
 import java.net.URI;
+import java.time.Instant;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
@@ -36,7 +40,8 @@ import tools.jackson.databind.ObjectMapper;
 class OrderWebSocketTest {
   JwtService jwt = mock(JwtService.class);
   NguoiDungRepository users = mock(NguoiDungRepository.class);
-  OrderWebSocket socket = new OrderWebSocket(jwt, users, new ObjectMapper());
+  AdminRoleService roles = new AdminRoleService(mock(VaiTroRepository.class), users);
+  OrderWebSocket socket = new OrderWebSocket(jwt, roles, new ObjectMapper());
   NguoiDung admin;
 
   @BeforeEach
@@ -45,7 +50,7 @@ class OrderWebSocketTest {
         NguoiDung.builder()
             .id(1L)
             .trangThai(TrangThaiCoBanEnum.HOAT_DONG)
-            .vaiTro(VaiTro.builder().tenVaiTro("ADMIN").build())
+            .vaiTro(VaiTro.builder().maVaiTro("ADMIN").tenVaiTro("Quản trị viên").build())
             .build();
     when(jwt.isAccessTokenValid("token")).thenReturn(true);
     when(jwt.getUserIdFromToken("token")).thenReturn(1L);
@@ -72,7 +77,7 @@ class OrderWebSocketTest {
   }
 
   @Test
-  void ticketsAreSingleUseAndRestrictedToActiveAdmins() {
+  void ticketsAreSingleUseAndRequireRealtimePermissions() {
     String ticket = socket.issueTicket("token");
     ServerHttpRequest request = mock(ServerHttpRequest.class);
     when(request.getURI()).thenReturn(URI.create("http://localhost/realtime?ticket=" + ticket));
@@ -82,9 +87,10 @@ class OrderWebSocketTest {
     assertEquals("token", attributes.get("token"));
     assertFalse(socket.beforeHandshake(request, response, socket, new HashMap<>()));
     assertThrows(AccessDeniedException.class, () -> socket.issueTicket("bad-token"));
-    admin.getVaiTro().setTenVaiTro("USER");
+    VaiTro adminRole = admin.getVaiTro();
+    admin.setVaiTro(VaiTro.builder().maVaiTro("USER").tenVaiTro("Khách hàng").build());
     assertThrows(AccessDeniedException.class, () -> socket.issueTicket("token"));
-    admin.getVaiTro().setTenVaiTro("ADMIN");
+    admin.setVaiTro(adminRole);
     admin.setTrangThai(TrangThaiCoBanEnum.NGUNG_HOAT_DONG);
     assertThrows(AccessDeniedException.class, () -> socket.issueTicket("token"));
   }
@@ -101,6 +107,39 @@ class OrderWebSocketTest {
     socket.broadcast(new OrderEvents.Changed(9L, "UPDATED"));
     verify(session, never()).sendMessage(any());
     verify(session).close(any());
+  }
+
+  @Test
+  void staffReceivesOnlyNotificationsForCurrentPermissions() throws Exception {
+    admin.setVaiTro(
+        VaiTro.builder()
+            .maVaiTro("VT_PURCHASE")
+            .tenVaiTro("Nhập hàng")
+            .quyen(Map.of("nhap_hang", List.of("xem")))
+            .build());
+
+    assertNotNull(socket.issueTicket("token"));
+    WebSocketSession session = subscriber("purchase");
+
+    socket.broadcast(new OrderEvents.Changed(9L, "UPDATED"));
+    socket.broadcastNotification(notification("RECEIPT"));
+    socket.broadcastNotification(notification("PURCHASE_ORDER"));
+
+    ArgumentCaptor<TextMessage> message = ArgumentCaptor.forClass(TextMessage.class);
+    verify(session, times(1)).sendMessage(message.capture());
+    assertTrue(message.getValue().getPayload().contains("PURCHASE_ORDER"));
+
+    clearInvocations(session);
+    admin.getVaiTro().setQuyen(Map.of("kho_hang", List.of("xem")));
+    socket.broadcastNotification(notification("PURCHASE_ORDER"));
+
+    verify(session, never()).sendMessage(any());
+    verify(session).close(any());
+  }
+
+  private OrderEvents.Notification notification(String category) {
+    return new OrderEvents.Notification(
+        "9", category, 9L, "Mã 9", "Cập nhật", List.of(), Instant.now());
   }
 
   @Test
