@@ -96,7 +96,8 @@ async function parseResponse(response) {
   try {
     return JSON.parse(text);
   } catch {
-    throw new Error('API không trả JSON hợp lệ. Kiểm tra proxy/ngrok.');
+    const message = 'API không trả JSON hợp lệ. Kiểm tra proxy/ngrok.';
+    throw response.ok ? new Error(message) : apiError(message, response.status);
   }
 }
 

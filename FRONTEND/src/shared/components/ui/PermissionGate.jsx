@@ -3,6 +3,13 @@ import { HiOutlineLockClosed } from 'react-icons/hi';
 import { Navigate, useLocation } from 'react-router-dom';
 import { getMyPermissions } from '../../../auth/backendAuth';
 import { canOpenAdminPath } from '../../../auth/roleModel';
+
+import {
+  getAdminRealtimeScope,
+  setAdminRealtimeScope,
+  subscribeAdminRealtime,
+} from '../../../features/admin/orders/api/orderRealtime';
+
 import './PermissionGate.css';
 
 const AdminPermissionsContext = createContext(null);
@@ -73,9 +80,26 @@ export function AdminPermissionsProvider({ account, children }) {
     return () => window.removeEventListener('focus', onFocus);
   }, []);
 
-  if (!account?.id) return <Navigate to="/login" replace />;
-
   const current = snapshot?.account === account ? snapshot : null;
+  const realtimeScope = getAdminRealtimeScope(current?.access);
+
+  useEffect(() => {
+    setAdminRealtimeScope(realtimeScope);
+    if (!realtimeScope) return;
+
+    const unsubscribe = subscribeAdminRealtime((event) => {
+      if (event.type === 'access-denied' && event.status === 403) {
+        setRevision((value) => value + 1);
+      }
+    });
+
+    return () => {
+      unsubscribe();
+      setAdminRealtimeScope('');
+    };
+  }, [realtimeScope]);
+
+  if (!account?.id) return <Navigate to="/login" replace />;
   if (!current) return <p role="status">Đang kiểm tra quyền quản trị…</p>;
 
   if (current.error?.status === 401) return <Navigate to="/login" replace />;
