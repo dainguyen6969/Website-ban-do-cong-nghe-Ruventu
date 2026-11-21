@@ -28,6 +28,7 @@ import com.example.dantruventu.Repository.product.AnhSanPhamRepository;
 import com.example.dantruventu.Repository.warehouse.SoSerialSanPhamRepository;
 import com.example.dantruventu.Repository.warehouse.ThanhPhanComboRepository;
 import com.example.dantruventu.Services.CartPromotionService;
+import com.example.dantruventu.Services.SalesOperationsSettings;
 import com.example.dantruventu.Services.cashbook.CashbookService;
 import com.example.dantruventu.Services.catalog.CatalogSupport;
 import com.example.dantruventu.Services.documents.DocumentNumberService;
@@ -45,7 +46,6 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -95,8 +95,7 @@ public class CustomerOrderService {
   private final BackorderService backorders;
   private final DocumentNumberService documentNumbers;
 
-  @Value("${ruventu.order.delivery-fee:30000}")
-  private BigDecimal deliveryFee;
+  private final SalesOperationsSettings salesOperations;
 
   public CustomerOrderResponse.Preview preview(
       NguoiDung user, String guestCartId, CustomerCheckoutRequest.Preview request) {
@@ -815,7 +814,8 @@ public class CustomerOrderService {
     salesRequest.setMaChuongTrinh(text(request.getMaChuongTrinh()));
     salesRequest.setSanPham(products);
     salesRequest.setPhiGiaoHang(
-        "GIAO_HANG".equals(request.getHinhThucNhanHang()) ? deliveryFee : BigDecimal.ZERO);
+        "GIAO_HANG".equals(request.getHinhThucNhanHang())
+            ? salesOperations.get().deliveryFee() : BigDecimal.ZERO);
     salesRequest.setGhiChu(text(request.getGhiChu()));
     salesRequest.setLoaiDonHang(LoaiDonHang.ONLINE);
     salesRequest.setChoPhepChoHang(false);

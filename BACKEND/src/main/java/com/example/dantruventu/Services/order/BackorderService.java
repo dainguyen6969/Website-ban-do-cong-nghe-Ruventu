@@ -3,6 +3,7 @@ package com.example.dantruventu.Services.order;
 import static com.example.dantruventu.Services.order.sales.SalesSupport.*;
 
 import com.example.dantruventu.Config.SalesProperties;
+import com.example.dantruventu.Services.SalesOperationsSettings;
 import com.example.dantruventu.DTO.Request.order.CustomerCheckoutRequest;
 import com.example.dantruventu.Entity.DonHang;
 import com.example.dantruventu.Entity.NguoiDung;
@@ -25,7 +26,6 @@ import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.util.*;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
@@ -52,11 +52,7 @@ public class BackorderService {
   private final OrderEvents events;
   private final ObjectMapper json;
 
-  @Value("${ruventu.sales.stock-notification-website-enabled:true}")
-  private boolean websiteEnabled;
-
-  @Value("${ruventu.sales.backorder-long-wait:PT72H}")
-  private Duration longWait;
+  private final SalesOperationsSettings salesOperations;
 
   public record Result(Long id, String action) {}
 
@@ -77,7 +73,7 @@ public class BackorderService {
       @NotNull @AssertTrue Boolean confirmed) {}
 
   public void requireWebsiteEnabled() {
-    if (!websiteEnabled) {
+    if (!salesOperations.get().stockNotificationWebsiteEnabled()) {
       throw conflict("Cửa hàng chưa mở đăng ký nhận thông báo có hàng trên website.");
     }
   }
@@ -198,6 +194,7 @@ public class BackorderService {
     }
 
     String search = keyword == null ? "" : keyword.strip().toLowerCase(Locale.ROOT);
+    Duration longWait = salesOperations.longWait();
     if (search.length() > 100 || longWait.isNegative() || longWait.isZero()) {
       throw invalid("Từ khóa hoặc cấu hình thời gian chờ không hợp lệ.");
     }
@@ -228,7 +225,7 @@ public class BackorderService {
               orderId);
 
       for (Long id : ids) {
-        rows.add(orderRow(orders.findById(id).orElseThrow(), at));
+        rows.add(orderRow(orders.findById(id).orElseThrow(), at, longWait));
       }
     } else {
       var notices =
@@ -251,7 +248,7 @@ public class BackorderService {
       for (var notice : notices) {
         Long variantId = number(notice.get("variant_id"));
         var current = availability.computeIfAbsent(variantId, calculation::readSaleAvailability);
-        rows.add(noticeRow(notice, current, at));
+        rows.add(noticeRow(notice, current, at, longWait));
       }
     }
 
@@ -315,7 +312,7 @@ public class BackorderService {
         at.atZone(properties.zone()).toOffsetDateTime());
   }
 
-  private Map<String, Object> orderRow(DonHang order, LocalDateTime at) {
+  private Map<String, Object> orderRow(DonHang order, LocalDateTime at, Duration longWait) {
     var found =
         jdbc.queryForList(
             """
@@ -463,7 +460,8 @@ public class BackorderService {
         paid,
         canAdd && eligible && !full && !expired && override == null,
         override,
-        Boolean.TRUE.equals(row.get("is_new")) ? order.getHanXuLy() : null);
+        Boolean.TRUE.equals(row.get("is_new")) ? order.getHanXuLy() : null,
+        longWait);
 
     return row;
   }
@@ -471,7 +469,8 @@ public class BackorderService {
   private Map<String, Object> noticeRow(
       Map<String, Object> notice,
       SalesCalculationService.SaleAvailability availability,
-      LocalDateTime at) {
+      LocalDateTime at,
+      Duration longWait) {
 
     Long id = number(notice.get("id"));
     var row =
@@ -505,7 +504,8 @@ public class BackorderService {
         ready
             ? "Thông báo có hàng cho khách"
             : availability.quantity() == null ? "Cần kiểm tra sản phẩm" : null,
-        null);
+        null,
+        longWait);
 
     return row;
   }
@@ -540,7 +540,8 @@ public class BackorderService {
       boolean paid,
       boolean canAdd,
       String override,
-      LocalDateTime firstHandlingDeadline) {
+      LocalDateTime firstHandlingDeadline,
+      Duration longWait) {
 
     LocalDateTime due = earlier(local(row.get("next_contact_at")), local(row.get("promised_at")));
 

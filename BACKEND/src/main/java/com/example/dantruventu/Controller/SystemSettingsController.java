@@ -2,6 +2,7 @@ package com.example.dantruventu.Controller;
 
 import com.example.dantruventu.DTO.Response.ApiResponse;
 import com.example.dantruventu.Entity.NguoiDung;
+import com.example.dantruventu.Services.SalesOperationsSettings;
 import com.example.dantruventu.Services.SystemSettingsService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
@@ -15,6 +16,20 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 public class SystemSettingsController {
   private final SystemSettingsService settings;
+  private final SalesOperationsSettings salesOperations;
+
+  @GetMapping("/admin/system-settings/sales-operations")
+  @PreAuthorize("hasRole('ADMIN')")
+  public ApiResponse<SalesOperationsSettings.Values> salesOperations() {
+    return response(salesOperations.get());
+  }
+
+  @PutMapping("/admin/system-settings/sales-operations")
+  @PreAuthorize("hasRole('ADMIN')")
+  public ApiResponse<SalesOperationsSettings.Values> salesOperations(
+      @Valid @RequestBody SalesOperationsSettings.Values request) {
+    return response(salesOperations.save(request));
+  }
 
   public record Status(boolean maintenance, boolean canManage, int fontSize, String fontFamily) {}
 

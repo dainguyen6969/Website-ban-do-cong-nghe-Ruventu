@@ -95,6 +95,7 @@ export function toProductDetail(product) {
     stock: product.loaiSanPham === "BO_PC"
       ? (firstVariant?.soBoCoTheLap ?? null) : (firstVariant?.tonCoTheBan ?? 0),
     variants,
+    stockNotificationWebsiteEnabled: product.stockNotificationWebsiteEnabled !== false,
     specifications: product.thongSoKyThuat,
     description: product.moTa || "",
     discountPercent: 0,

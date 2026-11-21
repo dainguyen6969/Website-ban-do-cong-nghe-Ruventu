@@ -182,9 +182,6 @@
 }
 
 .system-settings__actions {
-  position: sticky;
-  bottom: 0;
-  z-index: 2;
   padding: 12px 0;
   background: #fff;
   border-top: 1px solid #ddd;
@@ -192,7 +189,7 @@
 
 .system-settings button:disabled {
   opacity: 0.6;
-  cursor: wait;
+  cursor: not-allowed;
 }
 .system-settings .system-settings__error {
   color: #c01018;
@@ -200,6 +197,115 @@
 .system-settings :focus-visible {
   outline: 2px solid #e31e24;
   outline-offset: 3px;
+}
+
+.sales-settings {
+  margin-bottom: 20px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid #ddd;
+}
+.sales-settings__sections,
+.sales-settings__pair {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px 14px;
+}
+.sales-settings .sales-settings__sections {
+  margin-bottom: 14px;
+}
+.sales-settings .sales-settings__group {
+  padding: 9px 12px 12px;
+  border: 1px solid #ddd;
+}
+.sales-settings__schedule {
+  grid-column: 1 / -1;
+  display: grid;
+  gap: 10px;
+}
+.sales-settings__group > legend {
+  padding-inline: 5px;
+  margin: 0;
+}
+.sales-settings__group > legend svg,
+.sales-settings__date button svg {
+  vertical-align: middle;
+}
+.sales-settings__group p {
+  margin: 6px 0 0;
+  font-size: 0.9em;
+}
+.sales-settings__field {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  font-weight: 600;
+}
+.sales-settings__field input {
+  width: 100%;
+  min-width: 0;
+  min-height: 36px;
+  padding: 6px 9px;
+  border: 1px solid #ccc;
+  border-radius: 0;
+  background: #fff;
+  color: #111;
+  font: inherit;
+  font-weight: 400;
+}
+.sales-settings__check,
+.sales-settings__week label,
+.sales-settings__dates li {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.sales-settings__check input,
+.sales-settings__week input {
+  margin: 0;
+  accent-color: #111;
+}
+.sales-settings__week > legend {
+  margin-bottom: 5px;
+}
+.sales-settings__week > div,
+.sales-settings__dates {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+.sales-settings__week label,
+.sales-settings__dates li {
+  padding: 4px 8px;
+  border: 1px solid #ddd;
+}
+.sales-settings__week label:has(:checked) {
+  border-color: #999;
+  background: #f4f4f4;
+}
+.sales-settings__date {
+  display: flex;
+  align-items: end;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.sales-settings__dates {
+  max-height: 120px;
+  margin: 0;
+  padding: 0;
+  overflow: auto;
+}
+.sales-settings__dates button {
+  display: inline-flex;
+  padding: 3px;
+  border: 0;
+  background: transparent;
+  color: #111;
+}
+@media (max-width: 600px) {
+  .sales-settings__sections,
+  .sales-settings__pair {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 .admin-app .account-page {
