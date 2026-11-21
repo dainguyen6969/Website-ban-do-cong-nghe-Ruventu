@@ -367,7 +367,7 @@ public class AdminWarrantyStatusService {
         WarrantyWriteValidation.text(r.lyDo(), notRepaired, 16000, error),
         WarrantyWriteValidation.id(r.thietBiSeTraId(), true, error),
         result,
-        WarrantyWriteValidation.text(r.tinhTrang(), true, 16000, error),
+        WarrantyWriteValidation.requiredText(r.tinhTrang(), error),
         List.copyOf(accessories),
         WarrantyWriteValidation.text(r.canCuKiemTra(), true, 16000, error),
         resolved,

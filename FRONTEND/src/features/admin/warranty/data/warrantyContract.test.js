@@ -3,7 +3,7 @@ import { test } from 'node:test';
 import { actionBody, actions, initialActionValues } from './warrantyActions.js';
 import {
   intakeAssessment, intakeBody, intakeContact, intakeDeadlineCheck, intakeDeadlineStatus, intakeDescription,
-  intakeErrors, intakeFreeChecks, intakeOther, intakeReachableStep, intakeRequiredChecks, intakeSearch,
+  intakeErrors, intakeFreeChecks, intakeReachableStep, intakeRequiredChecks, intakeSearch,
   intakeStepErrors, localTimestamp, listParams, receiptNow,
 } from './warrantyContract.js';
 import { validateImageFiles } from '../../../media/api/imageValidation.js';
@@ -38,6 +38,7 @@ test('wizard requires each step and invalidates later steps when earlier informa
 });
 
 test('five required checks allow paid intake and only ten valid checks allow free intake', () => {
+  assert.equal(new Set([...intakeRequiredChecks, ...intakeFreeChecks]).size, 10);
   const form = { checks: [...intakeRequiredChecks, ...intakeFreeChecks], receivedAt: '2026-11-19T10:00' };
   const device = { thiet_bi_id: 700, han_bao_hanh: '2026-11-19T10:00:00+07:00' };
   assert.equal(intakeAssessment(device, { ...form, checks: form.checks.slice(1) }).eligibility, 'CHUA_XAC_MINH');
@@ -53,14 +54,14 @@ test('five required checks allow paid intake and only ten valid checks allow fre
   assert.equal(intakeDeadlineStatus(undefined, form.receivedAt), 'unknown');
 });
 
-test('intake uses saved request contact first and includes Other text only while selected', () => {
+test('intake prioritizes saved contact and serializes all applied custom entries', () => {
   const request = { ten_nguoi_lien_he: ' An ' };
   const customer = { ho_ten: 'Bình', so_dien_thoai: '0901234567' };
   assert.deepEqual(intakeContact(request, customer), { contact: 'An', phone: '0901234567' });
-  const form = { reason: ['Không lên hình', intakeOther], reasonOther: ' Sọc khi tải nặng ' };
-  assert.equal(intakeDescription(form, 'reason'), 'Không lên hình · Sọc khi tải nặng');
-  assert.equal(intakeDescription({ ...form, reason: ['Không lên hình'] }, 'reason'), 'Không lên hình');
-  assert.equal(intakeStepErrors(null, { ...form, reasonOther: '', condition: [], accessories: [] }, 2).reason, 'Nhập nội dung ở mục Khác.');
+  const form = { reason: ['Không lên hình', 'Không nhận sạc'], reasonOther: ['Sọc khi tải nặng', 'Chỉ lỗi khi cắm sạc'], condition: [], accessories: [] };
+  assert.equal(intakeDescription(form, 'reason'), 'Không lên hình · Không nhận sạc · Sọc khi tải nặng · Chỉ lỗi khi cắm sạc');
+  assert.equal(intakeDescription({ ...form, reason: [], reasonOther: ['Lý do của phiếu đã lưu'] }, 'reason'), 'Lý do của phiếu đã lưu');
+  assert.equal(intakeStepErrors(null, { ...form, reason: [], reasonOther: [] }, 2).reason, 'Chọn lý do bảo hành.');
 });
 
 test('legacy sold serial never becomes a no-serial intake when the API has no device identity', () => {
@@ -92,6 +93,20 @@ test('intake accepts up to 20 accessory lines and 20 photos independently', () =
   assert.deepEqual(intakeStepErrors(device, { ...form, photos: [...form.photos, photo] }, 2), {
     photos: 'Tối đa 20 ảnh tiếp nhận.',
   });
+});
+
+test('intake keeps long descriptions without truncation or a character cap', () => {
+  const form = {
+    contact: 'An', phone: '0901234567', reason: ['Không lên nguồn'], condition: ['Trầy xước'],
+    reasonOther: ['Không nhận điện '.repeat(1100).trim()],
+    conditionOther: ['Nhiều vết xước '.repeat(1200).trim()],
+    receivedAt: receiptNow(), checks: intakeRequiredChecks, unit: '', note: '', accessories: [], photos: [],
+  };
+  const device = { thiet_bi_id: 700, co_the_tiep_nhan: true };
+  assert.deepEqual(intakeErrors(device, form), []);
+  const body = intakeBody(device, form);
+  assert.equal(body.ly_do_bao_hanh, `Không lên nguồn · ${form.reasonOther[0]}`);
+  assert.equal(body.tinh_trang_tiep_nhan, `Trầy xước · ${form.conditionOther[0]}`);
 });
 
 test('intake uses device XOR purchase line, preserves no-serial identity and never sends financial or actor fields', () => {
@@ -168,6 +183,28 @@ test('handover requires customer acknowledgment, evidence and valid recipient wi
   const exchanged = initialActionValues(operation, { thiet_bi: { id: 700 }, phuong_an_doi: { phien_ban: 2, thiet_bi_thay_the_id: 800 } });
   assert.equal(exchanged.thiet_bi_ban_giao_id, 800);
   assert.equal(exchanged.phien_ban_phuong_an, 2);
+});
+
+test('ready-to-return uses original intake for the same device and handover uses the saved ready check', () => {
+  const ready = actions.find(item => item.key === 'SAN_SANG_TRA');
+  const handover = actions.find(item => item.key === 'HANDOVER');
+  const detail = {
+    thiet_bi: { id: 700 },
+    tiep_nhan: { tinh_trang: 'Trầy xước', phu_kien: [{ ten: 'Cáp', so_luong: 2 }] },
+  };
+  const values = initialActionValues(ready, detail);
+  assert.equal(values.tinh_trang, 'Trầy xước');
+  assert.deepEqual(values.phu_kien, detail.tiep_nhan.phu_kien);
+  assert.notEqual(values.phu_kien[0], detail.tiep_nhan.phu_kien[0]);
+  const exchanged = initialActionValues(ready, { ...detail, phuong_an_doi: { thiet_bi_thay_the_id: 800 } });
+  assert.equal(exchanged.tinh_trang, '');
+  assert.deepEqual(exchanged.phu_kien, []);
+  const saved = actionBody(ready, { ...values, tinh_trang: 'Đã kiểm tra hoạt động', phu_kien: [], ket_qua_xu_ly: 'SUA_THANH_CONG', can_cu_kiem_tra: 'Đã kiểm tra' });
+  const transfer = initialActionValues(handover, { ...detail, xu_ly_tiep: {
+    tinh_trang_san_sang_tra: saved.tinh_trang, phu_kien_san_sang_tra: saved.phu_kien,
+  } });
+  assert.equal(transfer.tinh_trang, 'Đã kiểm tra hoạt động');
+  assert.deepEqual(transfer.phu_kien, []);
 });
 
 test('quote lines use actual numbers and booleans without sending server-calculated totals', () => {

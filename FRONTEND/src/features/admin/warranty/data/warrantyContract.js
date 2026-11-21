@@ -32,7 +32,7 @@ export const intakeRequiredChecks = [
   'Thiết bị khớp với giao dịch mua',
   'Đã xác nhận thiết bị được giao cho khách',
   'Đã ghi nhận lỗi khách báo',
-  'Đã kiểm tra ngoại quan khi nhận',
+  'Đã kiểm tra thiết bị không có phiếu bảo hành đang mở',
 ];
 export const intakeDeadlineCheck = 'Thiết bị còn hạn bảo hành';
 export const intakeFreeChecks = [
@@ -42,9 +42,6 @@ export const intakeFreeChecks = [
   'Không có dấu hiệu hư hỏng do va đập, chất lỏng hoặc nguồn điện',
   'Không có dấu hiệu can thiệp trái quy định',
 ];
-export const intakeReasons = ['Không lên nguồn', 'Không lên hình', 'Tự tắt hoặc khởi động lại', 'Mất kết nối', 'Quá nhiệt', 'Lỗi âm thanh'];
-export const intakeConditions = ['Ngoại quan nguyên vẹn', 'Trầy xước', 'Móp hoặc nứt vỏ', 'Có dấu hiệu ẩm hoặc vào nước', 'Tem rách hoặc mất'];
-export const intakeOther = 'Khác';
 export const intakeItemLimit = 20;
 
 export function intakeDeadlineStatus(device, receivedAt) {
@@ -66,12 +63,7 @@ export function intakeAssessment(device, form) {
 }
 
 export function intakeDescription(form, field) {
-  const options = field === 'reason' ? intakeReasons : intakeConditions;
-  const selected = form[field];
-  const values = options.filter(label => selected.includes(label));
-  const other = selected.includes(intakeOther) ? form[`${field}Other`].trim() : '';
-  if (other) values.push(other);
-  return values.join(' · ');
+  return [...form[field], ...(form[`${field}Other`] ?? [])].join(' · ');
 }
 
 export function intakeContact(request, customer) {
@@ -115,11 +107,8 @@ export function intakeStepErrors(device, form, step) {
     if (!form[field]?.trim()) errors[field] = `Nhập ${label}.`;
     else if (form[field].trim().length > max) errors[field] = `${label} tối đa ${max} ký tự.`;
   }
-  for (const [field, label, max] of [['reason', 'lý do bảo hành', 255], ['condition', 'tình trạng tiếp nhận', 16000]]) {
-    const value = intakeDescription(form, field);
-    if (form[field].includes(intakeOther) && !form[`${field}Other`].trim()) errors[field] = 'Nhập nội dung ở mục Khác.';
-    else if (!value) errors[field] = `Chọn ${label}.`;
-    else if (value.length > max) errors[field] = `${label} tối đa ${max} ký tự.`;
+  for (const [field, label] of [['reason', 'lý do bảo hành'], ['condition', 'tình trạng tiếp nhận']]) {
+    if (!intakeDescription(form, field)) errors[field] = `Chọn ${label}.`;
   }
   if (form.phone?.trim() && !/^\+?[0-9][0-9 .()-]{6,19}$/.test(form.phone.trim())) errors.phone = 'Số điện thoại không hợp lệ (7–20 ký tự).';
   if (device && device.thiet_bi_id == null && !form.identification?.trim()) errors.identification = 'Nhập dấu hiệu nhận dạng thiết bị không serial.';

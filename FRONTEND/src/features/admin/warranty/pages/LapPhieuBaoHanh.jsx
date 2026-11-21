@@ -2,12 +2,13 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Check, Plus, Upload, X } from 'lucide-react';
 import OrderModal from '../../orders/components/OrderModal';
+import IntakeDescriptionField from '../components/IntakeDescriptionField';
 import { WarrantyFields, WarrantyPanel, WarrantyTable } from '../components/WarrantyShell';
 import { lookupWarranties, mutateWarranty, warrantyError } from '../api/warrantyApi';
 import {
-  displayDate, intakeAssessment, intakeBody, intakeConditions, intakeContact, intakeDeadlineCheck,
-  intakeDeadlineStatus, intakeDescription, intakeErrors, intakeFreeChecks, intakeItemLimit, intakeOther,
-  intakeReachableStep, intakeReasons, intakeRequiredChecks, intakeSearch, intakeStepErrors,
+  displayDate, intakeAssessment, intakeBody, intakeContact, intakeDeadlineCheck,
+  intakeDeadlineStatus, intakeDescription, intakeErrors, intakeFreeChecks, intakeItemLimit,
+  intakeReachableStep, intakeRequiredChecks, intakeSearch, intakeStepErrors,
   lookupFields, receiptNow,
 } from '../data/warrantyContract';
 import { uploadImage } from '../../../media/api/imageUploadApi';
@@ -19,7 +20,7 @@ import '../styles/warrantyShell.css';
 
 const steps = ['TÌM THIẾT BỊ', 'XÁC MINH BẢO HÀNH', 'THÔNG TIN TIẾP NHẬN', 'XÁC NHẬN'];
 const initialForm = () => ({
-  checks: [], reason: [], condition: [], reasonOther: '', conditionOther: '', contact: '', phone: '',
+  checks: [], reason: [], condition: [], reasonOther: [], conditionOther: [], contact: '', phone: '',
   receivedAt: receiptNow(), identification: '', unit: '', note: '', accessories: [], photos: [],
 });
 const conclusions = {
@@ -134,7 +135,7 @@ export default function LapPhieuBaoHanh() {
       setMessage(request ? { text: `Đang xử lý yêu cầu #${request.id}.` } : null);
       setForm({
         ...initialForm(), ...contact,
-        ...(request?.ly_do?.trim() && { reason: [intakeOther], reasonOther: request.ly_do }),
+        ...(request?.ly_do?.trim() && { reasonOther: [request.ly_do.trim()] }),
       });
     } catch (cause) {
       if (!controller.signal.aborted) setError(warrantyError(cause));
@@ -217,20 +218,18 @@ export default function LapPhieuBaoHanh() {
       {fieldErrors[name] && <small className="w-shell-error">{fieldErrors[name]}</small>}
     </label>
   );
-  const description = (key, title, options) => (
-    <fieldset className="w-intake-options">
-      <legend>{title} *</legend>
-      <div className="w-intake-check-grid">
-        {[...options, intakeOther].map(label => (
-          <label key={label}>
-            <input type="checkbox" checked={form[key].includes(label)} onChange={() => toggle(key, label)} />
-            {label}
-          </label>
-        ))}
-      </div>
-      {form[key].includes(intakeOther) && field(key + 'Other', 'NỘI DUNG KHÁC', 'textarea', true)}
-      {fieldErrors[key] && <p className="w-shell-error" role="alert">{fieldErrors[key]}</p>}
-    </fieldset>
+  const description = (key, title) => (
+    <IntakeDescriptionField
+      field={key}
+      title={title}
+      selected={form[key]}
+      custom={form[`${key}Other`]}
+      error={fieldErrors[key]}
+      onChange={(choices, entries) => {
+        change(key, choices);
+        change(`${key}Other`, entries);
+      }}
+    />
   );
   const assessment = intakeAssessment(selected, form);
   const checks = (title, options) => (
@@ -307,7 +306,7 @@ export default function LapPhieuBaoHanh() {
                 {field('contact', 'TÊN NGƯỜI LIÊN HỆ', 'text', true)}
                 {field('phone', 'SỐ ĐIỆN THOẠI', 'tel', true)}
               </div>
-              {description('reason', 'LÝ DO BẢO HÀNH', intakeReasons)}
+              {description('reason', 'Lý do bảo hành')}
               <button type="button" className="w-shell-button" onClick={() => prepare(outcome)}>KIỂM TRA KẾT QUẢ</button>
               <button type="button" className="w-shell-button" onClick={() => { setOutcome(null); setError(''); setFieldErrors({}); }}>ĐÓNG</button>
             </fieldset>
@@ -388,8 +387,8 @@ export default function LapPhieuBaoHanh() {
                 {field('note', 'GHI CHÚ', 'textarea')}
               </div>
               <div className="w-intake-reception-pair">
-                {description('reason', 'LÝ DO BẢO HÀNH', intakeReasons)}
-                {description('condition', 'TÌNH TRẠNG KHI NHẬN', intakeConditions)}
+                {description('reason', 'Lý do bảo hành')}
+                {description('condition', 'Tình trạng khi nhận')}
               </div>
               <div className="w-intake-reception-pair w-intake-evidence">
                 <section className="w-intake-evidence-card" aria-labelledby="intake-accessory-title">

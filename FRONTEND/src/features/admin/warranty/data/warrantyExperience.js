@@ -417,7 +417,7 @@ export function referenceOptions(name, detail, suppliers = [], versions = []) {
             item.id,
             {
               value: item.id,
-              label: `${item.so_serial || item.ma_theo_doi || 'Thiết bị'} label: warrantyDeviceLabel(detail, item.id),`,
+              label: warrantyDeviceLabel(detail, item.id),
             },
           ])
       ).values(),

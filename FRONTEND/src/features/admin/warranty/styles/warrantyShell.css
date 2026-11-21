@@ -435,6 +435,12 @@
   flex: 1;
   min-width: min(100%, 230px);
 }
+.w-ready-summary {
+  min-width: 0;
+  padding: 8px 10px;
+  border: 1px solid #ddd;
+  background: #fff;
+}
 .w-guided-workspace .w-guided-choices {
   margin: 0;
 }
@@ -1336,10 +1342,8 @@
 .w-intake-reception-pair {
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr));
 }
-.w-intake-reception :is(.w-intake-field, .w-intake-options) {
-  margin: 0;
-}
 .w-intake-reception .w-intake-field {
+  margin: 0;
   gap: 4px;
 }
 .w-intake-reception .w-intake-field :is(input, textarea):focus-visible {
@@ -1351,26 +1355,159 @@
   height: 42px;
   padding-block: 7px;
 }
-.w-intake-reception .w-intake-options {
-  padding: 8px 10px 10px;
+.w-intake-picker-field {
+  min-width: 0;
+  margin-bottom: 8px;
+  padding: 8px 10px;
+  border: 1px solid #d5d5d7;
 }
-.w-intake-reception .w-intake-options .w-intake-field {
-  margin-top: 8px;
+.w-intake-reception-pair > .w-intake-picker-field {
+  margin-bottom: 0;
 }
-.w-intake-reception .w-intake-check-grid {
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 140px), 1fr));
+.w-intake-picker-field > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.w-intake-picker-field h3 {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+.w-intake-picker-field h3 span {
+  color: #a21723;
+}
+.w-intake-picker-field > p:not(.w-shell-error) {
+  margin: 4px 0 0;
+  color: #646872;
+}
+.w-intake-picker-field > header button,
+.w-intake-picker-entries button {
+  min-height: 30px;
+  padding: 4px 8px;
+}
+.w-intake-picker-summary {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
   gap: 5px;
+  margin-top: 4px;
 }
-.w-intake-reception .w-intake-check-grid label {
-  min-height: 32px;
-  padding: 4px 7px;
+.w-intake-picker-summary > span {
+  min-width: 0;
+  max-width: min(170px, 100%);
+  overflow: hidden;
+  padding: 2px 6px;
+  border: 1px solid #ddd;
+  background: #f5f5f5;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.w-intake-picker-more {
+  flex: none;
+  padding: 2px 6px;
+  border: 1px solid #aaa;
+  background: #fff;
+  color: #111;
+  font-weight: 800;
+}
+.w-intake-picker-more-list {
+  position: absolute;
+  z-index: 3;
+  margin: 0;
+  padding: 6px 10px;
+  overflow: auto;
+  border: 1px solid #111;
+  background: #fff;
+  box-shadow: 0 4px 12px rgb(0 0 0 / 18%);
   overflow-wrap: anywhere;
 }
-.w-intake-reception .w-intake-check-grid input {
+.w-intake-picker-more-list li + li {
+  margin-top: 3px;
+  padding-top: 3px;
+  border-top: 1px solid #ddd;
+}
+.w-intake-picker-count {
+  margin-inline-end: auto;
+  font-weight: 700;
+}
+.w-intake-picker-groups {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 268px), 1fr));
+  gap: 12px;
+}
+.w-intake-picker-group,
+.w-intake-picker-custom {
+  min-width: 0;
+  margin: 0;
+  padding: 8px;
+  border: 1px solid #dadada;
+  background: #fafafa;
+}
+.w-intake-picker-group legend {
+  padding: 0 5px;
+  font-weight: 800;
+}
+.w-intake-picker-checks {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 5px;
+}
+.w-intake-picker-checks label,
+.w-intake-picker-other {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 32px;
+  padding: 4px 6px;
+  border: 1px solid #ddd;
+  background: #fff;
+  cursor: pointer;
+}
+.w-intake-picker-checks label:has(:checked),
+.w-intake-picker-other:has(:checked) {
+  border-color: #555;
+  background: #f0f0f0;
+  font-weight: 700;
+}
+.w-intake-picker-checks input,
+.w-intake-picker-other input {
+  flex: none;
   margin: 0;
 }
-.w-intake-reception .w-intake-check-grid label:has(:checked) {
-  border-color: #595959;
+.w-intake-picker-custom {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+}
+.w-intake-picker-entry {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 6px;
+}
+.w-intake-picker-entry input {
+  min-width: 0;
+  padding: 6px 8px;
+  border: 1px solid #bbb;
+  background: #fff;
+}
+.w-intake-picker-entries {
+  display: grid;
+  gap: 5px;
+  margin: 0;
+  padding: 0;
+}
+.w-intake-picker-entries li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 3px 5px 3px 8px;
+  border: 1px solid #ddd;
+  background: #fff;
 }
 .w-intake-evidence {
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 292px), 1fr));
@@ -1932,7 +2069,7 @@
   background: transparent;
 }
 
-.w-warranty-detail .w-warranty-dialog {
+.w-shell .w-warranty-dialog {
   position: fixed;
   inset: 0;
   width: min(820px, calc(100% - 24px));
@@ -1940,50 +2077,50 @@
   margin: auto;
   padding: 0;
   overflow: hidden;
-  border: 2px solid var(--w-ticket-ink);
+  border: 2px solid var(--w-ticket-ink, var(--w-ink));
   background: #fff;
-  color: var(--w-ticket-ink);
+  color: var(--w-ticket-ink, var(--w-ink));
   box-shadow: 0 18px 44px rgb(0 0 0 / 24%);
   font-family: inherit;
-  font-size: var(--w-ticket-body);
+  font-size: var(--w-ticket-body, inherit);
   font-weight: var(--admin-weight-regular, 400);
   line-height: 1.45;
 }
-.w-warranty-detail .w-warranty-dialog[open] {
+.w-shell .w-warranty-dialog[open] {
   display: flex;
   flex-direction: column;
 }
-.w-warranty-detail .w-warranty-dialog::backdrop {
+.w-shell .w-warranty-dialog::backdrop {
   background: rgb(0 0 0 / 50%);
 }
-.w-warranty-detail .w-warranty-dialog-head {
+.w-shell .w-warranty-dialog-head {
   display: flex;
   flex: none;
   justify-content: space-between;
   align-items: flex-start;
   gap: 12px;
   padding: 14px 18px;
-  background: var(--w-ticket-ink);
+  background: var(--w-ticket-ink, var(--w-ink));
   color: #fff;
 }
-.w-warranty-detail .w-warranty-dialog-head > div {
+.w-shell .w-warranty-dialog-head > div {
   min-width: 0;
 }
-.w-warranty-detail .w-warranty-dialog-head h2 {
+.w-shell .w-warranty-dialog-head h2 {
   margin: 0;
   padding-inline-start: 9px;
   border-inline-start: 3px solid var(--w-red);
-  font-size: var(--w-ticket-title);
+  font-size: var(--w-ticket-title, 16px);
   font-weight: var(--admin-weight-semibold, 600);
   line-height: 1.3;
   overflow-wrap: anywhere;
 }
-.w-warranty-detail .w-warranty-dialog-head p {
+.w-shell .w-warranty-dialog-head p {
   margin: 5px 0 0 12px;
   color: #dce1e7;
   font-size: var(--w-ticket-meta);
 }
-.w-warranty-detail .w-warranty-dialog-head > .w-shell-button {
+.w-shell .w-warranty-dialog-head > .w-shell-button {
   flex: none;
   width: 32px;
   min-height: 32px;
@@ -1992,18 +2129,18 @@
   background: transparent;
   color: #fff;
 }
-.w-warranty-detail .w-warranty-dialog-head > .w-shell-button:hover:not(:disabled) {
+.w-shell .w-warranty-dialog-head > .w-shell-button:hover:not(:disabled) {
   border-color: #dce1e7;
   background: #303640;
 }
-.w-warranty-detail .w-warranty-dialog-body {
+.w-shell .w-warranty-dialog-body {
   min-height: 0;
   padding: 16px 18px;
   overflow: auto;
   overscroll-behavior: contain;
   overflow-wrap: anywhere;
 }
-.w-warranty-detail .w-warranty-dialog-footer {
+.w-shell .w-warranty-dialog-footer {
   display: flex;
   flex: none;
   flex-wrap: wrap;
@@ -2011,7 +2148,7 @@
   align-items: center;
   gap: 8px;
   padding: 12px 18px;
-  border-top: 1px solid var(--w-ticket-line);
+  border-top: 1px solid var(--w-ticket-line, #ddd);
   background: #fff;
 }
 .w-warranty-detail .w-operation-note {
@@ -2130,13 +2267,101 @@
   color: var(--w-ticket-muted);
 }
 
+.w-handover-layout,
+.w-handover-device {
+  display: grid;
+  gap: 10px;
+}
+.w-handover-section {
+  min-width: 0;
+  margin: 0;
+  padding: 8px 12px;
+  border: 1px solid var(--w-ticket-line);
+}
+.w-warranty-detail .w-handover-form .w-operation-note {
+  margin-bottom: 8px;
+}
+.w-warranty-detail .w-warranty-dialog .w-handover-form .w-intake-field > textarea {
+  height: 60px;
+  min-height: 60px;
+}
+.w-handover-section > legend {
+  padding-inline: 5px;
+  font-weight: var(--admin-weight-semibold, 600);
+}
+.w-handover-recipient {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.w-handover-pair {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
+  gap: 10px;
+}
+.w-handover-accessories {
+  max-height: 228px;
+  overflow: auto;
+}
+.w-handover-accessories .w-shell-subsection {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 6px;
+  margin-top: 4px;
+  padding-top: 4px;
+}
+.w-handover-accessories .w-shell-subsection > h3 {
+  display: none;
+}
+.w-handover-accessories .w-shell-subsection:not(:first-of-type) .w-intake-field > span {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+.w-warranty-detail .w-warranty-dialog .w-handover-accessories .w-shell-fields {
+  grid-template-columns: minmax(0, 1fr) 62px;
+  gap: 6px;
+}
+.w-warranty-detail .w-warranty-dialog .w-handover-accessories .w-action-rows {
+  padding-block: 8px;
+}
+.w-warranty-detail .w-warranty-dialog .w-handover-accessories .w-action-rows > button {
+  min-height: 32px;
+  margin-top: 6px;
+  padding-block: 4px;
+}
+.w-warranty-detail .w-warranty-dialog .w-handover-accessories .w-shell-subsection > button {
+  min-height: 36px;
+  margin: 0;
+  padding-inline: 6px;
+}
+.w-handover-layout > .w-field-checkbox {
+  display: flex;
+  flex-direction: row-reverse;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+}
+.w-handover-layout > .w-field-checkbox input {
+  flex: none;
+  margin: 0;
+}
+
 @media (max-width: 600px) {
-  .w-warranty-detail
+  .w-shell
     :is(.w-warranty-dialog-head, .w-warranty-dialog-body, .w-warranty-dialog-footer) {
     padding-inline: 12px;
   }
 
   .w-warranty-detail .w-ticket-notice {
     margin-inline: 16px;
+  }
+
+  .w-handover-recipient,
+  .w-handover-pair {
+    grid-template-columns: minmax(0, 1fr);
   }
 }
