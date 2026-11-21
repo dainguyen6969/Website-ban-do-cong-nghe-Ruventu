@@ -57,11 +57,11 @@ public class PhieuBaoHanh {
 
   @NotNull
   @Size(max = 255)
-  @Column(name = "ly_do_bao_hanh", nullable = false, length = 255)
+  @Column(name = "ly_do_bao_hanh", nullable = false, columnDefinition = "LONGTEXT")
   private String lyDoBaoHanh;
 
   @NotNull
-  @Column(name = "tinh_trang_tiep_nhan", nullable = false, columnDefinition = "TEXT")
+  @Column(name = "tinh_trang_tiep_nhan", nullable = false, columnDefinition = "LONGTEXT")
   private String tinhTrangTiepNhan;
 
   @Size(max = 150)

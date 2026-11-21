@@ -11,9 +11,10 @@ import FormCard from "../../../../../shared/components/ui/FormCard";
 import { FormDropdown } from "../../../../../shared/components/ui/FilterDropdown";
 import ImageUploader from "../../../../../shared/components/ui/ImageUploader";
 import { apiRequest } from "../../../../../auth/backendAuth";
+import { publishCatalogChange } from "../../../../../shared/services/catalogChanges";
 import { getAllCategories } from "../../categories/api/categoryApi";
 import { getAllBrands } from "../../brands/api/brandApi";
-import { createProduct, updateProduct } from "../api/productApi";
+import { addProductVariant, createProduct, replaceVariantAttributes, updateProduct, updateProductVariant } from "../api/productApi";
 import { defaultVariantName } from "./variantNames";
 import "./ThemSanPham.css";
 
@@ -906,7 +907,7 @@ export default function ThemSanPham() {
             method: isEditing ? "PUT" : "POST",
             body: JSON.stringify(comboBody),
           },
-        );
+        ).then(publishCatalogChange);
       } else if (!isEditing) {
         await createProduct({
           ...body,
@@ -933,8 +934,6 @@ export default function ThemSanPham() {
         await updateProduct(productId, body);
 
         if (!isCombo) {
-          const productPath = `${PRODUCTS}/${encodeURIComponent(productId)}`;
-
           for (const item of preparedVariants) {
             const variantId =
               item.id || createdVariantIds.current.get(item.key);
@@ -946,29 +945,11 @@ export default function ThemSanPham() {
             };
 
             if (variantId) {
-              const variantPath =
-                `${productPath}/variants/` + encodeURIComponent(variantId);
-
-              // Cập nhật thông tin phiên bản.
-              await apiRequest(variantPath, {
-                method: "PUT",
-                body: JSON.stringify(variantPayload),
-              });
-
-              // Service cập nhật phiên bản chưa lưu thuộc tính,
-              // nên tiếp tục lưu bằng API thuộc tính riêng.
-              await apiRequest(`${variantPath}/attributes`, {
-                method: "PUT",
-                body: JSON.stringify({
-                  thuoc_tinh_phien_ban: item.attributes,
-                }),
-              });
+              await updateProductVariant(productId, variantId, variantPayload);
+              // API cập nhật phiên bản chưa lưu thuộc tính.
+              await replaceVariantAttributes(productId, variantId, item.attributes);
             } else {
-              // Thêm phiên bản mới kèm thuộc tính.
-              const created = await apiRequest(`${productPath}/variants`, {
-                method: "POST",
-                body: JSON.stringify(variantPayload),
-              });
+              const created = await addProductVariant(productId, variantPayload);
 
               // Ghi nhớ ID để tránh tạo trùng nếu lần lưu sau bị lỗi.
               createdVariantIds.current.set(item.key, created.id);

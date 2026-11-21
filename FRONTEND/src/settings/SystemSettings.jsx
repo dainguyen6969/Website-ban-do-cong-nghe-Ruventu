@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { FONT_OPTIONS } from '../typography/fontOptions';
 import FontSizeControl from '../typography/FontSizeControl';
+import SalesOperationsSettings from './SalesOperationsSettings';
 import { getSystemStatus, saveMaintenance, saveTypography, SETTINGS_CHANGED } from './settingsApi';
 import './SystemSettings.css';
 
@@ -114,6 +115,7 @@ export default function SystemSettings() {
             </button>
           </div>
         )}
+        {status?.canManage && <SalesOperationsSettings />}
         {font && (
           <form onSubmit={saveFont} className="system-settings__typography">
             <h3>Phông chữ và cỡ chữ</h3>

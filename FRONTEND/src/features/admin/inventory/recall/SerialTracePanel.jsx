@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import AdminLink from '../../../../shared/components/ui/AdminLink';
 import {
   errorMessage,
   formatDateTimeVN,
@@ -56,7 +56,7 @@ const SUPPLIER_LABELS = {
 function TraceLink({ path, id, code, label = 'Mở chứng từ' }) {
   const key = String(id ?? '');
   if (!/^[1-9]\d*$/.test(key)) return code || '—';
-  return <Link to={`${path}/${key}`}>{code || label}</Link>;
+  return <AdminLink to={`${path}/${key}`}>{code || label}</AdminLink>;
 }
 
 function purchaseLink(id, current) {

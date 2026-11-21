@@ -25,7 +25,7 @@ export const fieldLabels = {
   noi_dung_xu_ly: 'Nội dung xử lý',
   ly_do: 'Lý do',
   can_cu: 'Căn cứ',
-  don_vi_ket_luan: 'Đơn vị kết luận',
+  don_vi_ket_luan: 'Kết luận',
   dieu_kien_bao_hanh: 'Điều kiện miễn phí',
   ben_chiu_phi: 'Bên chịu phí',
   hang_muc: 'Hạng mục',
@@ -552,7 +552,11 @@ export function initialActionValues(operation, detail, quoteVersion) {
     values.giu_cho_lich_su_id = detail.xu_ly_tiep?.giu_cho_lich_su_id ?? '';
   if (operation.key === 'SAN_SANG_TRA') {
     if (replacementId) values.ket_qua_xu_ly = 'CHUA_CO_KET_QUA';
-    else values.phien_ban_phuong_an = '';
+    else {
+      values.phien_ban_phuong_an = '';
+      values.tinh_trang = detail.tiep_nhan?.tinh_trang ?? '';
+      values.phu_kien = (detail.tiep_nhan?.phu_kien ?? []).map((item) => ({ ...item }));
+    }
   }
   if (operation.key === 'HOAN_KHACH') {
     const invoices = [detail.hoa_don, ...(detail.hoa_don_da_huy || [])].filter(
@@ -567,6 +571,7 @@ export function initialActionValues(operation, detail, quoteVersion) {
     const accessories =
       detail.xu_ly_tiep?.phu_kien_san_sang_tra ?? detail.tiep_nhan?.phu_kien ?? [];
     values.phu_kien = accessories.map((item) => ({ ...item }));
+    values.tinh_trang = detail.xu_ly_tiep?.tinh_trang_san_sang_tra ?? '';
     if (!replacementId) values.phien_ban_phuong_an = '';
   }
 

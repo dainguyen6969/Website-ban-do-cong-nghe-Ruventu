@@ -1,6 +1,7 @@
 import { getAllBrands } from '../../brands/api/brandApi';
 import { getAllCategories } from '../../categories/api/categoryApi';
 import { apiRequest as request } from '../../../../../auth/backendAuth';
+import { publishCatalogChange } from '../../../../../shared/services/catalogChanges.js';
 
 const PATH = '/api/v1/admin/combos';
 const TAGS_KEY = '__combo_tags';
@@ -211,13 +212,13 @@ function mutationBody(combo) {
 }
 
 export const createCombo = combo =>
-  request(PATH, { method: 'POST', body: JSON.stringify(mutationBody(combo)) });
+  request(PATH, { method: 'POST', body: JSON.stringify(mutationBody(combo)) }).then(publishCatalogChange);
 
 export const updateCombo = (id, combo) =>
   request(`${PATH}/${encodeURIComponent(id)}`, {
     method: 'PUT',
     body: JSON.stringify(mutationBody(combo)),
-  });
+  }).then(publishCatalogChange);
 
 export const deactivateCombo = id =>
-  request(`${PATH}/${encodeURIComponent(id)}`, { method: 'DELETE' });
+  request(`${PATH}/${encodeURIComponent(id)}`, { method: 'DELETE' }).then(publishCatalogChange);

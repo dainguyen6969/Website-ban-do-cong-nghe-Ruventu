@@ -33,7 +33,7 @@ public class LichSuBaoHanh {
   private String loaiSuKien;
 
   @NotNull
-  @Column(name = "noi_dung", nullable = false, columnDefinition = "TEXT")
+  @Column(name = "noi_dung", nullable = false, columnDefinition = "LONGTEXT")
   private String noiDung;
 
   @Column(name = "du_lieu_chi_tiet", columnDefinition = "JSON")

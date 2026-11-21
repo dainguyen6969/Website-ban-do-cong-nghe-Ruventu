@@ -41,7 +41,8 @@ final class WarrantyHandoverValidation {
     result.put(
         "sdt_nguoi_nhan",
         WarrantyWriteValidation.phone(text(raw.get("sdt_nguoi_nhan"), true, 20), INVALID));
-    result.put("tinh_trang", text(raw.get("tinh_trang"), true, 16000));
+    if (!(raw.get("tinh_trang") instanceof String condition)) throw invalid();
+    result.put("tinh_trang", WarrantyWriteValidation.requiredText(condition, INVALID));
     result.put("ghi_chu", text(raw.get("ghi_chu"), false, 16000));
     result.put(
         "thoi_diem", WarrantyWriteValidation.time(text(raw.get("thoi_diem"), true, 64), INVALID));

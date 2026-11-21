@@ -111,7 +111,6 @@
 .brand-products .brand-table th { height:32px; line-height:1.2; white-space:nowrap; }
 .brand-products .brand-table td { height:42px; padding-top:8px; padding-bottom:8px; line-height:1.2; vertical-align:middle; white-space:nowrap; }
 .brand-products .brand-table td>strong { display:inline; font-size:10px; line-height:inherit; }
-.brand-page>.product-pagination-bar { margin-top:16px; }
 .brand-products>.product-pagination-bar { margin-top:0; }
 @media (max-width:900px) { .brand-page{padding:22px 16px 40px}.brand-stats,.brand-detail-stats{grid-template-columns:repeat(2,1fr)}.brand-toolbar{flex-wrap:wrap}.brand-toolbar>input{flex-basis:100%}.brand-detail-hero{align-items:flex-start;flex-wrap:wrap}.brand-detail-actions{margin-left:0;width:100%;align-items:flex-start}.brand-info-grid{grid-template-columns:1fr}.brand-info-grid>div{border-left:0;border-top:1px solid #eee;padding:20px}.admin-brand-logo--large{width:120px;height:75px} }
 @media (max-width:560px) { .brand-heading{flex-direction:column}.brand-primary-button{width:100%}.brand-stats,.brand-detail-stats{grid-template-columns:1fr}.brand-stats>div,.brand-detail-stats>div{border-right:0;border-bottom:1px solid #ddd}.brand-modal__footer{grid-template-columns:1fr}.brand-info-grid dl{grid-template-columns:1fr}.brand-info-grid dt{min-height:28px;border:0}.brand-detail-actions>div{flex-wrap:wrap} }

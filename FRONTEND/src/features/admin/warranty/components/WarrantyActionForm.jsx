@@ -474,6 +474,35 @@ export default function WarrantyActionForm({
     }
   };
 
+  const handover = operation.key === 'HANDOVER';
+  const renderField = (field) => (
+    <InputField
+      key={field}
+      field={field}
+      value={values[field.replace(/\?$/, '')] ?? ''}
+      operation={operation}
+      detail={detail}
+      suppliers={suppliers}
+      versions={versions}
+      conclusionId={values.ket_luan_lich_su_id}
+      returningId={values.thiet_bi_se_tra_id}
+      change={(value) => {
+        setValues({
+          ...values,
+          [field.replace(/\?$/, '')]: value,
+          ...(field === 'ket_luan_lich_su_id' && operation.key === 'BAT_DAU_MIEN_PHI'
+            ? { ma_hang_muc: '' }
+            : {}),
+          ...(field === 'nha_cung_cap_id' && operation.fields.includes('ten_don_vi')
+            ? { ten_don_vi: suppliers.find((item) => String(item.id) === String(value))?.name || '' }
+            : {}),
+        });
+        setConfirmed(false);
+        setError('');
+      }}
+    />
+  );
+
   return (
     <WarrantyDialog
       title={operation.label}
@@ -515,7 +544,7 @@ export default function WarrantyActionForm({
         </>
       }
     >
-      <section className="w-action-form">
+      <section className={`w-action-form${handover ? ' w-handover-form' : ''}`}>
         {blockReason && (
           <p className="w-shell-error" role="status">
             {blockReason}
@@ -543,39 +572,33 @@ export default function WarrantyActionForm({
 
         <form id={formId} onSubmit={prepare}>
           <fieldset disabled={inputsLocked} className="w-action-fields">
-            <div className="w-shell-fields">
-              {operation.fields.map((field) => (
-                <InputField
-                  key={field}
-                  field={field}
-                  value={values[field.replace(/\?$/, '')] ?? ''}
-                  operation={operation}
-                  detail={detail}
-                  suppliers={suppliers}
-                  versions={versions}
-                  conclusionId={values.ket_luan_lich_su_id}
-                  returningId={values.thiet_bi_se_tra_id}
-                  change={(value) => {
-                    setValues({
-                      ...values,
-                      [field.replace(/\?$/, '')]: value,
-                      ...(field === 'ket_luan_lich_su_id' && operation.key === 'BAT_DAU_MIEN_PHI'
-                        ? { ma_hang_muc: '' }
-                        : {}),
-                      ...(field === 'nha_cung_cap_id' && operation.fields.includes('ten_don_vi')
-                        ? {
-                            ten_don_vi:
-                              suppliers.find((item) => String(item.id) === String(value))?.name ||
-                              '',
-                          }
-                        : {}),
-                    });
-                    setConfirmed(false);
-                    setError('');
-                  }}
-                />
-              ))}
-            </div>
+            {handover ? (
+              <div className="w-handover-layout">
+                <fieldset className="w-handover-section">
+                  <legend>Người nhận</legend>
+                  <div className="w-shell-fields w-handover-recipient">
+                    {['ten_nguoi_nhan', 'sdt_nguoi_nhan', 'thoi_diem'].map(renderField)}
+                  </div>
+                </fieldset>
+                <div className="w-handover-pair">
+                  <fieldset className="w-handover-section w-handover-device">
+                    <legend>Đối chiếu thiết bị</legend>
+                    {['thiet_bi_ban_giao_id', 'tinh_trang', 'phien_ban_phuong_an?'].map(renderField)}
+                  </fieldset>
+                  <div className="w-handover-accessories">{renderField('phu_kien')}</div>
+                </div>
+                <fieldset className="w-handover-section">
+                  <legend>Chứng từ và ghi chú</legend>
+                  <div className="w-shell-fields">
+                    {['bang_chung_urls', 'ghi_chu?'].map(renderField)}
+                  </div>
+                </fieldset>
+                {renderField('phe_duyet_cong_no_lich_su_id?')}
+                {renderField('xac_nhan_khach')}
+              </div>
+            ) : (
+              <div className="w-shell-fields">{operation.fields.map(renderField)}</div>
+            )}
           </fieldset>
 
           {needsConfirmation && (

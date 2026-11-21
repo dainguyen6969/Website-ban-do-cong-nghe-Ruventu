@@ -1,4 +1,5 @@
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
+import AdminLink from '../../../../shared/components/ui/AdminLink';
 import { HiOutlineArrowLeft } from 'react-icons/hi';
 import DetailTablePagination from '../../../../shared/components/ui/DetailTablePagination';
 import useDetailTablePagination from '../../../../hooks/useDetailTablePagination';
@@ -1518,12 +1519,12 @@ function OrderDetailView({ orderId }) {
                         {order.doi_soat_thanh_toan.phieu_thu.map((receipt) => (
                           <tr key={receipt.id}>
                             <td>
-                              <Link
+                              <AdminLink
                                 to={'/admin/so-quy-tien-mat/phieu-thu/' + receipt.id}
                                 className="order-receipt-code"
                               >
                                 {receipt.ma_phieu}
-                              </Link>
+                              </AdminLink>
                             </td>
                             <td>
                               <span
@@ -2199,12 +2200,12 @@ function DeviceExchangeHistory({ order }) {
                       </td>
 
                       <td>
-                        <Link
+                        <AdminLink
                           to={'/admin/bao-hanh/chi-tiet/' + edge.phieu_bao_hanh_id}
                           className="order-warranty-link"
                         >
                           {edge.ma_phieu_bao_hanh || '#' + edge.phieu_bao_hanh_id}
-                        </Link>
+                        </AdminLink>
                       </td>
 
                       <td>

@@ -71,6 +71,11 @@ async function fetchSystemStatus() {
 
 export const getTypography = () => apiRequest('/api/v1/users/me/typography');
 
+const SALES_OPERATIONS_PATH = '/api/v1/admin/system-settings/sales-operations';
+export const getSalesOperations = (signal) => apiRequest(SALES_OPERATIONS_PATH, { signal });
+export const saveSalesOperations = (values) =>
+  apiRequest(SALES_OPERATIONS_PATH, { method: 'PUT', body: JSON.stringify(values) });
+
 export async function saveTypography(value) {
   const saved = await apiRequest('/api/v1/users/me/typography', {
     method: 'PUT',

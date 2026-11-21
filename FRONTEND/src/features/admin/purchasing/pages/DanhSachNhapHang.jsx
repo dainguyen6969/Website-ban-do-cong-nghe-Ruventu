@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
+import AdminLink from '../../../../shared/components/ui/AdminLink';
 import { HiOutlinePlus, HiOutlineSearch } from 'react-icons/hi';
 
 import TablePagination from '../../../../shared/components/ui/TablePagination';
@@ -288,9 +289,9 @@ export default function DanhSachNhapHang() {
                     {loading ? (
                       <span className="purchase-order-code">{order.code}</span>
                     ) : (
-                      <Link className="purchase-order-code" to={`/kho-hang/nhap-hang/${order.id}`}>
+                      <AdminLink className="purchase-order-code" to={`/kho-hang/nhap-hang/${order.id}`}>
                         {order.code}
-                      </Link>
+                      </AdminLink>
                     )}
                   </td>
 

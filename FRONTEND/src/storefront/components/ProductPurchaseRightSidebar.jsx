@@ -221,7 +221,7 @@ const ProductPurchaseRightSidebar = ({ product, selectedVariantId }) => {
 
       <div className="action-buttons">
         {isOutOfStock ? (
-          <StockInterestActions
+          product.stockNotificationWebsiteEnabled !== false && <StockInterestActions
             key={activeVariant.id}
             variantId={activeVariant.id}
             productName={product.name}

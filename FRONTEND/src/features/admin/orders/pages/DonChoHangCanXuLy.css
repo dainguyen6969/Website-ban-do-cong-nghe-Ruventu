@@ -1,9 +1,26 @@
+.admin-app .order-list-shell:has(> .waiting-work) {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
 .waiting-work {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 0;
+  min-height: 0;
+  overflow: hidden;
   min-width: 0;
   color: #191919;
   font-family: inherit;
   font-size: 0.875rem;
   line-height: 1.5;
+}
+
+.waiting-work > * {
+  flex-shrink: 0;
 }
 
 .waiting-work button,
@@ -201,11 +218,31 @@
 }
 
 .waiting-table-scroll {
+  flex: 1 1 0;
+  min-height: 0;
   margin: 18px 24px 0;
   overflow: auto;
   border: 1px solid #c9cdd2;
   background: #fff;
   scrollbar-width: thin;
+}
+
+.waiting-table thead {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
+@media (max-width: 900px), (max-height: 700px) {
+  .waiting-work {
+    flex-basis: auto;
+    overflow-y: auto;
+  }
+  .waiting-work .waiting-table-scroll {
+    flex: 0 0 auto;
+    min-height: 160px;
+    max-height: 60dvh;
+  }
 }
 
 .waiting-work .waiting-table {

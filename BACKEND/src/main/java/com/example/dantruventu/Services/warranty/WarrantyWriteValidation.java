@@ -36,6 +36,10 @@ final class WarrantyWriteValidation {
     return normalized;
   }
 
+  static String requiredText(String value, ErrorCode error) {
+    return text(value, true, Integer.MAX_VALUE, error);
+  }
+
   static String phone(String value, ErrorCode error) {
     String phone = text(value, true, 20, error);
     if (!phone.matches("\\+?[0-9][0-9 .()-]{6,19}")) throw new AppException(error);

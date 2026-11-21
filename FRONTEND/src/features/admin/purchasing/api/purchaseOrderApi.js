@@ -3,6 +3,7 @@ import {
   getAllVersions,
   getWarehouses,
 } from '../../catalog/products/api/versionApi.js';
+import { publishCatalogChange } from '../../../../shared/services/catalogChanges.js';
 
 const PATH = '/api/v1/admin/purchase-orders';
 const nullableNumber = (value) => (value == null ? null : Number(value));
@@ -152,7 +153,7 @@ export const receivePurchaseOrder = (id, key, body) =>
       'Idempotency-Key': key,
     },
     body: JSON.stringify(body),
-  });
+  }).then(publishCatalogChange);
 export const returnPurchaseOrder = (id, key, body) =>
   adminRequest(`${PATH}/${encodeURIComponent(id)}/returns`, {
     method: 'POST',
@@ -160,7 +161,7 @@ export const returnPurchaseOrder = (id, key, body) =>
       'Idempotency-Key': key,
     },
     body: JSON.stringify(body),
-  });
+  }).then(publishCatalogChange);
 
 export const receivePurchaseRefund = (id, key, body) =>
   adminRequest(`${PATH}/${encodeURIComponent(id)}/refunds`, {

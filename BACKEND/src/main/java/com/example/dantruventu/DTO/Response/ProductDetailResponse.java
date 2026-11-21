@@ -31,6 +31,7 @@ public class ProductDetailResponse {
   private Short trangThai;
   private List<AnhSanPhamResponse> anhSanPham;
   private List<PhienBanResponse> danhSachPhienBan;
+  private boolean stockNotificationWebsiteEnabled;
   @Builder.Default private List<CatalogFields.ComboPart> thanhPhan = List.of();
 
   @Getter

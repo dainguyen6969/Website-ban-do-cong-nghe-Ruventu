@@ -223,7 +223,7 @@ public class AdminWarrantyIntakeResultService {
         WarrantyWriteValidation.text(r.tenNguoiLienHe(), true, 100, error),
         WarrantyWriteValidation.phone(r.sdtNguoiLienHe(), error),
         result,
-        WarrantyWriteValidation.text(r.lyDo(), true, 16000, error),
+        WarrantyWriteValidation.requiredText(r.lyDo(), error),
         WarrantyWriteValidation.text(r.canCu(), true, 16000, error),
         WarrantyWriteValidation.urls(r.bangChungUrls(), error));
   }

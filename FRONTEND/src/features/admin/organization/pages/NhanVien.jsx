@@ -1,6 +1,7 @@
 // Admin organization screen: NhanVien.
 import { useEffect, useState, useRef } from 'react';
-import { useNavigate, useParams, Link } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
+import AdminLink from '../../../../shared/components/ui/AdminLink';
 import {
   HiOutlineArrowLeft,
   HiOutlineEye,
@@ -564,9 +565,9 @@ function EmployeeReconciliation({ employeeId }) {
                   return (
                     <tr key={item.id}>
                       <td>
-                        <Link className="employee-activity-link" to={employeeOrderPath(item.id)}>
+                        <AdminLink className="employee-activity-link" to={employeeOrderPath(item.id)}>
                           {item.ma_don_hang}
-                        </Link>
+                        </AdminLink>
                       </td>
                       <td>
                         <OrderStateBadge value={item.loai_don_hang} />
@@ -588,23 +589,23 @@ function EmployeeReconciliation({ employeeId }) {
                 return (
                   <tr key={item.id}>
                     <td>
-                      <Link
+                      <AdminLink
                         className="employee-activity-link"
                         to={`/admin/so-quy-tien-mat/${voucherPath}/${item.id}`}
                       >
                         {item.ma_phieu}
-                      </Link>
+                      </AdminLink>
                     </td>
                     <td>{item.ten_nguoi_tao || '—'}</td>
                     <td>{item.ten_nguoi_nop_nhan || '—'}</td>
                     <td>
                       {item.don_hang_id ? (
-                        <Link
+                        <AdminLink
                           className="employee-activity-link"
                           to={employeeOrderPath(item.don_hang_id)}
                         >
                           {item.ma_don_hang || 'Xem đơn'}
-                        </Link>
+                        </AdminLink>
                       ) : (
                         item.ma_chung_tu_tham_chieu || '—'
                       )}
