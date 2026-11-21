@@ -3,6 +3,7 @@ package com.example.dantruventu.DTO.Response.order;
 import com.example.dantruventu.DTO.Response.PaginationResponse;
 import com.example.dantruventu.DTO.catalog.CatalogFields;
 import com.example.dantruventu.Enum.*;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
@@ -17,6 +18,44 @@ import lombok.Setter;
 public final class CustomerOrderResponse {
 
   private CustomerOrderResponse() {}
+
+  @JsonInclude(JsonInclude.Include.ALWAYS)
+  public record CustomerResult(
+      List<CustomerItem> items,
+      PaginationResponse pagination,
+      @JsonProperty("thoi_diem_tra_cuu") OffsetDateTime thoiDiemTraCuu) {}
+
+  @JsonInclude(JsonInclude.Include.ALWAYS)
+  public record CustomerStatusEvent(
+      @JsonProperty("trang_thai_xu_ly") String trangThaiXuLy,
+      @JsonProperty("thoi_diem") OffsetDateTime thoiDiem) {}
+
+  @JsonInclude(JsonInclude.Include.ALWAYS)
+  public record CustomerTicket(
+      @JsonProperty("ma_phieu") String maPhieu,
+      @JsonProperty("trang_thai_xu_ly") String trangThaiXuLy,
+      @JsonProperty("ngay_tiep_nhan") OffsetDateTime ngayTiepNhan,
+      @JsonProperty("ngay_cap_nhat") OffsetDateTime ngayCapNhat,
+      @JsonProperty("ly_do_bao_hanh") String lyDoBaoHanh,
+      @JsonProperty("tien_trinh") List<CustomerStatusEvent> tienTrinh) {}
+
+  @JsonInclude(JsonInclude.Include.ALWAYS)
+  public record CustomerItem(
+      @JsonProperty("thiet_bi_id") Long thietBiId,
+      @JsonProperty("don_hang_id") Long donHangId,
+      @JsonProperty("ma_don_hang") String maDonHang,
+      @JsonProperty("ten_san_pham") String tenSanPham,
+      @JsonProperty("ten_phien_ban") String tenPhienBan,
+      @JsonProperty("ma_san_pham") String maSanPham,
+      @JsonProperty("ma_vach") String maVach,
+      @JsonProperty("ma_theo_doi") String maTheoDoi,
+      @JsonProperty("so_serial_id") Long soSerialId,
+      @JsonProperty("so_serial") String soSerial,
+      @JsonProperty("ngay_kich_hoat") OffsetDateTime ngayKichHoat,
+      @JsonProperty("han_bao_hanh") OffsetDateTime hanBaoHanh,
+      @JsonProperty("trang_thai_thoi_han") String trangThaiThoiHan,
+      @JsonProperty("can_xac_minh") boolean canXacMinh,
+      @JsonProperty("phieu_bao_hanh") List<CustomerTicket> phieuBaoHanh) {}
 
   @Getter
   @Setter

@@ -4,14 +4,23 @@
   --w-ink: #111;
   --w-muted: #858c95;
   --w-line: #111;
+
+  --warranty-button-font-weight: var(--admin-weight-semibold, 600);
+  --warranty-status-font-weight: var(--admin-weight-semibold, 600);
+
   flex: 1;
   min-width: 0;
   min-height: 0;
   overflow: auto;
   background: #f2f2f2;
   color: #111;
-  font-family: var(--font-family-admin, Arial, sans-serif);
+
+  font-family: var(
+    --project-font-family,
+    var(--font-family-admin, var(--font-family-base, Arial, sans-serif))
+  );
   font-size: 12px;
+  font-weight: var(--admin-weight-regular, 400);
   line-height: 1.5;
 }
 .w-shell *,
@@ -48,7 +57,7 @@
   margin: 0;
   color: #090909;
   font-size: 23px;
-  font-weight: 900;
+  font-weight: var(--admin-weight-bold, 700);
   line-height: 1.1;
   text-transform: uppercase;
 }
@@ -103,7 +112,7 @@
   color: #111;
   background: #fff;
   font-size: 11px;
-  font-weight: 800;
+  font-weight: var(--admin-weight-semibold, 600);
   line-height: 1.4;
   text-transform: uppercase;
 }
@@ -203,7 +212,7 @@
   background: #f5f5f5;
   color: #555;
   font-size: 10px;
-  font-weight: 800;
+  font-weight: var(--admin-weight-semibold, 600);
   line-height: 1.4;
   white-space: nowrap;
 }
@@ -252,7 +261,7 @@
   margin-bottom: 5px;
   color: #858c95;
   font-size: 10px;
-  font-weight: 800;
+  font-weight: var(--admin-weight-semibold, 600);
   text-transform: uppercase;
 }
 .w-shell-fields dd {
@@ -271,7 +280,7 @@
 .w-shell-panel-body > h3 {
   margin: 0 0 12px;
   font-size: 12px;
-  font-weight: 800;
+  font-weight: var(--admin-weight-semibold, 600);
   text-transform: uppercase;
 }
 .w-shell-detail-grid {
@@ -353,13 +362,13 @@
 .w-eyebrow {
   color: #e31e24;
   font-size: 10px;
-  font-weight: 800;
+  font-weight: var(--admin-weight-semibold, 600);
   text-transform: uppercase;
 }
 .w-next-step h2 {
   margin: 4px 0;
   font-size: 15px;
-  font-weight: 900;
+  font-weight: var(--admin-weight-bold, 700);
   text-transform: uppercase;
 }
 .w-next-step p {
@@ -487,7 +496,7 @@
   color: #777;
   background: #fff;
   font-size: 11px;
-  font-weight: 800;
+  font-weight: var(--admin-weight-semibold, 600);
   text-transform: uppercase;
 }
 .w-shell-tabs button[aria-current='page'] {
@@ -507,7 +516,7 @@
   background: #fff;
   color: #111;
   font-size: 10px;
-  font-weight: 800;
+  font-weight: var(--admin-weight-semibold, 600);
   text-transform: uppercase;
 }
 .w-group-nav button[aria-pressed='true'] {
@@ -544,7 +553,7 @@
 }
 .w-operation-card strong {
   font-size: 11px;
-  font-weight: 800;
+  font-weight: var(--admin-weight-semibold, 600);
 }
 .w-unavailable {
   margin-top: 16px;
@@ -579,7 +588,7 @@
 }
 .w-contact-card strong {
   font-size: 13px;
-  font-weight: 800;
+  font-weight: var(--admin-weight-semibold, 600);
 }
 .w-contact-card p {
   display: flex;
@@ -596,7 +605,7 @@
 .w-device-card {
   margin-bottom: 18px;
   font-size: 13px;
-  font-weight: 800;
+  font-weight: var(--admin-weight-semibold, 600);
   overflow-wrap: anywhere;
 }
 .w-reference-details {
@@ -731,6 +740,7 @@
 }
 .admin-app .warranty-list .admin-table-scroll > .w-shell-list-table td strong {
   font-size: 12px;
+  font-weight: var(--admin-weight-semibold, 650);
 }
 .warranty-list .w-product-name {
   display: -webkit-box;
@@ -749,7 +759,7 @@
   border: 0;
   color: #e31e24;
   background: transparent;
-  font-weight: 900;
+  font-weight: var(--admin-weight-semibold, 650);
   text-align: left;
 }
 .w-shell-ticket-link:hover {
@@ -869,7 +879,7 @@
   gap: 5px;
   color: #858c95;
   font-size: 10px;
-  font-weight: 800;
+  font-weight: var(--admin-weight-semibold, 600);
   text-transform: uppercase;
 }
 .w-shell-filter-advanced {
@@ -886,7 +896,7 @@
   gap: 6px;
   font-size: 10px;
   color: #858c95;
-  font-weight: 800;
+  font-weight: var(--admin-weight-semibold, 600);
 }
 .w-finance-cards {
   display: grid;
@@ -905,7 +915,7 @@
   display: block;
   color: #858c95;
   font-size: 10px;
-  font-weight: 800;
+  font-weight: var(--admin-weight-semibold, 600);
   text-transform: uppercase;
 }
 .w-finance-cards strong {
@@ -915,7 +925,7 @@
 }
 .w-action-form h3 {
   font-size: 14px;
-  font-weight: 900;
+  font-weight: var(--admin-weight-bold, 700);
   text-transform: uppercase;
 }
 .w-action-form .w-shell-title-row {
@@ -952,7 +962,7 @@
   min-width: 0;
   margin: 12px 0;
   font-size: 11px;
-  font-weight: 800;
+  font-weight: var(--admin-weight-semibold, 600);
 }
 .w-intake-field > span {
   text-transform: uppercase;
@@ -1017,7 +1027,7 @@
 .w-action-rows legend {
   padding: 0 8px;
   font-size: 12px;
-  font-weight: 800;
+  font-weight: var(--admin-weight-semibold, 600);
   text-transform: uppercase;
 }
 .w-action-rows .w-shell-subsection:first-of-type {
@@ -1071,9 +1081,17 @@
   font-size: 12px;
 }
 .warranty-modal.order-operation-modal {
+  --warranty-button-font-weight: var(--admin-weight-semibold, 650);
+  --warranty-status-font-weight: var(--admin-weight-semibold, 650);
+
   max-height: calc(100dvh - 40px);
   overflow-y: auto;
-  font-family: var(--font-family-admin, inherit);
+
+  font-family: var(
+    --project-font-family,
+    var(--font-family-admin, var(--font-family-base, Arial, sans-serif))
+  );
+  font-weight: var(--admin-weight-regular, 450);
 }
 .w-confirm-item {
   margin: 12px 0;
@@ -1101,7 +1119,7 @@
 }
 .w-workflow-help summary {
   cursor: pointer;
-  font-weight: 800;
+  font-weight: var(--admin-weight-semibold, 600);
 }
 .w-intake-content {
   display: grid;
@@ -1125,7 +1143,7 @@
   color: #999;
   text-align: left;
   font-size: 11px;
-  font-weight: 800;
+  font-weight: var(--admin-weight-semibold, 600);
   text-transform: uppercase;
 }
 .w-intake-steps button:last-child {
@@ -1177,7 +1195,7 @@
 .w-intake-selected small {
   color: #999;
   font-size: 10px;
-  font-weight: 800;
+  font-weight: var(--admin-weight-semibold, 600);
 }
 .w-intake-selected > div:first-child strong {
   display: block;

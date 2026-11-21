@@ -71,10 +71,21 @@ public interface PhienBanSanPhamRepository
         AND (:stockStatus = 'TAT_CA'
           OR (:stockStatus = 'CON_HANG' AND COALESCE(stock.available, 0) > 0)
           OR (:stockStatus = 'HET_HANG' AND COALESCE(stock.available, 0) <= 0))
-        AND (:socket IS NULL OR (
-          JSON_TYPE(JSON_EXTRACT(p.thong_so_ky_thuat, '$.socket')) = 'STRING'
-          AND CAST(JSON_UNQUOTE(JSON_EXTRACT(p.thong_so_ky_thuat, '$.socket')) AS BINARY)
-              = CAST(:socket AS BINARY)))
+        AND (:cpuBrand IS NULL OR EXISTS (
+          SELECT 1 FROM JSON_TABLE(
+            CASE WHEN JSON_TYPE(p.thong_so_ky_thuat) = 'OBJECT'
+                 THEN JSON_KEYS(p.thong_so_ky_thuat) ELSE JSON_ARRAY() END,
+            '$[*]' COLUMNS(spec_key VARCHAR(255) PATH '$')) supported
+          WHERE REGEXP_REPLACE(supported.spec_key, '[[:space:]_-]', '')
+                    COLLATE utf8mb4_0900_ai_ci = 'cpuhotro'
+            AND JSON_TYPE(JSON_EXTRACT(p.thong_so_ky_thuat,
+                  CONCAT('$.', JSON_QUOTE(supported.spec_key)))) = 'STRING'
+            AND LOCATE(LOWER(:cpuBrand), LOWER(JSON_UNQUOTE(JSON_EXTRACT(
+                  p.thong_so_ky_thuat, CONCAT('$.', JSON_QUOTE(supported.spec_key)))))) > 0))
+        AND (:cpuNamePattern IS NULL OR (
+          REGEXP_LIKE(p.ten_san_pham, :cpuNamePattern, 'i')
+          AND NOT (LOCATE('amd', LOWER(p.ten_san_pham)) > 0
+                   AND LOCATE('intel', LOWER(p.ten_san_pham)) > 0)))
       """;
 
   @Query(
@@ -109,7 +120,8 @@ public interface PhienBanSanPhamRepository
       @Param("minPrice") BigDecimal minPrice,
       @Param("maxPrice") BigDecimal maxPrice,
       @Param("stockStatus") String stockStatus,
-      @Param("socket") String socket,
+      @Param("cpuBrand") String cpuBrand,
+      @Param("cpuNamePattern") String cpuNamePattern,
       @Param("sortMode") String sortMode,
       Pageable pageable);
 

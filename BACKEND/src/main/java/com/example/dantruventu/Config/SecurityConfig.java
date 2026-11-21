@@ -3,6 +3,7 @@ package com.example.dantruventu.Config;
 import java.util.Arrays;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
@@ -31,6 +32,13 @@ public class SecurityConfig {
   }
 
   @Bean
+  public FilterRegistrationBean<JwtAuthFilter> jwtAuthFilterRegistration(JwtAuthFilter filter) {
+    FilterRegistrationBean<JwtAuthFilter> registration = new FilterRegistrationBean<>(filter);
+    registration.setEnabled(false);
+    return registration;
+  }
+
+  @Bean
   public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
 
     http.cors(cors -> cors.configurationSource(corsConfigurationSource()))
@@ -40,6 +48,9 @@ public class SecurityConfig {
         .authorizeHttpRequests(
             auth ->
                 auth.requestMatchers(
+                        org.springframework.http.HttpMethod.POST, "/api/v1/orders/warranty-lookup")
+                    .permitAll()
+                    .requestMatchers(
                         "/api/v1/system-settings/status",
                         "/api/v1/auth/register",
                         "/api/v1/auth/otp/resend",
@@ -58,8 +69,8 @@ public class SecurityConfig {
                         "/api/v1/pc-builder/options",
                         "/api/v1/pc-builder/products",
                         "/api/v1/pc-builder/preview",
-                        "/api/v1/products/**",
-                        "/api/v1/pc-builder/export")
+                        "/api/v1/pc-builder/export",
+                        "/api/v1/products/**")
                     .permitAll()
                     .anyRequest()
                     .authenticated())

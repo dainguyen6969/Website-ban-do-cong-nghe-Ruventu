@@ -1,5 +1,22 @@
 import { apiRequest } from '../../../../auth/backendAuth';
-import { emptyPermissions, fullPermissions } from '../../../../auth/roleModel';
+import { emptyPermissions, fullPermissions, PERMISSION_MODULES } from '../../../../auth/roleModel';
+
+export const ADMIN_ONLY_MODULES = Object.freeze(['nhan_vien', 'vai_tro_quyen']);
+
+export function readRolePermissions(role) {
+  if (role?.ma_vai_tro === 'ADMIN') return fullPermissions();
+
+  return Object.fromEntries(
+    PERMISSION_MODULES.map(({ id, actions }) => {
+      const granted = role?.quyen?.[id];
+      const allowed =
+        !ADMIN_ONLY_MODULES.includes(id) && Array.isArray(granted)
+          ? actions.filter((action) => granted.includes(action))
+          : [];
+      return [id, allowed];
+    })
+  );
+}
 
 export async function getRolePage(page = 1, limit = 20, keyword = '') {
   const params = new URLSearchParams({
@@ -19,14 +36,10 @@ export async function getRolePage(page = 1, limit = 20, keyword = '') {
 export async function getAllRoles(signal) {
   const data = await apiRequest('/api/v1/admin/roles?page=0&limit=100', { signal });
   signal?.throwIfAborted();
-  const roles = (data?.items || []).map((role) => {
-    const isSystemAdmin = String(role.ten_vai_tro || role.tenVaiTro || '').toUpperCase() === 'ADMIN';
-    const parsed = parseRoleDescription(role.moTa || role.mo_ta);
-    const perms = isSystemAdmin && Object.values(parsed.permissions).every((a) => !a.length)
-      ? fullPermissions()
-      : parsed.permissions;
-    return { ...role, permissions: perms };
-  });
+  const roles = (data?.items || []).map((role) => ({
+    ...role,
+    permissions: readRolePermissions(role),
+  }));
 
   if (roles.length > 0) {
     try {
@@ -136,30 +149,35 @@ export async function getRoleDetail(id) {
   return await apiRequest(`/api/v1/admin/roles/${encodeURIComponent(id)}`);
 }
 
-export async function createRole({ tenVaiTro, moTa, permissions }) {
-  const payload = {
+function toRolePayload({ tenVaiTro, moTa, permissions }) {
+  return {
     ten_vai_tro: (tenVaiTro || '').trim(),
-    mo_ta: buildRoleDescription(moTa, permissions),
+    mo_ta: (moTa || '').trim() || null,
+    quyen: Object.fromEntries(
+      Object.entries(permissions || {}).filter(
+        ([id, actions]) =>
+          !ADMIN_ONLY_MODULES.includes(id) && Array.isArray(actions) && actions.length > 0
+      )
+    ),
   };
-  return await apiRequest('/api/v1/admin/roles', {
+}
+
+export async function createRole(form) {
+  return apiRequest('/api/v1/admin/roles', {
     method: 'POST',
-    body: JSON.stringify(payload),
+    body: JSON.stringify(toRolePayload(form)),
   });
 }
 
-export async function updateRole(id, { tenVaiTro, moTa, permissions }) {
-  const payload = {
-    ten_vai_tro: (tenVaiTro || '').trim(),
-    mo_ta: buildRoleDescription(moTa, permissions),
-  };
-  return await apiRequest(`/api/v1/admin/roles/${encodeURIComponent(id)}`, {
+export async function updateRole(id, { phienBan, ...form }) {
+  return apiRequest(`/api/v1/admin/roles/${encodeURIComponent(id)}`, {
     method: 'PUT',
-    body: JSON.stringify(payload),
+    body: JSON.stringify({ ...toRolePayload(form), phien_ban: phienBan }),
   });
 }
 
 export async function deleteRole(id) {
-  return await apiRequest(`/api/v1/admin/roles/${encodeURIComponent(id)}`, {
+  return apiRequest(`/api/v1/admin/roles/${encodeURIComponent(id)}`, {
     method: 'DELETE',
   });
 }
