@@ -4,8 +4,8 @@ The root `render.yaml` creates one **Free** Docker web service and one **Free**
 Key Value service in Singapore. Nginx serves the frontend and proxies the API
 and WebSocket to Java inside the same container. Browser cookies stay on one
 HTTPS origin. Local Docker deployment is unchanged.
-The frontend port opens only after the settings API responds successfully, so
-Render's default TCP readiness check also waits for the backend to start.
+Nginx opens the frontend port while Java starts. Configure Render's HTTP health
+check to use the proxied settings API so traffic waits for backend readiness.
 
 ## Required before deploying
 

@@ -14,15 +14,7 @@ trap 'kill "${pids[@]}" 2>/dev/null || true' EXIT
 trap 'exit 143' TERM
 trap 'exit 130' INT
 
-# Render must not route visitors to the frontend before its API is ready.
-until wget -q -T 5 -O /dev/null http://127.0.0.1:8080/api/v1/system-settings/status 2>/dev/null; do
-  if ! kill -0 "$java_pid" 2>/dev/null; then
-    wait "$java_pid"
-    exit 1
-  fi
-  sleep 1
-done
-
+# Bind the HTTP port while Java starts. Render checks the proxied API before routing traffic.
 nginx -g 'daemon off;' &
 pids+=("$!")
 wait -n "${pids[@]}"

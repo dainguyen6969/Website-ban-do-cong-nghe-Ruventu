@@ -5,19 +5,19 @@ trap 'rm -rf "$test_dir"' EXIT
 export TEST_DIR="$test_dir" DB_CA_CERTIFICATE=test-certificate
 mkdir "$test_dir/bin"
 export PATH="$test_dir/bin:$PATH"
-sed 's/\r$//' /checks/start.sh > "$test_dir/start.sh"
+script_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
+mkdir "$test_dir/app"
+sed -e 's/\r$//' -e 's@/app/@./app/@g' "$script_dir/start.sh" > "$test_dir/start.sh"
+cd "$test_dir"
 printf '#!/bin/bash\nexit 0\n' > "$test_dir/bin/keytool"
 cat > "$test_dir/bin/java" <<'SCRIPT'
 #!/bin/bash
-if [[ "${JAVA_FAIL:-0}" == 1 ]]; then exit 7; fi
+if [[ "${JAVA_FAIL:-0}" == 1 ]]; then sleep 0.5; exit 7; fi
 exec sleep 60
 SCRIPT
 cat > "$test_dir/bin/wget" <<'SCRIPT'
 #!/bin/bash
-count=$(cat "$TEST_DIR/probes" 2>/dev/null || echo 0)
-count=$((count + 1))
-echo "$count" > "$TEST_DIR/probes"
-[[ "$count" -ge 3 ]]
+exit 1
 SCRIPT
 cat > "$test_dir/bin/nginx" <<'SCRIPT'
 #!/bin/bash
@@ -28,21 +28,22 @@ chmod +x "$test_dir/bin/"*
 
 bash "$test_dir/start.sh" &
 subject=$!
+trap 'kill "$subject" 2>/dev/null || true; wait "$subject" 2>/dev/null || true; cd /; rm -rf "$test_dir"' EXIT
 for attempt in {1..50}; do
   [[ -f "$test_dir/nginx-started" ]] && break
   sleep 0.1
 done
-[[ -f "$test_dir/nginx-started" ]]
-[[ "$(cat "$test_dir/probes")" -ge 3 ]]
+if [[ ! -f "$test_dir/nginx-started" ]]; then
+  echo 'FAIL Nginx did not start while the API was unavailable' >&2
+  exit 1
+fi
 kill -TERM "$subject"
 status=0
 wait "$subject" || status=$?
 [[ "$status" == 143 ]]
-echo 'PASS frontend waits for a healthy API and handles termination'
+echo 'PASS Nginx starts while the API is unavailable and handles termination'
 
-rm -f "$test_dir/nginx-started" "$test_dir/probes"
 status=0
 JAVA_FAIL=1 bash "$test_dir/start.sh" || status=$?
 [[ "$status" == 7 ]]
-[[ ! -f "$test_dir/nginx-started" ]]
-echo 'PASS failed Java startup never exposes the frontend'
+echo 'PASS container exits with the Java failure status'
