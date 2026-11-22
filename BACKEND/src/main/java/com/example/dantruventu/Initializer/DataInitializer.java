@@ -6,6 +6,7 @@ import com.example.dantruventu.Enum.TrangThaiCoBanEnum;
 import com.example.dantruventu.Repository.NguoiDungRepository;
 import com.example.dantruventu.Repository.VaiTroRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
@@ -17,6 +18,9 @@ public class DataInitializer implements CommandLineRunner {
   private final VaiTroRepository vaiTroRepository;
   private final NguoiDungRepository nguoiDungRepository;
   private final PasswordEncoder passwordEncoder;
+
+  @Value("${ruventu.bootstrap.admin-password:Admin@123}")
+  private String bootstrapAdminPassword;
 
   @Override
   public void run(String... args) {
@@ -56,7 +60,7 @@ public class DataInitializer implements CommandLineRunner {
                       .hoTen("Administrator")
                       .email("admin@gmail.com")
                       .soDienThoai("0900000000")
-                      .matKhau(passwordEncoder.encode("Admin@123"))
+                      .matKhau(passwordEncoder.encode(bootstrapAdminPassword))
                       .trangThai(TrangThaiCoBanEnum.HOAT_DONG)
                       .build();
 

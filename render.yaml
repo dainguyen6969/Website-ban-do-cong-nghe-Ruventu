@@ -1,0 +1,37 @@
+services:
+  - type: web
+    name: ruventu-demo
+    runtime: docker
+    plan: free
+    region: singapore
+    dockerfilePath: ./Dockerfile.render
+    dockerContext: .
+    healthCheckPath: /api/v1/system-settings/status
+    envVars:
+      - key: SPRING_PROFILES_ACTIVE
+        value: render
+      - key: JAVA_TOOL_OPTIONS
+        value: -Xms64m -Xmx160m -XX:MaxMetaspaceSize=192m -XX:ReservedCodeCacheSize=24m -XX:MaxDirectMemorySize=16m -XX:ActiveProcessorCount=2 -Xss512k -XX:+UseSerialGC -XX:+ExitOnOutOfMemoryError
+      - key: DB_CONNECTED
+        sync: false
+      - key: DB_USERNAME
+        sync: false
+      - key: DB_PASSWORD
+        sync: false
+      - key: DB_CA_CERTIFICATE
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: BOOTSTRAP_ADMIN_PASSWORD
+        generateValue: true
+      - key: REDIS_URL
+        fromService:
+          type: keyvalue
+          name: ruventu-demo-redis
+          property: connectionString
+  - type: keyvalue
+    name: ruventu-demo-redis
+    plan: free
+    region: singapore
+    maxmemoryPolicy: noeviction
+    ipAllowList: []
