@@ -16,7 +16,6 @@ function escapeCsv(value) {
 }
 
 export default function QuanLyPhienBan() {
-  const navigate = useNavigate();
   const [params] = useSearchParams();
   const [searchTerm, setSearchTerm] = useState('');
   const [warehouse, setWarehouse] = useState(() => params.get('kho_hang_id') || '');
@@ -335,16 +334,22 @@ export default function QuanLyPhienBan() {
                           />
                         </td>
                         <td>
-                          <div className="version-thumb">
-                            {item.image ? (
-                              <img src={item.image} alt="" />
-                            ) : (
-                              <span aria-hidden="true">RU</span>
-                            )}
-                          </div>
+                          {item.image ? (
+                            <a
+                              className="version-thumb"
+                              href={item.image}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              aria-label={`Mở ảnh gốc của ${item.displayCode || item.displayName} trong tab mới`}
+                            >
+                              <img src={item.image} alt="" loading="lazy" decoding="async" />
+                            </a>
+                          ) : (
+                            <span className="version-thumb" aria-label="Chưa có ảnh">—</span>
+                          )}
                         </td>
                         <td>
-                          <span className="version-code">{item.displayCode}</span>
+                          <strong className="version-code">{item.displayCode || '—'}</strong>
                         </td>
                         <td>
                           <div className="version-name">{item.displayName}</div>
@@ -380,19 +385,17 @@ export default function QuanLyPhienBan() {
                           <span className="version-location">{item.location}</span>
                         </td>
                         <td>
-                          <button
-                            type="button"
-                            className="admin-list-detail-action"
-                            onClick={() =>
-                              navigate(
-                                item.type === 'Combo'
-                                  ? `/kho-hang/combo-san-pham/chi-tiet/${item.comboId}`
-                                  : `/kho-hang/quan-ly-phien-ban/chi-tiet/${encodeURIComponent(item.id)}`
-                              )
+                          <Link
+                            className="version-detail-btn"
+                            to={
+                              isCombo
+                                ? `/kho-hang/combo-san-pham/chi-tiet/${item.comboId}`
+                                : `/kho-hang/quan-ly-phien-ban/chi-tiet/${encodeURIComponent(item.id)}`
                             }
                           >
-                            {item.type === 'Combo' ? 'THÀNH PHẦN' : 'CHI TIẾT'}
-                          </button>
+                            <HiOutlineEye size={15} aria-hidden="true" />
+                            {isCombo ? 'Thành phần' : 'Chi tiết'}
+                          </Link>
                         </td>
                       </tr>
                     );

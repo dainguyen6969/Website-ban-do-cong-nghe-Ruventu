@@ -1,8 +1,6 @@
 import { notifyMaintenance } from '../settings/maintenanceState';
 
-const API_BASE_URL = (
-  import.meta.env.VITE_RUVENTU_API_URL || ''
-).replace(/\/$/, '');
+const API_BASE_URL = (import.meta.env.VITE_RUVENTU_API_URL || '').replace(/\/$/, '');
 
 export const AUTH_CHANGED = 'ruventu:auth-changed';
 
@@ -10,54 +8,12 @@ const TOKEN_KEY = 'accessToken';
 const USER_KEY = 'user';
 
 let refreshPromise = null;
-let inMemoryAdminToken = '';
-let adminServiceTokenPromise = null;
 
 export const getAccessToken = () => localStorage.getItem(TOKEN_KEY) || '';
 
 export async function getAdminServiceToken() {
-  if (inMemoryAdminToken) return inMemoryAdminToken;
-  if (!adminServiceTokenPromise) {
-    adminServiceTokenPromise = (async () => {
-      const username =
-        import.meta.env.VITE_RUVENTU_ADMIN_USERNAME || 'admin@gmail.com';
-      const passwords = [
-        import.meta.env.VITE_RUVENTU_ADMIN_PASSWORD,
-        'Admin@1234',
-        'Admin@123',
-        'admin123',
-      ].filter(Boolean);
-
-      for (const pwd of passwords) {
-        try {
-          const res = await fetch(`${API_BASE_URL}/api/v1/auth/login`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            credentials: 'include',
-            body: JSON.stringify({
-              tai_khoan: username,
-              mat_khau: pwd,
-              ghi_nho_dang_nhap: false,
-            }),
-          });
-          const payload = await parseResponse(res);
-          if (payload?.status === 200 && payload?.data?.access_token) {
-            inMemoryAdminToken = payload.data.access_token;
-            setTimeout(() => {
-              inMemoryAdminToken = '';
-            }, 10 * 60 * 1000);
-            return inMemoryAdminToken;
-          }
-        } catch {
-          // ignore and try next
-        }
-      }
-      return null;
-    })().finally(() => {
-      adminServiceTokenPromise = null;
-    });
-  }
-  return adminServiceTokenPromise;
+  // Giữ tương thích với các chỗ đang import hàm này.
+  return getAccessToken() || null;
 }
 
 function notifyAuthChanged() {
@@ -75,8 +31,6 @@ export function readCurrentUser() {
 }
 
 export function clearAuth() {
-  inMemoryAdminToken = '';
-  adminServiceTokenPromise = null;
   [
     TOKEN_KEY,
     USER_KEY,
@@ -211,6 +165,12 @@ export async function apiRequest(path, options = {}, retry = true) {
     throw apiError('Vui lòng đăng nhập.', 401);
   }
 
+  if (options.signal && (!options.method || options.method === 'GET')) {
+    // A mount that React immediately cleans up should never send the read.
+    await Promise.resolve();
+    options.signal.throwIfAborted();
+  }
+
   const headers = new Headers(options.headers);
   if (!headers.has('Accept')) headers.set('Accept', 'application/json');
   headers.set('Authorization', `Bearer ${token}`);
@@ -238,41 +198,15 @@ export async function apiRequest(path, options = {}, retry = true) {
     clearAuth();
   }
 
-  if (response.status === 403 && retry) {
-    const currentUser = readCurrentUser();
-    if (currentUser?.role === 'admin') {
-      const adminToken = await getAdminServiceToken();
-      if (adminToken && adminToken !== token) {
-        const adminHeaders = new Headers(options.headers);
-        if (!adminHeaders.has('Accept')) adminHeaders.set('Accept', 'application/json');
-        adminHeaders.set('Authorization', `Bearer ${adminToken}`);
-        if (
-          options.body != null &&
-          !(options.body instanceof FormData) &&
-          !adminHeaders.has('Content-Type')
-        ) {
-          adminHeaders.set('Content-Type', 'application/json');
-        }
-        const retryRes = await fetch(`${API_BASE_URL}${path}`, {
-          ...options,
-          headers: adminHeaders,
-          credentials: 'include',
-        });
-        if (retryRes.ok) {
-          if (options.responseType === 'blob') return retryRes.blob();
-          const retryPayload = await parseResponse(retryRes);
-          return options.responseType === 'payload' ? retryPayload : retryPayload?.data;
-        }
-      }
-    }
+  if (response.ok && options.responseType === 'blob') {
+    return response.blob();
   }
-
-  if (response.ok && options.responseType === 'blob') return response.blob();
 
   const payload = await parseResponse(response);
 
   if (!response.ok) {
     notifyMaintenance(response.status, payload);
+
     throw apiError(
       payload?.message || `Yêu cầu thất bại (${response.status}).`,
       response.status,

@@ -1,5 +1,5 @@
 import { eligibilityLabels, localTimestamp, receiptNow } from './warrantyContract.js';
-import { freeWorkItems, referenceOptions } from './warrantyExperience.js';
+import { freeWorkItems, referenceOptions, discrepancyLabels } from './warrantyExperience.js';
 
 const channels = {
   TAI_QUAY: 'Tại quầy',
@@ -56,7 +56,7 @@ export const fieldLabels = {
   thiet_bi_se_tra_id: 'Thiết bị sẽ trả khách',
   ket_qua_xu_ly: 'Kết quả xử lý',
   can_cu_kiem_tra: 'Căn cứ kiểm tra',
-  sai_lech_da_xu_ly: 'ID sai lệch đã xử lý (mỗi dòng một ID)',
+  sai_lech_da_xu_ly: 'Sai lệch đã xử lý',
   phien_ban_phuong_an: 'Phiên bản phương án đổi',
   thay_the_phien_ban: 'Thay thế phiên bản',
   thoi_gian_du_kien: 'Thời gian xử lý dự kiến',
@@ -106,8 +106,11 @@ export const fieldLabels = {
   so_tien_nghia_vu: 'Số tiền nghĩa vụ',
   nhan_thiet_bi_cu_lich_su_id: 'ID lịch sử nhận thiết bị cũ',
   quyet_dinh_xu_ly: 'Quyết định xử lý',
+  doi_chieu_thiet_bi: 'Đối chiếu thiết bị thực nhận',
 };
 export const fieldOptions = {
+  loai: discrepancyLabels,
+  doi_chieu_thiet_bi: { DUNG: 'Đúng thiết bị đã gửi', SAI: 'Sai thiết bị / chưa xác minh được' },
   dieu_kien_bao_hanh: eligibilityLabels,
   ben_chiu_phi: payers,
   kenh: channels,
@@ -242,13 +245,13 @@ event(
   'custody',
   `nha_cung_cap_id ten_don_vi thiet_bi_id noi_dung_yeu_cau phu_kien ${docs}`
 );
-event('DON_VI_TIEP_NHAN', 'ĐƠN VỊ ĐÃ NHẬN', 'custody', `lan_gui_lich_su_id nguoi_nhan ${docs}`);
+event('DON_VI_TIEP_NHAN', 'ĐƠN VỊ ĐÃ NHẬN ĐÚNG THIẾT BỊ', 'custody', `lan_gui_lich_su_id ${docs}`);
 event('YEU_CAU_THU_HOI', 'YÊU CẦU THU HỒI', 'custody', `lan_gui_lich_su_id ly_do ${docs}`);
 event(
   'NHAN_LAI',
   'NHẬN LẠI THIẾT BỊ',
   'custody',
-  `lan_gui_lich_su_id thiet_bi_id so_serial_thuc_nhan? tinh_trang phu_kien sai_lech ${docs}`,
+  `lan_gui_lich_su_id thiet_bi_id doi_chieu_thiet_bi so_serial_thuc_nhan? tinh_trang phu_kien sai_lech ${docs}`,
   { fixed: { su_kien: 'NHAN_LAI', loai_thiet_bi: 'THIET_BI_CU' } }
 );
 event(
@@ -557,8 +560,6 @@ export function initialActionValues(operation, detail, quoteVersion) {
     );
     values.hoa_don_bao_hanh_id = invoices.length === 1 ? invoices[0].id : '';
   }
-  if ('so_serial_thuc_nhan' in values && operation.key === 'NHAN_LAI')
-    values.so_serial_thuc_nhan = detail.thiet_bi?.so_serial || '';
 
   if (operation.key === 'HANDOVER') {
     values.ten_nguoi_nhan = detail.nguoi_lien_he?.ten || '';
@@ -578,8 +579,13 @@ export function actionBody(operation, values) {
     const optional = raw.endsWith('?'),
       name = raw.replace(/\?$/, ''),
       type = fieldType(name);
-    if (optional && (value === '' || value == null))
-      return ['serials', 'sai_lech_da_xu_ly'].includes(name) ? [] : undefined;
+    if (name === 'sai_lech_da_xu_ly') {
+      if (value === '' || value == null) return [];
+      if (!Array.isArray(value) || value.some((id) => !Number.isSafeInteger(id) || id < 1))
+        throw new Error('Chọn sai lệch đã xử lý trong danh sách.');
+      return [...new Set(value)];
+    }
+    if (optional && (value === '' || value == null)) return name === 'serials' ? [] : undefined;
     if (type === 'rows')
       return (value || []).map((row) =>
         Object.fromEntries(
@@ -596,19 +602,20 @@ export function actionBody(operation, values) {
       name.endsWith('_urls') ||
       name === 'serials' ||
       name.endsWith('_ids') ||
-      name === 'sai_lech_da_xu_ly' ||
       operation.stringList?.includes(name)
     ) {
       const items = String(value || '')
-        .split(name.endsWith('_ids') || name === 'sai_lech_da_xu_ly' ? /[\n,]/ : /\n/)
+        .split(name.endsWith('_ids') ? /[\n,]/ : /\n/)
         .map((item) => item.trim())
         .filter(Boolean);
-      if (name.endsWith('_ids') || name === 'sai_lech_da_xu_ly')
+
+      if (name.endsWith('_ids'))
         return items.map((item) => {
           const id = Number(item);
           if (!Number.isSafeInteger(id) || id < 1) throw new Error('ID phải là số nguyên dương.');
           return id;
         });
+
       if (!optional && !items.length && name !== 'serials')
         throw new Error(`Nhập ${fieldLabels[name]}.`);
       return items;
@@ -649,6 +656,23 @@ export function actionBody(operation, values) {
   }
   if (body.cach_tinh_han === 'GIU_HAN_CON_LAI') delete body.han_moi_xac_nhan;
   if (body.hang_muc && !body.hang_muc.length) throw new Error('Thêm ít nhất một hạng mục.');
+
+  if (operation.key === 'NHAN_LAI') {
+    const outcome = body.doi_chieu_thiet_bi;
+    delete body.doi_chieu_thiet_bi;
+
+    const wrong = body.sai_lech.some((item) => item.loai === 'SAI_THIET_BI');
+    if (!['DUNG', 'SAI'].includes(outcome)) throw new Error('Chọn kết quả đối chiếu thiết bị.');
+    if (outcome === 'DUNG' && wrong)
+      throw new Error('Kết quả đối chiếu mâu thuẫn với mục Sai thiết bị.');
+    if (outcome === 'SAI' && !wrong) {
+      body.sai_lech.push({
+        loai: 'SAI_THIET_BI',
+        noi_dung: 'Cửa hàng ghi nhận thiết bị thực nhận không khớp hoặc chưa xác minh được.',
+      });
+    }
+  }
+
   if (operation.key === 'HANDOVER') {
     if (!body.xac_nhan_khach)
       throw new Error('Cần xác nhận khách đã nhận đúng thiết bị và phụ kiện.');

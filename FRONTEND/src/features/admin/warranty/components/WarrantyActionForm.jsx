@@ -1,6 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
-import { SquareCheck as CheckCircle2, MessageSquareText as Info, X } from 'lucide-react';
-import OrderModal from '../../orders/components/OrderModal';
+import { useEffect, useId, useRef, useState } from 'react';
 import { getWarrantyHistory, mutateWarranty, warrantyError } from '../api/warrantyApi';
 import {
   actionBody,
@@ -16,12 +14,14 @@ import {
   freeWorkItems,
   referenceOptions,
   validateFreeWork,
+  discrepancyLabels,
+  pendingWarrantyDifferences,
+  warrantyDeviceLabel,
 } from '../data/warrantyExperience';
 import { getSupplierOptions } from '../../purchasing/api/purchaseOrderApi';
 import { getAllVersions } from '../../catalog/products/api/versionApi';
-import { displayValue } from './WarrantySnapshot';
-import { WarrantyFields } from './WarrantyShell';
-import { FormDropdown } from "../../../../shared/components/ui/FilterDropdown";
+import { WarrantyDialog } from './WarrantyShell';
+import { displayDate } from '../data/warrantyContract';
 
 function InputField({
   field,
@@ -32,12 +32,57 @@ function InputField({
   suppliers,
   versions,
   conclusionId,
+  returningId,
   prefix = '',
 }) {
   const name = field.replace(/\?$/, ''),
     type = fieldType(name),
     optional = field.endsWith('?');
   const label = fieldLabels[name] || (arrayFields[name] ? 'Hạng mục' : name);
+
+  if (name === 'sai_lech_da_xu_ly') {
+    const choices = pendingWarrantyDifferences(detail, returningId);
+    if (!choices.length) return null;
+    const selected = Array.isArray(value) ? value : [];
+
+    return (
+      <fieldset className="w-action-rows w-discrepancy-choices">
+        <legend>Sai lệch cần đối chiếu</legend>
+        <p className="w-shell-note">Chỉ tích những sai lệch đã xử lý thực tế.</p>
+        {choices.map((item) => (
+          <label className="w-shell-modal-confirm" key={item.id}>
+            <input
+              type="checkbox"
+              checked={selected.includes(item.id)}
+              onChange={(event) =>
+                change(
+                  event.target.checked
+                    ? [...selected, item.id]
+                    : selected.filter((id) => id !== item.id)
+                )
+              }
+            />
+            <span>
+              <strong>{discrepancyLabels[item.loai] || item.loai}</strong> · {item.noi_dung}
+              <small>
+                Mã sai lệch {item.id} · {displayDate(item.event.ngay)}
+              </small>
+            </span>
+          </label>
+        ))}
+      </fieldset>
+    );
+  }
+
+  if (name === 'thiet_bi_id' && ['GUI_DON_VI', 'NHAN_LAI'].includes(operation.key)) {
+    return (
+      <div className="w-intake-field">
+        <span>{operation.key === 'NHAN_LAI' ? 'Thiết bị theo lần gửi' : 'Thiết bị gửi đi'}</span>
+        <strong>{warrantyDeviceLabel(detail, value)}</strong>
+      </div>
+    );
+  }
+
   if (name === 'ma_hang_muc' && operation.key === 'BAT_DAU_MIEN_PHI') {
     const items = freeWorkItems(detail, conclusionId),
       selected = String(value || '')
@@ -244,12 +289,11 @@ export default function WarrantyActionForm({
   close,
   saved,
   onLockChange,
-  inline = false,
   disabled = false,
+  blockReason = '',
 }) {
   const [defaults] = useState(() => initialActionValues(operation, ticket, quoteVersion));
   const values = draft ?? defaults;
-  const [confirm, setConfirm] = useState(false);
   const [confirmed, setConfirmed] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -261,16 +305,25 @@ export default function WarrantyActionForm({
   const detail = historyItems
     ? { ...ticket, lich_su: { ...ticket.lich_su, items: historyItems } }
     : ticket;
+
   const [suppliers, setSuppliers] = useState([]),
     [versions, setVersions] = useState([]),
     [referenceError, setReferenceError] = useState(''),
     [referencesLoading, setReferencesLoading] = useState(false),
     [referenceReload, setReferenceReload] = useState(0);
-  const inlineConfirmation =
-    inline &&
-    (['money', 'custody', 'items', 'invoice', 'settlement'].includes(operation.group) ||
-      (operation.group === 'plan' && operation.key !== 'PLAN_CREATE') ||
-      ['ACCEPT_QUOTE', 'REJECT_QUOTE', 'WITHDRAW_QUOTE'].includes(operation.key));
+
+  const formId = useId();
+  const hasHandoverCheck = operation.fields.includes('xac_nhan_khach');
+  const needsConfirmation =
+    !hasHandoverCheck &&
+    !['BAT_DAU_KIEM_TRA', 'KIEM_TRA_TIEP', 'CAP_NHAT_TIEN_DO'].includes(operation.key);
+  const confirmationReady = hasHandoverCheck
+    ? values.xac_nhan_khach === true
+    : !needsConfirmation || confirmed;
+  const dialogBlocked = busy || uncertain;
+  const inputsLocked = disabled || dialogBlocked || referencesLoading;
+  const cannotSubmit = inputsLocked || Boolean(referenceError);
+
   useEffect(() => {
     onLockChange?.(busy || uncertain);
   }, [busy, uncertain, onLockChange]);
@@ -320,12 +373,18 @@ export default function WarrantyActionForm({
 
   const prepare = (event) => {
     event.preventDefault();
-    if (disabled || submitting.current || uncertain || (inlineConfirmation && !confirmed)) return;
+
+    if (cannotSubmit || submitting.current) return;
+    if (!confirmationReady) {
+      setError('Tích xác nhận trước khi ghi nhận.');
+      return;
+    }
 
     try {
       for (const raw of operation.fields) {
         const name = raw.replace(/\?$/, '');
         const choices = referenceOptions(name, detail, suppliers, versions);
+
         if (
           choices &&
           values[name] !== '' &&
@@ -337,6 +396,25 @@ export default function WarrantyActionForm({
       }
 
       const prepared = actionBody(operation, values);
+
+      if (
+        operation.key === 'NHAN_LAI' &&
+        values.doi_chieu_thiet_bi === 'DUNG' &&
+        (prepared.so_serial_thuc_nhan || '') !== (detail.thiet_bi?.so_serial || '')
+      ) {
+        throw new Error('Serial thực nhận chưa khớp. Kiểm tra lại serial hoặc chọn Sai thiết bị.');
+      }
+
+      if (operation.key === 'SAN_SANG_TRA') {
+        const pending = pendingWarrantyDifferences(detail, prepared.thiet_bi_se_tra_id);
+        const ids = prepared.sai_lech_da_xu_ly.filter((id) =>
+          pending.some((item) => item.id === id)
+        );
+        prepared.sai_lech_da_xu_ly = ids;
+        if (pending.some((item) => !ids.includes(item.id)))
+          throw new Error('Còn sai lệch chưa được xác nhận xử lý; chưa thể ghi Sẵn sàng trả.');
+      }
+
       if (operation.key === 'BAT_DAU_MIEN_PHI') validateFreeWork(detail, prepared);
 
       const plan = detail.phuong_an_doi;
@@ -349,14 +427,7 @@ export default function WarrantyActionForm({
         throw new Error('Chọn phiên bản phương án đổi trước khi bàn giao hàng thay thế.');
       }
 
-      if (inline) {
-        submit(prepared);
-        return;
-      }
-      setBody(prepared);
-      setError('');
-      setConfirmed(false);
-      setConfirm(true);
+      submit(prepared);
     } catch (cause) {
       setError(cause.message);
     }
@@ -386,7 +457,6 @@ export default function WarrantyActionForm({
       );
       request.current = null;
       setUncertain(false);
-      setConfirm(false);
       saved(result);
     } catch (cause) {
       const unknown = !cause.status || cause.status >= 500;
@@ -405,224 +475,133 @@ export default function WarrantyActionForm({
   };
 
   return (
-    <section className="w-shell-subsection w-action-form">
-      <div className="w-shell-title-row">
-        {!inline && (
-          <div>
-            <span className="w-eyebrow">Biểu mẫu ghi nhận</span>
-            <h3>{operation.label}</h3>
-          </div>
-        )}
-        <button
-          type="button"
-          className="w-shell-button"
-          disabled={busy || uncertain}
-          onClick={close}
-        >
-          <X size={15} /> {inline ? 'Thu gọn, giữ bản nháp' : 'Đóng, giữ bản nháp'}
-        </button>
-      </div>
-      <p className="w-form-guide">
-        <Info size={18} />
-        {actionHints[operation.key] || 'Điền các mục có dấu *.'}
-      </p>
-      {referencesLoading && <p role="status">Đang tải danh sách lựa chọn…</p>}
-      {referenceError && (
-        <div className="w-shell-error" role="alert">
-          Không tải được danh sách: {referenceError}{' '}
-          <button
-            type="button"
-            className="w-shell-button"
-            onClick={() => setReferenceReload((value) => value + 1)}
-          >
-            Thử lại
+    <WarrantyDialog
+      title={operation.label}
+      subtitle={[
+        ticket.ma_phieu,
+        operation.endpoint === 'quote-events' && quoteVersion != null
+          ? 'Báo giá phiên bản ' + quoteVersion
+          : null,
+      ]
+        .filter(Boolean)
+        .join(' · ')}
+      blocked={dialogBlocked}
+      onClose={close}
+      closeLabel="Đóng, giữ bản nháp"
+      footer={
+        <>
+          <button type="button" className="w-shell-button" disabled={dialogBlocked} onClick={close}>
+            Quay lại
           </button>
-        </div>
-      )}
-      <form onSubmit={prepare}>
-        <fieldset
-          disabled={disabled || busy || uncertain || referencesLoading}
-          className="w-action-fields"
-        >
-          <div className="w-shell-fields">
-            {operation.fields.map((field) => (
-              <InputField
-                key={field}
-                field={field}
-                value={values[field.replace(/\?$/, '')] ?? ''}
-                operation={operation}
-                detail={detail}
-                suppliers={suppliers}
-                versions={versions}
-                conclusionId={values.ket_luan_lich_su_id}
-                change={(value) => {
-                  setValues({
-                    ...values,
-                    [field.replace(/\?$/, '')]: value,
-                    ...(field === 'ket_luan_lich_su_id' && operation.key === 'BAT_DAU_MIEN_PHI'
-                      ? { ma_hang_muc: '' }
-                      : {}),
-                    ...(field === 'nha_cung_cap_id' && operation.fields.includes('ten_don_vi')
-                      ? {
-                          ten_don_vi:
-                            suppliers.find((item) => String(item.id) === String(value))?.name || '',
-                        }
-                      : {}),
-                  });
-                  if (inlineConfirmation) setConfirmed(false);
-                  setError('');
-                }}
-              />
-            ))}
-          </div>
-          {inlineConfirmation && (
-            <label className="w-shell-modal-confirm w-guided-confirm">
-              <input
-                type="checkbox"
-                required
-                checked={confirmed}
-                onChange={(event) => setConfirmed(event.target.checked)}
-              />
-              {operation.group === 'money'
-                ? 'Tôi xác nhận giao dịch tiền trên đã thực sự phát sinh.'
-                : 'Tôi đã đối chiếu thông tin và xác nhận thao tác này.'}
-            </label>
-          )}
-        </fieldset>
-        {!confirm && error && (
-          <p className="w-shell-error" role="alert">
-            {error}
-          </p>
-        )}
-        <div className="w-form-footer">
-          <span>Kiểm tra trước khi lưu.</span>
-          {inline && uncertain ? (
+          {uncertain ? (
             <button
               type="button"
               className="w-shell-button w-shell-button--black"
               disabled={busy}
               onClick={() => submit(request.current?.payload)}
             >
-              Thử lại cùng yêu cầu
+              {busy ? 'Đang ghi nhận…' : 'Thử lại cùng yêu cầu'}
             </button>
           ) : (
             <button
               type="submit"
+              form={formId}
               className="w-shell-button w-shell-button--black"
-              disabled={
-                disabled || busy || uncertain || referencesLoading || Boolean(referenceError)
-              }
+              disabled={cannotSubmit || !confirmationReady}
             >
-              <CheckCircle2 size={17} />{' '}
-              {busy ? 'Đang ghi nhận…' : inline ? operation.label : 'Kiểm tra và xác nhận'}
+              {busy ? 'Đang ghi nhận…' : 'Ghi nhận'}
             </button>
           )}
-        </div>
-      </form>
-      {confirm && (
-        <OrderModal
-          className="warranty-modal"
-          title={operation.label}
-          subtitle={`${detail.ma_phieu} · Kiểm tra trước khi lưu`}
-          busy={busy}
-          close={() => {
-            if (!uncertain) setConfirm(false);
-          }}
-          submit={() => submit(body)}
-          disabled={!confirmed || (disabled && !uncertain)}
-          confirmLabel={uncertain ? 'THỬ LẠI CÙNG YÊU CẦU' : 'XÁC NHẬN GHI NHẬN'}
-        >
-          <p>Kiểm tra thông tin trước khi lưu.</p>
-          <div className="w-confirm-device">
-            <strong>Thiết bị</strong>
-            <p>
-              {body?.thiet_bi_ban_giao_id
-                ? referenceOptions('thiet_bi_ban_giao_id', detail)?.find(
-                    (item) => String(item.value) === String(body.thiet_bi_ban_giao_id)
-                  )?.label
-                : detail.thiet_bi?.so_serial ||
-                  detail.thiet_bi?.ma_theo_doi ||
-                  'Thiết bị không serial'}
-            </p>
+        </>
+      }
+    >
+      <section className="w-action-form">
+        {blockReason && (
+          <p className="w-shell-error" role="status">
+            {blockReason}
+          </p>
+        )}
+
+        <details className="w-operation-note">
+          <summary>Ghi chú thao tác</summary>
+          <p>{actionHints[operation.key] || 'Điền các mục có dấu *.'}</p>
+        </details>
+
+        {referencesLoading && <p role="status">Đang tải danh sách lựa chọn…</p>}
+        {referenceError && (
+          <div className="w-shell-error" role="alert">
+            Không tải được danh sách: {referenceError}{' '}
+            <button
+              type="button"
+              className="w-shell-button"
+              onClick={() => setReferenceReload((value) => value + 1)}
+            >
+              Thử lại
+            </button>
           </div>
-          {[
-            'nha_cung_cap_id',
-            'lan_gui_lich_su_id',
-            'ket_luan_lich_su_id',
-            'so_tien',
-            'so_tien_mien_giam',
-            'hoa_don_bao_hanh_id',
-            'phien_ban_phuong_an',
-            'thiet_bi_id',
-            'thiet_bi_se_tra_id',
-            'ket_qua_xu_ly',
-            'tinh_trang',
-            'ly_do',
-          ]
-            .filter((field) => body?.[field] != null)
-            .map((field) => (
-              <p key={field}>
-                <strong>{fieldLabels[field]}: </strong>
-                {referenceOptions(field, detail, suppliers, versions)?.find(
-                  (item) => String(item.value) === String(body[field])
-                )?.label || displayValue(body[field], field)}
-              </p>
-            ))}
-          {body?.ma_hang_muc && (
-            <p>
-              <strong>Hạng mục miễn phí: </strong>
-              {body.ma_hang_muc.join(', ')}
+        )}
+
+        <form id={formId} onSubmit={prepare}>
+          <fieldset disabled={inputsLocked} className="w-action-fields">
+            <div className="w-shell-fields">
+              {operation.fields.map((field) => (
+                <InputField
+                  key={field}
+                  field={field}
+                  value={values[field.replace(/\?$/, '')] ?? ''}
+                  operation={operation}
+                  detail={detail}
+                  suppliers={suppliers}
+                  versions={versions}
+                  conclusionId={values.ket_luan_lich_su_id}
+                  returningId={values.thiet_bi_se_tra_id}
+                  change={(value) => {
+                    setValues({
+                      ...values,
+                      [field.replace(/\?$/, '')]: value,
+                      ...(field === 'ket_luan_lich_su_id' && operation.key === 'BAT_DAU_MIEN_PHI'
+                        ? { ma_hang_muc: '' }
+                        : {}),
+                      ...(field === 'nha_cung_cap_id' && operation.fields.includes('ten_don_vi')
+                        ? {
+                            ten_don_vi:
+                              suppliers.find((item) => String(item.id) === String(value))?.name ||
+                              '',
+                          }
+                        : {}),
+                    });
+                    setConfirmed(false);
+                    setError('');
+                  }}
+                />
+              ))}
+            </div>
+          </fieldset>
+
+          {needsConfirmation && (
+            <label className="w-action-confirm">
+              <input
+                type="checkbox"
+                required
+                checked={confirmed}
+                disabled={inputsLocked}
+                onChange={(event) => setConfirmed(event.target.checked)}
+              />
+              <span>
+                {operation.group === 'money'
+                  ? 'Tôi xác nhận giao dịch tiền này đã thực sự phát sinh.'
+                  : 'Tôi xác nhận thông tin và chứng từ phù hợp với thao tác thực tế.'}
+              </span>
+            </label>
+          )}
+
+          {error && (
+            <p className="w-shell-error" role="alert">
+              {error}
             </p>
           )}
-          {operation.key === 'HANDOVER' && (
-            <>
-              <WarrantyFields
-                fields={[
-                  ['Người nhận', body.ten_nguoi_nhan],
-                  ['Số điện thoại', body.sdt_nguoi_nhan],
-                  ['Thời điểm bàn giao', displayValue(body.thoi_diem, 'thoi_diem')],
-                  [
-                    'Duyệt công nợ',
-                    referenceOptions('phe_duyet_cong_no_lich_su_id', detail)?.find(
-                      (item) => String(item.value) === String(body.phe_duyet_cong_no_lich_su_id)
-                    )?.label || 'Không dùng ngoại lệ công nợ',
-                  ],
-                  ['Bằng chứng', body.bang_chung_urls.join('\n')],
-                ]}
-              />
-              <p className="w-shell-note">
-                Xác nhận này sẽ hoàn tất phiếu. Nghĩa vụ hoàn tiền và đối soát còn lại vẫn được giữ.
-              </p>
-            </>
-          )}
-          {body?.hang_muc?.map((item, index) => (
-            <article className="w-confirm-item" key={index}>
-              <h3>
-                Hạng mục {index + 1}: {item.ma_hang_muc}
-              </h3>
-              <WarrantyFields
-                fields={Object.entries(item)
-                  .filter(([key]) => key !== 'ma_hang_muc')
-                  .map(([key, value]) => [fieldLabels[key] || key, displayValue(value, key)])}
-              />
-            </article>
-          ))}
-          {body?.phu_kien?.length > 0 && (
-            <p>
-              <strong>Phụ kiện: </strong>
-              {body.phu_kien.map((item) => `${item.ten} × ${item.so_luong}`).join(', ')}
-            </p>
-          )}
-          <label className="w-shell-modal-confirm">
-            <input
-              type="checkbox"
-              checked={confirmed}
-              onChange={(event) => setConfirmed(event.target.checked)}
-            />{' '}
-            Tôi xác nhận thông tin và thao tác này.
-          </label>
-        </OrderModal>
-      )}
-    </section>
+        </form>
+      </section>
+    </WarrantyDialog>
   );
 }

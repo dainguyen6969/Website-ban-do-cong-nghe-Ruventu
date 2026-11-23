@@ -80,7 +80,10 @@ final class WarrantyEventValidation {
             "nguoi_nhan",
             "ly_do",
             "tinh_trang"))
-      if (allowed.contains(key)) result.put(key, text(raw.get(key), true, 16000));
+      if (allowed.contains(key)) {
+        String normalized = text(raw.get(key), !"nguoi_nhan".equals(key), 16000);
+        if (normalized != null) result.put(key, normalized);
+      }
     for (String key : List.of("nha_cung_cap_id", "thiet_bi_id", "lan_gui_lich_su_id"))
       if (allowed.contains(key))
         result.put(key, WarrantyWriteValidation.id(raw.get(key), true, INVALID));

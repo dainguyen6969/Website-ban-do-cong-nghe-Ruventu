@@ -255,12 +255,54 @@ public class WarrantyListRepository {
     if (filter.keyword() != null && !filter.keyword().isBlank()) {
       where.append(
           """
-           AND (LOWER(results.ma_phieu) LIKE LOWER(:keywordPattern) ESCAPE '!'
-                OR LOWER(results.so_serial) LIKE LOWER(:keywordPattern) ESCAPE '!'
-                OR LOWER(results.ma_theo_doi) LIKE LOWER(:keywordPattern) ESCAPE '!'
-                OR LOWER(results.ten_nguoi_lien_he) LIKE LOWER(:keywordPattern) ESCAPE '!'
-                OR LOWER(results.sdt_nguoi_lien_he) LIKE LOWER(:keywordPattern) ESCAPE '!')
-          """);
+                 AND (CAST(results.don_hang_id AS CHAR) = :exactKeyword
+                      OR LOWER(results.ma_phieu) LIKE LOWER(:keywordPattern) ESCAPE '!'
+                      OR LOWER(results.ma_don_hang) LIKE LOWER(:keywordPattern) ESCAPE '!'
+                      OR LOWER(results.so_serial) LIKE LOWER(:keywordPattern) ESCAPE '!'
+                      OR LOWER(results.ma_theo_doi) LIKE LOWER(:keywordPattern) ESCAPE '!'
+                      OR LOWER(results.ten_san_pham) LIKE LOWER(:keywordPattern) ESCAPE '!'
+                      OR LOWER(results.ten_nguoi_lien_he) LIKE LOWER(:keywordPattern) ESCAPE '!'
+                      OR LOWER(results.sdt_nguoi_lien_he) LIKE LOWER(:keywordPattern) ESCAPE '!'
+                      OR EXISTS (
+                        SELECT 1
+                        FROM phieu_bao_hanh source
+                        JOIN don_hang orders ON orders.id = source.don_hang_id
+                        JOIN thiet_bi_bao_hanh device ON device.id = source.thiet_bi_id
+                        JOIN chi_tiet_don_hang line ON line.id = device.chi_tiet_don_hang_id
+                        JOIN phien_ban_san_pham variant ON variant.id = device.phien_ban_id
+                        JOIN san_pham product ON product.id = variant.san_pham_id
+                        LEFT JOIN nguoi_dung customer ON customer.id = orders.khach_hang_id
+                        LEFT JOIN thiet_bi_bao_hanh replacement
+                          ON replacement.id = source.thiet_bi_thay_the_id
+                        LEFT JOIN so_serial_san_pham replacement_serial
+                          ON replacement_serial.id = replacement.so_serial_id
+                        WHERE source.id = results.id
+                          AND (
+                            LOWER(orders.ten_nguoi_nhan) LIKE LOWER(:keywordPattern) ESCAPE '!'
+                            OR LOWER(orders.sdt_nguoi_nhan) LIKE LOWER(:keywordPattern) ESCAPE '!'
+                            OR REGEXP_REPLACE(orders.sdt_nguoi_nhan, '[^0-9]', '')
+                              LIKE :keywordPattern ESCAPE '!'
+                            OR LOWER(customer.ho_ten) LIKE LOWER(:keywordPattern) ESCAPE '!'
+                            OR LOWER(customer.email) LIKE LOWER(:keywordPattern) ESCAPE '!'
+                            OR LOWER(customer.so_dien_thoai) LIKE LOWER(:keywordPattern) ESCAPE '!'
+                            OR REGEXP_REPLACE(customer.so_dien_thoai, '[^0-9]', '')
+                              LIKE :keywordPattern ESCAPE '!'
+                            OR LOWER(product.ma_san_pham) LIKE LOWER(:keywordPattern) ESCAPE '!'
+                            OR LOWER(variant.ten_phien_ban) LIKE LOWER(:keywordPattern) ESCAPE '!'
+                            OR LOWER(variant.ma_vach) LIKE LOWER(:keywordPattern) ESCAPE '!'
+                            OR LOWER(replacement.ma_theo_doi) LIKE LOWER(:keywordPattern) ESCAPE '!'
+                            OR LOWER(replacement_serial.so_serial)
+                              LIKE LOWER(:keywordPattern) ESCAPE '!'
+                            OR LOWER(JSON_UNQUOTE(JSON_EXTRACT(
+                                 line.cau_hinh_da_ban, '$.ten_san_pham')))
+                              LIKE LOWER(:keywordPattern) ESCAPE '!'
+                            OR LOWER(JSON_UNQUOTE(JSON_EXTRACT(
+                                 line.cau_hinh_da_ban, '$.ma_san_pham')))
+                              LIKE LOWER(:keywordPattern) ESCAPE '!'
+                          ))
+                     )
+                """);
+      parameters.put("exactKeyword", filter.keyword().strip());
       // An explicit '!' escape makes a bound backslash literal, independent of SQL literal modes.
       String literal =
           filter.keyword().strip().replace("!", "!!").replace("%", "!%").replace("_", "!_");

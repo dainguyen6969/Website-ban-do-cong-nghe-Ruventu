@@ -17,8 +17,12 @@
     ),
   :root input::file-selector-button {
     font-family: var(--project-font-family, var(--font-family-base, Arial, sans-serif)) !important;
-    font-size: calc(11px * var(--project-font-scale, 1)) !important;
-    font-weight: var(--admin-weight-button, 900) !important;
+    font-size: var(
+      --warranty-button-font-size,
+      calc(11px * var(--project-font-scale, 1))
+    ) !important;
+
+    font-weight: var(--warranty-button-font-weight, var(--admin-weight-button, 900)) !important;
   }
 
   :root .admin-app .sidebar button {

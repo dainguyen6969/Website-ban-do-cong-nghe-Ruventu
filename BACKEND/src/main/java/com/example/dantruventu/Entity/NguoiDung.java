@@ -48,6 +48,10 @@ public class NguoiDung {
   @Column(name = "trang_thai", nullable = false, columnDefinition = "SMALLINT")
   private TrangThaiCoBanEnum trangThai = TrangThaiCoBanEnum.HOAT_DONG;
 
+  @ColumnDefault("0")
+  @Column(name = "phien_ban_xac_thuc", nullable = false)
+  private long phienBanXacThuc;
+
   @CreationTimestamp
   @Column(name = "ngay_tao", updatable = false)
   private LocalDateTime ngayTao;

@@ -2,12 +2,13 @@ import assert from 'node:assert/strict';
 import { after, before, beforeEach, afterEach, test } from 'node:test';
 import { createServer } from 'vite';
 
-let server, subscribeOrderUpdates, subscribeAdminRealtime, sockets, requests, cleanup, now;
+let server, apiRequest, subscribeOrderUpdates, subscribeAdminRealtime, sockets, requests, cleanup, now;
 const settle = () => new Promise(resolve => setImmediate(resolve));
 
 before(async () => {
   server = await createServer({ configFile: false, cacheDir: 'node_modules/.vite-realtime-test', server: { middlewareMode: true, ws: false }, appType: 'custom' });
   ({ subscribeOrderUpdates, subscribeAdminRealtime } = await server.ssrLoadModule('/src/features/admin/orders/api/orderRealtime.js'));
+  ({ apiRequest } = await server.ssrLoadModule('/src/auth/backendAuth.js'));
 });
 after(async () => server.close());
 beforeEach(t => {
@@ -121,4 +122,23 @@ test('bell and order list share one connection, filter events and release indepe
     assert.equal(updates, 2);
   } finally { stopOrders(); }
   assert.equal(sockets[0].readyState, 3);
+});
+
+test('mount cleanup and immediate remount send one ticket and one read', async () => {
+  const aborted = new AbortController();
+  const stillMounted = new AbortController();
+  const path = '/api/v1/admin/orders?page=0';
+  const first = apiRequest(path, { signal: aborted.signal });
+  subscribeAdminRealtime(() => {})();
+  aborted.abort();
+
+  cleanup = subscribeAdminRealtime(() => {});
+  const second = apiRequest(path, { signal: stillMounted.signal });
+  await assert.rejects(first, { name: 'AbortError' });
+  await second;
+  await settle();
+
+  assert.equal(requests.filter(request => request.url.endsWith('realtime-ticket')).length, 1);
+  assert.equal(requests.filter(request => request.url.endsWith(path)).length, 1);
+  assert.equal(sockets.length, 1);
 });

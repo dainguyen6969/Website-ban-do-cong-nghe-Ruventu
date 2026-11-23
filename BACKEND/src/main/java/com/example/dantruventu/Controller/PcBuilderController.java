@@ -1,11 +1,13 @@
 package com.example.dantruventu.Controller;
 
-import com.example.dantruventu.DTO.Request.CartPcBuildRequest;
+import com.example.dantruventu.DTO.Request.PcBuilderExportRequest;
 import com.example.dantruventu.DTO.Request.PcBuilderPreviewRequest;
 import com.example.dantruventu.DTO.Response.ApiResponse;
 import com.example.dantruventu.DTO.Response.PcBuilderOptionsResponse;
 import com.example.dantruventu.DTO.Response.PcBuilderPreviewResponse;
 import com.example.dantruventu.DTO.Response.PcBuilderProductsResponse;
+import com.example.dantruventu.Error.AppException;
+import com.example.dantruventu.Error.ErrorCode;
 import com.example.dantruventu.Services.PcBuilderExportService;
 import com.example.dantruventu.Services.PcBuilderService;
 import lombok.RequiredArgsConstructor;
@@ -27,6 +29,21 @@ public class PcBuilderController {
 
   private final PcBuilderService service;
   private final PcBuilderExportService exportService;
+
+  @PostMapping(value = "/export", consumes = MediaType.APPLICATION_JSON_VALUE)
+  public ResponseEntity<byte[]> export(
+      @RequestBody(required = false) PcBuilderExportRequest request) {
+    var file = exportService.export(request);
+    return ResponseEntity.ok()
+        .contentType(
+            MediaType.parseMediaType(
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
+        .header(
+            HttpHeaders.CONTENT_DISPOSITION,
+            ContentDisposition.attachment().filename(file.filename()).build().toString())
+        .contentLength(file.content().length)
+        .body(file.content());
+  }
 
   @PostMapping("/preview")
   public ApiResponse<PcBuilderPreviewResponse> preview(
@@ -50,7 +67,15 @@ public class PcBuilderController {
       @RequestParam(defaultValue = "0") String page,
       @RequestParam(defaultValue = "20") String limit,
       @RequestParam(name = "phien_ban_doi_chieu_id", required = false) String phienBanDoiChieuId,
+      @RequestParam(name = "chi_tuong_thich", required = false) String chiTuongThich,
       @RequestParam(name = "chi_khop_socket", required = false) String chiKhopSocket) {
+    // Giữ tham số cũ làm bí danh để các request đã lưu vẫn dùng được.
+    if (chiTuongThich != null
+        && chiKhopSocket != null
+        && !chiTuongThich.strip().equals(chiKhopSocket.strip()))
+      throw new AppException(
+          ErrorCode.INVALID_PC_BUILDER_PRODUCTS_FILTER,
+          "chi_tuong_thich và chi_khop_socket không được mâu thuẫn.");
     return ApiResponse.<PcBuilderProductsResponse>builder()
         .status(200)
         .message("Lấy danh sách linh kiện thành công")
@@ -66,7 +91,7 @@ public class PcBuilderController {
                 page,
                 limit,
                 phienBanDoiChieuId,
-                chiKhopSocket))
+                chiTuongThich == null ? chiKhopSocket : chiTuongThich))
         .build();
   }
 
@@ -77,21 +102,5 @@ public class PcBuilderController {
         .message("Lấy tùy chọn Build PC thành công")
         .data(service.getOptions())
         .build();
-  }
-
-  @PostMapping("/export")
-  public ResponseEntity<byte[]> export(@RequestBody(required = false) CartPcBuildRequest request) {
-
-    var file = exportService.export(request);
-
-    return ResponseEntity.ok()
-        .contentType(
-            MediaType.parseMediaType(
-                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
-        .header(
-            HttpHeaders.CONTENT_DISPOSITION,
-            ContentDisposition.attachment().filename(file.filename()).build().toString())
-        .contentLength(file.content().length)
-        .body(file.content());
   }
 }

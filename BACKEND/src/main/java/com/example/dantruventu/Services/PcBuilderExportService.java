@@ -1,208 +1,121 @@
 package com.example.dantruventu.Services;
 
-import static com.example.dantruventu.Services.order.sales.SalesSupport.*;
-
-import com.example.dantruventu.DTO.Request.CartPcBuildRequest;
+import com.example.dantruventu.DTO.Request.PcBuilderExportRequest;
 import com.example.dantruventu.DTO.Request.PcBuilderPreviewRequest;
 import com.example.dantruventu.Error.AppException;
-import com.example.dantruventu.Error.CatalogException;
 import com.example.dantruventu.Error.ErrorCode;
-import java.io.ByteArrayOutputStream;
+import com.example.dantruventu.Error.PcBuilderExportException;
 import java.math.BigDecimal;
-import java.time.OffsetDateTime;
-import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.LinkedHashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
-import org.apache.poi.ss.usermodel.*;
-import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
-@Transactional(readOnly = true)
 public class PcBuilderExportService {
+  private final PcBuilderService builder;
+  private final PcBuilderExcelExporter exporter;
 
-  private final PcBuilderService pcBuilder;
+  public record File(String filename, byte[] content) {}
 
-  public record Exported(String filename, byte[] content) {}
-
-  public Exported export(CartPcBuildRequest request) {
-    if (request == null || request.items() == null) {
-      throw invalid("Thiếu items");
-    }
-
-    for (var item : request.items()) {
-      if (item == null) throw invalid("items không được chứa null");
-    }
-
-    var previewRequest =
-        new PcBuilderPreviewRequest(
-            request.items().stream()
-                .map(
-                    item ->
-                        new PcBuilderPreviewRequest.Item(
-                            item.maHangMuc(), item.phienBanId(), item.soLuong()))
-                .toList());
-
-    var preview = pcBuilder.preview(previewRequest);
-
-    if (!preview.coTheXuatExcel() || preview.items().isEmpty()) {
-      throw invalid("Cấu hình đang trống hoặc không thể xuất");
-    }
-
-    for (int index = 0; index < request.items().size(); index++) {
-      Object raw = request.items().get(index).donGiaXacNhan();
-
-      if (!(raw instanceof Number number)) {
-        throw invalid("don_gia_xac_nhan phải là số");
+  // Giữ cùng bản đọc giá/tồn trong suốt lần đối chiếu và tạo file, không ghi dữ liệu.
+  @Transactional(readOnly = true, isolation = Isolation.REPEATABLE_READ)
+  public File export(PcBuilderExportRequest request) {
+    try {
+      if (request == null || request.items() == null || request.items().isEmpty())
+        throw invalid("items");
+      var previewRequest =
+          new PcBuilderPreviewRequest(
+              request.items().stream()
+                  .map(
+                      item ->
+                          item == null
+                              ? null
+                              : new PcBuilderPreviewRequest.Item(
+                                  item.maHangMuc(), item.phienBanId(), item.soLuong()))
+                  .toList());
+      var selected = builder.validateSelections(previewRequest);
+      List<BigDecimal> prices = new java.util.ArrayList<>();
+      for (int i = 0; i < request.items().size(); i++) {
+        Object raw = request.items().get(i).donGiaXacNhan();
+        String field = "items[" + i + "].don_gia_xac_nhan";
+        if (!(raw instanceof Number)) throw invalid(field);
+        try {
+          BigDecimal price = new BigDecimal(raw.toString()).stripTrailingZeros();
+          if (price.signum() < 0
+              || price.scale() > 2
+              || (long) price.precision() - price.scale() > 36) throw invalid(field);
+          prices.add(price);
+        } catch (NumberFormatException | ArithmeticException exception) {
+          throw invalid(field);
+        }
       }
-
-      BigDecimal confirmed = inputMoney(new BigDecimal(number.toString()));
-
-      if (confirmed.compareTo(preview.items().get(index).donGia()) != 0) {
-        throw CatalogException.conflict(
-            "items[" + index + "].don_gia_xac_nhan",
-            "PRICE_CHANGED",
-            "Giá linh kiện đã thay đổi, cần xác nhận lại");
+      var variants = builder.validateExportVariants(selected);
+      var warranties = new LinkedHashMap<Long, Integer>();
+      for (int i = 0; i < selected.size(); i++) {
+        var variant = variants.get(selected.get(i).variantId());
+        if (variant.getGiaBanLe().compareTo(prices.get(i)) != 0)
+          throw new PcBuilderExportException(
+              ErrorCode.PC_BUILDER_EXPORT_PRICE_CHANGED,
+              "items[" + i + "].don_gia_xac_nhan",
+              "PRICE_CHANGED",
+              "Lấy preview mới và xác nhận trước xuất");
+        Integer months = variant.getSanPham().getThoiHanBaoHanhThang();
+        if (months == null || months < 0) throw sourceFailed();
+        warranties.put(variant.getId(), months);
       }
-    }
-
-    try (var workbook = new XSSFWorkbook();
-        var output = new ByteArrayOutputStream()) {
-
-      var sheet = workbook.createSheet("Cau hinh PC");
-
-      var headerStyle = workbook.createCellStyle();
-      var font = workbook.createFont();
-      font.setBold(true);
-      font.setColor(IndexedColors.WHITE.getIndex());
-      headerStyle.setFont(font);
-      headerStyle.setFillForegroundColor(IndexedColors.BLACK.getIndex());
-      headerStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
-
-      var moneyStyle = workbook.createCellStyle();
-      moneyStyle.setDataFormat(workbook.createDataFormat().getFormat("#,##0"));
-
-      var textStyle = workbook.createCellStyle();
-      textStyle.setWrapText(true);
-      textStyle.setVerticalAlignment(VerticalAlignment.TOP);
-
-      String[] headers = {
-        "Hạng mục",
-        "Phiên bản ID",
-        "Sản phẩm",
-        "Tên phiên bản",
-        "Thuộc tính",
-        "Bảo hành (tháng)",
-        "Số lượng",
-        "Đơn giá đã gồm VAT",
-        "Thành tiền",
-        "Tồn khả bán"
-      };
-
-      var header = sheet.createRow(0);
-
-      for (int col = 0; col < headers.length; col++) {
-        var cell = header.createCell(col, CellType.STRING);
-        cell.setCellValue(headers[col]);
-        cell.setCellStyle(headerStyle);
-      }
-
-      int rowNumber = 1;
-
-      for (var item : preview.items()) {
-        var row = sheet.createRow(rowNumber++);
-
-        text(row, 0, item.maHangMuc(), textStyle);
-        text(row, 1, String.valueOf(item.phienBanId()), textStyle);
-        text(row, 2, item.tenSanPham(), textStyle);
-        text(row, 3, item.tenPhienBan(), textStyle);
-
-        String attributes =
-            item.thuocTinhPhienBan() == null
-                ? ""
-                : item.thuocTinhPhienBan().stream()
-                    .map(a -> a.tenThuocTinh() + ": " + a.giaTri())
-                    .collect(Collectors.joining("\n"));
-
-        text(row, 4, attributes, textStyle);
-        text(
-            row,
-            5,
-            item.baoHanhThang() == null ? "Chưa xác định" : String.valueOf(item.baoHanhThang()),
-            textStyle);
-
-        row.createCell(6).setCellValue(item.soLuong());
-
-        var price = row.createCell(7);
-        price.setCellValue(item.donGia().doubleValue());
-        price.setCellStyle(moneyStyle);
-
-        var amount = row.createCell(8);
-        amount.setCellValue(item.thanhTien().doubleValue());
-        amount.setCellStyle(moneyStyle);
-
-        row.createCell(9).setCellValue(item.tonCoTheBan());
-      }
-
-      var totalRow = sheet.createRow(rowNumber++);
-      text(totalRow, 7, "TỔNG TẠM TÍNH", textStyle);
-      var totalCell = totalRow.createCell(8);
-      totalCell.setCellValue(money(preview.tongTamTinh()).doubleValue());
-      totalCell.setCellStyle(moneyStyle);
-
-      List<String> warnings = new ArrayList<>(preview.loi());
-
-      if (!"KHOP_SOCKET".equals(preview.kiemTraCpuMain().trangThai())) {
-        warnings.add(
-            "Chưa xác nhận CPU và Mainboard khớp socket. "
-                + "Phạm vi kiểm tra chỉ là socket CPU/Mainboard.");
-      }
-
-      warnings.add(
-          "Đây là cấu hình tham khảo. Giá đã gồm VAT; "
-              + "ưu đãi và phí giao hàng xác nhận tại bước đặt hàng.");
-      warnings.add(
-          "Số tháng bảo hành là chính sách hiện tại của từng linh kiện, "
-              + "không phải hạn bảo hành của thiết bị đã bán.");
-
-      for (String warning : new LinkedHashSet<>(warnings)) {
-        text(sheet.createRow(rowNumber++), 0, warning, textStyle);
-      }
-
-      int[] widths = {4500, 4000, 9500, 8000, 9000, 4500, 3500, 5500, 5500, 4500};
-
-      for (int col = 0; col < widths.length; col++) {
-        sheet.setColumnWidth(col, widths[col]);
-      }
-
-      sheet.createFreezePane(0, 1);
-      workbook.write(output);
-
-      String time =
-          OffsetDateTime.now(ZoneId.of("Asia/Ho_Chi_Minh"))
-              .format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"));
-
-      return new Exported("Ruventu_CauHinhPC_" + time + ".xlsx", output.toByteArray());
-
-    } catch (AppException exception) {
+      var preview = builder.preview(previewRequest);
+      byte[] bytes = exporter.export(preview, warranties);
+      if (bytes == null || bytes.length == 0) throw sourceFailed();
+      String filename =
+          "Ruventu_CauHinhPC_"
+              + preview.thoiDiemTinh().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"))
+              + ".xlsx";
+      return new File(filename, bytes);
+    } catch (PcBuilderExportException exception) {
       throw exception;
+    } catch (AppException exception) {
+      throw switch (exception.getErrorCode()) {
+        case INVALID_PC_BUILDER_PREVIEW -> invalid("items");
+        case PC_BUILDER_PREVIEW_VARIANT_NOT_FOUND, PC_BUILDER_EXPORT_PUBLIC_VARIANT_NOT_FOUND ->
+            new PcBuilderExportException(
+                ErrorCode.PC_BUILDER_EXPORT_PUBLIC_VARIANT_NOT_FOUND,
+                "items.phien_ban_id",
+                "PUBLIC_VARIANT_NOT_FOUND",
+                "Không tìm thấy phiên bản được phép công bố trong công cụ");
+        case PC_BUILDER_PREVIEW_UNAVAILABLE, PC_BUILDER_EXPORT_UNAVAILABLE ->
+            new PcBuilderExportException(
+                ErrorCode.PC_BUILDER_EXPORT_UNAVAILABLE,
+                "items.phien_ban_id",
+                "EXPORT_VARIANT_UNAVAILABLE",
+                ErrorCode.PC_BUILDER_EXPORT_UNAVAILABLE.getMessage());
+        default -> sourceFailed();
+      };
     } catch (Exception exception) {
-      throw new AppException(
-          ErrorCode.INTERNAL_SERVER_ERROR, "Không tạo được file xuất từ dữ liệu nguồn");
+      log.error("Không tạo được Excel cấu hình PC", exception);
+      throw sourceFailed();
     }
   }
 
-  private void text(Row row, int index, String value, CellStyle style) {
+  private static PcBuilderExportException invalid(String field) {
+    return new PcBuilderExportException(
+        ErrorCode.INVALID_PC_BUILDER_EXPORT,
+        field,
+        "INVALID_EXPORT_REQUEST",
+        ErrorCode.INVALID_PC_BUILDER_EXPORT.getMessage());
+  }
 
-    // Giá trị được ghi dưới dạng text, kể cả khi bắt đầu bằng "=".
-    var cell = row.createCell(index, CellType.STRING);
-    cell.setCellValue(value == null ? "" : value);
-    cell.setCellStyle(style);
+  private static PcBuilderExportException sourceFailed() {
+    return new PcBuilderExportException(
+        ErrorCode.PC_BUILDER_EXPORT_SOURCE_FAILED,
+        "source",
+        "EXPORT_SOURCE_OR_RENDER_FAILED",
+        ErrorCode.PC_BUILDER_EXPORT_SOURCE_FAILED.getMessage());
   }
 }

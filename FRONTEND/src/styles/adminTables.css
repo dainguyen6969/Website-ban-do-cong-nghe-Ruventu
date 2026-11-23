@@ -447,7 +447,7 @@ a.admin-list-detail-action {
     color: var(--admin-status-fg) !important;
     font-family: var(--project-font-family, var(--font-family-admin, inherit)) !important;
     font-size: 9.5px !important;
-    font-weight: 800 !important;
+    font-weight: var(--warranty-status-font-weight, 800) !important;
     line-height: 1.3 !important;
     letter-spacing: normal !important;
     text-align: center !important;

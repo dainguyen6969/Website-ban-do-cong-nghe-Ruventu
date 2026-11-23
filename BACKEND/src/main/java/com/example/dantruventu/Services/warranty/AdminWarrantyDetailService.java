@@ -176,7 +176,10 @@ public class AdminWarrantyDetailService {
                                 ? null
                                 : event.getNguoiThucHien().getId(),
                             WarrantyReadValidation.time(event.getNgayTao()),
-                            event.getNoiDung()))
+                            event.getNoiDung(),
+                            event.getNguoiThucHien() == null
+                                ? null
+                                : event.getNguoiThucHien().getHoTen()))
                 .toList(),
             WarrantyReadValidation.pagination(page, limit, historyPageResult.getTotalElements())),
         allowed,
@@ -541,10 +544,41 @@ public class AdminWarrantyDetailService {
 
   private List<Map<String, Object>> handovers(List<LichSuBaoHanh> events) {
     List<Map<String, Object>> result = new ArrayList<>();
+    Map<Long, Map<String, Object>> differencesById = new HashMap<>();
+
     for (var event : events) {
-      var handover = historySupport.object(historySupport.payload(event).get("giao_nhan"));
+      var payload = historySupport.payload(event);
+      var status = historySupport.object(payload.get("trang_thai"));
+      for (var rawId : historySupport.array(value(status, "sai_lech_da_xu_ly"))) {
+        var resolved = differencesById.get(historySupport.id(rawId));
+        if (resolved != null) resolved.put("da_xu_ly", true);
+      }
+
+      var handover = historySupport.object(payload.get("giao_nhan"));
       if (handover == null) continue;
-      // This is a persisted delivery event, not a made-up history entry for the current status.
+
+      var replacement = historySupport.object(payload.get("nhan_hang_don_vi"));
+      Long deviceId = historySupport.id(handover.get("thiet_bi_id"));
+      List<Map<String, Object>> differences = new ArrayList<>();
+
+      for (var raw : historySupport.array(handover.get("sai_lech"))) {
+        var item = historySupport.object(raw);
+        Long differenceId = historySupport.id(value(item, "id"));
+        if (differenceId == null) continue;
+
+        Long differenceDevice = historySupport.id(item.get("thiet_bi_id"));
+        var view =
+            fields(
+                "id", differenceId,
+                "loai", item.get("loai"),
+                "noi_dung", item.get("noi_dung"),
+                "thiet_bi_id", differenceDevice != null ? differenceDevice : deviceId,
+                "da_xu_ly", Boolean.TRUE.equals(item.get("da_xu_ly")));
+
+        differences.add(view);
+        differencesById.put(differenceId, view);
+      }
+
       String type = historySupport.text(handover.get("su_kien"));
       OffsetDateTime at = historySupport.time(handover.get("ngay"));
       result.add(
@@ -554,12 +588,25 @@ public class AdminWarrantyDetailService {
               "su_kien",
               type == null ? event.getLoaiSuKien() : type,
               "thiet_bi_id",
-              historySupport.id(handover.get("thiet_bi_id")),
+              deviceId,
               "da_nhan_dung_thiet_bi",
               bool(handover.get("da_nhan_dung_thiet_bi")),
               "ngay",
-              at == null ? WarrantyReadValidation.time(event.getNgayTao()) : at));
+              at == null ? WarrantyReadValidation.time(event.getNgayTao()) : at,
+              "lan_gui_lich_su_id",
+              historySupport.id(handover.get("lan_gui_lich_su_id")),
+              "ten_don_vi",
+              historySupport.text(handover.get("ten_don_vi")),
+              "so_serial_thuc_nhan",
+              replacement == null
+                  ? historySupport.text(handover.get("so_serial_thuc_nhan"))
+                  : historySupport.text(replacement.get("so_serial_thuc_nhan")),
+              "da_cap_cho_phuong_an",
+              bool(value(replacement, "da_cap_cho_phuong_an")),
+              "sai_lech",
+              differences));
     }
+
     return result;
   }
 
