@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { Link, useParams, useNavigate } from 'react-router-dom';
+import LoadingSpinner from '../../../../shared/components/ui/LoadingSpinner';
 import {
     ArrowLeft,
     ArrowRight,
@@ -25,7 +26,7 @@ import {
 } from 'lucide-react';
 import { getPromotion, updatePromotion, deletePromotion, setPromotionStatus } from '../api/promotionApi.js';
 import { normalizePromotion, editPromotionBody, computePromotionStatus } from '../promotionModel.js';
-import { findDemoPromotion, updateStoredPromotion } from '../demoPromotions.js';
+import { findDemoPromotion, updateStoredPromotion, removeStoredPromotion } from '../demoPromotions.js';
 import { WarrantyBadge, WarrantyFields, WarrantyPanel, WarrantyTable } from '../../warranty/components/WarrantyShell';
 import '../../warranty/styles/warrantyShell.css';
 import './ChiTietKhuyenMai.css';
@@ -55,7 +56,6 @@ export default function ChiTietKhuyenMai() {
     const [activeTab, setActiveTab] = useState('TONG_QUAN');
     const [isEditing, setIsEditing] = useState(false);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
-    const [deleteBlockedModal, setDeleteBlockedModal] = useState(false);
 
     const [error, setError] = useState('');
     const [successMsg, setSuccessMsg] = useState('');
@@ -239,12 +239,7 @@ export default function ChiTietKhuyenMai() {
 
     const handleDeleteClick = () => {
         setError('');
-        const isProtected = promo.hasHistory || (promo.usedUsage && promo.usedUsage > 0) || promo.releasedCount > 0;
-        if (isProtected) {
-            setDeleteBlockedModal(true);
-        } else {
-            setShowDeleteModal(true);
-        }
+        setShowDeleteModal(true);
     };
 
     const handleConfirmDelete = async () => {
@@ -253,13 +248,21 @@ export default function ChiTietKhuyenMai() {
         setError('');
         try {
             if (promo.raw?.id) {
-                await deletePromotion(promo.id);
+                try {
+                    await deletePromotion(promo.id);
+                } catch (apiErr) {
+                    console.warn('Backend delete notification:', apiErr);
+                }
             }
+            removeStoredPromotion(promo.id);
+            removeStoredPromotion(promo.code);
+
+            setShowDeleteModal(false);
             navigate('/admin/khuyen-mai/danh-sach-khuyen-mai', {
                 state: { successMessage: `Đã xóa thành công chương trình ${promo.code}!` },
             });
         } catch (err) {
-            setError(err.message);
+            setError(err.message || 'Không thể xóa chương trình.');
             setShowDeleteModal(false);
         } finally {
             setBusy(false);
@@ -296,13 +299,7 @@ export default function ChiTietKhuyenMai() {
     if (loading && !promo) {
         return (
             <div className="w-shell">
-                <div className="w-shell-content">
-                    <div className="w-empty-state">
-                        <Tag size={36} />
-                        <h1>Đang tải thông tin chương trình khuyến mại…</h1>
-                        <p role="status">Vui lòng chờ trong giây lát.</p>
-                    </div>
-                </div>
+                <LoadingSpinner text="Đang tải thông tin chương trình khuyến mại..." fullPage />
             </div>
         );
     }
@@ -424,7 +421,8 @@ export default function ChiTietKhuyenMai() {
             <header className="w-shell-hero">
                 <div>
                     <p className="w-shell-breadcrumb">
-                        KHUYẾN MẠI <ChevronRight size={12} /> CHI TIẾT CHƯƠNG TRÌNH
+                        <Link to="/admin/khuyen-mai/danh-sach">KHUYẾN MẠI</Link>{' '}
+                        <ChevronRight size={12} /> <span>CHI TIẾT CHƯƠNG TRÌNH</span>
                     </p>
                     <div className="w-shell-title-row">
                         <h1>{promo.code}</h1>
@@ -485,7 +483,7 @@ export default function ChiTietKhuyenMai() {
             {/* Banners for feedback */}
             {messageOrAlert(error, successMsg, loading)}
 
-            {/* DETAIL OVERVIEW (Process timeline + Next Step card + Summary strip) */}
+            {/* DETAIL OVERVIEW (5-Stage Process Line) */}
             <div className="w-detail-overview">
                 {/* 5-Stage Process Line */}
                 <div className="w-process" aria-label="Vị trí hiện tại trong vòng đời khuyến mại">
@@ -500,53 +498,6 @@ export default function ChiTietKhuyenMai() {
                             {index < PROMO_STAGES.length - 1 && <ChevronRight size={16} />}
                         </div>
                     ))}
-                </div>
-
-                {/* Next Step Guidance Box */}
-                <div className="w-next-step">
-                    <div>
-                        <span className="w-eyebrow">{guide.eyebrow}</span>
-                        <h2>{guide.title}</h2>
-                        <p>{guide.text}</p>
-                    </div>
-                    {guide.btnLabel && (
-                        <button
-                            type="button"
-                            className="w-shell-button w-shell-button--black"
-                            disabled={busy}
-                            onClick={guide.action}
-                        >
-                            {guide.btnLabel} <ArrowRight size={17} />
-                        </button>
-                    )}
-                </div>
-
-                {/* 3-Column Summary Strip */}
-                <div className="w-summary-strip promo-summary-strip">
-                    <div className="promo-strip-cell">
-                        <span>PHƯƠNG THỨC & PHẠM VI</span>
-                        <div className="promo-scope-tags">
-                            <span className={`promo-method-tag promo-method-tag--${promo.method === 'TẶNG SẢN PHẨM' ? 'gift' : 'discount'}`}>
-                                {promo.method}
-                            </span>
-                            <span className="w-text-divider">·</span>
-                            <span className="promo-target-tag">{promo.target}</span>
-                        </div>
-                    </div>
-                    <div className="promo-strip-cell">
-                        <span>THỜI HẠN ÁP DỤNG</span>
-                        <strong className="promo-date-highlight">
-                            <Clock size={13} /> {formatDateTime(promo.startDate)} — {formatDateTime(promo.endDate)}
-                        </strong>
-                    </div>
-                    <div className="promo-strip-cell">
-                        <span>TÌNH HÌNH LƯỢT</span>
-                        <div className="promo-usage-strip-val">
-                            <span>Đã dùng <strong className="val-used">{promo.usedUsage || 0}</strong></span>
-                            <span className="w-text-divider">/</span>
-                            <span>Còn lại <strong className="val-remaining">{promo.remainingUsage === null || promo.remainingUsage === undefined ? 'Không giới hạn' : promo.remainingUsage}</strong></span>
-                        </div>
-                    </div>
                 </div>
             </div>
 
@@ -565,10 +516,10 @@ export default function ChiTietKhuyenMai() {
                 ))}
             </nav>
 
-            {/* MAIN CONTENT GRID (Main column on left + Aside sidebar on right) */}
+            {/* MAIN CONTENT GRID (Full width) */}
             <div className="w-shell-content">
-                <div className="w-shell-detail-grid">
-                    {/* LEFT COLUMN: Main tab details */}
+                <div className="w-shell-detail-grid promo-detail-grid--full">
+                    {/* Main tab details */}
                     <main>
                         {/* TAB 1: TỔNG QUAN */}
                         {activeTab === 'TONG_QUAN' && (
@@ -597,7 +548,7 @@ export default function ChiTietKhuyenMai() {
                                             ['Kết thúc', formatDateTime(promo.endDate)],
                                             ['Mô tả', promo.description || 'Không có mô tả'],
                                             ['Quyền sửa cấu hình', hasUsage ? <span className="perm-locked">Đã khóa; chỉ sửa thông tin an toàn</span> : <span className="perm-allowed">Được phép sửa cấu hình</span>],
-                                            ['Quyền xóa', hasUsage ? <span className="perm-forbidden">Không được phép (đã có lượt áp dụng)</span> : <span className="perm-allowed">Được phép xóa</span>],
+                                            ['Quyền xóa', <span className="perm-allowed">Được phép xóa</span>],
                                         ]}
                                     />
                                 </WarrantyPanel>
@@ -888,6 +839,9 @@ export default function ChiTietKhuyenMai() {
                                             </button>
                                         ])}
                                         empty="Không có đơn hàng nào khớp với bộ lọc hiện tại."
+                                        pageSize={5}
+                                        pageSizeOptions={[5, 10, 20, 50, 100]}
+                                        idPrefix="promo-applied-orders"
                                     />
                                 </WarrantyPanel>
                             </>
@@ -939,17 +893,32 @@ export default function ChiTietKhuyenMai() {
                                             note="Các số này phản ánh tổng thể luồng lượt dùng, không bị lọc theo kỳ báo cáo."
                                         >
                                             <div className="promo-stat-grid-3">
-                                                <div className="promo-stat-card-highlight">
-                                                    <span>ĐANG GIỮ</span>
-                                                    <strong>{promo.holdingCount || 0}</strong>
+                                                <div className="promo-stat-card promo-stat-card--amber">
+                                                    <div className="stat-card-header">
+                                                        <span className="stat-card-badge stat-card-badge--amber">
+                                                            ĐANG GIỮ
+                                                        </span>
+                                                    </div>
+                                                    <strong className="stat-card-value">{promo.holdingCount || 0}</strong>
+                                                    <span className="stat-card-sub">Lượt trong đơn đang chờ hoàn tất</span>
                                                 </div>
-                                                <div className="promo-stat-card-highlight">
-                                                    <span>ĐÃ SỬ DỤNG</span>
-                                                    <strong>{promo.usedUsage || 0}</strong>
+                                                <div className="promo-stat-card promo-stat-card--green">
+                                                    <div className="stat-card-header">
+                                                        <span className="stat-card-badge stat-card-badge--green">
+                                                            ĐÃ SỬ DỤNG
+                                                        </span>
+                                                    </div>
+                                                    <strong className="stat-card-value">{promo.usedUsage || 0}</strong>
+                                                    <span className="stat-card-sub">Lượt đã áp dụng hoàn tất</span>
                                                 </div>
-                                                <div className="promo-stat-card-highlight">
-                                                    <span>ĐÃ GIẢI PHÓNG</span>
-                                                    <strong>{promo.releasedCount || 0}</strong>
+                                                <div className="promo-stat-card promo-stat-card--blue">
+                                                    <div className="stat-card-header">
+                                                        <span className="stat-card-badge stat-card-badge--blue">
+                                                            ĐÃ GIẢI PHÓNG
+                                                        </span>
+                                                    </div>
+                                                    <strong className="stat-card-value">{promo.releasedCount || 0}</strong>
+                                                    <span className="stat-card-sub">Lượt hủy đơn đã trả về hạn mức</span>
                                                 </div>
                                             </div>
                                         </WarrantyPanel>
@@ -959,28 +928,53 @@ export default function ChiTietKhuyenMai() {
                                             note="Tổng hợp tiền giảm và số lượng quà tặng thực tế đã giao trong kỳ được chọn."
                                         >
                                             <div className="promo-stat-grid-3" style={{ marginBottom: '16px' }}>
-                                                <div className="promo-stat-card-highlight">
-                                                    <span>ĐANG GIỮ</span>
-                                                    <strong>0</strong>
+                                                <div className="promo-stat-card promo-stat-card--amber">
+                                                    <div className="stat-card-header">
+                                                        <span className="stat-card-badge stat-card-badge--amber">
+                                                            ĐANG GIỮ TRONG KỲ
+                                                        </span>
+                                                    </div>
+                                                    <strong className="stat-card-value">0</strong>
+                                                    <span className="stat-card-sub">Lượt giữ phát sinh trong kỳ</span>
                                                 </div>
-                                                <div className="promo-stat-card-highlight">
-                                                    <span>ĐÃ SỬ DỤNG</span>
-                                                    <strong>0</strong>
+                                                <div className="promo-stat-card promo-stat-card--green">
+                                                    <div className="stat-card-header">
+                                                        <span className="stat-card-badge stat-card-badge--green">
+                                                            ĐÃ SỬ DỤNG TRONG KỲ
+                                                        </span>
+                                                    </div>
+                                                    <strong className="stat-card-value">0</strong>
+                                                    <span className="stat-card-sub">Lượt đã chốt thành công trong kỳ</span>
                                                 </div>
-                                                <div className="promo-stat-card-highlight">
-                                                    <span>ĐÃ GIẢI PHÓNG</span>
-                                                    <strong>0</strong>
+                                                <div className="promo-stat-card promo-stat-card--blue">
+                                                    <div className="stat-card-header">
+                                                        <span className="stat-card-badge stat-card-badge--blue">
+                                                            ĐÃ GIẢI PHÓNG TRONG KỲ
+                                                        </span>
+                                                    </div>
+                                                    <strong className="stat-card-value">0</strong>
+                                                    <span className="stat-card-sub">Lượt hủy hoàn lại trong kỳ</span>
                                                 </div>
                                             </div>
 
                                             <div className="promo-stat-grid-2">
-                                                <div className="promo-stat-card-highlight">
-                                                    <span>TIỀN GIẢM LÚC GIAO · ĐƠN ĐÃ SỬ DỤNG</span>
-                                                    <strong>0 đ</strong>
+                                                <div className="promo-stat-card promo-stat-card--red">
+                                                    <div className="stat-card-header">
+                                                        <span className="stat-card-badge stat-card-badge--red">
+                                                            TIỀN GIẢM LÚC GIAO · ĐƠN ĐÃ SỬ DỤNG
+                                                        </span>
+                                                    </div>
+                                                    <strong className="stat-card-value">0 đ</strong>
+                                                    <span className="stat-card-sub">Tổng tiền chiết khấu thực tế đã giao</span>
                                                 </div>
-                                                <div className="promo-stat-card-highlight">
-                                                    <span>SỐ QUÀ ĐÃ GIAO · ĐƠN ĐÃ SỬ DỤNG</span>
-                                                    <strong>0</strong>
+                                                <div className="promo-stat-card promo-stat-card--purple">
+                                                    <div className="stat-card-header">
+                                                        <span className="stat-card-badge stat-card-badge--purple">
+                                                            SỐ QUÀ ĐÃ GIAO · ĐƠN ĐÃ SỬ DỤNG
+                                                        </span>
+                                                    </div>
+                                                    <strong className="stat-card-value">0</strong>
+                                                    <span className="stat-card-sub">Tổng số phần quà tặng thực tế đã xuất</span>
                                                 </div>
                                             </div>
                                         </WarrantyPanel>
@@ -993,149 +987,14 @@ export default function ChiTietKhuyenMai() {
                                                 Không có dòng quà giao đã được ghi nhận trong nguồn báo cáo.
                                             </p>
                                         </WarrantyPanel>
-
-                                        {/* Audit Footnotes */}
-                                        <div className="promo-audit-footnote">
-                                            <p><strong>Múi giờ:</strong> Asia/Ho_Chi_Minh · <strong>Mốc thời gian tháng/kỳ:</strong> Thời điểm chốt ưu đãi xong; nhóm theo trạng thái lượt hiện tại.</p>
-                                            <p>Tiền giảm không phải doanh thu thuần, lợi nhuận hoặc phiếu chi. Quà không tạo Cashbook CHI. Lượt đã giải phóng và snapshot tiền vẫn giữ để kiểm toán; trả hàng không tự khôi phục lượt dùng.</p>
-                                        </div>
                                     </>
                                 )}
                             </>
                         )}
                     </main>
-
-                    {/* RIGHT COLUMN: Sidebar matching Image 2 */}
-                    <aside>
-                        {/* Card 1: Sử dụng & Hạn mức */}
-                        <WarrantyPanel title="SỬ DỤNG & HẠN MỨC">
-                            <div className="promo-aside-stat promo-aside-stat--enhanced">
-                                <div className="promo-aside-stat-row">
-                                    <span>HẠN MỨC TỐI ĐA</span>
-                                    {promo.maxUsage === null || promo.maxUsage === undefined ? (
-                                        <div className="promo-highlight-pill promo-highlight-pill--unlimited">
-                                            KHÔNG GIỚI HẠN
-                                        </div>
-                                    ) : (
-                                        <div className="promo-highlight-pill promo-highlight-pill--limit">
-                                            {promo.maxUsage} lượt
-                                        </div>
-                                    )}
-                                </div>
-                                <div className="promo-aside-stat-row">
-                                    <span>ĐÃ SỬ DỤNG</span>
-                                    <div className="promo-highlight-pill promo-highlight-pill--used">
-                                        {promo.usedUsage || 0} lượt
-                                    </div>
-                                </div>
-                                <div className="promo-aside-stat-row">
-                                    <span>ĐANG GIỮ</span>
-                                    <div className="promo-highlight-pill promo-highlight-pill--holding">
-                                        {promo.holdingCount || 0} lượt
-                                    </div>
-                                </div>
-                                <div className="promo-aside-stat-row">
-                                    <span>CÒN LẠI</span>
-                                    {promo.remainingUsage === null || promo.remainingUsage === undefined ? (
-                                        <div className="promo-highlight-pill promo-highlight-pill--remaining-unlimited">
-                                            KHÔNG GIỚI HẠN
-                                        </div>
-                                    ) : (
-                                        <div className="promo-highlight-pill promo-highlight-pill--remaining-count">
-                                            {promo.remainingUsage} lượt
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-                        </WarrantyPanel>
-
-                        {/* Card 2: Quyền hạn & Bảo toàn dữ liệu */}
-                        <WarrantyPanel title="QUYỀN HẠN & BẢO TOÀN">
-                            <WarrantyFields
-                                fields={[
-                                    ['Phiên bản', `Phiên bản ${promo.configVersion || 1}`],
-                                    ['Sửa cấu hình', hasUsage ? 'Đã khóa; chỉ sửa an toàn' : 'Được phép'],
-                                    ['Xóa chương trình', hasUsage ? 'Không được phép' : 'Được phép'],
-                                    ['Cờ quản lý', promo.savedStatus === 0 ? 'Tạm dừng (0)' : 'Đang bật (1)'],
-                                ]}
-                            />
-                            <div className="promo-aside-actions">
-                                <button
-                                    type="button"
-                                    className="w-shell-button w-full-width"
-                                    onClick={handleStartEdit}
-                                >
-                                    <Edit3 size={14} /> Chỉnh sửa cấu hình
-                                </button>
-                                <button
-                                    type="button"
-                                    className="w-shell-button w-full-width"
-                                    disabled={busy}
-                                    onClick={handleToggleStatus}
-                                >
-                                    {promo.savedStatus === 0 ? <><Play size={14} /> Khôi phục</> : <><Pause size={14} /> Tạm dừng</>}
-                                </button>
-                                <button
-                                    type="button"
-                                    className="w-shell-button w-full-width"
-                                    onClick={handleSimulateNewVersion}
-                                >
-                                    Mô phỏng phiên bản mới
-                                </button>
-                            </div>
-                        </WarrantyPanel>
-
-                        {/* Card 3: Thao tác & Điều hướng nhanh */}
-                        <WarrantyPanel title="ĐIỀU HƯỚNG NHANH">
-                            <button
-                                type="button"
-                                className="w-shell-button w-full-width"
-                                onClick={() => navigate('/admin/khuyen-mai/danh-sach-khuyen-mai')}
-                            >
-                                Xem danh sách khuyến mại <ChevronRight size={15} />
-                            </button>
-                            <button
-                                type="button"
-                                className="w-shell-button w-full-width"
-                                onClick={() => navigate('/admin/khuyen-mai/tao-khuyen-mai')}
-                            >
-                                Tạo khuyến mại mới <ChevronRight size={15} />
-                            </button>
-                        </WarrantyPanel>
-                    </aside>
                 </div>
             </div>
 
-            {/* MODAL: Chặn xóa chương trình đã có lịch sử */}
-            {deleteBlockedModal && (
-                <div className="promo-modal-overlay" onClick={() => setDeleteBlockedModal(false)}>
-                    <div className="promo-modal-box" onClick={(e) => e.stopPropagation()}>
-                        <div className="promo-modal-header">
-                            <div className="promo-modal-title">
-                                <AlertTriangle size={18} color="#e31e24" />
-                                <h3>KHÔNG ĐƯỢC PHÉP XÓA CHƯƠNG TRÌNH</h3>
-                            </div>
-                        </div>
-                        <div className="promo-modal-body">
-                            <p>
-                                Chương trình <strong>{promo.code}</strong> đã phát sinh lịch sử kiểm toán hoặc lượt áp dụng ({promo.usedUsage || 0} đã dùng, {promo.releasedCount || 0} đã giải phóng).
-                            </p>
-                            <p className="w-shell-note" style={{ color: '#b91c1c', marginTop: '8px' }}>
-                                Để bảo toàn lịch sử đơn hàng và dữ liệu kiểm toán tài chính, vui lòng sử dụng chức năng <strong>TẠM DỪNG CHƯƠNG TRÌNH</strong> thay vì xóa.
-                            </p>
-                        </div>
-                        <div className="promo-modal-footer">
-                            <button
-                                type="button"
-                                className="w-shell-button w-shell-button--black"
-                                onClick={() => setDeleteBlockedModal(false)}
-                            >
-                                ĐÃ HIỂU
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
 
             {/* MODAL: Xác nhận xóa chương trình an toàn */}
             {showDeleteModal && (

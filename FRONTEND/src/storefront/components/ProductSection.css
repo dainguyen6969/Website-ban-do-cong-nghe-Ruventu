@@ -208,6 +208,24 @@
 
 .home-page .product-card .product-title {
   color: #000;
+  flex: 1;
+  min-width: 0;
+  min-height: calc(2 * 1.35em);
+  height: auto;
+  margin: 0;
+  padding: 0;
+  color: #000;
+  font-weight: 700;
+  font-size: 15px;
+  line-height: 1.35;
+  font-family: var(--project-font-family, var(--font-family-base));
+  text-transform: none;
+  letter-spacing: normal;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .storefront-app .home-page .product-card .product-category-label {

@@ -10,6 +10,7 @@ import ProductSpecsTabs from "../components/ProductSpecsTabs";
 import ProductRecommendations from "../components/ProductRecommendations";
 
 import ComboContents from "../../shared/components/ui/ComboContents";
+import LoadingSpinner from "../../shared/components/ui/LoadingSpinner";
 import { productService, toProductDetail } from "../../shared/services/productService";
 
 import "./ProductDetail.css";
@@ -85,9 +86,7 @@ function ProductDetailContent({ id }) {
       <Header />
 
       {loading ? (
-        <div className="product-detail-status">
-          Đang tải thông tin sản phẩm...
-        </div>
+        <LoadingSpinner text="Đang tải thông tin sản phẩm..." fullPage />
       ) : !product ? (
         <div
           className="product-detail-status product-detail-status--error"

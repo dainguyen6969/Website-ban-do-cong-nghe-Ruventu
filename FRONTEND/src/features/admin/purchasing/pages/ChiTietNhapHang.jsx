@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import AdminLink from '../../../../shared/components/ui/AdminLink';
 import DetailTablePagination from '../../../../shared/components/ui/DetailTablePagination';
 import useDetailTablePagination from '../../../../hooks/useDetailTablePagination';
+import LoadingSpinner from '../../../../shared/components/ui/LoadingSpinner';
 
 import { money, Modal, PageCrumb, PurchaseCard, StatusBadge } from './PurchaseShared';
 import './NhapHang.css';
@@ -199,6 +200,7 @@ export default function ChiTietNhapHang() {
   const [error, setError] = useState('');
   const [serialValues, setSerialValues] = useState({});
   const pagination = useDetailTablePagination(order?.items);
+  const serialsPagination = useDetailTablePagination(order?.receivedSerials || []);
   const [receiptQuantities, setReceiptQuantities] = useState({});
 
   const [supplierReceiptDocument, setSupplierReceiptDocument] = useState('');
@@ -262,7 +264,7 @@ export default function ChiTietNhapHang() {
   if (loading && !order)
     return (
       <main className="purchase-page">
-        <p className="purchase-message">Đang tải chi tiết đơn nhập hàng...</p>
+        <LoadingSpinner text="Đang tải chi tiết đơn nhập hàng..." fullPage />
       </main>
     );
   if (!order)
@@ -650,6 +652,8 @@ export default function ChiTietNhapHang() {
                 totalItems={order.items.length}
                 currentPage={pagination.currentPage}
                 onPageChange={pagination.onPageChange}
+                pageSize={pagination.pageSize}
+                onPageSizeChange={pagination.onPageSizeChange}
                 idPrefix="purchase-order-items"
               />
             </PurchaseCard>
@@ -676,9 +680,9 @@ export default function ChiTietNhapHang() {
                           <td colSpan={4}>Chưa có serial đã nhận.</td>
                         </tr>
                       ) : (
-                        order.receivedSerials.map((serial, index) => (
+                        serialsPagination.visibleItems.map((serial, index) => (
                           <tr key={serial.id}>
-                            <td>{index + 1}</td>
+                            <td>{(serialsPagination.currentPage - 1) * 5 + index + 1}</td>
                             <td>{serial.name}</td>
                             <td>
                               <AdminLink to={`/kho-hang/danh-sach-serial/${serial.id}`}>
@@ -702,6 +706,14 @@ export default function ChiTietNhapHang() {
                     </tbody>
                   </table>
                 </div>
+                <DetailTablePagination
+                  totalItems={(order?.receivedSerials || []).length}
+                  currentPage={serialsPagination.currentPage}
+                  onPageChange={serialsPagination.onPageChange}
+                  pageSize={serialsPagination.pageSize}
+                  onPageSizeChange={serialsPagination.onPageSizeChange}
+                  idPrefix="purchase-serials"
+                />
               </PurchaseCard>
             )}
           </section>

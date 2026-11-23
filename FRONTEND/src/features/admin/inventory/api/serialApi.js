@@ -37,7 +37,8 @@ const normalize = (item) => ({
     : item.ngay_kich_hoat
       ? 'Chưa xác định hạn'
       : 'Chưa kích hoạt',
-  order: item.don_hang || null,
+  orderId: item.don_hang_id || item.don_hang?.id || null,
+  order: item.don_hang || (item.don_hang_id ? { id: item.don_hang_id } : null),
 });
 
 export async function getSerialPage(filters, signal) {
@@ -71,7 +72,9 @@ export async function getAvailableSerials(versionId, serial, signal) {
     totalPages = data.totalPages;
   }
 
-  const clearItems = items.filter((item) => !item.recallBlocked);
+  const clearItems = items.filter(
+    (item) => item.status === 'TRONG_KHO' && !item.orderId && !item.recallBlocked
+  );
 
   return {
     items: clearItems,

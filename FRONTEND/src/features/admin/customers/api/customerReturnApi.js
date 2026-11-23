@@ -95,3 +95,14 @@ export async function refundReturn(id, payload, idempotencyKey) {
     body: JSON.stringify(payload),
   });
 }
+
+export async function cancelReturn(id, payload = {}, idempotencyKey) {
+  const headers = {
+    'Idempotency-Key': ensureUUID(idempotencyKey),
+  };
+  return apiRequest(`${PATH}/${encodeURIComponent(id)}/cancel`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify(payload),
+  });
+}

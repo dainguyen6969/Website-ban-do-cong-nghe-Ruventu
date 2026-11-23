@@ -5,6 +5,7 @@ import { HiOutlinePlus, HiOutlineSearch } from 'react-icons/hi';
 
 import TablePagination from '../../../../shared/components/ui/TablePagination';
 import FilterDropdown from '../../../../shared/components/ui/FilterDropdown';
+import LoadingSpinner from '../../../../shared/components/ui/LoadingSpinner';
 
 import {
   getPurchaseOrderPage,
@@ -333,8 +334,12 @@ export default function DanhSachNhapHang() {
               {/* Trạng thái tải dữ liệu / rỗng */}
               {!data.items.length && (
                 <tr className="purchase-empty">
-                  <td colSpan="7">
-                    {loading ? 'Đang tải dữ liệu...' : 'Không tìm thấy đơn nhập hàng phù hợp.'}
+                  <td colSpan="7" style={{ padding: 24, textAlign: 'center' }}>
+                    {loading ? (
+                      <LoadingSpinner text="Đang tải danh sách đơn nhập hàng..." size="md" />
+                    ) : (
+                      'Không tìm thấy đơn nhập hàng phù hợp.'
+                    )}
                   </td>
                 </tr>
               )}

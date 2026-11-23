@@ -1,10 +1,11 @@
 // Admin inventory screen: ChiTietTonKho.
 import { useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, Link } from 'react-router-dom';
 import { HiOutlineArrowLeft, HiOutlineHome } from 'react-icons/hi';
 import DetailTablePagination from '../../../../shared/components/ui/DetailTablePagination';
 import FilterDropdown from '../../../../shared/components/ui/FilterDropdown';
 import useDetailTablePagination from '../../../../hooks/useDetailTablePagination';
+import LoadingSpinner from '../../../../shared/components/ui/LoadingSpinner';
 import { getVersionDetail, getVersionLedger } from '../../catalog/products/api/versionApi';
 import './ChiTietTonKho.css';
 import '../recall/Recall.css';
@@ -137,22 +138,20 @@ export default function ChiTietTonKho() {
             </button>
           </div>
           <section className="inventory-card">
-            <div className="inventory-empty">
-              {loading ? (
-                'Đang tải dữ liệu...'
-              ) : (
-                <>
-                  Đã xảy ra lỗi hệ thống.{' '}
-                  <button
-                    type="button"
-                    className="inventory-reset"
-                    onClick={() => setReloadKey((value) => value + 1)}
-                  >
-                    THỬ LẠI
-                  </button>
-                </>
-              )}
-            </div>
+            {loading ? (
+              <LoadingSpinner text="Đang tải dữ liệu tồn kho..." size="md" />
+            ) : (
+              <div className="inventory-empty">
+                Đã xảy ra lỗi hệ thống.{' '}
+                <button
+                  type="button"
+                  className="inventory-reset"
+                  onClick={() => setReloadKey((value) => value + 1)}
+                >
+                  THỬ LẠI
+                </button>
+              </div>
+            )}
           </section>
         </div>
       </main>
@@ -163,9 +162,9 @@ export default function ChiTietTonKho() {
     <main className="inventory-detail-page" role="main">
       <div className="inventory-detail__inner">
         <nav className="inventory-detail__breadcrumb" aria-label="Breadcrumb nội dung">
-          <span>Sản phẩm</span>
+          <Link to="/kho-hang/quan-ly-phien-ban">Sản phẩm</Link>
           <span aria-hidden="true">›</span>
-          <span>Quản lý kho</span>
+          <Link to="/kho-hang/quan-ly-phien-ban">Quản lý kho</Link>
           <span aria-hidden="true">›</span>
           <strong>Chi tiết tồn kho</strong>
         </nav>
@@ -322,6 +321,8 @@ export default function ChiTietTonKho() {
             totalItems={detail.versions.length}
             currentPage={versionPagination.currentPage}
             onPageChange={versionPagination.onPageChange}
+            pageSize={versionPagination.pageSize}
+            onPageSizeChange={versionPagination.onPageSizeChange}
             idPrefix="inventory-versions"
           />
         </section>
@@ -415,6 +416,8 @@ export default function ChiTietTonKho() {
             totalItems={selectedVersion.allocations.length}
             currentPage={allocationPagination.currentPage}
             onPageChange={allocationPagination.onPageChange}
+            pageSize={allocationPagination.pageSize}
+            onPageSizeChange={allocationPagination.onPageSizeChange}
             idPrefix="inventory-allocations"
           />
         </section>
@@ -583,6 +586,8 @@ export default function ChiTietTonKho() {
             totalItems={filteredHistory.length}
             currentPage={historyPagination.currentPage}
             onPageChange={historyPagination.onPageChange}
+            pageSize={historyPagination.pageSize}
+            onPageSizeChange={historyPagination.onPageSizeChange}
             idPrefix="inventory-history"
           />
         </section>

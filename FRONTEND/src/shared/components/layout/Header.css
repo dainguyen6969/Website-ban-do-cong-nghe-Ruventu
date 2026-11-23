@@ -55,6 +55,17 @@
   color: var(--color-text-muted);
 }
 
+a.header__breadcrumb-item--muted {
+  text-decoration: none;
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+
+a.header__breadcrumb-item--muted:hover {
+  color: var(--color-text-primary);
+  text-decoration: underline;
+}
+
 .header__breadcrumb-item--active {
   color: var(--color-text-primary);
   font-weight: 700;

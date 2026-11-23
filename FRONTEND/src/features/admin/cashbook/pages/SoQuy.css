@@ -31,6 +31,18 @@
   text-transform: uppercase;
 }
 
+.sq-breadcrumb a {
+  color: inherit;
+  text-decoration: none;
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+
+.sq-breadcrumb a:hover {
+  color: #c51d25;
+  text-decoration: underline;
+}
+
 .sq-breadcrumb span {
   color: #858c95;
   margin: 0 8px;

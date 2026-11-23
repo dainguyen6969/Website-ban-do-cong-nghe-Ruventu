@@ -86,6 +86,14 @@
 .product-breadcrumb__item--muted {
   color: var(--color-text-muted);
   font-weight: 500;
+  text-decoration: none;
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+
+a.product-breadcrumb__item--muted:hover {
+  color: #c51d25;
+  text-decoration: underline;
 }
 
 .product-breadcrumb__item--current {

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import AdminLink from '../../../../shared/components/ui/AdminLink';
 import { HiOutlineArrowLeft, HiOutlinePencilAlt, HiX } from 'react-icons/hi';
+import LoadingSpinner from '../../../../shared/components/ui/LoadingSpinner';
 import {
   getSerialDetail,
   nextWarehouseStatus,
@@ -170,10 +171,17 @@ export default function ChiTietSerial() {
   }, [modalOpen]);
 
   if (loading || !serial) {
+    if (loading) {
+      return (
+        <main className="serial-page">
+          <LoadingSpinner text="Đang tải thông tin Serial..." fullPage />
+        </main>
+      );
+    }
     return (
       <main className="serial-page">
         <div className="serial-not-found">
-          <h1>{loading ? 'ĐANG TẢI SERIAL...' : error || 'SERIAL KHÔNG TỒN TẠI'}</h1>
+          <h1>{error || 'SERIAL KHÔNG TỒN TẠI'}</h1>
           <button onClick={() => navigate('/kho-hang/danh-sach-serial')}>← QUAY LẠI</button>
         </div>
       </main>
@@ -229,11 +237,11 @@ export default function ChiTietSerial() {
     <main className="serial-page serial-detail-page ruventu-ops" role="main">
       <div className="serial-page__inner">
         <nav className="serial-secondary-breadcrumb" aria-label="Breadcrumb nội dung">
-          <span>Sản phẩm</span>
+          <Link to="/kho-hang/danh-sach-serial">Sản phẩm</Link>
           <span>›</span>
-          <span>Quản lý kho</span>
+          <Link to="/kho-hang/danh-sach-serial">Quản lý kho</Link>
           <span>›</span>
-          <span>Danh sách Serial</span>
+          <Link to="/kho-hang/danh-sach-serial">Danh sách Serial</Link>
           <span>›</span>
           <strong>Chi tiết Serial</strong>
         </nav>
