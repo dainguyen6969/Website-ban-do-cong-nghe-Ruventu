@@ -87,6 +87,16 @@
   font-size: 10px;
   font-weight: 700;
 }
+.w-shell-hero .w-shell-breadcrumb a {
+  color: inherit;
+  text-decoration: none;
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+.w-shell-hero .w-shell-breadcrumb a:hover {
+  color: #c51d25;
+  text-decoration: underline;
+}
 .w-shell-title-row {
   display: flex;
   align-items: center;

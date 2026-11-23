@@ -1,6 +1,6 @@
 import { scaledFontSize } from '../../../../typography/projectFontSize.js';
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Check } from 'lucide-react';
 import { createPromotion, getPromotionVariants } from '../api/promotionApi.js';
 import { createPromotionBody, computePromotionStatus } from '../promotionModel.js';
@@ -678,7 +678,9 @@ export default function TaoKhuyenMai() {
             {/* Header Area */}
             <div className="create-header-bar">
                 <div className="create-header-left">
-                    <div className="create-breadcrumb">KHUYẾN MẠI / TẠO KHUYẾN MẠI</div>
+                    <div className="create-breadcrumb">
+                        <Link to="/admin/khuyen-mai/danh-sach">KHUYẾN MẠI</Link> / <span>TẠO KHUYẾN MẠI</span>
+                    </div>
                     <h1 className="create-main-title">TẠO CHƯƠNG TRÌNH KHUYẾN MẠI</h1>
                     <div className="create-subtitle">Cấu hình ưu đãi, điều kiện mua và hạn mức trước khi lưu.</div>
                 </div>
@@ -695,11 +697,11 @@ export default function TaoKhuyenMai() {
 
             {/* Top Grid: Card 01 & Card 02 (Image 1) */}
             <div className="create-grid-2-col">
-                {/* 01 / THÔNG TIN CHƯƠNG TRÌNH */}
+                {/* THÔNG TIN CHƯƠNG TRÌNH */}
                 <div className="create-card">
                     <div className="create-card-header">
                         <span className="create-card-accent" aria-hidden="true" />
-                        <h3>01 / THÔNG TIN CHƯƠNG TRÌNH</h3>
+                        <h3>THÔNG TIN CHƯƠNG TRÌNH</h3>
                     </div>
                     <div className="create-card-body">
                         <div className="create-form-field">
@@ -752,11 +754,11 @@ export default function TaoKhuyenMai() {
                     </div>
                 </div>
 
-                {/* 02 / HÌNH THỨC ƯU ĐÃI (Image 1 & 4) */}
+                {/* HÌNH THỨC ƯU ĐÃI (Image 1 & 4) */}
                 <div className="create-card">
                     <div className="create-card-header">
                         <span className="create-card-accent" aria-hidden="true" />
-                        <h3>02 / HÌNH THỨC ƯU ĐÃI</h3>
+                        <h3>HÌNH THỨC ƯU ĐÃI</h3>
                     </div>
                     <div className="create-card-body">
                         {/* Selector: Chiết khấu / Tặng sản phẩm */}
@@ -858,11 +860,11 @@ export default function TaoKhuyenMai() {
                 </div>
             </div>
 
-            {/* 03 / PHẠM VI & ĐIỀU KIỆN */}
+            {/* PHẠM VI & ĐIỀU KIỆN */}
             <div className="create-card full-width">
                 <div className="create-card-header">
                     <span className="create-card-accent" aria-hidden="true" />
-                    <h3>03 / PHẠM VI & ĐIỀU KIỆN</h3>
+                    <h3>PHẠM VI & ĐIỀU KIỆN</h3>
                 </div>
                 <div className="create-card-body">
                     {/* Scope row: When TẶNG SẢN PHẨM, only show TOÀN ĐƠN and PHIÊN BẢN SẢN PHẨM (Image 1) */}
@@ -1038,9 +1040,9 @@ export default function TaoKhuyenMai() {
                     {/* CASE 2: TẶNG SẢN PHẨM + PHIÊN BẢN SẢN PHẨM (Image 2 & 5: Sections A & B) */}
                     {method === 'TẶNG SẢN PHẨM' && scope === 'PHIEN_BAN' && (
                         <>
-                            {/* A. SẢN PHẨM CẦN MUA */}
+                            {/* SẢN PHẨM CẦN MUA */}
                             <div className="sub-section-box">
-                                <div className="sub-section-title">A. SẢN PHẨM CẦN MUA</div>
+                                <div className="sub-section-title">SẢN PHẨM CẦN MUA</div>
                                 <div className="sub-section-label">CHỌN PHIÊN BẢN MUA <span>*</span></div>
 
                                 <div className="selected-variants-list">
@@ -1068,9 +1070,9 @@ export default function TaoKhuyenMai() {
                                 </div>
                             </div>
 
-                            {/* B. SẢN PHẨM ĐƯỢC TẶNG */}
+                            {/* SẢN PHẨM ĐƯỢC TẶNG */}
                             <div className="sub-section-box">
-                                <div className="sub-section-title">B. SẢN PHẨM ĐƯỢC TẶNG</div>
+                                <div className="sub-section-title">SẢN PHẨM ĐƯỢC TẶNG</div>
                                 <div className="sub-section-label">CHỌN PHIÊN BẢN TẶNG <span>*</span></div>
 
                                 <div className="selected-variants-list">

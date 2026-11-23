@@ -255,6 +255,18 @@
   font-weight: 700;
 }
 
+.admin-list-breadcrumb a {
+  color: inherit;
+  text-decoration: none;
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+
+.admin-list-breadcrumb a:hover {
+  color: #c51d25;
+  text-decoration: underline;
+}
+
 .admin-list-toolbar {
   display: flex;
   align-items: center;

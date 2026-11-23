@@ -35,6 +35,18 @@
     margin-bottom: 6px;
 }
 
+.create-breadcrumb a {
+    color: inherit;
+    text-decoration: none;
+    cursor: pointer;
+    transition: color 0.15s ease;
+}
+
+.create-breadcrumb a:hover {
+    color: #c51d25;
+    text-decoration: underline;
+}
+
 .create-main-title {
     margin: 0;
     font-size: 22px;
@@ -111,17 +123,40 @@
 
 .create-card-header {
     padding: 12px 20px;
-    border-bottom: 1px solid #d1d5db;
-    background: #fff;
+    border-bottom: 1px solid #111;
+    background: #080808;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.create-card-accent {
+    display: inline-block;
+    width: 3px;
+    height: 15px;
+    background: #e31e24;
+    flex-shrink: 0;
 }
 
 .create-card-header h3 {
     margin: 0;
     font-size: 12px;
     font-weight: 900;
-    color: #111;
+    color: #fff;
     text-transform: uppercase;
     letter-spacing: 0.5px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.create-card-header:not(:has(.create-card-accent)) h3::before {
+    content: '';
+    display: inline-block;
+    width: 3px;
+    height: 15px;
+    background: #e31e24;
+    flex-shrink: 0;
 }
 
 .create-card-body {
@@ -767,6 +802,18 @@
     text-transform: uppercase;
     letter-spacing: 0.5px;
     margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.sub-section-title::before {
+    content: '';
+    display: inline-block;
+    width: 3px;
+    height: 14px;
+    background: #e31e24;
+    flex-shrink: 0;
 }
 
 .sub-section-label {

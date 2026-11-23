@@ -29,6 +29,18 @@
   font-weight: 750;
 }
 
+.serial-secondary-breadcrumb a {
+  color: inherit;
+  text-decoration: none;
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+
+.serial-secondary-breadcrumb a:hover {
+  color: #c51d25;
+  text-decoration: underline;
+}
+
 .serial-heading-row,
 .serial-detail-heading {
   min-height: 98px;

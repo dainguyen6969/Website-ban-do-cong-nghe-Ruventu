@@ -1,6 +1,6 @@
 // Product list screen: real IntelliJ API data with server-side search, filters, and pagination.
 import { useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
   HiOutlineUpload,
   HiOutlinePlus,
@@ -13,6 +13,7 @@ import {
 } from "react-icons/hi";
 import FilterDropdown from "../../../../../shared/components/ui/FilterDropdown";
 import TablePagination from "../../../../../shared/components/ui/TablePagination";
+import LoadingSpinner from "../../../../../shared/components/ui/LoadingSpinner";
 import { getAllBrands } from "../../brands/api/brandApi";
 import { getAllCategories } from "../../categories/api/categoryApi";
 import { getProductPage } from "../api/productApi";
@@ -252,9 +253,12 @@ export default function DanhSachSanPham() {
       {/* 3. Breadcrumb row (SẢN PHẨM › DANH SÁCH SẢN PHẨM) */}
       <div className="product-breadcrumb-row">
         <nav className="product-breadcrumb" aria-label="Breadcrumb nội dung">
-          <span className="product-breadcrumb__item product-breadcrumb__item--muted">
+          <Link
+            to="/admin/san-pham/danh-sach-san-pham"
+            className="product-breadcrumb__item product-breadcrumb__item--muted"
+          >
             SẢN PHẨM
-          </span>
+          </Link>
           <span className="product-breadcrumb__sep" aria-hidden="true">
             ›
           </span>
@@ -399,40 +403,44 @@ export default function DanhSachSanPham() {
                         : undefined
                     }
                   >
-                    <div
-                      className="product-table__empty-icon"
-                      aria-hidden="true"
-                    >
-                      <svg
-                        width="48"
-                        height="48"
-                        viewBox="0 0 48 48"
-                        fill="none"
-                      >
-                        <rect
-                          x="6"
-                          y="10"
-                          width="36"
-                          height="30"
-                          stroke="#d1d5db"
-                          strokeWidth="2"
-                          fill="none"
-                        />
-                        <path
-                          d="M6 18h36M24 18v22M18 10l6-6 6 6"
-                          stroke="#d1d5db"
-                          strokeWidth="2"
-                          strokeLinecap="square"
-                        />
-                      </svg>
-                    </div>
-                    <span className="product-table__empty-text">
-                      {loading
-                        ? "Đang tải dữ liệu sản phẩm..."
-                        : error
-                          ? `${error} Nhấn để thử lại.`
-                          : "Không tìm thấy sản phẩm phù hợp."}
-                    </span>
+                    {loading ? (
+                      <LoadingSpinner text="Đang tải dữ liệu sản phẩm..." size="md" />
+                    ) : (
+                      <>
+                        <div
+                          className="product-table__empty-icon"
+                          aria-hidden="true"
+                        >
+                          <svg
+                            width="48"
+                            height="48"
+                            viewBox="0 0 48 48"
+                            fill="none"
+                          >
+                            <rect
+                              x="6"
+                              y="10"
+                              width="36"
+                              height="30"
+                              stroke="#d1d5db"
+                              strokeWidth="2"
+                              fill="none"
+                            />
+                            <path
+                              d="M6 18h36M24 18v22M18 10l6-6 6 6"
+                              stroke="#d1d5db"
+                              strokeWidth="2"
+                              strokeLinecap="square"
+                            />
+                          </svg>
+                        </div>
+                        <span className="product-table__empty-text">
+                          {error
+                            ? `${error} Nhấn để thử lại.`
+                            : "Không tìm thấy sản phẩm phù hợp."}
+                        </span>
+                      </>
+                    )}
                   </div>
                 </td>
               </tr>

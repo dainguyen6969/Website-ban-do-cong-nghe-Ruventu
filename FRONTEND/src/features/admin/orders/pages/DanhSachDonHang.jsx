@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-do
 import { HiOutlineAdjustments, HiOutlineSearch } from 'react-icons/hi';
 import FilterDropdown from '../../../../shared/components/ui/FilterDropdown';
 import TablePagination from '../../../../shared/components/ui/TablePagination';
+import LoadingSpinner from '../../../../shared/components/ui/LoadingSpinner';
 import syncTableHeaderOffset from '../../../../shared/components/ui/syncTableHeaderOffset';
 import { dateTime, getOrders, label, money, orderDisplayStatus } from '../api/orderApi';
 import { subscribeOrderUpdates } from '../api/orderRealtime';
@@ -451,7 +452,9 @@ export default function DanhSachDonHang() {
               )}
               {state.loading && !data.items.length && (
                 <tr className="order-empty-row">
-                  <td colSpan="11">Đang tải dữ liệu...</td>
+                  <td colSpan="11">
+                    <LoadingSpinner text="Đang tải dữ liệu đơn hàng..." size="md" />
+                  </td>
                 </tr>
               )}
             </tbody>

@@ -50,6 +50,25 @@ const productCode = (product) =>
 const productPrice = (product, priceList) =>
   Number(product.unitPrice ?? product.prices?.[priceList] ?? 0);
 const pendingCheckoutKey = "ruventu_pos_pending_checkout";
+const posTabsStorageKey = "ruventu_pos_tabs_state";
+
+function getStoredPosState() {
+  try {
+    const raw = localStorage.getItem(posTabsStorageKey);
+    if (!raw) return null;
+    const data = JSON.parse(raw);
+    if (Array.isArray(data?.orders) && data.orders.length > 0) {
+      const activeExists = data.orders.some((o) => o.id === data.activeId);
+      return {
+        orders: data.orders,
+        activeId: activeExists ? data.activeId : data.orders[0].id,
+      };
+    }
+  } catch (error) {
+    console.error("Lỗi khi đọc trạng thái POS từ localStorage:", error);
+  }
+  return null;
+}
 
 function Heading({ children }) {
   return <h2 className="pos-heading">{children}</h2>;
@@ -78,8 +97,26 @@ function PosDialog({ children, className, labelledBy, onClose }) {
 }
 
 export default function BanHang() {
-  const [orders, setOrders] = useState(() => [createOrder(1)]);
-  const [activeId, setActiveId] = useState(1);
+  const [orders, setOrders] = useState(() => {
+    const stored = getStoredPosState();
+    return stored ? stored.orders : [createOrder(1)];
+  });
+  const [activeId, setActiveId] = useState(() => {
+    const stored = getStoredPosState();
+    return stored ? stored.activeId : 1;
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(
+        posTabsStorageKey,
+        JSON.stringify({ orders, activeId }),
+      );
+    } catch (error) {
+      console.error("Lỗi khi lưu trạng thái POS vào localStorage:", error);
+    }
+  }, [orders, activeId]);
+
   const [salesOptions, setSalesOptions] = useState(null);
   const [optionsError, setOptionsError] = useState(false);
   const [productSearch, setProductSearch] = useState("");
@@ -105,7 +142,7 @@ export default function BanHang() {
     }
   });
   const checkoutLock = useRef(false);
-  const order = orders.find((item) => item.id === activeId);
+  const order = orders.find((item) => item.id === activeId) || orders[0] || createOrder(1);
   const [previewState, setPreviewState] = useState({});
   const [previewRevision, setPreviewRevision] = useState(0);
   const previewSignature =
@@ -418,10 +455,20 @@ export default function BanHang() {
       }
     : null;
 
-  const shownSerials = serialModal?.candidates || [];
+  const shownSerials = (serialModal?.candidates || []).filter(
+    (item) => item.status === "TRONG_KHO" && !item.orderId,
+  );
 
   const toggleSerial = (candidate) => {
     if (!serialModal) return;
+
+    if (candidate.status && candidate.status !== "TRONG_KHO") {
+      setSerialModal((current) => ({
+        ...current,
+        error: `Serial ${candidate.serial} đã bán hoặc không còn trong kho.`,
+      }));
+      return;
+    }
 
     const usedElsewhere = Object.entries(order.serialSelections || {}).some(
       ([key, selected]) =>
@@ -576,9 +623,29 @@ export default function BanHang() {
             {checkoutError} Chưa xác định được kết quả thanh toán. Giữ nguyên
             đơn để thử lại với cùng mã chống lặp.
           </p>
-          <button type="button" className="pos-red-button" onClick={checkout}>
-            THỬ LẠI THANH TOÁN
-          </button>
+          <div style={{ display: "flex", gap: "8px", marginTop: "8px" }}>
+            <button type="button" className="pos-red-button" onClick={checkout}>
+              THỬ LẠI THANH TOÁN
+            </button>
+            <button
+              type="button"
+              className="pos-cancel-btn"
+              style={{
+                background: "#fff",
+                border: "1px solid #111",
+                padding: "8px 16px",
+                fontWeight: 600,
+                cursor: "pointer",
+              }}
+              onClick={() => {
+                sessionStorage.removeItem(pendingCheckoutKey);
+                setCheckoutPending(null);
+                setCheckoutError("");
+              }}
+            >
+              HỦY THỬ LẠI &amp; MỞ KHÓA ĐƠN
+            </button>
+          </div>
         </div>
       )}
       <fieldset
@@ -861,9 +928,7 @@ export default function BanHang() {
                     <th>Chiết khấu</th>
                     <th>Thành tiền</th>
                     <th>Serial</th>
-                    <th>
-                      <span className="pos-sr-only">Xóa</span>
-                    </th>
+                    <th style={{ width: 48, textAlign: 'center' }}>Xóa</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -969,20 +1034,30 @@ export default function BanHang() {
                               );
                             })}
                         </td>
-                        <td>
+                        <td style={{ textAlign: 'center' }}>
                           <button
                             type="button"
                             className="pos-remove"
                             aria-label={`Xóa ${productName(product)}`}
+                            title="Xóa sản phẩm"
                             onClick={() =>
-                              patch((current) => ({
-                                cart: current.cart.filter(
+                              patch((current) => {
+                                const nextCart = current.cart.filter(
                                   (item) => item.product.id !== product.id,
-                                ),
-                              }))
+                                );
+                                const prefix = `d${product.id}:`;
+                                const nextSerials = { ...current.serialSelections };
+                                Object.keys(nextSerials).forEach((key) => {
+                                  if (key.startsWith(prefix)) delete nextSerials[key];
+                                });
+                                return {
+                                  cart: nextCart,
+                                  serialSelections: nextSerials,
+                                };
+                              })
                             }
                           >
-                            <HiOutlineTrash />
+                            <HiOutlineTrash size={16} />
                           </button>
                         </td>
                       </tr>

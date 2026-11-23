@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react';
-import { useNavigate, useParams, Link } from 'react-router-dom';
+import { useEffect, useRef, useState } from 'react';
+import { Link, useNavigate, useParams } from 'react-router-dom';
+import LoadingSpinner from '../../../../shared/components/ui/LoadingSpinner';
 import {
   ArrowLeft,
   SquareCheck as CheckCircle2,
@@ -336,7 +337,14 @@ function WarrantyDetail({ id }) {
     setHistoryEventId(null);
   };
 
-  if (!data)
+  if (!data) {
+    if (loading) {
+      return (
+        <div className="w-shell">
+          <LoadingSpinner text="Đang tải hồ sơ bảo hành..." fullPage />
+        </div>
+      );
+    }
     return (
       <div className="w-shell">
         <div className="w-shell-content">
@@ -360,6 +368,7 @@ function WarrantyDetail({ id }) {
         </div>
       </div>
     );
+  }
   const latestQuote = data.bao_gia.at(-1);
   const quote = data.bao_gia.find((item) => item.phien_ban === Number(quoteVersion)) || latestQuote;
   const invoice = data.hoa_don;
@@ -585,7 +594,7 @@ function WarrantyDetail({ id }) {
 
       <TablePagination
         totalItems={data.lich_su?.pagination?.total_elements || 0}
-        pageSize={20}
+        pageSize={5}
         currentPage={page}
         onPageChange={changeHistoryPage}
         idPrefix="warranty-history"
@@ -732,7 +741,8 @@ function WarrantyDetail({ id }) {
       <header className="w-shell-hero">
         <div>
           <p className="w-shell-breadcrumb">
-            BẢO HÀNH <ChevronRight size={12} /> CHI TIẾT PHIẾU
+            <Link to="/admin/bao-hanh/danh-sach">BẢO HÀNH</Link> <ChevronRight size={12} />{' '}
+            <span>CHI TIẾT PHIẾU</span>
           </p>
 
           <div className="w-shell-title-row">

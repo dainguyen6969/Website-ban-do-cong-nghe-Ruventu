@@ -80,6 +80,24 @@ export default function Header({ onMenuToggle, isMenuOpen = false }) {
   const isSupplierPage = currentPath === '/admin/khach-hang-doi-tac/nha-cung-cap';
   const isShippingPartnerPage = currentPath === '/admin/khach-hang-doi-tac/doi-tac-van-chuyen';
   const isOrderDetail = /^\/admin\/don-hang\/danh-sach-don-hang\/[^/]+$/.test(currentPath);
+  const isReturnPage = currentPath.startsWith('/admin/don-hang/khach-tra-hang');
+  const isReturnCreate =
+    currentPath.startsWith('/admin/don-hang/khach-tra-hang/lap-phieu') ||
+    currentPath.includes('/admin/don-hang/khach-tra-hang/tao');
+  const isReturnDetail =
+    isReturnPage && !isReturnCreate && currentPath !== '/admin/don-hang/khach-tra-hang';
+  const isProductDetail = currentPath.startsWith('/admin/san-pham/chi-tiet-san-pham/');
+  const isProductCreate = currentPath.startsWith('/admin/san-pham/them-san-pham');
+  const isCashbookPage = currentPath.startsWith('/admin/so-quy-tien-mat');
+  const isDisbursementDetail = /^\/admin\/so-quy-tien-mat\/phieu-chi\/[^/]+$/.test(currentPath);
+  const isReceiptDetail = /^\/admin\/so-quy-tien-mat\/phieu-thu\/[^/]+$/.test(currentPath);
+  const isDisbursementCreate = currentPath === '/admin/so-quy-tien-mat/tao-phieu-chi';
+  const isReceiptCreate = currentPath === '/admin/so-quy-tien-mat/tao-phieu-thu';
+  const isReceiptDisbursementCreate = currentPath === '/admin/so-quy-tien-mat/tao-phieu-thu-chi';
+  const isDisbursementList = currentPath === '/admin/so-quy-tien-mat/phieu-chi';
+  const isReceiptList = currentPath === '/admin/so-quy-tien-mat/phieu-thu';
+  const isCashbookOverview = currentPath === '/admin/so-quy-tien-mat/tong-quan';
+  const isCashbookLedger = currentPath === '/admin/so-quy-tien-mat/so-quy';
   const isCategoryDetail = /^\/admin\/danh-muc\/danh-muc-san-pham\/[^/]+$/.test(currentPath);
   const isCategoryList = currentPath === '/admin/danh-muc/danh-muc-san-pham';
   let currentPageName = 'ĐƠN HÀNG';
@@ -107,15 +125,17 @@ export default function Header({ onMenuToggle, isMenuOpen = false }) {
           <HiOutlineMenu size={22} />
         </button>
         <nav className="header__breadcrumb" aria-label="Breadcrumb">
-          <span className="header__breadcrumb-item header__breadcrumb-item--muted">ADMIN</span>
+          <Link to="/admin/tong-quat" className="header__breadcrumb-item header__breadcrumb-item--muted">
+            ADMIN
+          </Link>
           <span className="header__breadcrumb-sep" aria-hidden="true">
             ›
           </span>
           {isWarrantyDetail || isWarrantyCreate ? (
             <>
-              <span className="header__breadcrumb-item header__breadcrumb-item--muted">
+              <Link to="/admin/bao-hanh/danh-sach" className="header__breadcrumb-item header__breadcrumb-item--muted">
                 BẢO HÀNH
-              </span>
+              </Link>
               <span className="header__breadcrumb-sep" aria-hidden="true">
                 ›
               </span>
@@ -125,9 +145,9 @@ export default function Header({ onMenuToggle, isMenuOpen = false }) {
             </>
           ) : isCategoryDetail ? (
             <>
-              <span className="header__breadcrumb-item header__breadcrumb-item--muted">
+              <Link to="/admin/danh-muc/danh-muc-san-pham" className="header__breadcrumb-item header__breadcrumb-item--muted">
                 DANH MỤC SẢN PHẨM
-              </span>
+              </Link>
               <span className="header__breadcrumb-sep" aria-hidden="true">
                 ›
               </span>
@@ -141,9 +161,9 @@ export default function Header({ onMenuToggle, isMenuOpen = false }) {
             </span>
           ) : isOrderDetail ? (
             <>
-              <span className="header__breadcrumb-item header__breadcrumb-item--muted">
+              <Link to="/admin/don-hang/danh-sach-don-hang" className="header__breadcrumb-item header__breadcrumb-item--muted">
                 ĐƠN HÀNG
-              </span>
+              </Link>
               <span className="header__breadcrumb-sep" aria-hidden="true">
                 ›
               </span>
@@ -153,17 +173,17 @@ export default function Header({ onMenuToggle, isMenuOpen = false }) {
             </>
           ) : isShippingPartnerPage ? (
             <>
-              <span className="header__breadcrumb-item header__breadcrumb-item--muted">
+              <Link to="/admin/khach-hang-doi-tac/khach-hang" className="header__breadcrumb-item header__breadcrumb-item--muted">
                 KHÁCH HÀNG &amp; ĐỐI TÁC
-              </span>
+              </Link>
               <span className="header__breadcrumb-sep" aria-hidden="true">
                 ›
               </span>
               {location.state?.partnerId && (
                 <>
-                  <span className="header__breadcrumb-item header__breadcrumb-item--muted">
+                  <Link to="/admin/khach-hang-doi-tac/doi-tac-van-chuyen" className="header__breadcrumb-item header__breadcrumb-item--muted">
                     ĐỐI TÁC VẬN CHUYỂN
-                  </span>
+                  </Link>
                   <span className="header__breadcrumb-sep" aria-hidden="true">
                     ›
                   </span>
@@ -175,17 +195,17 @@ export default function Header({ onMenuToggle, isMenuOpen = false }) {
             </>
           ) : isSupplierPage ? (
             <>
-              <span className="header__breadcrumb-item header__breadcrumb-item--muted">
+              <Link to="/admin/khach-hang-doi-tac/khach-hang" className="header__breadcrumb-item header__breadcrumb-item--muted">
                 KHÁCH HÀNG &amp; ĐỐI TÁC
-              </span>
+              </Link>
               <span className="header__breadcrumb-sep" aria-hidden="true">
                 ›
               </span>
               {location.state?.supplierId && (
                 <>
-                  <span className="header__breadcrumb-item header__breadcrumb-item--muted">
+                  <Link to="/admin/khach-hang-doi-tac/nha-cung-cap" className="header__breadcrumb-item header__breadcrumb-item--muted">
                     NHÀ CUNG CẤP
-                  </span>
+                  </Link>
                   <span className="header__breadcrumb-sep" aria-hidden="true">
                     ›
                   </span>
@@ -199,9 +219,9 @@ export default function Header({ onMenuToggle, isMenuOpen = false }) {
             <span className="header__breadcrumb-item header__breadcrumb-item--active">VAI TRÒ</span>
           ) : isEmployeeDetail ? (
             <>
-              <span className="header__breadcrumb-item header__breadcrumb-item--muted">
+              <Link to="/admin/nhan-vien/danh-sach" className="header__breadcrumb-item header__breadcrumb-item--muted">
                 NHÂN VIÊN
-              </span>
+              </Link>
               <span className="header__breadcrumb-sep" aria-hidden="true">
                 ›
               </span>
@@ -211,9 +231,9 @@ export default function Header({ onMenuToggle, isMenuOpen = false }) {
             </>
           ) : isCustomerDetail ? (
             <>
-              <span className="header__breadcrumb-item header__breadcrumb-item--muted">
+              <Link to="/admin/khach-hang-doi-tac/khach-hang" className="header__breadcrumb-item header__breadcrumb-item--muted">
                 KHÁCH HÀNG &amp; ĐỐI TÁC
-              </span>
+              </Link>
               <span className="header__breadcrumb-sep" aria-hidden="true">
                 ›
               </span>
@@ -223,17 +243,21 @@ export default function Header({ onMenuToggle, isMenuOpen = false }) {
             </>
           ) : isStockCheckPage ? (
             <>
-              <span className="header__breadcrumb-item header__breadcrumb-item--muted">
+              <Link to="/kho-hang/ton-kho" className="header__breadcrumb-item header__breadcrumb-item--muted">
                 KHO HÀNG
-              </span>
+              </Link>
               <span className="header__breadcrumb-sep" aria-hidden="true">
                 ›
               </span>
-              <span
-                className={`header__breadcrumb-item ${isStockCheckCreate || isStockCheckDetail ? 'header__breadcrumb-item--muted' : 'header__breadcrumb-item--active'}`}
-              >
-                KIỂM HÀNG
-              </span>
+              {isStockCheckCreate || isStockCheckDetail ? (
+                <Link to="/kho-hang/kiem-hang" className="header__breadcrumb-item header__breadcrumb-item--muted">
+                  KIỂM HÀNG
+                </Link>
+              ) : (
+                <span className="header__breadcrumb-item header__breadcrumb-item--active">
+                  KIỂM HÀNG
+                </span>
+              )}
               {(isStockCheckCreate || isStockCheckDetail) && (
                 <>
                   <span className="header__breadcrumb-sep" aria-hidden="true">
@@ -247,9 +271,9 @@ export default function Header({ onMenuToggle, isMenuOpen = false }) {
             </>
           ) : isRecallPage ? (
             <>
-              <span className="header__breadcrumb-item header__breadcrumb-item--muted">
+              <Link to="/kho-hang/ton-kho" className="header__breadcrumb-item header__breadcrumb-item--muted">
                 KHO HÀNG
-              </span>
+              </Link>
               <span className="header__breadcrumb-sep" aria-hidden="true">
                 ›
               </span>
@@ -259,17 +283,21 @@ export default function Header({ onMenuToggle, isMenuOpen = false }) {
             </>
           ) : isComboPage ? (
             <>
-              <span className="header__breadcrumb-item header__breadcrumb-item--muted">
+              <Link to="/kho-hang/ton-kho" className="header__breadcrumb-item header__breadcrumb-item--muted">
                 KHO HÀNG
-              </span>
+              </Link>
               <span className="header__breadcrumb-sep" aria-hidden="true">
                 ›
               </span>
-              <span
-                className={`header__breadcrumb-item ${isComboCreate || isComboDetail ? 'header__breadcrumb-item--muted' : 'header__breadcrumb-item--active'}`}
-              >
-                COMBO SẢN PHẨM
-              </span>
+              {isComboCreate || isComboDetail ? (
+                <Link to="/kho-hang/combo-san-pham" className="header__breadcrumb-item header__breadcrumb-item--muted">
+                  COMBO SẢN PHẨM
+                </Link>
+              ) : (
+                <span className="header__breadcrumb-item header__breadcrumb-item--active">
+                  COMBO SẢN PHẨM
+                </span>
+              )}
               {(isComboCreate || isComboDetail) && (
                 <>
                   <span className="header__breadcrumb-sep" aria-hidden="true">
@@ -283,17 +311,21 @@ export default function Header({ onMenuToggle, isMenuOpen = false }) {
             </>
           ) : isPurchasePage ? (
             <>
-              <span className="header__breadcrumb-item header__breadcrumb-item--muted">
+              <Link to="/kho-hang/ton-kho" className="header__breadcrumb-item header__breadcrumb-item--muted">
                 KHO HÀNG
-              </span>
+              </Link>
               <span className="header__breadcrumb-sep" aria-hidden="true">
                 ›
               </span>
-              <span
-                className={`header__breadcrumb-item ${isPurchaseCreate || isPurchaseDetail ? 'header__breadcrumb-item--muted' : 'header__breadcrumb-item--active'}`}
-              >
-                NHẬP HÀNG
-              </span>
+              {isPurchaseCreate || isPurchaseDetail ? (
+                <Link to="/kho-hang/nhap-hang" className="header__breadcrumb-item header__breadcrumb-item--muted">
+                  NHẬP HÀNG
+                </Link>
+              ) : (
+                <span className="header__breadcrumb-item header__breadcrumb-item--active">
+                  NHẬP HÀNG
+                </span>
+              )}
               {(isPurchaseCreate || isPurchaseDetail) && (
                 <>
                   <span className="header__breadcrumb-sep" aria-hidden="true">
@@ -307,9 +339,9 @@ export default function Header({ onMenuToggle, isMenuOpen = false }) {
             </>
           ) : isSerialDetail ? (
             <>
-              <span className="header__breadcrumb-item header__breadcrumb-item--muted">
+              <Link to="/kho-hang/danh-sach-serial" className="header__breadcrumb-item header__breadcrumb-item--muted">
                 DANH SÁCH SERIAL
-              </span>
+              </Link>
               <span className="header__breadcrumb-sep" aria-hidden="true">
                 ›
               </span>
@@ -319,9 +351,9 @@ export default function Header({ onMenuToggle, isMenuOpen = false }) {
             </>
           ) : isSerialList ? (
             <>
-              <span className="header__breadcrumb-item header__breadcrumb-item--muted">
+              <Link to="/kho-hang/ton-kho" className="header__breadcrumb-item header__breadcrumb-item--muted">
                 KHO HÀNG
-              </span>
+              </Link>
               <span className="header__breadcrumb-sep" aria-hidden="true">
                 ›
               </span>
@@ -331,9 +363,9 @@ export default function Header({ onMenuToggle, isMenuOpen = false }) {
             </>
           ) : isInventoryDetail ? (
             <>
-              <span className="header__breadcrumb-item header__breadcrumb-item--muted">
+              <Link to="/kho-hang/quan-ly-phien-ban" className="header__breadcrumb-item header__breadcrumb-item--muted">
                 QUẢN LÝ PHIÊN BẢN
-              </span>
+              </Link>
               <span className="header__breadcrumb-sep" aria-hidden="true">
                 ›
               </span>
@@ -343,9 +375,9 @@ export default function Header({ onMenuToggle, isMenuOpen = false }) {
             </>
           ) : isVersionManagement ? (
             <>
-              <span className="header__breadcrumb-item header__breadcrumb-item--muted">
+              <Link to="/kho-hang/ton-kho" className="header__breadcrumb-item header__breadcrumb-item--muted">
                 KHO HÀNG
-              </span>
+              </Link>
               <span className="header__breadcrumb-sep" aria-hidden="true">
                 ›
               </span>
@@ -355,9 +387,9 @@ export default function Header({ onMenuToggle, isMenuOpen = false }) {
             </>
           ) : isPromoDetail ? (
             <>
-              <span className="header__breadcrumb-item header__breadcrumb-item--muted">
+              <Link to="/admin/khuyen-mai/danh-sach" className="header__breadcrumb-item header__breadcrumb-item--muted">
                 KHUYẾN MẠI
-              </span>
+              </Link>
               <span className="header__breadcrumb-sep" aria-hidden="true">
                 ›
               </span>
@@ -367,15 +399,131 @@ export default function Header({ onMenuToggle, isMenuOpen = false }) {
             </>
           ) : isCreatePromotion ? (
             <>
-              <span className="header__breadcrumb-item header__breadcrumb-item--muted">
+              <Link to="/admin/khuyen-mai/danh-sach" className="header__breadcrumb-item header__breadcrumb-item--muted">
                 KHUYẾN MẠI
-              </span>
+              </Link>
               <span className="header__breadcrumb-sep" aria-hidden="true">
                 ›
               </span>
               <span className="header__breadcrumb-item header__breadcrumb-item--active">
                 TẠO KHUYẾN MẠI
               </span>
+            </>
+          ) : isReturnPage ? (
+            <>
+              <Link to="/admin/don-hang/danh-sach-don-hang" className="header__breadcrumb-item header__breadcrumb-item--muted">
+                ĐƠN HÀNG
+              </Link>
+              <span className="header__breadcrumb-sep" aria-hidden="true">
+                ›
+              </span>
+              {isReturnDetail || isReturnCreate ? (
+                <>
+                  <Link to="/admin/don-hang/khach-tra-hang" className="header__breadcrumb-item header__breadcrumb-item--muted">
+                    KHÁCH TRẢ HÀNG
+                  </Link>
+                  <span className="header__breadcrumb-sep" aria-hidden="true">
+                    ›
+                  </span>
+                  <span className="header__breadcrumb-item header__breadcrumb-item--active">
+                    {isReturnCreate ? 'LẬP PHIẾU TRẢ HÀNG' : 'CHI TIẾT PHIẾU TRẢ HÀNG'}
+                  </span>
+                </>
+              ) : (
+                <span className="header__breadcrumb-item header__breadcrumb-item--active">
+                  KHÁCH TRẢ HÀNG
+                </span>
+              )}
+            </>
+          ) : isProductDetail || isProductCreate ? (
+            <>
+              <Link to="/admin/san-pham/danh-sach-san-pham" className="header__breadcrumb-item header__breadcrumb-item--muted">
+                SẢN PHẨM
+              </Link>
+              <span className="header__breadcrumb-sep" aria-hidden="true">
+                ›
+              </span>
+              <span className="header__breadcrumb-item header__breadcrumb-item--active">
+                {isProductCreate ? 'THÊM SẢN PHẨM' : 'CHI TIẾT SẢN PHẨM'}
+              </span>
+            </>
+          ) : isCashbookPage ? (
+            <>
+              <Link to="/admin/so-quy-tien-mat/so-quy" className="header__breadcrumb-item header__breadcrumb-item--muted">
+                SỔ QUỸ TIỀN MẶT
+              </Link>
+              <span className="header__breadcrumb-sep" aria-hidden="true">
+                ›
+              </span>
+              {isDisbursementDetail ? (
+                <>
+                  <Link to="/admin/so-quy-tien-mat/phieu-chi" className="header__breadcrumb-item header__breadcrumb-item--muted">
+                    PHIẾU CHI
+                  </Link>
+                  <span className="header__breadcrumb-sep" aria-hidden="true">
+                    ›
+                  </span>
+                  <span className="header__breadcrumb-item header__breadcrumb-item--active">
+                    CHI TIẾT PHIẾU CHI
+                  </span>
+                </>
+              ) : isReceiptDetail ? (
+                <>
+                  <Link to="/admin/so-quy-tien-mat/phieu-thu" className="header__breadcrumb-item header__breadcrumb-item--muted">
+                    PHIẾU THU
+                  </Link>
+                  <span className="header__breadcrumb-sep" aria-hidden="true">
+                    ›
+                  </span>
+                  <span className="header__breadcrumb-item header__breadcrumb-item--active">
+                    CHI TIẾT PHIẾU THU
+                  </span>
+                </>
+              ) : isDisbursementCreate ? (
+                <>
+                  <Link to="/admin/so-quy-tien-mat/phieu-chi" className="header__breadcrumb-item header__breadcrumb-item--muted">
+                    PHIẾU CHI
+                  </Link>
+                  <span className="header__breadcrumb-sep" aria-hidden="true">
+                    ›
+                  </span>
+                  <span className="header__breadcrumb-item header__breadcrumb-item--active">
+                    TẠO PHIẾU CHI
+                  </span>
+                </>
+              ) : isReceiptCreate ? (
+                <>
+                  <Link to="/admin/so-quy-tien-mat/phieu-thu" className="header__breadcrumb-item header__breadcrumb-item--muted">
+                    PHIẾU THU
+                  </Link>
+                  <span className="header__breadcrumb-sep" aria-hidden="true">
+                    ›
+                  </span>
+                  <span className="header__breadcrumb-item header__breadcrumb-item--active">
+                    TẠO PHIẾU THU
+                  </span>
+                </>
+              ) : isReceiptDisbursementCreate ? (
+                <span className="header__breadcrumb-item header__breadcrumb-item--active">
+                  TẠO PHIẾU THU / CHI
+                </span>
+              ) : isDisbursementList ? (
+                <span className="header__breadcrumb-item header__breadcrumb-item--active">
+                  PHIẾU CHI
+                </span>
+              ) : isReceiptList ? (
+                <span className="header__breadcrumb-item header__breadcrumb-item--active">
+                  PHIẾU THU
+                </span>
+              ) : isCashbookOverview ? (
+                <span className="header__breadcrumb-item header__breadcrumb-item--active">
+                  TỔNG QUAN QUỸ
+                </span>
+              ) : (
+                <span className="header__breadcrumb-item header__breadcrumb-item--active">
+                  SỔ QUỸ
+                </span>
+              )}
             </>
           ) : (
             <span className="header__breadcrumb-item header__breadcrumb-item--active">

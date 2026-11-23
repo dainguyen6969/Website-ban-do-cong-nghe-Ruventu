@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate, useLocation, Link } from "react-router-dom";
 import { Check, X } from "lucide-react";
 
 import { receiptService } from "../../../../shared/services/receiptService";
 
 import TablePagination from "../../../../shared/components/ui/TablePagination";
 import FilterDropdown from "../../../../shared/components/ui/FilterDropdown";
+import LoadingSpinner from "../../../../shared/components/ui/LoadingSpinner";
 
 import CashbookSourceFilters from "../components/CashbookSourceFilters";
 
@@ -168,7 +169,9 @@ export default function DanhSachPhieuThu() {
       )}
 
       <div className="pt-header-top">
-        <div className="pt-breadcrumb">SỔ QUỸ TIỀN MẶT / PHIẾU THU</div>
+        <div className="pt-breadcrumb">
+          <Link to="/admin/so-quy-tien-mat/so-quy">SỔ QUỸ TIỀN MẶT</Link> / <span>PHIẾU THU</span>
+        </div>
         <button
           className="pt-btn-create"
           onClick={() => navigate("/admin/so-quy-tien-mat/tao-phieu-thu")}
@@ -257,9 +260,9 @@ export default function DanhSachPhieuThu() {
               <tr>
                 <td
                   colSpan="11"
-                  style={{ textAlign: "center", padding: "20px" }}
+                  style={{ textAlign: "center", padding: "24px" }}
                 >
-                  Đang tải dữ liệu...
+                  <LoadingSpinner text="Đang tải danh sách phiếu thu..." size="md" />
                 </td>
               </tr>
             ) : receipts.length > 0 ? (

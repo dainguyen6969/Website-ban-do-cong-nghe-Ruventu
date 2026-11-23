@@ -5,6 +5,7 @@ import '../styles/index.css';
 import '../typography/buttonTypography.css';
 import useMockAuth from '../auth/useMockAuth';
 import { canAccessAdmin } from '../auth/accountModel';
+import LoadingSpinner from '../shared/components/ui/LoadingSpinner';
 
 const AdminApp = lazy(() => import('./AdminApp'));
 const StorefrontApp = lazy(() => import('../storefront/App'));
@@ -19,9 +20,7 @@ export default function App() {
     return <Navigate to="/login" replace state={{ from: pathname }} />;
   }
 
-  return (
-    <Suspense fallback={<p role="status">{isAdminRoute ? 'Đang tải trang quản trị…' : 'Đang tải trang…'}</p>}>
-      {isAdminRoute ? <AdminApp /> : <StorefrontApp />}
-    </Suspense>
-  );
+  return isAdminRoute
+    ? <Suspense fallback={<LoadingSpinner text="Đang tải trang quản trị..." fullscreen size="lg" />}><AdminApp /></Suspense>
+    : <StorefrontApp />;
 }

@@ -29,6 +29,16 @@
   font-size: var(--order-type-label);
   font-weight: var(--admin-weight-medium, 500);
 }
+.order-detail-hero nav a {
+  color: var(--order-text-secondary);
+  text-decoration: none;
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+.order-detail-hero nav a:hover {
+  color: #111;
+  text-decoration: underline;
+}
 .order-detail-hero nav strong {
   color: #f31a21;
 }

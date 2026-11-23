@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { Check, X } from 'lucide-react';
 import { getPromotions, getPromotion } from '../api/promotionApi.js';
 import { normalizePromotion, computePromotionStatus } from '../promotionModel.js';
-import { getDemoPromotions } from '../demoPromotions.js';
+import { getDemoPromotions, getDeletedPromotionKeys } from '../demoPromotions.js';
 import TablePagination from '../../../../shared/components/ui/TablePagination';
+import LoadingSpinner from '../../../../shared/components/ui/LoadingSpinner';
 import './DanhSachKhuyenMai.css';
 import { FormDropdown } from "../../../../shared/components/ui/FilterDropdown";
 
@@ -84,7 +86,12 @@ export default function DanhSachKhuyenMai() {
                 const currentDemoList = getDemoPromotions();
                 const existingCodes = new Set(beItems.map(p => (p.code || '').toUpperCase()));
                 const missingDemos = currentDemoList.filter(d => !existingCodes.has(d.code.toUpperCase()));
-                const combined = [...beItems, ...missingDemos];
+                const deletedKeys = getDeletedPromotionKeys();
+                const combined = [...beItems, ...missingDemos].filter(p => {
+                    const idKey = String(p.id || '').toUpperCase().trim();
+                    const codeKey = String(p.code || '').toUpperCase().trim();
+                    return !deletedKeys.has(idKey) && !deletedKeys.has(codeKey);
+                });
 
                 // Fetch extra details for BE items if missing offer / details
                 const enriched = await Promise.all(
@@ -239,10 +246,20 @@ export default function DanhSachKhuyenMai() {
     return (
         <div className="promo-list-page admin-list-page">
             {toastMessage && (
-                <div className="promo-toast">
+                <div className="promo-toast" role="status">
                     <div className="promo-toast-content">
-                        <span className="toast-icon">✓</span>
-                        {toastMessage}
+                        <div className="toast-icon">
+                            <Check size={20} color="#fff" strokeWidth={3} />
+                        </div>
+                        <div className="toast-text">{toastMessage}</div>
+                        <button
+                            type="button"
+                            className="toast-close"
+                            onClick={() => setToastMessage('')}
+                            aria-label="Đóng thông báo"
+                        >
+                            <X size={18} strokeWidth={2.5} />
+                        </button>
                     </div>
                 </div>
             )}
@@ -250,7 +267,9 @@ export default function DanhSachKhuyenMai() {
             {/* Header Area */}
             <div className="promo-list-header">
                 <div className="promo-list-title-area">
-                    <div className="promo-breadcrumb">KHUYẾN MẠI / DANH SÁCH KHUYẾN MẠI</div>
+                    <div className="promo-breadcrumb">
+                        <Link to="/admin/khuyen-mai/danh-sach">KHUYẾN MẠI</Link> / <span>DANH SÁCH KHUYẾN MẠI</span>
+                    </div>
                     <h1>DANH SÁCH KHUYẾN MẠI</h1>
                     <p>QUẢN LÝ CÁC CHƯƠNG TRÌNH ƯU ĐÃI ĐANG ĐƯỢC CẤU HÌNH</p>
                 </div>
@@ -376,7 +395,6 @@ export default function DanhSachKhuyenMai() {
                                 <th>PHƯƠNG THỨC</th>
                                 <th>PHẠM VI ÁP DỤNG</th>
                                 <th>ƯU ĐÃI</th>
-                                <th>THỜI GIAN</th>
                                 <th>LƯỢT CÒN LẠI</th>
                                 <th>TRẠNG THÁI</th>
                                 <th>THAO TÁC</th>
@@ -385,14 +403,14 @@ export default function DanhSachKhuyenMai() {
                         <tbody>
                             {loading && !promotions.length ? (
                                 <tr>
-                                    <td colSpan="8" className="promo-table-notice">
-                                        Đang tải dữ liệu...
+                                    <td colSpan="7" style={{ padding: 24, textAlign: 'center' }}>
+                                        <LoadingSpinner text="Đang tải danh sách khuyến mại..." size="md" />
                                     </td>
                                 </tr>
                             ) : error ? (
                                 <tr>
                                     <td
-                                        colSpan="8"
+                                        colSpan="7"
                                         className="promo-table-notice error-notice"
                                     >
                                         {error}
@@ -425,15 +443,6 @@ export default function DanhSachKhuyenMai() {
                                         <td className="promo-col-offer">
                                             <div className="promo-cell-bold">
                                                 {getOfferText(promo)}
-                                            </div>
-                                        </td>
-
-                                        <td className="promo-col-time">
-                                            <div className="promo-time-row">
-                                                Từ {formatDateTime(promo.startDate)}
-                                            </div>
-                                            <div className="promo-time-row">
-                                                Đến {formatDateTime(promo.endDate)}
                                             </div>
                                         </td>
 
@@ -477,7 +486,7 @@ export default function DanhSachKhuyenMai() {
                                 ))
                             ) : (
                                 <tr>
-                                    <td colSpan="8">
+                                    <td colSpan="7">
                                         <div className="promo-empty-state">
                                             <p>
                                                 KHÔNG TÌM THẤY CHƯƠNG TRÌNH KHUYẾN MẠI PHÙ HỢP

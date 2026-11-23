@@ -911,6 +911,8 @@ function ShipmentDetail({ id }) {
                 totalItems={products.length}
                 currentPage={productPages.currentPage}
                 onPageChange={productPages.onPageChange}
+                pageSize={productPages.pageSize}
+                onPageSizeChange={productPages.onPageSizeChange}
                 idPrefix={`delivery-${id}-products`}
               />
 
