@@ -13,7 +13,10 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/api/v1/admin/warehouses")
 @RequiredArgsConstructor
-@PreAuthorize("hasRole('ADMIN')")
+@PreAuthorize(
+    "@adminRoleService.hasModuleAction(principal, 'kho_hang', 'xem')"
+        + " or @adminRoleService.hasModuleAction(principal, 'nhap_hang', 'xem')"
+        + " or @adminRoleService.hasModuleAction(principal, 'don_hang', 'xem')")
 public class AdminWarehouseController {
 
   private final AdminWarehouseService adminWarehouseService;

@@ -4,7 +4,8 @@ import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import Sidebar from '../shared/components/layout/Sidebar';
 import Header from '../shared/components/layout/Header';
 import OrderLayout from '../features/admin/orders/components/OrderLayout';
-import PermissionGate from '../shared/components/ui/PermissionGate';
+import PermissionGate, { AdminPermissionsProvider } from '../shared/components/ui/PermissionGate';
+import useMockAuth from '../auth/useMockAuth';
 import CustomerProvider from '../context/CustomerProvider';
 import OrderProvider from '../context/OrderProvider';
 import { CashbookProvider } from '../features/admin/cashbook/context/CashbookContext';
@@ -21,10 +22,16 @@ const DatHangOnline = lazy(() => import('../features/admin/orders/pages/DatHangO
 const DonChoHangCanXuLy = lazy(() => import('../features/admin/orders/pages/DonChoHangCanXuLy'));
 const QuanLyGiaoHang = lazy(() => import('../features/admin/shipping/pages/QuanLyGiaoHang'));
 const KhachTraHang = lazy(() => import('../features/admin/customers/pages/KhachTraHang'));
-const DanhSachSanPham = lazy(() => import('../features/admin/catalog/products/pages/DanhSachSanPham'));
+const DanhSachSanPham = lazy(
+  () => import('../features/admin/catalog/products/pages/DanhSachSanPham')
+);
 const ThemSanPham = lazy(() => import('../features/admin/catalog/products/pages/ThemSanPham'));
-const ChiTietSanPham = lazy(() => import('../features/admin/catalog/products/pages/ChiTietSanPham'));
-const DanhSachKhuyenMai = lazy(() => import('../features/admin/promotions/pages/DanhSachKhuyenMai'));
+const ChiTietSanPham = lazy(
+  () => import('../features/admin/catalog/products/pages/ChiTietSanPham')
+);
+const DanhSachKhuyenMai = lazy(
+  () => import('../features/admin/promotions/pages/DanhSachKhuyenMai')
+);
 const TaoKhuyenMai = lazy(() => import('../features/admin/promotions/pages/TaoKhuyenMai'));
 const ChiTietKhuyenMai = lazy(() => import('../features/admin/promotions/pages/ChiTietKhuyenMai'));
 const BanHang = lazy(() => import('../features/admin/sales/pages/BanHang'));
@@ -33,33 +40,47 @@ const TongQuanQuy = lazy(() => import('../features/admin/cashbook/pages/TongQuan
 const SoQuy = lazy(() => import('../features/admin/cashbook/pages/SoQuy'));
 const DanhSachPhieuThu = lazy(() => import('../features/admin/cashbook/pages/DanhSachPhieuThu'));
 const TaoPhieuThu = lazy(() => import('../features/admin/cashbook/pages/TaoPhieuThu'));
-const DanhSachLoaiPhieuThu = lazy(() => import('../features/admin/cashbook/pages/DanhSachLoaiPhieuThu'));
-const ChiTietLoaiPhieuThu = lazy(() => import('../features/admin/cashbook/pages/ChiTietLoaiPhieuThu'));
+const DanhSachLoaiPhieuThu = lazy(
+  () => import('../features/admin/cashbook/pages/DanhSachLoaiPhieuThu')
+);
+const ChiTietLoaiPhieuThu = lazy(
+  () => import('../features/admin/cashbook/pages/ChiTietLoaiPhieuThu')
+);
 const DanhSachPhieuChi = lazy(() => import('../features/admin/cashbook/pages/DanhSachPhieuChi'));
 const TaoPhieuChi = lazy(() => import('../features/admin/cashbook/pages/TaoPhieuChi'));
 const TaoPhieuThuChi = lazy(() => import('../features/admin/cashbook/pages/TaoPhieuThuChi'));
-const DanhSachLoaiPhieuChi = lazy(() => import('../features/admin/cashbook/pages/DanhSachLoaiPhieuChi'));
-const ChiTietLoaiPhieuChi = lazy(() => import('../features/admin/cashbook/pages/ChiTietLoaiPhieuChi'));
+const DanhSachLoaiPhieuChi = lazy(
+  () => import('../features/admin/cashbook/pages/DanhSachLoaiPhieuChi')
+);
+const ChiTietLoaiPhieuChi = lazy(
+  () => import('../features/admin/cashbook/pages/ChiTietLoaiPhieuChi')
+);
 const ChiTietPhieuThu = lazy(() => import('../features/admin/cashbook/pages/ChiTietPhieuThu'));
 const ChiTietPhieuChi = lazy(() => import('../features/admin/cashbook/pages/ChiTietPhieuChi'));
 const PlaceholderPage = lazy(() => import('../features/admin/shared/pages/PlaceholderPage'));
 const MockDanhSachBaoHanh = lazy(() => import('../features/admin/warranty/pages/DanhSachBaoHanh'));
 const MockLapPhieuBaoHanh = lazy(() => import('../features/admin/warranty/pages/LapPhieuBaoHanh'));
 const MockChiTietBaoHanh = lazy(() => import('../features/admin/warranty/pages/ChiTietBaoHanh'));
-const QuanLyPhienBan = lazy(() => import('../features/admin/catalog/products/pages/QuanLyPhienBan'));
+const QuanLyPhienBan = lazy(
+  () => import('../features/admin/catalog/products/pages/QuanLyPhienBan')
+);
 const ChiTietTonKho = lazy(() => import('../features/admin/inventory/pages/ChiTietTonKho'));
 const DanhSachSerial = lazy(() => import('../features/admin/inventory/pages/DanhSachSerial'));
 const ChiTietSerial = lazy(() => import('../features/admin/inventory/pages/ChiTietSerial'));
 const ThuHoiHang = lazy(() => import('../features/admin/inventory/recall/ThuHoiHang'));
 const ComboSanPham = lazy(() => import('../features/admin/catalog/combos/pages/ComboSanPham'));
-const ThemComboSanPham = lazy(() => import('../features/admin/catalog/combos/pages/ThemComboSanPham'));
+const ThemComboSanPham = lazy(
+  () => import('../features/admin/catalog/combos/pages/ThemComboSanPham')
+);
 const ChiTietCombo = lazy(() => import('../features/admin/catalog/combos/pages/ChiTietCombo'));
 const DanhSachNhapHang = lazy(() => import('../features/admin/purchasing/pages/DanhSachNhapHang'));
 const TaoDonNhapHang = lazy(() => import('../features/admin/purchasing/pages/TaoDonNhapHang'));
 const ChiTietNhapHang = lazy(() => import('../features/admin/purchasing/pages/ChiTietNhapHang'));
 const KiemHang = lazy(() => import('../features/admin/inventory/pages/KiemHang'));
 const TaoPhieuKiemHang = lazy(() => import('../features/admin/inventory/pages/TaoPhieuKiemHang'));
-const ChiTietPhieuKiemHang = lazy(() => import('../features/admin/inventory/pages/ChiTietPhieuKiemHang'));
+const ChiTietPhieuKiemHang = lazy(
+  () => import('../features/admin/inventory/pages/ChiTietPhieuKiemHang')
+);
 const DanhSachKhachHang = lazy(() => import('../features/admin/customers/pages/DanhSachKhachHang'));
 const ChiTietKhachHang = lazy(() => import('../features/admin/customers/pages/ChiTietKhachHang'));
 const ChiTietDonHang = lazy(() => import('../features/admin/orders/pages/ChiTietDonHang'));
@@ -67,14 +88,42 @@ const NhaCungCap = lazy(() => import('../features/admin/purchasing/pages/NhaCung
 const DoiTacVanChuyen = lazy(() => import('../features/admin/shipping/pages/DoiTacVanChuyen'));
 const VaiTro = lazy(() => import('../features/admin/organization/pages/VaiTro'));
 const AccountPage = lazy(() => import('../settings/AccountPage'));
-const DanhSachNhanVien = lazy(() => import('../features/admin/organization/pages/NhanVien').then(module => ({ default: module.DanhSachNhanVien })));
-const ChiTietNhanVien = lazy(() => import('../features/admin/organization/pages/NhanVien').then(module => ({ default: module.ChiTietNhanVien })));
-const DanhMucSanPham = lazy(() => import('../features/admin/catalog/categories/pages/DanhMucSanPham'));
-const ChiTietDanhMuc = lazy(() => import('../features/admin/catalog/categories/pages/DanhMucSanPham').then(module => ({ default: module.ChiTietDanhMuc })));
+const DanhSachNhanVien = lazy(() =>
+  import('../features/admin/organization/pages/NhanVien').then((module) => ({
+    default: module.DanhSachNhanVien,
+  }))
+);
+const ChiTietNhanVien = lazy(() =>
+  import('../features/admin/organization/pages/NhanVien').then((module) => ({
+    default: module.ChiTietNhanVien,
+  }))
+);
+const DanhMucSanPham = lazy(
+  () => import('../features/admin/catalog/categories/pages/DanhMucSanPham')
+);
+const ChiTietDanhMuc = lazy(() =>
+  import('../features/admin/catalog/categories/pages/DanhMucSanPham').then((module) => ({
+    default: module.ChiTietDanhMuc,
+  }))
+);
 const ThuongHieu = lazy(() => import('../features/admin/catalog/brands/pages/ThuongHieu'));
-const ChiTietThuongHieu = lazy(() => import('../features/admin/catalog/brands/pages/ThuongHieu').then(module => ({ default: module.ChiTietThuongHieu })));
+const ChiTietThuongHieu = lazy(() =>
+  import('../features/admin/catalog/brands/pages/ThuongHieu').then((module) => ({
+    default: module.ChiTietThuongHieu,
+  }))
+);
 
 export default function AdminApp() {
+  const { currentAccount } = useMockAuth();
+
+  return (
+    <AdminPermissionsProvider account={currentAccount}>
+      <AdminShell />
+    </AdminPermissionsProvider>
+  );
+}
+
+function AdminShell() {
   const { search } = useLocation();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
@@ -220,7 +269,10 @@ export default function AdminApp() {
                         path="/admin/khach-hang-doi-tac/khach-hang/:customerId"
                         element={<ChiTietKhachHang />}
                       />
-                      <Route path="/admin/khach-hang-doi-tac/nha-cung-cap" element={<NhaCungCap />} />
+                      <Route
+                        path="/admin/khach-hang-doi-tac/nha-cung-cap"
+                        element={<NhaCungCap />}
+                      />
                       <Route
                         path="/admin/khach-hang-doi-tac/doi-tac-van-chuyen"
                         element={<DoiTacVanChuyen />}
@@ -255,17 +307,26 @@ export default function AdminApp() {
                         element={<Navigate to="/admin/so-quy-tien-mat/tong-quan" replace />}
                       />
                       <Route path="/admin/so-quy-tien-mat/tong-quan" element={<TongQuanQuy />} />
-                      <Route path="/admin/so-quy-tien-mat/so-quy" element={<SoQuy key={search} />} />
+                      <Route
+                        path="/admin/so-quy-tien-mat/so-quy"
+                        element={<SoQuy key={search} />}
+                      />
                       <Route
                         path="/admin/so-quy-tien-mat/tao-phieu-thu-chi"
                         element={<TaoPhieuThuChi />}
                       />
-                      <Route path="/admin/so-quy-tien-mat/phieu-thu" element={<DanhSachPhieuThu />} />
+                      <Route
+                        path="/admin/so-quy-tien-mat/phieu-thu"
+                        element={<DanhSachPhieuThu />}
+                      />
                       <Route
                         path="/admin/so-quy-tien-mat/phieu-thu/:id"
                         element={<ChiTietPhieuThu />}
                       />
-                      <Route path="/admin/so-quy-tien-mat/tao-phieu-thu" element={<TaoPhieuThu />} />
+                      <Route
+                        path="/admin/so-quy-tien-mat/tao-phieu-thu"
+                        element={<TaoPhieuThu />}
+                      />
                       <Route
                         path="/admin/so-quy-tien-mat/loai-phieu-thu"
                         element={<DanhSachLoaiPhieuThu />}
@@ -274,12 +335,18 @@ export default function AdminApp() {
                         path="/admin/so-quy-tien-mat/loai-phieu-thu/:id"
                         element={<ChiTietLoaiPhieuThu />}
                       />
-                      <Route path="/admin/so-quy-tien-mat/phieu-chi" element={<DanhSachPhieuChi />} />
+                      <Route
+                        path="/admin/so-quy-tien-mat/phieu-chi"
+                        element={<DanhSachPhieuChi />}
+                      />
                       <Route
                         path="/admin/so-quy-tien-mat/phieu-chi/:id"
                         element={<ChiTietPhieuChi />}
                       />
-                      <Route path="/admin/so-quy-tien-mat/tao-phieu-chi" element={<TaoPhieuChi />} />
+                      <Route
+                        path="/admin/so-quy-tien-mat/tao-phieu-chi"
+                        element={<TaoPhieuChi />}
+                      />
                       <Route
                         path="/admin/so-quy-tien-mat/loai-phieu-chi"
                         element={<DanhSachLoaiPhieuChi />}
@@ -302,15 +369,24 @@ export default function AdminApp() {
                       <Route path="/admin/bao-hanh/chi-tiet/:id" element={<MockChiTietBaoHanh />} />
                       <Route path="/admin/bao-hanh/tao-moi" element={<MockLapPhieuBaoHanh />} />
 
-                      <Route path="/admin/bao-hanh" element={<MockDanhSachBaoHanh key={search} />} />
+                      <Route
+                        path="/admin/bao-hanh"
+                        element={<MockDanhSachBaoHanh key={search} />}
+                      />
                       <Route path="/admin/bao-hanh/lap-phieu" element={<MockLapPhieuBaoHanh />} />
                       <Route path="/admin/bao-hanh/:id" element={<MockChiTietBaoHanh />} />
                       <Route
                         path="/admin/danh-muc"
                         element={<Navigate to="/admin/danh-muc/danh-muc-san-pham" replace />}
                       />
-                      <Route path="/admin/danh-muc/tags" element={<PlaceholderPage title="Tags" />} />
-                      <Route path="/admin/danh-muc/danh-muc-san-pham" element={<DanhMucSanPham />} />
+                      <Route
+                        path="/admin/danh-muc/tags"
+                        element={<PlaceholderPage title="Tags" />}
+                      />
+                      <Route
+                        path="/admin/danh-muc/danh-muc-san-pham"
+                        element={<DanhMucSanPham />}
+                      />
                       <Route
                         path="/admin/danh-muc/danh-muc-san-pham/:categoryId"
                         element={<ChiTietDanhMuc />}
@@ -321,27 +397,27 @@ export default function AdminApp() {
                         element={<ChiTietThuongHieu />}
                       />
 
-                    {/* Đơn hàng section — shared layout with 4 tabs */}
-                    <Route path="/admin/don-hang" element={<OrderLayout />}>
-                      <Route index element={<Navigate to="danh-sach-don-hang" replace />} />
-                      <Route path="danh-sach-don-hang" element={<DanhSachDonHang key={search} />} />
-                      <Route path="danh-sach-don-hang/:orderId" element={<ChiTietDonHang />} />
-                      <Route path="cho-hang-can-xu-ly" element={<DonChoHangCanXuLy />} />
-                      <Route path="dat-hang-online" element={<DatHangOnline />} />
-                      <Route path="dat-hang-online/:orderId" element={<DatHangOnline />} />
-                      <Route path="quan-ly-giao-hang" element={<QuanLyGiaoHang key={search} />} />
-                      <Route path="quan-ly-giao-hang/:deliveryId" element={<QuanLyGiaoHang />} />
-                      <Route path="khach-tra-hang" element={<KhachTraHang key={search} />} />
-                      <Route path="khach-tra-hang/tao" element={<KhachTraHang />} />
-                      <Route path="khach-tra-hang/tao/:orderId" element={<KhachTraHang />} />
-                      <Route path="khach-tra-hang/:returnId" element={<KhachTraHang />} />
-                    </Route>
+                      {/* Đơn hàng section — shared layout with 4 tabs */}
+                      <Route path="/admin/don-hang" element={<OrderLayout />}>
+                        <Route index element={<Navigate to="danh-sach-don-hang" replace />} />
+                        <Route
+                          path="danh-sach-don-hang"
+                          element={<DanhSachDonHang key={search} />}
+                        />
+                        <Route path="danh-sach-don-hang/:orderId" element={<ChiTietDonHang />} />
+                        <Route path="cho-hang-can-xu-ly" element={<DonChoHangCanXuLy />} />
+                        <Route path="dat-hang-online" element={<DatHangOnline />} />
+                        <Route path="dat-hang-online/:orderId" element={<DatHangOnline />} />
+                        <Route path="quan-ly-giao-hang" element={<QuanLyGiaoHang key={search} />} />
+                        <Route path="quan-ly-giao-hang/:deliveryId" element={<QuanLyGiaoHang />} />
+                        <Route path="khach-tra-hang" element={<KhachTraHang key={search} />} />
+                        <Route path="khach-tra-hang/tao" element={<KhachTraHang />} />
+                        <Route path="khach-tra-hang/tao/:orderId" element={<KhachTraHang />} />
+                        <Route path="khach-tra-hang/:returnId" element={<KhachTraHang />} />
+                      </Route>
 
                       {/* Catch-all fallback */}
-                      <Route
-                        path="*"
-                        element={<Navigate to="/admin/don-hang/danh-sach-don-hang" replace />}
-                      />
+                      <Route path="*" element={<Navigate to="/admin" replace />} />
                     </Routes>
                   </Suspense>
                 </PermissionGate>

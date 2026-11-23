@@ -1,5 +1,6 @@
 package com.example.dantruventu.Services.order;
 
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
@@ -22,10 +23,16 @@ import com.example.dantruventu.Enum.TrangThaiCoBanEnum;
 import com.example.dantruventu.Enum.TrangThaiTraHang;
 import com.example.dantruventu.Error.GlobalExceptionHandler;
 import com.example.dantruventu.Repository.NguoiDungRepository;
+import com.example.dantruventu.Services.AuthTokenService;
 import com.example.dantruventu.Services.JwtService;
+import com.example.dantruventu.Services.LogoutService;
+import com.example.dantruventu.Services.RefreshTokenSessionService;
+import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -35,6 +42,8 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
+import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockServletContext;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -67,6 +76,8 @@ class AdminReturnHandoverSecurityTest {
   private AdminReturnRejectService rejects;
   private AdminReturnInspectionService inspections;
   private JwtService jwt;
+  private RefreshTokenSessionService sessions;
+  private AuthTokenService tokens;
   private NguoiDung admin;
 
   @BeforeAll
@@ -100,6 +111,8 @@ class AdminReturnHandoverSecurityTest {
     rejects = context.getBean(AdminReturnRejectService.class);
     inspections = context.getBean(AdminReturnInspectionService.class);
     jwt = context.getBean(JwtService.class);
+    sessions = context.getBean(RefreshTokenSessionService.class);
+    tokens = new AuthTokenService(jwt, sessions);
     reset(users, handovers, cancels, rejects, inspections);
     SecurityContextHolder.clearContext();
     admin = user(7L, "ADMIN", TrangThaiCoBanEnum.HOAT_DONG);
@@ -148,7 +161,7 @@ class AdminReturnHandoverSecurityTest {
     String token;
     ReflectionTestUtils.setField(jwt, "accessTokenExpiration", -1000L);
     try {
-      token = jwt.generateAccessToken(admin);
+      token = accessTokenFor(admin);
     } finally {
       ReflectionTestUtils.setField(jwt, "accessTokenExpiration", 60000L);
     }
@@ -169,7 +182,7 @@ class AdminReturnHandoverSecurityTest {
     when(users.findByIdWithVaiTro(8L)).thenReturn(Optional.of(customer));
     mvc.perform(
             post(url(operation))
-                .header("Authorization", "Bearer " + jwt.generateAccessToken(customer))
+                .header("Authorization", "Bearer " + accessTokenFor(customer))
                 .header("Idempotency-Key", KEY)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(body(operation)))
@@ -182,7 +195,7 @@ class AdminReturnHandoverSecurityTest {
     admin.setTrangThai(TrangThaiCoBanEnum.NGUNG_HOAT_DONG);
     mvc.perform(
             post(url("handover"))
-                .header("Authorization", "Bearer " + jwt.generateAccessToken(admin))
+                .header("Authorization", "Bearer " + accessTokenFor(admin))
                 .header("Idempotency-Key", KEY)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(BODY))
@@ -195,11 +208,37 @@ class AdminReturnHandoverSecurityTest {
     when(users.findByIdWithVaiTro(7L)).thenReturn(Optional.empty());
     mvc.perform(
             post(url("handover"))
-                .header("Authorization", "Bearer " + jwt.generateAccessToken(admin))
+                .header("Authorization", "Bearer " + accessTokenFor(admin))
                 .header("Idempotency-Key", KEY)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(BODY))
         .andExpect(status().isUnauthorized());
+    verifyNoInteractions(handovers);
+  }
+
+  @Test
+  void logoutRevokesOneSessionAndAuthVersionInvalidatesRemainingAccess() throws Exception {
+    var first = tokens.generateTokenPair(admin, false);
+    var second = tokens.generateTokenPair(admin, false);
+    var logout = new LogoutService(jwt, sessions);
+
+    assertEquals(200, logout.logout(first.refreshToken()).status());
+    assertEquals(200, logout.logout(first.refreshToken()).status());
+    assertFalse(sessions.isRefreshTokenActive(first.refreshToken()));
+    assertFalse(jwt.isAccessTokenValid(first.accessToken()));
+    assertTrue(jwt.isAccessTokenValid(second.accessToken()));
+
+    admin.setPhienBanXacThuc(1L);
+    for (String token : List.of(first.accessToken(), second.accessToken())) {
+      mvc.perform(
+              post(url("handover"))
+                  .header("Authorization", "Bearer " + token)
+                  .header("Idempotency-Key", KEY)
+                  .contentType(MediaType.APPLICATION_JSON)
+                  .content(BODY))
+          .andExpect(status().isUnauthorized());
+    }
+
     verifyNoInteractions(handovers);
   }
 
@@ -225,7 +264,7 @@ class AdminReturnHandoverSecurityTest {
     when(handovers.handover(eq(300L), eq(KEY), any(), same(admin))).thenReturn(response);
     mvc.perform(
             post(url("handover"))
-                .header("Authorization", "Bearer " + jwt.generateAccessToken(admin))
+                .header("Authorization", "Bearer " + accessTokenFor(admin))
                 .header("Idempotency-Key", KEY)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(BODY))
@@ -266,7 +305,7 @@ class AdminReturnHandoverSecurityTest {
         };
     mvc.perform(
             post(url("handover"))
-                .header("Authorization", "Bearer " + jwt.generateAccessToken(admin))
+                .header("Authorization", "Bearer " + accessTokenFor(admin))
                 .header("Idempotency-Key", KEY)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(body))
@@ -338,7 +377,7 @@ class AdminReturnHandoverSecurityTest {
     mvc.perform(
             post(url("inspection"))
                 .contentType(MediaType.APPLICATION_JSON)
-                .header("Authorization", "Bearer " + jwt.generateAccessToken(admin))
+                .header("Authorization", "Bearer " + accessTokenFor(admin))
                 .header("Idempotency-Key", KEY)
                 .content(body("inspection")))
         .andExpect(status().isOk())
@@ -362,10 +401,18 @@ class AdminReturnHandoverSecurityTest {
     };
   }
 
+  private String accessTokenFor(NguoiDung user) {
+    return tokens.generateTokenPair(user, false).accessToken();
+  }
+
   private NguoiDung user(Long id, String role, TrangThaiCoBanEnum status) {
     return NguoiDung.builder()
         .id(id)
-        .vaiTro(VaiTro.builder().tenVaiTro(role).build())
+        .vaiTro(
+            VaiTro.builder()
+                .maVaiTro(role)
+                .tenVaiTro("ADMIN".equals(role) ? "Quản trị viên" : "Khách hàng")
+                .build())
         .trangThai(status)
         .build();
   }
@@ -422,8 +469,29 @@ class AdminReturnHandoverSecurityTest {
     }
 
     @Bean
-    JwtService jwtService() {
-      return new JwtService();
+    @SuppressWarnings("unchecked")
+    RefreshTokenSessionService sessions() {
+      var redis = mock(StringRedisTemplate.class);
+      ValueOperations<String, String> values = mock(ValueOperations.class);
+      Set<String> activeKeys = ConcurrentHashMap.newKeySet();
+
+      when(redis.opsForValue()).thenReturn(values);
+      doAnswer(
+              call -> {
+                activeKeys.add(call.getArgument(0));
+                return null;
+              })
+          .when(values)
+          .set(anyString(), eq("ACTIVE"), any(Duration.class));
+      when(redis.hasKey(anyString())).thenAnswer(call -> activeKeys.contains(call.getArgument(0)));
+      when(redis.delete(anyString())).thenAnswer(call -> activeKeys.remove(call.getArgument(0)));
+
+      return new RefreshTokenSessionService(redis);
+    }
+
+    @Bean
+    JwtService jwtService(RefreshTokenSessionService sessions) {
+      return new JwtService(sessions);
     }
   }
 }

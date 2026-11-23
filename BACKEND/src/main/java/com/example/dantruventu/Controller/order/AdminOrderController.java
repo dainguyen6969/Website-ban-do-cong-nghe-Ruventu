@@ -53,6 +53,7 @@ public class AdminOrderController {
   }
 
   @PostMapping("/realtime-ticket")
+  @PreAuthorize("isAuthenticated()")
   public ApiResponse<java.util.Map<String, String>> realtimeTicket(
       @RequestHeader("Authorization") String authorization) {
     return ok(
@@ -61,7 +62,7 @@ public class AdminOrderController {
   }
 
   @GetMapping("/waiting-actions")
-  @PreAuthorize("hasAnyRole('ADMIN','QUAN_LY','NHAN_VIEN_BAN_HANG')")
+  @PreAuthorize("@adminRoleService.hasModuleAction(principal, 'don_hang', 'xem')")
   public ApiResponse<Object> waitingActions(
       @RequestParam(defaultValue = "ORDER") String kind,
       @RequestParam(defaultValue = "") String keyword,
@@ -76,7 +77,7 @@ public class AdminOrderController {
   }
 
   @PostMapping("/waiting-actions/{kind}/{id}")
-  @PreAuthorize("hasAnyRole('ADMIN','QUAN_LY','NHAN_VIEN_BAN_HANG')")
+  @PreAuthorize("@adminRoleService.hasModuleAction(principal, 'don_hang', 'sua')")
   public ApiResponse<BackorderService.Result> waitingContact(
       @PathVariable String kind,
       @PathVariable Long id,
@@ -87,7 +88,7 @@ public class AdminOrderController {
   }
 
   @GetMapping("/waiting-actions/{kind}/{id}/history")
-  @PreAuthorize("hasAnyRole('ADMIN','QUAN_LY','NHAN_VIEN_BAN_HANG')")
+  @PreAuthorize("@adminRoleService.hasModuleAction(principal, 'don_hang', 'xem')")
   public ApiResponse<Object> waitingContactHistory(
       @PathVariable String kind, @PathVariable Long id) {
 
@@ -95,6 +96,7 @@ public class AdminOrderController {
   }
 
   @GetMapping
+  @PreAuthorize("@adminRoleService.hasModuleAction(principal, 'don_hang', 'xem')")
   public ApiResponse<AdminSalesResponse.PageData<AdminOrderResponse.ListItem>> list(
       @RequestParam(name = "keyword", required = false) String keyword,
       @RequestParam(name = "loai_don_hang", required = false) LoaiDonHang type,
@@ -130,6 +132,7 @@ public class AdminOrderController {
   }
 
   @PostMapping
+  @PreAuthorize("@adminRoleService.hasModuleAction(principal, 'don_hang', 'them')")
   public ResponseEntity<ApiResponse<AdminSalesResponse.Order>> create(
       @RequestHeader(name = "Idempotency-Key", required = false) String key,
       @Valid @RequestBody AdminSalesRequest.Online request) {
@@ -144,20 +147,21 @@ public class AdminOrderController {
   }
 
   @GetMapping("/{id}")
-  @PreAuthorize("hasAnyRole('ADMIN','QUAN_LY','NHAN_VIEN_BAN_HANG')")
+  @PreAuthorize("@adminRoleService.hasModuleAction(principal, 'don_hang', 'xem')")
   public ApiResponse<AdminSalesResponse.Order> detail(@PathVariable("id") Long id) {
 
     return ok("Lấy chi tiết đơn hàng thành công", orderService.detail(id));
   }
 
   @GetMapping("/{id}/screen")
-  @PreAuthorize("hasAnyRole('ADMIN','QUAN_LY','NHAN_VIEN_BAN_HANG')")
+  @PreAuthorize("@adminRoleService.hasModuleAction(principal, 'don_hang', 'xem')")
   public ApiResponse<Map<String, Object>> screen(@PathVariable("id") Long id) {
 
     return ok("Lấy dữ liệu màn hình đơn hàng thành công", orderService.screen(id));
   }
 
   @PutMapping("/{id}")
+  @PreAuthorize("@adminRoleService.hasModuleAction(principal, 'don_hang', 'sua')")
   public ApiResponse<AdminOrderResponse.Action> update(
       @PathVariable("id") Long id,
       @RequestHeader(name = "Idempotency-Key", required = false) String key,
@@ -209,13 +213,16 @@ public class AdminOrderController {
   }
 
   @PostMapping("/{id}/delivery/start")
+  @PreAuthorize(
+      "@adminRoleService.hasModuleAction(principal, 'don_hang', 'xem')"
+          + " and @adminRoleService.hasModuleAction(principal, 'giao_hang', 'them')")
   public ApiResponse<AdminOrderResponse.Action> startDelivery(
       @PathVariable("id") Long id, @Valid @RequestBody AdminOrderRequest.DeliveryStart request) {
     return ok("Bắt đầu giao hàng thành công", orderService.startDelivery(id, request));
   }
 
   @GetMapping("/{id}/history")
-  @PreAuthorize("hasAnyRole('ADMIN','QUAN_LY','NHAN_VIEN_BAN_HANG')")
+  @PreAuthorize("@adminRoleService.hasModuleAction(principal, 'don_hang', 'xem')")
   public ApiResponse<java.util.List<AdminOrderResponse.History>> history(
       @PathVariable("id") Long id) {
     return ok("Lấy lịch sử xử lý thành công", orderService.history(id));

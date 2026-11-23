@@ -17,8 +17,12 @@ import {
   inputFromApiTime,
   withIdempotency,
 } from '../../../../shared/services/mutationUtils';
+
+import { hasAdminPermission } from '../../../../auth/roleModel';
+import { useAdminPermissions } from '../../../../shared/components/ui/PermissionGate';
+
 import './DonChoHangCanXuLy.css';
-import { FormDropdown } from "../../../../shared/components/ui/FilterDropdown";
+import { FormDropdown } from '../../../../shared/components/ui/FilterDropdown';
 
 const RESULTS = {
   CHUA_LIEN_HE: 'Chưa ghi nhận liên hệ',
@@ -414,6 +418,10 @@ function WaitingQueueRow({ row, onOpen, locked }) {
 
 export default function DonChoHangCanXuLy() {
   const [params, setParams] = useSearchParams();
+
+  const access = useAdminPermissions()?.access;
+  const canHandleWaiting = hasAdminPermission(access, 'don_hang', 'sua');
+
   const [kind, setKind] = useState('ORDER');
   const [keyword, setKeyword] = useState('');
   const [priority, setPriority] = useState('');
@@ -438,6 +446,10 @@ export default function DonChoHangCanXuLy() {
   const writing = useRef(false);
   const attempt = useRef(null);
 
+  useEffect(() => {
+    editing.current = Boolean(canHandleWaiting && dialog);
+  }, [canHandleWaiting, dialog]);
+
   const orderId = kind === 'ORDER' ? params.get('order_id') : null;
   const request = useMemo(
     () => ({
@@ -453,7 +465,9 @@ export default function DonChoHangCanXuLy() {
 
   useEffect(() => {
     const refresh = () => {
-      if (!document.hidden && !editing.current && !attempt.current) {
+      const operationPending = writing.current || (canHandleWaiting && Boolean(attempt.current));
+
+      if (!document.hidden && !editing.current && !operationPending) {
         setRevision((value) => value + 1);
       }
     };
@@ -467,7 +481,7 @@ export default function DonChoHangCanXuLy() {
       window.removeEventListener('focus', refresh);
       unsubscribe();
     };
-  }, []);
+  }, [canHandleWaiting]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -517,7 +531,7 @@ export default function DonChoHangCanXuLy() {
   }, [dialog?.kind, dialog?.id]);
 
   const open = (row) => {
-    if (busy || attempt.current) return;
+    if (!canHandleWaiting || busy || attempt.current) return;
 
     editing.current = true;
     setOperationError('');
@@ -549,7 +563,7 @@ export default function DonChoHangCanXuLy() {
     }));
 
   const submit = async () => {
-    if (writing.current || !dialog) return;
+    if (!canHandleWaiting || writing.current || !dialog) return;
 
     let body = attempt.current?.body;
 
@@ -841,7 +855,7 @@ export default function DonChoHangCanXuLy() {
                   key={`${row.kind}:${row.id}`}
                   row={row}
                   onOpen={open}
-                  locked={frozen}
+                  locked={frozen || !canHandleWaiting}
                 />
               ))
             )}
@@ -857,7 +871,7 @@ export default function DonChoHangCanXuLy() {
         idPrefix="waiting-actions"
       />
 
-      {dialog && (
+      {canHandleWaiting && dialog && (
         <OrderModal
           title="LIÊN HỆ VÀ HẸN XỬ LÝ"
           subtitle={dialog.code}
@@ -891,7 +905,8 @@ export default function DonChoHangCanXuLy() {
           <fieldset className="waiting-fields" disabled={frozen}>
             <label>
               <span>Nội dung cần cập nhật</span>
-              <FormDropdown aria-label="Nội dung cần cập nhật"
+              <FormDropdown
+                aria-label="Nội dung cần cập nhật"
                 value={form.result}
                 onChange={(event) => change('result', event.target.value)}
               >
@@ -905,7 +920,8 @@ export default function DonChoHangCanXuLy() {
 
             <label>
               <span>Phụ trách sau khi lưu</span>
-              <FormDropdown aria-label="Phụ trách sau khi lưu"
+              <FormDropdown
+                aria-label="Phụ trách sau khi lưu"
                 required
                 value={form.employeeId}
                 onChange={(event) => change('employeeId', event.target.value)}
@@ -942,7 +958,8 @@ export default function DonChoHangCanXuLy() {
                 {(dialog.remaining == null || Number(dialog.remaining) > 0) && (
                   <label>
                     <span>Dự kiến thu phần còn thiếu</span>
-                    <FormDropdown aria-label="Dự kiến thu phần còn thiếu"
+                    <FormDropdown
+                      aria-label="Dự kiến thu phần còn thiếu"
                       title="Lưu phương án dự kiến; việc thực thu được ghi nhận tại chi tiết đơn hoặc đối soát COD."
                       value={form.remainingMethod}
                       onChange={(event) => change('remainingMethod', event.target.value)}

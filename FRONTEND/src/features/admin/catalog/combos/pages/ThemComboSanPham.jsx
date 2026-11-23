@@ -1,40 +1,34 @@
 // Existing combo form; its custom image layout uses the shared Cloudinary media API.
-import { useEffect, useMemo, useRef, useState } from "react";
-import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import {
-  HiCheck,
-  HiOutlinePlus,
-  HiOutlineSearch,
-  HiOutlineX,
-} from "react-icons/hi";
-import FormCard from "../../../../../shared/components/ui/FormCard";
-import { FormDropdown } from "../../../../../shared/components/ui/FilterDropdown";
-import PriceInput from "../../../../../shared/components/ui/PriceInput";
-import { uploadImage } from "../../../../media/api/imageUploadApi";
-import {
-  createCombo,
-  getComboDetail,
-  getComboFormOptions,
-  updateCombo,
-} from "../api/comboApi";
-import fallbackImage from "../../../../../assets/hero.png";
-import { WarrantySummary } from "../../components/CatalogPolicies";
-import "./ComboSanPham.css";
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { HiCheck, HiOutlinePlus, HiOutlineSearch, HiOutlineX } from 'react-icons/hi';
+import FormCard from '../../../../../shared/components/ui/FormCard';
+import { FormDropdown } from '../../../../../shared/components/ui/FilterDropdown';
+import PriceInput from '../../../../../shared/components/ui/PriceInput';
+import { uploadProductImage } from '../../../../media/api/imageUploadApi';
+import { createCombo, getComboDetail, getComboFormOptions, updateCombo } from '../api/comboApi';
+import fallbackImage from '../../../../../assets/hero.png';
+import { WarrantySummary } from '../../components/CatalogPolicies';
 
-const money = (value) => `${Number(value || 0).toLocaleString("vi-VN")}đ`;
+import { hasAdminPermission } from '../../../../../auth/roleModel';
+import { useAdminPermissions } from '../../../../../shared/components/ui/PermissionGate';
+
+import './ComboSanPham.css';
+
+const money = (value) => `${Number(value || 0).toLocaleString('vi-VN')}đ`;
 const isActive = (product) =>
-  !String(product.trangThaiBan || "")
+  !String(product.trangThaiBan || '')
     .trim()
-    .startsWith("Ng");
+    .startsWith('Ng');
 
-function fieldClass(error, extra = "") {
-  return `combo-form-input ${error ? "has-error" : ""} ${extra}`.trim();
+function fieldClass(error, extra = '') {
+  return `combo-form-input ${error ? 'has-error' : ''} ${extra}`.trim();
 }
 
 function ComboImageUploader({ images, onChange }) {
   const inputRef = useRef(null);
   const addFiles = async (files) => {
-    const allowed = new Set(["image/jpeg", "image/png", "image/webp"]);
+    const allowed = new Set(['image/jpeg', 'image/png', 'image/webp']);
     const added = Array.from(files)
       .filter((file) => allowed.has(file.type) && file.size <= 5 * 1024 * 1024)
       .map((file, index) => ({
@@ -47,39 +41,31 @@ function ComboImageUploader({ images, onChange }) {
     const uploaded = await Promise.all(
       added.map(async (image) => {
         try {
-          const result = await uploadImage(image.file, "products");
+          const result = await uploadProductImage(image.file);
           URL.revokeObjectURL(image.url);
           return { ...image, url: result.url, file: null, uploading: false };
         } catch (error) {
           return {
             ...image,
             uploading: false,
-            error: error?.message || "Không thể tải ảnh lên.",
+            error: error?.message || 'Không thể tải ảnh lên.',
           };
         }
-      }),
+      })
     );
     const byId = new Map(uploaded.map((image) => [image.id, image]));
     onChange((current) => current.map((image) => byId.get(image.id) || image));
   };
   const remove = (id) => onChange(images.filter((image) => image.id !== id));
   const makeMain = (id) =>
-    onChange(
-      [...images].sort((a, b) => (a.id === id ? -1 : b.id === id ? 1 : 0)),
-    );
+    onChange([...images].sort((a, b) => (a.id === id ? -1 : b.id === id ? 1 : 0)));
   return (
     <div className="combo-images">
       {images.map((image, index) => (
-        <div
-          className={`combo-image-item ${index === 0 ? "main" : ""}`}
-          key={image.id}
-        >
+        <div className={`combo-image-item ${index === 0 ? 'main' : ''}`} key={image.id}>
           <div
             className="combo-image-box"
-            title={
-              image.error ||
-              (image.uploading ? "Đang tải ảnh lên Cloudinary..." : "")
-            }
+            title={image.error || (image.uploading ? 'Đang tải ảnh lên Cloudinary...' : '')}
           >
             {index === 0 && <span className="main-badge">ẢNH CHÍNH</span>}
             <img src={image.url} alt={`Ảnh combo ${index + 1}`} />
@@ -93,21 +79,13 @@ function ComboImageUploader({ images, onChange }) {
             </button>
           </div>
           {index > 0 && (
-            <button
-              type="button"
-              className="make-main"
-              onClick={() => makeMain(image.id)}
-            >
+            <button type="button" className="make-main" onClick={() => makeMain(image.id)}>
               Chính
             </button>
           )}
         </div>
       ))}
-      <button
-        type="button"
-        className="combo-image-add"
-        onClick={() => inputRef.current?.click()}
-      >
+      <button type="button" className="combo-image-add" onClick={() => inputRef.current?.click()}>
         <HiOutlinePlus />
         <span>Thêm ảnh</span>
       </button>
@@ -119,7 +97,7 @@ function ComboImageUploader({ images, onChange }) {
         hidden
         onChange={(e) => {
           addFiles(e.target.files);
-          e.target.value = "";
+          e.target.value = '';
         }}
       />
     </div>
@@ -130,39 +108,45 @@ export default function ThemComboSanPham() {
   const [configurationLocked, setConfigurationLocked] = useState(false);
   const navigate = useNavigate();
   const [params] = useSearchParams();
-  const editId = params.get("id");
+  const editId = params.get('id');
+
+  const access = useAdminPermissions()?.access;
+  const canSaveCombo =
+    hasAdminPermission(access, 'combo_san_pham', 'xem') &&
+    hasAdminPermission(access, 'combo_san_pham', editId ? 'sua' : 'them');
+
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
   const [brands, setBrands] = useState([]);
   const [form, setForm] = useState({
-    name: "",
-    code: "",
-    description: "",
-    category: "",
-    brand: "",
-    retail: "",
-    cost: "",
+    name: '',
+    code: '',
+    description: '',
+    category: '',
+    brand: '',
+    retail: '',
+    cost: '',
     active: true,
     vat: false,
-    vatRate: "10",
-    weight: "",
+    vatRate: '10',
+    weight: '',
   });
   const [errors, setErrors] = useState({});
   const [images, setImages] = useState([]);
   const [specs, setSpecs] = useState([]);
-  const [specDraft, setSpecDraft] = useState({ name: "", value: "" });
-  const [search, setSearch] = useState("");
+  const [specDraft, setSpecDraft] = useState({ name: '', value: '' });
+  const [search, setSearch] = useState('');
   const [searchOpen, setSearchOpen] = useState(false);
   const [components, setComponents] = useState([]);
-  const [tagInput, setTagInput] = useState("");
+  const [tagInput, setTagInput] = useState('');
   const [tags, setTags] = useState([]);
-  const [tagError, setTagError] = useState("");
+  const [tagError, setTagError] = useState('');
   const [success, setSuccess] = useState(false);
   const [loading, setLoading] = useState(Boolean(editId));
-  const [serverError, setServerError] = useState("");
+  const [serverError, setServerError] = useState('');
   const update = (key, value) => {
     setForm((prev) => ({ ...prev, [key]: value }));
-    setErrors((prev) => ({ ...prev, [key]: "" }));
+    setErrors((prev) => ({ ...prev, [key]: '' }));
   };
 
   useEffect(() => {
@@ -175,10 +159,7 @@ export default function ThemComboSanPham() {
         setBrands(options.brands);
       })
       .catch((requestError) => {
-        if (current)
-          setServerError(
-            requestError.message || "Không thể tải dữ liệu biểu mẫu.",
-          );
+        if (current) setServerError(requestError.message || 'Không thể tải dữ liệu biểu mẫu.');
       });
     return () => {
       current = false;
@@ -189,7 +170,7 @@ export default function ThemComboSanPham() {
     if (!editId) return;
     let current = true;
     setLoading(true);
-    setServerError("");
+    setServerError('');
     getComboDetail(editId)
       .then((combo) => {
         if (!current) return;
@@ -198,12 +179,12 @@ export default function ThemComboSanPham() {
           name: combo.name,
           code: combo.code,
           description: combo.description,
-          category: String(combo.categoryId || ""),
-          brand: String(combo.brandId || ""),
+          category: String(combo.categoryId || ''),
+          brand: String(combo.brandId || ''),
           retail: String(combo.price),
           cost: String(combo.cost),
-          weight: String(combo.weight ?? ""),
-          active: !String(combo.status).startsWith("Ng"),
+          weight: String(combo.weight ?? ''),
+          active: !String(combo.status).startsWith('Ng'),
           vat: combo.vat > 0,
           vatRate: String(combo.vat || 10),
         });
@@ -211,17 +192,14 @@ export default function ThemComboSanPham() {
           combo.imageItems.map((image, index) => ({
             id: image.id || `saved-${index}`,
             url: image.url,
-          })),
+          }))
         );
         setSpecs(combo.specs);
         setTags(combo.tags);
         setComponents(combo.components);
       })
       .catch((requestError) => {
-        if (current)
-          setServerError(
-            requestError.message || "Không thể tải combo cần sửa.",
-          );
+        if (current) setServerError(requestError.message || 'Không thể tải combo cần sửa.');
       })
       .finally(() => {
         if (current) setLoading(false);
@@ -232,21 +210,17 @@ export default function ThemComboSanPham() {
   }, [editId]);
 
   const searchResults = useMemo(() => {
-    const query = search.trim().toLocaleLowerCase("vi");
+    const query = search.trim().toLocaleLowerCase('vi');
     return products
       .filter(
         (product) =>
           !components.some((item) => item.id === product.id) &&
           (!query ||
-            [
-              product.tenSanPham,
-              product.maSanPham,
-              product.variants?.[0]?.sku,
-            ].some((value) =>
-              String(value || "")
-                .toLocaleLowerCase("vi")
-                .includes(query),
-            )),
+            [product.tenSanPham, product.maSanPham, product.variants?.[0]?.sku].some((value) =>
+              String(value || '')
+                .toLocaleLowerCase('vi')
+                .includes(query)
+            ))
       )
       .slice(0, 7);
   }, [products, search, components]);
@@ -262,7 +236,7 @@ export default function ThemComboSanPham() {
         variantId: variant.id || product.id,
         image: product.hinhAnh || fallbackImage,
         name: product.tenSanPham,
-        variant: variant.name || "Mặc định",
+        variant: variant.name || 'Mặc định',
         productCode: product.maSanPham,
         sku: variant.sku || product.maSanPham,
         price: Number(variant.giaBanLe || product.giaBanLe || 0),
@@ -272,9 +246,9 @@ export default function ThemComboSanPham() {
         serialMode: product.serialMode,
       },
     ]);
-    setSearch("");
+    setSearch('');
     setSearchOpen(false);
-    setErrors((prev) => ({ ...prev, components: "" }));
+    setErrors((prev) => ({ ...prev, components: '' }));
   };
 
   const updateQty = (id, value) => {
@@ -287,14 +261,12 @@ export default function ThemComboSanPham() {
               ...item,
               qty: Math.max(1, Math.floor(Number(value) || 1)),
             }
-          : item,
-      ),
+          : item
+      )
     );
   };
 
-  const capacities = components.map((item) =>
-    Math.floor(item.stock / item.qty),
-  );
+  const capacities = components.map((item) => Math.floor(item.stock / item.qty));
   const bottleneck = capacities.length ? Math.min(...capacities) : 0;
 
   const addSpec = () => {
@@ -307,71 +279,59 @@ export default function ThemComboSanPham() {
         value: specDraft.value.trim(),
       },
     ]);
-    setSpecDraft({ name: "", value: "" });
+    setSpecDraft({ name: '', value: '' });
   };
   const addTag = (event) => {
-    if (event.key !== "Enter") return;
+    if (event.key !== 'Enter') return;
     event.preventDefault();
-    const next = tagInput.trim().replace(/^#/, "");
+    const next = tagInput.trim().replace(/^#/, '');
     if (!next) return;
-    if (
-      tags.some(
-        (tag) => tag.toLocaleLowerCase("vi") === next.toLocaleLowerCase("vi"),
-      )
-    ) {
-      setTagError("Tag này đã tồn tại.");
+    if (tags.some((tag) => tag.toLocaleLowerCase('vi') === next.toLocaleLowerCase('vi'))) {
+      setTagError('Tag này đã tồn tại.');
       return;
     }
     setTags((prev) => [...prev, next]);
-    setTagInput("");
-    setTagError("");
+    setTagInput('');
+    setTagError('');
   };
 
   const submit = async () => {
+    if (loading || !canSaveCombo) return;
+
     const next = {};
     if (images.some((image) => image.uploading))
-      next.images = "Ảnh đang được tải lên Cloudinary. Vui lòng chờ hoàn tất.";
+      next.images = 'Ảnh đang được tải lên Cloudinary. Vui lòng chờ hoàn tất.';
     else if (images.some((image) => image.error))
       next.images = images.find((image) => image.error).error;
-    if (!form.name.trim()) next.name = "Vui lòng nhập tên combo.";
-    if (!form.code.trim()) next.code = "Vui lòng nhập mã combo.";
-    if (!form.category) next.category = "Vui lòng chọn danh mục.";
-    if (!components.length)
-      next.components = "Vui lòng chọn ít nhất một thành phần.";
-    if (!form.retail || Number(form.retail) <= 0)
-      next.retail = "Giá bán lẻ phải lớn hơn 0.";
-    if (
-      form.cost !== "" &&
-      (!Number.isFinite(Number(form.cost)) || Number(form.cost) < 0)
-    ) {
-      next.cost = "Giá nhập không được âm.";
+    if (!form.name.trim()) next.name = 'Vui lòng nhập tên combo.';
+    if (!form.code.trim()) next.code = 'Vui lòng nhập mã combo.';
+    if (!form.category) next.category = 'Vui lòng chọn danh mục.';
+    if (!components.length) next.components = 'Vui lòng chọn ít nhất một thành phần.';
+    if (!form.retail || Number(form.retail) <= 0) next.retail = 'Giá bán lẻ phải lớn hơn 0.';
+    if (form.cost !== '' && (!Number.isFinite(Number(form.cost)) || Number(form.cost) < 0)) {
+      next.cost = 'Giá nhập không được âm.';
     }
 
-    if (
-      form.weight !== "" &&
-      (!Number.isFinite(Number(form.weight)) || Number(form.weight) < 0)
-    ) {
-      next.weight = "Khối lượng không được âm.";
+    if (form.weight !== '' && (!Number.isFinite(Number(form.weight)) || Number(form.weight) < 0)) {
+      next.weight = 'Khối lượng không được âm.';
     }
     if (form.vat && (Number(form.vatRate) < 0 || Number(form.vatRate) > 100))
-      next.vatRate = "Thuế VAT phải từ 0 đến 100.";
+      next.vatRate = 'Thuế VAT phải từ 0 đến 100.';
     const duplicate = tags.some(
       (tag, index) =>
-        tags.findIndex(
-          (item) =>
-            item.toLocaleLowerCase("vi") === tag.toLocaleLowerCase("vi"),
-        ) !== index,
+        tags.findIndex((item) => item.toLocaleLowerCase('vi') === tag.toLocaleLowerCase('vi')) !==
+        index
     );
-    if (duplicate) next.tags = "Danh sách có tag trùng lặp.";
+    if (duplicate) next.tags = 'Danh sách có tag trùng lặp.';
     setErrors(next);
     if (Object.keys(next).length) {
       if (next.images) alert(next.images);
       document
-        .querySelector(".has-error, .component-error")
-        ?.scrollIntoView({ behavior: "smooth", block: "center" });
+        .querySelector('.has-error, .component-error')
+        ?.scrollIntoView({ behavior: 'smooth', block: 'center' });
       return;
     }
-    setServerError("");
+    setServerError('');
     try {
       const payload = {
         ...form,
@@ -385,12 +345,9 @@ export default function ThemComboSanPham() {
       if (editId) await updateCombo(editId, payload);
       else await createCombo(payload);
       setSuccess(true);
-      window.setTimeout(() => navigate("/kho-hang/combo-san-pham"), 1400);
+      window.setTimeout(() => navigate('/kho-hang/combo-san-pham'), 1400);
     } catch (requestError) {
-      setServerError(
-        requestError.message ||
-          `Không thể ${editId ? "cập nhật" : "thêm"} combo.`,
-      );
+      setServerError(requestError.message || `Không thể ${editId ? 'cập nhật' : 'thêm'} combo.`);
     }
   };
 
@@ -405,23 +362,23 @@ export default function ThemComboSanPham() {
             <b>›</b>
             <Link to="/kho-hang/combo-san-pham">Combo sản phẩm</Link>
             <b>›</b>
-            <strong>{editId ? "Chỉnh sửa" : "Thêm mới"}</strong>
+            <strong>{editId ? 'Chỉnh sửa' : 'Thêm mới'}</strong>
           </div>
-          <h1>{editId ? "SỬA COMBO SẢN PHẨM" : "THÊM COMBO SẢN PHẨM"}</h1>
+          <h1>{editId ? 'SỬA COMBO SẢN PHẨM' : 'THÊM COMBO SẢN PHẨM'}</h1>
         </div>
         <div className="heading-actions">
           <button
             className="combo-outline-btn"
-            onClick={() => navigate("/kho-hang/combo-san-pham")}
+            onClick={() => navigate('/kho-hang/combo-san-pham')}
           >
             HỦY
           </button>
           <button
             className="combo-primary-btn"
-            disabled={loading}
+            disabled={loading || !canSaveCombo}
             onClick={submit}
           >
-            {editId ? "LƯU THAY ĐỔI" : "LƯU COMBO"}
+            {editId ? 'LƯU THAY ĐỔI' : 'LƯU COMBO'}
           </button>
         </div>
       </div>
@@ -437,7 +394,7 @@ export default function ThemComboSanPham() {
                 id="combo-name"
                 className={fieldClass(errors.name)}
                 value={form.name}
-                onChange={(e) => update("name", e.target.value)}
+                onChange={(e) => update('name', e.target.value)}
               />
               {errors.name && <small>{errors.name}</small>}
             </div>
@@ -451,7 +408,7 @@ export default function ThemComboSanPham() {
                   className={fieldClass(errors.code)}
                   value={form.code}
                   placeholder="VD: PC-001"
-                  onChange={(e) => update("code", e.target.value)}
+                  onChange={(e) => update('code', e.target.value)}
                 />
                 {errors.code && <small>{errors.code}</small>}
               </div>
@@ -467,9 +424,7 @@ export default function ThemComboSanPham() {
             </div>
           </FormCard>
           <FormCard title="Ảnh combo sản phẩm">
-            <p className="combo-help">
-              Tải lên nhiều hình ảnh. Ảnh đầu tiên tự động là ảnh chính.
-            </p>
+            <p className="combo-help">Tải lên nhiều hình ảnh. Ảnh đầu tiên tự động là ảnh chính.</p>
             <ComboImageUploader images={images} onChange={setImages} />
           </FormCard>
           <FormCard title="Chi tiết sản phẩm">
@@ -477,7 +432,7 @@ export default function ThemComboSanPham() {
               <label>MÔ TẢ SẢN PHẨM</label>
               <textarea
                 value={form.description}
-                onChange={(e) => update("description", e.target.value)}
+                onChange={(e) => update('description', e.target.value)}
               />
             </div>
             <div className="combo-field">
@@ -499,9 +454,7 @@ export default function ThemComboSanPham() {
                         <td>
                           <button
                             onClick={() =>
-                              setSpecs((prev) =>
-                                prev.filter((item) => item.id !== spec.id),
-                              )
+                              setSpecs((prev) => prev.filter((item) => item.id !== spec.id))
                             }
                           >
                             <HiOutlineX />
@@ -517,17 +470,13 @@ export default function ThemComboSanPham() {
                   className="combo-form-input"
                   placeholder="Tên thông số"
                   value={specDraft.name}
-                  onChange={(e) =>
-                    setSpecDraft((prev) => ({ ...prev, name: e.target.value }))
-                  }
+                  onChange={(e) => setSpecDraft((prev) => ({ ...prev, name: e.target.value }))}
                 />
                 <input
                   className="combo-form-input"
                   placeholder="Giá trị"
                   value={specDraft.value}
-                  onChange={(e) =>
-                    setSpecDraft((prev) => ({ ...prev, value: e.target.value }))
-                  }
+                  onChange={(e) => setSpecDraft((prev) => ({ ...prev, value: e.target.value }))}
                 />
                 <button type="button" onClick={addSpec}>
                   THÊM
@@ -538,8 +487,8 @@ export default function ThemComboSanPham() {
           <FormCard title="Thành phần combo">
             {configurationLocked && (
               <p className="combo-help">
-                Cấu hình combo đã được sử dụng và không thể thay đổi. Bạn vẫn có
-                thể sửa thông tin mô tả, ảnh và giá.
+                Cấu hình combo đã được sử dụng và không thể thay đổi. Bạn vẫn có thể sửa thông tin
+                mô tả, ảnh và giá.
               </p>
             )}
 
@@ -564,26 +513,23 @@ export default function ThemComboSanPham() {
                     const variant = product.variants?.[0] || {};
                     return (
                       <div
-                        className={`component-result ${available ? "" : "disabled"}`}
+                        className={`component-result ${available ? '' : 'disabled'}`}
                         key={product.id}
                       >
                         <img src={product.hinhAnh || fallbackImage} alt="" />
                         <div className="result-info">
                           <div>
                             <b>{product.tenSanPham}</b>
-                            {!isActive(product) && (
-                              <span className="stopped-badge">NGỪNG KD</span>
-                            )}
+                            {!isActive(product) && <span className="stopped-badge">NGỪNG KD</span>}
                           </div>
                           <small>
-                            {variant.name || "Mặc định"} · Mã SP:{" "}
-                            {product.maSanPham} · SKU:{" "}
+                            {variant.name || 'Mặc định'} · Mã SP: {product.maSanPham} · SKU:{' '}
                             {variant.sku || product.maSanPham}
                           </small>
                         </div>
                         <div className="result-stock">
                           <b>{money(variant.giaBanLe || product.giaBanLe)}</b>
-                          <span className={available ? "" : "out"}>
+                          <span className={available ? '' : 'out'}>
                             Còn {product.coTheBan ?? product.tonKho ?? 0}
                           </span>
                         </div>
@@ -607,13 +553,9 @@ export default function ThemComboSanPham() {
                 </div>
               )}
             </div>
-            {errors.components && (
-              <small className="component-error">{errors.components}</small>
-            )}
+            {errors.components && <small className="component-error">{errors.components}</small>}
             {!components.length ? (
-              <div className="component-empty">
-                Chưa có thành phần nào được chọn.
-              </div>
+              <div className="component-empty">Chưa có thành phần nào được chọn.</div>
             ) : (
               <div className="selected-components">
                 <table>
@@ -655,49 +597,30 @@ export default function ThemComboSanPham() {
                           <td className="stock-green">{item.stock}</td>
                           <td>
                             <div
-                              className={`qty-stepper ${item.qty > item.stock ? "invalid" : ""}`}
+                              className={`qty-stepper ${item.qty > item.stock ? 'invalid' : ''}`}
                             >
-                              <button
-                                onClick={() => updateQty(item.id, item.qty - 1)}
-                              >
-                                −
-                              </button>
+                              <button onClick={() => updateQty(item.id, item.qty - 1)}>−</button>
                               <input
                                 value={item.qty}
                                 onChange={(e) =>
-                                  updateQty(
-                                    item.id,
-                                    e.target.value.replace(/\D/g, ""),
-                                  )
+                                  updateQty(item.id, e.target.value.replace(/\D/g, ''))
                                 }
                               />
-                              <button
-                                onClick={() => updateQty(item.id, item.qty + 1)}
-                              >
-                                +
-                              </button>
+                              <button onClick={() => updateQty(item.id, item.qty + 1)}>+</button>
                             </div>
                           </td>
                           <td
-                            className={
-                              capacity === bottleneck
-                                ? "capacity-bottleneck"
-                                : "capacity"
-                            }
+                            className={capacity === bottleneck ? 'capacity-bottleneck' : 'capacity'}
                           >
                             {capacity}
-                            {capacity === bottleneck && (
-                              <small>BOTTLENECK</small>
-                            )}
+                            {capacity === bottleneck && <small>BOTTLENECK</small>}
                           </td>
                           <td>
                             <button
                               className="remove-component"
                               onClick={() =>
                                 setComponents((prev) =>
-                                  prev.filter(
-                                    (component) => component.id !== item.id,
-                                  ),
+                                  prev.filter((component) => component.id !== item.id)
                                 )
                               }
                               disabled={configurationLocked}
@@ -728,7 +651,7 @@ export default function ThemComboSanPham() {
                   <PriceInput
                     className={fieldClass(errors.retail)}
                     value={form.retail}
-                    onChange={(value) => update("retail", value)}
+                    onChange={(value) => update('retail', value)}
                   />
                   <span>đ</span>
                 </div>
@@ -742,7 +665,7 @@ export default function ThemComboSanPham() {
                   <PriceInput
                     className={fieldClass(errors.cost)}
                     value={form.cost}
-                    onChange={(value) => update("cost", value)}
+                    onChange={(value) => update('cost', value)}
                   />
                   <span>đ</span>
                 </div>
@@ -756,7 +679,7 @@ export default function ThemComboSanPham() {
                   step="0.01"
                   className={fieldClass(errors.weight)}
                   value={form.weight}
-                  onChange={(event) => update("weight", event.target.value)}
+                  onChange={(event) => update('weight', event.target.value)}
                 />
                 {errors.weight && <small>{errors.weight}</small>}
               </div>
@@ -773,7 +696,7 @@ export default function ThemComboSanPham() {
                 aria-label="Danh mục"
                 aria-invalid={Boolean(errors.category)}
                 value={form.category}
-                onChange={(e) => update("category", e.target.value)}
+                onChange={(e) => update('category', e.target.value)}
               >
                 <option value="">— Chọn —</option>
                 {categories.map((item) => (
@@ -789,7 +712,7 @@ export default function ThemComboSanPham() {
               <FormDropdown
                 aria-label="Thương hiệu"
                 value={form.brand}
-                onChange={(e) => update("brand", e.target.value)}
+                onChange={(e) => update('brand', e.target.value)}
               >
                 <option value="">— Chọn —</option>
                 {brands.map((item) => (
@@ -816,22 +739,16 @@ export default function ThemComboSanPham() {
                 placeholder="Nhập tag + Enter"
                 onChange={(e) => {
                   setTagInput(e.target.value);
-                  setTagError("");
+                  setTagError('');
                 }}
                 onKeyDown={addTag}
               />
-              {(tagError || errors.tags) && (
-                <small>{tagError || errors.tags}</small>
-              )}
+              {(tagError || errors.tags) && <small>{tagError || errors.tags}</small>}
               <div className="tag-list">
                 {tags.map((tag) => (
                   <span key={tag}>
-                    #{tag}{" "}
-                    <button
-                      onClick={() =>
-                        setTags((prev) => prev.filter((item) => item !== tag))
-                      }
-                    >
+                    #{tag}{' '}
+                    <button onClick={() => setTags((prev) => prev.filter((item) => item !== tag))}>
                       ×
                     </button>
                   </span>
@@ -843,16 +760,16 @@ export default function ThemComboSanPham() {
               <input
                 type="checkbox"
                 checked={form.active}
-                onChange={(e) => update("active", e.target.checked)}
-              />{" "}
+                onChange={(e) => update('active', e.target.checked)}
+              />{' '}
               ĐANG KINH DOANH
             </label>
             <label className="combo-check">
               <input
                 type="checkbox"
                 checked={form.vat}
-                onChange={(e) => update("vat", e.target.checked)}
-              />{" "}
+                onChange={(e) => update('vat', e.target.checked)}
+              />{' '}
               ÁP DỤNG THUẾ VAT
             </label>
             {form.vat && (
@@ -864,7 +781,7 @@ export default function ThemComboSanPham() {
                   max="100"
                   className={fieldClass(errors.vatRate)}
                   value={form.vatRate}
-                  onChange={(e) => update("vatRate", e.target.value)}
+                  onChange={(e) => update('vatRate', e.target.value)}
                 />
                 {errors.vatRate && <small>{errors.vatRate}</small>}
               </div>
@@ -877,20 +794,15 @@ export default function ThemComboSanPham() {
           <section role="dialog" aria-modal="true">
             <header>
               <HiCheck />
-              <h2>
-                {editId ? "CẬP NHẬT COMBO THÀNH CÔNG" : "THÊM COMBO THÀNH CÔNG"}
-              </h2>
+              <h2>{editId ? 'CẬP NHẬT COMBO THÀNH CÔNG' : 'THÊM COMBO THÀNH CÔNG'}</h2>
             </header>
             <div>
               <b>{form.name}</b>
               <p>
-                Mã combo {form.code} đã được{" "}
-                {editId ? "cập nhật" : "thêm vào danh sách"}.
+                Mã combo {form.code} đã được {editId ? 'cập nhật' : 'thêm vào danh sách'}.
               </p>
             </div>
-            <button onClick={() => navigate("/kho-hang/combo-san-pham")}>
-              VỀ DANH SÁCH
-            </button>
+            <button onClick={() => navigate('/kho-hang/combo-san-pham')}>VỀ DANH SÁCH</button>
           </section>
         </div>
       )}

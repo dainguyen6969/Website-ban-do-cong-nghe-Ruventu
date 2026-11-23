@@ -11,6 +11,8 @@ import TablePagination from '../../../../shared/components/ui/TablePagination';
 import FilterDropdown from '../../../../shared/components/ui/FilterDropdown';
 import { getInventoryCheckPage } from '../api/inventoryCheckApi';
 import './KiemHang.css';
+import { hasAdminPermission } from '../../../../auth/roleModel';
+import { useAdminPermissions } from '../../../../shared/components/ui/PermissionGate';
 
 const PAGE_SIZE = 10;
 const initialFilters = { keyword: '', status: '', checkerId: '', fromDate: '', toDate: '' };
@@ -31,6 +33,10 @@ const formatDate = (value, withTime = false) => {
 
 export default function KiemHang() {
   const navigate = useNavigate();
+
+  const access = useAdminPermissions()?.access;
+  const canCreateCheck = hasAdminPermission(access, 'kiem_hang', 'them');
+
   const [showMoreFilters, setShowMoreFilters] = useState(false);
 
   const [stockChecks, setStockChecks] = useState([]);
@@ -82,13 +88,15 @@ export default function KiemHang() {
           <p>KIỂM HÀNG</p>
           <h1>DANH SÁCH PHIẾU KIỂM HÀNG</h1>
         </div>
-        <button
-          type="button"
-          className="stock-check-button stock-check-button--primary"
-          onClick={() => navigate('/kho-hang/kiem-hang/tao-moi')}
-        >
-          <HiOutlinePlus aria-hidden="true" /> TẠO PHIẾU KIỂM HÀNG
-        </button>
+        {canCreateCheck && (
+          <button
+            type="button"
+            className="stock-check-button stock-check-button--primary"
+            onClick={() => navigate('/kho-hang/kiem-hang/tao-moi')}
+          >
+            <HiOutlinePlus aria-hidden="true" /> TẠO PHIẾU KIỂM HÀNG
+          </button>
+        )}
       </header>
 
       <section className="stock-check-filters" aria-label="Bộ lọc phiếu kiểm hàng">

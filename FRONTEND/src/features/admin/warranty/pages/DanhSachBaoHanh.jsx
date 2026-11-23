@@ -13,6 +13,10 @@ import { getWarrantyList, warrantyError } from '../api/warrantyApi';
 import { WarrantyBadge } from '../components/WarrantyShell';
 import FilterDropdown, { FormDropdown } from '../../../../shared/components/ui/FilterDropdown';
 import TablePagination from '../../../../shared/components/ui/TablePagination';
+
+import { hasAdminPermission } from '../../../../auth/roleModel';
+import { useAdminPermissions } from '../../../../shared/components/ui/PermissionGate';
+
 import '../styles/warrantyShell.css';
 
 const emptyFilters = {
@@ -39,6 +43,10 @@ const attention = (item) =>
 
 export default function DanhSachBaoHanh() {
   const navigate = useNavigate();
+
+  const access = useAdminPermissions()?.access;
+  const canCreateWarranty = hasAdminPermission(access, 'bao_hanh', 'them');
+
   const location = useLocation();
   const [params] = useSearchParams();
   const [filters, setFilters] = useState(() => ({
@@ -109,13 +117,15 @@ export default function DanhSachBaoHanh() {
           </div>
           <p>Tiếp nhận → Kiểm tra → Xử lý → Trả khách</p>
         </div>
-        <button
-          type="button"
-          className="w-shell-button w-shell-button--red"
-          onClick={() => navigate('/admin/bao-hanh/tao-moi')}
-        >
-          <Plus size={18} /> Tiếp nhận bảo hành mới
-        </button>
+        {canCreateWarranty && (
+          <button
+            type="button"
+            className="w-shell-button w-shell-button--red"
+            onClick={() => navigate('/admin/bao-hanh/tao-moi')}
+          >
+            <Plus size={18} /> Tiếp nhận bảo hành mới
+          </button>
+        )}
       </header>
       {location.state?.createdTicketId && (
         <p className="w-intake-message" role="status">

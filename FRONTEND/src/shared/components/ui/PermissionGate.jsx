@@ -1,71 +1,176 @@
-import { scaledFontSize } from '../../../typography/projectFontSize.js';
-// Reusable admin UI primitive: PermissionGate.
+import { createContext, useContext, useEffect, useState } from 'react';
 import { HiOutlineLockClosed } from 'react-icons/hi';
-import { useLocation } from 'react-router-dom';
-import useMockAuth from '../../../auth/useMockAuth';
-import { roleHasPermission, routePermissionModule } from '../../../auth/roleModel';
-import { getAllRoles } from '../../../features/admin/organization/api/roleApi';
-import { useEffect, useState } from 'react';
+import { Navigate, useLocation } from 'react-router-dom';
+import { getMyPermissions } from '../../../auth/backendAuth';
+import { canOpenAdminPath } from '../../../auth/roleModel';
+
+import {
+  getAdminRealtimeScope,
+  setAdminRealtimeScope,
+  subscribeAdminRealtime,
+} from '../../../features/admin/orders/api/orderRealtime';
+
 import './PermissionGate.css';
 
-export default function PermissionGate({ children }) {
+const AdminPermissionsContext = createContext(null);
+
+const entryPaths = [
+  '/admin/tong-quat',
+  '/admin/ban-hang',
+  '/admin/san-pham/danh-sach-san-pham',
+  '/kho-hang/quan-ly-phien-ban',
+  '/kho-hang/combo-san-pham',
+  '/kho-hang/nhap-hang',
+  '/kho-hang/kiem-hang',
+  '/admin/don-hang/danh-sach-don-hang',
+  '/admin/don-hang/quan-ly-giao-hang',
+  '/admin/don-hang/khach-tra-hang',
+  '/admin/khach-hang-doi-tac/khach-hang',
+  '/admin/khach-hang-doi-tac/nha-cung-cap',
+  '/admin/khach-hang-doi-tac/doi-tac-van-chuyen',
+  '/admin/khuyen-mai/danh-sach-khuyen-mai',
+  '/admin/bao-hanh/danh-sach',
+  '/admin/so-quy-tien-mat/tong-quan',
+  '/admin/bao-cao',
+  '/admin/danh-muc/danh-muc-san-pham',
+  '/admin/nhan-vien/danh-sach',
+  '/admin/nhan-vien/vai-tro',
+];
+
+export function useAdminPermissions() {
+  return useContext(AdminPermissionsContext);
+}
+
+export function AdminPermissionsProvider({ account, children }) {
   const { pathname } = useLocation();
-  const { currentAccount, roles: mockRoles } = useMockAuth();
-  const [roles, setRoles] = useState(mockRoles || []);
-  const [loading, setLoading] = useState(true);
+  const [snapshot, setSnapshot] = useState(null);
+  const [revision, setRevision] = useState(0);
 
   useEffect(() => {
+    if (!account?.id) return;
+
     const controller = new AbortController();
-    getAllRoles(controller.signal)
-      .then((fetchedRoles) => {
-        if (!controller.signal.aborted && fetchedRoles?.length) {
-          setRoles(fetchedRoles);
+
+    getMyPermissions(controller.signal)
+      .then((access) => {
+        if (controller.signal.aborted) return;
+        if (
+          String(access?.nguoi_dung_id) !== String(account.id) ||
+          access?.trang_thai !== 1 ||
+          !['QUAN_TRI', 'NHAN_VIEN', 'KHACH_HANG'].includes(access?.loai_tai_khoan) ||
+          !access?.quyen ||
+          typeof access.quyen !== 'object' ||
+          Array.isArray(access.quyen)
+        ) {
+          throw new Error('Phản hồi quyền tài khoản không hợp lệ.');
         }
+
+        setSnapshot({ account, pathname, access });
       })
-      .catch((err) => {
-        if (!controller.signal.aborted) {
-          console.warn('Cannot fetch roles from backend, falling back to mock roles', err);
-        }
-      })
-      .finally(() => {
-        if (!controller.signal.aborted) setLoading(false);
+      .catch((error) => {
+        if (!controller.signal.aborted) setSnapshot({ account, pathname, error });
       });
+
     return () => controller.abort();
-  }, []);
+  }, [account, pathname, revision]);
 
-  if (loading) return null;
+  useEffect(() => {
+    if (!account?.id) return;
 
-  const moduleId = routePermissionModule(pathname);
-  const roleId =
-    currentAccount?.vaiTro ??
-    (currentAccount?.role === 'admin' ? 'admin_toan_quyen' : currentAccount?.role);
+    const refreshVisible = () => {
+      if (document.visibilityState === 'visible') setRevision((value) => value + 1);
+    };
 
-  if (moduleId && !roleHasPermission(roles, roleId, moduleId)) {
+    const timer = window.setInterval(refreshVisible, 60000);
+    window.addEventListener('focus', refreshVisible);
+    document.addEventListener('visibilitychange', refreshVisible);
+
+    return () => {
+      window.clearInterval(timer);
+      window.removeEventListener('focus', refreshVisible);
+      document.removeEventListener('visibilitychange', refreshVisible);
+    };
+  }, [account?.id]);
+
+  const current = snapshot?.account === account ? snapshot : null;
+  const realtimeScope = getAdminRealtimeScope(current?.access);
+
+  useEffect(() => {
+    setAdminRealtimeScope(realtimeScope);
+    if (!realtimeScope) return;
+
+    const unsubscribe = subscribeAdminRealtime((event) => {
+      if (event.type === 'access-denied' && event.status === 403) {
+        setRevision((value) => value + 1);
+      }
+    });
+
+    return () => {
+      unsubscribe();
+      setAdminRealtimeScope('');
+    };
+  }, [realtimeScope]);
+
+  if (!account?.id) return <Navigate to="/login" replace />;
+  if (!current) return <p role="status">Đang kiểm tra quyền quản trị…</p>;
+
+  if (current.error?.status === 401) return <Navigate to="/login" replace />;
+
+  if (current.error) {
     return (
       <main className="permission-denied" role="main">
         <div>
-          <HiOutlineLockClosed />
-          <h1>BẠN KHÔNG CÓ QUYỀN VỚI TRANG NÀY.</h1>
-          <p>Vui lòng liên hệ Admin Tổng để được cấp quyền phù hợp.</p>
-          <div
-            style={{
-              marginTop: 20,
-              fontSize: scaledFontSize(12),
-              color: '#666',
-              background: '#f5f5f5',
-              padding: 10,
-              textAlign: 'left',
-            }}
-          >
-            <p>
-              <strong>DEBUG INFO:</strong>
-            </p>
-            <p>Role ID: {String(roleId)}</p>
-            <p>Module ID: {String(moduleId)}</p>
-          </div>
+          <HiOutlineLockClosed aria-hidden="true" />
+          <h1>Không tải được quyền quản trị</h1>
+          <p>{current.error.message || 'Vui lòng thử lại.'}</p>
+          <button type="button" onClick={() => setRevision((value) => value + 1)}>
+            Thử lại
+          </button>
         </div>
       </main>
     );
   }
-  return children;
+
+  if (current.access.loai_tai_khoan === 'KHACH_HANG') {
+    return <Navigate to="/" replace />;
+  }
+
+  return (
+    <AdminPermissionsContext.Provider
+      value={{
+        access: current.access,
+        pathReady: current.pathname === pathname,
+      }}
+    >
+      {children}
+    </AdminPermissionsContext.Provider>
+  );
+}
+
+export default function PermissionGate({ children }) {
+  const { pathname, search } = useLocation();
+  const permissions = useAdminPermissions();
+
+  if (!permissions?.pathReady) return <p role="status">Đang kiểm tra quyền trang…</p>;
+
+  const { access } = permissions;
+  const path = pathname.replace(/\/+$/, '');
+
+  if (path === '/admin' || path === '/kho-hang') {
+    const target =
+      entryPaths.find((entry) => canOpenAdminPath(access, entry)) ?? '/admin/tai-khoan';
+    return <Navigate to={target} replace />;
+  }
+
+  if (canOpenAdminPath(access, pathname, search)) return children;
+
+  return (
+    <main className="permission-denied" role="main">
+      <div>
+        <HiOutlineLockClosed aria-hidden="true" />
+        <h1>Bạn không có quyền với trang này</h1>
+        <p>Vui lòng liên hệ quản trị viên để được cấp quyền phù hợp.</p>
+      </div>
+    </main>
+  );
 }

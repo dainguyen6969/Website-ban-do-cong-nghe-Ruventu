@@ -11,7 +11,7 @@ import {
   intakeReachableStep, intakeRequiredChecks, intakeSearch, intakeStepErrors,
   lookupFields, receiptNow,
 } from '../data/warrantyContract';
-import { uploadImage } from '../../../media/api/imageUploadApi';
+import { uploadWarrantyIntakeImage } from '../../../media/api/imageUploadApi';
 import { validateImageFiles } from '../../../media/api/imageValidation';
 import { getSerialPage } from '../../inventory/api/serialApi';
 import TablePagination from '../../../../shared/components/ui/TablePagination';
@@ -73,13 +73,21 @@ export default function LapPhieuBaoHanh() {
     change('accessories', [...form.accessories, { name: '', quantity: 1 }]);
   };
   const blocked = busy || uncertain || uploading || searching;
-  const move = index => {
+  const move = (index) => {
     if (blocked) return;
-    setOutcome(null); setError(''); setFieldErrors({});
-    if (index > step) for (let current = 0; current < index; current++) {
-      const errors = intakeStepErrors(selected, form, current);
-      if (Object.keys(errors).length) { setFieldErrors(errors); setError('Kiểm tra thông tin tại bước này trước khi tiếp tục.'); setStep(current); return; }
-    }
+    setOutcome(null);
+    setError('');
+    setFieldErrors({});
+    if (index > step)
+      for (let current = 0; current < index; current++) {
+        const errors = intakeStepErrors(selected, form, current);
+        if (Object.keys(errors).length) {
+          setFieldErrors(errors);
+          setError('Kiểm tra thông tin tại bước này trước khi tiếp tục.');
+          setStep(current);
+          return;
+        }
+      }
     setStep(index);
   };
   const resetSearch = value => { lookupController.current?.abort(); setQuery(value); setLookup(null); setSelected(null); setRequestId(null); setPage(1); setSearching(false); setError(''); setMessage(null); setFieldErrors({}); setOutcome(null); };
@@ -88,12 +96,26 @@ export default function LapPhieuBaoHanh() {
     if (!query.trim()) { setError('Nhập nội dung tra cứu.'); return; }
     const { criterion, value } = intakeSearch(query);
     lookupController.current?.abort();
-    const controller = new AbortController(); lookupController.current = controller;
-    setSearching(true); setError(''); setSelected(null); setRequestId(null); setLookup(null); setPage(nextPage);
+    const controller = new AbortController();
+    lookupController.current = controller;
+    setSearching(true);
+    setError('');
+    setSelected(null);
+    setRequestId(null);
+    setLookup(null);
+    setPage(nextPage);
     try {
       let result;
       if (criterion === 'serial') {
-        const data = await getSerialPage({ keyword: value, page: nextPage, limit: 20 }, controller.signal);
+        const data = await getSerialPage(
+  {
+    keyword: value,
+    page: nextPage,
+    limit: 20,
+    forWarranty: true,
+  },
+  controller.signal
+);
         result = { items: data.items.map(item => ({ serial_candidate: true, so_serial: item.serial, phien_ban_id: item.versionId, ten_san_pham: item.productName, ten_phien_ban: item.version, trang_thai_serial: item.status })), yeu_cau_tiep_nhan: [], pagination: { total_elements: data.totalItems } };
       } else result = await lookupWarranties({ [lookupFields[criterion]]: value, page: nextPage - 1, limit: 20 }, controller.signal);
       if (!controller.signal.aborted) setLookup(result);
@@ -143,32 +165,80 @@ export default function LapPhieuBaoHanh() {
       if (!controller.signal.aborted) setSearching(false);
     }
   };
-  const restore = request => {
-    const device = lookup.items.find(item => request.thiet_bi_id != null ? item.thiet_bi_id === request.thiet_bi_id : request.so_serial && item.so_serial === request.so_serial && (!request.don_hang_id || item.don_hang_id === request.don_hang_id));
+  const restore = (request) => {
+    const device = lookup.items.find((item) =>
+      request.thiet_bi_id != null
+        ? item.thiet_bi_id === request.thiet_bi_id
+        : request.so_serial &&
+          item.so_serial === request.so_serial &&
+          (!request.don_hang_id || item.don_hang_id === request.don_hang_id)
+    );
     choose(device || null, request);
   };
-  const prepare = action => {
-    setError(''); setConfirmed(false);
+  const prepare = (action) => {
+    setError('');
+    setConfirmed(false);
     if (action === 'ticket') {
-      if (intakeReachableStep(selected, form) < 3) { move(3); return; }
+      if (intakeReachableStep(selected, form) < 3) {
+        move(3);
+        return;
+      }
       const errors = intakeErrors(selected, form);
-      if (errors.length) { setError(errors.join('\n')); return; }
+      if (errors.length) {
+        setError(errors.join('\n'));
+        return;
+      }
       setModal({ action, body: intakeBody(selected, form, requestId) });
     } else {
       const { contact, phone, reason } = intakeStepErrors(selected, form, 2);
-      const errors = Object.fromEntries(Object.entries({ contact, phone, reason }).filter(([, value]) => value));
-      if (Object.keys(errors).length) { setFieldErrors(errors); setError('Nhập đủ thông tin kết quả chưa tiếp nhận.'); return; }
-      setModal({ action, body: { yeu_cau_tiep_nhan_id: requestId, don_hang_id: selected?.don_hang_id ?? null, chi_tiet_don_hang_id: selected?.chi_tiet_don_hang_id ?? null, thiet_bi_id: selected?.thiet_bi_id ?? null, so_serial: selected?.so_serial || (criterion === 'serial' ? query.trim() || null : null), ten_nguoi_lien_he: form.contact.trim(), sdt_nguoi_lien_he: form.phone.trim(), ket_qua_tiep_nhan: action, ly_do: intakeDescription(form, 'reason'), can_cu: intakeAssessment(selected, form).verification, bang_chung_urls: form.photos.map(item => item.url) } });
+
+      const errors = Object.fromEntries(
+        Object.entries({ contact, phone, reason }).filter(([, value]) => value)
+      );
+
+      if (Object.keys(errors).length) {
+        setFieldErrors(errors);
+        setError('Nhập đủ thông tin kết quả chưa tiếp nhận.');
+        return;
+      }
+
+      setModal({
+        action,
+        body: {
+          yeu_cau_tiep_nhan_id: requestId,
+          don_hang_id: selected?.don_hang_id ?? null,
+          chi_tiet_don_hang_id: selected?.chi_tiet_don_hang_id ?? null,
+          thiet_bi_id: selected?.thiet_bi_id ?? null,
+          so_serial:
+            selected?.so_serial ||
+            (criterion === 'serial' ? query.trim() || null : null),
+          ten_nguoi_lien_he: form.contact.trim(),
+          sdt_nguoi_lien_he: form.phone.trim(),
+          ket_qua_tiep_nhan: action,
+          ly_do: intakeDescription(form, 'reason'),
+          can_cu: intakeAssessment(selected, form).verification,
+          bang_chung_urls: form.photos.map((item) => item.url),
+        },
+      });
     }
   };
   const submit = async () => {
     if (saving.current || !confirmed) return;
     const serialized = JSON.stringify(modal);
-    if (mutation.current?.serialized !== serialized) mutation.current = { serialized, key: crypto.randomUUID() };
-    saving.current = true; setBusy(true); setError('');
+    if (mutation.current?.serialized !== serialized)
+      mutation.current = { serialized, key: crypto.randomUUID() };
+    saving.current = true;
+    setBusy(true);
+    setError('');
     try {
-      const result = await mutateWarranty(null, modal.action === 'ticket' ? '' : 'intake-results', modal.body, mutation.current.key);
-      mutation.current = null; setUncertain(false);
+      const result = await mutateWarranty(
+        null,
+        modal.action === 'ticket' ? '' : 'intake-results',
+        modal.body,
+        mutation.current.key
+      );
+      mutation.current = null;
+      setUncertain(false);
       if (modal.action === 'ticket') navigate(`/admin/bao-hanh/chi-tiet/${result.id}`);
       else {
         setRequestId(result.yeu_cau_tiep_nhan_id); setModal(null); setOutcome(null);
@@ -191,7 +261,7 @@ export default function LapPhieuBaoHanh() {
     setFieldErrors(current => ({ ...current, photos: '' }));
     try {
       // Lưu từng ảnh thành công ngay để một ảnh lỗi không làm mất URL của ảnh đã tải.
-      for (const file of files) { const result = await uploadImage(file, 'general'); setForm(current => ({ ...current, photos: [...current.photos, { name: file.name, url: result.url }] })); }
+      for (const file of files) { const result = await uploadWarrantyIntakeImage(file); setForm(current => ({ ...current, photos: [...current.photos, { name: file.name, url: result.url }] })); }
     } catch (cause) { setFieldErrors(current => ({ ...current, photos: warrantyError(cause) })); }
     finally { setUploading(false); }
   };

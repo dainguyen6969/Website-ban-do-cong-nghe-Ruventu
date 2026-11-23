@@ -46,7 +46,22 @@ import WarrantyHistoryDetail, {
 import { printWarrantyDocument } from '../components/warrantyPrint';
 import WarrantySnapshot, { displayValue } from '../components/WarrantySnapshot';
 import TablePagination from '../../../../shared/components/ui/TablePagination';
+
+import { hasAdminPermission, hasSystemAdminPermission } from '../../../../auth/roleModel';
+import { useAdminPermissions } from '../../../../shared/components/ui/PermissionGate';
+
 import '../styles/warrantyShell.css';
+
+const WARRANTY_STAFF_EVENTS = new Set([
+  'GHI_KET_LUAN',
+  'GUI_DON_VI',
+  'DON_VI_TIEP_NHAN',
+  'YEU_CAU_THU_HOI',
+  'NHAN_LAI',
+  'BAT_DAU_CONG_VIEC',
+  'CAP_NHAT_TIEN_DO',
+  'YEU_CAU_DUNG',
+]);
 
 const tabs = [
   ['Tổng quan', FileText],
@@ -280,6 +295,17 @@ export default function ChiTietBaoHanh() {
 
 function WarrantyDetail({ id }) {
   const navigate = useNavigate();
+
+  const access = useAdminPermissions()?.access;
+  const canEditWarranty =
+    hasAdminPermission(access, 'bao_hanh', 'xem') && hasAdminPermission(access, 'bao_hanh', 'sua');
+
+  const canRunWarrantyAction = (operation) =>
+    hasSystemAdminPermission(access, 'bao_hanh', 'sua') ||
+    (canEditWarranty &&
+      (operation.endpoint === 'status' ||
+        (operation.endpoint === 'events' && WARRANTY_STAFF_EVENTS.has(operation.fixed?.su_kien))));
+
   const [data, setData] = useState(null),
     [loading, setLoading] = useState(true),
     [error, setError] = useState('');
@@ -397,6 +423,8 @@ function WarrantyDetail({ id }) {
   };
 
   const unavailable = (operation, selectedQuote = quote) => {
+    if (!canRunWarrantyAction(operation)) return 'Tài khoản không có quyền ghi thao tác bảo hành.';
+
     if (loading || error) return 'Tải lại dữ liệu trước khi ghi nhận.';
     if (data.trang_thai_xu_ly === 'HOAN_TAT' && !operation.afterComplete)
       return 'Phiếu đã hoàn tất, không mở lại xử lý thiết bị.';
@@ -522,7 +550,7 @@ function WarrantyDetail({ id }) {
     <button
       key={item.key}
       type="button"
-      disabled={workDisabled}
+      disabled={workDisabled || !canRunWarrantyAction(item)}
       className={`w-shell-button${main ? ' w-shell-button--black' : ''}`}
       onClick={() => open(item, selectedQuote)}
     >
@@ -539,7 +567,7 @@ function WarrantyDetail({ id }) {
 
   const recordGroup = (name, children) => {
     if (group !== name) return null;
-    const operations = actions.filter((item) => item.group === name);
+    const operations = actions.filter((item) => item.group === name && canRunWarrantyAction(item));
     const ready = operations.filter((item) => !unavailable(item));
     const blocked = operations.filter((item) => unavailable(item));
     return (
@@ -1192,6 +1220,7 @@ function WarrantyDetail({ id }) {
           detail={data}
           quoteVersion={form.version}
           values={drafts[form.key]}
+          canWrite={canRunWarrantyAction(form.operation)}
           disabled={Boolean(formBlocker)}
           blockReason={formBlocker}
           setValues={(values) => setDrafts((current) => ({ ...current, [form.key]: values }))}

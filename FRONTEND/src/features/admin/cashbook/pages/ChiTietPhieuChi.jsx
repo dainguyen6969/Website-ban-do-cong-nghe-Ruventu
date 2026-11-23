@@ -1,12 +1,13 @@
 import { scaledFontSize } from '../../../../typography/projectFontSize.js';
-import React, { useState, useEffect, useCallback } from 'react';
-
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { CashSourceInfo } from '../components/CashbookEnhancements';
-import { formatDateTimeVN } from '../../../../shared/services/mutationUtils';
+import { formatDateTimeVN, withIdempotency } from '../../../../shared/services/mutationUtils';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { disbursementService } from '../../../../shared/services/disbursementService';
 import DocumentPanel from '../../documents/DocumentPanel';
 import LoadingSpinner from '../../../../shared/components/ui/LoadingSpinner';
+import { hasAdminPermission } from '../../../../auth/roleModel';
+import { useAdminPermissions } from '../../../../shared/components/ui/PermissionGate';
 import './ChiTietPhieu.css';
 
 export default function ChiTietPhieuChi() {
@@ -18,6 +19,13 @@ export default function ChiTietPhieuChi() {
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [showSuccessBanner, setShowSuccessBanner] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
+
+  const cancelAttempt = useRef(null);
+  const access = useAdminPermissions()?.access;
+  const canCancelVoucher =
+    hasAdminPermission(access, 'so_quy', 'sua') &&
+    currentItem?.trang_thai === 'DA_GHI_NHAN' &&
+    currentItem?.nguon_tao === 'THU_CONG';
 
   const fetchDetail = useCallback(async () => {
     setIsLoading(true);
@@ -111,9 +119,16 @@ export default function ChiTietPhieuChi() {
   };
 
   const handleConfirmCancel = async () => {
+    if (!canCancelVoucher || isCancelling || cancelAttempt.current?.inFlight) return;
+
     setIsCancelling(true);
     try {
-      await disbursementService.cancelDisbursement(id, { xac_nhan: true });
+      await withIdempotency(
+        cancelAttempt,
+        `disbursement:${id}:cancel`,
+        { xac_nhan: true },
+        (key, body) => disbursementService.cancelDisbursement(id, body, key)
+      );
       setShowCancelModal(false);
       setShowSuccessBanner(true);
       await fetchDetail();
@@ -148,8 +163,6 @@ export default function ChiTietPhieuChi() {
     );
   }
 
-  const canCancel = currentItem.trang_thai === 'DA_GHI_NHAN' && currentItem.nguon_tao !== 'TU_DONG';
-
   return (
     <div className="ctp-page">
       {/* Top Breadcrumb Header Bar */}
@@ -179,7 +192,7 @@ export default function ChiTietPhieuChi() {
             </span>
           </div>
 
-          {canCancel && (
+          {canCancelVoucher && (
             <button className="ctp-btn-cancel-action" onClick={() => setShowCancelModal(true)}>
               HỦY PHIẾU CHI
             </button>
@@ -294,7 +307,9 @@ export default function ChiTietPhieuChi() {
                   </span>
                 ))}
                 {(!currentItem.tags || currentItem.tags.length === 0) && (
-                  <span style={{ color: '#9ca3af', fontSize: scaledFontSize(13) }}>Không có tags</span>
+                  <span style={{ color: '#9ca3af', fontSize: scaledFontSize(13) }}>
+                    Không có tags
+                  </span>
                 )}
               </div>
             </div>
@@ -365,7 +380,7 @@ export default function ChiTietPhieuChi() {
       </div>
 
       {/* Confirmation Cancel Modal */}
-      {showCancelModal && (
+      {canCancelVoucher && showCancelModal && (
         <div className="ctp-modal-overlay">
           <div className="ctp-modal-box">
             <div className="ctp-modal-header header-red">

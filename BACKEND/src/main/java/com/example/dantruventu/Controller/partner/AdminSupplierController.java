@@ -4,6 +4,7 @@ import com.example.dantruventu.DTO.Request.partner.AdminSupplierCreateRequest;
 import com.example.dantruventu.DTO.Request.partner.AdminSupplierUpdateRequest;
 import com.example.dantruventu.DTO.Response.ApiResponse;
 import com.example.dantruventu.DTO.Response.partner.AdminSupplierDetailResponse;
+import com.example.dantruventu.DTO.Response.partner.AdminSupplierListItemResponse;
 import com.example.dantruventu.DTO.Response.partner.AdminSupplierListResponse;
 import com.example.dantruventu.DTO.Response.partner.AdminSupplierResponse;
 import com.example.dantruventu.Services.AdminSupplierService;
@@ -17,12 +18,15 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/v1/admin/suppliers")
 @RequiredArgsConstructor
-@PreAuthorize("hasRole('ADMIN')")
+@PreAuthorize("@adminRoleService.hasModuleAction(principal, 'nha_cung_cap', 'xem')")
 public class AdminSupplierController {
 
   private final AdminSupplierService adminSupplierService;
 
   @GetMapping
+  @PreAuthorize(
+      "@adminRoleService.hasModuleAction(principal, 'nha_cung_cap', 'xem')"
+          + " or @adminRoleService.hasModuleAction(principal, 'nhap_hang', 'xem')")
   public ApiResponse<AdminSupplierListResponse> getSuppliers(
       @RequestParam(name = "keyword", required = false) String keyword,
       @RequestParam(name = "trang_thai", required = false) Short trangThai,
@@ -33,6 +37,33 @@ public class AdminSupplierController {
         .status(200)
         .message("Lấy danh sách nhà cung cấp thành công")
         .data(adminSupplierService.getSuppliers(keyword, trangThai, page, limit))
+        .build();
+  }
+
+  @GetMapping("/warranty-options")
+  @PreAuthorize("@adminRoleService.hasModuleAction(principal, 'bao_hanh', 'sua')")
+  public ApiResponse<AdminSupplierListResponse> warrantyOptions(
+      @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "20") int limit) {
+    var result = adminSupplierService.getSuppliers(null, (short) 1, page, limit);
+    var items =
+        result.getItems().stream()
+            .map(
+                item ->
+                    AdminSupplierListItemResponse.builder()
+                        .id(item.getId())
+                        .maNhaCungCap(item.getMaNhaCungCap())
+                        .tenNhaCungCap(item.getTenNhaCungCap())
+                        .build())
+            .toList();
+
+    return ApiResponse.<AdminSupplierListResponse>builder()
+        .status(200)
+        .message("Lấy đơn vị xử lý bảo hành")
+        .data(
+            AdminSupplierListResponse.builder()
+                .items(items)
+                .pagination(result.getPagination())
+                .build())
         .build();
   }
 
@@ -49,7 +80,32 @@ public class AdminSupplierController {
         .build();
   }
 
+  @GetMapping("/{id}/purchase-option")
+  @PreAuthorize(
+      "@adminRoleService.hasModuleAction(principal, 'nhap_hang', 'them')"
+          + " or @adminRoleService.hasModuleAction(principal, 'nhap_hang', 'sua')")
+  public ApiResponse<AdminSupplierResponse> purchaseOption(@PathVariable Long id) {
+    var supplier = adminSupplierService.getDetail(id, 0, 1);
+    var option =
+        AdminSupplierResponse.builder()
+            .id(supplier.getId())
+            .maNhaCungCap(supplier.getMaNhaCungCap())
+            .tenNhaCungCap(supplier.getTenNhaCungCap())
+            .soDienThoai(supplier.getSoDienThoai())
+            .email(supplier.getEmail())
+            .diaChi(supplier.getDiaChi())
+            .trangThai(supplier.getTrangThai())
+            .build();
+
+    return ApiResponse.<AdminSupplierResponse>builder()
+        .status(200)
+        .message("Lấy thông tin nhà cung cấp cho đơn nhập")
+        .data(option)
+        .build();
+  }
+
   @PostMapping
+  @PreAuthorize("@adminRoleService.hasModuleAction(principal, 'nha_cung_cap', 'them')")
   public ResponseEntity<ApiResponse<AdminSupplierResponse>> create(
       @Valid @RequestBody AdminSupplierCreateRequest request) {
 
@@ -64,6 +120,7 @@ public class AdminSupplierController {
   }
 
   @PutMapping("/{id}")
+  @PreAuthorize("@adminRoleService.hasModuleAction(principal, 'nha_cung_cap', 'sua')")
   public ApiResponse<AdminSupplierResponse> update(
       @PathVariable("id") Long id, @Valid @RequestBody AdminSupplierUpdateRequest request) {
 

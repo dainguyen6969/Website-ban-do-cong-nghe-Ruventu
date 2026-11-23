@@ -12,6 +12,7 @@ import com.example.dantruventu.Error.*;
 import com.example.dantruventu.Repository.DanhMucRepository;
 import com.example.dantruventu.Repository.product.PhienBanSanPhamRepository;
 import com.example.dantruventu.Repository.warehouse.TonKhoRepository;
+import com.example.dantruventu.Services.catalog.CatalogSupport;
 import com.example.dantruventu.Services.order.sales.SalesContext;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -91,7 +92,8 @@ class PcBuilderExportServiceTest {
               variants,
               sales,
               new PcBuilderCompatibilitySupport(json),
-              new PcBuilderStockSupport(stocks));
+              new PcBuilderStockSupport(stocks),
+              mock(CatalogSupport.class));
       service = new PcBuilderExportService(builder, renderer);
     }
 

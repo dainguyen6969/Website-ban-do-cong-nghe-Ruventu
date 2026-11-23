@@ -26,6 +26,10 @@ import {
   recordRecallEvent,
   splitCodes,
 } from './recallApi';
+
+import { hasSystemAdminPermission } from '../../../../auth/roleModel';
+import { useAdminPermissions } from '../../../../shared/components/ui/PermissionGate';
+
 import '../pages/SerialPages.css';
 import './Recall.css';
 
@@ -281,6 +285,9 @@ export default function ThuHoiHang() {
   const { recallId } = useParams();
   const navigate = useNavigate();
 
+  const access = useAdminPermissions()?.access;
+  const canOperateRecall = hasSystemAdminPermission(access, 'kho_hang', 'sua');
+
   const [keyword, setKeyword] = useState('');
   const [status, setStatus] = useState('');
   const [page, setPage] = useState(1);
@@ -470,7 +477,7 @@ export default function ThuHoiHang() {
     return () => controller.abort();
   }, [dialog?.kind, form.purchaseId]);
 
-  const frozen = busy || Boolean(attempt.current);
+  const frozen = busy || (canOperateRecall && Boolean(attempt.current));
 
   const change = (name, value) =>
     setForm((current) => {
@@ -510,7 +517,7 @@ export default function ThuHoiHang() {
   const selectedLine = sourceLines.find((line) => Number(line.id) === Number(form.receiptLineId));
 
   const openCreate = () => {
-    if (frozen || (recallId && !detail)) return;
+    if (!canOperateRecall || frozen || (recallId && !detail)) return;
 
     const source = recallId ? detail : null;
 
@@ -550,7 +557,7 @@ export default function ThuHoiHang() {
   };
 
   const openAction = (action, item = null) => {
-    if (frozen || !detail) return;
+    if (!canOperateRecall || frozen || !detail) return;
 
     setError('');
     setFieldErrors({});
@@ -566,7 +573,7 @@ export default function ThuHoiHang() {
   };
 
   const perform = async (scope, body) => {
-    if (writing.current) return;
+    if (!canOperateRecall || writing.current) return;
 
     writing.current = true;
     setBusy(true);
@@ -710,7 +717,7 @@ export default function ThuHoiHang() {
                   <button
                     type="button"
                     className="recall-button is-dark"
-                    disabled={frozen || !flag(detail.can_close)}
+                    disabled={!canOperateRecall || frozen || !flag(detail.can_close)}
                     onClick={() => openAction('KET_THUC')}
                   >
                     Kết thúc đợt thu hồi
@@ -719,7 +726,7 @@ export default function ThuHoiHang() {
                   <button
                     type="button"
                     className="recall-button is-dark"
-                    disabled={frozen}
+                    disabled={!canOperateRecall || frozen}
                     onClick={() => openAction('MO_LAI')}
                   >
                     Mở lại đợt thu hồi
@@ -737,7 +744,7 @@ export default function ThuHoiHang() {
               <button
                 type="button"
                 className="recall-button is-dark"
-                disabled={frozen || !detail}
+                disabled={!canOperateRecall || frozen || !detail}
                 onClick={openCreate}
               >
                 Tạo đợt thu hồi mới
@@ -796,7 +803,7 @@ export default function ThuHoiHang() {
               <button
                 type="button"
                 className="admin-list-primary-action"
-                disabled={frozen}
+                disabled={!canOperateRecall || frozen}
                 onClick={openCreate}
               >
                 <HiOutlinePlus size={17} aria-hidden="true" />
@@ -1038,7 +1045,7 @@ export default function ThuHoiHang() {
                               <button
                                 type="button"
                                 className="recall-button is-dark recall-button--sm"
-                                disabled={frozen}
+                                disabled={!canOperateRecall || frozen}
                                 onClick={() => openAction(recallDefaultAction(item), item)}
                               >
                                 CẬP NHẬT
@@ -1085,7 +1092,7 @@ export default function ThuHoiHang() {
           </>
         )}
 
-        {dialog && (
+        {canOperateRecall && dialog && (
           <OrderModal
             title={dialog.kind === 'create' ? 'TẠO ĐỢT THU HỒI' : RECALL_ACTIONS[form.action]}
             subtitle={

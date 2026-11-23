@@ -5,7 +5,9 @@ import com.example.dantruventu.DTO.Request.role.UpdateRoleRequest;
 import com.example.dantruventu.DTO.Response.PaginationResponse;
 import com.example.dantruventu.DTO.Response.role.AdminRoleListResponse;
 import com.example.dantruventu.DTO.Response.role.RoleListItemResponse;
+import com.example.dantruventu.Entity.NguoiDung;
 import com.example.dantruventu.Entity.VaiTro;
+import com.example.dantruventu.Enum.TrangThaiCoBanEnum;
 import com.example.dantruventu.Error.AppException;
 import com.example.dantruventu.Error.ErrorCode;
 import com.example.dantruventu.Repository.NguoiDungRepository;
@@ -18,6 +20,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
@@ -30,6 +33,17 @@ public class AdminRoleService {
 
   private static final String PROTECTED_ROLE_NAME = "ADMIN";
   private static final String CUSTOMER_ROLE_NAME = "USER";
+
+  private static final Set<String> WARRANTY_STAFF_EVENTS =
+      Set.of(
+          "GHI_KET_LUAN",
+          "GUI_DON_VI",
+          "DON_VI_TIEP_NHAN",
+          "YEU_CAU_THU_HOI",
+          "NHAN_LAI",
+          "BAT_DAU_CONG_VIEC",
+          "CAP_NHAT_TIEN_DO",
+          "YEU_CAU_DUNG");
 
   private static final List<String> CRUD = List.of("xem", "them", "sua", "xoa");
 
@@ -53,6 +67,105 @@ public class AdminRoleService {
           Map.entry("bao_hanh", List.of("xem", "them", "sua")),
           Map.entry("so_quy", List.of("xem", "them", "sua")),
           Map.entry("bao_cao", List.of("xem")));
+
+  private static final Map<String, List<String>> ADMIN_ONLY_ACTIONS =
+      Map.of("nhan_vien", CRUD, "vai_tro_quyen", CRUD);
+
+  private VaiTro activeRole(Object principal) {
+    if (!(principal instanceof NguoiDung user)
+        || user.getTrangThai() != TrangThaiCoBanEnum.HOAT_DONG) {
+      return null;
+    }
+
+    VaiTro role = user.getVaiTro();
+    if (role == null || role.getMaVaiTro() == null || role.getMaVaiTro().isBlank()) {
+      return null;
+    }
+    return role;
+  }
+
+  public boolean isSystemAdmin(Object principal) {
+    VaiTro role = activeRole(principal);
+    return role != null && PROTECTED_ROLE_NAME.equals(role.getMaVaiTro());
+  }
+
+  public Map<String, List<String>> effectivePermissions(Object principal) {
+    VaiTro role = activeRole(principal);
+    if (role == null || CUSTOMER_ROLE_NAME.equals(role.getMaVaiTro())) {
+      return Map.of();
+    }
+
+    Map<String, List<String>> result = new LinkedHashMap<>();
+    if (PROTECTED_ROLE_NAME.equals(role.getMaVaiTro())) {
+      result.putAll(ASSIGNABLE_ACTIONS);
+      result.putAll(ADMIN_ONLY_ACTIONS);
+      return result;
+    }
+
+    Map<String, List<String>> stored = role.getQuyen();
+    if (stored == null) return Map.of();
+
+    ASSIGNABLE_ACTIONS.forEach(
+        (module, allowed) -> {
+          List<String> granted = stored.get(module);
+          if (granted != null) {
+            List<String> actions = allowed.stream().filter(granted::contains).toList();
+            if (!actions.isEmpty()) result.put(module, actions);
+          }
+        });
+    return result;
+  }
+
+  @Transactional(readOnly = true, propagation = Propagation.REQUIRES_NEW)
+  public Map<String, List<String>> effectivePermissionsForUser(Long userId, long authVersion) {
+    return nguoiDungRepository
+        .findByIdWithVaiTro(userId)
+        .filter(user -> user.getPhienBanXacThuc() == authVersion)
+        .map(this::effectivePermissions)
+        .orElseGet(Map::of);
+  }
+
+  public boolean hasPermission(Object principal, String module, String action) {
+    if (module == null || action == null) return false;
+    return effectivePermissions(principal).getOrDefault(module, List.of()).contains(action);
+  }
+
+  public boolean hasModuleAction(Object principal, String module, String action) {
+    var actions = effectivePermissions(principal).getOrDefault(module, List.of());
+    return actions.contains("xem") && actions.contains(action);
+  }
+
+  public boolean canSaveWarrantyEvent(Object principal, Object event) {
+    return isSystemAdmin(principal)
+        || (event instanceof String type
+            && WARRANTY_STAFF_EVENTS.contains(type.trim())
+            && hasModuleAction(principal, "bao_hanh", "sua"));
+  }
+
+  public Map<String, Object> getMyPermissions(Object principal) {
+    VaiTro role = activeRole(principal);
+    if (role == null) throw new AppException(ErrorCode.FORBIDDEN);
+
+    NguoiDung user = (NguoiDung) principal;
+    String accountType =
+        switch (role.getMaVaiTro()) {
+          case PROTECTED_ROLE_NAME -> "QUAN_TRI";
+          case CUSTOMER_ROLE_NAME -> "KHACH_HANG";
+          default -> "NHAN_VIEN";
+        };
+
+    return Map.of(
+        "nguoi_dung_id", user.getId(),
+        "trang_thai", user.getTrangThai().getValue(),
+        "loai_tai_khoan", accountType,
+        "vai_tro",
+            Map.of(
+                "id", role.getId(),
+                "ma_vai_tro", role.getMaVaiTro(),
+                "ten_vai_tro", role.getTenVaiTro(),
+                "phien_ban", role.getPhienBan()),
+        "quyen", effectivePermissions(user));
+  }
 
   public AdminRoleListResponse getRoles(String keyword, int page, int limit) {
 
@@ -312,23 +425,10 @@ public class AdminRoleService {
   }
 
   private boolean isCustomerRole(VaiTro vaiTro) {
-    if (vaiTro == null || vaiTro.getTenVaiTro() == null) {
-      return false;
-    }
-    String upper = vaiTro.getTenVaiTro().toUpperCase(Locale.ROOT);
-    String lower = vaiTro.getTenVaiTro().toLowerCase(Locale.ROOT);
-    String moTaLower = vaiTro.getMoTa() != null ? vaiTro.getMoTa().toLowerCase(Locale.ROOT) : "";
-    return upper.equals(CUSTOMER_ROLE_NAME)
-        || upper.equals("KHACH_HANG")
-        || lower.equals("khách hàng")
-        || lower.equals("khach hang")
-        || moTaLower.contains("khách hàng")
-        || moTaLower.contains("khach hang");
+    return vaiTro != null && CUSTOMER_ROLE_NAME.equals(vaiTro.getMaVaiTro());
   }
 
   private boolean isProtectedAdminRole(VaiTro vaiTro) {
-    return vaiTro != null
-        && (PROTECTED_ROLE_NAME.equals(vaiTro.getMaVaiTro())
-            || PROTECTED_ROLE_NAME.equalsIgnoreCase(vaiTro.getTenVaiTro()));
+    return vaiTro != null && PROTECTED_ROLE_NAME.equals(vaiTro.getMaVaiTro());
   }
 }

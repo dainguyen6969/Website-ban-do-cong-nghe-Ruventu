@@ -9,13 +9,17 @@ import com.example.dantruventu.DTO.Response.UpdateUserProfileResponse;
 import com.example.dantruventu.DTO.Response.UserMeResponse;
 import com.example.dantruventu.Entity.NguoiDung;
 import com.example.dantruventu.Services.AddressService;
+import com.example.dantruventu.Services.AdminRoleService;
 import com.example.dantruventu.Services.UserProfileService;
 import jakarta.validation.Valid;
 import java.util.List;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.CacheControl;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -25,6 +29,7 @@ public class UserController {
 
   private final UserProfileService userProfileService;
   private final AddressService addressService;
+  private final AdminRoleService adminRoleService;
 
   @GetMapping("/me")
   public ResponseEntity<ApiResponse<UserMeResponse>> getMyProfile(Authentication authentication) {
@@ -41,6 +46,20 @@ public class UserController {
             .build();
 
     return ResponseEntity.ok(response);
+  }
+
+  @GetMapping("/me/permissions")
+  public ResponseEntity<ApiResponse<Map<String, Object>>> getMyPermissions(
+      @AuthenticationPrincipal NguoiDung user) {
+
+    var response =
+        ApiResponse.<Map<String, Object>>builder()
+            .status(HttpStatus.OK.value())
+            .message("Lấy quyền tài khoản thành công")
+            .data(adminRoleService.getMyPermissions(user))
+            .build();
+
+    return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(response);
   }
 
   @PutMapping("/me")

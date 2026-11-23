@@ -58,6 +58,9 @@ import ComboContents from '../../../../shared/components/ui/ComboContents';
 import { ShipmentReturnDialog } from '../../shipping/pages/QuanLyGiaoHang';
 import { FormDropdown } from '../../../../shared/components/ui/FilterDropdown';
 
+import { hasAdminPermission, hasSystemAdminPermission } from '../../../../auth/roleModel';
+import { useAdminPermissions } from '../../../../shared/components/ui/PermissionGate';
+
 function OrderProductImage({ item }) {
   const [failedUrl, setFailedUrl] = useState(null);
   return item.anh_dai_dien && failedUrl !== item.anh_dai_dien ? (
@@ -233,6 +236,14 @@ function OrderDetailView({ orderId }) {
   const documentEditing = useRef(false);
   const navigate = useNavigate();
 
+  const access = useAdminPermissions()?.access;
+
+  const canOperateOrder = hasSystemAdminPermission(access, 'don_hang', 'sua');
+
+  const canCreateDelivery =
+    hasAdminPermission(access, 'giao_hang', 'xem') &&
+    hasAdminPermission(access, 'giao_hang', 'them');
+
   const { state: locationState } = useLocation();
   const orderListReturn = locationState?.orderListReturn;
 
@@ -274,7 +285,8 @@ function OrderDetailView({ orderId }) {
     updatedAt: null,
   });
 
-  editingRef.current = Boolean(dialog || isCancelOpen);
+  const canUseDialog = dialog?.type === 'startDelivery' ? canCreateDelivery : canOperateOrder;
+  editingRef.current = Boolean((canUseDialog && dialog) || (canOperateOrder && isCancelOpen));
 
   const load = useCallback(() => readerRef.current?.refresh(), []);
 
@@ -377,15 +389,15 @@ function OrderDetailView({ orderId }) {
 
   useEffect(() => {
     readerRef.current?.resume();
-  }, [dialog, isCancelOpen, state.busy]);
+  }, [dialog, isCancelOpen, state.busy, canOperateOrder, canUseDialog]);
 
   const products = useDetailTablePagination(order?.san_pham || []);
   const waitingPagination = useDetailTablePagination(order?.giu_hang_cho_hang || []);
   const receiptsPagination = useDetailTablePagination(order?.doi_soat_thanh_toan?.phieu_thu || []);
   const counterDevicesPagination = useDetailTablePagination(order?.thiet_bi_hien_hanh || []);
 
-  const run = async (work) => {
-    if (actionBusy.current) return;
+  const run = async (work, allowed = canOperateOrder) => {
+    if (!allowed || actionBusy.current) return;
 
     const reader = readerRef.current;
     actionBusy.current = true;
@@ -455,7 +467,8 @@ function OrderDetailView({ orderId }) {
     );
 
   const open = (type, title, fields = {}) => {
-    if (refundEditing.current || documentEditing.current) return;
+    const allowed = type === 'startDelivery' ? canCreateDelivery : canOperateOrder;
+    if (!allowed || refundEditing.current || documentEditing.current) return;
 
     setState((current) => ({ ...current, error: '' }));
     editingRef.current = true;
@@ -560,6 +573,8 @@ function OrderDetailView({ orderId }) {
     });
 
   const openSerialAllocation = async (type) => {
+    if (!canOperateOrder) return;
+
     if (
       actionBusy.current ||
       refundEditing.current ||
@@ -942,7 +957,7 @@ function OrderDetailView({ orderId }) {
       }
 
       throw new Error('Thao tác không hợp lệ.');
-    });
+    }, canUseDialog);
   };
 
   const waitingRows = Array.isArray(order.giu_hang_cho_hang) ? order.giu_hang_cho_hang : [];
@@ -1047,6 +1062,7 @@ function OrderDetailView({ orderId }) {
         <div className="order-detail-hero__actions">
           {canEditOnlineOrder(order) && (
             <Action
+              adminOnly={false}
               disabled={state.busy}
               click={() => navigate(`/admin/don-hang/dat-hang-online/${order.id}`)}
             >
@@ -1054,13 +1070,19 @@ function OrderDetailView({ orderId }) {
             </Action>
           )}
 
-          {openOnlineOrder &&
+          {canCreateDelivery &&
+            openOnlineOrder &&
             isShipping &&
             (!activeDelivery || activeDelivery.trang_thai_giao_hang === 'CHO_GIAO') && (
               <div className="order-handover-action">
-                <Action disabled={state.busy || !canStartDelivery} click={beginDelivery}>
+                <button
+                  type="button"
+                  className="order-action order-action--black"
+                  disabled={state.busy || !canStartDelivery}
+                  onClick={beginDelivery}
+                >
                   BẮT ĐẦU GIAO HÀNG
-                </Action>
+                </button>
 
                 {!canStartDelivery && (
                   <small className="order-handover-warning" role="status">
@@ -1309,7 +1331,11 @@ function OrderDetailView({ orderId }) {
             <p>Dữ liệu gửi được giữ nguyên. Bấm thử lại để gửi cùng mã yêu cầu.</p>
           </div>
 
-          <button type="button" disabled={state.busy} onClick={retryOrderOperation}>
+          <button
+            type="button"
+            disabled={!canOperateOrder || state.busy}
+            onClick={retryOrderOperation}
+          >
             THỬ LẠI YÊU CẦU CŨ
           </button>
         </div>
@@ -1322,7 +1348,11 @@ function OrderDetailView({ orderId }) {
             <p>Bấm thử lại để kiểm tra cùng yêu cầu đã gửi.</p>
           </div>
 
-          <button type="button" disabled={state.busy} onClick={retryCashOperation}>
+          <button
+            type="button"
+            disabled={!canOperateOrder || state.busy}
+            onClick={retryCashOperation}
+          >
             THỬ LẠI YÊU CẦU TIỀN
           </button>
         </div>
@@ -1578,6 +1608,7 @@ function OrderDetailView({ orderId }) {
             <OrderRefundPanel
               order={order}
               data={screen.hoan_tien}
+              canWrite={canOperateOrder}
               busy={state.busy || Boolean(orderAttempt.current) || Boolean(cashAttempt.current)}
               perform={run}
               onEditingChange={onRefundEditing}
@@ -1588,6 +1619,7 @@ function OrderDetailView({ orderId }) {
             key={`order-${order.id}`}
             mode="order"
             id={order.id}
+            canWrite={canOperateOrder}
             locked={
               state.busy ||
               Boolean(dialog) ||
@@ -1943,7 +1975,7 @@ function OrderDetailView({ orderId }) {
           </Panel>
         </aside>
       </div>
-      {isCancelOpen && (
+      {canOperateOrder && isCancelOpen && (
         <div
           className="order-modal-backdrop"
           onMouseDown={(event) => {
@@ -1999,7 +2031,7 @@ function OrderDetailView({ orderId }) {
         </div>
       )}
 
-      {dialog?.type === 'cancelBeforeHandover' ? (
+      {!canUseDialog ? null : dialog?.type === 'cancelBeforeHandover' ? (
         <ShipmentReturnDialog
           delivery={{ id: order.id }}
           beforeHandover
@@ -2351,7 +2383,21 @@ function getPaymentMethodBadgeClass(method) {
   return 'default';
 }
 
-function Action({ children, click, danger = false, secondary = false, disabled = false }) {
+function Action({
+  children,
+  click,
+  danger = false,
+  secondary = false,
+  disabled = false,
+  adminOnly = true,
+}) {
+  const access = useAdminPermissions()?.access;
+  const allowed = adminOnly
+    ? hasSystemAdminPermission(access, 'don_hang', 'sua')
+    : hasAdminPermission(access, 'don_hang', 'sua');
+
+  if (!allowed) return null;
+
   return (
     <button
       type="button"
@@ -2363,6 +2409,7 @@ function Action({ children, click, danger = false, secondary = false, disabled =
     </button>
   );
 }
+
 function Panel({ title, children }) {
   return (
     <section className="order-detail-panel">
@@ -2374,6 +2421,7 @@ function Panel({ title, children }) {
     </section>
   );
 }
+
 function Info({ text, children }) {
   return (
     <div>

@@ -16,25 +16,7 @@ public final class RoleSpecification {
     return (root, query, cb) -> {
       List<Predicate> predicates = new ArrayList<>();
 
-      Predicate notUser = cb.notEqual(cb.upper(root.get("tenVaiTro")), "USER");
-      Predicate notKhachHang = cb.notEqual(cb.lower(root.get("tenVaiTro")), "khách hàng");
-      Predicate notKhachHangNoAccent = cb.notEqual(cb.lower(root.get("tenVaiTro")), "khach hang");
-      Predicate notKhachHangCode = cb.notEqual(cb.upper(root.get("tenVaiTro")), "KHACH_HANG");
-      Predicate notKhachHangDesc =
-          cb.or(
-              cb.isNull(root.get("moTa")), cb.notLike(cb.lower(root.get("moTa")), "%khách hàng%"));
-      Predicate notKhachHangDescNoAccent =
-          cb.or(
-              cb.isNull(root.get("moTa")), cb.notLike(cb.lower(root.get("moTa")), "%khach hang%"));
-
-      predicates.add(
-          cb.and(
-              notUser,
-              notKhachHang,
-              notKhachHangNoAccent,
-              notKhachHangCode,
-              notKhachHangDesc,
-              notKhachHangDescNoAccent));
+      predicates.add(cb.notEqual(root.get("maVaiTro"), "USER"));
 
       if (keyword != null && !keyword.isBlank()) {
         String trimmed = keyword.trim();

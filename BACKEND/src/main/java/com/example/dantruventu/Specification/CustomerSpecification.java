@@ -21,19 +21,7 @@ public final class CustomerSpecification {
 
       Join<NguoiDung, VaiTro> vaiTroJoin = root.join("vaiTro", JoinType.INNER);
 
-      Predicate isUser = cb.equal(cb.upper(vaiTroJoin.get("tenVaiTro")), "USER");
-      Predicate isKhachHangCode = cb.equal(cb.upper(vaiTroJoin.get("tenVaiTro")), "KHACH_HANG");
-      Predicate isKhachHang = cb.equal(cb.lower(vaiTroJoin.get("tenVaiTro")), "khách hàng");
-      Predicate isKhachHangNoAccent = cb.equal(cb.lower(vaiTroJoin.get("tenVaiTro")), "khach hang");
-      Predicate isKhachHangDesc =
-          cb.and(
-              cb.isNotNull(vaiTroJoin.get("moTa")),
-              cb.or(
-                  cb.like(cb.lower(vaiTroJoin.get("moTa")), "%khách hàng%"),
-                  cb.like(cb.lower(vaiTroJoin.get("moTa")), "%khach hang%")));
-
-      predicates.add(
-          cb.or(isUser, isKhachHangCode, isKhachHang, isKhachHangNoAccent, isKhachHangDesc));
+      predicates.add(cb.equal(vaiTroJoin.get("maVaiTro"), "USER"));
 
       if (keyword != null && !keyword.isBlank()) {
         String trimmed = keyword.trim();

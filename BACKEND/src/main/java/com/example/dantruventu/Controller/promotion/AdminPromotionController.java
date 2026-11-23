@@ -29,7 +29,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/api/v1/admin/promotions")
 @RequiredArgsConstructor
-@PreAuthorize("hasRole('ADMIN')")
+@PreAuthorize("@adminRoleService.hasModuleAction(principal, 'khuyen_mai', 'xem')")
 public class AdminPromotionController {
 
   private final AdminPromotionService adminPromotionService;
@@ -45,6 +45,7 @@ public class AdminPromotionController {
   }
 
   @PutMapping("/{id}")
+  @PreAuthorize("@adminRoleService.hasModuleAction(principal, 'khuyen_mai', 'sua')")
   public ApiResponse<AdminPromotionMutationResponse> updatePromotion(
       @PathVariable("id") Long id, @Valid @RequestBody AdminPromotionCreateRequest request) {
 
@@ -56,6 +57,7 @@ public class AdminPromotionController {
   }
 
   @PatchMapping("/{id}/status")
+  @PreAuthorize("@adminRoleService.hasModuleAction(principal, 'khuyen_mai', 'sua')")
   public ApiResponse<AdminPromotionStatusResponse> updatePromotionStatus(
       @PathVariable("id") Long id, @Valid @RequestBody AdminPromotionStatusRequest request) {
 
@@ -72,6 +74,7 @@ public class AdminPromotionController {
   }
 
   @DeleteMapping("/{id}")
+  @PreAuthorize("@adminRoleService.hasModuleAction(principal, 'khuyen_mai', 'xoa')")
   public ApiResponse<AdminPromotionDeleteResponse> deletePromotion(@PathVariable("id") Long id) {
 
     return ApiResponse.<AdminPromotionDeleteResponse>builder()
@@ -82,6 +85,7 @@ public class AdminPromotionController {
   }
 
   @PostMapping
+  @PreAuthorize("@adminRoleService.hasModuleAction(principal, 'khuyen_mai', 'them')")
   @ResponseStatus(HttpStatus.CREATED)
   public ApiResponse<AdminPromotionMutationResponse> createPromotion(
       @Valid @RequestBody AdminPromotionCreateRequest request) {
@@ -94,6 +98,9 @@ public class AdminPromotionController {
   }
 
   @GetMapping("/variants")
+  @PreAuthorize(
+      "@adminRoleService.hasModuleAction(principal, 'khuyen_mai', 'them')"
+          + " or @adminRoleService.hasModuleAction(principal, 'khuyen_mai', 'sua')")
   public ApiResponse<AdminPromotionVariantListResponse> getVariants(
       @RequestParam(name = "keyword", required = false) String keyword,
       @RequestParam(name = "page", defaultValue = "0") int page,

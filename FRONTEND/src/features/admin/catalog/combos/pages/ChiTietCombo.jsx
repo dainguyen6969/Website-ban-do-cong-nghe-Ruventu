@@ -9,6 +9,8 @@ import StopComboModal from '../components/StopComboModal';
 import { deactivateCombo, getComboDetail } from '../api/comboApi';
 import fallbackImage from '../../../../../assets/hero.png';
 import { warrantyText } from '../../components/CatalogPolicies';
+import { hasAdminPermission } from '../../../../../auth/roleModel';
+import { useAdminPermissions } from '../../../../../shared/components/ui/PermissionGate';
 import './ChiTietCombo.css';
 
 const money = (value) => `${Number(value || 0).toLocaleString('vi-VN')}đ`;
@@ -88,6 +90,11 @@ function ComboWarranty({ components }) {
 export default function ChiTietCombo() {
   const { id } = useParams();
   const navigate = useNavigate();
+
+  const access = useAdminPermissions()?.access;
+  const canEditCombo = hasAdminPermission(access, 'combo_san_pham', 'sua');
+  const canStopCombo = hasAdminPermission(access, 'combo_san_pham', 'xoa');
+
   const [combo, setCombo] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -167,6 +174,7 @@ export default function ChiTietCombo() {
     detail.capacity == null ? 'unknown' : detail.capacity > 0 ? 'ready' : 'empty';
   const specs = combo.specs ?? [];
   const confirmStop = async () => {
+    if (!canStopCombo) return;
     try {
       await deactivateCombo(combo.id);
       setShowStopModal(false);
@@ -201,14 +209,21 @@ export default function ChiTietCombo() {
             ← QUAY LẠI
           </button>
 
-          <button
-            className="combo-detail-edit"
-            onClick={() => navigate(`/kho-hang/combo-san-pham/them-moi?id=${combo.id}`)}
-          >
-            SỬA COMBO
-          </button>
-          {!stopped(combo.status) && (
-            <button className="combo-detail-stop" onClick={() => setShowStopModal(true)}>
+          {canEditCombo && (
+            <button
+              type="button"
+              className="combo-detail-edit"
+              onClick={() => navigate(`/kho-hang/combo-san-pham/them-moi?id=${combo.id}`)}
+            >
+              SỬA COMBO
+            </button>
+          )}
+          {canStopCombo && !stopped(combo.status) && (
+            <button
+              type="button"
+              className="combo-detail-stop"
+              onClick={() => setShowStopModal(true)}
+            >
               NGƯNG KINH DOANH
             </button>
           )}
@@ -468,7 +483,7 @@ export default function ChiTietCombo() {
         </FormCard>
       </div>
       <StopComboModal
-        combo={showStopModal ? combo : null}
+        combo={canStopCombo && showStopModal ? combo : null}
         onCancel={() => setShowStopModal(false)}
         onConfirm={confirmStop}
       />

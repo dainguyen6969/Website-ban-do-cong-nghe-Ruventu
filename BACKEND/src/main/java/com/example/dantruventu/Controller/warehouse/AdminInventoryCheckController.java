@@ -35,6 +35,7 @@ public class AdminInventoryCheckController {
   private final WarehouseOperations warehouseOperations;
 
   @GetMapping("/products")
+  @PreAuthorize("@adminRoleService.hasModuleAction(principal, 'kiem_hang', 'xem')")
   public ApiResponse<AdminInventoryCheckProductListResponse> searchProducts(
       @RequestParam(name = "keyword", required = false) String keyword,
       @RequestParam(name = "page", defaultValue = "0") int page,
@@ -48,6 +49,7 @@ public class AdminInventoryCheckController {
   }
 
   @GetMapping
+  @PreAuthorize("@adminRoleService.hasModuleAction(principal, 'kiem_hang', 'xem')")
   public ApiResponse<AdminInventoryCheckListResponse> getInventoryChecks(
       @RequestParam(name = "keyword", required = false) String keyword,
       @RequestParam(name = "trang_thai", required = false) TrangThaiPhieuKiemKho status,
@@ -72,6 +74,7 @@ public class AdminInventoryCheckController {
   }
 
   @GetMapping("/{id}")
+  @PreAuthorize("@adminRoleService.hasModuleAction(principal, 'kiem_hang', 'xem')")
   public ApiResponse<AdminInventoryCheckDetailResponse> getDetail(@PathVariable("id") Long id) {
 
     return ApiResponse.<AdminInventoryCheckDetailResponse>builder()
@@ -82,6 +85,7 @@ public class AdminInventoryCheckController {
   }
 
   @PutMapping("/{id}")
+  @PreAuthorize("@adminRoleService.hasModuleAction(principal, 'kiem_hang', 'sua')")
   public ApiResponse<AdminInventoryCheckUpdateResponse> update(
       @PathVariable("id") Long id,
       @Valid @RequestBody AdminInventoryCheckUpdateRequest request,
@@ -119,6 +123,7 @@ public class AdminInventoryCheckController {
   }
 
   @PostMapping
+  @PreAuthorize("@adminRoleService.hasModuleAction(principal, 'kiem_hang', 'them')")
   @ResponseStatus(HttpStatus.CREATED)
   public ApiResponse<AdminInventoryCheckCreateResponse> create(
       @Valid @RequestBody AdminInventoryCheckCreateRequest request,
@@ -132,6 +137,7 @@ public class AdminInventoryCheckController {
   }
 
   @GetMapping("/products/{id}/requirements")
+  @PreAuthorize("@adminRoleService.hasModuleAction(principal, 'kiem_hang', 'xem')")
   public ApiResponse<InventoryCountData.Requirements> requirements(@PathVariable Long id) {
 
     return ApiResponse.<InventoryCountData.Requirements>builder()
@@ -142,6 +148,7 @@ public class AdminInventoryCheckController {
   }
 
   @PostMapping("/batch")
+  @PreAuthorize("@adminRoleService.hasModuleAction(principal, 'kiem_hang', 'them')")
   @ResponseStatus(HttpStatus.CREATED)
   public ApiResponse<InventoryCountData.BatchResult> createBatch(
       @RequestHeader("Idempotency-Key") String key,

@@ -36,6 +36,7 @@ public class SupplierRecallController {
   }
 
   @GetMapping("/sources/{poId}")
+  @PreAuthorize("@adminRoleService.hasModuleAction(principal, 'nhap_hang', 'xem')")
   public ApiResponse<Object> source(@PathVariable Long poId) {
     return ok(sources.purchaseSources(poId), "Lấy nguồn nhận thành công");
   }

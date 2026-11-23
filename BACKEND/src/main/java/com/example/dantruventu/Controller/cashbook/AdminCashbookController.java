@@ -10,7 +10,7 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/v1/admin/cashbook")
 @RequiredArgsConstructor
-@PreAuthorize("hasRole('ADMIN')")
+@PreAuthorize("@adminRoleService.hasModuleAction(principal, 'so_quy', 'xem')")
 public class AdminCashbookController {
 
   private final CashbookReadService reads;

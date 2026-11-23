@@ -28,7 +28,7 @@ class MaintenanceConfigTest {
   private void role(String role) {
     var user =
         NguoiDung.builder()
-            .vaiTro(VaiTro.builder().tenVaiTro(role).build())
+            .vaiTro(VaiTro.builder().maVaiTro(role).tenVaiTro(role).build())
             .trangThai(TrangThaiCoBanEnum.HOAT_DONG)
             .build();
     SecurityContextHolder.getContext()

@@ -13,6 +13,8 @@ import SerialTracePanel from '../recall/SerialTracePanel';
 import { withIdempotency } from '../../../../shared/services/mutationUtils';
 import './SerialPages.css';
 import { FormDropdown } from '../../../../shared/components/ui/FilterDropdown';
+import { hasAdminPermission, hasSystemAdminPermission } from '../../../../auth/roleModel';
+import { useAdminPermissions } from '../../../../shared/components/ui/PermissionGate';
 
 function StatusBadge({ status }) {
   const meta = SERIAL_STATUS_META[status];
@@ -135,6 +137,9 @@ export default function ChiTietSerial() {
   const { serialId } = useParams();
   const navigate = useNavigate();
 
+  const access = useAdminPermissions()?.access;
+  const canEditSerial = hasAdminPermission(access, 'kho_hang', 'sua');
+
   const statusBusy = useRef(false);
   const statusAttempt = useRef(null);
 
@@ -189,9 +194,11 @@ export default function ChiTietSerial() {
   }
 
   const nextStatus = nextWarehouseStatus(serial.status);
-  const canEdit = Boolean(nextStatus) && !serial.recallBlocked;
+  const canEdit = canEditSerial && Boolean(nextStatus) && !serial.recallBlocked;
   const nextMeta = nextStatus ? SERIAL_STATUS_META[nextStatus] : null;
   const openModal = () => {
+    if (!canEdit) return;
+
     if (!statusAttempt.current) {
       setReason('');
     }
@@ -283,10 +290,12 @@ export default function ChiTietSerial() {
 
         <SerialOverview serial={serial} />
 
-        <SerialTracePanel serialId={serialId} refreshKey={serial.status} />
+        {hasSystemAdminPermission(access, 'kho_hang', 'xem') && (
+          <SerialTracePanel serialId={serialId} refreshKey={serial.status} />
+        )}
       </div>
 
-      {modalOpen && (
+      {canEdit && modalOpen && (
         <div
           className="serial-status-modal"
           role="presentation"

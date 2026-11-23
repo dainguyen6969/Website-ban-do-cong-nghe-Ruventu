@@ -177,7 +177,9 @@ public class AdminEmployeeService {
   }
 
   @Transactional
-  public EmployeeListItemResponse createEmployee(CreateEmployeeRequest request) {
+  public EmployeeListItemResponse createEmployee(
+      CreateEmployeeRequest request, Long currentAdminId) {
+    requireActiveAdminForWrite(currentAdminId);
 
     if (!request.getMatKhau().equals(request.getXacNhanMatKhau())) {
       throw new AppException(ErrorCode.INVALID_PARAM, "Mật khẩu xác nhận không khớp");
@@ -226,6 +228,8 @@ public class AdminEmployeeService {
     if (id == null || id <= 0) {
       throw new AppException(ErrorCode.INVALID_ID, "ID không hợp lệ.");
     }
+
+    requireActiveAdminForWrite(currentAdminId);
 
     NguoiDung employee =
         nguoiDungRepository
@@ -298,6 +302,9 @@ public class AdminEmployeeService {
       employee.setMatKhau(passwordEncoder.encode(matKhau));
     }
 
+    boolean locking =
+        employee.getTrangThai() == TrangThaiCoBanEnum.HOAT_DONG && request.getTrangThai() == 0;
+
     employee.setHoTen(request.getHoTen().trim());
     employee.setSoDienThoai(normalizedPhone);
     employee.setVaiTro(newVaiTro);
@@ -305,14 +312,24 @@ public class AdminEmployeeService {
 
     NguoiDung updatedEmployee = nguoiDungRepository.save(employee);
 
+    if (hasPass || locking) {
+      nguoiDungRepository.incrementAuthVersion(id);
+    }
+
     return toListItemResponse(updatedEmployee);
   }
 
   @Transactional
-  public EmployeeListItemResponse deleteEmployee(Long id) {
+  public EmployeeListItemResponse deleteEmployee(Long id, Long currentAdminId) {
 
     if (id == null || id <= 0) {
       throw new AppException(ErrorCode.INVALID_ID, "ID không hợp lệ.");
+    }
+
+    requireActiveAdminForWrite(currentAdminId);
+    if (Objects.equals(currentAdminId, id)) {
+      throw new AppException(
+          ErrorCode.CANNOT_LOCK_OWN_ACCOUNT, "Không thể tự khóa tài khoản của chính mình.");
     }
 
     NguoiDung employee =
@@ -339,37 +356,32 @@ public class AdminEmployeeService {
     // ngay_cap_nhat is updated automatically by @UpdateTimestamp on save
     NguoiDung saved = nguoiDungRepository.save(employee);
 
+    nguoiDungRepository.incrementAuthVersion(id);
+
     return toListItemResponse(saved);
   }
 
-  private boolean isCustomerRole(VaiTro vaiTro) {
-    if (vaiTro == null) {
-      return false;
+  private void requireActiveAdminForWrite(Long currentAdminId) {
+    if (currentAdminId == null) {
+      throw new AppException(ErrorCode.FORBIDDEN);
     }
-    String roleName =
-        vaiTro.getTenVaiTro() != null ? vaiTro.getTenVaiTro().toUpperCase(Locale.ROOT) : "";
-    String roleDesc = vaiTro.getMoTa() != null ? vaiTro.getMoTa().toLowerCase(Locale.ROOT) : "";
-    return "USER".equals(roleName)
-        || "KHACH_HANG".equals(roleName)
-        || "KHÁCH HÀNG".equalsIgnoreCase(vaiTro.getTenVaiTro())
-        || "KHACH HANG".equalsIgnoreCase(vaiTro.getTenVaiTro())
-        || roleDesc.contains("khách hàng")
-        || roleDesc.contains("khach hang");
+
+    vaiTroRepository
+        .findForUpdateByMaVaiTro("ADMIN")
+        .orElseThrow(() -> new AppException(ErrorCode.FORBIDDEN));
+
+    if (!nguoiDungRepository.existsByIdAndVaiTro_MaVaiTroAndTrangThai(
+        currentAdminId, "ADMIN", TrangThaiCoBanEnum.HOAT_DONG)) {
+      throw new AppException(ErrorCode.FORBIDDEN);
+    }
+  }
+
+  private boolean isCustomerRole(VaiTro vaiTro) {
+    return vaiTro != null && "USER".equals(vaiTro.getMaVaiTro());
   }
 
   private boolean isAdminRole(VaiTro vaiTro) {
-    if (vaiTro == null) {
-      return false;
-    }
-    String roleName =
-        vaiTro.getTenVaiTro() != null ? vaiTro.getTenVaiTro().toUpperCase(Locale.ROOT) : "";
-    String roleDesc = vaiTro.getMoTa() != null ? vaiTro.getMoTa().toLowerCase(Locale.ROOT) : "";
-    return "ADMIN".equals(roleName)
-        || "QUAN_TRI_VIEN".equals(roleName)
-        || "QUẢN TRỊ VIÊN".equalsIgnoreCase(vaiTro.getTenVaiTro())
-        || "QUAN TRI VIEN".equalsIgnoreCase(vaiTro.getTenVaiTro())
-        || roleDesc.contains("quản trị viên")
-        || roleDesc.contains("quan tri vien");
+    return vaiTro != null && "ADMIN".equals(vaiTro.getMaVaiTro());
   }
 
   private EmployeeListItemResponse toListItemResponse(NguoiDung user) {

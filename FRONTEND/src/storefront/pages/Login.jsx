@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import useMockAuth from '../../auth/useMockAuth';
+import { waitForPendingLogout } from '../../auth/backendAuth';
 import { Eye, EyeOff, AlertCircle, Check, Loader2 } from 'lucide-react';
 
 import axios from 'axios';
@@ -86,6 +87,7 @@ const Login = () => {
     setLoginFailed(false);
 
     try {
+      await waitForPendingLogout();
       const response = await axios.post(
         `${API_BASE_URL}/api/v1/auth/login`,
         {
@@ -118,11 +120,14 @@ const Login = () => {
       setUserName(account.name);
       setIsLoginSuccess(true);
     } catch (error) {
-      if (error.response?.status === 503 && error.response?.data?.errors?.some((detail) => detail.code === 'SYSTEM_MAINTENANCE')) {
+      if (
+        error.response?.status === 503 &&
+        error.response?.data?.errors?.some((detail) => detail.code === 'SYSTEM_MAINTENANCE')
+      ) {
         navigate('/bao-tri', { replace: true });
         return;
       }
-      console.error("Lỗi đăng nhập:", error);
+      console.error('Lỗi đăng nhập:', error);
 
       /*
        * Tài khoản bị khóa / không có quyền
