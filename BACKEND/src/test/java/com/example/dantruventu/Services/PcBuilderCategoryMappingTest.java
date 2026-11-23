@@ -42,7 +42,9 @@ class PcBuilderCategoryMappingTest {
   @BeforeEach
   void setUp() {
     properties = new PcBuilderProperties();
-    service = new PcBuilderService(categories, properties, variants, sales, compatibility, stock);
+    service =
+        new PcBuilderService(
+            categories, properties, variants, sales, compatibility, stock, catalog);
   }
 
   @Test
