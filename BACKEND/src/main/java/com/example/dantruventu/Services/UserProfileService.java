@@ -5,8 +5,12 @@ import com.example.dantruventu.DTO.Response.UpdateUserProfileResponse;
 import com.example.dantruventu.DTO.Response.UserMeResponse;
 import com.example.dantruventu.Entity.NguoiDung;
 import com.example.dantruventu.Entity.SoDiaChi;
+import com.example.dantruventu.Enum.TrangThaiCoBanEnum;
+import com.example.dantruventu.Error.AppException;
+import com.example.dantruventu.Error.ErrorCode;
 import com.example.dantruventu.Repository.NguoiDungRepository;
 import com.example.dantruventu.Repository.SoDiaChiRepository;
+import java.time.LocalDateTime;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -52,15 +56,21 @@ public class UserProfileService {
   public UpdateUserProfileResponse updateMyProfile(
       NguoiDung nguoiDung, UpdateUserProfileRequest request) {
 
-    nguoiDung.setHoTen(request.getHoTen());
-    nguoiDung.setAnhDaiDien(request.getAnhDaiDien());
+    int updated =
+        nguoiDungRepository.updateProfileForSession(
+            nguoiDung.getId(),
+            nguoiDung.getPhienBanXacThuc(),
+            TrangThaiCoBanEnum.HOAT_DONG,
+            request.getHoTen(),
+            request.getAnhDaiDien(),
+            LocalDateTime.now());
 
-    NguoiDung updatedNguoiDung = nguoiDungRepository.save(nguoiDung);
+    if (updated != 1) throw new AppException(ErrorCode.UNAUTHORIZED);
 
     return UpdateUserProfileResponse.builder()
-        .id(updatedNguoiDung.getId())
-        .hoTen(updatedNguoiDung.getHoTen())
-        .anhDaiDien(updatedNguoiDung.getAnhDaiDien())
+        .id(nguoiDung.getId())
+        .hoTen(request.getHoTen())
+        .anhDaiDien(request.getAnhDaiDien())
         .build();
   }
 }

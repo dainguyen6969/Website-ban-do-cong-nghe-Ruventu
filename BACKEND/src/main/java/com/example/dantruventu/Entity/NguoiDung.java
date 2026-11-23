@@ -8,9 +8,11 @@ import java.util.List;
 import lombok.*;
 import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.DynamicUpdate;
 import org.hibernate.annotations.UpdateTimestamp;
 
 @Entity
+@DynamicUpdate
 @Table(name = "nguoi_dung")
 @Getter
 @Setter
@@ -49,7 +51,7 @@ public class NguoiDung {
   private TrangThaiCoBanEnum trangThai = TrangThaiCoBanEnum.HOAT_DONG;
 
   @ColumnDefault("0")
-  @Column(name = "phien_ban_xac_thuc", nullable = false)
+  @Column(name = "phien_ban_xac_thuc", nullable = false, updatable = false)
   private long phienBanXacThuc;
 
   @CreationTimestamp

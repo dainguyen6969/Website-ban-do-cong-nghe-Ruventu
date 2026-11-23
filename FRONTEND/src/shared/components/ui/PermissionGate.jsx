@@ -75,10 +75,22 @@ export function AdminPermissionsProvider({ account, children }) {
   }, [account, pathname, revision]);
 
   useEffect(() => {
-    const onFocus = () => setRevision((value) => value + 1);
-    window.addEventListener('focus', onFocus);
-    return () => window.removeEventListener('focus', onFocus);
-  }, []);
+    if (!account?.id) return;
+
+    const refreshVisible = () => {
+      if (document.visibilityState === 'visible') setRevision((value) => value + 1);
+    };
+
+    const timer = window.setInterval(refreshVisible, 60000);
+    window.addEventListener('focus', refreshVisible);
+    document.addEventListener('visibilitychange', refreshVisible);
+
+    return () => {
+      window.clearInterval(timer);
+      window.removeEventListener('focus', refreshVisible);
+      document.removeEventListener('visibilitychange', refreshVisible);
+    };
+  }, [account?.id]);
 
   const current = snapshot?.account === account ? snapshot : null;
   const realtimeScope = getAdminRealtimeScope(current?.access);

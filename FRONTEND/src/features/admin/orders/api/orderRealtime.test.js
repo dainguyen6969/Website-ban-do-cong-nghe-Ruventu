@@ -2,7 +2,8 @@ import assert from 'node:assert/strict';
 import { after, before, beforeEach, afterEach, test } from 'node:test';
 import { createServer } from 'vite';
 
-let server, apiRequest, subscribeOrderUpdates, subscribeAdminRealtime, setAdminRealtimeScope;
+let server, apiRequest, saveLogin, getAccessToken;
+let subscribeOrderUpdates, subscribeAdminRealtime, setAdminRealtimeScope;
 let sockets, requests, cleanup, now;
 const purchaseScope = JSON.stringify([9, 'nhap_hang']);
 const settle = () => new Promise((resolve) => setImmediate(resolve));
@@ -18,7 +19,9 @@ before(async () => {
   ({ subscribeOrderUpdates, subscribeAdminRealtime, setAdminRealtimeScope } =
     await server.ssrLoadModule('/src/features/admin/orders/api/orderRealtime.js'));
 
-  ({ apiRequest } = await server.ssrLoadModule('/src/auth/backendAuth.js'));
+  ({ apiRequest, saveLogin, getAccessToken } = await server.ssrLoadModule(
+    '/src/auth/backendAuth.js'
+  ));
 });
 
 after(async () => server.close());
@@ -262,4 +265,34 @@ test('ticket retries through auth once and stops if the new token also gets 401'
   assert.equal(requests[2].options.headers.get('Authorization'), 'Bearer new-token');
   assert.deepEqual(events, [{ type: 'access-denied', status: 401 }]);
   assert.equal(sockets.length, 0);
+});
+
+test('an in-flight refresh cannot replace the next login or replay its request', async (t) => {
+  const token = (id, sid) =>
+    `test.${Buffer.from(JSON.stringify({ sub: String(id), sid })).toString('base64url')}.test`;
+
+  let finishRefresh;
+  t.mock.method(globalThis, 'fetch', (url, options) => {
+    requests.push({ url, options });
+    if (url.endsWith('/auth/refresh')) {
+      return new Promise((resolve) => {
+        finishRefresh = resolve;
+      });
+    }
+    return Promise.resolve(Response.json({}, { status: 401 }));
+  });
+
+  saveLogin({ access_token: token(9, 'old-session'), user: { id: 9 } });
+  const pending = apiRequest('/api/v1/users/me', { method: 'PUT', body: '{}' });
+  const rejected = assert.rejects(pending, { status: 401 });
+  await settle();
+  assert.equal(typeof finishRefresh, 'function');
+
+  const latest = token(10, 'new-session');
+  saveLogin({ access_token: latest, user: { id: 10 } });
+  finishRefresh(Response.json({ data: { access_token: token(9, 'old-session') } }));
+
+  await rejected;
+  assert.equal(getAccessToken(), latest);
+  assert.equal(requests.length, 2);
 });

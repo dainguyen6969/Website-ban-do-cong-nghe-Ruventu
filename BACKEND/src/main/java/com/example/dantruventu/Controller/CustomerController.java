@@ -290,6 +290,10 @@ public class CustomerController {
     customer.setNgayCapNhat(now);
     nguoiDungRepository.save(customer);
 
+    if (newStatusVal == 0) {
+      nguoiDungRepository.incrementAuthVersion(id);
+    }
+
     String formattedNgayCapNhat = now.atOffset(vietnamOffset).toString();
 
     Map<String, Object> data = new LinkedHashMap<>();

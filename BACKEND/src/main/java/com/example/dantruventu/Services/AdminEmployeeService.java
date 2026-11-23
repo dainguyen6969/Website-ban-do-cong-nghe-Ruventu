@@ -302,12 +302,19 @@ public class AdminEmployeeService {
       employee.setMatKhau(passwordEncoder.encode(matKhau));
     }
 
+    boolean locking =
+        employee.getTrangThai() == TrangThaiCoBanEnum.HOAT_DONG && request.getTrangThai() == 0;
+
     employee.setHoTen(request.getHoTen().trim());
     employee.setSoDienThoai(normalizedPhone);
     employee.setVaiTro(newVaiTro);
     employee.setTrangThai(TrangThaiCoBanEnum.fromValue(request.getTrangThai()));
 
     NguoiDung updatedEmployee = nguoiDungRepository.save(employee);
+
+    if (hasPass || locking) {
+      nguoiDungRepository.incrementAuthVersion(id);
+    }
 
     return toListItemResponse(updatedEmployee);
   }
@@ -348,6 +355,8 @@ public class AdminEmployeeService {
     employee.setTrangThai(TrangThaiCoBanEnum.NGUNG_HOAT_DONG);
     // ngay_cap_nhat is updated automatically by @UpdateTimestamp on save
     NguoiDung saved = nguoiDungRepository.save(employee);
+
+    nguoiDungRepository.incrementAuthVersion(id);
 
     return toListItemResponse(saved);
   }

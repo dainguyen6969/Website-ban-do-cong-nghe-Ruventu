@@ -117,9 +117,10 @@ public class AdminRoleService {
   }
 
   @Transactional(readOnly = true, propagation = Propagation.REQUIRES_NEW)
-  public Map<String, List<String>> effectivePermissionsForUser(Long userId) {
+  public Map<String, List<String>> effectivePermissionsForUser(Long userId, long authVersion) {
     return nguoiDungRepository
         .findByIdWithVaiTro(userId)
+        .filter(user -> user.getPhienBanXacThuc() == authVersion)
         .map(this::effectivePermissions)
         .orElseGet(Map::of);
   }

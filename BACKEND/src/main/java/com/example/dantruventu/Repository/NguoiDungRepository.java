@@ -3,13 +3,11 @@ package com.example.dantruventu.Repository;
 import com.example.dantruventu.Entity.NguoiDung;
 import com.example.dantruventu.Enum.TrangThaiCoBanEnum;
 import jakarta.persistence.LockModeType;
+import java.time.LocalDateTime;
 import java.util.Optional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
-import org.springframework.data.jpa.repository.Lock;
-import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.jpa.repository.*;
 import org.springframework.data.repository.query.Param;
 
 public interface NguoiDungRepository
@@ -89,6 +87,32 @@ public interface NguoiDungRepository
             WHERE n.id = :id
             """)
   Optional<NguoiDung> findByIdWithVaiTro(@Param("id") Long id);
+
+  @Modifying(flushAutomatically = true)
+  @Query(
+      value =
+          """
+          UPDATE nguoi_dung
+          SET phien_ban_xac_thuc = phien_ban_xac_thuc + 1
+          WHERE id = :id
+          """,
+      nativeQuery = true)
+  void incrementAuthVersion(@Param("id") Long id);
+
+  @Modifying
+  @Query(
+      """
+            UPDATE NguoiDung n
+            SET n.hoTen = :hoTen, n.anhDaiDien = :anhDaiDien, n.ngayCapNhat = :now
+            WHERE n.id = :id AND n.phienBanXacThuc = :authVersion AND n.trangThai = :active
+            """)
+  int updateProfileForSession(
+      @Param("id") Long id,
+      @Param("authVersion") long authVersion,
+      @Param("active") TrangThaiCoBanEnum active,
+      @Param("hoTen") String hoTen,
+      @Param("anhDaiDien") String anhDaiDien,
+      @Param("now") LocalDateTime now);
 
   boolean existsByIdAndVaiTro_MaVaiTroAndTrangThai(
       Long id, String maVaiTro, TrangThaiCoBanEnum trangThai);

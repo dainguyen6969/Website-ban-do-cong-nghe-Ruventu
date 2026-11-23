@@ -12,19 +12,11 @@ public class AuthTokenService {
   private final RefreshTokenSessionService refreshTokenSessionService;
 
   public TokenPair generateTokenPair(NguoiDung nguoiDung, boolean ghiNhoDangNhap) {
-
-    String accessToken = jwtService.generateAccessToken(nguoiDung);
-
     String refreshToken = jwtService.generateRefreshToken(nguoiDung, ghiNhoDangNhap);
-
-    refreshTokenSessionService.saveRefreshToken(refreshToken);
-
+    String accessToken = jwtService.generateAccessToken(nguoiDung, refreshToken);
+    refreshTokenSessionService.saveRefreshToken(
+        refreshToken, jwtService.getExpirationFromToken(refreshToken));
     return new TokenPair(accessToken, refreshToken);
-  }
-
-  public String generateAccessToken(NguoiDung nguoiDung) {
-
-    return jwtService.generateAccessToken(nguoiDung);
   }
 
   public record TokenPair(String accessToken, String refreshToken) {}

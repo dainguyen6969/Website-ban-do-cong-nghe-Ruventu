@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { attachSessionAuth } from '../../auth/backendAuth';
 
 const BASE_URL = (import.meta.env.VITE_RUVENTU_API_URL || '').replace(/\/$/, '');
 
@@ -10,16 +11,7 @@ const receiptAxios = axios.create({
   },
 });
 
-receiptAxios.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem('accessToken');
-    if (token) {
-      config.headers['Authorization'] = `Bearer ${token}`;
-    }
-    return config;
-  },
-  (error) => Promise.reject(error)
-);
+attachSessionAuth(receiptAxios);
 
 const receiptTypeAxios = axios.create({
   baseURL: `${BASE_URL}/api/v1/admin/receipt-types`,
@@ -29,16 +21,7 @@ const receiptTypeAxios = axios.create({
   },
 });
 
-receiptTypeAxios.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem('accessToken');
-    if (token) {
-      config.headers['Authorization'] = `Bearer ${token}`;
-    }
-    return config;
-  },
-  (error) => Promise.reject(error)
-);
+attachSessionAuth(receiptTypeAxios);
 
 export const receiptService = {
   getReceipts: async (params) => {

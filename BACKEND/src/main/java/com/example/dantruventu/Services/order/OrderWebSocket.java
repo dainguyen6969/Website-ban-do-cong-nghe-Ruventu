@@ -61,7 +61,8 @@ public class OrderWebSocket extends TextWebSocketHandler implements HandshakeInt
   private Map<String, List<String>> currentPermissions(String token) {
     try {
       if (token == null || !jwtService.isAccessTokenValid(token)) return Map.of();
-      return adminRoleService.effectivePermissionsForUser(jwtService.getUserIdFromToken(token));
+      return adminRoleService.effectivePermissionsForUser(
+          jwtService.getUserIdFromToken(token), jwtService.getAuthVersion(token));
     } catch (JwtException | IllegalArgumentException ex) {
       return Map.of();
     }
