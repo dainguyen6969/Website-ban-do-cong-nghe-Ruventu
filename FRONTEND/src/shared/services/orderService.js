@@ -1,5 +1,4 @@
 import axios from 'axios';
-import { notifyMaintenance } from '../../settings/maintenanceState';
 import { AUTH_CHANGED, attachSessionAuth, getAccessToken } from '../../auth/backendAuth';
 import { createReadCache, queryKey } from './readCache';
 import { cartService } from './cartService';
