@@ -1,7 +1,8 @@
 // Admin product screen: QuanLyPhienBan.
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate, useSearchParams, Link } from 'react-router-dom';
-import { HiOutlineDownload, HiOutlineSearch } from 'react-icons/hi';
+import { useSearchParams } from 'react-router-dom';
+import AdminLink from '../../../../../shared/components/ui/AdminLink';
+import { HiOutlineDownload, HiOutlineEye, HiOutlineSearch } from 'react-icons/hi';
 import TablePagination from '../../../../../shared/components/ui/TablePagination';
 import FilterDropdown from '../../../../../shared/components/ui/FilterDropdown';
 import LoadingSpinner from '../../../../../shared/components/ui/LoadingSpinner';
@@ -385,7 +386,7 @@ export default function QuanLyPhienBan() {
                           <span className="version-location">{item.location}</span>
                         </td>
                         <td>
-                          <Link
+                          <AdminLink
                             className="version-detail-btn"
                             to={
                               isCombo
@@ -395,7 +396,7 @@ export default function QuanLyPhienBan() {
                           >
                             <HiOutlineEye size={15} aria-hidden="true" />
                             {isCombo ? 'Thành phần' : 'Chi tiết'}
-                          </Link>
+                          </AdminLink>
                         </td>
                       </tr>
                     );

@@ -8,6 +8,7 @@ import {
   productService,
   toProductCard,
 } from "../../shared/services/productService";
+import { useCatalogRevision } from "../../shared/services/catalogChanges";
 import TablePagination from "../../shared/components/ui/TablePagination";
 import { catalogScopes, inCatalogScope, categoryTreeIds, componentCategoryIds } from './catalogModel';
 import useCatalogOptions from '../hooks/useCatalogOptions';
@@ -16,6 +17,7 @@ import "./SearchPage.css";
 import { FormDropdown } from "../../shared/components/ui/FilterDropdown";
 
 const SearchPage = ({ categorySlug } = {}) => {
+  const catalogRevision = useCatalogRevision();
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const query = searchParams.get("q") || "";
@@ -96,7 +98,7 @@ const SearchPage = ({ categorySlug } = {}) => {
     const timer = cached ? null : setTimeout(loadProducts, 300);
     if (cached) loadProducts();
     return () => { active = false; clearTimeout(timer); };
-  }, [query, sortBy, minPrice, maxPrice, stockStatus, categorySlug, isCategory, isRecommended, relatedCategoryId, excludeId, catalogOptions.loading, categoryIds, inScope]);
+  }, [query, sortBy, minPrice, maxPrice, stockStatus, categorySlug, isCategory, isRecommended, relatedCategoryId, excludeId, catalogOptions.loading, categoryIds, inScope, catalogRevision]);
 
   const filteredProducts = useMemo(() => {
     const products = searchProducts.filter(product =>

@@ -1,5 +1,6 @@
 import { useMemo, useRef, useState } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
+import AdminLink from '../../../../shared/components/ui/AdminLink';
 import {
   errorMessage,
   toApiDateTime,
@@ -199,35 +200,35 @@ export function CashSourceInfo({ item, compact = false }) {
       {hasLinks && (
         <div className="cash-source-links">
           {item.don_hang_id && (
-            <Link to={`/admin/don-hang/danh-sach-don-hang/${item.don_hang_id}`}>
+            <AdminLink to={`/admin/don-hang/danh-sach-don-hang/${item.don_hang_id}`}>
               Đơn hàng {item.ma_don_hang || `#${item.don_hang_id}`}
-            </Link>
+            </AdminLink>
           )}
 
           {item.don_nhap_hang_id && (
-            <Link to={`/kho-hang/nhap-hang/${item.don_nhap_hang_id}`}>
+            <AdminLink to={`/kho-hang/nhap-hang/${item.don_nhap_hang_id}`}>
               Đơn nhập {item.ma_don_nhap || `#${item.don_nhap_hang_id}`}
-            </Link>
+            </AdminLink>
           )}
 
           {item.phieu_giao_hang_id && (
-            <Link to={`/admin/don-hang/quan-ly-giao-hang/${item.phieu_giao_hang_id}`}>
+            <AdminLink to={`/admin/don-hang/quan-ly-giao-hang/${item.phieu_giao_hang_id}`}>
               Phiếu giao {item.ma_phieu_giao_hang || `#${item.phieu_giao_hang_id}`}
-            </Link>
+            </AdminLink>
           )}
 
           {item.hoa_don_bao_hanh_id && <span>Hóa đơn bảo hành #{item.hoa_don_bao_hanh_id}</span>}
 
           {item.phieu_bao_hanh_id && (
-            <Link to={`/admin/bao-hanh/chi-tiet/${item.phieu_bao_hanh_id}`}>
+            <AdminLink to={`/admin/bao-hanh/chi-tiet/${item.phieu_bao_hanh_id}`}>
               Phiếu bảo hành #{item.phieu_bao_hanh_id}
-            </Link>
+            </AdminLink>
           )}
 
           {item.phieu_tra_hang_id && (
-            <Link to={`/admin/don-hang/khach-tra-hang/${item.phieu_tra_hang_id}`}>
+            <AdminLink to={`/admin/don-hang/khach-tra-hang/${item.phieu_tra_hang_id}`}>
               Phiếu trả hàng #{item.phieu_tra_hang_id}
-            </Link>
+            </AdminLink>
           )}
         </div>
       )}

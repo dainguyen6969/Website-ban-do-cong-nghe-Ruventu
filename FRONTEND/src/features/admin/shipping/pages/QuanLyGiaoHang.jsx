@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import AdminLink from '../../../../shared/components/ui/AdminLink';
 import { HiOutlineArrowRight, HiOutlineEye, HiOutlineRefresh, HiOutlineSearch } from 'react-icons/hi';
 
 import { apiRequest } from '../../../../auth/backendAuth';
@@ -359,13 +360,13 @@ function ShipmentList() {
                       </td>
 
                       <td>
-                        <Link
+                        <AdminLink variant="plain"
                           className="delivery-order-link"
                           to={`/admin/don-hang/danh-sach-don-hang/${item.don_hang_id}`}
                         >
                           <span>{item.ma_don_hang}</span>
                           <HiOutlineArrowRight size={14} aria-hidden="true" />
-                        </Link>
+                        </AdminLink>
                         <small
                           className="delivery-list-meta delivery-list-ellipsis"
                           title={item.ma_phieu_giao_hang}
@@ -439,13 +440,13 @@ function ShipmentList() {
                       </td>
 
                       <td>
-                        <Link
+                        <AdminLink
                           className="delivery-detail-btn"
                           to={`${LIST}/${encodeURIComponent(item.id)}`}
                         >
                           <HiOutlineEye size={15} aria-hidden="true" />
                           Chi tiết
-                        </Link>
+                        </AdminLink>
                       </td>
                     </tr>
                   );

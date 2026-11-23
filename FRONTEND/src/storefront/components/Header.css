@@ -75,6 +75,7 @@
 }
 
 .header-brand-name {
+  --project-font-scale: 1;
   font: 900 24px/1 Arial, sans-serif;
   letter-spacing: 1px;
 }

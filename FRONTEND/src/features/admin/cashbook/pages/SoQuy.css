@@ -58,12 +58,6 @@
   padding: 12px 16px;
 }
 
-/* Keep filters from squeezing the ledger down to a single row. */
-.admin-app .sq-page > .admin-list-body {
-  flex: 1 0 400px;
-  min-height: 400px;
-}
-
 .bg-red {
   background-color: #f20b13 !important;
   border: none !important;

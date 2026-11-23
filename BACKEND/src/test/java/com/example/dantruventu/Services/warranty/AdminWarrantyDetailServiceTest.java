@@ -129,4 +129,37 @@ class AdminWarrantyDetailServiceTest {
     assertFalse(
         service.getDetail("501", "0", "1").thaoTacDuocPhep().contains("SUPPLIER_SETTLEMENT"));
   }
+
+  @Test
+  void exposesSavedReadyConditionAndAccessoriesSeparatelyFromIntake() {
+    ticket.setTrangThaiXuLy(TrangThaiBaoHanh.CHO_TRA_KHACH);
+    ticket.setTinhTrangTiepNhan("Trầy xước khi nhận");
+    var intake = Map.of("phu_kien", List.of(Map.of("ten", "Cáp", "so_luong", 2)));
+    var custody = Map.of("loai", "CUA_HANG", "thiet_bi_id", 700L);
+    var ready = Map.of(
+        "thiet_bi_se_tra_id", 700L,
+        "tinh_trang", "Hoạt động tốt",
+        "phu_kien", List.of(Map.of("ten", "Cáp", "so_luong", 1)));
+    events.add(
+        LichSuBaoHanh.builder()
+            .id(890L)
+            .phieuBaoHanh(ticket)
+            .loaiSuKien("TIEP_NHAN")
+            .duLieuChiTiet(json.writeValueAsString(Map.of("noi_dang_giu", custody, "tiep_nhan", intake)))
+            .build());
+    events.add(
+        LichSuBaoHanh.builder()
+            .id(891L)
+            .phieuBaoHanh(ticket)
+            .loaiSuKien("SAN_SANG_TRA")
+            .duLieuChiTiet(json.writeValueAsString(Map.of("san_sang_tra", ready)))
+            .build());
+
+    var result = service.getDetail("501", "0", "2");
+
+    assertEquals("Trầy xước khi nhận", result.tiepNhan().tinhTrang());
+    assertEquals(2, result.tiepNhan().phuKien().getFirst().get("so_luong"));
+    assertEquals("Hoạt động tốt", result.xuLyTiep().tinhTrangSanSangTra());
+    assertEquals(1, result.xuLyTiep().phuKienSanSangTra().getFirst().get("so_luong"));
+  }
 }

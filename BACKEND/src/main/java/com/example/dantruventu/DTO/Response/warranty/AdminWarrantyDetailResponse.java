@@ -42,7 +42,8 @@ public record AdminWarrantyDetailResponse(
   public record NextWork(
       @JsonProperty("thao_tac") List<String> thaoTac,
       @JsonProperty("giu_cho_lich_su_id") Long giuChoLichSuId,
-      @JsonProperty("phu_kien_san_sang_tra") List<Map<String, Object>> phuKienSanSangTra) {}
+      @JsonProperty("phu_kien_san_sang_tra") List<Map<String, Object>> phuKienSanSangTra,
+      @JsonProperty("tinh_trang_san_sang_tra") String tinhTrangSanSangTra) {}
 
   @JsonInclude(JsonInclude.Include.ALWAYS)
   public record Order(

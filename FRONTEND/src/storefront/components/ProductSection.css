@@ -207,6 +207,7 @@
 }
 
 .home-page .product-card .product-title {
+  color: #000;
   flex: 1;
   min-width: 0;
   min-height: calc(2 * 1.35em);

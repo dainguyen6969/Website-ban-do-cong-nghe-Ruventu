@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
+import AdminLink from '../../../../shared/components/ui/AdminLink';
 import DetailTablePagination from '../../../../shared/components/ui/DetailTablePagination';
 import useDetailTablePagination from '../../../../hooks/useDetailTablePagination';
 import LoadingSpinner from '../../../../shared/components/ui/LoadingSpinner';
@@ -684,9 +685,9 @@ export default function ChiTietNhapHang() {
                             <td>{(serialsPagination.currentPage - 1) * 5 + index + 1}</td>
                             <td>{serial.name}</td>
                             <td>
-                              <Link to={`/kho-hang/danh-sach-serial/${serial.id}`}>
+                              <AdminLink to={`/kho-hang/danh-sach-serial/${serial.id}`}>
                                 {serial.code}
-                              </Link>
+                              </AdminLink>
                             </td>
                             <td>
                               <span

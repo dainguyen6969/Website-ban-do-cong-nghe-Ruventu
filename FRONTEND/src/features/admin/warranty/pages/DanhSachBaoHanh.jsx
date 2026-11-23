@@ -101,7 +101,7 @@ export default function DanhSachBaoHanh() {
   const date = displayDate;
 
   return (
-    <div className="w-shell warranty-list">
+    <div className="w-shell warranty-list admin-list-page">
       <header className="w-shell-hero">
         <div>
           <div className="w-shell-title-row">
@@ -248,8 +248,8 @@ export default function DanhSachBaoHanh() {
           {error}
         </p>
       )}
-      <div className="w-shell-content">
-        <section className="w-shell-list-frame">
+      <div className="w-shell-content admin-list-body">
+        <section className="w-shell-list-frame admin-list-frame">
           <div className="w-list-count">
             {loading ? (
               'Đang tải…'

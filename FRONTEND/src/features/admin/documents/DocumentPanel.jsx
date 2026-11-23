@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
+import AdminLink from '../../../shared/components/ui/AdminLink';
 import { adminRequest } from '../catalog/products/api/versionApi';
 import OrderModal from '../orders/components/OrderModal';
 import {
@@ -32,7 +33,7 @@ function Field({ label, children, ...props }) {
 
 function PurchaseLink({ id, code }) {
   return id ? (
-    <Link to={`/kho-hang/nhap-hang/${id}`}>{code || `Đơn nhập #${id}`}</Link>
+    <AdminLink to={`/kho-hang/nhap-hang/${id}`}>{code || `Đơn nhập #${id}`}</AdminLink>
   ) : (
     <span>Chưa xác định</span>
   );
@@ -85,9 +86,9 @@ function TraceView({ data }) {
 
       {warranties.map((item) => (
         <article className="rv-doc-record" key={item.id}>
-          <Link to={`/admin/bao-hanh/chi-tiet/${item.id}`}>
+          <AdminLink to={`/admin/bao-hanh/chi-tiet/${item.id}`}>
             {item.ma_phieu || `Phiếu bảo hành #${item.id}`}
-          </Link>
+          </AdminLink>
           <p>
             {item.trang_thai_xu_ly} · {item.ket_qua_xu_ly || 'Chưa kết luận'}
           </p>
@@ -106,7 +107,7 @@ function TraceView({ data }) {
 
       {returns.map((item) => (
         <article className="rv-doc-record" key={item.id}>
-          <Link to={`/admin/don-hang/khach-tra-hang/${item.return_id}`}>{item.ma_tra_hang}</Link>
+          <AdminLink to={`/admin/don-hang/khach-tra-hang/${item.return_id}`}>{item.ma_tra_hang}</AdminLink>
           <p>{item.trang_thai_tra_hang}</p>
         </article>
       ))}
@@ -649,9 +650,9 @@ export default function DocumentPanel({ mode, id, locked = false, onEditingChang
                 {(data.sales || []).map((item) => (
                   <tr key={item.device_id}>
                     <td>
-                      <Link to={`/admin/don-hang/danh-sach-don-hang/${item.order_id}`}>
+                      <AdminLink to={`/admin/don-hang/danh-sach-don-hang/${item.order_id}`}>
                         {item.ma_don_hang}
-                      </Link>
+                      </AdminLink>
                     </td>
                     <td>{item.customer_name || '—'}</td>
                     <td>

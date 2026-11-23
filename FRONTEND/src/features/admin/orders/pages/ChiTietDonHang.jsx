@@ -1,4 +1,5 @@
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
+import AdminLink from '../../../../shared/components/ui/AdminLink';
 import { HiOutlineArrowLeft } from 'react-icons/hi';
 import DetailTablePagination from '../../../../shared/components/ui/DetailTablePagination';
 import LoadingSpinner from '../../../../shared/components/ui/LoadingSpinner';
@@ -1512,12 +1513,12 @@ function OrderDetailView({ orderId }) {
                         {(order?.doi_soat_thanh_toan?.phieu_thu || []).map((receipt) => (
                           <tr key={receipt.id}>
                             <td>
-                              <Link
+                              <AdminLink
                                 to={'/admin/so-quy-tien-mat/phieu-thu/' + receipt.id}
                                 className="order-receipt-code"
                               >
                                 {receipt.ma_phieu}
-                              </Link>
+                              </AdminLink>
                             </td>
                             <td>
                               <span
@@ -2233,7 +2234,100 @@ function DeviceExchangeHistory({ order }) {
       )}
 
       {roots.map((root) => (
-        <ExchangeHistoryCard key={root.thiet_bi_id} root={root} identity={identity} />
+        <div key={root.thiet_bi_id} className="order-exchange-root-card">
+          <div className="order-subsection-bar">
+            <div className="order-subsection-title">
+              <span>LỊCH SỬ ĐỔI THIẾT BỊ — {root.so_serial || root.ma_theo_doi}</span>
+            </div>
+          </div>
+
+          <div
+            className="order-record-scroll"
+            tabIndex={0}
+            role="region"
+            aria-label="Bảng lịch sử đổi thiết bị"
+          >
+            <table className="order-devices-table order-record-table">
+              <thead>
+                <tr>
+                  <th style={{ width: '48px' }}>LẦN</th>
+                  <th>THIẾT BỊ ĐƯỢC NHẬN LẠI</th>
+                  <th>THIẾT BỊ THAY THẾ</th>
+                  <th>PHIẾU XỬ LÝ</th>
+                  <th>BÀN GIAO / NHÂN VIÊN</th>
+                  <th>LÝ DO</th>
+                </tr>
+              </thead>
+
+              <tbody>
+                {root.chuoi_thay_the.map((edge, index) => {
+                  const isCurrent =
+                    root.thiet_bi_hien_hanh_id != null &&
+                    String(edge.thiet_bi_moi_id) === String(root.thiet_bi_hien_hanh_id);
+
+                  const isLast = index === root.chuoi_thay_the.length - 1;
+
+                  const status = isCurrent
+                    ? 'Thiết bị hiện hành'
+                    : isLast && root.thiet_bi_cuoi_chuoi_da_tra === true
+                      ? 'Đã nhận trả'
+                      : isLast
+                        ? 'Cần xác minh quyền hiện hành'
+                        : 'Đã thay thế ở lần tiếp theo';
+
+                  return (
+                    <tr key={edge.phieu_bao_hanh_id}>
+                      <td>
+                        <span className="order-round-number">{edge.lan_doi}</span>
+                      </td>
+
+                      <td>{identity(edge.thiet_bi_cu)}</td>
+
+                      <td>
+                        {identity(edge.thiet_bi_moi)}
+                        <span
+                          className={`order-exchange-status-pill ${
+                            isCurrent ? 'order-exchange-status-pill--current' : ''
+                          }`}
+                        >
+                          {status}
+                        </span>
+                      </td>
+
+                      <td>
+                        <AdminLink
+                          to={'/admin/bao-hanh/chi-tiet/' + edge.phieu_bao_hanh_id}
+                          className="order-warranty-link"
+                        >
+                          {edge.ma_phieu_bao_hanh || '#' + edge.phieu_bao_hanh_id}
+                        </AdminLink>
+                      </td>
+
+                      <td>
+                        <div className="order-exchange-handover">
+                          <span className="order-exchange-time">
+                            {edge.ngay_ban_giao
+                              ? dateTime(edge.ngay_ban_giao)
+                              : 'Chưa ghi nhận thời điểm'}
+                          </span>
+                          <small className="order-exchange-staff">
+                            {edge.nguoi_thuc_hien || 'Chưa ghi nhận nhân viên'}
+                          </small>
+                        </div>
+                      </td>
+
+                      <td>
+                        <span className="order-exchange-reason">
+                          {edge.ly_do || 'Chưa ghi nhận lý do'}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
       ))}
     </div>
   );

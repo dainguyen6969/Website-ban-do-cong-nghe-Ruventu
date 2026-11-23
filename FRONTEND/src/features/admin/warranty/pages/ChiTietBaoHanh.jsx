@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
-import LoadingSpinner from '../../../../shared/components/ui/LoadingSpinner';
+import { useEffect, useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
+import AdminLink from '../../../../shared/components/ui/AdminLink';
 import {
   ArrowLeft,
   SquareCheck as CheckCircle2,
@@ -235,9 +235,9 @@ function TrackedWarrantyDevice({ device }) {
   const recordLink = (base, id, label) => {
     const key = String(id ?? '');
     return /^[1-9]\d*$/.test(key) ? (
-      <Link className="w-device-link" to={base + '/' + key}>
+      <AdminLink className="w-device-link" to={base + '/' + key}>
         {label}
-      </Link>
+      </AdminLink>
     ) : (
       label
     );
@@ -463,6 +463,8 @@ function WarrantyDetail({ id }) {
   const due = Number(invoice?.con_phai_thu ?? 0);
   const wrongReturn = activeWarrantyTrip(data)?.wrong === true;
   const activePlan = plan && plan.da_huy !== true && plan.quyet_dinh_khach !== 'TU_CHOI';
+  const readyCondition = data.xu_ly_tiep?.tinh_trang_san_sang_tra;
+  const readyAccessories = data.xu_ly_tiep?.phu_kien_san_sang_tra;
 
   const toOperations = (keys) =>
     [...new Set(keys)]
@@ -884,6 +886,17 @@ function WarrantyDetail({ id }) {
             </div>
             {primary && actionButton(primary, latestQuote, true)}
           </div>
+
+          {(readyCondition != null || readyAccessories != null) && (
+            <div className="w-ready-summary">
+              <WarrantyFields
+                fields={[
+                  ['Tình trạng lúc sẵn sàng trả', readyCondition],
+                  ['Phụ kiện sẽ trả', (readyAccessories ?? []).map(item => `${item.ten} × ${item.so_luong}`).join(', ') || 'Không ghi nhận phụ kiện'],
+                ]}
+              />
+            </div>
+          )}
 
           {suggested.length > 1 && (
             <div className="w-work-buttons">

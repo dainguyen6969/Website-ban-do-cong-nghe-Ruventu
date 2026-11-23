@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
+import AdminLink from '../../../../shared/components/ui/AdminLink';
 import { HiOutlineArrowLeft, HiOutlinePencilAlt, HiX } from 'react-icons/hi';
 import LoadingSpinner from '../../../../shared/components/ui/LoadingSpinner';
 import {
@@ -59,7 +60,7 @@ function serialRecordPath(base, id) {
 }
 
 function SerialRecordLink({ to, children }) {
-  return to ? <Link to={to}>{children}</Link> : children;
+  return to ? <AdminLink to={to}>{children}</AdminLink> : children;
 }
 
 function SerialFact({ label, children }) {
