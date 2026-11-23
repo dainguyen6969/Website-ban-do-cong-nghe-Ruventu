@@ -15,6 +15,7 @@ import '../styles/index.css';
 import './App.css';
 import '../styles/responsive.css';
 import '../styles/adminTables.css';
+import '../styles/adminLinks.css';
 
 const DanhSachDonHang = lazy(() => import('../features/admin/orders/pages/DanhSachDonHang'));
 const DatHangOnline = lazy(() => import('../features/admin/orders/pages/DatHangOnline'));
@@ -410,6 +411,7 @@ function AdminShell() {
                         <Route path="quan-ly-giao-hang" element={<QuanLyGiaoHang key={search} />} />
                         <Route path="quan-ly-giao-hang/:deliveryId" element={<QuanLyGiaoHang />} />
                         <Route path="khach-tra-hang" element={<KhachTraHang key={search} />} />
+                        <Route path="khach-tra-hang/tao" element={<KhachTraHang />} />
                         <Route path="khach-tra-hang/tao/:orderId" element={<KhachTraHang />} />
                         <Route path="khach-tra-hang/:returnId" element={<KhachTraHang />} />
                       </Route>

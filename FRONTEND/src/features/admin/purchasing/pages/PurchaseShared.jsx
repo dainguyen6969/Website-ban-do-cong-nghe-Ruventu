@@ -1,4 +1,5 @@
 // Admin purchasing screen or helper: PurchaseShared.
+import { Link } from 'react-router-dom';
 import FormCard from '../../../../shared/components/ui/FormCard';
 
 /* oxlint-disable react/only-export-components -- small module-level presentation helpers intentionally share status semantics */
@@ -31,9 +32,9 @@ export function PurchaseCard({ title, children, className = '' }) {
 export function PageCrumb({ tail }) {
   return (
     <div className="purchase-crumb">
-      <span>SẢN PHẨM</span>
+      <Link to="/kho-hang/nhap-hang">SẢN PHẨM</Link>
       <b>›</b>
-      <span>NHẬP HÀNG</span>
+      <Link to="/kho-hang/nhap-hang">NHẬP HÀNG</Link>
       {tail && (
         <>
           <b>›</b>

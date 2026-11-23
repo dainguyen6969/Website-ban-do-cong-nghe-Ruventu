@@ -1,5 +1,6 @@
-import { useEffect, useId, useRef } from 'react';
+import { useState } from 'react';
 import FormCard from '../../../../shared/components/ui/FormCard';
+import TablePagination from '../../../../shared/components/ui/TablePagination';
 
 export function WarrantyBadge({ children, tone }) {
   if (!children)
@@ -57,7 +58,23 @@ export function WarrantyFields({ fields }) {
   );
 }
 
-export function WarrantyTable({ columns, rows = [], empty }) {
+export function WarrantyTable({
+  columns,
+  rows = [],
+  empty,
+  pageSize: initialPageSize = 5,
+  idPrefix = 'warranty-table',
+  showPagination = true,
+  pageSizeOptions = [5, 10, 20, 50, 100],
+}) {
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(initialPageSize);
+  const totalItems = rows.length;
+  const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+  const safePage = Math.min(Math.max(1, currentPage), totalPages);
+  const startIndex = (safePage - 1) * pageSize;
+  const visibleRows = showPagination ? rows.slice(startIndex, startIndex + pageSize) : rows;
+
   return (
     <div className="w-shell-table-scroll">
       <div
@@ -75,8 +92,8 @@ export function WarrantyTable({ columns, rows = [], empty }) {
             </tr>
           </thead>
           <tbody>
-            {rows.length ? (
-              rows.map((row, i) => (
+            {visibleRows.length ? (
+              visibleRows.map((row, i) => (
                 <tr key={i}>
                   {row.map((cell, j) => (
                     <td key={j}>{cell ?? '—'}</td>
@@ -93,6 +110,21 @@ export function WarrantyTable({ columns, rows = [], empty }) {
           </tbody>
         </table>
       </div>
+      {showPagination && (
+        <TablePagination
+          className="admin-table-footer"
+          totalItems={totalItems}
+          pageSize={pageSize}
+          currentPage={safePage}
+          onPageChange={setCurrentPage}
+          idPrefix={idPrefix}
+          pageSizeOptions={pageSizeOptions}
+          onPageSizeChange={(newSize) => {
+            setPageSize(Number(newSize));
+            setCurrentPage(1);
+          }}
+        />
+      )}
     </div>
   );
 }

@@ -1,27 +1,72 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { actionBody, actions, initialActionValues } from './warrantyActions.js';
-import { intakeBody, intakeErrors, intakeReachableStep, intakeStepErrors, localTimestamp, listParams, receiptNow } from './warrantyContract.js';
+import {
+  intakeAssessment, intakeBody, intakeContact, intakeDeadlineCheck, intakeDeadlineStatus, intakeDescription,
+  intakeErrors, intakeFreeChecks, intakeReachableStep, intakeRequiredChecks, intakeSearch,
+  intakeStepErrors, localTimestamp, listParams, receiptNow,
+} from './warrantyContract.js';
 import { validateImageFiles } from '../../../media/api/imageValidation.js';
 
+test('intake search identifies codes and formatted phones while preserving numeric serials and product names', () => {
+  for (const [input, criterion, value] of [
+    [' SN-ABC123 ', 'serial', 'SN-ABC123'],
+    ['1234567890123', 'serial', '1234567890123'],
+    ['ASUS RTX 5070', 'serial', 'ASUS RTX 5070'],
+    ['dh20261118001', 'orderId', 'DH20261118001'],
+    ['TB-f84a-1234', 'trackingCode', 'TB-f84a-1234'],
+    ['090 123 4567', 'customerPhone', '0901234567'],
+    ['+84 (90) 123-4567', 'customerPhone', '0901234567'],
+    ['# 123', 'requestId', '123'],
+    ['', 'serial', ''],
+  ]) assert.deepEqual(intakeSearch(input), { criterion, value });
+});
+
 test('wizard requires each step and invalidates later steps when earlier information changes', () => {
-  const form = { contact: '', phone: '', reason: '', condition: '', verification: '', eligibility: '', receivedAt: receiptNow(), identification: '', photos: [], accessories: [] };
+  const form = { contact: '', phone: '', reason: [], condition: [], checks: [], receivedAt: receiptNow(), identification: '', photos: [], accessories: [] };
   const device = { thiet_bi_id: 700, co_the_tiep_nhan: true };
   assert.equal(intakeReachableStep(null, form), 0);
   assert.equal(intakeReachableStep(device, form), 1);
-  const verified = { ...form, eligibility: 'CHUA_XAC_MINH', verification: 'Đã đối chiếu giao dịch' };
+  const verified = { ...form, checks: intakeRequiredChecks };
   assert.equal(intakeReachableStep(device, verified), 2);
-  const complete = { ...verified, contact: 'An', phone: '0901234567', reason: 'Không lên nguồn', condition: 'Nguyên vẹn' };
+  const complete = { ...verified, contact: 'An', phone: '0901234567', reason: ['Không lên nguồn'], condition: ['Ngoại quan nguyên vẹn'] };
   assert.equal(intakeReachableStep(device, complete), 3);
-  assert.equal(intakeReachableStep(device, { ...complete, verification: '' }), 1);
+  assert.equal(intakeReachableStep(device, { ...complete, checks: intakeRequiredChecks.slice(1) }), 1);
   assert.ok(intakeStepErrors(device, { ...complete, phone: '123' }, 2).phone);
-  assert.ok(intakeStepErrors(device, { ...complete, eligibility: 'DU_DIEU_KIEN' }, 1).eligibility);
+  assert.ok(intakeStepErrors(device, { ...complete, checks: intakeFreeChecks }, 1).checks);
   assert.ok(intakeStepErrors({ ...device, co_the_tiep_nhan: false }, complete, 1).device);
+});
+
+test('five required checks allow paid intake and only ten valid checks allow free intake', () => {
+  assert.equal(new Set([...intakeRequiredChecks, ...intakeFreeChecks]).size, 10);
+  const form = { checks: [...intakeRequiredChecks, ...intakeFreeChecks], receivedAt: '2026-11-19T10:00' };
+  const device = { thiet_bi_id: 700, han_bao_hanh: '2026-11-19T10:00:00+07:00' };
+  assert.equal(intakeAssessment(device, { ...form, checks: form.checks.slice(1) }).eligibility, 'CHUA_XAC_MINH');
+  assert.equal(intakeAssessment(device, { ...form, checks: intakeRequiredChecks }).eligibility, 'KHONG_DU_DIEU_KIEN');
+  assert.equal(intakeAssessment(device, form).eligibility, 'DU_DIEU_KIEN');
+  for (const ineligible of [{ ...device, han_bao_hanh: null }, { ...device, han_bao_hanh: '2026-11-18T10:00:00+07:00' }, { ...device, thiet_bi_id: null }]) {
+    const result = intakeAssessment(ineligible, form);
+    assert.equal(result.eligibility, 'KHONG_DU_DIEU_KIEN');
+    assert.equal(result.total, 9);
+    assert.ok(!result.verification.includes(intakeDeadlineCheck));
+  }
+  assert.equal(intakeDeadlineStatus(device, '2026-11-19T10:01'), 'expired');
+  assert.equal(intakeDeadlineStatus(undefined, form.receivedAt), 'unknown');
+});
+
+test('intake prioritizes saved contact and serializes all applied custom entries', () => {
+  const request = { ten_nguoi_lien_he: ' An ' };
+  const customer = { ho_ten: 'Bình', so_dien_thoai: '0901234567' };
+  assert.deepEqual(intakeContact(request, customer), { contact: 'An', phone: '0901234567' });
+  const form = { reason: ['Không lên hình', 'Không nhận sạc'], reasonOther: ['Sọc khi tải nặng', 'Chỉ lỗi khi cắm sạc'], condition: [], accessories: [] };
+  assert.equal(intakeDescription(form, 'reason'), 'Không lên hình · Không nhận sạc · Sọc khi tải nặng · Chỉ lỗi khi cắm sạc');
+  assert.equal(intakeDescription({ ...form, reason: [], reasonOther: ['Lý do của phiếu đã lưu'] }, 'reason'), 'Lý do của phiếu đã lưu');
+  assert.equal(intakeStepErrors(null, { ...form, reason: [], reasonOther: [] }, 2).reason, 'Chọn lý do bảo hành.');
 });
 
 test('legacy sold serial never becomes a no-serial intake when the API has no device identity', () => {
   const device = { thiet_bi_id: null, so_serial_id: 3729, so_serial: 'RV26-S659-010', chi_tiet_don_hang_id: 667, co_the_tiep_nhan: true };
-  const form = { eligibility: 'CHUA_XAC_MINH', verification: 'Đối chiếu' };
+  const form = { checks: intakeRequiredChecks };
   assert.ok(intakeStepErrors(device, form, 1).device);
   assert.equal(intakeReachableStep(device, form), 1);
   assert.throws(() => intakeBody(device, form), /chưa có hồ sơ thiết bị/);
@@ -33,8 +78,39 @@ test('upload validation follows the existing backend type and per-file size limi
   assert.throws(() => validateImageFiles([{ type: 'image/jpeg', size: 5 * 1024 * 1024 + 1 }]), /5 MB/);
 });
 
+test('intake accepts up to 20 accessory lines and 20 photos independently', () => {
+  const device = { thiet_bi_id: 700 };
+  const item = { name: 'Cáp', quantity: 2 };
+  const photo = { url: 'https://example.test/evidence.png' };
+  const form = {
+    contact: 'An', phone: '0901234567', reason: ['Không lên nguồn'], condition: ['Ngoại quan nguyên vẹn'],
+    receivedAt: receiptNow(), accessories: Array(20).fill(item), photos: Array(20).fill(photo),
+  };
+  assert.deepEqual(intakeStepErrors(device, form, 2), {});
+  assert.deepEqual(intakeStepErrors(device, { ...form, accessories: [...form.accessories, item] }, 2), {
+    accessories: 'Tối đa 20 dòng phụ kiện.',
+  });
+  assert.deepEqual(intakeStepErrors(device, { ...form, photos: [...form.photos, photo] }, 2), {
+    photos: 'Tối đa 20 ảnh tiếp nhận.',
+  });
+});
+
+test('intake keeps long descriptions without truncation or a character cap', () => {
+  const form = {
+    contact: 'An', phone: '0901234567', reason: ['Không lên nguồn'], condition: ['Trầy xước'],
+    reasonOther: ['Không nhận điện '.repeat(1100).trim()],
+    conditionOther: ['Nhiều vết xước '.repeat(1200).trim()],
+    receivedAt: receiptNow(), checks: intakeRequiredChecks, unit: '', note: '', accessories: [], photos: [],
+  };
+  const device = { thiet_bi_id: 700, co_the_tiep_nhan: true };
+  assert.deepEqual(intakeErrors(device, form), []);
+  const body = intakeBody(device, form);
+  assert.equal(body.ly_do_bao_hanh, `Không lên nguồn · ${form.reasonOther[0]}`);
+  assert.equal(body.tinh_trang_tiep_nhan, `Trầy xước · ${form.conditionOther[0]}`);
+});
+
 test('intake uses device XOR purchase line, preserves no-serial identity and never sends financial or actor fields', () => {
-  const form = { contact: ' An ', phone: '0901000101', reason: 'Lỗi', condition: 'Nguyên vẹn', verification: 'Đã đối chiếu', eligibility: 'CHUA_XAC_MINH', receivedAt: receiptNow(), identification: 'Tem A', unit: '', note: '', photos: [{ url: '/media/a.jpg' }], accessories: [{ name: ' Hộp ', quantity: '1' }] };
+  const form = { contact: ' An ', phone: '0901000101', reason: ['Không lên nguồn'], condition: ['Ngoại quan nguyên vẹn'], checks: intakeRequiredChecks, receivedAt: receiptNow(), identification: 'Tem A', unit: '', note: '', photos: [{ url: '/media/a.jpg' }], accessories: [{ name: ' Hộp ', quantity: '1' }] };
   const tracked = { thiet_bi_id: 700, co_the_tiep_nhan: true };
   assert.deepEqual(intakeErrors(tracked, form), []);
   assert.equal(intakeBody(tracked, form, 880).thiet_bi_id, 700);
@@ -44,6 +120,8 @@ test('intake uses device XOR purchase line, preserves no-serial identity and nev
   assert.equal('thiet_bi_id' in body, false);
   assert.equal('nguoi_tiep_nhan_id' in body, false);
   assert.equal('tong_tien' in body, false);
+  assert.equal(body.dieu_kien_bao_hanh, 'KHONG_DU_DIEU_KIEN');
+  assert.equal(body.can_cu_xac_minh, intakeRequiredChecks.join('\n'));
   assert.deepEqual(body.phu_kien, [{ ten: 'Hộp', so_luong: 1 }]);
   assert.ok(intakeErrors(tracked, { ...form, receivedAt: '2099-01-01T10:00' }).length);
   assert.ok(intakeErrors({ ...tracked, co_the_tiep_nhan: false }, form).length);
@@ -105,6 +183,28 @@ test('handover requires customer acknowledgment, evidence and valid recipient wi
   const exchanged = initialActionValues(operation, { thiet_bi: { id: 700 }, phuong_an_doi: { phien_ban: 2, thiet_bi_thay_the_id: 800 } });
   assert.equal(exchanged.thiet_bi_ban_giao_id, 800);
   assert.equal(exchanged.phien_ban_phuong_an, 2);
+});
+
+test('ready-to-return uses original intake for the same device and handover uses the saved ready check', () => {
+  const ready = actions.find(item => item.key === 'SAN_SANG_TRA');
+  const handover = actions.find(item => item.key === 'HANDOVER');
+  const detail = {
+    thiet_bi: { id: 700 },
+    tiep_nhan: { tinh_trang: 'Trầy xước', phu_kien: [{ ten: 'Cáp', so_luong: 2 }] },
+  };
+  const values = initialActionValues(ready, detail);
+  assert.equal(values.tinh_trang, 'Trầy xước');
+  assert.deepEqual(values.phu_kien, detail.tiep_nhan.phu_kien);
+  assert.notEqual(values.phu_kien[0], detail.tiep_nhan.phu_kien[0]);
+  const exchanged = initialActionValues(ready, { ...detail, phuong_an_doi: { thiet_bi_thay_the_id: 800 } });
+  assert.equal(exchanged.tinh_trang, '');
+  assert.deepEqual(exchanged.phu_kien, []);
+  const saved = actionBody(ready, { ...values, tinh_trang: 'Đã kiểm tra hoạt động', phu_kien: [], ket_qua_xu_ly: 'SUA_THANH_CONG', can_cu_kiem_tra: 'Đã kiểm tra' });
+  const transfer = initialActionValues(handover, { ...detail, xu_ly_tiep: {
+    tinh_trang_san_sang_tra: saved.tinh_trang, phu_kien_san_sang_tra: saved.phu_kien,
+  } });
+  assert.equal(transfer.tinh_trang, 'Đã kiểm tra hoạt động');
+  assert.deepEqual(transfer.phu_kien, []);
 });
 
 test('quote lines use actual numbers and booleans without sending server-calculated totals', () => {

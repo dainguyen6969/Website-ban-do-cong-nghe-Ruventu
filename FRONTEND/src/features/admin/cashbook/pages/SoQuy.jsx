@@ -1,12 +1,13 @@
 import { scaledFontSize } from '../../../../typography/projectFontSize.js';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 
 import { cashbookService } from '../../../../shared/services/cashbookService';
 
 import TablePagination from '../../../../shared/components/ui/TablePagination';
 import FilterDropdown from '../../../../shared/components/ui/FilterDropdown';
+import LoadingSpinner from '../../../../shared/components/ui/LoadingSpinner';
 
 import {
   CashSourceFilters,
@@ -278,7 +279,8 @@ export default function SoQuy() {
     <div className="sq-page admin-list-page">
       <div className="sq-header">
         <div className="sq-breadcrumb">
-          ADMIN <span>&rsaquo;</span> SỔ QUỸ TIỀN MẶT / SỔ QUỸ
+          <Link to="/admin">ADMIN</Link> <span>&rsaquo;</span>{' '}
+          <Link to="/admin/so-quy-tien-mat/so-quy">SỔ QUỸ TIỀN MẶT</Link> / <span>SỔ QUỸ</span>
         </div>
         <button
           className="cb-btn-primary bg-red"
@@ -559,7 +561,7 @@ export default function SoQuy() {
               {isLoading ? (
                 <tr>
                   <td colSpan="9" style={{ textAlign: 'center', padding: '32px' }}>
-                    Đang tải dữ liệu sổ quỹ...
+                    <LoadingSpinner text="Đang tải dữ liệu sổ quỹ..." size="md" />
                   </td>
                 </tr>
               ) : transactions.length > 0 ? (

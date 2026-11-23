@@ -1,6 +1,6 @@
 // Product list screen: real IntelliJ API data with server-side search, filters, and pagination.
 import { useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import {
   HiOutlineUpload,
   HiOutlinePlus,
@@ -277,7 +277,12 @@ export default function DanhSachSanPham() {
       {/* 3. Breadcrumb row (SẢN PHẨM › DANH SÁCH SẢN PHẨM) */}
       <div className="product-breadcrumb-row">
         <nav className="product-breadcrumb" aria-label="Breadcrumb nội dung">
-          <span className="product-breadcrumb__item product-breadcrumb__item--muted">SẢN PHẨM</span>
+<Link
+  to="/admin/san-pham/danh-sach-san-pham"
+  className="product-breadcrumb__item product-breadcrumb__item--muted"
+>
+  SẢN PHẨM
+</Link>
           <span className="product-breadcrumb__sep" aria-hidden="true">
             ›
           </span>

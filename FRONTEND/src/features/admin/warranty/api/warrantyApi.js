@@ -8,8 +8,8 @@ const query = (params) =>
 export const getWarranties = (params, signal) => apiRequest(`${PATH}?${query(params)}`, { signal });
 export const lookupWarranties = (params, signal) =>
   apiRequest(`${PATH}/lookup?${query(params)}`, { signal });
-export const getWarranty = (id, page = 0, signal) =>
-  apiRequest(`${PATH}/${encodeURIComponent(id)}?history_page=${page}&history_limit=20`, { signal });
+export const getWarranty = (id, page = 0, signal, limit = 5) =>
+  apiRequest(`${PATH}/${encodeURIComponent(id)}?history_page=${page}&history_limit=${limit}`, { signal });
 
 export const getWarrantyHistoryDetail = (id, historyId, signal) =>
   apiRequest(`${PATH}/${encodeURIComponent(id)}/history/${encodeURIComponent(historyId)}`, {

@@ -1,13 +1,15 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { Check, X } from 'lucide-react';
 import { getPromotions, getPromotion } from '../api/promotionApi.js';
 import { normalizePromotion, computePromotionStatus } from '../promotionModel.js';
-import { getDemoPromotions } from '../demoPromotions.js';
+import { getDemoPromotions, getDeletedPromotionKeys } from '../demoPromotions.js';
 import TablePagination from '../../../../shared/components/ui/TablePagination';
 
 import { hasAdminPermission } from '../../../../auth/roleModel';
 import { useAdminPermissions } from '../../../../shared/components/ui/PermissionGate';
 
+import LoadingSpinner from '../../../../shared/components/ui/LoadingSpinner';
 import './DanhSachKhuyenMai.css';
 import { FormDropdown } from '../../../../shared/components/ui/FilterDropdown';
 
@@ -102,7 +104,14 @@ export default function DanhSachKhuyenMai() {
         const missingDemos = currentDemoList.filter(
           (d) => !existingCodes.has(d.code.toUpperCase())
         );
-        const combined = [...beItems, ...missingDemos];
+        const deletedKeys = getDeletedPromotionKeys();
+
+const combined = [...beItems, ...missingDemos].filter((promo) => {
+  const idKey = String(promo.id || '').toUpperCase().trim();
+  const codeKey = String(promo.code || '').toUpperCase().trim();
+
+  return !deletedKeys.has(idKey) && !deletedKeys.has(codeKey);
+});
 
         // Fetch extra details for BE items if missing offer / details
         const enriched = await Promise.all(
@@ -415,9 +424,9 @@ export default function DanhSachKhuyenMai() {
             <tbody>
               {loading && !promotions.length ? (
                 <tr>
-                  <td colSpan="8" className="promo-table-notice">
-                    Đang tải dữ liệu...
-                  </td>
+<td colSpan="8" className="promo-table-notice">
+  <LoadingSpinner text="Đang tải danh sách khuyến mại..." size="md" />
+</td>
                 </tr>
               ) : error ? (
                 <tr>

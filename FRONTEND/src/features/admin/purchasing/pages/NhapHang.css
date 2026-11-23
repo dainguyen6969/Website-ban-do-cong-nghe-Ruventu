@@ -32,6 +32,16 @@
 .purchase-crumb strong {
   color: #e31e24;
 }
+.purchase-crumb a {
+  color: inherit;
+  text-decoration: none;
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+.purchase-crumb a:hover {
+  color: #c51d25;
+  text-decoration: underline;
+}
 .purchase-btn {
   height: 38px;
   padding: 0 16px;

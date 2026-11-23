@@ -1,9 +1,10 @@
 // Admin inventory screen: DanhSachSerial.
 import { useEffect, useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { HiOutlineSearch, HiOutlineUpload } from 'react-icons/hi';
 import TablePagination from '../../../../shared/components/ui/TablePagination';
 import FilterDropdown from '../../../../shared/components/ui/FilterDropdown';
+import LoadingSpinner from '../../../../shared/components/ui/LoadingSpinner';
 import { getAllVersions } from '../../catalog/products/api/versionApi';
 import { getSerialCounts, getSerialPage, SERIAL_STATUS_META } from '../api/serialApi';
 import './SerialPages.css';
@@ -130,9 +131,9 @@ export default function DanhSachSerial() {
     <main className="serial-page admin-list-page serial-list-page" role="main">
       <div className="serial-page__inner admin-list-body">
         <nav className="serial-secondary-breadcrumb" aria-label="Breadcrumb nội dung">
-          <span>Sản phẩm</span>
+          <Link to="/kho-hang/danh-sach-serial">Sản phẩm</Link>
           <span>›</span>
-          <span>Quản lý kho</span>
+          <Link to="/kho-hang/danh-sach-serial">Quản lý kho</Link>
           <span>›</span>
           <strong>Danh sách Serial</strong>
         </nav>
@@ -267,8 +268,8 @@ export default function DanhSachSerial() {
               <tbody>
                 {loading ? (
                   <tr>
-                    <td className="serial-empty" colSpan="6">
-                      Đang tải dữ liệu...
+                    <td className="serial-empty" colSpan="6" style={{ padding: 24, textAlign: 'center' }}>
+                      <LoadingSpinner text="Đang tải danh sách Serial..." size="md" />
                     </td>
                   </tr>
                 ) : error ? (

@@ -205,7 +205,8 @@ public class AdminWarrantyDetailService {
                         historySupport.id(value(exchange, "phien_ban")))
                 ? historySupport.id(value(hold, "giu_cho_lich_su_id"))
                 : null,
-            readyRecorded ? accessories(ready.get("phu_kien")) : null));
+            readyRecorded ? accessories(ready.get("phu_kien")) : null,
+            readyRecorded ? historySupport.text(ready.get("tinh_trang")) : null));
   }
 
   public HistoryDetail getHistoryDetail(String rawId, String rawHistoryId) {

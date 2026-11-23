@@ -1565,6 +1565,8 @@ export function ChiTietDanhMuc() {
             totalItems={children.length}
             currentPage={childPagination.currentPage}
             onPageChange={childPagination.onPageChange}
+            pageSize={childPagination.pageSize}
+            onPageSizeChange={childPagination.onPageSizeChange}
             idPrefix="category-children"
           />
         </section>
@@ -1616,6 +1618,8 @@ export function ChiTietDanhMuc() {
               totalItems={products.length}
               currentPage={productPagination.currentPage}
               onPageChange={productPagination.onPageChange}
+              pageSize={productPagination.pageSize}
+              onPageSizeChange={productPagination.onPageSizeChange}
               idPrefix="category-products"
             />
           </>

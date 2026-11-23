@@ -4,6 +4,7 @@ import { Navigate, useLocation } from 'react-router-dom';
 import '../styles/index.css';
 import '../typography/buttonTypography.css';
 import useMockAuth from '../auth/useMockAuth';
+import LoadingSpinner from '../shared/components/ui/LoadingSpinner';
 
 const AdminApp = lazy(() => import('./AdminApp'));
 const StorefrontApp = lazy(() => import('../storefront/App'));
@@ -24,7 +25,11 @@ export default function App() {
   return (
     <Suspense
       fallback={
-        <p role="status">{isAdminRoute ? 'Đang tải trang quản trị…' : 'Đang tải trang…'}</p>
+        <LoadingSpinner
+          text={isAdminRoute ? 'Đang tải trang quản trị…' : 'Đang tải trang…'}
+          fullscreen
+          size="lg"
+        />
       }
     >
       {isAdminRoute ? <AdminApp /> : <StorefrontApp />}

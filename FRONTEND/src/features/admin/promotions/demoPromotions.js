@@ -40,6 +40,81 @@ const INITIAL_DEMO_PROMOTIONS = [
                 discountAmount: '0đ',
                 giftName: 'Chuột máy tính / Màu đen × 1',
                 giftStatus: 'Chưa có chứng từ giao quà'
+            },
+            {
+                code: 'ORD-POS-003',
+                snapshotText: 'Snapshot: DEMO-PAUSED-HISTORY v1',
+                snapshotName: 'Chương trình tạm dừng sau khi có lịch sử',
+                snapshotFinalized: 'Chốt: 10:15 06/09/2026',
+                channel: 'Tại quầy',
+                customer: 'Trần Đình Trọng',
+                phone: '0983 222 333',
+                createdAt: '10:15 06/09/2026',
+                orderStatus: 'HOÀN THÀNH',
+                usageStatus: 'Đã sử dụng',
+                discountAmount: '0đ',
+                giftName: 'Chuột máy tính / Màu đen × 1',
+                giftStatus: 'Đã giao quà'
+            },
+            {
+                code: 'ORD-WEB-004',
+                snapshotText: 'Snapshot: DEMO-PAUSED-HISTORY v1',
+                snapshotName: 'Chương trình tạm dừng sau khi có lịch sử',
+                snapshotFinalized: 'Chốt: 11:20 07/09/2026',
+                channel: 'Website',
+                customer: 'Nguyễn Thị Mai',
+                phone: '0974 444 555',
+                createdAt: '11:20 07/09/2026',
+                orderStatus: 'HOÀN THÀNH',
+                usageStatus: 'Đã sử dụng',
+                discountAmount: '0đ',
+                giftName: 'Chuột máy tính / Màu đen × 1',
+                giftStatus: 'Đã giao quà'
+            },
+            {
+                code: 'ORD-POS-005',
+                snapshotText: 'Snapshot: DEMO-PAUSED-HISTORY v1',
+                snapshotName: 'Chương trình tạm dừng sau khi có lịch sử',
+                snapshotFinalized: 'Chốt: 14:05 08/09/2026',
+                channel: 'Tại quầy',
+                customer: 'Lê Văn Hùng',
+                phone: '0915 666 777',
+                createdAt: '14:05 08/09/2026',
+                orderStatus: 'HOÀN THÀNH',
+                usageStatus: 'Đang giữ',
+                discountAmount: '0đ',
+                giftName: 'Chuột máy tính / Màu đen × 1',
+                giftStatus: 'Chờ giao quà'
+            },
+            {
+                code: 'ORD-WEB-006',
+                snapshotText: 'Snapshot: DEMO-PAUSED-HISTORY v1',
+                snapshotName: 'Chương trình tạm dừng sau khi có lịch sử',
+                snapshotFinalized: 'Chốt: 16:30 09/09/2026',
+                channel: 'Website',
+                customer: 'Phạm Thùy Linh',
+                phone: '0902 888 999',
+                createdAt: '16:30 09/09/2026',
+                orderStatus: 'HOÀN THÀNH',
+                usageStatus: 'Đã sử dụng',
+                discountAmount: '0đ',
+                giftName: 'Chuột máy tính / Màu đen × 1',
+                giftStatus: 'Đã giao quà'
+            },
+            {
+                code: 'ORD-POS-007',
+                snapshotText: 'Snapshot: DEMO-PAUSED-HISTORY v1',
+                snapshotName: 'Chương trình tạm dừng sau khi có lịch sử',
+                snapshotFinalized: 'Chốt: 09:40 10/09/2026',
+                channel: 'Tại quầy',
+                customer: 'Vũ Quốc Việt',
+                phone: '0936 123 456',
+                createdAt: '09:40 10/09/2026',
+                orderStatus: 'HOÀN THÀNH',
+                usageStatus: 'Đã sử dụng',
+                discountAmount: '0đ',
+                giftName: 'Chuột máy tính / Màu đen × 1',
+                giftStatus: 'Đã giao quà'
             }
         ]
     },
@@ -222,32 +297,6 @@ const INITIAL_DEMO_PROMOTIONS = [
         buyProducts: [],
         giftProducts: [],
         orders: []
-    },
-    {
-        id: 'DEMO-UPCOMING',
-        code: 'DEMO-UPCOMING',
-        name: 'Siêu sale Giáng Sinh 2026 - Chưa bắt đầu',
-        method: 'TẶNG SẢN PHẨM',
-        target: 'TỔNG ĐƠN HÀNG',
-        offer: 'TẶNG BỘ QUÀ',
-        startDate: '2026-12-01T00:00:00',
-        endDate: '2026-12-25T23:59:00',
-        maxUsage: 500,
-        usedUsage: 0,
-        holdingCount: 0,
-        releasedCount: 0,
-        remainingUsage: 500,
-        status: 'CHƯA BẮT ĐẦU',
-        savedStatus: 1,
-        configVersion: 1,
-        hasHistory: false,
-        canEditConfig: true,
-        description: 'Chương trình chuẩn bị cho mùa Giáng Sinh, chưa đến ngày bắt đầu.',
-        giftProducts: [
-            { name: 'Bàn phím cơ', version: 'RGB Blue Switch', sku: 'KB-RGB-01', giftQuantity: 1 }
-        ],
-        buyProducts: [],
-        orders: []
     }
 ];
 
@@ -310,20 +359,62 @@ export const DEMO_VARIANTS = [
 ];
 
 const STORAGE_KEY = 'RUVENTU_DEMO_PROMOTIONS_CACHE';
+const DELETED_KEY = 'RUVENTU_DELETED_DEMO_IDS';
+
+export function getDeletedPromotionKeys() {
+    try {
+        const local = JSON.parse(localStorage.getItem(DELETED_KEY) || '[]');
+        const session = JSON.parse(sessionStorage.getItem(DELETED_KEY) || '[]');
+        return new Set([...local, ...session].map(k => String(k).trim().toUpperCase()));
+    } catch {
+        return new Set();
+    }
+}
+
+export function markPromotionDeleted(idOrCode) {
+    if (!idOrCode) return;
+    const key = String(idOrCode).trim().toUpperCase();
+    const set = getDeletedPromotionKeys();
+    set.add(key);
+    const arr = Array.from(set);
+    try {
+        localStorage.setItem(DELETED_KEY, JSON.stringify(arr));
+        sessionStorage.setItem(DELETED_KEY, JSON.stringify(arr));
+    } catch {
+        // Ignore
+    }
+}
+
+export function removeStoredPromotion(idOrCode) {
+    if (!idOrCode) return false;
+    const key = String(idOrCode).trim().toUpperCase();
+    markPromotionDeleted(key);
+
+    let list = getDemoPromotions();
+    list = list.filter(p => p.id?.toUpperCase() !== key && p.code?.toUpperCase() !== key);
+    saveDemoPromotions(list);
+    return true;
+}
 
 export function getDemoPromotions() {
     let list = INITIAL_DEMO_PROMOTIONS;
     try {
-        const stored = sessionStorage.getItem(STORAGE_KEY);
+        const stored = sessionStorage.getItem(STORAGE_KEY) || localStorage.getItem(STORAGE_KEY);
         if (stored) {
             const parsed = JSON.parse(stored);
-            if (Array.isArray(parsed) && parsed.length > 0) {
+            if (Array.isArray(parsed)) {
                 list = parsed;
             }
         }
     } catch {
         // Fallback to initial
     }
+
+    const deleted = getDeletedPromotionKeys();
+    if (deleted.size > 0) {
+        list = list.filter(p => !deleted.has(String(p.id || '').toUpperCase()) && !deleted.has(String(p.code || '').toUpperCase()));
+    }
+
     return list.map(item => ({
         ...item,
         status: computePromotionStatus(item)
@@ -332,7 +423,12 @@ export function getDemoPromotions() {
 
 export function saveDemoPromotions(items) {
     try {
-        sessionStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+        const deleted = getDeletedPromotionKeys();
+        const filtered = Array.isArray(items)
+            ? items.filter(p => !deleted.has(String(p.id || '').toUpperCase()) && !deleted.has(String(p.code || '').toUpperCase()))
+            : items;
+        sessionStorage.setItem(STORAGE_KEY, JSON.stringify(filtered));
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(filtered));
     } catch {
         // Ignore
     }
@@ -341,6 +437,9 @@ export function saveDemoPromotions(items) {
 export function findDemoPromotion(idOrCode) {
     if (!idOrCode) return null;
     const key = String(idOrCode).trim().toUpperCase();
+    const deleted = getDeletedPromotionKeys();
+    if (deleted.has(key)) return null;
+
     const list = getDemoPromotions();
     const found = list.find(p => p.id?.toUpperCase() === key || p.code?.toUpperCase() === key) || null;
     if (found) {

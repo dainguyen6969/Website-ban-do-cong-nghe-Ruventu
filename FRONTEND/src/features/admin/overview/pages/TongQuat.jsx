@@ -219,9 +219,9 @@ function Section({ title, note, to, resource, children, controls }) {
         </div>
         {controls}
         {to && (
-          <DashboardLink className="tq-card-header-link" to={to}>
-            Xem chi tiết →
-          </DashboardLink>
+<DashboardLink className="tq-card-header-link" to={to}>
+  Xem chi tiết →
+</DashboardLink>
         )}
       </div>
       <Content resource={resource}>{children}</Content>

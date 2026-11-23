@@ -1,6 +1,7 @@
 // Admin customer screen: ChiTietKhachHang.
 import { useEffect, useState, useCallback, useRef } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
+import LoadingSpinner from '../../../../shared/components/ui/LoadingSpinner';
 import {
   HiOutlineArrowLeft,
   HiOutlineExternalLink,
@@ -40,7 +41,7 @@ export default function ChiTietKhachHang() {
   const [orderSearch, setOrderSearch] = useState('');
   const [debouncedOrderSearch, setDebouncedOrderSearch] = useState('');
   const [orderPage, setOrderPage] = useState(1);
-  const orderPageSize = DETAIL_TABLE_PAGE_SIZE;
+  const [orderPageSize, setOrderPageSize] = useState(DETAIL_TABLE_PAGE_SIZE);
 
   const [modalMode, setModalMode] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -72,7 +73,7 @@ export default function ChiTietKhachHang() {
     } catch (error) {
       console.error('Lỗi khi tải đơn hàng của khách:', error);
     }
-  }, [customerId, debouncedOrderSearch, orderPage]);
+  }, [customerId, debouncedOrderSearch, orderPage, orderPageSize]);
 
   useEffect(() => {
     const loadData = async () => {
@@ -106,7 +107,7 @@ export default function ChiTietKhachHang() {
   if (isLoading) {
     return (
       <main className="customer-page">
-        <p>Đang tải dữ liệu...</p>
+        <LoadingSpinner text="Đang tải dữ liệu khách hàng..." fullPage />
       </main>
     );
   }
@@ -148,9 +149,9 @@ if (!canEditCustomer || !modalMode) return;
       <section className="customer-detail-hero">
         <div>
           <nav className="customer-page__crumbs" aria-label="Breadcrumb nội dung">
-            <span>KHÁCH HÀNG &amp; ĐỐI TÁC</span>
+            <Link to="/admin/khach-hang-doi-tac/khach-hang">KHÁCH HÀNG &amp; ĐỐI TÁC</Link>
             <span>/</span>
-            <span>KHÁCH HÀNG</span>
+            <Link to="/admin/khach-hang-doi-tac/khach-hang">KHÁCH HÀNG</Link>
             <span>/</span>
             <strong>CHI TIẾT KHÁCH HÀNG</strong>
           </nav>
@@ -253,7 +254,17 @@ if (!canEditCustomer || !modalMode) return;
                   <tbody>
                     {orders.map((order) => (
                       <tr key={order.id}>
-                        <td className="customer-order-code">{order.ma_don_hang}</td>
+                        <td className="customer-order-code">
+                          <a
+                            href={`/admin/don-hang/danh-sach-don-hang/${order.id}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="customer-order-code-link"
+                            title="Xem chi tiết đơn hàng (mở tab mới)"
+                          >
+                            {order.ma_don_hang}
+                          </a>
+                        </td>
 
                         <td>
                           <OrderStateBadge value={order.loai_don_hang} />
@@ -274,15 +285,19 @@ if (!canEditCustomer || !modalMode) return;
                         <td>{dateTime(order.ngay_tao)}</td>
 
                         <td>
-                          <button
+                          <a
+                            href={`/admin/don-hang/danh-sach-don-hang/${order.id}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
                             className="customer-action-btn"
-                            disabled={!canViewOrders}
-                            onClick={() =>
-                              navigate(`/admin/don-hang/danh-sach-don-hang/${order.id}`)
-                            }
+                            title="Xem đơn hàng (mở tab mới)"
+                            aria-disabled={!canViewOrders}
+                            onClick={(event) => {
+                              if (!canViewOrders) event.preventDefault();
+                            }}
                           >
                             XEM ĐƠN HÀNG
-                          </button>
+                          </a>
                         </td>
                       </tr>
                     ))}
@@ -301,6 +316,11 @@ if (!canEditCustomer || !modalMode) return;
               totalItems={orderTotalElements}
               currentPage={orderPage}
               onPageChange={setOrderPage}
+              pageSize={orderPageSize}
+              onPageSizeChange={(newSize) => {
+                setOrderPageSize(newSize);
+                setOrderPage(1);
+              }}
               idPrefix="customer-orders"
             />
           </section>
@@ -395,7 +415,7 @@ function CustomerCashbookPanel({ customerId, orders = [], canViewOrders }) {
   const [error, setError] = useState('');
   const [page, setPage] = useState(1);
   const [typeFilter, setTypeFilter] = useState('ALL');
-  const pageSize = 5;
+  const [pageSize, setPageSize] = useState(DETAIL_TABLE_PAGE_SIZE);
 
   const fetchVouchers = useCallback(async () => {
     if (!customerId) return;
@@ -430,7 +450,7 @@ function CustomerCashbookPanel({ customerId, orders = [], canViewOrders }) {
     } finally {
       setLoading(false);
     }
-  }, [customerId, page, typeFilter]);
+  }, [customerId, page, pageSize, typeFilter]);
 
   useEffect(() => {
     fetchVouchers();
@@ -442,25 +462,35 @@ function CustomerCashbookPanel({ customerId, orders = [], canViewOrders }) {
     setPage(1);
   };
 
-  const handleDocClick = (docCode) => {
-    if (!canViewOrders || !docCode) return;
+  const getDocUrl = (docCode) => {
+    if (!docCode) return '#';
     const cleanCode = docCode.trim();
     const matched = (orders || []).find(
       (o) => o.ma_don_hang === cleanCode || String(o.id) === cleanCode
     );
     if (matched) {
-      navigate(`/admin/don-hang/danh-sach-don-hang/${matched.id}`);
-      return;
+      return `/admin/don-hang/danh-sach-don-hang/${matched.id}`;
     }
-    navigate('/admin/don-hang/danh-sach-don-hang');
+    return `/admin/don-hang/danh-sach-don-hang?keyword=${encodeURIComponent(cleanCode)}`;
+  };
+
+  const getVoucherUrl = (item) => {
+    if (item.loai_phieu === 'CHI') {
+      return `/admin/so-quy-tien-mat/phieu-chi/${item.id}`;
+    }
+    return `/admin/so-quy-tien-mat/phieu-thu/${item.id}`;
+  };
+
+  const handleDocClick = (docCode) => {
+    const url = getDocUrl(docCode);
+    if (url && url !== '#') {
+      window.open(url, '_blank', 'noopener,noreferrer');
+    }
   };
 
   const handleVoucherClick = (item) => {
-    if (item.loai_phieu === 'CHI') {
-      navigate(`/admin/so-quy-tien-mat/phieu-chi/${item.id}`);
-    } else {
-      navigate(`/admin/so-quy-tien-mat/phieu-thu/${item.id}`);
-    }
+    const url = getVoucherUrl(item);
+    window.open(url, '_blank', 'noopener,noreferrer');
   };
 
   const formatPaymentMethod = (method) => {
@@ -609,15 +639,16 @@ function CustomerCashbookPanel({ customerId, orders = [], canViewOrders }) {
                   <tr key={item.id}>
                     <td>{(page - 1) * pageSize + idx + 1}</td>
                     <td>
-                      <button
-                        type="button"
+                      <a
+                        href={getVoucherUrl(item)}
+                        target="_blank"
+                        rel="noopener noreferrer"
                         className="customer-voucher-link"
-                        onClick={() => handleVoucherClick(item)}
-                        title="Xem chi tiết phiếu"
+                        title="Xem chi tiết phiếu (mở tab mới)"
                       >
                         {item.ma_phieu}
                         <HiOutlineExternalLink style={{ marginLeft: 4, verticalAlign: 'middle' }} />
-                      </button>
+                      </a>
                     </td>
                     <td>
                       <span data-admin-status={isChi ? 'red' : 'green'}>
@@ -626,15 +657,19 @@ function CustomerCashbookPanel({ customerId, orders = [], canViewOrders }) {
                     </td>
                     <td>
                       {item.ma_chung_tu_tham_chieu ? (
-                        <button
-                          type="button"
+                        <a
+                          href={getDocUrl(item.ma_chung_tu_tham_chieu)}
+                          target="_blank"
+                          rel="noopener noreferrer"
                           className="customer-doc-link"
-                          disabled={!canViewOrders}
-                          onClick={() => handleDocClick(item.ma_chung_tu_tham_chieu)}
-                          title="Đi đến chứng từ tham chiếu"
+                           title="Đi đến chứng từ tham chiếu (mở tab mới)"
+                           aria-disabled={!canViewOrders}
+                           onClick={(event) => {
+                             if (!canViewOrders) event.preventDefault();
+                           }}
                         >
                           {item.ma_chung_tu_tham_chieu}
-                        </button>
+                        </a>
                       ) : (
                         <span style={{ color: '#94a3b8' }}>—</span>
                       )}
@@ -679,6 +714,10 @@ function CustomerCashbookPanel({ customerId, orders = [], canViewOrders }) {
         pageSize={pageSize}
         currentPage={page}
         onPageChange={setPage}
+        onPageSizeChange={(newSize) => {
+          setPageSize(Number(newSize));
+          setPage(1);
+        }}
         idPrefix="customer-cashbook"
       />
     </section>

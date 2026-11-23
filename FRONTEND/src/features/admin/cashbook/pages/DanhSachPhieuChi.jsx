@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { Check, X } from 'lucide-react';
 import { disbursementService } from '../../../../shared/services/disbursementService';
 import TablePagination from '../../../../shared/components/ui/TablePagination';
+import LoadingSpinner from '../../../../shared/components/ui/LoadingSpinner';
 import FilterDropdown from '../../../../shared/components/ui/FilterDropdown';
 import {
   CashSourceFilters,
@@ -197,7 +198,9 @@ export default function DanhSachPhieuChi() {
       )}
 
       <div className="pt-header-top">
-        <div className="pt-breadcrumb">SỔ QUỸ TIỀN MẶT / PHIẾU CHI</div>
+        <div className="pt-breadcrumb">
+          <Link to="/admin/so-quy-tien-mat/so-quy">SỔ QUỸ TIỀN MẶT</Link> / <span>PHIẾU CHI</span>
+        </div>
         <button
           className="pt-btn-create"
           disabled={!canCreateVoucher}
@@ -324,28 +327,28 @@ export default function DanhSachPhieuChi() {
           aria-label="Bảng danh sách"
         >
           <table className="promo-table pt-table admin-data-table">
-            <thead>
-              <tr>
-                <th>MÃ PHIẾU</th>
-                <th>NGƯỜI NHẬN</th>
-                <th>NHÓM ĐỐI TƯỢNG</th>
-                <th>LOẠI CHI</th>
-                <th>PHƯƠNG THỨC</th>
-                <th>NGƯỜI TẠO</th>
-                <th>SỐ TIỀN CHI</th>
-                <th>NGÀY GHI NHẬN</th>
-                <th>NGUỒN TẠO</th>
-                <th>TRẠNG THÁI</th>
-                <th>THAO TÁC</th>
-              </tr>
-            </thead>
-            <tbody>
-              {isLoading ? (
-                <tr>
-                  <td colSpan="11" style={{ textAlign: 'center', padding: '24px' }}>
-                    Đang tải dữ liệu...
-                  </td>
-                </tr>
+<thead>
+  <tr>
+    <th>MÃ PHIẾU</th>
+    <th>NGƯỜI NHẬN</th>
+    <th>NHÓM ĐỐI TƯỢNG</th>
+    <th>LOẠI CHI</th>
+    <th>PHƯƠNG THỨC</th>
+    <th>NGƯỜI TẠO</th>
+    <th>SỐ TIỀN CHI</th>
+    <th>NGÀY GHI NHẬN</th>
+    <th>NGUỒN TẠO</th>
+    <th>TRẠNG THÁI</th>
+    <th>THAO TÁC</th>
+  </tr>
+</thead>
+<tbody>
+  {isLoading ? (
+    <tr>
+      <td colSpan="11" style={{ textAlign: 'center', padding: '24px' }}>
+        <LoadingSpinner text="Đang tải danh sách phiếu chi..." size="md" />
+      </td>
+    </tr>
               ) : disbursements.length > 0 ? (
                 disbursements.map((row) => (
                   <tr key={row.id}>

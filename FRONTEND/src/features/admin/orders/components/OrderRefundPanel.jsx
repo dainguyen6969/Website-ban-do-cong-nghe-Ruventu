@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
+import AdminLink from '../../../../shared/components/ui/AdminLink';
 
 import { money, refundOrder, refundOrderReturn } from '../api/orderApi';
 
@@ -244,12 +244,12 @@ export default function OrderRefundPanel({
                 <strong className="order-refund-panel__type">
                   {cancellationReturn ? 'PHIẾU NHẬN LẠI HÀNG' : 'PHIẾU TRẢ'}
                 </strong>
-                <Link
+                <AdminLink
                   to={'/admin/don-hang/khach-tra-hang/' + document.id}
                   className="order-refund-link"
                 >
                   {document.ma_tra_hang}
-                </Link>
+                </AdminLink>
               </div>
 
               <div className="order-refund-panel__amount-row">

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import {
+import LoadingSpinner from '../../../../shared/components/ui/LoadingSpinner';import {
   ArrowLeft,
   ArrowRight,
   ChevronRight,
@@ -47,7 +47,6 @@ import { hasAdminPermission } from '../../../../auth/roleModel';
 import { useAdminPermissions } from '../../../../shared/components/ui/PermissionGate';
 
 import './ChiTietKhuyenMai.css';
-import { FormDropdown } from '../../../../shared/components/ui/FilterDropdown';
 
 const TABS = [
   { key: 'TONG_QUAN', label: 'TỔNG QUAN', icon: FileText },

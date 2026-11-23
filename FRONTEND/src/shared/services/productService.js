@@ -1,6 +1,7 @@
 import axios from "axios";
 import { laptopVariantHighlights, parseSpecifications, selectHighlights, toSpecRows } from './productSpecifications';
 import { createReadCache, queryKey } from './readCache';
+import { getCatalogRevision } from './catalogChanges';
 
 const API_BASE_URL =
   (import.meta.env.VITE_RUVENTU_API_URL || "")
@@ -16,8 +17,12 @@ export const formatProductPrice = value => currency.format(value ?? 0);
 // shortcut: browsing prices/stock can be five minutes old; cart and checkout validate live on the server.
 const catalogCache = createReadCache({ ttl: 5 * 60 * 1000, storageKey: `ruventu:catalog:v2:${API_BASE_URL}`, limit: 12, validate: Array.isArray });
 const productCache = createReadCache({ ttl: 5 * 60 * 1000, storageKey: `ruventu:products:v1:${API_BASE_URL}`, validate: value => value?.data && typeof value.data === 'object' });
-const catalogQueryKey = params => queryKey({ ...params, sort: params.sort || 'moi_nhat' });
-const productKey = (path, params = {}) => JSON.stringify([path, queryKey(params)]);
+const revisionKey = key => {
+  const revision = getCatalogRevision();
+  return revision ? JSON.stringify([revision, key]) : key;
+};
+const catalogQueryKey = params => revisionKey(queryKey({ ...params, sort: params.sort || 'moi_nhat' }));
+const productKey = (path, params = {}) => revisionKey(JSON.stringify([path, queryKey(params)]));
 
 function getCachedAllProducts(params = {}) {
   const items = catalogCache.peek(catalogQueryKey(params));
@@ -90,6 +95,7 @@ export function toProductDetail(product) {
     stock: product.loaiSanPham === "BO_PC"
       ? (firstVariant?.soBoCoTheLap ?? null) : (firstVariant?.tonCoTheBan ?? 0),
     variants,
+    stockNotificationWebsiteEnabled: product.stockNotificationWebsiteEnabled !== false,
     specifications: product.thongSoKyThuat,
     description: product.moTa || "",
     discountPercent: 0,

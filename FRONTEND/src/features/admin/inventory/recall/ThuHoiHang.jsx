@@ -1,7 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { HiOutlinePlus, HiOutlineSearch } from 'react-icons/hi';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
+import AdminLink from '../../../../shared/components/ui/AdminLink';
 import TablePagination from '../../../../shared/components/ui/TablePagination';
+import DetailTablePagination from '../../../../shared/components/ui/DetailTablePagination';
+import useDetailTablePagination from '../../../../hooks/useDetailTablePagination';
 import FilterDropdown, { FormDropdown } from '../../../../shared/components/ui/FilterDropdown';
 import OrderModal from '../../orders/components/OrderModal';
 import {
@@ -290,6 +293,7 @@ export default function ThuHoiHang() {
   const [page, setPage] = useState(1);
   const [list, setList] = useState({ items: [], totalItems: 0 });
   const [detail, setDetail] = useState(null);
+  const recallDevicesPagination = useDetailTablePagination(detail?.items || []);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
@@ -749,7 +753,7 @@ export default function ThuHoiHang() {
           </header>
         ) : (
           <nav className="admin-list-breadcrumb" aria-label="Breadcrumb nội dung">
-            <span>Kho hàng</span>
+            <Link to="/kho-hang/ton-kho">Kho hàng</Link>
             <span aria-hidden="true">›</span>
             <strong aria-current="page">Thu hồi hàng</strong>
           </nav>
@@ -842,9 +846,9 @@ export default function ThuHoiHang() {
                             <small>{record.reason}</small>
                           </td>
                           <td>
-                            <Link to={`/kho-hang/nhap-hang/${record.purchase_id}`}>
+                            <AdminLink to={`/kho-hang/nhap-hang/${record.purchase_id}`}>
                               {record.ma_don_nhap}
-                            </Link>
+                            </AdminLink>
                             <small>{record.ten_nha_cung_cap}</small>
                           </td>
                           <td>
@@ -871,12 +875,12 @@ export default function ThuHoiHang() {
                             </span>
                           </td>
                           <td>
-                            <Link
+                            <AdminLink
                               to={`/kho-hang/thu-hoi/${record.id}`}
                               className="recall-button is-dark recall-button--sm"
                             >
                               XEM CHI TIẾT
-                            </Link>
+                            </AdminLink>
                           </td>
                         </tr>
                       ))
@@ -930,9 +934,9 @@ export default function ThuHoiHang() {
                     <div>
                       <dt>Nguồn nhập</dt>
                       <dd>
-                        <Link to={`/kho-hang/nhap-hang/${detail.purchase_id}`}>
+                        <AdminLink to={`/kho-hang/nhap-hang/${detail.purchase_id}`}>
                           {detail.ma_don_nhap}
-                        </Link>
+                        </AdminLink>
                       </dd>
                     </div>
                     <div>
@@ -990,15 +994,15 @@ export default function ThuHoiHang() {
                       </tr>
                     </thead>
                     <tbody>
-                      {detail.items.map((item) => (
+                      {recallDevicesPagination.visibleItems.map((item) => (
                         <tr key={item.id}>
                           <td>
                             <strong>{item.ten_phien_ban}</strong>
                             <small>
                               {item.serial_id ? (
-                                <Link to={`/kho-hang/danh-sach-serial/${item.serial_id}`}>
+                                <AdminLink to={`/kho-hang/danh-sach-serial/${item.serial_id}`}>
                                   {item.so_serial}
-                                </Link>
+                                </AdminLink>
                               ) : (
                                 `Theo dõi nội bộ #${item.id} ${item.ma_theo_doi || ''}`
                               )}
@@ -1013,9 +1017,9 @@ export default function ThuHoiHang() {
                           <td>
                             {item.order_id ? (
                               <>
-                                <Link to={`/admin/don-hang/danh-sach-don-hang/${item.order_id}`}>
+                                <AdminLink to={`/admin/don-hang/danh-sach-don-hang/${item.order_id}`}>
                                   {item.ma_don_hang}
-                                </Link>
+                                </AdminLink>
                                 <small>
                                   {item.ten_nguoi_nhan} · {item.sdt_nguoi_nhan}
                                 </small>
@@ -1053,6 +1057,14 @@ export default function ThuHoiHang() {
                     </tbody>
                   </table>
                 </div>
+                <DetailTablePagination
+                  totalItems={(detail?.items || []).length}
+                  currentPage={recallDevicesPagination.currentPage}
+                  onPageChange={recallDevicesPagination.onPageChange}
+                  pageSize={recallDevicesPagination.pageSize}
+                  onPageSizeChange={recallDevicesPagination.onPageSizeChange}
+                  idPrefix="recall-devices"
+                />
               </section>
 
               <section

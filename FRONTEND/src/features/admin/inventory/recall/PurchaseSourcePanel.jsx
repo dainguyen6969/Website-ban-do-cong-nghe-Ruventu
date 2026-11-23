@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
+import AdminLink from '../../../../shared/components/ui/AdminLink';
 import { PurchaseCard } from '../../purchasing/pages/PurchaseShared';
 import OrderModal from '../../orders/components/OrderModal';
 import {
@@ -254,9 +254,9 @@ export default function PurchaseSourcePanel({ order, locked = false, onLockChang
 
                 <div className="receipt-serial-chips">
                   {(item.serials || []).map((serial) => (
-                    <Link key={serial.id} to={`/kho-hang/danh-sach-serial/${serial.id}`}>
+                    <AdminLink key={serial.id} to={`/kho-hang/danh-sach-serial/${serial.id}`}>
                       {serial.so_serial}
-                    </Link>
+                    </AdminLink>
                   ))}
 
                   {!item.serials?.length && (

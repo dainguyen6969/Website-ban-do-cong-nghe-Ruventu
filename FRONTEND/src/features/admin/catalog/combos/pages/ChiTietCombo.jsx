@@ -1,7 +1,10 @@
 // Admin product-combo screen: ChiTietCombo.
 import { useEffect, useMemo, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import FormCard from '../../../../../shared/components/ui/FormCard';
+import DetailTablePagination from '../../../../../shared/components/ui/DetailTablePagination';
+import useDetailTablePagination from '../../../../../hooks/useDetailTablePagination';
+import LoadingSpinner from '../../../../../shared/components/ui/LoadingSpinner';
 import StopComboModal from '../components/StopComboModal';
 import { deactivateCombo, getComboDetail } from '../api/comboApi';
 import fallbackImage from '../../../../../assets/hero.png';
@@ -143,7 +146,16 @@ export default function ChiTietCombo() {
     [combo?.description]
   );
 
-  if (!combo || combo.id !== Number(id))
+  const componentPagination = useDetailTablePagination(detail?.components || []);
+
+  if (!combo || combo.id !== Number(id)) {
+    if (loading) {
+      return (
+        <main className="combo-detail-page">
+          <LoadingSpinner text="Đang tải chi tiết combo..." fullPage />
+        </main>
+      );
+    }
     return (
       <main className="combo-detail-page">
         <div
@@ -151,12 +163,11 @@ export default function ChiTietCombo() {
           role={error ? 'button' : undefined}
           onClick={error ? () => setReloadKey((value) => value + 1) : undefined}
         >
-          {loading
-            ? 'Đang tải chi tiết combo...'
-            : `${error || 'Không tìm thấy combo.'} Nhấn để thử lại.`}
+          {error || 'Không tìm thấy combo.'} Nhấn để thử lại.
         </div>
       </main>
     );
+  }
   const images = combo.images?.length ? combo.images : [combo.image || fallbackImage];
   const imageIndex = Math.min(selectedImage, images.length - 1);
   const capacityTone =
@@ -179,11 +190,11 @@ export default function ChiTietCombo() {
       <div className="combo-page-heading">
         <div>
           <div className="combo-secondary-breadcrumb">
-            <span>Sản phẩm</span>
+            <Link to="/kho-hang/combo-san-pham">Sản phẩm</Link>
             <b>›</b>
-            <span>Quản lý kho</span>
+            <Link to="/kho-hang/combo-san-pham">Quản lý kho</Link>
             <b>›</b>
-            <span>Combo sản phẩm</span>
+            <Link to="/kho-hang/combo-san-pham">Combo sản phẩm</Link>
             <b>›</b>
             <strong>Chi tiết</strong>
           </div>
@@ -285,7 +296,7 @@ export default function ChiTietCombo() {
                   </tr>
                 </thead>
                 <tbody>
-                  {detail.components.map((item) => {
+                  {componentPagination.visibleItems.map((item) => {
                     const isBottleneck = item === detail.bottleneck;
                     return (
                       <tr
@@ -347,6 +358,14 @@ export default function ChiTietCombo() {
                 </tbody>
               </table>
             </div>
+            <DetailTablePagination
+              totalItems={(detail?.components || []).length}
+              currentPage={componentPagination.currentPage}
+              onPageChange={componentPagination.onPageChange}
+              pageSize={componentPagination.pageSize}
+              onPageSizeChange={componentPagination.onPageSizeChange}
+              idPrefix="combo-components"
+            />
           </div>
         </FormCard>
         <FormCard title="Tồn combo">

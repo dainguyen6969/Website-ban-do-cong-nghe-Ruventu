@@ -27,6 +27,20 @@
   letter-spacing: 0.5px;
 }
 
+.ctp-breadcrumb a,
+.ctp-sub-breadcrumb a {
+  color: inherit;
+  text-decoration: none;
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+
+.ctp-breadcrumb a:hover,
+.ctp-sub-breadcrumb a:hover {
+  color: #c51d25;
+  text-decoration: underline;
+}
+
 .ctp-breadcrumb span {
   color: #cbd5e1;
   margin: 0 4px;

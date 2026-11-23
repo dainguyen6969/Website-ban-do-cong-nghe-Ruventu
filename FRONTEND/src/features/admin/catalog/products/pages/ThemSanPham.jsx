@@ -7,11 +7,18 @@ import { FormDropdown } from '../../../../../shared/components/ui/FilterDropdown
 import ImageUploader from '../../../../../shared/components/ui/ImageUploader';
 
 import { uploadProductImage } from '../../../../media/api/imageUploadApi';
-
 import { apiRequest } from '../../../../../auth/backendAuth';
+import { publishCatalogChange } from '../../../../../shared/services/catalogChanges';
+
 import { getAllCategories } from '../../categories/api/categoryApi';
 import { getAllBrands } from '../../brands/api/brandApi';
-import { createProduct, updateProduct } from '../api/productApi';
+import {
+  addProductVariant,
+  createProduct,
+  replaceVariantAttributes,
+  updateProduct,
+  updateProductVariant,
+} from '../api/productApi';
 import { defaultVariantName } from './variantNames';
 
 import { hasAdminPermission } from '../../../../../auth/roleModel';
@@ -845,10 +852,13 @@ export default function ThemSanPham() {
 
         console.debug('COMBO_REQUEST:', JSON.stringify(comboBody, null, 2));
 
-        await apiRequest(isEditing ? `${COMBOS}/${encodeURIComponent(productId)}` : COMBOS, {
-          method: isEditing ? 'PUT' : 'POST',
-          body: JSON.stringify(comboBody),
-        });
+        await apiRequest(
+          isEditing ? `${COMBOS}/${encodeURIComponent(productId)}` : COMBOS,
+          {
+            method: isEditing ? 'PUT' : 'POST',
+            body: JSON.stringify(comboBody),
+          },
+        ).then(publishCatalogChange);
       } else if (!isEditing) {
         await createProduct({
           ...body,
@@ -875,8 +885,6 @@ export default function ThemSanPham() {
         await updateProduct(productId, body);
 
         if (!isCombo) {
-          const productPath = `${PRODUCTS}/${encodeURIComponent(productId)}`;
-
           for (const item of preparedVariants) {
             const variantId = item.id || createdVariantIds.current.get(item.key);
 
@@ -885,30 +893,14 @@ export default function ThemSanPham() {
               ...item.body,
               thuoc_tinh_phien_ban: item.attributes,
             };
-
+            
             if (variantId) {
-              const variantPath = `${productPath}/variants/` + encodeURIComponent(variantId);
+              await updateProductVariant(productId, variantId, variantPayload);
 
-              // Cập nhật thông tin phiên bản.
-              await apiRequest(variantPath, {
-                method: 'PUT',
-                body: JSON.stringify(variantPayload),
-              });
-
-              // Service cập nhật phiên bản chưa lưu thuộc tính,
-              // nên tiếp tục lưu bằng API thuộc tính riêng.
-              await apiRequest(`${variantPath}/attributes`, {
-                method: 'PUT',
-                body: JSON.stringify({
-                  thuoc_tinh_phien_ban: item.attributes,
-                }),
-              });
+              // Cập nhật thuộc tính của phiên bản.
+              await replaceVariantAttributes(productId, variantId, item.attributes);
             } else {
-              // Thêm phiên bản mới kèm thuộc tính.
-              const created = await apiRequest(`${productPath}/variants`, {
-                method: 'POST',
-                body: JSON.stringify(variantPayload),
-              });
+              const created = await addProductVariant(productId, variantPayload);
 
               // Ghi nhớ ID để tránh tạo trùng nếu lần lưu sau bị lỗi.
               createdVariantIds.current.set(item.key, created.id);

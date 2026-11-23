@@ -74,7 +74,9 @@ export default function OrderLayout() {
         <section className="order-list-hero">
           <div>
             <nav className="content__breadcrumb" aria-label="Breadcrumb nội dung">
-              <span className="content__breadcrumb-item">Đơn hàng</span>
+              <Link to="/admin/don-hang/danh-sach-don-hang" className="content__breadcrumb-item">
+                Đơn hàng
+              </Link>
               <span className="content__breadcrumb-sep">›</span>
               <span className="content__breadcrumb-item content__breadcrumb-item--current">
                 Danh sách đơn hàng
@@ -107,7 +109,9 @@ export default function OrderLayout() {
     <main className="main-content" role="main">
       {/* Secondary breadcrumb */}
       <nav className="content__breadcrumb" aria-label="Breadcrumb nội dung">
-        <span className="content__breadcrumb-item">Đơn hàng</span>
+        <Link to="/admin/don-hang/danh-sach-don-hang" className="content__breadcrumb-item">
+          Đơn hàng
+        </Link>
         <span className="content__breadcrumb-sep" aria-hidden="true">
           ›
         </span>

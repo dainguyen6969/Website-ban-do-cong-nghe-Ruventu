@@ -14,11 +14,15 @@ const { cartService } = await vite.ssrLoadModule('/src/shared/services/cartServi
 const { orderService } = await vite.ssrLoadModule('/src/shared/services/orderService.js');
 const { pcBuilderService } = await vite.ssrLoadModule('/src/shared/services/pcBuilderService.js');
 const { clearAuth } = await vite.ssrLoadModule('/src/auth/backendAuth.js');
+const { createProduct } = await vite.ssrLoadModule('/src/features/admin/catalog/products/api/productApi.js');
+const { receivePurchaseOrder } = await vite.ssrLoadModule('/src/features/admin/purchasing/api/purchaseOrderApi.js');
+const { getCatalogRevision, subscribeCatalogChanges } = await vite.ssrLoadModule('/src/shared/services/catalogChanges.js');
 
 beforeEach(() => {
   tokens = new Map(); session = new Map();
   const storage = store => ({ getItem: key => store.get(key) || null, setItem: (key, value) => store.set(key, value), removeItem: key => store.delete(key) });
   globalThis.localStorage = storage(tokens);
+  window.localStorage = globalThis.localStorage;
   globalThis.sessionStorage = storage(session);
   productService.clearCache(); categoryService.clearCache(); cartService.clearCache();
 });
@@ -55,6 +59,66 @@ test('home -> detail -> filtered list -> home -> detail reuses public reads, inc
   assert.equal((await reloaded.getProductDetail(700)).data.id, 700);
   assert.equal(calls.length, warmedCount);
   assert([...session.keys()].every(key => !key.includes('accessToken')));
+});
+
+test('successful admin product creation and stock receipt invalidate warm storefront reads', async t => {
+  tokens.set('accessToken', 'admin-token');
+  let available = false, added = false, reads = 0, notifications = 0;
+  const unsubscribe = subscribeCatalogChanges(() => { notifications++; });
+  t.after(unsubscribe);
+  transport = async config => {
+    reads++;
+    const item = { id: 7, tenSanPham: 'PC', coTheBan: available };
+    const data = config.url.endsWith('/products')
+      ? { tongSoTrang: 1, danhSachSanPham: added ? [item, { id: 8, tenSanPham: 'Laptop mới' }] : [item] }
+      : item;
+    return { data: { data }, status: 200, headers: {}, config };
+  };
+  globalThis.fetch = async url => {
+    if (url.endsWith('/purchase-orders/9/receive')) {
+      available = true;
+      return Response.json({ data: { id: 9 } });
+    }
+    if (url.endsWith('/admin/products') && available) {
+      added = true;
+      return Response.json({ data: { id: 8 } }, { status: 201 });
+    }
+    return Response.json({ message: 'Không thể lưu' }, { status: 400 });
+  };
+
+  const filters = { keyword: 'PC' };
+  assert.equal((await productService.getAllProducts())[0].outOfStock, true);
+  await productService.getAllProducts(filters);
+  await productService.getProductDetail(7);
+  await assert.rejects(createProduct({}), /Không thể lưu/);
+  assert.equal(notifications, 0);
+  assert.equal(productService.getCachedAllProducts()[0].outOfStock, true);
+  assert.equal(reads, 3);
+
+  assert.deepEqual(await receivePurchaseOrder(9, 'receipt-key', {}), { id: 9 });
+  assert.equal(notifications, 1);
+  assert.equal(productService.getCachedAllProducts(filters), null);
+  assert.equal(productService.getCachedProductDetail(7), null);
+  assert.equal((await productService.getAllProducts(filters))[0].outOfStock, false);
+  assert.equal((await productService.getProductDetail(7)).data.coTheBan, true);
+
+  assert.deepEqual(await createProduct({}), { id: 8 });
+  assert.deepEqual((await productService.getAllProducts()).map(item => item.id), [7, 8]);
+  await productService.getAllProducts();
+  assert.equal(reads, 6);
+  assert.equal(notifications, 2);
+
+  const revision = getCatalogRevision();
+  const key = [...tokens.keys()].find(key => tokens.get(key) === revision);
+  tokens.set(key, 'receipt-from-another-tab');
+  window.dispatchEvent(Object.assign(new Event('storage'), { key }));
+  assert.equal(notifications, 3);
+
+  vite.moduleGraph.invalidateAll();
+  const reloaded = (await vite.ssrLoadModule('/src/shared/services/productService.js')).productService;
+  assert.equal(reloaded.getCachedAllProducts(), null);
+  assert.deepEqual((await reloaded.getAllProducts()).map(item => item.id), [7, 8]);
+  assert.equal(reads, 7);
 });
 
 test('header, drawer and purchase sidebar share cart reads; mutations, expiry and auth changes refresh them', async t => {

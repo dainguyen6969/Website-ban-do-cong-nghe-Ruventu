@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate, Link } from 'react-router-dom';
 import {
   HiOutlineArrowLeft,
   HiOutlineExternalLink,
@@ -12,6 +12,7 @@ import {
 } from 'react-icons/hi';
 import FilterDropdown, { FormDropdown } from '../../../../shared/components/ui/FilterDropdown';
 import TablePagination from '../../../../shared/components/ui/TablePagination';
+import LoadingSpinner from '../../../../shared/components/ui/LoadingSpinner';
 import { cashbookService } from '../../../../shared/services/cashbookService';
 import {
   createSupplier,
@@ -288,16 +289,17 @@ export default function NhaCungCap() {
   }
 
   if (selectedId && (detailLoading || detailError || !selectedSupplier)) {
+    if (detailLoading) {
+      return (
+        <main className="supplier-page">
+          <LoadingSpinner text="Đang tải dữ liệu nhà cung cấp..." fullPage />
+        </main>
+      );
+    }
     return (
       <main className="supplier-page supplier-not-found">
-        {detailLoading ? (
-          <h1>ĐANG TẢI NHÀ CUNG CẤP...</h1>
-        ) : (
-          <>
-            <h1>KHÔNG THỂ TẢI NHÀ CUNG CẤP</h1>
-            <p role="alert">{detailError}</p>
-          </>
-        )}
+        <h1>KHÔNG THỂ TẢI NHÀ CUNG CẤP</h1>
+        <p role="alert">{detailError}</p>
         <button className="supplier-btn supplier-btn--outline" onClick={backToList}>
           QUAY LẠI DANH SÁCH
         </button>
@@ -409,8 +411,12 @@ export default function NhaCungCap() {
                     ))}
                   {!loadError && !suppliers.length && (
                     <tr className="supplier-empty">
-                      <td colSpan="5">
-                        {loading ? 'Đang tải dữ liệu...' : 'Không tìm thấy nhà cung cấp phù hợp.'}
+                      <td colSpan="5" style={{ padding: 24, textAlign: 'center' }}>
+                        {loading ? (
+                          <LoadingSpinner text="Đang tải danh sách nhà cung cấp..." size="md" />
+                        ) : (
+                          'Không tìm thấy nhà cung cấp phù hợp.'
+                        )}
                       </td>
                     </tr>
                   )}
@@ -461,12 +467,24 @@ export default function NhaCungCap() {
   );
 }
 
-function Breadcrumb({ detail = false }) {
+function Breadcrumb({ detail = false, onBack }) {
   return (
     <nav className="supplier-crumbs" aria-label="Breadcrumb nội dung">
-      <span>KHÁCH HÀNG &amp; ĐỐI TÁC</span>
+      <Link to="/admin/khach-hang-doi-tac/khach-hang">KHÁCH HÀNG &amp; ĐỐI TÁC</Link>
       <span>/</span>
-      <span>NHÀ CUNG CẤP</span>
+      {detail ? (
+        <a
+          href="#danh-sach"
+          onClick={(e) => {
+            e.preventDefault();
+            if (onBack) onBack();
+          }}
+        >
+          NHÀ CUNG CẤP
+        </a>
+      ) : (
+        <span>NHÀ CUNG CẤP</span>
+      )}
       {detail && (
         <>
           <span>/</span>
@@ -486,7 +504,7 @@ function SupplierDetail({ supplier, page, onPageChange, onBack, onEdit, canEdit,
     <>
       <section className="supplier-hero supplier-detail-hero">
         <div>
-          <Breadcrumb detail />
+          <Breadcrumb detail onBack={onBack} />
           <div className="supplier-detail-meta">
             <span>{supplier.code}</span>
             <SupplierStatus status={supplier.trangThai} />
@@ -752,8 +770,8 @@ function SupplierCashbookPanel({ supplierId, orders = [], access }) {
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan="9" className="supplier-table-loading">
-                  Đang tải dữ liệu phiếu thu / phiếu chi...
+                <td colSpan="9" style={{ padding: 24, textAlign: 'center' }}>
+                  <LoadingSpinner text="Đang tải dữ liệu phiếu thu / phiếu chi..." size="md" />
                 </td>
               </tr>
             ) : error ? (

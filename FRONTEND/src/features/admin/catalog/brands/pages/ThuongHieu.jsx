@@ -896,6 +896,8 @@ export function ChiTietThuongHieu() {
           totalItems={detail.products.length}
           currentPage={productPagination.currentPage}
           onPageChange={productPagination.onPageChange}
+          pageSize={productPagination.pageSize}
+          onPageSizeChange={productPagination.onPageSizeChange}
           idPrefix="brand-products"
         />
       </section>
