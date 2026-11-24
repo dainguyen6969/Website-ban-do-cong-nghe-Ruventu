@@ -261,6 +261,8 @@ public class AdminProductService {
     product.setThoiHanBaoHanhThang(warranty);
     product.setThueVat(request.getThueVat() == null ? BigDecimal.ZERO : request.getThueVat());
 
+    catalog.requireActiveCategoryForSale(product.getDanhMuc(), product.getTrangThai());
+
     product = sanPhamRepository.save(product);
 
     if (request.getAnhSanPham() != null) {
@@ -329,9 +331,18 @@ public class AdminProductService {
           "thong_so_ky_thuat", "INVALID_SPECIFICATIONS", "Thông số kỹ thuật phải là JSON object");
     }
 
+    DanhMuc category = requireDanhMuc(request.getDanhMucId());
+    boolean enteringCategoryForSale =
+        product.getTrangThai() != TrangThaiCoBanEnum.HOAT_DONG
+            || !Objects.equals(product.getDanhMuc().getId(), category.getId());
+
     sanPhamMapper.updateEntity(request, product);
+    if (enteringCategoryForSale) {
+      catalog.requireActiveCategoryForSale(category, product.getTrangThai());
+    }
+
     product.setMoTa(catalog.cleanDescription(request.getMoTa()));
-    product.setDanhMuc(requireDanhMuc(request.getDanhMucId()));
+    product.setDanhMuc(category);
     product.setThuongHieu(
         request.getThuongHieuId() == null ? null : requireThuongHieu(request.getThuongHieuId()));
     product.setMaSanPham(code);

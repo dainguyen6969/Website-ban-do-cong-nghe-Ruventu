@@ -30,6 +30,9 @@ public class AdminCategoryListItemResponse {
   @JsonProperty("so_luong_san_pham")
   private Long soLuongSanPham;
 
+  @JsonProperty("so_luong_san_pham_dang_kinh_doanh")
+  private Long soLuongSanPhamDangKinhDoanh;
+
   @JsonProperty("trang_thai")
   private Short trangThai;
 }

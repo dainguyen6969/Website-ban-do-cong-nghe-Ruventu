@@ -39,6 +39,9 @@ function normalizeCategory(item) {
     imageMode: 'url',
     slug: item.duong_dan_url || '',
     productCount: Number(item.so_luong_san_pham || 0),
+    activeProductCount: Number(
+      item.so_luong_san_pham_dang_kinh_doanh ?? item.so_luong_san_pham ?? 0
+    ),
     status: normalizeStatus(item.trang_thai),
   };
 }
@@ -86,10 +89,12 @@ export async function getAllCategories() {
 
 export async function getCategoryDetail(id) {
   const item = await apiRequest(`${CATEGORY_PATH}/${id}`);
+  const products = (item?.san_pham || []).map(normalizeProduct);
 
   return {
     ...normalizeCategory(item),
-    products: (item?.san_pham || []).map(normalizeProduct),
+    activeProductCount: products.filter((product) => product.trangThai === 'active').length,
+    products,
   };
 }
 
