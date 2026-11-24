@@ -7,8 +7,10 @@ import com.example.dantruventu.DTO.Request.order.AdminReturnRefundRequest;
 import com.example.dantruventu.DTO.Response.ApiResponse;
 import com.example.dantruventu.DTO.Response.order.AdminReturnResponse;
 import com.example.dantruventu.Entity.NguoiDung;
+import com.example.dantruventu.Enum.LoaiDonHang;
 import com.example.dantruventu.Enum.TrangThaiTraHang;
 import com.example.dantruventu.Services.order.AdminReturnService;
+import com.example.dantruventu.Specification.PhieuTraHangSpecification;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -136,6 +138,9 @@ public class AdminReturnController {
       @RequestParam(name = "keyword", required = false) String keyword,
       @RequestParam(name = "trang_thai_tra_hang", required = false) TrangThaiTraHang returnStatus,
       @RequestParam(name = "tu_ngay", required = false) String from,
+      @RequestParam(name = "nhom_xu_ly", required = false)
+          PhieuTraHangSpecification.ReturnWorkGroup returnGroup,
+      @RequestParam(name = "kenh_ban", required = false) LoaiDonHang salesChannel,
       @RequestParam(name = "den_ngay", required = false) String to,
       @RequestParam(name = "page", defaultValue = "0") int page,
       @RequestParam(name = "limit", defaultValue = "20") int limit) {
@@ -143,7 +148,9 @@ public class AdminReturnController {
     return ApiResponse.<AdminReturnResponse.ListResponse>builder()
         .status(200)
         .message("Lấy danh sách phiếu trả thành công")
-        .data(adminReturnService.getReturns(keyword, returnStatus, from, to, page, limit))
+        .data(
+            adminReturnService.getReturns(
+                keyword, returnStatus, returnGroup, salesChannel, from, to, page, limit))
         .build();
   }
 }

@@ -1,5 +1,6 @@
 package com.example.dantruventu.Repository.order;
 
+import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
@@ -26,19 +27,27 @@ public class SalesIdempotencyRepository {
         actorId,
         hash);
 
-    return jdbcTemplate.queryForObject(
-        """
-                SELECT actor_id, request_hash, response_json
-                FROM sales_idempotency
-                WHERE request_key = ?
-                FOR UPDATE
-                """,
-        (rs, rowNum) ->
-            new Entry(
-                rs.getLong("actor_id"),
-                rs.getString("request_hash"),
-                rs.getString("response_json")),
-        key);
+    return findForUpdate(key)
+        .orElseThrow(() -> new IllegalStateException("Không tìm thấy bản ghi khóa vừa đăng ký"));
+  }
+
+  public Optional<Entry> findForUpdate(String key) {
+    return jdbcTemplate
+        .query(
+            """
+                        SELECT actor_id, request_hash, response_json
+                        FROM sales_idempotency
+                        WHERE request_key = ?
+                        FOR UPDATE
+                        """,
+            (rs, rowNum) ->
+                new Entry(
+                    rs.getLong("actor_id"),
+                    rs.getString("request_hash"),
+                    rs.getString("response_json")),
+            key)
+        .stream()
+        .findFirst();
   }
 
   public void complete(String key, String json) {
