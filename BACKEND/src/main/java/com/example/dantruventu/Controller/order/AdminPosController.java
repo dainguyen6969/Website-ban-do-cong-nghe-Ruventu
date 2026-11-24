@@ -5,6 +5,7 @@ import com.example.dantruventu.DTO.Response.ApiResponse;
 import com.example.dantruventu.DTO.Response.order.AdminSalesResponse;
 import com.example.dantruventu.Services.order.sales.AdminSalesService;
 import jakarta.validation.Valid;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -17,6 +18,16 @@ import org.springframework.web.bind.annotation.*;
 public class AdminPosController {
 
   private final AdminSalesService service;
+
+  @PostMapping("/checkout/prepare")
+  public ApiResponse<Map<String, String>> prepareCheckout(
+      @Valid @RequestBody AdminSalesRequest.Pos request) {
+    return ApiResponse.<Map<String, String>>builder()
+        .status(200)
+        .message("Đã chuẩn bị lượt thanh toán tại quầy")
+        .data(Map.of("idempotency_key", service.preparePosCheckout(request)))
+        .build();
+  }
 
   @PostMapping("/checkout")
   public ResponseEntity<ApiResponse<AdminSalesResponse.Checkout>> checkout(
@@ -35,11 +46,12 @@ public class AdminPosController {
   @PostMapping("/checkout/resolve")
   public ApiResponse<AdminSalesResponse.CheckoutResolution> resolveCheckout(
       @RequestHeader(name = "Idempotency-Key", required = false) String key,
+      @RequestParam(name = "chi_tra_cuu", defaultValue = "false") boolean lookupOnly,
       @RequestBody AdminSalesRequest.Pos request) {
     return ApiResponse.<AdminSalesResponse.CheckoutResolution>builder()
         .status(200)
         .message("Đã đối soát lượt thanh toán tại quầy")
-        .data(service.resolvePosCheckout(key, request))
+        .data(service.resolvePosCheckout(key, request, lookupOnly))
         .build();
   }
 }

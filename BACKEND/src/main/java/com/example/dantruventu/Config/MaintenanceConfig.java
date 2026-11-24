@@ -47,6 +47,7 @@ public class MaintenanceConfig implements WebMvcConfigurer, HandlerInterceptor {
     if (!"POST".equals(method)) return false;
     return path.equals("/api/v1/orders/checkout")
         || path.equals("/api/v1/admin/pos/checkout")
+        || path.equals("/api/v1/admin/pos/checkout/prepare")
         || path.equals("/api/v1/admin/orders")
         || path.matches("/api/v1/admin/orders/[^/]+/payment/confirm");
   }

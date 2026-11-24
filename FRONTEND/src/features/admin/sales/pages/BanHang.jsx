@@ -13,6 +13,7 @@ import {
   buildPosCheckoutBody,
   buildPosPreviewBody,
   checkoutPosOrder,
+  preparePosCheckout,
   resolvePosCheckout,
   createSalesCustomer,
   getSalesOptions,
@@ -37,9 +38,10 @@ import {
 import PaymentSuccessModal from '../components/PaymentSuccessModal';
 import { sameQuotedPrice } from '../../../../shared/services/saleQuote';
 
-import { createRequestKey } from '../../../../shared/services/mutationUtils';
 import './BanHang.css';
 import { FormDropdown } from '../../../../shared/components/ui/FilterDropdown';
+
+import { readCurrentUser } from '../../../../auth/backendAuth';
 
 import { hasAdminPermission } from '../../../../auth/roleModel';
 import { useAdminPermissions } from '../../../../shared/components/ui/PermissionGate';
@@ -157,10 +159,21 @@ export default function BanHang() {
   });
   const checkoutLock = useRef(false);
 
-  const canHandlePendingCheckout =
-    canCheckout &&
-    (checkoutPending?.actorId == null ||
-      String(checkoutPending.actorId) === String(access?.nguoi_dung_id));
+  const actorId = access?.nguoi_dung_id;
+  const canStartCheckout = canCheckout && actorId != null;
+  const hasPendingPayload = Boolean(checkoutPending?.key && checkoutPending?.body);
+  const ownsPendingCheckout =
+    actorId != null &&
+    checkoutPending?.actorId != null &&
+    String(checkoutPending.actorId) === String(actorId);
+  const isPreparedCheckout =
+    checkoutPending?.serverPrepared === true && checkoutPending?.actorId != null;
+  const canResolvePendingCheckout =
+    canStartCheckout &&
+    hasPendingPayload &&
+    (ownsPendingCheckout || checkoutPending.actorId == null);
+  const canRetryPendingCheckout =
+    canResolvePendingCheckout && ownsPendingCheckout && isPreparedCheckout;
 
   const order = orders.find((item) => item.id === activeId) || orders[0] || createOrder(1);
   const [previewState, setPreviewState] = useState({});
@@ -288,12 +301,14 @@ export default function BanHang() {
           : item
       )
     );
+
   const clearSearch = () => {
     setProductSearch('');
     setCustomerSearch('');
     setProductFocused(false);
     setCustomerFocused(false);
   };
+
   const newOrder = () => {
     const next = createOrder(
       nextOrderNumber(orders),
@@ -303,17 +318,33 @@ export default function BanHang() {
     setActiveId(next.id);
     clearSearch();
   };
+
   const closeTab = (id) => {
     const next = closeOrderTab(orders, activeId, id);
     setOrders(next.orders);
     setActiveId(next.activeId);
     if (id === activeId) clearSearch();
   };
+
   const resetCheckoutConfirmation = (item) => ({
     ...item,
     preview: null,
     paymentReceived: false,
   });
+
+  const assertCurrentPosAccount = () => {
+    if (String(readCurrentUser()?.id) !== String(actorId)) {
+      throw new Error('Tài khoản đã thay đổi. Hãy tải lại trang bán hàng.');
+    }
+  };
+
+  const assertNoPendingCheckout = () => {
+    const stored = JSON.parse(sessionStorage.getItem(pendingCheckoutKey));
+    if (stored?.key) {
+      setCheckoutPending(stored);
+      throw new Error('Đã có lượt thanh toán chờ. Hãy đối soát lượt đó.');
+    }
+  };
 
   const finishPendingCheckout = (attempt, updateTab) => {
     const stored = JSON.parse(sessionStorage.getItem(pendingCheckoutKey));
@@ -524,7 +555,7 @@ export default function BanHang() {
   };
 
   const checkout = async () => {
-    if (!canHandlePendingCheckout) return;
+    if (!canStartCheckout || (checkoutPending && !canRetryPendingCheckout)) return;
 
     if (checkoutLock.current || receipt || (!checkoutPending && !salesOptions)) {
       return;
@@ -548,7 +579,9 @@ export default function BanHang() {
     setCheckoutError('');
 
     let attempt = checkoutPending;
+
     try {
+      assertCurrentPosAccount();
       if (!attempt) {
         if (order.discount) {
           throw new Error(
@@ -581,20 +614,26 @@ export default function BanHang() {
           );
         }
 
-        const savedAttempt = JSON.parse(sessionStorage.getItem(pendingCheckoutKey));
-        if (savedAttempt?.key) {
-          setCheckoutPending(savedAttempt);
-          throw new Error('Đã có lượt thanh toán chờ. Hãy đối soát lượt đó.');
+        assertCurrentPosAccount();
+        assertNoPendingCheckout();
+
+        const body = buildPosCheckoutBody(order, salesOptions, freshPreview);
+        const prepared = await preparePosCheckout(
+          body,
+          AbortSignal.timeout(POS_CHECKOUT_TIMEOUT_MS)
+        );
+
+        assertCurrentPosAccount();
+        assertNoPendingCheckout();
+
+        const key = prepared?.idempotency_key;
+        if (typeof key !== 'string' || !key) {
+          throw new Error('Chưa nhận được mã lượt thanh toán từ hệ thống.');
         }
 
-        attempt = {
-          tabId: order.id,
-          actorId: access.nguoi_dung_id,
-          key: createRequestKey(),
-          body: buildPosCheckoutBody(order, salesOptions, freshPreview),
-        };
-
-        sessionStorage.setItem(pendingCheckoutKey, JSON.stringify(attempt));
+        const preparedAttempt = { tabId: order.id, actorId, key, body, serverPrepared: true };
+        sessionStorage.setItem(pendingCheckoutKey, JSON.stringify(preparedAttempt));
+        attempt = preparedAttempt;
         setCheckoutPending(attempt);
       }
 
@@ -611,19 +650,10 @@ export default function BanHang() {
 
       const status = Number(error.status || error.response?.status);
 
-      if (!checkoutPending && [400, 401, 403, 404, 409, 422].includes(status)) {
-        if (attempt) {
-          try {
-            finishPendingCheckout(attempt, resetCheckoutConfirmation);
-          } catch (storageError) {
-            setCheckoutError(storageError.message || 'Chưa lưu được trạng thái POS.');
-          }
-        } else {
-          setOrders((current) =>
-            current.map((item) => (item.id === activeId ? resetCheckoutConfirmation(item) : item))
-          );
-        }
-
+      if (!attempt && [400, 401, 403, 404, 409, 422].includes(status)) {
+        setOrders((current) =>
+          current.map((item) => (item.id === activeId ? resetCheckoutConfirmation(item) : item))
+        );
         setPreviewRevision((value) => value + 1);
       }
     } finally {
@@ -634,17 +664,19 @@ export default function BanHang() {
 
   const resolvePendingCheckout = async () => {
     const attempt = checkoutPending;
-    if (!attempt || !canHandlePendingCheckout || checkoutLock.current || receipt) return;
+    if (!attempt || !canResolvePendingCheckout || checkoutLock.current || receipt) return;
 
     checkoutLock.current = true;
     setCheckoutBusy(true);
     setCheckoutError('');
 
     try {
+      assertCurrentPosAccount();
       const resolution = await resolvePosCheckout(
         attempt.body,
         attempt.key,
-        AbortSignal.timeout(POS_CHECKOUT_TIMEOUT_MS)
+        AbortSignal.timeout(POS_CHECKOUT_TIMEOUT_MS),
+        !isPreparedCheckout
       );
 
       if (resolution?.da_ghi_don === true && resolution.ket_qua?.id) {
@@ -669,15 +701,19 @@ export default function BanHang() {
       {checkoutPending && !checkoutBusy && !receipt && (
         <div className="pos-block" role="alert">
           <p className="pos-error">{checkoutError || 'Chưa xác định được kết quả thanh toán.'}</p>
-          <p>Nếu đơn chưa được ghi, đối soát sẽ đóng lượt chờ này.</p>
-          {canCheckout && !canHandlePendingCheckout && (
+          <p>
+            {isPreparedCheckout
+              ? 'Nếu đơn chưa được ghi, đối soát sẽ đóng lượt chờ này.'
+              : 'Lượt cũ chỉ có thể tra kết quả. Hãy đối chiếu khoản tiền đã nhận nếu chưa xác minh được.'}
+          </p>
+          {canStartCheckout && checkoutPending.actorId != null && !ownsPendingCheckout && (
             <p>Hãy đăng nhập bằng tài khoản đã gửi lượt thanh toán này.</p>
           )}
           <div className="pos-toolbar" style={{ gap: 8, flexWrap: 'wrap' }}>
             <button
               type="button"
               className="pos-red-button"
-              disabled={!canHandlePendingCheckout}
+              disabled={!canRetryPendingCheckout}
               onClick={checkout}
             >
               THỬ LẠI THANH TOÁN
@@ -685,10 +721,10 @@ export default function BanHang() {
             <button
               type="button"
               className="pos-red-button"
-              disabled={!canHandlePendingCheckout}
+              disabled={!canResolvePendingCheckout}
               onClick={resolvePendingCheckout}
             >
-              ĐỐI SOÁT LƯỢT CHỜ
+              {isPreparedCheckout ? 'ĐỐI SOÁT LƯỢT CHỜ' : 'TRA CỨU KẾT QUẢ'}
             </button>
           </div>
         </div>
