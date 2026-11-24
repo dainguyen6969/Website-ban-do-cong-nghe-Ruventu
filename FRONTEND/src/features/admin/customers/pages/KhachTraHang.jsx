@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import FilterDropdown from '../../../../shared/components/ui/FilterDropdown';
 import TablePagination from '../../../../shared/components/ui/TablePagination';
+import { parseApiTime } from '../../../../shared/services/mutationUtils.js';
 import {
   WarrantyFields,
   WarrantyPanel,
@@ -51,6 +52,14 @@ import './KhachTraHang.css';
 
 const LIST_ROUTE = '/admin/don-hang/khach-tra-hang';
 const ORDER_DETAIL_ROUTE = '/admin/don-hang/danh-sach-don-hang';
+
+const toReturnDateBoundary = (value, daysToAdd = 0) => {
+  const date = parseApiTime(value);
+  if (!date) return undefined;
+
+  date.setUTCDate(date.getUTCDate() + daysToAdd);
+  return date.toISOString();
+};
 
 const STATUS_FILTER_OPTIONS = [
   { value: 'ALL', label: 'Tất cả trạng thái' },
@@ -193,8 +202,8 @@ function ReturnList() {
                 : status,
           returnGroup,
           salesChannel,
-          from: dateFrom || undefined,
-          to: dateTo || undefined,
+          from: toReturnDateBoundary(dateFrom),
+          to: toReturnDateBoundary(dateTo, 1),
           page: Math.max(0, page - 1),
           limit: pageSize,
         },
@@ -247,6 +256,8 @@ function ReturnList() {
     setDateTo('');
     setPage(1);
   };
+
+  const totalItems = pagination.total_elements ?? pagination.total_items ?? items.length;
 
   return (
     <div className="returns-page admin-list-page">
@@ -467,14 +478,13 @@ function ReturnList() {
         <div className="returns-footer admin-table-footer">
           <div className="returns-footer__left">
             <span>
-              {pagination.total_items || items.length} phiếu · Trang {page}/
-              {Math.max(1, pagination.total_pages || 1)}
+              {totalItems} phiếu · Trang {page}/{Math.max(1, pagination.total_pages || 1)}
             </span>
           </div>
 
           <div className="returns-footer__right">
             <TablePagination
-              totalItems={pagination.total_items || items.length}
+              totalItems={totalItems}
               pageSize={pageSize}
               currentPage={page}
               onPageChange={(p) => setPage(p)}
