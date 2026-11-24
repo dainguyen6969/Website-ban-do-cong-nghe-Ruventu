@@ -9,6 +9,7 @@ import com.example.dantruventu.Enum.LoaiSanPham;
 import com.example.dantruventu.Enum.TrangThaiCoBanEnum;
 import com.example.dantruventu.Error.CatalogException;
 import jakarta.persistence.EntityManager;
+import jakarta.persistence.LockModeType;
 import java.net.URI;
 import java.text.Normalizer;
 import java.util.*;
@@ -81,6 +82,18 @@ public class CatalogSupport {
             "COMPONENT_WARRANTY_READ_ONLY",
             "Thời hạn linh kiện được đọc từ sản phẩm linh kiện; không sửa tại API bộ PC");
       }
+    }
+  }
+
+  public void requireActiveCategoryForSale(DanhMuc category, TrangThaiCoBanEnum productStatus) {
+    if (productStatus != TrangThaiCoBanEnum.HOAT_DONG) return;
+
+    entityManager.refresh(category, LockModeType.PESSIMISTIC_READ);
+    if (category.getTrangThai() != TrangThaiCoBanEnum.HOAT_DONG) {
+      throw CatalogException.conflict(
+          "danh_muc_id",
+          "CATEGORY_INACTIVE",
+          "Vui lòng chọn danh mục đang hoạt động để kinh doanh.");
     }
   }
 

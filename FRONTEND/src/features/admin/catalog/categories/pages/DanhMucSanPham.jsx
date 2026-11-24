@@ -203,15 +203,18 @@ function ErrorState({ message, onRetry }) {
 // Category Form Modal
 // ========================================
 
-function CategoryFormModal({
-  category,
-  categories,
-  productCount = 0,
-  saving,
-  serverError,
-  onClose,
-  onSave,
-}) {
+function getDeactivationReason(category, categories) {
+  if (category.activeProductCount > 0) {
+    return `Danh mục còn ${category.activeProductCount} sản phẩm đang kinh doanh.`;
+  }
+
+  const hasActiveChild = categories.some(
+    (item) => item.parentId === category.id && item.status === 'active'
+  );
+  return hasActiveChild ? 'Danh mục còn danh mục con đang hoạt động.' : '';
+}
+
+function CategoryFormModal({ category, categories, saving, serverError, onClose, onSave }) {
   const [form, setForm] = useState(() =>
     category
       ? {
@@ -331,19 +334,10 @@ function CategoryFormModal({
     }
 
     // Không ngừng hoạt động khi còn dữ liệu liên quan
-    const hasChildren = Boolean(
-      category && categories.some((item) => item.parentId === category.id)
-    );
-
-    if (
-      category?.status === 'active' &&
-      form.status === 'inactive' &&
-      (hasChildren || productCount > 0)
-    ) {
-      nextErrors.status =
-        'Không thể ngừng hoạt động khi danh mục còn sản phẩm hoặc danh mục con trực thuộc.';
+    if (category?.status === 'active' && form.status === 'inactive') {
+      const reason = getDeactivationReason(category, categories);
+      if (reason) nextErrors.status = reason;
     }
-
     // Kiểm tra ảnh
     const activeImage = imageMode === 'upload' ? images[0]?.url || '' : form.image.trim();
 
@@ -581,9 +575,7 @@ function DeactivateModal({
 }) {
   const parent = categories.find((item) => item.id === category.parentId);
 
-  const children = categories.filter((item) => item.parentId === category.id);
-
-  const blocked = children.length > 0 || productCount > 0;
+  const reason = getDeactivationReason(category, categories);
 
   return (
     <div
@@ -616,7 +608,9 @@ function DeactivateModal({
             <dd>{parent?.name || 'DANH MỤC GỐC'}</dd>
 
             <dt>SỐ SẢN PHẨM</dt>
-            <dd>{productCount} SP</dd>
+            <dd>
+              {productCount} SP · {category.activeProductCount} đang kinh doanh
+            </dd>
 
             <dt>TRẠNG THÁI HIỆN TẠI</dt>
             <dd>HOẠT ĐỘNG</dd>
@@ -626,16 +620,10 @@ function DeactivateModal({
             Danh mục ngừng hoạt động sẽ không còn hiển thị trong điều hướng khách hàng.
           </div>
 
-          {blocked && (
+          {reason && (
             <div className="category-blocked" role="alert">
               <strong>KHÔNG THỂ NGỪNG HOẠT ĐỘNG DANH MỤC</strong>
-
-              <p>
-                Backend không cho phép ngừng danh mục đang có sản phẩm hoặc bất kỳ danh mục con trực
-                thuộc nào.
-              </p>
-
-              <p>Vui lòng chuyển dữ liệu liên quan trước khi tiếp tục.</p>
+              <p>{reason}</p>
             </div>
           )}
         </div>
@@ -648,7 +636,7 @@ function DeactivateModal({
           <button
             type="button"
             className="category-danger-button"
-            disabled={blocked || saving}
+            disabled={Boolean(reason) || saving}
             onClick={onConfirm}
           >
             {saving ? 'ĐANG XỬ LÝ...' : 'XÁC NHẬN NGỪNG HOẠT ĐỘNG'}
@@ -733,7 +721,6 @@ function CategoryModals({ modal, setModal, categories, reload }) {
       <CategoryFormModal
         category={editing}
         categories={categories}
-        productCount={editing?.productCount || 0}
         saving={saving}
         serverError={serverError}
         onClose={() => setModal(null)}
