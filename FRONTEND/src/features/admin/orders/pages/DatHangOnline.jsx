@@ -17,6 +17,7 @@ import {
   searchSalesProducts,
   buildOnlineOrderDraft,
 } from '../api/onlineOrderApi';
+import { defaultSaleVat } from '../../sales/state/salesState.js';
 import './DatHangOnline.css';
 import { canEditOnlineOrder, getOrder } from '../api/orderApi';
 import OrderModal from '../components/OrderModal';
@@ -84,8 +85,9 @@ export default function DatHangOnline() {
   const [allowWaitingStock, setAllowWaitingStock] = useState(false);
   const [promotion, setPromotion] = useState('');
   const [payment, setPayment] = useState('');
-  const [applyVat, setApplyVat] = useState(false);
-  const [vatMode, setVatMode] = useState('CHUA_BAO_GOM');
+  const [vatOverride, setVatOverride] = useState(null);
+  const { applyVat, vatMode } =
+    (vatOverride?.orderId === editId ? vatOverride : null) ?? defaultSaleVat(items);
   const [delivery, setDelivery] = useState('GIAO_HANG');
   const [shippingInput, setShippingInput] = useState('');
   const [note, setNote] = useState('');
@@ -113,7 +115,6 @@ export default function DatHangOnline() {
       .then((data) => {
         setOptions(data);
         setPayment(data.phuong_thuc_online?.[0] || '');
-        setVatMode(data.che_do_thue?.[0] || 'CHUA_BAO_GOM');
         setDelivery(
           data.hinh_thuc_nhan_hang?.includes('GIAO_HANG')
             ? 'GIAO_HANG'
@@ -184,9 +185,11 @@ export default function DatHangOnline() {
         setPromotion(order.khuyen_mai?.ma_chuong_trinh || '');
         setPayment(order.phuong_thuc_thanh_toan);
 
-        setApplyVat(frozen?.thue?.ap_dung ?? Number(order.tong_tien_vat) > 0);
-
-        setVatMode(frozen?.thue?.che_do_gia || 'CHUA_BAO_GOM');
+        setVatOverride({
+          orderId: editId,
+          applyVat: frozen?.thue?.ap_dung ?? order.thue?.ap_dung ?? (Number(order.tong_tien_vat) > 0),
+          vatMode: frozen?.thue?.che_do_gia || order.thue?.che_do_gia || 'CHUA_BAO_GOM',
+        });
 
         setDelivery(order.hinh_thuc_nhan_hang);
         setShippingInput(String(Number(order.phi_giao_hang || 0) / 1000));
@@ -1059,14 +1062,20 @@ export default function DatHangOnline() {
               <input
                 type="checkbox"
                 checked={applyVat}
-                onChange={(event) => setApplyVat(event.target.checked)}
+                onChange={(event) =>
+                  setVatOverride({ orderId: editId, applyVat: event.target.checked, vatMode })
+                }
               />{' '}
               Áp dụng VAT
             </label>
             {applyVat && (
               <div className="toggle-row vat-toggles">
                 {(options?.che_do_thue || []).map((value) => (
-                  <Toggle key={value} active={vatMode === value} click={() => setVatMode(value)}>
+                  <Toggle
+                    key={value}
+                    active={vatMode === value}
+                    click={() => setVatOverride({ orderId: editId, applyVat, vatMode: value })}
+                  >
                     {labels[value] || value}
                   </Toggle>
                 ))}

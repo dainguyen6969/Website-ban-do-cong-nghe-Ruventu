@@ -15,6 +15,14 @@ export function posSerialGroups(preview) {
   );
 }
 
+export function defaultSaleVat(products) {
+  const applyVat = products.some((product) => Number(product.vatRate) > 0);
+  return {
+    applyVat,
+    vatMode: applyVat ? "DA_BAO_GOM" : "CHUA_BAO_GOM",
+  };
+}
+
 export function createOrder(sequence, employee = null) {
   return {
     id: sequence,
@@ -107,7 +115,19 @@ export function orderTotals(order) {
 }
 
 export function updateOrder(order, patch) {
-  const next = { ...order, ...patch };
+  const manualVatChange = Object.hasOwn(patch, "tax") || Object.hasOwn(patch, "taxMode");
+  const autoVat =
+    order.autoVat ??
+    (!order.paymentReceived &&
+      !order.tax &&
+      (order.taxMode ?? "CHUA_BAO_GOM") === "CHUA_BAO_GOM");
+  const next = { ...order, ...patch, autoVat: autoVat && !manualVatChange };
+
+  if (next.autoVat && Object.hasOwn(patch, "cart")) {
+    const vat = defaultSaleVat(next.cart.map((item) => item.product));
+    next.tax = vat.applyVat;
+    next.taxMode = vat.vatMode;
+  }
 
   const financialChanged = [
     "cart",
