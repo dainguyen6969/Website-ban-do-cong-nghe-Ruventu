@@ -852,13 +852,10 @@ export default function ThemSanPham() {
 
         console.debug('COMBO_REQUEST:', JSON.stringify(comboBody, null, 2));
 
-        await apiRequest(
-          isEditing ? `${COMBOS}/${encodeURIComponent(productId)}` : COMBOS,
-          {
-            method: isEditing ? 'PUT' : 'POST',
-            body: JSON.stringify(comboBody),
-          },
-        ).then(publishCatalogChange);
+        await apiRequest(isEditing ? `${COMBOS}/${encodeURIComponent(productId)}` : COMBOS, {
+          method: isEditing ? 'PUT' : 'POST',
+          body: JSON.stringify(comboBody),
+        }).then(publishCatalogChange);
       } else if (!isEditing) {
         await createProduct({
           ...body,
@@ -887,13 +884,11 @@ export default function ThemSanPham() {
         if (!isCombo) {
           for (const item of preparedVariants) {
             const variantId = item.id || createdVariantIds.current.get(item.key);
-
-            // DTO hiện tại yêu cầu mảng thuộc tính cho cả POST và PUT.
             const variantPayload = {
               ...item.body,
               thuoc_tinh_phien_ban: item.attributes,
             };
-            
+
             if (variantId) {
               await updateProductVariant(productId, variantId, variantPayload);
 

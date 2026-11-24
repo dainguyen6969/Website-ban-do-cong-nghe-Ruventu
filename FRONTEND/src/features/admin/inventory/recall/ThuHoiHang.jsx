@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { HiOutlinePlus, HiOutlineSearch } from 'react-icons/hi';
-import { useNavigate, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import AdminLink from '../../../../shared/components/ui/AdminLink';
 import TablePagination from '../../../../shared/components/ui/TablePagination';
 import DetailTablePagination from '../../../../shared/components/ui/DetailTablePagination';
@@ -753,7 +753,7 @@ export default function ThuHoiHang() {
           </header>
         ) : (
           <nav className="admin-list-breadcrumb" aria-label="Breadcrumb nội dung">
-            <Link to="/kho-hang/ton-kho">Kho hàng</Link>
+            <Link to="/kho-hang/quan-ly-phien-ban">Kho hàng</Link>
             <span aria-hidden="true">›</span>
             <strong aria-current="page">Thu hồi hàng</strong>
           </nav>
@@ -1017,7 +1017,9 @@ export default function ThuHoiHang() {
                           <td>
                             {item.order_id ? (
                               <>
-                                <AdminLink to={`/admin/don-hang/danh-sach-don-hang/${item.order_id}`}>
+                                <AdminLink
+                                  to={`/admin/don-hang/danh-sach-don-hang/${item.order_id}`}
+                                >
                                   {item.ma_don_hang}
                                 </AdminLink>
                                 <small>

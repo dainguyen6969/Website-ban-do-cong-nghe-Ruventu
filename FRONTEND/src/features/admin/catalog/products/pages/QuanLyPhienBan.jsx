@@ -1,6 +1,6 @@
 // Admin product screen: QuanLyPhienBan.
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import AdminLink from '../../../../../shared/components/ui/AdminLink';
 import { HiOutlineDownload, HiOutlineEye, HiOutlineSearch } from 'react-icons/hi';
 import TablePagination from '../../../../../shared/components/ui/TablePagination';
@@ -279,7 +279,11 @@ export default function QuanLyPhienBan() {
               <tbody>
                 {loading ? (
                   <tr>
-                    <td className="version-empty" colSpan="9" style={{ padding: 24, textAlign: 'center' }}>
+                    <td
+                      className="version-empty"
+                      colSpan="9"
+                      style={{ padding: 24, textAlign: 'center' }}
+                    >
                       <LoadingSpinner text="Đang tải danh sách phiên bản..." size="md" />
                     </td>
                   </tr>
@@ -346,7 +350,9 @@ export default function QuanLyPhienBan() {
                               <img src={item.image} alt="" loading="lazy" decoding="async" />
                             </a>
                           ) : (
-                            <span className="version-thumb" aria-label="Chưa có ảnh">—</span>
+                            <span className="version-thumb" aria-label="Chưa có ảnh">
+                              —
+                            </span>
                           )}
                         </td>
                         <td>

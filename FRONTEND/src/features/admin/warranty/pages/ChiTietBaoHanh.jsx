@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import AdminLink from '../../../../shared/components/ui/AdminLink';
+import LoadingSpinner from '../../../../shared/components/ui/LoadingSpinner';
 import {
   ArrowLeft,
   SquareCheck as CheckCircle2,
@@ -920,7 +921,12 @@ function WarrantyDetail({ id }) {
               <WarrantyFields
                 fields={[
                   ['Tình trạng lúc sẵn sàng trả', readyCondition],
-                  ['Phụ kiện sẽ trả', (readyAccessories ?? []).map(item => `${item.ten} × ${item.so_luong}`).join(', ') || 'Không ghi nhận phụ kiện'],
+                  [
+                    'Phụ kiện sẽ trả',
+                    (readyAccessories ?? [])
+                      .map((item) => `${item.ten} × ${item.so_luong}`)
+                      .join(', ') || 'Không ghi nhận phụ kiện',
+                  ],
                 ]}
               />
             </div>

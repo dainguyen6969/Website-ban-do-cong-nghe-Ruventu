@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import AdminLink from '../../../../shared/components/ui/AdminLink';
 import { HiOutlineArrowLeft, HiOutlinePencilAlt, HiX } from 'react-icons/hi';
 import LoadingSpinner from '../../../../shared/components/ui/LoadingSpinner';
