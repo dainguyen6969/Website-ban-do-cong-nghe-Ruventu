@@ -18,19 +18,7 @@ import com.example.dantruventu.Entity.PhieuTraHang;
 import com.example.dantruventu.Entity.SoQuyThuChi;
 import com.example.dantruventu.Entity.SoSerialSanPham;
 import com.example.dantruventu.Entity.ThietBiBaoHanh;
-import com.example.dantruventu.Enum.LoaiPhieuThuChi;
-import com.example.dantruventu.Enum.LoaiSanPham;
-import com.example.dantruventu.Enum.NguonTaoPhieuThuChi;
-import com.example.dantruventu.Enum.NhomNguoiNopNhanEnum;
-import com.example.dantruventu.Enum.TrangThaiBaoHanh;
-import com.example.dantruventu.Enum.TrangThaiCoBanEnum;
-import com.example.dantruventu.Enum.TrangThaiDonHang;
-import com.example.dantruventu.Enum.TrangThaiGiaoHangEnum;
-import com.example.dantruventu.Enum.TrangThaiPhieuThuChi;
-import com.example.dantruventu.Enum.TrangThaiSerial;
-import com.example.dantruventu.Enum.TrangThaiThanhToanDonHang;
-import com.example.dantruventu.Enum.TrangThaiTraHang;
-import com.example.dantruventu.Enum.TrangThaiXuatKho;
+import com.example.dantruventu.Enum.*;
 import com.example.dantruventu.Error.AppException;
 import com.example.dantruventu.Error.ErrorCode;
 import com.example.dantruventu.Repository.cashbook.LoaiThuChiRepository;
@@ -1053,6 +1041,18 @@ public class AdminReturnService {
       String rawTo,
       int page,
       int limit) {
+    return getReturns(keyword, returnStatus, null, null, rawFrom, rawTo, page, limit);
+  }
+
+  public AdminReturnResponse.ListResponse getReturns(
+      String keyword,
+      TrangThaiTraHang returnStatus,
+      PhieuTraHangSpecification.ReturnWorkGroup returnGroup,
+      LoaiDonHang salesChannel,
+      String rawFrom,
+      String rawTo,
+      int page,
+      int limit) {
 
     validatePagination(page, limit);
 
@@ -1073,7 +1073,12 @@ public class AdminReturnService {
     var result =
         returnRepository.findAll(
             PhieuTraHangSpecification.build(
-                normalizedKeyword, returnStatus, fromInclusive, toExclusive),
+                normalizedKeyword,
+                returnStatus,
+                returnGroup,
+                salesChannel,
+                fromInclusive,
+                toExclusive),
             PageRequest.of(
                 page, limit, Sort.by(Sort.Order.desc("ngayTao"), Sort.Order.desc("id"))));
 

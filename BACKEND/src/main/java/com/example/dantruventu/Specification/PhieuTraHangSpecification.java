@@ -1,11 +1,14 @@
 package com.example.dantruventu.Specification;
 
+import com.example.dantruventu.Entity.DonHang;
 import com.example.dantruventu.Entity.NguoiDung;
 import com.example.dantruventu.Entity.PhieuTraHang;
+import com.example.dantruventu.Enum.LoaiDonHang;
 import com.example.dantruventu.Enum.TrangThaiTraHang;
 import jakarta.persistence.criteria.Join;
 import jakarta.persistence.criteria.JoinType;
 import jakarta.persistence.criteria.Predicate;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -16,9 +19,16 @@ public final class PhieuTraHangSpecification {
 
   private PhieuTraHangSpecification() {}
 
+  public enum ReturnWorkGroup {
+    CAN_XU_LY,
+    CHO_HOAN_TIEN
+  }
+
   public static Specification<PhieuTraHang> build(
       String keyword,
       TrangThaiTraHang returnStatus,
+      ReturnWorkGroup returnGroup,
+      LoaiDonHang salesChannel,
       LocalDateTime fromInclusive,
       LocalDateTime toExclusive) {
 
@@ -36,9 +46,31 @@ public final class PhieuTraHangSpecification {
         }
       }
 
+      if (returnGroup != null) {
+        var status = root.<TrangThaiTraHang>get("trangThaiTraHang");
+        Predicate waitingRefund =
+            criteriaBuilder.and(
+                criteriaBuilder.equal(status, TrangThaiTraHang.DA_NHAN_HANG),
+                criteriaBuilder.greaterThan(root.<BigDecimal>get("tongTienHoan"), BigDecimal.ZERO));
+
+        predicates.add(
+            switch (returnGroup) {
+              case CHO_HOAN_TIEN -> waitingRefund;
+              case CAN_XU_LY ->
+                  criteriaBuilder.or(
+                      status.in(TrangThaiTraHang.CHO_TIEP_NHAN, TrangThaiTraHang.CHO_TRA_KHACH),
+                      waitingRefund);
+            });
+      }
+
+      Join<PhieuTraHang, DonHang> order =
+          keyword != null || salesChannel != null ? root.join("donHang", JoinType.INNER) : null;
+      if (salesChannel != null) {
+        predicates.add(criteriaBuilder.equal(order.get("loaiDonHang"), salesChannel));
+      }
+
       if (keyword != null) {
         String pattern = "%" + keyword.toLowerCase(Locale.ROOT) + "%";
-        var order = root.join("donHang", JoinType.INNER);
         Join<PhieuTraHang, NguoiDung> customer = root.join("khachHang", JoinType.LEFT);
 
         predicates.add(

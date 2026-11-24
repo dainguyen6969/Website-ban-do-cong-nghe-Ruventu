@@ -2,6 +2,14 @@ import { apiRequest } from '../../../../auth/backendAuth.js';
 
 const PATH = '/api/v1/admin/returns';
 
+export const RETURN_WORK_GROUP_OPTIONS = [
+  { value: 'CAN_XU_LY', label: 'Cần xử lý' },
+  { value: 'CHO_HOAN_TIEN', label: 'Chờ hoàn tiền' },
+];
+
+export const isReturnWorkGroup = (value) =>
+  RETURN_WORK_GROUP_OPTIONS.some((option) => option.value === value);
+
 const buildQuery = (values) => {
   const searchParams = new URLSearchParams();
   Object.entries(values).forEach(([key, val]) => {
@@ -13,7 +21,10 @@ const buildQuery = (values) => {
 };
 
 const ensureUUID = (key) => {
-  if (typeof key === 'string' && /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(key)) {
+  if (
+    typeof key === 'string' &&
+    /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(key)
+  ) {
     return key;
   }
   if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
@@ -26,10 +37,15 @@ const ensureUUID = (key) => {
   });
 };
 
-export async function getReturns({ keyword, returnStatus, from, to, page = 0, limit = 20 } = {}, signal) {
+export async function getReturns(
+  { keyword, returnStatus, returnGroup, salesChannel, from, to, page = 0, limit = 20 } = {},
+  signal
+) {
   const qs = buildQuery({
     keyword: keyword ? keyword.trim() : undefined,
     trang_thai_tra_hang: returnStatus || undefined,
+    nhom_xu_ly: returnGroup,
+    kenh_ban: salesChannel === 'TAT_CA' ? undefined : salesChannel,
     tu_ngay: from || undefined,
     den_ngay: to || undefined,
     page,

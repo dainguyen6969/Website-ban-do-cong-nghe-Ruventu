@@ -14,6 +14,7 @@ import useFontPreference from '../../../../typography/useFontPreference';
 import { apiRequest } from '../../../../auth/backendAuth';
 import { formatDateTimeVN } from '../../../../shared/services/mutationUtils';
 import FilterDropdown from '../../../../shared/components/ui/FilterDropdown';
+import { isReturnWorkGroup } from '../../customers/api/customerReturnApi.js';
 import {
   PERIODS,
   CHANNELS,
@@ -100,7 +101,11 @@ const inventoryTo = (data, warning) =>
     kho_hang_id: data.kho_hang_id,
     loai_doi_tuong: 'PHIEN_BAN',
   });
-const returnTo = (status) => filteredTo(RETURN_PATH, { trang_thai_tra_hang: status });
+const returnTo = (filter, salesChannel) =>
+  filteredTo(RETURN_PATH, {
+    [isReturnWorkGroup(filter) ? 'nhom_xu_ly' : 'trang_thai_tra_hang']: filter,
+    kenh_ban: salesChannel === 'TAT_CA' ? undefined : salesChannel,
+  });
 
 // Mỗi vùng tải độc lập; hủy request cũ khi đổi bộ lọc để không trộn hai kỳ.
 function useSection(path, refresh, enabled = true) {
@@ -219,9 +224,9 @@ function Section({ title, note, to, resource, children, controls }) {
         </div>
         {controls}
         {to && (
-<DashboardLink className="tq-card-header-link" to={to}>
-  Xem chi tiết →
-</DashboardLink>
+          <DashboardLink className="tq-card-header-link" to={to}>
+            Xem chi tiết →
+          </DashboardLink>
         )}
       </div>
       <Content resource={resource}>{children}</Content>
@@ -799,7 +804,7 @@ export default function TongQuat() {
                 <Stat
                   label="Trả hàng / hoàn tiền"
                   value={data.tra_hang.tong_phieu_can_xu_ly}
-                  to={returnTo('CAN_XU_LY')}
+                  to={returnTo('CAN_XU_LY', data.kenh_ban)}
                 />
               </div>
 
@@ -874,7 +879,7 @@ export default function TongQuat() {
                 <Stat
                   label="Chờ hoàn tiền"
                   value={data.tra_hang.cho_hoan_tien}
-                  to={returnTo('CHO_HOAN_TIEN')}
+                  to={returnTo('CHO_HOAN_TIEN', data.kenh_ban)}
                 />
               </div>
             )}
@@ -1478,13 +1483,18 @@ function DashboardAfterSales({ data }) {
 
       <div className="tq-kpi-sub-grid">
         {Object.entries(returnLabels).map(([key, label]) => (
-          <Stat key={key} label={label} value={data.tra_hang?.[key]} to={returnTo(key)} />
+          <Stat
+            key={key}
+            label={label}
+            value={data.tra_hang?.[key]}
+            to={returnTo(key, data.kenh_ban)}
+          />
         ))}
 
         <Stat
           label="Chờ hoàn tiền"
           value={data.tra_hang?.cho_hoan_tien}
-          to={returnTo('CHO_HOAN_TIEN')}
+          to={returnTo('CHO_HOAN_TIEN', data.kenh_ban)}
         />
 
         <Stat label="Giá trị chờ hoàn tiền" value={data.tra_hang?.gia_tri_cho_hoan_tien} currency />

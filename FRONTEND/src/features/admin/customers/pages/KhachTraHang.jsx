@@ -29,6 +29,8 @@ import {
   WarrantyTable,
 } from '../../warranty/components/WarrantyShell';
 import {
+  RETURN_WORK_GROUP_OPTIONS,
+  isReturnWorkGroup,
   getReturns,
   getEligibleOrders,
   getEligibleOrderDetail,
@@ -52,6 +54,7 @@ const ORDER_DETAIL_ROUTE = '/admin/don-hang/danh-sach-don-hang';
 
 const STATUS_FILTER_OPTIONS = [
   { value: 'ALL', label: 'Tất cả trạng thái' },
+  ...RETURN_WORK_GROUP_OPTIONS,
   { value: 'CHO_TIEP_NHAN', label: 'Chờ tiếp nhận' },
   { value: 'DA_NHAN_HANG', label: 'Đã nhận hàng' },
   { value: 'DA_HOAN_TIEN', label: 'Đã hoàn tiền' },
@@ -143,7 +146,7 @@ function ReturnList() {
   const canCreateReturn = hasAdminPermission(access, 'khach_tra_hang', 'them');
 
   const location = useLocation();
-  const [params] = useSearchParams();
+  const [params, setParams] = useSearchParams();
 
   const [items, setItems] = useState([]);
   const [pagination, setPagination] = useState({
@@ -154,9 +157,13 @@ function ReturnList() {
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-
   const [query, setQuery] = useState('');
-  const [status, setStatus] = useState(() => params.get('trang_thai_tra_hang') || 'ALL');
+
+  const statusParam = params.get('trang_thai_tra_hang') || 'ALL';
+  const returnGroup =
+    params.get('nhom_xu_ly') || (isReturnWorkGroup(statusParam) ? statusParam : '');
+  const status = returnGroup || statusParam;
+  const salesChannel = params.get('kenh_ban') || '';
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
   const [pageSize, setPageSize] = useState(20);
@@ -179,7 +186,13 @@ function ReturnList() {
         {
           keyword: query.trim(),
           returnStatus:
-            status !== 'ALL' ? (status === 'HUY_TIEP_NHAN' ? 'HUY' : status) : undefined,
+            returnGroup || status === 'ALL'
+              ? undefined
+              : status === 'HUY_TIEP_NHAN'
+                ? 'HUY'
+                : status,
+          returnGroup,
+          salesChannel,
           from: dateFrom || undefined,
           to: dateTo || undefined,
           page: Math.max(0, page - 1),
@@ -207,11 +220,29 @@ function ReturnList() {
     const controller = new AbortController();
     fetchList(controller.signal);
     return () => controller.abort();
-  }, [query, status, dateFrom, dateTo, page, pageSize]);
+  }, [query, status, returnGroup, salesChannel, dateFrom, dateTo, page, pageSize]);
+
+  const selectReturnFilter = (value) => {
+    const next = new URLSearchParams(params);
+    next.delete('trang_thai_tra_hang');
+    next.delete('nhom_xu_ly');
+
+    if (value !== 'ALL') {
+      next.set(isReturnWorkGroup(value) ? 'nhom_xu_ly' : 'trang_thai_tra_hang', value);
+    }
+
+    setParams(next, { replace: true });
+    setPage(1);
+  };
 
   const resetFilters = () => {
+    const next = new URLSearchParams(params);
+    next.delete('trang_thai_tra_hang');
+    next.delete('nhom_xu_ly');
+    next.delete('kenh_ban');
+
+    setParams(next, { replace: true });
     setQuery('');
-    setStatus('ALL');
     setDateFrom('');
     setDateTo('');
     setPage(1);
@@ -267,11 +298,8 @@ function ReturnList() {
           <div className="returns-status-dropdown-wrap">
             <FilterDropdown
               options={STATUS_FILTER_OPTIONS}
-              value={status}
-              onSelect={(val) => {
-                setStatus(val);
-                setPage(1);
-              }}
+              value={returnGroup || status}
+              onSelect={selectReturnFilter}
               selectedDark={false}
               aria-label="Lọc trạng thái"
             />
@@ -304,6 +332,12 @@ function ReturnList() {
               }}
             />
           </div>
+
+          {['ONLINE', 'TAI_QUAY'].includes(salesChannel) && (
+            <span className="returns-date-label">
+              Kênh bán {salesChannel === 'ONLINE' ? 'Online' : 'Tại quầy'}
+            </span>
+          )}
 
           {/* Reset button */}
           <button
