@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import LoadingSpinner from '../../../../shared/components/ui/LoadingSpinner';import {
+import LoadingSpinner from '../../../../shared/components/ui/LoadingSpinner';
+import {
   ArrowLeft,
   ArrowRight,
   ChevronRight,
@@ -34,7 +35,11 @@ import {
   editPromotionBody,
   computePromotionStatus,
 } from '../promotionModel.js';
-import { findDemoPromotion, updateStoredPromotion } from '../demoPromotions.js';
+import {
+  findDemoPromotion,
+  removeStoredPromotion,
+  updateStoredPromotion,
+} from '../demoPromotions.js';
 import {
   WarrantyBadge,
   WarrantyFields,
@@ -293,6 +298,11 @@ export default function ChiTietKhuyenMai() {
     try {
       if (promo.raw?.id) {
         await deletePromotion(promo.id);
+      } else {
+        const key = promo.id || promo.code;
+        if (!removeStoredPromotion(key) || findDemoPromotion(key)) {
+          throw new Error('Không thể xóa chương trình khuyến mại mẫu trên trình duyệt.');
+        }
       }
       navigate('/admin/khuyen-mai/danh-sach-khuyen-mai', {
         state: { successMessage: `Đã xóa thành công chương trình ${promo.code}!` },

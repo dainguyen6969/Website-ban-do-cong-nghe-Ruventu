@@ -3,7 +3,7 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Check, X } from 'lucide-react';
 import { getPromotions, getPromotion } from '../api/promotionApi.js';
 import { normalizePromotion, computePromotionStatus } from '../promotionModel.js';
-import { getDemoPromotions, getDeletedPromotionKeys } from '../demoPromotions.js';
+import { getDemoPromotions } from '../demoPromotions.js';
 import TablePagination from '../../../../shared/components/ui/TablePagination';
 
 import { hasAdminPermission } from '../../../../auth/roleModel';
@@ -104,14 +104,8 @@ export default function DanhSachKhuyenMai() {
         const missingDemos = currentDemoList.filter(
           (d) => !existingCodes.has(d.code.toUpperCase())
         );
-        const deletedKeys = getDeletedPromotionKeys();
 
-const combined = [...beItems, ...missingDemos].filter((promo) => {
-  const idKey = String(promo.id || '').toUpperCase().trim();
-  const codeKey = String(promo.code || '').toUpperCase().trim();
-
-  return !deletedKeys.has(idKey) && !deletedKeys.has(codeKey);
-});
+        const combined = [...beItems, ...missingDemos];
 
         // Fetch extra details for BE items if missing offer / details
         const enriched = await Promise.all(
@@ -424,9 +418,9 @@ const combined = [...beItems, ...missingDemos].filter((promo) => {
             <tbody>
               {loading && !promotions.length ? (
                 <tr>
-<td colSpan="8" className="promo-table-notice">
-  <LoadingSpinner text="Đang tải danh sách khuyến mại..." size="md" />
-</td>
+                  <td colSpan="8" className="promo-table-notice">
+                    <LoadingSpinner text="Đang tải danh sách khuyến mại..." size="md" />
+                  </td>
                 </tr>
               ) : error ? (
                 <tr>
