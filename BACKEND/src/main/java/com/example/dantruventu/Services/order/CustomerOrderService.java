@@ -815,7 +815,8 @@ public class CustomerOrderService {
     salesRequest.setSanPham(products);
     salesRequest.setPhiGiaoHang(
         "GIAO_HANG".equals(request.getHinhThucNhanHang())
-            ? salesOperations.get().deliveryFee() : BigDecimal.ZERO);
+            ? salesOperations.get().deliveryFee()
+            : BigDecimal.ZERO);
     salesRequest.setGhiChu(text(request.getGhiChu()));
     salesRequest.setLoaiDonHang(LoaiDonHang.ONLINE);
     salesRequest.setChoPhepChoHang(false);

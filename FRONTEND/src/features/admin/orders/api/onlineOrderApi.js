@@ -206,13 +206,20 @@ export function buildPosCheckoutBody(
   };
 }
 
-export const checkoutPosOrder = (body, idempotencyKey) =>
+export const checkoutPosOrder = (body, idempotencyKey, signal) =>
   adminRequest('/api/v1/admin/pos/checkout', {
     method: 'POST',
-    headers: {
-      'Idempotency-Key': idempotencyKey,
-    },
+    headers: { 'Idempotency-Key': idempotencyKey },
     body: JSON.stringify(body),
+    signal,
+  });
+
+export const resolvePosCheckout = (body, idempotencyKey, signal) =>
+  adminRequest('/api/v1/admin/pos/checkout/resolve', {
+    method: 'POST',
+    headers: { 'Idempotency-Key': idempotencyKey },
+    body: JSON.stringify(body),
+    signal,
   });
 
 const orderBody = (form) => {

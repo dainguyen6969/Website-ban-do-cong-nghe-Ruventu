@@ -31,4 +31,15 @@ public class AdminPosController {
                 .data(service.checkout(key, request))
                 .build());
   }
+
+  @PostMapping("/checkout/resolve")
+  public ApiResponse<AdminSalesResponse.CheckoutResolution> resolveCheckout(
+      @RequestHeader(name = "Idempotency-Key", required = false) String key,
+      @RequestBody AdminSalesRequest.Pos request) {
+    return ApiResponse.<AdminSalesResponse.CheckoutResolution>builder()
+        .status(200)
+        .message("Đã đối soát lượt thanh toán tại quầy")
+        .data(service.resolvePosCheckout(key, request))
+        .build();
+  }
 }

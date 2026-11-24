@@ -3,7 +3,6 @@ package com.example.dantruventu.Services.order;
 import static com.example.dantruventu.Services.order.sales.SalesSupport.*;
 
 import com.example.dantruventu.Config.SalesProperties;
-import com.example.dantruventu.Services.SalesOperationsSettings;
 import com.example.dantruventu.DTO.Request.order.CustomerCheckoutRequest;
 import com.example.dantruventu.Entity.DonHang;
 import com.example.dantruventu.Entity.NguoiDung;
@@ -11,6 +10,7 @@ import com.example.dantruventu.Enum.*;
 import com.example.dantruventu.Error.AppException;
 import com.example.dantruventu.Error.ErrorCode;
 import com.example.dantruventu.Repository.order.DonHangRepository;
+import com.example.dantruventu.Services.SalesOperationsSettings;
 import com.example.dantruventu.Services.order.sales.OrderIntakePolicy;
 import com.example.dantruventu.Services.order.sales.SalesCalculationService;
 import com.example.dantruventu.Services.order.sales.SalesContext;

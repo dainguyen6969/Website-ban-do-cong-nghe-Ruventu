@@ -14,7 +14,6 @@ import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.time.Duration;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Stream;
@@ -96,16 +95,20 @@ public class OrderIntakePolicy {
 
   private Stream<Window> windows(LocalDateTime from, SalesOperationsSettings.Values schedule) {
     return Stream.iterate(from.toLocalDate().minusDays(1), day -> day.plusDays(1))
-        .filter(day -> !schedule.scheduleEnabled()
-            || (schedule.workingDays().contains(day.getDayOfWeek())
-                && !schedule.closedDates().contains(day)))
-        .map(day -> {
-          if (!schedule.scheduleEnabled()) return new Window(day.atStartOfDay(), day.plusDays(1).atStartOfDay());
-          LocalDateTime start = day.atTime(schedule.opensAt());
-          LocalDateTime end = day.atTime(schedule.closesAt());
-          // Hỗ trợ ca qua nửa đêm; hai mốc bằng nhau được hiểu là ca 24 giờ.
-          return new Window(start, end.isAfter(start) ? end : end.plusDays(1));
-        });
+        .filter(
+            day ->
+                !schedule.scheduleEnabled()
+                    || (schedule.workingDays().contains(day.getDayOfWeek())
+                        && !schedule.closedDates().contains(day)))
+        .map(
+            day -> {
+              if (!schedule.scheduleEnabled())
+                return new Window(day.atStartOfDay(), day.plusDays(1).atStartOfDay());
+              LocalDateTime start = day.atTime(schedule.opensAt());
+              LocalDateTime end = day.atTime(schedule.closesAt());
+              // Hỗ trợ ca qua nửa đêm; hai mốc bằng nhau được hiểu là ca 24 giờ.
+              return new Window(start, end.isAfter(start) ? end : end.plusDays(1));
+            });
   }
 
   public boolean isWorkingNow() {
@@ -122,11 +125,13 @@ public class OrderIntakePolicy {
     return nextWorkingAt(now(), salesOperations.get());
   }
 
-  private LocalDateTime nextWorkingAt(LocalDateTime current, SalesOperationsSettings.Values schedule) {
+  private LocalDateTime nextWorkingAt(
+      LocalDateTime current, SalesOperationsSettings.Values schedule) {
     return windows(current, schedule)
         .filter(window -> window.end().isAfter(current))
         .map(window -> current.isAfter(window.start()) ? current : window.start())
-        .findFirst().orElseThrow();
+        .findFirst()
+        .orElseThrow();
   }
 
   public LocalDateTime businessDeadline(LocalDateTime from, int minutes) {
@@ -306,7 +311,8 @@ public class OrderIntakePolicy {
     var schedule = salesOperations.get();
     LocalDateTime current = now();
     boolean working = isWorkingAt(current, schedule);
-    String reason = !working ? "NGOAI_GIO" : staff ? null : temporaryReasonInWorkingHours(user, physicalDemand);
+    String reason =
+        !working ? "NGOAI_GIO" : staff ? null : temporaryReasonInWorkingHours(user, physicalDemand);
 
     Map<String, Object> result = new LinkedHashMap<>();
     result.put("dang_trong_gio", working);

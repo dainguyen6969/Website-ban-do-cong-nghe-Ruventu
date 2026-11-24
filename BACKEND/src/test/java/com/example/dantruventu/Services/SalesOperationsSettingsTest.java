@@ -25,7 +25,8 @@ class SalesOperationsSettingsTest {
   private final ObjectMapper json = new ObjectMapper();
   private final SalesProperties properties = new SalesProperties();
   private final SalesOperationsSettings settings =
-      new SalesOperationsSettings(jdbc, json, properties, new BigDecimal("31000"), true, Duration.ofHours(72));
+      new SalesOperationsSettings(
+          jdbc, json, properties, new BigDecimal("31000"), true, Duration.ofHours(72));
 
   @Test
   void usesDeploymentDefaultsThenReadsSavedValuesInTheOrderFlow() {
@@ -33,10 +34,18 @@ class SalesOperationsSettingsTest {
     assertEquals(new BigDecimal("31000"), settings.get().deliveryFee());
     assertEquals(Duration.ofHours(72), settings.longWait());
 
-    var saved = new SalesOperationsSettings.Values(
-        true, LocalTime.of(8, 0), LocalTime.of(12, 0),
-        Set.of(DayOfWeek.MONDAY, DayOfWeek.WEDNESDAY), Set.of(LocalDate.of(2026, 11, 25)),
-        30, 60, new BigDecimal("45000"), false, 36L);
+    var saved =
+        new SalesOperationsSettings.Values(
+            true,
+            LocalTime.of(8, 0),
+            LocalTime.of(12, 0),
+            Set.of(DayOfWeek.MONDAY, DayOfWeek.WEDNESDAY),
+            Set.of(LocalDate.of(2026, 11, 25)),
+            30,
+            60,
+            new BigDecimal("45000"),
+            false,
+            36L);
     settings.save(saved);
     String document = json.writeValueAsString(saved);
     verify(jdbc).update(anyString(), eq(document), eq(document));
@@ -44,12 +53,14 @@ class SalesOperationsSettingsTest {
     assertEquals(saved, settings.get());
     assertEquals(Duration.ofHours(36), settings.longWait());
 
-    var policy = new OrderIntakePolicy(
-        properties, mock(DonHangRepository.class), mock(StringRedisTemplate.class), settings) {
-      @Override public LocalDateTime now() {
-        return LocalDateTime.of(2026, 11, 23, 11, 45);
-      }
-    };
+    var policy =
+        new OrderIntakePolicy(
+            properties, mock(DonHangRepository.class), mock(StringRedisTemplate.class), settings) {
+          @Override
+          public LocalDateTime now() {
+            return LocalDateTime.of(2026, 11, 23, 11, 45);
+          }
+        };
     var order = new DonHang();
     policy.initialize(order);
     assertEquals(LocalDateTime.of(2026, 11, 30, 8, 15), order.getHanXuLy());
@@ -59,12 +70,30 @@ class SalesOperationsSettingsTest {
 
   @Test
   void validatesWorkingDaysAndNumericSettingsWhileAcceptingAnOvernightShift() {
-    var invalid = new SalesOperationsSettings.Values(
-        true, LocalTime.of(8, 0), LocalTime.of(8, 0, 2), Set.of(), Set.of(),
-        0, 60, BigDecimal.valueOf(-1), true, 0L);
-    var overnight = new SalesOperationsSettings.Values(
-        true, LocalTime.of(22, 0), LocalTime.of(6, 0), Set.of(DayOfWeek.MONDAY), Set.of(),
-        30, 60, BigDecimal.ZERO, true, 72L);
+    var invalid =
+        new SalesOperationsSettings.Values(
+            true,
+            LocalTime.of(8, 0),
+            LocalTime.of(8, 0, 2),
+            Set.of(),
+            Set.of(),
+            0,
+            60,
+            BigDecimal.valueOf(-1),
+            true,
+            0L);
+    var overnight =
+        new SalesOperationsSettings.Values(
+            true,
+            LocalTime.of(22, 0),
+            LocalTime.of(6, 0),
+            Set.of(DayOfWeek.MONDAY),
+            Set.of(),
+            30,
+            60,
+            BigDecimal.ZERO,
+            true,
+            72L);
     try (var factory = Validation.buildDefaultValidatorFactory()) {
       var validator = factory.getValidator();
       assertEquals(5, validator.validate(invalid).size());

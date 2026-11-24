@@ -331,6 +331,9 @@ public final class AdminSalesResponse {
     private CashReceipt phieuThu;
   }
 
+  public record CheckoutResolution(
+      @JsonProperty("da_ghi_don") boolean daGhiDon, @JsonProperty("ket_qua") Checkout ketQua) {}
+
   public record AppliedPromotion(
       Long id,
       @JsonProperty("khuyen_mai_id") Long khuyenMaiId,

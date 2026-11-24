@@ -38,7 +38,8 @@ public class SalesOperationsSettings {
       if (opensAt == null || closesAt == null) return false;
       if (Boolean.FALSE.equals(scheduleEnabled) || opensAt.equals(closesAt)) return true;
       var length = Duration.between(opensAt, closesAt);
-      return (length.isNegative() ? length.plusDays(1) : length).compareTo(Duration.ofMinutes(1)) >= 0;
+      return (length.isNegative() ? length.plusDays(1) : length).compareTo(Duration.ofMinutes(1))
+          >= 0;
     }
   }
 
@@ -54,17 +55,25 @@ public class SalesOperationsSettings {
     var intake = properties.getIntake();
     // Preserve deployment durations that contain part of an hour before the first override.
     this.defaultLongWait = longWait;
-    defaults = new Values(
-        intake.isScheduleEnabled(), intake.getOpensAt(), intake.getClosesAt(),
-        Set.copyOf(intake.getWorkingDays()), Set.copyOf(intake.getClosedDates()),
-        intake.getReviewMinutes(), intake.getPrepareMinutes(),
-        deliveryFee, stockNotification, Math.max(1, longWait.toHours()));
-    if (!defaults.isShiftValid()) throw new IllegalStateException("Ca làm việc phải dài ít nhất 1 phút.");
+    defaults =
+        new Values(
+            intake.isScheduleEnabled(),
+            intake.getOpensAt(),
+            intake.getClosesAt(),
+            Set.copyOf(intake.getWorkingDays()),
+            Set.copyOf(intake.getClosedDates()),
+            intake.getReviewMinutes(),
+            intake.getPrepareMinutes(),
+            deliveryFee,
+            stockNotification,
+            Math.max(1, longWait.toHours()));
+    if (!defaults.isShiftValid())
+      throw new IllegalStateException("Ca làm việc phải dài ít nhất 1 phút.");
   }
 
   public Values get() {
-    return jdbc.queryForList(
-            "SELECT tuy_chinh FROM cai_dat_van_hanh_ban_hang WHERE id = 1", String.class)
+    return jdbc
+        .queryForList("SELECT tuy_chinh FROM cai_dat_van_hanh_ban_hang WHERE id = 1", String.class)
         .stream()
         .findFirst()
         .map(raw -> json.readValue(raw, Values.class))
@@ -83,7 +92,8 @@ public class SalesOperationsSettings {
         INSERT INTO cai_dat_van_hanh_ban_hang (id, tuy_chinh) VALUES (1, ?)
         ON DUPLICATE KEY UPDATE tuy_chinh = ?
         """,
-        document, document);
+        document,
+        document);
     return values;
   }
 }

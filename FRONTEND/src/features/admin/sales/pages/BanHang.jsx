@@ -13,6 +13,7 @@ import {
   buildPosCheckoutBody,
   buildPosPreviewBody,
   checkoutPosOrder,
+  resolvePosCheckout,
   createSalesCustomer,
   getSalesOptions,
   previewOnlineOrder,
@@ -51,6 +52,7 @@ const productPrice = (product, priceList) =>
   Number(product.unitPrice ?? product.prices?.[priceList] ?? 0);
 const pendingCheckoutKey = 'ruventu_pos_pending_checkout';
 const posTabsStorageKey = 'ruventu_pos_tabs_state';
+const POS_CHECKOUT_TIMEOUT_MS = 30_000;
 
 function getStoredPosState() {
   try {
@@ -124,10 +126,7 @@ export default function BanHang() {
 
   useEffect(() => {
     try {
-      localStorage.setItem(
-        posTabsStorageKey,
-        JSON.stringify({ orders, activeId }),
-      );
+      localStorage.setItem(posTabsStorageKey, JSON.stringify({ orders, activeId }));
     } catch (error) {
       console.error('Lỗi khi lưu trạng thái POS vào localStorage:', error);
     }
@@ -157,6 +156,12 @@ export default function BanHang() {
     }
   });
   const checkoutLock = useRef(false);
+
+  const canHandlePendingCheckout =
+    canCheckout &&
+    (checkoutPending?.actorId == null ||
+      String(checkoutPending.actorId) === String(access?.nguoi_dung_id));
+
   const order = orders.find((item) => item.id === activeId) || orders[0] || createOrder(1);
   const [previewState, setPreviewState] = useState({});
   const [previewRevision, setPreviewRevision] = useState(0);
@@ -304,12 +309,35 @@ export default function BanHang() {
     setActiveId(next.activeId);
     if (id === activeId) clearSearch();
   };
+  const resetCheckoutConfirmation = (item) => ({
+    ...item,
+    preview: null,
+    paymentReceived: false,
+  });
+
+  const finishPendingCheckout = (attempt, updateTab) => {
+    const stored = JSON.parse(sessionStorage.getItem(pendingCheckoutKey));
+    if (stored?.key !== attempt.key) {
+      throw new Error('Lượt thanh toán chờ đã thay đổi. Hãy tải lại trang.');
+    }
+
+    const nextOrders = orders.map((item) => (item.id === attempt.tabId ? updateTab(item) : item));
+    localStorage.setItem(posTabsStorageKey, JSON.stringify({ orders: nextOrders, activeId }));
+    sessionStorage.removeItem(pendingCheckoutKey);
+    setOrders(nextOrders);
+    setCheckoutPending(null);
+  };
+
   const dismissPayment = (print = false) => {
-    if (!receipt) return;
+    if (!receipt || !checkoutPending) return;
     if (print) console.log('printing invoice', receipt);
-    setOrders((current) =>
-      current.map((item) => (item.id === receipt.tabId ? resetOrder(item) : item))
-    );
+
+    try {
+      finishPendingCheckout(checkoutPending, resetOrder);
+    } catch (error) {
+      setCheckoutError(error.message || 'Chưa lưu được trạng thái POS.');
+    }
+
     setReceipt(null);
     clearSearch();
   };
@@ -443,13 +471,13 @@ export default function BanHang() {
     : null;
 
   const shownSerials = (serialModal?.candidates || []).filter(
-    (item) => item.status === "TRONG_KHO" && !item.orderId,
+    (item) => item.status === 'TRONG_KHO' && !item.orderId
   );
 
   const toggleSerial = (candidate) => {
     if (!serialModal) return;
 
-    if (candidate.status && candidate.status !== "TRONG_KHO") {
+    if (candidate.status && candidate.status !== 'TRONG_KHO') {
       setSerialModal((current) => ({
         ...current,
         error: `Serial ${candidate.serial} đã bán hoặc không còn trong kho.`,
@@ -496,7 +524,7 @@ export default function BanHang() {
   };
 
   const checkout = async () => {
-    if (!canCheckout) return;
+    if (!canHandlePendingCheckout) return;
 
     if (checkoutLock.current || receipt || (!checkoutPending && !salesOptions)) {
       return;
@@ -519,9 +547,8 @@ export default function BanHang() {
     setCheckoutBusy(true);
     setCheckoutError('');
 
+    let attempt = checkoutPending;
     try {
-      let attempt = checkoutPending;
-
       if (!attempt) {
         if (order.discount) {
           throw new Error(
@@ -530,7 +557,11 @@ export default function BanHang() {
           );
         }
 
-        const freshPreview = await previewPosOrder(order, salesOptions);
+        const freshPreview = await previewPosOrder(
+          order,
+          salesOptions,
+          AbortSignal.timeout(POS_CHECKOUT_TIMEOUT_MS)
+        );
 
         if (!sameQuotedPrice(previewData, freshPreview)) {
           setOrders((current) =>
@@ -550,46 +581,48 @@ export default function BanHang() {
           );
         }
 
+        const savedAttempt = JSON.parse(sessionStorage.getItem(pendingCheckoutKey));
+        if (savedAttempt?.key) {
+          setCheckoutPending(savedAttempt);
+          throw new Error('Đã có lượt thanh toán chờ. Hãy đối soát lượt đó.');
+        }
+
         attempt = {
           tabId: order.id,
+          actorId: access.nguoi_dung_id,
           key: createRequestKey(),
           body: buildPosCheckoutBody(order, salesOptions, freshPreview),
         };
 
         sessionStorage.setItem(pendingCheckoutKey, JSON.stringify(attempt));
-
         setCheckoutPending(attempt);
       }
 
-      const result = await checkoutPosOrder(attempt.body, attempt.key);
+      const result = await checkoutPosOrder(
+        attempt.body,
+        attempt.key,
+        AbortSignal.timeout(POS_CHECKOUT_TIMEOUT_MS)
+      );
+      if (!result?.id) throw new Error('Chưa nhận được thông tin đơn đã thanh toán.');
 
-      setReceipt({
-        ...result,
-        tabId: attempt.tabId,
-      });
-
-      sessionStorage.removeItem(pendingCheckoutKey);
-      setCheckoutPending(null);
+      setReceipt({ ...result, tabId: attempt.tabId });
     } catch (error) {
       setCheckoutError(error.message || 'Không thể thanh toán.');
 
       const status = Number(error.status || error.response?.status);
 
-      if ([400, 401, 403, 404, 409, 422].includes(status)) {
-        sessionStorage.removeItem(pendingCheckoutKey);
-        setCheckoutPending(null);
-
-        setOrders((current) =>
-          current.map((item) =>
-            item.id === activeId
-              ? {
-                  ...item,
-                  preview: null,
-                  paymentReceived: false,
-                }
-              : item
-          )
-        );
+      if (!checkoutPending && [400, 401, 403, 404, 409, 422].includes(status)) {
+        if (attempt) {
+          try {
+            finishPendingCheckout(attempt, resetCheckoutConfirmation);
+          } catch (storageError) {
+            setCheckoutError(storageError.message || 'Chưa lưu được trạng thái POS.');
+          }
+        } else {
+          setOrders((current) =>
+            current.map((item) => (item.id === activeId ? resetCheckoutConfirmation(item) : item))
+          );
+        }
 
         setPreviewRevision((value) => value + 1);
       }
@@ -599,22 +632,65 @@ export default function BanHang() {
     }
   };
 
+  const resolvePendingCheckout = async () => {
+    const attempt = checkoutPending;
+    if (!attempt || !canHandlePendingCheckout || checkoutLock.current || receipt) return;
+
+    checkoutLock.current = true;
+    setCheckoutBusy(true);
+    setCheckoutError('');
+
+    try {
+      const resolution = await resolvePosCheckout(
+        attempt.body,
+        attempt.key,
+        AbortSignal.timeout(POS_CHECKOUT_TIMEOUT_MS)
+      );
+
+      if (resolution?.da_ghi_don === true && resolution.ket_qua?.id) {
+        setReceipt({ ...resolution.ket_qua, tabId: attempt.tabId });
+      } else if (resolution?.da_ghi_don === false && resolution.ket_qua == null) {
+        finishPendingCheckout(attempt, resetCheckoutConfirmation);
+        setPreviewRevision((value) => value + 1);
+        setCheckoutError('Đã đóng lượt chờ. Hãy kiểm tra tiền đã nhận trước khi xác nhận lại.');
+      } else {
+        throw new Error('Chưa nhận được kết quả đối soát hợp lệ.');
+      }
+    } catch (error) {
+      setCheckoutError(error.message || 'Không thể đối soát thanh toán.');
+    } finally {
+      checkoutLock.current = false;
+      setCheckoutBusy(false);
+    }
+  };
+
   return (
     <main className="pos-page">
-      {checkoutPending && !checkoutBusy && (
+      {checkoutPending && !checkoutBusy && !receipt && (
         <div className="pos-block" role="alert">
-          <p className="pos-error">
-            {checkoutError} Chưa xác định được kết quả thanh toán. Giữ nguyên đơn để thử lại với
-            cùng mã chống lặp.
-          </p>
-          <button
-            type="button"
-            className="pos-red-button"
-            disabled={!canCheckout}
-            onClick={checkout}
-          >
-            THỬ LẠI THANH TOÁN
-          </button>
+          <p className="pos-error">{checkoutError || 'Chưa xác định được kết quả thanh toán.'}</p>
+          <p>Nếu đơn chưa được ghi, đối soát sẽ đóng lượt chờ này.</p>
+          {canCheckout && !canHandlePendingCheckout && (
+            <p>Hãy đăng nhập bằng tài khoản đã gửi lượt thanh toán này.</p>
+          )}
+          <div className="pos-toolbar" style={{ gap: 8, flexWrap: 'wrap' }}>
+            <button
+              type="button"
+              className="pos-red-button"
+              disabled={!canHandlePendingCheckout}
+              onClick={checkout}
+            >
+              THỬ LẠI THANH TOÁN
+            </button>
+            <button
+              type="button"
+              className="pos-red-button"
+              disabled={!canHandlePendingCheckout}
+              onClick={resolvePendingCheckout}
+            >
+              ĐỐI SOÁT LƯỢT CHỜ
+            </button>
+          </div>
         </div>
       )}
       <fieldset className="pos-controls" disabled={checkoutBusy || Boolean(checkoutPending)}>
@@ -981,7 +1057,7 @@ export default function BanHang() {
                             onClick={() =>
                               patch((current) => {
                                 const nextCart = current.cart.filter(
-                                  (item) => item.product.id !== product.id,
+                                  (item) => item.product.id !== product.id
                                 );
                                 const prefix = `d${product.id}:`;
                                 const nextSerials = { ...current.serialSelections };

@@ -23,7 +23,11 @@ class ProductListSpecificationsTest {
     var details = mock(ProductDetailRepository.class);
     var catalog = mock(CatalogSupport.class);
     var service =
-        new ProductService(products, details, mock(SalesCalculationService.class), catalog,
+        new ProductService(
+            products,
+            details,
+            mock(SalesCalculationService.class),
+            catalog,
             mock(SalesOperationsSettings.class));
     var row = mock(ProductListProjection.class);
     String specs = "{\"phien_ban\":{\"542\":{\"thong_so_ky_thuat\":{\"VRAM\":\"4 GB\"}}}}";

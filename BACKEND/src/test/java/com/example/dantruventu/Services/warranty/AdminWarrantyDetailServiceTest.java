@@ -136,16 +136,21 @@ class AdminWarrantyDetailServiceTest {
     ticket.setTinhTrangTiepNhan("Trầy xước khi nhận");
     var intake = Map.of("phu_kien", List.of(Map.of("ten", "Cáp", "so_luong", 2)));
     var custody = Map.of("loai", "CUA_HANG", "thiet_bi_id", 700L);
-    var ready = Map.of(
-        "thiet_bi_se_tra_id", 700L,
-        "tinh_trang", "Hoạt động tốt",
-        "phu_kien", List.of(Map.of("ten", "Cáp", "so_luong", 1)));
+    var ready =
+        Map.of(
+            "thiet_bi_se_tra_id",
+            700L,
+            "tinh_trang",
+            "Hoạt động tốt",
+            "phu_kien",
+            List.of(Map.of("ten", "Cáp", "so_luong", 1)));
     events.add(
         LichSuBaoHanh.builder()
             .id(890L)
             .phieuBaoHanh(ticket)
             .loaiSuKien("TIEP_NHAN")
-            .duLieuChiTiet(json.writeValueAsString(Map.of("noi_dang_giu", custody, "tiep_nhan", intake)))
+            .duLieuChiTiet(
+                json.writeValueAsString(Map.of("noi_dang_giu", custody, "tiep_nhan", intake)))
             .build());
     events.add(
         LichSuBaoHanh.builder()
