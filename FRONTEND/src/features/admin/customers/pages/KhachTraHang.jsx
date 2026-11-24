@@ -68,7 +68,8 @@ const getReturnStatusVariant = (st) => {
   if (status === 'DA_NHAN_HANG') return 'blue';
   if (status === 'DA_HOAN_TIEN' || status === 'HOAN_TAT') return 'green';
   if (status === 'CHO_TRA_KHACH' || status === 'DA_HOAN_TIEN_CU') return 'teal';
-  if (status === 'HUY_TIEP_NHAN' || status.includes('HUY') || status.includes('TU_CHOI')) return 'red';
+  if (status === 'HUY_TIEP_NHAN' || status.includes('HUY') || status.includes('TU_CHOI'))
+    return 'red';
   return 'neutral';
 };
 
@@ -177,7 +178,8 @@ function ReturnList() {
       const data = await getReturns(
         {
           keyword: query.trim(),
-          returnStatus: status !== 'ALL' ? (status === 'HUY_TIEP_NHAN' ? 'HUY' : status) : undefined,
+          returnStatus:
+            status !== 'ALL' ? (status === 'HUY_TIEP_NHAN' ? 'HUY' : status) : undefined,
           from: dateFrom || undefined,
           to: dateTo || undefined,
           page: Math.max(0, page - 1),
@@ -229,7 +231,8 @@ function ReturnList() {
       <section className="returns-hero">
         <div className="returns-hero__info">
           <div className="returns-hero__breadcrumb">
-            <Link to="/admin/don-hang/danh-sach-don-hang">ĐƠN HÀNG</Link> / <span>KHÁCH TRẢ HÀNG</span>
+            <Link to="/admin/don-hang/danh-sach-don-hang">ĐƠN HÀNG</Link> /{' '}
+            <span>KHÁCH TRẢ HÀNG</span>
           </div>
           <h1>KHÁCH TRẢ HÀNG</h1>
           <p>Theo dõi phiếu, người liên hệ và quyền trả hàng từ dữ liệu hệ thống.</p>
@@ -651,7 +654,9 @@ function SelectOrderModal({ onClose, onSelect }) {
 function CreateReturn({ initialOrderId }) {
   const navigate = useNavigate();
 
-  const [currentOrderId, setCurrentOrderId] = useState(initialOrderId ? String(initialOrderId) : '');
+  const [currentOrderId, setCurrentOrderId] = useState(
+    initialOrderId ? String(initialOrderId) : ''
+  );
   const [showOrderSearch, setShowOrderSearch] = useState(!initialOrderId);
 
   // Embedded search state for eligible orders
@@ -931,7 +936,9 @@ function CreateReturn({ initialOrderId }) {
           </div>
           <h1>LẬP PHIẾU TRẢ HÀNG</h1>
           {(donHang.ma_don_hang || currentOrderId) && (
-            <div className="returns-hero__order-id">{donHang.ma_don_hang || `ORD-${currentOrderId}`}</div>
+            <div className="returns-hero__order-id">
+              {donHang.ma_don_hang || `ORD-${currentOrderId}`}
+            </div>
           )}
         </div>
         <button className="return-btn return-btn--outline" onClick={() => navigate(LIST_ROUTE)}>
@@ -997,7 +1004,10 @@ function CreateReturn({ initialOrderId }) {
 
             {/* Current order details if loaded */}
             {donHang && donHang.id ? (
-              <div className="return-order-info-grid" style={{ marginBottom: showOrderSearch ? 16 : 0 }}>
+              <div
+                className="return-order-info-grid"
+                style={{ marginBottom: showOrderSearch ? 16 : 0 }}
+              >
                 <div className="return-order-info-item">
                   <dt>MÃ ĐƠN</dt>
                   <dd>{donHang.ma_don_hang || currentOrderId}</dd>
@@ -1079,9 +1089,14 @@ function CreateReturn({ initialOrderId }) {
                         orderList.map((ord) => {
                           const isCurrent = String(ord.id) === String(currentOrderId);
                           return (
-                            <tr key={ord.id} style={{ background: isCurrent ? '#fffbf5' : 'inherit' }}>
+                            <tr
+                              key={ord.id}
+                              style={{ background: isCurrent ? '#fffbf5' : 'inherit' }}
+                            >
                               <td>
-                                <strong className="returns-code">{ord.ma_don_hang || ord.id}</strong>
+                                <strong className="returns-code">
+                                  {ord.ma_don_hang || ord.id}
+                                </strong>
                               </td>
                               <td>{ord.ten_nguoi_lien_he || 'Khách vãng lai'}</td>
                               <td>
@@ -1115,7 +1130,10 @@ function CreateReturn({ initialOrderId }) {
                         })
                       ) : (
                         <tr>
-                          <td colSpan="6" style={{ textAlign: 'center', padding: 24, color: '#6b7280' }}>
+                          <td
+                            colSpan="6"
+                            style={{ textAlign: 'center', padding: 24, color: '#6b7280' }}
+                          >
                             Không tìm thấy đơn hàng nào đủ điều kiện trả.
                           </td>
                         </tr>
@@ -1166,8 +1184,16 @@ function CreateReturn({ initialOrderId }) {
           </div>
           <div className="return-section-box__body">
             {!currentOrderId ? (
-              <div style={{ textAlign: 'center', padding: '36px 16px', color: '#6b7280', fontSize: 13 }}>
-                Vui lòng tìm và chọn đơn hàng gốc ở phần trên để hiển thị danh sách sản phẩm có thể trả.
+              <div
+                style={{
+                  textAlign: 'center',
+                  padding: '36px 16px',
+                  color: '#6b7280',
+                  fontSize: 13,
+                }}
+              >
+                Vui lòng tìm và chọn đơn hàng gốc ở phần trên để hiển thị danh sách sản phẩm có thể
+                trả.
               </div>
             ) : loadingEligible ? (
               <div style={{ textAlign: 'center', padding: '36px 16px' }}>
@@ -1195,7 +1221,10 @@ function CreateReturn({ initialOrderId }) {
                         const maxQty = item.so_luong_con_duoc_tra || 1;
 
                         return (
-                          <tr key={lineId} style={{ background: isChecked ? '#fffbf5' : 'inherit' }}>
+                          <tr
+                            key={lineId}
+                            style={{ background: isChecked ? '#fffbf5' : 'inherit' }}
+                          >
                             <td style={{ textAlign: 'center' }}>
                               <input
                                 type="checkbox"
@@ -1499,6 +1528,11 @@ function ReturnDetail({ returnId }) {
   const [toast, setToast] = useState('');
 
   const [detail, setDetail] = useState(null);
+
+  const canCancelReturn =
+    hasSystemAdminPermission(access, 'khach_tra_hang', 'xoa') &&
+    detail?.trang_thai_tra_hang === 'CHO_TIEP_NHAN';
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -1522,7 +1556,7 @@ function ReturnDetail({ returnId }) {
   const [cancelError, setCancelError] = useState(null);
 
   const handleCancelReceipt = async () => {
-    if (!detail?.id) return;
+    if (!canCancelReturn || !detail?.id || isCancelling) return;
     if (!cancelReason.trim()) {
       setCancelError('Vui lòng nhập lý do hủy tiếp nhận');
       return;
@@ -1845,9 +1879,9 @@ function ReturnDetail({ returnId }) {
       <header className="w-shell-hero">
         <div>
           <p className="w-shell-breadcrumb">
-            <Link to="/admin/don-hang/danh-sach-don-hang">ĐƠN HÀNG</Link>{' '}
-            <ChevronRight size={12} /> <Link to={LIST_ROUTE}>KHÁCH TRẢ HÀNG</Link>{' '}
-            <ChevronRight size={12} /> <span>CHI TIẾT PHIẾU</span>
+            <Link to="/admin/don-hang/danh-sach-don-hang">ĐƠN HÀNG</Link> <ChevronRight size={12} />{' '}
+            <Link to={LIST_ROUTE}>KHÁCH TRẢ HÀNG</Link> <ChevronRight size={12} />{' '}
+            <span>CHI TIẾT PHIẾU</span>
           </p>
           <div className="w-shell-title-row">
             <h1>{ticketCode}</h1>
@@ -1898,20 +1932,19 @@ function ReturnDetail({ returnId }) {
             </button>
           )}
 
-          {hasAdminPermission(access, 'khach_tra_hang', 'xoa') &&
-            statusVal === 'CHO_TIEP_NHAN' && (
-              <button
-                type="button"
-                className="w-shell-button w-shell-button--red"
-                onClick={() => {
-                  setCancelReason('Khách không còn nhu cầu trả hàng');
-                  setCancelError(null);
-                  setShowCancelModal(true);
-                }}
-              >
-                <XCircle size={15} /> Hủy tiếp nhận
-              </button>
-            )}
+          {canCancelReturn && (
+            <button
+              type="button"
+              className="w-shell-button w-shell-button--red"
+              onClick={() => {
+                setCancelReason('Khách không còn nhu cầu trả hàng');
+                setCancelError(null);
+                setShowCancelModal(true);
+              }}
+            >
+              <XCircle size={15} /> Hủy tiếp nhận
+            </button>
+          )}
 
           {canRefundReturn && statusVal === 'DA_NHAN_HANG' && !detail.phieu_chi && (
             <button
@@ -2023,7 +2056,13 @@ function ReturnDetail({ returnId }) {
                 >
                   <WarrantyTable
                     showPagination={false}
-                    columns={['SẢN PHẨM TRẢ', 'SERIAL', 'SỐ LƯỢNG', 'ĐƠN GIÁ HOÀN', 'THÀNH TIỀN HOÀN']}
+                    columns={[
+                      'SẢN PHẨM TRẢ',
+                      'SERIAL',
+                      'SỐ LƯỢNG',
+                      'ĐƠN GIÁ HOÀN',
+                      'THÀNH TIỀN HOÀN',
+                    ]}
                     rows={lineItems.map((line, idx) => {
                       const lineId = Number(line.chi_tiet_don_hang_id || line.id);
                       const lineInfo =
@@ -2428,9 +2467,8 @@ function ReturnDetail({ returnId }) {
           </div>
         </div>
       )}
-
       {/* CANCEL RECEIPT CONFIRMATION MODAL */}
-      {showCancelModal && (
+      {canCancelReturn && showCancelModal && (
         <div
           className="returns-modal-backdrop"
           onClick={() => !isCancelling && setShowCancelModal(false)}
@@ -2474,20 +2512,40 @@ function ReturnDetail({ returnId }) {
                 </div>
               </div>
 
-              <div className="kth-refund-modal-notice" style={{ background: '#fff1f2', borderColor: '#fecdd3' }}>
+              <div
+                className="kth-refund-modal-notice"
+                style={{ background: '#fff1f2', borderColor: '#fecdd3' }}
+              >
                 <AlertTriangle size={18} color="#e11d48" style={{ flexShrink: 0, marginTop: 2 }} />
                 <span style={{ color: '#9f1239' }}>
-                  Thao tác này sẽ hủy tiếp nhận yêu cầu trả hàng và chuyển trạng thái phiếu sang <strong>HỦY TIẾP NHẬN</strong>.
+                  Thao tác này sẽ hủy tiếp nhận yêu cầu trả hàng và chuyển trạng thái phiếu sang{' '}
+                  <strong>HỦY TIẾP NHẬN</strong>.
                 </span>
               </div>
 
               <div style={{ marginTop: 16 }}>
-                <label style={{ display: 'block', fontSize: 11, fontWeight: 800, marginBottom: 6, color: '#111', textTransform: 'uppercase' }}>
+                <label
+                  style={{
+                    display: 'block',
+                    fontSize: 11,
+                    fontWeight: 800,
+                    marginBottom: 6,
+                    color: '#111',
+                    textTransform: 'uppercase',
+                  }}
+                >
                   LÝ DO HỦY TIẾP NHẬN <span style={{ color: '#ef4444' }}>*</span>
                 </label>
                 <textarea
                   rows={3}
-                  style={{ width: '100%', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: 2, fontSize: 12, resize: 'vertical' }}
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px',
+                    border: '1px solid #d1d5db',
+                    borderRadius: 2,
+                    fontSize: 12,
+                    resize: 'vertical',
+                  }}
                   placeholder="Nhập lý do hủy tiếp nhận..."
                   value={cancelReason}
                   onChange={(e) => setCancelReason(e.target.value)}
