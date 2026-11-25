@@ -32,7 +32,12 @@ public record AdminWarrantyLookupResponse(
       @JsonProperty("co_the_tiep_nhan") boolean coTheTiepNhan,
       @JsonProperty("ly_do_chan") List<BlockReason> lyDoChan,
       @JsonProperty("thiet_bi_hien_hanh_id") Long thietBiHienHanhId,
-      @JsonProperty("chi_tiet_tra_hang_id") Long chiTietTraHangId) {}
+      @JsonProperty("chi_tiet_tra_hang_id") Long chiTietTraHangId,
+      @JsonProperty("ten_san_pham") String tenSanPham,
+      @JsonProperty("ten_phien_ban") String tenPhienBan,
+      @JsonProperty("ma_vach") String maVach,
+      @JsonProperty("ten_nguoi_lien_he") String tenNguoiLienHe,
+      @JsonProperty("sdt_nguoi_lien_he") String sdtNguoiLienHe) {}
 
   public record BlockReason(String code, String message) {}
 

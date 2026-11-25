@@ -17,11 +17,14 @@ import {
   discrepancyLabels,
   pendingWarrantyDifferences,
   warrantyDeviceLabel,
+  activeWarrantyTrip,
 } from '../data/warrantyExperience';
 import { getWarrantySupplierOptions } from '../../purchasing/api/purchaseOrderApi';
 import { getAllVersions } from '../../catalog/products/api/versionApi';
+import IntakeDescriptionField from './IntakeDescriptionField';
 import { WarrantyDialog } from './WarrantyShell';
-import { displayDate } from '../data/warrantyContract';
+import { displayDate, warrantyAccessoriesLabel } from '../data/warrantyContract';
+import { inspectionOptions } from '../data/intakeOptions';
 
 function InputField({
   field,
@@ -39,6 +42,19 @@ function InputField({
     type = fieldType(name),
     optional = field.endsWith('?');
   const label = fieldLabels[name] || (arrayFields[name] ? 'Hạng mục' : name);
+
+  if (operation.key === 'GHI_KET_LUAN' && Object.hasOwn(inspectionOptions, name)) {
+    return (
+      <IntakeDescriptionField
+        options={inspectionOptions[name]}
+        title={label}
+        selected={value.selected ?? []}
+        custom={value.custom ?? (typeof value === 'string' && value ? [value] : [])}
+        single={name === 'ma_hang_muc'}
+        onChange={(selected, custom) => change({ selected, custom })}
+      />
+    );
+  }
 
   if (name === 'sai_lech_da_xu_ly') {
     const choices = pendingWarrantyDifferences(detail, returningId);
@@ -64,9 +80,7 @@ function InputField({
             />
             <span>
               <strong>{discrepancyLabels[item.loai] || item.loai}</strong> · {item.noi_dung}
-              <small>
-                Mã sai lệch {item.id} · {displayDate(item.event.ngay)}
-              </small>
+              <small>{displayDate(item.event.ngay)}</small>
             </span>
           </label>
         ))}
@@ -477,6 +491,7 @@ export default function WarrantyActionForm({
   };
 
   const handover = operation.key === 'HANDOVER';
+  const sentAccessories = operation.key === 'NHAN_LAI' ? activeWarrantyTrip(detail)?.sent.phu_kien : null;
   const renderField = (field) => (
     <InputField
       key={field}
@@ -557,6 +572,20 @@ export default function WarrantyActionForm({
           <summary>Ghi chú thao tác</summary>
           <p>{actionHints[operation.key] || 'Điền các mục có dấu *.'}</p>
         </details>
+
+        {ticket.tiep_nhan?.phu_kien?.length > 0 &&
+          (operation.key === 'GHI_KET_LUAN' || operation.fields.includes('phu_kien')) && (
+            <div className="w-operation-note">
+              <strong>Phụ kiện lúc tiếp nhận</strong>
+              <p>{warrantyAccessoriesLabel(ticket.tiep_nhan.phu_kien)}</p>
+            </div>
+          )}
+        {sentAccessories != null && (
+          <div className="w-operation-note">
+            <strong>Phụ kiện đã gửi</strong>
+            <p>{warrantyAccessoriesLabel(sentAccessories)}</p>
+          </div>
+        )}
 
         {referencesLoading && <p role="status">Đang tải danh sách lựa chọn…</p>}
         {referenceError && (

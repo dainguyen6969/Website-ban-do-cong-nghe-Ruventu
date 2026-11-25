@@ -151,23 +151,54 @@ public class WarrantyLookupRepository {
       Long variantId,
       long matchingLines) {}
 
-  public Page<Candidate> findCandidates(Filter filter, Pageable pageable) {
+  public Page<Candidate> findCandidates(Filter filter, String keyword, Pageable pageable) {
     Map<String, Object> parameters = new LinkedHashMap<>();
     String predicate = predicate(filter, parameters);
+    String from = " FROM candidates c ";
+    String order = " ORDER BY c.order_id DESC, c.line_id DESC, c.kind, c.device_id DESC, c.serial_id DESC";
+    if (keyword != null) {
+      from += """
+          LEFT JOIN phien_ban_san_pham variant ON variant.id = c.variant_id
+          LEFT JOIN san_pham product ON product.id = variant.san_pham_id
+          LEFT JOIN don_hang purchase ON purchase.id = c.order_id
+          LEFT JOIN nguoi_dung customer ON customer.id = purchase.khach_hang_id
+          """;
+      predicate += "\n" + """
+          AND (c.so_serial = :keyword OR (c.order_id IS NOT NULL AND (
+            c.ma_don_hang LIKE :prefix ESCAPE '!'
+            OR c.ma_theo_doi LIKE :prefix ESCAPE '!'
+            OR c.so_serial LIKE :contains ESCAPE '!'
+            OR variant.ma_vach LIKE :prefix ESCAPE '!'
+            OR product.ma_san_pham LIKE :prefix ESCAPE '!'
+            OR product.ten_san_pham LIKE :contains ESCAPE '!'
+            OR variant.ten_phien_ban LIKE :contains ESCAPE '!'
+            OR purchase.ten_nguoi_nhan LIKE :contains ESCAPE '!'
+            OR customer.ho_ten LIKE :contains ESCAPE '!'
+          )))
+          """;
+      String literal = keyword.replace("!", "!!").replace("%", "!%").replace("_", "!_");
+      parameters.put("keyword", keyword);
+      parameters.put("prefix", literal + "%");
+      parameters.put("contains", "%" + literal + "%");
+      order = """
+          ORDER BY CASE WHEN c.so_serial = :keyword OR c.ma_don_hang = :keyword
+                              OR c.ma_theo_doi = :keyword THEN 0
+                        WHEN c.order_id IS NOT NULL THEN 1 ELSE 2 END,
+                   c.order_id DESC, c.line_id DESC, c.kind, c.device_id DESC, c.serial_id DESC
+          """;
+    }
     Query count =
-        entityManager.createNativeQuery(SOURCES + "SELECT COUNT(*) FROM candidates c " + predicate);
+        entityManager.createNativeQuery(SOURCES + "SELECT COUNT(*)" + from + predicate);
     parameters.forEach(count::setParameter);
     long total = number(count.getSingleResult()).longValue();
     if (total == 0) return new PageImpl<>(List.of(), pageable, 0);
     Query query =
         entityManager.createNativeQuery(
             SOURCES
-                + """
-        SELECT c.kind, c.device_id, c.line_id, c.serial_id, c.order_id, c.variant_id, c.matching_lines
-        FROM candidates c
-        """
+                + "SELECT c.kind, c.device_id, c.line_id, c.serial_id, c.order_id, c.variant_id, c.matching_lines"
+                + from
                 + predicate
-                + " ORDER BY c.order_id DESC, c.line_id DESC, c.kind, c.device_id DESC, c.serial_id DESC");
+                + order);
     parameters.forEach(query::setParameter);
     query.setFirstResult(Math.toIntExact(pageable.getOffset()));
     query.setMaxResults(pageable.getPageSize());
@@ -188,7 +219,20 @@ public class WarrantyLookupRepository {
   }
 
   private String predicate(Filter filter, Map<String, Object> parameters) {
-    StringBuilder where = new StringBuilder(" WHERE 1=1");
+    StringBuilder where =
+        new StringBuilder(
+            """
+            WHERE NOT EXISTS (
+              SELECT 1 FROM phieu_bao_hanh ticket
+              WHERE ticket.trang_thai_xu_ly <> 'HOAN_TAT'
+                AND (ticket.thiet_bi_id = c.device_id OR ticket.thiet_bi_thay_the_id = c.device_id)
+            )
+            AND NOT EXISTS (
+              SELECT 1 FROM so_serial_san_pham serial
+              WHERE serial.id = c.serial_id
+                AND serial.trang_thai IN ('DANG_BAO_HANH', 'GIU_CHO_BAO_HANH')
+            )
+            """);
     add(where, parameters, "c.so_serial", "serial", filter.serial());
     add(where, parameters, "c.ma_theo_doi", "tracking", filter.tracking());
     add(where, parameters, "c.ma_don_hang", "orderCode", filter.orderCode());

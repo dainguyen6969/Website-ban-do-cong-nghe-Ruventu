@@ -338,7 +338,9 @@ public class AdminWarrantyDetailService {
                 ? "THU_DOI_SOAT_DON_VI"
                 : voucher.getLoaiPhieu() == LoaiPhieuThuChi.CHI ? "CHI_DON_VI" : "NHAN_HOAN_DON_VI";
       }
-      result.add(new MoneyTransaction(voucher.getId(), type, voucher.getSoTien(), voucher.getId()));
+      result.add(
+          new MoneyTransaction(
+              voucher.getId(), type, voucher.getSoTien(), voucher.getId(), voucher.getMaPhieu()));
     }
     return result;
   }
@@ -604,6 +606,8 @@ public class AdminWarrantyDetailService {
                   : historySupport.text(replacement.get("so_serial_thuc_nhan")),
               "da_cap_cho_phuong_an",
               bool(value(replacement, "da_cap_cho_phuong_an")),
+              "phu_kien",
+              handover.get("phu_kien") instanceof List<?> ? accessories(handover.get("phu_kien")) : null,
               "sai_lech",
               differences));
     }

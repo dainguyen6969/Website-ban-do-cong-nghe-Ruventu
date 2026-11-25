@@ -359,7 +359,7 @@ export function referenceOptions(name, detail, suppliers = [], versions = []) {
   if (['phien_ban_id', 'phien_ban_thay_the_id', 'phien_ban_thuc_nhan_id'].includes(name))
     return versions.map((item) => ({
       value: item.id,
-      label: `${item.displayName} · ${item.barcode || `#${item.id}`}`,
+      label: [item.displayName, item.barcode].filter(Boolean).join(' · ') || 'Phiên bản chưa đặt tên',
     }));
   if (name === 'lan_gui_lich_su_id') {
     const sent = activeWarrantyTrip(detail)?.sent;
@@ -375,7 +375,7 @@ export function referenceOptions(name, detail, suppliers = [], versions = []) {
   if (name === 'ket_luan_lich_su_id')
     return (detail.ket_luan || []).map((item) => ({
       value: item.lich_su_id,
-      label: `Kết luận #${item.lich_su_id} · ${item.noi_dung}`,
+      label: item.noi_dung || 'Kết luận đã ghi nhận',
     }));
   // shortcut: detail exposes an audit label, not structured debt approvals; backend validates the selected record.
   if (name === 'phe_duyet_cong_no_lich_su_id')
@@ -387,7 +387,7 @@ export function referenceOptions(name, detail, suppliers = [], versions = []) {
       )
       .map((item) => ({
         value: item.id,
-        label: `#${item.id} · ${displayDate(item.ngay_tao)} · ${item.noi_dung}`,
+        label: `${displayDate(item.ngay_tao)} · ${item.noi_dung}`,
       }));
   if (
     ['thiet_bi_id', 'thiet_bi_cu_id', 'thiet_bi_se_tra_id', 'thiet_bi_ban_giao_id'].includes(name)

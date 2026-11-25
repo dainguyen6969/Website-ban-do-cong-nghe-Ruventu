@@ -3,24 +3,28 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Check, Plus, Upload, X } from 'lucide-react';
 import OrderModal from '../../orders/components/OrderModal';
 import IntakeDescriptionField from '../components/IntakeDescriptionField';
+import { intakeOptions } from '../data/intakeOptions';
 import { WarrantyFields, WarrantyPanel, WarrantyTable } from '../components/WarrantyShell';
 import { lookupWarranties, mutateWarranty, warrantyError } from '../api/warrantyApi';
 import {
   displayDate, intakeAssessment, intakeBody, intakeContact, intakeDeadlineCheck,
   intakeDeadlineStatus, intakeDescription, intakeErrors, intakeFreeChecks, intakeItemLimit,
   intakeReachableStep, intakeRequiredChecks, intakeSearch, intakeStepErrors,
-  lookupFields, receiptNow,
+  lookupFields, receiptNow, warrantyAccessoriesLabel,
 } from '../data/warrantyContract';
 import { uploadWarrantyIntakeImage } from '../../../media/api/imageUploadApi';
 import { validateImageFiles } from '../../../media/api/imageValidation';
-import { getSerialPage } from '../../inventory/api/serialApi';
 import TablePagination from '../../../../shared/components/ui/TablePagination';
 import { customerService } from '../../../../shared/services/customerService';
 import '../styles/warrantyShell.css';
 
 const steps = ['TÌM THIẾT BỊ', 'XÁC MINH BẢO HÀNH', 'THÔNG TIN TIẾP NHẬN', 'XÁC NHẬN'];
+const verificationOptions = [
+  ['5 mục xác minh bắt buộc', intakeRequiredChecks],
+  ['5 mục bổ sung để miễn phí', intakeFreeChecks],
+];
 const initialForm = () => ({
-  checks: [], reason: [], condition: [], reasonOther: [], conditionOther: [], contact: '', phone: '',
+  checks: [], reason: [], condition: [], reasonOther: [], conditionOther: [], contact: '', phone: '', reportedSerial: '',
   receivedAt: receiptNow(), identification: '', unit: '', note: '', accessories: [], photos: [],
 });
 const conclusions = {
@@ -43,7 +47,8 @@ function IntakeDeadline({ device, receivedAt }) {
 export default function LapPhieuBaoHanh() {
   const navigate = useNavigate();
   const [step, setStep] = useState(0), [query, setQuery] = useState('');
-  const { criterion } = intakeSearch(query);
+  const { criterion, value: searchValue } = intakeSearch(query);
+  const canSearch = criterion === 'requestId' || searchValue.length >= 2;
   const [lookup, setLookup] = useState(null), [page, setPage] = useState(1), [selected, setSelected] = useState(null), [requestId, setRequestId] = useState(null);
   const [form, setForm] = useState(initialForm), [error, setError] = useState(''), [message, setMessage] = useState(null);
   const [contactError, setContactError] = useState(false);
@@ -63,8 +68,6 @@ export default function LapPhieuBaoHanh() {
     setFieldErrors(current => ({ ...current, [key.replace(/Other$/, '')]: '' }));
     setError('');
   };
-  const toggle = (key, label) =>
-    change(key, form[key].includes(label) ? form[key].filter(value => value !== label) : [...form[key], label]);
   const photoLimitReached = form.photos.length >= intakeItemLimit;
   const accessoryLimitReached = form.accessories.length >= intakeItemLimit;
   const addAccessory = () => {
@@ -93,8 +96,7 @@ export default function LapPhieuBaoHanh() {
   const resetSearch = value => { lookupController.current?.abort(); setQuery(value); setLookup(null); setSelected(null); setRequestId(null); setPage(1); setSearching(false); setError(''); setMessage(null); setFieldErrors({}); setOutcome(null); };
   const search = useCallback(async (nextPage = 1) => {
     clearTimeout(lookupTimer.current);
-    if (!query.trim()) { setError('Nhập nội dung tra cứu.'); return; }
-    const { criterion, value } = intakeSearch(query);
+    if (!canSearch) return;
     lookupController.current?.abort();
     const controller = new AbortController();
     lookupController.current = controller;
@@ -105,49 +107,28 @@ export default function LapPhieuBaoHanh() {
     setLookup(null);
     setPage(nextPage);
     try {
-      let result;
-      if (criterion === 'serial') {
-        const data = await getSerialPage(
-  {
-    keyword: value,
-    page: nextPage,
-    limit: 20,
-    forWarranty: true,
-  },
-  controller.signal
-);
-        result = { items: data.items.map(item => ({ serial_candidate: true, so_serial: item.serial, phien_ban_id: item.versionId, ten_san_pham: item.productName, ten_phien_ban: item.version, trang_thai_serial: item.status })), yeu_cau_tiep_nhan: [], pagination: { total_elements: data.totalItems } };
-      } else result = await lookupWarranties({ [lookupFields[criterion]]: value, page: nextPage - 1, limit: 20 }, controller.signal);
+      const result = await lookupWarranties({ [lookupFields[criterion]]: searchValue, page: nextPage - 1, limit: 20 }, controller.signal);
       if (!controller.signal.aborted) setLookup(result);
     } catch (cause) { if (!controller.signal.aborted) setError(warrantyError(cause)); }
     finally { if (!controller.signal.aborted) setSearching(false); }
-  }, [query]);
+  }, [canSearch, criterion, searchValue]);
   useEffect(() => {
-    if (!query.trim()) return undefined;
+    if (!canSearch) return undefined;
     lookupTimer.current = setTimeout(() => search(), 400);
     return () => clearTimeout(lookupTimer.current);
-  }, [query, search]);
+  }, [canSearch, query, search]);
   const choose = async (device, request = null) => {
     lookupController.current?.abort();
     const controller = new AbortController();
     lookupController.current = controller;
     setSearching(true); setError(''); setContactError(false);
     try {
-      if (device?.serial_candidate) {
-        const result = await lookupWarranties({ so_serial: device.so_serial, page: 0, limit: 20 }, controller.signal);
-        if (controller.signal.aborted) return;
-        if (result.items.length !== 1) {
-          setLookup(result); setSelected(null); setPage(1);
-          setMessage({ text: 'Chọn đúng giao dịch gốc trong kết quả xác minh serial.' });
-          return;
-        }
-        device = { ...result.items[0], ten_san_pham: device.ten_san_pham, ten_phien_ban: device.ten_phien_ban };
-      }
-      let contact = intakeContact(request);
+      const orderContact = { ho_ten: device?.ten_nguoi_lien_he, so_dien_thoai: device?.sdt_nguoi_lien_he };
+      let contact = intakeContact(request, orderContact);
       if (device?.khach_hang_id != null && (!contact.contact || !contact.phone)) {
         try {
           const { data } = await customerService.getCustomerDetail(device.khach_hang_id, controller.signal);
-          contact = intakeContact(request, data?.data);
+          contact = intakeContact(request, data?.data ?? orderContact);
         } catch {
           if (!controller.signal.aborted) setContactError(true);
         }
@@ -156,7 +137,7 @@ export default function LapPhieuBaoHanh() {
       setSelected(device); setRequestId(request?.id || null); setFieldErrors({}); setStep(0); setOutcome(null);
       setMessage(request ? { text: `Đang xử lý yêu cầu #${request.id}.` } : null);
       setForm({
-        ...initialForm(), ...contact,
+        ...initialForm(), ...contact, reportedSerial: request?.so_serial ?? '',
         ...(request?.ly_do?.trim() && { reasonOther: [request.ly_do.trim()] }),
       });
     } catch (cause) {
@@ -209,9 +190,7 @@ export default function LapPhieuBaoHanh() {
           don_hang_id: selected?.don_hang_id ?? null,
           chi_tiet_don_hang_id: selected?.chi_tiet_don_hang_id ?? null,
           thiet_bi_id: selected?.thiet_bi_id ?? null,
-          so_serial:
-            selected?.so_serial ||
-            (criterion === 'serial' ? query.trim() || null : null),
+          so_serial: selected?.so_serial ?? (form.reportedSerial.trim() || null),
           ten_nguoi_lien_he: form.contact.trim(),
           sdt_nguoi_lien_he: form.phone.trim(),
           ket_qua_tiep_nhan: action,
@@ -290,7 +269,7 @@ export default function LapPhieuBaoHanh() {
   );
   const description = (key, title) => (
     <IntakeDescriptionField
-      field={key}
+      options={intakeOptions[key]}
       title={title}
       selected={form[key]}
       custom={form[`${key}Other`]}
@@ -302,29 +281,15 @@ export default function LapPhieuBaoHanh() {
     />
   );
   const assessment = intakeAssessment(selected, form);
-  const checks = (title, options) => (
-    <fieldset className="w-intake-options">
-      <legend>{title}</legend>
-      <div className="w-intake-check-grid">
-        {options.map(label => {
-          const disabled = label === intakeDeadlineCheck && !assessment.canConfirmDeadline;
-          return (
-            <label key={label}>
-              <input type="checkbox" disabled={disabled} checked={!disabled && form.checks.includes(label)} onChange={() => toggle('checks', label)} />
-              {label}
-            </label>
-          );
-        })}
-      </div>
-    </fieldset>
-  );
+  const disabledCheck = assessment.canConfirmDeadline ? undefined : intakeDeadlineCheck;
   const selection = selected && (
     <div className="w-intake-selected">
       <div>
         <small>THIẾT BỊ / DÒNG HÀNG ĐÃ CHỌN</small>
-        <strong>{selected.ten_phien_ban || selected.ten_san_pham || 'Phiên bản #' + selected.phien_ban_id}</strong>
+        <strong>{selected.ten_san_pham || selected.ten_phien_ban || 'Chưa có tên sản phẩm'}</strong>
+        {selected.ten_phien_ban && selected.ten_phien_ban !== selected.ten_san_pham && <span>{selected.ten_phien_ban}</span>}
         <div className="w-intake-device-codes">
-          <strong>{selected.so_serial || selected.ma_theo_doi || 'Dòng mua #' + selected.chi_tiet_don_hang_id + ' · Không serial'}</strong>
+          <strong>{selected.so_serial || selected.ma_theo_doi || selected.ma_vach || 'Không có serial'}</strong>
           {selected.ma_don_hang && <strong>{selected.ma_don_hang}</strong>}
         </div>
       </div>
@@ -375,6 +340,7 @@ export default function LapPhieuBaoHanh() {
               <div className="w-shell-fields">
                 {field('contact', 'TÊN NGƯỜI LIÊN HỆ', 'text', true)}
                 {field('phone', 'SỐ ĐIỆN THOẠI', 'tel', true)}
+                {!selected && field('reportedSerial', 'SERIAL (NẾU CÓ)')}
               </div>
               {description('reason', 'Lý do bảo hành')}
               <button type="button" className="w-shell-button" onClick={() => prepare(outcome)}>KIỂM TRA KẾT QUẢ</button>
@@ -386,27 +352,34 @@ export default function LapPhieuBaoHanh() {
           {step === 0 && (
             <WarrantyPanel title="01 / TÌM THIẾT BỊ CẦN BẢO HÀNH">
               <form className="w-intake-search" onSubmit={event => { event.preventDefault(); search(); }}>
-                <input aria-label="Nội dung tra cứu thiết bị" value={query} onChange={event => resetSearch(event.target.value)} maxLength={100} placeholder="Serial, tên sản phẩm, mã đơn, mã theo dõi, SĐT hoặc #ID yêu cầu..." />
-                <button className="w-shell-button w-shell-button--black" disabled={searching || !query.trim()}>TÌM</button>
+                <input aria-label="Nội dung tra cứu thiết bị" value={query} onChange={event => resetSearch(event.target.value)} maxLength={100} placeholder="Mã đơn, tên sản phẩm, mã vạch, serial, mã theo dõi, SĐT hoặc #mã yêu cầu" />
+                <button className="w-shell-button w-shell-button--black" disabled={searching || !canSearch}>TÌM</button>
                 <button type="button" className="w-shell-button" onClick={() => resetSearch('')}>XÓA</button>
               </form>
+              {searchValue && !canSearch && <p role="status" className="w-shell-note">Nhập ít nhất 2 ký tự để tìm thiết bị.</p>}
               {searching && <p role="status">Đang tải dữ liệu...</p>}
               {lookup && (
                 <>
                   <WarrantyTable
                     columns={['ĐƠN HÀNG', 'THIẾT BỊ / PHIÊN BẢN', 'GIAO DỊCH', 'HẠN BẢO HÀNH', 'CHỌN']}
                     rows={lookup.items.map((item, index) => [
-                      <strong key={'order-' + index}>{item.ma_don_hang || 'Chờ xác minh'}</strong>,
-                      <span key={'device-' + index}>
-                        <strong>{item.ten_phien_ban || item.ten_san_pham || 'Phiên bản #' + item.phien_ban_id}</strong>
-                        <br /><strong>{item.so_serial || item.ma_theo_doi || 'Không serial'}</strong>
+                      <span key={'order-' + index}>
+                        <strong>{item.ma_don_hang || 'Chưa có đơn mua'}</strong>
+                        {item.ten_nguoi_lien_he && <span className="w-intake-lookup-meta">{item.ten_nguoi_lien_he}</span>}
+                        {item.sdt_nguoi_lien_he && <span className="w-intake-lookup-meta">{item.sdt_nguoi_lien_he}</span>}
                       </span>,
-                      <strong key={'status-' + index}>
-                        {item.serial_candidate ? 'Chờ xác minh' : item.da_giao_khach ? 'Đã giao khách' : 'Chưa xác minh đã giao'}
-                      </strong>,
+                      <span key={'device-' + index}>
+                        <strong>{item.ten_san_pham || item.ten_phien_ban || 'Chưa có tên sản phẩm'}</strong>
+                        {item.ten_phien_ban && item.ten_phien_ban !== item.ten_san_pham && <span className="w-intake-lookup-meta">{item.ten_phien_ban}</span>}
+                        <span className="w-intake-lookup-meta">{[item.so_serial && `Serial ${item.so_serial}`, item.ma_theo_doi, item.ma_vach].filter(Boolean).join(' · ') || 'Không có serial hoặc mã vạch'}</span>
+                      </span>,
+                      <span key={'status-' + index}>
+                        <strong>{item.da_giao_khach ? 'Đã giao khách' : 'Chưa xác minh đã giao'}</strong>
+                        {item.ly_do_chan?.[0]?.message && <span className="w-intake-lookup-meta">{item.ly_do_chan[0].message}</span>}
+                      </span>,
                       <IntakeDeadline key={'expiry-' + index} device={item} receivedAt={form.receivedAt} />,
                       <button type="button" key={'choose-' + index} className="w-shell-button" disabled={searching} onClick={() => choose(item, lookup.yeu_cau_tiep_nhan?.find(request => request.id === requestId) || (criterion === 'requestId' ? lookup.yeu_cau_tiep_nhan?.[0] : null))}>
-                        {item.serial_candidate ? 'XÁC MINH SERIAL' : item.co_the_tiep_nhan ? 'CHỌN THIẾT BỊ' : 'XEM THIẾT BỊ'}
+                        {item.co_the_tiep_nhan ? 'CHỌN THIẾT BỊ' : 'XEM THIẾT BỊ'}
                       </button>,
                     ])}
                     empty="Không tìm thấy giao dịch / thiết bị phù hợp."
@@ -432,9 +405,15 @@ export default function LapPhieuBaoHanh() {
           {step === 1 && (
             <WarrantyPanel title="02 / XÁC MINH ĐIỀU KIỆN">
               {selection}
-              {checks('5 MỤC XÁC MINH BẮT BUỘC', intakeRequiredChecks)}
-              {checks('5 MỤC BỔ SUNG ĐỂ MIỄN PHÍ', intakeFreeChecks)}
-              {fieldErrors.checks && <p className="w-shell-error" role="alert">{fieldErrors.checks}</p>}
+              <IntakeDescriptionField
+                options={verificationOptions}
+                title="Tiêu chí xác minh"
+                selected={form.checks.filter(label => label !== disabledCheck)}
+                allowCustom={false}
+                disabledOption={disabledCheck}
+                error={fieldErrors.checks}
+                onChange={choices => change('checks', choices)}
+              />
               {fieldErrors.device ? (
                 <p className="w-shell-error" role="alert">{fieldErrors.device}</p>
               ) : selected?.ly_do_chan?.map(reason => <p className="w-shell-error" key={reason.code}>{reason.message}</p>)}
@@ -525,6 +504,7 @@ export default function LapPhieuBaoHanh() {
                 ['XÁC MINH', assessment.total + '/10 mục đã xác nhận'],
                 ['LÝ DO', intakeDescription(form, 'reason')],
                 ['TÌNH TRẠNG', intakeDescription(form, 'condition')],
+                ['PHỤ KIỆN TIẾP NHẬN', warrantyAccessoriesLabel(form.accessories.map(({ name, quantity }) => ({ ten: name.trim(), so_luong: quantity })))],
                 ['THỜI ĐIỂM NHẬN', form.receivedAt],
                 ['DẤU HIỆU NHẬN DẠNG', form.identification],
                 ['YÊU CẦU TIẾP NHẬN', requestId],

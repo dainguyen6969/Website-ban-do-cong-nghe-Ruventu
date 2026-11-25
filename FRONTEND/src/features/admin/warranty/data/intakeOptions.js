@@ -22,3 +22,29 @@ export const intakeOptions = {
     ['Kiểm tra khi nhận', ['Bật được nguồn khi nhận', 'Không bật được nguồn khi nhận', 'Lỗi tái hiện khi kiểm tra', 'Chưa tái hiện lỗi', 'Chưa thể kiểm tra khi nhận']],
   ],
 };
+
+export const inspectionOptions = {
+  ma_hang_muc: [
+    ['Linh kiện chính', ['CPU', 'Bo mạch chủ', 'RAM', 'Card đồ họa', 'Ổ lưu trữ']],
+    ['Nguồn và làm mát', ['Bộ nguồn', 'Pin', 'Bộ sạc', 'Tản nhiệt', 'Quạt']],
+    ['Hiển thị và kết nối', ['Màn hình', 'Cáp và cổng kết nối', 'Mạng và kết nối không dây', 'Âm thanh và camera']],
+    ['Ngoại vi và hệ thống', ['Bàn phím', 'Chuột', 'Vỏ và bản lề', 'Phụ kiện', 'Phần mềm và trình điều khiển', 'Toàn bộ thiết bị']],
+  ],
+  loi: intakeOptions.reason,
+  noi_dung_xu_ly: [
+    ['Kiểm tra và khắc phục', ['Kiểm tra lại trong điều kiện khách báo', 'Chạy kiểm tra tải', 'Vệ sinh và lắp lại', 'Cập nhật firmware', 'Cài lại trình điều khiển', 'Sửa hoặc thay linh kiện']],
+    ['Chuyển xử lý và bàn giao', ['Gửi hãng hoặc nhà cung cấp', 'Đề xuất đổi thiết bị', 'Báo giá cho khách', 'Theo dõi thêm', 'Trả thiết bị sau kiểm tra']],
+  ],
+  ly_do: [
+    ['Điều kiện bảo hành', ['Còn hạn và thuộc phạm vi bảo hành', 'Hết hạn bảo hành', 'Lỗi ngoài phạm vi bảo hành', 'Chưa đủ căn cứ xác định điều kiện']],
+    ['Kết quả kiểm tra', ['Lỗi tái hiện khi kiểm tra', 'Chưa tái hiện được lỗi', 'Có dấu hiệu va đập hoặc chất lỏng', 'Có dấu hiệu can thiệp', 'Cần đơn vị bảo hành xác minh thêm']],
+  ],
+  can_cu: [
+    ['Hồ sơ và chính sách', ['Chứng từ mua hàng', 'Serial và hồ sơ thiết bị', 'Hạn bảo hành trên hệ thống', 'Điều khoản bảo hành', 'Biên bản tiếp nhận']],
+    ['Bằng chứng kỹ thuật', ['Ảnh hoặc video kiểm tra', 'Kết quả kiểm tra tải', 'Nhật ký lỗi', 'Đối chiếu bằng linh kiện thay thế', 'Biên bản của hãng hoặc nhà cung cấp']],
+  ],
+  don_vi_ket_luan: [
+    ['Kết quả xác minh', ['Đã xác định lỗi', 'Chưa xác định được lỗi', 'Thiết bị hoạt động bình thường khi kiểm tra']],
+    ['Hướng giải quyết', ['Đủ điều kiện bảo hành miễn phí', 'Xử lý có phí sau khi khách đồng ý', 'Chuyển đơn vị bảo hành kiểm tra', 'Đề xuất đổi thiết bị', 'Chờ kết quả kiểm tra thêm']],
+  ],
+};

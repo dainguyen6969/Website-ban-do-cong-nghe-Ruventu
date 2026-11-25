@@ -64,6 +64,7 @@ public class AdminWarrantyLookupService {
       String maDonHang,
       String sdt,
       String requestId,
+      String keyword,
       String page,
       String limit) {
     Filter filter =
@@ -76,7 +77,9 @@ public class AdminWarrantyLookupService {
         requestId == null
             ? null
             : WarrantyReadValidation.id(requestId, ErrorCode.INVALID_WARRANTY_LOOKUP);
-    if (intakeId == null && empty(filter)) throw invalidSearch();
+    String term = normalize(keyword, 100);
+    if ((intakeId == null && term == null && empty(filter))
+        || (term != null && (term.length() < 2 || intakeId != null))) throw invalidSearch();
     int pageNumber = WarrantyReadValidation.page(page, 0, ErrorCode.INVALID_WARRANTY_LOOKUP);
     int pageSize = WarrantyReadValidation.pageSize(limit, 20, ErrorCode.INVALID_WARRANTY_LOOKUP);
     WarrantyReadValidation.validateOffset(pageNumber, pageSize, ErrorCode.INVALID_WARRANTY_LOOKUP);
@@ -84,9 +87,9 @@ public class AdminWarrantyLookupService {
 
     // Count/order/page source rows in the database before enriching that one page.
     Page<Candidate> candidates =
-        repository.findCandidates(filter, PageRequest.of(pageNumber, pageSize));
+        repository.findCandidates(filter, term, PageRequest.of(pageNumber, pageSize));
     List<Item> items = candidates.getContent().stream().map(this::toItem).toList();
-    List<IntakeRequest> requests = searchIntakes(filter);
+    List<IntakeRequest> requests = searchIntakes(filter, term);
     return new AdminWarrantyLookupResponse(
         items,
         requests,
@@ -112,19 +115,13 @@ public class AdminWarrantyLookupService {
       DonHang order = device.getChiTietDonHang().getDonHang();
       if (request.donHangId() != null && !Objects.equals(request.donHangId(), order.getId()))
         throw invalidData();
-      Candidate candidate =
-          new Candidate(
-              "DEVICE",
-              device.getId(),
-              device.getChiTietDonHang().getId(),
-              device.getSoSerial() == null ? null : device.getSoSerial().getId(),
-              order.getId(),
-              device.getPhienBan().getId(),
-              1);
+      Filter linkedFilter = new Filter(null, device.getMaTheoDoi(), null, null);
+      Page<Candidate> candidates =
+          repository.findCandidates(linkedFilter, null, PageRequest.of(page, limit));
       return new AdminWarrantyLookupResponse(
-          page == 0 ? List.of(toItem(candidate)) : List.of(),
+          candidates.getContent().stream().map(this::toItem).toList(),
           List.of(request),
-          WarrantyReadValidation.pagination(page, limit, 1));
+          WarrantyReadValidation.pagination(page, limit, candidates.getTotalElements()));
     }
     if (request.donHangId() != null) {
       DonHang order = repository.order(request.donHangId());
@@ -133,7 +130,7 @@ public class AdminWarrantyLookupService {
       Filter linkedFilter =
           new Filter(filter.serial(), filter.tracking(), order.getMaDonHang(), filter.phone());
       Page<Candidate> candidates =
-          repository.findCandidates(linkedFilter, PageRequest.of(page, limit));
+          repository.findCandidates(linkedFilter, null, PageRequest.of(page, limit));
       return new AdminWarrantyLookupResponse(
           candidates.getContent().stream().map(this::toItem).toList(),
           List.of(request),
@@ -144,11 +141,11 @@ public class AdminWarrantyLookupService {
         List.of(), List.of(request), WarrantyReadValidation.pagination(page, limit, 0));
   }
 
-  private List<IntakeRequest> searchIntakes(Filter filter) {
+  private List<IntakeRequest> searchIntakes(Filter filter, String keyword) {
     Map<Long, LichSuBaoHanh> roots = new LinkedHashMap<>();
     for (LichSuBaoHanh event :
         historyRepository.searchIntakes(
-            filter.serial(), filter.tracking(), filter.orderCode(), filter.phone())) {
+            filter.serial(), filter.tracking(), filter.orderCode(), filter.phone(), keyword)) {
       Long rootId = history.id(history.payload(event).get("yeu_cau_tiep_nhan_id"));
       if (rootId == null) rootId = event.getId();
       if (!roots.containsKey(rootId)) {
@@ -161,7 +158,11 @@ public class AdminWarrantyLookupService {
     for (var entry : roots.entrySet()) {
       IntakeRequest request =
           intake(entry.getValue(), historyRepository.findIntakeEvents(entry.getKey()));
-      if (matches(filter, request)) requests.add(request);
+      if (matches(filter, request)
+          && (keyword == null
+              || keyword.equalsIgnoreCase(request.soSerial())
+              || keyword.equalsIgnoreCase(request.maTheoDoi())
+              || keyword.equalsIgnoreCase(request.maDonHang()))) requests.add(request);
     }
     return requests;
   }
@@ -632,6 +633,12 @@ public class AdminWarrantyLookupService {
       // The snapshot has already been scoped to this exact device/source ticket above.
       deadlineResponse = history.time(deviceSnapshot.get("han_bao_hanh"));
     }
+    PhienBanSanPham variant = device != null ? device.getPhienBan()
+        : serial != null ? serial.getPhienBan()
+        : line == null ? null : line.getPhienBan();
+    NguoiDung customer = order == null ? null : order.getKhachHang();
+    String contact = customer == null ? null : customer.getHoTen();
+    String phone = customer == null ? null : customer.getSoDienThoai();
     return new Item(
         order == null ? null : order.getId(),
         order == null ? null : order.getMaDonHang(),
@@ -652,7 +659,12 @@ public class AdminWarrantyLookupService {
         blocks.isEmpty() && current && delivered,
         List.copyOf(blocks),
         current ? null : currentId,
-        returnLineId);
+        returnLineId,
+        variant == null || variant.getSanPham() == null ? null : variant.getSanPham().getTenSanPham(),
+        variant == null ? null : variant.getTenPhienBan(),
+        variant == null ? null : variant.getMaVach(),
+        order == null || contact != null && !contact.isBlank() ? contact : order.getTenNguoiNhan(),
+        order == null || phone != null && !phone.isBlank() ? phone : order.getSdtNguoiNhan());
   }
 
   private boolean matches(Filter filter, IntakeRequest request) {

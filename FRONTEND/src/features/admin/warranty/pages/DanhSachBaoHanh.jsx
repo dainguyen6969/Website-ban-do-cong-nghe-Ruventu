@@ -6,7 +6,6 @@ import {
   quoteLabels,
   paymentLabels,
   refundLabels,
-  quickFilters,
   displayDate,
 } from '../data/warrantyContract';
 import { getWarrantyList, warrantyError } from '../api/warrantyApi';
@@ -22,7 +21,6 @@ import '../styles/warrantyShell.css';
 const emptyFilters = {
   search: '',
   status: '',
-  quick: 'TẤT CẢ',
   quoteStatus: '',
   paymentStatus: '',
   refundStatus: '',
@@ -99,11 +97,7 @@ export default function DanhSachBaoHanh() {
     };
   }, [filters, page, pageSize, invalidDates, reload]);
   const update = (field, value) => {
-    setFilters((current) => ({
-      ...current,
-      [field]: value,
-      ...(field === 'status' ? { quick: 'TẤT CẢ' } : field === 'quick' ? { status: '' } : {}),
-    }));
+    setFilters((current) => ({ ...current, [field]: value }));
     setPage(1);
   };
   const date = displayDate;
@@ -133,27 +127,6 @@ export default function DanhSachBaoHanh() {
         </p>
       )}
       <section className="w-shell-toolbar" aria-label="Bộ lọc phiếu bảo hành">
-        <div className="w-shell-quick" role="group" aria-label="Lọc nhanh phiếu bảo hành">
-          {Object.keys(quickFilters).map((label) => (
-            <button
-              type="button"
-              className="w-shell-button"
-              key={label}
-              aria-pressed={filters.quick === label}
-              onClick={() => update('quick', label)}
-            >
-              {label.charAt(0) + label.slice(1).toLocaleLowerCase('vi')}
-            </button>
-          ))}
-          <button
-            type="button"
-            className="w-shell-button"
-            onClick={() => setReload((value) => value + 1)}
-          >
-            <RefreshCw size={14} /> Tải lại
-          </button>
-        </div>
-
         <div className="w-shell-filter-primary">
           <label className="w-shell-search">
             <Search size={16} aria-hidden="true" />
@@ -201,6 +174,13 @@ export default function DanhSachBaoHanh() {
             }}
           >
             Xóa lọc
+          </button>
+          <button
+            type="button"
+            className="w-shell-button"
+            onClick={() => setReload((value) => value + 1)}
+          >
+            <RefreshCw size={14} /> Tải lại
           </button>
         </div>
         {advanced && (

@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { actionBody, actions, initialActionValues } from './warrantyActions.js';
+import { inspectionOptions } from './intakeOptions.js';
 import {
   intakeAssessment, intakeBody, intakeContact, intakeDeadlineCheck, intakeDeadlineStatus, intakeDescription,
   intakeErrors, intakeFreeChecks, intakeReachableStep, intakeRequiredChecks, intakeSearch,
@@ -8,17 +9,37 @@ import {
 } from './warrantyContract.js';
 import { validateImageFiles } from '../../../media/api/imageValidation.js';
 
+test('inspection pickers submit text, require a single code, and reject repeated codes', () => {
+  const operation = actions.find(item => item.key === 'GHI_KET_LUAN');
+  const picked = Object.fromEntries(Object.entries(inspectionOptions).map(([key, groups]) => [
+    key, { selected: [groups[0][1][0]], custom: key === 'ma_hang_muc' ? [] : ['  Ghi nhận thực tế  '] },
+  ]));
+  const row = { ...picked, dieu_kien_bao_hanh: 'DU_DIEU_KIEN', ben_chiu_phi: 'CUA_HANG' };
+  const values = { noi_dung: 'Kiểm tra thiết bị', inspectionItems: [row], bang_chung_urls: '' };
+  const [saved] = actionBody(operation, values).hang_muc;
+  for (const [name, { selected, custom }] of Object.entries(picked)) {
+    assert.equal(saved[name], [...selected, ...custom.map(text => text.trim())].join(' · '));
+  }
+  assert.throws(() => actionBody(operation, { ...values, inspectionItems: [{ ...row, loi: { selected: [], custom: [] } }] }), /Chọn lỗi/);
+  const customOnly = { ...row, ma_hang_muc: { selected: [], custom: ['CPU phụ'] } };
+  assert.equal(actionBody(operation, { ...values, inspectionItems: [row, customOnly] }).hang_muc[1].ma_hang_muc, 'CPU phụ');
+  assert.throws(() => actionBody(operation, { ...values, inspectionItems: [row, { ...row, ma_hang_muc: ' cpu ' }] }), /Hạng mục 2 bị trùng mã/);
+  assert.throws(() => actionBody(operation, { ...values, inspectionItems: [{ ...row, ma_hang_muc: { selected: ['CPU', 'RAM'] } }] }), /một mã hạng mục/);
+  assert.throws(() => actionBody(operation, { ...values, inspectionItems: [{ ...row, ma_hang_muc: { custom: ['x'.repeat(101)] } }] }), /100 ký tự/);
+});
+
 test('intake search identifies codes and formatted phones while preserving numeric serials and product names', () => {
   for (const [input, criterion, value] of [
-    [' SN-ABC123 ', 'serial', 'SN-ABC123'],
-    ['1234567890123', 'serial', '1234567890123'],
-    ['ASUS RTX 5070', 'serial', 'ASUS RTX 5070'],
-    ['dh20261118001', 'orderId', 'DH20261118001'],
-    ['TB-f84a-1234', 'trackingCode', 'TB-f84a-1234'],
+    [' SN-ABC123 ', 'keyword', 'SN-ABC123'],
+    ['1234567890123', 'keyword', '1234567890123'],
+    ['ASUS RTX 5070', 'keyword', 'ASUS RTX 5070'],
+    ['dh20261118001', 'keyword', 'dh20261118001'],
+    ['DH', 'keyword', 'DH'],
+    ['TB-f84a-1234', 'keyword', 'TB-f84a-1234'],
     ['090 123 4567', 'customerPhone', '0901234567'],
     ['+84 (90) 123-4567', 'customerPhone', '0901234567'],
     ['# 123', 'requestId', '123'],
-    ['', 'serial', ''],
+    ['', 'keyword', ''],
   ]) assert.deepEqual(intakeSearch(input), { criterion, value });
 });
 
@@ -199,6 +220,16 @@ test('ready-to-return uses original intake for the same device and handover uses
   const exchanged = initialActionValues(ready, { ...detail, phuong_an_doi: { thiet_bi_thay_the_id: 800 } });
   assert.equal(exchanged.tinh_trang, '');
   assert.deepEqual(exchanged.phu_kien, []);
+  const received = {
+    su_kien: 'NHAN_LAI', thiet_bi_id: 700, da_nhan_dung_thiet_bi: true,
+    phu_kien: [{ ten: 'Cáp', so_luong: 1 }],
+  };
+  const returned = accessories => initialActionValues(ready, {
+    ...detail, giao_nhan: [{ ...received, phu_kien: accessories }, { ...received, da_nhan_dung_thiet_bi: false }],
+  }).phu_kien;
+  assert.deepEqual(returned(received.phu_kien), received.phu_kien);
+  assert.deepEqual(returned([]), []);
+  assert.deepEqual(returned(undefined), []);
   const saved = actionBody(ready, { ...values, tinh_trang: 'Đã kiểm tra hoạt động', phu_kien: [], ket_qua_xu_ly: 'SUA_THANH_CONG', can_cu_kiem_tra: 'Đã kiểm tra' });
   const transfer = initialActionValues(handover, { ...detail, xu_ly_tiep: {
     tinh_trang_san_sang_tra: saved.tinh_trang, phu_kien_san_sang_tra: saved.phu_kien,

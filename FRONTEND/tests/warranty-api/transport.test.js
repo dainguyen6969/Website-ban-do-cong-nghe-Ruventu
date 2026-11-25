@@ -16,13 +16,17 @@ before(async () => {
 });
 after(async () => { await vite?.close(); delete globalThis.localStorage; delete globalThis.window; });
 
-test('real HTTP client reads list, lookup, detail and combined processing filters', async () => {
+test('real HTTP client reads list, lookup, detail and the status filter', async () => {
   const list = await api.getWarranties({ page: 0, limit: 20 });
   assert.ok(list.items.some(item => item.id === 501));
   assert.ok((await api.lookupWarranties({ so_serial: 'RAM-SN-001' })).items.length);
   assert.equal((await api.getWarranty(501)).id, 501);
-  const grouped = await api.getWarrantyList({ search: '', quick: 'ĐANG XỬ LÝ' }, 1, 20);
-  assert.ok(grouped.items.every(item => ['DA_GUI_BAO_HANH', 'DANG_BAO_HANH', 'DA_NHAN_LAI', 'CHO_DOI_SAN_PHAM'].includes(item.trang_thai_xu_ly)));
+  const currentStatus = list.items.find(item => item.id === 501).trang_thai_xu_ly;
+  const filtered = await api.getWarrantyList({ search: '', status: currentStatus }, 1, 20);
+  assert.ok(filtered.items.some(item => item.id === 501));
+  assert.ok(filtered.items.every(item => item.trang_thai_xu_ly === currentStatus));
+  const unmatched = await api.getWarrantyList({ search: '', status: 'HOAN_TAT' }, 1, 20);
+  assert.ok(unmatched.items.every(item => item.trang_thai_xu_ly === 'HOAN_TAT'));
 });
 
 test('existing eleven mutation routes use documented bodies and idempotent replay over HTTP', async () => {

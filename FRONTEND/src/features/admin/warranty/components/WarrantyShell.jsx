@@ -155,6 +155,7 @@ export function WarrantyDialog({
       className="w-warranty-dialog"
       aria-labelledby={titleId}
       onCancel={(event) => {
+        if (event.target !== event.currentTarget) return;
         event.preventDefault();
         if (!blocked) onClose();
       }}

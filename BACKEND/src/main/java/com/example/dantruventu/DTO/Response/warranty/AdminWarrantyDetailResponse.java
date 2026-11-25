@@ -126,7 +126,8 @@ public record AdminWarrantyDetailResponse(
       Long id,
       String loai,
       @JsonProperty("so_tien") BigDecimal soTien,
-      @JsonProperty("phieu_thu_chi_id") Long phieuThuChiId) {}
+      @JsonProperty("phieu_thu_chi_id") Long phieuThuChiId,
+      @JsonProperty("ma_phieu_thu_chi") String maPhieuThuChi) {}
 
   @JsonInclude(JsonInclude.Include.ALWAYS)
   public record HistoryDetail(
