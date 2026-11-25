@@ -1,5 +1,5 @@
 // Top-level application switch between admin and storefront experiences.
-import { lazy, Suspense } from 'react';
+import { lazy, Suspense, useEffect } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import '../styles/index.css';
 import '../typography/buttonTypography.css';
@@ -17,6 +17,15 @@ export default function App() {
     pathname.startsWith('/admin/') ||
     pathname === '/kho-hang' ||
     pathname.startsWith('/kho-hang/');
+
+  const pageTitle =
+    isAdminRoute && currentAccount?.id
+      ? 'Ruventu Admin - Quản trị hệ thống'
+      : 'Ruventu - PC, LAPTOP & linh kiện công nghệ chính hãng';
+
+  useEffect(() => {
+    document.title = pageTitle;
+  }, [pageTitle]);
 
   if (isAdminRoute && !currentAccount?.id) {
     return <Navigate to="/login" replace state={{ from: pathname }} />;
