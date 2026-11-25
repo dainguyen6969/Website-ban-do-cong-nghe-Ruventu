@@ -712,6 +712,21 @@ public class OrderSaleSnapshotService {
         warning);
   }
 
+    public AdminSalesResponse.OrderTax orderTax(List<ChiTietDonHang> lines) {
+        for (var line : lines) {
+            if (Boolean.TRUE.equals(line.getLaQuaTang())) continue;
+
+            var snapshot = readLine(line);
+            if (snapshot != null
+                    && snapshot.taxEnabled() != null
+                    && ("DA_BAO_GOM".equals(snapshot.taxMode()) || "CHUA_BAO_GOM".equals(snapshot.taxMode()))) {
+                return new AdminSalesResponse.OrderTax(snapshot.taxEnabled(), snapshot.taxMode());
+            }
+        }
+
+        return null;
+    }
+
   public AdminDeliveryResponse.ProductData product(ChiTietDonHang line) {
     var result = new AdminDeliveryResponse.ProductData();
 

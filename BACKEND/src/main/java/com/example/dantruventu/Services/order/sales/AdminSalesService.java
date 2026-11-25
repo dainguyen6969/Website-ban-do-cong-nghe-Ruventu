@@ -784,6 +784,8 @@ public class AdminSalesService {
 
     var lines = orderLineRepository.findByDonHang_IdOrderByIdAsc(order.getId());
 
+    response.setThue(saleSnapshots.orderTax(lines));
+
     var images =
         catalogSupport.primaryImages(
             lines.stream()
