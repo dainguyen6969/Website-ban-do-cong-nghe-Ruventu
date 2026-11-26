@@ -1,7 +1,7 @@
 // Admin product screen: ChiTietSanPham.
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { HiOutlineArrowLeft, HiOutlinePencilAlt, HiOutlineOfficeBuilding } from 'react-icons/hi';
+import { HiOutlinePencilAlt, HiOutlineOfficeBuilding } from 'react-icons/hi';
 import FormCard from '../../../../../shared/components/ui/FormCard';
 import LoadingSpinner from '../../../../../shared/components/ui/LoadingSpinner';
 import DetailTablePagination from '../../../../../shared/components/ui/DetailTablePagination';
@@ -15,6 +15,7 @@ import { hasAdminPermission } from '../../../../../auth/roleModel';
 import { useAdminPermissions } from '../../../../../shared/components/ui/PermissionGate';
 
 import './ChiTietSanPham.css';
+import AdminPageAction from '../../../../../shared/components/ui/AdminPageAction';
 
 const money = (value) => `${Number(value || 0).toLocaleString('vi-VN')}đ`;
 const total = (items, field) => items.reduce((sum, item) => sum + Number(item[field] || 0), 0);
@@ -124,18 +125,14 @@ export default function ChiTietSanPham() {
             <StatusPill>{product.trangThaiBan}</StatusPill>
           </div>
         </div>
-        <div className="detail-hero__actions">
-          <button
-            className="detail-btn detail-btn--outline"
+        <div className="detail-hero__actions admin-page-actions">
+          <AdminPageAction
+            icon="back"
             onClick={() => navigate('/admin/san-pham/danh-sach-san-pham')}
           >
-            <HiOutlineArrowLeft />
             Quay lại
-          </button>
-          <button className="detail-btn detail-btn--red" disabled={!canEdit} onClick={edit}>
-            <HiOutlinePencilAlt />
-            Sửa sản phẩm
-          </button>
+          </AdminPageAction>
+          <AdminPageAction variant="operation" icon="edit" disabled={!canEdit} onClick={edit}>Sửa sản phẩm</AdminPageAction>
         </div>
       </section>
 

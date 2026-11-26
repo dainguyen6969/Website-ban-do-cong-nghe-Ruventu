@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate, Link } from 'react-router-dom';
-import { HiOutlineArrowLeft, HiOutlinePlus, HiOutlineSearch, HiOutlineX } from 'react-icons/hi';
+import { HiOutlineSearch, HiOutlineX } from 'react-icons/hi';
 
 import FilterDropdown, { FormDropdown } from '../../../../shared/components/ui/FilterDropdown';
 import TablePagination from '../../../../shared/components/ui/TablePagination';
@@ -14,6 +14,7 @@ import { hasAdminPermission } from '../../../../auth/roleModel';
 import { useAdminPermissions } from '../../../../shared/components/ui/PermissionGate';
 
 import './DoiTacVanChuyen.css';
+import AdminPageAction from '../../../../shared/components/ui/AdminPageAction';
 
 const ROUTE = '/admin/khach-hang-doi-tac/doi-tac-van-chuyen';
 const PATH = '/api/v1/admin/shipping-partners';
@@ -516,15 +517,14 @@ export default function DoiTacVanChuyen() {
               <p>QUẢN LÝ ĐỐI TÁC GIAO HÀNG VÀ LỊCH SỬ PHIẾU GIAO</p>
             </div>
 
-            <button
-              type="button"
-              className="partner-btn partner-btn--black"
+            <AdminPageAction
+              variant="primary"
+              icon="add"
               disabled={busy || !canCreatePartner}
               onClick={openAdd}
             >
-              <HiOutlinePlus />
               THÊM ĐỐI TÁC
-            </button>
+            </AdminPageAction>
           </section>
 
           {successMessage && <SuccessBanner message={successMessage} />}
@@ -879,25 +879,23 @@ function PartnerDetail({ partner, revision, busy, successMessage, onBack, onActi
           <h1>{partner.ten_doi_tac}</h1>
         </div>
 
-        <div className="partner-detail-actions">
-          <button
-            type="button"
-            className="partner-btn partner-btn--outline"
+        <div className="partner-detail-actions admin-page-actions">
+          <AdminPageAction
+            icon="back"
             disabled={busy}
             onClick={onBack}
           >
-            <HiOutlineArrowLeft />
             QUAY LẠI
-          </button>
+          </AdminPageAction>
 
-          <button
-            type="button"
-            className={`partner-btn partner-btn--outline-${active ? 'danger' : 'success'}`}
+          <AdminPageAction
+            variant={active ? 'danger' : 'operation'}
+            icon={active ? 'stop' : 'restore'}
             disabled={!canEdit || busy || status == null}
             onClick={onAction}
           >
             {active ? 'NGỪNG HOẠT ĐỘNG' : 'KHÔI PHỤC HOẠT ĐỘNG'}
-          </button>
+          </AdminPageAction>
         </div>
       </section>
 

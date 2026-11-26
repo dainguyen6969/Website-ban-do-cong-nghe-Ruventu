@@ -10,6 +10,7 @@ import { withIdempotency } from '../../../../shared/services/mutationUtils';
 import './StockCheckFlow.css';
 import { hasAdminPermission } from '../../../../auth/roleModel';
 import { useAdminPermissions } from '../../../../shared/components/ui/PermissionGate';
+import AdminPageAction from '../../../../shared/components/ui/AdminPageAction';
 
 const formatDate = (value, withTime = false) => {
   if (!value) return '—';
@@ -154,13 +155,12 @@ export default function ChiTietPhieuKiemHang() {
         </nav>
         <div className="stock-detail-title-row">
           <div>
-            <button
-              type="button"
-              className="stock-action outline"
+            <AdminPageAction
+              icon="back"
               onClick={() => navigate('/kho-hang/kiem-hang')}
             >
-              ‹ &nbsp; QUAY LẠI DANH SÁCH
-            </button>
+              QUAY LẠI DANH SÁCH
+            </AdminPageAction>
             <h1>{check.ma_phieu}</h1>
             <span
               className={`stock-check-status stock-check-status--${statusClass(check.trang_thai)}`}
@@ -169,29 +169,27 @@ export default function ChiTietPhieuKiemHang() {
             </span>
           </div>
           {isOpen && (canEditCheck || canFinalizeCheck) && (
-            <div className="stock-detail-actions">
+            <div className="stock-detail-actions admin-page-actions">
               {canEditCheck && (
-                <button
-                  type="button"
-                  className="stock-action outline"
+                <AdminPageAction
+                  variant="operation"
+                  icon="edit"
                   onClick={() => navigate(`/kho-hang/kiem-hang/${check.id}/chinh-sua`)}
                 >
                   CHỈNH SỬA
-                </button>
+                </AdminPageAction>
               )}
 
               {canFinalizeCheck && (
                 <>
-                  <button
-                    type="button"
-                    className="stock-action outline red-text"
+                  <AdminPageAction
+                    variant="danger"
+                    icon="cancel"
                     onClick={() => setCancelModal(true)}
                   >
                     HỦY PHIẾU
-                  </button>
-                  <button type="button" className="stock-action black" onClick={openBalance}>
-                    CÂN BẰNG KHO
-                  </button>
+                  </AdminPageAction>
+                  <AdminPageAction variant="operation" icon="approve" onClick={openBalance}>CÂN BẰNG KHO</AdminPageAction>
                 </>
               )}
             </div>

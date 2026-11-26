@@ -14,6 +14,7 @@ import { hasAdminPermission } from '../../../../../auth/roleModel';
 import { useAdminPermissions } from '../../../../../shared/components/ui/PermissionGate';
 
 import './ComboSanPham.css';
+import AdminPageAction from '../../../../../shared/components/ui/AdminPageAction';
 
 const money = (value) => `${Number(value || 0).toLocaleString('vi-VN')}đ`;
 const isActive = (product) =>
@@ -366,20 +367,21 @@ export default function ThemComboSanPham() {
           </div>
           <h1>{editId ? 'SỬA COMBO SẢN PHẨM' : 'THÊM COMBO SẢN PHẨM'}</h1>
         </div>
-        <div className="heading-actions">
-          <button
-            className="combo-outline-btn"
+        <div className="heading-actions admin-page-actions">
+          <AdminPageAction
+            icon="cancel"
             onClick={() => navigate('/kho-hang/combo-san-pham')}
           >
             HỦY
-          </button>
-          <button
-            className="combo-primary-btn"
+          </AdminPageAction>
+          <AdminPageAction
+            variant="primary"
+            icon="save"
             disabled={loading || !canSaveCombo}
             onClick={submit}
           >
-            {editId ? 'LƯU THAY ĐỔI' : 'LƯU COMBO'}
-          </button>
+            {editId ? "LƯU THAY ĐỔI" : "LƯU COMBO"}
+          </AdminPageAction>
         </div>
       </div>
       {serverError && <small className="component-error">{serverError}</small>}

@@ -2,8 +2,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
-  HiOutlineUpload,
-  HiOutlinePlus,
   HiOutlineSearch,
   HiOutlineFilter,
   HiOutlineEye,
@@ -21,6 +19,7 @@ import { hasAdminPermission } from '../../../../../auth/roleModel';
 import { useAdminPermissions } from '../../../../../shared/components/ui/PermissionGate';
 
 import './DanhSachSanPham.css';
+import AdminPageAction from '../../../../../shared/components/ui/AdminPageAction';
 
 const productTypeOptions = ['Tất cả loại sản phẩm', 'Sản phẩm đơn', 'Theo bộ (Combo)'];
 
@@ -257,20 +256,17 @@ export default function DanhSachSanPham() {
     <main className="product-page admin-list-page" role="main">
       {/* 2. Action button band */}
       <div className="product-actions-band">
-        <div className="product-actions-band__content">
-          <button className="btn-product-band btn-product-band--white" id="btn-import-excel">
-            <HiOutlineUpload size={16} />
-            <span>NHẬP EXCEL</span>
-          </button>
-          <button
-            className="btn-product-band btn-product-band--red"
+        <div className="product-actions-band__content admin-page-actions">
+          <AdminPageAction icon="upload" id="btn-import-excel"><span>NHẬP EXCEL</span></AdminPageAction>
+          <AdminPageAction
+            variant="primary"
+            icon="add"
             id="btn-add-product-band"
             disabled={!canCreateProduct}
             onClick={() => navigate('/admin/san-pham/them-san-pham')}
           >
-            <HiOutlinePlus size={16} />
             <span>THÊM SẢN PHẨM</span>
-          </button>
+          </AdminPageAction>
         </div>
       </div>
 

@@ -8,6 +8,7 @@ import {
   createDisbursementType,
   DISBURSEMENT_TYPE_STATUS,
 } from '../api/disbursementTypeApi';
+import AdminPageAction from '../../../../shared/components/ui/AdminPageAction';
 
 export default function DanhSachLoaiPhieuChi() {
   const navigate = useNavigate();
@@ -125,12 +126,13 @@ export default function DanhSachLoaiPhieuChi() {
         SỔ QUỸ TIỀN MẶT / LOẠI PHIẾU CHI
       </div>
 
-      <button
-        className="pt-btn-create"
+      <AdminPageAction
+        variant="primary"
+        icon="add"
         onClick={handleOpenModal}
       >
-        + THÊM LOẠI PHIẾU CHI
-      </button>
+        THÊM LOẠI PHIẾU CHI
+      </AdminPageAction>
     </div>
 
     {/* Giữ tiêu đề từ main-test */}

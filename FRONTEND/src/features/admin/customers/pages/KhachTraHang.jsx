@@ -15,7 +15,6 @@ import {
   CheckCircle2,
   AlertTriangle,
   ExternalLink,
-  RefreshCw,
   Phone,
   Info,
   DollarSign,
@@ -49,6 +48,7 @@ import { hasAdminPermission, hasSystemAdminPermission } from '../../../../auth/r
 import { useAdminPermissions } from '../../../../shared/components/ui/PermissionGate';
 
 import './KhachTraHang.css';
+import AdminPageAction from '../../../../shared/components/ui/AdminPageAction';
 
 const LIST_ROUTE = '/admin/don-hang/khach-tra-hang';
 const ORDER_DETAIL_ROUTE = '/admin/don-hang/danh-sach-don-hang';
@@ -279,14 +279,14 @@ function ReturnList() {
           <h1>KHÁCH TRẢ HÀNG</h1>
           <p>Theo dõi phiếu, người liên hệ và quyền trả hàng từ dữ liệu hệ thống.</p>
         </div>
-        <button
-          type="button"
-          className="return-btn return-btn--black"
+        <AdminPageAction
+          variant="primary"
+          icon="add"
           disabled={!canCreateReturn}
           onClick={() => setSelecting(true)}
         >
-          + LẬP PHIẾU TRẢ HÀNG
-        </button>
+          LẬP PHIẾU TRẢ HÀNG
+        </AdminPageAction>
       </section>
 
       {/* Filter Bar */}
@@ -985,9 +985,7 @@ function CreateReturn({ initialOrderId }) {
             </div>
           )}
         </div>
-        <button className="return-btn return-btn--outline" onClick={() => navigate(LIST_ROUTE)}>
-          QUAY LẠI DANH SÁCH
-        </button>
+        <AdminPageAction icon="back" onClick={() => navigate(LIST_ROUTE)}>QUAY LẠI DANH SÁCH</AdminPageAction>
       </section>
 
       {/* Block reason notice if any */}
@@ -1949,31 +1947,25 @@ function ReturnDetail({ returnId }) {
           </div>
         </div>
 
-        <div className="w-shell-actions">
-          <button type="button" className="w-shell-button" onClick={() => navigate(LIST_ROUTE)}>
-            <ArrowLeft size={15} /> Danh sách
-          </button>
-          <button type="button" className="w-shell-button" onClick={handleReload}>
-            <RefreshCw size={15} /> Tải lại
-          </button>
+        <div className="w-shell-actions admin-page-actions">
+          <AdminPageAction icon="back" onClick={() => navigate(LIST_ROUTE)}>Danh sách</AdminPageAction>
+          <AdminPageAction icon="reload" onClick={handleReload}>Tải lại</AdminPageAction>
           {detail.don_hang?.id && (
-            <button
-              type="button"
-              className="w-shell-button"
+            <AdminPageAction
+              icon="open"
               onClick={() => navigate(`${ORDER_DETAIL_ROUTE}/${detail.don_hang.id}`)}
             >
-              <ExternalLink size={15} /> Xem đơn gốc
-            </button>
+              Xem đơn gốc
+            </AdminPageAction>
           )}
           {canReceiveReturn && statusVal === 'CHO_TIEP_NHAN' && (
-            <button
-              type="button"
-              className={`w-shell-button ${showTH007 ? 'w-shell-button--red' : 'w-shell-button--black'}`}
+            <AdminPageAction
+              variant={showTH007 ? 'secondary' : 'operation'}
+              icon={showTH007 ? 'cancel' : 'receive'}
               onClick={() => setShowTH007((prev) => !prev)}
             >
-              <Package size={15} />
               {showTH007 ? 'Đóng tiếp nhận' : 'Tiếp nhận kiện'}
-            </button>
+            </AdminPageAction>
           )}
 
           {canCancelReturn && (

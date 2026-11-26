@@ -1068,7 +1068,7 @@
   max-width: 260px;
 }
 
-.admin-order-detail .order-detail-hero__actions .order-handover-action > .order-action {
+.admin-order-detail .order-detail-hero__actions .order-handover-action > .admin-page-action-btn {
   align-self: flex-start;
 }
 

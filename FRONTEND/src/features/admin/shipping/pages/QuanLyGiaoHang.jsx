@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import AdminLink from '../../../../shared/components/ui/AdminLink';
-import { HiOutlineArrowRight, HiOutlineEye, HiOutlineRefresh, HiOutlineSearch } from 'react-icons/hi';
+import { HiOutlineArrowRight, HiOutlineEye, HiOutlineSearch } from 'react-icons/hi';
 
 import { apiRequest } from '../../../../auth/backendAuth';
 
@@ -34,6 +34,7 @@ import {
 } from '../../../../shared/services/mutationUtils';
 
 import './QuanLyGiaoHang.css';
+import AdminPageAction from '../../../../shared/components/ui/AdminPageAction';
 
 const API = '/api/v1/admin/deliveries';
 const LIST = '/admin/don-hang/quan-ly-giao-hang';
@@ -274,16 +275,15 @@ function ShipmentList() {
           ))}
         </FilterDropdown>
 
-        <button
-          type="button"
-          className="delivery-list-refresh"
+        <AdminPageAction
+          icon="reload"
           aria-label="Tải lại danh sách giao hàng"
           title="Tải lại"
           disabled={state.loading || partners.loading}
           onClick={reload}
         >
-          <HiOutlineRefresh size={16} aria-hidden="true" />
-        </button>
+          TẢI LẠI
+        </AdminPageAction>
       </div>
 
       {partners.error && (
@@ -737,14 +737,13 @@ function ShipmentDetail({ id }) {
           <h1 className="delivery-detail-code">{delivery.ma_phieu_giao_hang}</h1>
         </div>
 
-        <button
-          type="button"
-          className="delivery-back"
+        <AdminPageAction
+          icon="back"
           disabled={busy}
           onClick={() => navigate(LIST)}
         >
-          ← QUAY LẠI
-        </button>
+          QUAY LẠI
+        </AdminPageAction>
       </header>
 
       <div className="delivery-detail-inner">

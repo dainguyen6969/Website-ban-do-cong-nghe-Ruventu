@@ -4,7 +4,6 @@ import { useNavigate } from 'react-router-dom';
 import {
   HiOutlineChevronDown,
   HiOutlineChevronUp,
-  HiOutlinePlus,
   HiOutlineSearch,
 } from 'react-icons/hi';
 import TablePagination from '../../../../shared/components/ui/TablePagination';
@@ -13,6 +12,7 @@ import { getInventoryCheckPage } from '../api/inventoryCheckApi';
 import './KiemHang.css';
 import { hasAdminPermission } from '../../../../auth/roleModel';
 import { useAdminPermissions } from '../../../../shared/components/ui/PermissionGate';
+import AdminPageAction from '../../../../shared/components/ui/AdminPageAction';
 
 const PAGE_SIZE = 10;
 const initialFilters = { keyword: '', status: '', checkerId: '', fromDate: '', toDate: '' };
@@ -89,13 +89,13 @@ export default function KiemHang() {
           <h1>DANH SÁCH PHIẾU KIỂM HÀNG</h1>
         </div>
         {canCreateCheck && (
-          <button
-            type="button"
-            className="stock-check-button stock-check-button--primary"
+          <AdminPageAction
+            variant="primary"
+            icon="add"
             onClick={() => navigate('/kho-hang/kiem-hang/tao-moi')}
           >
-            <HiOutlinePlus aria-hidden="true" /> TẠO PHIẾU KIỂM HÀNG
-          </button>
+            TẠO PHIẾU KIỂM HÀNG
+          </AdminPageAction>
         )}
       </header>
 

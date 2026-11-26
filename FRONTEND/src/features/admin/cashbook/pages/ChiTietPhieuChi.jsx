@@ -9,6 +9,7 @@ import LoadingSpinner from '../../../../shared/components/ui/LoadingSpinner';
 import { hasAdminPermission } from '../../../../auth/roleModel';
 import { useAdminPermissions } from '../../../../shared/components/ui/PermissionGate';
 import './ChiTietPhieu.css';
+import AdminPageAction from '../../../../shared/components/ui/AdminPageAction';
 
 export default function ChiTietPhieuChi() {
   const { id } = useParams();
@@ -193,9 +194,7 @@ export default function ChiTietPhieuChi() {
           </div>
 
           {canCancelVoucher && (
-            <button className="ctp-btn-cancel-action" onClick={() => setShowCancelModal(true)}>
-              HỦY PHIẾU CHI
-            </button>
+            <AdminPageAction variant="danger" compact icon="cancel" onClick={() => setShowCancelModal(true)}>HỦY PHIẾU CHI</AdminPageAction>
           )}
         </div>
 

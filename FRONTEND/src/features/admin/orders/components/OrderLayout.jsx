@@ -1,9 +1,9 @@
 // Shared layout for admin order screens.
 import { Link, useLocation, useNavigate, Outlet } from 'react-router-dom';
-import { HiOutlineClipboardList, HiOutlineDownload, HiOutlinePlus } from 'react-icons/hi';
 import '../../../../shared/components/layout/MainContent.css';
 import { canOpenAdminPath } from '../../../../auth/roleModel';
 import { useAdminPermissions } from '../../../../shared/components/ui/PermissionGate';
+import AdminPageAction from '../../../../shared/components/ui/AdminPageAction';
 
 const tabs = [
   {
@@ -85,18 +85,16 @@ export default function OrderLayout() {
             <h1>DANH SÁCH ĐƠN HÀNG</h1>
             <p>QUẢN LÝ TOÀN BỘ ĐƠN ONLINE VÀ TẠI QUẦY</p>
           </div>
-          <div className="order-list-actions" role="group" aria-label="Thao tác đơn hàng">
-            <Link className="order-waiting-button" to="/admin/don-hang/cho-hang-can-xu-ly">
-              <HiOutlineClipboardList size={16} aria-hidden="true" /> ĐƠN CHỜ HÀNG CẦN XỬ LÝ
-            </Link>
+          <div className="order-list-actions admin-page-actions" role="group" aria-label="Thao tác đơn hàng">
+            <AdminPageAction as={Link} compact icon="list" to="/admin/don-hang/cho-hang-can-xu-ly">ĐƠN CHỜ HÀNG CẦN XỬ LÝ</AdminPageAction>
             {canCreateOrder && (
-              <button
-                className="order-create-button"
-                type="button"
+              <AdminPageAction
+                variant="primary"
+                icon="add"
                 onClick={() => navigate(createOrderPath)}
               >
-                <HiOutlinePlus size={16} /> TẠO ĐƠN CHỜ HÀNG
-              </button>
+                TẠO ĐƠN CHỜ HÀNG
+              </AdminPageAction>
             )}
           </div>
         </section>
@@ -123,22 +121,18 @@ export default function OrderLayout() {
       {/* Page title + action buttons */}
       <div className="content__title-row">
         <h1 className="content__title">QUẢN LÝ ĐƠN HÀNG</h1>
-        <div className="content__actions">
-          <button className="btn btn--outline" id="btn-export-excel">
-            <HiOutlineDownload size={16} />
-            <span>XUẤT EXCEL</span>
-          </button>
+        <div className="content__actions admin-page-actions">
+          <AdminPageAction variant="utility" icon="download" id="btn-export-excel">Xuất Excel</AdminPageAction>
 
           {canCreateOrder && (
-            <button
-              className="btn btn--primary"
+            <AdminPageAction
+              variant="primary"
+              icon="add"
               id="btn-dat-hang-online"
-              type="button"
               onClick={() => navigate(createOrderPath)}
             >
-              <HiOutlinePlus size={16} />
-              <span>TẠO ĐƠN CHỜ HÀNG</span>
-            </button>
+              TẠO ĐƠN CHỜ HÀNG
+            </AdminPageAction>
           )}
         </div>
       </div>

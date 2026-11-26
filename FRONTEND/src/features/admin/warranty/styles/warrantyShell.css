@@ -1264,6 +1264,10 @@
   min-height: 84px;
   padding-block: 14px;
 }
+
+.w-intake > .w-shell-hero > .admin-page-action-btn {
+  margin-inline-start: auto;
+}
 .w-intake--reception .w-shell-breadcrumb {
   margin-bottom: 6px;
 }
@@ -2136,10 +2140,6 @@
   border: 1px solid var(--w-ticket-line);
   background: #f6f7f9;
 }
-.w-warranty-detail .w-operation-note summary {
-  cursor: pointer;
-  font-weight: var(--admin-weight-semibold, 600);
-}
 .w-warranty-detail .w-operation-note p {
   margin: 6px 0 0;
   color: var(--w-ticket-muted);
@@ -2188,6 +2188,24 @@
 
 .w-warranty-detail .w-warranty-dialog .w-intake-field > textarea {
   min-height: 64px;
+}
+
+.w-action-form .w-intake-picker-field {
+  margin: 0;
+}
+.w-send-fields > :is(.w-intake-picker-field, .w-intake-field:has(> textarea)) {
+  grid-column: 1 / -1;
+}
+.w-warranty-detail .w-warranty-dialog .w-send-fields > .w-intake-field > :is(input, select, strong) {
+  box-sizing: border-box;
+  min-height: 42px;
+}
+.w-send-fields > .w-intake-field > strong {
+  align-content: center;
+  padding: 7px 10px;
+  border: 1px solid var(--w-ticket-line);
+  background: #f6f7f9;
+  font-size: var(--w-ticket-body);
 }
 
 .w-warranty-detail

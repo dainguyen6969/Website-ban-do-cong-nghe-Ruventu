@@ -1,6 +1,5 @@
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import AdminLink from '../../../../shared/components/ui/AdminLink';
-import { HiOutlineArrowLeft } from 'react-icons/hi';
 import DetailTablePagination from '../../../../shared/components/ui/DetailTablePagination';
 import LoadingSpinner from '../../../../shared/components/ui/LoadingSpinner';
 import useDetailTablePagination from '../../../../hooks/useDetailTablePagination';
@@ -60,6 +59,7 @@ import { FormDropdown } from '../../../../shared/components/ui/FilterDropdown';
 
 import { hasAdminPermission, hasSystemAdminPermission } from '../../../../auth/roleModel';
 import { useAdminPermissions } from '../../../../shared/components/ui/PermissionGate';
+import AdminPageAction from '../../../../shared/components/ui/AdminPageAction';
 
 function OrderProductImage({ item }) {
   const [failedUrl, setFailedUrl] = useState(null);
@@ -1059,9 +1059,9 @@ function OrderDetailView({ orderId }) {
           </div>
         </div>
 
-        <div className="order-detail-hero__actions">
+        <div className="order-detail-hero__actions admin-page-actions">
           {canEditOnlineOrder(order) && (
-            <Action
+            <Action icon="edit"
               adminOnly={false}
               disabled={state.busy}
               click={() => navigate(`/admin/don-hang/dat-hang-online/${order.id}`)}
@@ -1075,14 +1075,14 @@ function OrderDetailView({ orderId }) {
             isShipping &&
             (!activeDelivery || activeDelivery.trang_thai_giao_hang === 'CHO_GIAO') && (
               <div className="order-handover-action">
-                <button
-                  type="button"
-                  className="order-action order-action--black"
+                <AdminPageAction
+                  variant="operation"
+                  icon="truck"
                   disabled={state.busy || !canStartDelivery}
                   onClick={beginDelivery}
                 >
                   BẮT ĐẦU GIAO HÀNG
-                </button>
+                </AdminPageAction>
 
                 {!canStartDelivery && (
                   <small className="order-handover-warning" role="status">
@@ -1097,14 +1097,14 @@ function OrderDetailView({ orderId }) {
             ['CHUA_THANH_TOAN', 'THANH_TOAN_MOT_PHAN', 'DA_THANH_TOAN'].includes(
               order.trang_thai_thanh_toan
             ) && (
-              <Action disabled={state.busy} click={approve}>
+              <Action icon="approve" disabled={state.busy} click={approve}>
                 DUYỆT ĐƠN
               </Action>
             )}
 
           {openOnlineOrder && isPickup && (
             <div className="order-handover-action">
-              <Action
+              <Action icon="approve"
                 disabled={state.busy || !canConfirmPickup}
                 click={() => open('pickup', 'XÁC NHẬN KHÁCH ĐÃ NHẬN TẠI CỬA HÀNG')}
               >
@@ -1122,7 +1122,7 @@ function OrderDetailView({ orderId }) {
           {openOnlineOrder &&
             isShipping &&
             activeDelivery?.trang_thai_giao_hang === 'DA_NHAN_HANG' && (
-              <Action disabled={state.busy} click={() => deliveryStatus('DANG_GIAO')}>
+              <Action icon="truck" disabled={state.busy} click={() => deliveryStatus('DANG_GIAO')}>
                 XÁC NHẬN ĐANG GIAO
               </Action>
             )}
@@ -1130,7 +1130,7 @@ function OrderDetailView({ orderId }) {
           {openOnlineOrder &&
             isShipping &&
             activeDelivery?.trang_thai_giao_hang === 'DANG_GIAO' && (
-              <Action disabled={state.busy} click={() => deliveryStatus('GIAO_THANH_CONG')}>
+              <Action icon="approve" disabled={state.busy} click={() => deliveryStatus('GIAO_THANH_CONG')}>
                 KHÁCH ĐÃ NHẬN HÀNG
               </Action>
             )}
@@ -1140,7 +1140,7 @@ function OrderDetailView({ orderId }) {
             ['CHO_DUYET', 'CHO_HANG', 'CHO_THANH_TOAN', 'CHO_DONG_GOI'].includes(
               order.trang_thai_don_hang
             ) && (
-              <Action
+              <Action icon="cancel"
                 danger
                 disabled={state.busy}
                 click={() => {
@@ -1154,7 +1154,7 @@ function OrderDetailView({ orderId }) {
             )}
 
           {canCancelBeforeHandover ? (
-            <Action
+            <Action icon="cancel"
               danger
               disabled={state.busy || Boolean(orderAttempt.current)}
               click={() => open('cancelBeforeHandover', 'HỦY ĐƠN VÀ NHẬN LẠI HÀNG')}
@@ -1167,19 +1167,17 @@ function OrderDetailView({ orderId }) {
             ['CHO_DONG_GOI', 'CHO_LAY_HANG', 'DANG_GIAO_HANG'].includes(
               order.trang_thai_don_hang
             ) && (
-              <button className="order-action order-action--back" type="button" disabled>
-                ĐƠN ĐÃ XUẤT KHO - KHÔNG THỂ HỦY TRỰC TIẾP
-              </button>
+              <AdminPageAction variant="danger" icon="stop" disabled>ĐƠN ĐÃ XUẤT KHO - KHÔNG THỂ HỦY TRỰC TIẾP</AdminPageAction>
             )
           )}
 
-          <button
-            type="button"
-            className="order-action order-action--back"
+          <AdminPageAction
+            variant="utility"
+            icon="back"
             onClick={backToOrderList}
           >
-            <HiOutlineArrowLeft size={14} /> QUAY LẠI DANH SÁCH
-          </button>
+            Quay lại danh sách
+          </AdminPageAction>
         </div>
       </header>
 
@@ -2386,6 +2384,7 @@ function getPaymentMethodBadgeClass(method) {
 function Action({
   children,
   click,
+  icon,
   danger = false,
   secondary = false,
   disabled = false,
@@ -2397,6 +2396,19 @@ function Action({
     : hasAdminPermission(access, 'don_hang', 'sua');
 
   if (!allowed) return null;
+
+  if (icon) {
+    return (
+      <AdminPageAction
+        variant={danger ? 'danger' : secondary ? 'secondary' : 'operation'}
+        icon={icon}
+        disabled={disabled}
+        onClick={click}
+      >
+        {children}
+      </AdminPageAction>
+    );
+  }
 
   return (
     <button

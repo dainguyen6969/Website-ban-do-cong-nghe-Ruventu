@@ -1,7 +1,7 @@
 // Admin inventory screen: ChiTietTonKho.
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
-import { HiOutlineArrowLeft, HiOutlineHome } from 'react-icons/hi';
+import { HiOutlineHome } from 'react-icons/hi';
 import DetailTablePagination from '../../../../shared/components/ui/DetailTablePagination';
 import FilterDropdown from '../../../../shared/components/ui/FilterDropdown';
 import useDetailTablePagination from '../../../../hooks/useDetailTablePagination';
@@ -9,6 +9,7 @@ import LoadingSpinner from '../../../../shared/components/ui/LoadingSpinner';
 import { getVersionDetail, getVersionLedger } from '../../catalog/products/api/versionApi';
 import './ChiTietTonKho.css';
 import '../recall/Recall.css';
+import AdminPageAction from '../../../../shared/components/ui/AdminPageAction';
 
 const transactionOptions = [
   'Tất cả',
@@ -133,9 +134,7 @@ export default function ChiTietTonKho() {
         <div className="inventory-detail__inner">
           <div className="inventory-detail__title-row">
             <h1>CHI TIẾT TỒN KHO &amp; THẺ KHO</h1>
-            <button type="button" onClick={() => navigate('/kho-hang/quan-ly-phien-ban')}>
-              <HiOutlineArrowLeft size={16} aria-hidden="true" /> QUAY LẠI
-            </button>
+            <AdminPageAction icon="back" onClick={() => navigate('/kho-hang/quan-ly-phien-ban')}>QUAY LẠI</AdminPageAction>
           </div>
           <section className="inventory-card">
             {loading ? (
@@ -171,9 +170,7 @@ export default function ChiTietTonKho() {
 
         <div className="inventory-detail__title-row">
           <h1>CHI TIẾT TỒN KHO &amp; THẺ KHO</h1>
-          <button type="button" onClick={() => navigate('/kho-hang/quan-ly-phien-ban')}>
-            <HiOutlineArrowLeft size={16} aria-hidden="true" /> QUAY LẠI
-          </button>
+          <AdminPageAction icon="back" onClick={() => navigate('/kho-hang/quan-ly-phien-ban')}>QUAY LẠI</AdminPageAction>
         </div>
 
         <section className="inventory-card inventory-product-card">

@@ -12,6 +12,7 @@ import { useAdminPermissions } from '../../../../shared/components/ui/Permission
 
 import './TaoKhuyenMai.css';
 import { FormDropdown } from '../../../../shared/components/ui/FilterDropdown';
+import AdminPageAction from '../../../../shared/components/ui/AdminPageAction';
 
 function buildCategoryHierarchy(rawCategories) {
   if (!rawCategories || rawCategories.length === 0) return [];
@@ -605,13 +606,13 @@ export default function TaoKhuyenMai() {
           </div>
         </div>
         <div className="create-header-right">
-          <button
-            type="button"
-            className="btn-create-back"
+          <AdminPageAction
+            variant="utility"
+            icon="back"
             onClick={() => navigate('/admin/khuyen-mai/danh-sach-khuyen-mai')}
           >
-            QUAY LẠI DANH SÁCH
-          </button>
+            Quay lại danh sách
+          </AdminPageAction>
         </div>
       </div>
 

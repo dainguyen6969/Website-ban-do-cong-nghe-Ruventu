@@ -6,6 +6,7 @@ import {
   updateReceiptTypeStatus,
   RECEIPT_TYPE_STATUS,
 } from '../api/receiptTypeApi';
+import AdminPageAction from '../../../../shared/components/ui/AdminPageAction';
 
 export default function ChiTietLoaiPhieuThu() {
   const navigate = useNavigate();
@@ -107,13 +108,9 @@ export default function ChiTietLoaiPhieuThu() {
             </span>
           </div>
           {item.status === 'HOẠT ĐỘNG' ? (
-            <button className="ctlpt-btn-stop" onClick={() => setModalType('STOP')}>
-              NGỪNG HOẠT ĐỘNG
-            </button>
+            <AdminPageAction variant="danger" icon="stop" onClick={() => setModalType('STOP')}>NGỪNG HOẠT ĐỘNG</AdminPageAction>
           ) : (
-            <button className="ctlpt-btn-reactivate" onClick={() => setModalType('REACTIVATE')}>
-              KÍCH HOẠT LẠI
-            </button>
+            <AdminPageAction variant="operation" icon="restore" onClick={() => setModalType('REACTIVATE')}>KÍCH HOẠT LẠI</AdminPageAction>
           )}
         </div>
       </div>

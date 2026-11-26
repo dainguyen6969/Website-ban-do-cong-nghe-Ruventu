@@ -17,7 +17,8 @@ import { createCashbookSourceFilters, cashbookSourceParams } from '../api/cashbo
 import { hasAdminPermission } from '../../../../auth/roleModel';
 import { useAdminPermissions } from '../../../../shared/components/ui/PermissionGate';
 
-import './DanhSachPhieuThu.css'; // Reuse CSS
+import './DanhSachPhieuThu.css';
+import AdminPageAction from '../../../../shared/components/ui/AdminPageAction'; // Reuse CSS
 
 export default function DanhSachPhieuChi() {
   const navigate = useNavigate();
@@ -201,13 +202,14 @@ export default function DanhSachPhieuChi() {
         <div className="pt-breadcrumb">
           <Link to="/admin/so-quy-tien-mat/so-quy">SỔ QUỸ TIỀN MẶT</Link> / <span>PHIẾU CHI</span>
         </div>
-        <button
-          className="pt-btn-create"
+        <AdminPageAction
+          variant="primary"
+          icon="add"
           disabled={!canCreateVoucher}
           onClick={() => navigate('/admin/so-quy-tien-mat/tao-phieu-chi')}
         >
-          + TẠO PHIẾU CHI
-        </button>
+          TẠO PHIẾU CHI
+        </AdminPageAction>
       </div>
 
       <div className="pt-header-main">

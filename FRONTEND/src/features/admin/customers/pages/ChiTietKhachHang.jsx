@@ -3,7 +3,6 @@ import { useEffect, useState, useCallback, useRef } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import LoadingSpinner from '../../../../shared/components/ui/LoadingSpinner';
 import {
-  HiOutlineArrowLeft,
   HiOutlineExternalLink,
   HiOutlineScale,
   HiOutlineSearch,
@@ -23,6 +22,7 @@ import { hasAdminPermission } from '../../../../auth/roleModel';
 import { useAdminPermissions } from '../../../../shared/components/ui/PermissionGate';
 
 import './KhachHang.css';
+import AdminPageAction from '../../../../shared/components/ui/AdminPageAction';
 
 export default function ChiTietKhachHang() {
   const navigate = useNavigate();
@@ -161,21 +161,21 @@ if (!canEditCustomer || !modalMode) return;
             <StatusBadge status={mapStatusStr(customer.trang_thai)} />
           </div>
         </div>
-        <div className="customer-detail-actions">
-          <button
-            type="button"
-            className="customer-btn customer-btn--outline"
+        <div className="customer-detail-actions admin-page-actions">
+          <AdminPageAction
+            icon="back"
             onClick={() => navigate('/admin/khach-hang-doi-tac/khach-hang')}
           >
-            <HiOutlineArrowLeft size={16} /> QUAY LẠI
-          </button>
-          <button
-            type="button"
-            className={`customer-btn customer-btn--status customer-btn--${isActive ? 'danger' : 'success'}`}
-            disabled={!canEditCustomer} onClick={() => setModalMode(isActive ? 'lock' : 'unlock')}
+            QUAY LẠI
+          </AdminPageAction>
+          <AdminPageAction
+            variant={isActive ? 'danger' : 'operation'}
+            icon={isActive ? 'lock' : 'unlock'}
+            disabled={!canEditCustomer}
+            onClick={() => setModalMode(isActive ? 'lock' : 'unlock')}
           >
             {isActive ? 'KHÓA TÀI KHOẢN' : 'MỞ TÀI KHOẢN'}
-          </button>
+          </AdminPageAction>
         </div>
       </section>
 

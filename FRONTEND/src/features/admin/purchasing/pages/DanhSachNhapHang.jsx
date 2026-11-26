@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import AdminLink from '../../../../shared/components/ui/AdminLink';
-import { HiOutlinePlus, HiOutlineSearch } from 'react-icons/hi';
+import { HiOutlineSearch } from 'react-icons/hi';
 
 import TablePagination from '../../../../shared/components/ui/TablePagination';
 import FilterDropdown from '../../../../shared/components/ui/FilterDropdown';
@@ -20,6 +20,7 @@ import { hasAdminPermission } from '../../../../auth/roleModel';
 import { useAdminPermissions } from '../../../../shared/components/ui/PermissionGate';
 
 import './NhapHang.css';
+import AdminPageAction from '../../../../shared/components/ui/AdminPageAction';
 
 // ========================================
 // Reusable Filter Dropdown
@@ -210,14 +211,13 @@ export default function DanhSachNhapHang() {
         </div>
 
         {canCreatePurchase && (
-          <button
-            type="button"
-            className="purchase-btn black"
+          <AdminPageAction
+            variant="primary"
+            icon="add"
             onClick={() => navigate('/kho-hang/nhap-hang/tao-moi')}
           >
-            <HiOutlinePlus />
             TẠO ĐƠN NHẬP HÀNG
-          </button>
+          </AdminPageAction>
         )}
       </div>
 

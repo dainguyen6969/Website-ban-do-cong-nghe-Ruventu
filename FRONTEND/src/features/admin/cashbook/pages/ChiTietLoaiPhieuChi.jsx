@@ -6,6 +6,7 @@ import {
   updateDisbursementTypeStatus,
   DISBURSEMENT_TYPE_STATUS,
 } from '../api/disbursementTypeApi';
+import AdminPageAction from '../../../../shared/components/ui/AdminPageAction';
 
 export default function ChiTietLoaiPhieuChi() {
   const navigate = useNavigate();
@@ -113,13 +114,9 @@ export default function ChiTietLoaiPhieuChi() {
             </span>
           </div>
           {item.status === DISBURSEMENT_TYPE_STATUS.active ? (
-            <button className="ctlpt-btn-stop" onClick={() => setModalType('STOP')}>
-              NGỪNG HOẠT ĐỘNG
-            </button>
+            <AdminPageAction variant="danger" icon="stop" onClick={() => setModalType('STOP')}>NGỪNG HOẠT ĐỘNG</AdminPageAction>
           ) : (
-            <button className="ctlpt-btn-reactivate" onClick={() => setModalType('REACTIVATE')}>
-              KÍCH HOẠT LẠI
-            </button>
+            <AdminPageAction variant="operation" icon="restore" onClick={() => setModalType('REACTIVATE')}>KÍCH HOẠT LẠI</AdminPageAction>
           )}
         </div>
       </div>

@@ -1,9 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useLocation, useNavigate, Link } from 'react-router-dom';
 import {
-  HiOutlineArrowLeft,
   HiOutlineExternalLink,
-  HiOutlinePlus,
   HiOutlineScale,
   HiOutlineSearch,
   HiOutlineTrendingDown,
@@ -26,6 +24,7 @@ import { canOpenAdminPath, hasAdminPermission } from '../../../../auth/roleModel
 import { useAdminPermissions } from '../../../../shared/components/ui/PermissionGate';
 
 import './NhaCungCap.css';
+import AdminPageAction from '../../../../shared/components/ui/AdminPageAction';
 
 const PAGE_SIZE = 10;
 const LIST_PATH = '/admin/khach-hang-doi-tac/nha-cung-cap';
@@ -328,14 +327,14 @@ export default function NhaCungCap() {
               <h1>DANH SÁCH NHÀ CUNG CẤP</h1>
               <p>QUẢN LÝ ĐỐI TÁC CUNG ỨNG VÀ LỊCH SỬ NHẬP HÀNG</p>
             </div>
-            <button
-              className="supplier-btn supplier-btn--black"
+            <AdminPageAction
+              variant="primary"
+              icon="add"
               disabled={!canCreateSupplier}
               onClick={openCreate}
             >
-              <HiOutlinePlus />
               <span>THÊM NHÀ CUNG CẤP</span>
-            </button>
+            </AdminPageAction>
           </section>
           {toast && <SuccessToast message={toast} />}
           <section className="supplier-toolbar">
@@ -512,12 +511,8 @@ function SupplierDetail({ supplier, page, onPageChange, onBack, onEdit, canEdit,
           <h1>{supplier.tenNhaCungCap}</h1>
         </div>
         <div className="supplier-detail-actions">
-          <button className="supplier-btn supplier-btn--outline" onClick={onBack}>
-            <HiOutlineArrowLeft /> QUAY LẠI
-          </button>
-          <button className="supplier-btn supplier-btn--black" disabled={!canEdit} onClick={onEdit}>
-            CHỈNH SỬA
-          </button>
+          <AdminPageAction icon="back" onClick={onBack}>QUAY LẠI</AdminPageAction>
+          <AdminPageAction variant="operation" icon="edit" disabled={!canEdit} onClick={onEdit}>CHỈNH SỬA</AdminPageAction>
         </div>
       </section>
       <section className="supplier-detail-content">

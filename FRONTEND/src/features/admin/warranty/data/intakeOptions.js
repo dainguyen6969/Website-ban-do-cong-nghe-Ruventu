@@ -48,3 +48,59 @@ export const inspectionOptions = {
     ['Hướng giải quyết', ['Đủ điều kiện bảo hành miễn phí', 'Xử lý có phí sau khi khách đồng ý', 'Chuyển đơn vị bảo hành kiểm tra', 'Đề xuất đổi thiết bị', 'Chờ kết quả kiểm tra thêm']],
   ],
 };
+
+const actionReasons = {
+  YEU_CAU_DUNG: [
+    ['Yêu cầu của khách', ['Khách yêu cầu dừng xử lý', 'Khách chưa đồng ý chi phí', 'Khách muốn nhận lại thiết bị']],
+    ['Trong quá trình xử lý', ['Chưa có linh kiện thay thế', 'Phát hiện lỗi ngoài phạm vi đã thống nhất', 'Cần xác minh thêm với đơn vị bảo hành']],
+  ],
+  SAN_SANG_TRA: [
+    ['Trả thiết bị chưa sửa', ['Khách không đồng ý phương án sửa', 'Không có linh kiện thay thế', 'Không thể khắc phục lỗi', 'Chưa tái hiện được lỗi']],
+    ['Sau khi xử lý', ['Đã hoàn thành công việc', 'Đã chuẩn bị thiết bị đổi']],
+  ],
+  plan: [
+    ['Thiết bị và linh kiện', ['Thiết bị không thể sửa', 'Không có linh kiện thay thế', 'Lỗi tái diễn sau sửa', 'Đơn vị bảo hành đề nghị đổi']],
+    ['Theo thỏa thuận', ['Khách đồng ý phương án', 'Khách không đồng ý phương án', 'Phiên bản thay thế không còn hàng', 'Có phương án thay thế phù hợp hơn']],
+  ],
+  quotes: [
+    ['Lập hoặc điều chỉnh báo giá', ['Lỗi ngoài phạm vi bảo hành', 'Phát sinh linh kiện hoặc công sửa', 'Cập nhật chi phí hoặc thời gian xử lý']],
+    ['Phản hồi của khách', ['Khách đồng ý chi phí', 'Khách không đồng ý chi phí', 'Khách muốn nhận lại thiết bị']],
+  ],
+  invoice: [
+    ['Hồ sơ và thanh toán', ['Đã đối chiếu báo giá được duyệt', 'Thông tin hóa đơn cần điều chỉnh', 'Theo thỏa thuận với khách', 'Theo phê duyệt nội bộ']],
+  ],
+};
+
+const actionOptions = {
+  can_cu: inspectionOptions.can_cu,
+  can_cu_han: [
+    ['Hạn của thiết bị gốc', ['Hạn còn lại trên hồ sơ thiết bị gốc', 'Đối chiếu hóa đơn mua hàng và ngày kích hoạt']],
+    ['Hạn do đơn vị xác nhận', ['Chính sách bảo hành hàng đổi', 'Xác nhận của hãng hoặc nhà cung cấp', 'Biên bản đổi ghi rõ thời hạn mới']],
+  ],
+  can_cu_kiem_tra: [
+    ['Kiểm tra trước khi trả', ['Đã kiểm tra ngoại quan và tem', 'Đã đối chiếu serial và phụ kiện', 'Đã kiểm tra nguồn và chức năng cơ bản', 'Đã kiểm tra lại lỗi khách báo', 'Đã chạy kiểm tra tải']],
+    ['Hồ sơ sau xử lý', ['Biên bản kiểm tra tại cửa hàng', 'Kết quả kiểm tra của hãng hoặc nhà cung cấp', 'Ảnh hoặc video kiểm tra trước khi trả']],
+  ],
+  can_cu_so_huu: [
+    ['Chứng từ xác nhận', ['Biên bản giao nhận', 'Biên bản xác nhận chuyển quyền sở hữu', 'Chứng từ đối soát với nhà cung cấp']],
+  ],
+  huong_xu_ly_thiet_bi_cu: [
+    ['Luân chuyển thiết bị', ['Trả lại khách', 'Giữ tại cửa hàng để đối chiếu', 'Nhập kho chờ xử lý', 'Gửi lại hãng hoặc nhà cung cấp']],
+    ['Xử lý tiếp', ['Sửa để tái sử dụng', 'Thu hồi linh kiện còn dùng được', 'Thanh lý theo phê duyệt', 'Chuyển xử lý rác thải điện tử']],
+  ],
+  quyet_dinh_xu_ly: [
+    ['Đối soát với đơn vị', ['Đề nghị đơn vị xem xét lại', 'Bổ sung hồ sơ hoặc chứng từ', 'Chuyển đơn vị khác xác minh', 'Chốt phương án xử lý tại cửa hàng']],
+  ],
+  noi_dung_yeu_cau: [
+    ['Xác minh bảo hành', ['Xác minh điều kiện bảo hành', 'Kiểm tra lỗi khách báo', 'Đối chiếu serial và tình trạng thiết bị']],
+    ['Xử lý tại đơn vị', ['Đề nghị sửa chữa', 'Đề nghị đổi thiết bị hoặc linh kiện', 'Báo chi phí trước khi xử lý', 'Xác nhận thời gian trả dự kiến']],
+  ],
+};
+
+export function actionPickerOptions(operation, field) {
+  if (operation.key === 'GHI_KET_LUAN') return inspectionOptions[field];
+  if (field === 'ly_do') {
+    return actionReasons[operation.key] ?? actionReasons[operation.group] ?? inspectionOptions.ly_do;
+  }
+  return actionOptions[field];
+}

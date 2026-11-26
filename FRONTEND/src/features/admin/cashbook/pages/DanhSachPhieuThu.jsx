@@ -17,6 +17,7 @@ import { hasAdminPermission } from '../../../../auth/roleModel';
 import { useAdminPermissions } from '../../../../shared/components/ui/PermissionGate';
 
 import './DanhSachPhieuThu.css';
+import AdminPageAction from '../../../../shared/components/ui/AdminPageAction';
 
 export default function DanhSachPhieuThu() {
   const navigate = useNavigate();
@@ -166,13 +167,14 @@ export default function DanhSachPhieuThu() {
         <div className="pt-breadcrumb">
           <Link to="/admin/so-quy-tien-mat/so-quy">SỔ QUỸ TIỀN MẶT</Link> / <span>PHIẾU THU</span>
         </div>
-        <button
-          className="pt-btn-create"
+        <AdminPageAction
+          variant="primary"
+          icon="add"
           disabled={!canCreateVoucher}
           onClick={() => navigate('/admin/so-quy-tien-mat/tao-phieu-thu')}
         >
-          + TẠO PHIẾU THU
-        </button>
+          TẠO PHIẾU THU
+        </AdminPageAction>
       </div>
 
       <div className="pt-header-main">

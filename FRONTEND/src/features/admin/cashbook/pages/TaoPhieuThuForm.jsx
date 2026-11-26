@@ -7,6 +7,7 @@ import { useAdminPermissions } from '../../../../shared/components/ui/Permission
 
 import './TaoPhieuForm.css';
 import { FormDropdown } from '../../../../shared/components/ui/FilterDropdown';
+import AdminPageAction from '../../../../shared/components/ui/AdminPageAction';
 
 export default function TaoPhieuThuForm() {
   const navigate = useNavigate();
@@ -247,14 +248,14 @@ export default function TaoPhieuThuForm() {
         <div className="tpf-breadcrumb-top">
           ADMIN &nbsp;&rsaquo;&nbsp; PHIẾU THU &nbsp;&rsaquo;&nbsp; TẠO PHIẾU THU
         </div>
-        <button
-          type="button"
-          className="tpf-btn-top-create"
+        <AdminPageAction
+          variant="primary"
+          icon="save"
           onClick={handleSubmit}
           disabled={isSubmitting}
         >
           {isSubmitting ? 'ĐANG TẠO...' : 'TẠO PHIẾU THU'}
-        </button>
+        </AdminPageAction>
       </div>
 
       {/* Sub Header Section */}

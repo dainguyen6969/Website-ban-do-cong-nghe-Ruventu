@@ -45,6 +45,7 @@ import { readCurrentUser } from '../../../../auth/backendAuth';
 
 import { hasAdminPermission } from '../../../../auth/roleModel';
 import { useAdminPermissions } from '../../../../shared/components/ui/PermissionGate';
+import AdminPageAction from '../../../../shared/components/ui/AdminPageAction';
 
 const money = (value) => (value == null ? '—' : `${Number(value).toLocaleString('vi-VN')}đ`);
 const productName = (product) => product.name || product.tenSanPham;
@@ -731,14 +732,14 @@ export default function BanHang() {
       )}
       <fieldset className="pos-controls" disabled={checkoutBusy || Boolean(checkoutPending)}>
         <div className="pos-toolbar">
-          <button
-            type="button"
-            className="pos-red-button"
+          <AdminPageAction
+            variant="primary"
+            icon="add"
             disabled={!canCheckout}
             onClick={newOrder}
           >
-            <HiOutlinePlus /> TẠO HOÁ ĐƠN
-          </button>
+            TẠO HOÁ ĐƠN
+          </AdminPageAction>
         </div>
         <div className="pos-tabs" aria-label="Đơn hàng">
           {orders.map((item) => (

@@ -9,7 +9,6 @@ import {
   initialActionValues,
 } from '../data/warrantyActions';
 import {
-  actionHints,
   fieldHelp,
   freeWorkItems,
   referenceOptions,
@@ -24,7 +23,7 @@ import { getAllVersions } from '../../catalog/products/api/versionApi';
 import IntakeDescriptionField from './IntakeDescriptionField';
 import { WarrantyDialog } from './WarrantyShell';
 import { displayDate, warrantyAccessoriesLabel } from '../data/warrantyContract';
-import { inspectionOptions } from '../data/intakeOptions';
+import { actionPickerOptions } from '../data/intakeOptions';
 
 function InputField({
   field,
@@ -43,14 +42,16 @@ function InputField({
     optional = field.endsWith('?');
   const label = fieldLabels[name] || (arrayFields[name] ? 'Hạng mục' : name);
 
-  if (operation.key === 'GHI_KET_LUAN' && Object.hasOwn(inspectionOptions, name)) {
+  const pickerOptions = actionPickerOptions(operation, name);
+  if (pickerOptions) {
     return (
       <IntakeDescriptionField
-        options={inspectionOptions[name]}
+        options={pickerOptions}
         title={label}
         selected={value.selected ?? []}
         custom={value.custom ?? (typeof value === 'string' && value ? [value] : [])}
         single={name === 'ma_hang_muc'}
+        optional={optional}
         onChange={(selected, custom) => change({ selected, custom })}
       />
     );
@@ -568,11 +569,6 @@ export default function WarrantyActionForm({
           </p>
         )}
 
-        <details className="w-operation-note">
-          <summary>Ghi chú thao tác</summary>
-          <p>{actionHints[operation.key] || 'Điền các mục có dấu *.'}</p>
-        </details>
-
         {ticket.tiep_nhan?.phu_kien?.length > 0 &&
           (operation.key === 'GHI_KET_LUAN' || operation.fields.includes('phu_kien')) && (
             <div className="w-operation-note">
@@ -628,7 +624,9 @@ export default function WarrantyActionForm({
                 {renderField('xac_nhan_khach')}
               </div>
             ) : (
-              <div className="w-shell-fields">{operation.fields.map(renderField)}</div>
+              <div className={operation.key === 'GUI_DON_VI' ? 'w-shell-fields w-send-fields' : 'w-shell-fields'}>
+                {operation.fields.map(renderField)}
+              </div>
             )}
           </fieldset>
 
