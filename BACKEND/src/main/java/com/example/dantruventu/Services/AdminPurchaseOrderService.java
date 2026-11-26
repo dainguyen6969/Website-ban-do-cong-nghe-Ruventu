@@ -552,20 +552,25 @@ public class AdminPurchaseOrderService {
               "items[" + request.getItems().indexOf(item) + "].vi_tri_luu_kho",
               "Vị trí lưu kho");
 
-      if (storageLocation != null) {
-        inventory.setViTriLuuKho(storageLocation);
-      }
+        int previousQuantity = WarehouseSupport.numbers(inventory).actual();
 
-      WarehouseSupport.numbers(inventory);
+        try {
+            inventory.setTonThucTe(Math.addExact(previousQuantity, quantity));
 
-      try {
-        inventory.setTonThucTe(Math.addExact(inventory.getTonThucTe(), quantity));
+            inventory.setTonCoTheBan(Math.addExact(inventory.getTonCoTheBan(), quantity));
 
-        inventory.setTonCoTheBan(Math.addExact(inventory.getTonCoTheBan(), quantity));
+        } catch (ArithmeticException exception) {
+            throw new AppException(ErrorCode.CONFLICT, "Số lượng tồn kho vượt giới hạn cho phép");
+        }
 
-      } catch (ArithmeticException exception) {
-        throw new AppException(ErrorCode.CONFLICT, "Số lượng tồn kho vượt giới hạn cho phép");
-      }
+        BigDecimal previousUnitCost =
+                Optional.ofNullable(variant.getGiaVonBinhQuan()).orElse(variant.getGiaNhap());
+        BigDecimal previousValue = previousUnitCost.multiply(BigDecimal.valueOf(previousQuantity));
+        BigDecimal receivedValue = detail.getGiaNhap().multiply(BigDecimal.valueOf(quantity));
+        variant.setGiaVonBinhQuan(
+                previousValue
+                        .add(receivedValue)
+                        .divide(BigDecimal.valueOf(inventory.getTonThucTe()), 2, RoundingMode.HALF_UP));
 
       tonKhoRepository.save(inventory);
 
