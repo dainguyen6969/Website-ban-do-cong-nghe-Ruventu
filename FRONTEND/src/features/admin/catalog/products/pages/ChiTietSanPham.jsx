@@ -96,9 +96,10 @@ export default function ChiTietSanPham() {
   const components = product.comboItems || [];
   const componentTotal = total(components, 'giaNhap') || total(components, 'donGia');
   const hasVariantPrice = !isCombo && variants.length > 0;
+  const averageCost = variants[0]?.giaVonBinhQuan ?? null;
   const profitOnCost =
-    hasVariantPrice && product.giaNhap > 0
-      ? Math.round(((product.giaBanLe - product.giaNhap) / product.giaNhap) * 100)
+    hasVariantPrice && averageCost > 0
+      ? Math.round(((product.giaBanLe - averageCost) / averageCost) * 100)
       : null;
   const storage = warehouses(product);
   const storageIncoming = total(storage, 'dangVe');
@@ -146,9 +147,11 @@ export default function ChiTietSanPham() {
           tone={hasVariantPrice ? 'red' : ''}
         />
         <Stat
-          label="GIÁ NHẬP"
-          value={hasVariantPrice ? money(product.giaNhap) : '—'}
-          caption={hasVariantPrice ? 'Giá vốn bình quân' : 'Chưa có dữ liệu'}
+          label="GIÁ VỐN BÌNH QUÂN"
+          value={hasVariantPrice && averageCost != null ? money(averageCost) : '—'}
+          caption={
+            hasVariantPrice && averageCost != null ? 'Phiên bản đầu tiên' : 'Chưa có dữ liệu'
+          }
         />
         <Stat
           label="GIÁ BÁN BUÔN"
@@ -159,7 +162,7 @@ export default function ChiTietSanPham() {
         <Stat
           label="LÃI TRÊN GIÁ VỐN"
           value={profitOnCost == null ? '—' : `${profitOnCost}%`}
-          caption={profitOnCost == null ? 'Chưa có giá vốn' : 'So với giá nhập'}
+          caption={profitOnCost == null ? 'Chưa tính được tỷ lệ' : 'So với giá vốn bình quân'}
           tone={profitOnCost > 0 ? 'green' : profitOnCost < 0 ? 'red' : ''}
         />
       </section>
@@ -330,9 +333,7 @@ export default function ChiTietSanPham() {
                   const line = Number(item.giaNhap || item.donGia || 0) * (item.qty || 1);
                   return (
                     <tr key={`${item.id}-${index}`}>
-                      <td>
-                        {index + 1}
-                      </td>
+                      <td>{index + 1}</td>
                       <td className="detail-name">{item.tenSanPham}</td>
                       <td>
                         <span className="detail-code">{item.maSanPham}</span>
@@ -367,6 +368,7 @@ export default function ChiTietSanPham() {
                   <th>MÃ VẠCH</th>
                   <th>GIÁ BÁN</th>
                   <th>GIÁ NHẬP</th>
+                  <th>GIÁ VỐN BÌNH QUÂN</th>
                   <th>SERIAL</th>
                   <th>THUỘC TÍNH</th>
                   <th>TỒN THỰC TẾ</th>
@@ -380,6 +382,7 @@ export default function ChiTietSanPham() {
                     <td>{variant.sku || '—'}</td>
                     <td>{money(variant.giaBanLe)}</td>
                     <td>{money(variant.giaNhap)}</td>
+                    <td>{variant.giaVonBinhQuan == null ? '—' : money(variant.giaVonBinhQuan)}</td>
                     <td>{variant.serialMode === true ? 'Có' : 'Không'}</td>
                     <td>
                       {variant.attributes.length
