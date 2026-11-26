@@ -126,8 +126,8 @@ public class AdminProductDetailResponse extends CatalogFields.Metadata {
     @JsonProperty("gia_nhap")
     private BigDecimal giaNhap;
 
-      @JsonProperty("gia_von_binh_quan")
-      private BigDecimal giaVonBinhQuan;
+    @JsonProperty("gia_von_binh_quan")
+    private BigDecimal giaVonBinhQuan;
 
     @JsonProperty("khoi_luong")
     private BigDecimal khoiLuong;
