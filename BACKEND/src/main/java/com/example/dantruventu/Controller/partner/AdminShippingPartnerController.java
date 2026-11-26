@@ -18,12 +18,16 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/v1/admin/shipping-partners")
 @RequiredArgsConstructor
-@PreAuthorize("hasRole('ADMIN')")
+@PreAuthorize("@adminRoleService.hasModuleAction(principal, 'doi_tac_van_chuyen', 'xem')")
 public class AdminShippingPartnerController {
 
   private final AdminShippingPartnerService service;
 
   @GetMapping
+  @PreAuthorize(
+      "@adminRoleService.hasModuleAction(principal, 'doi_tac_van_chuyen', 'xem')"
+          + " or @adminRoleService.hasModuleAction(principal, 'giao_hang', 'xem')"
+          + " or @adminRoleService.hasModuleAction(principal, 'don_hang', 'xem')")
   public ApiResponse<AdminShippingPartnerListResponse> getPartners(
       @RequestParam(name = "keyword", required = false) String keyword,
       @RequestParam(name = "loai_doi_tac", required = false) String loaiDoiTac,
@@ -39,6 +43,7 @@ public class AdminShippingPartnerController {
   }
 
   @PostMapping
+  @PreAuthorize("@adminRoleService.hasModuleAction(principal, 'doi_tac_van_chuyen', 'them')")
   public ResponseEntity<ApiResponse<AdminShippingPartnerResponse>> create(
       @Valid @RequestBody AdminShippingPartnerCreateRequest request) {
 
@@ -78,6 +83,7 @@ public class AdminShippingPartnerController {
   }
 
   @PatchMapping("/{id}/status")
+  @PreAuthorize("@adminRoleService.hasModuleAction(principal, 'doi_tac_van_chuyen', 'sua')")
   public ApiResponse<AdminShippingPartnerStatusResponse> updateStatus(
       @PathVariable("id") Long id, @Valid @RequestBody AdminShippingPartnerStatusRequest request) {
 

@@ -1,14 +1,19 @@
 // Admin product screen: ChiTietSanPham.
 import { useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { HiOutlineArrowLeft, HiOutlinePencilAlt, HiOutlineOfficeBuilding } from 'react-icons/hi';
 import FormCard from '../../../../../shared/components/ui/FormCard';
+import LoadingSpinner from '../../../../../shared/components/ui/LoadingSpinner';
 import DetailTablePagination from '../../../../../shared/components/ui/DetailTablePagination';
 import useDetailTablePagination, {
   DETAIL_TABLE_PAGE_SIZE,
 } from '../../../../../hooks/useDetailTablePagination';
 import { getProductDetail } from '../api/productApi';
 import { WarrantySummary, warrantyText } from '../../components/CatalogPolicies';
+
+import { hasAdminPermission } from '../../../../../auth/roleModel';
+import { useAdminPermissions } from '../../../../../shared/components/ui/PermissionGate';
+
 import './ChiTietSanPham.css';
 
 const money = (value) => `${Number(value || 0).toLocaleString('vi-VN')}đ`;
@@ -42,6 +47,7 @@ function Badge({ children }) {
 export default function ChiTietSanPham() {
   const { productId } = useParams();
   const navigate = useNavigate();
+  const access = useAdminPermissions()?.access;
   const [product, setProduct] = useState(null);
   const [error, setError] = useState('');
   const componentPagination = useDetailTablePagination(product?.comboItems);
@@ -73,11 +79,18 @@ export default function ChiTietSanPham() {
   if (!product)
     return (
       <main className="detail-page">
-        <p>Đang tải sản phẩm...</p>
+        <LoadingSpinner text="Đang tải thông tin sản phẩm..." fullPage />
       </main>
     );
 
   const isCombo = product.phanLoai === 'Theo bộ (Combo)';
+
+  const canEdit =
+    hasAdminPermission(access, 'san_pham', 'sua') &&
+    (!isCombo ||
+      (hasAdminPermission(access, 'combo_san_pham', 'xem') &&
+        hasAdminPermission(access, 'combo_san_pham', 'sua')));
+
   const variants = product.variants || [];
   const hasVariantTable = !isCombo && variants.length > 0;
   const components = product.comboItems || [];
@@ -89,14 +102,16 @@ export default function ChiTietSanPham() {
       : null;
   const storage = warehouses(product);
   const storageIncoming = total(storage, 'dangVe');
-  const edit = () => navigate(`/admin/san-pham/them-san-pham/${encodeURIComponent(product.id)}`);
+  const edit = () => {
+    if (canEdit) navigate(`/admin/san-pham/them-san-pham/${encodeURIComponent(product.id)}`);
+  };
 
   return (
     <main className="detail-page detail-page--product">
       <nav className="detail-breadcrumb">
-        <span>SẢN PHẨM</span>
+        <Link to="/admin/san-pham/danh-sach-san-pham">SẢN PHẨM</Link>
         <b>›</b>
-        <span>DANH SÁCH SẢN PHẨM</span>
+        <Link to="/admin/san-pham/danh-sach-san-pham">DANH SÁCH SẢN PHẨM</Link>
         <b>›</b>
         <strong>CHI TIẾT SẢN PHẨM</strong>
       </nav>
@@ -116,7 +131,7 @@ export default function ChiTietSanPham() {
             <HiOutlineArrowLeft />
             Quay lại
           </button>
-          <button className="detail-btn detail-btn--red" onClick={edit}>
+          <button className="detail-btn detail-btn--red" disabled={!canEdit} onClick={edit}>
             <HiOutlinePencilAlt />
             Sửa sản phẩm
           </button>
@@ -242,7 +257,7 @@ export default function ChiTietSanPham() {
       <FormCard
         title="Chi tiết sản phẩm"
         headerRight={
-          <button className="detail-edit-mini" onClick={edit}>
+          <button className="detail-edit-mini" disabled={!canEdit} onClick={edit}>
             <HiOutlinePencilAlt /> Sửa
           </button>
         }
@@ -311,12 +326,12 @@ export default function ChiTietSanPham() {
                 </tr>
               </thead>
               <tbody>
-                {componentPagination.visibleItems.map((item, index) => {
+                {components.map((item, index) => {
                   const line = Number(item.giaNhap || item.donGia || 0) * (item.qty || 1);
                   return (
                     <tr key={`${item.id}-${index}`}>
                       <td>
-                        {(componentPagination.currentPage - 1) * DETAIL_TABLE_PAGE_SIZE + index + 1}
+                        {index + 1}
                       </td>
                       <td className="detail-name">{item.tenSanPham}</td>
                       <td>
@@ -335,12 +350,6 @@ export default function ChiTietSanPham() {
               </tbody>
             </table>
           </div>
-          <DetailTablePagination
-            totalItems={components.length}
-            currentPage={componentPagination.currentPage}
-            onPageChange={componentPagination.onPageChange}
-            idPrefix="product-components"
-          />
         </FormCard>
       )}
       {hasVariantTable && (
@@ -365,7 +374,7 @@ export default function ChiTietSanPham() {
                 </tr>
               </thead>
               <tbody>
-                {variantPagination.visibleItems.map((variant) => (
+                {variants.map((variant) => (
                   <tr key={variant.id}>
                     <td>{variant.name}</td>
                     <td>{variant.sku || '—'}</td>
@@ -388,13 +397,6 @@ export default function ChiTietSanPham() {
               </tbody>
             </table>
           </div>
-
-          <DetailTablePagination
-            totalItems={variants.length}
-            currentPage={variantPagination.currentPage}
-            onPageChange={variantPagination.onPageChange}
-            idPrefix="product-variants"
-          />
         </FormCard>
       )}
 

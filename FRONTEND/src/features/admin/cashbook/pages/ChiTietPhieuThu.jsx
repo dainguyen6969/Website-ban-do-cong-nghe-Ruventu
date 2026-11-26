@@ -1,10 +1,12 @@
-import React, { useState, useEffect, useCallback } from 'react';
-
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { CashSourceInfo } from '../components/CashbookEnhancements';
-import { formatDateTimeVN } from '../../../../shared/services/mutationUtils';
-import { useParams, useNavigate } from 'react-router-dom';
+import { formatDateTimeVN, withIdempotency } from '../../../../shared/services/mutationUtils';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import { receiptService } from '../../../../shared/services/receiptService';
 import DocumentPanel from '../../documents/DocumentPanel';
+import LoadingSpinner from '../../../../shared/components/ui/LoadingSpinner';
+import { hasAdminPermission } from '../../../../auth/roleModel';
+import { useAdminPermissions } from '../../../../shared/components/ui/PermissionGate';
 import './ChiTietPhieu.css';
 
 export default function ChiTietPhieuThu() {
@@ -15,6 +17,14 @@ export default function ChiTietPhieuThu() {
   const [isLoading, setIsLoading] = useState(true);
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [showSuccessBanner, setShowSuccessBanner] = useState(false);
+  const [isCancelling, setIsCancelling] = useState(false);
+
+  const cancelAttempt = useRef(null);
+  const access = useAdminPermissions()?.access;
+  const canCancelVoucher =
+    hasAdminPermission(access, 'so_quy', 'sua') &&
+    currentItem?.trang_thai === 'DA_GHI_NHAN' &&
+    currentItem?.nguon_tao === 'THU_CONG';
 
   const fetchDetail = useCallback(async () => {
     setIsLoading(true);
@@ -92,21 +102,31 @@ export default function ChiTietPhieuThu() {
   };
 
   const handleConfirmCancel = async () => {
+    if (!canCancelVoucher || isCancelling || cancelAttempt.current?.inFlight) return;
+
+    setIsCancelling(true);
     try {
-      await receiptService.cancelReceipt(id, { xac_nhan: true });
+      await withIdempotency(
+        cancelAttempt,
+        `receipt:${id}:cancel`,
+        { xac_nhan: true },
+        (key, body) => receiptService.cancelReceipt(id, body, key)
+      );
       setShowCancelModal(false);
       setShowSuccessBanner(true);
       await fetchDetail();
     } catch (error) {
       console.error('Lỗi khi hủy phiếu:', error);
-      alert('Không thể hủy phiếu lúc này');
+      alert(error.response?.data?.message || 'Không thể hủy phiếu lúc này');
+    } finally {
+      setIsCancelling(false);
     }
   };
 
   if (isLoading) {
     return (
-      <div className="ctp-page" style={{ padding: 40, textAlign: 'center' }}>
-        Đang tải dữ liệu...
+      <div className="ctp-page">
+        <LoadingSpinner text="Đang tải dữ liệu phiếu thu..." fullPage />
       </div>
     );
   }
@@ -124,13 +144,19 @@ export default function ChiTietPhieuThu() {
       {/* Top Breadcrumb Header Bar */}
       <div className="ctp-top-bar">
         <div className="ctp-breadcrumb">
-          ADMIN <span>&rsaquo;</span> PHIẾU THU <span>&rsaquo;</span> CHI TIẾT PHIẾU THU
+          <Link to="/admin">ADMIN</Link> <span>&rsaquo;</span>{' '}
+          <Link to="/admin/so-quy-tien-mat/phieu-thu">PHIẾU THU</Link> <span>&rsaquo;</span>{' '}
+          <span>CHI TIẾT PHIẾU THU</span>
         </div>
       </div>
 
       {/* Sub-Header Row */}
       <div className="ctp-header">
-        <div className="ctp-sub-breadcrumb">SỔ QUỸ TIỀN MẶT / PHIẾU THU / CHI TIẾT PHIẾU THU</div>
+        <div className="ctp-sub-breadcrumb">
+          <Link to="/admin/so-quy-tien-mat/so-quy">SỔ QUỸ TIỀN MẶT</Link> /{' '}
+          <Link to="/admin/so-quy-tien-mat/phieu-thu">PHIẾU THU</Link> /{' '}
+          <span>CHI TIẾT PHIẾU THU</span>
+        </div>
         <div className="ctp-title-row">
           <div className="ctp-title-left">
             <span className="ctp-badge-box">PHIẾU THU</span>
@@ -142,7 +168,7 @@ export default function ChiTietPhieuThu() {
             </span>
           </div>
 
-          {currentItem.trang_thai === 'DA_GHI_NHAN' && (
+          {canCancelVoucher && (
             <button className="ctp-btn-cancel-action" onClick={() => setShowCancelModal(true)}>
               HỦY PHIẾU THU
             </button>
@@ -303,7 +329,7 @@ export default function ChiTietPhieuThu() {
       </div>
 
       {/* Confirmation Cancel Modal */}
-      {showCancelModal && (
+      {canCancelVoucher && showCancelModal && (
         <div className="ctp-modal-overlay">
           <div className="ctp-modal-box">
             <div className="ctp-modal-header header-red">
@@ -324,7 +350,11 @@ export default function ChiTietPhieuThu() {
               <button className="btn-modal-cancel" onClick={() => setShowCancelModal(false)}>
                 QUAY LẠI
               </button>
-              <button className="btn-modal-confirm-red" onClick={handleConfirmCancel}>
+              <button
+                className="btn-modal-confirm-red"
+                onClick={handleConfirmCancel}
+                disabled={isCancelling}
+              >
                 XÁC NHẬN HỦY
               </button>
             </div>

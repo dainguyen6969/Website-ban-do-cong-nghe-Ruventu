@@ -8,6 +8,8 @@ import FilterDropdown from '../../../../../shared/components/ui/FilterDropdown';
 import StopComboModal from '../components/StopComboModal';
 import fallbackImage from '../../../../../assets/hero.png';
 import { deactivateCombo, getComboPage, getComboStats } from '../api/comboApi';
+import { hasAdminPermission } from '../../../../../auth/roleModel';
+import { useAdminPermissions } from '../../../../../shared/components/ui/PermissionGate';
 import './ComboSanPham.css';
 
 const PAGE_SIZE = 10;
@@ -19,6 +21,12 @@ const isStopped = (combo) =>
 
 export default function ComboSanPham() {
   const navigate = useNavigate();
+
+  const access = useAdminPermissions()?.access;
+  const canCreateCombo = hasAdminPermission(access, 'combo_san_pham', 'them');
+  const canEditCombo = hasAdminPermission(access, 'combo_san_pham', 'sua');
+  const canStopCombo = hasAdminPermission(access, 'combo_san_pham', 'xoa');
+
   const [combos, setCombos] = useState([]);
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('Tất cả trạng thái');
@@ -65,6 +73,7 @@ export default function ComboSanPham() {
   }, [page, reloadKey, search, status]);
 
   const stopSelling = async () => {
+    if (!canStopCombo || !comboToStop) return;
     try {
       await deactivateCombo(comboToStop.id);
       setComboToStop(null);
@@ -88,12 +97,15 @@ export default function ComboSanPham() {
           </div>
           <h1>COMBO SẢN PHẨM</h1>
         </div>
-        <button
-          className="combo-primary-btn"
-          onClick={() => navigate('/kho-hang/combo-san-pham/them-moi')}
-        >
-          <HiOutlinePlus /> THÊM COMBO SẢN PHẨM
-        </button>
+        {canCreateCombo && (
+          <button
+            type="button"
+            className="combo-primary-btn"
+            onClick={() => navigate('/kho-hang/combo-san-pham/them-moi')}
+          >
+            <HiOutlinePlus /> THÊM COMBO SẢN PHẨM
+          </button>
+        )}
       </div>
       <section className="combo-stats" aria-label="Thống kê combo">
         <div>
@@ -221,20 +233,22 @@ export default function ComboSanPham() {
                     </td>
                     <td>
                       <div className="combo-actions">
-                        <button
-                          onClick={() => navigate(`/kho-hang/combo-san-pham/chi-tiet/${combo.id}`)}
-                        >
-                          XEM CHI TIẾT
-                        </button>
-                        <button
-                          onClick={() =>
-                            navigate(`/kho-hang/combo-san-pham/them-moi?id=${combo.id}`)
-                          }
-                        >
-                          SỬA
-                        </button>
-                        {!isStopped(combo) && (
-                          <button className="danger" onClick={() => setComboToStop(combo)}>
+                        {canEditCombo && (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              navigate(`/kho-hang/combo-san-pham/them-moi?id=${combo.id}`)
+                            }
+                          >
+                            SỬA
+                          </button>
+                        )}
+                        {canStopCombo && !isStopped(combo) && (
+                          <button
+                            type="button"
+                            className="danger"
+                            onClick={() => setComboToStop(combo)}
+                          >
                             NGƯNG KINH DOANH
                           </button>
                         )}
@@ -271,7 +285,7 @@ export default function ComboSanPham() {
         />
       </div>
       <StopComboModal
-        combo={comboToStop}
+        combo={canStopCombo ? comboToStop : null}
         onCancel={() => setComboToStop(null)}
         onConfirm={stopSelling}
       />

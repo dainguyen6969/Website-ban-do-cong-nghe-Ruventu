@@ -180,6 +180,9 @@ public final class AdminSalesResponse {
       @JsonProperty("tien_thu_ho_cod") BigDecimal tienThuHoCod,
       @JsonProperty("phi_tra_doi_tac") BigDecimal phiTraDoiTac) {}
 
+  public record OrderTax(
+      @JsonProperty("ap_dung") boolean apDung, @JsonProperty("che_do_gia") String cheDoGia) {}
+
   @Getter
   @Setter
   public static class Order {
@@ -233,6 +236,9 @@ public final class AdminSalesResponse {
 
     @JsonProperty("tong_tien_vat")
     private BigDecimal tongTienVat;
+
+    @JsonProperty("thue")
+    private OrderTax thue;
 
     @JsonProperty("phi_giao_hang")
     private BigDecimal phiGiaoHang;
@@ -330,6 +336,9 @@ public final class AdminSalesResponse {
     @JsonProperty("phieu_thu")
     private CashReceipt phieuThu;
   }
+
+  public record CheckoutResolution(
+      @JsonProperty("da_ghi_don") boolean daGhiDon, @JsonProperty("ket_qua") Checkout ketQua) {}
 
   public record AppliedPromotion(
       Long id,

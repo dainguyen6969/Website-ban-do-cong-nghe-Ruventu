@@ -1,7 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { HiOutlinePlus, HiOutlineSearch } from 'react-icons/hi';
 import { Link, useNavigate, useParams } from 'react-router-dom';
+import AdminLink from '../../../../shared/components/ui/AdminLink';
 import TablePagination from '../../../../shared/components/ui/TablePagination';
+import DetailTablePagination from '../../../../shared/components/ui/DetailTablePagination';
+import useDetailTablePagination from '../../../../hooks/useDetailTablePagination';
 import FilterDropdown, { FormDropdown } from '../../../../shared/components/ui/FilterDropdown';
 import OrderModal from '../../orders/components/OrderModal';
 import {
@@ -23,6 +26,10 @@ import {
   recordRecallEvent,
   splitCodes,
 } from './recallApi';
+
+import { hasSystemAdminPermission } from '../../../../auth/roleModel';
+import { useAdminPermissions } from '../../../../shared/components/ui/PermissionGate';
+
 import '../pages/SerialPages.css';
 import './Recall.css';
 
@@ -278,11 +285,15 @@ export default function ThuHoiHang() {
   const { recallId } = useParams();
   const navigate = useNavigate();
 
+  const access = useAdminPermissions()?.access;
+  const canOperateRecall = hasSystemAdminPermission(access, 'kho_hang', 'sua');
+
   const [keyword, setKeyword] = useState('');
   const [status, setStatus] = useState('');
   const [page, setPage] = useState(1);
   const [list, setList] = useState({ items: [], totalItems: 0 });
   const [detail, setDetail] = useState(null);
+  const recallDevicesPagination = useDetailTablePagination(detail?.items || []);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
@@ -466,7 +477,7 @@ export default function ThuHoiHang() {
     return () => controller.abort();
   }, [dialog?.kind, form.purchaseId]);
 
-  const frozen = busy || Boolean(attempt.current);
+  const frozen = busy || (canOperateRecall && Boolean(attempt.current));
 
   const change = (name, value) =>
     setForm((current) => {
@@ -506,7 +517,7 @@ export default function ThuHoiHang() {
   const selectedLine = sourceLines.find((line) => Number(line.id) === Number(form.receiptLineId));
 
   const openCreate = () => {
-    if (frozen || (recallId && !detail)) return;
+    if (!canOperateRecall || frozen || (recallId && !detail)) return;
 
     const source = recallId ? detail : null;
 
@@ -546,7 +557,7 @@ export default function ThuHoiHang() {
   };
 
   const openAction = (action, item = null) => {
-    if (frozen || !detail) return;
+    if (!canOperateRecall || frozen || !detail) return;
 
     setError('');
     setFieldErrors({});
@@ -562,7 +573,7 @@ export default function ThuHoiHang() {
   };
 
   const perform = async (scope, body) => {
-    if (writing.current) return;
+    if (!canOperateRecall || writing.current) return;
 
     writing.current = true;
     setBusy(true);
@@ -706,7 +717,7 @@ export default function ThuHoiHang() {
                   <button
                     type="button"
                     className="recall-button is-dark"
-                    disabled={frozen || !flag(detail.can_close)}
+                    disabled={!canOperateRecall || frozen || !flag(detail.can_close)}
                     onClick={() => openAction('KET_THUC')}
                   >
                     Kết thúc đợt thu hồi
@@ -715,7 +726,7 @@ export default function ThuHoiHang() {
                   <button
                     type="button"
                     className="recall-button is-dark"
-                    disabled={frozen}
+                    disabled={!canOperateRecall || frozen}
                     onClick={() => openAction('MO_LAI')}
                   >
                     Mở lại đợt thu hồi
@@ -733,7 +744,7 @@ export default function ThuHoiHang() {
               <button
                 type="button"
                 className="recall-button is-dark"
-                disabled={frozen || !detail}
+                disabled={!canOperateRecall || frozen || !detail}
                 onClick={openCreate}
               >
                 Tạo đợt thu hồi mới
@@ -742,7 +753,7 @@ export default function ThuHoiHang() {
           </header>
         ) : (
           <nav className="admin-list-breadcrumb" aria-label="Breadcrumb nội dung">
-            <span>Kho hàng</span>
+            <Link to="/kho-hang/quan-ly-phien-ban">Kho hàng</Link>
             <span aria-hidden="true">›</span>
             <strong aria-current="page">Thu hồi hàng</strong>
           </nav>
@@ -792,7 +803,7 @@ export default function ThuHoiHang() {
               <button
                 type="button"
                 className="admin-list-primary-action"
-                disabled={frozen}
+                disabled={!canOperateRecall || frozen}
                 onClick={openCreate}
               >
                 <HiOutlinePlus size={17} aria-hidden="true" />
@@ -835,9 +846,9 @@ export default function ThuHoiHang() {
                             <small>{record.reason}</small>
                           </td>
                           <td>
-                            <Link to={`/kho-hang/nhap-hang/${record.purchase_id}`}>
+                            <AdminLink to={`/kho-hang/nhap-hang/${record.purchase_id}`}>
                               {record.ma_don_nhap}
-                            </Link>
+                            </AdminLink>
                             <small>{record.ten_nha_cung_cap}</small>
                           </td>
                           <td>
@@ -864,12 +875,12 @@ export default function ThuHoiHang() {
                             </span>
                           </td>
                           <td>
-                            <Link
+                            <AdminLink
                               to={`/kho-hang/thu-hoi/${record.id}`}
                               className="recall-button is-dark recall-button--sm"
                             >
                               XEM CHI TIẾT
-                            </Link>
+                            </AdminLink>
                           </td>
                         </tr>
                       ))
@@ -923,9 +934,9 @@ export default function ThuHoiHang() {
                     <div>
                       <dt>Nguồn nhập</dt>
                       <dd>
-                        <Link to={`/kho-hang/nhap-hang/${detail.purchase_id}`}>
+                        <AdminLink to={`/kho-hang/nhap-hang/${detail.purchase_id}`}>
                           {detail.ma_don_nhap}
-                        </Link>
+                        </AdminLink>
                       </dd>
                     </div>
                     <div>
@@ -983,15 +994,15 @@ export default function ThuHoiHang() {
                       </tr>
                     </thead>
                     <tbody>
-                      {detail.items.map((item) => (
+                      {recallDevicesPagination.visibleItems.map((item) => (
                         <tr key={item.id}>
                           <td>
                             <strong>{item.ten_phien_ban}</strong>
                             <small>
                               {item.serial_id ? (
-                                <Link to={`/kho-hang/danh-sach-serial/${item.serial_id}`}>
+                                <AdminLink to={`/kho-hang/danh-sach-serial/${item.serial_id}`}>
                                   {item.so_serial}
-                                </Link>
+                                </AdminLink>
                               ) : (
                                 `Theo dõi nội bộ #${item.id} ${item.ma_theo_doi || ''}`
                               )}
@@ -1006,9 +1017,11 @@ export default function ThuHoiHang() {
                           <td>
                             {item.order_id ? (
                               <>
-                                <Link to={`/admin/don-hang/danh-sach-don-hang/${item.order_id}`}>
+                                <AdminLink
+                                  to={`/admin/don-hang/danh-sach-don-hang/${item.order_id}`}
+                                >
                                   {item.ma_don_hang}
-                                </Link>
+                                </AdminLink>
                                 <small>
                                   {item.ten_nguoi_nhan} · {item.sdt_nguoi_nhan}
                                 </small>
@@ -1034,7 +1047,7 @@ export default function ThuHoiHang() {
                               <button
                                 type="button"
                                 className="recall-button is-dark recall-button--sm"
-                                disabled={frozen}
+                                disabled={!canOperateRecall || frozen}
                                 onClick={() => openAction(recallDefaultAction(item), item)}
                               >
                                 CẬP NHẬT
@@ -1046,6 +1059,14 @@ export default function ThuHoiHang() {
                     </tbody>
                   </table>
                 </div>
+                <DetailTablePagination
+                  totalItems={(detail?.items || []).length}
+                  currentPage={recallDevicesPagination.currentPage}
+                  onPageChange={recallDevicesPagination.onPageChange}
+                  pageSize={recallDevicesPagination.pageSize}
+                  onPageSizeChange={recallDevicesPagination.onPageSizeChange}
+                  idPrefix="recall-devices"
+                />
               </section>
 
               <section
@@ -1073,7 +1094,7 @@ export default function ThuHoiHang() {
           </>
         )}
 
-        {dialog && (
+        {canOperateRecall && dialog && (
           <OrderModal
             title={dialog.kind === 'create' ? 'TẠO ĐỢT THU HỒI' : RECALL_ACTIONS[form.action]}
             subtitle={

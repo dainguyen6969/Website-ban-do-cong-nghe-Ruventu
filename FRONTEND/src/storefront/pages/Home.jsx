@@ -9,6 +9,7 @@ import ConsultationBanner from "../components/ConsultationBanner";
 import Footer from "../components/Footer";
 
 import { productService, toProductCard } from "../../shared/services/productService";
+import { useCatalogRevision } from "../../shared/services/catalogChanges";
 import { categoryTreeIds, componentCategoryIds, inCatalogScope } from "./catalogModel";
 import useCatalogOptions from '../hooks/useCatalogOptions';
 
@@ -24,6 +25,7 @@ function pcPlatform(product) {
 }
 
 export default function Home({ selectedTabs = {}, onSelectTab }) {
+  const catalogRevision = useCatalogRevision();
   const catalogOptions = useCatalogOptions();
   const componentIds = useMemo(() => componentCategoryIds(catalogOptions.categories), [catalogOptions.categories]);
   const [laptopSpecs, setLaptopSpecs] = useState({});
@@ -56,7 +58,7 @@ export default function Home({ selectedTabs = {}, onSelectTab }) {
     return () => {
       active = false;
     };
-  }, []);
+  }, [catalogRevision]);
 
   const pcProducts = useMemo(
     () => products.filter((product) => inCatalogScope(product, "pc-build")),

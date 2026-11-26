@@ -3,8 +3,12 @@ import { useNavigate } from 'react-router-dom';
 import { receiptService } from '../../../../shared/services/receiptService';
 import { disbursementService } from '../../../../shared/services/disbursementService';
 import { useCashbook } from '../context/CashbookContext';
+
+import { hasSystemAdminPermission } from '../../../../auth/roleModel';
+import { useAdminPermissions } from '../../../../shared/components/ui/PermissionGate';
+
 import './TaoPhieuThuChi.css';
-import { FormDropdown } from "../../../../shared/components/ui/FilterDropdown";
+import { FormDropdown } from '../../../../shared/components/ui/FilterDropdown';
 
 const fallbackPersonData = {
   NHAN_VIEN: [
@@ -39,6 +43,10 @@ const fallbackPersonData = {
 
 export default function TaoPhieuThuChi({ initialTab = 'thu' }) {
   const navigate = useNavigate();
+
+  const access = useAdminPermissions()?.access;
+  const canManageVoucherTypes = hasSystemAdminPermission(access, 'so_quy', 'them');
+
   const { addCashbookItem } = useCashbook() || {};
   const [activeTab, setActiveTab] = useState(initialTab); // 'thu' | 'chi'
 
@@ -163,6 +171,7 @@ export default function TaoPhieuThuChi({ initialTab = 'thu' }) {
   }, [groupChi, fetchSuggestionsChi]);
 
   const handleAddTypeThu = async () => {
+    if (!canManageVoucherTypes) return;
     if (!newTypeThuText.trim()) return;
     const name = newTypeThuText.trim();
     const code = `LT-${Date.now().toString().slice(-4)}`;
@@ -186,6 +195,7 @@ export default function TaoPhieuThuChi({ initialTab = 'thu' }) {
   };
 
   const handleAddTypeChi = async () => {
+    if (!canManageVoucherTypes) return;
     if (!newTypeChiText.trim()) return;
     const name = newTypeChiText.trim();
     const code = `LC-${Date.now().toString().slice(-4)}`;
@@ -369,7 +379,8 @@ export default function TaoPhieuThuChi({ initialTab = 'thu' }) {
               <>
                 <div className="tpc-form-group">
                   <label>NHÓM NGƯỜI NỘP</label>
-                  <FormDropdown aria-label="NHÓM NGƯỜI NỘP"
+                  <FormDropdown
+                    aria-label="NHÓM NGƯỜI NỘP"
                     value={groupThu}
                     onChange={(e) => {
                       setGroupThu(e.target.value);
@@ -482,6 +493,7 @@ export default function TaoPhieuThuChi({ initialTab = 'thu' }) {
                     <button
                       type="button"
                       className="btn-add-type-icon"
+                      disabled={!canManageVoucherTypes}
                       onClick={() => setShowAddTypeThu(!showAddTypeThu)}
                       title="Thêm loại phiếu thu mới"
                     >
@@ -489,7 +501,7 @@ export default function TaoPhieuThuChi({ initialTab = 'thu' }) {
                     </button>
                   </div>
                   {errors.type && <span className="error-text">{errors.type}</span>}
-                  {showAddTypeThu && (
+                  {canManageVoucherTypes && showAddTypeThu && (
                     <div className="tpc-inline-add-row">
                       <input
                         type="text"
@@ -509,7 +521,8 @@ export default function TaoPhieuThuChi({ initialTab = 'thu' }) {
               <>
                 <div className="tpc-form-group">
                   <label>NHÓM NGƯỜI NHẬN</label>
-                  <FormDropdown aria-label="NHÓM NGƯỜI NHẬN"
+                  <FormDropdown
+                    aria-label="NHÓM NGƯỜI NHẬN"
                     value={groupChi}
                     onChange={(e) => {
                       setGroupChi(e.target.value);
@@ -624,6 +637,7 @@ export default function TaoPhieuThuChi({ initialTab = 'thu' }) {
                     <button
                       type="button"
                       className="btn-add-type-icon"
+                      disabled={!canManageVoucherTypes}
                       onClick={() => setShowAddTypeChi(!showAddTypeChi)}
                       title="Thêm loại phiếu chi mới"
                     >
@@ -631,7 +645,7 @@ export default function TaoPhieuThuChi({ initialTab = 'thu' }) {
                     </button>
                   </div>
                   {errors.type && <span className="error-text">{errors.type}</span>}
-                  {showAddTypeChi && (
+                  {canManageVoucherTypes && showAddTypeChi && (
                     <div className="tpc-inline-add-row">
                       <input
                         type="text"
@@ -685,7 +699,11 @@ export default function TaoPhieuThuChi({ initialTab = 'thu' }) {
 
             <div className="tpc-form-group">
               <label>PHƯƠNG THỨC THANH TOÁN</label>
-              <FormDropdown aria-label="PHƯƠNG THỨC THANH TOÁN" value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value)}>
+              <FormDropdown
+                aria-label="PHƯƠNG THỨC THANH TOÁN"
+                value={paymentMethod}
+                onChange={(e) => setPaymentMethod(e.target.value)}
+              >
                 <option value="TIEN_MAT">Tiền mặt</option>
                 <option value="CHUYEN_KHOAN">Chuyển khoản</option>
               </FormDropdown>

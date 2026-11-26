@@ -8,6 +8,18 @@ import { createServer } from 'vite';
 const server = await createServer({ configFile: false, cacheDir: 'node_modules/.vite-admin-table-test', server: { middlewareMode: true, ws: false }, appType: 'custom' });
 after(() => server.close());
 
+test('admin detail links open their destination in a separate tab', async () => {
+  const { default: AdminLink } = await server.ssrLoadModule('/src/shared/components/ui/AdminLink.jsx');
+  const render = (props) => renderToStaticMarkup(React.createElement(MemoryRouter, null,
+    React.createElement(AdminLink, props, 'Xem chi tiết')));
+
+  const detail = render({ to: '/admin/don-hang/danh-sach-don-hang/7' });
+  assert.match(detail, /href="\/admin\/don-hang\/danh-sach-don-hang\/7"/);
+  assert.match(detail, /target="_blank"/);
+  assert.match(detail, /rel="noopener noreferrer"/);
+  assert.match(render({ to: '/admin/bao-hanh/chi-tiet/7', className: 'w-device-link' }), /class="admin-link admin-link--text w-device-link"/);
+});
+
 test('cashbook filters can start collapsed without changing the shared default', async () => {
   const { default: Filters } = await server.ssrLoadModule('/src/features/admin/cashbook/components/CashbookSourceFilters.jsx');
   const expanded = renderToStaticMarkup(React.createElement(Filters, { extended: true }));
@@ -22,7 +34,7 @@ test('cashbook filters can start collapsed without changing the shared default',
   assert.match(collapsed, /XÓA LỌC BỔ SUNG/);
 });
 
-for (const page of ['catalog/products/pages/QuanLyPhienBan', 'inventory/pages/DanhSachSerial', 'purchasing/pages/DanhSachNhapHang', 'catalog/products/pages/DanhSachSanPham', 'catalog/combos/pages/ComboSanPham']) {
+for (const page of ['catalog/products/pages/QuanLyPhienBan', 'inventory/pages/DanhSachSerial', 'purchasing/pages/DanhSachNhapHang', 'catalog/products/pages/DanhSachSanPham', 'catalog/combos/pages/ComboSanPham', 'shipping/pages/QuanLyGiaoHang']) {
   test(`${page}: table scroll contains the table, never pagination`, async () => {
     const { default: Page } = await server.ssrLoadModule(`/src/features/admin/${page}.jsx`);
     const html = renderToStaticMarkup(React.createElement(MemoryRouter, null, React.createElement(Page)));

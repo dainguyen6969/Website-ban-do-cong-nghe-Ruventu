@@ -8,14 +8,15 @@ import com.example.dantruventu.Enum.TrangThaiDonHang;
 import com.example.dantruventu.Error.AppException;
 import com.example.dantruventu.Error.ErrorCode;
 import com.example.dantruventu.Repository.order.DonHangRepository;
+import com.example.dantruventu.Services.SalesOperationsSettings;
 import jakarta.annotation.PostConstruct;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.time.Duration;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.stream.Stream;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataAccessException;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -29,6 +30,7 @@ public class OrderIntakePolicy {
   private final SalesProperties properties;
   private final DonHangRepository orderRepository;
   private final StringRedisTemplate redis;
+  private final SalesOperationsSettings salesOperations;
 
   private static final DefaultRedisScript<Long> CHECKOUT_LIMIT =
       new DefaultRedisScript<>(
@@ -91,59 +93,58 @@ public class OrderIntakePolicy {
 
   private record Window(LocalDateTime start, LocalDateTime end) {}
 
-  private List<Window> windows(LocalDateTime from) {
-    var c = config();
-    List<Window> result = new ArrayList<>();
-
-    for (int offset = -1; offset <= 370; offset++) {
-      LocalDate day = from.toLocalDate().plusDays(offset);
-
-      if (!c.isScheduleEnabled()) {
-        result.add(new Window(day.atStartOfDay(), day.plusDays(1).atStartOfDay()));
-        continue;
-      }
-
-      if (!c.getWorkingDays().contains(day.getDayOfWeek()) || c.getClosedDates().contains(day)) {
-        continue;
-      }
-
-      LocalDateTime start = day.atTime(c.getOpensAt());
-      LocalDateTime end = day.atTime(c.getClosesAt());
-
-      // Hỗ trợ ca qua nửa đêm; hai mốc bằng nhau được hiểu là ca 24 giờ.
-      if (!end.isAfter(start)) {
-        end = end.plusDays(1);
-      }
-
-      result.add(new Window(start, end));
-    }
-
-    return result;
+  private Stream<Window> windows(LocalDateTime from, SalesOperationsSettings.Values schedule) {
+    return Stream.iterate(from.toLocalDate().minusDays(1), day -> day.plusDays(1))
+        .filter(
+            day ->
+                !schedule.scheduleEnabled()
+                    || (schedule.workingDays().contains(day.getDayOfWeek())
+                        && !schedule.closedDates().contains(day)))
+        .map(
+            day -> {
+              if (!schedule.scheduleEnabled())
+                return new Window(day.atStartOfDay(), day.plusDays(1).atStartOfDay());
+              LocalDateTime start = day.atTime(schedule.opensAt());
+              LocalDateTime end = day.atTime(schedule.closesAt());
+              // Hỗ trợ ca qua nửa đêm; hai mốc bằng nhau được hiểu là ca 24 giờ.
+              return new Window(start, end.isAfter(start) ? end : end.plusDays(1));
+            });
   }
 
   public boolean isWorkingNow() {
-    LocalDateTime current = now();
+    return isWorkingAt(now(), salesOperations.get());
+  }
 
-    return windows(current).stream()
-        .anyMatch(w -> !current.isBefore(w.start()) && current.isBefore(w.end()));
+  private boolean isWorkingAt(LocalDateTime current, SalesOperationsSettings.Values schedule) {
+    return windows(current, schedule)
+        .takeWhile(w -> !current.isBefore(w.start()))
+        .anyMatch(w -> current.isBefore(w.end()));
   }
 
   public LocalDateTime nextWorkingAt() {
-    LocalDateTime current = now();
+    return nextWorkingAt(now(), salesOperations.get());
+  }
 
-    for (var window : windows(current)) {
-      if (window.end().isAfter(current)) {
-        return current.isAfter(window.start()) ? current : window.start();
-      }
-    }
-
-    throw new IllegalStateException("Không xác định được ca làm việc tiếp theo");
+  private LocalDateTime nextWorkingAt(
+      LocalDateTime current, SalesOperationsSettings.Values schedule) {
+    return windows(current, schedule)
+        .filter(window -> window.end().isAfter(current))
+        .map(window -> current.isAfter(window.start()) ? current : window.start())
+        .findFirst()
+        .orElseThrow();
   }
 
   public LocalDateTime businessDeadline(LocalDateTime from, int minutes) {
+    return businessDeadline(from, minutes, salesOperations.get());
+  }
+
+  private LocalDateTime businessDeadline(
+      LocalDateTime from, int minutes, SalesOperationsSettings.Values schedule) {
     long remaining = Math.multiplyExact((long) minutes, 60L);
 
-    for (var window : windows(from)) {
+    var windows = windows(from, schedule).iterator();
+    while (windows.hasNext()) {
+      var window = windows.next();
       LocalDateTime start = from.isAfter(window.start()) ? from : window.start();
 
       if (!window.end().isAfter(start)) {
@@ -164,7 +165,8 @@ public class OrderIntakePolicy {
 
   public void initialize(DonHang order) {
     if (order.getHanXuLy() == null) {
-      order.setHanXuLy(businessDeadline(now(), config().getReviewMinutes()));
+      var schedule = salesOperations.get();
+      order.setHanXuLy(businessDeadline(now(), schedule.reviewMinutes(), schedule));
     }
   }
 
@@ -172,7 +174,8 @@ public class OrderIntakePolicy {
     order.setLyDoChoXacMinh(null);
     order.setHanGiuHang(null);
     order.setHanGiuUuDai(null);
-    order.setHanXuLy(businessDeadline(now(), config().getPrepareMinutes()));
+    var schedule = salesOperations.get();
+    order.setHanXuLy(businessDeadline(now(), schedule.prepareMinutes(), schedule));
   }
 
   public LocalDateTime unpaidPromotionDeadline(DonHang order) {
@@ -191,6 +194,10 @@ public class OrderIntakePolicy {
       return "NGOAI_GIO";
     }
 
+    return temporaryReasonInWorkingHours(user, physicalDemand);
+  }
+
+  private String temporaryReasonInWorkingHours(NguoiDung user, Map<Long, Integer> physicalDemand) {
     if (user == null || user.getId() == null) {
       return "CAN_XAC_MINH";
     }
@@ -301,12 +308,15 @@ public class OrderIntakePolicy {
   public Map<String, Object> preview(
       NguoiDung user, Map<Long, Integer> physicalDemand, boolean staff) {
 
-    boolean working = isWorkingNow();
-    String reason = !working ? "NGOAI_GIO" : staff ? null : temporaryReason(user, physicalDemand);
+    var schedule = salesOperations.get();
+    LocalDateTime current = now();
+    boolean working = isWorkingAt(current, schedule);
+    String reason =
+        !working ? "NGOAI_GIO" : staff ? null : temporaryReasonInWorkingHours(user, physicalDemand);
 
     Map<String, Object> result = new LinkedHashMap<>();
     result.put("dang_trong_gio", working);
-    result.put("ca_tiep_theo", apiTime(nextWorkingAt()));
+    result.put("ca_tiep_theo", apiTime(nextWorkingAt(current, schedule)));
     result.put(
         "thong_bao",
         "NGOAI_GIO".equals(reason)

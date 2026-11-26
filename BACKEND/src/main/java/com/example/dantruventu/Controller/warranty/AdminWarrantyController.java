@@ -25,7 +25,7 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/v1/admin/warranties")
 @RequiredArgsConstructor
-@PreAuthorize("hasRole('ADMIN')")
+@PreAuthorize("@adminRoleService.isSystemAdmin(principal)")
 public class AdminWarrantyController {
   private final AdminWarrantyService service;
   private final AdminWarrantyLookupService lookupService;
@@ -119,6 +119,7 @@ public class AdminWarrantyController {
   }
 
   @PostMapping("/{id}/events")
+  @PreAuthorize("@adminRoleService.canSaveWarrantyEvent(principal, #p1?.fields()?.get('su_kien'))")
   public ApiResponse<AdminWarrantyEventResponse> saveEvent(
       @PathVariable String id,
       @RequestBody AdminWarrantyEventRequest request,
@@ -128,6 +129,7 @@ public class AdminWarrantyController {
   }
 
   @PatchMapping("/{id}/status")
+  @PreAuthorize("@adminRoleService.hasModuleAction(principal, 'bao_hanh', 'sua')")
   public ApiResponse<AdminWarrantyStatusResponse> updateStatus(
       @PathVariable String id,
       @RequestBody AdminWarrantyStatusRequest request,
@@ -137,6 +139,7 @@ public class AdminWarrantyController {
   }
 
   @PostMapping("/intake-results")
+  @PreAuthorize("@adminRoleService.hasModuleAction(principal, 'bao_hanh', 'them')")
   public ResponseEntity<ApiResponse<AdminWarrantyIntakeResultResponse>> saveIntakeResult(
       @RequestBody AdminWarrantyIntakeResultRequest request,
       @RequestHeader(name = "Idempotency-Key", required = false) String key,
@@ -146,6 +149,7 @@ public class AdminWarrantyController {
   }
 
   @PostMapping
+  @PreAuthorize("@adminRoleService.hasModuleAction(principal, 'bao_hanh', 'them')")
   public ResponseEntity<ApiResponse<AdminWarrantyCreateResponse>> create(
       @RequestBody AdminWarrantyCreateRequest request,
       @RequestHeader(name = "Idempotency-Key", required = false) String key,
@@ -161,22 +165,25 @@ public class AdminWarrantyController {
   }
 
   @GetMapping("/lookup")
+  @PreAuthorize("@adminRoleService.hasModuleAction(principal, 'bao_hanh', 'them')")
   public ApiResponse<AdminWarrantyLookupResponse> lookup(
       @RequestParam(name = "so_serial", required = false) String soSerial,
       @RequestParam(name = "ma_theo_doi", required = false) String maTheoDoi,
       @RequestParam(name = "ma_don_hang", required = false) String maDonHang,
       @RequestParam(name = "sdt_nguoi_lien_he", required = false) String sdt,
       @RequestParam(name = "yeu_cau_tiep_nhan_id", required = false) String intakeId,
+      @RequestParam(name = "keyword", required = false) String keyword,
       @RequestParam(defaultValue = "0") String page,
       @RequestParam(defaultValue = "20") String limit) {
     return ApiResponse.<AdminWarrantyLookupResponse>builder()
         .status(200)
         .message("Tra cứu bảo hành thành công")
-        .data(lookupService.getLookup(soSerial, maTheoDoi, maDonHang, sdt, intakeId, page, limit))
+        .data(lookupService.getLookup(soSerial, maTheoDoi, maDonHang, sdt, intakeId, keyword, page, limit))
         .build();
   }
 
   @GetMapping("/{id}")
+  @PreAuthorize("@adminRoleService.hasModuleAction(principal, 'bao_hanh', 'xem')")
   public ApiResponse<AdminWarrantyDetailResponse> getDetail(
       @PathVariable String id,
       @RequestParam(name = "history_page", defaultValue = "0") String historyPage,
@@ -189,6 +196,7 @@ public class AdminWarrantyController {
   }
 
   @GetMapping("/{id}/history/{historyId}")
+  @PreAuthorize("@adminRoleService.hasModuleAction(principal, 'bao_hanh', 'xem')")
   public ApiResponse<AdminWarrantyDetailResponse.HistoryDetail> getHistoryDetail(
       @PathVariable("id") String id, @PathVariable("historyId") String historyId) {
 
@@ -200,6 +208,7 @@ public class AdminWarrantyController {
   }
 
   @GetMapping
+  @PreAuthorize("@adminRoleService.hasModuleAction(principal, 'bao_hanh', 'xem')")
   public ApiResponse<AdminWarrantyListResponse> getWarranties(
       @RequestParam(required = false) String keyword,
       @RequestParam(name = "trang_thai_xu_ly", required = false) String trangThaiXuLy,

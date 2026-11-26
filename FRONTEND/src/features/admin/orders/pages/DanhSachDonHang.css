@@ -1,3 +1,31 @@
+/* Kiểu chữ riêng cho danh sách và chi tiết đơn hàng. */
+.admin-app :is(.order-list-shell.admin-list-page, .order-detail-shell .admin-order-detail) {
+  --order-type-title: calc(22px * var(--project-font-scale, 1));
+  --order-type-body: calc(13px * var(--project-font-scale, 1));
+  --order-type-label: calc(11px * var(--project-font-scale, 1));
+  --order-text-secondary: #4b5563;
+  font-family: var(--font-family-admin, inherit);
+  font-size: var(--order-type-body);
+  font-weight: var(--admin-weight-regular, 400);
+  line-height: 1.5;
+}
+
+.admin-app
+  .order-list-shell.admin-list-page
+  .order-table-scroll
+  > .order-list-table.admin-data-table
+  :is(th, td small) {
+  font-size: var(--order-type-label);
+}
+
+.admin-app
+  .order-list-shell.admin-list-page
+  .order-table-scroll
+  > .order-list-table.admin-data-table
+  :is(td, td strong, td a) {
+  font-size: var(--order-type-body);
+}
+
 /* Styles for the DanhSachDonHang order screen. */
 .order-list-shell {
   flex: 1;
@@ -23,15 +51,15 @@
 }
 .order-list-hero h1 {
   color: #090909;
-  font-size: 23px;
-  line-height: 1.1;
-  font-weight: 900;
+  font-size: var(--order-type-title);
+  line-height: 1.25;
+  font-weight: var(--admin-weight-bold, 700);
 }
 .order-list-hero p {
   margin-top: 8px;
-  color: #9298a0;
-  font-size: 10px;
-  font-weight: 700;
+  color: var(--order-text-secondary);
+  font-size: var(--order-type-label);
+  font-weight: var(--admin-weight-medium, 500);
 }
 .order-create-button {
   min-height: 41px;
@@ -104,11 +132,10 @@
   min-width: 0;
   color: #111;
   background: transparent;
-  font-size: 10px;
-  font-weight: 700;
+  font: inherit;
 }
 .order-search input::placeholder {
-  color: #9ca1a8;
+  color: var(--order-text-secondary);
 }
 .admin-app .order-toolbar .filter__dropdown {
   height: 38px;
@@ -171,9 +198,7 @@
   border: 2px solid #dedede !important;
   color: #262626;
   background: #fff;
-  font-family: inherit;
-  font-size: 10px;
-  font-weight: 600;
+  font: inherit;
 }
 .order-filter-actions {
   min-width: 145px;
@@ -218,58 +243,30 @@
   width: 100%;
   min-height: 0;
   flex: 0 1 auto;
-  overflow: auto;
-  border: 2px solid #111;
-  background: #fff;
   scrollbar-color: #8d8d8d #ececec;
 }
-.order-list-table {
-  width: 100%;
-  border-collapse: collapse;
+
+/* Khung, dòng và tiêu đề cột do admin-data-table quản lý. */
+.order-list-table td :is(strong, small) {
+  display: block;
+  overflow-wrap: anywhere;
 }
-.order-list-table[aria-busy='true'] tbody {
-  opacity: 0.5;
-}
-.order-list-table thead {
-  position: sticky;
-  top: 0;
-  z-index: 5;
-  color: #7e858e;
-  background: #0c0c0c;
-}
-.order-list-table th {
-  height: 38px;
-  padding: 9px 12px;
-  font-size: 9px;
-  font-weight: 800;
-  text-align: left;
-  white-space: nowrap;
-}
-.order-list-table td {
-  height: 61px;
-  padding: 9px 12px;
-  border-bottom: 1px solid #e2e2e2;
-  color: #111;
-  font-size: 10px;
-  vertical-align: middle;
-}
-.order-list-table tbody tr:nth-child(even) {
-  background: #fafafa;
-}
-.order-list-table tbody tr:not(.order-empty-row):hover {
-  background: #f1f1f1;
-}
+
 .order-list-table td strong {
-  display: block;
-  font-size: 11px;
-  font-weight: 800;
-  white-space: nowrap;
+  font-weight: var(--admin-weight-medium, 500);
 }
+
+.order-list-table td :is(.order-primary, .order-total) {
+  font-weight: var(--admin-weight-semibold, 600);
+}
+
 .order-list-table td small {
-  display: block;
-  margin-top: 4px;
-  color: #8b929c;
-  font-size: 9px;
+  margin-top: 3px;
+  color: var(--order-text-secondary);
+}
+
+.admin-app .order-table-scroll > .order-list-table .order-money-cell {
+  text-align: right;
   white-space: nowrap;
 }
 .order-thumbnail {
@@ -279,11 +276,22 @@
   border: 1px solid #cecece;
   background: #f4f4f4;
 }
-.order-primary,
-.order-total {
-  color: #020202;
-  font-weight: 900 !important;
+
+.order-list-table .order-primary > a {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
+
+.order-list-table .order-primary > a:is(:hover, :focus-visible) {
+  color: var(--color-brand-red-hover, #b91c1c);
+}
+
+.order-list-table .order-primary > a:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+}
+
 .order-state-badge {
   margin-top: 4px;
 }
@@ -307,14 +315,13 @@
 }
 .order-row--cancelled .order-primary,
 .order-row--cancelled .order-total {
-  color: #b7babd;
+  color: #59636e;
 }
 .order-empty-row td {
   height: 46px;
-  color: #8a9098;
+  color: var(--order-text-secondary);
   text-align: center;
-  font-size: 10px;
-  font-weight: 700;
+  font-weight: var(--admin-weight-regular, 400);
 }
 .order-list-footer {
   min-height: 62px;
@@ -323,11 +330,9 @@
   justify-content: space-between;
   gap: 18px;
 }
-.order-list-footer > p {
-  color: #858c95;
-  font-size: 9px;
-  font-weight: 800;
-  white-space: nowrap;
+.admin-app .order-list-shell.admin-list-page .order-list-footer > p {
+  color: var(--order-text-secondary);
+  font-size: var(--order-type-label);
 }
 .order-list-footer .product-pagination-bar {
   width: auto;
@@ -346,11 +351,6 @@
 
   .admin-app .order-list-shell .order-table-scroll > .order-list-table th {
     white-space: normal;
-  }
-
-  .admin-app .order-list-shell .order-table-scroll > .order-list-table :is(td strong, td small) {
-    white-space: normal;
-    overflow-wrap: anywhere;
   }
 
   .order-list-shell .order-thumbnail {
@@ -427,7 +427,7 @@
 
 @media (max-width: 480px) {
   .order-list-hero h1 {
-    font-size: 19px;
+    font-size: calc(19px * var(--project-font-scale, 1));
   }
   .order-toolbar__primary,
   .order-toolbar__advanced,
@@ -443,10 +443,6 @@
   .order-summary-stats .stat-badge {
     min-width: 0;
     justify-content: center;
-  }
-  .order-list-footer > p {
-    white-space: normal;
-    line-height: 1.45;
   }
 }
 .order-api-message {
@@ -526,9 +522,6 @@
   line-height: 1.5;
   white-space: normal;
   overflow-wrap: anywhere;
-}
-
-.order-list-table {
 }
 
 .order-list-table .order-delivery-status-cell {

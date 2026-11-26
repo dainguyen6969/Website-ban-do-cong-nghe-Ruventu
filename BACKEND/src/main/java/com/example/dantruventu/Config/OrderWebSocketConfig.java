@@ -16,7 +16,7 @@ public class OrderWebSocketConfig implements WebSocketConfigurer {
   private final OrderWebSocket socket;
 
   @Value(
-      "${ruventu.orders.websocket.allowed-origins:http://localhost:5173,http://127.0.0.1:5173,http://localhost,https://coactive-subfestive-estelle.ngrok-free.dev}")
+      "${ruventu.orders.websocket.allowed-origins:${ORDER_WEBSOCKET_ALLOWED_ORIGINS:http://localhost:5173,http://127.0.0.1:5173,http://localhost,https://coactive-subfestive-estelle.ngrok-free.dev}}")
   private String[] allowedOrigins;
 
   @Override

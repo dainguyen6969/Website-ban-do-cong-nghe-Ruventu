@@ -26,6 +26,18 @@
 .inventory-detail__breadcrumb strong {
   color: var(--color-brand-red);
 }
+
+.inventory-detail__breadcrumb a {
+  color: inherit;
+  text-decoration: none;
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+
+.inventory-detail__breadcrumb a:hover {
+  color: #c51d25;
+  text-decoration: underline;
+}
 .inventory-detail__title-row {
   min-height: 84px;
   display: flex;

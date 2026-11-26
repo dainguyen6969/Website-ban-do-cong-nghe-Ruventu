@@ -1,9 +1,11 @@
 // Admin product screen: QuanLyPhienBan.
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
-import { HiOutlineDownload, HiOutlineSearch } from 'react-icons/hi';
+import { Link, useSearchParams } from 'react-router-dom';
+import AdminLink from '../../../../../shared/components/ui/AdminLink';
+import { HiOutlineDownload, HiOutlineEye, HiOutlineSearch } from 'react-icons/hi';
 import TablePagination from '../../../../../shared/components/ui/TablePagination';
 import FilterDropdown from '../../../../../shared/components/ui/FilterDropdown';
+import LoadingSpinner from '../../../../../shared/components/ui/LoadingSpinner';
 import { getAllVersions } from '../api/versionApi';
 import './QuanLyPhienBan.css';
 
@@ -15,7 +17,6 @@ function escapeCsv(value) {
 }
 
 export default function QuanLyPhienBan() {
-  const navigate = useNavigate();
   const [params] = useSearchParams();
   const [searchTerm, setSearchTerm] = useState('');
   const [warehouse, setWarehouse] = useState(() => params.get('kho_hang_id') || '');
@@ -137,9 +138,9 @@ export default function QuanLyPhienBan() {
     <main className="version-page admin-list-page" role="main">
       <div className="admin-list-content admin-list-body">
         <nav className="admin-list-breadcrumb" aria-label="Breadcrumb nội dung">
-          <span>Sản phẩm</span>
+          <Link to="/kho-hang/quan-ly-phien-ban">Sản phẩm</Link>
           <span aria-hidden="true">›</span>
-          <span>Quản lý kho</span>
+          <Link to="/kho-hang/quan-ly-phien-ban">Quản lý kho</Link>
           <span aria-hidden="true">›</span>
           <strong>Toàn bộ phiên bản</strong>
         </nav>
@@ -278,8 +279,12 @@ export default function QuanLyPhienBan() {
               <tbody>
                 {loading ? (
                   <tr>
-                    <td className="version-empty" colSpan="9">
-                      Đang tải dữ liệu...
+                    <td
+                      className="version-empty"
+                      colSpan="9"
+                      style={{ padding: 24, textAlign: 'center' }}
+                    >
+                      <LoadingSpinner text="Đang tải danh sách phiên bản..." size="md" />
                     </td>
                   </tr>
                 ) : error ? (
@@ -334,16 +339,24 @@ export default function QuanLyPhienBan() {
                           />
                         </td>
                         <td>
-                          <div className="version-thumb">
-                            {item.image ? (
-                              <img src={item.image} alt="" />
-                            ) : (
-                              <span aria-hidden="true">RU</span>
-                            )}
-                          </div>
+                          {item.image ? (
+                            <a
+                              className="version-thumb"
+                              href={item.image}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              aria-label={`Mở ảnh gốc của ${item.displayCode || item.displayName} trong tab mới`}
+                            >
+                              <img src={item.image} alt="" loading="lazy" decoding="async" />
+                            </a>
+                          ) : (
+                            <span className="version-thumb" aria-label="Chưa có ảnh">
+                              —
+                            </span>
+                          )}
                         </td>
                         <td>
-                          <span className="version-code">{item.displayCode}</span>
+                          <strong className="version-code">{item.displayCode || '—'}</strong>
                         </td>
                         <td>
                           <div className="version-name">{item.displayName}</div>
@@ -379,19 +392,17 @@ export default function QuanLyPhienBan() {
                           <span className="version-location">{item.location}</span>
                         </td>
                         <td>
-                          <button
-                            type="button"
-                            className="admin-list-detail-action"
-                            onClick={() =>
-                              navigate(
-                                item.type === 'Combo'
-                                  ? `/kho-hang/combo-san-pham/chi-tiet/${item.comboId}`
-                                  : `/kho-hang/quan-ly-phien-ban/chi-tiet/${encodeURIComponent(item.id)}`
-                              )
+                          <AdminLink
+                            className="version-detail-btn"
+                            to={
+                              isCombo
+                                ? `/kho-hang/combo-san-pham/chi-tiet/${item.comboId}`
+                                : `/kho-hang/quan-ly-phien-ban/chi-tiet/${encodeURIComponent(item.id)}`
                             }
                           >
-                            {item.type === 'Combo' ? 'THÀNH PHẦN' : 'CHI TIẾT'}
-                          </button>
+                            <HiOutlineEye size={15} aria-hidden="true" />
+                            {isCombo ? 'Thành phần' : 'Chi tiết'}
+                          </AdminLink>
                         </td>
                       </tr>
                     );

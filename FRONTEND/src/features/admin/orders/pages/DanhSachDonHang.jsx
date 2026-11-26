@@ -1,11 +1,17 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
+import AdminLink from '../../../../shared/components/ui/AdminLink';
 import { HiOutlineAdjustments, HiOutlineSearch } from 'react-icons/hi';
 import FilterDropdown from '../../../../shared/components/ui/FilterDropdown';
 import TablePagination from '../../../../shared/components/ui/TablePagination';
+import LoadingSpinner from '../../../../shared/components/ui/LoadingSpinner';
 import syncTableHeaderOffset from '../../../../shared/components/ui/syncTableHeaderOffset';
 import { dateTime, getOrders, label, money, orderDisplayStatus } from '../api/orderApi';
 import { subscribeOrderUpdates } from '../api/orderRealtime';
+
+import { hasAdminPermission } from '../../../../auth/roleModel';
+import { useAdminPermissions } from '../../../../shared/components/ui/PermissionGate';
+
 import './DanhSachDonHang.css';
 
 const PAGE_SIZE = 10;
@@ -63,16 +69,29 @@ const selectedLabel = (field, value) =>
 
 export default function DanhSachDonHang() {
   const navigate = useNavigate();
+
+  const access = useAdminPermissions()?.access;
+  const canViewShipment = hasAdminPermission(access, 'giao_hang', 'xem');
+
   const [params] = useSearchParams();
+  const { state: locationState } = useLocation();
+  const restored = locationState?.orderListReturn;
+
   const initialFilters = () =>
-    Object.fromEntries(Object.keys(empty).map((key) => [key, params.get(key) || '']));
-  const [showAdvanced, setShowAdvanced] = useState(false);
+    Object.fromEntries(
+      Object.keys(empty).map((key) => [key, restored?.filters?.[key] ?? params.get(key) ?? ''])
+    );
+
+  const [showAdvanced, setShowAdvanced] = useState(() => restored?.showAdvanced === true);
   const [draft, setDraft] = useState(initialFilters);
   const [filters, setFilters] = useState(initialFilters);
-  const [page, setPage] = useState(1);
+  const [page, setPage] = useState(() => {
+    const savedPage = restored?.page;
+    return Number.isSafeInteger(savedPage) && savedPage > 0 ? savedPage : 1;
+  });
   const [data, setData] = useState({ items: [], pagination: {} });
   const [state, setState] = useState({ loading: true, error: '' });
-  const [revision, setRevision] = useState(0);
+  const [revision, setRevision] = useState(null);
   const loadedRequest = useRef(null);
   const request = useMemo(
     () => ({
@@ -85,13 +104,22 @@ export default function DanhSachDonHang() {
   );
 
   useEffect(() => {
-    return subscribeOrderUpdates(() => setRevision((value) => value + 1));
+    // Subscribe before reading so the first snapshot covers changes up to socket readiness.
+    const fallback = window.setTimeout(() => setRevision(0), 750);
+    const unsubscribe = subscribeOrderUpdates(() => {
+      window.clearTimeout(fallback);
+      setRevision((value) => (value == null ? 0 : value + 1));
+    });
+    return () => {
+      window.clearTimeout(fallback);
+      unsubscribe();
+    };
   }, []);
 
   useEffect(() => {
     const refreshVisible = () => {
       if (document.visibilityState === 'visible') {
-        setRevision((value) => value + 1);
+        setRevision((value) => (value == null ? value : value + 1));
       }
     };
 
@@ -106,6 +134,7 @@ export default function DanhSachDonHang() {
   }, []);
 
   useEffect(() => {
+    if (revision == null) return;
     const controller = new AbortController();
     const background = loadedRequest.current === request;
 
@@ -115,6 +144,15 @@ export default function DanhSachDonHang() {
       getOrders(request, controller.signal)
         .then((result) => {
           if (controller.signal.aborted) return;
+
+          const totalPages = Number(result?.pagination?.total_pages ?? NaN);
+          const lastPage = Math.max(1, totalPages);
+
+          if (Number.isSafeInteger(totalPages) && totalPages >= 0 && request.page >= lastPage) {
+            setPage(lastPage);
+            return;
+          }
+
           loadedRequest.current = request;
 
           setData({
@@ -186,6 +224,9 @@ export default function DanhSachDonHang() {
   };
 
   const total = Number(data.pagination?.total_elements || 0);
+
+  const detailPath = (id) => `/admin/don-hang/danh-sach-don-hang/${id}`;
+  const detailState = { orderListReturn: { filters, page, showAdvanced } };
 
   return (
     <>
@@ -294,7 +335,13 @@ export default function DanhSachDonHang() {
       </section>
       <section className="order-list-content admin-list-body">
         {state.error && <p className="order-api-message order-api-message--error">{state.error}</p>}
-        <div ref={syncTableHeaderOffset} className="order-table-scroll admin-table-scroll" tabIndex={0} role="region" aria-label="Bảng danh sách">
+        <div
+          ref={syncTableHeaderOffset}
+          className="order-table-scroll admin-table-scroll"
+          tabIndex={0}
+          role="region"
+          aria-label="Bảng danh sách"
+        >
           <table className="order-list-table admin-data-table" aria-busy={state.loading}>
             <thead>
               <tr>
@@ -307,7 +354,7 @@ export default function DanhSachDonHang() {
                 <th>ĐÓNG GÓI</th>
                 <th>XUẤT KHO</th>
                 <th>TRẠNG THÁI GIAO</th>
-                <th>TỔNG TIỀN</th>
+                <th className="order-money-cell">TỔNG TIỀN</th>
                 <th>THAO TÁC</th>
               </tr>
             </thead>
@@ -325,7 +372,15 @@ export default function DanhSachDonHang() {
                     )}
                   </td>
                   <td>
-                    <strong className="order-primary">{order.ma_don_hang}</strong>
+                    <strong className="order-primary">
+                      {state.loading ? (
+                        order.ma_don_hang
+                      ) : (
+                        <AdminLink to={detailPath(order.id)}>
+                          {order.ma_don_hang}
+                        </AdminLink>
+                      )}
+                    </strong>
                     <OrderStateBadge value={order.loai_don_hang} />
                   </td>
                   <td>
@@ -367,7 +422,7 @@ export default function DanhSachDonHang() {
                     <OrderDeliveryBadge order={order} />
                   </td>
 
-                  <td>
+                  <td className="order-money-cell">
                     <strong className="order-total">{money(order.tong_thanh_toan)}</strong>
                   </td>
                   <td className="order-actions-cell">
@@ -376,12 +431,12 @@ export default function DanhSachDonHang() {
                         className="order-detail-button"
                         type="button"
                         disabled={state.loading}
-                        onClick={() => navigate(`/admin/don-hang/danh-sach-don-hang/${order.id}`)}
+                        onClick={() => navigate(detailPath(order.id), { state: detailState })}
                       >
                         XEM CHI TIẾT
                       </button>
 
-                      {Number(order.phieu_giao_hang_gan_nhat_id) > 0 && (
+                      {canViewShipment && Number(order.phieu_giao_hang_gan_nhat_id) > 0 && (
                         <button
                           className="order-detail-button order-shipment-button"
                           type="button"
@@ -406,7 +461,9 @@ export default function DanhSachDonHang() {
               )}
               {state.loading && !data.items.length && (
                 <tr className="order-empty-row">
-                  <td colSpan="11">Đang tải dữ liệu...</td>
+                  <td colSpan="11">
+                    <LoadingSpinner text="Đang tải dữ liệu đơn hàng..." size="md" />
+                  </td>
                 </tr>
               )}
             </tbody>
@@ -458,10 +515,14 @@ export function OrderStateBadge({ value }) {
 
   // 2. Phân loại theo Xuất kho
   if (value === 'CHUA_XUAT_KHO') {
-    return <span className="order-state-badge order-state-badge--violet">{text.toUpperCase()}</span>;
+    return (
+      <span className="order-state-badge order-state-badge--violet">{text.toUpperCase()}</span>
+    );
   }
   if (['CHO_XUAT_KHO', 'DANG_XUAT_KHO'].includes(value)) {
-    return <span className="order-state-badge order-state-badge--purple">{text.toUpperCase()}</span>;
+    return (
+      <span className="order-state-badge order-state-badge--purple">{text.toUpperCase()}</span>
+    );
   }
   if (value === 'DA_XUAT_KHO') {
     return <span className="order-state-badge order-state-badge--green">{text.toUpperCase()}</span>;
@@ -506,7 +567,9 @@ export function OrderDeliveryBadge({ order }) {
       return <span className="order-state-badge order-state-badge--teal">NHẬN TẠI CỬA HÀNG</span>;
     }
     if (order.hinh_thuc_nhan_hang === 'GIAO_HANG') {
-      return <span className="order-state-badge order-state-badge--orange">CHƯA TẠO PHIẾU GIAO</span>;
+      return (
+        <span className="order-state-badge order-state-badge--orange">CHƯA TẠO PHIẾU GIAO</span>
+      );
     }
     return <span className="order-state-badge order-state-badge--neutral">—</span>;
   }

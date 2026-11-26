@@ -1,13 +1,17 @@
 import { useEffect, useRef, useState } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate, Link } from 'react-router-dom';
 import { HiOutlineArrowLeft, HiOutlinePlus, HiOutlineSearch, HiOutlineX } from 'react-icons/hi';
 
 import FilterDropdown, { FormDropdown } from '../../../../shared/components/ui/FilterDropdown';
 import TablePagination from '../../../../shared/components/ui/TablePagination';
+import LoadingSpinner from '../../../../shared/components/ui/LoadingSpinner';
 import { adminRequest } from '../../catalog/products/api/versionApi';
 import { label, money } from '../../orders/api/orderApi';
 
 import { basicStatusValue } from '../../../../shared/services/mutationUtils';
+
+import { hasAdminPermission } from '../../../../auth/roleModel';
+import { useAdminPermissions } from '../../../../shared/components/ui/PermissionGate';
 
 import './DoiTacVanChuyen.css';
 
@@ -241,6 +245,11 @@ function validatePartner(body) {
 export default function DoiTacVanChuyen() {
   const location = useLocation();
   const navigate = useNavigate();
+
+  const access = useAdminPermissions()?.access;
+  const canCreatePartner = hasAdminPermission(access, 'doi_tac_van_chuyen', 'them');
+  const canEditPartner = hasAdminPermission(access, 'doi_tac_van_chuyen', 'sua');
+
   const mutationBusy = useRef(false);
 
   const [filters, setFilters] = useState({
@@ -331,7 +340,7 @@ export default function DoiTacVanChuyen() {
   }
 
   function openAdd() {
-    if (mutationBusy.current) return;
+    if (!canCreatePartner || mutationBusy.current) return;
 
     setForm({ ...EMPTY_FORM });
     setFieldErrors({});
@@ -365,7 +374,7 @@ export default function DoiTacVanChuyen() {
   }
 
   function openStatusAction(partner) {
-    if (mutationBusy.current) return;
+    if (!canEditPartner || mutationBusy.current) return;
 
     const currentStatus = partnerStatus(partner.trang_thai);
     if (currentStatus == null) return;
@@ -400,7 +409,7 @@ export default function DoiTacVanChuyen() {
 
   function addPartner(event) {
     event.preventDefault();
-    if (mutationBusy.current) return;
+    if (!canCreatePartner || mutationBusy.current) return;
 
     const body = buildPartnerBody(form);
     const errors = validatePartner(body);
@@ -432,7 +441,7 @@ export default function DoiTacVanChuyen() {
   }
 
   function confirmStatusAction() {
-    if (!pendingAction || mutationBusy.current) return;
+    if (!canEditPartner || !pendingAction || mutationBusy.current) return;
 
     const { partner, targetStatus } = pendingAction;
 
@@ -468,7 +477,7 @@ export default function DoiTacVanChuyen() {
             </button>
           </div>
         ) : detail.loading ? (
-          <p style={{ padding: 24 }}>Đang tải thông tin đối tác...</p>
+          <LoadingSpinner text="Đang tải thông tin đối tác..." fullPage />
         ) : detail.error || !detail.data ? (
           <div className="partner-not-found">
             <p role="alert">{detail.error || 'Không tìm thấy đối tác.'}</p>
@@ -495,6 +504,7 @@ export default function DoiTacVanChuyen() {
             successMessage={successMessage}
             onBack={backToList}
             onAction={() => openStatusAction(detail.data)}
+            canEdit={canEditPartner}
           />
         )
       ) : (
@@ -509,7 +519,7 @@ export default function DoiTacVanChuyen() {
             <button
               type="button"
               className="partner-btn partner-btn--black"
-              disabled={busy}
+              disabled={busy || !canCreatePartner}
               onClick={openAdd}
             >
               <HiOutlinePlus />
@@ -568,7 +578,9 @@ export default function DoiTacVanChuyen() {
                 <tbody>
                   {list.loading && !list.data ? (
                     <tr className="partner-empty">
-                      <td colSpan={7}>Đang tải danh sách đối tác...</td>
+                      <td colSpan={7} style={{ padding: 24, textAlign: 'center' }}>
+                        <LoadingSpinner text="Đang tải danh sách đối tác..." size="md" />
+                      </td>
                     </tr>
                   ) : list.error ? (
                     <tr className="partner-empty">
@@ -632,7 +644,7 @@ export default function DoiTacVanChuyen() {
                                 className={`partner-row-btn partner-row-btn--${
                                   active ? 'danger' : 'success'
                                 }`}
-                                disabled={busy || status == null}
+                                disabled={!canEditPartner || busy || status == null}
                                 onClick={(event) => {
                                   event.stopPropagation();
                                   openStatusAction(partner);
@@ -663,7 +675,7 @@ export default function DoiTacVanChuyen() {
         </>
       )}
 
-      {showAdd && (
+      {canCreatePartner && showAdd && (
         <AddPartnerModal
           form={form}
           errors={fieldErrors}
@@ -675,7 +687,7 @@ export default function DoiTacVanChuyen() {
         />
       )}
 
-      {pendingAction && (
+      {canEditPartner && pendingAction && (
         <ConfirmActionModal
           pendingAction={pendingAction}
           busy={busy}
@@ -688,12 +700,24 @@ export default function DoiTacVanChuyen() {
   );
 }
 
-function PartnerBreadcrumb({ code }) {
+function PartnerBreadcrumb({ code, onBack }) {
   return (
     <nav className="partner-crumbs" aria-label="Breadcrumb nội dung">
-      <span>KHÁCH HÀNG & ĐỐI TÁC</span>
+      <Link to="/admin/khach-hang-doi-tac/khach-hang">KHÁCH HÀNG &amp; ĐỐI TÁC</Link>
       <span>/</span>
-      <span>ĐỐI TÁC VẬN CHUYỂN</span>
+      {code ? (
+        <a
+          href="#danh-sach"
+          onClick={(e) => {
+            e.preventDefault();
+            if (onBack) onBack();
+          }}
+        >
+          ĐỐI TÁC VẬN CHUYỂN
+        </a>
+      ) : (
+        <span>ĐỐI TÁC VẬN CHUYỂN</span>
+      )}
 
       {code && (
         <>
@@ -756,11 +780,12 @@ function InfoRow({ title, children }) {
   );
 }
 
-function ServerPagination({ data, page, onPageChange, noun, idPrefix }) {
+function ServerPagination({ data, page, onPageChange, noun, idPrefix, pageSize = PAGE_SIZE }) {
   const total = Number(data?.pagination?.total_elements || 0);
   const items = data?.items || [];
-  const safePage = Math.min(page, totalPagesOf(data));
-  const start = items.length ? (safePage - 1) * PAGE_SIZE + 1 : 0;
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  const safePage = Math.min(page, totalPages);
+  const start = items.length ? (safePage - 1) * pageSize + 1 : 0;
   const end = items.length ? Math.min(start + items.length - 1, total) : 0;
 
   return (
@@ -771,7 +796,7 @@ function ServerPagination({ data, page, onPageChange, noun, idPrefix }) {
 
       <TablePagination
         totalItems={total}
-        pageSize={PAGE_SIZE}
+        pageSize={pageSize}
         currentPage={safePage}
         onPageChange={onPageChange}
         idPrefix={idPrefix}
@@ -781,8 +806,12 @@ function ServerPagination({ data, page, onPageChange, noun, idPrefix }) {
   );
 }
 
-function PartnerDetail({ partner, revision, busy, successMessage, onBack, onAction }) {
+function PartnerDetail({ partner, revision, busy, successMessage, onBack, onAction, canEdit }) {
   const navigate = useNavigate();
+
+  const access = useAdminPermissions()?.access;
+  const canViewOrders = hasAdminPermission(access, 'don_hang', 'xem');
+  const canViewDeliveries = hasAdminPermission(access, 'giao_hang', 'xem');
 
   const [keyword, setKeyword] = useState('');
   const [statusFilter, setStatusFilter] = useState(DELIVERY_OPTIONS[0]);
@@ -793,7 +822,7 @@ function PartnerDetail({ partner, revision, busy, successMessage, onBack, onActi
     keyword: keyword.trim(),
     trang_thai_giao_hang: DELIVERY_CODE_BY_LABEL[statusFilter],
     page: page - 1,
-    limit: PAGE_SIZE,
+    limit: 5,
   })}`;
 
   const history = useBackendData(path, `${revision}:${historyRevision}`);
@@ -840,7 +869,7 @@ function PartnerDetail({ partner, revision, busy, successMessage, onBack, onActi
     <>
       <section className="partner-hero partner-detail-hero">
         <div>
-          <PartnerBreadcrumb code={partner.ma_doi_tac} />
+          <PartnerBreadcrumb code={partner.ma_doi_tac} onBack={onBack} />
 
           <div className="partner-detail-meta">
             <span>{partner.ma_doi_tac}</span>
@@ -864,7 +893,7 @@ function PartnerDetail({ partner, revision, busy, successMessage, onBack, onActi
           <button
             type="button"
             className={`partner-btn partner-btn--outline-${active ? 'danger' : 'success'}`}
-            disabled={busy || status == null}
+            disabled={!canEdit || busy || status == null}
             onClick={onAction}
           >
             {active ? 'NGỪNG HOẠT ĐỘNG' : 'KHÔI PHỤC HOẠT ĐỘNG'}
@@ -916,7 +945,9 @@ function PartnerDetail({ partner, revision, busy, successMessage, onBack, onActi
                 <tbody>
                   {history.loading && !history.data ? (
                     <tr className="partner-empty">
-                      <td colSpan={9}>Đang tải lịch sử giao hàng...</td>
+                      <td colSpan={9} style={{ padding: 24, textAlign: 'center' }}>
+                        <LoadingSpinner text="Đang tải lịch sử giao hàng..." size="md" />
+                      </td>
                     </tr>
                   ) : history.error ? (
                     <tr className="partner-empty">
@@ -952,7 +983,7 @@ function PartnerDetail({ partner, revision, busy, successMessage, onBack, onActi
                           <button
                             type="button"
                             className="partner-order-link"
-                            disabled={!delivery.don_hang_id}
+                            disabled={!canViewOrders || !delivery.don_hang_id}
                             onClick={() =>
                               navigate(
                                 `/admin/don-hang/danh-sach-don-hang/${encodeURIComponent(
@@ -981,6 +1012,7 @@ function PartnerDetail({ partner, revision, busy, successMessage, onBack, onActi
                           <button
                             type="button"
                             className="partner-view-order"
+                            disabled={!canViewDeliveries}
                             onClick={() =>
                               navigate(
                                 `/admin/don-hang/quan-ly-giao-hang/${encodeURIComponent(
@@ -1008,6 +1040,7 @@ function PartnerDetail({ partner, revision, busy, successMessage, onBack, onActi
                 onPageChange={setPage}
                 noun="PHIẾU"
                 idPrefix="partner-deliveries"
+                pageSize={5}
               />
             </div>
           )}

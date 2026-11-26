@@ -2,6 +2,8 @@
 import { Link, useLocation, useNavigate, Outlet } from 'react-router-dom';
 import { HiOutlineClipboardList, HiOutlineDownload, HiOutlinePlus } from 'react-icons/hi';
 import '../../../../shared/components/layout/MainContent.css';
+import { canOpenAdminPath } from '../../../../auth/roleModel';
+import { useAdminPermissions } from '../../../../shared/components/ui/PermissionGate';
 
 const tabs = [
   {
@@ -21,6 +23,11 @@ const tabs = [
 export default function OrderLayout() {
   const location = useLocation();
   const navigate = useNavigate();
+
+  const access = useAdminPermissions()?.access;
+  const createOrderPath = '/admin/don-hang/dat-hang-online';
+  const canCreateOrder = canOpenAdminPath(access, createOrderPath);
+  const visibleTabs = tabs.filter((tab) => canOpenAdminPath(access, tab.path));
 
   const isOrderList = location.pathname === '/admin/don-hang/danh-sach-don-hang';
   const isOrderDetail = /^\/admin\/don-hang\/danh-sach-don-hang\/[^/]+$/.test(location.pathname);
@@ -67,7 +74,9 @@ export default function OrderLayout() {
         <section className="order-list-hero">
           <div>
             <nav className="content__breadcrumb" aria-label="Breadcrumb nội dung">
-              <span className="content__breadcrumb-item">Đơn hàng</span>
+              <Link to="/admin/don-hang/danh-sach-don-hang" className="content__breadcrumb-item">
+                Đơn hàng
+              </Link>
               <span className="content__breadcrumb-sep">›</span>
               <span className="content__breadcrumb-item content__breadcrumb-item--current">
                 Danh sách đơn hàng
@@ -80,13 +89,15 @@ export default function OrderLayout() {
             <Link className="order-waiting-button" to="/admin/don-hang/cho-hang-can-xu-ly">
               <HiOutlineClipboardList size={16} aria-hidden="true" /> ĐƠN CHỜ HÀNG CẦN XỬ LÝ
             </Link>
-            <button
-              className="order-create-button"
-              type="button"
-              onClick={() => navigate('/admin/don-hang/dat-hang-online')}
-            >
-              <HiOutlinePlus size={16} /> TẠO ĐƠN CHỜ HÀNG
-            </button>
+            {canCreateOrder && (
+              <button
+                className="order-create-button"
+                type="button"
+                onClick={() => navigate(createOrderPath)}
+              >
+                <HiOutlinePlus size={16} /> TẠO ĐƠN CHỜ HÀNG
+              </button>
+            )}
           </div>
         </section>
         <Outlet />
@@ -98,7 +109,9 @@ export default function OrderLayout() {
     <main className="main-content" role="main">
       {/* Secondary breadcrumb */}
       <nav className="content__breadcrumb" aria-label="Breadcrumb nội dung">
-        <span className="content__breadcrumb-item">Đơn hàng</span>
+        <Link to="/admin/don-hang/danh-sach-don-hang" className="content__breadcrumb-item">
+          Đơn hàng
+        </Link>
         <span className="content__breadcrumb-sep" aria-hidden="true">
           ›
         </span>
@@ -115,16 +128,24 @@ export default function OrderLayout() {
             <HiOutlineDownload size={16} />
             <span>XUẤT EXCEL</span>
           </button>
-          <button className="btn btn--primary" id="btn-dat-hang-online">
-            <HiOutlinePlus size={16} />
-            <span>TẠO ĐƠN CHỜ HÀNG</span>
-          </button>
+
+          {canCreateOrder && (
+            <button
+              className="btn btn--primary"
+              id="btn-dat-hang-online"
+              type="button"
+              onClick={() => navigate(createOrderPath)}
+            >
+              <HiOutlinePlus size={16} />
+              <span>TẠO ĐƠN CHỜ HÀNG</span>
+            </button>
+          )}
         </div>
       </div>
 
       {/* Tabs matching URL route */}
       <div className="content__tabs" role="tablist" aria-label="Tabs đơn hàng">
-        {tabs.map((tab) => {
+        {visibleTabs.map((tab) => {
           const isActive = location.pathname.startsWith(tab.path);
           return (
             <button

@@ -24,7 +24,7 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/v1/admin/receipts")
 @RequiredArgsConstructor
-@PreAuthorize("hasRole('ADMIN')")
+@PreAuthorize("@adminRoleService.hasModuleAction(principal, 'so_quy', 'xem')")
 public class AdminReceiptController {
 
   private final AdminReceiptService service;
@@ -41,6 +41,7 @@ public class AdminReceiptController {
   }
 
   @GetMapping("/payers")
+  @PreAuthorize("@adminRoleService.hasModuleAction(principal, 'so_quy', 'them')")
   public ApiResponse<PayerSuggestionListResponse> getPayerSuggestions(
       @RequestParam(name = "nhom_nguoi_nop_nhan", required = false) String nhomNguoiNopNhan,
       @RequestParam(required = false) String keyword,
@@ -65,6 +66,7 @@ public class AdminReceiptController {
   }
 
   @PostMapping
+  @PreAuthorize("@adminRoleService.hasModuleAction(principal, 'so_quy', 'them')")
   public ResponseEntity<ApiResponse<AdminReceiptResponse>> createReceipt(
       @Valid @RequestBody AdminReceiptCreateRequest request,
       @RequestHeader(name = "Idempotency-Key", required = false) String requestKey,
@@ -85,6 +87,7 @@ public class AdminReceiptController {
   }
 
   @PostMapping("/{id}/cancel")
+  @PreAuthorize("@adminRoleService.hasModuleAction(principal, 'so_quy', 'sua')")
   public ApiResponse<AdminReceiptCancelResponse> cancelReceipt(
       @PathVariable String id,
       @RequestHeader("Idempotency-Key") String requestKey,

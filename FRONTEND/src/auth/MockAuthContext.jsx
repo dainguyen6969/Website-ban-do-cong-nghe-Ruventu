@@ -6,7 +6,13 @@ import {
   isStaffAccount,
   upgradeAccounts,
 } from './accountModel';
-import { AUTH_CHANGED, readCurrentUser, saveLogin, logoutBackend } from './backendAuth';
+import {
+  AUTH_CHANGED,
+  isAuthStorageEvent,
+  readCurrentUser,
+  saveLogin,
+  logoutBackend,
+} from './backendAuth';
 import {
   ROLES_STORAGE_KEY,
   roleAbbreviationFromName,
@@ -54,7 +60,7 @@ export function MockAuthProvider({ children }) {
     };
 
     const syncFromStorage = (event) => {
-      syncAuth();
+      if (isAuthStorageEvent(event)) syncAuth();
 
       if (event.key === null || event.key === ACCOUNTS_STORAGE_KEY) {
         setAccounts(loadAccounts());

@@ -1,11 +1,16 @@
 // Admin product-combo screen: ChiTietCombo.
 import { useEffect, useMemo, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import FormCard from '../../../../../shared/components/ui/FormCard';
+import DetailTablePagination from '../../../../../shared/components/ui/DetailTablePagination';
+import useDetailTablePagination from '../../../../../hooks/useDetailTablePagination';
+import LoadingSpinner from '../../../../../shared/components/ui/LoadingSpinner';
 import StopComboModal from '../components/StopComboModal';
 import { deactivateCombo, getComboDetail } from '../api/comboApi';
 import fallbackImage from '../../../../../assets/hero.png';
 import { warrantyText } from '../../components/CatalogPolicies';
+import { hasAdminPermission } from '../../../../../auth/roleModel';
+import { useAdminPermissions } from '../../../../../shared/components/ui/PermissionGate';
 import './ChiTietCombo.css';
 
 const money = (value) => `${Number(value || 0).toLocaleString('vi-VN')}đ`;
@@ -85,6 +90,11 @@ function ComboWarranty({ components }) {
 export default function ChiTietCombo() {
   const { id } = useParams();
   const navigate = useNavigate();
+
+  const access = useAdminPermissions()?.access;
+  const canEditCombo = hasAdminPermission(access, 'combo_san_pham', 'sua');
+  const canStopCombo = hasAdminPermission(access, 'combo_san_pham', 'xoa');
+
   const [combo, setCombo] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -136,7 +146,16 @@ export default function ChiTietCombo() {
     [combo?.description]
   );
 
-  if (!combo || combo.id !== Number(id))
+  const componentPagination = useDetailTablePagination(detail?.components || []);
+
+  if (!combo || combo.id !== Number(id)) {
+    if (loading) {
+      return (
+        <main className="combo-detail-page">
+          <LoadingSpinner text="Đang tải chi tiết combo..." fullPage />
+        </main>
+      );
+    }
     return (
       <main className="combo-detail-page">
         <div
@@ -144,18 +163,18 @@ export default function ChiTietCombo() {
           role={error ? 'button' : undefined}
           onClick={error ? () => setReloadKey((value) => value + 1) : undefined}
         >
-          {loading
-            ? 'Đang tải chi tiết combo...'
-            : `${error || 'Không tìm thấy combo.'} Nhấn để thử lại.`}
+          {error || 'Không tìm thấy combo.'} Nhấn để thử lại.
         </div>
       </main>
     );
+  }
   const images = combo.images?.length ? combo.images : [combo.image || fallbackImage];
   const imageIndex = Math.min(selectedImage, images.length - 1);
   const capacityTone =
     detail.capacity == null ? 'unknown' : detail.capacity > 0 ? 'ready' : 'empty';
   const specs = combo.specs ?? [];
   const confirmStop = async () => {
+    if (!canStopCombo) return;
     try {
       await deactivateCombo(combo.id);
       setShowStopModal(false);
@@ -171,11 +190,11 @@ export default function ChiTietCombo() {
       <div className="combo-page-heading">
         <div>
           <div className="combo-secondary-breadcrumb">
-            <span>Sản phẩm</span>
+            <Link to="/kho-hang/combo-san-pham">Sản phẩm</Link>
             <b>›</b>
-            <span>Quản lý kho</span>
+            <Link to="/kho-hang/combo-san-pham">Quản lý kho</Link>
             <b>›</b>
-            <span>Combo sản phẩm</span>
+            <Link to="/kho-hang/combo-san-pham">Combo sản phẩm</Link>
             <b>›</b>
             <strong>Chi tiết</strong>
           </div>
@@ -190,14 +209,21 @@ export default function ChiTietCombo() {
             ← QUAY LẠI
           </button>
 
-          <button
-            className="combo-detail-edit"
-            onClick={() => navigate(`/kho-hang/combo-san-pham/them-moi?id=${combo.id}`)}
-          >
-            SỬA COMBO
-          </button>
-          {!stopped(combo.status) && (
-            <button className="combo-detail-stop" onClick={() => setShowStopModal(true)}>
+          {canEditCombo && (
+            <button
+              type="button"
+              className="combo-detail-edit"
+              onClick={() => navigate(`/kho-hang/combo-san-pham/them-moi?id=${combo.id}`)}
+            >
+              SỬA COMBO
+            </button>
+          )}
+          {canStopCombo && !stopped(combo.status) && (
+            <button
+              type="button"
+              className="combo-detail-stop"
+              onClick={() => setShowStopModal(true)}
+            >
               NGƯNG KINH DOANH
             </button>
           )}
@@ -270,7 +296,7 @@ export default function ChiTietCombo() {
                   </tr>
                 </thead>
                 <tbody>
-                  {detail.components.map((item) => {
+                  {componentPagination.visibleItems.map((item) => {
                     const isBottleneck = item === detail.bottleneck;
                     return (
                       <tr
@@ -332,6 +358,14 @@ export default function ChiTietCombo() {
                 </tbody>
               </table>
             </div>
+            <DetailTablePagination
+              totalItems={(detail?.components || []).length}
+              currentPage={componentPagination.currentPage}
+              onPageChange={componentPagination.onPageChange}
+              pageSize={componentPagination.pageSize}
+              onPageSizeChange={componentPagination.onPageSizeChange}
+              idPrefix="combo-components"
+            />
           </div>
         </FormCard>
         <FormCard title="Tồn combo">
@@ -449,7 +483,7 @@ export default function ChiTietCombo() {
         </FormCard>
       </div>
       <StopComboModal
-        combo={showStopModal ? combo : null}
+        combo={canStopCombo && showStopModal ? combo : null}
         onCancel={() => setShowStopModal(false)}
         onConfirm={confirmStop}
       />

@@ -42,7 +42,8 @@ public record AdminWarrantyDetailResponse(
   public record NextWork(
       @JsonProperty("thao_tac") List<String> thaoTac,
       @JsonProperty("giu_cho_lich_su_id") Long giuChoLichSuId,
-      @JsonProperty("phu_kien_san_sang_tra") List<Map<String, Object>> phuKienSanSangTra) {}
+      @JsonProperty("phu_kien_san_sang_tra") List<Map<String, Object>> phuKienSanSangTra,
+      @JsonProperty("tinh_trang_san_sang_tra") String tinhTrangSanSangTra) {}
 
   @JsonInclude(JsonInclude.Include.ALWAYS)
   public record Order(
@@ -125,7 +126,8 @@ public record AdminWarrantyDetailResponse(
       Long id,
       String loai,
       @JsonProperty("so_tien") BigDecimal soTien,
-      @JsonProperty("phieu_thu_chi_id") Long phieuThuChiId) {}
+      @JsonProperty("phieu_thu_chi_id") Long phieuThuChiId,
+      @JsonProperty("ma_phieu_thu_chi") String maPhieuThuChi) {}
 
   @JsonInclude(JsonInclude.Include.ALWAYS)
   public record HistoryDetail(
@@ -147,5 +149,11 @@ public record AdminWarrantyDetailResponse(
       @JsonProperty("loai_su_kien") String loaiSuKien,
       @JsonProperty("nguoi_thuc_hien_id") Long nguoiThucHienId,
       @JsonProperty("ngay_tao") OffsetDateTime ngayTao,
-      @JsonProperty("noi_dung") String noiDung) {}
+      @JsonProperty("noi_dung") String noiDung,
+      @JsonProperty("ten_nguoi_thuc_hien") String tenNguoiThucHien) {
+    public HistoryItem(
+        Long id, String loaiSuKien, Long nguoiThucHienId, OffsetDateTime ngayTao, String noiDung) {
+      this(id, loaiSuKien, nguoiThucHienId, ngayTao, noiDung, null);
+    }
+  }
 }

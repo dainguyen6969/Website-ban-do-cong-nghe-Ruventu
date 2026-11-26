@@ -36,6 +36,7 @@ public class ProductService {
   private final SalesCalculationService calculationService;
 
   private final CatalogSupport catalogSupport;
+  private final SalesOperationsSettings salesOperations;
 
   @Value("${ruventu.inventory.default-warehouse-id:1}")
   private Long warehouseId;
@@ -164,6 +165,7 @@ public class ProductService {
         .trangThai(product.getTrangThai())
         .anhSanPham(images)
         .danhSachPhienBan(variants)
+        .stockNotificationWebsiteEnabled(salesOperations.get().stockNotificationWebsiteEnabled())
         .thanhPhan(
             "BO_PC".equals(product.getLoaiSanPham())
                 ? catalogSupport.comboParts(List.of(productId)).getOrDefault(productId, List.of())

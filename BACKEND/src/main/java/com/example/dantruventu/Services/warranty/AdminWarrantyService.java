@@ -160,7 +160,12 @@ public class AdminWarrantyService {
   }
 
   private String normalize(String value) {
-    return value == null || value.isBlank() ? null : value.trim();
+    if (value == null || value.isBlank()) return null;
+    String normalized = value.strip();
+    if (normalized.length() > 100 || normalized.codePoints().anyMatch(Character::isISOControl)) {
+      throw invalidSearch();
+    }
+    return normalized;
   }
 
   private AppException invalidSearch() {

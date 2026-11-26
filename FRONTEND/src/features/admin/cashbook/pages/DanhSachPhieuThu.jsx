@@ -1,49 +1,52 @@
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 
-import { useNavigate, useLocation } from "react-router-dom";
-import { Check, X } from "lucide-react";
+import { useNavigate, useLocation, Link } from 'react-router-dom';
+import { Check, X } from 'lucide-react';
 
-import { receiptService } from "../../../../shared/services/receiptService";
+import { receiptService } from '../../../../shared/services/receiptService';
 
-import TablePagination from "../../../../shared/components/ui/TablePagination";
-import FilterDropdown from "../../../../shared/components/ui/FilterDropdown";
+import TablePagination from '../../../../shared/components/ui/TablePagination';
+import FilterDropdown from '../../../../shared/components/ui/FilterDropdown';
+import LoadingSpinner from '../../../../shared/components/ui/LoadingSpinner';
 
-import CashbookSourceFilters from "../components/CashbookSourceFilters";
+import CashbookSourceFilters from '../components/CashbookSourceFilters';
 
-import {
-  createCashbookSourceFilters,
-  cashbookSourceParams,
-} from "../api/cashbookFilterParams";
+import { createCashbookSourceFilters, cashbookSourceParams } from '../api/cashbookFilterParams';
 
-import "./DanhSachPhieuThu.css";
+import { hasAdminPermission } from '../../../../auth/roleModel';
+import { useAdminPermissions } from '../../../../shared/components/ui/PermissionGate';
+
+import './DanhSachPhieuThu.css';
 
 export default function DanhSachPhieuThu() {
   const navigate = useNavigate();
+
+  const access = useAdminPermissions()?.access;
+  const canCreateVoucher = hasAdminPermission(access, 'so_quy', 'them');
+
   const location = useLocation();
 
   const [receipts, setReceipts] = useState([]);
   const [totalElements, setTotalElements] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
 
-  const [searchQuery, setSearchQuery] = useState("");
-  const [debouncedSearch, setDebouncedSearch] = useState("");
-  const [filterStatus, setFilterStatus] = useState("ALL");
-  const [fromDate, setFromDate] = useState("");
-  const [toDate, setToDate] = useState("");
+  const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [filterStatus, setFilterStatus] = useState('ALL');
+  const [fromDate, setFromDate] = useState('');
+  const [toDate, setToDate] = useState('');
   const [page, setPage] = useState(1);
-  const [sourceFilters, setSourceFilters] = useState(
-    createCashbookSourceFilters,
-  );
+  const [sourceFilters, setSourceFilters] = useState(createCashbookSourceFilters);
   const pageSize = 10;
 
-  const [toastMessage, setToastMessage] = useState("");
+  const [toastMessage, setToastMessage] = useState('');
   const searchTimeoutRef = useRef(null);
 
   useEffect(() => {
     if (location.state?.successMessage) {
       setToastMessage(location.state.successMessage);
       window.history.replaceState({}, document.title);
-      setTimeout(() => setToastMessage(""), 3000);
+      setTimeout(() => setToastMessage(''), 3000);
     }
   }, [location]);
 
@@ -52,7 +55,7 @@ export default function DanhSachPhieuThu() {
     try {
       const params = {
         keyword: debouncedSearch.trim() || undefined,
-        trang_thai: filterStatus !== "ALL" ? filterStatus : undefined,
+        trang_thai: filterStatus !== 'ALL' ? filterStatus : undefined,
         tu_ngay: fromDate || undefined,
         den_ngay: toDate || undefined,
         page: Math.max(0, page - 1),
@@ -66,20 +69,12 @@ export default function DanhSachPhieuThu() {
         setTotalElements(response.data.data.pagination?.total_elements || 0);
       }
     } catch (error) {
-      console.error("Lỗi khi tải danh sách phiếu thu:", error);
+      console.error('Lỗi khi tải danh sách phiếu thu:', error);
       setReceipts([]);
     } finally {
       setIsLoading(false);
     }
-  }, [
-    debouncedSearch,
-    filterStatus,
-    fromDate,
-    toDate,
-    page,
-    pageSize,
-    sourceFilters,
-  ]);
+  }, [debouncedSearch, filterStatus, fromDate, toDate, page, pageSize, sourceFilters]);
 
   useEffect(() => {
     fetchReceipts();
@@ -96,15 +91,15 @@ export default function DanhSachPhieuThu() {
   };
 
   const formatMoney = (amount) => {
-    return (amount || 0).toLocaleString("vi-VN") + "đ";
+    return (amount || 0).toLocaleString('vi-VN') + 'đ';
   };
 
   const mapStatusToText = (status) => {
     switch (status) {
-      case "DA_GHI_NHAN":
-        return "ĐÃ GHI NHẬN";
-      case "HUY":
-        return "ĐÃ HỦY";
+      case 'DA_GHI_NHAN':
+        return 'ĐÃ GHI NHẬN';
+      case 'HUY':
+        return 'ĐÃ HỦY';
       default:
         return status;
     }
@@ -112,10 +107,10 @@ export default function DanhSachPhieuThu() {
 
   const mapSourceToText = (source) => {
     switch (source) {
-      case "THU_CONG":
-        return "THỦ CÔNG";
-      case "TU_DONG":
-        return "TỰ ĐỘNG";
+      case 'THU_CONG':
+        return 'THỦ CÔNG';
+      case 'TU_DONG':
+        return 'TỰ ĐỘNG';
       default:
         return source;
     }
@@ -123,16 +118,16 @@ export default function DanhSachPhieuThu() {
 
   const mapGroupToText = (group) => {
     switch (group) {
-      case "KHACH_HANG":
-        return "KHÁCH HÀNG";
-      case "NHAN_VIEN":
-        return "NHÂN VIÊN";
-      case "NHA_CUNG_CAP":
-        return "NHÀ CUNG CẤP";
-      case "DOI_TAC_GIAO_HANG":
-        return "ĐỐI TÁC GIAO HÀNG";
-      case "KHAC":
-        return "KHÁC";
+      case 'KHACH_HANG':
+        return 'KHÁCH HÀNG';
+      case 'NHAN_VIEN':
+        return 'NHÂN VIÊN';
+      case 'NHA_CUNG_CAP':
+        return 'NHÀ CUNG CẤP';
+      case 'DOI_TAC_GIAO_HANG':
+        return 'ĐỐI TÁC GIAO HÀNG';
+      case 'KHAC':
+        return 'KHÁC';
       default:
         return group;
     }
@@ -140,12 +135,12 @@ export default function DanhSachPhieuThu() {
 
   const mapPaymentMethodToText = (method) => {
     switch (method) {
-      case "TIEN_MAT":
-        return "TIỀN MẶT";
-      case "CHUYEN_KHOAN":
-        return "CHUYỂN KHOẢN";
-      case "THE":
-        return "QUẸT THẺ";
+      case 'TIEN_MAT':
+        return 'TIỀN MẶT';
+      case 'CHUYEN_KHOAN':
+        return 'CHUYỂN KHOẢN';
+      case 'THE':
+        return 'QUẸT THẺ';
       default:
         return method;
     }
@@ -160,7 +155,7 @@ export default function DanhSachPhieuThu() {
               <Check size={20} color="#fff" strokeWidth={3} />
             </div>
             <div className="toast-text">{toastMessage}</div>
-            <button className="toast-close" onClick={() => setToastMessage("")}>
+            <button className="toast-close" onClick={() => setToastMessage('')}>
               <X size={18} strokeWidth={2.5} />
             </button>
           </div>
@@ -168,10 +163,13 @@ export default function DanhSachPhieuThu() {
       )}
 
       <div className="pt-header-top">
-        <div className="pt-breadcrumb">SỔ QUỸ TIỀN MẶT / PHIẾU THU</div>
+        <div className="pt-breadcrumb">
+          <Link to="/admin/so-quy-tien-mat/so-quy">SỔ QUỸ TIỀN MẶT</Link> / <span>PHIẾU THU</span>
+        </div>
         <button
           className="pt-btn-create"
-          onClick={() => navigate("/admin/so-quy-tien-mat/tao-phieu-thu")}
+          disabled={!canCreateVoucher}
+          onClick={() => navigate('/admin/so-quy-tien-mat/tao-phieu-thu')}
         >
           + TẠO PHIẾU THU
         </button>
@@ -235,119 +233,113 @@ export default function DanhSachPhieuThu() {
       />
 
       <div className="admin-list-body admin-list-body--inset">
-<div className="pt-table-container admin-table-scroll" tabIndex={0} role="region" aria-label="Bảng danh sách">
-        <table className="promo-table pt-table admin-data-table">
-          <thead>
-            <tr>
-              <th>MÃ PHIẾU</th>
-              <th>NGƯỜI NỘP</th>
-              <th>NHÓM ĐỐI TƯỢNG</th>
-              <th>LOẠI THU</th>
-              <th>PHƯƠNG THỨC</th>
-              <th>NGƯỜI TẠO</th>
-              <th>SỐ TIỀN THU</th>
-              <th>NGÀY GHI NHẬN</th>
-              <th>NGUỒN TẠO</th>
-              <th>TRẠNG THÁI</th>
-              <th>THAO TÁC</th>
-            </tr>
-          </thead>
-          <tbody>
-            {isLoading ? (
+        <div
+          className="pt-table-container admin-table-scroll"
+          tabIndex={0}
+          role="region"
+          aria-label="Bảng danh sách"
+        >
+          <table className="promo-table pt-table admin-data-table">
+            <thead>
               <tr>
-                <td
-                  colSpan="11"
-                  style={{ textAlign: "center", padding: "20px" }}
-                >
-                  Đang tải dữ liệu...
-                </td>
+                <th>MÃ PHIẾU</th>
+                <th>NGƯỜI NỘP</th>
+                <th>NHÓM ĐỐI TƯỢNG</th>
+                <th>LOẠI THU</th>
+                <th>PHƯƠNG THỨC</th>
+                <th>NGƯỜI TẠO</th>
+                <th>SỐ TIỀN THU</th>
+                <th>NGÀY GHI NHẬN</th>
+                <th>NGUỒN TẠO</th>
+                <th>TRẠNG THÁI</th>
+                <th>THAO TÁC</th>
               </tr>
-            ) : receipts.length > 0 ? (
-              receipts.map((row) => (
-                <tr key={row.id}>
-                  <td>
-                    <strong>{row.ma_phieu}</strong>
-                  </td>
-                  <td>
-                    <div className="person-col">
-                      <strong>{row.ten_nguoi_nop_nhan}</strong>
-                      <span>{mapGroupToText(row.nhom_nguoi_nop_nhan)}</span>
-                    </div>
-                  </td>
-                  <td className="text-muted">
-                    {mapGroupToText(row.nhom_nguoi_nop_nhan)}
-                  </td>
-                  <td>
-                    <div className="type-col">
-                      <span className="type-code">{row.ma_loai}</span>
-                      <strong>{row.ten_loai}</strong>
-                    </div>
-                  </td>
-                  <td>
-                    <span className="method-text">
-                      {mapPaymentMethodToText(row.phuong_thuc_thanh_toan)}
-                    </span>
-                  </td>
-                  <td className="text-muted">{row.ten_nguoi_tao}</td>
-                  <td>
-                    <strong>{formatMoney(row.so_tien)}</strong>
-                  </td>
-                  <td className="text-muted">
-                    {new Date(row.ngay_ghi_nhan).toLocaleString()}
-                  </td>
-                  <td className="text-muted">
-                    {mapSourceToText(row.nguon_tao)}
-                  </td>
-                  <td>
-                    <span
-                      className={`status-outline ${row.trang_thai === "HUY" ? "status-danger" : "status-success"}`}
-                    >
-                      {mapStatusToText(row.trang_thai)}
-                    </span>
-                  </td>
-                  <td>
-                    <button
-                      className="pt-btn-detail"
-                      onClick={() =>
-                        navigate(`/admin/so-quy-tien-mat/phieu-thu/${row.id}`)
-                      }
-                    >
-                      XEM CHI TIẾT
-                    </button>
+            </thead>
+            <tbody>
+              {isLoading ? (
+                <tr>
+                  <td colSpan="11" style={{ textAlign: 'center', padding: '20px' }}>
+                    <LoadingSpinner text="Đang tải danh sách phiếu thu..." size="md" />
                   </td>
                 </tr>
-              ))
-            ) : (
-              <tr>
-                <td colSpan="11">
-                  <div className="pt-empty-state">
-                    <p>KHÔNG TÌM THẤY PHIẾU THU PHÙ HỢP</p>
-                    <button
-                      className="pt-btn-dark"
-                      onClick={() =>
-                        navigate("/admin/so-quy-tien-mat/tao-phieu-thu")
-                      }
-                    >
-                      TẠO PHIẾU THU
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+              ) : receipts.length > 0 ? (
+                receipts.map((row) => (
+                  <tr key={row.id}>
+                    <td>
+                      <strong>{row.ma_phieu}</strong>
+                    </td>
+                    <td>
+                      <div className="person-col">
+                        <strong>{row.ten_nguoi_nop_nhan}</strong>
+                        <span>{mapGroupToText(row.nhom_nguoi_nop_nhan)}</span>
+                      </div>
+                    </td>
+                    <td className="text-muted">{mapGroupToText(row.nhom_nguoi_nop_nhan)}</td>
+                    <td>
+                      <div className="type-col">
+                        <span className="type-code">{row.ma_loai}</span>
+                        <strong>{row.ten_loai}</strong>
+                      </div>
+                    </td>
+                    <td>
+                      <span className="method-text">
+                        {mapPaymentMethodToText(row.phuong_thuc_thanh_toan)}
+                      </span>
+                    </td>
+                    <td className="text-muted">{row.ten_nguoi_tao}</td>
+                    <td>
+                      <strong>{formatMoney(row.so_tien)}</strong>
+                    </td>
+                    <td className="text-muted">{new Date(row.ngay_ghi_nhan).toLocaleString()}</td>
+                    <td className="text-muted">{mapSourceToText(row.nguon_tao)}</td>
+                    <td>
+                      <span
+                        className={`status-outline ${row.trang_thai === 'HUY' ? 'status-danger' : 'status-success'}`}
+                      >
+                        {mapStatusToText(row.trang_thai)}
+                      </span>
+                    </td>
+                    <td>
+                      <button
+                        className="pt-btn-detail"
+                        onClick={() => navigate(`/admin/so-quy-tien-mat/phieu-thu/${row.id}`)}
+                      >
+                        XEM CHI TIẾT
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan="11">
+                    <div className="pt-empty-state">
+                      <p>KHÔNG TÌM THẤY PHIẾU THU PHÙ HỢP</p>
+                      <button
+                        className="pt-btn-dark"
+                        disabled={!canCreateVoucher}
+                        onClick={() => navigate('/admin/so-quy-tien-mat/tao-phieu-thu')}
+                      >
+                        TẠO PHIẾU THU
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
 
-      {receipts.length > 0 && (
-        <TablePagination className="admin-table-footer"
-          totalItems={totalElements}
-          currentPage={page}
-          onPageChange={setPage}
-          pageSize={pageSize}
-          idPrefix="receipts"
-        />
-      )}
-</div>
+        {receipts.length > 0 && (
+          <TablePagination
+            className="admin-table-footer"
+            totalItems={totalElements}
+            currentPage={page}
+            onPageChange={setPage}
+            pageSize={pageSize}
+            idPrefix="receipts"
+          />
+        )}
+      </div>
     </div>
   );
 }

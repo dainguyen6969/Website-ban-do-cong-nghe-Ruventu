@@ -1,0 +1,18 @@
+.admin-app :where(.admin-link--text) {
+  color: #8f181e;
+  font-weight: var(--admin-weight-bold, 700);
+  text-decoration: underline;
+  text-decoration-color: #e1a1a4;
+  text-underline-offset: 0.2em;
+  overflow-wrap: anywhere;
+}
+
+.admin-app :where(.admin-link--text:hover) {
+  color: var(--color-brand-red);
+  text-decoration-color: currentColor;
+}
+
+.admin-app :where(.admin-link):focus-visible {
+  outline: 2px solid var(--color-brand-red);
+  outline-offset: 2px;
+}

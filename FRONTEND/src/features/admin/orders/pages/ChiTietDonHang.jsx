@@ -1,6 +1,8 @@
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
+import AdminLink from '../../../../shared/components/ui/AdminLink';
 import { HiOutlineArrowLeft } from 'react-icons/hi';
 import DetailTablePagination from '../../../../shared/components/ui/DetailTablePagination';
+import LoadingSpinner from '../../../../shared/components/ui/LoadingSpinner';
 import useDetailTablePagination from '../../../../hooks/useDetailTablePagination';
 import {
   approveOrder,
@@ -54,7 +56,10 @@ import { canExport, exportPayload } from '../components/exportSelection';
 import SoldDevices from '../../../../shared/components/ui/SoldDevices';
 import ComboContents from '../../../../shared/components/ui/ComboContents';
 import { ShipmentReturnDialog } from '../../shipping/pages/QuanLyGiaoHang';
-import { FormDropdown } from "../../../../shared/components/ui/FilterDropdown";
+import { FormDropdown } from '../../../../shared/components/ui/FilterDropdown';
+
+import { hasAdminPermission, hasSystemAdminPermission } from '../../../../auth/roleModel';
+import { useAdminPermissions } from '../../../../shared/components/ui/PermissionGate';
 
 function OrderProductImage({ item }) {
   const [failedUrl, setFailedUrl] = useState(null);
@@ -231,6 +236,23 @@ function OrderDetailView({ orderId }) {
   const documentEditing = useRef(false);
   const navigate = useNavigate();
 
+  const access = useAdminPermissions()?.access;
+
+  const canOperateOrder = hasSystemAdminPermission(access, 'don_hang', 'sua');
+
+  const canCreateDelivery =
+    hasAdminPermission(access, 'giao_hang', 'xem') &&
+    hasAdminPermission(access, 'giao_hang', 'them');
+
+  const { state: locationState } = useLocation();
+  const orderListReturn = locationState?.orderListReturn;
+
+  const backToOrderList = () =>
+    navigate('/admin/don-hang/danh-sach-don-hang', {
+      state: orderListReturn ? { orderListReturn } : undefined,
+      replace: Boolean(orderListReturn),
+    });
+
   const [screen, setScreen] = useState({
     don_hang: null,
     lich_su: [],
@@ -263,7 +285,8 @@ function OrderDetailView({ orderId }) {
     updatedAt: null,
   });
 
-  editingRef.current = Boolean(dialog || isCancelOpen);
+  const canUseDialog = dialog?.type === 'startDelivery' ? canCreateDelivery : canOperateOrder;
+  editingRef.current = Boolean((canUseDialog && dialog) || (canOperateOrder && isCancelOpen));
 
   const load = useCallback(() => readerRef.current?.refresh(), []);
 
@@ -366,12 +389,15 @@ function OrderDetailView({ orderId }) {
 
   useEffect(() => {
     readerRef.current?.resume();
-  }, [dialog, isCancelOpen, state.busy]);
+  }, [dialog, isCancelOpen, state.busy, canOperateOrder, canUseDialog]);
 
   const products = useDetailTablePagination(order?.san_pham || []);
+  const waitingPagination = useDetailTablePagination(order?.giu_hang_cho_hang || []);
+  const receiptsPagination = useDetailTablePagination(order?.doi_soat_thanh_toan?.phieu_thu || []);
+  const counterDevicesPagination = useDetailTablePagination(order?.thiet_bi_hien_hanh || []);
 
-  const run = async (work) => {
-    if (actionBusy.current) return;
+  const run = async (work, allowed = canOperateOrder) => {
+    if (!allowed || actionBusy.current) return;
 
     const reader = readerRef.current;
     actionBusy.current = true;
@@ -422,12 +448,9 @@ function OrderDetailView({ orderId }) {
     return () => document.removeEventListener('keydown', close);
   }, [isCancelOpen]);
 
-  if (state.loading)
-    return (
-      <section className="admin-order-detail admin-order-not-found">
-        <h1>ĐANG TẢI ĐƠN HÀNG...</h1>
-      </section>
-    );
+  if (state.loading) {
+    return <LoadingSpinner text="Đang tải thông tin đơn hàng..." fullPage />;
+  }
   if (!order)
     return (
       <section className="admin-order-detail admin-order-not-found">
@@ -437,14 +460,15 @@ function OrderDetailView({ orderId }) {
         <button type="button" disabled={sync.refreshing} onClick={load}>
           THỬ LẠI
         </button>
-        <button type="button" onClick={() => navigate('/admin/don-hang/danh-sach-don-hang')}>
+        <button type="button" onClick={backToOrderList}>
           QUAY LẠI DANH SÁCH
         </button>
       </section>
     );
 
   const open = (type, title, fields = {}) => {
-    if (refundEditing.current || documentEditing.current) return;
+    const allowed = type === 'startDelivery' ? canCreateDelivery : canOperateOrder;
+    if (!allowed || refundEditing.current || documentEditing.current) return;
 
     setState((current) => ({ ...current, error: '' }));
     editingRef.current = true;
@@ -549,6 +573,8 @@ function OrderDetailView({ orderId }) {
     });
 
   const openSerialAllocation = async (type) => {
+    if (!canOperateOrder) return;
+
     if (
       actionBusy.current ||
       refundEditing.current ||
@@ -931,7 +957,7 @@ function OrderDetailView({ orderId }) {
       }
 
       throw new Error('Thao tác không hợp lệ.');
-    });
+    }, canUseDialog);
   };
 
   const waitingRows = Array.isArray(order.giu_hang_cho_hang) ? order.giu_hang_cho_hang : [];
@@ -1001,9 +1027,9 @@ function OrderDetailView({ orderId }) {
       <header className="order-detail-hero">
         <div>
           <nav aria-label="Breadcrumb nội dung">
-            <span>ĐƠN HÀNG</span>
+            <Link to="/admin/don-hang/danh-sach-don-hang">ĐƠN HÀNG</Link>
             <span>›</span>
-            <span>DANH SÁCH ĐƠN HÀNG</span>
+            <Link to="/admin/don-hang/danh-sach-don-hang">DANH SÁCH ĐƠN HÀNG</Link>
             <span>›</span>
             <strong>{order.ma_don_hang}</strong>
           </nav>
@@ -1036,6 +1062,7 @@ function OrderDetailView({ orderId }) {
         <div className="order-detail-hero__actions">
           {canEditOnlineOrder(order) && (
             <Action
+              adminOnly={false}
               disabled={state.busy}
               click={() => navigate(`/admin/don-hang/dat-hang-online/${order.id}`)}
             >
@@ -1043,13 +1070,19 @@ function OrderDetailView({ orderId }) {
             </Action>
           )}
 
-          {openOnlineOrder &&
+          {canCreateDelivery &&
+            openOnlineOrder &&
             isShipping &&
             (!activeDelivery || activeDelivery.trang_thai_giao_hang === 'CHO_GIAO') && (
               <div className="order-handover-action">
-                <Action disabled={state.busy || !canStartDelivery} click={beginDelivery}>
+                <button
+                  type="button"
+                  className="order-action order-action--black"
+                  disabled={state.busy || !canStartDelivery}
+                  onClick={beginDelivery}
+                >
                   BẮT ĐẦU GIAO HÀNG
-                </Action>
+                </button>
 
                 {!canStartDelivery && (
                   <small className="order-handover-warning" role="status">
@@ -1143,7 +1176,7 @@ function OrderDetailView({ orderId }) {
           <button
             type="button"
             className="order-action order-action--back"
-            onClick={() => navigate('/admin/don-hang/danh-sach-don-hang')}
+            onClick={backToOrderList}
           >
             <HiOutlineArrowLeft size={14} /> QUAY LẠI DANH SÁCH
           </button>
@@ -1272,10 +1305,13 @@ function OrderDetailView({ orderId }) {
           <div className="order-cod-settlement-alert__body">
             <strong>ĐÃ GIAO HÀNG — CHỜ ĐỐI TÁC VẬN CHUYỂN NỘP TIỀN COD</strong>
             <p>
-              Khách đã nhận hàng và thanh toán COD cho đối tác giao hàng. Cửa hàng chưa ghi nhận thực nhận khoản tiền này nên đơn chưa hoàn thành.
+              Khách đã nhận hàng và thanh toán COD cho đối tác giao hàng. Cửa hàng chưa ghi nhận
+              thực nhận khoản tiền này nên đơn chưa hoàn thành.
             </p>
             <div className="order-cod-settlement-alert__guide">
-              Vui lòng kiểm tra đối soát với đối tác giao hàng và bấm <strong>GHI NHẬN ĐỐI TÁC NỘP COD</strong> trong mục <strong>GIAO VẬN</strong> bên dưới khi đã nhận đủ tiền.
+              Vui lòng kiểm tra đối soát với đối tác giao hàng và bấm{' '}
+              <strong>GHI NHẬN ĐỐI TÁC NỘP COD</strong> trong mục <strong>GIAO VẬN</strong> bên dưới
+              khi đã nhận đủ tiền.
             </div>
           </div>
         </div>
@@ -1295,7 +1331,11 @@ function OrderDetailView({ orderId }) {
             <p>Dữ liệu gửi được giữ nguyên. Bấm thử lại để gửi cùng mã yêu cầu.</p>
           </div>
 
-          <button type="button" disabled={state.busy} onClick={retryOrderOperation}>
+          <button
+            type="button"
+            disabled={!canOperateOrder || state.busy}
+            onClick={retryOrderOperation}
+          >
             THỬ LẠI YÊU CẦU CŨ
           </button>
         </div>
@@ -1308,7 +1348,11 @@ function OrderDetailView({ orderId }) {
             <p>Bấm thử lại để kiểm tra cùng yêu cầu đã gửi.</p>
           </div>
 
-          <button type="button" disabled={state.busy} onClick={retryCashOperation}>
+          <button
+            type="button"
+            disabled={!canOperateOrder || state.busy}
+            onClick={retryCashOperation}
+          >
             THỬ LẠI YÊU CẦU TIỀN
           </button>
         </div>
@@ -1319,12 +1363,12 @@ function OrderDetailView({ orderId }) {
           <Panel title="SẢN PHẨM TRONG ĐƠN">
             <div className="order-items-figma">
               <div
-                className="order-items-figma__scroll"
+                className="order-record-scroll"
                 tabIndex={0}
                 role="region"
                 aria-label="Sản phẩm và linh kiện trong đơn"
               >
-                <table className="order-products-table order-items-figma__table">
+                <table className="order-products-table order-items-figma__table order-record-table">
                   <colgroup>
                     <col className="order-items-figma__col-image" />
                     <col />
@@ -1345,7 +1389,7 @@ function OrderDetailView({ orderId }) {
                     </tr>
                   </thead>
 
-                  {products.visibleItems.map((item) => {
+                  {(order.san_pham || []).map((item) => {
                     const isPc = item.loai_san_pham === 'BO_PC';
 
                     const productName = item.ten_san_pham || `Phiên bản #${item.phien_ban_id}`;
@@ -1408,13 +1452,6 @@ function OrderDetailView({ orderId }) {
                 </table>
               </div>
             </div>
-
-            <DetailTablePagination
-              totalItems={(order.san_pham || []).length}
-              currentPage={products.currentPage}
-              onPageChange={products.onPageChange}
-              idPrefix="order-products"
-            />
           </Panel>
 
           <Panel title="THANH TOÁN">
@@ -1481,14 +1518,19 @@ function OrderDetailView({ orderId }) {
               order.doi_soat_thanh_toan.phieu_thu?.length > 0 && (
                 <details className="order-collapsible-panel" open>
                   <summary className="order-collapsible-summary">
-                    <span>LỊCH SỬ THU TIỀN</span>
+                    <span>Lịch sử thu tiền</span>
                     <span className="order-count-pill">
                       {order.doi_soat_thanh_toan.phieu_thu.length}
                     </span>
                   </summary>
 
-                  <div className="order-receipts-table-wrap">
-                    <table className="order-receipts-table">
+                  <div
+                    className="order-record-scroll"
+                    tabIndex={0}
+                    role="region"
+                    aria-label="Bảng lịch sử thu tiền"
+                  >
+                    <table className="order-receipts-table order-record-table">
                       <thead>
                         <tr>
                           <th>MÃ PHIẾU THU</th>
@@ -1498,18 +1540,20 @@ function OrderDetailView({ orderId }) {
                         </tr>
                       </thead>
                       <tbody>
-                        {order.doi_soat_thanh_toan.phieu_thu.map((receipt) => (
+                        {(order?.doi_soat_thanh_toan?.phieu_thu || []).map((receipt) => (
                           <tr key={receipt.id}>
                             <td>
-                              <Link
+                              <AdminLink
                                 to={'/admin/so-quy-tien-mat/phieu-thu/' + receipt.id}
                                 className="order-receipt-code"
                               >
                                 {receipt.ma_phieu}
-                              </Link>
+                              </AdminLink>
                             </td>
                             <td>
-                              <span className={`order-payment-method-badge order-payment-method-badge--${getPaymentMethodBadgeClass(receipt.phuong_thuc_thanh_toan)}`}>
+                              <span
+                                className={`order-payment-method-badge order-payment-method-badge--${getPaymentMethodBadgeClass(receipt.phuong_thuc_thanh_toan)}`}
+                              >
                                 {label(receipt.phuong_thuc_thanh_toan)}
                               </span>
                             </td>
@@ -1529,22 +1573,24 @@ function OrderDetailView({ orderId }) {
 
             {canPay &&
               (order.trang_thai_don_hang === 'HUY_HANG' ? (
-                <details>
-                  <summary>Khách đã chuyển tiền nhưng cửa hàng ghi nhận khi đơn đã hủy?</summary>
+                <details className="order-collapsible-panel order-late-payment">
+                  <summary className="order-collapsible-summary">Ghi nhận tiền đến muộn</summary>
 
-                  <p>
-                    Chỉ dùng khi đã đối chiếu và xác nhận thực nhận tiền. Đơn tiếp tục giữ trạng
-                    thái hủy; khoản cần hoàn được theo dõi ở bên dưới.
-                  </p>
+                  <div className="order-late-payment__body">
+                    <p>
+                      Chỉ ghi nhận khi đã đối chiếu và xác nhận thực nhận tiền. Đơn vẫn ở trạng thái
+                      đã hủy. Khoản cần hoàn cho khách được theo dõi bên dưới.
+                    </p>
 
-                  <Action
-                    disabled={
-                      state.busy || Boolean(orderAttempt.current) || Boolean(cashAttempt.current)
-                    }
-                    click={() => payment()}
-                  >
-                    GHI NHẬN TIỀN ĐẾN MUỘN
-                  </Action>
+                    <Action
+                      disabled={
+                        state.busy || Boolean(orderAttempt.current) || Boolean(cashAttempt.current)
+                      }
+                      click={() => payment()}
+                    >
+                      GHI NHẬN TIỀN ĐẾN MUỘN
+                    </Action>
+                  </div>
                 </details>
               ) : (
                 <div className="order-panel-actions">
@@ -1562,6 +1608,7 @@ function OrderDetailView({ orderId }) {
             <OrderRefundPanel
               order={order}
               data={screen.hoan_tien}
+              canWrite={canOperateOrder}
               busy={state.busy || Boolean(orderAttempt.current) || Boolean(cashAttempt.current)}
               perform={run}
               onEditingChange={onRefundEditing}
@@ -1572,6 +1619,7 @@ function OrderDetailView({ orderId }) {
             key={`order-${order.id}`}
             mode="order"
             id={order.id}
+            canWrite={canOperateOrder}
             locked={
               state.busy ||
               Boolean(dialog) ||
@@ -1721,7 +1769,8 @@ function OrderDetailView({ orderId }) {
                           </strong>
                         </div>
                         <p className="order-cod-collection-box__desc">
-                          Xác nhận khi đối tác giao hàng đã thực sự nộp số tiền thu hộ trên về quỹ cửa hàng.
+                          Xác nhận khi đối tác giao hàng đã thực sự nộp số tiền thu hộ trên về quỹ
+                          cửa hàng.
                         </p>
                       </div>
                       <div className="order-cod-collection-box__action">
@@ -1773,10 +1822,15 @@ function OrderDetailView({ orderId }) {
 
                 {counterDevices.length > 0 && (
                   <>
-                    <h3>THIẾT BỊ HIỆN HÀNH</h3>
+                    <h3>Thiết bị hiện hành</h3>
 
-                    <div className="sold-devices-scroll">
-                      <table className="sold-devices-table order-current-devices-table admin-data-table admin-data-table--records">
+                    <div
+                      className="order-record-scroll"
+                      tabIndex={0}
+                      role="region"
+                      aria-label="Bảng thiết bị hiện hành"
+                    >
+                      <table className="order-current-devices-table order-record-table">
                         <thead>
                           <tr>
                             <th>Mã theo dõi</th>
@@ -1799,7 +1853,7 @@ function OrderDetailView({ orderId }) {
                                 <td>
                                   {device.so_serial ||
                                     device.dau_hieu_nhan_dang ||
-                                    'Không quản lý serial'}
+                                    '-'}
                                 </td>
 
                                 <td>{count}</td>
@@ -1831,8 +1885,8 @@ function OrderDetailView({ orderId }) {
                   </>
                 )}
 
-                <details className="order-original-devices">
-                  <summary>THIẾT BỊ CỦA LẦN XUẤT GỐC</summary>
+                <details className="order-collapsible-panel order-original-devices">
+                  <summary className="order-collapsible-summary">Thiết bị của lần xuất gốc</summary>
                   <SoldDevices order={order} />
                 </details>
 
@@ -1921,7 +1975,7 @@ function OrderDetailView({ orderId }) {
           </Panel>
         </aside>
       </div>
-      {isCancelOpen && (
+      {canOperateOrder && isCancelOpen && (
         <div
           className="order-modal-backdrop"
           onMouseDown={(event) => {
@@ -1977,7 +2031,7 @@ function OrderDetailView({ orderId }) {
         </div>
       )}
 
-      {dialog?.type === 'cancelBeforeHandover' ? (
+      {!canUseDialog ? null : dialog?.type === 'cancelBeforeHandover' ? (
         <ShipmentReturnDialog
           delivery={{ id: order.id }}
           beforeHandover
@@ -2088,6 +2142,107 @@ function OrderDetailView({ orderId }) {
   );
 }
 
+function ExchangeHistoryCard({ root, identity }) {
+  const pagination = useDetailTablePagination(root?.chuoi_thay_the || []);
+
+  return (
+    <div className="order-exchange-root-card">
+      <div className="order-subsection-bar">
+        <div className="order-subsection-title">
+          <span>LỊCH SỬ ĐỔI THIẾT BỊ — {root.so_serial || root.ma_theo_doi}</span>
+        </div>
+      </div>
+
+      <div
+        className="order-record-scroll"
+        tabIndex={0}
+        role="region"
+        aria-label="Bảng lịch sử đổi thiết bị"
+      >
+        <table className="order-devices-table order-record-table">
+          <thead>
+            <tr>
+              <th style={{ width: '48px' }}>LẦN</th>
+              <th>THIẾT BỊ ĐƯỢC NHẬN LẠI</th>
+              <th>THIẾT BỊ THAY THẾ</th>
+              <th>PHIẾU XỬ LÝ</th>
+              <th>BÀN GIAO / NHÂN VIÊN</th>
+              <th>LÝ DO</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            {(root?.chuoi_thay_the || []).map((edge, index) => {
+              const isCurrent =
+                root.thiet_bi_hien_hanh_id != null &&
+                String(edge.thiet_bi_moi_id) === String(root.thiet_bi_hien_hanh_id);
+
+              const isLast = index === (root.chuoi_thay_the || []).length - 1;
+
+              const status = isCurrent
+                ? 'Thiết bị hiện hành'
+                : isLast && root.thiet_bi_cuoi_chuoi_da_tra === true
+                  ? 'Đã nhận trả'
+                  : isLast
+                    ? 'Cần xác minh quyền hiện hành'
+                    : 'Đã thay thế ở lần tiếp theo';
+
+              return (
+                <tr key={edge.phieu_bao_hanh_id}>
+                  <td>
+                    <span className="order-round-number">{edge.lan_doi}</span>
+                  </td>
+
+                  <td>{identity(edge.thiet_bi_cu)}</td>
+
+                  <td>
+                    {identity(edge.thiet_bi_moi)}
+                    <span
+                      className={`order-exchange-status-pill ${
+                        isCurrent ? 'order-exchange-status-pill--current' : ''
+                      }`}
+                    >
+                      {status}
+                    </span>
+                  </td>
+
+                  <td>
+                    <Link
+                      to={'/admin/bao-hanh/chi-tiet/' + edge.phieu_bao_hanh_id}
+                      className="order-warranty-link"
+                    >
+                      {edge.ma_phieu_bao_hanh || '#' + edge.phieu_bao_hanh_id}
+                    </Link>
+                  </td>
+
+                  <td>
+                    <div className="order-exchange-handover">
+                      <span className="order-exchange-time">
+                        {edge.ngay_ban_giao
+                          ? dateTime(edge.ngay_ban_giao)
+                          : 'Chưa ghi nhận thời điểm'}
+                      </span>
+                      <small className="order-exchange-staff">
+                        {edge.nguoi_thuc_hien || 'Chưa ghi nhận nhân viên'}
+                      </small>
+                    </div>
+                  </td>
+
+                  <td>
+                    <span className="order-exchange-reason">
+                      {edge.ly_do || 'Chưa ghi nhận lý do'}
+                    </span>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
 function DeviceExchangeHistory({ order }) {
   const roots = (Array.isArray(order.thiet_bi_da_ban) ? order.thiet_bi_da_ban : []).filter(
     (device) => Array.isArray(device.chuoi_thay_the) && device.chuoi_thay_the.length
@@ -2118,8 +2273,13 @@ function DeviceExchangeHistory({ order }) {
             </div>
           </div>
 
-          <div className="order-devices-table-wrap">
-            <table className="order-devices-table">
+          <div
+            className="order-record-scroll"
+            tabIndex={0}
+            role="region"
+            aria-label="Bảng lịch sử đổi thiết bị"
+          >
+            <table className="order-devices-table order-record-table">
               <thead>
                 <tr>
                   <th style={{ width: '48px' }}>LẦN</th>
@@ -2167,12 +2327,12 @@ function DeviceExchangeHistory({ order }) {
                       </td>
 
                       <td>
-                        <Link
+                        <AdminLink
                           to={'/admin/bao-hanh/chi-tiet/' + edge.phieu_bao_hanh_id}
                           className="order-warranty-link"
                         >
                           {edge.ma_phieu_bao_hanh || '#' + edge.phieu_bao_hanh_id}
-                        </Link>
+                        </AdminLink>
                       </td>
 
                       <td>
@@ -2207,15 +2367,37 @@ function DeviceExchangeHistory({ order }) {
 
 function getPaymentMethodBadgeClass(method) {
   const m = String(method || '').toUpperCase();
-  if (m === 'TIEN_MAT' || m.includes('TIỀN MẶT') || m.includes('TIEN MAT') || m === 'CASH') return 'cash';
-  if (m === 'CHUYEN_KHOAN' || m.includes('CHUYỂN KHOẢN') || m.includes('CHUYEN KHOAN') || m === 'BANK') return 'bank';
+  if (m === 'TIEN_MAT' || m.includes('TIỀN MẶT') || m.includes('TIEN MAT') || m === 'CASH')
+    return 'cash';
+  if (
+    m === 'CHUYEN_KHOAN' ||
+    m.includes('CHUYỂN KHOẢN') ||
+    m.includes('CHUYEN KHOAN') ||
+    m === 'BANK'
+  )
+    return 'bank';
   if (m === 'THE' || m.includes('THẺ') || m === 'CARD' || m === 'POS') return 'card';
   if (m.includes('COD')) return 'cod';
-  if (m.includes('VNPAY') || m.includes('MOMO') || m.includes('ZALOPAY') || m.includes('VIETQR')) return 'ewallet';
+  if (m.includes('VNPAY') || m.includes('MOMO') || m.includes('ZALOPAY') || m.includes('VIETQR'))
+    return 'ewallet';
   return 'default';
 }
 
-function Action({ children, click, danger = false, secondary = false, disabled = false }) {
+function Action({
+  children,
+  click,
+  danger = false,
+  secondary = false,
+  disabled = false,
+  adminOnly = true,
+}) {
+  const access = useAdminPermissions()?.access;
+  const allowed = adminOnly
+    ? hasSystemAdminPermission(access, 'don_hang', 'sua')
+    : hasAdminPermission(access, 'don_hang', 'sua');
+
+  if (!allowed) return null;
+
   return (
     <button
       type="button"
@@ -2227,6 +2409,7 @@ function Action({ children, click, danger = false, secondary = false, disabled =
     </button>
   );
 }
+
 function Panel({ title, children }) {
   return (
     <section className="order-detail-panel">
@@ -2238,6 +2421,7 @@ function Panel({ title, children }) {
     </section>
   );
 }
+
 function Info({ text, children }) {
   return (
     <div>
@@ -2307,7 +2491,8 @@ function OrderActionDialog({ dialog, setDialog, order, options, busy, error, sub
           <label className="order-operation-field">
             <span>ĐỐI TÁC GIAO HÀNG *</span>
 
-            <FormDropdown aria-label="ĐỐI TÁC GIAO HÀNG"
+            <FormDropdown
+              aria-label="ĐỐI TÁC GIAO HÀNG"
               required
               disabled={busy}
               value={dialog.partner}
@@ -2391,7 +2576,7 @@ function OrderActionDialog({ dialog, setDialog, order, options, busy, error, sub
       )}
 
       {receiving && order.trang_thai_don_hang === 'HUY_HANG' && (
-        <p role="status">
+        <p role="status" className="order-late-payment__notice">
           Khoản tiền được ghi nhận để xử lý hoàn cho khách. Đơn hàng vẫn giữ trạng thái đã hủy.
         </p>
       )}
@@ -2402,7 +2587,9 @@ function OrderActionDialog({ dialog, setDialog, order, options, busy, error, sub
             <div className="order-operation-monetary-summary">
               <div className="order-operation-summary-row">
                 <span>Nguồn thu:</span>
-                <strong>{dialog.source === 'KHACH_HANG' ? 'Khách hàng' : 'Đối tác giao hàng'}</strong>
+                <strong>
+                  {dialog.source === 'KHACH_HANG' ? 'Khách hàng' : 'Đối tác giao hàng'}
+                </strong>
               </div>
 
               <div className="order-operation-summary-row">
@@ -2413,7 +2600,9 @@ function OrderActionDialog({ dialog, setDialog, order, options, busy, error, sub
                       ? 'Giới hạn ghi nhận tiền đến muộn:'
                       : 'Còn phải thu:'}
                 </span>
-                <strong className="order-operation-amount-highlight">{money(dialog.maxAmount)}</strong>
+                <strong className="order-operation-amount-highlight">
+                  {money(dialog.maxAmount)}
+                </strong>
               </div>
 
               {field('SỐ TIỀN THỰC NHẬN LẦN NÀY (đ) *', 'amount', 'number', {
@@ -2434,7 +2623,8 @@ function OrderActionDialog({ dialog, setDialog, order, options, busy, error, sub
 
           <label className="order-operation-field">
             <span>PHƯƠNG THỨC *</span>
-            <FormDropdown aria-label="PHƯƠNG THỨC"
+            <FormDropdown
+              aria-label="PHƯƠNG THỨC"
               required
               value={dialog.method}
               onChange={(event) => change('method', event.target.value)}

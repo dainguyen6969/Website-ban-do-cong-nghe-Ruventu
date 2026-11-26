@@ -8,6 +8,8 @@ import {
   HiOutlineLogout,
   HiOutlineUser,
 } from 'react-icons/hi';
+import { canOpenAdminPath } from '../../../auth/roleModel';
+import { useAdminPermissions } from '../ui/PermissionGate';
 import './Sidebar.css';
 
 const IconTongQuat = ({ size }) => (
@@ -386,6 +388,19 @@ const menuItems = [
   },
 ];
 
+function filterMenuByPermission(items, allowed) {
+  return items.flatMap((item) => {
+    const children = item.subItems ?? item.children;
+    if (!children) return item.path && allowed(item.path) ? [item] : [];
+
+    const visible = filterMenuByPermission(children, allowed);
+    if (!visible.length) return [];
+
+    const key = item.subItems ? 'subItems' : 'children';
+    return [{ ...item, [key]: visible }];
+  });
+}
+
 const shouldShowBadge = (badge) => {
   if (badge === undefined || badge === null || badge === false) return false;
   const num = Number(badge);
@@ -423,6 +438,11 @@ export default function Sidebar({ collapsed, mobileOpen = false, onToggle, onNav
   const { currentAccount } = useMockAuth();
   const [expandedMenus, setExpandedMenus] = useState([]);
   const showDetails = !collapsed || mobileOpen;
+
+  const access = useAdminPermissions()?.access;
+  const visibleMenuItems = filterMenuByPermission(menuItems, (path) =>
+    canOpenAdminPath(access, path)
+  );
 
   // Auto-expand menu if current route matches sub-item or section
   useEffect(() => {
@@ -497,7 +517,7 @@ export default function Sidebar({ collapsed, mobileOpen = false, onToggle, onNav
       {/* Menu Items */}
       <nav className="sidebar__nav" role="navigation" aria-label="Menu chính">
         <ul className="sidebar__menu">
-          {menuItems.map((item) => {
+          {visibleMenuItems.map((item) => {
             const Icon = item.icon;
             // Check active parent item based on URL route
             const isDirectActive = matchesMenuPath(location.pathname, item.path, !item.expandable);

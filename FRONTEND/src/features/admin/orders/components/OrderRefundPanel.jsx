@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
+import AdminLink from '../../../../shared/components/ui/AdminLink';
 
 import { money, refundOrder, refundOrderReturn } from '../api/orderApi';
 
@@ -15,7 +15,14 @@ import OrderModal from './OrderModal';
 import './OrderRefundPanel.css';
 import { FormDropdown } from "../../../../shared/components/ui/FilterDropdown";
 
-export default function OrderRefundPanel({ order, busy, perform, data, onEditingChange }) {
+export default function OrderRefundPanel({
+  order,
+  busy,
+  canWrite = true,
+  perform,
+  data,
+  onEditingChange,
+}) {
   const attempt = useRef(null);
 
   const [operationError, setOperationError] = useState('');
@@ -24,7 +31,8 @@ export default function OrderRefundPanel({ order, busy, perform, data, onEditing
   useEffect(() => () => onEditingChange(false), [onEditingChange]);
 
   const pending = attempt.current;
-  const locked = busy || Boolean(pending) || Boolean(dialog);
+  const writeBlocked = busy || !canWrite;
+  const locked = writeBlocked || Boolean(pending) || Boolean(dialog);
 
   const openRefund = (kind, document = null) => {
     if (locked) return;
@@ -90,14 +98,15 @@ export default function OrderRefundPanel({ order, busy, perform, data, onEditing
   const retry = () => {
     const saved = attempt.current;
 
-    if (!saved || busy) return;
+    if (!saved || writeBlocked) return;
 
     return execute(saved.scope, saved.body);
   };
 
   const submit = () => {
+    if (writeBlocked) return;
     if (attempt.current) return retry();
-    if (!dialog || busy) return;
+    if (!dialog) return;
 
     if (!dialog.confirmed) {
       setOperationError('Chỉ xác nhận khi cửa hàng đã thực sự hoàn tiền cho khách.');
@@ -131,7 +140,7 @@ export default function OrderRefundPanel({ order, busy, perform, data, onEditing
   };
 
   const close = () => {
-    if (busy || attempt.current) return;
+    if (busy || (canWrite && attempt.current)) return;
 
     setDialog(null);
     setOperationError('');
@@ -173,7 +182,7 @@ export default function OrderRefundPanel({ order, busy, perform, data, onEditing
             Chưa xác định được kết quả ghi nhận hoàn tiền. Hãy thử lại cùng yêu cầu đang được giữ.
           </p>
 
-          <button type="button" className="order-action" disabled={busy} onClick={retry}>
+          <button type="button" className="order-action" disabled={writeBlocked} onClick={retry}>
             THỬ LẠI YÊU CẦU CŨ
           </button>
         </div>
@@ -235,12 +244,12 @@ export default function OrderRefundPanel({ order, busy, perform, data, onEditing
                 <strong className="order-refund-panel__type">
                   {cancellationReturn ? 'PHIẾU NHẬN LẠI HÀNG' : 'PHIẾU TRẢ'}
                 </strong>
-                <Link
+                <AdminLink
                   to={'/admin/don-hang/khach-tra-hang/' + document.id}
                   className="order-refund-link"
                 >
                   {document.ma_tra_hang}
-                </Link>
+                </AdminLink>
               </div>
 
               <div className="order-refund-panel__amount-row">
@@ -307,7 +316,7 @@ export default function OrderRefundPanel({ order, busy, perform, data, onEditing
           confirmLabel="XÁC NHẬN ĐÃ HOÀN TIỀN"
           busy={busy}
           error={operationError}
-          disabled={!dialog.confirmed || Boolean(pending)}
+          disabled={!canWrite || !dialog.confirmed || Boolean(pending)}
           close={close}
           submit={submit}
         >
@@ -316,7 +325,7 @@ export default function OrderRefundPanel({ order, busy, perform, data, onEditing
             <strong>{money(dialog.amount)}</strong>
           </div>
 
-          <fieldset className="order-refund-panel__fields" disabled={busy || Boolean(pending)}>
+          <fieldset className="order-refund-panel__fields" disabled={writeBlocked || Boolean(pending)}>
             <label>
               <span>PHƯƠNG THỨC HOÀN</span>
 
@@ -366,7 +375,7 @@ export default function OrderRefundPanel({ order, busy, perform, data, onEditing
           </fieldset>
 
           {pending && (
-            <button type="button" className="order-action" disabled={busy} onClick={retry}>
+            <button type="button" className="order-action" disabled={writeBlocked} onClick={retry}>
               THỬ LẠI YÊU CẦU CŨ
             </button>
           )}

@@ -25,8 +25,19 @@ class SystemSettingsServiceTest {
         .id(5L)
         .matKhau("hash")
         .trangThai(TrangThaiCoBanEnum.HOAT_DONG)
-        .vaiTro(VaiTro.builder().id(1L).tenVaiTro(role).build())
+        .vaiTro(VaiTro.builder().id(1L).maVaiTro(role).tenVaiTro(role).build())
         .build();
+  }
+
+  @Test
+  void adminIdentityUsesStableRoleCode() {
+    var admin = user("ADMIN");
+    admin.getVaiTro().setTenVaiTro("Quản trị viên");
+    assertTrue(SystemSettingsService.isAdmin(admin));
+
+    var employee = user("STAFF");
+    employee.getVaiTro().setTenVaiTro("ADMIN");
+    assertFalse(SystemSettingsService.isAdmin(employee));
   }
 
   private void maintenance() {
@@ -127,13 +138,37 @@ class SystemSettingsServiceTest {
     when(jwt.isRefreshTokenValid("refresh")).thenReturn(true);
     when(sessions.isRefreshTokenActive("refresh")).thenReturn(true);
     when(jwt.getUserIdFromToken("refresh")).thenReturn(5L);
-    when(users.findById(5L)).thenReturn(Optional.of(user("USER")));
+    when(users.findByIdWithVaiTro(5L)).thenReturn(Optional.of(user("USER")));
     var refresh = new RefreshService(jwt, sessions, users, settings);
     assertThrows(AppException.class, () -> refresh.refresh("refresh"));
-    verify(jwt, never()).generateAccessToken(any());
+    verify(jwt, never()).generateAccessToken(any(), anyString());
     var admin = user("ADMIN");
-    when(users.findById(5L)).thenReturn(Optional.of(admin));
-    when(jwt.generateAccessToken(admin)).thenReturn("new-access");
+    when(users.findByIdWithVaiTro(5L)).thenReturn(Optional.of(admin));
+    when(jwt.generateAccessToken(admin, "refresh")).thenReturn("new-access");
     assertNotNull(refresh.refresh("refresh"));
+  }
+
+  @Test
+  void lockedOrStaleAccountCannotRefresh() {
+    var jwt = mock(JwtService.class);
+    var sessions = mock(RefreshTokenSessionService.class);
+    var users = mock(NguoiDungRepository.class);
+    var admin = user("ADMIN");
+
+    when(jwt.isRefreshTokenValid("refresh")).thenReturn(true);
+    when(jwt.getUserIdFromToken("refresh")).thenReturn(5L);
+    when(sessions.isRefreshTokenActive("refresh")).thenReturn(true);
+    when(users.findByIdWithVaiTro(5L)).thenReturn(Optional.of(admin));
+
+    var refresh = new RefreshService(jwt, sessions, users, settings);
+    admin.setTrangThai(TrangThaiCoBanEnum.NGUNG_HOAT_DONG);
+    var locked = assertThrows(AppException.class, () -> refresh.refresh("refresh"));
+    assertEquals(403, locked.getErrorCode().getStatus().value());
+
+    admin.setTrangThai(TrangThaiCoBanEnum.HOAT_DONG);
+    admin.setPhienBanXacThuc(1L);
+    var stale = assertThrows(AppException.class, () -> refresh.refresh("refresh"));
+    assertEquals(401, stale.getErrorCode().getStatus().value());
+    verify(jwt, never()).generateAccessToken(any(), anyString());
   }
 }

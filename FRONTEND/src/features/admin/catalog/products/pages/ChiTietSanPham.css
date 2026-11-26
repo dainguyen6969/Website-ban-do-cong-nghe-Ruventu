@@ -29,6 +29,16 @@
 .detail-breadcrumb b {
   color: #b7bbc1;
 }
+.detail-breadcrumb a {
+  color: inherit;
+  text-decoration: none;
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+.detail-breadcrumb a:hover {
+  color: #c51d25;
+  text-decoration: underline;
+}
 .detail-hero {
   display: flex;
   justify-content: space-between;

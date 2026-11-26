@@ -298,35 +298,121 @@ export const roleAbbreviationFromName = (name) => {
   return words.map((word) => word[0]).join('') || 'vt';
 };
 
+const normalizeAdminPath = (pathname) => pathname.replace(/\/+$/, '') || '/';
+
+const adminRouteModules = [
+  ['/admin/nhan-vien/vai-tro', 'vai_tro_quyen'],
+  ['/admin/nhan-vien', 'nhan_vien'],
+  ['/admin/san-pham/danh-muc', 'danh_muc'],
+  ['/admin/danh-muc', 'danh_muc'],
+  ['/admin/san-pham/toan-bo-phien-ban', 'kho_hang'],
+  ['/admin/san-pham/danh-sach-serial', 'kho_hang'],
+  ['/admin/san-pham/combo-san-pham', 'combo_san_pham'],
+  ['/admin/san-pham/nhap-hang', 'nhap_hang'],
+  ['/admin/san-pham/kiem-hang', 'kiem_hang'],
+  ['/admin/san-pham', 'san_pham'],
+  ['/kho-hang/combo-san-pham', 'combo_san_pham'],
+  ['/kho-hang/nhap-hang', 'nhap_hang'],
+  ['/kho-hang/kiem-hang', 'kiem_hang'],
+  ['/kho-hang', 'kho_hang'],
+  ['/admin/pos', 'ban_hang_pos'],
+  ['/admin/ban-hang', 'ban_hang_pos'],
+  ['/admin/don-hang/quan-ly-giao-hang', 'giao_hang'],
+  ['/admin/don-hang/khach-tra-hang', 'khach_tra_hang'],
+  ['/admin/don-hang', 'don_hang'],
+  ['/admin/khach-hang-doi-tac/nha-cung-cap', 'nha_cung_cap'],
+  ['/admin/khach-hang-doi-tac/doi-tac-van-chuyen', 'doi_tac_van_chuyen'],
+  ['/admin/khach-hang-doi-tac', 'khach_hang'],
+  ['/admin/khuyen-mai', 'khuyen_mai'],
+  ['/admin/bao-hanh', 'bao_hanh'],
+  ['/admin/so-quy-tien-mat', 'so_quy'],
+  ['/admin/bao-cao', 'bao_cao'],
+  ['/admin/tong-quat', 'tong_quat'],
+];
+
 export const routePermissionModule = (pathname) => {
-  if (
-    pathname === '/admin' ||
-    pathname === '/admin/' ||
-    pathname.startsWith('/admin/tong-quat')
-  )
-    return 'tong_quat';
-  if (pathname.startsWith('/admin/nhan-vien/vai-tro')) return 'vai_tro_quyen';
-  if (pathname.startsWith('/admin/nhan-vien')) return 'nhan_vien';
-  if (pathname.startsWith('/admin/san-pham/danh-muc') || pathname.startsWith('/admin/danh-muc'))
-    return 'danh_muc';
-  if (pathname.startsWith('/kho-hang/combo-san-pham')) return 'combo_san_pham';
-  if (pathname.startsWith('/admin/san-pham')) return 'san_pham';
-  if (pathname.startsWith('/kho-hang/nhap-hang')) return 'nhap_hang';
-  if (pathname.startsWith('/kho-hang/kiem-hang')) return 'kiem_hang';
-  if (pathname.startsWith('/kho-hang')) return 'kho_hang';
-  if (pathname.startsWith('/admin/pos') || pathname.startsWith('/admin/ban-hang')) return 'ban_hang_pos';
-  if (pathname.startsWith('/admin/don-hang/quan-ly-giao-hang')) return 'giao_hang';
-  if (pathname.startsWith('/admin/don-hang/khach-tra-hang')) return 'khach_tra_hang';
-  if (pathname.startsWith('/admin/don-hang')) return 'don_hang';
-  if (pathname.startsWith('/admin/khach-hang-doi-tac/nha-cung-cap')) return 'nha_cung_cap';
-  if (pathname.startsWith('/admin/khach-hang-doi-tac/doi-tac-van-chuyen')) return 'doi_tac_van_chuyen';
-  if (pathname.startsWith('/admin/khach-hang-doi-tac')) return 'khach_hang';
-  if (pathname.startsWith('/admin/khuyen-mai')) return 'khuyen_mai';
-  if (pathname.startsWith('/admin/bao-hanh')) return 'bao_hanh';
-  if (pathname.startsWith('/admin/so-quy-tien-mat')) return 'so_quy';
-  if (pathname.startsWith('/admin/bao-cao')) return 'bao_cao';
-  return null;
+  const path = normalizeAdminPath(pathname);
+  if (path === '/admin') return 'tong_quat';
+
+  return (
+    adminRouteModules.find(([prefix]) => path === prefix || path.startsWith(prefix + '/'))?.[1] ??
+    null
+  );
 };
+
+export function hasAdminPermission(access, moduleId, action = 'xem') {
+  if (access?.trang_thai !== 1 || !['QUAN_TRI', 'NHAN_VIEN'].includes(access.loai_tai_khoan)) {
+    return false;
+  }
+
+  const actions = access.quyen?.[moduleId];
+  return Array.isArray(actions) && actions.includes(action);
+}
+
+export function hasSystemAdminPermission(access, moduleId, action = 'sua') {
+  return access?.vai_tro?.ma_vai_tro === 'ADMIN' && hasAdminPermission(access, moduleId, action);
+}
+
+function adminRouteAction(path, search) {
+  const params = new URLSearchParams(search);
+  if (path === '/kho-hang/nhap-hang/tao-moi') return params.get('edit') ? 'sua' : 'them';
+  if (path === '/kho-hang/combo-san-pham/them-moi') return params.get('id') ? 'sua' : 'them';
+
+  if (
+    /^\/admin\/san-pham\/them-san-pham\/[^/]+$/.test(path) ||
+    /^\/admin\/don-hang\/dat-hang-online\/[^/]+$/.test(path) ||
+    /^\/kho-hang\/kiem-hang\/[^/]+\/chinh-sua$/.test(path)
+  )
+    return 'sua';
+
+  if (
+    [
+      '/admin/san-pham/them-san-pham',
+      '/kho-hang/kiem-hang/tao-moi',
+      '/admin/don-hang/dat-hang-online',
+      '/admin/khuyen-mai/tao-khuyen-mai',
+      '/admin/khuyen-mai/tao-moi',
+      '/admin/bao-hanh/tao-moi',
+      '/admin/bao-hanh/lap-phieu',
+      '/admin/so-quy-tien-mat/tao-phieu-thu-chi',
+      '/admin/so-quy-tien-mat/tao-phieu-thu',
+      '/admin/so-quy-tien-mat/tao-phieu-chi',
+    ].includes(path) ||
+    /^\/admin\/don-hang\/khach-tra-hang\/tao\/[^/]+$/.test(path)
+  )
+    return 'them';
+
+  return 'xem';
+}
+
+export function canOpenAdminPath(access, pathname, search = '') {
+  if (access?.trang_thai !== 1 || !['QUAN_TRI', 'NHAN_VIEN'].includes(access.loai_tai_khoan)) {
+    return false;
+  }
+
+  const path = normalizeAdminPath(pathname);
+  if (path === '/admin/tai-khoan') return true;
+
+  if (
+    path === '/admin/so-quy-tien-mat/loai-phieu-thu' ||
+    path.startsWith('/admin/so-quy-tien-mat/loai-phieu-thu/') ||
+    path === '/admin/so-quy-tien-mat/loai-phieu-chi' ||
+    path.startsWith('/admin/so-quy-tien-mat/loai-phieu-chi/')
+  ) {
+    return hasSystemAdminPermission(access, 'so_quy', 'xem');
+  }
+
+  if (path === '/kho-hang/thu-hoi' || path.startsWith('/kho-hang/thu-hoi/')) {
+    return hasSystemAdminPermission(access, 'kho_hang', 'xem');
+  }
+
+  const moduleId = routePermissionModule(path);
+  return (
+    moduleId !== null &&
+    hasAdminPermission(access, moduleId, 'xem') &&
+    hasAdminPermission(access, moduleId, adminRouteAction(path, search))
+  );
+}
 
 const warrantyRole = {
   id: 'nv_bao_hanh',

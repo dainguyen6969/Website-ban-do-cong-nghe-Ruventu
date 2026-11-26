@@ -1,8 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { HiOutlineRefresh, HiOutlineSearch } from 'react-icons/hi';
+import AdminLink from '../../../../shared/components/ui/AdminLink';
+import { HiOutlineArrowRight, HiOutlineEye, HiOutlineRefresh, HiOutlineSearch } from 'react-icons/hi';
 
 import { apiRequest } from '../../../../auth/backendAuth';
+
+import { hasAdminPermission, hasSystemAdminPermission } from '../../../../auth/roleModel';
+import { useAdminPermissions } from '../../../../shared/components/ui/PermissionGate';
 
 import {
   dateTime,
@@ -209,9 +213,12 @@ function ShipmentList() {
   return (
     <section
       className="delivery-page delivery-list-page admin-list-page"
-      aria-label="Quản lý giao hàng"
+      aria-labelledby="delivery-list-heading"
       aria-busy={state.loading}
     >
+      <h1 id="delivery-list-heading" className="delivery-list-heading">
+        Quản lý giao hàng
+      </h1>
       <div className="delivery-toolbar">
         <label className="delivery-search">
           <HiOutlineSearch size={16} aria-hidden="true" />
@@ -267,10 +274,6 @@ function ShipmentList() {
           ))}
         </FilterDropdown>
 
-        <span className="delivery-count" aria-live="polite">
-          {state.loading || state.error ? '—' : total} PHIẾU
-        </span>
-
         <button
           type="button"
           className="delivery-list-refresh"
@@ -308,45 +311,41 @@ function ShipmentList() {
             aria-busy={state.loading}
           >
             <colgroup>
-              {Array.from({ length: 13 }, (_, index) => (
+              {Array.from({ length: 9 }, (_, index) => (
                 <col key={index} />
               ))}
             </colgroup>
 
             <thead>
               <tr>
-                <th>MÃ PHIẾU</th>
-                <th>MÃ VẬN ĐƠN</th>
-                <th>MÃ ĐƠN HÀNG</th>
-                <th>ĐÓNG GÓI</th>
-                <th>TRẠNG THÁI GIAO</th>
-                <th>ĐỐI TÁC</th>
-                <th>COD</th>
-                <th>PHÍ ĐỐI TÁC</th>
-                <th>NGƯỜI NHẬN</th>
-                <th>SĐT</th>
-                <th>ĐỊA CHỈ</th>
-                <th>CẬP NHẬT</th>
-                <th>THAO TÁC</th>
+                <th scope="col">MÃ VẬN ĐƠN</th>
+                <th scope="col">MÃ ĐƠN HÀNG</th>
+                <th scope="col">TIẾN ĐỘ</th>
+                <th scope="col">ĐỐI TÁC</th>
+                <th scope="col">COD</th>
+                <th scope="col">PHÍ ĐỐI TÁC</th>
+                <th scope="col">NGƯỜI NHẬN</th>
+                <th scope="col">CẬP NHẬT</th>
+                <th scope="col">THAO TÁC</th>
               </tr>
             </thead>
 
             <tbody>
               {state.loading && !state.items.length ? (
                 <tr>
-                  <td colSpan={13} className="delivery-list-empty">
+                  <td colSpan={9} className="delivery-list-empty">
                     Đang tải phiếu giao hàng...
                   </td>
                 </tr>
               ) : state.error ? (
                 <tr>
-                  <td colSpan={13} className="delivery-list-empty">
+                  <td colSpan={9} className="delivery-list-empty">
                     Không thể tải danh sách. Nhấn nút tải lại để thử lại.
                   </td>
                 </tr>
               ) : state.items.length === 0 ? (
                 <tr>
-                  <td colSpan={13} className="delivery-list-empty">
+                  <td colSpan={9} className="delivery-list-empty">
                     Không tìm thấy phiếu giao hàng phù hợp.
                   </td>
                 </tr>
@@ -358,42 +357,34 @@ function ShipmentList() {
                   return (
                     <tr key={item.id}>
                       <td>
-                        <strong
-                          className="delivery-list-code delivery-list-ellipsis"
+                        {item.ma_van_don ? (
+                          <strong className="delivery-tracking-code">{item.ma_van_don}</strong>
+                        ) : (
+                          <span className="delivery-muted">Chưa có mã</span>
+                        )}
+                      </td>
+
+                      <td>
+                        <AdminLink variant="plain"
+                          className="delivery-order-link"
+                          to={`/admin/don-hang/danh-sach-don-hang/${item.don_hang_id}`}
+                        >
+                          <span>{item.ma_don_hang}</span>
+                          <HiOutlineArrowRight size={14} aria-hidden="true" />
+                        </AdminLink>
+                        <small
+                          className="delivery-list-meta delivery-list-ellipsis"
                           title={item.ma_phieu_giao_hang}
                         >
-                          {item.ma_phieu_giao_hang}
-                        </strong>
+                          Phiếu {item.ma_phieu_giao_hang}
+                        </small>
                       </td>
 
                       <td>
-                        <span
-                          className="delivery-list-code delivery-list-ellipsis"
-                          title={item.ma_van_don || ''}
-                        >
-                          {item.ma_van_don || '—'}
-                        </span>
-                      </td>
-
-                      <td>
-                        <button
-                          type="button"
-                          className="delivery-link delivery-list-ellipsis"
-                          title={item.ma_don_hang}
-                          onClick={() =>
-                            navigate(`/admin/don-hang/danh-sach-don-hang/${item.don_hang_id}`)
-                          }
-                        >
-                          {item.ma_don_hang}
-                        </button>
-                      </td>
-
-                      <td>
-                        <OrderStateBadge value={item.trang_thai_dong_goi} />
-                      </td>
-
-                      <td>
-                        <ShipmentBadge value={item.trang_thai_giao_hang} />
+                        <div className="delivery-progress">
+                          <ShipmentBadge value={item.trang_thai_giao_hang} />
+                          <OrderStateBadge value={item.trang_thai_dong_goi} />
+                        </div>
                       </td>
 
                       <td>
@@ -433,20 +424,18 @@ function ShipmentList() {
                       </td>
 
                       <td>
-                        <span className="delivery-list-ellipsis" title={item.ten_nguoi_nhan || ''}>
-                          {item.ten_nguoi_nhan || '—'}
-                        </span>
-                      </td>
-
-                      <td className="delivery-list-phone">{item.sdt_nguoi_nhan || '—'}</td>
-
-                      <td>
-                        <span
-                          className="delivery-list-address delivery-list-ellipsis"
-                          title={item.dia_chi_giao_hang || ''}
-                        >
-                          {item.dia_chi_giao_hang || '—'}
-                        </span>
+                        <strong className="delivery-recipient">{item.ten_nguoi_nhan || '—'}</strong>
+                        {item.sdt_nguoi_nhan && (
+                          <small className="delivery-list-meta">{item.sdt_nguoi_nhan}</small>
+                        )}
+                        {item.dia_chi_giao_hang && (
+                          <small
+                            className="delivery-list-meta delivery-list-ellipsis"
+                            title={item.dia_chi_giao_hang}
+                          >
+                            {item.dia_chi_giao_hang}
+                          </small>
+                        )}
                       </td>
 
                       <td className="delivery-list-updated">
@@ -454,13 +443,13 @@ function ShipmentList() {
                       </td>
 
                       <td>
-                        <button
-                          type="button"
+                        <AdminLink
                           className="delivery-detail-btn"
-                          onClick={() => navigate(`${LIST}/${encodeURIComponent(item.id)}`)}
+                          to={`${LIST}/${encodeURIComponent(item.id)}`}
                         >
-                          XEM CHI TIẾT
-                        </button>
+                          <HiOutlineEye size={15} aria-hidden="true" />
+                          Chi tiết
+                        </AdminLink>
                       </td>
                     </tr>
                   );
@@ -474,13 +463,14 @@ function ShipmentList() {
           <div
             className="delivery-status-counts"
             role="group"
-            aria-label="Số lượng phiếu theo trạng thái"
+            aria-label="Lọc theo trạng thái giao hàng"
           >
+            <strong className="delivery-status-caption">Trạng thái</strong>
             {STATUSES.map((value) => (
               <button
                 key={value}
                 type="button"
-                className={`delivery-status-count${status === value ? ' is-selected' : ''}`}
+                className={`delivery-status-count delivery-badge--${value}`}
                 aria-pressed={status === value}
                 disabled={state.loading}
                 onClick={() => {
@@ -506,7 +496,6 @@ function ShipmentList() {
               totalItems={total}
               onPageChange={setPage}
               idPrefix="deliveries"
-              showSummary={false}
             />
           </fieldset>
         </footer>
@@ -517,6 +506,11 @@ function ShipmentList() {
 
 function ShipmentDetail({ id }) {
   const navigate = useNavigate();
+
+  const access = useAdminPermissions()?.access;
+  const canEditDelivery = hasAdminPermission(access, 'giao_hang', 'sua');
+  const canReceiveReturned = hasSystemAdminPermission(access, 'giao_hang', 'sua');
+
   const operationBusy = useRef(false);
   const mounted = useRef(true);
   const deliveryAttempt = useRef(null);
@@ -576,7 +570,8 @@ function ShipmentDetail({ id }) {
   }, [id, revision]);
 
   const open = (kind) => {
-    if (operationBusy.current || loading || deliveryAttempt.current) {
+    const allowed = kind === 'return' ? canReceiveReturned : canEditDelivery;
+    if (!allowed || operationBusy.current || loading || deliveryAttempt.current) {
       return;
     }
 
@@ -593,7 +588,8 @@ function ShipmentDetail({ id }) {
   };
 
   const save = async (method, suffix, body, message) => {
-    if (operationBusy.current) return;
+    const allowed = suffix === 'return-receipt' ? canReceiveReturned : canEditDelivery;
+    if (!allowed || operationBusy.current) return;
 
     operationBusy.current = true;
     setBusy(true);
@@ -696,7 +692,7 @@ function ShipmentDetail({ id }) {
   const partner = delivery.doi_tac_van_chuyen || {};
   const totals = delivery.tong_tien || {};
   const status = delivery.trang_thai_giao_hang;
-  const locked = busy || loading;
+  const locked = !canEditDelivery || busy || loading;
   const waitingCod = isWaitingCodSettlement(order, delivery);
 
   const openOrder =
@@ -756,7 +752,16 @@ function ShipmentDetail({ id }) {
           <div className="delivery-feedback is-warning" role="status">
             <span>Chưa xác định được kết quả. Dữ liệu đang được giữ nguyên để thử lại.</span>
 
-            <button type="button" disabled={busy} onClick={retryDeliveryOperation}>
+            <button
+              type="button"
+              disabled={
+                busy ||
+                (deliveryAttempt.current.body.suffix === 'return-receipt'
+                  ? !canReceiveReturned
+                  : !canEditDelivery)
+              }
+              onClick={retryDeliveryOperation}
+            >
               THỬ LẠI YÊU CẦU CŨ
             </button>
           </div>
@@ -926,6 +931,8 @@ function ShipmentDetail({ id }) {
                 totalItems={products.length}
                 currentPage={productPages.currentPage}
                 onPageChange={productPages.onPageChange}
+                pageSize={productPages.pageSize}
+                onPageSizeChange={productPages.onPageSizeChange}
                 idPrefix={`delivery-${id}-products`}
               />
 
@@ -1042,7 +1049,7 @@ function ShipmentDetail({ id }) {
                     <button
                       type="button"
                       className="delivery-action return"
-                      disabled={locked || !inTransit}
+                      disabled={!canReceiveReturned || locked || !inTransit}
                       onClick={() => open('return')}
                     >
                       XÁC NHẬN ĐÃ NHẬN HÀNG HOÀN
@@ -1084,7 +1091,7 @@ function ShipmentDetail({ id }) {
         </div>
       </div>
 
-      {!deliveryAttempt.current && modal === 'edit' && (
+      {canEditDelivery && !deliveryAttempt.current && modal === 'edit' && (
         <ShipmentEditDialog
           delivery={delivery}
           busy={busy}
@@ -1094,7 +1101,7 @@ function ShipmentDetail({ id }) {
         />
       )}
 
-      {!deliveryAttempt.current && modal === 'return' && (
+      {canReceiveReturned && !deliveryAttempt.current && modal === 'return' && (
         <ShipmentReturnDialog
           delivery={delivery}
           busy={busy}
@@ -1104,7 +1111,8 @@ function ShipmentDetail({ id }) {
         />
       )}
 
-      {!deliveryAttempt.current &&
+      {canEditDelivery &&
+        !deliveryAttempt.current &&
         ['handoff', 'transit', 'success', 'failure', 'cancel'].includes(modal) && (
           <ShipmentStatusDialog
             key={modal}

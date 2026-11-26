@@ -2,8 +2,9 @@ import { scaledFontSize } from '../../../../typography/projectFontSize.js';
 // Admin customer returns screen: KhachTraHang (UC-027 TH001-TH012)
 // Connected with Backend APIs: /api/v1/admin/returns
 import React, { useEffect, useMemo, useState } from 'react';
-import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { HiOutlineSearch } from 'react-icons/hi';
+import LoadingSpinner from '../../../../shared/components/ui/LoadingSpinner';
 import {
   ArrowLeft,
   ArrowRight,
@@ -18,15 +19,19 @@ import {
   Phone,
   Info,
   DollarSign,
+  XCircle,
 } from 'lucide-react';
 import FilterDropdown from '../../../../shared/components/ui/FilterDropdown';
 import TablePagination from '../../../../shared/components/ui/TablePagination';
+import { parseApiTime } from '../../../../shared/services/mutationUtils.js';
 import {
   WarrantyFields,
   WarrantyPanel,
   WarrantyTable,
 } from '../../warranty/components/WarrantyShell';
 import {
+  RETURN_WORK_GROUP_OPTIONS,
+  isReturnWorkGroup,
   getReturns,
   getEligibleOrders,
   getEligibleOrderDetail,
@@ -35,21 +40,37 @@ import {
   getReturnDetail,
   receiveReturnPackage,
   refundReturn,
+  cancelReturn,
 } from '../api/customerReturnApi.js';
+import { getOrder } from '../../orders/api/orderApi.js';
 import '../../warranty/styles/warrantyShell.css';
+
+import { hasAdminPermission, hasSystemAdminPermission } from '../../../../auth/roleModel';
+import { useAdminPermissions } from '../../../../shared/components/ui/PermissionGate';
+
 import './KhachTraHang.css';
 
 const LIST_ROUTE = '/admin/don-hang/khach-tra-hang';
 const ORDER_DETAIL_ROUTE = '/admin/don-hang/danh-sach-don-hang';
 
+const toReturnDateBoundary = (value, daysToAdd = 0) => {
+  const date = parseApiTime(value);
+  if (!date) return undefined;
+
+  date.setUTCDate(date.getUTCDate() + daysToAdd);
+  return date.toISOString();
+};
+
 const STATUS_FILTER_OPTIONS = [
   { value: 'ALL', label: 'Tất cả trạng thái' },
+  ...RETURN_WORK_GROUP_OPTIONS,
   { value: 'CHO_TIEP_NHAN', label: 'Chờ tiếp nhận' },
   { value: 'DA_NHAN_HANG', label: 'Đã nhận hàng' },
   { value: 'DA_HOAN_TIEN', label: 'Đã hoàn tiền' },
   { value: 'HOAN_TAT', label: 'Hoàn tất' },
   { value: 'CHO_TRA_KHACH', label: 'Chờ trả khách' },
   { value: 'TU_CHOI', label: 'Từ chối' },
+  { value: 'HUY_TIEP_NHAN', label: 'Hủy tiếp nhận' },
   { value: 'HUY', label: 'Đã hủy' },
 ];
 
@@ -59,7 +80,8 @@ const getReturnStatusVariant = (st) => {
   if (status === 'DA_NHAN_HANG') return 'blue';
   if (status === 'DA_HOAN_TIEN' || status === 'HOAN_TAT') return 'green';
   if (status === 'CHO_TRA_KHACH' || status === 'DA_HOAN_TIEN_CU') return 'teal';
-  if (status.includes('HUY') || status.includes('TU_CHOI')) return 'red';
+  if (status === 'HUY_TIEP_NHAN' || status.includes('HUY') || status.includes('TU_CHOI'))
+    return 'red';
   return 'neutral';
 };
 
@@ -78,8 +100,9 @@ const getReturnStatusText = (st) => {
       return 'CHỜ TRẢ KHÁCH';
     case 'TU_CHOI':
       return 'TỪ CHỐI';
+    case 'HUY_TIEP_NHAN':
     case 'HUY':
-      return 'ĐÃ HỦY';
+      return 'HỦY TIẾP NHẬN';
     case 'DA_HOAN_TIEN_CU':
       return 'ĐÃ HOÀN TIỀN - NHẬN CŨ';
     default:
@@ -108,9 +131,11 @@ function formatDisplayDate(dateStr) {
 
 export default function KhachTraHang() {
   const { orderId, returnId } = useParams();
+  const location = useLocation();
+  const isCreate = location.pathname.includes('/tao');
 
-  if (orderId) {
-    return <CreateReturn orderId={orderId} />;
+  if (isCreate || orderId) {
+    return <CreateReturn initialOrderId={orderId} />;
   }
 
   if (returnId) {
@@ -125,8 +150,12 @@ export default function KhachTraHang() {
    ========================================================================== */
 function ReturnList() {
   const navigate = useNavigate();
+
+  const access = useAdminPermissions()?.access;
+  const canCreateReturn = hasAdminPermission(access, 'khach_tra_hang', 'them');
+
   const location = useLocation();
-  const [params] = useSearchParams();
+  const [params, setParams] = useSearchParams();
 
   const [items, setItems] = useState([]);
   const [pagination, setPagination] = useState({
@@ -137,9 +166,13 @@ function ReturnList() {
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-
   const [query, setQuery] = useState('');
-  const [status, setStatus] = useState(() => params.get('trang_thai_tra_hang') || 'ALL');
+
+  const statusParam = params.get('trang_thai_tra_hang') || 'ALL';
+  const returnGroup =
+    params.get('nhom_xu_ly') || (isReturnWorkGroup(statusParam) ? statusParam : '');
+  const status = returnGroup || statusParam;
+  const salesChannel = params.get('kenh_ban') || '';
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
   const [pageSize, setPageSize] = useState(20);
@@ -161,9 +194,16 @@ function ReturnList() {
       const data = await getReturns(
         {
           keyword: query.trim(),
-          returnStatus: status !== 'ALL' ? status : undefined,
-          from: dateFrom || undefined,
-          to: dateTo || undefined,
+          returnStatus:
+            returnGroup || status === 'ALL'
+              ? undefined
+              : status === 'HUY_TIEP_NHAN'
+                ? 'HUY'
+                : status,
+          returnGroup,
+          salesChannel,
+          from: toReturnDateBoundary(dateFrom),
+          to: toReturnDateBoundary(dateTo, 1),
           page: Math.max(0, page - 1),
           limit: pageSize,
         },
@@ -189,15 +229,35 @@ function ReturnList() {
     const controller = new AbortController();
     fetchList(controller.signal);
     return () => controller.abort();
-  }, [query, status, dateFrom, dateTo, page, pageSize]);
+  }, [query, status, returnGroup, salesChannel, dateFrom, dateTo, page, pageSize]);
+
+  const selectReturnFilter = (value) => {
+    const next = new URLSearchParams(params);
+    next.delete('trang_thai_tra_hang');
+    next.delete('nhom_xu_ly');
+
+    if (value !== 'ALL') {
+      next.set(isReturnWorkGroup(value) ? 'nhom_xu_ly' : 'trang_thai_tra_hang', value);
+    }
+
+    setParams(next, { replace: true });
+    setPage(1);
+  };
 
   const resetFilters = () => {
+    const next = new URLSearchParams(params);
+    next.delete('trang_thai_tra_hang');
+    next.delete('nhom_xu_ly');
+    next.delete('kenh_ban');
+
+    setParams(next, { replace: true });
     setQuery('');
-    setStatus('ALL');
     setDateFrom('');
     setDateTo('');
     setPage(1);
   };
+
+  const totalItems = pagination.total_elements ?? pagination.total_items ?? items.length;
 
   return (
     <div className="returns-page admin-list-page">
@@ -212,11 +272,19 @@ function ReturnList() {
       {/* Hero Header */}
       <section className="returns-hero">
         <div className="returns-hero__info">
-          <div className="returns-hero__breadcrumb">ĐƠN HÀNG / KHÁCH TRẢ HÀNG</div>
+          <div className="returns-hero__breadcrumb">
+            <Link to="/admin/don-hang/danh-sach-don-hang">ĐƠN HÀNG</Link> /{' '}
+            <span>KHÁCH TRẢ HÀNG</span>
+          </div>
           <h1>KHÁCH TRẢ HÀNG</h1>
           <p>Theo dõi phiếu, người liên hệ và quyền trả hàng từ dữ liệu hệ thống.</p>
         </div>
-        <button className="return-btn return-btn--black" onClick={() => setSelecting(true)}>
+        <button
+          type="button"
+          className="return-btn return-btn--black"
+          disabled={!canCreateReturn}
+          onClick={() => setSelecting(true)}
+        >
           + LẬP PHIẾU TRẢ HÀNG
         </button>
       </section>
@@ -241,11 +309,8 @@ function ReturnList() {
           <div className="returns-status-dropdown-wrap">
             <FilterDropdown
               options={STATUS_FILTER_OPTIONS}
-              value={status}
-              onSelect={(val) => {
-                setStatus(val);
-                setPage(1);
-              }}
+              value={returnGroup || status}
+              onSelect={selectReturnFilter}
               selectedDark={false}
               aria-label="Lọc trạng thái"
             />
@@ -278,6 +343,12 @@ function ReturnList() {
               }}
             />
           </div>
+
+          {['ONLINE', 'TAI_QUAY'].includes(salesChannel) && (
+            <span className="returns-date-label">
+              Kênh bán {salesChannel === 'ONLINE' ? 'Online' : 'Tại quầy'}
+            </span>
+          )}
 
           {/* Reset button */}
           <button
@@ -330,8 +401,8 @@ function ReturnList() {
             <tbody>
               {loading && !items.length ? (
                 <tr>
-                  <td colSpan="8" style={{ textAlign: 'center', padding: 40, color: '#6b7280' }}>
-                    Đang tải danh sách phiếu trả hàng...
+                  <td colSpan="8" style={{ textAlign: 'center', padding: 24 }}>
+                    <LoadingSpinner text="Đang tải danh sách phiếu trả hàng..." size="md" />
                   </td>
                 </tr>
               ) : items.length > 0 ? (
@@ -407,14 +478,13 @@ function ReturnList() {
         <div className="returns-footer admin-table-footer">
           <div className="returns-footer__left">
             <span>
-              {pagination.total_items || items.length} phiếu · Trang {page}/
-              {Math.max(1, pagination.total_pages || 1)}
+              {totalItems} phiếu · Trang {page}/{Math.max(1, pagination.total_pages || 1)}
             </span>
           </div>
 
           <div className="returns-footer__right">
             <TablePagination
-              totalItems={pagination.total_items || items.length}
+              totalItems={totalItems}
               pageSize={pageSize}
               currentPage={page}
               onPageChange={(p) => setPage(p)}
@@ -426,7 +496,7 @@ function ReturnList() {
       </section>
 
       {/* Modal: CHỌN ĐƠN HÀNG CẦN TRẢ (TH002) */}
-      {selecting && (
+      {canCreateReturn && selecting && (
         <SelectOrderModal
           onClose={() => setSelecting(false)}
           onSelect={(selectedId) => {
@@ -548,8 +618,8 @@ function SelectOrderModal({ onClose, onSelect }) {
               <tbody>
                 {loading ? (
                   <tr>
-                    <td colSpan="6" style={{ textAlign: 'center', padding: 30, color: '#6b7280' }}>
-                      Đang tải danh sách đơn hàng...
+                    <td colSpan="6" style={{ textAlign: 'center', padding: 20 }}>
+                      <LoadingSpinner text="Đang tải danh sách đơn hàng..." size="sm" />
                     </td>
                   </tr>
                 ) : orders.length > 0 ? (
@@ -625,11 +695,25 @@ function SelectOrderModal({ onClose, onSelect }) {
 /* ==========================================================================
    View 3: Lập phiếu trả hàng (Kết nối Backend tính preview & tạo phiếu)
    ========================================================================== */
-function CreateReturn({ orderId }) {
+function CreateReturn({ initialOrderId }) {
   const navigate = useNavigate();
 
+  const [currentOrderId, setCurrentOrderId] = useState(
+    initialOrderId ? String(initialOrderId) : ''
+  );
+  const [showOrderSearch, setShowOrderSearch] = useState(!initialOrderId);
+
+  // Embedded search state for eligible orders
+  const [orderQuery, setOrderQuery] = useState('');
+  const [orderPage, setOrderPage] = useState(1);
+  const [orderPageSize, setOrderPageSize] = useState(5);
+  const [orderList, setOrderList] = useState([]);
+  const [orderPagination, setOrderPagination] = useState({ total_items: 0, total_pages: 1 });
+  const [orderSearchLoading, setOrderSearchLoading] = useState(false);
+  const [orderSearchError, setOrderSearchError] = useState('');
+
   const [eligibleData, setEligibleData] = useState(null);
-  const [loadingEligible, setLoadingEligible] = useState(true);
+  const [loadingEligible, setLoadingEligible] = useState(false);
   const [eligibleError, setEligibleError] = useState('');
 
   // Selected lines state: { [chiTietDonHangId]: qty }
@@ -648,13 +732,64 @@ function CreateReturn({ orderId }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
 
+  // Sync initialOrderId from prop if it changes
   useEffect(() => {
+    if (initialOrderId) {
+      setCurrentOrderId(String(initialOrderId));
+      setShowOrderSearch(false);
+    }
+  }, [initialOrderId]);
+
+  // Fetch eligible orders for embedded search
+  useEffect(() => {
+    if (!showOrderSearch && currentOrderId) return;
+    let active = true;
+    const fetchOrders = async () => {
+      setOrderSearchLoading(true);
+      setOrderSearchError('');
+      try {
+        const data = await getEligibleOrders({
+          keyword: orderQuery.trim(),
+          page: Math.max(0, orderPage - 1),
+          limit: orderPageSize,
+        });
+        if (active && data) {
+          setOrderList(data.items || []);
+          if (data.pagination) {
+            setOrderPagination(data.pagination);
+          }
+        }
+      } catch (err) {
+        if (active) {
+          setOrderSearchError(err?.message || 'Không thể tải danh sách đơn hàng đủ điều kiện.');
+          setOrderList([]);
+        }
+      } finally {
+        if (active) setOrderSearchLoading(false);
+      }
+    };
+
+    fetchOrders();
+    return () => {
+      active = false;
+    };
+  }, [orderQuery, orderPage, orderPageSize, showOrderSearch, currentOrderId]);
+
+  // Load eligible order detail when currentOrderId is set
+  useEffect(() => {
+    if (!currentOrderId) {
+      setEligibleData(null);
+      setLoadingEligible(false);
+      setEligibleError('');
+      return;
+    }
+
     let active = true;
     const loadEligibleDetail = async () => {
       setLoadingEligible(true);
       setEligibleError('');
       try {
-        const data = await getEligibleOrderDetail(orderId);
+        const data = await getEligibleOrderDetail(currentOrderId);
         if (active && data) {
           setEligibleData(data);
           if (data.don_hang) {
@@ -675,7 +810,16 @@ function CreateReturn({ orderId }) {
     return () => {
       active = false;
     };
-  }, [orderId]);
+  }, [currentOrderId]);
+
+  const handleSelectOrder = (order) => {
+    setCurrentOrderId(String(order.id));
+    setShowOrderSearch(false);
+    setSelectedLines({});
+    setPreviewResult(null);
+    setSubmitError('');
+    navigate(`${LIST_ROUTE}/tao/${order.id}`, { replace: true });
+  };
 
   const handleToggleLine = (line) => {
     const lineId = line.chi_tiet_don_hang_id;
@@ -706,65 +850,69 @@ function CreateReturn({ orderId }) {
   const numSelectedLines = selectedEntries.length;
   const numSelectedUnits = selectedEntries.reduce((sum, [, qty]) => sum + Number(qty || 0), 0);
 
- const [previewRetry, setPreviewRetry] = useState(0);
+  const [previewRetry, setPreviewRetry] = useState(0);
 
-useEffect(() => {
-  const entries = Object.entries(selectedLines);
-  setPreviewResult(null);
-  setSubmitError('');
+  useEffect(() => {
+    const entries = Object.entries(selectedLines);
+    setPreviewResult(null);
+    setSubmitError('');
 
-  if (entries.length === 0) {
-    setIsCalculating(false);
-    return;
-  }
-
-  const controller = new AbortController();
-  setIsCalculating(true);
-
-  const timer = setTimeout(async () => {
-    try {
-      const data = await previewReturn(
-        {
-          don_hang_id: Number(orderId),
-          chi_tiet_tra: entries.map(([id, qty]) => ({
-            chi_tiet_don_hang_id: Number(id),
-            so_luong: Number(qty),
-          })),
-        },
-        controller.signal
-      );
-
-      if (controller.signal.aborted) return;
-
-      if (data?.du_dieu_kien === false || data?.tong_tien_hoan == null) {
-        throw new Error('Chưa thể xác nhận số tiền hoàn từ máy chủ.');
-      }
-
-      setPreviewResult(data);
-    } catch (err) {
-      if (!controller.signal.aborted) {
-        setSubmitError(err?.message || 'Không thể tính thử tiền hoàn.');
-      }
-    } finally {
-      if (!controller.signal.aborted) setIsCalculating(false);
+    if (entries.length === 0) {
+      setIsCalculating(false);
+      return;
     }
-  }, 250);
 
-  return () => {
-    clearTimeout(timer);
-    controller.abort();
+    const controller = new AbortController();
+    setIsCalculating(true);
+
+    const timer = setTimeout(async () => {
+      try {
+        const data = await previewReturn(
+          {
+            don_hang_id: Number(currentOrderId),
+            chi_tiet_tra: entries.map(([id, qty]) => ({
+              chi_tiet_don_hang_id: Number(id),
+              so_luong: Number(qty),
+            })),
+          },
+          controller.signal
+        );
+
+        if (controller.signal.aborted) return;
+
+        if (data?.du_dieu_kien === false || data?.tong_tien_hoan == null) {
+          throw new Error('Chưa thể xác nhận số tiền hoàn từ máy chủ.');
+        }
+
+        setPreviewResult(data);
+      } catch (err) {
+        if (!controller.signal.aborted) {
+          setSubmitError(err?.message || 'Không thể tính thử tiền hoàn.');
+        }
+      } finally {
+        if (!controller.signal.aborted) setIsCalculating(false);
+      }
+    }, 250);
+
+    return () => {
+      clearTimeout(timer);
+      controller.abort();
+    };
+  }, [selectedLines, currentOrderId, previewRetry]);
+
+  const handleCalculatePreview = () => {
+    setPreviewResult(null);
+    setPreviewRetry((value) => value + 1);
   };
-}, [selectedLines, orderId, previewRetry]);
-
-const handleCalculatePreview = () => {
-  setPreviewResult(null);
-  setPreviewRetry((value) => value + 1);
-};
 
   // Call Create Return API
   const handleCreateReturn = async () => {
     setSubmitError('');
 
+    if (!currentOrderId) {
+      setSubmitError('Vui lòng chọn đơn hàng gốc cần trả.');
+      return;
+    }
     if (numSelectedLines === 0) {
       setSubmitError('Vui lòng chọn ít nhất một sản phẩm cần trả.');
       return;
@@ -782,14 +930,18 @@ const handleCalculatePreview = () => {
       return;
     }
     if (!previewResult) {
-      setSubmitError(isCalculating ? 'Đang tự động tính tiền hoàn, vui lòng chờ trong giây lát...' : 'Chưa thể xác nhận số tiền hoàn. Vui lòng kiểm tra lại sản phẩm cần trả.');
+      setSubmitError(
+        isCalculating
+          ? 'Đang tự động tính tiền hoàn, vui lòng chờ trong giây lát...'
+          : 'Chưa thể xác nhận số tiền hoàn. Vui lòng kiểm tra lại sản phẩm cần trả.'
+      );
       return;
     }
 
     setIsSubmitting(true);
     try {
       const payload = {
-        don_hang_id: Number(orderId),
+        don_hang_id: Number(currentOrderId),
         ten_nguoi_lien_he: contactName.trim(),
         sdt_nguoi_lien_he: contactPhone.trim(),
         ly_do_tra: reason.trim(),
@@ -813,26 +965,6 @@ const handleCalculatePreview = () => {
     }
   };
 
-  if (loadingEligible) {
-    return (
-      <div className="returns-page" style={{ padding: 40, textAlign: 'center' }}>
-        <h2>ĐANG TẢI DỮ LIỆU ĐƠN HÀNG...</h2>
-      </div>
-    );
-  }
-
-  if (eligibleError) {
-    return (
-      <div className="returns-page" style={{ padding: 40 }}>
-        <h2>LỖI TẢI ĐƠN HÀNG</h2>
-        <p style={{ margin: '16px 0', color: '#df1720' }}>{eligibleError}</p>
-        <button className="return-btn return-btn--outline" onClick={() => navigate(LIST_ROUTE)}>
-          QUAY LẠI DANH SÁCH
-        </button>
-      </div>
-    );
-  }
-
   const donHang = eligibleData?.don_hang || {};
   const chiTiet = eligibleData?.chi_tiet || [];
   const blockedReasons = eligibleData?.ly_do_chan || [];
@@ -842,9 +974,16 @@ const handleCalculatePreview = () => {
       {/* Hero Header */}
       <section className="returns-hero">
         <div className="returns-hero__info">
-          <div className="returns-hero__breadcrumb">ĐƠN HÀNG / KHÁCH TRẢ HÀNG / LẬP PHIẾU</div>
+          <div className="returns-hero__breadcrumb">
+            <Link to="/admin/don-hang/danh-sach-don-hang">ĐƠN HÀNG</Link> /{' '}
+            <Link to={LIST_ROUTE}>KHÁCH TRẢ HÀNG</Link> / <span>LẬP PHIẾU</span>
+          </div>
           <h1>LẬP PHIẾU TRẢ HÀNG</h1>
-          <div className="returns-hero__order-id">{donHang.ma_don_hang || orderId}</div>
+          {(donHang.ma_don_hang || currentOrderId) && (
+            <div className="returns-hero__order-id">
+              {donHang.ma_don_hang || `ORD-${currentOrderId}`}
+            </div>
+          )}
         </div>
         <button className="return-btn return-btn--outline" onClick={() => navigate(LIST_ROUTE)}>
           QUAY LẠI DANH SÁCH
@@ -871,37 +1010,213 @@ const handleCalculatePreview = () => {
 
       {/* Form Container */}
       <div className="returns-create-container">
-        {/* 01 / ĐƠN HÀNG GỐC */}
+        {/* ĐƠN HÀNG GỐC */}
         <section className="return-section-box">
           <div className="return-section-box__header">
-            <h2><i aria-hidden="true" />01 / ĐƠN HÀNG GỐC</h2>
+            <h2>
+              <i aria-hidden="true" />
+              01 / ĐƠN HÀNG GỐC
+            </h2>
+            {currentOrderId && (
+              <div className="return-section-box__actions">
+                <button
+                  type="button"
+                  className="return-btn return-btn--outline"
+                  style={{ minHeight: 28, padding: '2px 10px', fontSize: 11 }}
+                  onClick={() => setShowOrderSearch((prev) => !prev)}
+                >
+                  {showOrderSearch ? 'ĐÓNG TÌM KIẾM' : 'ĐỔI ĐƠN HÀNG GỐC'}
+                </button>
+              </div>
+            )}
           </div>
           <div className="return-section-box__body">
-            <div className="return-order-info-grid">
-              <div className="return-order-info-item">
-                <dt>MÃ ĐƠN</dt>
-                <dd>{donHang.ma_don_hang || orderId}</dd>
+            {eligibleError && (
+              <div
+                style={{
+                  margin: '0 0 16px',
+                  padding: 10,
+                  background: '#fff1f1',
+                  border: '1px solid #ff9297',
+                  color: '#df1720',
+                  fontSize: 12,
+                }}
+              >
+                {eligibleError}
               </div>
-              <div className="return-order-info-item">
-                <dt>NGƯỜI LIÊN HỆ GỐC</dt>
-                <dd>{donHang.ten_nguoi_lien_he || contactName || 'Khách lẻ'}</dd>
+            )}
+
+            {/* Current order details if loaded */}
+            {donHang && donHang.id ? (
+              <div
+                className="return-order-info-grid"
+                style={{ marginBottom: showOrderSearch ? 16 : 0 }}
+              >
+                <div className="return-order-info-item">
+                  <dt>MÃ ĐƠN</dt>
+                  <dd>{donHang.ma_don_hang || currentOrderId}</dd>
+                </div>
+                <div className="return-order-info-item">
+                  <dt>NGƯỜI LIÊN HỆ GỐC</dt>
+                  <dd>{donHang.ten_nguoi_lien_he || contactName || 'Khách lẻ'}</dd>
+                </div>
+                <div className="return-order-info-item">
+                  <dt>SỐ ĐIỆN THOẠI</dt>
+                  <dd>{donHang.sdt_nguoi_lien_he || contactPhone || '—'}</dd>
+                </div>
+                <div className="return-order-info-item">
+                  <dt>NGÀY HOÀN THÀNH</dt>
+                  <dd>{formatDisplayDate(donHang.ngay_hoan_thanh)}</dd>
+                </div>
               </div>
-              <div className="return-order-info-item">
-                <dt>SỐ ĐIỆN THOẠI</dt>
-                <dd>{donHang.sdt_nguoi_lien_he || contactPhone || '—'}</dd>
+            ) : currentOrderId && loadingEligible ? (
+              <div style={{ padding: '16px 0' }}>
+                <LoadingSpinner text="Đang tải thông tin đơn hàng..." size="sm" />
               </div>
-              <div className="return-order-info-item">
-                <dt>NGÀY HOÀN THÀNH</dt>
-                <dd>{formatDisplayDate(donHang.ngay_hoan_thanh)}</dd>
+            ) : null}
+
+            {/* Embedded order search input and table */}
+            {(!currentOrderId || showOrderSearch) && (
+              <div
+                style={{
+                  marginTop: donHang && donHang.id ? 16 : 0,
+                  borderTop: donHang && donHang.id ? '1px dashed #d1d5db' : 'none',
+                  paddingTop: donHang && donHang.id ? 16 : 0,
+                }}
+              >
+                <label className="returns-modal-search" style={{ marginBottom: 12 }}>
+                  <HiOutlineSearch />
+                  <input
+                    value={orderQuery}
+                    onChange={(e) => {
+                      setOrderQuery(e.target.value);
+                      setOrderPage(1);
+                    }}
+                    placeholder="TÌM MÃ ĐƠN / KHÁCH / NGƯỜI NHẬN / SĐT..."
+                  />
+                </label>
+
+                {orderSearchError && (
+                  <div
+                    style={{
+                      margin: '8px 0',
+                      padding: 8,
+                      background: '#fff1f1',
+                      color: '#df1720',
+                      fontSize: 11,
+                    }}
+                  >
+                    {orderSearchError}
+                  </div>
+                )}
+
+                <div className="returns-modal-table-wrap" style={{ borderBottom: 0 }}>
+                  <table className="returns-table">
+                    <thead>
+                      <tr>
+                        <th>MÃ ĐƠN</th>
+                        <th>KHÁCH / LIÊN HỆ</th>
+                        <th>SỐ ĐIỆN THOẠI</th>
+                        <th>HOÀN THÀNH</th>
+                        <th>QUY TẮC TRẢ</th>
+                        <th style={{ textAlign: 'center' }}>THAO TÁC</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {orderSearchLoading ? (
+                        <tr>
+                          <td colSpan="6" style={{ textAlign: 'center', padding: 20 }}>
+                            <LoadingSpinner text="Đang tìm kiếm đơn hàng..." size="sm" />
+                          </td>
+                        </tr>
+                      ) : orderList.length > 0 ? (
+                        orderList.map((ord) => {
+                          const isCurrent = String(ord.id) === String(currentOrderId);
+                          return (
+                            <tr
+                              key={ord.id}
+                              style={{ background: isCurrent ? '#fffbf5' : 'inherit' }}
+                            >
+                              <td>
+                                <strong className="returns-code">
+                                  {ord.ma_don_hang || ord.id}
+                                </strong>
+                              </td>
+                              <td>{ord.ten_nguoi_lien_he || 'Khách vãng lai'}</td>
+                              <td>
+                                <span className={!ord.sdt_nguoi_lien_he ? 'returns-muted' : ''}>
+                                  {ord.sdt_nguoi_lien_he || 'Nhập khi lập phiếu'}
+                                </span>
+                              </td>
+                              <td>{formatDisplayDate(ord.ngay_hoan_thanh)}</td>
+                              <td>
+                                <span
+                                  className={`returns-order-rule${ord.chi_duoc_tra_toan_bo ? ' returns-order-rule--all' : ''}`}
+                                >
+                                  {ord.chi_duoc_tra_toan_bo ? 'CHỈ TRẢ TOÀN BỘ' : 'CHỌN SỐ LƯỢNG'}
+                                </span>
+                              </td>
+                              <td style={{ textAlign: 'center' }}>
+                                <button
+                                  type="button"
+                                  className="returns-select-order-btn"
+                                  style={{
+                                    background: isCurrent ? '#16a34a' : '#000',
+                                    borderColor: isCurrent ? '#16a34a' : '#000',
+                                  }}
+                                  onClick={() => handleSelectOrder(ord)}
+                                >
+                                  {isCurrent ? 'ĐANG CHỌN' : 'CHỌN TRẢ HÀNG'}
+                                </button>
+                              </td>
+                            </tr>
+                          );
+                        })
+                      ) : (
+                        <tr>
+                          <td
+                            colSpan="6"
+                            style={{ textAlign: 'center', padding: 24, color: '#6b7280' }}
+                          >
+                            Không tìm thấy đơn hàng nào đủ điều kiện trả.
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+
+                <TablePagination
+                  className="admin-table-footer"
+                  style={{
+                    border: '1px solid #000',
+                    borderTop: '0',
+                    marginTop: 0,
+                  }}
+                  totalItems={orderPagination.total_items ?? orderList.length}
+                  pageSize={orderPageSize}
+                  currentPage={orderPage}
+                  onPageChange={(p) => setOrderPage(p)}
+                  pageSizeOptions={[5, 10, 20, 50, 100]}
+                  onPageSizeChange={(sz) => {
+                    setOrderPageSize(sz);
+                    setOrderPage(1);
+                  }}
+                  showSummary={true}
+                  idPrefix="create-return-order"
+                />
               </div>
-            </div>
+            )}
           </div>
         </section>
 
-        {/* 02 / CHỌN SẢN PHẨM & SỐ LƯỢNG TRẢ */}
+        {/* CHỌN SẢN PHẨM & SỐ LƯỢNG TRẢ */}
         <section className="return-section-box">
           <div className="return-section-box__header">
-            <h2><i aria-hidden="true" />02 / CHỌN SẢN PHẨM & SỐ LƯỢNG TRẢ</h2>
+            <h2>
+              <i aria-hidden="true" />
+              02 / CHỌN SẢN PHẨM & SỐ LƯỢNG TRẢ
+            </h2>
             <div className="return-section-box__actions">
               <span>
                 Đã chọn:{' '}
@@ -912,100 +1227,124 @@ const handleCalculatePreview = () => {
             </div>
           </div>
           <div className="return-section-box__body">
-            <div className="returns-table-wrap">
-              <table className="returns-table">
-                <thead>
-                  <tr>
-                    <th style={{ width: 48, textAlign: 'center' }}>CHỌN</th>
-                    <th>SẢN PHẨM / PHIÊN BẢN</th>
-                    <th>ĐÃ GIAO</th>
-                    <th>ĐÃ YÊU CẦU</th>
-                    <th>CÒN ĐƯỢC TRẢ</th>
-                    <th>SL TRẢ</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {chiTiet.length > 0 ? (
-                    chiTiet.map((item) => {
-                      const lineId = item.chi_tiet_don_hang_id;
-                      const isChecked = Boolean(selectedLines[lineId]);
-                      const currentQty = selectedLines[lineId] || 1;
-                      const maxQty = item.so_luong_con_duoc_tra || 1;
-
-                      return (
-                        <tr key={lineId} style={{ background: isChecked ? '#fffbf5' : 'inherit' }}>
-                          <td style={{ textAlign: 'center' }}>
-                            <input
-                              type="checkbox"
-                              checked={isChecked}
-                              disabled={item.so_luong_con_duoc_tra <= 0}
-                              onChange={() => handleToggleLine(item)}
-                              style={{ width: 16, height: 16, cursor: 'pointer' }}
-                            />
-                          </td>
-                          <td>
-                            <strong>{item.ten_san_pham}</strong>
-                            {item.la_qua_tang && (
-                              <span
-                                style={{
-                                  marginLeft: 8,
-                                  fontSize: 10,
-                                  color: '#e31e24',
-                                  fontWeight: 800,
-                                }}
-                              >
-                                (QUÀ TẶNG)
-                              </span>
-                            )}
-                          </td>
-                          <td>{item.so_luong_da_giao ?? '—'}</td>
-                          <td>{item.so_luong_da_yeu_cau_tra ?? 0}</td>
-                          <td>
-                            <strong
-                              style={{ color: item.so_luong_con_duoc_tra > 0 ? '#111' : '#888' }}
-                            >
-                              {item.so_luong_con_duoc_tra ?? 0}
-                            </strong>
-                          </td>
-                          <td>
-                            <input
-                              type="number"
-                              min={1}
-                              max={maxQty}
-                              disabled={!isChecked}
-                              value={currentQty}
-                              onChange={(e) => handleQuantityChange(item, e.target.value)}
-                              style={{
-                                width: 70,
-                                height: 32,
-                                textAlign: 'center',
-                                border: '1px solid #111',
-                              }}
-                            />
-                          </td>
-                        </tr>
-                      );
-                    })
-                  ) : (
+            {!currentOrderId ? (
+              <div
+                style={{
+                  textAlign: 'center',
+                  padding: '36px 16px',
+                  color: '#6b7280',
+                  fontSize: 13,
+                }}
+              >
+                Vui lòng tìm và chọn đơn hàng gốc ở phần trên để hiển thị danh sách sản phẩm có thể
+                trả.
+              </div>
+            ) : loadingEligible ? (
+              <div style={{ textAlign: 'center', padding: '36px 16px' }}>
+                <LoadingSpinner text="Đang tải dữ liệu sản phẩm của đơn hàng..." size="sm" />
+              </div>
+            ) : (
+              <div className="returns-table-wrap">
+                <table className="returns-table">
+                  <thead>
                     <tr>
-                      <td
-                        colSpan="6"
-                        style={{ textAlign: 'center', padding: 30, color: '#6b7280' }}
-                      >
-                        Đơn hàng không có sản phẩm nào đủ điều kiện trả.
-                      </td>
+                      <th style={{ width: 48, textAlign: 'center' }}>CHỌN</th>
+                      <th>SẢN PHẨM / PHIÊN BẢN</th>
+                      <th>ĐÃ GIAO</th>
+                      <th>ĐÃ YÊU CẦU</th>
+                      <th>CÒN ĐƯỢC TRẢ</th>
+                      <th>SL TRẢ</th>
                     </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody>
+                    {chiTiet.length > 0 ? (
+                      chiTiet.map((item) => {
+                        const lineId = item.chi_tiet_don_hang_id;
+                        const isChecked = Boolean(selectedLines[lineId]);
+                        const currentQty = selectedLines[lineId] || 1;
+                        const maxQty = item.so_luong_con_duoc_tra || 1;
+
+                        return (
+                          <tr
+                            key={lineId}
+                            style={{ background: isChecked ? '#fffbf5' : 'inherit' }}
+                          >
+                            <td style={{ textAlign: 'center' }}>
+                              <input
+                                type="checkbox"
+                                checked={isChecked}
+                                disabled={item.so_luong_con_duoc_tra <= 0}
+                                onChange={() => handleToggleLine(item)}
+                                style={{ width: 16, height: 16, cursor: 'pointer' }}
+                              />
+                            </td>
+                            <td>
+                              <strong>{item.ten_san_pham}</strong>
+                              {item.la_qua_tang && (
+                                <span
+                                  style={{
+                                    marginLeft: 8,
+                                    fontSize: 10,
+                                    color: '#e31e24',
+                                    fontWeight: 800,
+                                  }}
+                                >
+                                  (QUÀ TẶNG)
+                                </span>
+                              )}
+                            </td>
+                            <td>{item.so_luong_da_giao ?? '—'}</td>
+                            <td>{item.so_luong_da_yeu_cau_tra ?? 0}</td>
+                            <td>
+                              <strong
+                                style={{ color: item.so_luong_con_duoc_tra > 0 ? '#111' : '#888' }}
+                              >
+                                {item.so_luong_con_duoc_tra ?? 0}
+                              </strong>
+                            </td>
+                            <td>
+                              <input
+                                type="number"
+                                min={1}
+                                max={maxQty}
+                                disabled={!isChecked}
+                                value={currentQty}
+                                onChange={(e) => handleQuantityChange(item, e.target.value)}
+                                style={{
+                                  width: 70,
+                                  height: 32,
+                                  textAlign: 'center',
+                                  border: '1px solid #111',
+                                }}
+                              />
+                            </td>
+                          </tr>
+                        );
+                      })
+                    ) : (
+                      <tr>
+                        <td
+                          colSpan="6"
+                          style={{ textAlign: 'center', padding: 30, color: '#6b7280' }}
+                        >
+                          Đơn hàng không có sản phẩm nào đủ điều kiện trả.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         </section>
 
-        {/* 03 / THÔNG TIN TIẾP NHẬN & PHƯƠNG THỨC HOÀN */}
+        {/* THÔNG TIN TIẾP NHẬN & HOÀN TIỀN */}
         <section className="return-section-box">
           <div className="return-section-box__header">
-            <h2><i aria-hidden="true" />03 / THÔNG TIN TIẾP NHẬN & HOÀN TIỀN</h2>
+            <h2>
+              <i aria-hidden="true" />
+              03 / THÔNG TIN TIẾP NHẬN & HOÀN TIỀN
+            </h2>
           </div>
           <div className="return-section-box__body">
             <div
@@ -1124,48 +1463,53 @@ const handleCalculatePreview = () => {
           </div>
         </section>
 
-        {/* 04 / TÍNH THỬ & XÁC NHẬN TẠO PHIẾU */}
+        {/* KẾT QUẢ TÍNH & XÁC NHẬN TẠO PHIẾU */}
         <section className="return-section-box">
           <div className="return-section-box__header">
-            <h2><i aria-hidden="true" />04 / KẾT QUẢ TÍNH & XÁC NHẬN TẠO PHIẾU</h2>
+            <h2>
+              <i aria-hidden="true" />
+              04 / KẾT QUẢ TÍNH & XÁC NHẬN TẠO PHIẾU
+            </h2>
           </div>
           <div className="return-section-box__body">
-<div style={{ display: 'flex', gap: 16, alignItems: 'center', marginBottom: 16 }}>
-  <button
-    type="button"
-    className="return-btn return-btn--outline"
-    disabled={isCalculating || isSubmitting || numSelectedLines === 0}
-    onClick={handleCalculatePreview}
-  >
-    TÍNH THỬ TIỀN HOÀN
-  </button>
-  <span style={{ fontSize: 12, color: '#6b7280' }}>
-    Hệ thống tự tính lại khi đổi sản phẩm hoặc số lượng.
-  </span>
-</div>
+            <div style={{ display: 'flex', gap: 16, alignItems: 'center', marginBottom: 16 }}>
+              <button
+                type="button"
+                className="return-btn return-btn--outline"
+                disabled={isCalculating || isSubmitting || numSelectedLines === 0}
+                onClick={handleCalculatePreview}
+              >
+                TÍNH THỬ TIỀN HOÀN
+              </button>
+              <span style={{ fontSize: 12, color: '#6b7280' }}>
+                Hệ thống tự tính lại khi đổi sản phẩm hoặc số lượng.
+              </span>
+            </div>
 
-{isCalculating ? (
-  <div
-    role="status"
-    style={{
-      background: '#f8fafc',
-      border: '1px solid #cbd5e1',
-      padding: 16,
-      marginBottom: 16,
-    }}
-  >
-    Đang tính tiền hoàn...
-  </div>
-) : previewResult ? (
-  <div
-    style={{
-      background: '#f8fafc',
-      border: '1px solid #cbd5e1',
-      padding: 16,
-      marginBottom: 16,
-    }}
-  >
-    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            {isCalculating ? (
+              <div
+                role="status"
+                style={{
+                  background: '#f8fafc',
+                  border: '1px solid #cbd5e1',
+                  padding: 16,
+                  marginBottom: 16,
+                }}
+              >
+                Đang tính tiền hoàn...
+              </div>
+            ) : previewResult ? (
+              <div
+                style={{
+                  background: '#f8fafc',
+                  border: '1px solid #cbd5e1',
+                  padding: 16,
+                  marginBottom: 16,
+                }}
+              >
+                <div
+                  style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
+                >
                   <span style={{ fontSize: 13, fontWeight: 700 }}>TỔNG TIỀN HOÀN DỰ KIẾN:</span>
                   <strong style={{ fontSize: 18, color: '#e31e24' }}>
                     {money(previewResult.tong_tien_hoan)}
@@ -1173,8 +1517,18 @@ const handleCalculatePreview = () => {
                 </div>
               </div>
             ) : numSelectedLines === 0 ? (
-              <div style={{ background: '#f8fafc', border: '1px dashed #cbd5e1', padding: 16, marginBottom: 16, color: '#64748b', fontSize: 13 }}>
-                Vui lòng chọn sản phẩm và số lượng cần trả ở mục 02 để hệ thống tự động tính tiền hoàn.
+              <div
+                style={{
+                  background: '#f8fafc',
+                  border: '1px dashed #cbd5e1',
+                  padding: 16,
+                  marginBottom: 16,
+                  color: '#64748b',
+                  fontSize: 13,
+                }}
+              >
+                Vui lòng chọn sản phẩm và số lượng cần trả ở mục 02 để hệ thống tự động tính tiền
+                hoàn.
               </div>
             ) : null}
 
@@ -1189,7 +1543,7 @@ const handleCalculatePreview = () => {
               <button
                 type="button"
                 className="return-btn return-btn--danger"
-                disabled={isSubmitting || !previewResult}
+                disabled={!currentOrderId || isSubmitting || !previewResult}
                 onClick={handleCreateReturn}
               >
                 {isSubmitting ? 'ĐANG TẠO PHIẾU...' : 'TẠO PHIẾU TRẢ HÀNG'}
@@ -1208,12 +1562,21 @@ const handleCalculatePreview = () => {
 function ReturnDetail({ returnId }) {
   const navigate = useNavigate();
 
+  const access = useAdminPermissions()?.access;
+  const canReceiveReturn = hasAdminPermission(access, 'khach_tra_hang', 'sua');
+  const canRefundReturn = hasSystemAdminPermission(access, 'khach_tra_hang', 'sua');
+
   // All Hooks at top level
   const [activeTab, setActiveTab] = useState('TONG_QUAN');
   const [showTH007, setShowTH007] = useState(false);
   const [toast, setToast] = useState('');
 
   const [detail, setDetail] = useState(null);
+
+  const canCancelReturn =
+    hasSystemAdminPermission(access, 'khach_tra_hang', 'xoa') &&
+    detail?.trang_thai_tra_hang === 'CHO_TIEP_NHAN';
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -1228,6 +1591,49 @@ function ReturnDetail({ returnId }) {
   const [showRefundModal, setShowRefundModal] = useState(false);
   const [isRefunding, setIsRefunding] = useState(false);
   const [refundError, setRefundError] = useState(null);
+  const [orderExtra, setOrderExtra] = useState(null);
+
+  // Cancel Receipt Modal States
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  const [cancelReason, setCancelReason] = useState('Khách không còn nhu cầu trả hàng');
+  const [isCancelling, setIsCancelling] = useState(false);
+  const [cancelError, setCancelError] = useState(null);
+
+  const handleCancelReceipt = async () => {
+    if (!canCancelReturn || !detail?.id || isCancelling) return;
+    if (!cancelReason.trim()) {
+      setCancelError('Vui lòng nhập lý do hủy tiếp nhận');
+      return;
+    }
+    setIsCancelling(true);
+    setCancelError(null);
+    try {
+      await cancelReturn(detail.id, { ly_do: cancelReason.trim() });
+      setToast(`Đã hủy tiếp nhận phiếu trả hàng ${ticketCode}`);
+      setShowCancelModal(false);
+      const controller = new AbortController();
+      fetchDetail(controller.signal);
+    } catch (err) {
+      setCancelError(err?.message || 'Không thể hủy tiếp nhận phiếu trả hàng');
+    } finally {
+      setIsCancelling(false);
+    }
+  };
+
+  const loadOrderData = async (orderId, signal) => {
+    try {
+      const [orderRes, eligRes] = await Promise.allSettled([
+        getOrder(orderId, signal),
+        getEligibleOrderDetail(orderId, signal),
+      ]);
+      setOrderExtra({
+        order: orderRes.status === 'fulfilled' ? orderRes.value : null,
+        elig: eligRes.status === 'fulfilled' ? eligRes.value : null,
+      });
+    } catch (e) {
+      console.warn('Could not load order details', e);
+    }
+  };
 
   const fetchDetail = async (signal) => {
     setLoading(true);
@@ -1236,6 +1642,9 @@ function ReturnDetail({ returnId }) {
       const data = await getReturnDetail(returnId, signal);
       if (data) {
         setDetail(data);
+        if (data.don_hang?.id) {
+          await loadOrderData(data.don_hang.id, signal);
+        }
       }
     } catch (err) {
       if (err.name === 'AbortError') return;
@@ -1252,10 +1661,120 @@ function ReturnDetail({ returnId }) {
     return () => controller.abort();
   }, [returnId]);
 
+  const productInfoMap = useMemo(() => {
+    const map = new Map();
+    const orderData = orderExtra?.order;
+    const eligData = orderExtra?.elig;
+
+    if (eligData?.chi_tiet && Array.isArray(eligData.chi_tiet)) {
+      eligData.chi_tiet.forEach((item) => {
+        const lineId = Number(item.chi_tiet_don_hang_id);
+        if (!lineId) return;
+        const serials = [];
+        if (Array.isArray(item.thiet_bi_hien_hanh)) {
+          item.thiet_bi_hien_hanh.forEach((d) => {
+            const sn = d?.so_serial;
+            if (sn && !serials.includes(String(sn))) serials.push(String(sn));
+          });
+        }
+        map.set(lineId, {
+          ten_san_pham: item.ten_san_pham,
+          ten_phien_ban: item.ten_phien_ban,
+          phien_ban_id: item.phien_ban_id,
+          serials,
+        });
+      });
+    }
+
+    if (orderData?.san_pham && Array.isArray(orderData.san_pham)) {
+      orderData.san_pham.forEach((sp) => {
+        const lineId = Number(sp.chi_tiet_don_hang_id || sp.id);
+        if (!lineId) return;
+        const current = map.get(lineId) || { serials: [] };
+        map.set(lineId, {
+          ...current,
+          ten_san_pham: sp.ten_san_pham || current.ten_san_pham,
+          ten_phien_ban: sp.ten_phien_ban || current.ten_phien_ban,
+          ma_san_pham: sp.ma_san_pham || current.ma_san_pham,
+          phien_ban_id: sp.phien_ban_id || current.phien_ban_id,
+        });
+      });
+    }
+
+    if (orderData?.thiet_bi_da_giao && Array.isArray(orderData.thiet_bi_da_giao)) {
+      orderData.thiet_bi_da_giao.forEach((dev) => {
+        const lineId = Number(dev.chi_tiet_don_hang_id);
+        if (!lineId) return;
+        const current = map.get(lineId) || { serials: [] };
+        const serials = [...current.serials];
+        const sn = dev.so_serial;
+        if (sn && !serials.includes(String(sn))) serials.push(String(sn));
+        map.set(lineId, {
+          ...current,
+          ten_san_pham: dev.ten_san_pham || current.ten_san_pham,
+          ten_phien_ban: dev.ten_phien_ban || current.ten_phien_ban,
+          serials,
+        });
+      });
+    }
+
+    if (orderData?.thiet_bi_hien_hanh && Array.isArray(orderData.thiet_bi_hien_hanh)) {
+      orderData.thiet_bi_hien_hanh.forEach((dev) => {
+        const lineId = Number(dev.chi_tiet_don_hang_id);
+        if (!lineId) return;
+        const current = map.get(lineId) || { serials: [] };
+        const serials = [...current.serials];
+        const sn = dev.so_serial;
+        if (sn && !serials.includes(String(sn))) serials.push(String(sn));
+        map.set(lineId, {
+          ...current,
+          serials,
+        });
+      });
+    }
+
+    if (orderData?.serials && Array.isArray(orderData.serials)) {
+      map.forEach((val) => {
+        if (val.phien_ban_id && (!val.serials || val.serials.length === 0)) {
+          const matchedSerials = orderData.serials
+            .filter((s) => Number(s.phien_ban_id) === Number(val.phien_ban_id))
+            .map((s) => s.so_serial)
+            .filter(Boolean);
+          if (matchedSerials.length > 0) {
+            val.serials = Array.from(new Set([...(val.serials || []), ...matchedSerials]));
+          }
+        }
+      });
+    }
+
+    const returnReceived = [
+      ...(Array.isArray(detail?.hang_da_nhan) ? detail.hang_da_nhan : []),
+      ...(Array.isArray(detail?.hang_dang_giu) ? detail.hang_dang_giu : []),
+    ];
+    returnReceived.forEach((item) => {
+      const lineId = Number(item.chi_tiet_don_hang_id);
+      if (!lineId) return;
+      const current = map.get(lineId) || { serials: [] };
+      const serials = [...current.serials];
+      if (Array.isArray(item.serials)) {
+        item.serials.forEach((s) => {
+          const sn = typeof s === 'string' ? s : s?.so_serial;
+          if (sn && !serials.includes(String(sn))) serials.push(String(sn));
+        });
+      }
+      map.set(lineId, {
+        ...current,
+        serials,
+      });
+    });
+
+    return map;
+  }, [orderExtra, detail]);
+
   if (loading) {
     return (
-      <div className="returns-page" style={{ padding: 40, textAlign: 'center' }}>
-        <h2>ĐANG TẢI CHI TIẾT PHIẾU TRẢ HÀNG...</h2>
+      <div className="returns-page">
+        <LoadingSpinner text="Đang tải chi tiết phiếu trả hàng..." fullPage />
       </div>
     );
   }
@@ -1279,8 +1798,7 @@ function ReturnDetail({ returnId }) {
     detail.don_hang?.ma_don_hang || (detail.don_hang?.id ? `ORD-${detail.don_hang.id}` : '—');
   const contactNameText = detail.ten_nguoi_lien_he || 'Chưa có tên';
   const contactPhoneText = detail.sdt_nguoi_lien_he || 'Chưa có SĐT';
-  const createdDate =
-  detail.ngay_tao || detail.ngayTao || detail.created_at || detail.createdAt;
+  const createdDate = detail.ngay_tao || detail.ngayTao || detail.created_at || detail.createdAt;
   const refundAmount = detail.tong_tien_hoan != null ? detail.tong_tien_hoan : 0;
   const statusVal = detail.trang_thai_tra_hang;
   const statusTone = getReturnStatusVariant(statusVal);
@@ -1296,6 +1814,8 @@ function ReturnDetail({ returnId }) {
 
   // Submit TH007: Ghi nhận tiếp nhận kiện
   const handleSaveTH007 = async () => {
+    if (!canReceiveReturn) return;
+
     setIsReceiving(true);
     try {
       let orderLines = [];
@@ -1355,11 +1875,15 @@ function ReturnDetail({ returnId }) {
   };
 
   const openRefundModal = () => {
+    if (!canRefundReturn) return;
+
     setRefundError(null);
     setShowRefundModal(true);
   };
 
   const handleConfirmRefund = async () => {
+    if (!canRefundReturn) return;
+
     setIsRefunding(true);
     setRefundError(null);
     try {
@@ -1381,7 +1905,7 @@ function ReturnDetail({ returnId }) {
 
   const RETURN_DETAIL_TABS = [
     { key: 'TONG_QUAN', label: 'TỔNG QUAN & ĐỐI CHIẾU', icon: FileText },
-    { key: 'TIEP_NHAN', label: 'TIẾP NHẬN & CUSTODY', icon: Package },
+    { key: 'TIEP_NHAN', label: 'TIẾP NHẬN & LƯU KHO', icon: Package },
     { key: 'HOAN_TIEN', label: 'CHỨNG TỪ & HOÀN TIỀN', icon: Wallet },
   ];
 
@@ -1399,8 +1923,9 @@ function ReturnDetail({ returnId }) {
       <header className="w-shell-hero">
         <div>
           <p className="w-shell-breadcrumb">
-            ĐƠN HÀNG <ChevronRight size={12} /> KHÁCH TRẢ HÀNG <ChevronRight size={12} /> CHI TIẾT
-            PHIẾU
+            <Link to="/admin/don-hang/danh-sach-don-hang">ĐƠN HÀNG</Link> <ChevronRight size={12} />{' '}
+            <Link to={LIST_ROUTE}>KHÁCH TRẢ HÀNG</Link> <ChevronRight size={12} />{' '}
+            <span>CHI TIẾT PHIẾU</span>
           </p>
           <div className="w-shell-title-row">
             <h1>{ticketCode}</h1>
@@ -1440,7 +1965,7 @@ function ReturnDetail({ returnId }) {
               <ExternalLink size={15} /> Xem đơn gốc
             </button>
           )}
-          {statusVal === 'CHO_TIEP_NHAN' && (
+          {canReceiveReturn && statusVal === 'CHO_TIEP_NHAN' && (
             <button
               type="button"
               className={`w-shell-button ${showTH007 ? 'w-shell-button--red' : 'w-shell-button--black'}`}
@@ -1450,9 +1975,32 @@ function ReturnDetail({ returnId }) {
               {showTH007 ? 'Đóng tiếp nhận' : 'Tiếp nhận kiện'}
             </button>
           )}
+
+          {canCancelReturn && (
+            <button
+              type="button"
+              className="w-shell-button w-shell-button--red"
+              onClick={() => {
+                setCancelReason('Khách không còn nhu cầu trả hàng');
+                setCancelError(null);
+                setShowCancelModal(true);
+              }}
+            >
+              <XCircle size={15} /> Hủy tiếp nhận
+            </button>
+          )}
+
+          {canRefundReturn && statusVal === 'DA_NHAN_HANG' && !detail.phieu_chi && (
+            <button
+              type="button"
+              className="w-shell-button w-shell-button--red"
+              onClick={openRefundModal}
+            >
+              <DollarSign size={15} /> Hoàn tiền cho khách
+            </button>
+          )}
         </div>
       </header>
-
       {/* TABS NAVIGATION */}
       <nav className="w-shell-tabs" aria-label="Các nhóm thông tin yêu cầu trả hàng">
         {RETURN_DETAIL_TABS.map(({ key, label, icon: Icon }) => (
@@ -1473,7 +2021,7 @@ function ReturnDetail({ returnId }) {
           {/* MAIN COLUMN */}
           <main>
             {/* TH007 Panel if toggled */}
-            {showTH007 && (
+            {canReceiveReturn && showTH007 && (
               <WarrantyPanel
                 title="TH007 — TIẾP NHẬN KIỆN & NGOẠI QUAN"
                 note="Biên bản tiếp nhận thực tế kiện hàng khách mang tới cửa hàng."
@@ -1551,23 +2099,66 @@ function ReturnDetail({ returnId }) {
                   note="Chi tiết các sản phẩm và số tiền hoàn tương ứng."
                 >
                   <WarrantyTable
-                    columns={['SẢN PHẨM TRẢ', 'SỐ LƯỢNG', 'ĐƠN GIÁ HOÀN', 'THÀNH TIỀN HOÀN']}
-                    rows={lineItems.map((line, idx) => [
-                      <div key={line.id || idx}>
-                        <strong className="kth-product-name">
-                          {line.ten_san_pham ||
-                            line.sanPham ||
-                            `Dòng sản phẩm #${line.chi_tiet_don_hang_id || idx + 1}`}
-                        </strong>
-                      </div>,
-                      <span key="sl" className="kth-qty-badge">
-                        {line.so_luong || 1}
-                      </span>,
-                      <span key="dg">{money(line.don_gia_hoan)}</span>,
-                      <strong key="tt" className="kth-line-total">
-                        {money(line.thanh_tien_hoan || line.so_luong * line.don_gia_hoan)}
-                      </strong>,
-                    ])}
+                    showPagination={false}
+                    columns={[
+                      'SẢN PHẨM TRẢ',
+                      'SERIAL',
+                      'SỐ LƯỢNG',
+                      'ĐƠN GIÁ HOÀN',
+                      'THÀNH TIỀN HOÀN',
+                    ]}
+                    rows={lineItems.map((line, idx) => {
+                      const lineId = Number(line.chi_tiet_don_hang_id || line.id);
+                      const lineInfo =
+                        productInfoMap.get(lineId) ||
+                        (productInfoMap.size === 1 && lineItems.length === 1
+                          ? Array.from(productInfoMap.values())[0]
+                          : null) ||
+                        {};
+
+                      const prodName =
+                        line.ten_san_pham ||
+                        lineInfo.ten_san_pham ||
+                        line.sanPham ||
+                        `Dòng sản phẩm #${line.chi_tiet_don_hang_id || idx + 1}`;
+
+                      const variantName = lineInfo.ten_phien_ban || line.ten_phien_ban;
+                      const rawSerials = lineInfo.serials || line.serials || [];
+                      const serials = (Array.isArray(rawSerials) ? rawSerials : [rawSerials])
+                        .map((s) => (typeof s === 'string' ? s : s?.so_serial))
+                        .filter((s) => s && !String(s).startsWith('TB-'));
+
+                      return [
+                        <div key={line.id || idx}>
+                          <strong className="kth-product-name">{prodName}</strong>
+                          {variantName && (
+                            <div style={{ fontSize: '11px', color: '#6b7280', marginTop: '2px' }}>
+                              {variantName}
+                            </div>
+                          )}
+                        </div>,
+                        <div key="serial" className="kth-serial-cell">
+                          {serials && serials.length > 0 ? (
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+                              {serials.map((s, sIdx) => (
+                                <span key={sIdx} className="kth-code-pill kth-code-pill--serial">
+                                  {s}
+                                </span>
+                              ))}
+                            </div>
+                          ) : (
+                            <span style={{ color: '#9ca3af' }}>-</span>
+                          )}
+                        </div>,
+                        <span key="sl" className="kth-qty-badge">
+                          {line.so_luong || 1}
+                        </span>,
+                        <span key="dg">{money(line.don_gia_hoan)}</span>,
+                        <strong key="tt" className="kth-line-total">
+                          {money(line.thanh_tien_hoan || line.so_luong * line.don_gia_hoan)}
+                        </strong>,
+                      ];
+                    })}
                     empty="Không có dữ liệu dòng trả hàng."
                   />
                 </WarrantyPanel>
@@ -1634,10 +2225,10 @@ function ReturnDetail({ returnId }) {
                 </WarrantyPanel>
               </>
             )}
-            {/* TAB 2: TIẾP NHẬN & CUSTODY */}
+            {/* TAB 2: TIẾP NHẬN & LƯU KHO */}
             {activeTab === 'TIEP_NHAN' && (
               <WarrantyPanel
-                title="KIỂM TRA THỰC NHẬN & CUSTODY"
+                title="KIỂM TRA THỰC NHẬN & LƯU KHO"
                 note="Biên bản tiếp nhận kiểm tra thực tế kiện hàng tại cửa hàng."
               >
                 {detail.ngay_nhan_hang ? (
@@ -1652,7 +2243,7 @@ function ReturnDetail({ returnId }) {
                   <div className="w-empty-inline">
                     <Package size={24} />
                     <p>Chưa có biên bản tiếp nhận kiểm tra thực tế.</p>
-                    {statusVal === 'CHO_TIEP_NHAN' && (
+                    {canReceiveReturn && statusVal === 'CHO_TIEP_NHAN' && (
                       <button
                         type="button"
                         className="w-shell-button w-shell-button--black"
@@ -1691,7 +2282,7 @@ function ReturnDetail({ returnId }) {
                   <div className="w-empty-inline">
                     <Wallet size={24} />
                     <p>Chưa có chứng từ hoàn tiền chính thức.</p>
-                    {statusVal === 'DA_NHAN_HANG' && (
+                    {canRefundReturn && statusVal === 'DA_NHAN_HANG' && (
                       <button
                         type="button"
                         className="w-shell-button w-shell-button--red"
@@ -1725,20 +2316,19 @@ function ReturnDetail({ returnId }) {
                   ['Lý do trả', detail.ly_do_tra || '—'],
                 ]}
               />
-              {detail.don_hang?.id && (
-                <button
-                  type="button"
-                  className="w-shell-button w-full-width"
-                  onClick={() => navigate(`${ORDER_DETAIL_ROUTE}/${detail.don_hang.id}`)}
-                >
-                  Xem đơn mua hàng <ChevronRight size={15} />
-                </button>
-              )}
             </WarrantyPanel>
 
             <WarrantyPanel title="TỔNG HỢP NGHĨA VỤ">
               <div className="kth-aside-stat">
                 <div className="kth-aside-stat-row">
+                  <span>TRẠNG THÁI HIỆN TẠI</span>
+                  <div style={{ marginTop: '4px' }}>
+                    <span className={`returns-status-badge returns-status-badge--${statusTone}`}>
+                      {statusDisplay}
+                    </span>
+                  </div>
+                </div>
+                <div className="kth-aside-stat-row" style={{ marginTop: 12 }}>
                   <span>TỔNG TIỀN HOÀN</span>
                   <strong className="kth-aside-refund-hero">{money(refundAmount)}</strong>
                 </div>
@@ -1754,9 +2344,7 @@ function ReturnDetail({ returnId }) {
                 </div>
                 <div className="kth-aside-stat-row" style={{ marginTop: 12 }}>
                   <span>NGÀY LẬP PHIẾU</span>
-                  <strong className="kth-date-highlight">
-                    {formatDisplayDate(createdDate)}
-                  </strong>
+                  <strong className="kth-date-highlight">{formatDisplayDate(createdDate)}</strong>
                 </div>
               </div>
             </WarrantyPanel>
@@ -1766,7 +2354,7 @@ function ReturnDetail({ returnId }) {
                 className="w-shell-actions"
                 style={{ flexDirection: 'column', alignItems: 'stretch', margin: 0, gap: 8 }}
               >
-                {statusVal === 'CHO_TIEP_NHAN' && (
+                {canReceiveReturn && statusVal === 'CHO_TIEP_NHAN' && (
                   <button
                     type="button"
                     className={`w-shell-button w-full-width ${showTH007 ? 'w-shell-button--red' : 'w-shell-button--black'}`}
@@ -1776,7 +2364,7 @@ function ReturnDetail({ returnId }) {
                     {showTH007 ? 'Đóng form tiếp nhận' : 'Tiếp nhận kiện'}
                   </button>
                 )}
-                {statusVal === 'DA_NHAN_HANG' && !detail.phieu_chi && (
+                {canRefundReturn && statusVal === 'DA_NHAN_HANG' && !detail.phieu_chi && (
                   <button
                     type="button"
                     className="w-shell-button w-shell-button--red w-full-width"
@@ -1803,7 +2391,9 @@ function ReturnDetail({ returnId }) {
             <div className="kth-summary-status-cell">
               <span>TRẠNG THÁI HIỆN TẠI</span>
               <div style={{ marginTop: '6px' }}>
-                <span className={`returns-status-badge returns-status-badge--${statusTone} kth-overview-status-badge`}>
+                <span
+                  className={`returns-status-badge returns-status-badge--${statusTone} kth-overview-status-badge`}
+                >
                   {statusDisplay}
                 </span>
               </div>
@@ -1815,7 +2405,9 @@ function ReturnDetail({ returnId }) {
             <div>
               <span>HÌNH THỨC HOÀN TIỀN</span>
               <div style={{ marginTop: '6px' }}>
-                <span className={`kth-payment-pill kth-payment-pill--${detail.hinh_thuc_hoan_tien === 'CHUYEN_KHOAN' ? 'bank' : 'cash'}`}>
+                <span
+                  className={`kth-payment-pill kth-payment-pill--${detail.hinh_thuc_hoan_tien === 'CHUYEN_KHOAN' ? 'bank' : 'cash'}`}
+                >
                   {detail.hinh_thuc_hoan_tien === 'CHUYEN_KHOAN' ? 'Chuyển khoản' : 'Tiền mặt'}
                 </span>
               </div>
@@ -1828,7 +2420,7 @@ function ReturnDetail({ returnId }) {
         </div>
       </div>
       {/* MODAL XÁC NHẬN HOÀN TIỀN (Thay thế window.confirm mặc định) */}
-      {showRefundModal && (
+      {canRefundReturn && showRefundModal && (
         <div
           className="returns-modal-backdrop"
           onClick={() => !isRefunding && setShowRefundModal(false)}
@@ -1914,6 +2506,120 @@ function ReturnDetail({ returnId }) {
                 onClick={handleConfirmRefund}
               >
                 {isRefunding ? 'ĐANG XỬ LÝ...' : `XÁC NHẬN HOÀN ${money(refundAmount)}`}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* CANCEL RECEIPT CONFIRMATION MODAL */}
+      {canCancelReturn && showCancelModal && (
+        <div
+          className="returns-modal-backdrop"
+          onClick={() => !isCancelling && setShowCancelModal(false)}
+        >
+          <div className="returns-modal kth-confirm-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="returns-modal__header">
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <span
+                  className="form-card__accent"
+                  style={{ height: 18, width: 4, background: '#e11d48', display: 'inline-block' }}
+                />
+                <h2>HỦY TIẾP NHẬN PHIẾU TRẢ HÀNG</h2>
+              </div>
+              <button
+                type="button"
+                className="returns-modal__close-btn"
+                disabled={isCancelling}
+                onClick={() => setShowCancelModal(false)}
+              >
+                ĐÓNG
+              </button>
+            </div>
+
+            <div className="returns-modal__body kth-confirm-modal-body">
+              <div className="kth-refund-modal-details">
+                <div className="kth-modal-row">
+                  <span>Mã phiếu:</span>
+                  <strong className="kth-code-pill kth-code-pill--ticket">{ticketCode}</strong>
+                </div>
+                {orderCode && (
+                  <div className="kth-modal-row">
+                    <span>Đơn mua hàng gốc:</span>
+                    <strong className="kth-code-pill kth-code-pill--order">{orderCode}</strong>
+                  </div>
+                )}
+                <div className="kth-modal-row">
+                  <span>Khách hàng:</span>
+                  <strong>
+                    {contactNameText} {contactPhoneText ? `(${contactPhoneText})` : ''}
+                  </strong>
+                </div>
+              </div>
+
+              <div
+                className="kth-refund-modal-notice"
+                style={{ background: '#fff1f2', borderColor: '#fecdd3' }}
+              >
+                <AlertTriangle size={18} color="#e11d48" style={{ flexShrink: 0, marginTop: 2 }} />
+                <span style={{ color: '#9f1239' }}>
+                  Thao tác này sẽ hủy tiếp nhận yêu cầu trả hàng và chuyển trạng thái phiếu sang{' '}
+                  <strong>HỦY TIẾP NHẬN</strong>.
+                </span>
+              </div>
+
+              <div style={{ marginTop: 16 }}>
+                <label
+                  style={{
+                    display: 'block',
+                    fontSize: 11,
+                    fontWeight: 800,
+                    marginBottom: 6,
+                    color: '#111',
+                    textTransform: 'uppercase',
+                  }}
+                >
+                  LÝ DO HỦY TIẾP NHẬN <span style={{ color: '#ef4444' }}>*</span>
+                </label>
+                <textarea
+                  rows={3}
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px',
+                    border: '1px solid #d1d5db',
+                    borderRadius: 2,
+                    fontSize: 12,
+                    resize: 'vertical',
+                  }}
+                  placeholder="Nhập lý do hủy tiếp nhận..."
+                  value={cancelReason}
+                  onChange={(e) => setCancelReason(e.target.value)}
+                  disabled={isCancelling}
+                />
+              </div>
+
+              {cancelError && (
+                <div className="w-shell-error" style={{ marginTop: 12 }}>
+                  {cancelError}
+                </div>
+              )}
+            </div>
+
+            <div className="returns-modal__footer">
+              <button
+                type="button"
+                className="w-shell-button"
+                disabled={isCancelling}
+                onClick={() => setShowCancelModal(false)}
+              >
+                BỎ QUA
+              </button>
+              <button
+                type="button"
+                className="w-shell-button w-shell-button--red"
+                disabled={isCancelling || !cancelReason.trim()}
+                onClick={handleCancelReceipt}
+              >
+                {isCancelling ? 'ĐANG XỬ LÝ...' : 'XÁC NHẬN HỦY TIẾP NHẬN'}
               </button>
             </div>
           </div>

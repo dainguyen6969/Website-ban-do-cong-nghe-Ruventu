@@ -51,7 +51,7 @@ public class AdminCategoryService {
 
     List<Long> categoryIds = categoryPage.getContent().stream().map(DanhMuc::getId).toList();
 
-    Map<Long, Long> countMap = getProductCountMap(categoryIds);
+    var countMap = getProductCountMap(categoryIds);
 
     List<AdminCategoryListItemResponse> items =
         categoryPage.getContent().stream()
@@ -59,7 +59,10 @@ public class AdminCategoryService {
                 category -> {
                   AdminCategoryListItemResponse response = danhMucMapper.toListItem(category);
 
-                  response.setSoLuongSanPham(countMap.getOrDefault(category.getId(), 0L));
+                  var counts = countMap.get(category.getId());
+                  response.setSoLuongSanPham(counts == null ? 0L : counts.getSoLuongSanPham());
+                  response.setSoLuongSanPhamDangKinhDoanh(
+                      counts == null ? 0L : counts.getSoLuongSanPhamDangKinhDoanh());
 
                   return response;
                 })
@@ -133,7 +136,7 @@ public class AdminCategoryService {
   @Transactional
   public AdminCategoryResponse update(Long id, AdminCategoryUpdateRequest request) {
 
-    DanhMuc category = requireCategory(id);
+    DanhMuc category = requireCategoryForUpdate(id);
 
     String name = request.getTenDanhMuc().trim();
 
@@ -152,6 +155,11 @@ public class AdminCategoryService {
       validateNoCycle(category, parent);
     }
 
+    if (category.getTrangThai() == TrangThaiCoBanEnum.HOAT_DONG
+        && parseTrangThai(request.getTrangThai()) == TrangThaiCoBanEnum.NGUNG_HOAT_DONG) {
+      requireCanDeactivate(id);
+    }
+
     danhMucMapper.updateEntity(request, category);
 
     category.setTenDanhMuc(name);
@@ -166,34 +174,40 @@ public class AdminCategoryService {
   @Transactional
   public AdminCategoryStatusResponse softDelete(Long id) {
 
-    DanhMuc category = requireCategory(id);
+    DanhMuc category = requireCategoryForUpdate(id);
 
     if (category.getTrangThai() == TrangThaiCoBanEnum.NGUNG_HOAT_DONG) {
 
       throw new AppException(ErrorCode.CONFLICT, "Danh mục đã ngừng hoạt động");
     }
 
-    boolean hasChildren = danhMucRepository.existsByDanhMucChaId(id);
-
-    long productCount = sanPhamRepository.countByDanhMucId(id);
-
-    if (hasChildren || productCount > 0) {
-
-      throw new AppException(
-          ErrorCode.CONFLICT,
-          "Danh mục đang có "
-              + productCount
-              + " sản phẩm hoặc danh mục con trực thuộc. "
-              + "Không thể xóa. Vui lòng chuyển dữ liệu "
-              + "sang danh mục khác hoặc cập nhật trạng thái "
-              + "sang ngừng hoạt động.");
-    }
+    requireCanDeactivate(id);
 
     category.setTrangThai(TrangThaiCoBanEnum.NGUNG_HOAT_DONG);
 
     category = danhMucRepository.save(category);
 
     return danhMucMapper.toStatusResponse(category);
+  }
+
+  private DanhMuc requireCategoryForUpdate(Long id) {
+    return danhMucRepository
+        .findByIdForUpdate(id)
+        .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "Không tìm thấy danh mục"));
+  }
+
+  private void requireCanDeactivate(Long id) {
+    long activeProductCount =
+        sanPhamRepository.countByDanhMucIdAndTrangThai(id, TrangThaiCoBanEnum.HOAT_DONG);
+
+    if (activeProductCount > 0) {
+      throw new AppException(
+          ErrorCode.CONFLICT, "Danh mục còn " + activeProductCount + " sản phẩm đang kinh doanh.");
+    }
+
+    if (danhMucRepository.existsByDanhMucChaIdAndTrangThai(id, TrangThaiCoBanEnum.HOAT_DONG)) {
+      throw new AppException(ErrorCode.CONFLICT, "Danh mục còn danh mục con đang hoạt động.");
+    }
   }
 
   private DanhMuc requireCategory(Long id) {
@@ -281,17 +295,15 @@ public class AdminCategoryService {
     }
   }
 
-  private Map<Long, Long> getProductCountMap(List<Long> ids) {
-
+  private Map<Long, DanhMucRepository.ProductCountProjection> getProductCountMap(List<Long> ids) {
     if (ids.isEmpty()) {
       return Map.of();
     }
 
-    return danhMucRepository.countProductsByCategoryIds(ids).stream()
+    return danhMucRepository.countProductsByCategoryIds(ids, TrangThaiCoBanEnum.HOAT_DONG).stream()
         .collect(
             Collectors.toMap(
-                DanhMucRepository.ProductCountProjection::getDanhMucId,
-                DanhMucRepository.ProductCountProjection::getSoLuongSanPham));
+                DanhMucRepository.ProductCountProjection::getDanhMucId, counts -> counts));
   }
 
   private String slugify(String input) {

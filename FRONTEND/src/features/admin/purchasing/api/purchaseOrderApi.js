@@ -1,8 +1,5 @@
-import {
-  adminRequest,
-  getAllVersions,
-  getWarehouses,
-} from '../../catalog/products/api/versionApi.js';
+import { adminRequest, getWarehouses } from '../../catalog/products/api/versionApi.js';
+import { publishCatalogChange } from '../../../../shared/services/catalogChanges.js';
 
 const PATH = '/api/v1/admin/purchase-orders';
 const nullableNumber = (value) => (value == null ? null : Number(value));
@@ -152,7 +149,7 @@ export const receivePurchaseOrder = (id, key, body) =>
       'Idempotency-Key': key,
     },
     body: JSON.stringify(body),
-  });
+  }).then(publishCatalogChange);
 export const returnPurchaseOrder = (id, key, body) =>
   adminRequest(`${PATH}/${encodeURIComponent(id)}/returns`, {
     method: 'POST',
@@ -160,7 +157,7 @@ export const returnPurchaseOrder = (id, key, body) =>
       'Idempotency-Key': key,
     },
     body: JSON.stringify(body),
-  });
+  }).then(publishCatalogChange);
 
 export const receivePurchaseRefund = (id, key, body) =>
   adminRequest(`${PATH}/${encodeURIComponent(id)}/refunds`, {
@@ -189,23 +186,30 @@ async function allPages(path, params, signal) {
 export async function getSupplierOptions(signal) {
   return (await allPages('/api/v1/admin/suppliers', { trang_thai: '1' }, signal)).map(supplier);
 }
+
+export async function getWarrantySupplierOptions(signal) {
+  return (await allPages('/api/v1/admin/suppliers/warranty-options', {}, signal)).map(supplier);
+}
+
 export const getSupplierDetail = async (id, signal) =>
   supplier(
-    await adminRequest(`/api/v1/admin/suppliers/${encodeURIComponent(id)}?page=0&limit=1`, {
+    await adminRequest(`/api/v1/admin/suppliers/${encodeURIComponent(id)}/purchase-option`, {
       signal,
     })
   );
+
 export async function getPurchaseOptions(signal) {
-  const [warehouses, versionData] = await Promise.all([
+  const [warehouses, versions] = await Promise.all([
     getWarehouses(signal),
-    getAllVersions(null, signal, false),
+    allPages('/api/v1/admin/inventory/purchase-variants', {}, signal),
   ]);
+
   return {
     warehouses,
-    versions: versionData.versions.map((item) => ({
-      id: item.id,
-      name: item.displayName,
-      sku: item.sku,
+    versions: versions.map((item) => ({
+      id: Number(item.doi_tuong_id),
+      name: item.ten_hien_thi || '',
+      sku: item.ma_hien_thi || '',
     })),
   };
 }

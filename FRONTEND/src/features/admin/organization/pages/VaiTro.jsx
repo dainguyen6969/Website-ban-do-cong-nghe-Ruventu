@@ -22,20 +22,27 @@ import {
   createRole,
   updateRole,
   deleteRole,
-  parseRoleDescription,
+  readRolePermissions,
+  ADMIN_ONLY_MODULES,
 } from '../api/roleApi';
 import './VaiTro.css';
 
 const ACTION_LABELS = { xem: 'XEM', them: 'THÊM', sua: 'SỬA', xoa: 'XÓA' };
 
+const EDITABLE_GROUPS = PERMISSION_GROUPS.map((group) => ({
+  ...group,
+  modules: group.modules.filter(({ id }) => !ADMIN_ONLY_MODULES.includes(id)),
+})).filter((group) => group.modules.length > 0);
+const EDITABLE_MODULES = EDITABLE_GROUPS.flatMap((group) => group.modules);
+
 const copyPermissions = (perms) => {
-  const p = typeof perms === 'function' ? perms() : (perms || {});
+  const p = typeof perms === 'function' ? perms() : perms || {};
   return Object.fromEntries(
     PERMISSION_MODULES.map((module) => [module.id, [...(p[module.id] || [])]])
   );
 };
 
-function MatrixCheckbox({ checked, indeterminate = false, onChange, label }) {
+function MatrixCheckbox({ checked, indeterminate = false, onChange, label, disabled = false }) {
   const ref = useRef(null);
   useEffect(() => {
     if (ref.current) ref.current.indeterminate = indeterminate;
@@ -48,6 +55,7 @@ function MatrixCheckbox({ checked, indeterminate = false, onChange, label }) {
         type="checkbox"
         checked={checked}
         onChange={onChange}
+        disabled={disabled}
         aria-label={label}
         aria-checked={indeterminate ? 'mixed' : checked}
       />
@@ -63,54 +71,49 @@ export default function VaiTro() {
   const [description, setDescription] = useState('');
   const [permissions, setPermissions] = useState(() => emptyPermissions());
   const [selectedPreset, setSelectedPreset] = useState('new');
-  const [editingRoleId, setEditingRoleId] = useState('');
+  const [editingRole, setEditingRole] = useState(null);
+  const [busy, setBusy] = useState(false);
   const [collapsedGroups, setCollapsedGroups] = useState([]);
   const [submitted, setSubmitted] = useState(false);
   const [saved, setSaved] = useState(false);
   const [serverError, setServerError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
 
+  const editingRoleId = editingRole?.id;
+  const isSystemRole = editingRole?.ma_vai_tro === 'ADMIN';
+  const formLocked = busy || isSystemRole;
+  const matrixGroups = isSystemRole ? PERMISSION_GROUPS : EDITABLE_GROUPS;
+  const matrixModules = isSystemRole ? PERMISSION_MODULES : EDITABLE_MODULES;
+
   const loadRoles = () => {
     getAllRoles()
       .then((data) => {
         setRoles(data || []);
       })
-      .catch(console.error);
+      .catch((e) => setServerError(e.message || 'Không tải được danh sách vai trò.'));
   };
 
   useEffect(() => {
     loadRoles();
   }, []);
 
-  const permissionCount = useMemo(
-    () =>
-      Object.values(permissions || {}).reduce(
-        (sum, actions) => sum + (Array.isArray(actions) ? actions.length : 0),
-        0
-      ),
-    [permissions]
-  );
-
-  const errors = submitted
-    ? [
-        !name.trim() ? 'Tên vai trò không được để trống.' : '',
-        !permissionCount ? 'Vui lòng cấp ít nhất một quyền trên ma trận phân quyền.' : '',
-        serverError,
-      ].filter(Boolean)
-    : [];
+  const errors = [
+    submitted && !name.trim() ? 'Tên vai trò không được để trống.' : '',
+    serverError,
+  ].filter(Boolean);
 
   const actionCounts = useMemo(
     () =>
       Object.fromEntries(
         ROLE_ACTIONS.map((action) => {
-          const applicable = PERMISSION_MODULES.filter((module) => module.actions.includes(action));
+          const applicable = matrixModules.filter((module) => module.actions.includes(action));
           const checked = applicable.filter((module) =>
             (permissions[module.id] || []).includes(action)
           ).length;
           return [action, { checked, total: applicable.length }];
         })
       ),
-    [permissions]
+    [permissions, matrixModules]
   );
 
   const togglePermission = (moduleId, action) => {
@@ -145,8 +148,10 @@ export default function VaiTro() {
     setSaved(false);
     setServerError('');
     setSuccessMsg('');
-    const applicable = PERMISSION_MODULES.filter((module) => module.actions.includes(action));
-    const allChecked = applicable.every((module) => (permissions[module.id] || []).includes(action));
+    const applicable = matrixModules.filter((module) => module.actions.includes(action));
+    const allChecked = applicable.every((module) =>
+      (permissions[module.id] || []).includes(action)
+    );
     setPermissions((current) => {
       const next = copyPermissions(current);
       applicable.forEach((module) => {
@@ -176,29 +181,36 @@ export default function VaiTro() {
   };
 
   const loadRoleDetail = async (role) => {
+    if (busy) return;
+    setBusy(true);
+    setServerError('');
+    setSaved(false);
+    setSuccessMsg('');
     try {
       const detail = await getRoleDetail(role.id);
-      const { description: desc, permissions: perms } = parseRoleDescription(detail.mo_ta || detail.moTa);
-      setName(detail.ten_vai_tro || detail.tenVaiTro || '');
-      setDescription(desc || '');
-      setPermissions(copyPermissions(perms));
-      setSelectedPreset(role.id);
-      setEditingRoleId(role.id);
-      setSaved(false);
-      setServerError('');
-      setSuccessMsg('');
+      if (!Number.isSafeInteger(detail?.phien_ban) || detail.phien_ban < 0) {
+        throw new Error('API vai trò chưa trả phiên bản hợp lệ.');
+      }
+
+      setEditingRole(detail);
+      setSelectedPreset(detail.id);
+      setName(detail.ten_vai_tro || '');
+      setDescription(detail.mo_ta ?? '');
+      setPermissions(readRolePermissions(detail));
       setSubmitted(false);
     } catch (e) {
-      setServerError(e.message || 'Lỗi tải chi tiết vai trò');
+      setServerError(e.message || 'Lỗi tải chi tiết vai trò.');
+    } finally {
+      setBusy(false);
     }
   };
 
   const handleAddNew = () => {
     setName('');
     setDescription('');
-    setPermissions(copyPermissions(emptyPermissions()));
+    setPermissions(emptyPermissions());
     setSelectedPreset('new');
-    setEditingRoleId('');
+    setEditingRole(null);
     setSaved(false);
     setServerError('');
     setSuccessMsg('');
@@ -206,45 +218,50 @@ export default function VaiTro() {
   };
 
   const submit = async () => {
+    if (formLocked) return;
     setSubmitted(true);
+    setSaved(false);
     setServerError('');
     setSuccessMsg('');
-    if (!name.trim() || !permissionCount) return;
+    if (!name.trim()) return;
 
+    setBusy(true);
     try {
-      const payload = {
-        tenVaiTro: name.trim(),
-        moTa: description.trim(),
-        permissions: copyPermissions(permissions),
-      };
-      if (editingRoleId) {
-        await updateRole(editingRoleId, payload);
-        setSuccessMsg(`Đã cập nhật vai trò "${name.trim()}" thành công!`);
-      } else {
-        const res = await createRole(payload);
-        const newId = res?.id || res?.data?.id;
-        if (newId) {
-          setEditingRoleId(newId);
-          setSelectedPreset(newId);
-        }
-        setSuccessMsg(`Đã tạo mới vai trò "${name.trim()}" thành công!`);
-      }
+      const form = { tenVaiTro: name, moTa: description, permissions };
+      const result = editingRoleId
+        ? await updateRole(editingRoleId, { ...form, phienBan: editingRole.phien_ban })
+        : await createRole(form);
+
+      setEditingRole(result);
+      setSelectedPreset(result.id);
+      setName(result.ten_vai_tro || '');
+      setDescription(result.mo_ta ?? '');
+      setPermissions(readRolePermissions(result));
+      setSuccessMsg(editingRoleId ? 'Đã cập nhật vai trò.' : 'Đã tạo vai trò.');
       setSaved(true);
       loadRoles();
     } catch (e) {
       setServerError(e.message || 'Đã có lỗi xảy ra khi lưu vai trò.');
+    } finally {
+      setBusy(false);
     }
   };
 
   const handleDelete = async () => {
-    if (!editingRoleId) return;
+    if (!editingRoleId || formLocked) return;
     if (!window.confirm(`Bạn có chắc chắn muốn xóa vai trò "${name}"?`)) return;
+
+    setBusy(true);
+    setSaved(false);
+    setServerError('');
     try {
       await deleteRole(editingRoleId);
       handleAddNew();
       loadRoles();
     } catch (e) {
       setServerError(e.message || 'Không thể xóa vai trò này.');
+    } finally {
+      setBusy(false);
     }
   };
 
@@ -256,12 +273,18 @@ export default function VaiTro() {
         </button>
         <h1>QUẢN LÝ VAI TRÒ &amp; PHÂN QUYỀN</h1>
         <div style={{ display: 'flex', gap: '12px' }}>
-          {editingRoleId && (
-            <button className="role-save" style={{ background: '#dc2626' }} onClick={handleDelete}>
+          {editingRoleId && !isSystemRole && (
+            <button
+              className="role-save"
+              style={{ background: '#dc2626' }}
+              onClick={handleDelete}
+              disabled={busy}
+            >
               <HiOutlineTrash /> XÓA
             </button>
           )}
-          <button className="role-save" onClick={submit}>
+
+          <button className="role-save" onClick={submit} disabled={formLocked}>
             <HiOutlineSave /> LƯU VAI TRÒ
           </button>
         </div>
@@ -294,6 +317,7 @@ export default function VaiTro() {
               </span>
               <input
                 value={name}
+                disabled={formLocked}
                 onChange={(event) => {
                   setName(event.target.value);
                   setSaved(false);
@@ -307,6 +331,7 @@ export default function VaiTro() {
               MÔ TẢ
               <textarea
                 value={description}
+                disabled={formLocked}
                 onChange={(event) => {
                   setDescription(event.target.value);
                   setSaved(false);
@@ -325,6 +350,7 @@ export default function VaiTro() {
             <button
               className={`role-preset ${selectedPreset === 'new' ? 'role-preset--active' : ''}`}
               onClick={handleAddNew}
+              disabled={busy}
               style={{ borderStyle: 'dashed', justifyContent: 'center' }}
             >
               <HiOutlinePlus /> <strong>Thêm vai trò mới</strong>
@@ -336,6 +362,7 @@ export default function VaiTro() {
                   selectedPreset === preset.id ? 'role-preset role-preset--active' : 'role-preset'
                 }
                 onClick={() => loadRoleDetail(preset)}
+                disabled={busy}
               >
                 <strong>{preset.ten_vai_tro || preset.tenVaiTro}</strong>
                 <span>{preset.so_luong_nhan_vien || preset.soLuongNhanVien || 0} NV</span>
@@ -388,6 +415,7 @@ export default function VaiTro() {
                         <MatrixCheckbox
                           checked={count.checked === count.total}
                           indeterminate={count.checked > 0 && count.checked < count.total}
+                          disabled={formLocked}
                           onChange={() => toggleColumn(action)}
                           label={`Chọn toàn bộ quyền ${ACTION_LABELS[action].toLowerCase()}`}
                         />
@@ -398,7 +426,7 @@ export default function VaiTro() {
                 </tr>
               </thead>
               <tbody>
-                {PERMISSION_GROUPS.map((group) => {
+                {matrixGroups.map((group) => {
                   const groupValues = group.modules.flatMap((module) =>
                     module.actions.map((action) => (permissions[module.id] || []).includes(action))
                   );
@@ -412,6 +440,7 @@ export default function VaiTro() {
                           <MatrixCheckbox
                             checked={groupAll}
                             indeterminate={groupSome && !groupAll}
+                            disabled={formLocked}
                             onChange={() => toggleGroup(group)}
                             label={`Chọn toàn bộ nhóm ${group.label}`}
                           />
@@ -446,6 +475,7 @@ export default function VaiTro() {
                                   <MatrixCheckbox
                                     checked={rowChecked}
                                     indeterminate={rowIndeterminate}
+                                    disabled={formLocked}
                                     onChange={() => toggleRow(module)}
                                     label={`Chọn module ${module.label}`}
                                   />
@@ -460,6 +490,7 @@ export default function VaiTro() {
                                   {module.actions.includes(action) ? (
                                     <MatrixCheckbox
                                       checked={modActions.includes(action)}
+                                      disabled={formLocked}
                                       onChange={() => togglePermission(module.id, action)}
                                       label={`${ACTION_LABELS[action]} ${module.label}`}
                                     />

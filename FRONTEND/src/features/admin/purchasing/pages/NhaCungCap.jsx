@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate, Link } from 'react-router-dom';
 import {
   HiOutlineArrowLeft,
   HiOutlineExternalLink,
@@ -12,6 +12,7 @@ import {
 } from 'react-icons/hi';
 import FilterDropdown, { FormDropdown } from '../../../../shared/components/ui/FilterDropdown';
 import TablePagination from '../../../../shared/components/ui/TablePagination';
+import LoadingSpinner from '../../../../shared/components/ui/LoadingSpinner';
 import { cashbookService } from '../../../../shared/services/cashbookService';
 import {
   createSupplier,
@@ -20,6 +21,10 @@ import {
   SUPPLIER_STATUS,
   updateSupplier,
 } from '../api/supplierApi';
+
+import { canOpenAdminPath, hasAdminPermission } from '../../../../auth/roleModel';
+import { useAdminPermissions } from '../../../../shared/components/ui/PermissionGate';
+
 import './NhaCungCap.css';
 
 const PAGE_SIZE = 10;
@@ -81,6 +86,11 @@ const formatPaymentMethod = (method) => {
 export default function NhaCungCap() {
   const location = useLocation();
   const navigate = useNavigate();
+
+  const access = useAdminPermissions()?.access;
+  const canCreateSupplier = hasAdminPermission(access, 'nha_cung_cap', 'them');
+  const canEditSupplier = hasAdminPermission(access, 'nha_cung_cap', 'sua');
+
   const selectedId = location.state?.supplierId || '';
   const [suppliers, setSuppliers] = useState([]);
   const [totalItems, setTotalItems] = useState(0);
@@ -96,6 +106,10 @@ export default function NhaCungCap() {
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailError, setDetailError] = useState('');
   const [modalMode, setModalMode] = useState('');
+
+  const canSubmitSupplier =
+    modalMode === 'create' ? canCreateSupplier : modalMode === 'edit' && canEditSupplier;
+
   const [form, setForm] = useState(EMPTY_FORM);
   const [errors, setErrors] = useState({});
   const [serverError, setServerError] = useState('');
@@ -186,12 +200,16 @@ export default function NhaCungCap() {
     setShowConfirm(false);
   }
   const openCreate = () => {
+    if (!canCreateSupplier) return;
+
     setForm(EMPTY_FORM);
     setErrors({});
     setServerError('');
     setModalMode('create');
   };
   const openEdit = () => {
+    if (!canEditSupplier || !selectedSupplier) return;
+
     setForm({
       code: selectedSupplier.code,
       tenNhaCungCap: selectedSupplier.tenNhaCungCap,
@@ -223,6 +241,8 @@ export default function NhaCungCap() {
   };
 
   const persistForm = async () => {
+    if (!canSubmitSupplier) return;
+
     setShowConfirm(false);
     setSaving(true);
     setServerError('');
@@ -249,6 +269,8 @@ export default function NhaCungCap() {
 
   const submit = (event) => {
     event.preventDefault();
+    if (!canSubmitSupplier) return;
+
     if (!validate()) return;
     if (
       modalMode === 'edit' &&
@@ -267,16 +289,17 @@ export default function NhaCungCap() {
   }
 
   if (selectedId && (detailLoading || detailError || !selectedSupplier)) {
+    if (detailLoading) {
+      return (
+        <main className="supplier-page">
+          <LoadingSpinner text="Đang tải dữ liệu nhà cung cấp..." fullPage />
+        </main>
+      );
+    }
     return (
       <main className="supplier-page supplier-not-found">
-        {detailLoading ? (
-          <h1>ĐANG TẢI NHÀ CUNG CẤP...</h1>
-        ) : (
-          <>
-            <h1>KHÔNG THỂ TẢI NHÀ CUNG CẤP</h1>
-            <p role="alert">{detailError}</p>
-          </>
-        )}
+        <h1>KHÔNG THỂ TẢI NHÀ CUNG CẤP</h1>
+        <p role="alert">{detailError}</p>
         <button className="supplier-btn supplier-btn--outline" onClick={backToList}>
           QUAY LẠI DANH SÁCH
         </button>
@@ -294,6 +317,7 @@ export default function NhaCungCap() {
           onPageChange={setDetailPage}
           onBack={backToList}
           onEdit={openEdit}
+          canEdit={canEditSupplier}
           toast={toast}
         />
       ) : (
@@ -304,7 +328,11 @@ export default function NhaCungCap() {
               <h1>DANH SÁCH NHÀ CUNG CẤP</h1>
               <p>QUẢN LÝ ĐỐI TÁC CUNG ỨNG VÀ LỊCH SỬ NHẬP HÀNG</p>
             </div>
-            <button className="supplier-btn supplier-btn--black" onClick={openCreate}>
+            <button
+              className="supplier-btn supplier-btn--black"
+              disabled={!canCreateSupplier}
+              onClick={openCreate}
+            >
               <HiOutlinePlus />
               <span>THÊM NHÀ CUNG CẤP</span>
             </button>
@@ -335,7 +363,12 @@ export default function NhaCungCap() {
           </section>
           <section className="supplier-list-content admin-list-body">
             {loadError && <NetworkError message={loadError} onRetry={reload} />}
-            <div className="supplier-table-wrap admin-table-scroll" tabIndex={0} role="region" aria-label="Bảng danh sách">
+            <div
+              className="supplier-table-wrap admin-table-scroll"
+              tabIndex={0}
+              role="region"
+              aria-label="Bảng danh sách"
+            >
               <table className="supplier-table admin-data-table">
                 <thead>
                   <tr>
@@ -378,8 +411,12 @@ export default function NhaCungCap() {
                     ))}
                   {!loadError && !suppliers.length && (
                     <tr className="supplier-empty">
-                      <td colSpan="5">
-                        {loading ? 'Đang tải dữ liệu...' : 'Không tìm thấy nhà cung cấp phù hợp.'}
+                      <td colSpan="5" style={{ padding: 24, textAlign: 'center' }}>
+                        {loading ? (
+                          <LoadingSpinner text="Đang tải danh sách nhà cung cấp..." size="md" />
+                        ) : (
+                          'Không tìm thấy nhà cung cấp phù hợp.'
+                        )}
                       </td>
                     </tr>
                   )}
@@ -402,7 +439,7 @@ export default function NhaCungCap() {
           </section>
         </>
       )}
-      {modalMode && (
+      {canSubmitSupplier && modalMode && (
         <SupplierFormModal
           mode={modalMode}
           form={form}
@@ -418,7 +455,7 @@ export default function NhaCungCap() {
           onSubmit={submit}
         />
       )}
-      {showConfirm && (
+      {canEditSupplier && showConfirm && (
         <DeactivateModal
           supplier={{ ...form, code: selectedSupplier.code }}
           saving={saving}
@@ -430,12 +467,24 @@ export default function NhaCungCap() {
   );
 }
 
-function Breadcrumb({ detail = false }) {
+function Breadcrumb({ detail = false, onBack }) {
   return (
     <nav className="supplier-crumbs" aria-label="Breadcrumb nội dung">
-      <span>KHÁCH HÀNG &amp; ĐỐI TÁC</span>
+      <Link to="/admin/khach-hang-doi-tac/khach-hang">KHÁCH HÀNG &amp; ĐỐI TÁC</Link>
       <span>/</span>
-      <span>NHÀ CUNG CẤP</span>
+      {detail ? (
+        <a
+          href="#danh-sach"
+          onClick={(e) => {
+            e.preventDefault();
+            if (onBack) onBack();
+          }}
+        >
+          NHÀ CUNG CẤP
+        </a>
+      ) : (
+        <span>NHÀ CUNG CẤP</span>
+      )}
       {detail && (
         <>
           <span>/</span>
@@ -446,13 +495,16 @@ function Breadcrumb({ detail = false }) {
   );
 }
 
-function SupplierDetail({ supplier, page, onPageChange, onBack, onEdit, toast }) {
+function SupplierDetail({ supplier, page, onPageChange, onBack, onEdit, canEdit, toast }) {
   const navigate = useNavigate();
+  const access = useAdminPermissions()?.access;
+  const canViewPurchases = hasAdminPermission(access, 'nhap_hang', 'xem');
+  const canViewCashbook = hasAdminPermission(access, 'so_quy', 'xem');
   return (
     <>
       <section className="supplier-hero supplier-detail-hero">
         <div>
-          <Breadcrumb detail />
+          <Breadcrumb detail onBack={onBack} />
           <div className="supplier-detail-meta">
             <span>{supplier.code}</span>
             <SupplierStatus status={supplier.trangThai} />
@@ -463,7 +515,7 @@ function SupplierDetail({ supplier, page, onPageChange, onBack, onEdit, toast })
           <button className="supplier-btn supplier-btn--outline" onClick={onBack}>
             <HiOutlineArrowLeft /> QUAY LẠI
           </button>
-          <button className="supplier-btn supplier-btn--black" onClick={onEdit}>
+          <button className="supplier-btn supplier-btn--black" disabled={!canEdit} onClick={onEdit}>
             CHỈNH SỬA
           </button>
         </div>
@@ -482,43 +534,51 @@ function SupplierDetail({ supplier, page, onPageChange, onBack, onEdit, toast })
         </SupplierPanel>
         <SupplierPanel title="LỊCH SỬ NHẬP HÀNG">
           <div className="supplier-history-wrap">
-            <div className="admin-table-scroll admin-table-scroll--embedded" tabIndex={0} role="region" aria-label="Bảng dữ liệu liên quan"><table className="supplier-history admin-data-table admin-data-table--records">
-              <thead>
-                <tr>
-                  <th>MÃ ĐƠN NHẬP</th>
-                  <th>TRẠNG THÁI ĐƠN</th>
-                  <th>THANH TOÁN</th>
-                  <th>GIÁ TRỊ</th>
-                  <th>NGÀY TẠO</th>
-                </tr>
-              </thead>
-              <tbody>
-                {supplier.orders.map((order) => (
-                  <tr key={order.id}>
-                    <td>
-                      <button
-                        type="button"
-                        className="partner-order-link"
-                        onClick={() => navigate(`/kho-hang/nhap-hang/${order.id}`)}
-                      >
-                        {order.code}
-                      </button>
-                    </td>
-                    <td>
-                      {(IMPORT_STATUS[order.importStatus] || order.importStatus).toUpperCase()}
-                    </td>
-                    <td>{order.paymentStatus.replaceAll('_', ' ')}</td>
-                    <td>{money(order.total)}</td>
-                    <td>{order.createdAtLabel}</td>
+            <div
+              className="admin-table-scroll admin-table-scroll--embedded"
+              tabIndex={0}
+              role="region"
+              aria-label="Bảng dữ liệu liên quan"
+            >
+              <table className="supplier-history admin-data-table admin-data-table--records">
+                <thead>
+                  <tr>
+                    <th>MÃ ĐƠN NHẬP</th>
+                    <th>TRẠNG THÁI ĐƠN</th>
+                    <th>THANH TOÁN</th>
+                    <th>GIÁ TRỊ</th>
+                    <th>NGÀY TẠO</th>
                   </tr>
-                ))}
-                {!supplier.orders.length && (
-                  <tr className="supplier-empty">
-                    <td colSpan="5">Chưa có lịch sử nhập hàng</td>
-                  </tr>
-                )}
-              </tbody>
-            </table></div>
+                </thead>
+                <tbody>
+                  {supplier.orders.map((order) => (
+                    <tr key={order.id}>
+                      <td>
+                        <button
+                          type="button"
+                          className="partner-order-link"
+                          disabled={!canViewPurchases}
+                          onClick={() => navigate(`/kho-hang/nhap-hang/${order.id}`)}
+                        >
+                          {order.code}
+                        </button>
+                      </td>
+                      <td>
+                        {(IMPORT_STATUS[order.importStatus] || order.importStatus).toUpperCase()}
+                      </td>
+                      <td>{order.paymentStatus.replaceAll('_', ' ')}</td>
+                      <td>{money(order.total)}</td>
+                      <td>{order.createdAtLabel}</td>
+                    </tr>
+                  ))}
+                  {!supplier.orders.length && (
+                    <tr className="supplier-empty">
+                      <td colSpan="5">Chưa có lịch sử nhập hàng</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
           <TablePagination
             totalItems={supplier.orderTotal}
@@ -528,13 +588,19 @@ function SupplierDetail({ supplier, page, onPageChange, onBack, onEdit, toast })
             idPrefix="supplier-orders"
           />
         </SupplierPanel>
-        <SupplierCashbookPanel supplierId={supplier.id} orders={supplier.orders} />
+        {canViewCashbook && (
+          <SupplierCashbookPanel
+            supplierId={supplier.id}
+            orders={supplier.orders}
+            access={access}
+          />
+        )}
       </section>
     </>
   );
 }
 
-function SupplierCashbookPanel({ supplierId, orders = [] }) {
+function SupplierCashbookPanel({ supplierId, orders = [], access }) {
   const navigate = useNavigate();
   const [items, setItems] = useState([]);
   const [summary, setSummary] = useState({
@@ -593,19 +659,15 @@ function SupplierCashbookPanel({ supplierId, orders = [] }) {
     setPage(1);
   };
 
-  const handleDocClick = (docCode) => {
-    if (!docCode) return;
-    const cleanCode = docCode.trim();
-    const matched = (orders || []).find((o) => o.code === cleanCode);
-    if (matched) {
-      navigate(`/kho-hang/nhap-hang/${matched.id}`);
-      return;
-    }
-    if (cleanCode.startsWith('DN')) {
-      navigate('/kho-hang/nhap-hang');
-    } else if (cleanCode.startsWith('TH')) {
-      navigate('/kho-hang/thu-hoi');
-    }
+  const getDocPath = (docCode) => {
+    const code = docCode?.trim();
+    if (!code) return null;
+
+    const matched = orders.find((order) => order.code === code);
+    if (matched) return `/kho-hang/nhap-hang/${matched.id}`;
+    if (code.startsWith('DN')) return '/kho-hang/nhap-hang';
+    if (code.startsWith('TH')) return '/kho-hang/thu-hoi';
+    return null;
   };
 
   const handleVoucherClick = (item) => {
@@ -626,9 +688,7 @@ function SupplierCashbookPanel({ supplierId, orders = [] }) {
           <div className="supplier-stat-content">
             <span className="supplier-stat-title">TỔNG TIỀN ĐÃ CHI</span>
             <span className="supplier-stat-subtitle">Thanh toán tiền nhập hàng</span>
-            <strong className="supplier-stat-value text-red">
-              -{money(summary.tongChi)}
-            </strong>
+            <strong className="supplier-stat-value text-red">-{money(summary.tongChi)}</strong>
           </div>
         </div>
 
@@ -639,9 +699,7 @@ function SupplierCashbookPanel({ supplierId, orders = [] }) {
           <div className="supplier-stat-content">
             <span className="supplier-stat-title">TỔNG TIỀN THU HOÀN</span>
             <span className="supplier-stat-subtitle">Tiền NCC hoàn lại khi trả hàng</span>
-            <strong className="supplier-stat-value text-green">
-              +{money(summary.tongThu)}
-            </strong>
+            <strong className="supplier-stat-value text-green">+{money(summary.tongThu)}</strong>
           </div>
         </div>
 
@@ -667,7 +725,9 @@ function SupplierCashbookPanel({ supplierId, orders = [] }) {
             onClick={() => handleTabChange('ALL')}
           >
             TẤT CẢ
-            {typeFilter === 'ALL' && <span className="supplier-cashbook-tab-count">{totalElements}</span>}
+            {typeFilter === 'ALL' && (
+              <span className="supplier-cashbook-tab-count">{totalElements}</span>
+            )}
           </button>
           <button
             type="button"
@@ -675,7 +735,9 @@ function SupplierCashbookPanel({ supplierId, orders = [] }) {
             onClick={() => handleTabChange('CHI')}
           >
             PHIẾU CHI (XUẤT QUỸ)
-            {typeFilter === 'CHI' && <span className="supplier-cashbook-tab-count">{totalElements}</span>}
+            {typeFilter === 'CHI' && (
+              <span className="supplier-cashbook-tab-count">{totalElements}</span>
+            )}
           </button>
           <button
             type="button"
@@ -683,7 +745,9 @@ function SupplierCashbookPanel({ supplierId, orders = [] }) {
             onClick={() => handleTabChange('THU')}
           >
             PHIẾU THU (NHẬP QUỸ)
-            {typeFilter === 'THU' && <span className="supplier-cashbook-tab-count">{totalElements}</span>}
+            {typeFilter === 'THU' && (
+              <span className="supplier-cashbook-tab-count">{totalElements}</span>
+            )}
           </button>
         </div>
       </div>
@@ -706,8 +770,8 @@ function SupplierCashbookPanel({ supplierId, orders = [] }) {
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan="9" className="supplier-table-loading">
-                  Đang tải dữ liệu phiếu thu / phiếu chi...
+                <td colSpan="9" style={{ padding: 24, textAlign: 'center' }}>
+                  <LoadingSpinner text="Đang tải dữ liệu phiếu thu / phiếu chi..." size="md" />
                 </td>
               </tr>
             ) : error ? (
@@ -725,6 +789,8 @@ function SupplierCashbookPanel({ supplierId, orders = [] }) {
                 const amount = isChi
                   ? Number(item.tien_chi || item.so_tien || 0)
                   : Number(item.tien_thu || item.so_tien || 0);
+                const docPath = getDocPath(item.ma_chung_tu_tham_chieu);
+                const canOpenDoc = Boolean(docPath && canOpenAdminPath(access, docPath));
                 return (
                   <tr key={item.id}>
                     <td>{(page - 1) * 5 + idx + 1}</td>
@@ -753,7 +819,10 @@ function SupplierCashbookPanel({ supplierId, orders = [] }) {
                         <button
                           type="button"
                           className="supplier-doc-link"
-                          onClick={() => handleDocClick(item.ma_chung_tu_tham_chieu)}
+                          disabled={!canOpenDoc}
+                          onClick={() => {
+                            if (canOpenDoc) navigate(docPath);
+                          }}
                           title="Đi đến chứng từ tham chiếu"
                         >
                           {item.ma_chung_tu_tham_chieu}
@@ -779,15 +848,15 @@ function SupplierCashbookPanel({ supplierId, orders = [] }) {
                           item.trang_thai === 'DA_GHI_NHAN' || item.trang_thai === 'DA_GHI_SO'
                             ? 'supplier-cashbook-badge--success'
                             : item.trang_thai === 'HUY'
-                            ? 'supplier-cashbook-badge--cancelled'
-                            : 'supplier-cashbook-badge--default'
+                              ? 'supplier-cashbook-badge--cancelled'
+                              : 'supplier-cashbook-badge--default'
                         }`}
                       >
                         {item.trang_thai === 'DA_GHI_NHAN' || item.trang_thai === 'DA_GHI_SO'
                           ? 'ĐÃ GHI SỔ'
                           : item.trang_thai === 'HUY'
-                          ? 'ĐÃ HỦY'
-                          : item.trang_thai}
+                            ? 'ĐÃ HỦY'
+                            : item.trang_thai}
                       </span>
                     </td>
                     <td className="supplier-col-notes" title={item.mo_ta || ''}>
@@ -945,7 +1014,8 @@ function SupplierFormModal({
             {!creating && (
               <label className="supplier-form-field">
                 <span>TRẠNG THÁI HỢP TÁC</span>
-                <FormDropdown aria-label="TRẠNG THÁI HỢP TÁC"
+                <FormDropdown
+                  aria-label="TRẠNG THÁI HỢP TÁC"
                   value={form.trangThai}
                   onChange={(event) => onChange('trangThai', event.target.value)}
                 >

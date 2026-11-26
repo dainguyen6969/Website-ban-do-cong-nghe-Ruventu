@@ -28,7 +28,7 @@ class MaintenanceConfigTest {
   private void role(String role) {
     var user =
         NguoiDung.builder()
-            .vaiTro(VaiTro.builder().tenVaiTro(role).build())
+            .vaiTro(VaiTro.builder().maVaiTro(role).tenVaiTro(role).build())
             .trangThai(TrangThaiCoBanEnum.HOAT_DONG)
             .build();
     SecurityContextHolder.getContext()
@@ -62,6 +62,7 @@ class MaintenanceConfigTest {
             "/api/v1/orders/checkout",
             "/api/v1/admin/orders",
             "/api/v1/admin/pos/checkout",
+            "/api/v1/admin/pos/checkout/prepare",
             "/api/v1/admin/orders/123/payment/confirm");
     when(settings.isMaintenance()).thenReturn(true);
     for (String path : paths) {

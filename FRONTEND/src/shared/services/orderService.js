@@ -1,6 +1,5 @@
 import axios from 'axios';
-import { notifyMaintenance } from '../../settings/maintenanceState';
-import { AUTH_CHANGED, getAccessToken, refreshAccessToken } from '../../auth/backendAuth';
+import { AUTH_CHANGED, attachSessionAuth, getAccessToken } from '../../auth/backendAuth';
 import { createReadCache, queryKey } from './readCache';
 import { cartService } from './cartService';
 import { productService } from './productService';
@@ -15,67 +14,36 @@ const orderAxios = axios.create({
   },
 });
 
-// Token của phiên đăng nhập storefront hiện tại.
-orderAxios.interceptors.request.use((config) => {
-  const token = localStorage.getItem('accessToken');
-
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  } else {
-    delete config.headers.Authorization;
-  }
-
-  return config;
-});
-
-orderAxios.interceptors.response.use(
-  (response) => response,
-  async (error) => {
-    notifyMaintenance(error.response?.status, error.response?.data);
-    const config = error.config;
-
-    if (
-      error.response?.status !== 401 ||
-      !config ||
-      config._retried ||
-      !localStorage.getItem('accessToken')
-    ) {
-      return Promise.reject(error);
-    }
-
-    config._retried = true;
-
-    try {
-      const sentToken = config.headers.Authorization?.replace(/^Bearer /, '');
-      if (getAccessToken() === sentToken) await refreshAccessToken();
-
-      // Giữ nguyên body và Idempotency-Key.
-      return orderAxios.request(config);
-    } catch (refreshError) {
-      notifyMaintenance(refreshError.status ?? refreshError.response?.status, refreshError.data ?? refreshError.response?.data);
-      return Promise.reject(refreshError);
-    }
-  }
-);
+attachSessionAuth(orderAxios);
 
 const id = (value) => encodeURIComponent(value);
 const cache = createReadCache({ ttl: 15 * 1000 });
 let identity;
 function read(path, params = {}, signal) {
   const next = getAccessToken();
-  if (identity !== next) { cache.clear(); identity = next; }
-  return cache.load(JSON.stringify([path, queryKey(params)]), () => orderAxios.get(path, { params }), { signal });
+  if (identity !== next) {
+    cache.clear();
+    identity = next;
+  }
+  return cache.load(
+    JSON.stringify([path, queryKey(params)]),
+    () => orderAxios.get(path, { params }),
+    { signal }
+  );
 }
 if (typeof window !== 'undefined') {
   window.addEventListener?.(AUTH_CHANGED, () => cache.clear());
-  window.addEventListener?.('storage', event => {
+  window.addEventListener?.('storage', (event) => {
     if (event.key === 'accessToken' || event.key === null) cache.clear();
   });
 }
 async function mutate(path, body, config) {
   cache.clear();
-  try { return await orderAxios.post(path, body, config); }
-  finally { cache.clear(); }
+  try {
+    return await orderAxios.post(path, body, config);
+  } finally {
+    cache.clear();
+  }
 }
 
 export const orderService = {
@@ -91,7 +59,10 @@ export const orderService = {
       headers: {
         'Idempotency-Key': key,
       },
-    }).finally(() => { cartService.clearCache(); productService.clearCache(); }),
+    }).finally(() => {
+      cartService.clearCache();
+      productService.clearCache();
+    }),
 
   getOrders: (params, signal) => read('', params, signal),
 
@@ -113,6 +84,8 @@ export const orderService = {
   requestReturn: (orderId, body) => mutate(`/${id(orderId)}/returns`, body),
 
   getReturns: (params, signal) => read('/returns', params, signal),
+
+  lookupWarranty: (body, signal) => orderAxios.post('/warranty-lookup', body, { signal }),
 
   trackOrder: (orderCode, recipientPhone) =>
     orderAxios.get('/tracking', {

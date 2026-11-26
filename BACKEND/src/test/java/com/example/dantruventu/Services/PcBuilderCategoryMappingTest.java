@@ -33,7 +33,7 @@ class PcBuilderCategoryMappingTest {
   @Mock private DanhMucRepository categories;
   @Mock private PhienBanSanPhamRepository variants;
   @Mock private SalesContext sales;
-  @Mock private PcBuilderSocketSupport socket;
+  @Mock private PcBuilderCompatibilitySupport compatibility;
   @Mock private PcBuilderStockSupport stock;
   @Mock private CatalogSupport catalog;
   private PcBuilderProperties properties;
@@ -42,7 +42,9 @@ class PcBuilderCategoryMappingTest {
   @BeforeEach
   void setUp() {
     properties = new PcBuilderProperties();
-    service = new PcBuilderService(categories, properties, variants, sales, socket, stock, catalog);
+    service =
+        new PcBuilderService(
+            categories, properties, variants, sales, compatibility, stock, catalog);
   }
 
   @Test
@@ -57,8 +59,13 @@ class PcBuilderCategoryMappingTest {
     var mappings = service.resolveCategoryMappings();
     assertSame(ssd, mappings.get(PcBuilderCategory.SSD_1));
     assertSame(ssd, mappings.get(PcBuilderCategory.SSD_2));
-    assertEquals("cpu", properties.getCategorySlugs().get("CPU"));
-    assertEquals("mainboard", properties.getCategorySlugs().get("MAIN"));
+    assertEquals("pcb-demo-cpu", properties.getCategorySlugs().get("CPU"));
+    assertEquals("pcb-demo-main", properties.getCategorySlugs().get("MAIN"));
+    assertEquals(PcBuilderCategory.values().length, properties.getCategorySlugs().size());
+    for (var slot : PcBuilderCategory.values()) {
+      assertNotNull(properties.getCategorySlugs().get(slot.name()));
+      assertFalse(properties.getCategorySlugs().get(slot.name()).isBlank());
+    }
     assertEquals(
         properties.getCategorySlugs().get("MONITOR_1"),
         properties.getCategorySlugs().get("MONITOR_2"));
@@ -124,7 +131,7 @@ class PcBuilderCategoryMappingTest {
   }
 
   @Test
-  void inactiveReferenceCategoryCannotBeUsedForSocketFiltering() {
+  void inactiveReferenceCategoryCannotBeUsedForCompatibilityFiltering() {
     var cpu = category(2L, "cpu");
     var main = category(4L, "mainboard");
     main.setTrangThai(TrangThaiCoBanEnum.NGUNG_HOAT_DONG);
@@ -141,37 +148,91 @@ class PcBuilderCategoryMappingTest {
   }
 
   @Test
-  void missingReferenceSocketOnlyBlocksStrictFiltering() {
+  void missingReferenceCpuSupportFallsBackToUnfilteredProducts() {
     var cpu = category(2L, "cpu");
     var main = category(4L, "mainboard");
     when(categories.findByDuongDanUrlIn(anyCollection())).thenReturn(List.of(cpu, main));
     when(variants.findById(8L)).thenReturn(Optional.of(variant(main)));
-    var error =
-        assertThrows(
-            AppException.class,
-            () ->
-                service.getProducts(
-                    "CPU", null, null, null, null, null, null, "0", "20", "8", "true"));
-    assertEquals(ErrorCode.PC_BUILDER_REFERENCE_SOCKET_MISSING, error.getErrorCode());
-    verifyNoInteractions(sales);
-
     var row = mock(PhienBanSanPhamRepository.PcBuilderProduct.class);
     when(row.getPhienBanId()).thenReturn(9L);
     when(row.getGiaBanLe()).thenReturn(new BigDecimal("3200000"));
     when(row.getTonCoTheBan()).thenReturn(5L);
     when(row.getThongSoKyThuat()).thenReturn("{\"socket\":\"AM5\"}");
-    when(socket.compare(null, row.getThongSoKyThuat())).thenReturn("CHUA_DU_DU_LIEU");
+    when(compatibility.compare(null, null)).thenReturn("CHUA_DU_DU_LIEU");
     when(sales.defaultWarehouseId()).thenReturn(1L);
     when(variants.findPcBuilderProducts(
-            2L, 1L, null, null, null, null, "TAT_CA", null, "MAC_DINH", PageRequest.of(0, 20)))
+            2L,
+            1L,
+            null,
+            null,
+            null,
+            null,
+            "TAT_CA",
+            null,
+            null,
+            "MAC_DINH",
+            PageRequest.of(0, 20)))
         .thenReturn(new PageImpl<>(List.of(row), PageRequest.of(0, 20), 1));
-    var result =
-        service.getProducts("CPU", null, null, null, null, null, null, "0", "20", "8", "false");
-    assertFalse(result.boLocTuongThich().dangApDung());
-    assertEquals(8L, result.boLocTuongThich().phienBanDoiChieuId());
-    assertNull(result.boLocTuongThich().socketDoiChieu());
-    assertEquals("CHUA_DU_DU_LIEU", result.items().getFirst().ketQuaSocket());
-    assertTrue(result.items().getFirst().coTheChon());
+    for (String requestedFilter : java.util.Arrays.asList(null, "false", "true")) {
+      var result =
+          service.getProducts(
+              "CPU", null, null, null, null, null, null, "0", "20", "8", requestedFilter);
+      assertFalse(result.boLocTuongThich().dangApDung());
+      assertEquals(8L, result.boLocTuongThich().phienBanDoiChieuId());
+      assertNull(result.boLocTuongThich().cpuHoTroDoiChieu());
+      assertEquals("CHUA_DU_DU_LIEU", result.items().getFirst().ketQuaTuongThich());
+      assertTrue(result.items().getFirst().coTheChon());
+    }
+  }
+
+  @Test
+  void referenceCpuSupportFiltersOnlyWhenExplicitlyRequested() {
+    var cpu = category(2L, "cpu");
+    var main = category(4L, "mainboard");
+    when(categories.findByDuongDanUrlIn(anyCollection())).thenReturn(List.of(cpu, main));
+    var reference = variant(main);
+    reference.getSanPham().setThongSoKyThuat("{\"CPU hỗ trợ\":\"Intel\"}");
+    when(variants.findById(8L)).thenReturn(Optional.of(reference));
+    when(compatibility.cpuNamePattern(reference.getSanPham().getThongSoKyThuat()))
+        .thenReturn("INTEL");
+    when(compatibility.supportedCpuText(reference.getSanPham().getThongSoKyThuat()))
+        .thenReturn("Intel");
+    when(sales.defaultWarehouseId()).thenReturn(1L);
+    for (String requestedFilter : java.util.Arrays.asList(null, "false", "true")) {
+      String queryCpuPattern = "true".equals(requestedFilter) ? "INTEL" : null;
+      when(variants.findPcBuilderProducts(
+              2L,
+              1L,
+              null,
+              null,
+              null,
+              null,
+              "TAT_CA",
+              null,
+              queryCpuPattern,
+              "MAC_DINH",
+              PageRequest.of(0, 20)))
+          .thenReturn(new PageImpl<>(List.of(), PageRequest.of(0, 20), 0));
+      var result =
+          service.getProducts(
+              "CPU", null, null, null, null, null, null, "0", "20", "8", requestedFilter);
+      assertEquals("true".equals(requestedFilter), result.boLocTuongThich().dangApDung());
+      assertEquals("Intel", result.boLocTuongThich().cpuHoTroDoiChieu());
+      verify(variants)
+          .findPcBuilderProducts(
+              2L,
+              1L,
+              null,
+              null,
+              null,
+              null,
+              "TAT_CA",
+              null,
+              queryCpuPattern,
+              "MAC_DINH",
+              PageRequest.of(0, 20));
+      clearInvocations(variants);
+    }
   }
 
   @Test
@@ -187,7 +248,14 @@ class PcBuilderCategoryMappingTest {
   }
 
   private DanhMuc category(Long id, String slug) {
-    return DanhMuc.builder().id(id).duongDanUrl(slug).build();
+    String mapped =
+        switch (slug) {
+          case "cpu" -> properties.getCategorySlugs().get("CPU");
+          case "mainboard" -> properties.getCategorySlugs().get("MAIN");
+          case "ssd" -> properties.getCategorySlugs().get("SSD_1");
+          default -> slug;
+        };
+    return DanhMuc.builder().id(id).duongDanUrl(mapped).build();
   }
 
   private PhienBanSanPham variant(DanhMuc category) {

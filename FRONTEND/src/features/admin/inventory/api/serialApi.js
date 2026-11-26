@@ -37,7 +37,8 @@ const normalize = (item) => ({
     : item.ngay_kich_hoat
       ? 'Chưa xác định hạn'
       : 'Chưa kích hoạt',
-  order: item.don_hang || null,
+  orderId: item.don_hang_id || item.don_hang?.id || null,
+  order: item.don_hang || (item.don_hang_id ? { id: item.don_hang_id } : null),
 });
 
 export async function getSerialPage(filters, signal) {
@@ -49,7 +50,14 @@ export async function getSerialPage(filters, signal) {
   if (filters.serial?.trim()) params.set('so_serial', filters.serial.trim());
   if (filters.status) params.set('trang_thai', filters.status);
   if (filters.versionId) params.set('phien_ban_id', String(filters.versionId));
-  const data = await adminRequest(`/api/v1/admin/serials?${params}`, { signal });
+
+  const endpoint = filters.forPos
+    ? '/api/v1/admin/serials/available-for-pos'
+    : filters.forWarranty
+      ? '/api/v1/admin/serials/warranty-candidates'
+      : '/api/v1/admin/serials';
+  const data = await adminRequest(`${endpoint}?${params}`, { signal });
+
   return {
     items: (data?.items || []).map(normalize),
     totalItems: Number(data?.pagination?.total_elements || 0),
@@ -58,20 +66,20 @@ export async function getSerialPage(filters, signal) {
 }
 
 export async function getAvailableSerials(versionId, serial, signal) {
-  // shortcut: load one variant's serials in full; use incremental loading for very large variant inventories.
   const items = [];
-  let totalItems = 0;
+
   for (let page = 1, totalPages = 1; page <= totalPages; page += 1) {
     const data = await getSerialPage(
-      { versionId, serial, status: 'TRONG_KHO', page, limit: 100 },
+      { versionId, serial, status: 'TRONG_KHO', page, limit: 100, forPos: true },
       signal
     );
     items.push(...data.items);
-    totalItems = data.totalItems;
     totalPages = data.totalPages;
   }
 
-  const clearItems = items.filter((item) => !item.recallBlocked);
+  const clearItems = items.filter(
+    (item) => item.status === 'TRONG_KHO' && !item.orderId && !item.recallBlocked
+  );
 
   return {
     items: clearItems,

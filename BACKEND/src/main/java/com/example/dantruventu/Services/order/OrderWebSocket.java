@@ -1,11 +1,11 @@
 package com.example.dantruventu.Services.order;
 
-import com.example.dantruventu.Enum.TrangThaiCoBanEnum;
-import com.example.dantruventu.Repository.NguoiDungRepository;
+import com.example.dantruventu.Services.AdminRoleService;
 import com.example.dantruventu.Services.JwtService;
 import io.jsonwebtoken.JwtException;
 import java.io.IOException;
 import java.time.Instant;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -29,8 +29,17 @@ import tools.jackson.databind.ObjectMapper;
 @Slf4j
 public class OrderWebSocket extends TextWebSocketHandler implements HandshakeInterceptor {
   private final JwtService jwtService;
-  private final NguoiDungRepository users;
+  private final AdminRoleService adminRoleService;
   private final ObjectMapper objectMapper;
+
+  private static final Map<String, String> NOTIFICATION_MODULES =
+      Map.of(
+          "NEW_ORDER", "don_hang",
+          "ORDER_STATUS", "don_hang",
+          "RECEIPT", "so_quy",
+          "PURCHASE_ORDER", "nhap_hang",
+          "SUPPLIER", "nha_cung_cap",
+          "SHIPPING_PARTNER", "doi_tac_van_chuyen");
 
   private record Ticket(String token, Instant expiresAt) {}
 
@@ -39,25 +48,32 @@ public class OrderWebSocket extends TextWebSocketHandler implements HandshakeInt
   private final Map<String, WebSocketSession> sessions = new ConcurrentHashMap<>();
 
   public String issueTicket(String token) {
-    if (!authorized(token)) throw new AccessDeniedException("Không có quyền theo dõi đơn hàng");
+    if (!canSubscribe(currentPermissions(token))) {
+      throw new AccessDeniedException("Không có quyền nhận cập nhật realtime");
+    }
+
     tickets.entrySet().removeIf(entry -> entry.getValue().expiresAt().isBefore(Instant.now()));
     String ticket = UUID.randomUUID().toString();
     tickets.put(ticket, new Ticket(token, Instant.now().plusSeconds(30)));
     return ticket;
   }
 
-  private boolean authorized(String token) {
+  private Map<String, List<String>> currentPermissions(String token) {
     try {
-      if (token == null || !jwtService.isAccessTokenValid(token)) return false;
-      return users
-          .findByIdWithVaiTro(jwtService.getUserIdFromToken(token))
-          .filter(user -> user.getTrangThai() == TrangThaiCoBanEnum.HOAT_DONG)
-          .filter(
-              user -> user.getVaiTro() != null && "ADMIN".equals(user.getVaiTro().getTenVaiTro()))
-          .isPresent();
+      if (token == null || !jwtService.isAccessTokenValid(token)) return Map.of();
+      return adminRoleService.effectivePermissionsForUser(
+          jwtService.getUserIdFromToken(token), jwtService.getAuthVersion(token));
     } catch (JwtException | IllegalArgumentException ex) {
-      return false;
+      return Map.of();
     }
+  }
+
+  private boolean canView(Map<String, List<String>> permissions, String module) {
+    return permissions.getOrDefault(module, List.of()).contains("xem");
+  }
+
+  private boolean canSubscribe(Map<String, List<String>> permissions) {
+    return NOTIFICATION_MODULES.values().stream().anyMatch(module -> canView(permissions, module));
   }
 
   @Override
@@ -71,7 +87,7 @@ public class OrderWebSocket extends TextWebSocketHandler implements HandshakeInt
     Ticket ticket = key == null ? null : tickets.remove(key);
     if (ticket == null
         || !ticket.expiresAt().isAfter(Instant.now())
-        || !authorized(ticket.token())) {
+        || !canSubscribe(currentPermissions(ticket.token()))) {
       response.setStatusCode(HttpStatus.FORBIDDEN);
       return false;
     }
@@ -104,7 +120,7 @@ public class OrderWebSocket extends TextWebSocketHandler implements HandshakeInt
     if (connection == null) return;
     try {
       if (!"ping".equals(message.getPayload())
-          || !authorized((String) session.getAttributes().get("token"))) {
+          || !canSubscribe(currentPermissions((String) session.getAttributes().get("token")))) {
         disconnect(connection);
         return;
       }
@@ -126,25 +142,38 @@ public class OrderWebSocket extends TextWebSocketHandler implements HandshakeInt
                     event.orderId(),
                     "change",
                     event.change())));
-    send(message);
+    send("don_hang", message);
   }
 
   @TransactionalEventListener
   public void broadcastNotification(OrderEvents.Notification event) {
+    String module = event.category() == null ? null : NOTIFICATION_MODULES.get(event.category());
+    if (module == null) return;
+
     send(
+        module,
         new TextMessage(
             objectMapper.writeValueAsString(
                 Map.of("type", "admin-notification", "notification", event))));
   }
 
-  private void send(TextMessage message) {
+  private void send(String module, TextMessage message) {
     for (WebSocketSession session : sessions.values()) {
       try {
-        if (!session.isOpen() || !authorized((String) session.getAttributes().get("token"))) {
+        if (!session.isOpen()) {
           disconnect(session);
           continue;
         }
-        session.sendMessage(message);
+
+        var permissions = currentPermissions((String) session.getAttributes().get("token"));
+        if (!canSubscribe(permissions)) {
+          disconnect(session);
+          continue;
+        }
+
+        if (canView(permissions, module)) {
+          session.sendMessage(message);
+        }
       } catch (IOException | RuntimeException ex) {
         log.debug("Order subscriber disconnected: {}", session.getId(), ex);
         disconnect(session);

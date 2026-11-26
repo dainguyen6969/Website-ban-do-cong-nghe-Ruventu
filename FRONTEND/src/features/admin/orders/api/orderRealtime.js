@@ -1,5 +1,30 @@
 import { apiRequest } from '../../../../auth/backendAuth.js';
 
+import { hasAdminPermission } from '../../../../auth/roleModel.js';
+
+const NOTIFICATION_MODULES = new Map([
+  ['NEW_ORDER', 'don_hang'],
+  ['ORDER_STATUS', 'don_hang'],
+  ['RECEIPT', 'so_quy'],
+  ['PURCHASE_ORDER', 'nhap_hang'],
+  ['SUPPLIER', 'nha_cung_cap'],
+  ['SHIPPING_PARTNER', 'doi_tac_van_chuyen'],
+]);
+
+const REALTIME_MODULES = [...new Set(NOTIFICATION_MODULES.values())];
+
+export function canReceiveRealtimeNotification(access, category) {
+  const moduleId = NOTIFICATION_MODULES.get(category);
+  return Boolean(moduleId && hasAdminPermission(access, moduleId, 'xem'));
+}
+
+export function getAdminRealtimeScope(access) {
+  const allowed = REALTIME_MODULES.filter((moduleId) =>
+    hasAdminPermission(access, moduleId, 'xem')
+  );
+  return allowed.length ? JSON.stringify([access.nguoi_dung_id, ...allowed]) : '';
+}
+
 function connectRealtime(onUpdate) {
   let disposed = false;
   let socket;
@@ -24,7 +49,8 @@ function connectRealtime(onUpdate) {
     ticketRequest = new AbortController();
     try {
       const { ticket } = await apiRequest('/api/v1/admin/orders/realtime-ticket', {
-        method: 'POST', signal: ticketRequest.signal,
+        method: 'POST',
+        signal: ticketRequest.signal,
       });
       if (disposed) return;
       if (!ticket) throw new Error('Missing WebSocket ticket');
@@ -45,14 +71,22 @@ function connectRealtime(onUpdate) {
       };
       connection.onmessage = ({ data }) => {
         let event;
-        try { event = JSON.parse(data); } catch { return; }
+        try {
+          event = JSON.parse(data);
+        } catch {
+          return;
+        }
         if (event?.type === 'pong') lastMessage = Date.now();
         if (event?.type === 'ready') {
           lastMessage = Date.now();
           retryDelay = 1000;
           // Fetch again after reconnect to recover events missed while disconnected.
           onUpdate(event);
-        } else if (event?.type === 'order-changed' && Number.isSafeInteger(event.orderId) && event.orderId > 0) {
+        } else if (
+          event?.type === 'order-changed' &&
+          Number.isSafeInteger(event.orderId) &&
+          event.orderId > 0
+        ) {
           lastMessage = Date.now();
           onUpdate(event);
         } else if (event?.type === 'admin-notification') {
@@ -66,13 +100,21 @@ function connectRealtime(onUpdate) {
         onUpdate({ type: 'disconnected' });
         retry();
       };
-    } catch {
-      if (!disposed) onUpdate({ type: 'disconnected' });
+    } catch (error) {
+      if (disposed) return;
+
+      if (error?.status === 401 || error?.status === 403) {
+        onUpdate({ type: 'access-denied', status: error.status });
+        return;
+      }
+
+      onUpdate({ type: 'disconnected' });
       retry();
     }
   }
 
-  connect();
+  // Wait for synchronous subscription cleanup before requesting a one-use ticket.
+  queueMicrotask(connect);
   return () => {
     disposed = true;
     ticketRequest?.abort();
@@ -89,29 +131,47 @@ function connectRealtime(onUpdate) {
 }
 
 const listeners = new Set();
+let realtimeScope = '';
 let disconnect;
 let connected = false;
 
+function stopRealtime() {
+  disconnect?.();
+  disconnect = undefined;
+  connected = false;
+}
+
+function startRealtime() {
+  if (!realtimeScope || !listeners.size || disconnect) return;
+
+  disconnect = connectRealtime((event) => {
+    if (event.type === 'ready') connected = true;
+    if (event.type === 'disconnected' || event.type === 'access-denied') connected = false;
+    listeners.forEach((callback) => callback(event));
+  });
+}
+
+export function setAdminRealtimeScope(scope) {
+  if (scope === realtimeScope) return;
+  stopRealtime();
+  realtimeScope = scope;
+  startRealtime();
+}
+
 export function subscribeAdminRealtime(listener) {
   listeners.add(listener);
-  if (!disconnect) disconnect = connectRealtime(event => {
-    if (event.type === 'ready') connected = true;
-    if (event.type === 'disconnected') connected = false;
-    listeners.forEach(callback => callback(event));
-  });
-  else if (connected) listener({ type: 'ready' });
+  startRealtime();
+
+  if (connected) listener({ type: 'ready' });
+
   return () => {
     listeners.delete(listener);
-    if (!listeners.size) {
-      disconnect?.();
-      disconnect = undefined;
-      connected = false;
-    }
+    if (!listeners.size) stopRealtime();
   };
 }
 
 export function subscribeOrderUpdates(onUpdate) {
-  return subscribeAdminRealtime(event => {
+  return subscribeAdminRealtime((event) => {
     if (event.type === 'ready' || event.type === 'order-changed') onUpdate();
   });
 }

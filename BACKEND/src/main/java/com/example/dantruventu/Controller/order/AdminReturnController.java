@@ -7,8 +7,10 @@ import com.example.dantruventu.DTO.Request.order.AdminReturnRefundRequest;
 import com.example.dantruventu.DTO.Response.ApiResponse;
 import com.example.dantruventu.DTO.Response.order.AdminReturnResponse;
 import com.example.dantruventu.Entity.NguoiDung;
+import com.example.dantruventu.Enum.LoaiDonHang;
 import com.example.dantruventu.Enum.TrangThaiTraHang;
 import com.example.dantruventu.Services.order.AdminReturnService;
+import com.example.dantruventu.Specification.PhieuTraHangSpecification;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -33,6 +35,7 @@ public class AdminReturnController {
   private final AdminReturnService adminReturnService;
 
   @PostMapping("/preview")
+  @PreAuthorize("@adminRoleService.hasModuleAction(principal, 'khach_tra_hang', 'them')")
   public ApiResponse<AdminReturnResponse.PreviewResponse> preview(
       @Valid @RequestBody AdminReturnPreviewRequest request) {
 
@@ -58,6 +61,7 @@ public class AdminReturnController {
   }
 
   @PostMapping("/{id}/receive")
+  @PreAuthorize("@adminRoleService.hasModuleAction(principal, 'khach_tra_hang', 'sua')")
   public ApiResponse<AdminReturnResponse.ReceiveResponse> receive(
       @PathVariable("id") Long id,
       @Valid @RequestBody AdminReturnReceiveRequest request,
@@ -74,6 +78,7 @@ public class AdminReturnController {
   }
 
   @GetMapping("/{id}")
+  @PreAuthorize("@adminRoleService.hasModuleAction(principal, 'khach_tra_hang', 'xem')")
   public ApiResponse<AdminReturnResponse.DetailResponse> getReturnDetail(
       @PathVariable("id") Long id) {
 
@@ -85,6 +90,7 @@ public class AdminReturnController {
   }
 
   @PostMapping
+  @PreAuthorize("@adminRoleService.hasModuleAction(principal, 'khach_tra_hang', 'them')")
   @ResponseStatus(HttpStatus.CREATED)
   public ApiResponse<AdminReturnResponse.CreateResponse> create(
       @RequestHeader(name = "Idempotency-Key", required = false) String idempotencyKey,
@@ -99,6 +105,9 @@ public class AdminReturnController {
   }
 
   @GetMapping("/eligible-orders/{orderId}")
+  @PreAuthorize(
+      "@adminRoleService.hasModuleAction(principal, 'khach_tra_hang', 'them')"
+          + " or @adminRoleService.hasModuleAction(principal, 'khach_tra_hang', 'sua')")
   public ApiResponse<AdminReturnResponse.EligibleOrderDetailResponse> getEligibleOrderDetail(
       @PathVariable("orderId") Long orderId) {
 
@@ -110,6 +119,7 @@ public class AdminReturnController {
   }
 
   @GetMapping("/eligible-orders")
+  @PreAuthorize("@adminRoleService.hasModuleAction(principal, 'khach_tra_hang', 'them')")
   public ApiResponse<AdminReturnResponse.EligibleOrderListResponse> getEligibleOrders(
       @RequestParam(name = "keyword", required = false) String keyword,
       @RequestParam(name = "page", defaultValue = "0") int page,
@@ -123,10 +133,14 @@ public class AdminReturnController {
   }
 
   @GetMapping
+  @PreAuthorize("@adminRoleService.hasModuleAction(principal, 'khach_tra_hang', 'xem')")
   public ApiResponse<AdminReturnResponse.ListResponse> getReturns(
       @RequestParam(name = "keyword", required = false) String keyword,
       @RequestParam(name = "trang_thai_tra_hang", required = false) TrangThaiTraHang returnStatus,
       @RequestParam(name = "tu_ngay", required = false) String from,
+      @RequestParam(name = "nhom_xu_ly", required = false)
+          PhieuTraHangSpecification.ReturnWorkGroup returnGroup,
+      @RequestParam(name = "kenh_ban", required = false) LoaiDonHang salesChannel,
       @RequestParam(name = "den_ngay", required = false) String to,
       @RequestParam(name = "page", defaultValue = "0") int page,
       @RequestParam(name = "limit", defaultValue = "20") int limit) {
@@ -134,7 +148,9 @@ public class AdminReturnController {
     return ApiResponse.<AdminReturnResponse.ListResponse>builder()
         .status(200)
         .message("Lấy danh sách phiếu trả thành công")
-        .data(adminReturnService.getReturns(keyword, returnStatus, from, to, page, limit))
+        .data(
+            adminReturnService.getReturns(
+                keyword, returnStatus, returnGroup, salesChannel, from, to, page, limit))
         .build();
   }
 }

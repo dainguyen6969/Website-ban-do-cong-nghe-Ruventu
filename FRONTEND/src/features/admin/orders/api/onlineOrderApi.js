@@ -206,13 +206,27 @@ export function buildPosCheckoutBody(
   };
 }
 
-export const checkoutPosOrder = (body, idempotencyKey) =>
+export const preparePosCheckout = (body, signal) =>
+  adminRequest('/api/v1/admin/pos/checkout/prepare', {
+    method: 'POST',
+    body: JSON.stringify(body),
+    signal,
+  });
+
+export const checkoutPosOrder = (body, idempotencyKey, signal) =>
   adminRequest('/api/v1/admin/pos/checkout', {
     method: 'POST',
-    headers: {
-      'Idempotency-Key': idempotencyKey,
-    },
+    headers: { 'Idempotency-Key': idempotencyKey },
     body: JSON.stringify(body),
+    signal,
+  });
+
+export const resolvePosCheckout = (body, idempotencyKey, signal, lookupOnly = false) =>
+  adminRequest(`/api/v1/admin/pos/checkout/resolve${lookupOnly ? '?chi_tra_cuu=true' : ''}`, {
+    method: 'POST',
+    headers: { 'Idempotency-Key': idempotencyKey },
+    body: JSON.stringify(body),
+    signal,
   });
 
 const orderBody = (form) => {

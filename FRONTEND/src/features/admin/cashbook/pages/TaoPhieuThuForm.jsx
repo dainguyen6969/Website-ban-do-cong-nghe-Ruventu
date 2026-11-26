@@ -1,11 +1,18 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { receiptService } from '../../../../shared/services/receiptService';
+
+import { hasSystemAdminPermission } from '../../../../auth/roleModel';
+import { useAdminPermissions } from '../../../../shared/components/ui/PermissionGate';
+
 import './TaoPhieuForm.css';
-import { FormDropdown } from "../../../../shared/components/ui/FilterDropdown";
+import { FormDropdown } from '../../../../shared/components/ui/FilterDropdown';
 
 export default function TaoPhieuThuForm() {
   const navigate = useNavigate();
+
+  const access = useAdminPermissions()?.access;
+  const canManageVoucherTypes = hasSystemAdminPermission(access, 'so_quy', 'them');
 
   // Form states
   const [group, setGroup] = useState('KHACH_HANG');
@@ -132,6 +139,8 @@ export default function TaoPhieuThuForm() {
   };
 
   const handleCreateType = async () => {
+    if (!canManageVoucherTypes) return;
+
     if (!newTypeName.trim()) return;
 
     // Auto-generate a code if the user leaves it blank, as the backend requires ma_loai
@@ -268,7 +277,8 @@ export default function TaoPhieuThuForm() {
 
             <div className="tpf-form-group">
               <label>NHÓM NGƯỜI NỘP *</label>
-              <FormDropdown aria-label="NHÓM NGƯỜI NỘP"
+              <FormDropdown
+                aria-label="NHÓM NGƯỜI NỘP"
                 value={group}
                 onChange={(e) => {
                   setGroup(e.target.value);
@@ -359,6 +369,7 @@ export default function TaoPhieuThuForm() {
                 <button
                   type="button"
                   className="btn-add-type-label"
+                  disabled={!canManageVoucherTypes}
                   onClick={() => setShowAddTypeModal(true)}
                 >
                   + THÊM LOẠI
@@ -413,7 +424,11 @@ export default function TaoPhieuThuForm() {
 
             <div className="tpf-form-group">
               <label>PHƯƠNG THỨC THANH TOÁN *</label>
-              <FormDropdown aria-label="PHƯƠNG THỨC THANH TOÁN" value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value)}>
+              <FormDropdown
+                aria-label="PHƯƠNG THỨC THANH TOÁN"
+                value={paymentMethod}
+                onChange={(e) => setPaymentMethod(e.target.value)}
+              >
                 <option value="TIEN_MAT">TIỀN MẶT</option>
                 <option value="CHUYEN_KHOAN">CHUYỂN KHOẢN</option>
                 <option value="THE">QUẸT THẺ</option>
@@ -494,7 +509,7 @@ export default function TaoPhieuThuForm() {
       </div>
 
       {/* Inline Add Type Modal */}
-      {showAddTypeModal && (
+      {canManageVoucherTypes && showAddTypeModal && (
         <div className="lpt-modal-overlay">
           <div className="lpt-modal">
             <div className="lpt-modal-header">

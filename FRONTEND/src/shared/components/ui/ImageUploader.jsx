@@ -19,6 +19,7 @@ export default function ImageUploader({
   onImagesChange,
   maxSizeMB = 5,
   folder = 'general',
+  uploadFile = uploadImage,
   multiple = true,
 }) {
   const fileInputRef = useRef(null);
@@ -70,7 +71,7 @@ export default function ImageUploader({
         const uploaded = await Promise.all(
           uploadable.map(async (image) => {
             try {
-              const result = await uploadImage(image.file, folder);
+              const result = await uploadFile(image.file, folder);
               URL.revokeObjectURL(image.url);
               return {
                 ...image,
@@ -93,7 +94,7 @@ export default function ImageUploader({
         emitChange((current) => current.map((img) => byId.get(img.id) || img));
       }
     },
-    [emitChange, maxSizeMB, folder, multiple]
+    [emitChange, maxSizeMB, folder, multiple, uploadFile]
   );
 
   const handleDrop = useCallback(
@@ -155,11 +156,7 @@ export default function ImageUploader({
 
       {/* Styled control bar with branded red button */}
       <div className="image-uploader__footer">
-        <button
-          type="button"
-          className="image-uploader__browse-btn"
-          onClick={handleClick}
-        >
+        <button type="button" className="image-uploader__browse-btn" onClick={handleClick}>
           <HiOutlineUpload size={16} />
           <span>CHỌN TỆP</span>
         </button>

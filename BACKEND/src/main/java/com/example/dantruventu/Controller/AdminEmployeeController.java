@@ -13,13 +13,13 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.core.Authentication;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/v1/admin/employees")
 @RequiredArgsConstructor
-@PreAuthorize("hasRole('ADMIN')")
+@PreAuthorize("isAuthenticated() and @adminRoleService.isSystemAdmin(principal)")
 public class AdminEmployeeController {
 
   private final AdminEmployeeService adminEmployeeService;
@@ -65,13 +65,13 @@ public class AdminEmployeeController {
 
   @PostMapping
   public ResponseEntity<ApiResponse<EmployeeListItemResponse>> createEmployee(
-      @Valid @RequestBody CreateEmployeeRequest request) {
+      @Valid @RequestBody CreateEmployeeRequest request, @AuthenticationPrincipal NguoiDung actor) {
 
     var response =
         ApiResponse.<EmployeeListItemResponse>builder()
             .status(HttpStatus.CREATED.value())
             .message("Thêm nhân viên thành công")
-            .data(adminEmployeeService.createEmployee(request))
+            .data(adminEmployeeService.createEmployee(request, actor.getId()))
             .build();
 
     return ResponseEntity.status(HttpStatus.CREATED).body(response);
@@ -81,27 +81,23 @@ public class AdminEmployeeController {
   public ApiResponse<EmployeeListItemResponse> updateEmployee(
       @PathVariable Long id,
       @Valid @RequestBody UpdateEmployeeRequest request,
-      Authentication authentication) {
-
-    Long currentAdminId = null;
-    if (authentication != null && authentication.getPrincipal() instanceof NguoiDung principal) {
-      currentAdminId = principal.getId();
-    }
+      @AuthenticationPrincipal NguoiDung actor) {
 
     return ApiResponse.<EmployeeListItemResponse>builder()
         .status(200)
         .message("Cập nhật nhân viên thành công")
-        .data(adminEmployeeService.updateEmployee(id, request, currentAdminId))
+        .data(adminEmployeeService.updateEmployee(id, request, actor.getId()))
         .build();
   }
 
   @DeleteMapping("/{id}")
-  public ApiResponse<EmployeeListItemResponse> deleteEmployee(@PathVariable Long id) {
+  public ApiResponse<EmployeeListItemResponse> deleteEmployee(
+      @PathVariable Long id, @AuthenticationPrincipal NguoiDung actor) {
 
     return ApiResponse.<EmployeeListItemResponse>builder()
         .status(200)
         .message("Hủy nhân viên thành công")
-        .data(adminEmployeeService.deleteEmployee(id))
+        .data(adminEmployeeService.deleteEmployee(id, actor.getId()))
         .build();
   }
 }

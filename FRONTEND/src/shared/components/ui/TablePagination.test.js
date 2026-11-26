@@ -51,9 +51,10 @@ test('picker, slash count, summary and independent IDs work for every list', () 
   assert.doesNotMatch(render({showSummary:false}),/class="product-pagination-range"/);
 });
 
-test('detail tables retain their five-row page size and hide pagination when unnecessary', () => {
+test('detail tables retain their five-row page size and render pagination with five rows', () => {
   const detail = props => renderToStaticMarkup(React.createElement(DetailTablePagination,{currentPage:2,onPageChange:()=>{},idPrefix:'detail',...props}));
-  assert.equal(detail({totalItems:5}),'');
+  assert.equal(detail({totalItems:0}),'');
+  assert.match(detail({totalItems:5,currentPage:1}),/1-5/);
   assert.match(detail({totalItems:13}),/6-10/);
   assert.deepEqual(pages(detail({totalItems:13})),[1,2,3]);
   assert.match(detail({totalItems:13,currentPage:3}),/11-13/);

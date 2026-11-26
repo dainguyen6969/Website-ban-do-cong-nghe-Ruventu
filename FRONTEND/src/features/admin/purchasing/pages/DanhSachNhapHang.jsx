@@ -1,9 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import AdminLink from '../../../../shared/components/ui/AdminLink';
 import { HiOutlinePlus, HiOutlineSearch } from 'react-icons/hi';
 
 import TablePagination from '../../../../shared/components/ui/TablePagination';
 import FilterDropdown from '../../../../shared/components/ui/FilterDropdown';
+import LoadingSpinner from '../../../../shared/components/ui/LoadingSpinner';
 
 import {
   getPurchaseOrderPage,
@@ -13,6 +15,9 @@ import {
 } from '../api/purchaseOrderApi';
 
 import { money, PageCrumb, StatusBadge } from './PurchaseShared';
+
+import { hasAdminPermission } from '../../../../auth/roleModel';
+import { useAdminPermissions } from '../../../../shared/components/ui/PermissionGate';
 
 import './NhapHang.css';
 
@@ -72,6 +77,9 @@ function PurchaseFilterDropdown({ label, value, options, onChange }) {
 
 export default function DanhSachNhapHang() {
   const navigate = useNavigate();
+
+  const access = useAdminPermissions()?.access;
+  const canCreatePurchase = hasAdminPermission(access, 'nhap_hang', 'them');
 
   const [filters, setFilters] = useState({
     keyword: '',
@@ -201,14 +209,16 @@ export default function DanhSachNhapHang() {
           <h1>DANH SÁCH ĐƠN NHẬP HÀNG</h1>
         </div>
 
-        <button
-          type="button"
-          className="purchase-btn black"
-          onClick={() => navigate('/kho-hang/nhap-hang/tao-moi')}
-        >
-          <HiOutlinePlus />
-          TẠO ĐƠN NHẬP HÀNG
-        </button>
+        {canCreatePurchase && (
+          <button
+            type="button"
+            className="purchase-btn black"
+            onClick={() => navigate('/kho-hang/nhap-hang/tao-moi')}
+          >
+            <HiOutlinePlus />
+            TẠO ĐƠN NHẬP HÀNG
+          </button>
+        )}
       </div>
 
       {/* Bộ lọc */}
@@ -285,7 +295,13 @@ export default function DanhSachNhapHang() {
                 <tr key={order.id} className={order.importStatus === 'HUY' ? 'cancelled' : ''}>
                   {/* Mã đơn nhập */}
                   <td>
-                    <strong>{order.code}</strong>
+                    {loading ? (
+                      <span className="purchase-order-code">{order.code}</span>
+                    ) : (
+                      <AdminLink className="purchase-order-code" to={`/kho-hang/nhap-hang/${order.id}`}>
+                        {order.code}
+                      </AdminLink>
+                    )}
                   </td>
 
                   {/* Nhà cung cấp */}
@@ -326,8 +342,12 @@ export default function DanhSachNhapHang() {
               {/* Trạng thái tải dữ liệu / rỗng */}
               {!data.items.length && (
                 <tr className="purchase-empty">
-                  <td colSpan="7">
-                    {loading ? 'Đang tải dữ liệu...' : 'Không tìm thấy đơn nhập hàng phù hợp.'}
+                  <td colSpan="7" style={{ padding: 24, textAlign: 'center' }}>
+                    {loading ? (
+                      <LoadingSpinner text="Đang tải danh sách đơn nhập hàng..." size="md" />
+                    ) : (
+                      'Không tìm thấy đơn nhập hàng phù hợp.'
+                    )}
                   </td>
                 </tr>
               )}

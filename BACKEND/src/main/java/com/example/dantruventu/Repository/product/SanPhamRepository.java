@@ -1,6 +1,7 @@
 package com.example.dantruventu.Repository.product;
 
 import com.example.dantruventu.Entity.SanPham;
+import com.example.dantruventu.Enum.TrangThaiCoBanEnum;
 import com.example.dantruventu.Repository.ProductListProjection;
 import jakarta.persistence.LockModeType;
 import java.math.BigDecimal;
@@ -22,7 +23,7 @@ public interface SanPhamRepository
 
   boolean existsByDanhMucId(Long danhMucId);
 
-  long countByDanhMucId(Long danhMucId);
+  long countByDanhMucIdAndTrangThai(Long danhMucId, TrangThaiCoBanEnum trangThai);
 
   interface CategoryProductProjection {
 

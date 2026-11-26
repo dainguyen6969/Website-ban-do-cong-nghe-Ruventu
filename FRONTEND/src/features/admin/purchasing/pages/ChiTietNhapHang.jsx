@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
+import AdminLink from '../../../../shared/components/ui/AdminLink';
 import DetailTablePagination from '../../../../shared/components/ui/DetailTablePagination';
 import useDetailTablePagination from '../../../../hooks/useDetailTablePagination';
+import LoadingSpinner from '../../../../shared/components/ui/LoadingSpinner';
 
 import { money, Modal, PageCrumb, PurchaseCard, StatusBadge } from './PurchaseShared';
 import './NhapHang.css';
@@ -32,6 +34,9 @@ import {
   returnPurchaseOrder,
 } from '../api/purchaseOrderApi';
 import { FormDropdown } from '../../../../shared/components/ui/FilterDropdown';
+
+import { hasAdminPermission } from '../../../../auth/roleModel';
+import { useAdminPermissions } from '../../../../shared/components/ui/PermissionGate';
 
 const METHODS = [
   ['CHUYEN_KHOAN', 'Chuyển khoản'],
@@ -183,6 +188,11 @@ export default function ChiTietNhapHang() {
   const purchaseAttempt = useRef(null);
   const { id } = useParams();
   const navigate = useNavigate();
+
+  const access = useAdminPermissions()?.access;
+  const canEditPurchase = hasAdminPermission(access, 'nhap_hang', 'sua');
+  const canOperatePurchase = canEditPurchase && access?.vai_tro?.ma_vai_tro === 'ADMIN';
+
   const [order, setOrder] = useState(null);
   const [modal, setModal] = useState('');
   const [detailTab, setDetailTab] = useState('overview');
@@ -198,6 +208,7 @@ export default function ChiTietNhapHang() {
   const [error, setError] = useState('');
   const [serialValues, setSerialValues] = useState({});
   const pagination = useDetailTablePagination(order?.items);
+  const serialsPagination = useDetailTablePagination(order?.receivedSerials || []);
   const [receiptQuantities, setReceiptQuantities] = useState({});
 
   const [supplierReceiptDocument, setSupplierReceiptDocument] = useState('');
@@ -235,12 +246,14 @@ export default function ChiTietNhapHang() {
       received,
       returned,
       waiting: Math.max(0, ordered - received),
-      progress: ordered ? Math.round((received / ordered) * 100) : 0,
+      progress: ordered ? Math.min(100, Math.max(0, Math.round((received / ordered) * 100))) : 0,
     };
   }, [order]);
 
-  const run = async (request) => {
-    if (operationBusy.current || nccLocked || sourceLocked || documentLocked) return;
+  const run = async (request, allowed = canOperatePurchase) => {
+    if (!allowed || operationBusy.current || nccLocked || sourceLocked || documentLocked) {
+      return;
+    }
 
     operationBusy.current = true;
     setBusy(true);
@@ -261,7 +274,7 @@ export default function ChiTietNhapHang() {
   if (loading && !order)
     return (
       <main className="purchase-page">
-        <p className="purchase-message">Đang tải chi tiết đơn nhập hàng...</p>
+        <LoadingSpinner text="Đang tải chi tiết đơn nhập hàng..." fullPage />
       </main>
     );
   if (!order)
@@ -295,7 +308,7 @@ export default function ChiTietNhapHang() {
     ) && waitingReceipt.length > 0;
 
   const openReceive = () => {
-    if (busy || operationBusy.current) return;
+    if (!canEditPurchase || !canReceive || busy || operationBusy.current) return;
 
     const pending = purchaseAttempt.current;
 
@@ -429,7 +442,7 @@ export default function ChiTietNhapHang() {
         setReceiptServerErrors(receiptErrorsFromApi(error, body.items));
         throw error;
       }
-    });
+    }, canEditPurchase);
 
   const returnable = order.items.filter(
     (item) => (item.legacyReturnLimit ?? item.received - item.returned) > 0
@@ -478,23 +491,35 @@ export default function ChiTietNhapHang() {
           <p>{order.createdAtLabel}</p>
         </div>
         <div className="purchase-heading-actions">
-          {order.importStatus === 'DAT_HANG' && (
+          {canEditPurchase && order.importStatus === 'DAT_HANG' && (
+            <button
+              type="button"
+              className="purchase-btn outline"
+              onClick={() => navigate(`/kho-hang/nhap-hang/tao-moi?edit=${order.id}`)}
+            >
+              − CHỈNH SỬA
+            </button>
+          )}
+
+          {canOperatePurchase && order.importStatus === 'DAT_HANG' && (
             <>
               <button
-                className="purchase-btn outline"
-                onClick={() => navigate(`/kho-hang/nhap-hang/tao-moi?edit=${order.id}`)}
+                type="button"
+                className="purchase-btn blue"
+                onClick={() => setModal('approve')}
               >
-                − CHỈNH SỬA
-              </button>
-              <button className="purchase-btn blue" onClick={() => setModal('approve')}>
                 DUYỆT ĐƠN
               </button>
-              <button className="purchase-btn red-outline" onClick={() => setModal('cancel')}>
+              <button
+                type="button"
+                className="purchase-btn red-outline"
+                onClick={() => setModal('cancel')}
+              >
                 HỦY ĐƠN
               </button>
             </>
           )}
-          {approved && order.debt > 0 && (
+          {canOperatePurchase && approved && order.debt > 0 && (
             <button
               type="button"
               className="purchase-btn black"
@@ -507,7 +532,8 @@ export default function ChiTietNhapHang() {
               THANH TOÁN
             </button>
           )}
-          {canReceive && (
+
+          {canEditPurchase && canReceive && (
             <button
               type="button"
               className="purchase-btn green purchase-btn--receive"
@@ -517,7 +543,9 @@ export default function ChiTietNhapHang() {
               NHẬP KHO
             </button>
           )}
-          {['NHAP_MOT_PHAN', 'DA_NHAP_KHO', 'HOAN_TRA_MOT_PHAN'].includes(order.importStatus) &&
+
+          {canOperatePurchase &&
+            ['NHAP_MOT_PHAN', 'DA_NHAP_KHO', 'HOAN_TRA_MOT_PHAN'].includes(order.importStatus) &&
             returnable.length > 0 && (
               <button
                 type="button"
@@ -532,7 +560,7 @@ export default function ChiTietNhapHang() {
               </button>
             )}
 
-          {order.refundDue > 0 && (
+          {canOperatePurchase && order.refundDue > 0 && (
             <button
               type="button"
               className="purchase-btn green"
@@ -576,6 +604,39 @@ export default function ChiTietNhapHang() {
       <div className="purchase-detail-grid">
         <div className="purchase-detail-main">
           <section className="purchase-section" hidden={detailTab !== 'overview'}>
+            <PurchaseCard title="TIẾN ĐỘ NHẬP KHO">
+              <div className="purchase-progress">
+                <div
+                  className="purchase-progress__track"
+                  role="progressbar"
+                  aria-label="Tiến độ nhập kho"
+                  aria-valuemin={0}
+                  aria-valuemax={100}
+                  aria-valuenow={totals.progress}
+                >
+                  <div style={{ width: `${totals.progress}%` }} />
+                </div>
+                <span aria-hidden="true">{totals.progress}%</span>
+              </div>
+              <div className="progress-stats">
+                <div>
+                  <b>{totals.ordered}</b>
+                  <span>TỔNG ĐẶT</span>
+                </div>
+                <div className="orange-text">
+                  <b>{totals.received}</b>
+                  <span>ĐÃ NHẬP</span>
+                </div>
+                <div>
+                  <b>{totals.returned}</b>
+                  <span>ĐÃ TRẢ NHÀ CUNG CẤP</span>
+                </div>
+                <div>
+                  <b>{totals.waiting}</b>
+                  <span>CÒN CHỜ</span>
+                </div>
+              </div>
+            </PurchaseCard>
             <PurchaseCard title="SẢN PHẨM TRONG ĐƠN NHẬP">
               <div
                 className="purchase-detail-table-scroll"
@@ -616,6 +677,8 @@ export default function ChiTietNhapHang() {
                 totalItems={order.items.length}
                 currentPage={pagination.currentPage}
                 onPageChange={pagination.onPageChange}
+                pageSize={pagination.pageSize}
+                onPageSizeChange={pagination.onPageSizeChange}
                 idPrefix="purchase-order-items"
               />
             </PurchaseCard>
@@ -642,14 +705,14 @@ export default function ChiTietNhapHang() {
                           <td colSpan={4}>Chưa có serial đã nhận.</td>
                         </tr>
                       ) : (
-                        order.receivedSerials.map((serial, index) => (
+                        serialsPagination.visibleItems.map((serial, index) => (
                           <tr key={serial.id}>
-                            <td>{index + 1}</td>
+                            <td>{(serialsPagination.currentPage - 1) * 5 + index + 1}</td>
                             <td>{serial.name}</td>
                             <td>
-                              <Link to={`/kho-hang/danh-sach-serial/${serial.id}`}>
+                              <AdminLink to={`/kho-hang/danh-sach-serial/${serial.id}`}>
                                 {serial.code}
-                              </Link>
+                              </AdminLink>
                             </td>
                             <td>
                               <span
@@ -668,39 +731,24 @@ export default function ChiTietNhapHang() {
                     </tbody>
                   </table>
                 </div>
+                <DetailTablePagination
+                  totalItems={(order?.receivedSerials || []).length}
+                  currentPage={serialsPagination.currentPage}
+                  onPageChange={serialsPagination.onPageChange}
+                  pageSize={serialsPagination.pageSize}
+                  onPageSizeChange={serialsPagination.onPageSizeChange}
+                  idPrefix="purchase-serials"
+                />
               </PurchaseCard>
             )}
-
-            <PurchaseCard title="TIẾN ĐỘ NHẬP KHO">
-              <div className="progress-line">
-                <div style={{ width: `${totals.progress}%` }} />
-                <span>{totals.progress}%</span>
-              </div>
-              <div className="progress-stats">
-                <div>
-                  <b>{totals.ordered}</b>
-                  <span>TỔNG ĐẶT</span>
-                </div>
-                <div className="orange-text">
-                  <b>{totals.received}</b>
-                  <span>ĐÃ NHẬP</span>
-                </div>
-                <div>
-                  <b>{totals.returned}</b>
-                  <span>ĐÃ TRẢ NHÀ CUNG CẤP</span>
-                </div>
-                <div>
-                  <b>{totals.waiting}</b>
-                  <span>CÒN CHỜ</span>
-                </div>
-              </div>
-            </PurchaseCard>
           </section>
 
           <section className="purchase-section" hidden={detailTab !== 'sources'}>
             <PurchaseSourcePanel
               order={order}
-              locked={pageBusy || nccLocked || documentLocked || Boolean(modal)}
+              locked={
+                pageBusy || nccLocked || documentLocked || !canOperatePurchase || Boolean(modal)
+              }
               onLockChange={setSourceLocked}
             />
           </section>
@@ -713,6 +761,7 @@ export default function ChiTietNhapHang() {
                 pageBusy ||
                 sourceLocked ||
                 documentLocked ||
+                !canOperatePurchase ||
                 Boolean(modal) ||
                 Boolean(purchaseAttempt.current)
               }
@@ -730,6 +779,7 @@ export default function ChiTietNhapHang() {
                 pageBusy ||
                 sourceLocked ||
                 nccLocked ||
+                !canOperatePurchase ||
                 Boolean(modal) ||
                 Boolean(purchaseAttempt.current)
               }
@@ -860,7 +910,7 @@ export default function ChiTietNhapHang() {
         </aside>
       </div>
 
-      {modal === 'approve' && (
+      {canOperatePurchase && modal === 'approve' && (
         <Modal onClose={() => setModal('')}>
           <h2>XÁC NHẬN DUYỆT ĐƠN</h2>
           <InfoRows
@@ -881,7 +931,7 @@ export default function ChiTietNhapHang() {
           />
         </Modal>
       )}
-      {modal === 'cancel' && (
+      {canOperatePurchase && modal === 'cancel' && (
         <Modal onClose={() => setModal('')} className="danger-modal">
           <h2>HỦY ĐƠN NHẬP HÀNG</h2>
           <p>
@@ -897,7 +947,7 @@ export default function ChiTietNhapHang() {
           />
         </Modal>
       )}
-      {modal === 'receipt' && (
+      {canEditPurchase && modal === 'receipt' && (
         <Modal
           className="receipt-modal"
           onClose={() => {
@@ -1060,7 +1110,7 @@ export default function ChiTietNhapHang() {
           />
         </Modal>
       )}
-      {['payment', 'return', 'refund'].includes(modal) && (
+      {canOperatePurchase && ['payment', 'return', 'refund'].includes(modal) && (
         <PurchaseOperationDialog
           key={`${order.id}:${modal}`}
           kind={modal}

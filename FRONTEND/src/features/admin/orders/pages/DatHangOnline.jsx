@@ -17,11 +17,15 @@ import {
   searchSalesProducts,
   buildOnlineOrderDraft,
 } from '../api/onlineOrderApi';
+import { defaultSaleVat } from '../../sales/state/salesState.js';
 import './DatHangOnline.css';
 import { canEditOnlineOrder, getOrder } from '../api/orderApi';
 import OrderModal from '../components/OrderModal';
 import { errorMessage, withIdempotency } from '../../../../shared/services/mutationUtils';
-import { FormDropdown } from "../../../../shared/components/ui/FilterDropdown";
+import { FormDropdown } from '../../../../shared/components/ui/FilterDropdown';
+
+import { hasAdminPermission } from '../../../../auth/roleModel';
+import { useAdminPermissions } from '../../../../shared/components/ui/PermissionGate';
 
 const money = new Intl.NumberFormat('vi-VN', {
   style: 'currency',
@@ -43,6 +47,12 @@ const labels = {
 export default function DatHangOnline() {
   const navigate = useNavigate();
   const { orderId: editId } = useParams();
+
+  const access = useAdminPermissions()?.access;
+  const canCreateSalesCustomer =
+    hasAdminPermission(access, 'khach_hang', 'xem') &&
+    hasAdminPermission(access, 'khach_hang', 'them');
+
   const [options, setOptions] = useState(null);
   const [optionsError, setOptionsError] = useState('');
   const [editReady, setEditReady] = useState(false);
@@ -75,8 +85,9 @@ export default function DatHangOnline() {
   const [allowWaitingStock, setAllowWaitingStock] = useState(false);
   const [promotion, setPromotion] = useState('');
   const [payment, setPayment] = useState('');
-  const [applyVat, setApplyVat] = useState(false);
-  const [vatMode, setVatMode] = useState('CHUA_BAO_GOM');
+  const [vatOverride, setVatOverride] = useState(null);
+  const { applyVat, vatMode } =
+    (vatOverride?.orderId === editId ? vatOverride : null) ?? defaultSaleVat(items);
   const [delivery, setDelivery] = useState('GIAO_HANG');
   const [shippingInput, setShippingInput] = useState('');
   const [note, setNote] = useState('');
@@ -104,7 +115,6 @@ export default function DatHangOnline() {
       .then((data) => {
         setOptions(data);
         setPayment(data.phuong_thuc_online?.[0] || '');
-        setVatMode(data.che_do_thue?.[0] || 'CHUA_BAO_GOM');
         setDelivery(
           data.hinh_thuc_nhan_hang?.includes('GIAO_HANG')
             ? 'GIAO_HANG'
@@ -175,9 +185,11 @@ export default function DatHangOnline() {
         setPromotion(order.khuyen_mai?.ma_chuong_trinh || '');
         setPayment(order.phuong_thuc_thanh_toan);
 
-        setApplyVat(frozen?.thue?.ap_dung ?? Number(order.tong_tien_vat) > 0);
-
-        setVatMode(frozen?.thue?.che_do_gia || 'CHUA_BAO_GOM');
+        setVatOverride({
+          orderId: editId,
+          applyVat: frozen?.thue?.ap_dung ?? order.thue?.ap_dung ?? (Number(order.tong_tien_vat) > 0),
+          vatMode: frozen?.thue?.che_do_gia || order.thue?.che_do_gia || 'CHUA_BAO_GOM',
+        });
 
         setDelivery(order.hinh_thuc_nhan_hang);
         setShippingInput(String(Number(order.phi_giao_hang || 0) / 1000));
@@ -417,8 +429,7 @@ export default function DatHangOnline() {
       address: '',
     }));
   };
-  const updateRecipient = (key, value) =>
-    setRecipient((current) => ({ ...current, [key]: value }));
+  const updateRecipient = (key, value) => setRecipient((current) => ({ ...current, [key]: value }));
 
   const handleProvinceChange = (newProvince) => {
     const availableWards = VIETNAM_LOCATIONS[newProvince] || [];
@@ -658,6 +669,8 @@ export default function DatHangOnline() {
   };
 
   const saveCustomer = async () => {
+    if (!canCreateSalesCustomer) return;
+
     if (!newCustomer.name.trim() || !validPhone(newCustomer.phone)) return;
     setCustomerSaving(true);
     setCustomerError('');
@@ -731,6 +744,7 @@ export default function DatHangOnline() {
             <button
               type="button"
               className="online-outline-btn"
+              disabled={!canCreateSalesCustomer}
               onClick={() => {
                 setCustomerError('');
                 setNewCustomer({ name: '', phone: '' });
@@ -803,7 +817,8 @@ export default function DatHangOnline() {
               />
               <div className="online-field">
                 <span>TỈNH / THÀNH PHỐ *</span>
-                <FormDropdown aria-label="TỈNH / THÀNH PHỐ"
+                <FormDropdown
+                  aria-label="TỈNH / THÀNH PHỐ"
                   value={recipient.province}
                   onChange={(e) => handleProvinceChange(e.target.value)}
                 >
@@ -816,7 +831,8 @@ export default function DatHangOnline() {
               </div>
               <div className="online-field">
                 <span>QUẬN / HUYỆN / PHƯỜNG *</span>
-                <FormDropdown aria-label="QUẬN / HUYỆN / PHƯỜNG"
+                <FormDropdown
+                  aria-label="QUẬN / HUYỆN / PHƯỜNG"
                   value={recipient.ward}
                   onChange={(e) => updateRecipient('ward', e.target.value)}
                 >
@@ -845,7 +861,10 @@ export default function DatHangOnline() {
                     alignItems: 'center',
                   }}
                 >
-                  <span className="field-label" style={{ color: '#333', fontSize: scaledFontSize(9), fontWeight: 900 }}>
+                  <span
+                    className="field-label"
+                    style={{ color: '#333', fontSize: scaledFontSize(9), fontWeight: 900 }}
+                  >
                     {`ĐỊA CHỈ CỤ THỂ${delivery === 'GIAO_HANG' ? ' *' : ''}`}
                   </span>
                   <button
@@ -906,9 +925,7 @@ export default function DatHangOnline() {
                 </div>
                 {(touched.address || submitted) &&
                   delivery === 'GIAO_HANG' &&
-                  !recipient.address.trim() && (
-                    <small>Vui lòng nhập địa chỉ giao hàng.</small>
-                  )}
+                  !recipient.address.trim() && <small>Vui lòng nhập địa chỉ giao hàng.</small>}
                 {showAddressDropdown && addressSuggestions.length > 0 && (
                   <div className="goong-autocomplete-dropdown">
                     {addressSuggestions.map((item, idx) => (
@@ -1045,14 +1062,20 @@ export default function DatHangOnline() {
               <input
                 type="checkbox"
                 checked={applyVat}
-                onChange={(event) => setApplyVat(event.target.checked)}
+                onChange={(event) =>
+                  setVatOverride({ orderId: editId, applyVat: event.target.checked, vatMode })
+                }
               />{' '}
               Áp dụng VAT
             </label>
             {applyVat && (
               <div className="toggle-row vat-toggles">
                 {(options?.che_do_thue || []).map((value) => (
-                  <Toggle key={value} active={vatMode === value} click={() => setVatMode(value)}>
+                  <Toggle
+                    key={value}
+                    active={vatMode === value}
+                    click={() => setVatOverride({ orderId: editId, applyVat, vatMode: value })}
+                  >
                     {labels[value] || value}
                   </Toggle>
                 ))}
@@ -1099,7 +1122,7 @@ export default function DatHangOnline() {
           edit={Boolean(editId)}
         />
       </div>
-      {newCustomer && (
+      {canCreateSalesCustomer && newCustomer && (
         <OrderModal
           title="THÊM KHÁCH HÀNG"
           busy={customerSaving}
@@ -1149,7 +1172,7 @@ function Section({ n, title, children, disabled = false }) {
       <header>
         <h2>
           <i aria-hidden="true" />
-          {n}. {title}
+          {title}
         </h2>
       </header>
 
@@ -1367,7 +1390,7 @@ function Summary({
               ? 'THỬ LẠI YÊU CẦU'
               : edit
                 ? 'LƯU THAY ĐỔI'
-                : 'TẠO ĐƠN CHỜ HÀNG'}
+                : 'TẠO ĐƠN HÀNG'}
         </button>
       </div>
     </aside>

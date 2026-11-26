@@ -1,5 +1,6 @@
 import { apiRequest as request } from '../../../../../auth/backendAuth';
 import { toSpecRows } from '../../../../../shared/services/productSpecifications';
+import { publishCatalogChange } from '../../../../../shared/services/catalogChanges.js';
 
 const PATH = '/api/v1/admin/products';
 const nullableNumber = value => value == null ? null : Number(value);
@@ -134,28 +135,28 @@ export const getProductDetail = async (id, signal) =>
   );
 
 export const createProduct = body =>
-  request(PATH, { method: 'POST', body: JSON.stringify(body) });
+  request(PATH, { method: 'POST', body: JSON.stringify(body) }).then(publishCatalogChange);
 
 export const updateProduct = (id, body) =>
   request(`${PATH}/${encodeURIComponent(id)}`, {
     method: 'PUT',
     body: JSON.stringify(body),
-  });
+  }).then(publishCatalogChange);
 
 export const addProductVariant = (productId, body) =>
-  request(`${PATH}/${productId}/variants`, {
+  request(`${PATH}/${encodeURIComponent(productId)}/variants`, {
     method: 'POST',
     body: JSON.stringify(body),
-  });
+  }).then(publishCatalogChange);
 
 export const updateProductVariant = (productId, variantId, body) =>
-  request(`${PATH}/${productId}/variants/${variantId}`, {
+  request(`${PATH}/${encodeURIComponent(productId)}/variants/${encodeURIComponent(variantId)}`, {
     method: 'PUT',
     body: JSON.stringify(body),
-  });
+  }).then(publishCatalogChange);
 
 export const replaceVariantAttributes = (productId, variantId, attributes) =>
-  request(`${PATH}/${productId}/variants/${variantId}/attributes`, {
+  request(`${PATH}/${encodeURIComponent(productId)}/variants/${encodeURIComponent(variantId)}/attributes`, {
     method: 'PUT',
     body: JSON.stringify({
       thuoc_tinh_phien_ban: attributes.map(item => ({
@@ -163,4 +164,4 @@ export const replaceVariantAttributes = (productId, variantId, attributes) =>
         gia_tri: item.gia_tri.trim(),
       })),
     }),
-  });
+  }).then(publishCatalogChange);

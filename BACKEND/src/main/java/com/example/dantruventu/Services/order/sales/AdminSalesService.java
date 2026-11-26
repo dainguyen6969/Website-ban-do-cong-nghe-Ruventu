@@ -46,6 +46,8 @@ import tools.jackson.databind.ObjectMapper;
 @Transactional(readOnly = true, isolation = Isolation.READ_COMMITTED)
 public class AdminSalesService {
 
+  private static final String POS_CHECKOUT_CLOSED = "{\"pos_checkout_closed\":true}";
+
   private final SalesContext context;
   private final SalesProperties properties;
   private final SalesCalculationService calculation;
@@ -384,6 +386,19 @@ public class AdminSalesService {
   }
 
   @Transactional(isolation = Isolation.READ_COMMITTED)
+  public String preparePosCheckout(AdminSalesRequest.Pos request) {
+    Long actorId = context.actor().getId();
+    String idempotencyKey = UUID.randomUUID().toString();
+    String key = requestKey("POS", idempotencyKey, true);
+    String requestHash = hash(actorId, request);
+
+    var entry = idempotencyRepository.acquire(key, actorId, requestHash);
+    verifyReplay(entry, actorId, requestHash);
+
+    return idempotencyKey;
+  }
+
+  @Transactional(isolation = Isolation.READ_COMMITTED)
   public AdminSalesResponse.Checkout checkout(
       String idempotencyKey, AdminSalesRequest.Pos request) {
 
@@ -392,9 +407,13 @@ public class AdminSalesService {
     String key = requestKey("POS", idempotencyKey, true);
     String hash = hash(actor.getId(), request);
 
-    var entry = idempotencyRepository.acquire(key, actor.getId(), hash);
+    var entry = requirePosCheckoutEntry(key);
 
     verifyReplay(entry, actor.getId(), hash);
+
+    if (POS_CHECKOUT_CLOSED.equals(entry.responseJson())) {
+      throw conflict("Lượt thanh toán này đã đóng sau đối soát");
+    }
 
     if (entry.responseJson() != null) {
       return decode(entry.responseJson(), AdminSalesResponse.Checkout.class);
@@ -507,6 +526,34 @@ public class AdminSalesService {
     orderEvents.created(order);
 
     return response;
+  }
+
+  @Transactional(isolation = Isolation.READ_COMMITTED)
+  public AdminSalesResponse.CheckoutResolution resolvePosCheckout(
+      String idempotencyKey, AdminSalesRequest.Pos request, boolean lookupOnly) {
+    Long actorId = context.actor().getId();
+    String key = requestKey("POS", idempotencyKey, true);
+    String requestHash = hash(actorId, request);
+
+    var entry = requirePosCheckoutEntry(key);
+    verifyReplay(entry, actorId, requestHash);
+
+    String responseJson = entry.responseJson();
+    if (responseJson == null) {
+      if (lookupOnly) {
+        throw conflict("Lượt chờ chưa có kết quả. Hãy đối chiếu đơn và khoản tiền đã nhận.");
+      }
+
+      idempotencyRepository.complete(key, POS_CHECKOUT_CLOSED);
+      return new AdminSalesResponse.CheckoutResolution(false, null);
+    }
+
+    if (POS_CHECKOUT_CLOSED.equals(responseJson)) {
+      return new AdminSalesResponse.CheckoutResolution(false, null);
+    }
+
+    return new AdminSalesResponse.CheckoutResolution(
+        true, decode(responseJson, AdminSalesResponse.Checkout.class));
   }
 
   public AdminSalesResponse.Order getOrder(Long id) {
@@ -737,6 +784,8 @@ public class AdminSalesService {
 
     var lines = orderLineRepository.findByDonHang_IdOrderByIdAsc(order.getId());
 
+    response.setThue(saleSnapshots.orderTax(lines));
+
     var images =
         catalogSupport.primaryImages(
             lines.stream()
@@ -799,6 +848,15 @@ public class AdminSalesService {
     // Đọc lịch sử không yêu cầu combo còn đang kinh doanh.
     return variant.getSanPham().getDanhSachThanhPhanCombo().stream()
         .anyMatch(component -> calculation.usesSerial(component.getPhienBanThanhPhan().getId()));
+  }
+
+  private SalesIdempotencyRepository.Entry requirePosCheckoutEntry(String key) {
+    return idempotencyRepository
+        .findForUpdate(key)
+        .orElseThrow(
+            () ->
+                conflict(
+                    "Chưa tìm thấy lượt thanh toán. Hãy đối chiếu đơn và khoản tiền đã nhận."));
   }
 
   private String requestKey(String prefix, String input, boolean required) {

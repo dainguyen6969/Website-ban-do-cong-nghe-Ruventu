@@ -31,6 +31,16 @@
 .partner-crumbs strong {
   color: #111;
 }
+.partner-crumbs a {
+  color: inherit;
+  text-decoration: none;
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+.partner-crumbs a:hover {
+  color: #c51d25;
+  text-decoration: underline;
+}
 .partner-hero h1 {
   font-size: 24px;
   line-height: 1.1;

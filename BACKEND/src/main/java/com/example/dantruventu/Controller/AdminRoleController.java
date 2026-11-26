@@ -23,7 +23,7 @@ import tools.jackson.databind.ObjectMapper;
 @RestController
 @RequestMapping("/api/v1/admin/roles")
 @RequiredArgsConstructor
-@PreAuthorize("hasRole('ADMIN')")
+@PreAuthorize("isAuthenticated() and @adminRoleService.isSystemAdmin(principal)")
 public class AdminRoleController {
 
   private final AdminRoleService adminRoleService;

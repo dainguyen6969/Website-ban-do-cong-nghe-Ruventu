@@ -229,7 +229,10 @@ public class AdminComboService {
 
     var status = parseStatus(request.getTrangThai());
 
+    catalog.requireActiveCategoryForSale(category, status);
+
     SanPham combo = comboMapper.toEntity(request);
+    combo.setMoTa(catalog.cleanDescription(request.getMoTa()));
     combo.setDanhMuc(category);
     combo.setThuongHieu(brand);
     combo.setMaSanPham(code);
@@ -321,15 +324,23 @@ public class AdminComboService {
 
     validateImages(request.getAnhSanPham());
 
+    DanhMuc category =
+        request.getDanhMucId() == null
+            ? combo.getDanhMuc()
+            : danhMucRepository
+                .findById(request.getDanhMucId())
+                .orElseThrow(
+                    () -> new AppException(ErrorCode.NOT_FOUND, "Không tìm thấy danh mục"));
+
+    if (combo.getTrangThai() != TrangThaiCoBanEnum.HOAT_DONG
+        || !Objects.equals(combo.getDanhMuc().getId(), category.getId())) {
+      catalog.requireActiveCategoryForSale(category, status);
+    }
+
     combo.setMaSanPham(code);
     combo.setTenSanPham(request.getTenSanPham().trim());
     combo.setTrangThai(status);
-    if (request.getDanhMucId() != null) {
-      combo.setDanhMuc(
-          danhMucRepository
-              .findById(request.getDanhMucId())
-              .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "Không tìm thấy danh mục")));
-    }
+    combo.setDanhMuc(category);
 
     if (request.isThuongHieuProvided()) {
       combo.setThuongHieu(
@@ -342,7 +353,7 @@ public class AdminComboService {
     }
 
     if (request.getMoTa() != null) {
-      combo.setMoTa(request.getMoTa());
+      combo.setMoTa(catalog.cleanDescription(request.getMoTa()));
     }
 
     if (request.getThongSoKyThuat() != null) {

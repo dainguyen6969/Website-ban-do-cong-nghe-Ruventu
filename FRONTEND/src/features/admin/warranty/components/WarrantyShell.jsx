@@ -1,3 +1,7 @@
+import { useEffect, useId, useRef, useState } from 'react';
+import FormCard from '../../../../shared/components/ui/FormCard';
+import TablePagination from '../../../../shared/components/ui/TablePagination';
+
 export function WarrantyBadge({ children, tone }) {
   if (!children)
     return (
@@ -32,11 +36,7 @@ export function WarrantyBadge({ children, tone }) {
 
 export function WarrantyPanel({ title, note, action, className = '', children }) {
   return (
-    <FormCard
-      title={title}
-      headerRight={action}
-      className={`w-shell-panel ${className}`.trim()}
-    >
+    <FormCard title={title} headerRight={action} className={`w-shell-panel ${className}`.trim()}>
       <div className="w-shell-panel-body">
         {note && <p className="w-shell-note w-panel-note">{note}</p>}
         {children}
@@ -58,7 +58,23 @@ export function WarrantyFields({ fields }) {
   );
 }
 
-export function WarrantyTable({ columns, rows = [], empty }) {
+export function WarrantyTable({
+  columns,
+  rows = [],
+  empty,
+  pageSize: initialPageSize = 5,
+  idPrefix = 'warranty-table',
+  showPagination = true,
+  pageSizeOptions = [5, 10, 20, 50, 100],
+}) {
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(initialPageSize);
+  const totalItems = rows.length;
+  const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+  const safePage = Math.min(Math.max(1, currentPage), totalPages);
+  const startIndex = (safePage - 1) * pageSize;
+  const visibleRows = showPagination ? rows.slice(startIndex, startIndex + pageSize) : rows;
+
   return (
     <div className="w-shell-table-scroll">
       <div
@@ -76,8 +92,8 @@ export function WarrantyTable({ columns, rows = [], empty }) {
             </tr>
           </thead>
           <tbody>
-            {rows.length ? (
-              rows.map((row, i) => (
+            {visibleRows.length ? (
+              visibleRows.map((row, i) => (
                 <tr key={i}>
                   {row.map((cell, j) => (
                     <td key={j}>{cell ?? '—'}</td>
@@ -94,7 +110,74 @@ export function WarrantyTable({ columns, rows = [], empty }) {
           </tbody>
         </table>
       </div>
+      {showPagination && (
+        <TablePagination
+          className="admin-table-footer"
+          totalItems={totalItems}
+          pageSize={pageSize}
+          currentPage={safePage}
+          onPageChange={setCurrentPage}
+          idPrefix={idPrefix}
+          pageSizeOptions={pageSizeOptions}
+          onPageSizeChange={(newSize) => {
+            setPageSize(Number(newSize));
+            setCurrentPage(1);
+          }}
+        />
+      )}
     </div>
   );
 }
-import FormCard from '../../../../shared/components/ui/FormCard';
+
+export function WarrantyDialog({
+  title,
+  subtitle,
+  onClose,
+  blocked = false,
+  closeLabel = 'Đóng',
+  footer,
+  children,
+}) {
+  const ref = useRef(null);
+  const titleId = useId();
+
+  useEffect(() => {
+    const dialog = ref.current;
+    dialog.showModal();
+    return () => {
+      if (dialog.open) dialog.close();
+    };
+  }, []);
+
+  return (
+    <dialog
+      ref={ref}
+      className="w-warranty-dialog"
+      aria-labelledby={titleId}
+      onCancel={(event) => {
+        if (event.target !== event.currentTarget) return;
+        event.preventDefault();
+        if (!blocked) onClose();
+      }}
+    >
+      <header className="w-warranty-dialog-head">
+        <div>
+          <h2 id={titleId}>{title}</h2>
+          {subtitle && <p>{subtitle}</p>}
+        </div>
+        <button
+          type="button"
+          className="w-shell-button"
+          aria-label={closeLabel}
+          title={closeLabel}
+          disabled={blocked}
+          onClick={onClose}
+        >
+          ×
+        </button>
+      </header>
+      <div className="w-warranty-dialog-body">{children}</div>
+      {footer && <footer className="w-warranty-dialog-footer">{footer}</footer>}
+    </dialog>
+  );
+}
