@@ -38,6 +38,9 @@ public class PhienBanSanPham {
   @Column(name = "gia_nhap", nullable = false, precision = 15, scale = 2)
   private BigDecimal giaNhap;
 
+  @Column(name = "gia_von_binh_quan", precision = 38, scale = 2)
+  private BigDecimal giaVonBinhQuan;
+
   @Builder.Default
   @ColumnDefault("0.00")
   @Column(name = "khoi_luong", precision = 10, scale = 2)

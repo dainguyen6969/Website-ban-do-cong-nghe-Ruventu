@@ -3,7 +3,7 @@ import { toSpecRows } from '../../../../../shared/services/productSpecifications
 import { publishCatalogChange } from '../../../../../shared/services/catalogChanges.js';
 
 const PATH = '/api/v1/admin/products';
-const nullableNumber = value => value == null ? null : Number(value);
+const nullableNumber = (value) => (value == null ? null : Number(value));
 
 export function normalizeVariant(item) {
   return {
@@ -12,6 +12,7 @@ export function normalizeVariant(item) {
     sku: item.ma_vach || '',
     giaBanLe: Number(item.gia_ban_le ?? 0),
     giaNhap: Number(item.gia_nhap ?? 0),
+    giaVonBinhQuan: nullableNumber(item.gia_von_binh_quan),
     khoiLuong: String(item.khoi_luong ?? ''),
     trangThai: Number(item.trang_thai),
     serialMode: item.co_quan_ly_serial,
@@ -42,8 +43,7 @@ function normalizeProduct(item) {
     sellable: Boolean(item.co_the_ban),
     unavailableReason: item.ly_do_chua_the_ban || '',
     warrantyMonths: nullableNumber(item.thoi_han_bao_hanh_thang),
-    trangThaiBan: Number(item.trang_thai) === 1
-      ? 'Đang kinh doanh' : 'Ngừng kinh doanh',
+    trangThaiBan: Number(item.trang_thai) === 1 ? 'Đang kinh doanh' : 'Ngừng kinh doanh',
     canhBao: null,
     hinhAnh: item.anh_chinh || '',
   };
@@ -53,7 +53,7 @@ function normalizeProductDetail(item) {
   const isCombo = item.loai_san_pham === 'BO_PC';
   const variants = (item.danh_sach_phien_ban || []).map(normalizeVariant);
 
-  const images = (item.anh_san_pham || []).map(image => ({
+  const images = (item.anh_san_pham || []).map((image) => ({
     id: image.id,
     url: image.duong_dan_anh,
     primary: Boolean(image.la_anh_chinh),
@@ -77,22 +77,21 @@ function normalizeProductDetail(item) {
       value,
     })),
     vat: `${Number(item.thue_vat ?? 0)}%`,
-    trangThaiBan: Number(item.trang_thai) === 1
-      ? 'Đang kinh doanh' : 'Ngừng kinh doanh',
+    trangThaiBan: Number(item.trang_thai) === 1 ? 'Đang kinh doanh' : 'Ngừng kinh doanh',
     warrantyMonths: nullableNumber(item.thoi_han_bao_hanh_thang),
     assemblyCapacity: nullableNumber(item.so_bo_co_the_lap),
     configured: Boolean(item.da_co_cau_hinh_combo),
     sellable: Boolean(item.co_the_ban),
     unavailableReason: item.ly_do_chua_the_ban || '',
     images,
-    hinhAnh: images.find(image => image.primary)?.url || images[0]?.url || '',
+    hinhAnh: images.find((image) => image.primary)?.url || images[0]?.url || '',
     variants,
     giaBanLe: variants[0]?.giaBanLe ?? 0,
     giaNhap: variants[0]?.giaNhap ?? 0,
     khoiLuong: variants[0]?.khoiLuong ?? '',
     tonKho: nullableNumber(item.ton_thuc_te),
     coTheBan: nullableNumber(item.ton_co_the_ban),
-    components: (item.thanh_phan || []).map(component => ({
+    components: (item.thanh_phan || []).map((component) => ({
       id: Number(component.phien_ban_id),
       name: component.ten_san_pham || '',
       variant: component.ten_phien_ban || '',
@@ -130,11 +129,9 @@ export async function getProductPage(filters, signal) {
 }
 
 export const getProductDetail = async (id, signal) =>
-  normalizeProductDetail(
-    await request(`${PATH}/${encodeURIComponent(id)}`, { signal }),
-  );
+  normalizeProductDetail(await request(`${PATH}/${encodeURIComponent(id)}`, { signal }));
 
-export const createProduct = body =>
+export const createProduct = (body) =>
   request(PATH, { method: 'POST', body: JSON.stringify(body) }).then(publishCatalogChange);
 
 export const updateProduct = (id, body) =>
@@ -156,12 +153,15 @@ export const updateProductVariant = (productId, variantId, body) =>
   }).then(publishCatalogChange);
 
 export const replaceVariantAttributes = (productId, variantId, attributes) =>
-  request(`${PATH}/${encodeURIComponent(productId)}/variants/${encodeURIComponent(variantId)}/attributes`, {
-    method: 'PUT',
-    body: JSON.stringify({
-      thuoc_tinh_phien_ban: attributes.map(item => ({
-        ten_thuoc_tinh: item.ten_thuoc_tinh.trim(),
-        gia_tri: item.gia_tri.trim(),
-      })),
-    }),
-  }).then(publishCatalogChange);
+  request(
+    `${PATH}/${encodeURIComponent(productId)}/variants/${encodeURIComponent(variantId)}/attributes`,
+    {
+      method: 'PUT',
+      body: JSON.stringify({
+        thuoc_tinh_phien_ban: attributes.map((item) => ({
+          ten_thuoc_tinh: item.ten_thuoc_tinh.trim(),
+          gia_tri: item.gia_tri.trim(),
+        })),
+      }),
+    }
+  ).then(publishCatalogChange);

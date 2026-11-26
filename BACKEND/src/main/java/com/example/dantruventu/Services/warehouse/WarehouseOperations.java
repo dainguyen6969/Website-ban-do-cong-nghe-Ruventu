@@ -12,6 +12,7 @@ import com.example.dantruventu.Services.order.sales.SalesContext;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
@@ -43,6 +44,7 @@ public class WarehouseOperations {
         () -> serialService.updateStatus(id, request, actorId));
   }
 
+  @Transactional(isolation = Isolation.READ_COMMITTED)
   public AdminPurchaseOrderReceiveResponse receivePurchase(
       Long id, String key, AdminPurchaseOrderReceiveRequest request) {
 

@@ -166,10 +166,15 @@ class AdminWarrantyDetailServiceTest {
             .loaiSuKien("NHAN_LAI")
             .duLieuChiTiet(
                 json.writeValueAsString(
-                    Map.of("giao_nhan", Map.of(
-                        "thiet_bi_id", 700L,
-                        "ngay", "2026-11-25T09:00:00+07:00",
-                        "phu_kien", List.of(Map.of("ten", "Cáp", "so_luong", 1))))))
+                    Map.of(
+                        "giao_nhan",
+                        Map.of(
+                            "thiet_bi_id",
+                            700L,
+                            "ngay",
+                            "2026-11-25T09:00:00+07:00",
+                            "phu_kien",
+                            List.of(Map.of("ten", "Cáp", "so_luong", 1))))))
             .build());
 
     var result = service.getDetail("501", "0", "2");
@@ -178,6 +183,7 @@ class AdminWarrantyDetailServiceTest {
     assertEquals(2, result.tiepNhan().phuKien().getFirst().get("so_luong"));
     assertEquals("Hoạt động tốt", result.xuLyTiep().tinhTrangSanSangTra());
     assertEquals(1, result.xuLyTiep().phuKienSanSangTra().getFirst().get("so_luong"));
-    assertEquals(List.of(Map.of("ten", "Cáp", "so_luong", 1)), result.giaoNhan().getFirst().get("phu_kien"));
+    assertEquals(
+        List.of(Map.of("ten", "Cáp", "so_luong", 1)), result.giaoNhan().getFirst().get("phu_kien"));
   }
 }

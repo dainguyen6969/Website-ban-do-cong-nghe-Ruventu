@@ -186,6 +186,7 @@ public class AdminProductService {
                       .maVach(variant.getMaVach())
                       .giaBanLe(variant.getGiaBanLe())
                       .giaNhap(variant.getGiaNhap())
+                      .giaVonBinhQuan(variant.getGiaVonBinhQuan())
                       .khoiLuong(variant.getKhoiLuong())
                       .trangThai(variant.getTrangThai().getValue())
                       .coQuanLySerial(variant.getCoQuanLySerial())

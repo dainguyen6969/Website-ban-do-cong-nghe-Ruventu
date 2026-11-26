@@ -556,16 +556,25 @@ public class AdminPurchaseOrderService {
         inventory.setViTriLuuKho(storageLocation);
       }
 
-      WarehouseSupport.numbers(inventory);
+      int previousQuantity = WarehouseSupport.numbers(inventory).actual();
 
       try {
-        inventory.setTonThucTe(Math.addExact(inventory.getTonThucTe(), quantity));
+        inventory.setTonThucTe(Math.addExact(previousQuantity, quantity));
 
         inventory.setTonCoTheBan(Math.addExact(inventory.getTonCoTheBan(), quantity));
 
       } catch (ArithmeticException exception) {
         throw new AppException(ErrorCode.CONFLICT, "Số lượng tồn kho vượt giới hạn cho phép");
       }
+
+      BigDecimal previousUnitCost =
+          Optional.ofNullable(variant.getGiaVonBinhQuan()).orElse(variant.getGiaNhap());
+      BigDecimal previousValue = previousUnitCost.multiply(BigDecimal.valueOf(previousQuantity));
+      BigDecimal receivedValue = detail.getGiaNhap().multiply(BigDecimal.valueOf(quantity));
+      variant.setGiaVonBinhQuan(
+          previousValue
+              .add(receivedValue)
+              .divide(BigDecimal.valueOf(inventory.getTonThucTe()), 2, RoundingMode.HALF_UP));
 
       tonKhoRepository.save(inventory);
 

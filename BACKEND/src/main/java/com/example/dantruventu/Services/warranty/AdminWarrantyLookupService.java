@@ -633,9 +633,10 @@ public class AdminWarrantyLookupService {
       // The snapshot has already been scoped to this exact device/source ticket above.
       deadlineResponse = history.time(deviceSnapshot.get("han_bao_hanh"));
     }
-    PhienBanSanPham variant = device != null ? device.getPhienBan()
-        : serial != null ? serial.getPhienBan()
-        : line == null ? null : line.getPhienBan();
+    PhienBanSanPham variant =
+        device != null
+            ? device.getPhienBan()
+            : serial != null ? serial.getPhienBan() : line == null ? null : line.getPhienBan();
     NguoiDung customer = order == null ? null : order.getKhachHang();
     String contact = customer == null ? null : customer.getHoTen();
     String phone = customer == null ? null : customer.getSoDienThoai();
@@ -660,7 +661,9 @@ public class AdminWarrantyLookupService {
         List.copyOf(blocks),
         current ? null : currentId,
         returnLineId,
-        variant == null || variant.getSanPham() == null ? null : variant.getSanPham().getTenSanPham(),
+        variant == null || variant.getSanPham() == null
+            ? null
+            : variant.getSanPham().getTenSanPham(),
         variant == null ? null : variant.getTenPhienBan(),
         variant == null ? null : variant.getMaVach(),
         order == null || contact != null && !contact.isBlank() ? contact : order.getTenNguoiNhan(),

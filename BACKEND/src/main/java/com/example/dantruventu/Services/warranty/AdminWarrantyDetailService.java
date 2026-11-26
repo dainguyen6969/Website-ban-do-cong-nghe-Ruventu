@@ -607,7 +607,9 @@ public class AdminWarrantyDetailService {
               "da_cap_cho_phuong_an",
               bool(value(replacement, "da_cap_cho_phuong_an")),
               "phu_kien",
-              handover.get("phu_kien") instanceof List<?> ? accessories(handover.get("phu_kien")) : null,
+              handover.get("phu_kien") instanceof List<?>
+                  ? accessories(handover.get("phu_kien"))
+                  : null,
               "sai_lech",
               differences));
     }
