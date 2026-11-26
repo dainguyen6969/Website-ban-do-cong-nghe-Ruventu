@@ -178,7 +178,9 @@ public class AdminWarrantyController {
     return ApiResponse.<AdminWarrantyLookupResponse>builder()
         .status(200)
         .message("Tra cứu bảo hành thành công")
-        .data(lookupService.getLookup(soSerial, maTheoDoi, maDonHang, sdt, intakeId, keyword, page, limit))
+        .data(
+            lookupService.getLookup(
+                soSerial, maTheoDoi, maDonHang, sdt, intakeId, keyword, page, limit))
         .build();
   }
 

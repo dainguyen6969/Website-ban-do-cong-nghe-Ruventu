@@ -155,15 +155,19 @@ public class WarrantyLookupRepository {
     Map<String, Object> parameters = new LinkedHashMap<>();
     String predicate = predicate(filter, parameters);
     String from = " FROM candidates c ";
-    String order = " ORDER BY c.order_id DESC, c.line_id DESC, c.kind, c.device_id DESC, c.serial_id DESC";
+    String order =
+        " ORDER BY c.order_id DESC, c.line_id DESC, c.kind, c.device_id DESC, c.serial_id DESC";
     if (keyword != null) {
-      from += """
+      from +=
+          """
           LEFT JOIN phien_ban_san_pham variant ON variant.id = c.variant_id
           LEFT JOIN san_pham product ON product.id = variant.san_pham_id
           LEFT JOIN don_hang purchase ON purchase.id = c.order_id
           LEFT JOIN nguoi_dung customer ON customer.id = purchase.khach_hang_id
           """;
-      predicate += "\n" + """
+      predicate +=
+          "\n"
+              + """
           AND (c.so_serial = :keyword OR (c.order_id IS NOT NULL AND (
             c.ma_don_hang LIKE :prefix ESCAPE '!'
             OR c.ma_theo_doi LIKE :prefix ESCAPE '!'
@@ -180,15 +184,15 @@ public class WarrantyLookupRepository {
       parameters.put("keyword", keyword);
       parameters.put("prefix", literal + "%");
       parameters.put("contains", "%" + literal + "%");
-      order = """
+      order =
+          """
           ORDER BY CASE WHEN c.so_serial = :keyword OR c.ma_don_hang = :keyword
                               OR c.ma_theo_doi = :keyword THEN 0
                         WHEN c.order_id IS NOT NULL THEN 1 ELSE 2 END,
                    c.order_id DESC, c.line_id DESC, c.kind, c.device_id DESC, c.serial_id DESC
           """;
     }
-    Query count =
-        entityManager.createNativeQuery(SOURCES + "SELECT COUNT(*)" + from + predicate);
+    Query count = entityManager.createNativeQuery(SOURCES + "SELECT COUNT(*)" + from + predicate);
     parameters.forEach(count::setParameter);
     long total = number(count.getSingleResult()).longValue();
     if (total == 0) return new PageImpl<>(List.of(), pageable, 0);
