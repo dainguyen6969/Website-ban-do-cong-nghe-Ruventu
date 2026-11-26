@@ -23,6 +23,7 @@ import {
   quoteLabels,
   paymentLabels,
   refundLabels,
+  warrantyAccessoriesLabel,
 } from '../data/warrantyContract';
 import { actions, fieldOptions } from '../data/warrantyActions';
 import {
@@ -648,7 +649,7 @@ function WarrantyDetail({ id }) {
         'Bản in',
       ]}
       rows={invoices.map((item) => [
-        `${item.ma_hoa_don} / #${item.id}`,
+        item.ma_hoa_don || 'Chưa có mã hóa đơn',
         item.trang_thai === 'HUY' ? 'Đã hủy' : displayValue(item.trang_thai),
         item.phien_ban_bao_gia,
         money(item.tong_tien),
@@ -749,6 +750,7 @@ function WarrantyDetail({ id }) {
                     </WarrantyBadge>
                   )}
                   {item.so_serial_thuc_nhan && <p>Serial thực nhận: {item.so_serial_thuc_nhan}</p>}
+                  {item.phu_kien != null && <p>Phụ kiện: {warrantyAccessoriesLabel(item.phu_kien)}</p>}
                 </div>
                 <button
                   type="button"
@@ -921,12 +923,7 @@ function WarrantyDetail({ id }) {
               <WarrantyFields
                 fields={[
                   ['Tình trạng lúc sẵn sàng trả', readyCondition],
-                  [
-                    'Phụ kiện sẽ trả',
-                    (readyAccessories ?? [])
-                      .map((item) => `${item.ten} × ${item.so_luong}`)
-                      .join(', ') || 'Không ghi nhận phụ kiện',
-                  ],
+                  ['Phụ kiện sẽ trả', warrantyAccessoriesLabel(readyAccessories)],
                 ]}
               />
             </div>
@@ -1012,9 +1009,7 @@ function WarrantyDetail({ id }) {
                       ['Tình trạng khi nhận', data.tiep_nhan?.tinh_trang],
                       [
                         'Phụ kiện đi kèm',
-                        (data.tiep_nhan?.phu_kien || [])
-                          .map((item) => `${item.ten} × ${item.so_luong}`)
-                          .join(', ') || 'Không ghi nhận phụ kiện',
+                        warrantyAccessoriesLabel(data.tiep_nhan?.phu_kien),
                       ],
                       ['Kết quả hiện tại', displayValue(data.ket_qua_xu_ly)],
                     ]}
@@ -1103,13 +1098,12 @@ function WarrantyDetail({ id }) {
                   'money',
                   <>
                     <WarrantyTable
-                      columns={['Tham chiếu', 'Giao dịch', 'Số tiền', 'Phiếu thu / chi']}
+                      columns={['Giao dịch', 'Số tiền', 'Mã phiếu thu / chi']}
                       rows={(data.giao_dich_tien || []).map((item) => [
-                        '#' + item.id,
                         actions.find((operation) => operation.key === item.loai)?.label ||
                           item.loai,
                         money(item.so_tien),
-                        item.phieu_thu_chi_id,
+                        item.ma_phieu_thu_chi || 'Chưa có mã phiếu',
                       ])}
                       empty="Chưa có giao dịch tiền được ghi nhận."
                     />

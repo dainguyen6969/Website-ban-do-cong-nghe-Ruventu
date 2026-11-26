@@ -1,15 +1,15 @@
 import { useId, useLayoutEffect, useRef, useState } from 'react';
 import { Plus, X } from 'lucide-react';
 import { WarrantyDialog } from './WarrantyShell';
-import { intakeOptions } from '../data/intakeOptions';
 
-function IntakeDescriptionDialog({ field, title, selected, custom, onClose, onApply }) {
+function IntakeDescriptionDialog({ options, title, selected, custom, single, allowCustom, disabledOption, onClose, onApply }) {
   const [choices, setChoices] = useState(selected);
   const [entries, setEntries] = useState(custom);
   const [other, setOther] = useState(custom.length > 0);
   const [draft, setDraft] = useState('');
   const [customError, setCustomError] = useState('');
   const inputRef = useRef(null);
+  const choiceName = useId();
   const activeEntries = other ? entries : [];
 
   function addCustom() {
@@ -19,7 +19,7 @@ function IntakeDescriptionDialog({ field, title, selected, custom, onClose, onAp
       setCustomError('Nội dung này đã được chọn.');
       return;
     }
-    setEntries(current => [...current, value]);
+    setEntries(current => single ? [value] : [...current, value]);
     setDraft('');
     setCustomError('');
     inputRef.current?.focus();
@@ -49,18 +49,27 @@ function IntakeDescriptionDialog({ field, title, selected, custom, onClose, onAp
       )}
     >
       <div className="w-intake-picker-groups">
-        {intakeOptions[field].map(([group, options]) => (
+        {options.map(([group, groupOptions]) => (
           <fieldset className="w-intake-picker-group" key={group}>
             <legend>{group}</legend>
             <div className="w-intake-picker-checks">
-              {options.map(option => (
+              {groupOptions.map(option => (
                 <label key={option}>
                   <input
-                    type="checkbox"
+                    type={single ? 'radio' : 'checkbox'}
+                    name={single ? choiceName : undefined}
                     checked={choices.includes(option)}
+                    disabled={option === disabledOption}
                     onChange={event => {
                       const checked = event.target.checked;
-                      setChoices(current => checked ? [...current, option] : current.filter(item => item !== option));
+                      if (single) {
+                        setChoices([option]);
+                        setOther(false);
+                        setDraft('');
+                        setCustomError('');
+                      } else {
+                        setChoices(current => checked ? [...current, option] : current.filter(item => item !== option));
+                      }
                     }}
                   />
                   <span>{option}</span>
@@ -70,9 +79,17 @@ function IntakeDescriptionDialog({ field, title, selected, custom, onClose, onAp
           </fieldset>
         ))}
       </div>
-      <div className="w-intake-picker-custom">
+      {allowCustom && <div className="w-intake-picker-custom">
         <label className="w-intake-picker-other">
-          <input type="checkbox" checked={other} onChange={event => setOther(event.target.checked)} />
+          <input
+            type={single ? 'radio' : 'checkbox'}
+            name={single ? choiceName : undefined}
+            checked={other}
+            onChange={event => {
+              setOther(event.target.checked);
+              if (single) setChoices([]);
+            }}
+          />
           Khác
         </label>
         {other && (
@@ -109,12 +126,12 @@ function IntakeDescriptionDialog({ field, title, selected, custom, onClose, onAp
             )}
           </>
         )}
-      </div>
+      </div>}
     </WarrantyDialog>
   );
 }
 
-export default function IntakeDescriptionField({ field, title, selected, custom, error, onChange }) {
+export default function IntakeDescriptionField({ options, title, selected, custom = [], single = false, allowCustom = true, disabledOption, error, onChange }) {
   const [open, setOpen] = useState(false);
   const [more, setMore] = useState(false);
   const [placement, setPlacement] = useState(null);
@@ -122,12 +139,13 @@ export default function IntakeDescriptionField({ field, title, selected, custom,
   const triggerRef = useRef(null);
   const items = [...selected, ...custom];
   const visibleCount = 4;
+  const hasMore = items.length > visibleCount;
 
   useLayoutEffect(() => {
-    if (!more) return;
+    if (!more || !hasMore) return;
     const button = triggerRef.current;
     const summary = button.parentElement;
-    const viewport = button.closest('.w-intake');
+    const viewport = button.closest('.w-warranty-dialog-body, .w-intake');
 
     function positionList() {
       const anchor = button.getBoundingClientRect();
@@ -159,7 +177,7 @@ export default function IntakeDescriptionField({ field, title, selected, custom,
       viewport.removeEventListener('scroll', positionList);
       window.removeEventListener('resize', positionList);
     };
-  }, [more]);
+  }, [more, hasMore]);
 
   return (
     <section className="w-intake-picker-field" aria-label={title}>
@@ -182,7 +200,7 @@ export default function IntakeDescriptionField({ field, title, selected, custom,
           }}
         >
           {items.slice(0, visibleCount).map((item, index) => <span key={`${index}-${item}`} title={item}>{item}</span>)}
-          {items.length > visibleCount && (
+          {hasMore && (
             <>
               <button
                 ref={triggerRef}
@@ -207,10 +225,13 @@ export default function IntakeDescriptionField({ field, title, selected, custom,
       {error && <p className="w-shell-error" role="alert">{error}</p>}
       {open && (
         <IntakeDescriptionDialog
-          field={field}
+          options={options}
           title={title}
           selected={selected}
           custom={custom}
+          single={single}
+          allowCustom={allowCustom}
+          disabledOption={disabledOption}
           onClose={() => setOpen(false)}
           onApply={(choices, entries) => { onChange(choices, entries); setOpen(false); }}
         />

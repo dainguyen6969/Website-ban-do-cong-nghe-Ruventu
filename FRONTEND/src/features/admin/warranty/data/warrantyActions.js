@@ -1,5 +1,6 @@
 import { eligibilityLabels, localTimestamp, receiptNow } from './warrantyContract.js';
 import { freeWorkItems, referenceOptions, discrepancyLabels } from './warrantyExperience.js';
+import { inspectionOptions } from './intakeOptions.js';
 
 const channels = {
   TAI_QUAY: 'Tại quầy',
@@ -555,7 +556,12 @@ export function initialActionValues(operation, detail, quoteVersion) {
     else {
       values.phien_ban_phuong_an = '';
       values.tinh_trang = detail.tiep_nhan?.tinh_trang ?? '';
-      values.phu_kien = (detail.tiep_nhan?.phu_kien ?? []).map((item) => ({ ...item }));
+      const receipt = detail.giao_nhan?.findLast(
+        (item) => item.su_kien === 'NHAN_LAI' && item.da_nhan_dung_thiet_bi === true &&
+          item.thiet_bi_id != null && String(item.thiet_bi_id) === String(detail.thiet_bi?.id)
+      );
+      const accessories = receipt ? receipt.phu_kien : detail.tiep_nhan?.phu_kien;
+      values.phu_kien = (accessories ?? []).map((item) => ({ ...item }));
     }
   }
   if (operation.key === 'HOAN_KHACH') {
@@ -584,6 +590,18 @@ export function actionBody(operation, values) {
     const optional = raw.endsWith('?'),
       name = raw.replace(/\?$/, ''),
       type = fieldType(name);
+    if (operation.key === 'GHI_KET_LUAN' && Object.hasOwn(inspectionOptions, name)) {
+      const choices = (typeof value === 'string' ? [value] : [...(value?.selected ?? []), ...(value?.custom ?? [])])
+        .map(item => item.trim())
+        .filter(Boolean);
+      if (!choices.length) throw new Error(`Chọn ${fieldLabels[name].toLocaleLowerCase('vi')}.`);
+      const isCode = name === 'ma_hang_muc';
+      if (isCode && choices.length !== 1) throw new Error('Chọn một mã hạng mục cho mỗi dòng.');
+      const text = choices.join(' · ');
+      const limit = isCode ? 100 : 16000;
+      if (text.length > limit) throw new Error(`${fieldLabels[name]} tối đa ${limit} ký tự.`);
+      return text;
+    }
     if (name === 'sai_lech_da_xu_ly') {
       if (value === '' || value == null) return [];
       if (!Array.isArray(value) || value.some((id) => !Number.isSafeInteger(id) || id < 1))
@@ -661,6 +679,14 @@ export function actionBody(operation, values) {
   }
   if (body.cach_tinh_han === 'GIU_HAN_CON_LAI') delete body.han_moi_xac_nhan;
   if (body.hang_muc && !body.hang_muc.length) throw new Error('Thêm ít nhất một hạng mục.');
+  if (operation.key === 'GHI_KET_LUAN') {
+    const codes = new Set();
+    for (const [index, item] of body.hang_muc.entries()) {
+      const code = item.ma_hang_muc.toLocaleLowerCase('vi');
+      if (codes.has(code)) throw new Error(`Hạng mục ${index + 1} bị trùng mã “${item.ma_hang_muc}” với dòng trước.`);
+      codes.add(code);
+    }
+  }
 
   if (operation.key === 'NHAN_LAI') {
     const outcome = body.doi_chieu_thiet_bi;

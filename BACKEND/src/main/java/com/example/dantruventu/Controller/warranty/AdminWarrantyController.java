@@ -172,12 +172,13 @@ public class AdminWarrantyController {
       @RequestParam(name = "ma_don_hang", required = false) String maDonHang,
       @RequestParam(name = "sdt_nguoi_lien_he", required = false) String sdt,
       @RequestParam(name = "yeu_cau_tiep_nhan_id", required = false) String intakeId,
+      @RequestParam(name = "keyword", required = false) String keyword,
       @RequestParam(defaultValue = "0") String page,
       @RequestParam(defaultValue = "20") String limit) {
     return ApiResponse.<AdminWarrantyLookupResponse>builder()
         .status(200)
         .message("Tra cứu bảo hành thành công")
-        .data(lookupService.getLookup(soSerial, maTheoDoi, maDonHang, sdt, intakeId, page, limit))
+        .data(lookupService.getLookup(soSerial, maTheoDoi, maDonHang, sdt, intakeId, keyword, page, limit))
         .build();
   }
 

@@ -391,11 +391,10 @@ export default function WarrantyHistoryDetail({ ticketId, eventId, ticket = {}, 
               ['Người ghi nhận', data.ten_nguoi_thuc_hien || 'Chưa có tên người ghi nhận'],
               ['Thời điểm ghi nhận', displayDate(data.ngay_tao)],
               ['Nội dung', data.noi_dung],
-              ['Mã lịch sử', String(data.id ?? eventId)],
             ]}
           />
           <section className="w-shell-subsection">
-            <HistoryData value={data.chi_tiet} ticket={ticket} />
+            <HistoryData value={{ ...data.chi_tiet, lich_su_id: data.id ?? eventId }} ticket={ticket} />
           </section>
         </>
       )}
