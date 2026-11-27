@@ -320,6 +320,7 @@ public class SalesSlipPrintSource {
   private String status(TrangThaiDonHang status) {
     return switch (status) {
       case CHO_DUYET -> "Chờ duyệt";
+      case CHO_HANG -> "Chờ hàng";
       case CHO_THANH_TOAN -> "Chờ thanh toán";
       case CHO_DONG_GOI -> "Chờ đóng gói";
       case CHO_LAY_HANG -> "Chờ lấy hàng";
