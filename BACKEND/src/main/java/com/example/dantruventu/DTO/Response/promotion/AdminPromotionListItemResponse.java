@@ -1,8 +1,10 @@
 package com.example.dantruventu.DTO.Response.promotion;
 
 import com.example.dantruventu.Enum.DoiTuongKhuyenMai;
+import com.example.dantruventu.Enum.LoaiChietKhau;
 import com.example.dantruventu.Enum.PhuongThucKhuyenMai;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -31,11 +33,23 @@ public class AdminPromotionListItemResponse {
   @JsonProperty("doi_tuong_khuyen_mai")
   private DoiTuongKhuyenMai doiTuongKhuyenMai;
 
+  @JsonProperty("loai_chiet_khau")
+  private LoaiChietKhau loaiChietKhau;
+
+  @JsonProperty("gia_tri_khuyen_mai")
+  private BigDecimal giaTriKhuyenMai;
+
+  @JsonProperty("phien_ban_cau_hinh")
+  private Integer phienBanCauHinh;
+
   @JsonProperty("so_luong_ap_dung")
   private Integer soLuongApDung;
 
   @JsonProperty("so_luong_da_dung")
   private Integer soLuongDaDung;
+
+  @JsonProperty("so_luong_dang_giu")
+  private long soLuongDangGiu;
 
   @JsonProperty("so_luong_con_lai")
   private Integer soLuongConLai;

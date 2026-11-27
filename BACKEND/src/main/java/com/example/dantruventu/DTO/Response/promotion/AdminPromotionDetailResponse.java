@@ -1,6 +1,7 @@
 package com.example.dantruventu.DTO.Response.promotion;
 
 import com.example.dantruventu.Enum.DoiTuongKhuyenMai;
+import com.example.dantruventu.Enum.LoaiChietKhau;
 import com.example.dantruventu.Enum.PhuongThucKhuyenMai;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import java.math.BigDecimal;
@@ -32,6 +33,39 @@ public class AdminPromotionDetailResponse {
 
   @JsonProperty("doi_tuong_khuyen_mai")
   private DoiTuongKhuyenMai doiTuongKhuyenMai;
+
+  @JsonProperty("loai_chiet_khau")
+  private LoaiChietKhau loaiChietKhau;
+
+  @JsonProperty("gia_tri_hang_toi_thieu")
+  private BigDecimal giaTriHangToiThieu;
+
+  @JsonProperty("so_luong_mua_toi_thieu")
+  private Integer soLuongMuaToiThieu;
+
+  @JsonProperty("muc_giam_toi_da")
+  private BigDecimal mucGiamToiDa;
+
+  @JsonProperty("danh_muc_id")
+  private Long danhMucId;
+
+  @JsonProperty("thuong_hieu_id")
+  private Long thuongHieuId;
+
+  @JsonProperty("phien_ban_cau_hinh")
+  private Integer phienBanCauHinh;
+
+  @JsonProperty("so_luong_dang_giu")
+  private long soLuongDangGiu;
+
+  @JsonProperty("so_luong_da_giai_phong")
+  private long soLuongDaGiaiPhong;
+
+  @JsonProperty("co_the_sua_cau_hinh")
+  private boolean coTheSuaCauHinh;
+
+  @JsonProperty("co_the_xoa")
+  private boolean coTheXoa;
 
   @JsonProperty("so_luong_ap_dung")
   private Integer soLuongApDung;
