@@ -24,11 +24,8 @@ public class AdminPromotionStatisticsController {
   @GetMapping("/{id}/statistics")
   public ApiResponse<AdminPromotionStatisticsResponse> getStatistics(
       @PathVariable("id") Long id,
-      @RequestParam(name = "tu_ngay")
-          @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
-          LocalDate from,
-      @RequestParam(name = "den_ngay")
-          @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
+      @RequestParam(name = "tu_ngay") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+      @RequestParam(name = "den_ngay") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
           LocalDate to) {
     return ApiResponse.<AdminPromotionStatisticsResponse>builder()
         .status(200)

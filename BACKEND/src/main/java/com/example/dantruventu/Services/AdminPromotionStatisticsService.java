@@ -65,8 +65,7 @@ public class AdminPromotionStatisticsService {
     List<Gift> gifts = new ArrayList<>();
     long giftQuantity = 0;
     for (var row :
-        statistics.summarizeDeliveredGifts(
-            id, start, end, TrangThaiApDungKhuyenMai.DA_SU_DUNG)) {
+        statistics.summarizeDeliveredGifts(id, start, end, TrangThaiApDungKhuyenMai.DA_SU_DUNG)) {
       long quantity = row.getQuantity();
       if (quantity <= 0) {
         throw new AppException(

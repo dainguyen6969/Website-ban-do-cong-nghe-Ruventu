@@ -29,6 +29,5 @@ public record AdminPromotionStatisticsResponse(
       @JsonProperty("qua_da_giao") List<Gift> quaDaGiao) {}
 
   public record Gift(
-      @JsonProperty("phien_ban_id") Long phienBanId,
-      @JsonProperty("so_luong") long soLuong) {}
+      @JsonProperty("phien_ban_id") Long phienBanId, @JsonProperty("so_luong") long soLuong) {}
 }

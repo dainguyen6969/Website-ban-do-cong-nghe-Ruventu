@@ -60,7 +60,8 @@ public final class KhuyenMaiSpecification {
       }
 
       if (fromInclusive != null) {
-        predicates.add(criteriaBuilder.greaterThanOrEqualTo(root.get("ngayKetThuc"), fromInclusive));
+        predicates.add(
+            criteriaBuilder.greaterThanOrEqualTo(root.get("ngayKetThuc"), fromInclusive));
       }
       if (toExclusive != null) {
         predicates.add(criteriaBuilder.lessThan(root.get("ngayBatDau"), toExclusive));
@@ -84,8 +85,7 @@ public final class KhuyenMaiSpecification {
     Expression<LocalDateTime> end = promotion.get("ngayKetThuc");
 
     return switch (status) {
-      case TAM_DUNG ->
-          cb.equal(promotion.get("trangThai"), TrangThaiCoBanEnum.NGUNG_HOAT_DONG);
+      case TAM_DUNG -> cb.equal(promotion.get("trangThai"), TrangThaiCoBanEnum.NGUNG_HOAT_DONG);
       case CHUA_BAT_DAU -> cb.and(enabled, cb.greaterThan(start, now));
       case HET_HAN -> cb.and(enabled, cb.lessThanOrEqualTo(start, now), cb.lessThan(end, now));
       case HET_LUOT, DANG_AP_DUNG -> {
@@ -103,7 +103,10 @@ public final class KhuyenMaiSpecification {
                 ? cb.and(cb.isNotNull(limit), cb.ge(occupied, limit))
                 : cb.or(cb.isNull(limit), cb.lt(occupied, limit));
         yield cb.and(
-            enabled, cb.lessThanOrEqualTo(start, now), cb.greaterThanOrEqualTo(end, now), availability);
+            enabled,
+            cb.lessThanOrEqualTo(start, now),
+            cb.greaterThanOrEqualTo(end, now),
+            availability);
       }
     };
   }
