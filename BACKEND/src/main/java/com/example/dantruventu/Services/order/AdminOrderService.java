@@ -30,6 +30,7 @@ import jakarta.persistence.EntityManager;
 import jakarta.persistence.LockModeType;
 import jakarta.persistence.criteria.JoinType;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
@@ -1612,6 +1613,68 @@ public class AdminOrderService {
     response.setKhoHangId(context.defaultWarehouseId());
     response.setHangGiu(inventory.reservationRows(order, false));
     return response;
+  }
+
+  public AdminOrderResponse.PackageSuggestion packageSuggestion(Long id) {
+    DonHang order = findOrder(id);
+    requireOnline(order);
+    if (!shipping(order)) {
+      throw conflict("Chỉ gợi ý kiện cho đơn có giao hàng");
+    }
+
+    Map<Long, Long> quantities = new LinkedHashMap<>();
+    for (var line : lineRepository.findByDonHang_IdOrderByIdAsc(id)) {
+      var physical = saleSnapshots.physicalForPackageSuggestion(line);
+      if (physical.isEmpty()) {
+        return new AdminOrderResponse.PackageSuggestion(
+            null, null, null, null, true, "Thiếu cấu hình đã chốt của đơn. Nhập số đo thực tế.");
+      }
+
+      for (var item : physical.get().values()) {
+        quantities.merge(item.variantId(), (long) item.quantity(), Long::sum);
+      }
+    }
+
+    if (quantities.isEmpty()) {
+      return new AdminOrderResponse.PackageSuggestion(
+          null, null, null, null, true, "Đơn chưa có dòng hàng để tính kiện.");
+    }
+
+    var variants = variantRepository.findAllById(quantities.keySet());
+    boolean hasWeight = variants.size() == quantities.size();
+    boolean hasSize = hasWeight;
+    BigDecimal grams = BigDecimal.ZERO;
+    int length = 0;
+    int width = 0;
+    BigDecimal height = BigDecimal.ZERO;
+
+    for (var variant : variants) {
+      BigDecimal qty = BigDecimal.valueOf(quantities.get(variant.getId()));
+      BigDecimal weightKg = variant.getKhoiLuong();
+      if (weightKg == null || weightKg.signum() <= 0) {
+        hasWeight = false;
+      } else {
+        grams = grams.add(weightKg.movePointRight(3).multiply(qty));
+      }
+
+      var size = variant.getKichThuocDongGoi();
+      if (size == null || !size.hopLe()) {
+        hasSize = false;
+      } else {
+        length = Math.max(length, size.daiCm());
+        width = Math.max(width, size.rongCm());
+        height = height.add(BigDecimal.valueOf(size.caoCm()).multiply(qty));
+      }
+    }
+
+    boolean canNhapTay = !hasWeight || !hasSize;
+    return new AdminOrderResponse.PackageSuggestion(
+        hasWeight ? grams.setScale(0, RoundingMode.CEILING) : null,
+        hasSize ? length : null,
+        hasSize ? width : null,
+        hasSize ? height : null,
+        canNhapTay,
+        canNhapTay ? "Thiếu khối lượng hoặc kích thước. Nhập số đo còn thiếu." : null);
   }
 
   @Transactional(isolation = Isolation.READ_COMMITTED)

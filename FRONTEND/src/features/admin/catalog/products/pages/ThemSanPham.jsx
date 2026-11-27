@@ -32,6 +32,23 @@ const COMBOS = '/api/v1/admin/combos';
 const MAX_VARIANTS = 100;
 const MAX_QUANTITY = 2147483647;
 
+const PACKAGE_DIMENSIONS = [
+  ['dai_cm', 'Dài'],
+  ['rong_cm', 'Rộng'],
+  ['cao_cm', 'Cao'],
+];
+
+function packageDimensionsValue(input, variantName) {
+  const values = PACKAGE_DIMENSIONS.map(([key]) => String(input?.[key] ?? '').trim());
+  if (values.every((value) => value === '')) return null;
+
+  if (values.some((value) => !/^[1-9][0-9]*$/.test(value) || Number(value) > 2_147_483_647)) {
+    throw new Error(`Nhập chiều dài, rộng & chiều cao đóng gói của "${variantName}" bằng (cm).`);
+  }
+
+  return Object.fromEntries(PACKAGE_DIMENSIONS.map(([key], index) => [key, Number(values[index])]));
+}
+
 let localSequence = 0;
 
 function localId() {
@@ -489,6 +506,7 @@ export default function ThemSanPham() {
               retail: String(item.gia_ban_le ?? ''),
               cost: String(item.gia_nhap ?? ''),
               weight: String(item.khoi_luong ?? ''),
+              packageSize: item.kich_thuoc_dong_goi ?? {},
               status: Number(item.trang_thai),
               serialMode:
                 typeof item.co_quan_ly_serial === 'boolean' ? String(item.co_quan_ly_serial) : '',
@@ -830,6 +848,9 @@ export default function ThemSanPham() {
               gia_ban_le: moneyValue(variant.retail, `Giá bán "${variantName}"`, true),
               gia_nhap: moneyValue(variant.cost, `Giá nhập "${variantName}"`),
               khoi_luong: weight,
+              ...((!variant.id || variantDrafts[variant.key]?.packageSize != null) && {
+                kich_thuoc_dong_goi: packageDimensionsValue(variant.packageSize, variantName),
+              }),
               trang_thai: Number(variant.status),
               co_quan_ly_serial: variant.serialMode === 'true',
             },
@@ -970,7 +991,7 @@ export default function ThemSanPham() {
             disabled={saving || !canSaveProduct}
             onClick={save}
           >
-            {saving ? "ĐANG LƯU..." : "LƯU SẢN PHẨM"}
+            {saving ? 'ĐANG LƯU...' : 'LƯU SẢN PHẨM'}
           </AdminPageAction>
         </div>
       </header>
@@ -1347,7 +1368,7 @@ export default function ThemSanPham() {
                           <th>MÃ VẠCH / SKU</th>
                           <th>GIÁ BÁN LẺ (Đ)</th>
                           <th>GIÁ NHẬP (Đ)</th>
-                          <th>KHỐI LƯỢNG (KG)</th>
+                          <th>ĐÓNG GÓI</th>
                           <th>QUẢN LÝ SERIAL</th>
                           <th>BÁN</th>
                           <th aria-label="Thao tác" />
@@ -1442,19 +1463,44 @@ export default function ThemSanPham() {
                               </td>
 
                               <td>
-                                <input
-                                  type="number"
-                                  min="0"
-                                  step="0.01"
-                                  aria-label={`Khối lượng ${variant.name}`}
-                                  placeholder="0.00"
-                                  value={variant.weight}
-                                  onChange={(event) =>
-                                    updateVariant(variant.key, {
-                                      weight: event.target.value,
-                                    })
-                                  }
-                                />
+                                <div className="product-editor__packing-fields">
+                                  <label>
+                                    <span>Khối lượng (kg)</span>
+                                    <input
+                                      type="number"
+                                      min="0"
+                                      step="0.01"
+                                      aria-label={`Khối lượng ${variant.name}`}
+                                      placeholder="0.00"
+                                      value={variant.weight}
+                                      onChange={(event) =>
+                                        updateVariant(variant.key, { weight: event.target.value })
+                                      }
+                                    />
+                                  </label>
+                                  <div className="product-editor__packing-size">
+                                    {PACKAGE_DIMENSIONS.map(([key, label]) => (
+                                      <label key={key}>
+                                        <span>{label} (cm)</span>
+                                        <input
+                                          type="number"
+                                          min="1"
+                                          step="1"
+                                          aria-label={`${label} đóng gói ${variant.name} (cm)`}
+                                          value={variant.packageSize?.[key] ?? ''}
+                                          onChange={(event) =>
+                                            updateVariant(variant.key, {
+                                              packageSize: {
+                                                ...variant.packageSize,
+                                                [key]: event.target.value,
+                                              },
+                                            })
+                                          }
+                                        />
+                                      </label>
+                                    ))}
+                                  </div>
+                                </div>
                               </td>
 
                               <td>
