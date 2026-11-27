@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
-
+import { CashGroupBadge, PaymentMethodBadge } from '../components/CashbookBadges';
+import CounterpartyLink from '../components/CounterpartyLink';
 import { CashSourceInfo } from '../components/CashbookEnhancements';
 import { formatDateTimeVN } from '../../../../shared/services/mutationUtils';
 import { useParams, useNavigate, Link } from 'react-router-dom';
@@ -156,7 +157,9 @@ export default function ChiTietPhieuThu() {
           )}
         </div>
 
-        <div className="ctp-amount-display">{formatMoney(currentItem.so_tien)}</div>
+        <div className="ctp-amount-display ctp-amount-display--receipt">
+          +{formatMoney(currentItem.so_tien)}
+        </div>
       </div>
 
       {/* Success Banner if Canceled */}
@@ -204,12 +207,16 @@ export default function ChiTietPhieuThu() {
             <div className="ctp-section-label">ĐỐI TƯỢNG NỘP TIỀN</div>
             <div className="ctp-info-grid">
               <div className="ctp-info-item">
-                <span className="lbl">NHÓM</span>
-                <span className="val bold">{mapGroupToText(currentItem.nhom_nguoi_nop_nhan)}</span>
+                <span className="lbl">NHÓM ĐỐI TƯỢNG</span>
+                <div style={{ marginTop: 4 }}>
+                  <CashGroupBadge group={currentItem.nhom_nguoi_nop_nhan} />
+                </div>
               </div>
               <div className="ctp-info-item">
-                <span className="lbl">NGƯỜI NỘP</span>
-                <span className="val bold">{currentItem.ten_nguoi_nop_nhan || '—'}</span>
+                <span className="lbl">NGƯỜI NỘP TIỀN</span>
+                <span className="val bold" style={{ marginTop: 4, display: 'inline-block' }}>
+                  <CounterpartyLink item={currentItem} />
+                </span>
               </div>
             </div>
           </div>
@@ -219,20 +226,22 @@ export default function ChiTietPhieuThu() {
             <div className="ctp-section-label">GIÁ TRỊ GIAO DỊCH</div>
             <div className="ctp-info-grid">
               <div className="ctp-info-item">
-                <span className="lbl">SỐ TIỀN</span>
-                <span className="val amount-val">{formatMoney(currentItem.so_tien)}</span>
-              </div>
-              <div className="ctp-info-item">
-                <span className="lbl">PHƯƠNG THỨC</span>
-                <span className="val bold">
-                  {mapPaymentMethodToText(currentItem.phuong_thuc_thanh_toan)}
+                <span className="lbl">SỐ TIỀN THU</span>
+                <span className="val bold ctp-text-receipt" style={{ marginTop: 4, display: 'inline-block', fontSize: '15px' }}>
+                  +{formatMoney(currentItem.so_tien)}
                 </span>
               </div>
               <div className="ctp-info-item">
+                <span className="lbl">PHƯƠNG THỨC THANH TOÁN</span>
+                <div style={{ marginTop: 4 }}>
+                  <PaymentMethodBadge method={currentItem.phuong_thuc_thanh_toan} />
+                </div>
+              </div>
+              <div className="ctp-info-item">
                 <span className="lbl">NGÀY GHI NHẬN</span>
-                <span className="val">
+                <span className="val bold" style={{ marginTop: 4, display: 'inline-block' }}>
                   {currentItem.ngay_ghi_nhan
-                    ? new Date(currentItem.ngay_ghi_nhan).toLocaleString()
+                    ? new Date(currentItem.ngay_ghi_nhan).toLocaleString('vi-VN')
                     : '—'}
                 </span>
               </div>
@@ -306,6 +315,21 @@ export default function ChiTietPhieuThu() {
               {mapStatusToText(currentItem.trang_thai)}
             </span>
           </div>
+
+          <div style={{ marginTop: 20 }}>
+            <button
+              className="btn-modal-cancel"
+              style={{
+                width: '100%',
+                padding: '10px 0',
+                border: '1px solid #d1d5db',
+                borderRadius: 6,
+              }}
+              onClick={() => navigate('/admin/so-quy-tien-mat/phieu-thu')}
+            >
+              ← VỀ DANH SÁCH
+            </button>
+          </div>
         </div>
       </div>
 
@@ -319,7 +343,9 @@ export default function ChiTietPhieuThu() {
             <div className="ctp-modal-body">
               <div className="ctp-modal-card-info">
                 <div className="modal-info-code">{currentItem.ma_phieu}</div>
-                <div className="modal-info-amount">{formatMoney(currentItem.so_tien)}</div>
+                <div className="modal-info-amount" style={{ color: '#16a34a' }}>
+                  + {formatMoney(currentItem.so_tien)}
+                </div>
               </div>
               <div className="ctp-modal-warning">
                 HỦY PHIẾU THU LOẠI BỎ GHI NHẬN THU SAI KHỎI SỔ QUỸ.

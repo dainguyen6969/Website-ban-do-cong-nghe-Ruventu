@@ -137,15 +137,28 @@
 }
 
 .ctp-amount-display {
-  font-size: 24px;
+  font-size: 26px;
   font-weight: 900;
   color: #111111;
-  margin-top: 8px;
+  margin-top: 10px;
   letter-spacing: 0.5px;
 }
 
-.ctp-amount-display.red-text {
-  color: #f20b13;
+.ctp-amount-display.red-text,
+.ctp-amount-display--disbursement {
+  color: #dc2626;
+}
+
+.ctp-amount-display--receipt {
+  color: #15803d;
+}
+
+.ctp-text-receipt {
+  color: #15803d !important;
+}
+
+.ctp-text-disbursement {
+  color: #dc2626 !important;
 }
 
 /* Alert Banners */
@@ -262,12 +275,12 @@
 }
 
 .ctp-info-item .val.amount-val {
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 900;
 }
 
 .ctp-info-item .val.amount-val.red-text {
-  color: #f20b13;
+  color: #dc2626;
 }
 
 .ctp-desc-box {

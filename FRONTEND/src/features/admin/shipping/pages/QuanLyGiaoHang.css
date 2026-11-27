@@ -130,13 +130,21 @@
 }
 
 .delivery-detail-page .delivery-panel > header {
-  background: #f5f5f5;
-  color: #111;
+  background: #0a0a0a;
+  color: #fff;
   border-bottom: 1px solid #111;
 }
 
 .delivery-detail-page .delivery-panel > header h2 i {
-  display: none;
+  display: inline-block;
+  width: 3px;
+  height: 14px;
+  flex: none;
+  background: var(--color-brand-red, #e31e24);
+}
+
+.delivery-detail-page .delivery-panel > header h2 {
+  color: #fff;
 }
 
 .delivery-detail-page .delivery-actions-panel > h2 {
@@ -161,9 +169,20 @@
 }
 
 .delivery-detail-page .delivery-lock-note {
-  color: #475569;
+  color: #94a3b8;
   font-size: 10px;
   font-weight: var(--admin-weight-medium, 500);
+}
+
+.delivery-detail-page .delivery-panel > header .delivery-small-btn {
+  border-color: #444;
+  color: #fff;
+  background: #222;
+}
+
+.delivery-detail-page .delivery-panel > header .delivery-small-btn:hover:not(:disabled) {
+  border-color: #fff;
+  background: #333;
 }
 
 .delivery-detail-page

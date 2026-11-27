@@ -1,6 +1,7 @@
 import { scaledFontSize } from '../../../../typography/projectFontSize.js';
 import React, { useState, useEffect, useCallback } from 'react';
-
+import { CashGroupBadge, PaymentMethodBadge } from '../components/CashbookBadges';
+import CounterpartyLink from '../components/CounterpartyLink';
 import { CashSourceInfo } from '../components/CashbookEnhancements';
 import { formatDateTimeVN } from '../../../../shared/services/mutationUtils';
 import { useParams, useNavigate, Link } from 'react-router-dom';
@@ -186,7 +187,9 @@ export default function ChiTietPhieuChi() {
           )}
         </div>
 
-        <div className="ctp-amount-display red-text">{formatMoney(currentItem.so_tien)}</div>
+        <div className="ctp-amount-display ctp-amount-display--disbursement">
+          -{formatMoney(currentItem.so_tien)}
+        </div>
       </div>
 
       {/* Success Banner if Canceled */}
@@ -231,15 +234,19 @@ export default function ChiTietPhieuChi() {
 
           {/* Section 2: Người nhận */}
           <div className="ctp-section">
-            <div className="ctp-section-label">NGƯỜI NHẬN</div>
+            <div className="ctp-section-label">NGƯỜI NHẬN TIỀN</div>
             <div className="ctp-info-grid">
               <div className="ctp-info-item">
-                <span className="lbl">NHÓM</span>
-                <span className="val bold">{mapGroupToText(currentItem.nhom_nguoi_nop_nhan)}</span>
+                <span className="lbl">NHÓM ĐỐI TƯỢNG</span>
+                <div style={{ marginTop: 4 }}>
+                  <CashGroupBadge group={currentItem.nhom_nguoi_nop_nhan} />
+                </div>
               </div>
               <div className="ctp-info-item">
                 <span className="lbl">TÊN NGƯỜI NHẬN</span>
-                <span className="val bold">{currentItem.ten_nguoi_nop_nhan || '—'}</span>
+                <span className="val bold" style={{ marginTop: 4, display: 'inline-block' }}>
+                  <CounterpartyLink item={currentItem} />
+                </span>
               </div>
             </div>
           </div>
@@ -250,17 +257,21 @@ export default function ChiTietPhieuChi() {
             <div className="ctp-info-grid">
               <div className="ctp-info-item">
                 <span className="lbl">SỐ TIỀN CHI</span>
-                <span className="val amount-val red-text">{formatMoney(currentItem.so_tien)}</span>
-              </div>
-              <div className="ctp-info-item">
-                <span className="lbl">PHƯƠNG THỨC</span>
-                <span className="val bold">
-                  {mapPaymentMethodToText(currentItem.phuong_thuc_thanh_toan)}
+                <span className="val bold ctp-text-disbursement" style={{ marginTop: 4, display: 'inline-block', fontSize: '15px' }}>
+                  -{formatMoney(currentItem.so_tien)}
                 </span>
               </div>
               <div className="ctp-info-item">
+                <span className="lbl">PHƯƠNG THỨC THANH TOÁN</span>
+                <div style={{ marginTop: 4 }}>
+                  <PaymentMethodBadge method={currentItem.phuong_thuc_thanh_toan} />
+                </div>
+              </div>
+              <div className="ctp-info-item">
                 <span className="lbl">NGÀY GHI NHẬN</span>
-                <span className="val">{formatDateDisplay(currentItem.ngay_ghi_nhan)}</span>
+                <span className="val bold" style={{ marginTop: 4, display: 'inline-block' }}>
+                  {formatDateDisplay(currentItem.ngay_ghi_nhan)}
+                </span>
               </div>
             </div>
           </div>
@@ -374,7 +385,7 @@ export default function ChiTietPhieuChi() {
             <div className="ctp-modal-body">
               <div className="ctp-modal-card-info">
                 <div className="modal-info-code">{currentItem.ma_phieu}</div>
-                <div className="modal-info-amount red-text">{formatMoney(currentItem.so_tien)}</div>
+                <div className="modal-info-amount red-text">- {formatMoney(currentItem.so_tien)}</div>
               </div>
               <div className="ctp-modal-warning">
                 HỦY PHIẾU CHI LOẠI BỎ GHI NHẬN CHI SAI KHỎI SỔ QUỸ.

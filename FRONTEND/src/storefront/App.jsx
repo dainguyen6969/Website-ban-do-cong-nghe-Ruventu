@@ -5,6 +5,7 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import CartPage from './pages/CartPage';
 import CheckoutPage from './pages/CheckoutPage';
+import PaymentQRPage from './pages/PaymentQRPage';
 import SuccessPage from './pages/SuccessPage';
 import ProfilePage from './pages/ProfilePage';
 import WarrantyLookupPage from './pages/WarrantyLookupPage';
@@ -51,6 +52,7 @@ function StorefrontApp() {
           <Route path="/register" element={<Register />} />
           <Route path="/cart" element={<CartPage />} />
           <Route path="/checkout" element={<CheckoutPage />} />
+          <Route path="/payment" element={<PaymentQRPage />} />
           <Route path="/success" element={<SuccessPage />} />
           <Route path="/profile" element={<ProfilePage />} />
           <Route path="/warranty-lookup" element={<WarrantyLookupPage />} />

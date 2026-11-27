@@ -1,0 +1,290 @@
+/* POS Payment QR Modal Styles */
+.pos-qr-dialog {
+  position: fixed;
+  inset: 0;
+  margin: auto;
+  padding: 0;
+  width: 820px;
+  max-width: calc(100vw - 32px);
+  max-height: calc(100dvh - 32px);
+  overflow: hidden;
+  border: 2px solid #111111;
+  background: #ffffff;
+  color: #111111;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.25);
+  box-sizing: border-box;
+}
+
+.pos-qr-dialog::backdrop {
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(2px);
+}
+
+.pos-qr-modal-content {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.pos-qr-modal-body {
+  padding: 24px;
+  display: grid;
+  grid-template-columns: 290px 1fr;
+  gap: 28px;
+  background: #ffffff;
+  overflow-y: auto;
+}
+
+@media (max-width: 768px) {
+  .pos-qr-modal-body {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+}
+
+/* Left Column: QR Code */
+.pos-qr-left-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.pos-qr-frame {
+  width: 100%;
+  max-width: 290px;
+  background: #ffffff;
+  padding: 10px;
+  border: 1.5px solid #111111;
+  box-sizing: border-box;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.pos-qr-img {
+  width: 100%;
+  height: auto;
+  display: block;
+  object-fit: contain;
+}
+
+.pos-qr-scan-guide {
+  margin-top: 12px;
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: #475569;
+  text-align: center;
+}
+
+/* Right Column: Information */
+.pos-qr-right-col {
+  display: flex;
+  flex-direction: column;
+}
+
+.pos-qr-header-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-bottom: 1.5px solid #111111;
+  padding-bottom: 8px;
+  margin-bottom: 14px;
+}
+
+.pos-qr-header-title .accent-bar {
+  display: inline-block;
+  width: 3px;
+  height: 16px;
+  background-color: #c51d25;
+}
+
+.pos-qr-header-title h3 {
+  margin: 0;
+  font-size: 13.5px;
+  font-weight: 900;
+  color: #111111;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.pos-qr-info-table {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.pos-qr-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 9px 12px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+}
+
+.pos-qr-row.highlight-row {
+  background: #fffafa;
+  border-color: #fecaca;
+}
+
+.pos-qr-row-label {
+  font-size: 11px;
+  font-weight: 800;
+  color: #64748b;
+  text-transform: uppercase;
+}
+
+.pos-qr-row-val-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.pos-qr-val {
+  font-size: 13px;
+  color: #111111;
+}
+
+.pos-qr-val.bold {
+  font-weight: 900;
+}
+
+.pos-qr-val.val-acc {
+  color: #1d4ed8;
+  font-size: 13.5px;
+  letter-spacing: 0.5px;
+}
+
+.pos-qr-val.val-amount {
+  color: #c51d25;
+  font-size: 15px;
+}
+
+.pos-qr-val.val-code {
+  color: #c51d25;
+  font-size: 13.5px;
+  letter-spacing: 0.5px;
+}
+
+.pos-qr-btn-copy {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  color: #334155;
+  padding: 4px 8px;
+  font-size: 10px;
+  font-weight: 800;
+  cursor: pointer;
+  text-transform: uppercase;
+  transition: all 0.15s;
+}
+
+.pos-qr-btn-copy:hover {
+  background: #f1f5f9;
+  border-color: #94a3b8;
+  color: #0f172a;
+}
+
+/* Notice Card */
+.pos-qr-notice {
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  border-radius: 4px;
+  padding: 12px 14px;
+  margin-top: 14px;
+}
+
+.pos-qr-notice-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #b45309;
+  font-size: 11px;
+  font-weight: 900;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+
+.pos-qr-notice-list {
+  margin: 0;
+  padding-left: 18px;
+  color: #78350f;
+  font-size: 11.5px;
+  line-height: 1.6;
+}
+
+/* Footer Actions */
+.pos-qr-footer {
+  padding: 14px 24px;
+  background: #f8fafc;
+  border-top: 1.5px solid #e2e8f0;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 12px;
+}
+
+.pos-qr-btn-cancel {
+  min-height: 40px;
+  padding: 0 22px;
+  border: 1.5px solid #cbd5e1;
+  background: #ffffff;
+  color: #475569;
+  font-size: 11px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.pos-qr-btn-cancel:hover {
+  background: #f1f5f9;
+  border-color: #94a3b8;
+  color: #0f172a;
+}
+
+.pos-qr-btn-confirm {
+  min-height: 40px;
+  padding: 0 26px;
+  border: none;
+  background: #c51d25;
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.15s;
+}
+
+.pos-qr-btn-confirm:hover {
+  background: #991b1b;
+}
+
+/* Trigger button inside POS sidebar */
+.pos-qr-reopen-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 8px;
+  padding: 7px 12px;
+  background: #f8fafc;
+  border: 1px dashed #c51d25;
+  color: #c51d25;
+  font-size: 11px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.pos-qr-reopen-btn:hover {
+  background: #fff5f5;
+  border-style: solid;
+}

@@ -260,7 +260,10 @@ export default function DoiTacVanChuyen() {
   const [mutationError, setMutationError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
 
-  const rawSelectedId = location.state?.partnerId;
+  const rawSelectedId =
+    location.state?.partnerId ||
+    new URLSearchParams(location.search).get('id') ||
+    new URLSearchParams(location.search).get('partnerId');
   const detailMode = rawSelectedId != null && rawSelectedId !== '';
   const selectedId = Number(rawSelectedId);
   const validSelectedId = Number.isSafeInteger(selectedId) && selectedId > 0;
@@ -747,7 +750,7 @@ function DeliveryStatusBadge({ status }) {
   return <span className={`delivery-badge delivery-badge--${status}`}>{label(status)}</span>;
 }
 
-function PartnerPanel({ title, headerTools, children }) {
+function PartnerPanel({ title, headerCenter, headerTools, children }) {
   return (
     <section className="partner-panel">
       <header>
@@ -755,7 +758,8 @@ function PartnerPanel({ title, headerTools, children }) {
           <span />
           {title}
         </h2>
-        {headerTools}
+        {headerCenter && <div className="partner-panel-header-center">{headerCenter}</div>}
+        {headerTools && <div className="partner-panel-header-tools">{headerTools}</div>}
       </header>
       {children}
     </section>
@@ -771,27 +775,31 @@ function InfoRow({ title, children }) {
   );
 }
 
-function ServerPagination({ data, page, onPageChange, noun, idPrefix, pageSize = PAGE_SIZE }) {
+function ServerPagination({
+  data,
+  page,
+  onPageChange,
+  noun: _noun,
+  idPrefix,
+  pageSize = PAGE_SIZE,
+  pageSizeOptions,
+  onPageSizeChange,
+}) {
   const total = Number(data?.pagination?.total_elements || 0);
-  const items = data?.items || [];
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
   const safePage = Math.min(page, totalPages);
-  const start = items.length ? (safePage - 1) * pageSize + 1 : 0;
-  const end = items.length ? Math.min(start + items.length - 1, total) : 0;
 
   return (
-    <div className="partner-footer admin-table-footer">
-      <p>
-        HIỂN THỊ {start}-{end} TRÊN TỔNG SỐ {total} {noun}
-      </p>
-
+    <div className="partner-footer">
       <TablePagination
         totalItems={total}
         pageSize={pageSize}
         currentPage={safePage}
         onPageChange={onPageChange}
         idPrefix={idPrefix}
-        showSummary={false}
+        showSummary={true}
+        pageSizeOptions={pageSizeOptions}
+        onPageSizeChange={onPageSizeChange}
       />
     </div>
   );
@@ -803,13 +811,14 @@ function PartnerDetail({ partner, revision, busy, successMessage, onBack, onActi
   const [keyword, setKeyword] = useState('');
   const [statusFilter, setStatusFilter] = useState(DELIVERY_OPTIONS[0]);
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(5);
   const [historyRevision, setHistoryRevision] = useState(0);
 
   const path = `${PATH}/${encodeURIComponent(partner.id)}/deliveries?${queryString({
     keyword: keyword.trim(),
     trang_thai_giao_hang: DELIVERY_CODE_BY_LABEL[statusFilter],
     page: page - 1,
-    limit: 5,
+    limit: pageSize,
   })}`;
 
   const history = useBackendData(path, `${revision}:${historyRevision}`);
@@ -825,31 +834,32 @@ function PartnerDetail({ partner, revision, busy, successMessage, onBack, onActi
     if (page > lastPage) setPage(lastPage);
   }, [history.data, page]);
 
-  const historyTools = (
-    <div className="partner-history-tools">
-      <label className="partner-history-search">
-        <HiOutlineSearch />
-        <input
-          value={keyword}
-          onChange={(event) => {
-            setKeyword(event.target.value);
-            setPage(1);
-          }}
-          placeholder="Tìm mã phiếu, mã vận đơn hoặc mã đơn hàng..."
-          aria-label="Tìm phiếu giao hàng"
-        />
-      </label>
-
-      <FilterDropdown
-        className="partner-history-filter"
-        options={DELIVERY_OPTIONS}
-        value={statusFilter}
-        onSelect={(value) => {
-          setStatusFilter(value);
+  const historySearch = (
+    <label className="partner-history-search">
+      <HiOutlineSearch />
+      <input
+        type="text"
+        value={keyword}
+        onChange={(event) => {
+          setKeyword(event.target.value);
           setPage(1);
         }}
+        placeholder="Tìm mã phiếu, mã vận đơn hoặc mã đơn hàng..."
+        aria-label="Tìm phiếu giao hàng"
       />
-    </div>
+    </label>
+  );
+
+  const historyTools = (
+    <FilterDropdown
+      className="partner-history-filter"
+      options={DELIVERY_OPTIONS}
+      value={statusFilter}
+      onSelect={(value) => {
+        setStatusFilter(value);
+        setPage(1);
+      }}
+    />
   );
 
   return (
@@ -906,7 +916,11 @@ function PartnerDetail({ partner, revision, busy, successMessage, onBack, onActi
           </dl>
         </PartnerPanel>
 
-        <PartnerPanel title="LỊCH SỬ GIAO HÀNG" headerTools={historyTools}>
+        <PartnerPanel
+          title="LỊCH SỬ GIAO HÀNG"
+          headerCenter={historySearch}
+          headerTools={historyTools}
+        >
           <div className="partner-history-wrap">
             <div
               className="admin-table-scroll admin-table-scroll--embedded"
@@ -967,20 +981,22 @@ function PartnerDetail({ partner, revision, busy, successMessage, onBack, onActi
                         <td>{delivery.ma_van_don || '—'}</td>
 
                         <td>
-                          <button
-                            type="button"
-                            className="partner-order-link"
-                            disabled={!delivery.don_hang_id}
-                            onClick={() =>
-                              navigate(
-                                `/admin/don-hang/danh-sach-don-hang/${encodeURIComponent(
-                                  delivery.don_hang_id
-                                )}`
-                              )
-                            }
-                          >
-                            {delivery.ma_don_hang || '—'}
-                          </button>
+                          {delivery.don_hang_id ? (
+                            <a
+                              href={`/admin/don-hang/danh-sach-don-hang/${encodeURIComponent(
+                                delivery.don_hang_id
+                              )}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="partner-order-link"
+                            >
+                              {delivery.ma_don_hang || '—'}
+                            </a>
+                          ) : (
+                            <span className="partner-order-link" style={{ cursor: 'default' }}>
+                              {delivery.ma_don_hang || '—'}
+                            </span>
+                          )}
                         </td>
 
                         <td>
@@ -1019,16 +1035,18 @@ function PartnerDetail({ partner, revision, busy, successMessage, onBack, onActi
           </div>
 
           {!history.error && history.data && (
-            <div style={{ padding: '0 14px' }}>
-              <ServerPagination
-                data={history.data}
-                page={page}
-                onPageChange={setPage}
-                noun="PHIẾU"
-                idPrefix="partner-deliveries"
-                pageSize={5}
-              />
-            </div>
+            <ServerPagination
+              data={history.data}
+              page={page}
+              onPageChange={setPage}
+              idPrefix="partner-deliveries"
+              pageSize={pageSize}
+              pageSizeOptions={[5, 10, 20, 50, 100]}
+              onPageSizeChange={(newSize) => {
+                setPageSize(newSize);
+                setPage(1);
+              }}
+            />
           )}
         </PartnerPanel>
       </section>

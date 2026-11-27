@@ -473,6 +473,18 @@ const CheckoutPage = () => {
 
       window.dispatchEvent(new CustomEvent('cartUpdated'));
 
+      if (paymentMethod === 'CHUYEN_KHOAN') {
+        const paymentState = {
+          orderCode: order.ma_don_hang,
+          amount: previewData?.tong_thanh_toan ?? order.tong_thanh_toan,
+          orderId: order.id,
+          intake: order.tiep_nhan,
+        };
+        sessionStorage.setItem('last_payment_order', JSON.stringify(paymentState));
+        navigate('/payment', { state: paymentState });
+        return;
+      }
+
       navigate('/success', {
         state: {
           orderCode: order.ma_don_hang,
@@ -928,28 +940,10 @@ const CheckoutPage = () => {
               </span>
             </div>
 
-            {previewData && !draftReady && (
-              <p className="checkout-summary-message">
-                {deliveryMethod === 'NHAN_TAI_CUA_HANG'
-                  ? 'Vui lòng nhập họ tên và số điện thoại để đặt đơn.'
-                  : 'Vui lòng hoàn tất họ tên, số điện thoại và địa chỉ giao hàng để đặt đơn.'}
-              </p>
-            )}
-
             {previewError && (
               <p className="error-text checkout-summary-error" role="alert">
                 {previewError}
               </p>
-            )}
-
-            {previewData?.tiep_nhan?.thong_bao && (
-              <p className="checkout-summary-message" role="status">
-                {previewData.tiep_nhan.thong_bao}
-              </p>
-            )}
-
-            {previewData?.tiep_nhan?.luu_y_uu_dai && (
-              <p className="checkout-summary-message">{previewData.tiep_nhan.luu_y_uu_dai}</p>
             )}
 
             {checkoutError && (
@@ -973,10 +967,12 @@ const CheckoutPage = () => {
               }
             >
               {placing
-                ? 'ĐANG ĐẶT HÀNG...'
+                ? (paymentMethod === 'CHUYEN_KHOAN' ? 'ĐANG TIẾN HÀNH...' : 'ĐANG ĐẶT HÀNG...')
                 : checkoutAttempt.current
                   ? 'THỬ LẠI YÊU CẦU'
-                  : 'XÁC NHẬN ĐẶT HÀNG →'}
+                  : paymentMethod === 'CHUYEN_KHOAN'
+                    ? 'TIẾN HÀNH THANH TOÁN →'
+                    : 'XÁC NHẬN ĐẶT HÀNG →'}
             </button>
           </div>
 

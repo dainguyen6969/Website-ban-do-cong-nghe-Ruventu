@@ -376,16 +376,15 @@ function ShipmentList() {
                       </td>
 
                       <td>
-                        <button
-                          type="button"
+                        <a
+                          href={`/admin/don-hang/danh-sach-don-hang/${item.don_hang_id}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
                           className="delivery-link delivery-list-ellipsis"
                           title={item.ma_don_hang}
-                          onClick={() =>
-                            navigate(`/admin/don-hang/danh-sach-don-hang/${item.don_hang_id}`)
-                          }
                         >
                           {item.ma_don_hang}
-                        </button>
+                        </a>
                       </td>
 
                       <td>
@@ -788,13 +787,15 @@ function ShipmentDetail({ id }) {
               {money(delivery.tien_thu_ho_cod)}. Đơn hàng chưa hoàn thành.
             </span>
 
-            <button
-              type="button"
-              disabled={locked}
-              onClick={() => navigate(`/admin/don-hang/danh-sach-don-hang/${order.id}`)}
+            <a
+              href={`/admin/don-hang/danh-sach-don-hang/${order.id}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={locked ? 'delivery-link--disabled' : ''}
+              style={locked ? { pointerEvents: 'none', opacity: 0.55 } : undefined}
             >
               MỞ ĐƠN HÀNG
-            </button>
+            </a>
           </div>
         )}
 
@@ -859,13 +860,14 @@ function ShipmentDetail({ id }) {
                   {recipient.dia_chi_giao_hang || '—'}
                 </ShipmentInfo>
                 <ShipmentInfo title="MÃ ĐƠN HÀNG">
-                  <button
-                    type="button"
+                  <a
+                    href={`/admin/don-hang/danh-sach-don-hang/${order.id}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
                     className="delivery-link"
-                    onClick={() => navigate(`/admin/don-hang/danh-sach-don-hang/${order.id}`)}
                   >
                     {order.ma_don_hang}
-                  </button>
+                  </a>
                 </ShipmentInfo>
                 <ShipmentInfo title="CẬP NHẬT CUỐI">
                   {dateTime(delivery.ngay_cap_nhat)}

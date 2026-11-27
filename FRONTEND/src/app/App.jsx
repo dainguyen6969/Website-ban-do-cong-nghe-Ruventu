@@ -7,12 +7,19 @@ import StorefrontApp from '../storefront/App';
 import useMockAuth from '../auth/useMockAuth';
 import { canAccessAdmin } from '../auth/accountModel';
 import LoadingSpinner from '../shared/components/ui/LoadingSpinner';
+import PosPaymentQRPage from '../features/admin/sales/pages/PosPaymentQRPage';
 
 const AdminApp = lazy(() => import('./AdminApp'));
 
 export default function App() {
   const { pathname } = useLocation();
   const { currentAccount, roles } = useMockAuth();
+
+  // Cửa sổ popup riêng cho mã QR POS - mở trực tiếp tức thì không qua loading trang quản trị hay redirect
+  if (pathname === '/admin/pos-qr' || pathname === '/pos-qr') {
+    return <PosPaymentQRPage />;
+  }
+
   const isAdminRoute =
     pathname === '/admin' || pathname.startsWith('/admin/') || pathname.startsWith('/kho-hang/');
 

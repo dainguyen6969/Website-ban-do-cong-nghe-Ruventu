@@ -82,7 +82,10 @@ const formatPaymentMethod = (method) => {
 export default function NhaCungCap() {
   const location = useLocation();
   const navigate = useNavigate();
-  const selectedId = location.state?.supplierId || '';
+  const searchId =
+    new URLSearchParams(location.search).get('id') ||
+    new URLSearchParams(location.search).get('supplierId');
+  const selectedId = location.state?.supplierId || searchId || '';
   const [suppliers, setSuppliers] = useState([]);
   const [totalItems, setTotalItems] = useState(0);
   const [query, setQuery] = useState('');

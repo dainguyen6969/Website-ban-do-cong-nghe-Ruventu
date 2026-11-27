@@ -55,6 +55,47 @@ const STATUS = {
   THE: 'Thẻ',
   KHAC: 'Khác',
 };
+
+const STATUS_TONES = {
+  CHO_DUYET: 'amber',
+  CHO_HANG: 'orange',
+  CHO_THANH_TOAN: 'purple',
+  CHO_DONG_GOI: 'blue',
+  CHO_LAY_HANG: 'cyan',
+  DANG_GIAO_HANG: 'emerald',
+  GIAO_THAT_BAI: 'rose',
+  CHO_HOAN_HANG: 'peach',
+};
+
+const WARRANTY_TONES = {
+  tong_phieu_chua_hoan_tat: 'amber',
+  cho_doi_san_pham: 'cyan',
+  cho_tra_khach: 'emerald',
+  bao_gia_cho_phan_hoi: 'violet',
+  hoa_don_con_phai_thu: 'orange',
+  phieu_con_phai_hoan_tien: 'rose',
+  phieu_con_nghia_vu_ncc: 'slate',
+};
+
+const AFTER_SALES_WARRANTY_TONES = {
+  TIEP_NHAN: 'blue',
+  DANG_KIEM_TRA: 'cyan',
+  DA_GUI_BAO_HANH: 'purple',
+  DANG_BAO_HANH: 'amber',
+  DA_NHAN_LAI: 'teal',
+  CHO_DOI_SAN_PHAM: 'orange',
+  CHO_TRA_KHACH: 'emerald',
+  HOAN_TAT: 'slate',
+};
+
+const AFTER_SALES_RETURN_TONES = {
+  CHO_TIEP_NHAN: 'amber',
+  DA_NHAN_HANG: 'blue',
+  HOAN_TAT: 'slate',
+  CHO_TRA_KHACH: 'emerald',
+  HUY: 'rose',
+  TU_CHOI: 'orange',
+};
 const CHART_FIELDS = {
   doanh_thu_thuan: 'Doanh thu thuần',
   so_don: 'Số đơn',
@@ -196,20 +237,39 @@ function Section({ title, note, to, resource, children, controls }) {
     </section>
   );
 }
-function Stat({ label, value, currency = false, note, to }) {
+function Stat({ label, value, currency = false, note, to, tone, badge }) {
+  const isZero = value === 0 || value === '0';
+  const hasValue = value != null && value !== '' && value !== '—' && !isZero;
+
   const content = (
     <>
-      <div className="tq-sub-label">{label}</div>
-      <div className="tq-sub-val">{currency ? money(value) : number(value)}</div>
+      <div className="tq-sub-label">
+        <span>{label}</span>
+        {badge && <span className="tq-sub-badge">{badge}</span>}
+      </div>
+      <div className={`tq-sub-val ${hasValue ? 'has-value' : ''} ${isZero ? 'is-zero' : ''}`}>
+        {currency ? money(value) : number(value)}
+      </div>
       {note && <p className="tq-note">{note}</p>}
     </>
   );
+
+  const classes = [
+    'tq-sub-box',
+    to ? 'tq-stat-link' : '',
+    tone ? `tq-tone-${tone}` : '',
+    hasValue ? 'tq-has-value' : '',
+    isZero ? 'tq-is-zero' : '',
+  ]
+    .filter(Boolean)
+    .join(' ');
+
   return to ? (
-    <Link className="tq-sub-box tq-stat-link" to={to}>
+    <Link className={classes} to={to}>
       {content}
     </Link>
   ) : (
-    <div className="tq-sub-box">{content}</div>
+    <div className={classes}>{content}</div>
   );
 }
 function Table({ headers, items, children, empty }) {
@@ -750,21 +810,44 @@ export default function TongQuat() {
         <Section title="Việc cần xử lý" note={currentNote} to={orderTo()} resource={tasks}>
           {(data) => (
             <>
-              <p className="tq-scope">
-                {number(data.so_don_can_xu_ly)} đơn cần xử lý ·{' '}
-                {number(data.tra_hang.tong_phieu_can_xu_ly)} phiếu trả hàng / hoàn tiền
-              </p>
+              <div className="tq-todo-summary-banner">
+                <div className="tq-todo-badge tq-todo-badge-amber">
+                  <span className="tq-todo-badge-dot"></span>
+                  <span className="tq-todo-badge-num">{number(data.so_don_can_xu_ly)}</span>
+                  <span>đơn cần xử lý</span>
+                </div>
+                <span className="tq-todo-divider">•</span>
+                <div className="tq-todo-badge tq-todo-badge-pink">
+                  <span className="tq-todo-badge-dot"></span>
+                  <span className="tq-todo-badge-num">{number(data.tra_hang.tong_phieu_can_xu_ly)}</span>
+                  <span>phiếu trả hàng / hoàn tiền</span>
+                </div>
+              </div>
+
               <div className="tq-todo-grid">
                 {Object.entries(data.don_hang).map(([key, value]) => (
-                  <Stat key={key} label={STATUS[key]} value={value} to={orderTo(key)} />
+                  <Stat
+                    key={key}
+                    label={STATUS[key]}
+                    value={value}
+                    to={orderTo(key)}
+                    tone={STATUS_TONES[key]}
+                  />
                 ))}
                 {Object.entries(data.giao_hang).map(([key, value]) => (
-                  <Stat key={key} label={STATUS[key]} value={value} to={deliveryTo(key)} />
+                  <Stat
+                    key={key}
+                    label={STATUS[key]}
+                    value={value}
+                    to={deliveryTo(key)}
+                    tone={STATUS_TONES[key]}
+                  />
                 ))}
                 <Stat
                   label="Trả hàng / hoàn tiền"
                   value={data.tra_hang.tong_phieu_can_xu_ly}
                   to={returnTo('CAN_XU_LY')}
+                  tone="pink"
                 />
               </div>
 
@@ -772,24 +855,32 @@ export default function TongQuat() {
 
               <div className="tq-priority-list">
                 <h3 className="tq-priority-label">
-                  Cần ưu tiên · chờ từ {number(data.nguong_cho_phut)} phút
+                  <span className="tq-priority-badge">CẦN ƯU TIÊN</span>
+                  <span className="tq-priority-hint">chờ từ {number(data.nguong_cho_phut)} phút</span>
                 </h3>
                 {data.can_uu_tien.length ? (
-                  data.can_uu_tien.map((item) => (
-                    <Link
-                      key={item.don_hang_id}
-                      className="tq-priority-row tq-stat-link"
-                      to={`${ORDER_PATH}/${item.don_hang_id}`}
-                    >
-                      <span className="tq-priority-id">{item.ma_don_hang}</span>
-                      <span className="tq-priority-type">{STATUS[item.trang_thai_don_hang]}</span>
-                      <span className="tq-priority-time">
-                        {number(item.so_phut_tu_khi_tao)} phút
-                      </span>
-                    </Link>
-                  ))
+                  <div className="tq-priority-items">
+                    {data.can_uu_tien.map((item) => (
+                      <Link
+                        key={item.don_hang_id}
+                        className="tq-priority-row tq-stat-link"
+                        to={`${ORDER_PATH}/${item.don_hang_id}`}
+                      >
+                        <span className="tq-priority-id">{item.ma_don_hang}</span>
+                        <span
+                          className={`tq-priority-type tq-type-badge tq-type-${STATUS_TONES[item.trang_thai_don_hang] || 'gray'}`}
+                        >
+                          {STATUS[item.trang_thai_don_hang]}
+                        </span>
+                        <span className="tq-priority-time">
+                          <span className="tq-priority-time-dot"></span>
+                          {number(item.so_phut_tu_khi_tao)} phút
+                        </span>
+                      </Link>
+                    ))}
+                  </div>
                 ) : (
-                  <p>Không có đơn chờ quá ngưỡng.</p>
+                  <p className="tq-priority-empty">Không có đơn chờ quá ngưỡng.</p>
                 )}
               </div>
             </>
@@ -810,11 +901,13 @@ export default function TongQuat() {
                   value={data.so_sku_het_hang}
                   note="Phiên bản đang kinh doanh · kho mặc định"
                   to={inventoryTo(data, 'HET_HANG')}
+                  tone="rose"
                 />
                 <Stat
                   label="Dưới mức tồn tối thiểu"
                   value={data.so_sku_duoi_toi_thieu}
                   to={inventoryTo(data, 'DUOI_TOI_THIEU')}
+                  tone="amber"
                 />
               </div>
             )}
@@ -829,17 +922,20 @@ export default function TongQuat() {
                     cho_lau_phut: data.nguong_cho_phut,
                     loai_don_hang: filters.kenh_ban === 'TAT_CA' ? '' : filters.kenh_ban,
                   })}
+                  tone="rose"
                 />
                 <Stat
                   label="Giao hàng thất bại"
                   value={data.giao_hang.GIAO_THAT_BAI}
                   note="Số phiếu giao hàng"
                   to={deliveryTo('GIAO_THAT_BAI')}
+                  tone="orange"
                 />
                 <Stat
                   label="Chờ hoàn tiền"
                   value={data.tra_hang.cho_hoan_tien}
                   to={returnTo('CHO_HOAN_TIEN')}
+                  tone="purple"
                 />
               </div>
             )}
@@ -1401,9 +1497,12 @@ function DashboardAfterSales({ data }) {
 
   return (
     <>
-      <h3 className="tq-v6-subtitle">Bảo hành</h3>
+      <h3 className="tq-v6-subtitle">
+        <span className="tq-warranty-icon-bar"></span>
+        Bảo hành
+      </h3>
 
-      <div className="tq-kpi-sub-grid">
+      <div className="tq-grid-4">
         {Object.entries(warrantyLabels).map(([key, label]) => (
           <Stat
             key={key}
@@ -1412,44 +1511,58 @@ function DashboardAfterSales({ data }) {
             to={filteredTo('/admin/bao-hanh', {
               trang_thai: key,
             })}
+            tone={AFTER_SALES_WARRANTY_TONES[key]}
           />
         ))}
       </div>
 
-      <h3 className="tq-v6-subtitle">Nghĩa vụ tài chính bảo hành</h3>
+      <h3 className="tq-v6-subtitle">
+        <span className="tq-warranty-icon-bar" style={{ background: '#f59e0b' }}></span>
+        Nghĩa vụ tài chính bảo hành
+      </h3>
 
       <p className="tq-note tq-scope">
         Các nhóm có thể trùng phiếu. Nghĩa vụ còn mở vẫn được hiển thị khi phiếu xử lý đã hoàn tất.
       </p>
 
-      <div className="tq-kpi-sub-grid">
-        <Stat label="Báo giá chờ phản hồi" value={finance.bao_gia_cho_phan_hoi} />
-
-        <Stat label="Hóa đơn còn phải thu" value={finance.hoa_don_con_phai_thu} />
-
-        <Stat label="Tiền còn phải thu" value={finance.tong_con_phai_thu} currency />
-
-        <Stat label="Phiếu còn phải hoàn" value={finance.phieu_con_phai_hoan} />
-
-        <Stat label="Tiền còn phải hoàn" value={finance.tong_con_phai_hoan} currency />
-
-        <Stat label="Phiếu còn nghĩa vụ NCC" value={finance.phieu_con_nghia_vu_ncc} />
+      <div className="tq-grid-3">
+        <Stat label="Báo giá chờ phản hồi" value={finance.bao_gia_cho_phan_hoi} tone="violet" />
+        <Stat label="Hóa đơn còn phải thu" value={finance.hoa_don_con_phai_thu} tone="amber" />
+        <Stat label="Tiền còn phải thu" value={finance.tong_con_phai_thu} currency tone="orange" />
+        <Stat label="Phiếu còn phải hoàn" value={finance.phieu_con_phai_hoan} tone="rose" />
+        <Stat label="Tiền còn phải hoàn" value={finance.tong_con_phai_hoan} currency tone="pink" />
+        <Stat label="Phiếu còn nghĩa vụ NCC" value={finance.phieu_con_nghia_vu_ncc} tone="slate" />
       </div>
 
-      <h3 className="tq-v6-subtitle">Trả hàng</h3>
+      <h3 className="tq-v6-subtitle">
+        <span className="tq-warranty-icon-bar" style={{ background: '#ec4899' }}></span>
+        Trả hàng
+      </h3>
 
-      <div className="tq-kpi-sub-grid">
+      <div className="tq-grid-4">
         {Object.entries(returnLabels).map(([key, label]) => (
-          <Stat key={key} label={label} value={data.tra_hang?.[key]} to={returnTo(key)} />
+          <Stat
+            key={key}
+            label={label}
+            value={data.tra_hang?.[key]}
+            to={returnTo(key)}
+            tone={AFTER_SALES_RETURN_TONES[key]}
+          />
         ))}
 
         <Stat
           label="Chờ hoàn tiền"
           value={data.tra_hang?.cho_hoan_tien}
           to={returnTo('CHO_HOAN_TIEN')}
+          tone="purple"
         />
 
-        <Stat label="Giá trị chờ hoàn tiền" value={data.tra_hang?.gia_tri_cho_hoan_tien} currency />
+        <Stat
+          label="Giá trị chờ hoàn tiền"
+          value={data.tra_hang?.gia_tri_cho_hoan_tien}
+          currency
+          tone="pink"
+        />
       </div>
     </>
   );
@@ -1458,29 +1571,37 @@ function DashboardAfterSales({ data }) {
 function DashboardPromotions({ data }) {
   return (
     <>
-      <h3 className="tq-v6-subtitle">Hiện tại · toàn cửa hàng</h3>
+      <h3 className="tq-v6-subtitle">
+        <span className="tq-warranty-icon-bar" style={{ background: '#10b981' }}></span>
+        Hiện tại · toàn cửa hàng
+      </h3>
 
-      <div className="tq-kpi-sub-grid">
-        <Stat label="Trong thời gian áp dụng" value={data.dang_trong_thoi_gian_ap_dung} />
-
+      <div className="tq-grid-4">
+        <Stat
+          label="Trong thời gian áp dụng"
+          value={data.dang_trong_thoi_gian_ap_dung}
+          tone="emerald"
+        />
         <Stat
           label="Còn lượt áp dụng"
           value={data.con_luot_ap_dung}
           note="Đã tính cả lượt đang giữ"
+          tone="blue"
         />
-
-        <Stat label="Sắp bắt đầu" value={data.sap_bat_dau} note="Trong 7 ngày tới" />
-
-        <Stat label="Sắp kết thúc" value={data.sap_ket_thuc} note="Trong 7 ngày tới" />
-
-        <Stat label="Lượt đã dùng lũy kế" value={data.tong_luot_da_dung_luy_ke} />
-
-        <Stat label="Lượt đang giữ" value={data.tong_luot_dang_giu_hien_tai} />
-
-        <Stat label="Lượt đã giải phóng" value={data.tong_luot_da_giai_phong_hien_tai} />
+        <Stat label="Sắp bắt đầu" value={data.sap_bat_dau} note="Trong 7 ngày tới" tone="cyan" />
+        <Stat label="Sắp kết thúc" value={data.sap_ket_thuc} note="Trong 7 ngày tới" tone="amber" />
       </div>
 
-      <h3 className="tq-v6-subtitle">Nhóm đơn chốt ưu đãi trong kỳ</h3>
+      <div className="tq-grid-3">
+        <Stat label="Lượt đã dùng lũy kế" value={data.tong_luot_da_dung_luy_ke} tone="purple" />
+        <Stat label="Lượt đang giữ" value={data.tong_luot_dang_giu_hien_tai} tone="orange" />
+        <Stat label="Lượt đã giải phóng" value={data.tong_luot_da_giai_phong_hien_tai} tone="slate" />
+      </div>
+
+      <h3 className="tq-v6-subtitle">
+        <span className="tq-warranty-icon-bar" style={{ background: '#6366f1' }}></span>
+        Nhóm đơn chốt ưu đãi trong kỳ
+      </h3>
 
       <p className="tq-note tq-scope">
         {date(data.bo_loc?.tu_ngay)}
@@ -1491,16 +1612,15 @@ function DashboardPromotions({ data }) {
         hiện tại.
       </p>
 
-      <div className="tq-kpi-sub-grid">
-        <Stat label="Đơn đã sử dụng ưu đãi" value={data.so_don_su_dung_trong_ky} />
-
+      <div className="tq-grid-3">
+        <Stat label="Đơn đã sử dụng ưu đãi" value={data.so_don_su_dung_trong_ky} tone="blue" />
         <Stat
           label="Giảm giá đã chốt"
           value={data.gia_tri_giam_theo_chuong_trinh_trong_ky}
           currency
+          tone="rose"
         />
-
-        <Stat label="Quà đã giao" value={data.so_qua_da_giao_cua_don_chot_trong_ky} />
+        <Stat label="Quà đã giao" value={data.so_qua_da_giao_cua_don_chot_trong_ky} tone="emerald" />
       </div>
     </>
   );
@@ -1518,17 +1638,25 @@ function DashboardWarrantyWork({ data = {} }) {
   };
 
   return (
-    <>
-      <h3 className="tq-v6-subtitle">Việc bảo hành cần theo dõi</h3>
+    <div className="tq-warranty-section">
+      <h3 className="tq-v6-subtitle">
+        <span className="tq-warranty-icon-bar"></span>
+        Việc bảo hành cần theo dõi
+      </h3>
 
-      <div className="tq-kpi-sub-grid">
+      <div className="tq-kpi-sub-grid tq-warranty-grid">
         {Object.entries(fields).map(([key, label]) => (
-          <Stat key={key} label={label} value={data[key]} />
+          <Stat
+            key={key}
+            label={label}
+            value={data[key]}
+            tone={WARRANTY_TONES[key]}
+          />
         ))}
       </div>
 
       <p className="tq-note tq-scope">Các nhóm có thể cùng nằm trên một phiếu.</p>
-    </>
+    </div>
   );
 }
 

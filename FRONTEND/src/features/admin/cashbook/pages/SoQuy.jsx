@@ -22,6 +22,7 @@ import {
 } from "../components/CashbookEnhancements";
 
 import CashbookSourceFilters from "../components/CashbookSourceFilters";
+import CounterpartyLink from "../components/CounterpartyLink";
 
 import {
   createCashbookSourceFilters,
@@ -601,7 +602,13 @@ export default function SoQuy() {
                   <td>
                     <strong>{row.ma_phieu}</strong>
                   </td>
-                  <td>{row.ten_nguoi_nop_nhan || "—"}</td>
+                  <td>
+                    {row.ten_nguoi_nop_nhan ? (
+                      <CounterpartyLink item={row} />
+                    ) : (
+                      "—"
+                    )}
+                  </td>
                   <td>
                     <span
                       className={getMethodStyle(row.phuong_thuc_thanh_toan)}

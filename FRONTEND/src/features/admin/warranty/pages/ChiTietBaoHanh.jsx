@@ -45,7 +45,6 @@ import WarrantyHistoryDetail, {
 } from '../components/WarrantyHistoryDetail';
 import { printWarrantyDocument } from '../components/warrantyPrint';
 import WarrantySnapshot, { displayValue } from '../components/WarrantySnapshot';
-import TablePagination from '../../../../shared/components/ui/TablePagination';
 import '../styles/warrantyShell.css';
 
 const tabs = [
@@ -293,43 +292,30 @@ function WarrantyDetail({ id }) {
   };
 
   const historyTable = (
-    <>
-      <WarrantyTable
-        columns={['Thời điểm', 'Hoạt động', 'Nội dung', 'Tham chiếu', 'Chi tiết']}
-        rows={(data.lich_su?.items || []).map((event) => [
-          displayDate(event.ngay_tao),
-          warrantyHistoryEventName(event.loai_su_kien),
-          event.noi_dung,
-          `#${event.id} · ${
-            event.nguoi_thuc_hien_id
-              ? `Nhân viên #${event.nguoi_thuc_hien_id}`
-              : 'Chưa có người thực hiện'
-          }`,
-          <button
-            key={`history-${event.id}`}
-            type="button"
-            className="w-shell-button"
-            disabled={loading || Boolean(error)}
-            aria-expanded={String(historyEventId) === String(event.id)}
-            onClick={() => setHistoryEventId(event.id)}
-          >
-            Xem chi tiết
-          </button>,
-        ])}
-        empty="Chưa có hoạt động được lưu."
-      />
-
-      <TablePagination
-        totalItems={data.lich_su?.pagination?.total_elements || 0}
-        pageSize={5}
-        currentPage={page}
-        onPageChange={(nextPage) => {
-          setHistoryEventId(null);
-          setPage(nextPage);
-        }}
-        idPrefix="warranty-history"
-      />
-    </>
+    <WarrantyTable
+      columns={['Thời điểm', 'Hoạt động', 'Nội dung', 'Tham chiếu', 'Chi tiết']}
+      rows={(data.lich_su?.items || []).map((event) => [
+        displayDate(event.ngay_tao),
+        warrantyHistoryEventName(event.loai_su_kien),
+        event.noi_dung,
+        `#${event.id} · ${
+          event.nguoi_thuc_hien_id
+            ? `Nhân viên #${event.nguoi_thuc_hien_id}`
+            : 'Chưa có người thực hiện'
+        }`,
+        <button
+          key={`history-${event.id}`}
+          type="button"
+          className="w-shell-button"
+          disabled={loading || Boolean(error)}
+          aria-expanded={String(historyEventId) === String(event.id)}
+          onClick={() => setHistoryEventId(event.id)}
+        >
+          Xem chi tiết
+        </button>,
+      ])}
+      empty="Chưa có hoạt động được lưu."
+    />
   );
 
   const invoiceTable = (

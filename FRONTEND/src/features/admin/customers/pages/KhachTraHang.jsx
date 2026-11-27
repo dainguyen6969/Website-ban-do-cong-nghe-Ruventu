@@ -1829,13 +1829,15 @@ function ReturnDetail({ returnId }) {
             <RefreshCw size={15} /> Tải lại
           </button>
           {detail.don_hang?.id && (
-            <button
-              type="button"
+            <a
+              href={`${ORDER_DETAIL_ROUTE}/${detail.don_hang.id}`}
+              target="_blank"
+              rel="noopener noreferrer"
               className="w-shell-button"
-              onClick={() => navigate(`${ORDER_DETAIL_ROUTE}/${detail.don_hang.id}`)}
+              style={{ textDecoration: 'none' }}
             >
               <ExternalLink size={15} /> Xem đơn gốc
-            </button>
+            </a>
           )}
           {statusVal === 'CHO_TIEP_NHAN' && (
             <>
@@ -2040,16 +2042,21 @@ function ReturnDetail({ returnId }) {
                       ],
                       [
                         'Đơn mua hàng gốc',
-                        <span
-                          className="kth-code-pill kth-code-pill--order"
-                          onClick={() =>
-                            detail.don_hang?.id &&
-                            navigate(`${ORDER_DETAIL_ROUTE}/${detail.don_hang.id}`)
-                          }
-                          style={{ cursor: detail.don_hang?.id ? 'pointer' : 'default' }}
-                        >
-                          {orderCode} {detail.don_hang?.id && <ExternalLink size={12} />}
-                        </span>,
+                        detail.don_hang?.id ? (
+                          <a
+                            href={`${ORDER_DETAIL_ROUTE}/${detail.don_hang.id}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="kth-code-pill kth-code-pill--order"
+                            style={{ textDecoration: 'none' }}
+                          >
+                            {orderCode} <ExternalLink size={12} />
+                          </a>
+                        ) : (
+                          <span className="kth-code-pill kth-code-pill--order">
+                            {orderCode}
+                          </span>
+                        ),
                       ],
                       [
                         'Người liên hệ',
@@ -2177,7 +2184,22 @@ function ReturnDetail({ returnId }) {
               </div>
               <WarrantyFields
                 fields={[
-                  ['Đơn mua hàng', orderCode],
+                  [
+                    'Đơn mua hàng',
+                    detail.don_hang?.id ? (
+                      <a
+                        href={`${ORDER_DETAIL_ROUTE}/${detail.don_hang.id}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="kth-code-pill kth-code-pill--order"
+                        style={{ textDecoration: 'none' }}
+                      >
+                        {orderCode} <ExternalLink size={12} />
+                      </a>
+                    ) : (
+                      orderCode
+                    ),
+                  ],
                   ['Lý do trả', detail.ly_do_tra || '—'],
                 ]}
               />

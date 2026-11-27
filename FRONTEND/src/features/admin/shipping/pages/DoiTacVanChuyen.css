@@ -238,24 +238,32 @@
   text-align: center;
 }
 .partner-footer {
-  min-height: 57px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-}
-.partner-footer > p {
-  color: #838a93;
-  font-size: 9px;
-  font-weight: 700;
-}
-.partner-footer .product-pagination-range {
-  display: none;
+  width: 100%;
+  border-top: 1px solid #111;
+  background: #fff;
+  box-sizing: border-box;
 }
 .partner-footer .product-pagination-bar {
-  width: auto;
-  padding: 0;
-  border: 0;
+  width: 100% !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  padding: 12px 18px !important;
+  border: 0 !important;
+  background: #fff !important;
+  box-sizing: border-box !important;
+}
+.partner-footer .product-pagination-range {
+  display: flex !important;
+  align-items: baseline !important;
+  gap: 0 !important;
+}
+.partner-footer .product-pagination-controls {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+  margin-left: auto !important;
+  gap: 4px !important;
 }
 .partner-detail-meta {
   margin: 2px 0 4px;
@@ -283,25 +291,30 @@
   background: #fff;
 }
 .partner-panel > header {
-  min-height: 44px;
-  padding: 0 13px;
+  min-height: 52px;
+  padding: 0 16px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 14px;
+  gap: 16px;
   color: #fff;
   background: var(--color-sidebar-bg);
+  box-sizing: border-box;
 }
 .partner-panel > header h2 {
+  flex: 0 0 auto;
+  min-width: 160px;
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 900;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
 }
 .partner-panel > header h2 span {
   width: 3px;
-  height: 15px;
+  height: 16px;
   background: var(--color-brand-red);
 }
 .partner-info {
@@ -326,41 +339,80 @@
   font-size: 11px;
   overflow-wrap: anywhere;
 }
-.partner-history-tools {
+.partner-panel-header-center {
+  flex: 1;
   display: flex;
   align-items: center;
-  gap: 8px;
+  justify-content: center;
+  min-width: 0;
+  padding: 0 12px;
 }
 .partner-history-search {
-  width: 260px;
-  height: 31px;
-  padding: 0 9px;
+  width: 100%;
+  max-width: 520px;
+  height: 38px;
+  padding: 0 14px;
   display: flex;
   align-items: center;
-  gap: 8px;
-  color: #999fa7;
+  gap: 10px;
+  color: #cbd5e1;
   border: 1px solid #494949;
+  background: #181818;
+  border-radius: 2px;
+  box-sizing: border-box;
+  transition: all 0.2s ease;
+}
+.partner-history-search:focus-within {
+  border-color: var(--color-brand-red, #e31e24);
+  background: #202020;
+  box-shadow: 0 0 0 1px var(--color-brand-red, #e31e24);
+}
+.partner-history-search svg {
+  width: 16px;
+  height: 16px;
+  color: #94a3b8;
+  flex-shrink: 0;
 }
 .partner-history-search input {
+  flex: 1;
   width: 100%;
+  min-width: 0;
+  height: 100%;
   color: #fff;
   background: transparent;
-  font-size: 9px;
+  font-size: 11px;
+  font-weight: 500;
+  outline: none;
+  border: none;
+}
+.partner-history-search input::placeholder {
+  color: #89919d;
+  font-size: 11px;
+}
+.partner-panel-header-tools {
+  flex: 0 0 auto;
+  min-width: 160px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
 }
 .partner-history-filter {
-  min-width: 135px;
+  min-width: 155px;
 }
 .partner-history-filter .filter__dropdown {
   width: 100%;
-  height: 31px;
-  padding: 0 9px;
+  height: 38px;
+  padding: 0 12px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   color: #fff;
   border: 1px solid #494949;
   background: var(--color-sidebar-bg);
-  font-size: 9px;
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: 2px;
+  box-sizing: border-box;
 }
 .partner-history-filter .filter__dropdown:hover {
   color: #fff;
@@ -598,13 +650,20 @@
     flex-direction: column;
     padding-top: 12px;
     padding-bottom: 12px;
+    gap: 12px;
   }
-  .partner-history-tools {
+  .partner-panel-header-center,
+  .partner-panel-header-tools {
     width: 100%;
-    flex-direction: column;
-    align-items: stretch;
+    min-width: 100%;
+    padding: 0;
+    justify-content: stretch;
   }
   .partner-history-search {
+    width: 100%;
+    max-width: 100%;
+  }
+  .partner-history-filter {
     width: 100%;
   }
   .partner-info > div {

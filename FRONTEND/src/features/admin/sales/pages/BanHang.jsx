@@ -34,6 +34,7 @@ import {
   updateOrder,
 } from "../state/salesState";
 import PaymentSuccessModal from "../components/PaymentSuccessModal";
+import { QrCode } from "lucide-react";
 import { sameQuotedPrice } from "../../../../shared/services/saleQuote";
 
 import { createRequestKey } from "../../../../shared/services/mutationUtils";
@@ -288,6 +289,105 @@ export default function BanHang() {
           : item,
       ),
     );
+
+  const openPosQrPopup = () => {
+    let transferCode = order.transferCode;
+    if (!transferCode && order.transactionCode && order.transactionCode.trim()) {
+      transferCode = order.transactionCode.trim();
+    }
+    if (!transferCode) {
+      const now = new Date();
+      const dateStr = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}${String(now.getDate()).padStart(2, "0")}`;
+      transferCode = `DH-${dateStr}-${String(order.id).padStart(6, "0")}`;
+    }
+
+    const amount = totals?.total != null && totals.total > 0
+      ? totals.total
+      : order.paid > 0
+        ? order.paid
+        : 0;
+
+    patch({ transferCode });
+
+    const width = 850;
+    const height = 620;
+    const left = Math.max(0, Math.round(window.screen.width / 2 - width / 2));
+    const top = Math.max(0, Math.round(window.screen.height / 2 - height / 2));
+
+    const params = new URLSearchParams({
+      orderId: String(order.id),
+      code: transferCode,
+      amount: String(amount),
+    });
+
+    try {
+      sessionStorage.setItem("pos_current_qr", JSON.stringify({
+        orderId: order.id,
+        transferCode,
+        amount,
+      }));
+    } catch {}
+
+    const popupUrl = `/admin/pos-qr?${params.toString()}`;
+    const win = window.open(
+      popupUrl,
+      "PosPaymentQRWindow",
+      `width=${width},height=${height},left=${left},top=${top},menubar=no,toolbar=no,location=no,status=no,resizable=yes,scrollbars=yes`
+    );
+    if (win) {
+      win.focus();
+    }
+  };
+
+  useEffect(() => {
+    const handleSync = (transferCode, amount) => {
+      patch((currentOrder) => ({
+        paymentMethod: "transfer",
+        transferCode,
+        transactionCode: transferCode,
+        paid: amount > 0 ? amount : currentOrder.paid,
+        paymentReceived: true,
+      }));
+    };
+
+    const handleMessage = (event) => {
+      if (event.data?.type === "POS_QR_PAYMENT_CONFIRMED") {
+        handleSync(event.data.transferCode, event.data.amount);
+      }
+    };
+
+    let channel = null;
+    try {
+      if (typeof BroadcastChannel !== "undefined") {
+        channel = new BroadcastChannel("pos_payment_sync");
+        channel.onmessage = (event) => {
+          if (event.data?.type === "POS_QR_PAYMENT_CONFIRMED") {
+            handleSync(event.data.transferCode, event.data.amount);
+          }
+        };
+      }
+    } catch {}
+
+    const handleStorage = (e) => {
+      if (e.key === "pos_payment_confirmed_event" && e.newValue) {
+        try {
+          const data = JSON.parse(e.newValue);
+          if (data && data.transferCode) {
+            handleSync(data.transferCode, data.amount);
+          }
+        } catch {}
+      }
+    };
+
+    window.addEventListener("message", handleMessage);
+    window.addEventListener("storage", handleStorage);
+
+    return () => {
+      window.removeEventListener("message", handleMessage);
+      window.removeEventListener("storage", handleStorage);
+      if (channel) channel.close();
+    };
+  }, [activeId]);
   const clearSearch = () => {
     setProductSearch("");
     setCustomerSearch("");
@@ -1237,12 +1337,26 @@ export default function BanHang() {
                     key={id}
                     aria-pressed={order.paymentMethod === id}
                     className={order.paymentMethod === id ? "is-selected" : ""}
-                    onClick={() => patch({ paymentMethod: id })}
+                    onClick={() => {
+                      patch({ paymentMethod: id });
+                      if (id === "transfer") {
+                        openPosQrPopup();
+                      }
+                    }}
                   >
                     ○ {label}
                   </button>
                 ))}
               </div>
+              {order.paymentMethod === "transfer" && (
+                <button
+                  type="button"
+                  className="pos-qr-reopen-btn"
+                  onClick={openPosQrPopup}
+                >
+                  <QrCode size={14} /> Xem mã QR thanh toán
+                </button>
+              )}
             </section>
             <label className="pos-block pos-field">
               <span>

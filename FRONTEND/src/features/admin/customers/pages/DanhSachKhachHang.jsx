@@ -1,6 +1,6 @@
 // Admin customer screen: DanhSachKhachHang.
 import { useEffect, useState, useCallback, useRef } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { HiOutlinePlus, HiOutlineSearch } from 'react-icons/hi';
 import FilterDropdown from '../../../../shared/components/ui/FilterDropdown';
 import TablePagination from '../../../../shared/components/ui/TablePagination';
@@ -18,8 +18,10 @@ export default function DanhSachKhachHang() {
   const [customers, setCustomers] = useState([]);
   const [totalElements, setTotalElements] = useState(0);
 
-  const [search, setSearch] = useState('');
-  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [searchParams] = useSearchParams();
+  const initialSearch = searchParams.get('keyword') || searchParams.get('search') || '';
+  const [search, setSearch] = useState(initialSearch);
+  const [debouncedSearch, setDebouncedSearch] = useState(initialSearch);
   const [statusFilter, setStatusFilter] = useState(statusOptions[0]);
   const [currentPage, setCurrentPage] = useState(1);
   const [isAddOpen, setIsAddOpen] = useState(false);

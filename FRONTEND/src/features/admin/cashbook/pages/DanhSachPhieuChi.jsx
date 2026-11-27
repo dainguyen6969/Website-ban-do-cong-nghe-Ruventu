@@ -5,6 +5,8 @@ import { disbursementService } from "../../../../shared/services/disbursementSer
 import TablePagination from "../../../../shared/components/ui/TablePagination";
 import LoadingSpinner from "../../../../shared/components/ui/LoadingSpinner";
 import FilterDropdown from "../../../../shared/components/ui/FilterDropdown";
+import { CashGroupBadge, PaymentMethodBadge } from "../components/CashbookBadges";
+import CounterpartyLink from "../components/CounterpartyLink";
 import {
   CashSourceFilters,
   CashSourceInfo,
@@ -358,12 +360,12 @@ export default function DanhSachPhieuChi() {
                   </td>
                   <td>
                     <div className="person-col">
-                      <strong>{row.ten_nguoi_nop_nhan}</strong>
+                      <CounterpartyLink item={row} />
                       <span>{mapGroupToText(row.nhom_nguoi_nop_nhan)}</span>
                     </div>
                   </td>
-                  <td className="text-muted">
-                    {mapGroupToText(row.nhom_nguoi_nop_nhan)}
+                  <td>
+                    <CashGroupBadge group={row.nhom_nguoi_nop_nhan} size="small" />
                   </td>
                   <td>
                     <div className="type-col">
@@ -372,16 +374,14 @@ export default function DanhSachPhieuChi() {
                     </div>
                   </td>
                   <td>
-                    <span className="method-text">
-                      {mapPaymentMethodToText(row.phuong_thuc_thanh_toan)}
-                    </span>
+                    <PaymentMethodBadge method={row.phuong_thuc_thanh_toan} size="small" />
                   </td>
                   <td className="text-muted">
                     {row.ten_nguoi_tao || "HỆ THỐNG"}
                   </td>
                   <td>
-                    <strong style={{ color: "#dc2626" }}>
-                      {formatMoney(row.so_tien)}
+                    <strong style={{ color: "#dc2626", fontWeight: 800 }}>
+                      -{formatMoney(row.so_tien)}
                     </strong>
                   </td>
                   <td className="text-muted">

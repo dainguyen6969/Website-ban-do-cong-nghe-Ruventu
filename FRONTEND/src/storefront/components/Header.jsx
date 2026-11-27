@@ -1,6 +1,6 @@
 import { scaledFontSize } from '../../typography/projectFontSize.js';
-import React, { useEffect, useState, useRef } from "react";
-import { Link, NavLink, useNavigate } from "react-router-dom";
+import React, { useEffect, useState, useRef, useLayoutEffect } from "react";
+import { Link, NavLink, useNavigate, useLocation } from "react-router-dom";
 import useMockAuth from "../../auth/useMockAuth";
 import {
   Search,
@@ -22,6 +22,7 @@ import { isRecommendationQuery } from '../services/recommendationService';
 
 const Header = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { logout } = useMockAuth();
 
   const [searchQuery, setSearchQuery] = useState("");
@@ -29,6 +30,13 @@ const Header = () => {
   const [suggestions, setSuggestions] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const searchRef = useRef(null);
+  const headerRef = useRef(null);
+
+  const [headerVisible, setHeaderVisible] = useState(true);
+  const [isCompact, setIsCompact] = useState(false);
+  const [spacerHeight, setSpacerHeight] = useState(0);
+  const lastScrollY = useRef(0);
+  const isCompactRef = useRef(false);
 
   const [user, setUser] = useState(() => {
     try {
@@ -119,6 +127,81 @@ const Header = () => {
     return () => { active = false; clearTimeout(timer); };
   }, [searchQuery]);
 
+  // Reset header state on navigation
+  useEffect(() => {
+    setHeaderVisible(true);
+    setIsCompact(false);
+    isCompactRef.current = false;
+    lastScrollY.current = window.scrollY || 0;
+  }, [location.pathname]);
+
+  // Measure spacer height to avoid layout shift
+  useLayoutEffect(() => {
+    if (headerRef.current && !isCompactRef.current) {
+      const height = headerRef.current.offsetHeight;
+      if (height > 0) {
+        setSpacerHeight(height);
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    const handleResize = () => {
+      if (headerRef.current && !isCompactRef.current) {
+        const height = headerRef.current.offsetHeight;
+        if (height > 0) {
+          setSpacerHeight(height);
+        }
+      }
+    };
+
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  // Handle scroll behavior
+  useEffect(() => {
+    let ticking = false;
+
+    const handleScroll = () => {
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          const currentScrollY = Math.max(0, window.scrollY);
+          const delta = currentScrollY - lastScrollY.current;
+          const topThreshold = 80;
+
+          if (currentScrollY <= topThreshold) {
+            // Near top of page: always show full header with category menu
+            setHeaderVisible(true);
+            setIsCompact(false);
+            isCompactRef.current = false;
+          } else {
+            // Scrolled past top area
+            if (delta > 8) {
+              // Scrolling down: hide header
+              setHeaderVisible(false);
+              setIsCompact(true);
+              isCompactRef.current = true;
+              setShowSuggestions(false);
+            } else if (delta < -8) {
+              // Scrolling up: show compact header (no category menu)
+              setHeaderVisible(true);
+              setIsCompact(true);
+              isCompactRef.current = true;
+            }
+          }
+
+          lastScrollY.current = currentScrollY;
+          ticking = false;
+        });
+        ticking = true;
+      }
+    };
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
   const handleLogout = async () => {
     try {
       await logout();
@@ -157,7 +240,10 @@ const Header = () => {
 
   return (
     <>
-      <header className="header">
+      <header
+        ref={headerRef}
+        className={`header ${!headerVisible ? "header--hidden" : ""} ${isCompact ? "header--compact" : ""}`}
+      >
         {/* ================= TOP BANNER ================= */}
         <div className="top-banner">
           <p>
@@ -456,6 +542,12 @@ const Header = () => {
           </div>
         </nav>
       </header>
+
+      <div
+        className="header-spacer"
+        style={{ height: spacerHeight ? `${spacerHeight}px` : undefined }}
+        aria-hidden="true"
+      />
 
       <CartDrawer isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} />
     </>
