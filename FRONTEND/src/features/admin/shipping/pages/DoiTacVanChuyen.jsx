@@ -468,7 +468,11 @@ export default function DoiTacVanChuyen() {
   }
 
   return (
-    <main className="partner-page admin-list-page" aria-busy={busy}>
+    <main
+      className={`partner-page ${detailMode ? 'partner-page--detail' : 'admin-list-page'}`}
+      aria-busy={busy}
+    >
+      {' '}
       {detailMode ? (
         !validSelectedId ? (
           <div className="partner-not-found">
@@ -686,7 +690,6 @@ export default function DoiTacVanChuyen() {
           </section>
         </>
       )}
-
       {canCreatePartner && showAdd && (
         <AddPartnerModal
           form={form}
@@ -698,7 +701,6 @@ export default function DoiTacVanChuyen() {
           onSubmit={addPartner}
         />
       )}
-
       {canEditPartner && pendingAction && (
         <ConfirmActionModal
           pendingAction={pendingAction}
@@ -840,6 +842,7 @@ function PartnerDetail({
   const [statusFilter, setStatusFilter] = useState(DELIVERY_OPTIONS[0]);
   const [page, setPage] = useState(1);
   const [historyRevision, setHistoryRevision] = useState(0);
+  const [accountIdError, setAccountIdError] = useState('');
 
   const path = `${PATH}/${encodeURIComponent(partner.id)}/deliveries?${queryString({
     keyword: keyword.trim(),
@@ -937,33 +940,64 @@ function PartnerDetail({
         </PartnerPanel>
 
         {canLink && ['SHIP_CUA_HANG', 'SHIP_CA_NHAN'].includes(partner.loai_doi_tac) && (
-          <PartnerPanel title="TÀI KHOẢN SHIPPER">
+          <PartnerPanel title="TÀI KHOẢN GIAO HÀNG">
             <form
+              className="partner-account-form"
               key={`${partner.id}:${partner.nguoi_dung_id ?? ''}`}
               onSubmit={(event) => {
                 event.preventDefault();
-                const value = String(
-                  new FormData(event.currentTarget).get('shipperId') || ''
-                ).trim();
-                if (!value && !partner.nguoi_dung_id) return;
-                if (!value && !window.confirm('Gỡ liên kết tài khoản shipper?')) return;
-                void onLink(value ? Number(value) : null);
+                if (busy) return;
+                const id = String(new FormData(event.currentTarget).get('shipperId') || '').trim();
+
+                if (!/^[1-9][0-9]{0,14}$/.test(id)) {
+                  setAccountIdError('Nhập ID nhân viên bằng số, ví dụ 23.');
+                  return;
+                }
+
+                setAccountIdError('');
+                void onLink(Number(id));
               }}
             >
-              <label>
-                ID nhân viên có vai trò SHIPPER
+              <label className="partner-account-field">
+                <span>ID nhân viên</span>
                 <input
+                  type="text"
                   name="shipperId"
                   inputMode="numeric"
-                  pattern="[1-9][0-9]{0,14}"
+                  autoComplete="off"
                   defaultValue={partner.nguoi_dung_id ?? ''}
                   disabled={busy}
+                  aria-invalid={Boolean(accountIdError)}
+                  aria-describedby="partner-account-hint"
+                  onChange={() => setAccountIdError('')}
                 />
               </label>
-              <button type="submit" className="partner-btn partner-btn--outline" disabled={busy}>
-                LƯU LIÊN KẾT
-              </button>
-              {linkError && <p role="alert">{linkError}</p>}
+
+              <div className="partner-account-actions">
+                <AdminPageAction type="submit" variant="primary" icon="save" disabled={busy}>
+                  {busy ? 'ĐANG LƯU…' : 'LƯU LIÊN KẾT'}
+                </AdminPageAction>
+
+                {partner.nguoi_dung_id != null && (
+                  <AdminPageAction
+                    variant="utility"
+                    disabled={busy}
+                    onClick={() => {
+                      if (!window.confirm('Gỡ liên kết tài khoản giao hàng này?')) return;
+                      setAccountIdError('');
+                      void onLink(null);
+                    }}
+                  >
+                    GỠ LIÊN KẾT
+                  </AdminPageAction>
+                )}
+              </div>
+
+              {(accountIdError || linkError) && (
+                <p className="partner-account-error" role="alert">
+                  {accountIdError || linkError}
+                </p>
+              )}
             </form>
           </PartnerPanel>
         )}
@@ -1082,16 +1116,14 @@ function PartnerDetail({
           </div>
 
           {!history.error && history.data && (
-            <div style={{ padding: '0 14px' }}>
-              <ServerPagination
-                data={history.data}
-                page={page}
-                onPageChange={setPage}
-                noun="PHIẾU"
-                idPrefix="partner-deliveries"
-                pageSize={5}
-              />
-            </div>
+            <ServerPagination
+              data={history.data}
+              page={page}
+              onPageChange={setPage}
+              noun="PHIẾU"
+              idPrefix="partner-deliveries"
+              pageSize={5}
+            />
           )}
         </PartnerPanel>
       </section>
