@@ -61,6 +61,15 @@ public class AdminDeliveryController {
         service.getDetail(id, adminRoleService.deliveryAssigneeId(actor)));
   }
 
+  @GetMapping("/{id}/ghn-tracking")
+  @PreAuthorize("@adminRoleService.canViewDeliveries(principal)")
+  public ApiResponse<GhnTracking> getGhnTracking(
+      @PathVariable("id") Long id, @AuthenticationPrincipal NguoiDung actor) {
+    return success(
+        "Lấy trạng thái GHN thành công",
+        service.getGhnTracking(id, adminRoleService.deliveryAssigneeId(actor)));
+  }
+
   @PutMapping("/{id}")
   @PreAuthorize("@adminRoleService.hasModuleAction(principal, 'giao_hang', 'sua')")
   public ApiResponse<Action> update(

@@ -181,14 +181,10 @@ public class AdminDeliveryService {
         existing.map(this::returnData).orElse(null));
   }
 
-  public Detail getDetail(Long id) {
-    return getDetail(id, null);
-  }
-
-  public Detail getDetail(Long id, Long assignedUserId) {
+  private PhieuGiaoHang findDeliveryForView(Long id, Long assignedUserId) {
     validateId(id);
 
-    PhieuGiaoHang delivery =
+    var delivery =
         deliveryRepository
             .findById(id)
             .orElseThrow(() -> notFound("Phiếu giao hàng không tồn tại"));
@@ -196,6 +192,31 @@ public class AdminDeliveryService {
     if (assignedUserId != null) {
       requireAssignedDeliveryPartner(delivery.getDoiTacVanChuyen(), assignedUserId);
     }
+
+    return delivery;
+  }
+
+  public GhnTracking getGhnTracking(Long id, Long assignedUserId) {
+    var delivery = findDeliveryForView(id, assignedUserId);
+    if (delivery.getDoiTacVanChuyen().getLoaiDoiTac() != LoaiDoiTacVanChuyenEnum.GHN) {
+      throw invalid("Phiếu này dùng đối tác giao hàng khác GHN");
+    }
+
+    String tracking = delivery.getMaVanDon();
+    if (tracking == null || tracking.isBlank()) {
+      throw conflict("Phiếu GHN chưa có mã vận đơn");
+    }
+
+    return orderService.lookupGhnTracking(tracking.strip());
+  }
+
+  public Detail getDetail(Long id) {
+    return getDetail(id, null);
+  }
+
+  public Detail getDetail(Long id, Long assignedUserId) {
+
+    PhieuGiaoHang delivery = findDeliveryForView(id, assignedUserId);
 
     DonHang order = delivery.getDonHang();
 

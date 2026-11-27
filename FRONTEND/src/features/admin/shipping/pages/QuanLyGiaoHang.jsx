@@ -50,6 +50,32 @@ const STATUSES = [
   'HUY_GIAO_HANG',
 ];
 
+const GHN_STATUS_LABELS = new Map([
+  ['ready_to_pick', 'Đã lên đơn, chờ GHN lấy kiện'],
+  ['picking', 'Tài xế đang tới điểm lấy'],
+  ['money_collect_picking', 'Đang thu tiền tại điểm lấy'],
+  ['picked', 'GHN đã nhận kiện'],
+  ['storing', 'Kiện đang lưu tại kho GHN'],
+  ['sorting', 'Đang phân loại kiện'],
+  ['transporting', 'Đang chuyển kiện giữa các kho'],
+  ['delivering', 'Đang giao tới người nhận'],
+  ['money_collect_delivering', 'Đang thu tiền khi giao'],
+  ['delivered', 'GHN đã giao thành công'],
+  ['delivery_fail', 'Lần giao chưa thành công'],
+  ['waiting_to_return', 'Đợi chuyển trả người gửi'],
+  ['return', 'Đã ghi nhận yêu cầu trả kiện'],
+  ['return_transporting', 'Kiện hoàn đang chuyển kho'],
+  ['return_sorting', 'Đang phân loại kiện hoàn'],
+  ['returning', 'Đang giao trả cho người gửi'],
+  ['return_fail', 'Chưa trả được cho người gửi'],
+  ['returned', 'Người gửi đã nhận kiện hoàn'],
+  ['cancel', 'GHN đã hủy vận đơn'],
+  ['exception', 'Có sự cố cần xử lý'],
+  ['lost', 'Kiện bị thất lạc'],
+  ['damage', 'Kiện bị hư hại'],
+  ['scrap', 'Kiện đã bị tiêu hủy'],
+]);
+
 export default function QuanLyGiaoHang() {
   const { deliveryId } = useParams();
   const access = useAdminPermissions()?.access;
@@ -1012,13 +1038,22 @@ function ShipmentDetail({ id }) {
                 </ShipmentInfo>
                 <ShipmentInfo title="MÃ ĐỐI TÁC">{partner.ma_doi_tac || '—'}</ShipmentInfo>
                 <ShipmentInfo title="LOẠI ĐỐI TÁC">
-                  {partner.loai_doi_tac === 'SHIP_CUA_HANG'
-                    ? 'Ship cửa hàng'
-                    : partner.loai_doi_tac === 'SHIP_CA_NHAN'
-                      ? 'Ship cá nhân'
-                      : '—'}
+                  {partner.loai_doi_tac === 'GHN'
+                    ? 'GHN'
+                    : partner.loai_doi_tac === 'SHIP_CUA_HANG'
+                      ? 'Ship cửa hàng'
+                      : partner.loai_doi_tac === 'SHIP_CA_NHAN'
+                        ? 'Ship cá nhân'
+                        : '—'}
                 </ShipmentInfo>
                 <ShipmentInfo title="MÃ VẬN ĐƠN">{delivery.ma_van_don || '—'}</ShipmentInfo>
+                {partner.loai_doi_tac === 'GHN' && (
+                  <GhnTrackingInfo
+                    key={`${id}:${delivery.ma_van_don || ''}`}
+                    id={id}
+                    trackingCode={delivery.ma_van_don}
+                  />
+                )}
                 <ShipmentInfo title="TIỀN THU HỘ COD">
                   {Number(delivery.tien_thu_ho_cod) > 0
                     ? money(delivery.tien_thu_ho_cod)
@@ -1167,6 +1202,76 @@ function ShipmentDetail({ id }) {
           />
         )}
     </section>
+  );
+}
+
+function GhnTrackingInfo({ id, trackingCode }) {
+  const code = trackingCode?.trim() || '';
+  const [revision, setRevision] = useState(0);
+  const [result, setResult] = useState({ loading: true, data: null, error: '' });
+
+  useEffect(() => {
+    if (!code) return undefined;
+
+    const controller = new AbortController();
+    setResult({ loading: true, data: null, error: '' });
+
+    apiRequest(`${API}/${encodeURIComponent(id)}/ghn-tracking`, {
+      signal: controller.signal,
+      cache: 'no-store',
+    })
+      .then((data) => {
+        if (controller.signal.aborted) return;
+
+        if (!data?.trang_thai_ghn) {
+          throw new Error('Phản hồi GHN thiếu trạng thái vận đơn.');
+        }
+
+        if (data.ma_van_don?.toUpperCase() !== code.toUpperCase()) {
+          throw new Error('Mã vận đơn đã thay đổi. Tải lại chi tiết phiếu.');
+        }
+
+        setResult({ loading: false, data, error: '' });
+      })
+      .catch((error) => {
+        if (!controller.signal.aborted) {
+          setResult({
+            loading: false,
+            data: null,
+            error: error.message || 'Chưa tra cứu được trạng thái GHN.',
+          });
+        }
+      });
+
+    return () => controller.abort();
+  }, [id, code, revision]);
+
+  if (!code) {
+    return <ShipmentInfo title="TRẠNG THÁI GHN">Chưa có mã vận đơn.</ShipmentInfo>;
+  }
+
+  const { loading, data, error } = result;
+  const status = data?.trang_thai_ghn;
+  const message = status
+    ? (GHN_STATUS_LABELS.get(status) ?? status)
+    : error || 'Đang tra cứu GHN...';
+
+  return (
+    <ShipmentInfo title="TRẠNG THÁI GHN">
+      <div className="delivery-ghn-tracking">
+        <span role={error ? 'alert' : 'status'}>{message}</span>
+        {data?.ngay_cap_nhat_ghn && <small>GHN cập nhật {dateTime(data.ngay_cap_nhat_ghn)}</small>}
+
+        <button
+          type="button"
+          className="delivery-small-btn"
+          disabled={loading}
+          onClick={() => setRevision((value) => value + 1)}
+        >
+          TẢI LẠI GHN
+        </button>
+      </div>
+    </ShipmentInfo>
   );
 }
 

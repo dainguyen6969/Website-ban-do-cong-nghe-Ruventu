@@ -72,10 +72,10 @@ export const previewGhnDeliveryFee = (id, body, signal) =>
     signal,
   });
 
-export const startOrderDelivery = (id, partnerId, fee, tracking = '') =>
+export const startOrderDelivery = (id, partner, fee, tracking = '') =>
   action(id, 'delivery/start', {
     xac_nhan: true,
-    doi_tac_van_chuyen_id: partnerId,
+    ...(partner === 'GHN' ? { loai_doi_tac: 'GHN' } : { doi_tac_van_chuyen_id: partner }),
     phi_tra_doi_tac: fee,
     ma_van_don: tracking.trim(),
   });
