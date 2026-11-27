@@ -7,6 +7,22 @@ import org.springframework.http.HttpStatus;
 @Getter
 @RequiredArgsConstructor
 public enum ErrorCode {
+
+  INVALID_PRINT_REQUEST(HttpStatus.BAD_REQUEST, "ID hoặc tham số in phiếu không hợp lệ."),
+  PRINT_RECORD_NOT_FOUND(HttpStatus.NOT_FOUND, "Không tìm thấy chứng từ cần in."),
+  PRINT_SALES_SLIP_CONFLICT(
+      HttpStatus.CONFLICT,
+      "Dữ liệu đơn bán không đủ hoặc không nhất quán để in đúng lịch sử."),
+  PRINT_SALES_INVOICE_NOT_FOUND(
+      HttpStatus.NOT_FOUND, "Không tìm thấy hóa đơn bán hàng cần in."),
+  PRINT_SALES_INVOICE_NOT_READY(
+      HttpStatus.CONFLICT, "Đơn hàng chưa hoàn tất, chưa thể in hóa đơn bán hàng."),
+  PRINT_SALES_INVOICE_PDF_FAILED(
+      HttpStatus.INTERNAL_SERVER_ERROR, "Không tải được PDF hóa đơn."),
+  PRINT_HISTORY_CONFLICT(
+      HttpStatus.CONFLICT,
+      "Chưa phát sinh nghiệp vụ hoặc thiếu, mâu thuẫn dữ liệu lịch sử để in xác nhận."),
+  PRINT_PDF_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "Không tạo được PDF phiếu."),
   INVALID_DATA(HttpStatus.BAD_REQUEST, "Dữ liệu không hợp lệ"),
 
   INVALID_PARAM(HttpStatus.BAD_REQUEST, "Tham số không hợp lệ."),
