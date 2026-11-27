@@ -21,6 +21,7 @@ public interface DoiTacVanChuyenMapper {
 
   AdminShippingPartnerListItemResponse toListItem(DoiTacVanChuyen entity);
 
+  @Mapping(source = "nguoiDung.id", target = "nguoiDungId")
   AdminShippingPartnerResponse toResponse(DoiTacVanChuyen entity, @Context ZoneId timeZone);
 
   AdminShippingPartnerStatusResponse toStatusResponse(
@@ -31,6 +32,7 @@ public interface DoiTacVanChuyenMapper {
   @Mapping(target = "trangThai", ignore = true)
   @Mapping(target = "ngayTao", ignore = true)
   @Mapping(target = "ngayCapNhat", ignore = true)
+  @Mapping(target = "nguoiDung", ignore = true)
   DoiTacVanChuyen toEntity(AdminShippingPartnerCreateRequest request);
 
   @Mapping(target = "donHangId", source = "donHang.id")

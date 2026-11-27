@@ -14,6 +14,7 @@ import com.example.dantruventu.Enum.TrangThaiGiaoHangEnum;
 import com.example.dantruventu.Error.AppException;
 import com.example.dantruventu.Error.ErrorCode;
 import com.example.dantruventu.Mapper.partner.DoiTacVanChuyenMapper;
+import com.example.dantruventu.Repository.NguoiDungRepository;
 import com.example.dantruventu.Repository.order.PhieuGiaoHangRepository;
 import com.example.dantruventu.Repository.partner.DoiTacVanChuyenRepository;
 import com.example.dantruventu.Services.order.OrderEvents;
@@ -43,6 +44,8 @@ public class AdminShippingPartnerService {
 
   private final DoiTacVanChuyenRepository partnerRepository;
   private final PhieuGiaoHangRepository deliveryRepository;
+  private final NguoiDungRepository nguoiDungRepository;
+  private final AdminRoleService adminRoleService;
   private final DoiTacVanChuyenMapper mapper;
   private final OrderEvents orderEvents;
 
@@ -153,8 +156,41 @@ public class AdminShippingPartnerService {
         throw conflict(DUPLICATE_PHONE);
       }
 
-      throw conflict("Mã hoặc thông tin đối tác bị trùng, vui lòng kiểm tra và thử lại");
+      throw conflict("Mã hoặc thông tin đối tác trùng, vui lòng kiểm tra và thử lại");
     }
+  }
+
+  @Transactional
+  public AdminShippingPartnerResponse linkShipper(Long id, Long userId) {
+    validateId(id);
+    var partner = partnerRepository.findByIdForUpdate(id).orElseThrow(this::notFound);
+    if (partner.getLoaiDoiTac() != LoaiDoiTacVanChuyenEnum.SHIP_CUA_HANG
+        && partner.getLoaiDoiTac() != LoaiDoiTacVanChuyenEnum.SHIP_CA_NHAN) {
+      throw conflict("Chỉ liên kết tài khoản cho hồ sơ người giao");
+    }
+
+    if (userId == null) {
+      partner.setNguoiDung(null);
+    } else {
+      validateId(userId);
+      var user =
+          nguoiDungRepository
+              .findByIdWithVaiTro(userId)
+              .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "Không tìm thấy tài khoản"));
+      if (adminRoleService.isSystemAdmin(user)
+          || !adminRoleService.hasModuleAction(user, "giao_hang_duoc_phan_cong", "xem")) {
+        throw conflict("Vui lòng chọn nhân viên được ủy quyền giao hàng.");
+      }
+      partner.setNguoiDung(user);
+    }
+
+    partner.setNgayCapNhat(LocalDateTime.now(timeZone()));
+    try {
+      partnerRepository.flush();
+    } catch (DataIntegrityViolationException exception) {
+      throw conflict("Tài khoản đã liên kết với hồ sơ giao hàng khác");
+    }
+    return mapper.toResponse(partner, timeZone());
   }
 
   @Transactional

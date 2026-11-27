@@ -198,6 +198,21 @@
   font-variant-numeric: tabular-nums;
 }
 
+.delivery-detail-page .delivery-ghn-tracking {
+  display: grid;
+  justify-items: start;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.delivery-detail-page .delivery-ghn-tracking small {
+  color: #475569;
+}
+
+.delivery-detail-page .delivery-ghn-tracking [role='alert'] {
+  color: #b42318;
+}
+
 .delivery-detail-page .delivery-link {
   color: #111;
   text-align: left;
@@ -1161,11 +1176,7 @@
 }
 
 .delivery-list-page
-  :is(
-    .delivery-order-link,
-    .delivery-partner-link,
-    .delivery-detail-btn
-  ):focus-visible {
+  :is(.delivery-order-link, .delivery-partner-link, .delivery-detail-btn):focus-visible {
   outline: 2px solid var(--color-brand-red, #e31e24);
   outline-offset: 1px;
 }

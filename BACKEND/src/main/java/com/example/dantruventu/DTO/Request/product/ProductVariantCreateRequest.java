@@ -1,7 +1,9 @@
 package com.example.dantruventu.DTO.Request.product;
 
 import com.example.dantruventu.DTO.catalog.CatalogFields.AttributeInput;
+import com.example.dantruventu.Entity.PhienBanSanPham;
 import com.example.dantruventu.Error.CatalogException;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonSetter;
 import jakarta.validation.Valid;
@@ -44,6 +46,14 @@ public class ProductVariantCreateRequest {
   @Digits(integer = 8, fraction = 2)
   private BigDecimal khoiLuong;
 
+  @Setter(AccessLevel.NONE)
+  @JsonProperty("kich_thuoc_dong_goi")
+  private PhienBanSanPham.KichThuocDongGoi kichThuocDongGoi;
+
+  @JsonIgnore
+  @Setter(AccessLevel.NONE)
+  private boolean daGuiKichThuocDongGoi;
+
   @JsonProperty("trang_thai")
   @NotNull
   @Min(0)
@@ -60,6 +70,31 @@ public class ProductVariantCreateRequest {
   @NotNull(message = "thuoc_tinh_phien_ban không được null")
   @Size(max = 100)
   private List<@NotNull @Valid AttributeInput> thuocTinhPhienBan = List.of();
+
+  @JsonSetter("kich_thuoc_dong_goi")
+  public void readPackageDimensions(JsonNode value) {
+    kichThuocDongGoi =
+        value == null || value.isNull()
+            ? null
+            : new PhienBanSanPham.KichThuocDongGoi(
+                packageCm(value.get("dai_cm")),
+                packageCm(value.get("rong_cm")),
+                packageCm(value.get("cao_cm")));
+    daGuiKichThuocDongGoi = true;
+  }
+
+  private int packageCm(JsonNode value) {
+    if (value == null
+        || !value.isIntegralNumber()
+        || !value.canConvertToInt()
+        || value.intValue() <= 0) {
+      throw CatalogException.bad(
+          "kich_thuoc_dong_goi",
+          "INVALID_PACKAGE_DIMENSIONS",
+          "Nhập đủ dài, rộng, cao bằng số nguyên dương (cm)");
+    }
+    return value.intValue();
+  }
 
   @JsonSetter("co_quan_ly_serial")
   public void readSerialMode(JsonNode value) {

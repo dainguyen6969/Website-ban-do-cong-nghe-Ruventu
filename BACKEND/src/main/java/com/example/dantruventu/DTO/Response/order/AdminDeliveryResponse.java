@@ -18,6 +18,12 @@ public final class AdminDeliveryResponse {
 
   private AdminDeliveryResponse() {}
 
+  @JsonInclude(JsonInclude.Include.ALWAYS)
+  public record GhnTracking(
+      @JsonProperty("ma_van_don") String maVanDon,
+      @JsonProperty("trang_thai_ghn") String trangThaiGhn,
+      @JsonProperty("ngay_cap_nhat_ghn") String ngayCapNhatGhn) {}
+
   @Getter
   @Setter
   @NoArgsConstructor

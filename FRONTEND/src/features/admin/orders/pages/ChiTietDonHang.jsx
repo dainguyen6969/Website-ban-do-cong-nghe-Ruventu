@@ -37,6 +37,7 @@ import OrderRefundPanel from '../components/OrderRefundPanel';
 import { OrderStateBadge } from './DanhSachDonHang';
 import './ChiTietDonHang.css';
 import OrderModal from '../components/OrderModal';
+import StartDeliveryDialog from '../components/StartDeliveryDialog';
 import ExportOrderDialog from '../components/ExportOrderDialog';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
@@ -733,13 +734,7 @@ function OrderDetailView({ orderId }) {
 
   const canConfirmPickup = openOnlineOrder && isPickup && pickupReasons.length === 0;
 
-  const beginDelivery = () =>
-    open('startDelivery', 'BẮT ĐẦU GIAO HÀNG', {
-      partner: '',
-      fee: '0',
-      tracking: '',
-    });
-
+  const beginDelivery = () => open('startDelivery', 'BẮT ĐẦU GIAO HÀNG');
   const deliveryStatus = (target) => {
     if (!activeDelivery) return;
 
@@ -919,21 +914,6 @@ function OrderDetailView({ orderId }) {
         });
       }
 
-      if (type === 'startDelivery') {
-        const partnerId = Number(dialog.partner);
-        const fee = Number(dialog.fee);
-
-        if (!Number.isSafeInteger(partnerId) || partnerId <= 0) {
-          throw new Error('Vui lòng chọn đối tác giao hàng.');
-        }
-
-        if (dialog.fee === '' || !Number.isFinite(fee) || fee < 0) {
-          throw new Error('Phí trả đối tác không hợp lệ.');
-        }
-
-        return startOrderDelivery(order.id, partnerId, fee, dialog.tracking || '');
-      }
-
       if (type === 'deliveryStatus') {
         const requiresCod = dialog.target === 'GIAO_THANH_CONG' && Number(dialog.cod) > 0;
 
@@ -1061,7 +1041,8 @@ function OrderDetailView({ orderId }) {
 
         <div className="order-detail-hero__actions admin-page-actions">
           {canEditOnlineOrder(order) && (
-            <Action icon="edit"
+            <Action
+              icon="edit"
               adminOnly={false}
               disabled={state.busy}
               click={() => navigate(`/admin/don-hang/dat-hang-online/${order.id}`)}
@@ -1104,7 +1085,8 @@ function OrderDetailView({ orderId }) {
 
           {openOnlineOrder && isPickup && (
             <div className="order-handover-action">
-              <Action icon="approve"
+              <Action
+                icon="approve"
                 disabled={state.busy || !canConfirmPickup}
                 click={() => open('pickup', 'XÁC NHẬN KHÁCH ĐÃ NHẬN TẠI CỬA HÀNG')}
               >
@@ -1130,7 +1112,11 @@ function OrderDetailView({ orderId }) {
           {openOnlineOrder &&
             isShipping &&
             activeDelivery?.trang_thai_giao_hang === 'DANG_GIAO' && (
-              <Action icon="approve" disabled={state.busy} click={() => deliveryStatus('GIAO_THANH_CONG')}>
+              <Action
+                icon="approve"
+                disabled={state.busy}
+                click={() => deliveryStatus('GIAO_THANH_CONG')}
+              >
                 KHÁCH ĐÃ NHẬN HÀNG
               </Action>
             )}
@@ -1140,7 +1126,8 @@ function OrderDetailView({ orderId }) {
             ['CHO_DUYET', 'CHO_HANG', 'CHO_THANH_TOAN', 'CHO_DONG_GOI'].includes(
               order.trang_thai_don_hang
             ) && (
-              <Action icon="cancel"
+              <Action
+                icon="cancel"
                 danger
                 disabled={state.busy}
                 click={() => {
@@ -1154,7 +1141,8 @@ function OrderDetailView({ orderId }) {
             )}
 
           {canCancelBeforeHandover ? (
-            <Action icon="cancel"
+            <Action
+              icon="cancel"
               danger
               disabled={state.busy || Boolean(orderAttempt.current)}
               click={() => open('cancelBeforeHandover', 'HỦY ĐƠN VÀ NHẬN LẠI HÀNG')}
@@ -1167,15 +1155,13 @@ function OrderDetailView({ orderId }) {
             ['CHO_DONG_GOI', 'CHO_LAY_HANG', 'DANG_GIAO_HANG'].includes(
               order.trang_thai_don_hang
             ) && (
-              <AdminPageAction variant="danger" icon="stop" disabled>ĐƠN ĐÃ XUẤT KHO - KHÔNG THỂ HỦY TRỰC TIẾP</AdminPageAction>
+              <AdminPageAction variant="danger" icon="stop" disabled>
+                ĐƠN ĐÃ XUẤT KHO - KHÔNG THỂ HỦY TRỰC TIẾP
+              </AdminPageAction>
             )
           )}
 
-          <AdminPageAction
-            variant="utility"
-            icon="back"
-            onClick={backToOrderList}
-          >
+          <AdminPageAction variant="utility" icon="back" onClick={backToOrderList}>
             Quay lại danh sách
           </AdminPageAction>
         </div>
@@ -1848,11 +1834,7 @@ function OrderDetailView({ orderId }) {
                               <tr key={device.thiet_bi_id}>
                                 <td>{device.ma_theo_doi}</td>
 
-                                <td>
-                                  {device.so_serial ||
-                                    device.dau_hieu_nhan_dang ||
-                                    '-'}
-                                </td>
+                                <td>{device.so_serial || device.dau_hieu_nhan_dang || '-'}</td>
 
                                 <td>{count}</td>
 
@@ -2123,13 +2105,24 @@ function OrderDetailView({ orderId }) {
             <span>Xác nhận xuất kho đơn hàng này.</span>
           </label>
         </OrderModal>
+      ) : dialog?.type === 'startDelivery' ? (
+        <StartDeliveryDialog
+          key={order.id}
+          order={order}
+          defaultFee="0"
+          busy={state.busy}
+          error={state.error}
+          close={() => setDialog(null)}
+          submit={(partnerId, fee, tracking) =>
+            run(() => startOrderDelivery(order.id, partnerId, fee, tracking), canCreateDelivery)
+          }
+        />
       ) : (
         dialog && (
           <OrderActionDialog
             dialog={dialog}
             setDialog={setDialog}
             order={order}
-            options={options}
             busy={state.busy}
             error={state.error}
             submit={submitAction}
@@ -2443,7 +2436,7 @@ function Info({ text, children }) {
   );
 }
 
-function OrderActionDialog({ dialog, setDialog, order, options, busy, error, submit }) {
+function OrderActionDialog({ dialog, setDialog, order, busy, error, submit }) {
   const change = (key, value) =>
     setDialog((current) => ({
       ...current,
@@ -2478,12 +2471,7 @@ function OrderActionDialog({ dialog, setDialog, order, options, busy, error, sub
         (receiving &&
           (!Number.isSafeInteger(Number(dialog.amount)) ||
             Number(dialog.amount) <= 0 ||
-            Number(dialog.amount) > Number(dialog.maxAmount))) ||
-        (dialog.type === 'startDelivery' &&
-          (!dialog.partner ||
-            dialog.fee === '' ||
-            !Number.isFinite(Number(dialog.fee)) ||
-            Number(dialog.fee) < 0))
+            Number(dialog.amount) > Number(dialog.maxAmount)))
       }
     >
       {dialog.type === 'approve' && (
@@ -2491,42 +2479,6 @@ function OrderActionDialog({ dialog, setDialog, order, options, busy, error, sub
           Xác nhận đã kiểm tra nhu cầu của khách và đồng ý thực hiện đơn. Hệ thống kiểm tra lại ưu
           đãi và tồn kho; đủ hàng thì giữ để đóng gói, thiếu hàng thì chuyển chờ hàng.
         </p>
-      )}
-
-      {dialog.type === 'startDelivery' && (
-        <>
-          <p className="order-delivery-description">
-            Chọn đối tác và xác nhận đã bàn giao hàng. Phí trả đối tác là khoản cửa hàng trả cho
-            người giao.
-          </p>
-
-          <label className="order-operation-field">
-            <span>ĐỐI TÁC GIAO HÀNG *</span>
-
-            <FormDropdown
-              aria-label="ĐỐI TÁC GIAO HÀNG"
-              required
-              disabled={busy}
-              value={dialog.partner}
-              onChange={(event) => change('partner', event.target.value)}
-            >
-              <option value="">— Chọn đối tác —</option>
-
-              {options.partners.map((partner) => (
-                <option key={partner.id} value={partner.id}>
-                  {partner.ten_doi_tac} — {partner.ma_doi_tac}
-                </option>
-              ))}
-            </FormDropdown>
-          </label>
-
-          {field('PHÍ TRẢ ĐỐI TÁC (đ) *', 'fee', 'number', {
-            required: true,
-            min: 0,
-            step: '0.01',
-            disabled: busy,
-          })}
-        </>
       )}
 
       <p>{order.ma_don_hang}</p>

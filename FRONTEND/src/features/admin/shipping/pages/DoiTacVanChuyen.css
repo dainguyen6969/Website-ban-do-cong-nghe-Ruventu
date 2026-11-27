@@ -611,3 +611,99 @@
     grid-template-columns: 125px 1fr;
   }
 }
+
+.admin-app .partner-page--detail {
+  font-family: var(--project-font-family, var(--font-family-admin, sans-serif));
+}
+
+.admin-app .partner-page--detail .partner-hero h1 {
+  font-weight: var(--admin-weight-bold, 700);
+}
+
+.admin-app .partner-page--detail .partner-crumbs,
+.admin-app .partner-page--detail .partner-detail-meta,
+.admin-app .partner-page--detail .partner-panel > header h2,
+.admin-app .partner-page--detail .partner-info dt,
+.admin-app .partner-page--detail .partner-footer > p {
+  font-weight: var(--admin-weight-semibold, 600);
+}
+
+.admin-app .partner-page--detail .partner-panel > header h2,
+.admin-app .partner-page--detail .partner-info dd {
+  font-size: calc(12px * var(--project-font-scale, 1));
+}
+
+.admin-app .partner-page--detail .admin-page-action-btn[data-variant] {
+  --warranty-button-font-weight: var(--admin-weight-semibold, 600);
+}
+
+.admin-app .partner-page--detail .partner-history-wrap > .admin-table-scroll--embedded {
+  border: 0;
+}
+
+.admin-app .partner-page--detail .partner-panel > .admin-table-footer {
+  border: 0;
+  border-top: 1px solid #dfe3e8;
+}
+
+.partner-page--detail .partner-account-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 10px 14px;
+  padding: 16px;
+  font-size: calc(13px * var(--project-font-scale, 1));
+}
+
+.partner-page--detail .partner-account-field {
+  display: grid;
+  flex: 0 1 280px;
+  min-width: 0;
+  gap: 6px;
+  font-weight: var(--admin-weight-semibold, 600);
+}
+
+.partner-page--detail .partner-account-field input {
+  width: 100%;
+  min-height: 38px;
+  padding: 8px 10px;
+  border: 1px solid #a9b2bc;
+  background: #fff;
+  color: #111;
+  font: inherit;
+  font-weight: var(--admin-weight-regular, 400);
+}
+
+.partner-page--detail .partner-account-field input:focus-visible {
+  outline: 2px solid var(--color-brand-red, #e31e24);
+  outline-offset: 1px;
+}
+
+.partner-page--detail .partner-account-field input[aria-invalid='true'] {
+  border-color: #ba2028;
+}
+
+.partner-page--detail .partner-account-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.admin-app .partner-page--detail .partner-account-actions .admin-page-action-btn[data-variant] {
+  min-height: 38px;
+  --action-border-width: 1px;
+}
+
+.partner-page--detail .partner-account-hint,
+.partner-page--detail .partner-account-error {
+  flex-basis: 100%;
+  font-size: calc(12px * var(--project-font-scale, 1));
+}
+
+.partner-page--detail .partner-account-hint {
+  color: #475569;
+}
+
+.partner-page--detail .partner-account-error {
+  color: #b42318;
+}

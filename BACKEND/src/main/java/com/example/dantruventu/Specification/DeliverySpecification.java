@@ -15,7 +15,7 @@ public final class DeliverySpecification {
   private DeliverySpecification() {}
 
   public static Specification<PhieuGiaoHang> build(
-      String keyword, TrangThaiGiaoHangEnum status, Long partnerId) {
+      String keyword, TrangThaiGiaoHangEnum status, Long partnerId, Long assignedUserId) {
 
     return (root, query, cb) -> {
       List<Predicate> conditions = new ArrayList<>();
@@ -26,6 +26,11 @@ public final class DeliverySpecification {
 
       if (partnerId != null) {
         conditions.add(cb.equal(root.get("doiTacVanChuyen").get("id"), partnerId));
+      }
+
+      if (assignedUserId != null) {
+        conditions.add(
+            cb.equal(root.get("doiTacVanChuyen").get("nguoiDung").get("id"), assignedUserId));
       }
 
       if (keyword != null && !keyword.isBlank()) {

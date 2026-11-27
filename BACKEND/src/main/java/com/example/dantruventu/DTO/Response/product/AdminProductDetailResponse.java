@@ -2,6 +2,7 @@ package com.example.dantruventu.DTO.Response.product;
 
 import com.example.dantruventu.DTO.Response.warehouse.ComboComponentResponse;
 import com.example.dantruventu.DTO.catalog.CatalogFields;
+import com.example.dantruventu.Entity.PhienBanSanPham;
 import com.example.dantruventu.Enum.LoaiSanPham;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import java.math.BigDecimal;
@@ -131,6 +132,9 @@ public class AdminProductDetailResponse extends CatalogFields.Metadata {
 
     @JsonProperty("khoi_luong")
     private BigDecimal khoiLuong;
+
+    @JsonProperty("kich_thuoc_dong_goi")
+    private PhienBanSanPham.KichThuocDongGoi kichThuocDongGoi;
 
     @JsonProperty("trang_thai")
     private Short trangThai;

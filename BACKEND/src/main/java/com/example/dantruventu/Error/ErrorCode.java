@@ -28,6 +28,8 @@ public enum ErrorCode {
   
   INVALID_DATA(HttpStatus.BAD_REQUEST, "Dữ liệu không hợp lệ"),
 
+  GHN_UNAVAILABLE(HttpStatus.BAD_GATEWAY, "Chưa lấy được phí dự kiến từ GHN"),
+
   INVALID_PARAM(HttpStatus.BAD_REQUEST, "Tham số không hợp lệ."),
 
   INVALID_CUSTOMER_SEARCH_PARAM(HttpStatus.BAD_REQUEST, "Trạng thái hoặc phân trang không hợp lệ."),

@@ -50,14 +50,51 @@ const STATUSES = [
   'HUY_GIAO_HANG',
 ];
 
+const GHN_STATUS_LABELS = new Map([
+  ['ready_to_pick', 'Đã lên đơn, chờ GHN lấy kiện'],
+  ['picking', 'Tài xế đang tới điểm lấy'],
+  ['money_collect_picking', 'Đang thu tiền tại điểm lấy'],
+  ['picked', 'GHN đã nhận kiện'],
+  ['storing', 'Kiện đang lưu tại kho GHN'],
+  ['sorting', 'Đang phân loại kiện'],
+  ['transporting', 'Đang chuyển kiện giữa các kho'],
+  ['delivering', 'Đang giao tới người nhận'],
+  ['money_collect_delivering', 'Đang thu tiền khi giao'],
+  ['delivered', 'GHN đã giao thành công'],
+  ['delivery_fail', 'Lần giao chưa thành công'],
+  ['waiting_to_return', 'Đợi chuyển trả người gửi'],
+  ['return', 'Đã ghi nhận yêu cầu trả kiện'],
+  ['return_transporting', 'Kiện hoàn đang chuyển kho'],
+  ['return_sorting', 'Đang phân loại kiện hoàn'],
+  ['returning', 'Đang giao trả cho người gửi'],
+  ['return_fail', 'Chưa trả được cho người gửi'],
+  ['returned', 'Người gửi đã nhận kiện hoàn'],
+  ['cancel', 'GHN đã hủy vận đơn'],
+  ['exception', 'Có sự cố cần xử lý'],
+  ['lost', 'Kiện bị thất lạc'],
+  ['damage', 'Kiện bị hư hại'],
+  ['scrap', 'Kiện đã bị tiêu hủy'],
+]);
+
 export default function QuanLyGiaoHang() {
   const { deliveryId } = useParams();
+  const access = useAdminPermissions()?.access;
+  const canViewAll = hasAdminPermission(access, 'giao_hang', 'xem');
+  const scope = canViewAll ? 'all' : 'assigned';
 
-  return deliveryId ? <ShipmentDetail key={deliveryId} id={deliveryId} /> : <ShipmentList />;
+  return deliveryId ? (
+    <ShipmentDetail key={`${scope}:${deliveryId}`} id={deliveryId} />
+  ) : (
+    <ShipmentList key={scope} canViewAll={canViewAll} />
+  );
 }
 
-function ShipmentList() {
+function ShipmentList({ canViewAll }) {
   const navigate = useNavigate();
+  const access = useAdminPermissions()?.access;
+  const canViewOrders = hasAdminPermission(access, 'don_hang', 'xem');
+  const canViewPartners = hasAdminPermission(access, 'doi_tac_van_chuyen', 'xem');
+
   const [params] = useSearchParams();
   const PAGE_SIZE = 20;
 
@@ -85,13 +122,8 @@ function ShipmentList() {
   });
 
   useEffect(() => {
+    if (!canViewAll) return;
     const controller = new AbortController();
-
-    setPartners((current) => ({
-      ...current,
-      loading: true,
-      error: '',
-    }));
 
     async function loadPartners() {
       const items = [];
@@ -134,7 +166,7 @@ function ShipmentList() {
     });
 
     return () => controller.abort();
-  }, [revision]);
+  }, [canViewAll, revision]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -161,7 +193,7 @@ function ShipmentList() {
         params.set('trang_thai_giao_hang', status);
       }
 
-      if (partnerId) {
+      if (canViewAll && partnerId) {
         params.set('doi_tac_van_chuyen_id', partnerId);
       }
 
@@ -203,7 +235,7 @@ function ShipmentList() {
       clearTimeout(timer);
       controller.abort();
     };
-  }, [keyword, status, partnerId, page, revision]);
+  }, [keyword, status, partnerId, page, revision, canViewAll]);
 
   const total = Number(state.pagination?.total_elements) || 0;
 
@@ -255,38 +287,40 @@ function ShipmentList() {
           ))}
         </FilterDropdown>
 
-        <FilterDropdown
-          aria-label="Đối tác vận chuyển"
-          value={partnerId}
-          disabled={partners.loading}
-          onChange={(event) => {
-            setPartnerId(event.target.value);
-            setPage(1);
-          }}
-          selectedDark
-        >
-          <option value="">{partners.loading ? 'Đang tải đối tác...' : 'Tất cả đối tác'}</option>
+        {canViewAll && (
+          <FilterDropdown
+            aria-label="Đối tác vận chuyển"
+            value={partnerId}
+            disabled={partners.loading}
+            onChange={(event) => {
+              setPartnerId(event.target.value);
+              setPage(1);
+            }}
+            selectedDark
+          >
+            <option value="">{partners.loading ? 'Đang tải đối tác...' : 'Tất cả đối tác'}</option>
 
-          {partners.items.map((partner) => (
-            <option key={partner.id} value={String(partner.id)}>
-              {partner.ten_doi_tac}
-              {Number(partner.trang_thai) === 0 ? ' (Ngừng hoạt động)' : ''}
-            </option>
-          ))}
-        </FilterDropdown>
+            {partners.items.map((partner) => (
+              <option key={partner.id} value={String(partner.id)}>
+                {partner.ten_doi_tac}
+                {Number(partner.trang_thai) === 0 ? ' (Ngừng hoạt động)' : ''}
+              </option>
+            ))}
+          </FilterDropdown>
+        )}
 
         <AdminPageAction
           icon="reload"
           aria-label="Tải lại danh sách giao hàng"
           title="Tải lại"
-          disabled={state.loading || partners.loading}
+          disabled={state.loading || (canViewAll && partners.loading)}
           onClick={reload}
         >
           TẢI LẠI
         </AdminPageAction>
       </div>
 
-      {partners.error && (
+      {canViewAll && partners.error && (
         <p className="delivery-list-error" role="alert">
           Không tải được bộ lọc đối tác: {partners.error}
         </p>
@@ -365,13 +399,18 @@ function ShipmentList() {
                       </td>
 
                       <td>
-                        <AdminLink variant="plain"
-                          className="delivery-order-link"
-                          to={`/admin/don-hang/danh-sach-don-hang/${item.don_hang_id}`}
-                        >
-                          <span>{item.ma_don_hang}</span>
-                          <HiOutlineArrowRight size={14} aria-hidden="true" />
-                        </AdminLink>
+                        {canViewOrders ? (
+                          <AdminLink
+                            variant="plain"
+                            className="delivery-order-link"
+                            to={`/admin/don-hang/danh-sach-don-hang/${item.don_hang_id}`}
+                          >
+                            <span>{item.ma_don_hang}</span>
+                            <HiOutlineArrowRight size={14} aria-hidden="true" />
+                          </AdminLink>
+                        ) : (
+                          <strong>{item.ma_don_hang}</strong>
+                        )}
                         <small
                           className="delivery-list-meta delivery-list-ellipsis"
                           title={item.ma_phieu_giao_hang}
@@ -388,7 +427,7 @@ function ShipmentList() {
                       </td>
 
                       <td>
-                        {partner?.id ? (
+                        {canViewPartners && partner?.id ? (
                           <button
                             type="button"
                             className="delivery-partner-link"
@@ -405,7 +444,7 @@ function ShipmentList() {
                             <small>{partner.ma_doi_tac}</small>
                           </button>
                         ) : (
-                          <span className="delivery-muted">—</span>
+                          <span className="delivery-muted">{partner?.ten_doi_tac || '—'}</span>
                         )}
                       </td>
 
@@ -508,7 +547,17 @@ function ShipmentDetail({ id }) {
   const navigate = useNavigate();
 
   const access = useAdminPermissions()?.access;
-  const canEditDelivery = hasAdminPermission(access, 'giao_hang', 'sua');
+  const canViewOrders = hasAdminPermission(access, 'don_hang', 'xem');
+  const canViewPartners = hasAdminPermission(access, 'doi_tac_van_chuyen', 'xem');
+  const canEditDelivery =
+    hasAdminPermission(access, 'giao_hang', 'xem') &&
+    hasAdminPermission(access, 'giao_hang', 'sua');
+
+  const canReportDelivery =
+    canEditDelivery ||
+    (hasAdminPermission(access, 'giao_hang_duoc_phan_cong', 'xem') &&
+      hasAdminPermission(access, 'giao_hang_duoc_phan_cong', 'sua'));
+
   const canReceiveReturned = hasSystemAdminPermission(access, 'giao_hang', 'sua');
 
   const operationBusy = useRef(false);
@@ -569,12 +618,31 @@ function ShipmentDetail({ id }) {
     return () => controller.abort();
   }, [id, revision]);
 
+  function canOpenDeliveryAction(kind) {
+    if (kind === 'return') return canReceiveReturned;
+    return ['transit', 'success', 'failure'].includes(kind) ? canReportDelivery : canEditDelivery;
+  }
+
+  function canSendDeliveryAction(suffix, body) {
+    if (suffix === 'return-receipt') return canReceiveReturned;
+    if (
+      suffix === 'status' &&
+      ['DANG_GIAO', 'GIAO_THANH_CONG', 'GIAO_THAT_BAI'].includes(body?.trang_thai_giao_hang)
+    ) {
+      return canReportDelivery;
+    }
+    return canEditDelivery;
+  }
+
   const open = (kind) => {
-    const allowed = kind === 'return' ? canReceiveReturned : canEditDelivery;
-    if (!allowed || operationBusy.current || loading || deliveryAttempt.current) {
+    if (
+      !canOpenDeliveryAction(kind) ||
+      operationBusy.current ||
+      loading ||
+      deliveryAttempt.current
+    ) {
       return;
     }
-
     setOperationError('');
     setNotice('');
     setModal(kind);
@@ -588,8 +656,7 @@ function ShipmentDetail({ id }) {
   };
 
   const save = async (method, suffix, body, message) => {
-    const allowed = suffix === 'return-receipt' ? canReceiveReturned : canEditDelivery;
-    if (!allowed || operationBusy.current) return;
+    if (!canSendDeliveryAction(suffix, body) || operationBusy.current) return;
 
     operationBusy.current = true;
     setBusy(true);
@@ -737,11 +804,7 @@ function ShipmentDetail({ id }) {
           <h1 className="delivery-detail-code">{delivery.ma_phieu_giao_hang}</h1>
         </div>
 
-        <AdminPageAction
-          icon="back"
-          disabled={busy}
-          onClick={() => navigate(LIST)}
-        >
+        <AdminPageAction icon="back" disabled={busy} onClick={() => navigate(LIST)}>
           QUAY LẠI
         </AdminPageAction>
       </header>
@@ -755,9 +818,10 @@ function ShipmentDetail({ id }) {
               type="button"
               disabled={
                 busy ||
-                (deliveryAttempt.current.body.suffix === 'return-receipt'
-                  ? !canReceiveReturned
-                  : !canEditDelivery)
+                !canSendDeliveryAction(
+                  deliveryAttempt.current.body.suffix,
+                  deliveryAttempt.current.body.body
+                )
               }
               onClick={retryDeliveryOperation}
             >
@@ -863,13 +927,17 @@ function ShipmentDetail({ id }) {
                   {recipient.dia_chi_giao_hang || '—'}
                 </ShipmentInfo>
                 <ShipmentInfo title="MÃ ĐƠN HÀNG">
-                  <button
-                    type="button"
-                    className="delivery-link"
-                    onClick={() => navigate(`/admin/don-hang/danh-sach-don-hang/${order.id}`)}
-                  >
-                    {order.ma_don_hang}
-                  </button>
+                  {canViewOrders ? (
+                    <button
+                      type="button"
+                      className="delivery-link"
+                      onClick={() => navigate(`/admin/don-hang/danh-sach-don-hang/${order.id}`)}
+                    >
+                      {order.ma_don_hang}
+                    </button>
+                  ) : (
+                    order.ma_don_hang
+                  )}
                 </ShipmentInfo>
                 <ShipmentInfo title="CẬP NHẬT CUỐI">
                   {dateTime(delivery.ngay_cap_nhat)}
@@ -952,7 +1020,7 @@ function ShipmentDetail({ id }) {
             <ShipmentPanel title="THÔNG TIN VẬN CHUYỂN">
               <dl className="delivery-side-info">
                 <ShipmentInfo title="ĐỐI TÁC VẬN CHUYỂN">
-                  {partner.id ? (
+                  {canViewPartners && partner.id ? (
                     <button
                       type="button"
                       className="delivery-link"
@@ -965,18 +1033,27 @@ function ShipmentDetail({ id }) {
                       {partner.ten_doi_tac}
                     </button>
                   ) : (
-                    '—'
+                    partner.ten_doi_tac || '—'
                   )}
                 </ShipmentInfo>
                 <ShipmentInfo title="MÃ ĐỐI TÁC">{partner.ma_doi_tac || '—'}</ShipmentInfo>
                 <ShipmentInfo title="LOẠI ĐỐI TÁC">
-                  {partner.loai_doi_tac === 'SHIP_CUA_HANG'
-                    ? 'Ship cửa hàng'
-                    : partner.loai_doi_tac === 'SHIP_CA_NHAN'
-                      ? 'Ship cá nhân'
-                      : '—'}
+                  {partner.loai_doi_tac === 'GHN'
+                    ? 'GHN'
+                    : partner.loai_doi_tac === 'SHIP_CUA_HANG'
+                      ? 'Ship cửa hàng'
+                      : partner.loai_doi_tac === 'SHIP_CA_NHAN'
+                        ? 'Ship cá nhân'
+                        : '—'}
                 </ShipmentInfo>
                 <ShipmentInfo title="MÃ VẬN ĐƠN">{delivery.ma_van_don || '—'}</ShipmentInfo>
+                {partner.loai_doi_tac === 'GHN' && (
+                  <GhnTrackingInfo
+                    key={`${id}:${delivery.ma_van_don || ''}`}
+                    id={id}
+                    trackingCode={delivery.ma_van_don}
+                  />
+                )}
                 <ShipmentInfo title="TIỀN THU HỘ COD">
                   {Number(delivery.tien_thu_ho_cod) > 0
                     ? money(delivery.tien_thu_ho_cod)
@@ -995,7 +1072,7 @@ function ShipmentDetail({ id }) {
               </h2>
 
               <div>
-                {canHandoff && (
+                {canEditDelivery && canHandoff && (
                   <button
                     type="button"
                     className="delivery-action black"
@@ -1006,32 +1083,31 @@ function ShipmentDetail({ id }) {
                   </button>
                 )}
 
-                {status === 'DA_NHAN_HANG' && inTransit && (
+                {canReportDelivery && status === 'DA_NHAN_HANG' && inTransit && (
                   <button
                     type="button"
                     className="delivery-action black"
-                    disabled={locked}
+                    disabled={busy || loading}
                     onClick={() => open('transit')}
                   >
                     CẬP NHẬT ĐANG GIAO
                   </button>
                 )}
 
-                {status === 'DANG_GIAO' && inTransit && (
+                {canReportDelivery && status === 'DANG_GIAO' && inTransit && (
                   <>
                     <button
                       type="button"
                       className="delivery-action success"
-                      disabled={locked}
+                      disabled={busy || loading}
                       onClick={() => open('success')}
                     >
                       GIAO THÀNH CÔNG
                     </button>
-
                     <button
                       type="button"
                       className="delivery-action danger"
-                      disabled={locked}
+                      disabled={busy || loading}
                       onClick={() => open('failure')}
                     >
                       GIAO THẤT BẠI
@@ -1045,18 +1121,20 @@ function ShipmentDetail({ id }) {
                       ĐANG CHỜ ĐỐI TÁC HOÀN HÀNG VỀ CỬA HÀNG
                     </p>
 
-                    <button
-                      type="button"
-                      className="delivery-action return"
-                      disabled={!canReceiveReturned || locked || !inTransit}
-                      onClick={() => open('return')}
-                    >
-                      XÁC NHẬN ĐÃ NHẬN HÀNG HOÀN
-                    </button>
+                    {canReceiveReturned && (
+                      <button
+                        type="button"
+                        className="delivery-action return"
+                        disabled={locked || !inTransit}
+                        onClick={() => open('return')}
+                      >
+                        XÁC NHẬN ĐÃ NHẬN HÀNG HOÀN
+                      </button>
+                    )}
                   </>
                 )}
 
-                {canCancel && (
+                {canEditDelivery && canCancel && (
                   <button
                     type="button"
                     className="delivery-action danger"
@@ -1110,7 +1188,7 @@ function ShipmentDetail({ id }) {
         />
       )}
 
-      {canEditDelivery &&
+      {canOpenDeliveryAction(modal) &&
         !deliveryAttempt.current &&
         ['handoff', 'transit', 'success', 'failure', 'cancel'].includes(modal) && (
           <ShipmentStatusDialog
@@ -1124,6 +1202,76 @@ function ShipmentDetail({ id }) {
           />
         )}
     </section>
+  );
+}
+
+function GhnTrackingInfo({ id, trackingCode }) {
+  const code = trackingCode?.trim() || '';
+  const [revision, setRevision] = useState(0);
+  const [result, setResult] = useState({ loading: true, data: null, error: '' });
+
+  useEffect(() => {
+    if (!code) return undefined;
+
+    const controller = new AbortController();
+    setResult({ loading: true, data: null, error: '' });
+
+    apiRequest(`${API}/${encodeURIComponent(id)}/ghn-tracking`, {
+      signal: controller.signal,
+      cache: 'no-store',
+    })
+      .then((data) => {
+        if (controller.signal.aborted) return;
+
+        if (!data?.trang_thai_ghn) {
+          throw new Error('Phản hồi GHN thiếu trạng thái vận đơn.');
+        }
+
+        if (data.ma_van_don?.toUpperCase() !== code.toUpperCase()) {
+          throw new Error('Mã vận đơn đã thay đổi. Tải lại chi tiết phiếu.');
+        }
+
+        setResult({ loading: false, data, error: '' });
+      })
+      .catch((error) => {
+        if (!controller.signal.aborted) {
+          setResult({
+            loading: false,
+            data: null,
+            error: error.message || 'Chưa tra cứu được trạng thái GHN.',
+          });
+        }
+      });
+
+    return () => controller.abort();
+  }, [id, code, revision]);
+
+  if (!code) {
+    return <ShipmentInfo title="TRẠNG THÁI GHN">Chưa có mã vận đơn.</ShipmentInfo>;
+  }
+
+  const { loading, data, error } = result;
+  const status = data?.trang_thai_ghn;
+  const message = status
+    ? (GHN_STATUS_LABELS.get(status) ?? status)
+    : error || 'Đang tra cứu GHN...';
+
+  return (
+    <ShipmentInfo title="TRẠNG THÁI GHN">
+      <div className="delivery-ghn-tracking">
+        <span role={error ? 'alert' : 'status'}>{message}</span>
+        {data?.ngay_cap_nhat_ghn && <small>GHN cập nhật {dateTime(data.ngay_cap_nhat_ghn)}</small>}
+
+        <button
+          type="button"
+          className="delivery-small-btn"
+          disabled={loading}
+          onClick={() => setRevision((value) => value + 1)}
+        >
+          TẢI LẠI GHN
+        </button>
+      </div>
+    </ShipmentInfo>
   );
 }
 
