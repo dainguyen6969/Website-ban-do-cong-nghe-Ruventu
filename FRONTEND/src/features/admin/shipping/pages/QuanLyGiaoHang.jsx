@@ -526,6 +526,12 @@ function ShipmentDetail({ id }) {
   const canEditDelivery =
     hasAdminPermission(access, 'giao_hang', 'xem') &&
     hasAdminPermission(access, 'giao_hang', 'sua');
+
+  const canReportDelivery =
+    canEditDelivery ||
+    (hasAdminPermission(access, 'giao_hang_duoc_phan_cong', 'xem') &&
+      hasAdminPermission(access, 'giao_hang_duoc_phan_cong', 'sua'));
+
   const canReceiveReturned = hasSystemAdminPermission(access, 'giao_hang', 'sua');
 
   const operationBusy = useRef(false);
@@ -586,12 +592,31 @@ function ShipmentDetail({ id }) {
     return () => controller.abort();
   }, [id, revision]);
 
+  function canOpenDeliveryAction(kind) {
+    if (kind === 'return') return canReceiveReturned;
+    return ['transit', 'success', 'failure'].includes(kind) ? canReportDelivery : canEditDelivery;
+  }
+
+  function canSendDeliveryAction(suffix, body) {
+    if (suffix === 'return-receipt') return canReceiveReturned;
+    if (
+      suffix === 'status' &&
+      ['DANG_GIAO', 'GIAO_THANH_CONG', 'GIAO_THAT_BAI'].includes(body?.trang_thai_giao_hang)
+    ) {
+      return canReportDelivery;
+    }
+    return canEditDelivery;
+  }
+
   const open = (kind) => {
-    const allowed = kind === 'return' ? canReceiveReturned : canEditDelivery;
-    if (!allowed || operationBusy.current || loading || deliveryAttempt.current) {
+    if (
+      !canOpenDeliveryAction(kind) ||
+      operationBusy.current ||
+      loading ||
+      deliveryAttempt.current
+    ) {
       return;
     }
-
     setOperationError('');
     setNotice('');
     setModal(kind);
@@ -605,8 +630,7 @@ function ShipmentDetail({ id }) {
   };
 
   const save = async (method, suffix, body, message) => {
-    const allowed = suffix === 'return-receipt' ? canReceiveReturned : canEditDelivery;
-    if (!allowed || operationBusy.current) return;
+    if (!canSendDeliveryAction(suffix, body) || operationBusy.current) return;
 
     operationBusy.current = true;
     setBusy(true);
@@ -768,9 +792,10 @@ function ShipmentDetail({ id }) {
               type="button"
               disabled={
                 busy ||
-                (deliveryAttempt.current.body.suffix === 'return-receipt'
-                  ? !canReceiveReturned
-                  : !canEditDelivery)
+                !canSendDeliveryAction(
+                  deliveryAttempt.current.body.suffix,
+                  deliveryAttempt.current.body.body
+                )
               }
               onClick={retryDeliveryOperation}
             >
@@ -1012,7 +1037,7 @@ function ShipmentDetail({ id }) {
               </h2>
 
               <div>
-                {canHandoff && (
+                {canEditDelivery && canHandoff && (
                   <button
                     type="button"
                     className="delivery-action black"
@@ -1023,32 +1048,31 @@ function ShipmentDetail({ id }) {
                   </button>
                 )}
 
-                {status === 'DA_NHAN_HANG' && inTransit && (
+                {canReportDelivery && status === 'DA_NHAN_HANG' && inTransit && (
                   <button
                     type="button"
                     className="delivery-action black"
-                    disabled={locked}
+                    disabled={busy || loading}
                     onClick={() => open('transit')}
                   >
                     CẬP NHẬT ĐANG GIAO
                   </button>
                 )}
 
-                {status === 'DANG_GIAO' && inTransit && (
+                {canReportDelivery && status === 'DANG_GIAO' && inTransit && (
                   <>
                     <button
                       type="button"
                       className="delivery-action success"
-                      disabled={locked}
+                      disabled={busy || loading}
                       onClick={() => open('success')}
                     >
                       GIAO THÀNH CÔNG
                     </button>
-
                     <button
                       type="button"
                       className="delivery-action danger"
-                      disabled={locked}
+                      disabled={busy || loading}
                       onClick={() => open('failure')}
                     >
                       GIAO THẤT BẠI
@@ -1062,18 +1086,20 @@ function ShipmentDetail({ id }) {
                       ĐANG CHỜ ĐỐI TÁC HOÀN HÀNG VỀ CỬA HÀNG
                     </p>
 
-                    <button
-                      type="button"
-                      className="delivery-action return"
-                      disabled={!canReceiveReturned || locked || !inTransit}
-                      onClick={() => open('return')}
-                    >
-                      XÁC NHẬN ĐÃ NHẬN HÀNG HOÀN
-                    </button>
+                    {canReceiveReturned && (
+                      <button
+                        type="button"
+                        className="delivery-action return"
+                        disabled={locked || !inTransit}
+                        onClick={() => open('return')}
+                      >
+                        XÁC NHẬN ĐÃ NHẬN HÀNG HOÀN
+                      </button>
+                    )}
                   </>
                 )}
 
-                {canCancel && (
+                {canEditDelivery && canCancel && (
                   <button
                     type="button"
                     className="delivery-action danger"
@@ -1127,7 +1153,7 @@ function ShipmentDetail({ id }) {
         />
       )}
 
-      {canEditDelivery &&
+      {canOpenDeliveryAction(modal) &&
         !deliveryAttempt.current &&
         ['handoff', 'transit', 'success', 'failure', 'cancel'].includes(modal) && (
           <ShipmentStatusDialog

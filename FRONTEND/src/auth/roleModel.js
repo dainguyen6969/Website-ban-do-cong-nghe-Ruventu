@@ -88,8 +88,8 @@ export const PERMISSION_GROUPS = Object.freeze([
       {
         id: 'giao_hang_duoc_phan_cong',
         label: 'Phiếu giao được phân công',
-        description: 'Xem danh sách và chi tiết phiếu được giao cho tài khoản này',
-        actions: ['xem'],
+        description: 'Xem phiếu được giao và cập nhật kết quả giao hàng',
+        actions: ['xem', 'sua'],
       },
 
       {

@@ -70,13 +70,16 @@ public class AdminDeliveryController {
   }
 
   @PatchMapping("/{id}/status")
-  @PreAuthorize("@adminRoleService.hasModuleAction(principal, 'giao_hang', 'sua')")
+  @PreAuthorize("@adminRoleService.canChangeDeliveryStatus(principal)")
   public ApiResponse<Action> changeStatus(
       @PathVariable("id") Long id,
       @RequestHeader("Idempotency-Key") String idempotencyKey,
+      @AuthenticationPrincipal NguoiDung actor,
       @Valid @RequestBody AdminDeliveryStatusRequest request) {
 
-    Action response = service.changeStatus(id, idempotencyKey, request);
+    Action response =
+        service.changeStatus(
+            id, idempotencyKey, request, adminRoleService.deliveryStatusAssigneeId(actor));
 
     String message =
         switch (request.getTrangThaiGiaoHang()) {

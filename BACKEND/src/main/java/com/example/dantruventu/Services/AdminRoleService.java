@@ -59,7 +59,7 @@ public class AdminRoleService {
           Map.entry("ban_hang_pos", List.of("xem", "them")),
           Map.entry("don_hang", CRUD),
           Map.entry("giao_hang", List.of("xem", "them", "sua")),
-          Map.entry("giao_hang_duoc_phan_cong", List.of("xem")),
+          Map.entry("giao_hang_duoc_phan_cong", List.of("xem", "sua")),
           Map.entry("khach_tra_hang", CRUD),
           Map.entry("khach_hang", CRUD),
           Map.entry("nha_cung_cap", CRUD),
@@ -139,6 +139,23 @@ public class AdminRoleService {
   public boolean canViewDeliveries(Object principal) {
     return hasModuleAction(principal, "giao_hang", "xem")
         || hasModuleAction(principal, "giao_hang_duoc_phan_cong", "xem");
+  }
+
+  public boolean canChangeDeliveryStatus(Object principal) {
+    return hasModuleAction(principal, "giao_hang", "sua")
+        || hasModuleAction(principal, "giao_hang_duoc_phan_cong", "sua");
+  }
+
+  public Long deliveryStatusAssigneeId(NguoiDung actor) {
+    if (hasModuleAction(actor, "giao_hang", "sua")) {
+      return null;
+    }
+    if (actor != null
+        && actor.getId() != null
+        && hasModuleAction(actor, "giao_hang_duoc_phan_cong", "sua")) {
+      return actor.getId();
+    }
+    throw new AppException(ErrorCode.FORBIDDEN);
   }
 
   public Long deliveryAssigneeId(NguoiDung actor) {

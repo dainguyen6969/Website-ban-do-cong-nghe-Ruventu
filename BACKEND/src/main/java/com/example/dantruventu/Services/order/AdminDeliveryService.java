@@ -194,10 +194,7 @@ public class AdminDeliveryService {
             .orElseThrow(() -> notFound("Phiếu giao hàng không tồn tại"));
 
     if (assignedUserId != null) {
-      NguoiDung assignee = delivery.getDoiTacVanChuyen().getNguoiDung();
-      if (assignee == null || !assignedUserId.equals(assignee.getId())) {
-        throw notFound("Phiếu giao hàng không tồn tại");
-      }
+      requireAssignedDeliveryPartner(delivery.getDoiTacVanChuyen(), assignedUserId);
     }
 
     DonHang order = delivery.getDonHang();
@@ -284,6 +281,11 @@ public class AdminDeliveryService {
 
   @Transactional(isolation = Isolation.READ_COMMITTED)
   public Action changeStatus(Long id, AdminDeliveryStatusRequest request) {
+    return applyDeliveryStatus(id, request, null);
+  }
+
+  private Action applyDeliveryStatus(
+      Long id, AdminDeliveryStatusRequest request, Long assignedUserId) {
     TrangThaiGiaoHangEnum target = request.getTrangThaiGiaoHang();
 
     if (target != TrangThaiGiaoHangEnum.DA_NHAN_HANG
@@ -294,6 +296,16 @@ public class AdminDeliveryService {
     }
 
     PhieuGiaoHang delivery = lockDelivery(id);
+
+    if (assignedUserId != null) {
+      var partner =
+          partnerRepository
+              .findByIdForShare(delivery.getDoiTacVanChuyen().getId())
+              .orElseThrow(() -> notFound("Phiếu giao hàng không tồn tại"));
+      entityManager.refresh(partner);
+      requireAssignedDeliveryPartner(partner, assignedUserId);
+    }
+
     DonHang order = delivery.getDonHang();
     TrangThaiGiaoHangEnum source = delivery.getTrangThaiGiaoHang();
 
@@ -1001,17 +1013,40 @@ public class AdminDeliveryService {
     return value.setScale(2);
   }
 
-  @Transactional(isolation = Isolation.READ_COMMITTED)
-  public Action changeStatus(Long id, String idempotencyKey, AdminDeliveryStatusRequest request) {
+  private void requireAssignedDeliveryPartner(DoiTacVanChuyen partner, Long assignedUserId) {
+    NguoiDung assignee = partner.getNguoiDung();
+    if (assignee == null || !assignedUserId.equals(assignee.getId())) {
+      throw notFound("Phiếu giao hàng không tồn tại");
+    }
+  }
 
+  @Transactional(isolation = Isolation.READ_COMMITTED)
+  public Action changeStatus(
+      Long id, String idempotencyKey, AdminDeliveryStatusRequest request, Long assignedUserId) {
     validateId(id);
+
+    if (assignedUserId != null) {
+      TrangThaiGiaoHangEnum target = request.getTrangThaiGiaoHang();
+      if (target != TrangThaiGiaoHangEnum.DANG_GIAO
+          && target != TrangThaiGiaoHangEnum.GIAO_THANH_CONG
+          && target != TrangThaiGiaoHangEnum.GIAO_THAT_BAI) {
+        throw new AppException(
+            ErrorCode.FORBIDDEN, "Nhân viên chỉ được báo tiến độ và kết quả giao");
+      }
+
+      var delivery =
+          deliveryRepository
+              .findById(id)
+              .orElseThrow(() -> notFound("Phiếu giao hàng không tồn tại"));
+      requireAssignedDeliveryPartner(delivery.getDoiTacVanChuyen(), assignedUserId);
+    }
 
     return cashbookService.executeOnce(
         deliveryRequestKey("PGH-ST-", idempotencyKey),
         salesContext.actor(),
         List.of(id, request),
         Action.class,
-        () -> changeStatus(id, request));
+        () -> applyDeliveryStatus(id, request, assignedUserId));
   }
 
   @Transactional(isolation = Isolation.READ_COMMITTED)
