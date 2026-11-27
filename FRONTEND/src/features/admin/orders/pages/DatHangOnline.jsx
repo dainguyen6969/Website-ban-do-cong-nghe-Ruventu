@@ -2,7 +2,7 @@ import { scaledFontSize } from '../../../../typography/projectFontSize.js';
 // Admin order screen: DatHangOnline.
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { HiOutlineArrowLeft, HiOutlineSearch } from 'react-icons/hi';
+import { HiOutlineSearch } from 'react-icons/hi';
 import { MapPin, Navigation, Loader2 } from 'lucide-react';
 import { VIETNAM_LOCATIONS, matchProvince, matchDistrict } from '../../../../data/vietnamLocations';
 import PriceInput from '../../../../shared/components/ui/PriceInput';
@@ -26,6 +26,7 @@ import { FormDropdown } from '../../../../shared/components/ui/FilterDropdown';
 
 import { hasAdminPermission } from '../../../../auth/roleModel';
 import { useAdminPermissions } from '../../../../shared/components/ui/PermissionGate';
+import AdminPageAction from '../../../../shared/components/ui/AdminPageAction';
 
 const money = new Intl.NumberFormat('vi-VN', {
   style: 'currency',
@@ -714,13 +715,13 @@ export default function DatHangOnline() {
           <h1>{editId ? 'CHỈNH SỬA ĐƠN HÀNG ONLINE' : 'TẠO ĐƠN CHỜ HÀNG'}</h1>
           <p>LÊN ĐƠN THỦ CÔNG CHO KHÁCH HÀNG VÀ KIỂM TRA GIÁ / TỒN / KHUYẾN MẠI TRƯỚC KHI LƯU</p>
         </div>
-        <button
-          type="button"
-          className="online-outline-btn"
+        <AdminPageAction
+          variant="utility"
+          icon="back"
           onClick={() => navigate('/admin/don-hang/danh-sach-don-hang')}
         >
-          <HiOutlineArrowLeft /> DANH SÁCH ĐƠN HÀNG
-        </button>
+          Danh sách đơn hàng
+        </AdminPageAction>
       </div>
       {optionsError && <p className="online-banner online-banner--error">{optionsError}</p>}
 

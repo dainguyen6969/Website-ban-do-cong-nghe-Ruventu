@@ -28,6 +28,42 @@ test('inspection pickers submit text, require a single code, and reject repeated
   assert.throws(() => actionBody(operation, { ...values, inspectionItems: [{ ...row, ma_hang_muc: { custom: ['x'.repeat(101)] } }] }), /100 ký tự/);
 });
 
+test('warranty action pickers preserve required text and omit cleared optional reasons', () => {
+  const action = key => actions.find(item => item.key === key);
+  const picked = { selected: ['Đã đối chiếu hồ sơ'], custom: ['  Có chứng từ kèm theo  '] };
+  const empty = { selected: [], custom: [] };
+  const time = '2026-11-26T13:45';
+  const reason = 'Đã đối chiếu hồ sơ · Có chứng từ kèm theo';
+  assert.equal(actionBody(action('YEU_CAU_DUNG'), { ly_do: picked, thoi_diem: time }).ly_do, reason);
+  assert.throws(() => actionBody(action('YEU_CAU_DUNG'), { ly_do: empty, thoi_diem: time }), /Chọn lý do/);
+
+  const ready = actionBody(action('SAN_SANG_TRA'), {
+    thiet_bi_se_tra_id: 700, ket_qua_xu_ly: 'SUA_THANH_CONG', tinh_trang: 'Hoạt động',
+    phu_kien: [{ ten: 'Cáp', so_luong: 1 }], can_cu_kiem_tra: picked, ly_do: empty,
+  });
+  assert.equal(ready.can_cu_kiem_tra, reason);
+  assert.equal('ly_do' in ready, false);
+  assert.equal(ready.phu_kien[0].ten, 'Cáp');
+
+  const plan = actionBody(action('PLAN_CREATE'), {
+    ket_luan_lich_su_id: 12, ly_do: picked, can_cu: picked, don_vi_phe_duyet: 'Cửa hàng',
+    phien_ban_thay_the_id: 42, tinh_trang_hang: 'Mới', phu_kien: [], nguon: 'KHO_CUA_HANG',
+    cach_tinh_han: 'GIU_HAN_CON_LAI', can_cu_han: picked, huong_xu_ly_thiet_bi_cu: picked,
+    chung_tu_urls: '/media/chung-tu.jpg',
+  });
+  for (const field of ['ly_do', 'can_cu', 'can_cu_han', 'huong_xu_ly_thiet_bi_cu']) {
+    assert.equal(plan[field], reason);
+  }
+  assert.equal(plan.ket_luan_lich_su_id, 12);
+
+  const send = actionBody(action('GUI_DON_VI'), {
+    nha_cung_cap_id: 2, ten_don_vi: 'Đơn vị bảo hành', thiet_bi_id: 700,
+    thoi_diem: time, noi_dung_yeu_cau: picked, phu_kien: [], chung_tu_urls: '/media/ban-giao.jpg',
+  });
+  assert.equal(send.noi_dung_yeu_cau, reason);
+  assert.deepEqual(send.chung_tu_urls, ['/media/ban-giao.jpg']);
+});
+
 test('intake search identifies codes and formatted phones while preserving numeric serials and product names', () => {
   for (const [input, criterion, value] of [
     [' SN-ABC123 ', 'keyword', 'SN-ABC123'],

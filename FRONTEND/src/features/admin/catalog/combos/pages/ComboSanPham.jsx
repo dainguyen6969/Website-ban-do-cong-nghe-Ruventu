@@ -1,7 +1,7 @@
 // Admin product-combo screen: ComboSanPham.
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { HiOutlinePlus, HiOutlineSearch } from 'react-icons/hi';
+import { HiOutlineSearch } from 'react-icons/hi';
 import TablePagination from '../../../../../shared/components/ui/TablePagination';
 import syncTableHeaderOffset from '../../../../../shared/components/ui/syncTableHeaderOffset';
 import FilterDropdown from '../../../../../shared/components/ui/FilterDropdown';
@@ -11,6 +11,7 @@ import { deactivateCombo, getComboPage, getComboStats } from '../api/comboApi';
 import { hasAdminPermission } from '../../../../../auth/roleModel';
 import { useAdminPermissions } from '../../../../../shared/components/ui/PermissionGate';
 import './ComboSanPham.css';
+import AdminPageAction from '../../../../../shared/components/ui/AdminPageAction';
 
 const PAGE_SIZE = 10;
 const money = (value) => `${Number(value || 0).toLocaleString('vi-VN')}đ`;
@@ -98,13 +99,13 @@ export default function ComboSanPham() {
           <h1>COMBO SẢN PHẨM</h1>
         </div>
         {canCreateCombo && (
-          <button
-            type="button"
-            className="combo-primary-btn"
+          <AdminPageAction
+            variant="primary"
+            icon="add"
             onClick={() => navigate('/kho-hang/combo-san-pham/them-moi')}
           >
-            <HiOutlinePlus /> THÊM COMBO SẢN PHẨM
-          </button>
+            THÊM COMBO SẢN PHẨM
+          </AdminPageAction>
         )}
       </div>
       <section className="combo-stats" aria-label="Thống kê combo">

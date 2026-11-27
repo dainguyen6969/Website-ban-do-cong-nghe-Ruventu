@@ -1,6 +1,6 @@
 import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { HiOutlinePlus, HiOutlineSave, HiOutlineSearch, HiOutlineX } from 'react-icons/hi';
+import { HiOutlinePlus, HiOutlineSearch, HiOutlineX } from 'react-icons/hi';
 
 import FormCard from '../../../../../shared/components/ui/FormCard';
 import { FormDropdown } from '../../../../../shared/components/ui/FilterDropdown';
@@ -25,6 +25,7 @@ import { hasAdminPermission } from '../../../../../auth/roleModel';
 import { useAdminPermissions } from '../../../../../shared/components/ui/PermissionGate';
 
 import './ThemSanPham.css';
+import AdminPageAction from '../../../../../shared/components/ui/AdminPageAction';
 
 const PRODUCTS = '/api/v1/admin/products';
 const COMBOS = '/api/v1/admin/combos';
@@ -954,25 +955,23 @@ export default function ThemSanPham() {
           <h1>{isEditing ? 'CHỈNH SỬA SẢN PHẨM' : 'THÊM SẢN PHẨM MỚI'}</h1>
         </div>
 
-        <div className="product-editor__actions">
-          <button
-            type="button"
-            className="product-editor__button"
+        <div className="product-editor__actions admin-page-actions">
+          <AdminPageAction
+            icon="cancel"
             disabled={saving}
             onClick={() => navigate('/admin/san-pham/danh-sach-san-pham')}
           >
             HỦY
-          </button>
+          </AdminPageAction>
 
-          <button
-            type="button"
-            className="product-editor__button product-editor__button--red"
+          <AdminPageAction
+            variant="primary"
+            icon="save"
             disabled={saving || !canSaveProduct}
             onClick={save}
           >
-            <HiOutlineSave />
-            {saving ? 'ĐANG LƯU...' : 'LƯU SẢN PHẨM'}
-          </button>
+            {saving ? "ĐANG LƯU..." : "LƯU SẢN PHẨM"}
+          </AdminPageAction>
         </div>
       </header>
 

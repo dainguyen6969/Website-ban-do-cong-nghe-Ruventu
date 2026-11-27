@@ -2,13 +2,10 @@
 import { useMemo, useRef, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  HiOutlineArrowLeft,
   HiOutlineChevronDown,
   HiOutlineChevronRight,
   HiOutlineExclamationCircle,
-  HiOutlineSave,
   HiOutlinePlus,
-  HiOutlineTrash,
 } from 'react-icons/hi';
 import {
   PERMISSION_GROUPS,
@@ -26,6 +23,7 @@ import {
   ADMIN_ONLY_MODULES,
 } from '../api/roleApi';
 import './VaiTro.css';
+import AdminPageAction from '../../../../shared/components/ui/AdminPageAction';
 
 const ACTION_LABELS = { xem: 'XEM', them: 'THÊM', sua: 'SỬA', xoa: 'XÓA' };
 
@@ -268,25 +266,21 @@ export default function VaiTro() {
   return (
     <main className="role-page" role="main">
       <section className="role-topbar">
-        <button className="role-back" onClick={() => navigate('/admin/nhan-vien/danh-sach')}>
-          <HiOutlineArrowLeft /> QUAY LẠI
-        </button>
+        <AdminPageAction icon="back" onClick={() => navigate('/admin/nhan-vien/danh-sach')}>QUAY LẠI</AdminPageAction>
         <h1>QUẢN LÝ VAI TRÒ &amp; PHÂN QUYỀN</h1>
-        <div style={{ display: 'flex', gap: '12px' }}>
+        <div className="admin-page-actions">
           {editingRoleId && !isSystemRole && (
-            <button
-              className="role-save"
-              style={{ background: '#dc2626' }}
+            <AdminPageAction
+              variant="danger"
+              icon="delete"
               onClick={handleDelete}
               disabled={busy}
             >
-              <HiOutlineTrash /> XÓA
-            </button>
+              XÓA
+            </AdminPageAction>
           )}
 
-          <button className="role-save" onClick={submit} disabled={formLocked}>
-            <HiOutlineSave /> LƯU VAI TRÒ
-          </button>
+          <AdminPageAction variant="primary" icon="save" onClick={submit} disabled={formLocked}>LƯU VAI TRÒ</AdminPageAction>
         </div>
       </section>
       {errors.length > 0 && (

@@ -3,10 +3,8 @@ import { useEffect, useState, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import AdminLink from '../../../../shared/components/ui/AdminLink';
 import {
-  HiOutlineArrowLeft,
   HiOutlineEye,
   HiOutlineEyeOff,
-  HiOutlinePlus,
   HiOutlineSearch,
   HiOutlineX,
   HiOutlineExclamationCircle,
@@ -28,6 +26,7 @@ import { dateTime, money } from '../../orders/api/orderApi';
 import { OrderStateBadge } from '../../orders/pages/DanhSachDonHang';
 
 import './NhanVien.css';
+import AdminPageAction from '../../../../shared/components/ui/AdminPageAction';
 
 const PAGE_SIZE = 8;
 const STATUS_ALL = 'Tất cả trạng thái';
@@ -144,9 +143,7 @@ export function DanhSachNhanVien() {
           <h1>DANH SÁCH NHÂN VIÊN</h1>
           <span>QUẢN LÝ TÀI KHOẢN NHÂN SỰ VÀ VAI TRÒ</span>
         </div>
-        <button className="employee-btn employee-btn--black" onClick={() => setShowCreate(true)}>
-          <HiOutlinePlus /> THÊM NHÂN VIÊN
-        </button>
+        <AdminPageAction variant="primary" icon="add" onClick={() => setShowCreate(true)}>THÊM NHÂN VIÊN</AdminPageAction>
       </section>
       <SuccessBanner message={success} />
       <section className="employee-toolbar">
@@ -331,22 +328,21 @@ export function ChiTietNhanVien() {
           </div>
           <h1>{employee.ho_ten.toLocaleUpperCase('vi')}</h1>
         </div>
-        <div className="employee-hero-actions">
-          <button
-            className="employee-btn employee-btn--outline"
+        <div className="employee-hero-actions admin-page-actions">
+          <AdminPageAction
+            icon="back"
             onClick={() => navigate('/admin/nhan-vien/danh-sach')}
           >
-            <HiOutlineArrowLeft /> QUAY LẠI
-          </button>
-          <button className="employee-btn employee-btn--black" onClick={() => setModal('edit')}>
-            CHỈNH SỬA
-          </button>
-          <button
-            className={`employee-btn employee-btn--${employee.trang_thai === 1 ? 'danger' : 'success'}`}
+            QUAY LẠI
+          </AdminPageAction>
+          <AdminPageAction variant="operation" icon="edit" onClick={() => setModal('edit')}>CHỈNH SỬA</AdminPageAction>
+          <AdminPageAction
+            variant={employee.trang_thai === 1 ? 'danger' : 'operation'}
+            icon={employee.trang_thai === 1 ? 'stop' : 'restore'}
             onClick={() => setModal(employee.trang_thai === 1 ? 'suspend' : 'restore')}
           >
             {employee.trang_thai === 1 ? 'NGỪNG HOẠT ĐỘNG' : 'KHÔI PHỤC'}
-          </button>
+          </AdminPageAction>
         </div>
       </section>
       <div className="employee-detail-body">

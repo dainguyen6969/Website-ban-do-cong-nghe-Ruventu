@@ -12,6 +12,7 @@ import { warrantyText } from '../../components/CatalogPolicies';
 import { hasAdminPermission } from '../../../../../auth/roleModel';
 import { useAdminPermissions } from '../../../../../shared/components/ui/PermissionGate';
 import './ChiTietCombo.css';
+import AdminPageAction from '../../../../../shared/components/ui/AdminPageAction';
 
 const money = (value) => `${Number(value || 0).toLocaleString('vi-VN')}đ`;
 const stopped = (status) =>
@@ -200,32 +201,31 @@ export default function ChiTietCombo() {
           </div>
           <h1>CHI TIẾT COMBO</h1>
         </div>
-        <div className="heading-actions">
-          <button
-            type="button"
-            className="combo-detail-edit"
+        <div className="heading-actions admin-page-actions">
+          <AdminPageAction
+            icon="back"
             onClick={() => navigate('/kho-hang/combo-san-pham')}
           >
-            ← QUAY LẠI
-          </button>
+            QUAY LẠI
+          </AdminPageAction>
 
           {canEditCombo && (
-            <button
-              type="button"
-              className="combo-detail-edit"
+            <AdminPageAction
+              variant="operation"
+              icon="edit"
               onClick={() => navigate(`/kho-hang/combo-san-pham/them-moi?id=${combo.id}`)}
             >
               SỬA COMBO
-            </button>
+            </AdminPageAction>
           )}
           {canStopCombo && !stopped(combo.status) && (
-            <button
-              type="button"
-              className="combo-detail-stop"
+            <AdminPageAction
+              variant="danger"
+              icon="stop"
               onClick={() => setShowStopModal(true)}
             >
               NGƯNG KINH DOANH
-            </button>
+            </AdminPageAction>
           )}
         </div>
       </div>

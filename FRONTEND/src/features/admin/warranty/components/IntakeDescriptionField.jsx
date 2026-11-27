@@ -131,7 +131,7 @@ function IntakeDescriptionDialog({ options, title, selected, custom, single, all
   );
 }
 
-export default function IntakeDescriptionField({ options, title, selected, custom = [], single = false, allowCustom = true, disabledOption, error, onChange }) {
+export default function IntakeDescriptionField({ options, title, selected, custom = [], single = false, allowCustom = true, optional = false, disabledOption, error, onChange }) {
   const [open, setOpen] = useState(false);
   const [more, setMore] = useState(false);
   const [placement, setPlacement] = useState(null);
@@ -182,7 +182,7 @@ export default function IntakeDescriptionField({ options, title, selected, custo
   return (
     <section className="w-intake-picker-field" aria-label={title}>
       <header>
-        <h3>{title} <span aria-hidden="true">*</span></h3>
+        <h3>{title} {optional ? <small className="w-field-optional">Tùy chọn</small> : <span aria-hidden="true">*</span>}</h3>
         <button type="button" className="w-shell-button" aria-haspopup="dialog" aria-label={`Thêm ${title.toLocaleLowerCase('vi')}`} onClick={() => { setMore(false); setOpen(true); }}>
           <Plus size={14} aria-hidden="true" /> Thêm
         </button>

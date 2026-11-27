@@ -7,6 +7,7 @@ import { useAdminPermissions } from '../../../../shared/components/ui/Permission
 
 import './TaoPhieuForm.css';
 import { FormDropdown } from '../../../../shared/components/ui/FilterDropdown';
+import AdminPageAction from '../../../../shared/components/ui/AdminPageAction';
 
 const fallbackPersonData = {
   NHAN_VIEN: [
@@ -306,14 +307,14 @@ export default function TaoPhieuChiForm() {
         <div className="tpf-breadcrumb-top">
           ADMIN &nbsp;&rsaquo;&nbsp; PHIẾU CHI &nbsp;&rsaquo;&nbsp; TẠO PHIẾU CHI
         </div>
-        <button
-          type="button"
-          className="tpf-btn-top-create"
+        <AdminPageAction
+          variant="primary"
+          icon="save"
           onClick={handleSubmit}
           disabled={isSubmitting}
         >
           {isSubmitting ? 'ĐANG TẠO...' : 'TẠO PHIẾU CHI'}
-        </button>
+        </AdminPageAction>
       </div>
 
       {/* Sub Header Section */}

@@ -12,6 +12,7 @@ import { useAdminPermissions } from '../../../../shared/components/ui/Permission
 import LoadingSpinner from '../../../../shared/components/ui/LoadingSpinner';
 import './DanhSachKhuyenMai.css';
 import { FormDropdown } from '../../../../shared/components/ui/FilterDropdown';
+import AdminPageAction from '../../../../shared/components/ui/AdminPageAction';
 
 function getPromoStatusVariant(status) {
   switch (status) {
@@ -289,14 +290,14 @@ export default function DanhSachKhuyenMai() {
           <h1>DANH SÁCH KHUYẾN MẠI</h1>
           <p>QUẢN LÝ CÁC CHƯƠNG TRÌNH ƯU ĐÃI ĐANG ĐƯỢC CẤU HÌNH</p>
         </div>
-        <button
-          type="button"
-          className="btn-create-promo"
+        <AdminPageAction
+          variant="primary"
+          icon="add"
           disabled={!canCreatePromotion}
           onClick={() => navigate('/admin/khuyen-mai/tao-khuyen-mai')}
         >
-          + TẠO KHUYẾN MẠI
-        </button>
+          TẠO KHUYẾN MẠI
+        </AdminPageAction>
       </div>
 
       {/* Filter Bar (Image 1) */}

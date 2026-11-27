@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import AdminLink from '../../../../shared/components/ui/AdminLink';
-import { HiOutlineArrowLeft, HiOutlinePencilAlt, HiX } from 'react-icons/hi';
+import { HiX } from 'react-icons/hi';
 import LoadingSpinner from '../../../../shared/components/ui/LoadingSpinner';
 import {
   getSerialDetail,
@@ -15,6 +15,7 @@ import './SerialPages.css';
 import { FormDropdown } from '../../../../shared/components/ui/FilterDropdown';
 import { hasAdminPermission, hasSystemAdminPermission } from '../../../../auth/roleModel';
 import { useAdminPermissions } from '../../../../shared/components/ui/PermissionGate';
+import AdminPageAction from '../../../../shared/components/ui/AdminPageAction';
 
 function StatusBadge({ status }) {
   const meta = SERIAL_STATUS_META[status];
@@ -260,18 +261,15 @@ export default function ChiTietSerial() {
               <StatusBadge status={serial.status} />
             </div>
           </div>
-          <div className="serial-detail-actions">
-            <button
-              type="button"
-              className="serial-back"
+          <div className="serial-detail-actions admin-page-actions">
+            <AdminPageAction
+              icon="back"
               onClick={() => navigate('/kho-hang/danh-sach-serial')}
             >
-              <HiOutlineArrowLeft /> QUAY LẠI
-            </button>
+              QUAY LẠI
+            </AdminPageAction>
             {canEdit && (
-              <button type="button" className="serial-edit" onClick={openModal}>
-                <HiOutlinePencilAlt /> SỬA TRẠNG THÁI
-              </button>
+              <AdminPageAction variant="operation" icon="edit" onClick={openModal}>SỬA TRẠNG THÁI</AdminPageAction>
             )}
           </div>
         </div>

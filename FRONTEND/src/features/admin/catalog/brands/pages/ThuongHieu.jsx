@@ -20,6 +20,7 @@ import { hasAdminPermission } from '../../../../../auth/roleModel';
 import { useAdminPermissions } from '../../../../../shared/components/ui/PermissionGate';
 
 import './ThuongHieu.css';
+import AdminPageAction from '../../../../../shared/components/ui/AdminPageAction';
 
 const STATUS_OPTIONS = ['TẤT CẢ TRẠNG THÁI', 'HOẠT ĐỘNG', 'NGỪNG HOẠT ĐỘNG'];
 const PAGE_SIZE = 10;
@@ -489,14 +490,14 @@ export default function ThuongHieu() {
           <h1>THƯƠNG HIỆU</h1>
           <p>Quản lý nhãn hàng và hãng sản xuất của sản phẩm</p>
         </div>
-        <button
-          type="button"
-          className="brand-primary-button"
+        <AdminPageAction
+          variant="primary"
+          icon="add"
           disabled={!canCreateBrand || loading || Boolean(error)}
           onClick={() => setModal({ type: 'form' })}
         >
-          + THÊM THƯƠNG HIỆU
-        </button>
+          THÊM THƯƠNG HIỆU
+        </AdminPageAction>
       </div>
       {loading || error ? (
         <NetworkState error={error} onRetry={reload} />
@@ -742,13 +743,12 @@ export function ChiTietThuongHieu() {
     value == null ? '—' : `${new Intl.NumberFormat('vi-VN').format(value)}đ`;
   return (
     <main className="brand-page brand-detail-page">
-      <button
-        type="button"
-        className="brand-back"
+      <AdminPageAction
+        icon="back"
         onClick={() => navigate('/admin/danh-muc/thuong-hieu')}
       >
-        ← QUAY LẠI DANH SÁCH
-      </button>
+        QUAY LẠI DANH SÁCH
+      </AdminPageAction>
       {actionError && <div className="brand-inline-error brand-page-error">{actionError}</div>}
       <section className="brand-detail-hero">
         <BrandLogo brand={detail} large />
@@ -760,31 +760,32 @@ export function ChiTietThuongHieu() {
         <div className="brand-detail-actions">
           <StatusBadge status={detail.status} />
           <div>
-            <button
-              type="button"
+            <AdminPageAction
+              variant="operation"
+              icon="edit"
               disabled={!canEditBrand}
               onClick={() => setModal({ type: 'form', id: detail.id })}
             >
               CHỈNH SỬA
-            </button>
+            </AdminPageAction>
             {detail.status === 'active' ? (
-              <button
-                type="button"
+              <AdminPageAction
+                variant="danger"
+                icon="stop"
                 disabled={!canDeactivateBrand}
-                className="is-danger"
                 onClick={() => setModal({ type: 'deactivate', id: detail.id, brand: current })}
               >
                 NGỪNG HOẠT ĐỘNG
-              </button>
+              </AdminPageAction>
             ) : (
-              <button
-                type="button"
-                className="is-success"
+              <AdminPageAction
+                variant="operation"
+                icon="restore"
                 disabled={!canEditBrand || restoring}
                 onClick={restore}
               >
                 {restoring ? 'ĐANG KHÔI PHỤC...' : 'KHÔI PHỤC'}
-              </button>
+              </AdminPageAction>
             )}
           </div>
         </div>

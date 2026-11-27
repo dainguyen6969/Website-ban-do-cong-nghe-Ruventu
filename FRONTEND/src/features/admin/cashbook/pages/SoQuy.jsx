@@ -23,6 +23,7 @@ import { hasAdminPermission } from '../../../../auth/roleModel';
 import { useAdminPermissions } from '../../../../shared/components/ui/PermissionGate';
 
 import './SoQuy.css';
+import AdminPageAction from '../../../../shared/components/ui/AdminPageAction';
 
 function getDefaultDateRange() {
   const parts = new Intl.DateTimeFormat('en-CA', {
@@ -282,13 +283,14 @@ export default function SoQuy() {
           <Link to="/admin">ADMIN</Link> <span>&rsaquo;</span>{' '}
           <Link to="/admin/so-quy-tien-mat/so-quy">SỔ QUỸ TIỀN MẶT</Link> / <span>SỔ QUỸ</span>
         </div>
-        <button
-          className="cb-btn-primary bg-red"
+        <AdminPageAction
+          variant="primary"
+          icon="add"
           disabled={!canCreateVoucher}
           onClick={() => navigate('/admin/so-quy-tien-mat/tao-phieu-thu-chi')}
         >
-          + TẠO PHIẾU THU / CHI
-        </button>
+          TẠO PHIẾU THU / CHI
+        </AdminPageAction>
       </div>
 
       {/* Filter Bar */}
@@ -359,7 +361,7 @@ export default function SoQuy() {
           />
         </div>
 
-        <div className="cb-filter-actions">
+        <div className="cb-filter-actions admin-page-actions">
           {hasActiveFilter && (
             <button
               className="cb-btn-outline icon-btn btn-clear-filter"
@@ -382,51 +384,21 @@ export default function SoQuy() {
               XÓA BỘ LỌC
             </button>
           )}
-          <button
-            className="cb-btn-outline icon-btn"
+          <AdminPageAction
+            variant="utility"
+            icon="report"
             onClick={() => navigate('/admin/so-quy-tien-mat/tong-quan')}
           >
-            <svg
-              width="14"
-              height="14"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              style={{ marginRight: '6px' }}
-            >
-              <line x1="18" y1="20" x2="18" y2="10" />
-              <line x1="12" y1="20" x2="12" y2="4" />
-              <line x1="6" y1="20" x2="6" y2="14" />
-            </svg>
-            XEM BÁO CÁO
-          </button>
-          <button
-            className="cb-btn-dark icon-btn"
+            Xem báo cáo
+          </AdminPageAction>
+          <AdminPageAction
+            variant="utility"
+            icon="download"
             onClick={handleExportExcel}
             disabled={isExporting}
           >
-            <svg
-              width="14"
-              height="14"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              style={{ marginRight: '6px' }}
-            >
-              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-              <polyline points="14 2 14 8 20 8" />
-              <line x1="16" y1="13" x2="8" y2="13" />
-              <line x1="16" y1="17" x2="8" y2="17" />
-              <polyline points="10 9 9 9 8 9" />
-            </svg>
-            {isExporting ? 'ĐANG XUẤT...' : 'XUẤT FILE EXCEL'}
-          </button>
+            {isExporting ? "Đang xuất…" : "Xuất Excel"}
+          </AdminPageAction>
         </div>
       </div>
 

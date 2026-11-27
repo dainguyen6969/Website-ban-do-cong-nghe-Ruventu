@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { HiOutlinePlus, HiOutlineSearch } from 'react-icons/hi';
+import { HiOutlineSearch } from 'react-icons/hi';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import AdminLink from '../../../../shared/components/ui/AdminLink';
 import TablePagination from '../../../../shared/components/ui/TablePagination';
@@ -32,6 +32,7 @@ import { useAdminPermissions } from '../../../../shared/components/ui/Permission
 
 import '../pages/SerialPages.css';
 import './Recall.css';
+import AdminPageAction from '../../../../shared/components/ui/AdminPageAction';
 
 const localTime = (value) => (value ? `${value}:00+07:00` : null);
 
@@ -711,44 +712,43 @@ export default function ThuHoiHang() {
               </div>
             </div>
 
-            <div className="recall-actions">
+            <div className="recall-actions admin-page-actions">
               {detail &&
                 (detail.status === 'DANG_XU_LY' ? (
-                  <button
-                    type="button"
-                    className="recall-button is-dark"
+                  <AdminPageAction
+                    variant="danger"
+                    icon="stop"
                     disabled={!canOperateRecall || frozen || !flag(detail.can_close)}
                     onClick={() => openAction('KET_THUC')}
                   >
                     Kết thúc đợt thu hồi
-                  </button>
+                  </AdminPageAction>
                 ) : (
-                  <button
-                    type="button"
-                    className="recall-button is-dark"
+                  <AdminPageAction
+                    variant="operation"
+                    icon="restore"
                     disabled={!canOperateRecall || frozen}
                     onClick={() => openAction('MO_LAI')}
                   >
                     Mở lại đợt thu hồi
-                  </button>
+                  </AdminPageAction>
                 ))}
-              <button
-                type="button"
-                className="recall-button"
+              <AdminPageAction
+                icon="back"
                 disabled={frozen}
                 onClick={() => navigate('/kho-hang/thu-hoi')}
               >
-                ‹ Danh sách
-              </button>
+                Danh sách
+              </AdminPageAction>
 
-              <button
-                type="button"
-                className="recall-button is-dark"
+              <AdminPageAction
+                variant="primary"
+                icon="add"
                 disabled={!canOperateRecall || frozen || !detail}
                 onClick={openCreate}
               >
                 Tạo đợt thu hồi mới
-              </button>
+              </AdminPageAction>
             </div>
           </header>
         ) : (
@@ -800,15 +800,14 @@ export default function ThuHoiHang() {
                 <option value="DANG_XU_LY">Đang xử lý</option>
                 <option value="HOAN_TAT">Hoàn tất</option>
               </FilterDropdown>
-              <button
-                type="button"
-                className="admin-list-primary-action"
+              <AdminPageAction
+                variant="primary"
+                icon="add"
                 disabled={!canOperateRecall || frozen}
                 onClick={openCreate}
               >
-                <HiOutlinePlus size={17} aria-hidden="true" />
                 TẠO ĐỢT THU HỒI
-              </button>
+              </AdminPageAction>
             </section>
 
             <section className="admin-list-frame" aria-label="Danh sách đợt thu hồi">

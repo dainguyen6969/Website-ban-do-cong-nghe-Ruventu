@@ -9,7 +9,6 @@ import {
   Sliders,
   ShoppingBag,
   BarChart2,
-  RefreshCw,
   Edit3,
   Pause,
   Play,
@@ -52,6 +51,7 @@ import { hasAdminPermission } from '../../../../auth/roleModel';
 import { useAdminPermissions } from '../../../../shared/components/ui/PermissionGate';
 
 import './ChiTietKhuyenMai.css';
+import AdminPageAction from '../../../../shared/components/ui/AdminPageAction';
 
 const TABS = [
   { key: 'TONG_QUAN', label: 'TỔNG QUAN', icon: FileText },
@@ -501,54 +501,44 @@ export default function ChiTietKhuyenMai() {
           </p>
         </div>
 
-        <div className="w-shell-actions">
-          <button
-            type="button"
-            className="w-shell-button"
+        <div className="w-shell-actions admin-page-actions">
+          <AdminPageAction
+            icon="back"
             onClick={() => navigate('/admin/khuyen-mai/danh-sach-khuyen-mai')}
           >
-            <ArrowLeft size={15} /> Danh sách
-          </button>
-          <button
-            type="button"
-            className="w-shell-button"
+            Danh sách
+          </AdminPageAction>
+          <AdminPageAction
+            icon="reload"
             disabled={busy}
             onClick={() => setReloadTick((v) => v + 1)}
           >
-            <RefreshCw size={15} /> Tải lại
-          </button>
-          <button
-            type="button"
-            className="w-shell-button w-shell-button--black"
+            Tải lại
+          </AdminPageAction>
+          <AdminPageAction
+            variant="operation"
+            icon="edit"
             disabled={busy || !canEditPromotion}
             onClick={handleStartEdit}
           >
-            <Edit3 size={15} /> Chỉnh sửa
-          </button>
-          <button
-            type="button"
-            className="w-shell-button"
+            Chỉnh sửa
+          </AdminPageAction>
+          <AdminPageAction
+            variant={promo.savedStatus === 0 ? 'operation' : 'danger'}
+            icon={promo.savedStatus === 0 ? 'restore' : 'pause'}
             disabled={busy || !canEditPromotion}
             onClick={handleToggleStatus}
           >
-            {promo.savedStatus === 0 ? (
-              <>
-                <Play size={15} /> Khôi phục
-              </>
-            ) : (
-              <>
-                <Pause size={15} /> Tạm dừng
-              </>
-            )}
-          </button>
-          <button
-            type="button"
-            className="w-shell-button w-button-danger"
+            {promo.savedStatus === 0 ? 'Khôi phục' : 'Tạm dừng'}
+          </AdminPageAction>
+          <AdminPageAction
+            variant="danger"
+            icon="delete"
             disabled={busy || !canDeletePromotion}
             onClick={handleDeleteClick}
           >
-            <Trash2 size={15} /> Xóa
-          </button>
+            Xóa
+          </AdminPageAction>
         </div>
       </header>
 

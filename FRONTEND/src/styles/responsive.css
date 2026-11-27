@@ -162,7 +162,7 @@
   flex-wrap: wrap;
 }
 
-.admin-app :is(.btn, .filter__dropdown, .btn-product-band, .product-add-btn, .category-primary-button, .category-clear-button) {
+.admin-app :is(.btn, .filter__dropdown, .product-add-btn, .category-primary-button, .category-clear-button) {
   min-width: 0;
   max-width: 100%;
   height: auto;
@@ -186,7 +186,6 @@
 .admin-app :is(.data-table, .category-table, .product-table) { table-layout: auto; }
 .admin-app :is(th, td) { overflow-wrap: anywhere; }
 .admin-app :is(.category-heading, .category-actions) { flex-wrap: wrap; }
-.admin-app .category-toolbar { grid-template-columns: minmax(0, 1fr) repeat(2, minmax(0, auto)) auto; }
 .admin-app :is(.modal-header, .modal-footer, .category-modal__header, .category-modal__footer, .supplier-modal-footer, .partner-modal-footer, .order-cancel-modal-actions) {
   min-width: 0;
   flex-wrap: wrap;
@@ -231,7 +230,6 @@
 }
 
 @media (max-width: 768px) {
-  .admin-app .category-toolbar { grid-template-columns: minmax(0, 1fr); }
   .admin-app :is(.pt-filter-bar, .cb-filter-bar, .promo-list-filters) {
     display: flex;
     flex-wrap: wrap;

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Check, Plus, Upload, X } from 'lucide-react';
+import { Check, Plus, Upload, X } from 'lucide-react';
 import OrderModal from '../../orders/components/OrderModal';
 import IntakeDescriptionField from '../components/IntakeDescriptionField';
 import { intakeOptions } from '../data/intakeOptions';
@@ -17,6 +17,7 @@ import { validateImageFiles } from '../../../media/api/imageValidation';
 import TablePagination from '../../../../shared/components/ui/TablePagination';
 import { customerService } from '../../../../shared/services/customerService';
 import '../styles/warrantyShell.css';
+import AdminPageAction from '../../../../shared/components/ui/AdminPageAction';
 
 const steps = ['TÌM THIẾT BỊ', 'XÁC MINH BẢO HÀNH', 'THÔNG TIN TIẾP NHẬN', 'XÁC NHẬN'];
 const verificationOptions = [
@@ -318,9 +319,7 @@ export default function LapPhieuBaoHanh() {
           <p className="w-shell-breadcrumb">BẢO HÀNH / TIẾP NHẬN MỚI</p>
           <div className="w-shell-title-row"><h1>LẬP PHIẾU BẢO HÀNH</h1></div>
         </div>
-        <button type="button" className="w-shell-button" disabled={blocked} onClick={() => navigate('/admin/bao-hanh/danh-sach')}>
-          <ArrowLeft size={15} /> Danh sách phiếu
-        </button>
+        <AdminPageAction variant="utility" icon="back" disabled={blocked} onClick={() => navigate('/admin/bao-hanh/danh-sach')}>Danh sách phiếu</AdminPageAction>
       </header>
       <div className="w-shell-content w-intake-content">
         <nav className="w-intake-steps" aria-label="Các bước lập phiếu bảo hành">

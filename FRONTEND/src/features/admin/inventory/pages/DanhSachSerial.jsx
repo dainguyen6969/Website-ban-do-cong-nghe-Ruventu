@@ -1,7 +1,7 @@
 // Admin inventory screen: DanhSachSerial.
 import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
-import { HiOutlineSearch, HiOutlineUpload } from 'react-icons/hi';
+import { HiOutlineSearch} from 'react-icons/hi';
 import TablePagination from '../../../../shared/components/ui/TablePagination';
 import FilterDropdown from '../../../../shared/components/ui/FilterDropdown';
 import LoadingSpinner from '../../../../shared/components/ui/LoadingSpinner';
@@ -9,6 +9,7 @@ import { getAllVersions } from '../../catalog/products/api/versionApi';
 import { getSerialCounts, getSerialPage, SERIAL_STATUS_META } from '../api/serialApi';
 import './SerialPages.css';
 import '../recall/Recall.css';
+import AdminPageAction from '../../../../shared/components/ui/AdminPageAction';
 
 const PAGE_SIZE = 10;
 const statusOptions = [
@@ -229,19 +230,15 @@ export default function DanhSachSerial() {
             ))}
           </FilterDropdown>
 
-          <div className="serial-toolbar-actions">
-            <button
-              type="button"
-              className="serial-export"
+          <div className="serial-toolbar-actions admin-page-actions">
+            <AdminPageAction
+              icon="return"
               onClick={() => navigate('/kho-hang/thu-hoi')}
             >
               Thu hồi hàng
-            </button>
+            </AdminPageAction>
 
-            <button type="button" className="serial-export" onClick={exportExcel}>
-              <HiOutlineUpload size={17} aria-hidden="true" />
-              XUẤT EXCEL
-            </button>
+            <AdminPageAction variant="utility" icon="download" onClick={exportExcel}>Xuất Excel</AdminPageAction>
           </div>
         </section>
         <div className="serial-table-shell admin-list-frame">

@@ -33,6 +33,7 @@ import {
 import { useAdminPermissions } from '../../../../shared/components/ui/PermissionGate';
 
 import '../styles/tongquat.css';
+import AdminPageAction from '../../../../shared/components/ui/AdminPageAction';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Tooltip, Legend);
 const ORDER_PATH = '/admin/don-hang/danh-sach-don-hang';
@@ -571,17 +572,16 @@ export default function TongQuat() {
               {date(filters.tu_ngay)} – {date(filters.den_ngay)} · {CHANNELS[filters.kenh_ban]}
             </strong>
           </div>
-          <div className="tq-filter-actions">
-            <button className="btn-black-outline" onClick={() => setRefresh((value) => value + 1)}>
-              Tải lại
-            </button>
-            <button
-              className="btn-black-excel"
+          <div className="tq-filter-actions admin-page-actions">
+            <AdminPageAction icon="reload" onClick={() => setRefresh((value) => value + 1)}>Tải lại</AdminPageAction>
+            <AdminPageAction
+              variant="utility"
+              icon="download"
               disabled={!canExportDashboard || Boolean(exporting)}
               onClick={() => exportFile('dashboard')}
             >
               {exporting === 'dashboard' ? 'Đang xuất…' : 'Xuất Excel Tổng quát'}
-            </button>
+            </AdminPageAction>
           </div>
         </div>
       </div>

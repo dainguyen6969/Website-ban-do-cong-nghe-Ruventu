@@ -3,7 +3,6 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import AdminLink from '../../../../shared/components/ui/AdminLink';
 import LoadingSpinner from '../../../../shared/components/ui/LoadingSpinner';
 import {
-  ArrowLeft,
   SquareCheck as CheckCircle2,
   ChevronRight,
   ClipboardCheck,
@@ -11,7 +10,6 @@ import {
   History,
   Package,
   Phone,
-  RefreshCw,
   Truck,
   Wallet,
 } from 'lucide-react';
@@ -53,6 +51,7 @@ import { hasAdminPermission, hasSystemAdminPermission } from '../../../../auth/r
 import { useAdminPermissions } from '../../../../shared/components/ui/PermissionGate';
 
 import '../styles/warrantyShell.css';
+import AdminPageAction from '../../../../shared/components/ui/AdminPageAction';
 
 const WARRANTY_STAFF_EVENTS = new Set([
   'GHI_KET_LUAN',
@@ -792,29 +791,26 @@ function WarrantyDetail({ id }) {
           </p>
         </div>
 
-        <div className="w-shell-actions">
-          <button
-            type="button"
-            className="w-shell-button"
+        <div className="w-shell-actions admin-page-actions">
+          <AdminPageAction
+            icon="print"
             disabled={printing || locked || loading || Boolean(error)}
             onClick={() => handlePrint('receipt')}
           >
             In phiếu bảo hành
-          </button>
+          </AdminPageAction>
 
-          <button
-            type="button"
-            className="w-shell-button"
+          <AdminPageAction
+            icon="print"
             disabled={!invoice || printing || locked || loading || Boolean(error)}
             onClick={() => handlePrint('invoice', invoice.id)}
             title={!invoice ? 'Chưa có hóa đơn bảo hành hiệu lực' : undefined}
           >
             In hóa đơn
-          </button>
+          </AdminPageAction>
 
-          <button
-            type="button"
-            className="w-shell-button"
+          <AdminPageAction
+            icon="reload"
             disabled={locked}
             onClick={() => {
               setForm(null);
@@ -823,17 +819,16 @@ function WarrantyDetail({ id }) {
               setReload((value) => value + 1);
             }}
           >
-            <RefreshCw size={15} /> Tải lại
-          </button>
+            Tải lại
+          </AdminPageAction>
 
-          <button
-            type="button"
-            className="w-shell-button"
+          <AdminPageAction
+            icon="back"
             disabled={locked}
             onClick={() => navigate('/admin/bao-hanh/danh-sach')}
           >
-            <ArrowLeft size={15} /> Danh sách phiếu
-          </button>
+            Danh sách phiếu
+          </AdminPageAction>
         </div>
       </header>
 

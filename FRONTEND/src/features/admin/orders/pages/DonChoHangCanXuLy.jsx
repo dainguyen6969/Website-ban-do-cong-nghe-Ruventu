@@ -23,6 +23,7 @@ import { useAdminPermissions } from '../../../../shared/components/ui/Permission
 
 import './DonChoHangCanXuLy.css';
 import { FormDropdown } from '../../../../shared/components/ui/FilterDropdown';
+import AdminPageAction from '../../../../shared/components/ui/AdminPageAction';
 
 const RESULTS = {
   CHUA_LIEN_HE: 'Chưa ghi nhận liên hệ',
@@ -679,9 +680,7 @@ export default function DonChoHangCanXuLy() {
           <h1>{kind === 'ORDER' ? 'ĐƠN CHỜ HÀNG CẦN XỬ LÝ' : 'ĐĂNG KÝ BÁO CÓ HÀNG'}</h1>
         </div>
 
-        <Link className="waiting-button" to="/admin/don-hang/danh-sach-don-hang">
-          Danh sách đơn hàng
-        </Link>
+        <AdminPageAction as={Link} variant="utility" icon="back" to="/admin/don-hang/danh-sach-don-hang">Danh sách đơn hàng</AdminPageAction>
       </section>
 
       <section className="waiting-controls">

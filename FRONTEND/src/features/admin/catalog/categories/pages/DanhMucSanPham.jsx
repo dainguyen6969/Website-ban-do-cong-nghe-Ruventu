@@ -26,6 +26,7 @@ import { hasAdminPermission } from '../../../../../auth/roleModel';
 import { useAdminPermissions } from '../../../../../shared/components/ui/PermissionGate';
 
 import './DanhMucSanPham.css';
+import AdminPageAction from '../../../../../shared/components/ui/AdminPageAction';
 
 const ROOT_FILTER = 'root';
 
@@ -947,9 +948,9 @@ export default function DanhMucSanPham() {
           <p>Quản lý cấu trúc phân cấp danh mục và sản phẩm thuộc danh mục</p>
         </div>
 
-        <button
-          type="button"
-          className="category-primary-button"
+        <AdminPageAction
+          variant="primary"
+          icon="add"
           disabled={!canCreateCategory || loading || Boolean(error)}
           onClick={() =>
             setModal({
@@ -957,8 +958,8 @@ export default function DanhMucSanPham() {
             })
           }
         >
-          + THÊM DANH MỤC
-        </button>
+          THÊM DANH MỤC
+        </AdminPageAction>
       </div>
 
       {loading ? (
@@ -1001,7 +1002,7 @@ export default function DanhMucSanPham() {
           </section>
 
           {/* Bộ lọc */}
-          <div className="category-toolbar">
+          <div className="category-list-filters">
             <input
               value={search}
               onChange={(event) => setSearch(event.target.value)}
@@ -1368,13 +1369,12 @@ export function ChiTietDanhMuc() {
 
   return (
     <main className="category-page category-detail-page">
-      <button
-        type="button"
-        className="category-back"
+      <AdminPageAction
+        icon="back"
         onClick={() => navigate('/admin/danh-muc/danh-muc-san-pham')}
       >
-        ← QUAY LẠI DANH SÁCH
-      </button>
+        QUAY LẠI DANH SÁCH
+      </AdminPageAction>
 
       {actionError && (
         <div className="category-inline-error category-page-error" role="alert">
@@ -1405,8 +1405,9 @@ export function ChiTietDanhMuc() {
           <StatusBadge status={category.status} />
 
           <div>
-            <button
-              type="button"
+            <AdminPageAction
+              variant="operation"
+              icon="edit"
               disabled={!canEditCategory}
               onClick={() =>
                 setModal({
@@ -1416,12 +1417,12 @@ export function ChiTietDanhMuc() {
               }
             >
               CHỈNH SỬA
-            </button>
+            </AdminPageAction>
 
             {category.status === 'active' ? (
-              <button
-                type="button"
-                className="is-danger"
+              <AdminPageAction
+                variant="danger"
+                icon="stop"
                 disabled={!canDeactivateCategory}
                 onClick={() =>
                   setModal({
@@ -1431,16 +1432,18 @@ export function ChiTietDanhMuc() {
                 }
               >
                 NGỪNG HOẠT ĐỘNG
-              </button>
+              </AdminPageAction>
             ) : (
-              <button
-                type="button"
-                className="is-success"
+              <AdminPageAction
+                variant="operation"
+                icon="restore"
                 disabled={!canEditCategory || restoring}
                 onClick={restore}
               >
-                {restoring ? 'ĐANG KHÔI PHỤC...' : 'KHÔI PHỤC'}
-              </button>
+                {restoring
+                  ? 'ĐANG KHÔI PHỤC...'
+                : 'KHÔI PHỤC'}
+              </AdminPageAction>
             )}
           </div>
         </div>

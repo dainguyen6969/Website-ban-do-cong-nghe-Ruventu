@@ -18,6 +18,7 @@ import { hasSystemAdminPermission } from '../../../../auth/roleModel';
 import { useAdminPermissions } from '../../../../shared/components/ui/PermissionGate';
 
 import './TongQuanQuy.css';
+import AdminPageAction from '../../../../shared/components/ui/AdminPageAction';
 
 // Default dates: First day of current month to today
 const getFirstDayOfMonth = () => {
@@ -420,9 +421,7 @@ export default function TongQuanQuy() {
           <h1>TỔNG QUAN QUỸ</h1>
           <p>THEO DÕI NHANH TÌNH HÌNH THU CHI VÀ TỒN QUỸ CỦA CỬA HÀNG</p>
         </div>
-        <button type="button" className="cb-btn-secondary" onClick={handleOpenCashbook}>
-          XEM SỔ QUỸ &rarr;
-        </button>
+        <AdminPageAction variant="utility" icon="forward" onClick={handleOpenCashbook}>Xem sổ quỹ</AdminPageAction>
       </div>
 
       {/* Error Banners */}

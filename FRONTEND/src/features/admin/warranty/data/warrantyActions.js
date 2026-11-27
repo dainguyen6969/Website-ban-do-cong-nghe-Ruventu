@@ -1,6 +1,6 @@
 import { eligibilityLabels, localTimestamp, receiptNow } from './warrantyContract.js';
 import { freeWorkItems, referenceOptions, discrepancyLabels } from './warrantyExperience.js';
-import { inspectionOptions } from './intakeOptions.js';
+import { actionPickerOptions } from './intakeOptions.js';
 
 const channels = {
   TAI_QUAY: 'Tại quầy',
@@ -244,7 +244,7 @@ event(
   'GUI_DON_VI',
   'GỬI THIẾT BỊ',
   'custody',
-  `nha_cung_cap_id ten_don_vi thiet_bi_id noi_dung_yeu_cau phu_kien ${docs}`
+  'nha_cung_cap_id ten_don_vi thiet_bi_id thoi_diem noi_dung_yeu_cau phu_kien chung_tu_urls'
 );
 event('DON_VI_TIEP_NHAN', 'ĐƠN VỊ ĐÃ NHẬN ĐÚNG THIẾT BỊ', 'custody', `lan_gui_lich_su_id ${docs}`);
 event('YEU_CAU_THU_HOI', 'YÊU CẦU THU HỒI', 'custody', `lan_gui_lich_su_id ly_do ${docs}`);
@@ -590,11 +590,14 @@ export function actionBody(operation, values) {
     const optional = raw.endsWith('?'),
       name = raw.replace(/\?$/, ''),
       type = fieldType(name);
-    if (operation.key === 'GHI_KET_LUAN' && Object.hasOwn(inspectionOptions, name)) {
+    if (actionPickerOptions(operation, name)) {
       const choices = (typeof value === 'string' ? [value] : [...(value?.selected ?? []), ...(value?.custom ?? [])])
         .map(item => item.trim())
         .filter(Boolean);
-      if (!choices.length) throw new Error(`Chọn ${fieldLabels[name].toLocaleLowerCase('vi')}.`);
+      if (!choices.length) {
+        if (optional) return undefined;
+        throw new Error(`Chọn ${fieldLabels[name].toLocaleLowerCase('vi')}.`);
+      }
       const isCode = name === 'ma_hang_muc';
       if (isCode && choices.length !== 1) throw new Error('Chọn một mã hạng mục cho mỗi dòng.');
       const text = choices.join(' · ');

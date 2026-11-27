@@ -9,6 +9,7 @@ import { useAdminPermissions } from '../../../../shared/components/ui/Permission
 
 import './TaoPhieuThuChi.css';
 import { FormDropdown } from '../../../../shared/components/ui/FilterDropdown';
+import AdminPageAction from '../../../../shared/components/ui/AdminPageAction';
 
 const fallbackPersonData = {
   NHAN_VIEN: [
@@ -335,9 +336,7 @@ export default function TaoPhieuThuChi({ initialTab = 'thu' }) {
           ADMIN <span>&rsaquo;</span> SỔ QUỸ <span>&rsaquo;</span> TẠO PHIẾU THU / CHI
         </div>
         <div className="tpc-title-bar">
-          <button className="tpc-btn-back" onClick={() => navigate(-1)}>
-            &larr; QUAY LẠI
-          </button>
+          <AdminPageAction icon="back" onClick={() => navigate(-1)}>QUAY LẠI</AdminPageAction>
           <div className="tpc-title">
             <span className="tpc-title-accent">|</span> TẠO PHIẾU THU / CHI
           </div>

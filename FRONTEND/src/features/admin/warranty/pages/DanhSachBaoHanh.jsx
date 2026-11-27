@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
-import { Search, SlidersHorizontal, Plus, ArrowRight, RefreshCw } from 'lucide-react';
+import { Search, SlidersHorizontal, ArrowRight, RefreshCw } from 'lucide-react';
 import {
   statusLabels,
   quoteLabels,
@@ -17,6 +17,7 @@ import { hasAdminPermission } from '../../../../auth/roleModel';
 import { useAdminPermissions } from '../../../../shared/components/ui/PermissionGate';
 
 import '../styles/warrantyShell.css';
+import AdminPageAction from '../../../../shared/components/ui/AdminPageAction';
 
 const emptyFilters = {
   search: '',
@@ -112,13 +113,13 @@ export default function DanhSachBaoHanh() {
           <p>Tiếp nhận → Kiểm tra → Xử lý → Trả khách</p>
         </div>
         {canCreateWarranty && (
-          <button
-            type="button"
-            className="w-shell-button w-shell-button--red"
+          <AdminPageAction
+            variant="primary"
+            icon="add"
             onClick={() => navigate('/admin/bao-hanh/tao-moi')}
           >
-            <Plus size={18} /> Tiếp nhận bảo hành mới
-          </button>
+            Tiếp nhận bảo hành mới
+          </AdminPageAction>
         )}
       </header>
       {location.state?.createdTicketId && (

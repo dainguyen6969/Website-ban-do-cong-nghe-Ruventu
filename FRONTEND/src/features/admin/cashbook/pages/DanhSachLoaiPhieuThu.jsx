@@ -4,6 +4,7 @@ import './DanhSachLoaiPhieuThu.css';
 import TablePagination from '../../../../shared/components/ui/TablePagination';
 import FilterDropdown from '../../../../shared/components/ui/FilterDropdown';
 import { getReceiptTypes, createReceiptType, RECEIPT_TYPE_STATUS } from '../api/receiptTypeApi';
+import AdminPageAction from '../../../../shared/components/ui/AdminPageAction';
 
 export default function DanhSachLoaiPhieuThu() {
   const navigate = useNavigate();
@@ -121,12 +122,13 @@ return (
         SỔ QUỸ TIỀN MẶT / LOẠI PHIẾU THU
       </div>
 
-      <button
-        className="pt-btn-create"
+      <AdminPageAction
+        variant="primary"
+        icon="add"
         onClick={handleOpenModal}
       >
-        + THÊM LOẠI PHIẾU THU
-      </button>
+        THÊM LOẠI PHIẾU THU
+      </AdminPageAction>
     </div>
 
     {/* Tiêu đề từ main-test */}

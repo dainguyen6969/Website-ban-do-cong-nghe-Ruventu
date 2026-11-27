@@ -37,6 +37,7 @@ import { FormDropdown } from '../../../../shared/components/ui/FilterDropdown';
 
 import { hasAdminPermission } from '../../../../auth/roleModel';
 import { useAdminPermissions } from '../../../../shared/components/ui/PermissionGate';
+import AdminPageAction from '../../../../shared/components/ui/AdminPageAction';
 
 const METHODS = [
   ['CHUYEN_KHOAN', 'Chuyển khoản'],
@@ -490,39 +491,39 @@ export default function ChiTietNhapHang() {
           </div>
           <p>{order.createdAtLabel}</p>
         </div>
-        <div className="purchase-heading-actions">
+        <div className="purchase-heading-actions admin-page-actions">
           {canEditPurchase && order.importStatus === 'DAT_HANG' && (
-            <button
-              type="button"
-              className="purchase-btn outline"
+            <AdminPageAction
+              variant="operation"
+              icon="edit"
               onClick={() => navigate(`/kho-hang/nhap-hang/tao-moi?edit=${order.id}`)}
             >
-              − CHỈNH SỬA
-            </button>
+              CHỈNH SỬA
+            </AdminPageAction>
           )}
 
           {canOperatePurchase && order.importStatus === 'DAT_HANG' && (
             <>
-              <button
-                type="button"
-                className="purchase-btn blue"
+              <AdminPageAction
+                variant="operation"
+                icon="approve"
                 onClick={() => setModal('approve')}
               >
                 DUYỆT ĐƠN
-              </button>
-              <button
-                type="button"
-                className="purchase-btn red-outline"
+              </AdminPageAction>
+              <AdminPageAction
+                variant="danger"
+                icon="cancel"
                 onClick={() => setModal('cancel')}
               >
                 HỦY ĐƠN
-              </button>
+              </AdminPageAction>
             </>
           )}
           {canOperatePurchase && approved && order.debt > 0 && (
-            <button
-              type="button"
-              className="purchase-btn black"
+            <AdminPageAction
+              variant="operation"
+              icon="payment"
               disabled={busy}
               onClick={() => {
                 setError('');
@@ -530,26 +531,26 @@ export default function ChiTietNhapHang() {
               }}
             >
               THANH TOÁN
-            </button>
+            </AdminPageAction>
           )}
 
           {canEditPurchase && canReceive && (
-            <button
-              type="button"
-              className="purchase-btn green purchase-btn--receive"
+            <AdminPageAction
+              variant="operation"
+              icon="receive"
               disabled={busy}
               onClick={openReceive}
             >
               NHẬP KHO
-            </button>
+            </AdminPageAction>
           )}
 
           {canOperatePurchase &&
             ['NHAP_MOT_PHAN', 'DA_NHAP_KHO', 'HOAN_TRA_MOT_PHAN'].includes(order.importStatus) &&
             returnable.length > 0 && (
-              <button
-                type="button"
-                className="purchase-btn orange-outline"
+              <AdminPageAction
+                variant="operation"
+                icon="return"
                 disabled={busy}
                 onClick={() => {
                   setError('');
@@ -557,13 +558,13 @@ export default function ChiTietNhapHang() {
                 }}
               >
                 TRẢ HÀNG TRỰC TIẾP
-              </button>
+              </AdminPageAction>
             )}
 
           {canOperatePurchase && order.refundDue > 0 && (
-            <button
-              type="button"
-              className="purchase-btn green"
+            <AdminPageAction
+              variant="operation"
+              icon="payment"
               disabled={busy}
               onClick={() => {
                 setError('');
@@ -571,11 +572,9 @@ export default function ChiTietNhapHang() {
               }}
             >
               NHẬN TIỀN NHÀ CUNG CẤP HOÀN
-            </button>
+            </AdminPageAction>
           )}
-          <button className="purchase-btn outline" onClick={() => navigate('/kho-hang/nhap-hang')}>
-            ‹ DANH SÁCH
-          </button>
+          <AdminPageAction icon="back" onClick={() => navigate('/kho-hang/nhap-hang')}>DANH SÁCH</AdminPageAction>
         </div>
       </div>
       {error && <p className="purchase-message error">{error}</p>}

@@ -1,7 +1,7 @@
 // Admin customer screen: DanhSachKhachHang.
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { HiOutlinePlus, HiOutlineSearch } from 'react-icons/hi';
+import { HiOutlineSearch } from 'react-icons/hi';
 import FilterDropdown from '../../../../shared/components/ui/FilterDropdown';
 import TablePagination from '../../../../shared/components/ui/TablePagination';
 import LoadingSpinner from '../../../../shared/components/ui/LoadingSpinner';
@@ -13,6 +13,7 @@ import { hasAdminPermission } from '../../../../auth/roleModel';
 import { useAdminPermissions } from '../../../../shared/components/ui/PermissionGate';
 
 import './KhachHang.css';
+import AdminPageAction from '../../../../shared/components/ui/AdminPageAction';
 
 const PAGE_SIZE = 10;
 const statusOptions = ['Tất cả trạng thái', 'Hoạt động', 'Ngừng hoạt động'];
@@ -100,15 +101,14 @@ export default function DanhSachKhachHang() {
           <h1>DANH SÁCH KHÁCH HÀNG</h1>
           <p>QUẢN LÝ HỒ SƠ VÀ LỊCH SỬ MUA HÀNG KHÁCH HÀNG</p>
         </div>
-        <button
-          type="button"
-          className="customer-btn customer-btn--black"
+        <AdminPageAction
+          variant="primary"
+          icon="add"
           disabled={!canCreateCustomer}
           onClick={() => setIsAddOpen(true)}
         >
-          <HiOutlinePlus size={16} />
           <span>THÊM KHÁCH HÀNG</span>
-        </button>
+        </AdminPageAction>
       </section>
 
       <section className="customer-toolbar" aria-label="Tìm kiếm và lọc khách hàng">

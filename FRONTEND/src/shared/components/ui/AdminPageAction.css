@@ -1,0 +1,99 @@
+.admin-app .admin-page-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  min-inline-size: 0;
+}
+
+.admin-app .admin-page-action-btn[data-variant] {
+  --warranty-button-font-size: calc(13px * 1.1 * var(--project-font-scale, 1));
+  --warranty-button-font-weight: var(--admin-weight-bold, 700);
+  --action-ink: #111;
+  --action-border: #111;
+  --action-fill: #fff;
+  --action-hover: #f2f2f2;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  box-sizing: border-box;
+  min-block-size: 41px;
+  max-inline-size: 100%;
+  padding: 8px 14px;
+  border: var(--action-border-width, 2px) solid var(--action-border);
+  border-radius: 0;
+  background: var(--action-fill);
+  color: var(--action-ink);
+  text-align: center;
+  text-decoration: none;
+  text-transform: uppercase;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+  white-space: normal;
+  cursor: pointer;
+}
+
+.admin-app .admin-page-action-btn:is([data-variant='primary'], [data-variant='utility'], [data-compact]) {
+  --warranty-button-font-size: calc(12px * var(--project-font-scale, 1));
+  --action-icon-size: 14px;
+
+  min-block-size: 36px;
+  padding: 6px 12px;
+  gap: 6px;
+}
+
+.admin-app .admin-page-action-btn[data-variant='utility'] {
+  --warranty-button-font-weight: var(--admin-weight-semibold, 600);
+  --action-ink: #252a31;
+  --action-border: #8a949f;
+  --action-border-width: 1px;
+  --action-hover: #f4f5f7;
+
+  text-transform: none;
+}
+
+.admin-app .admin-page-action-btn[data-variant='primary'] {
+  --action-ink: #fff;
+  --action-border: var(--color-brand-red, #e31e24);
+  --action-fill: var(--color-brand-red, #e31e24);
+  --action-hover: var(--color-brand-red-hover, #be141a);
+}
+
+.admin-app .admin-page-action-btn[data-variant='operation'] {
+  --action-ink: #fff;
+  --action-border: #111;
+  --action-fill: #111;
+  --action-hover: #303030;
+}
+
+.admin-app .admin-page-action-btn[data-variant='danger'] {
+  --action-ink: #c0171d;
+  --action-border: #c0171d;
+  --action-hover: #fff2f2;
+}
+
+.admin-app .admin-page-action-btn[data-variant]:hover:not(:disabled) {
+  background: var(--action-hover);
+}
+
+.admin-app .admin-page-action-btn[data-variant]:focus-visible {
+  outline: 2px solid var(--color-brand-red, #e31e24);
+  outline-offset: 2px;
+}
+
+.admin-app .admin-page-action-btn[data-variant]:disabled {
+  border-color: #d3d3d3;
+  background: #f2f2f2;
+  color: #666;
+  opacity: 1;
+  cursor: not-allowed;
+}
+
+.admin-app .admin-page-action-btn > svg {
+  flex: 0 0 var(--action-icon-size, 16px);
+  width: var(--action-icon-size, 16px);
+  height: var(--action-icon-size, 16px);
+}

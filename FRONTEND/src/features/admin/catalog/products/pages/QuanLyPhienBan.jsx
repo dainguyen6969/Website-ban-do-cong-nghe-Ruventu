@@ -8,6 +8,7 @@ import FilterDropdown from '../../../../../shared/components/ui/FilterDropdown';
 import LoadingSpinner from '../../../../../shared/components/ui/LoadingSpinner';
 import { getAllVersions } from '../api/versionApi';
 import './QuanLyPhienBan.css';
+import AdminPageAction from '../../../../../shared/components/ui/AdminPageAction';
 
 const typeOptions = ['Tất cả', 'Phiên bản', 'Combo'];
 const PAGE_SIZE = 10;
@@ -215,14 +216,13 @@ export default function QuanLyPhienBan() {
             </FilterDropdown>
           </label>
 
-          <button
-            type="button"
-            className="admin-list-primary-action"
+          <AdminPageAction
+            variant="utility"
+            icon="download"
             onClick={() => exportExcel(false)}
           >
-            <HiOutlineDownload size={17} aria-hidden="true" />
-            <span>XUẤT EXCEL</span>
-          </button>
+            Xuất Excel
+          </AdminPageAction>
         </section>
 
         {!loading && !error && negativeCount > 0 && (
