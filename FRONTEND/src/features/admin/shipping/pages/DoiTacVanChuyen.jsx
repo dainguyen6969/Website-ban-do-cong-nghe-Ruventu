@@ -23,14 +23,14 @@ const PAGE_SIZE = 10;
 const TYPE_LABELS = {
   SHIP_CUA_HANG: 'Ship cửa hàng',
   SHIP_CA_NHAN: 'Ship cá nhân',
+  GHN: 'GHN',
 };
 
-const TYPE_OPTIONS = ['Tất cả loại', 'Ship cửa hàng', 'Ship cá nhân'];
+const TYPE_OPTIONS = ['Tất cả loại', ...Object.values(TYPE_LABELS)];
 
-const TYPE_CODES = {
-  'Ship cửa hàng': 'SHIP_CUA_HANG',
-  'Ship cá nhân': 'SHIP_CA_NHAN',
-};
+const TYPE_CODES = Object.fromEntries(
+  Object.entries(TYPE_LABELS).map(([code, label]) => [label, code])
+);
 
 const STATUS_OPTIONS = ['Tất cả trạng thái', 'Hoạt động', 'Ngừng hoạt động'];
 

@@ -330,7 +330,12 @@ public class AdminDeliveryService {
 
       requirePackedAndExported(order);
       recallSafety.requireOrderClear(order.getId());
-      requireActivePartner(delivery.getDoiTacVanChuyen().getId());
+      var partner = requireActivePartner(delivery.getDoiTacVanChuyen().getId());
+      String tracking = delivery.getMaVanDon();
+      if (partner.getLoaiDoiTac() == LoaiDoiTacVanChuyenEnum.GHN
+          && (tracking == null || tracking.isBlank())) {
+        throw invalid("Nhập mã vận đơn GHN đã có trước khi xác nhận bàn giao");
+      }
 
       delivery.setTienThuHoCod(calculateCod(order));
       delivery.setTrangThaiGiaoHang(TrangThaiGiaoHangEnum.DA_NHAN_HANG);

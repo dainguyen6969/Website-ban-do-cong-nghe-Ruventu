@@ -10,6 +10,7 @@ import com.example.dantruventu.DTO.Response.order.AdminSalesResponse;
 import com.example.dantruventu.Entity.*;
 import com.example.dantruventu.Enum.*;
 import com.example.dantruventu.Error.AppException;
+import com.example.dantruventu.Error.ErrorCode;
 import com.example.dantruventu.Mapper.order.AdminOrderMapper;
 import com.example.dantruventu.Mapper.order.AdminSalesMapper;
 import com.example.dantruventu.Repository.cashbook.LoaiThuChiRepository;
@@ -31,18 +32,27 @@ import jakarta.persistence.LockModeType;
 import jakarta.persistence.criteria.JoinType;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.net.http.HttpClient;
+import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.util.*;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.http.MediaType;
+import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.client.RestClient;
+import org.springframework.web.client.RestClientException;
+import org.springframework.web.client.RestClientResponseException;
+import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
 @Service
@@ -82,6 +92,17 @@ public class AdminOrderService {
   private final OrderIntakePolicy intakePolicy;
   private final RecallSafety recallSafety;
   private final DocumentService documents;
+
+  private final RestClient ghnClient = createGhnClient();
+
+  @Value("${ruventu.shipping.ghn.token}")
+  private String ghnToken;
+
+  @Value("${ruventu.shipping.ghn.shop-id}")
+  private long ghnShopId;
+
+  @Value("${ruventu.shipping.ghn.staging}")
+  private boolean ghnStaging;
 
   @Transactional(isolation = Isolation.READ_COMMITTED)
   public AdminOrderResponse.Action counterExchange(
@@ -1677,6 +1698,93 @@ public class AdminOrderService {
         canNhapTay ? "Thiếu khối lượng hoặc kích thước. Nhập số đo còn thiếu." : null);
   }
 
+  private static RestClient createGhnClient() {
+    var http = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(3)).build();
+    var factory = new JdkClientHttpRequestFactory(http);
+    factory.setReadTimeout(Duration.ofSeconds(6));
+    return RestClient.builder().requestFactory(factory).build();
+  }
+
+  public AdminOrderResponse.GhnQuote ghnPreview(Long id, AdminOrderRequest.GhnPreview request) {
+    DonHang order = findOrder(id);
+    requireOnline(order);
+    if (!shipping(order)
+        || order.getTrangThaiDonHang() != TrangThaiDonHang.CHO_LAY_HANG
+        || order.getTrangThaiDongGoi() != TrangThaiDongGoi.DA_DONG_GOI
+        || order.getTrangThaiXuatKho() != TrangThaiXuatKho.DA_XUAT_KHO) {
+      throw conflict(
+          "Chỉ tính phí GHN cho đơn giao hàng đã đóng gói, xuất kho và đang chờ lấy hàng");
+    }
+
+    if (ghnToken == null || ghnToken.isBlank() || ghnShopId <= 0) {
+      throw new AppException(ErrorCode.GHN_UNAVAILABLE, "Chưa cấu hình Token và ShopId của GHN");
+    }
+
+    String name = text(order.getTenNguoiNhan());
+    String phone = text(order.getSdtNguoiNhan());
+    if (name == null || phone == null) {
+      throw invalid("Đơn hàng thiếu tên hoặc số điện thoại người nhận để tính phí GHN");
+    }
+
+    BigDecimal cod = remainingForCod(order);
+    if (cod.signum() < 0 || cod.compareTo(BigDecimal.valueOf(50_000_000)) > 0) {
+      throw invalid("Tiền thu hộ của đơn vượt phạm vi tính phí GHN");
+    }
+
+    var payload =
+        Map.ofEntries(
+            Map.entry("payment_type_id", 1),
+            Map.entry("required_note", "KHONGCHOXEMHANG"),
+            Map.entry("service_type_id", 2),
+            Map.entry("is_new_to_address", true),
+            Map.entry("to_name", name),
+            Map.entry("to_phone", phone),
+            Map.entry("to_address", request.diaChiGiaoHang().strip()),
+            Map.entry("to_ward_name", request.phuongXa().strip()),
+            Map.entry("to_province_name", request.tinhThanh().strip()),
+            Map.entry("content", "Đơn Ruventu " + order.getMaDonHang()),
+            Map.entry("cod_amount", cod.intValueExact()),
+            Map.entry("weight", request.khoiLuongG().intValueExact()),
+            Map.entry("length", request.chieuDaiCm().intValueExact()),
+            Map.entry("width", request.chieuRongCm().intValueExact()),
+            Map.entry("height", request.chieuCaoCm().intValueExact()));
+
+    String host =
+        ghnStaging ? "https://dev-online-gateway.ghn.vn" : "https://online-gateway.ghn.vn";
+
+    try {
+      var response =
+          ghnClient
+              .post()
+              .uri(host + "/shiip/public-api/v2/shipping-order/preview")
+              .header("Token", ghnToken.strip())
+              .header("ShopId", Long.toString(ghnShopId))
+              .contentType(MediaType.APPLICATION_JSON)
+              .body(payload)
+              .retrieve()
+              .body(JsonNode.class);
+
+      if (response == null || response.path("code").asInt(-1) != 200) {
+        throw new AppException(ErrorCode.GHN_UNAVAILABLE);
+      }
+
+      var fee = response.path("data").path("total_fee");
+      if (!fee.isIntegralNumber() || !fee.canConvertToInt() || fee.intValue() < 0) {
+        throw new AppException(ErrorCode.GHN_UNAVAILABLE, "Phản hồi GHN thiếu tổng phí hợp lệ");
+      }
+
+      return new AdminOrderResponse.GhnQuote(fee.intValue());
+    } catch (RestClientResponseException exception) {
+      int status = exception.getStatusCode().value();
+      if (status == 400 || status == 422) {
+        throw invalid("GHN không tính được phí. Kiểm tra địa chỉ, thông số kiện và cấu hình shop.");
+      }
+      throw new AppException(ErrorCode.GHN_UNAVAILABLE);
+    } catch (RestClientException exception) {
+      throw new AppException(ErrorCode.GHN_UNAVAILABLE);
+    }
+  }
+
   @Transactional(isolation = Isolation.READ_COMMITTED)
   public AdminOrderResponse.Action startDelivery(Long id, AdminOrderRequest.DeliveryStart request) {
 
@@ -1748,6 +1856,10 @@ public class AdminOrderService {
 
     if (partner.getTrangThai() != TrangThaiCoBanEnum.HOAT_DONG) {
       throw conflict("Đối tác vận chuyển đã ngừng hoạt động");
+    }
+
+    if (partner.getLoaiDoiTac() == LoaiDoiTacVanChuyenEnum.GHN && tracking == null) {
+      throw invalid("Nhập mã vận đơn GHN đã có trước khi xác nhận bàn giao");
     }
 
     if (tracking != null

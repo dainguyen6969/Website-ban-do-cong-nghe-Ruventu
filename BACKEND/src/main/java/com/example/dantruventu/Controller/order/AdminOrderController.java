@@ -221,6 +221,15 @@ public class AdminOrderController {
     return ok("Lấy gợi ý kiện hàng thành công", orderService.packageSuggestion(id));
   }
 
+  @PostMapping("/{id}/delivery/ghn-preview")
+  @PreAuthorize(
+      "@adminRoleService.hasModuleAction(principal, 'don_hang', 'xem')"
+          + " and @adminRoleService.hasModuleAction(principal, 'giao_hang', 'them')")
+  public ApiResponse<AdminOrderResponse.GhnQuote> ghnPreview(
+      @PathVariable("id") Long id, @Valid @RequestBody AdminOrderRequest.GhnPreview request) {
+    return ok("Lấy phí GHN dự kiến thành công", orderService.ghnPreview(id, request));
+  }
+
   @PostMapping("/{id}/delivery/start")
   @PreAuthorize(
       "@adminRoleService.hasModuleAction(principal, 'don_hang', 'xem')"

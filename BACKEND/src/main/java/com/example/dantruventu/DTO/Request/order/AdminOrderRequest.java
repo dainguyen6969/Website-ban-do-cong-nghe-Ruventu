@@ -91,6 +91,19 @@ public final class AdminOrderRequest {
     private String maVanDon;
   }
 
+  public record GhnPreview(
+      @JsonProperty("khoi_luong_g") @NotNull @Min(1) @Max(19999) @Digits(integer = 5, fraction = 0)
+          BigDecimal khoiLuongG,
+      @JsonProperty("chieu_dai_cm") @NotNull @Min(1) @Max(200) @Digits(integer = 3, fraction = 0)
+          BigDecimal chieuDaiCm,
+      @JsonProperty("chieu_rong_cm") @NotNull @Min(1) @Max(200) @Digits(integer = 3, fraction = 0)
+          BigDecimal chieuRongCm,
+      @JsonProperty("chieu_cao_cm") @NotNull @Min(1) @Max(200) @Digits(integer = 3, fraction = 0)
+          BigDecimal chieuCaoCm,
+      @JsonProperty("dia_chi_giao_hang") @NotBlank @Size(max = 1024) String diaChiGiaoHang,
+      @JsonProperty("phuong_xa") @NotBlank @Size(max = 120) String phuongXa,
+      @JsonProperty("tinh_thanh") @NotBlank @Size(max = 120) String tinhThanh) {}
+
   @Getter
   @Setter
   public static class Packing extends AdminSalesRequest.StrictRequest {

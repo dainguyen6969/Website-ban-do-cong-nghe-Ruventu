@@ -61,6 +61,17 @@ export const retryOrderStock = (id) => action(id, 'stock/retry', { xac_nhan: tru
 export const reserveWaitingOrderStock = (id, key, body) =>
   action(id, 'stock/reserve', body, 'POST', key);
 export const startFulfillment = (id, key, body) => action(id, 'fulfillment', body, 'POST', key);
+
+export const getDeliveryPackageSuggestion = (id, signal) =>
+  adminRequest(`${PATH}/${encodeURIComponent(id)}/delivery/package-suggestion`, { signal });
+
+export const previewGhnDeliveryFee = (id, body, signal) =>
+  adminRequest(`${PATH}/${encodeURIComponent(id)}/delivery/ghn-preview`, {
+    method: 'POST',
+    body: JSON.stringify(body),
+    signal,
+  });
+
 export const startOrderDelivery = (id, partnerId, fee, tracking = '') =>
   action(id, 'delivery/start', {
     xac_nhan: true,
@@ -137,9 +148,15 @@ export const setDeliveryStatus = (id, key, body) =>
     body: JSON.stringify(body),
   });
 
-export const searchDeliveryPartners = (keyword, signal) =>
+export const searchDeliveryPartners = (keyword, signal, partnerType) =>
   adminRequest(
-    `/api/v1/admin/shipping-partners?${query({ keyword, trang_thai: 1, page: 0, limit: 100 })}`,
+    `/api/v1/admin/shipping-partners?${query({
+      keyword,
+      loai_doi_tac: partnerType,
+      trang_thai: 1,
+      page: 0,
+      limit: 100,
+    })}`,
     { signal }
   );
 
