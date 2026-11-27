@@ -55,7 +55,8 @@ class AdminWarrantyDetailServiceTest {
             repository, histories, new WarrantyHistorySupport(json), devices);
   }
 
-  private void obligation(long id, int required, int supplied, BigDecimal money, boolean versioned) {
+  private void obligation(
+      long id, int required, int supplied, BigDecimal money, boolean versioned) {
     var value = new LinkedHashMap<String, Object>();
     value.put("nghia_vu_lich_su_id", id);
     value.put("nha_cung_cap_id", 3);
@@ -103,25 +104,86 @@ class AdminWarrantyDetailServiceTest {
   void stillOffersSupplierSettlementForLegacyIntegerQuantity() {
     obligation(880L, 1, 0, BigDecimal.ZERO, false);
 
-    assertTrue(service.getDetail("501", "0", "1").thaoTacDuocPhep().contains("SUPPLIER_SETTLEMENT"));
+    assertTrue(
+        service.getDetail("501", "0", "1").thaoTacDuocPhep().contains("SUPPLIER_SETTLEMENT"));
   }
 
   @Test
   void stillOffersSupplierSettlementForOutstandingMoneyOnly() {
     obligation(880L, 0, 0, new BigDecimal("50000.00"), true);
 
-    assertTrue(service.getDetail("501", "0", "1").thaoTacDuocPhep().contains("SUPPLIER_SETTLEMENT"));
+    assertTrue(
+        service.getDetail("501", "0", "1").thaoTacDuocPhep().contains("SUPPLIER_SETTLEMENT"));
   }
 
   @Test
   void doesNotOfferSupplierSettlementOnceAllObligationsAreResolved() {
     obligation(880L, 1, 1, BigDecimal.ZERO, true);
 
-    assertFalse(service.getDetail("501", "0", "1").thaoTacDuocPhep().contains("SUPPLIER_SETTLEMENT"));
+    assertFalse(
+        service.getDetail("501", "0", "1").thaoTacDuocPhep().contains("SUPPLIER_SETTLEMENT"));
   }
 
   @Test
   void doesNotOfferSupplierSettlementWithoutAnObligation() {
-    assertFalse(service.getDetail("501", "0", "1").thaoTacDuocPhep().contains("SUPPLIER_SETTLEMENT"));
+    assertFalse(
+        service.getDetail("501", "0", "1").thaoTacDuocPhep().contains("SUPPLIER_SETTLEMENT"));
+  }
+
+  @Test
+  void exposesSavedReadyConditionAndAccessoriesSeparatelyFromIntake() {
+    ticket.setTrangThaiXuLy(TrangThaiBaoHanh.CHO_TRA_KHACH);
+    ticket.setTinhTrangTiepNhan("Trầy xước khi nhận");
+    var intake = Map.of("phu_kien", List.of(Map.of("ten", "Cáp", "so_luong", 2)));
+    var custody = Map.of("loai", "CUA_HANG", "thiet_bi_id", 700L);
+    var ready =
+        Map.of(
+            "thiet_bi_se_tra_id",
+            700L,
+            "tinh_trang",
+            "Hoạt động tốt",
+            "phu_kien",
+            List.of(Map.of("ten", "Cáp", "so_luong", 1)));
+    events.add(
+        LichSuBaoHanh.builder()
+            .id(890L)
+            .phieuBaoHanh(ticket)
+            .loaiSuKien("TIEP_NHAN")
+            .duLieuChiTiet(
+                json.writeValueAsString(Map.of("noi_dang_giu", custody, "tiep_nhan", intake)))
+            .build());
+    events.add(
+        LichSuBaoHanh.builder()
+            .id(891L)
+            .phieuBaoHanh(ticket)
+            .loaiSuKien("SAN_SANG_TRA")
+            .duLieuChiTiet(json.writeValueAsString(Map.of("san_sang_tra", ready)))
+            .build());
+    events.add(
+        LichSuBaoHanh.builder()
+            .id(892L)
+            .phieuBaoHanh(ticket)
+            .loaiSuKien("NHAN_LAI")
+            .duLieuChiTiet(
+                json.writeValueAsString(
+                    Map.of(
+                        "giao_nhan",
+                        Map.of(
+                            "thiet_bi_id",
+                            700L,
+                            "ngay",
+                            "2026-11-25T09:00:00+07:00",
+                            "phu_kien",
+                            List.of(Map.of("ten", "Cáp", "so_luong", 1))))))
+            .build());
+
+    var result = service.getDetail("501", "0", "2");
+
+    assertEquals("Trầy xước khi nhận", result.tiepNhan().tinhTrang());
+    assertEquals(2, result.tiepNhan().phuKien().getFirst().get("so_luong"));
+    assertEquals("Hoạt động tốt", result.xuLyTiep().tinhTrangSanSangTra());
+    assertEquals(1, result.xuLyTiep().phuKienSanSangTra().getFirst().get("so_luong"));
+    assertEquals(
+        List.of(Map.of("ten", "Cáp", "so_luong", 1)), result.giaoNhan().getFirst().get("phu_kien"));
   }
 }

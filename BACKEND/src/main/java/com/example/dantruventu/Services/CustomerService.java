@@ -263,34 +263,16 @@ public class CustomerService {
   }
 
   private boolean isCustomerRole(VaiTro vaiTro) {
-    if (vaiTro == null) {
-      return false;
-    }
-    String roleName =
-        vaiTro.getTenVaiTro() != null ? vaiTro.getTenVaiTro().toUpperCase(Locale.ROOT) : "";
-    String roleDesc = vaiTro.getMoTa() != null ? vaiTro.getMoTa().toLowerCase(Locale.ROOT) : "";
-    return "USER".equals(roleName)
-        || "KHACH_HANG".equals(roleName)
-        || "KHÁCH HÀNG".equalsIgnoreCase(vaiTro.getTenVaiTro())
-        || "KHACH HANG".equalsIgnoreCase(vaiTro.getTenVaiTro())
-        || roleDesc.contains("khách hàng")
-        || roleDesc.contains("khach hang");
+    return vaiTro != null && "USER".equals(vaiTro.getMaVaiTro());
   }
 
   private VaiTro getCustomerRole() {
-    List<VaiTro> roles = vaiTroRepository.findCustomerRoles();
-    if (roles != null && !roles.isEmpty()) {
-      return roles.get(0);
-    }
-
     return vaiTroRepository
-        .findByTenVaiTro("USER")
-        .or(() -> vaiTroRepository.findByTenVaiTro("KHACH_HANG"))
+        .findByMaVaiTro("USER")
         .orElseThrow(
             () ->
                 new AppException(
-                    ErrorCode.CUSTOMER_ROLE_NOT_CONFIGURED,
-                    "Thiếu cấu hình vai trò Khách hàng hoặc lỗi lưu dữ liệu."));
+                    ErrorCode.CUSTOMER_ROLE_NOT_CONFIGURED, "Thiếu cấu hình vai trò Khách hàng."));
   }
 
   private CustomerListItemResponse toListItemResponse(NguoiDung user) {

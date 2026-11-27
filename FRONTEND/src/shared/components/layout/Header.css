@@ -55,6 +55,17 @@
   color: var(--color-text-muted);
 }
 
+a.header__breadcrumb-item--muted {
+  text-decoration: none;
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+
+a.header__breadcrumb-item--muted:hover {
+  color: var(--color-text-primary);
+  text-decoration: underline;
+}
+
 .header__breadcrumb-item--active {
   color: var(--color-text-primary);
   font-weight: 700;
@@ -139,8 +150,13 @@
 }
 
 @keyframes badgePulse {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.1); }
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
 }
 
 /* User */
@@ -188,18 +204,48 @@
 }
 
 @media (max-width: 1024px) {
-  :where(.admin-app) .header { padding: 0 14px; }
-  .header__mobile-menu { display: inline-flex; }
-  .header__breadcrumb { min-width: 0; overflow: hidden; }
-  .header__breadcrumb-item { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .header__date, .header__user-name { display: none; }
-  .header__group { padding: 0 8px; }
-  .header__accent-bar { margin-left: 0; }
+  :where(.admin-app) .header {
+    padding: 0 14px;
+  }
+  .header__mobile-menu {
+    display: inline-flex;
+  }
+  .header__breadcrumb {
+    min-width: 0;
+    overflow: hidden;
+  }
+  .header__breadcrumb-item {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .header__date,
+  .header__user-name {
+    display: none;
+  }
+  .header__group {
+    padding: 0 8px;
+  }
+  .header__accent-bar {
+    margin-left: 0;
+  }
 }
 
 @media (max-width: 640px) {
-  :where(.admin-app) .header { height: 56px; min-height: 56px; padding: 0 10px; }
-  .header__breadcrumb-item--muted, .header__breadcrumb-sep { display: none; }
-  .header__right .header__divider, .header__user { display: none; }
-  .header__utilities { padding: 0 6px; }
+  :where(.admin-app) .header {
+    height: 56px;
+    min-height: 56px;
+    padding: 0 10px;
+  }
+  .header__breadcrumb-item--muted,
+  .header__breadcrumb-sep {
+    display: none;
+  }
+  .header__right .header__divider,
+  .header__user {
+    display: none;
+  }
+  .header__utilities {
+    padding: 0 6px;
+  }
 }

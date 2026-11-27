@@ -13,11 +13,15 @@ export default function CustomerProvider({ children }) {
   const [customers, setCustomers] = useState(readCustomers);
   const customersRef = useRef(customers);
 
-  useEffect(() => subscribeToAdminSlice('customers', () => {
-    const next = readCustomers();
-    customersRef.current = next;
-    setCustomers(next);
-  }), []);
+  useEffect(
+    () =>
+      subscribeToAdminSlice('customers', () => {
+        const next = readCustomers();
+        customersRef.current = next;
+        setCustomers(next);
+      }),
+    []
+  );
 
   const commitCustomers = (next, action, entityId) => {
     customersRef.current = next;
@@ -46,11 +50,9 @@ export default function CustomerProvider({ children }) {
   };
 
   const setCustomerStatus = (customerId, status) => {
-    const next = customersRef.current.map((customer) => (
-      customer.id === customerId
-        ? { ...customer, status, updatedAt: formatUpdatedAt() }
-        : customer
-    ));
+    const next = customersRef.current.map((customer) =>
+      customer.id === customerId ? { ...customer, status, updatedAt: formatUpdatedAt() } : customer
+    );
     commitCustomers(next, 'status-updated', customerId);
   };
 

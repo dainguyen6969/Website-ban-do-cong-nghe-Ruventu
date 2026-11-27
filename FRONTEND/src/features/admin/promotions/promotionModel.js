@@ -1,18 +1,77 @@
 export const PROMOTION_STATUS = {
-    DANG_AP_DUNG: 'ĐANG ÁP DỤNG', TAM_DUNG: 'TẠM DỪNG',
-    CHUA_BAT_DAU: 'CHƯA BẮT ĐẦU', HET_HAN: 'HẾT HẠN', HET_LUOT: 'HẾT LƯỢT',
+    DANG_AP_DUNG: 'ĐANG ÁP DỤNG',
+    TAM_DUNG: 'TẠM DỪNG',
+    CHUA_BAT_DAU: 'CHƯA BẮT ĐẦU',
+    HET_HAN: 'HẾT HẠN',
+    HET_LUOT: 'HẾT LƯỢT',
 };
 
+export function computePromotionStatus(item) {
+    if (!item) return 'CHƯA XÁC ĐỊNH';
+
+    const now = new Date();
+    const startStr = item.startDate || item.ngay_bat_dau;
+    const endStr = item.endDate || item.ngay_ket_thuc;
+
+    const startDate = startStr ? new Date(startStr) : null;
+    const endDate = endStr ? new Date(endStr) : null;
+
+    // 1. Khi hết thời gian khuyến mại -> Hết Hạn
+    if (endDate && !isNaN(endDate.getTime()) && endDate < now) {
+        return 'HẾT HẠN';
+    }
+
+    // 2. Nếu chưa đến ngày bắt đầu -> Chưa Bắt Đầu
+    if (startDate && !isNaN(startDate.getTime()) && startDate > now) {
+        return 'CHƯA BẮT ĐẦU';
+    }
+
+    // 3. Trong thời gian khuyến mại: kiểm tra cờ tạm dừng
+    const isPaused = item.savedStatus === 0 || item.trang_thai === 0 || item.status === 'TẠM DỪNG';
+    if (isPaused) {
+        return 'TẠM DỪNG';
+    }
+
+    // 4. Kiểm tra hết lượt nếu có cấu hình giới hạn
+    const maxUsage = item.maxUsage ?? item.so_luong_ap_dung;
+    const remaining = item.remainingUsage ?? item.so_luong_con_lai;
+    const used = item.usedUsage ?? item.so_luong_da_dung ?? 0;
+    if (maxUsage !== null && maxUsage !== undefined) {
+        if ((remaining !== null && remaining !== undefined && remaining <= 0) || (used >= maxUsage)) {
+            return 'HẾT LƯỢT';
+        }
+    }
+
+    // 5. Đang trong thời gian và đang hoạt động -> Đang áp dụng
+    return 'ĐANG ÁP DỤNG';
+}
+
 export function normalizePromotion(item) {
+    const rawStatus = PROMOTION_STATUS[item.trang_thai_hien_thi];
+    const computed = computePromotionStatus({
+        startDate: item.ngay_bat_dau,
+        endDate: item.ngay_ket_thuc,
+        savedStatus: item.trang_thai,
+        status: rawStatus,
+        maxUsage: item.so_luong_ap_dung,
+        usedUsage: item.so_luong_da_dung,
+        remainingUsage: item.so_luong_con_lai,
+    });
+
     return {
-        id: item.id, code: item.ma_chuong_trinh, name: item.ten_chuong_trinh,
+        id: item.id,
+        code: item.ma_chuong_trinh,
+        name: item.ten_chuong_trinh,
         method: item.phuong_thuc_khuyen_mai === 'TANG_SAN_PHAM' ? 'TẶNG SẢN PHẨM' : 'CHIẾT KHẤU',
         target: item.doi_tuong_khuyen_mai === 'TONG_DON' ? 'TỔNG ĐƠN HÀNG' : 'PHIÊN BẢN SẢN PHẨM',
-        maxUsage: item.so_luong_ap_dung, usedUsage: item.so_luong_da_dung,
+        maxUsage: item.so_luong_ap_dung,
+        usedUsage: item.so_luong_da_dung,
         remainingUsage: item.so_luong_con_lai,
-        startDate: item.ngay_bat_dau, endDate: item.ngay_ket_thuc,
-        status: PROMOTION_STATUS[item.trang_thai_hien_thi] || 'CHƯA XÁC ĐỊNH',
-        savedStatus: item.trang_thai, description: item.mo_ta,
+        startDate: item.ngay_bat_dau,
+        endDate: item.ngay_ket_thuc,
+        status: computed,
+        savedStatus: item.trang_thai,
+        description: item.mo_ta,
         remainingSeconds: item.thoi_gian_con_lai_giay,
         discountValue: item.gia_tri_khuyen_mai,
         discountType: item.doi_tuong_khuyen_mai === 'TONG_DON'
@@ -20,8 +79,10 @@ export function normalizePromotion(item) {
         appliedProducts: (item.chi_tiet_khuyen_mai || []).map(line => ({
             variantId: line.phien_ban_id,
             role: line.loai_ap_dung === 'SAN_PHAM_TANG' ? 'SẢN PHẨM TẶNG' : 'SẢN PHẨM MUA',
-            code: line.ma_san_pham, name: line.ten_san_pham,
-            version: line.ten_phien_ban, quantity: `SL: ${line.so_luong}`,
+            code: line.ma_san_pham,
+            name: line.ten_san_pham,
+            version: line.ten_phien_ban,
+            quantity: `SL: ${line.so_luong}`,
         })),
         raw: item,
     };
@@ -40,16 +101,19 @@ export function createPromotionBody(form) {
     const gift = form.method === 'TẶNG SẢN PHẨM';
     const product = gift || form.discountType === 'PRODUCT';
     const lines = (ids, type, quantities = {}) => ids.map(id => ({
-        phien_ban_id: id, loai_ap_dung: type,
+        phien_ban_id: id,
+        loai_ap_dung: type,
         so_luong: positiveInteger(quantities[id] ?? 1, 'Số lượng chi tiết phải là số nguyên dương'),
     }));
     return {
-        ma_chuong_trinh: form.code.trim().toUpperCase(), ten_chuong_trinh: form.name.trim(),
+        ma_chuong_trinh: form.code.trim().toUpperCase(),
+        ten_chuong_trinh: form.name.trim(),
         phuong_thuc_khuyen_mai: gift ? 'TANG_SAN_PHAM' : 'CHIET_KHAU',
         doi_tuong_khuyen_mai: product ? 'TUNG_SAN_PHAM' : 'TONG_DON',
         so_luong_ap_dung: form.unlimited ? null : positiveInteger(form.limit, 'Số lượng áp dụng phải là số nguyên dương'),
         gia_tri_khuyen_mai: gift ? null : Number(form.discountValue),
-        mo_ta: form.description.trim(), ngay_bat_dau: promotionTime(form.fromDate),
+        mo_ta: form.description.trim(),
+        ngay_bat_dau: promotionTime(form.fromDate),
         ngay_ket_thuc: promotionTime(form.toDate),
         chi_tiet_khuyen_mai: gift ? [
             ...lines(form.selectedGiftBuyProducts, 'SAN_PHAM_MUA', form.giftBuyQuantities),
@@ -60,16 +124,20 @@ export function createPromotionBody(form) {
 
 export function editPromotionBody(item, form) {
     return {
-        ma_chuong_trinh: item.ma_chuong_trinh, ten_chuong_trinh: form.name.trim(),
+        ma_chuong_trinh: item.ma_chuong_trinh,
+        ten_chuong_trinh: form.name.trim(),
         phuong_thuc_khuyen_mai: item.phuong_thuc_khuyen_mai,
         doi_tuong_khuyen_mai: item.doi_tuong_khuyen_mai,
         so_luong_ap_dung: form.limit === '' ? null : positiveInteger(form.limit, 'Số lượng áp dụng phải là số nguyên dương'),
-        gia_tri_khuyen_mai: item.gia_tri_khuyen_mai, mo_ta: form.description.trim(),
+        gia_tri_khuyen_mai: item.gia_tri_khuyen_mai,
+        mo_ta: form.description.trim(),
         ngay_bat_dau: item.ngay_bat_dau,
         ngay_ket_thuc: form.endDate === item.ngay_ket_thuc.slice(0, 16)
             ? item.ngay_ket_thuc : promotionTime(form.endDate),
         chi_tiet_khuyen_mai: item.chi_tiet_khuyen_mai.map(line => ({
-            phien_ban_id: line.phien_ban_id, loai_ap_dung: line.loai_ap_dung, so_luong: line.so_luong,
+            phien_ban_id: line.phien_ban_id,
+            loai_ap_dung: line.loai_ap_dung,
+            so_luong: line.so_luong,
         })),
     };
 }

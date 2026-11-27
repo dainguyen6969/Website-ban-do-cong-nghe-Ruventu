@@ -4,6 +4,7 @@ import com.example.dantruventu.DTO.Request.warehouse.*;
 import com.example.dantruventu.DTO.Response.ApiResponse;
 import com.example.dantruventu.DTO.Response.warehouse.*;
 import com.example.dantruventu.Services.AdminPurchaseOrderService;
+import com.example.dantruventu.Services.warehouse.WarehouseOperations;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -18,8 +19,10 @@ import org.springframework.web.bind.annotation.*;
 public class AdminPurchaseOrderController {
 
   private final AdminPurchaseOrderService service;
+  private final WarehouseOperations warehouseOperations;
 
   @GetMapping
+  @PreAuthorize("@adminRoleService.hasModuleAction(principal, 'nhap_hang', 'xem')")
   public ApiResponse<AdminPurchaseOrderListResponse> getList(
       @RequestParam(required = false) String keyword,
       @RequestParam(name = "nha_cung_cap_id", required = false) Long nhaCungCapId,
@@ -37,6 +40,7 @@ public class AdminPurchaseOrderController {
   }
 
   @GetMapping("/{id}")
+  @PreAuthorize("@adminRoleService.hasModuleAction(principal, 'nhap_hang', 'xem')")
   public ApiResponse<AdminPurchaseOrderDetailResponse> getDetail(@PathVariable Long id) {
 
     return ApiResponse.<AdminPurchaseOrderDetailResponse>builder()
@@ -47,6 +51,7 @@ public class AdminPurchaseOrderController {
   }
 
   @PostMapping
+  @PreAuthorize("@adminRoleService.hasModuleAction(principal, 'nhap_hang', 'them')")
   public ResponseEntity<ApiResponse<AdminPurchaseOrderDetailResponse>> create(
       @Valid @RequestBody AdminPurchaseOrderSaveRequest request) {
 
@@ -61,6 +66,7 @@ public class AdminPurchaseOrderController {
   }
 
   @PutMapping("/{id}")
+  @PreAuthorize("@adminRoleService.hasModuleAction(principal, 'nhap_hang', 'sua')")
   public ApiResponse<AdminPurchaseOrderStatusResponse> update(
       @PathVariable Long id, @Valid @RequestBody AdminPurchaseOrderSaveRequest request) {
 
@@ -95,13 +101,16 @@ public class AdminPurchaseOrderController {
   }
 
   @PostMapping("/{id}/receive")
+  @PreAuthorize("@adminRoleService.hasModuleAction(principal, 'nhap_hang', 'sua')")
   public ApiResponse<AdminPurchaseOrderReceiveResponse> receive(
-      @PathVariable Long id, @Valid @RequestBody AdminPurchaseOrderReceiveRequest request) {
+      @PathVariable Long id,
+      @RequestHeader("Idempotency-Key") String idempotencyKey,
+      @Valid @RequestBody AdminPurchaseOrderReceiveRequest request) {
 
     return ApiResponse.<AdminPurchaseOrderReceiveResponse>builder()
         .status(200)
         .message("Nhập kho thành công")
-        .data(service.receive(id, request))
+        .data(warehouseOperations.receivePurchase(id, idempotencyKey, request))
         .build();
   }
 
@@ -141,6 +150,17 @@ public class AdminPurchaseOrderController {
         .status(200)
         .message("Hủy đơn nhập hàng thành công")
         .data(service.cancel(id))
+        .build();
+  }
+
+  @GetMapping("/{id}/return-serials")
+  public ApiResponse<java.util.List<AdminPurchaseOrderReceiveResponse.SerialData>> getReturnSerials(
+      @PathVariable Long id, @RequestParam("chi_tiet_don_nhap_id") Long detailId) {
+
+    return ApiResponse.<java.util.List<AdminPurchaseOrderReceiveResponse.SerialData>>builder()
+        .status(200)
+        .message("Lấy serial có thể trả nhà cung cấp thành công")
+        .data(service.getReturnSerials(id, detailId))
         .build();
   }
 }

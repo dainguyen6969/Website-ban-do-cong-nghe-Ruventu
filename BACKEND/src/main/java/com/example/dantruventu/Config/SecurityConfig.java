@@ -1,6 +1,9 @@
 package com.example.dantruventu.Config;
 
+import java.util.Arrays;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
@@ -10,6 +13,9 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 @Configuration
 @EnableMethodSecurity
@@ -26,6 +32,13 @@ public class SecurityConfig {
   }
 
   @Bean
+  public FilterRegistrationBean<JwtAuthFilter> jwtAuthFilterRegistration(JwtAuthFilter filter) {
+    FilterRegistrationBean<JwtAuthFilter> registration = new FilterRegistrationBean<>(filter);
+    registration.setEnabled(false);
+    return registration;
+  }
+
+  @Bean
   public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
 
     http.cors(cors -> cors.configurationSource(corsConfigurationSource()))
@@ -35,17 +48,24 @@ public class SecurityConfig {
         .authorizeHttpRequests(
             auth ->
                 auth.requestMatchers(
+                        org.springframework.http.HttpMethod.POST, "/api/v1/orders/warranty-lookup")
+                    .permitAll()
+                    .requestMatchers(
+                        "/api/v1/system-settings/status",
                         "/api/v1/auth/register",
                         "/api/v1/auth/otp/resend",
                         "/api/v1/auth/verify-otp",
                         "/api/v1/auth/login",
                         "/api/v1/auth/refresh",
                         "/api/v1/auth/logout",
+                        "/api/v1/admin/orders/realtime",
                         "/api/v1/cart/**",
                         "/api/v1/orders/checkout/preview",
                         "/api/v1/orders/checkout",
+                        "/api/v1/orders/stock-notifications",
                         "/api/v1/orders/tracking",
                         "/api/v1/products",
+                        "/api/v1/catalog/options",
                         "/api/v1/pc-builder/options",
                         "/api/v1/pc-builder/products",
                         "/api/v1/pc-builder/preview",
@@ -65,16 +85,15 @@ public class SecurityConfig {
   }
 
   @Bean
-  public org.springframework.web.cors.CorsConfigurationSource corsConfigurationSource() {
-    org.springframework.web.cors.CorsConfiguration configuration =
-        new org.springframework.web.cors.CorsConfiguration();
-    configuration.setAllowedOriginPatterns(java.util.Arrays.asList("*"));
+  public CorsConfigurationSource corsConfigurationSource() {
+    CorsConfiguration configuration = new CorsConfiguration();
+    configuration.setAllowedOriginPatterns(Arrays.asList("*"));
     configuration.setAllowedMethods(
-        java.util.Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
-    configuration.setAllowedHeaders(java.util.Arrays.asList("*"));
+        Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
+    configuration.setAllowedHeaders(Arrays.asList("*"));
     configuration.setAllowCredentials(true);
-    org.springframework.web.cors.UrlBasedCorsConfigurationSource source =
-        new org.springframework.web.cors.UrlBasedCorsConfigurationSource();
+    UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+    configuration.setExposedHeaders(List.of("Content-Disposition"));
     source.registerCorsConfiguration("/**", configuration);
     return source;
   }

@@ -1,8 +1,7 @@
 import axios from 'axios';
+import { attachSessionAuth } from '../../auth/backendAuth';
 
-const BASE_URL =
-  (import.meta.env.VITE_RUVENTU_API_URL || '')
-    .replace(/\/$/, '');
+const BASE_URL = (import.meta.env.VITE_RUVENTU_API_URL || '').replace(/\/$/, '');
 
 const disbursementAxios = axios.create({
   baseURL: `${BASE_URL}/api/v1/admin/disbursements`,
@@ -12,16 +11,7 @@ const disbursementAxios = axios.create({
   },
 });
 
-disbursementAxios.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem('accessToken');
-    if (token) {
-      config.headers['Authorization'] = `Bearer ${token}`;
-    }
-    return config;
-  },
-  (error) => Promise.reject(error)
-);
+attachSessionAuth(disbursementAxios);
 
 const disbursementTypeAxios = axios.create({
   baseURL: `${BASE_URL}/api/v1/admin/disbursement-types`,
@@ -31,16 +21,7 @@ const disbursementTypeAxios = axios.create({
   },
 });
 
-disbursementTypeAxios.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem('accessToken');
-    if (token) {
-      config.headers['Authorization'] = `Bearer ${token}`;
-    }
-    return config;
-  },
-  (error) => Promise.reject(error)
-);
+attachSessionAuth(disbursementTypeAxios);
 
 export const disbursementService = {
   getDisbursements: async (params) => {
@@ -56,8 +37,10 @@ export const disbursementService = {
     return disbursementAxios.post('', data, config);
   },
 
-  cancelDisbursement: async (id, data) => {
-    return disbursementAxios.post(`/${id}/cancel`, data);
+  cancelDisbursement: async (id, data, requestKey) => {
+    return disbursementAxios.post(`/${id}/cancel`, data, {
+      headers: { 'Idempotency-Key': requestKey },
+    });
   },
 
   getPayeeSuggestions: async (params) => {
@@ -70,5 +53,5 @@ export const disbursementService = {
 
   createDisbursementType: async (data) => {
     return disbursementTypeAxios.post('', data);
-  }
+  },
 };

@@ -5,6 +5,7 @@ import com.example.dantruventu.Enum.LoaiPhieuThuChi;
 import com.example.dantruventu.Enum.NguonTaoPhieuThuChi;
 import com.example.dantruventu.Enum.NhomNguoiNopNhanEnum;
 import com.example.dantruventu.Enum.TrangThaiPhieuThuChi;
+import com.example.dantruventu.Services.cashbook.CashbookService;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import java.math.BigDecimal;
@@ -28,7 +29,11 @@ public record CashVoucherResponse(
     @JsonProperty("ngay_ghi_nhan") OffsetDateTime ngayGhiNhan,
     @JsonProperty("nguoi_tao_id") Long nguoiTaoId,
     @JsonProperty("nguon_tao") NguonTaoPhieuThuChi nguonTao,
-    @JsonProperty("trang_thai") TrangThaiPhieuThuChi trangThai) {
+    @JsonProperty("trang_thai") TrangThaiPhieuThuChi trangThai,
+    @JsonProperty("hoa_don_bao_hanh_id") Long hoaDonBaoHanhId,
+    @JsonProperty("phieu_bao_hanh_id") Long phieuBaoHanhId,
+    @JsonProperty("phieu_tra_hang_id") Long phieuTraHangId,
+    @JsonProperty("nghiep_vu_nguon") String nghiepVuNguon) {
 
   private static final ZoneId ZONE = ZoneId.of("Asia/Ho_Chi_Minh");
 
@@ -55,6 +60,10 @@ public record CashVoucherResponse(
             : entity.getNgayGhiNhan().atZone(ZONE).toOffsetDateTime(),
         entity.getNguoiTao() == null ? null : entity.getNguoiTao().getId(),
         entity.getNguonTao(),
-        entity.getTrangThai());
+        entity.getTrangThai(),
+        entity.getHoaDonBaoHanh() == null ? null : entity.getHoaDonBaoHanh().getId(),
+        entity.getPhieuBaoHanh() == null ? null : entity.getPhieuBaoHanh().getId(),
+        entity.getPhieuTraHang() == null ? null : entity.getPhieuTraHang().getId(),
+        CashbookService.sourceBusiness(entity));
   }
 }

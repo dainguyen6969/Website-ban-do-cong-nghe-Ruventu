@@ -9,18 +9,26 @@ export default function OrderProvider({ children }) {
   const [orders, setOrders] = useState(() => readSharedState(STORAGE_KEY, mockOrders));
   const ordersRef = useRef(orders);
 
-  useEffect(() => subscribeToAdminSlice('orders', () => {
-    const next = readSharedState(STORAGE_KEY, mockOrders);
-    ordersRef.current = next;
-    setOrders(next);
-  }), []);
+  useEffect(
+    () =>
+      subscribeToAdminSlice('orders', () => {
+        const next = readSharedState(STORAGE_KEY, mockOrders);
+        ordersRef.current = next;
+        setOrders(next);
+      }),
+    []
+  );
 
   const patchOrder = (orderId, patch, history) => {
     const next = ordersRef.current.map((order) => {
       if (order.id !== orderId) return order;
-      if (order.warehouse !== 'Chưa xuất kho'
-        && (patch.packing || ['Chờ đóng gói', 'Đã hủy'].includes(patch.status))) {
-        throw new Error('Đơn đã xuất hoặc hoàn kho, không thể thay đổi đóng gói hoặc hủy trực tiếp.');
+      if (
+        order.warehouse !== 'Chưa xuất kho' &&
+        (patch.packing || ['Chờ đóng gói', 'Đã hủy'].includes(patch.status))
+      ) {
+        throw new Error(
+          'Đơn đã xuất hoặc hoàn kho, không thể thay đổi đóng gói hoặc hủy trực tiếp.'
+        );
       }
       return {
         ...order,
@@ -32,7 +40,11 @@ export default function OrderProvider({ children }) {
     });
     ordersRef.current = next;
     setOrders(next);
-    writeSharedState(STORAGE_KEY, next, { slice: 'orders', action: history?.title || 'updated', entityId: orderId });
+    writeSharedState(STORAGE_KEY, next, {
+      slice: 'orders',
+      action: history?.title || 'updated',
+      entityId: orderId,
+    });
   };
 
   const addOrder = (order) => {
@@ -43,41 +55,61 @@ export default function OrderProvider({ children }) {
     return order;
   };
 
-  const cancelOrder = (orderId, reason) => patchOrder(orderId, {
-    status: 'Đã hủy',
-    packing: 'Hủy đóng gói',
-    cancellationReason: reason.trim(),
-  }, {
-    title: 'HỦY ĐƠN HÀNG',
-    description: reason.trim() || 'Đơn hàng đã được hủy bởi quản trị viên',
-    tone: 'red',
-  });
+  const cancelOrder = (orderId, reason) =>
+    patchOrder(
+      orderId,
+      {
+        status: 'Đã hủy',
+        packing: 'Hủy đóng gói',
+        cancellationReason: reason.trim(),
+      },
+      {
+        title: 'HỦY ĐƠN HÀNG',
+        description: reason.trim() || 'Đơn hàng đã được hủy bởi quản trị viên',
+        tone: 'red',
+      }
+    );
 
-  const confirmPayment = (orderId) => patchOrder(orderId, {
-    payment: 'Đã thanh toán',
-    transactionCode: `PAY-${Date.now().toString().slice(-8)}`,
-  }, {
-    title: 'XÁC NHẬN THANH TOÁN',
-    description: 'Đã xác nhận thanh toán cho đơn hàng',
-    tone: 'green',
-  });
+  const confirmPayment = (orderId) =>
+    patchOrder(
+      orderId,
+      {
+        payment: 'Đã thanh toán',
+        transactionCode: `PAY-${Date.now().toString().slice(-8)}`,
+      },
+      {
+        title: 'XÁC NHẬN THANH TOÁN',
+        description: 'Đã xác nhận thanh toán cho đơn hàng',
+        tone: 'green',
+      }
+    );
 
-  const completePacking = (orderId) => patchOrder(orderId, {
-    status: 'Chờ đóng gói',
-    packing: 'Đã đóng gói',
-  }, {
-    title: 'HOÀN TẤT ĐÓNG GÓI',
-    description: 'Sản phẩm đã đóng gói và sẵn sàng bàn giao vận chuyển',
-    tone: 'green',
-  });
+  const completePacking = (orderId) =>
+    patchOrder(
+      orderId,
+      {
+        status: 'Chờ đóng gói',
+        packing: 'Đã đóng gói',
+      },
+      {
+        title: 'HOÀN TẤT ĐÓNG GÓI',
+        description: 'Sản phẩm đã đóng gói và sẵn sàng bàn giao vận chuyển',
+        tone: 'green',
+      }
+    );
 
-  const cancelPacking = (orderId) => patchOrder(orderId, {
-    packing: 'Hủy đóng gói',
-  }, {
-    title: 'HỦY ĐÓNG GÓI',
-    description: 'Quy trình đóng gói đã được hủy',
-    tone: 'red',
-  });
+  const cancelPacking = (orderId) =>
+    patchOrder(
+      orderId,
+      {
+        packing: 'Hủy đóng gói',
+      },
+      {
+        title: 'HỦY ĐÓNG GÓI',
+        description: 'Quy trình đóng gói đã được hủy',
+        tone: 'red',
+      }
+    );
 
   const value = {
     orders,

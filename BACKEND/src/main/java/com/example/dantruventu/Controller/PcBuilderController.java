@@ -26,13 +26,14 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/v1/pc-builder")
 @RequiredArgsConstructor
 public class PcBuilderController {
+
   private final PcBuilderService service;
-  private final PcBuilderExportService exports;
+  private final PcBuilderExportService exportService;
 
   @PostMapping(value = "/export", consumes = MediaType.APPLICATION_JSON_VALUE)
   public ResponseEntity<byte[]> export(
       @RequestBody(required = false) PcBuilderExportRequest request) {
-    var file = exports.export(request);
+    var file = exportService.export(request);
     return ResponseEntity.ok()
         .contentType(
             MediaType.parseMediaType(

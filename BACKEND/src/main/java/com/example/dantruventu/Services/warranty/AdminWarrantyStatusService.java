@@ -235,8 +235,7 @@ public class AdminWarrantyStatusService {
             && state == TrangThaiSerial.GIU_CHO_BAO_HANH;
   }
 
-  void validateDiscrepancies(
-      List<LichSuBaoHanh> events, List<Long> resolving, Long returning) {
+  void validateDiscrepancies(List<LichSuBaoHanh> events, List<Long> resolving, Long returning) {
     Map<Long, Boolean> discrepancies = new LinkedHashMap<>();
     Map<Long, Long> deviceByDiscrepancy = new HashMap<>();
     for (var event : events) {
@@ -368,7 +367,7 @@ public class AdminWarrantyStatusService {
         WarrantyWriteValidation.text(r.lyDo(), notRepaired, 16000, error),
         WarrantyWriteValidation.id(r.thietBiSeTraId(), true, error),
         result,
-        WarrantyWriteValidation.text(r.tinhTrang(), true, 16000, error),
+        WarrantyWriteValidation.requiredText(r.tinhTrang(), error),
         List.copyOf(accessories),
         WarrantyWriteValidation.text(r.canCuKiemTra(), true, 16000, error),
         resolved,

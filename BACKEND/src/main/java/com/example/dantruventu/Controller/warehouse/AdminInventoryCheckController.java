@@ -3,6 +3,7 @@ package com.example.dantruventu.Controller.warehouse;
 import com.example.dantruventu.DTO.Request.warehouse.AdminInventoryCheckCancelRequest;
 import com.example.dantruventu.DTO.Request.warehouse.AdminInventoryCheckCreateRequest;
 import com.example.dantruventu.DTO.Request.warehouse.AdminInventoryCheckUpdateRequest;
+import com.example.dantruventu.DTO.Request.warehouse.InventoryCountData;
 import com.example.dantruventu.DTO.Response.ApiResponse;
 import com.example.dantruventu.DTO.Response.warehouse.AdminInventoryCheckBalanceResponse;
 import com.example.dantruventu.DTO.Response.warehouse.AdminInventoryCheckCancelResponse;
@@ -14,6 +15,7 @@ import com.example.dantruventu.DTO.Response.warehouse.AdminInventoryCheckUpdateR
 import com.example.dantruventu.Entity.NguoiDung;
 import com.example.dantruventu.Enum.TrangThaiPhieuKiemKho;
 import com.example.dantruventu.Services.AdminInventoryCheckService;
+import com.example.dantruventu.Services.warehouse.WarehouseOperations;
 import jakarta.validation.Valid;
 import java.time.LocalDate;
 import lombok.RequiredArgsConstructor;
@@ -21,16 +23,7 @@ import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PatchMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.ResponseStatus;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/v1/admin/inventory-checks")
@@ -39,8 +32,10 @@ import org.springframework.web.bind.annotation.RestController;
 public class AdminInventoryCheckController {
 
   private final AdminInventoryCheckService adminInventoryCheckService;
+  private final WarehouseOperations warehouseOperations;
 
   @GetMapping("/products")
+  @PreAuthorize("@adminRoleService.hasModuleAction(principal, 'kiem_hang', 'xem')")
   public ApiResponse<AdminInventoryCheckProductListResponse> searchProducts(
       @RequestParam(name = "keyword", required = false) String keyword,
       @RequestParam(name = "page", defaultValue = "0") int page,
@@ -54,6 +49,7 @@ public class AdminInventoryCheckController {
   }
 
   @GetMapping
+  @PreAuthorize("@adminRoleService.hasModuleAction(principal, 'kiem_hang', 'xem')")
   public ApiResponse<AdminInventoryCheckListResponse> getInventoryChecks(
       @RequestParam(name = "keyword", required = false) String keyword,
       @RequestParam(name = "trang_thai", required = false) TrangThaiPhieuKiemKho status,
@@ -78,6 +74,7 @@ public class AdminInventoryCheckController {
   }
 
   @GetMapping("/{id}")
+  @PreAuthorize("@adminRoleService.hasModuleAction(principal, 'kiem_hang', 'xem')")
   public ApiResponse<AdminInventoryCheckDetailResponse> getDetail(@PathVariable("id") Long id) {
 
     return ApiResponse.<AdminInventoryCheckDetailResponse>builder()
@@ -88,6 +85,7 @@ public class AdminInventoryCheckController {
   }
 
   @PutMapping("/{id}")
+  @PreAuthorize("@adminRoleService.hasModuleAction(principal, 'kiem_hang', 'sua')")
   public ApiResponse<AdminInventoryCheckUpdateResponse> update(
       @PathVariable("id") Long id,
       @Valid @RequestBody AdminInventoryCheckUpdateRequest request,
@@ -115,16 +113,17 @@ public class AdminInventoryCheckController {
 
   @PostMapping("/{id}/balance")
   public ApiResponse<AdminInventoryCheckBalanceResponse> balance(
-      @PathVariable("id") Long id, @AuthenticationPrincipal NguoiDung actor) {
+      @PathVariable("id") Long id, @RequestHeader("Idempotency-Key") String idempotencyKey) {
 
     return ApiResponse.<AdminInventoryCheckBalanceResponse>builder()
         .status(200)
         .message("Cân bằng kho thành công")
-        .data(adminInventoryCheckService.balance(id, actor == null ? null : actor.getId()))
+        .data(warehouseOperations.balanceInventory(id, idempotencyKey))
         .build();
   }
 
   @PostMapping
+  @PreAuthorize("@adminRoleService.hasModuleAction(principal, 'kiem_hang', 'them')")
   @ResponseStatus(HttpStatus.CREATED)
   public ApiResponse<AdminInventoryCheckCreateResponse> create(
       @Valid @RequestBody AdminInventoryCheckCreateRequest request,
@@ -134,6 +133,34 @@ public class AdminInventoryCheckController {
         .status(HttpStatus.CREATED.value())
         .message("Tạo phiếu kiểm hàng thành công")
         .data(adminInventoryCheckService.create(request, actor == null ? null : actor.getId()))
+        .build();
+  }
+
+  @GetMapping("/products/{id}/requirements")
+  @PreAuthorize("@adminRoleService.hasModuleAction(principal, 'kiem_hang', 'xem')")
+  public ApiResponse<InventoryCountData.Requirements> requirements(@PathVariable Long id) {
+
+    return ApiResponse.<InventoryCountData.Requirements>builder()
+        .status(200)
+        .message("Lấy yêu cầu kiểm hàng thành công")
+        .data(adminInventoryCheckService.requirements(id))
+        .build();
+  }
+
+  @PostMapping("/batch")
+  @PreAuthorize("@adminRoleService.hasModuleAction(principal, 'kiem_hang', 'them')")
+  @ResponseStatus(HttpStatus.CREATED)
+  public ApiResponse<InventoryCountData.BatchResult> createBatch(
+      @RequestHeader("Idempotency-Key") String key,
+      @Valid @RequestBody InventoryCountData.BatchRequest request,
+      @AuthenticationPrincipal NguoiDung actor) {
+
+    return ApiResponse.<InventoryCountData.BatchResult>builder()
+        .status(201)
+        .message("Tạo các phiếu kiểm hàng thành công")
+        .data(
+            adminInventoryCheckService.createBatch(
+                key, request, actor == null ? null : actor.getId()))
         .build();
   }
 }

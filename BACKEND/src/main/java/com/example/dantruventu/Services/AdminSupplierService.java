@@ -13,6 +13,7 @@ import com.example.dantruventu.Error.ErrorCode;
 import com.example.dantruventu.Mapper.partner.NhaCungCapMapper;
 import com.example.dantruventu.Repository.partner.NhaCungCapRepository;
 import com.example.dantruventu.Repository.warehouse.DonNhapHangRepository;
+import com.example.dantruventu.Services.order.OrderEvents;
 import com.example.dantruventu.Specification.NhaCungCapSpecification;
 import java.time.ZoneId;
 import java.util.Locale;
@@ -34,6 +35,7 @@ public class AdminSupplierService {
   private final NhaCungCapRepository nhaCungCapRepository;
   private final DonNhapHangRepository donNhapHangRepository;
   private final NhaCungCapMapper nhaCungCapMapper;
+  private final OrderEvents orderEvents;
 
   @Value("${ruventu.purchase.time-zone:Asia/Ho_Chi_Minh}")
   private String purchaseTimeZone;
@@ -125,6 +127,7 @@ public class AdminSupplierService {
     validateId(id);
 
     NhaCungCap supplier = nhaCungCapRepository.findByIdForUpdate(id).orElseThrow(this::notFound);
+    TrangThaiCoBanEnum previousStatus = supplier.getTrangThai();
 
     TrangThaiCoBanEnum status = parseStatus(request.getTrangThai());
 
@@ -137,6 +140,12 @@ public class AdminSupplierService {
 
     supplier = nhaCungCapRepository.saveAndFlush(supplier);
 
+    orderEvents.status(
+        "SUPPLIER",
+        supplier.getId(),
+        supplier.getMaNhaCungCap() + " · " + supplier.getTenNhaCungCap(),
+        previousStatus,
+        status);
     return nhaCungCapMapper.toResponse(supplier);
   }
 

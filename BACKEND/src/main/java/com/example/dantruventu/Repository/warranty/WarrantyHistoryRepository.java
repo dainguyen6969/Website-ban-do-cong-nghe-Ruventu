@@ -17,6 +17,9 @@ public interface WarrantyHistoryRepository extends JpaRepository<LichSuBaoHanh, 
   @EntityGraph(attributePaths = "nguoiThucHien")
   Page<LichSuBaoHanh> findByPhieuBaoHanh_Id(Long ticketId, Pageable pageable);
 
+  @EntityGraph(attributePaths = "nguoiThucHien")
+  Optional<LichSuBaoHanh> findByIdAndPhieuBaoHanh_Id(Long id, Long ticketId);
+
   @Query(
       "SELECT h FROM LichSuBaoHanh h WHERE h.id = :id AND h.phieuBaoHanh IS NULL AND h.loaiSuKien = 'YEU_CAU_TIEP_NHAN'")
   Optional<LichSuBaoHanh> findIntakeById(@Param("id") Long id);
@@ -34,6 +37,10 @@ public interface WarrantyHistoryRepository extends JpaRepository<LichSuBaoHanh, 
              '$.yeu_cau_tiep_nhan.ma_don_hang')) = :orderCode)
         AND (:phone IS NULL OR JSON_UNQUOTE(JSON_EXTRACT(h.du_lieu_chi_tiet,
              '$.yeu_cau_tiep_nhan.sdt_nguoi_lien_he')) = :phone)
+        AND (:keyword IS NULL OR LOWER(:keyword) IN (
+             LOWER(JSON_UNQUOTE(JSON_EXTRACT(h.du_lieu_chi_tiet, '$.yeu_cau_tiep_nhan.so_serial'))),
+             LOWER(JSON_UNQUOTE(JSON_EXTRACT(h.du_lieu_chi_tiet, '$.yeu_cau_tiep_nhan.ma_theo_doi'))),
+             LOWER(JSON_UNQUOTE(JSON_EXTRACT(h.du_lieu_chi_tiet, '$.yeu_cau_tiep_nhan.ma_don_hang')))))
       ORDER BY h.ngay_tao ASC, h.id ASC
       """,
       nativeQuery = true)
@@ -41,7 +48,8 @@ public interface WarrantyHistoryRepository extends JpaRepository<LichSuBaoHanh, 
       @Param("serial") String serial,
       @Param("tracking") String tracking,
       @Param("orderCode") String orderCode,
-      @Param("phone") String phone);
+      @Param("phone") String phone,
+      @Param("keyword") String keyword);
 
   @Query(
       value =

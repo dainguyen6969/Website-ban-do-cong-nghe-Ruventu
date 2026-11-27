@@ -1,0 +1,39 @@
+.product-highlights { margin-top: 26px; border: 2px solid #111; background: #fff; padding: 16px; color: #171717; }
+.product-highlights__header { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 18px; }
+.product-highlights__header h2 { font: inherit; font-size: 14px; font-weight: 800; line-height: 1.4; margin: 0; white-space: nowrap; }
+.product-highlights__header button { display: inline-flex; align-items: center; gap: 2px; border: 0; padding: 4px 0; color: #c40000; background: transparent; font: inherit; font-size: 11px; font-weight: 700; cursor: pointer; white-space: nowrap; }
+.product-highlights__header button svg { flex-shrink: 0; }
+.product-highlights__grid { margin: 0; display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); }
+.product-highlights__item { display: flex; align-items: flex-start; gap: 8px; padding: 12px 8px; border-top: 1px solid #eee; min-width: 0; }
+.product-highlights__item:nth-child(2n) { border-left: 1px solid #eee; }
+.product-highlights__item > svg { flex-shrink: 0; color: #777; margin-top: 2px; }
+.product-highlights__item > div { min-width: 0; }
+.product-highlights__item dt { color: #777; font-size: 11px; margin-bottom: 5px; }
+.product-highlights__item dd { margin: 0; font-size: 12px; font-weight: 600; line-height: 1.5; overflow-wrap: anywhere; }
+.product-content-empty { color: #777; font-size: 14px; line-height: 1.7; }
+.product-full-specs { position: fixed; inset: 0; margin: 12px 12px 12px auto; padding: 0; width: min(620px,calc(100% - 24px)); height: calc(100% - 24px); max-width: none; max-height: none; border: 2px solid #111; border-radius: 0; color: #171717; background: #fff; box-shadow: none; font-family: inherit; }
+.product-full-specs::backdrop { background: #0008; }
+.product-full-specs__panel { display: flex; flex-direction: column; height: 100%; }
+.product-full-specs header { display: flex; align-items: center; justify-content: space-between; padding: 18px 20px; gap: 16px; border-bottom: 2px solid #111; background: #111; color: #fff; }
+.product-full-specs header h2 { margin: 0; font-size: 18px; line-height: 1.5; }
+.product-full-specs header button { display: grid; place-items: center; width: 36px; height: 36px; flex-shrink: 0; border: 1px solid #fff; border-radius: 0; background: #111; color: #fff; cursor: pointer; }
+.product-full-specs header button:hover { background: #e00000; }
+.product-full-specs__body { padding: 0; overflow-y: auto; min-height: 0; overscroll-behavior: contain; }
+.product-full-specs__product { display: flex; align-items: center; gap: 14px; padding: 20px; margin: 0; border-bottom: 1px solid #111; }
+.product-full-specs__product img { width: 64px; height: 64px; flex-shrink: 0; object-fit: contain; }
+.product-full-specs__product h3 { margin: 0; font-size: 14px; line-height: 1.6; overflow-wrap: anywhere; }
+.product-full-specs table { width: 100%; border-collapse: collapse; table-layout: fixed; font-size: 13px; line-height: 1.7; }
+.product-full-specs caption { text-align: left; font-size: 16px; font-weight: 700; padding: 14px 20px; border-bottom: 1px solid #111; }
+.product-full-specs th, .product-full-specs td { text-align: left; vertical-align: top; padding: 12px 20px; border-bottom: 1px solid #111; overflow-wrap: anywhere; }
+.product-full-specs th { width: 40%; border-right: 1px solid #111; font-weight: 500; color: #555; background: #f7f7f7; }
+.product-highlights button:focus-visible, .product-full-specs button:focus-visible { outline: 2px solid #c40000; outline-offset: 3px; }
+@media (max-width: 600px) {
+  .product-highlights { padding: 12px; }
+  .product-highlights__header h2 { font-size: 13px; }
+  .product-highlights__header button { font-size: 10px; }
+  .product-full-specs { margin: 0; width: 100%; height: 100%; border-radius: 0; }
+  .product-full-specs__body { padding: 0; }
+  .product-full-specs header { padding: 12px 16px; }
+  .product-full-specs__product, .product-full-specs caption { padding: 14px 16px; }
+  .product-full-specs th, .product-full-specs td { padding: 10px 12px; }
+}

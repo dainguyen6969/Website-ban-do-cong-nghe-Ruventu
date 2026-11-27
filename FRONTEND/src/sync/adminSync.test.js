@@ -35,17 +35,25 @@ globalThis.localStorage = {
 globalThis.BroadcastChannel = MockBroadcastChannel;
 globalThis.window = {
   BroadcastChannel: MockBroadcastChannel,
-  addEventListener: (type, listener) => { if (type === 'storage') storageListeners.add(listener); },
+  addEventListener: (type, listener) => {
+    if (type === 'storage') storageListeners.add(listener);
+  },
 };
 
 test('syncs an affected order slice between two same-origin tabs', async () => {
   const tabA = await import('./adminSync.js?tab=a');
   const tabB = await import('./adminSync.js?tab=b');
   let received = null;
-  const unsubscribe = tabB.subscribeToAdminSlice('orders', (message) => { received = message; });
+  const unsubscribe = tabB.subscribeToAdminSlice('orders', (message) => {
+    received = message;
+  });
 
   const nextOrders = [{ id: 'ORD-2026-001', status: 'Đã hủy' }];
-  tabA.writeSharedState('orders-test', nextOrders, { slice: 'orders', action: 'cancelled', entityId: 'ORD-2026-001' });
+  tabA.writeSharedState('orders-test', nextOrders, {
+    slice: 'orders',
+    action: 'cancelled',
+    entityId: 'ORD-2026-001',
+  });
 
   assert.equal(received?.slice, 'orders');
   assert.equal(received?.entityId, 'ORD-2026-001');
@@ -59,9 +67,15 @@ test('falls back to storage events when BroadcastChannel is unavailable', async 
   const tabA = await import('./adminSync.js?fallback-tab=a');
   const tabB = await import('./adminSync.js?fallback-tab=b');
   let received = null;
-  const unsubscribe = tabB.subscribeToAdminSlice('customers', (message) => { received = message; });
+  const unsubscribe = tabB.subscribeToAdminSlice('customers', (message) => {
+    received = message;
+  });
 
-  tabA.writeSharedState('customers-test', [{ id: '32', status: 'active' }], { slice: 'customers', action: 'created', entityId: '32' });
+  tabA.writeSharedState('customers-test', [{ id: '32', status: 'active' }], {
+    slice: 'customers',
+    action: 'created',
+    entityId: '32',
+  });
 
   assert.equal(received?.slice, 'customers');
   assert.equal(received?.entityId, '32');

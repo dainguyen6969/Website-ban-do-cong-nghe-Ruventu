@@ -151,23 +151,58 @@ public class WarrantyLookupRepository {
       Long variantId,
       long matchingLines) {}
 
-  public Page<Candidate> findCandidates(Filter filter, Pageable pageable) {
+  public Page<Candidate> findCandidates(Filter filter, String keyword, Pageable pageable) {
     Map<String, Object> parameters = new LinkedHashMap<>();
     String predicate = predicate(filter, parameters);
-    Query count =
-        entityManager.createNativeQuery(SOURCES + "SELECT COUNT(*) FROM candidates c " + predicate);
+    String from = " FROM candidates c ";
+    String order =
+        " ORDER BY c.order_id DESC, c.line_id DESC, c.kind, c.device_id DESC, c.serial_id DESC";
+    if (keyword != null) {
+      from +=
+          """
+          LEFT JOIN phien_ban_san_pham variant ON variant.id = c.variant_id
+          LEFT JOIN san_pham product ON product.id = variant.san_pham_id
+          LEFT JOIN don_hang purchase ON purchase.id = c.order_id
+          LEFT JOIN nguoi_dung customer ON customer.id = purchase.khach_hang_id
+          """;
+      predicate +=
+          "\n"
+              + """
+          AND (c.so_serial = :keyword OR (c.order_id IS NOT NULL AND (
+            c.ma_don_hang LIKE :prefix ESCAPE '!'
+            OR c.ma_theo_doi LIKE :prefix ESCAPE '!'
+            OR c.so_serial LIKE :contains ESCAPE '!'
+            OR variant.ma_vach LIKE :prefix ESCAPE '!'
+            OR product.ma_san_pham LIKE :prefix ESCAPE '!'
+            OR product.ten_san_pham LIKE :contains ESCAPE '!'
+            OR variant.ten_phien_ban LIKE :contains ESCAPE '!'
+            OR purchase.ten_nguoi_nhan LIKE :contains ESCAPE '!'
+            OR customer.ho_ten LIKE :contains ESCAPE '!'
+          )))
+          """;
+      String literal = keyword.replace("!", "!!").replace("%", "!%").replace("_", "!_");
+      parameters.put("keyword", keyword);
+      parameters.put("prefix", literal + "%");
+      parameters.put("contains", "%" + literal + "%");
+      order =
+          """
+          ORDER BY CASE WHEN c.so_serial = :keyword OR c.ma_don_hang = :keyword
+                              OR c.ma_theo_doi = :keyword THEN 0
+                        WHEN c.order_id IS NOT NULL THEN 1 ELSE 2 END,
+                   c.order_id DESC, c.line_id DESC, c.kind, c.device_id DESC, c.serial_id DESC
+          """;
+    }
+    Query count = entityManager.createNativeQuery(SOURCES + "SELECT COUNT(*)" + from + predicate);
     parameters.forEach(count::setParameter);
     long total = number(count.getSingleResult()).longValue();
     if (total == 0) return new PageImpl<>(List.of(), pageable, 0);
     Query query =
         entityManager.createNativeQuery(
             SOURCES
-                + """
-        SELECT c.kind, c.device_id, c.line_id, c.serial_id, c.order_id, c.variant_id, c.matching_lines
-        FROM candidates c
-        """
+                + "SELECT c.kind, c.device_id, c.line_id, c.serial_id, c.order_id, c.variant_id, c.matching_lines"
+                + from
                 + predicate
-                + " ORDER BY c.order_id DESC, c.line_id DESC, c.kind, c.device_id DESC, c.serial_id DESC");
+                + order);
     parameters.forEach(query::setParameter);
     query.setFirstResult(Math.toIntExact(pageable.getOffset()));
     query.setMaxResults(pageable.getPageSize());
@@ -188,7 +223,20 @@ public class WarrantyLookupRepository {
   }
 
   private String predicate(Filter filter, Map<String, Object> parameters) {
-    StringBuilder where = new StringBuilder(" WHERE 1=1");
+    StringBuilder where =
+        new StringBuilder(
+            """
+            WHERE NOT EXISTS (
+              SELECT 1 FROM phieu_bao_hanh ticket
+              WHERE ticket.trang_thai_xu_ly <> 'HOAN_TAT'
+                AND (ticket.thiet_bi_id = c.device_id OR ticket.thiet_bi_thay_the_id = c.device_id)
+            )
+            AND NOT EXISTS (
+              SELECT 1 FROM so_serial_san_pham serial
+              WHERE serial.id = c.serial_id
+                AND serial.trang_thai IN ('DANG_BAO_HANH', 'GIU_CHO_BAO_HANH')
+            )
+            """);
     add(where, parameters, "c.so_serial", "serial", filter.serial());
     add(where, parameters, "c.ma_theo_doi", "tracking", filter.tracking());
     add(where, parameters, "c.ma_don_hang", "orderCode", filter.orderCode());
@@ -214,6 +262,205 @@ public class WarrantyLookupRepository {
       where.append(" AND ").append(column).append(" = :").append(name);
       parameters.put(name, value);
     }
+  }
+
+  public record CustomerDevice(Candidate candidate, Long rootId) {}
+
+  public Page<CustomerDevice> findCustomerDevices(
+      Long userId, String orderCode, String phone, String keyword, Pageable pageable) {
+    if (userId == null && (orderCode == null || phone == null)) throw invalid();
+
+    Map<String, Object> parameters = new LinkedHashMap<>();
+    StringBuilder from =
+        new StringBuilder(
+            """
+        FROM candidates candidate
+        LEFT JOIN thiet_bi_bao_hanh device ON device.id = candidate.device_id
+        LEFT JOIN device_lineage lineage ON lineage.id = device.id
+        JOIN chi_tiet_don_hang line ON line.id = candidate.line_id
+        JOIN don_hang orders ON orders.id = line.don_hang_id
+        JOIN phien_ban_san_pham variant ON variant.id = candidate.variant_id
+        JOIN san_pham product ON product.id = variant.san_pham_id
+        LEFT JOIN so_serial_san_pham serial ON serial.id = candidate.serial_id
+        LEFT JOIN nguoi_dung customer ON customer.id = orders.khach_hang_id
+        WHERE orders.trang_thai_don_hang = 'HOAN_THANH'
+          AND orders.ngay_hoan_thanh IS NOT NULL
+          AND COALESCE(device.ngay_kich_hoat, serial.ngay_kich_hoat) IS NOT NULL
+          AND COALESCE(device.han_bao_hanh, serial.han_bao_hanh) IS NOT NULL
+          AND (serial.id IS NULL OR serial.trang_thai IN ('DA_BAN', 'DANG_BAO_HANH'))
+          AND (
+            (
+              candidate.kind = 'DEVICE' AND lineage.id IS NOT NULL
+              AND NOT EXISTS (
+                SELECT 1 FROM completed_edges edge WHERE edge.old_id = device.id
+              )
+              AND NOT EXISTS (
+                SELECT 1 FROM device_lineage returned_chain
+                JOIN thiet_bi_bao_hanh returned_device
+                  ON returned_device.id = returned_chain.id
+                JOIN chi_tiet_tra_hang returned_line
+                  ON returned_line.id = returned_device.chi_tiet_tra_hang_id
+                JOIN phieu_tra_hang returned_form
+                  ON returned_form.id = returned_line.phieu_tra_hang_id
+                WHERE returned_chain.root_id = lineage.root_id
+                  AND returned_form.trang_thai_tra_hang
+                    IN ('DA_NHAN_HANG', 'DA_HOAN_TIEN', 'HOAN_TAT')
+              )
+            )
+            OR (
+              candidate.kind = 'SERIAL' AND candidate.matching_lines = 1
+              AND NOT EXISTS (
+                SELECT 1 FROM chi_tiet_tra_hang returned_line
+                JOIN phieu_tra_hang returned_form
+                  ON returned_form.id = returned_line.phieu_tra_hang_id
+                WHERE returned_line.chi_tiet_don_hang_id = line.id
+                  AND returned_form.trang_thai_tra_hang
+                    IN ('DA_NHAN_HANG', 'DA_HOAN_TIEN', 'HOAN_TAT')
+              )
+            )
+          )
+        """);
+
+    if (userId != null) {
+      from.append(" AND orders.khach_hang_id = :userId");
+      parameters.put("userId", userId);
+    } else {
+      from.append(
+          """
+           AND orders.ma_don_hang = :orderCode
+           AND REGEXP_REPLACE(orders.sdt_nguoi_nhan, '[^0-9]', '') = :phone
+          """);
+      parameters.put("orderCode", orderCode);
+      parameters.put("phone", phone);
+    }
+
+    if (keyword != null) {
+      from.append(
+          """
+           AND (
+             CAST(orders.id AS CHAR) = :exactKeyword
+             OR LOWER(orders.ma_don_hang) LIKE LOWER(:pattern) ESCAPE '!'
+             OR LOWER(orders.ten_nguoi_nhan) LIKE LOWER(:pattern) ESCAPE '!'
+             OR LOWER(orders.sdt_nguoi_nhan) LIKE LOWER(:pattern) ESCAPE '!'
+             OR REGEXP_REPLACE(orders.sdt_nguoi_nhan, '[^0-9]', '') LIKE :pattern ESCAPE '!'
+             OR (:accountSearch = 1 AND (
+               LOWER(customer.ho_ten) LIKE LOWER(:pattern) ESCAPE '!'
+               OR LOWER(customer.email) LIKE LOWER(:pattern) ESCAPE '!'
+               OR LOWER(customer.so_dien_thoai) LIKE LOWER(:pattern) ESCAPE '!'
+               OR REGEXP_REPLACE(customer.so_dien_thoai, '[^0-9]', '') LIKE :pattern ESCAPE '!'
+             ))
+             OR LOWER(serial.so_serial) LIKE LOWER(:pattern) ESCAPE '!'
+             OR LOWER(product.ten_san_pham) LIKE LOWER(:pattern) ESCAPE '!'
+             OR LOWER(product.ma_san_pham) LIKE LOWER(:pattern) ESCAPE '!'
+             OR LOWER(variant.ten_phien_ban) LIKE LOWER(:pattern) ESCAPE '!'
+             OR LOWER(variant.ma_vach) LIKE LOWER(:pattern) ESCAPE '!'
+             OR LOWER(JSON_UNQUOTE(JSON_EXTRACT(
+                  line.cau_hinh_da_ban, '$.ma_san_pham'))) LIKE LOWER(:pattern) ESCAPE '!'
+             OR LOWER(JSON_UNQUOTE(JSON_EXTRACT(
+                  line.cau_hinh_da_ban, '$.ten_san_pham'))) LIKE LOWER(:pattern) ESCAPE '!'
+             OR LOWER(JSON_UNQUOTE(JSON_EXTRACT(
+                  line.cau_hinh_da_ban, '$.ten_phien_ban'))) LIKE LOWER(:pattern) ESCAPE '!'
+             OR EXISTS (
+               SELECT 1
+               FROM JSON_TABLE(line.cau_hinh_da_ban, '$.thiet_bi_da_xuat[*]'
+                 COLUMNS (
+                   device_id BIGINT PATH '$.thiet_bi_id',
+                   product_name VARCHAR(255) PATH '$.ten_san_pham',
+                   variant_name VARCHAR(150) PATH '$.ten_phien_ban'
+                 )) sold
+               WHERE sold.device_id = lineage.root_id
+                 AND (
+                   LOWER(sold.product_name) LIKE LOWER(:pattern) ESCAPE '!'
+                   OR LOWER(sold.variant_name) LIKE LOWER(:pattern) ESCAPE '!'
+                 )
+             )
+             OR EXISTS (
+               SELECT 1 FROM device_lineage related_chain
+               JOIN thiet_bi_bao_hanh related_device
+                 ON related_device.id = related_chain.id
+               LEFT JOIN so_serial_san_pham related_serial
+                 ON related_serial.id = related_device.so_serial_id
+               WHERE related_chain.root_id = lineage.root_id
+                 AND (
+                   LOWER(related_device.ma_theo_doi) LIKE LOWER(:pattern) ESCAPE '!'
+                   OR LOWER(related_serial.so_serial) LIKE LOWER(:pattern) ESCAPE '!'
+                   OR EXISTS (
+                     SELECT 1 FROM phieu_bao_hanh ticket
+                     WHERE ticket.thiet_bi_id = related_device.id
+                       AND ticket.don_hang_id = orders.id
+                       AND LOWER(ticket.ma_phieu) LIKE LOWER(:pattern) ESCAPE '!'
+                   )
+                 )
+             )
+           )
+          """);
+
+      parameters.put("exactKeyword", keyword);
+      parameters.put("accountSearch", userId == null ? 0 : 1);
+      parameters.put(
+          "pattern", "%" + keyword.replace("!", "!!").replace("%", "!%").replace("_", "!_") + "%");
+    }
+
+    String selection =
+        """
+        SELECT DISTINCT candidate.kind, candidate.device_id, candidate.line_id,
+          candidate.serial_id, candidate.order_id, candidate.variant_id,
+          candidate.matching_lines, lineage.root_id
+        """;
+
+    Query count =
+        entityManager.createNativeQuery(
+            SOURCES + "SELECT COUNT(*) FROM (" + selection + from + ") eligible");
+    parameters.forEach(count::setParameter);
+    long total = number(count.getSingleResult()).longValue();
+    if (total == 0) return new PageImpl<>(List.of(), pageable, 0);
+
+    Query query =
+        entityManager.createNativeQuery(
+            SOURCES
+                + selection
+                + from
+                + " ORDER BY candidate.order_id DESC, candidate.line_id DESC,"
+                + " candidate.device_id DESC, candidate.serial_id DESC, lineage.root_id DESC");
+    parameters.forEach(query::setParameter);
+    query.setFirstResult(Math.toIntExact(pageable.getOffset()));
+    query.setMaxResults(pageable.getPageSize());
+
+    List<CustomerDevice> items = new ArrayList<>();
+    for (Object raw : query.getResultList()) {
+      if (!(raw instanceof Object[] values) || values.length != 8) throw invalid();
+      items.add(
+          new CustomerDevice(
+              new Candidate(
+                  values[0].toString(),
+                  id(values[1]),
+                  id(values[2]),
+                  id(values[3]),
+                  id(values[4]),
+                  id(values[5]),
+                  number(values[6]).longValue()),
+              id(values[7])));
+    }
+    return new PageImpl<>(items, pageable, total);
+  }
+
+  public List<PhieuBaoHanh> findCustomerTickets(Long deviceId, Long orderId) {
+    return entityManager
+        .createNativeQuery(
+            SOURCES
+                + """
+          SELECT DISTINCT ticket.*
+          FROM phieu_bao_hanh ticket
+          JOIN device_lineage ticket_chain ON ticket_chain.id = ticket.thiet_bi_id
+          JOIN device_lineage current_chain
+            ON current_chain.root_id = ticket_chain.root_id
+          WHERE current_chain.id = :deviceId AND ticket.don_hang_id = :orderId
+          ORDER BY ticket.ngay_tiep_nhan DESC, ticket.id DESC
+          """,
+            PhieuBaoHanh.class)
+        .setParameter("deviceId", deviceId)
+        .setParameter("orderId", orderId)
+        .getResultList();
   }
 
   public List<PhieuBaoHanh> findReplacementTickets(Long deviceId) {

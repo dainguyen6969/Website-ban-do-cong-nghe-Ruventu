@@ -23,6 +23,9 @@ public enum ErrorCode {
       HttpStatus.CONFLICT,
       "Chưa phát sinh nghiệp vụ hoặc thiếu, mâu thuẫn dữ liệu lịch sử để in xác nhận."),
   PRINT_PDF_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "Không tạo được PDF phiếu."),
+  
+  SYSTEM_MAINTENANCE(HttpStatus.SERVICE_UNAVAILABLE, "Hệ thống đang bảo trì."),
+  
   INVALID_DATA(HttpStatus.BAD_REQUEST, "Dữ liệu không hợp lệ"),
 
   INVALID_PARAM(HttpStatus.BAD_REQUEST, "Tham số không hợp lệ."),
@@ -171,6 +174,9 @@ public enum ErrorCode {
   ROLE_HAS_EMPLOYEES(HttpStatus.CONFLICT, "Vai trò đang có nhân viên, không thể xóa."),
 
   CANNOT_EDIT_PROTECTED_ROLE(HttpStatus.CONFLICT, "Không thể chỉnh sửa vai trò hệ thống mặc định."),
+
+  ROLE_VERSION_CONFLICT(
+      HttpStatus.CONFLICT, "Vai trò đã thay đổi. Vui lòng tải lại vai trò trước khi lưu."),
 
   EMAIL_OR_PHONE_EXISTS(HttpStatus.CONFLICT, "Email hoặc SĐT đã tồn tại."),
 
@@ -322,11 +328,17 @@ public enum ErrorCode {
   WARRANTY_STATUS_TRANSITION_INVALID(
       HttpStatus.CONFLICT, "Không được chuyển trạng thái bảo hành theo sự kiện này."),
   WARRANTY_HANDOVER_DEVICE_NOT_READY(HttpStatus.CONFLICT, "Chưa có thiết bị đúng để bàn giao"),
-  INVALID_WARRANTY_HANDOVER(HttpStatus.BAD_REQUEST, "Thông tin thiết bị, người nhận hoặc xác nhận bàn giao không hợp lệ."),
+  INVALID_WARRANTY_HANDOVER(
+      HttpStatus.BAD_REQUEST,
+      "Thông tin thiết bị, người nhận hoặc xác nhận bàn giao không hợp lệ."),
   WARRANTY_HANDOVER_NOT_READY(HttpStatus.CONFLICT, "Chưa có đúng thiết bị hoặc phụ kiện để giao"),
-  WARRANTY_HANDOVER_PAYMENT_REQUIRED(HttpStatus.CONFLICT, "Chưa đủ điều kiện thanh toán trước bàn giao"),
-  WARRANTY_HANDOVER_ALREADY_COMPLETED(HttpStatus.CONFLICT, "Phiếu đã bàn giao, không được bàn giao lại."),
-  WARRANTY_HANDOVER_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "Không hoàn tất được bàn giao bảo hành; toàn bộ thay đổi đã được hủy."),
+  WARRANTY_HANDOVER_PAYMENT_REQUIRED(
+      HttpStatus.CONFLICT, "Chưa đủ điều kiện thanh toán trước bàn giao"),
+  WARRANTY_HANDOVER_ALREADY_COMPLETED(
+      HttpStatus.CONFLICT, "Phiếu đã bàn giao, không được bàn giao lại."),
+  WARRANTY_HANDOVER_FAILED(
+      HttpStatus.INTERNAL_SERVER_ERROR,
+      "Không hoàn tất được bàn giao bảo hành; toàn bộ thay đổi đã được hủy."),
   WARRANTY_STATUS_FAILED(
       HttpStatus.INTERNAL_SERVER_ERROR,
       "Không cập nhật được trạng thái bảo hành; toàn bộ thay đổi đã được hủy."),

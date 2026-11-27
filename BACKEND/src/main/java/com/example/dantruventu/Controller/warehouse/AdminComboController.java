@@ -15,7 +15,7 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/v1/admin/combos")
 @RequiredArgsConstructor
-@PreAuthorize("hasRole('ADMIN')")
+@PreAuthorize("@adminRoleService.hasModuleAction(principal, 'combo_san_pham', 'xem')")
 public class AdminComboController {
 
   private final AdminComboService adminComboService;
@@ -35,6 +35,9 @@ public class AdminComboController {
   }
 
   @GetMapping("/component-options")
+  @PreAuthorize(
+      "@adminRoleService.hasModuleAction(principal, 'combo_san_pham', 'them')"
+          + " or @adminRoleService.hasModuleAction(principal, 'combo_san_pham', 'sua')")
   public ApiResponse<AdminComboComponentOptionListResponse> getComponentOptions(
       @RequestParam(name = "keyword", required = false) String keyword,
       @RequestParam(name = "page", defaultValue = "0") int page,
@@ -58,6 +61,7 @@ public class AdminComboController {
   }
 
   @PostMapping
+  @PreAuthorize("@adminRoleService.hasModuleAction(principal, 'combo_san_pham', 'them')")
   public ResponseEntity<ApiResponse<AdminComboMutationResponse>> create(
       @Valid @RequestBody AdminComboCreateRequest request) {
 
@@ -72,6 +76,7 @@ public class AdminComboController {
   }
 
   @PutMapping("/{id}")
+  @PreAuthorize("@adminRoleService.hasModuleAction(principal, 'combo_san_pham', 'sua')")
   public ApiResponse<AdminComboMutationResponse> update(
       @PathVariable("id") Long id, @Valid @RequestBody AdminComboUpdateRequest request) {
 
@@ -83,6 +88,7 @@ public class AdminComboController {
   }
 
   @DeleteMapping("/{id}")
+  @PreAuthorize("@adminRoleService.hasModuleAction(principal, 'combo_san_pham', 'xoa')")
   public ApiResponse<AdminComboStatusResponse> delete(@PathVariable("id") Long id) {
 
     return ApiResponse.<AdminComboStatusResponse>builder()

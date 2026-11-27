@@ -5,6 +5,8 @@ import com.example.dantruventu.DTO.Response.warehouse.AdminInventoryDetailRespon
 import com.example.dantruventu.DTO.Response.warehouse.AdminInventoryLedgerListResponse;
 import com.example.dantruventu.DTO.Response.warehouse.AdminInventoryListResponse;
 import com.example.dantruventu.Services.AdminInventoryService;
+import java.util.Map;
+import java.util.Objects;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -12,7 +14,7 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/v1/admin/inventory")
 @RequiredArgsConstructor
-@PreAuthorize("hasRole('ADMIN')")
+@PreAuthorize("@adminRoleService.hasModuleAction(principal, 'kho_hang', 'xem')")
 public class AdminInventoryController {
 
   private final AdminInventoryService adminInventoryService;
@@ -33,6 +35,33 @@ public class AdminInventoryController {
         .data(
             adminInventoryService.getItems(
                 keyword, loaiDoiTuong, khoHangId, chiCanhBao, page, limit, sort))
+        .build();
+  }
+
+  @GetMapping("/purchase-variants")
+  @PreAuthorize(
+      "@adminRoleService.hasModuleAction(principal, 'nhap_hang', 'them')"
+          + " or @adminRoleService.hasModuleAction(principal, 'nhap_hang', 'sua')")
+  public ApiResponse<Map<String, Object>> purchaseVariants(
+      @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "20") int limit) {
+    var result =
+        adminInventoryService.getItems(
+            null, "PHIEN_BAN", null, false, page, limit, "ten_hien_thi,asc");
+
+    var items =
+        result.getItems().stream()
+            .map(
+                item ->
+                    Map.of(
+                        "doi_tuong_id", item.getDoiTuongId(),
+                        "ma_hien_thi", Objects.toString(item.getMaHienThi(), ""),
+                        "ten_hien_thi", Objects.toString(item.getTenHienThi(), "")))
+            .toList();
+
+    return ApiResponse.<Map<String, Object>>builder()
+        .status(200)
+        .message("Lấy phiên bản dùng cho đơn nhập")
+        .data(Map.of("items", items, "pagination", result.getPagination()))
         .build();
   }
 

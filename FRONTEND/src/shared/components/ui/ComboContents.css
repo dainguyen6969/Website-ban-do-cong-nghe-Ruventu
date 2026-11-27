@@ -1,0 +1,154 @@
+.combo-contents {
+  width: 100%;
+  min-width: 0;
+  border: 1px solid #dedede;
+  background: #fff;
+  color: #171717;
+  text-align: left;
+}
+
+.combo-contents .combo-contents__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  padding: 12px;
+  border-left: 3px solid #ed1c24;
+  background: #111;
+  color: #fff;
+}
+
+.combo-contents .combo-contents__header b {
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.combo-contents .combo-contents__header small {
+  flex-shrink: 0;
+  color: #ccc;
+  font-size: 11px;
+}
+
+.combo-contents .combo-contents__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.combo-contents .combo-contents__item {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 10px;
+  margin: 0;
+  padding: 12px;
+  border-bottom: 1px solid #eee;
+}
+
+.combo-contents .combo-contents__item:last-child {
+  border-bottom: 0;
+}
+
+.combo-contents .combo-contents__image {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  overflow: hidden;
+  border: 1px solid #eee;
+  background: #f6f6f6;
+  color: #999;
+}
+
+.combo-contents .combo-contents__image img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background: #fff;
+}
+
+.combo-contents .combo-contents__image img[hidden] {
+  display: none;
+}
+
+.combo-contents .combo-contents__info {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.combo-contents .combo-contents__info a,
+.combo-contents .combo-contents__info > b {
+  color: #171717;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.5;
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+
+.combo-contents .combo-contents__info a:hover {
+  color: #ed1c24;
+}
+
+.combo-contents .combo-contents__info small {
+  display: block;
+  color: #747474;
+  font-size: 11px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.combo-contents .combo-contents__quantity {
+  display: grid;
+  gap: 4px;
+  text-align: right;
+}
+
+.combo-contents .combo-contents__quantity b {
+  color: #ed1c24;
+  font-size: 14px;
+}
+
+.combo-contents .combo-contents__quantity small {
+  color: #888;
+  font-size: 10px;
+  white-space: nowrap;
+}
+
+.combo-contents .combo-contents__empty {
+  margin: 0;
+  padding: 16px 12px;
+  color: #888;
+  font-size: 12px;
+}
+
+.combo-contents--compact {
+  margin-top: 10px;
+  max-width: 520px;
+}
+
+/* Match the POS serial picker: scroll remains available without a visible bar. */
+.combo-contents--scrollable .combo-contents__list {
+  max-height: 520px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.combo-contents--scrollable .combo-contents__list::-webkit-scrollbar { display: none; }
+.combo-contents--scrollable .combo-contents__list:focus-visible { outline: 2px solid #ed1c24; outline-offset: -2px; }
+@media (max-width: 768px) {
+  .combo-contents--scrollable .combo-contents__list { max-height: 420px; }
+}
+
+.combo-contents--compact .combo-contents__header {
+  padding: 8px 10px;
+}
+
+.combo-contents--compact .combo-contents__item {
+  padding: 9px 10px;
+}

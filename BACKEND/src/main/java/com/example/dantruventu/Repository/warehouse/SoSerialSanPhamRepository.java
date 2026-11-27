@@ -1,6 +1,8 @@
 package com.example.dantruventu.Repository.warehouse;
 
 import com.example.dantruventu.Entity.SoSerialSanPham;
+import com.example.dantruventu.Enum.TrangThaiBaoHanh;
+import com.example.dantruventu.Enum.TrangThaiSerial;
 import jakarta.persistence.LockModeType;
 import java.util.Collection;
 import java.util.List;
@@ -61,6 +63,14 @@ public interface SoSerialSanPhamRepository
 
   boolean existsBySoSerialIn(Collection<String> soSerials);
 
+  @Query(
+      """
+            SELECT s.soSerial
+            FROM SoSerialSanPham s
+            WHERE s.soSerial IN :codes
+            """)
+  List<String> findExistingSerialCodes(@Param("codes") Collection<String> codes);
+
   long countByPhienBanId(Long phienBanId);
 
   @Lock(LockModeType.PESSIMISTIC_WRITE)
@@ -74,4 +84,43 @@ public interface SoSerialSanPhamRepository
   List<SoSerialSanPham> findByOrderForUpdate(@Param("orderId") Long orderId);
 
   List<SoSerialSanPham> findByDonHang_IdOrderByIdAsc(Long donHangId);
+
+  @Query(
+      """
+            SELECT s
+            FROM SoSerialSanPham s
+            JOIN FETCH s.chiTietDongGoi c
+            JOIN FETCH c.donHang d
+            WHERE d.id = :orderId
+            ORDER BY s.id
+            """)
+  List<SoSerialSanPham> findPackingByOrderId(@Param("orderId") Long orderId);
+
+  /** Legacy fallback must not bring back a returned device or an old warranty serial. */
+  @Query(
+      """
+      SELECT serial
+      FROM SoSerialSanPham serial
+      JOIN FETCH serial.phienBan variant
+      JOIN FETCH variant.sanPham
+      WHERE serial.donHang.id = :orderId
+        AND serial.trangThai = :soldStatus
+        AND NOT EXISTS (
+          SELECT device.id
+          FROM ThietBiBaoHanh device
+          WHERE device.soSerial = serial
+        )
+        AND NOT EXISTS (
+          SELECT warranty.id
+          FROM PhieuBaoHanh warranty
+          WHERE warranty.soSerial = serial
+            AND warranty.thietBiThayThe IS NOT NULL
+            AND warranty.trangThaiXuLy = :completedStatus
+        )
+      ORDER BY serial.id
+      """)
+  List<SoSerialSanPham> findCurrentLegacyReturnSerials(
+      @Param("orderId") Long orderId,
+      @Param("soldStatus") TrangThaiSerial soldStatus,
+      @Param("completedStatus") TrangThaiBaoHanh completedStatus);
 }

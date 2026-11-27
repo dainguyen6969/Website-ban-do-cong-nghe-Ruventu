@@ -3,6 +3,8 @@ package com.example.dantruventu.DTO.Response.warehouse;
 import com.example.dantruventu.Enum.TrangThaiSerial;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import java.time.OffsetDateTime;
+import java.util.List;
+import java.util.Map;
 import lombok.*;
 
 @Getter
@@ -16,6 +18,9 @@ public class AdminSerialDetailResponse {
 
   @JsonProperty("phien_ban_id")
   private Long phienBanId;
+
+  @JsonProperty("san_pham_id")
+  private Long sanPhamId;
 
   @JsonProperty("ma_san_pham")
   private String maSanPham;
@@ -35,6 +40,9 @@ public class AdminSerialDetailResponse {
   @JsonProperty("trang_thai")
   private TrangThaiSerial trangThai;
 
+  @JsonProperty("bi_thu_hoi")
+  private Boolean biThuHoi;
+
   @JsonProperty("ngay_kich_hoat")
   private OffsetDateTime ngayKichHoat;
 
@@ -43,6 +51,12 @@ public class AdminSerialDetailResponse {
 
   @JsonProperty("don_hang")
   private OrderData donHang;
+
+  @JsonProperty("tinh_trang_hang")
+  private String tinhTrangHang;
+
+  @JsonProperty("xu_ly_ncc")
+  private List<Map<String, Object>> xuLyNcc;
 
   @Getter
   @Setter

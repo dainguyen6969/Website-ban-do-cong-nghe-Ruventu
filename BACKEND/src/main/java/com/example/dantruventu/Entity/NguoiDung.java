@@ -1,14 +1,18 @@
 package com.example.dantruventu.Entity;
 
+import com.example.dantruventu.Config.TrangThaiCoBanConverter;
 import com.example.dantruventu.Enum.TrangThaiCoBanEnum;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 import java.util.List;
 import lombok.*;
+import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.DynamicUpdate;
 import org.hibernate.annotations.UpdateTimestamp;
 
 @Entity
+@DynamicUpdate
 @Table(name = "nguoi_dung")
 @Getter
 @Setter
@@ -41,8 +45,14 @@ public class NguoiDung {
   private String anhDaiDien;
 
   @Builder.Default
-  @Column(name = "trang_thai", nullable = false)
+  @Convert(converter = TrangThaiCoBanConverter.class)
+  @ColumnDefault("1")
+  @Column(name = "trang_thai", nullable = false, columnDefinition = "SMALLINT")
   private TrangThaiCoBanEnum trangThai = TrangThaiCoBanEnum.HOAT_DONG;
+
+  @ColumnDefault("0")
+  @Column(name = "phien_ban_xac_thuc", nullable = false, updatable = false)
+  private long phienBanXacThuc;
 
   @CreationTimestamp
   @Column(name = "ngay_tao", updatable = false)

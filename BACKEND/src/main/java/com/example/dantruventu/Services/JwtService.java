@@ -7,12 +7,19 @@ import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import java.nio.charset.StandardCharsets;
 import java.util.Date;
+import java.util.UUID;
 import javax.crypto.SecretKey;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 @Service
+@RequiredArgsConstructor
 public class JwtService {
+
+  private final RefreshTokenSessionService sessions;
+  private static final String SESSION_ID_CLAIM = "sid";
+  private static final String AUTH_VERSION_CLAIM = "auth_version";
 
   private static final String TOKEN_TYPE_CLAIM = "token_type";
   private static final String ACCESS_TOKEN_TYPE = "ACCESS";
@@ -30,7 +37,7 @@ public class JwtService {
   @Value("${jwt.refresh-token-remember-expiration}")
   private long refreshTokenRememberExpiration;
 
-  public String generateAccessToken(NguoiDung nguoiDung) {
+  public String generateAccessToken(NguoiDung nguoiDung, String refreshToken) {
 
     Date now = new Date();
     Date expiration = new Date(now.getTime() + accessTokenExpiration);
@@ -39,6 +46,9 @@ public class JwtService {
         .subject(String.valueOf(nguoiDung.getId()))
         .claim("email", nguoiDung.getEmail())
         .claim("vai_tro", nguoiDung.getVaiTro().getTenVaiTro())
+        .claim("ma_vai_tro", nguoiDung.getVaiTro().getMaVaiTro())
+        .claim(SESSION_ID_CLAIM, RefreshTokenSessionService.sessionId(refreshToken))
+        .claim(AUTH_VERSION_CLAIM, nguoiDung.getPhienBanXacThuc())
         .claim(TOKEN_TYPE_CLAIM, ACCESS_TOKEN_TYPE)
         .issuedAt(now)
         .expiration(expiration)
@@ -56,6 +66,8 @@ public class JwtService {
 
     return Jwts.builder()
         .subject(String.valueOf(nguoiDung.getId()))
+        .id(UUID.randomUUID().toString())
+        .claim(AUTH_VERSION_CLAIM, nguoiDung.getPhienBanXacThuc())
         .claim(TOKEN_TYPE_CLAIM, REFRESH_TOKEN_TYPE)
         .issuedAt(now)
         .expiration(expiration)
@@ -69,7 +81,8 @@ public class JwtService {
 
       Claims claims = extractClaims(token);
 
-      return ACCESS_TOKEN_TYPE.equals(claims.get(TOKEN_TYPE_CLAIM, String.class));
+      return ACCESS_TOKEN_TYPE.equals(claims.get(TOKEN_TYPE_CLAIM, String.class))
+          && sessions.isSessionActive(claims.get(SESSION_ID_CLAIM, String.class));
 
     } catch (JwtException | IllegalArgumentException exception) {
       return false;
@@ -94,6 +107,11 @@ public class JwtService {
     Claims claims = extractClaims(token);
 
     return Long.valueOf(claims.getSubject());
+  }
+
+  public long getAuthVersion(String token) {
+    Long version = extractClaims(token).get(AUTH_VERSION_CLAIM, Long.class);
+    return version == null ? 0L : version;
   }
 
   public Date getExpirationFromToken(String token) {

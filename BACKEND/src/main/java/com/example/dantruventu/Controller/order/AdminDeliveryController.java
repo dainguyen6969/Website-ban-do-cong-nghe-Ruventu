@@ -21,6 +21,7 @@ public class AdminDeliveryController {
   private final AdminDeliveryService service;
 
   @GetMapping
+  @PreAuthorize("@adminRoleService.hasModuleAction(principal, 'giao_hang', 'xem')")
   public ApiResponse<ListData> getList(
       @RequestParam(name = "keyword", required = false) String keyword,
       @RequestParam(name = "trang_thai_giao_hang", required = false) String trangThai,
@@ -40,11 +41,13 @@ public class AdminDeliveryController {
   }
 
   @GetMapping("/{id}")
+  @PreAuthorize("@adminRoleService.hasModuleAction(principal, 'giao_hang', 'xem')")
   public ApiResponse<Detail> getDetail(@PathVariable("id") Long id) {
     return success("Lấy chi tiết phiếu giao hàng thành công", service.getDetail(id));
   }
 
   @PutMapping("/{id}")
+  @PreAuthorize("@adminRoleService.hasModuleAction(principal, 'giao_hang', 'sua')")
   public ApiResponse<Action> update(
       @PathVariable("id") Long id, @Valid @RequestBody AdminDeliveryUpdateRequest request) {
 
@@ -52,10 +55,13 @@ public class AdminDeliveryController {
   }
 
   @PatchMapping("/{id}/status")
+  @PreAuthorize("@adminRoleService.hasModuleAction(principal, 'giao_hang', 'sua')")
   public ApiResponse<Action> changeStatus(
-      @PathVariable("id") Long id, @Valid @RequestBody AdminDeliveryStatusRequest request) {
+      @PathVariable("id") Long id,
+      @RequestHeader("Idempotency-Key") String idempotencyKey,
+      @Valid @RequestBody AdminDeliveryStatusRequest request) {
 
-    Action response = service.changeStatus(id, request);
+    Action response = service.changeStatus(id, idempotencyKey, request);
 
     String message =
         switch (request.getTrangThaiGiaoHang()) {
@@ -70,6 +76,7 @@ public class AdminDeliveryController {
   }
 
   @PostMapping("/{id}/cancel")
+  @PreAuthorize("@adminRoleService.hasModuleAction(principal, 'giao_hang', 'sua')")
   public ApiResponse<Action> cancel(
       @PathVariable("id") Long id, @Valid @RequestBody AdminDeliveryCancelRequest request) {
 
@@ -78,10 +85,13 @@ public class AdminDeliveryController {
 
   @PostMapping("/{id}/return-receipt")
   public ApiResponse<Action> receiveReturn(
-      @PathVariable("id") Long id, @Valid @RequestBody AdminDeliveryReturnRequest request) {
+      @PathVariable("id") Long id,
+      @RequestHeader("Idempotency-Key") String idempotencyKey,
+      @Valid @RequestBody AdminDeliveryReturnRequest request) {
 
     return success(
-        "Xác nhận nhận hàng hoàn và nhập lại kho thành công", service.receiveReturn(id, request));
+        "Xác nhận nhận hàng hoàn và nhập lại kho thành công",
+        service.receiveReturn(id, idempotencyKey, request));
   }
 
   private <T> ApiResponse<T> success(String message, T data) {

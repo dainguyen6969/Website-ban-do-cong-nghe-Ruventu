@@ -171,18 +171,29 @@ function applyMockPriceStock(product) {
     return {
       ...current,
       name: current.name || (variantCount === 1 ? 'Mặc định' : `Phiên bản ${index + 1}`),
-      sku: current.sku || (variantCount === 1 ? product.maSanPham : `${product.maSanPham}-${index + 1}`),
-      giaBanLe: Number(current.giaBanLe) > 0 ? current.giaBanLe : defaults.prices[index] ?? defaults.prices.at(-1),
+      sku:
+        current.sku ||
+        (variantCount === 1 ? product.maSanPham : `${product.maSanPham}-${index + 1}`),
+      giaBanLe:
+        Number(current.giaBanLe) > 0
+          ? current.giaBanLe
+          : (defaults.prices[index] ?? defaults.prices.at(-1)),
       giaNhap: current.giaNhap || '',
       khoiLuong: current.khoiLuong || '',
-      tonDauKy: Number(current.tonDauKy) > 0 ? current.tonDauKy : defaults.stocks[index] ?? defaults.stocks.at(-1),
+      tonDauKy:
+        Number(current.tonDauKy) > 0
+          ? current.tonDauKy
+          : (defaults.stocks[index] ?? defaults.stocks.at(-1)),
       serials: current.serials || [],
     };
   });
   return {
     ...product,
     giaBanLe: Number(product.giaBanLe) > 0 ? product.giaBanLe : defaults.prices[0],
-    tonKho: Number(product.tonKho) > 0 ? product.tonKho : defaults.stocks.reduce((sum, stock) => sum + stock, 0),
+    tonKho:
+      Number(product.tonKho) > 0
+        ? product.tonKho
+        : defaults.stocks.reduce((sum, stock) => sum + stock, 0),
     variants,
   };
 }
@@ -227,26 +238,80 @@ function hydrateProduct(product) {
   const isCombo = product.phanLoai === 'Theo bộ (Combo)';
   const isWorkstation = product.id === 'SP-PC-W99';
   const variantCount = Number(product.soPhienBan || 1);
-  const defaultVariants = product.variants || (variantCount > 1
-    ? Array.from({ length: variantCount }, (_, index) => ({ name: `Phiên bản ${index + 1}`, sku: `${product.maSanPham}-${index + 1}`, giaBanLe: '', giaNhap: '', khoiLuong: '', tonDauKy: index === 0 ? Math.ceil((product.tonKho || 0) / variantCount) : Math.floor((product.tonKho || 0) / variantCount), serials: [] }))
-    : [{ name: 'Mặc định', sku: product.maSanPham, giaBanLe: '', giaNhap: '', khoiLuong: '', tonDauKy: product.tonKho || 0, serials: [] }]);
+  const defaultVariants =
+    product.variants ||
+    (variantCount > 1
+      ? Array.from({ length: variantCount }, (_, index) => ({
+          name: `Phiên bản ${index + 1}`,
+          sku: `${product.maSanPham}-${index + 1}`,
+          giaBanLe: '',
+          giaNhap: '',
+          khoiLuong: '',
+          tonDauKy:
+            index === 0
+              ? Math.ceil((product.tonKho || 0) / variantCount)
+              : Math.floor((product.tonKho || 0) / variantCount),
+          serials: [],
+        }))
+      : [
+          {
+            name: 'Mặc định',
+            sku: product.maSanPham,
+            giaBanLe: '',
+            giaNhap: '',
+            khoiLuong: '',
+            tonDauKy: product.tonKho || 0,
+            serials: [],
+          },
+        ]);
   const base = {
-    donViTinh: isCombo ? 'Bộ' : 'Cái', vat: '10%', moTa: `Sản phẩm ${product.tenSanPham} chính hãng, được kiểm tra và phân phối bởi Ruventu.`,
+    donViTinh: isCombo ? 'Bộ' : 'Cái',
+    vat: '10%',
+    moTa: `Sản phẩm ${product.tenSanPham} chính hãng, được kiểm tra và phân phối bởi Ruventu.`,
     specs: [{ id: 1, name: 'Thương hiệu', value: product.thuongHieu || 'Ruventu' }],
-    tags: [product.thuongHieu ? `#${product.thuongHieu.replace(/\s/g, '')}` : '#Ruventu'], attributes: product.attributes || (variantCount > 1 ? [{ name: 'Phiên bản', values: defaultVariants.map((variant) => variant.name) }] : []),
-    giaBanLe: 0, giaNhap: 0, giaBanBuon: 0, variants: defaultVariants,
+    tags: [product.thuongHieu ? `#${product.thuongHieu.replace(/\s/g, '')}` : '#Ruventu'],
+    attributes:
+      product.attributes ||
+      (variantCount > 1
+        ? [{ name: 'Phiên bản', values: defaultVariants.map((variant) => variant.name) }]
+        : []),
+    giaBanLe: 0,
+    giaNhap: 0,
+    giaBanBuon: 0,
+    variants: defaultVariants,
   };
   if (isWorkstation) {
-    return { ...base, ...product, tenSanPham: 'PC Đồ Họa Workstation Intel Core i9', hinhAnh: workstationImage, donViTinh: 'Bộ', khoiLuong: '15 kg',
+    return {
+      ...base,
+      ...product,
+      tenSanPham: 'PC Đồ Họa Workstation Intel Core i9',
+      hinhAnh: workstationImage,
+      donViTinh: 'Bộ',
+      khoiLuong: '15 kg',
       moTa: 'Hệ thống máy trạm chuyên dụng phục vụ thiết kế đồ họa 3D, render video 4K/8K và xử lý tác vụ tính toán nặng. Tích hợp CPU Intel Core i9-14900K với 24 nhân, VGA ASUS ROG STRIX RTX 4090 OC 24GB GDDR6X, RAM DDR5 64GB, SSD NVMe PCIe 5.0 2TB – đạt điểm benchmark Cinebench vượt 70.000 multicore.',
-      specs: workstationSpecs, tags: ['#Workstation', '#Render', '#Core-i9', '#HighEnd'], attributes: ['Màu Đen', 'Tản nhiệt nước 360mm', 'Nguồn 1000W'],
-      giaBanLe: 65000000, giaNhap: 56500000, giaBanBuon: 60000000, comboItems: workstationComponents, comboPrice: '65000000', tonKho: 18, coTheBan: 16,
+      specs: workstationSpecs,
+      tags: ['#Workstation', '#Render', '#Core-i9', '#HighEnd'],
+      attributes: ['Màu Đen', 'Tản nhiệt nước 360mm', 'Nguồn 1000W'],
+      giaBanLe: 65000000,
+      giaNhap: 56500000,
+      giaBanBuon: 60000000,
+      comboItems: workstationComponents,
+      comboPrice: '65000000',
+      tonKho: 18,
+      coTheBan: 16,
     };
   }
   const first = defaultVariants[0] || {};
   const giaNhap = Number(first.giaNhap || product.giaNhap || 0);
   const giaBanLe = Number(first.giaBanLe || product.giaBanLe || 0);
-  return { ...base, ...product, giaNhap, giaBanLe, giaBanBuon: Number(product.giaBanBuon || giaBanLe), coTheBan: product.coTheBan ?? product.tonKho ?? 0 };
+  return {
+    ...base,
+    ...product,
+    giaNhap,
+    giaBanLe,
+    giaBanBuon: Number(product.giaBanBuon || giaBanLe),
+    coTheBan: product.coTheBan ?? product.tonKho ?? 0,
+  };
 }
 
 export function getMockProducts() {
@@ -254,7 +319,9 @@ export function getMockProducts() {
 }
 
 export function getMockProductById(id) {
-  return hydrateProduct(mockProducts.find((product) => product.id === id || product.maSanPham === id));
+  return hydrateProduct(
+    mockProducts.find((product) => product.id === id || product.maSanPham === id)
+  );
 }
 
 export function addMockProduct(product) {

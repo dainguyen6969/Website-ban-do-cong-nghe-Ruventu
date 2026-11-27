@@ -5,6 +5,7 @@ import com.example.dantruventu.Enum.TrangThaiCoBanEnum;
 import com.example.dantruventu.Error.ErrorCode;
 import com.example.dantruventu.Repository.NguoiDungRepository;
 import com.example.dantruventu.Services.JwtService;
+import io.jsonwebtoken.JwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -12,6 +13,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataAccessException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -48,23 +50,26 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
     String token = authorization.substring(7);
 
-    if (!jwtService.isAccessTokenValid(token)) {
-      writeError(
-          response,
-          ErrorCode.UNAUTHORIZED.getStatus().value(),
-          ErrorCode.UNAUTHORIZED.getMessage());
+    Long userId;
+    long authVersion;
+    try {
+      if (!jwtService.isAccessTokenValid(token)) {
+        writeUnauthorized(response);
+        return;
+      }
+      userId = jwtService.getUserIdFromToken(token);
+      authVersion = jwtService.getAuthVersion(token);
+    } catch (JwtException | IllegalArgumentException exception) {
+      writeUnauthorized(response);
+      return;
+    } catch (DataAccessException exception) {
+      writeError(response, 503, "Không thể kiểm tra phiên đăng nhập, vui lòng thử lại.");
       return;
     }
 
-    Long userId = jwtService.getUserIdFromToken(token);
-
     NguoiDung user = nguoiDungRepository.findByIdWithVaiTro(userId).orElse(null);
-
-    if (user == null) {
-      writeError(
-          response,
-          ErrorCode.UNAUTHORIZED.getStatus().value(),
-          ErrorCode.UNAUTHORIZED.getMessage());
+    if (user == null || user.getPhienBanXacThuc() != authVersion) {
+      writeUnauthorized(response);
       return;
     }
 
@@ -77,7 +82,8 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
     if (SecurityContextHolder.getContext().getAuthentication() == null) {
 
-      String role = user.getVaiTro().getTenVaiTro();
+      String roleCode = user.getVaiTro().getMaVaiTro();
+      String role = "ADMIN".equals(roleCode) || "USER".equals(roleCode) ? roleCode : "EMPLOYEE";
 
       UsernamePasswordAuthenticationToken authentication =
           new UsernamePasswordAuthenticationToken(
@@ -89,6 +95,11 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     }
 
     filterChain.doFilter(request, response);
+  }
+
+  private void writeUnauthorized(HttpServletResponse response) throws IOException {
+    writeError(
+        response, ErrorCode.UNAUTHORIZED.getStatus().value(), ErrorCode.UNAUTHORIZED.getMessage());
   }
 
   private void writeError(HttpServletResponse response, int status, String message)

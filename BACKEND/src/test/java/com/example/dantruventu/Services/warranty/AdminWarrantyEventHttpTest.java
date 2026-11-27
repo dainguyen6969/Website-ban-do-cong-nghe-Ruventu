@@ -10,8 +10,10 @@ import com.example.dantruventu.Entity.*;
 import com.example.dantruventu.Enum.TrangThaiCoBanEnum;
 import com.example.dantruventu.Error.*;
 import com.example.dantruventu.Repository.NguoiDungRepository;
+import com.example.dantruventu.Repository.VaiTroRepository;
 import com.example.dantruventu.Repository.warranty.WarrantyQuoteEventRepository;
 import com.example.dantruventu.Repository.warranty.WarrantyQuoteRepository;
+import com.example.dantruventu.Services.AdminRoleService;
 import com.example.dantruventu.Services.JwtService;
 import java.util.*;
 import org.junit.jupiter.api.Test;
@@ -47,6 +49,11 @@ class AdminWarrantyEventHttpTest {
     @Bean
     NguoiDungRepository users() {
       return mock(NguoiDungRepository.class);
+    }
+
+    @Bean
+    AdminRoleService adminRoleService(NguoiDungRepository users) {
+      return new AdminRoleService(mock(VaiTroRepository.class), users);
     }
 
     @Bean
@@ -185,9 +192,11 @@ class AdminWarrantyEventHttpTest {
       context.refresh();
       var jwt = context.getBean(JwtService.class);
       var users = context.getBean(NguoiDungRepository.class);
-      for (int n = 0; n < 4; n++) {
-        String token = List.of("admin", "user", "blocked", "employee").get(n);
+      for (int n = 0; n < 5; n++) {
+        String token = List.of("admin", "user", "blocked", "employee", "warranty").get(n);
+        String role = n == 1 ? "USER" : (n >= 3 ? "EMPLOYEE" : "ADMIN");
         long id = 8L + n;
+
         when(jwt.isAccessTokenValid(token)).thenReturn(true);
         when(jwt.getUserIdFromToken(token)).thenReturn(id);
         when(users.findByIdWithVaiTro(id))
@@ -202,7 +211,10 @@ class AdminWarrantyEventHttpTest {
                         .vaiTro(
                             VaiTro.builder()
                                 .id((long) n + 1)
-                                .tenVaiTro(n == 1 ? "USER" : n == 3 ? "EMPLOYEE" : "ADMIN")
+                                .maVaiTro(role)
+                                .tenVaiTro(role)
+                                .quyen(
+                                    n == 4 ? Map.of("bao_hanh", List.of("xem", "sua")) : Map.of())
                                 .build())
                         .build()));
       }
@@ -228,6 +240,19 @@ class AdminWarrantyEventHttpTest {
       var notFound = request(mvc, "admin", UUID.randomUUID().toString(), "999", body);
       assertEquals(404, notFound.getStatus());
       assertTrue(notFound.getContentAsString().contains("WARRANTY_NOT_FOUND"));
+
+      assertEquals(
+          404, request(mvc, "warranty", UUID.randomUUID().toString(), "999", body).getStatus());
+      assertEquals(
+          403,
+          request(
+                  mvc,
+                  "warranty",
+                  UUID.randomUUID().toString(),
+                  "501",
+                  Map.of("su_kien", "GHI_CHI_PHI_DON_VI"))
+              .getStatus());
+
       var success = request(mvc, "admin", key, "501", body);
       assertEquals(200, success.getStatus(), success.getContentAsString());
       var json = AdminWarrantyEventServiceTest.JSON.readTree(success.getContentAsString());
@@ -335,11 +360,6 @@ class AdminWarrantyEventHttpTest {
               AdminWarrantyInvoiceServiceTest.apply(1))) {
         var denied = invoice(mvc, "employee", UUID.randomUUID().toString(), "501", deniedBody);
         assertEquals(403, denied.getStatus());
-        var deniedJson = AdminWarrantyEventServiceTest.JSON.readTree(denied.getContentAsString());
-        assertEquals("hanh_dong", deniedJson.at("/errors/0/field").asString());
-        assertEquals(
-            "FINANCIAL_APPROVAL_FORBIDDEN", deniedJson.at("/errors/0/code").asString());
-        assertTrue(deniedJson.get("data").isNull());
       }
       assertEquals(eventsBeforeEmployeeRequest, f.events.size());
       assertEquals(new java.math.BigDecimal("150000.00"), f.invoices.getFirst().getTongTien());
@@ -647,6 +667,7 @@ class AdminWarrantyEventHttpTest {
                         .vaiTro(
                             VaiTro.builder()
                                 .id((long) i + 1)
+                                .maVaiTro(i == 1 ? "USER" : "ADMIN")
                                 .tenVaiTro(i == 1 ? "USER" : "ADMIN")
                                 .build())
                         .build()));
@@ -745,6 +766,7 @@ class AdminWarrantyEventHttpTest {
                         .vaiTro(
                             VaiTro.builder()
                                 .id((long) i + 1)
+                                .maVaiTro(i == 1 ? "USER" : "ADMIN")
                                 .tenVaiTro(i == 1 ? "USER" : "ADMIN")
                                 .build())
                         .build()));

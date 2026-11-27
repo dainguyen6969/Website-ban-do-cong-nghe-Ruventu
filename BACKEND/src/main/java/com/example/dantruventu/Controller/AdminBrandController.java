@@ -17,12 +17,17 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/v1/admin/brands")
 @RequiredArgsConstructor
-@PreAuthorize("hasRole('ADMIN')")
+@PreAuthorize("@adminRoleService.hasModuleAction(principal, 'danh_muc', 'xem')")
 public class AdminBrandController {
 
   private final AdminBrandService adminBrandService;
 
   @GetMapping
+  @PreAuthorize(
+      "@adminRoleService.hasModuleAction(principal, 'danh_muc', 'xem')"
+          + " or @adminRoleService.hasModuleAction(principal, 'san_pham', 'xem')"
+          + " or @adminRoleService.hasModuleAction(principal, 'combo_san_pham', 'xem')"
+          + " or @adminRoleService.hasModuleAction(principal, 'khuyen_mai', 'them')")
   public ApiResponse<AdminBrandListResponse> getBrands(
       @RequestParam(required = false) String keyword,
       @RequestParam(name = "trang_thai", required = false) Short trangThai,
@@ -47,6 +52,7 @@ public class AdminBrandController {
   }
 
   @PostMapping
+  @PreAuthorize("@adminRoleService.hasModuleAction(principal, 'danh_muc', 'them')")
   public ResponseEntity<ApiResponse<AdminBrandResponse>> create(
       @Valid @RequestBody AdminBrandRequest request) {
 
@@ -61,6 +67,7 @@ public class AdminBrandController {
   }
 
   @PutMapping("/{id}")
+  @PreAuthorize("@adminRoleService.hasModuleAction(principal, 'danh_muc', 'sua')")
   public ApiResponse<AdminBrandResponse> update(
       @PathVariable Long id, @Valid @RequestBody AdminBrandRequest request) {
 
@@ -72,6 +79,7 @@ public class AdminBrandController {
   }
 
   @DeleteMapping("/{id}")
+  @PreAuthorize("@adminRoleService.hasModuleAction(principal, 'danh_muc', 'xoa')")
   public ApiResponse<AdminBrandStatusResponse> delete(@PathVariable Long id) {
 
     return ApiResponse.<AdminBrandStatusResponse>builder()

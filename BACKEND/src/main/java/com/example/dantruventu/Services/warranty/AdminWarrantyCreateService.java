@@ -411,8 +411,11 @@ public class AdminWarrantyCreateService {
       throw invalid("Thiết bị có serial phải chọn bằng thiet_bi_id đã có hồ sơ.");
     if (deviceId != null && r.dauHieuNhanDang() != null)
       throw invalid("Không ghi đè nhận dạng của thiết bị đã có hồ sơ.");
-    String reason = text(r.lyDoBaoHanh(), true, 255),
-        condition = text(r.tinhTrangTiepNhan(), true, 16000);
+    String reason =
+        WarrantyWriteValidation.requiredText(r.lyDoBaoHanh(), ErrorCode.INVALID_WARRANTY_CREATE);
+    String condition =
+        WarrantyWriteValidation.requiredText(
+            r.tinhTrangTiepNhan(), ErrorCode.INVALID_WARRANTY_CREATE);
     String contact = text(r.tenNguoiLienHe(), true, 100),
         phone = text(r.sdtNguoiLienHe(), true, 20);
     if (!phone.matches("\\+?[0-9][0-9 .()-]{6,19}"))

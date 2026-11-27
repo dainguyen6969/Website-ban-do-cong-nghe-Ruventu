@@ -14,7 +14,7 @@ public class UserMeResponse {
   private String email;
   private String soDienThoai;
   private String anhDaiDien;
-  private String trangThai;
+  private Short trangThai;
 
   private DiaChiMacDinhResponse diaChiMacDinh;
 

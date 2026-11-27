@@ -44,7 +44,12 @@ class WarrantyReservationInventoryTest {
                 calculation,
                 context,
                 new SalesProperties(),
-                mock(EntityManager.class)));
+                mock(EntityManager.class),
+                mock(OrderSaleSnapshotService.class),
+                mock(SoldDeviceService.class),
+                mock(com.example.dantruventu.Repository.order.GiuHangTungPhanRepository.class),
+                mock(OrderIntakePolicy.class),
+                mock(com.example.dantruventu.Services.warehouse.RecallSafety.class)));
     var order = DonHang.builder().id(8L).build();
     doReturn(new OrderInventoryService.Plan(List.of(), Map.of(101L, 1), Map.of(), List.of()))
         .when(service)
@@ -72,7 +77,12 @@ class WarrantyReservationInventoryTest {
             warehouses,
             stocks,
             cards,
-            mock(SoSerialSanPhamRepository.class));
+            mock(SoSerialSanPhamRepository.class),
+            mock(OrderSaleSnapshotService.class),
+            mock(SoldDeviceService.class),
+            mock(EntityManager.class),
+            mock(OrderInventoryService.class),
+            mock(com.example.dantruventu.Services.warehouse.RecallSafety.class));
     ReflectionTestUtils.setField(service, "defaultWarehouseId", 1L);
     var order = DonHang.builder().id(8L).trangThaiDongGoi(TrangThaiDongGoi.DANG_DONG_GOI).build();
     when(warehouses.count()).thenReturn(1L);

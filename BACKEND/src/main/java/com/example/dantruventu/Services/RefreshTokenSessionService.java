@@ -17,59 +17,38 @@ public class RefreshTokenSessionService {
   private static final String KEY_PREFIX = "auth:refresh:";
 
   private final StringRedisTemplate redisTemplate;
-  private final JwtService jwtService;
 
-  public void saveRefreshToken(String refreshToken) {
-
-    Date expiration = jwtService.getExpirationFromToken(refreshToken);
-
+  public void saveRefreshToken(String refreshToken, Date expiration) {
     long remainingTime = expiration.getTime() - System.currentTimeMillis();
+    if (remainingTime <= 0) return;
 
-    if (remainingTime <= 0) {
-      return;
-    }
-
-    String key = buildKey(refreshToken);
-
-    redisTemplate.opsForValue().set(key, "ACTIVE", Duration.ofMillis(remainingTime));
+    redisTemplate
+        .opsForValue()
+        .set(KEY_PREFIX + sessionId(refreshToken), "ACTIVE", Duration.ofMillis(remainingTime));
   }
 
   public boolean isRefreshTokenActive(String refreshToken) {
+    return refreshToken != null
+        && !refreshToken.isBlank()
+        && isSessionActive(sessionId(refreshToken));
+  }
 
-    if (refreshToken == null || refreshToken.isBlank()) {
-      return false;
-    }
-
-    String key = buildKey(refreshToken);
-
-    return Boolean.TRUE.equals(redisTemplate.hasKey(key));
+  public boolean isSessionActive(String sessionId) {
+    return sessionId != null
+        && !sessionId.isBlank()
+        && Boolean.TRUE.equals(redisTemplate.hasKey(KEY_PREFIX + sessionId));
   }
 
   public void revokeRefreshToken(String refreshToken) {
-
-    if (refreshToken == null || refreshToken.isBlank()) {
-      return;
-    }
-
-    redisTemplate.delete(buildKey(refreshToken));
+    if (refreshToken == null || refreshToken.isBlank()) return;
+    redisTemplate.delete(KEY_PREFIX + sessionId(refreshToken));
   }
 
-  private String buildKey(String refreshToken) {
-    return KEY_PREFIX + hashToken(refreshToken);
-  }
-
-  private String hashToken(String token) {
-
+  static String sessionId(String token) {
     try {
-
-      MessageDigest messageDigest = MessageDigest.getInstance("SHA-256");
-
-      byte[] hash = messageDigest.digest(token.getBytes(StandardCharsets.UTF_8));
-
-      return HexFormat.of().formatHex(hash);
-
+      var digest = MessageDigest.getInstance("SHA-256");
+      return HexFormat.of().formatHex(digest.digest(token.getBytes(StandardCharsets.UTF_8)));
     } catch (NoSuchAlgorithmException exception) {
-
       throw new IllegalStateException("Không thể khởi tạo SHA-256", exception);
     }
   }

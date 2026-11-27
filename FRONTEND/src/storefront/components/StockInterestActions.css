@@ -1,0 +1,117 @@
+.stock-interest {
+  margin-top: 12px;
+}
+.stock-interest__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.stock-interest button {
+  font: inherit;
+  cursor: pointer;
+}
+.stock-interest__actions button,
+.stock-interest-dialog footer button {
+  min-height: 40px;
+  padding: 9px 12px;
+  border: 1px solid #111;
+  border-radius: 0;
+  background: #111;
+  color: #fff;
+}
+.stock-interest > p {
+  margin-top: 10px;
+  line-height: 1.5;
+}
+.stock-interest-dialog {
+  width: min(470px, calc(100vw - 24px));
+  max-height: 90dvh;
+  margin: auto;
+  padding: 0;
+  overflow: auto;
+  border: 1px solid #111;
+  border-radius: 0;
+  background: #fff;
+  color: #111;
+  font: inherit;
+}
+.stock-interest-dialog::backdrop {
+  background: #0008;
+}
+.stock-interest-dialog header {
+  display: flex;
+  justify-content: space-between;
+  gap: 15px;
+  padding: 18px;
+  background: #111;
+  color: #fff;
+}
+.stock-interest-dialog header p {
+  margin-top: 6px;
+  line-height: 1.5;
+}
+.stock-interest-dialog header button {
+  background: transparent;
+  border: 0;
+  color: #fff;
+  font-size: 24px;
+}
+.stock-interest-dialog fieldset {
+  display: grid;
+  gap: 15px;
+  margin: 0;
+  padding: 18px;
+  border: 0;
+}
+.stock-interest-dialog label {
+  display: grid;
+  gap: 7px;
+}
+.stock-interest-dialog input {
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 40px;
+  padding: 9px;
+  border: 1px solid #ccc;
+  border-radius: 0;
+  font: inherit;
+}
+.stock-interest-dialog .stock-interest__check {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+}
+.stock-interest-dialog .stock-interest__check input {
+  width: 17px;
+  min-height: 17px;
+  margin-top: 3px;
+  accent-color: #111;
+}
+.stock-interest-dialog footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 9px;
+  padding: 15px 18px;
+  border-top: 1px solid #ddd;
+}
+.stock-interest__error {
+  margin: 0 18px 15px;
+  color: #b42318;
+  line-height: 1.5;
+}
+.stock-interest-dialog button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.action-buttons > .stock-interest {
+  margin-top: 0;
+  min-width: 0;
+}
+
+.stock-interest .stock-interest__trigger {
+  width: 100%;
+  font-family: inherit;
+  font-size: 16px;
+  font-weight: 800;
+}

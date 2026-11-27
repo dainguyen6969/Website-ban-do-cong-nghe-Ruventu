@@ -4,14 +4,16 @@ import com.example.dantruventu.DTO.Request.cashbook.AdminReceiptCancelRequest;
 import com.example.dantruventu.DTO.Request.cashbook.AdminReceiptCreateRequest;
 import com.example.dantruventu.DTO.Response.ApiResponse;
 import com.example.dantruventu.DTO.Response.cashbook.AdminReceiptCancelResponse;
-import com.example.dantruventu.DTO.Response.cashbook.AdminReceiptListResponse;
 import com.example.dantruventu.DTO.Response.cashbook.AdminReceiptResponse;
 import com.example.dantruventu.DTO.Response.cashbook.PayerSuggestionListResponse;
 import com.example.dantruventu.Entity.NguoiDung;
+import com.example.dantruventu.Enum.LoaiPhieuThuChi;
 import com.example.dantruventu.Error.AppException;
 import com.example.dantruventu.Error.ErrorCode;
 import com.example.dantruventu.Services.AdminReceiptService;
+import com.example.dantruventu.Services.cashbook.CashbookReadService;
 import jakarta.validation.Valid;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -22,28 +24,24 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/v1/admin/receipts")
 @RequiredArgsConstructor
-@PreAuthorize("hasRole('ADMIN')")
+@PreAuthorize("@adminRoleService.hasModuleAction(principal, 'so_quy', 'xem')")
 public class AdminReceiptController {
 
   private final AdminReceiptService service;
+  private final CashbookReadService reads;
 
   @GetMapping
-  public ApiResponse<AdminReceiptListResponse> getReceipts(
-      @RequestParam(required = false) String keyword,
-      @RequestParam(name = "trang_thai", required = false) String trangThai,
-      @RequestParam(name = "tu_ngay", required = false) String tuNgay,
-      @RequestParam(name = "den_ngay", required = false) String denNgay,
-      @RequestParam(defaultValue = "0") String page,
-      @RequestParam(defaultValue = "20") String limit) {
+  public ApiResponse<Map<String, Object>> getReceipts(@RequestParam Map<String, String> params) {
 
-    return ApiResponse.<AdminReceiptListResponse>builder()
-        .status(HttpStatus.OK.value())
+    return ApiResponse.<Map<String, Object>>builder()
+        .status(200)
         .message("Lấy danh sách phiếu thu thành công")
-        .data(service.getReceipts(keyword, trangThai, tuNgay, denNgay, page, limit))
+        .data(reads.vouchers(params, LoaiPhieuThuChi.THU))
         .build();
   }
 
   @GetMapping("/payers")
+  @PreAuthorize("@adminRoleService.hasModuleAction(principal, 'so_quy', 'them')")
   public ApiResponse<PayerSuggestionListResponse> getPayerSuggestions(
       @RequestParam(name = "nhom_nguoi_nop_nhan", required = false) String nhomNguoiNopNhan,
       @RequestParam(required = false) String keyword,
@@ -58,16 +56,17 @@ public class AdminReceiptController {
   }
 
   @GetMapping("/{id}")
-  public ApiResponse<AdminReceiptResponse> getReceiptDetail(@PathVariable String id) {
+  public ApiResponse<Map<String, Object>> getReceiptDetail(@PathVariable String id) {
 
-    return ApiResponse.<AdminReceiptResponse>builder()
-        .status(HttpStatus.OK.value())
+    return ApiResponse.<Map<String, Object>>builder()
+        .status(200)
         .message("Lấy chi tiết phiếu thu thành công")
-        .data(service.getReceiptDetail(id))
+        .data(reads.detail(id, LoaiPhieuThuChi.THU))
         .build();
   }
 
   @PostMapping
+  @PreAuthorize("@adminRoleService.hasModuleAction(principal, 'so_quy', 'them')")
   public ResponseEntity<ApiResponse<AdminReceiptResponse>> createReceipt(
       @Valid @RequestBody AdminReceiptCreateRequest request,
       @RequestHeader(name = "Idempotency-Key", required = false) String requestKey,
@@ -88,13 +87,21 @@ public class AdminReceiptController {
   }
 
   @PostMapping("/{id}/cancel")
+  @PreAuthorize("@adminRoleService.hasModuleAction(principal, 'so_quy', 'sua')")
   public ApiResponse<AdminReceiptCancelResponse> cancelReceipt(
-      @PathVariable String id, @RequestBody(required = false) AdminReceiptCancelRequest request) {
+      @PathVariable String id,
+      @RequestHeader("Idempotency-Key") String requestKey,
+      @RequestBody AdminReceiptCancelRequest request,
+      Authentication authentication) {
+
+    if (authentication == null || !(authentication.getPrincipal() instanceof NguoiDung actor)) {
+      throw new AppException(ErrorCode.UNAUTHORIZED);
+    }
 
     return ApiResponse.<AdminReceiptCancelResponse>builder()
-        .status(HttpStatus.OK.value())
+        .status(200)
         .message("Hủy phiếu thu thành công")
-        .data(service.cancelReceipt(id, request))
+        .data(service.cancelReceipt(id, request, actor, requestKey))
         .build();
   }
 }

@@ -2,7 +2,11 @@ package com.example.dantruventu.DTO.Request.role;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.PositiveOrZero;
 import jakarta.validation.constraints.Size;
+import java.util.List;
+import java.util.Map;
 import lombok.*;
 
 @Getter
@@ -20,4 +24,13 @@ public class UpdateRoleRequest {
   @JsonProperty("mo_ta")
   @Size(max = 500, message = "Mô tả tối đa 500 ký tự")
   private String moTa;
+
+  @JsonProperty("quyen")
+  @NotNull(message = "Vui lòng gửi trường quyen.")
+  private Map<String, List<String>> quyen;
+
+  @JsonProperty("phien_ban")
+  @NotNull(message = "Vui lòng gửi phiên bản vai trò.")
+  @PositiveOrZero(message = "Phiên bản vai trò không hợp lệ.")
+  private Long phienBan;
 }

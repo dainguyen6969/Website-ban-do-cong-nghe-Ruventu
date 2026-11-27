@@ -1,55 +1,73 @@
-import React from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
+import React, { lazy, Suspense, useState } from 'react';
+import { Routes, Route, Navigate, useLocation, useNavigationType } from 'react-router-dom';
 import Home from './pages/Home';
-import Login from './pages/Login';
-import Register from './pages/Register';
-import CartPage from './pages/CartPage';
-import CheckoutPage from './pages/CheckoutPage';
-import SuccessPage from './pages/SuccessPage';
-import ProfilePage from './pages/ProfilePage';
-import WarrantyLookupPage from './pages/WarrantyLookupPage';
-import OrderLookupPage from './pages/OrderLookupPage';
-import OrderDetailPage from './pages/OrderDetailPage';
-import BuildPCDetail from './pages/BuildPCDetail';
-import CustomBuildPage from './pages/CustomBuildPage';
-import ProductDetail from './pages/ProductDetail';
-import CategoryPage from './pages/CategoryPage';
-import SearchPage from './pages/SearchPage';
-import NotFoundPage from './pages/NotFoundPage';
-import PromotionsPage from './pages/PromotionsPage';
 import ToastContainer from './components/ToastContainer';
+import BackToTop from './components/BackToTop';
 import FontPreferenceContext from '../typography/FontPreferenceContext';
-import usePersistentFontPreference from '../typography/usePersistentFontPreference';
+import useQaTypography from '../typography/useQaTypography';
+import { StorefrontScrollPosition } from './scrollPosition';
 import './App.css';
 import './index.css';
 
+const Login = lazy(() => import('./pages/Login'));
+const Register = lazy(() => import('./pages/Register'));
+const CartPage = lazy(() => import('./pages/CartPage'));
+const CheckoutPage = lazy(() => import('./pages/CheckoutPage'));
+const SuccessPage = lazy(() => import('./pages/SuccessPage'));
+const ProfilePage = lazy(() => import('./pages/ProfilePage'));
+const WarrantyLookupPage = lazy(() => import('./pages/WarrantyLookupPage'));
+const OrderLookupPage = lazy(() => import('./pages/OrderLookupPage'));
+const OrderDetailPage = lazy(() => import('./pages/OrderDetailPage'));
+const BuildPCDetail = lazy(() => import('./pages/BuildPCDetail'));
+const CustomBuildPage = lazy(() => import('./pages/CustomBuildPage'));
+const ProductDetail = lazy(() => import('./pages/ProductDetail'));
+const CategoryPage = lazy(() => import('./pages/CategoryPage'));
+const SearchPage = lazy(() => import('./pages/SearchPage'));
+const NotFoundPage = lazy(() => import('./pages/NotFoundPage'));
+const PromotionsPage = lazy(() => import('./pages/PromotionsPage'));
+
 function StorefrontApp() {
-  const fontPreference = usePersistentFontPreference('storefront_font_preference');
-  
+  const fontPreference = useQaTypography();
+  const { key, pathname, search, hash } = useLocation();
+  const navigationType = useNavigationType();
+  const [homeTabs, setHomeTabs] = useState(() => new Map());
+
+  const selectHomeTab = (section, category) => {
+    setHomeTabs(previous => new Map(previous).set(key, {
+      ...previous.get(key),
+      [section]: category,
+    }));
+  };
+
   return (
     <FontPreferenceContext.Provider value={fontPreference}>
-      <div className="app storefront-app" style={{ fontFamily: fontPreference.font.family }}>
+      <div className="app storefront-app" style={{ fontFamily: fontPreference.font.family, '--font-family-base': fontPreference.font.family, '--project-font-family': fontPreference.font.family, '--project-font-scale': fontPreference.fontSize / 14 }}>
         <ToastContainer />
-        <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/search" element={<SearchPage />} />
-          <Route path="/category/:slug" element={<CategoryPage />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
-          <Route path="/cart" element={<CartPage />} />
-          <Route path="/checkout" element={<CheckoutPage />} />
-          <Route path="/success" element={<SuccessPage />} />
-          <Route path="/profile" element={<ProfilePage />} />
-          <Route path="/warranty-lookup" element={<WarrantyLookupPage />} />
-          <Route path="/order-lookup" element={<OrderLookupPage />} />
-          <Route path="/order/:id" element={<OrderDetailPage />} />
-          <Route path="/build-pc" element={<CustomBuildPage />} />
-          <Route path="/build-pc/:id" element={<BuildPCDetail />} />
-          <Route path="/product/:id" element={<ProductDetail />} />
-          <Route path="/promotions" element={<PromotionsPage />} />
-          {/* Redirect unknown routes to 404 Not Found Page */}
-          <Route path="*" element={<NotFoundPage />} />
-        </Routes>
+        <Suspense fallback={<p role="status">Đang tải trang…</p>}>
+          <Routes>
+            <Route path="/" element={<Home selectedTabs={homeTabs.get(key)} onSelectTab={selectHomeTab} />} />
+            <Route path="/search" element={<SearchPage />} />
+            <Route path="/category/:slug" element={<CategoryPage />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/bao-tri" element={<Navigate to="/login" replace />} />
+            <Route path="/register" element={<Register />} />
+            <Route path="/cart" element={<CartPage />} />
+            <Route path="/checkout" element={<CheckoutPage />} />
+            <Route path="/success" element={<SuccessPage />} />
+            <Route path="/profile" element={<ProfilePage />} />
+            <Route path="/warranty-lookup" element={<WarrantyLookupPage />} />
+            <Route path="/order-lookup" element={<OrderLookupPage />} />
+            <Route path="/order/:id" element={<OrderDetailPage />} />
+            <Route path="/build-pc" element={<CustomBuildPage />} />
+            <Route path="/build-pc/:id" element={<BuildPCDetail />} />
+            <Route path="/product/:id" element={<ProductDetail />} />
+            <Route path="/promotions" element={<PromotionsPage />} />
+            {/* Redirect unknown routes to 404 Not Found Page */}
+            <Route path="*" element={<NotFoundPage />} />
+          </Routes>
+        </Suspense>
+        <BackToTop />
+        <StorefrontScrollPosition entryKey={key} url={`${pathname}${search}${hash}`} navigationType={navigationType} />
       </div>
     </FontPreferenceContext.Provider>
   );
