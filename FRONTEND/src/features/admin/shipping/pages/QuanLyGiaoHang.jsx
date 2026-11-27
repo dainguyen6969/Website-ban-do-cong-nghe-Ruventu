@@ -52,12 +52,23 @@ const STATUSES = [
 
 export default function QuanLyGiaoHang() {
   const { deliveryId } = useParams();
+  const access = useAdminPermissions()?.access;
+  const canViewAll = hasAdminPermission(access, 'giao_hang', 'xem');
+  const scope = canViewAll ? 'all' : 'assigned';
 
-  return deliveryId ? <ShipmentDetail key={deliveryId} id={deliveryId} /> : <ShipmentList />;
+  return deliveryId ? (
+    <ShipmentDetail key={`${scope}:${deliveryId}`} id={deliveryId} />
+  ) : (
+    <ShipmentList key={scope} canViewAll={canViewAll} />
+  );
 }
 
-function ShipmentList() {
+function ShipmentList({ canViewAll }) {
   const navigate = useNavigate();
+  const access = useAdminPermissions()?.access;
+  const canViewOrders = hasAdminPermission(access, 'don_hang', 'xem');
+  const canViewPartners = hasAdminPermission(access, 'doi_tac_van_chuyen', 'xem');
+
   const [params] = useSearchParams();
   const PAGE_SIZE = 20;
 
@@ -85,13 +96,8 @@ function ShipmentList() {
   });
 
   useEffect(() => {
+    if (!canViewAll) return;
     const controller = new AbortController();
-
-    setPartners((current) => ({
-      ...current,
-      loading: true,
-      error: '',
-    }));
 
     async function loadPartners() {
       const items = [];
@@ -134,7 +140,7 @@ function ShipmentList() {
     });
 
     return () => controller.abort();
-  }, [revision]);
+  }, [canViewAll, revision]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -161,7 +167,7 @@ function ShipmentList() {
         params.set('trang_thai_giao_hang', status);
       }
 
-      if (partnerId) {
+      if (canViewAll && partnerId) {
         params.set('doi_tac_van_chuyen_id', partnerId);
       }
 
@@ -203,7 +209,7 @@ function ShipmentList() {
       clearTimeout(timer);
       controller.abort();
     };
-  }, [keyword, status, partnerId, page, revision]);
+  }, [keyword, status, partnerId, page, revision, canViewAll]);
 
   const total = Number(state.pagination?.total_elements) || 0;
 
@@ -255,38 +261,40 @@ function ShipmentList() {
           ))}
         </FilterDropdown>
 
-        <FilterDropdown
-          aria-label="Đối tác vận chuyển"
-          value={partnerId}
-          disabled={partners.loading}
-          onChange={(event) => {
-            setPartnerId(event.target.value);
-            setPage(1);
-          }}
-          selectedDark
-        >
-          <option value="">{partners.loading ? 'Đang tải đối tác...' : 'Tất cả đối tác'}</option>
+        {canViewAll && (
+          <FilterDropdown
+            aria-label="Đối tác vận chuyển"
+            value={partnerId}
+            disabled={partners.loading}
+            onChange={(event) => {
+              setPartnerId(event.target.value);
+              setPage(1);
+            }}
+            selectedDark
+          >
+            <option value="">{partners.loading ? 'Đang tải đối tác...' : 'Tất cả đối tác'}</option>
 
-          {partners.items.map((partner) => (
-            <option key={partner.id} value={String(partner.id)}>
-              {partner.ten_doi_tac}
-              {Number(partner.trang_thai) === 0 ? ' (Ngừng hoạt động)' : ''}
-            </option>
-          ))}
-        </FilterDropdown>
+            {partners.items.map((partner) => (
+              <option key={partner.id} value={String(partner.id)}>
+                {partner.ten_doi_tac}
+                {Number(partner.trang_thai) === 0 ? ' (Ngừng hoạt động)' : ''}
+              </option>
+            ))}
+          </FilterDropdown>
+        )}
 
         <AdminPageAction
           icon="reload"
           aria-label="Tải lại danh sách giao hàng"
           title="Tải lại"
-          disabled={state.loading || partners.loading}
+          disabled={state.loading || (canViewAll && partners.loading)}
           onClick={reload}
         >
           TẢI LẠI
         </AdminPageAction>
       </div>
 
-      {partners.error && (
+      {canViewAll && partners.error && (
         <p className="delivery-list-error" role="alert">
           Không tải được bộ lọc đối tác: {partners.error}
         </p>
@@ -365,13 +373,18 @@ function ShipmentList() {
                       </td>
 
                       <td>
-                        <AdminLink variant="plain"
-                          className="delivery-order-link"
-                          to={`/admin/don-hang/danh-sach-don-hang/${item.don_hang_id}`}
-                        >
-                          <span>{item.ma_don_hang}</span>
-                          <HiOutlineArrowRight size={14} aria-hidden="true" />
-                        </AdminLink>
+                        {canViewOrders ? (
+                          <AdminLink
+                            variant="plain"
+                            className="delivery-order-link"
+                            to={`/admin/don-hang/danh-sach-don-hang/${item.don_hang_id}`}
+                          >
+                            <span>{item.ma_don_hang}</span>
+                            <HiOutlineArrowRight size={14} aria-hidden="true" />
+                          </AdminLink>
+                        ) : (
+                          <strong>{item.ma_don_hang}</strong>
+                        )}
                         <small
                           className="delivery-list-meta delivery-list-ellipsis"
                           title={item.ma_phieu_giao_hang}
@@ -388,7 +401,7 @@ function ShipmentList() {
                       </td>
 
                       <td>
-                        {partner?.id ? (
+                        {canViewPartners && partner?.id ? (
                           <button
                             type="button"
                             className="delivery-partner-link"
@@ -405,7 +418,7 @@ function ShipmentList() {
                             <small>{partner.ma_doi_tac}</small>
                           </button>
                         ) : (
-                          <span className="delivery-muted">—</span>
+                          <span className="delivery-muted">{partner?.ten_doi_tac || '—'}</span>
                         )}
                       </td>
 
@@ -508,7 +521,11 @@ function ShipmentDetail({ id }) {
   const navigate = useNavigate();
 
   const access = useAdminPermissions()?.access;
-  const canEditDelivery = hasAdminPermission(access, 'giao_hang', 'sua');
+  const canViewOrders = hasAdminPermission(access, 'don_hang', 'xem');
+  const canViewPartners = hasAdminPermission(access, 'doi_tac_van_chuyen', 'xem');
+  const canEditDelivery =
+    hasAdminPermission(access, 'giao_hang', 'xem') &&
+    hasAdminPermission(access, 'giao_hang', 'sua');
   const canReceiveReturned = hasSystemAdminPermission(access, 'giao_hang', 'sua');
 
   const operationBusy = useRef(false);
@@ -737,11 +754,7 @@ function ShipmentDetail({ id }) {
           <h1 className="delivery-detail-code">{delivery.ma_phieu_giao_hang}</h1>
         </div>
 
-        <AdminPageAction
-          icon="back"
-          disabled={busy}
-          onClick={() => navigate(LIST)}
-        >
+        <AdminPageAction icon="back" disabled={busy} onClick={() => navigate(LIST)}>
           QUAY LẠI
         </AdminPageAction>
       </header>
@@ -863,13 +876,17 @@ function ShipmentDetail({ id }) {
                   {recipient.dia_chi_giao_hang || '—'}
                 </ShipmentInfo>
                 <ShipmentInfo title="MÃ ĐƠN HÀNG">
-                  <button
-                    type="button"
-                    className="delivery-link"
-                    onClick={() => navigate(`/admin/don-hang/danh-sach-don-hang/${order.id}`)}
-                  >
-                    {order.ma_don_hang}
-                  </button>
+                  {canViewOrders ? (
+                    <button
+                      type="button"
+                      className="delivery-link"
+                      onClick={() => navigate(`/admin/don-hang/danh-sach-don-hang/${order.id}`)}
+                    >
+                      {order.ma_don_hang}
+                    </button>
+                  ) : (
+                    order.ma_don_hang
+                  )}
                 </ShipmentInfo>
                 <ShipmentInfo title="CẬP NHẬT CUỐI">
                   {dateTime(delivery.ngay_cap_nhat)}
@@ -952,7 +969,7 @@ function ShipmentDetail({ id }) {
             <ShipmentPanel title="THÔNG TIN VẬN CHUYỂN">
               <dl className="delivery-side-info">
                 <ShipmentInfo title="ĐỐI TÁC VẬN CHUYỂN">
-                  {partner.id ? (
+                  {canViewPartners && partner.id ? (
                     <button
                       type="button"
                       className="delivery-link"
@@ -965,7 +982,7 @@ function ShipmentDetail({ id }) {
                       {partner.ten_doi_tac}
                     </button>
                   ) : (
-                    '—'
+                    partner.ten_doi_tac || '—'
                   )}
                 </ShipmentInfo>
                 <ShipmentInfo title="MÃ ĐỐI TÁC">{partner.ma_doi_tac || '—'}</ShipmentInfo>

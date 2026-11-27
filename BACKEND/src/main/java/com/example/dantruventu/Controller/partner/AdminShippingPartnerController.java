@@ -8,6 +8,7 @@ import com.example.dantruventu.DTO.Response.partner.AdminShippingPartnerListResp
 import com.example.dantruventu.DTO.Response.partner.AdminShippingPartnerResponse;
 import com.example.dantruventu.DTO.Response.partner.AdminShippingPartnerStatusResponse;
 import com.example.dantruventu.Services.AdminShippingPartnerService;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -79,6 +80,20 @@ public class AdminShippingPartnerController {
         .status(200)
         .message("Lấy danh sách giao hàng của đối tác thành công")
         .data(service.getDeliveries(id, keyword, trangThaiGiaoHang, page, limit))
+        .build();
+  }
+
+  public record ShipperAccount(
+      @JsonProperty(value = "nguoi_dung_id", required = true) Long nguoiDungId) {}
+
+  @PutMapping("/{id}/shipper-account")
+  @PreAuthorize("hasRole('ADMIN')")
+  public ApiResponse<AdminShippingPartnerResponse> linkShipper(
+      @PathVariable("id") Long id, @RequestBody ShipperAccount request) {
+    return ApiResponse.<AdminShippingPartnerResponse>builder()
+        .status(200)
+        .message("Đã cập nhật liên kết shipper")
+        .data(service.linkShipper(id, request.nguoiDungId()))
         .build();
   }
 

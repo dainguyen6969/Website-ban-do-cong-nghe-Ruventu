@@ -66,7 +66,8 @@ public class AdminDeliveryService {
   @Value("${ruventu.shipping.time-zone:Asia/Ho_Chi_Minh}")
   private String shippingTimeZone;
 
-  public ListData getList(String keyword, String trangThai, Long partnerId, int page, int limit) {
+  public ListData getList(
+      String keyword, String trangThai, Long partnerId, int page, int limit, Long assignedUserId) {
 
     if (keyword != null && keyword.length() > 100) {
       throw invalid("Từ khóa tối đa 100 ký tự");
@@ -92,7 +93,7 @@ public class AdminDeliveryService {
 
     var result =
         deliveryRepository.findAll(
-            DeliverySpecification.build(keyword, status, partnerId),
+            DeliverySpecification.build(keyword, status, partnerId, assignedUserId),
             PageRequest.of(page, limit, Sort.by(Sort.Direction.DESC, "ngayTao", "id")));
 
     var pagination =
@@ -108,7 +109,7 @@ public class AdminDeliveryService {
     return new ListData(
         result.getContent().stream().map(entity -> mapper.toListItem(entity, zone)).toList(),
         pagination,
-        statusCounts(keyword, partnerId));
+        statusCounts(keyword, partnerId, assignedUserId));
   }
 
   public ReturnRequirements getReturnRequirements(Long id) {
@@ -181,12 +182,23 @@ public class AdminDeliveryService {
   }
 
   public Detail getDetail(Long id) {
+    return getDetail(id, null);
+  }
+
+  public Detail getDetail(Long id, Long assignedUserId) {
     validateId(id);
 
     PhieuGiaoHang delivery =
         deliveryRepository
             .findById(id)
             .orElseThrow(() -> notFound("Phiếu giao hàng không tồn tại"));
+
+    if (assignedUserId != null) {
+      NguoiDung assignee = delivery.getDoiTacVanChuyen().getNguoiDung();
+      if (assignee == null || !assignedUserId.equals(assignee.getId())) {
+        throw notFound("Phiếu giao hàng không tồn tại");
+      }
+    }
 
     DonHang order = delivery.getDonHang();
 
@@ -1286,7 +1298,7 @@ public class AdminDeliveryService {
     }
   }
 
-  private Map<String, Long> statusCounts(String keyword, Long partnerId) {
+  private Map<String, Long> statusCounts(String keyword, Long partnerId, Long assignedUserId) {
     Map<String, Long> counts = new LinkedHashMap<>();
 
     for (TrangThaiGiaoHangEnum value : TrangThaiGiaoHangEnum.values()) {
@@ -1302,7 +1314,8 @@ public class AdminDeliveryService {
 
     // Giữ bộ lọc từ khóa và đối tác; thống kê tất cả trạng thái.
     var predicate =
-        DeliverySpecification.build(keyword, null, partnerId).toPredicate(root, query, cb);
+        DeliverySpecification.build(keyword, null, partnerId, assignedUserId)
+            .toPredicate(root, query, cb);
 
     if (predicate != null) {
       query.where(predicate);

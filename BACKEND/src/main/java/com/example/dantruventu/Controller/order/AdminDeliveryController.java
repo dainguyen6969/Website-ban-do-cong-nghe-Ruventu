@@ -6,10 +6,13 @@ import com.example.dantruventu.DTO.Request.order.AdminDeliveryStatusRequest;
 import com.example.dantruventu.DTO.Request.order.AdminDeliveryUpdateRequest;
 import com.example.dantruventu.DTO.Response.ApiResponse;
 import com.example.dantruventu.DTO.Response.order.AdminDeliveryResponse.*;
+import com.example.dantruventu.Entity.NguoiDung;
+import com.example.dantruventu.Services.AdminRoleService;
 import com.example.dantruventu.Services.order.AdminDeliveryService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -19,10 +22,12 @@ import org.springframework.web.bind.annotation.*;
 public class AdminDeliveryController {
 
   private final AdminDeliveryService service;
+  private final AdminRoleService adminRoleService;
 
   @GetMapping
-  @PreAuthorize("@adminRoleService.hasModuleAction(principal, 'giao_hang', 'xem')")
+  @PreAuthorize("@adminRoleService.canViewDeliveries(principal)")
   public ApiResponse<ListData> getList(
+      @AuthenticationPrincipal NguoiDung actor,
       @RequestParam(name = "keyword", required = false) String keyword,
       @RequestParam(name = "trang_thai_giao_hang", required = false) String trangThai,
       @RequestParam(name = "doi_tac_van_chuyen_id", required = false) Long partnerId,
@@ -31,7 +36,13 @@ public class AdminDeliveryController {
 
     return success(
         "Lấy danh sách phiếu giao hàng thành công",
-        service.getList(keyword, trangThai, partnerId, page, limit));
+        service.getList(
+            keyword,
+            trangThai,
+            partnerId,
+            page,
+            limit,
+            adminRoleService.deliveryAssigneeId(actor)));
   }
 
   @GetMapping("/{id}/return-requirements")
@@ -41,9 +52,13 @@ public class AdminDeliveryController {
   }
 
   @GetMapping("/{id}")
-  @PreAuthorize("@adminRoleService.hasModuleAction(principal, 'giao_hang', 'xem')")
-  public ApiResponse<Detail> getDetail(@PathVariable("id") Long id) {
-    return success("Lấy chi tiết phiếu giao hàng thành công", service.getDetail(id));
+  @PreAuthorize("@adminRoleService.canViewDeliveries(principal)")
+  public ApiResponse<Detail> getDetail(
+      @PathVariable("id") Long id, @AuthenticationPrincipal NguoiDung actor) {
+
+    return success(
+        "Lấy chi tiết phiếu giao hàng thành công",
+        service.getDetail(id, adminRoleService.deliveryAssigneeId(actor)));
   }
 
   @PutMapping("/{id}")

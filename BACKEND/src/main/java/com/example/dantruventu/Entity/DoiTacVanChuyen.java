@@ -44,6 +44,10 @@ public class DoiTacVanChuyen {
   @Column(name = "loai_doi_tac", nullable = false, length = 30)
   private LoaiDoiTacVanChuyenEnum loaiDoiTac;
 
+  @OneToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "nguoi_dung_id", unique = true)
+  private NguoiDung nguoiDung;
+
   @Builder.Default
   @Convert(converter = TrangThaiCoBanConverter.class)
   @ColumnDefault("1")

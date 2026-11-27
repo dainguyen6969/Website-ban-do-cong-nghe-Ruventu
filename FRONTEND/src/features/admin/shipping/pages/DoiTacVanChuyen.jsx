@@ -10,7 +10,7 @@ import { label, money } from '../../orders/api/orderApi';
 
 import { basicStatusValue } from '../../../../shared/services/mutationUtils';
 
-import { hasAdminPermission } from '../../../../auth/roleModel';
+import { hasAdminPermission, hasSystemAdminPermission } from '../../../../auth/roleModel';
 import { useAdminPermissions } from '../../../../shared/components/ui/PermissionGate';
 
 import './DoiTacVanChuyen.css';
@@ -506,6 +506,18 @@ export default function DoiTacVanChuyen() {
             onBack={backToList}
             onAction={() => openStatusAction(detail.data)}
             canEdit={canEditPartner}
+            canLink={hasSystemAdminPermission(access, 'doi_tac_van_chuyen', 'sua')}
+            linkError={pendingAction ? '' : mutationError}
+            onLink={(userId) =>
+              runMutation(
+                () =>
+                  adminRequest(`${PATH}/${encodeURIComponent(selectedId)}/shipper-account`, {
+                    method: 'PUT',
+                    body: JSON.stringify({ nguoi_dung_id: userId }),
+                  }),
+                () => setSuccessMessage('Đã cập nhật tài khoản shipper.')
+              )
+            }
           />
         )
       ) : (
@@ -806,7 +818,18 @@ function ServerPagination({ data, page, onPageChange, noun, idPrefix, pageSize =
   );
 }
 
-function PartnerDetail({ partner, revision, busy, successMessage, onBack, onAction, canEdit }) {
+function PartnerDetail({
+  partner,
+  revision,
+  busy,
+  successMessage,
+  onBack,
+  onAction,
+  canEdit,
+  canLink,
+  linkError,
+  onLink,
+}) {
   const navigate = useNavigate();
 
   const access = useAdminPermissions()?.access;
@@ -880,11 +903,7 @@ function PartnerDetail({ partner, revision, busy, successMessage, onBack, onActi
         </div>
 
         <div className="partner-detail-actions admin-page-actions">
-          <AdminPageAction
-            icon="back"
-            disabled={busy}
-            onClick={onBack}
-          >
+          <AdminPageAction icon="back" disabled={busy} onClick={onBack}>
             QUAY LẠI
           </AdminPageAction>
 
@@ -916,6 +935,38 @@ function PartnerDetail({ partner, revision, busy, successMessage, onBack, onActi
             <InfoRow title="CẬP NHẬT CUỐI">{formatDateTimeVN(partner.ngay_cap_nhat)}</InfoRow>
           </dl>
         </PartnerPanel>
+
+        {canLink && ['SHIP_CUA_HANG', 'SHIP_CA_NHAN'].includes(partner.loai_doi_tac) && (
+          <PartnerPanel title="TÀI KHOẢN SHIPPER">
+            <form
+              key={`${partner.id}:${partner.nguoi_dung_id ?? ''}`}
+              onSubmit={(event) => {
+                event.preventDefault();
+                const value = String(
+                  new FormData(event.currentTarget).get('shipperId') || ''
+                ).trim();
+                if (!value && !partner.nguoi_dung_id) return;
+                if (!value && !window.confirm('Gỡ liên kết tài khoản shipper?')) return;
+                void onLink(value ? Number(value) : null);
+              }}
+            >
+              <label>
+                ID nhân viên có vai trò SHIPPER
+                <input
+                  name="shipperId"
+                  inputMode="numeric"
+                  pattern="[1-9][0-9]{0,14}"
+                  defaultValue={partner.nguoi_dung_id ?? ''}
+                  disabled={busy}
+                />
+              </label>
+              <button type="submit" className="partner-btn partner-btn--outline" disabled={busy}>
+                LƯU LIÊN KẾT
+              </button>
+              {linkError && <p role="alert">{linkError}</p>}
+            </form>
+          </PartnerPanel>
+        )}
 
         <PartnerPanel title="LỊCH SỬ GIAO HÀNG" headerTools={historyTools}>
           <div className="partner-history-wrap">

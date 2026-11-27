@@ -84,6 +84,14 @@ export const PERMISSION_GROUPS = Object.freeze([
         description: 'Điều phối vận chuyển, tạo phiếu giao và theo dõi đơn',
         actions: ['xem', 'them', 'sua'],
       },
+
+      {
+        id: 'giao_hang_duoc_phan_cong',
+        label: 'Phiếu giao được phân công',
+        description: 'Xem danh sách và chi tiết phiếu được giao cho tài khoản này',
+        actions: ['xem'],
+      },
+
       {
         id: 'khach_tra_hang',
         label: 'Khách trả hàng',
@@ -407,6 +415,14 @@ export function canOpenAdminPath(access, pathname, search = '') {
   }
 
   const moduleId = routePermissionModule(path);
+
+  if (moduleId === 'giao_hang') {
+    return (
+      hasAdminPermission(access, 'giao_hang', 'xem') ||
+      hasAdminPermission(access, 'giao_hang_duoc_phan_cong', 'xem')
+    );
+  }
+
   return (
     moduleId !== null &&
     hasAdminPermission(access, moduleId, 'xem') &&
