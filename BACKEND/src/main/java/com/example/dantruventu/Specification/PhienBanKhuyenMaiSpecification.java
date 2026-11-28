@@ -7,6 +7,7 @@ import jakarta.persistence.criteria.Join;
 import jakarta.persistence.criteria.JoinType;
 import jakarta.persistence.criteria.Predicate;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Locale;
 import org.springframework.data.jpa.domain.Specification;
@@ -15,7 +16,8 @@ public final class PhienBanKhuyenMaiSpecification {
 
   private PhienBanKhuyenMaiSpecification() {}
 
-  public static Specification<PhienBanSanPham> activeVariants(String keyword) {
+  public static Specification<PhienBanSanPham> activeVariants(
+      String keyword, Collection<Long> categoryIds, Long brandId) {
     return (root, query, criteriaBuilder) -> {
       List<Predicate> predicates = new ArrayList<>();
 
@@ -23,6 +25,13 @@ public final class PhienBanKhuyenMaiSpecification {
 
       predicates.add(criteriaBuilder.equal(root.get("trangThai"), TrangThaiCoBanEnum.HOAT_DONG));
       predicates.add(criteriaBuilder.equal(product.get("trangThai"), TrangThaiCoBanEnum.HOAT_DONG));
+
+      if (!categoryIds.isEmpty()) {
+        predicates.add(product.get("danhMuc").get("id").in(categoryIds));
+      }
+      if (brandId != null) {
+        predicates.add(criteriaBuilder.equal(product.get("thuongHieu").get("id"), brandId));
+      }
 
       if (keyword != null) {
         String pattern = "%" + escapeLike(keyword.toLowerCase(Locale.ROOT)) + "%";

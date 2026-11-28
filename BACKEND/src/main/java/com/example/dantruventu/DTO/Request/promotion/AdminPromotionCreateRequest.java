@@ -3,6 +3,7 @@ package com.example.dantruventu.DTO.Request.promotion;
 import com.example.dantruventu.Enum.DoiTuongKhuyenMai;
 import com.example.dantruventu.Enum.LoaiApDungKhuyenMai;
 import com.example.dantruventu.Enum.PhuongThucKhuyenMai;
+import com.example.dantruventu.Error.PromotionErrorMessages;
 import com.fasterxml.jackson.annotation.JsonAnySetter;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.Valid;
@@ -18,6 +19,11 @@ import java.util.ArrayList;
 import java.util.List;
 import lombok.Getter;
 import lombok.Setter;
+import tools.jackson.core.JsonParser;
+import tools.jackson.core.JsonToken;
+import tools.jackson.databind.DeserializationContext;
+import tools.jackson.databind.ValueDeserializer;
+import tools.jackson.databind.annotation.JsonDeserialize;
 
 @Getter
 @Setter
@@ -42,6 +48,7 @@ public class AdminPromotionCreateRequest {
   private DoiTuongKhuyenMai doiTuongKhuyenMai;
 
   @Positive(message = "Số lượng áp dụng phải là số nguyên dương")
+  @JsonDeserialize(using = StrictInteger.class)
   @JsonProperty("so_luong_ap_dung")
   private Integer soLuongApDung;
 
@@ -70,7 +77,7 @@ public class AdminPromotionCreateRequest {
 
   @JsonAnySetter
   public void rejectUnknownField(String name, Object value) {
-    throw new IllegalArgumentException("Trường không được hỗ trợ: " + name);
+    throw new IllegalArgumentException(PromotionErrorMessages.UNSUPPORTED_CONTENT);
   }
 
   @Getter
@@ -79,6 +86,7 @@ public class AdminPromotionCreateRequest {
 
     @NotNull(message = "Phiên bản sản phẩm không được để trống")
     @Positive(message = "Phiên bản sản phẩm không hợp lệ")
+    @JsonDeserialize(using = StrictLong.class)
     @JsonProperty("phien_ban_id")
     private Long phienBanId;
 
@@ -88,12 +96,35 @@ public class AdminPromotionCreateRequest {
 
     @NotNull(message = "Số lượng chi tiết không được để trống")
     @Positive(message = "Số lượng chi tiết phải là số nguyên dương")
+    @JsonDeserialize(using = StrictInteger.class)
     @JsonProperty("so_luong")
     private Integer soLuong;
 
     @JsonAnySetter
     public void rejectUnknownField(String name, Object value) {
-      throw new IllegalArgumentException("Trường không được hỗ trợ: " + name);
+      throw new IllegalArgumentException(PromotionErrorMessages.UNSUPPORTED_CONTENT);
+    }
+  }
+
+  public static final class StrictInteger extends ValueDeserializer<Integer> {
+    @Override
+    public Integer deserialize(JsonParser parser, DeserializationContext context) {
+      requireInteger(parser);
+      return parser.getIntValue();
+    }
+  }
+
+  public static final class StrictLong extends ValueDeserializer<Long> {
+    @Override
+    public Long deserialize(JsonParser parser, DeserializationContext context) {
+      requireInteger(parser);
+      return parser.getLongValue();
+    }
+  }
+
+  private static void requireInteger(JsonParser parser) {
+    if (!parser.hasToken(JsonToken.VALUE_NUMBER_INT)) {
+      throw new IllegalArgumentException(PromotionErrorMessages.invalidField(parser.currentName()));
     }
   }
 }

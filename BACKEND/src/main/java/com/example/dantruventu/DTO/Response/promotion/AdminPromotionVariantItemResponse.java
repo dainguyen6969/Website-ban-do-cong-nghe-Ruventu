@@ -1,7 +1,9 @@
 package com.example.dantruventu.DTO.Response.promotion;
 
+import com.example.dantruventu.DTO.catalog.CatalogFields;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import java.math.BigDecimal;
+import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -34,4 +36,13 @@ public class AdminPromotionVariantItemResponse {
 
   @JsonProperty("gia_ban_le")
   private BigDecimal giaBanLe;
+
+  @JsonProperty("co_quan_ly_serial")
+  private boolean coQuanLySerial;
+
+  @JsonProperty("ton_co_the_ban")
+  private long tonCoTheBan;
+
+  @JsonProperty("thuoc_tinh_phien_ban")
+  private List<CatalogFields.AttributeData> thuocTinhPhienBan;
 }
