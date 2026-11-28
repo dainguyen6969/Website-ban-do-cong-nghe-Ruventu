@@ -239,9 +239,7 @@ const OrderLookupPage = () => {
             <h1 className="banner-title">TRA CỨU ĐƠN HÀNG</h1>
           </div>
 
-          <p className="banner-subtitle">
-            Nhập Mã đơn hàng hoặc Số điện thoại để kiểm tra trạng thái đơn hàng của bạn.
-          </p>
+          <AdminHelp>Nhập Mã đơn hàng hoặc Số điện thoại để kiểm tra trạng thái đơn hàng của bạn.</AdminHelp>
 
           <form className="search-form" onSubmit={handleSearch}>
             <div className="search-input-wrapper">

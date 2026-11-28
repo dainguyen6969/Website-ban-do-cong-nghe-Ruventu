@@ -1,3 +1,4 @@
+import AdminHelp from '../../../shared/components/ui/AdminHelp';
 // Reusable admin UI primitive: FontSwitcher.
 import { useEffect, useId, useRef, useState } from 'react';
 import { Type } from 'lucide-react';
@@ -46,7 +47,7 @@ export default function FontSwitcher({ variant = 'admin' }) {
         <div className="font-switcher__menu" id={menuId} role="dialog" aria-label="Thử phông chữ và cỡ chữ">
           <div className="font-switcher__title"><strong>FONT QA</strong><span>Thử giao diện</span></div>
           <div className="font-switcher__body">
-          <p className="font-switcher__hint">Chỉ thử trên trình duyệt này, không thay đổi cài đặt chung.</p>
+          <AdminHelp>Chỉ thử trên trình duyệt này, không thay đổi cài đặt chung.</AdminHelp>
           <FontSizeControl value={fontSize} onChange={selectFontSize} />
           <fieldset className="font-switcher__families"><legend>Phông chữ</legend>
           <div className="font-switcher__list" tabIndex="0" aria-label="Danh sách phông chữ thử nghiệm">

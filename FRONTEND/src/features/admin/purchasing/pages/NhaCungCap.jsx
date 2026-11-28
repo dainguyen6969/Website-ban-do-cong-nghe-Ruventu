@@ -685,7 +685,7 @@ function SupplierCashbookPanel({ supplierId, orders = [], access }) {
           </div>
           <div className="supplier-stat-content">
             <span className="supplier-stat-title">TỔNG TIỀN ĐÃ CHI</span>
-            <span className="supplier-stat-subtitle">Thanh toán tiền nhập hàng</span>
+            <AdminHelp>Thanh toán tiền nhập hàng</AdminHelp>
             <strong className="supplier-stat-value text-red">-{money(summary.tongChi)}</strong>
           </div>
         </div>
@@ -696,7 +696,7 @@ function SupplierCashbookPanel({ supplierId, orders = [], access }) {
           </div>
           <div className="supplier-stat-content">
             <span className="supplier-stat-title">TỔNG TIỀN THU HOÀN</span>
-            <span className="supplier-stat-subtitle">Tiền NCC hoàn lại khi trả hàng</span>
+            <AdminHelp>Tiền NCC hoàn lại khi trả hàng</AdminHelp>
             <strong className="supplier-stat-value text-green">+{money(summary.tongThu)}</strong>
           </div>
         </div>
@@ -707,7 +707,7 @@ function SupplierCashbookPanel({ supplierId, orders = [], access }) {
           </div>
           <div className="supplier-stat-content">
             <span className="supplier-stat-title">CHÊNH LỆCH THỰC CHI</span>
-            <span className="supplier-stat-subtitle">Tổng chi trừ thu hoàn</span>
+            <AdminHelp>Tổng chi trừ thu hoàn</AdminHelp>
             <strong className="supplier-stat-value text-dark">
               {money(summary.tongChi - summary.tongThu)}
             </strong>

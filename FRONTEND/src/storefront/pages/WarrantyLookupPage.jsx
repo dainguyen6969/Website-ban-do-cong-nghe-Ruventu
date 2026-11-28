@@ -1,3 +1,4 @@
+import AdminHelp from '../../shared/components/ui/AdminHelp';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, ArrowLeft, Check, HelpCircle } from 'lucide-react';
@@ -435,9 +436,7 @@ export default function WarrantyLookupPage() {
             <h1 className="banner-title">TRA CỨU BẢO HÀNH</h1>
           </div>
 
-          <p className="banner-subtitle">
-            Nhập thông tin đơn hàng, sản phẩm hoặc bảo hành để tra cứu.
-          </p>
+          <AdminHelp>Nhập thông tin đơn hàng, sản phẩm hoặc bảo hành để tra cứu.</AdminHelp>
 
           <form className="search-form" onSubmit={search}>
             <div className="search-input-wrapper">
