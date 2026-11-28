@@ -68,7 +68,7 @@ class AdminPromotionOrdersTest {
       NguoiDung.builder()
           .id(1L)
           .trangThai(TrangThaiCoBanEnum.HOAT_DONG)
-          .vaiTro(VaiTro.builder().tenVaiTro("ADMIN").build())
+          .vaiTro(VaiTro.builder().maVaiTro("ADMIN").tenVaiTro("System administrator").build())
           .build();
   private final LocalDateTime time = LocalDateTime.of(2026, 10, 12, 9, 0);
   private final DonHang order =
@@ -345,7 +345,13 @@ class AdminPromotionOrdersTest {
   @ParameterizedTest
   @ValueSource(strings = {"USER", "QUAN_LY", "NHAN_VIEN_BAN_HANG"})
   void nonAdminCannotReadRecipientsOrProbePromotionExistence(String role) throws Exception {
-    actor.getVaiTro().setTenVaiTro(role);
+    org.mockito.Mockito.when(context.actor())
+        .thenReturn(
+            NguoiDung.builder()
+                .id(1L)
+                .trangThai(TrangThaiCoBanEnum.HOAT_DONG)
+                .vaiTro(VaiTro.builder().maVaiTro(role).tenVaiTro("ADMIN").build())
+                .build());
     mvc.perform(get(URL, 10)).andExpect(status().isForbidden());
     verifyNoInteractions(programs, applications);
   }

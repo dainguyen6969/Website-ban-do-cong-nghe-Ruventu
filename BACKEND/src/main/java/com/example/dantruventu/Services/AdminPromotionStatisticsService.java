@@ -96,7 +96,7 @@ public class AdminPromotionStatisticsService {
     var actor = context.actor();
     if (actor.getTrangThai() != TrangThaiCoBanEnum.HOAT_DONG
         || actor.getVaiTro() == null
-        || !"ADMIN".equals(actor.getVaiTro().getTenVaiTro())) {
+        || !"ADMIN".equals(actor.getVaiTro().getMaVaiTro())) {
       throw new AppException(ErrorCode.FORBIDDEN);
     }
   }
