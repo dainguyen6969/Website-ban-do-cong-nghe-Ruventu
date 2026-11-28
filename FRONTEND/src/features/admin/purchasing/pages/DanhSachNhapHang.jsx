@@ -222,9 +222,9 @@ export default function DanhSachNhapHang() {
       </div>
 
       {/* Bộ lọc */}
-      <div className="purchase-toolbar">
+      <div className="purchase-toolbar admin-toolbar">
         {/* Tìm kiếm */}
-        <label className="purchase-search">
+        <label className="purchase-search admin-toolbar-search">
           <HiOutlineSearch aria-hidden="true" />
 
           <input
@@ -262,7 +262,7 @@ export default function DanhSachNhapHang() {
 
         {/* Xóa bộ lọc */}
         {hasFilters && (
-          <button type="button" className="clear-filters" onClick={clearFilters}>
+          <button type="button" className="clear-filters admin-toolbar-button admin-toolbar-outline" onClick={clearFilters}>
             XÓA BỘ LỌC
           </button>
         )}

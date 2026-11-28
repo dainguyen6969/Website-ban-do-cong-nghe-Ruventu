@@ -8,6 +8,10 @@
   background: #fff;
   color: #111;
 }
+
+.admin-app main.pos-page {
+  padding-bottom: 0;
+}
 .pos-controls {
   display: contents;
 }
@@ -1029,6 +1033,17 @@
   }
   .pos-checkout {
     margin-top: 20px;
+  }
+}
+
+@media (max-width: 600px) {
+  .pos-columns {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .pos-middle {
+    min-height: 280px;
+    border-top: 2px solid #111;
   }
 }
 

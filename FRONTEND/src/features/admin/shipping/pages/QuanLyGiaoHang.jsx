@@ -252,7 +252,7 @@ function ShipmentList({ canViewAll }) {
       <h1 id="delivery-list-heading" className="delivery-list-heading">
         Quản lý giao hàng
       </h1>
-      <div className="delivery-toolbar">
+      <div className="delivery-toolbar admin-toolbar">
         <label className="delivery-search">
           <HiOutlineSearch size={16} aria-hidden="true" />
 
@@ -309,7 +309,7 @@ function ShipmentList({ canViewAll }) {
           </FilterDropdown>
         )}
 
-        <AdminPageAction
+        <AdminPageAction compact
           icon="reload"
           aria-label="Tải lại danh sách giao hàng"
           title="Tải lại"

@@ -11,7 +11,16 @@
 }
 
 .promo-detail-shell .w-shell-content {
-    padding-bottom: 60px;
+    padding-bottom: 24px;
+}
+
+.promo-detail-shell .w-shell-title-row {
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.promo-detail-shell .w-shell-tabs {
+    overflow-x: auto;
 }
 
 .promo-detail-grid--full {

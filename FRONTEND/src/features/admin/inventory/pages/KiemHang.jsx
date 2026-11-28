@@ -100,9 +100,9 @@ export default function KiemHang() {
       </header>
 
       <section className="stock-check-filters" aria-label="Bộ lọc phiếu kiểm hàng">
-        <div className="stock-check-toolbar">
+        <div className="stock-check-toolbar admin-toolbar">
           {/* Tìm kiếm phiếu kiểm hàng */}
-          <label className="stock-check-search">
+          <label className="stock-check-search admin-toolbar-search">
             <HiOutlineSearch aria-hidden="true" />
 
             <span className="sr-only">Tìm phiếu kiểm hàng</span>
@@ -146,8 +146,8 @@ export default function KiemHang() {
           {/* Hiển thị / Ẩn bộ lọc nâng cao */}
           <button
             type="button"
-            className={`stock-check-button stock-check-filter-toggle ${
-              showMoreFilters ? 'is-active' : ''
+            className={`stock-check-button admin-toolbar-button stock-check-filter-toggle ${
+              showMoreFilters ? 'is-active' : 'admin-toolbar-outline'
             }`}
             aria-expanded={showMoreFilters}
             aria-controls="stock-check-extra-filters"

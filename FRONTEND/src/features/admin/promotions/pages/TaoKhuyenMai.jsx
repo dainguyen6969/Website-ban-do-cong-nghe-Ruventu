@@ -1,3 +1,4 @@
+import AdminHelp from '../../../../shared/components/ui/AdminHelp';
 import { scaledFontSize } from '../../../../typography/projectFontSize.js';
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -600,10 +601,7 @@ export default function TaoKhuyenMai() {
       <div className="create-header-bar">
         <div className="create-header-left">
           <div className="create-breadcrumb">KHUYẾN MẠI / TẠO KHUYẾN MẠI</div>
-          <h1 className="create-main-title">TẠO CHƯƠNG TRÌNH KHUYẾN MẠI</h1>
-          <div className="create-subtitle">
-            Cấu hình ưu đãi, điều kiện mua và hạn mức trước khi lưu.
-          </div>
+          <div className="admin-heading-with-help"><h1 className="create-main-title">TẠO CHƯƠNG TRÌNH KHUYẾN MẠI</h1><AdminHelp>Cấu hình ưu đãi, điều kiện mua và hạn mức trước khi lưu.</AdminHelp></div>
         </div>
         <div className="create-header-right">
           <AdminPageAction
@@ -622,7 +620,7 @@ export default function TaoKhuyenMai() {
         <div className="create-card">
           <div className="create-card-header">
             <span className="create-card-accent" aria-hidden="true" />
-            <h3>01 / THÔNG TIN CHƯƠNG TRÌNH</h3>
+            <h3>THÔNG TIN CHƯƠNG TRÌNH</h3>
           </div>
           <div className="create-card-body">
             <div className="create-form-field">
@@ -688,7 +686,7 @@ export default function TaoKhuyenMai() {
         <div className="create-card">
           <div className="create-card-header">
             <span className="create-card-accent" aria-hidden="true" />
-            <h3>02 / HÌNH THỨC ƯU ĐÃI</h3>
+            <h3>ƯU ĐÃI</h3>
           </div>
           <div className="create-card-body">
             {/* Selector: Chiết khấu / Tặng sản phẩm */}
@@ -807,7 +805,7 @@ export default function TaoKhuyenMai() {
       <div className="create-card full-width">
         <div className="create-card-header">
           <span className="create-card-accent" aria-hidden="true" />
-          <h3>03 / PHẠM VI & ĐIỀU KIỆN</h3>
+          <h3>PHẠM VI & ĐIỀU KIỆN</h3>
         </div>
         <div className="create-card-body">
           {/* Scope row: When TẶNG SẢN PHẨM, only show TOÀN ĐƠN and PHIÊN BẢN SẢN PHẨM (Image 1) */}
@@ -1111,7 +1109,7 @@ export default function TaoKhuyenMai() {
       <div className="create-card full-width">
         <div className="create-card-header">
           <span className="create-card-accent" aria-hidden="true" />
-          <h3>04 / THỜI GIAN & HẠN MỨC</h3>
+          <h3>THỜI GIAN & HẠN MỨC</h3>
         </div>
         <div className="create-card-body">
           <div className="threshold-grid" style={{ marginTop: '14px' }}>
@@ -1186,7 +1184,7 @@ export default function TaoKhuyenMai() {
       <div className="create-card full-width">
         <div className="create-card-header">
           <span className="create-card-accent" aria-hidden="true" />
-          <h3>05 / KIỂM TRA TRƯỚC KHI LƯU</h3>
+          <h3>KIỂM TRA TRƯỚC KHI LƯU</h3>
         </div>
         <div className="create-card-body">
           {method === 'TẶNG SẢN PHẨM' ? (

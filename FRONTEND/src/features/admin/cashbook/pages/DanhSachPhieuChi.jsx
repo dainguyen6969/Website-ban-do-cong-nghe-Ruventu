@@ -1,3 +1,4 @@
+import AdminHelp from '../../../../shared/components/ui/AdminHelp';
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { Check, X } from 'lucide-react';
@@ -213,11 +214,10 @@ export default function DanhSachPhieuChi() {
       </div>
 
       <div className="pt-header-main">
-        <h1>PHIẾU CHI</h1>
-        <p>QUẢN LÝ CÁC KHOẢN TIỀN ĐÃ CHI RA KHỎI QUỸ</p>
+        <div className="admin-heading-with-help"><h1>PHIẾU CHI</h1><AdminHelp>QUẢN LÝ CÁC KHOẢN TIỀN ĐÃ CHI RA KHỎI QUỸ</AdminHelp></div>
       </div>
 
-      <div className="pt-filter-bar" style={{ borderBottom: showAdvanced ? 'none' : undefined }}>
+      <div className="pt-filter-bar admin-toolbar" style={{ borderBottom: showAdvanced ? 'none' : undefined }}>
         <input
           type="text"
           placeholder="TÌM MÃ PHIẾU / NGƯỜI NHẬN / CHỨNG TỪ..."
@@ -269,7 +269,7 @@ export default function DanhSachPhieuChi() {
       </div>
 
       {showAdvanced && (
-        <div className="pt-filter-bar" style={{ paddingTop: 0, paddingBottom: '16px' }}>
+        <div className="pt-filter-bar admin-toolbar" style={{ paddingTop: 0, paddingBottom: '16px' }}>
           <FilterDropdown
             value={filterGroup}
             onChange={(e) => {

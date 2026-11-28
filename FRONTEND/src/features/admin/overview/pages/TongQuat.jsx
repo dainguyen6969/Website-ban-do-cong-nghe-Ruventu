@@ -1,3 +1,4 @@
+import AdminHelp from '../../../../shared/components/ui/AdminHelp';
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
@@ -176,7 +177,7 @@ function Content({ resource, children }) {
       <div className="tq-status tq-error" role="alert">
         {resource.error}
 
-        <button type="button" className="btn-black-outline" onClick={resource.retry}>
+        <button type="button" className="btn-black-outline admin-toolbar-button admin-toolbar-outline" onClick={resource.retry}>
           Thử lại
         </button>
       </div>
@@ -386,7 +387,7 @@ function CashFilters({ draft, onChange, onApply, error, busy }) {
             {error}
           </p>
         )}
-        <button className="btn-black-excel" disabled={busy}>
+        <button className="btn-black-excel admin-toolbar-button" disabled={busy}>
           Áp dụng bộ lọc quỹ
         </button>
       </form>
@@ -557,8 +558,10 @@ export default function TongQuat() {
     <main className="tq-page">
       <div className="tq-header-section">
         <div>
-          <h1 className="tq-title">Tổng quát</h1>
-          <p className="tq-subtitle">Tổng hợp hoạt động kinh doanh và vận hành hệ thống</p>
+          <div className="admin-heading-with-help">
+            <h1 className="tq-title">Tổng quát</h1>
+            <AdminHelp>Tổng hợp hoạt động kinh doanh và vận hành hệ thống</AdminHelp>
+          </div>
         </div>
         <div className="tq-header-right">
           <div className="tq-update-time">
@@ -671,11 +674,11 @@ export default function TongQuat() {
               </button>
             ))}
           </div>
-          <div className="tq-filter-actions">
-            <button className="btn-black-excel">Áp dụng</button>
+          <div className="tq-filter-actions admin-toolbar">
+            <button className="btn-black-excel admin-toolbar-button">Áp dụng</button>
             <button
               type="button"
-              className="btn-black-outline"
+              className="btn-black-outline admin-toolbar-button admin-toolbar-outline"
               onClick={() => {
                 const value = initial();
                 setDraft(value);
@@ -1303,7 +1306,7 @@ export default function TongQuat() {
                 </p>
                 <div className="tq-scope">
                   <button
-                    className="btn-black-outline"
+                    className="btn-black-outline admin-toolbar-button admin-toolbar-outline"
                     disabled={Boolean(exporting)}
                     onClick={() => exportFile('cash')}
                   >

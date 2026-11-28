@@ -5,83 +5,37 @@
   overflow: auto;
   background: #f5f5f6;
 }
-.combo-detail-content {
-  padding: 20px 24px 40px;
-  display: flex;
-  flex-direction: column;
-  gap: 18px;
-}
-.combo-detail-edit,
-.combo-detail-stop {
-  height: 39px;
-  padding: 0 18px;
-  border: 2px solid #111 !important;
-  background: #fff !important;
-  font-size: 10px;
-  font-weight: 850;
-}
-.combo-detail-stop {
-  border-color: #e31e24 !important;
-  color: #e31e24;
-}
-.combo-overview {
-  min-height: 100px;
-  display: flex;
+.combo-detail-page .combo-overview {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
   align-items: center;
-  justify-content: space-between;
-  gap: 20px;
+  gap: 16px;
 }
-.combo-identity {
-  display: flex;
-  align-items: center;
-  gap: 18px;
-}
-.combo-identity > img {
-  width: 98px;
-  height: 98px;
-  object-fit: cover;
+.combo-overview-image {
+  width: 96px;
+  height: 96px;
+  object-fit: contain;
   border: 1px solid #bbb;
 }
-.combo-identity h2 {
-  margin-bottom: 10px;
-  font-size: 19px;
-}
-.overview-badges {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-}
-.overview-badges code,
-.overview-badges span,
-.overview-badges b {
+.combo-detail-code {
   padding: 5px 10px;
   border: 1px solid #ddd;
-  font-size: 9px;
-  white-space: nowrap;
-}
-.overview-badges b {
-  background: #fff;
-}
-.overview-badges .status-selling {
-  border-color: #278749;
-  color: #16773b;
-}
-.overview-badges .status-stopped {
-  border-color: #e31e24;
-  color: #e31e24;
+  font-size: 0.85em;
+  overflow-wrap: anywhere;
 }
 .overview-stats {
   display: grid;
-  grid-template-columns: repeat(3, minmax(105px, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   border: 2px solid #111;
 }
 .overview-stats > div {
-  height: 72px;
-  padding: 0 16px;
+  min-height: 64px;
+  padding: 8px 12px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  text-align: center;
   border-right: 1px solid #ddd;
 }
 .overview-stats > div:last-child {
@@ -89,7 +43,8 @@
 }
 .overview-stats strong {
   font-size: 18px;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
+  font-variant-numeric: tabular-nums;
 }
 .overview-stats small,
 .detail-readonly-grid small,
@@ -275,7 +230,7 @@
 .inventory-total {
   padding: 10px 12px;
 }
-.inventory-total > small,
+.combo-capacity-label,
 .inventory-limit > small {
   color: #999;
   font-size: 8px;
@@ -353,10 +308,6 @@
   color: #e31e24;
 }
 @media (max-width: 1000px) {
-  .combo-overview {
-    align-items: flex-start;
-    flex-direction: column;
-  }
   .combo-gallery {
     grid-template-columns: 1fr;
   }
@@ -386,22 +337,26 @@
   }
 }
 @media (max-width: 650px) {
-  .combo-detail-content {
-    padding: 14px;
-  }
-  .combo-identity {
-    align-items: flex-start;
+  .combo-detail-page .combo-overview {
+    grid-template-columns: minmax(0, 1fr);
+    justify-items: center;
   }
   .overview-stats {
     width: 100%;
     grid-template-columns: 1fr;
   }
-  .overview-stats > div {
+  .combo-detail-page .overview-stats > div {
+    display: flex;
+    flex-direction: row-reverse;
+    justify-content: space-between;
+    min-height: 44px;
+    gap: 8px;
+    text-align: left;
     border-right: 0;
     border-bottom: 1px solid #ddd;
   }
-  .overview-badges {
-    flex-wrap: wrap;
+  .combo-detail-page .overview-stats > div:last-child {
+    border-bottom: 0;
   }
   .gallery-preview {
     height: 240px;
@@ -415,48 +370,6 @@
 /* Tóm tắt và thông tin chi tiết combo */
 .combo-detail-page {
   min-width: 0;
-}
-
-.combo-detail-page .heading-actions,
-.combo-detail-page .overview-badges {
-  flex-wrap: wrap;
-}
-
-.combo-detail-page .heading-actions > button {
-  height: auto;
-  min-height: 39px;
-  padding: 8px 12px;
-  font-size: 0.85rem;
-  font-weight: var(--admin-weight-semibold, 600);
-  line-height: 1.4;
-}
-
-.combo-detail-page .combo-identity,
-.combo-detail-page .combo-identity > div {
-  min-width: 0;
-}
-
-.combo-detail-page .combo-identity > img {
-  flex-shrink: 0;
-  object-fit: contain;
-}
-
-.combo-detail-page .combo-identity h2 {
-  overflow-wrap: anywhere;
-  font-weight: var(--admin-weight-semibold, 600);
-}
-
-.combo-detail-page .overview-badges code {
-  max-width: 100%;
-  white-space: normal;
-  overflow-wrap: anywhere;
-}
-
-.combo-detail-page .overview-stats > div {
-  height: auto;
-  min-height: 64px;
-  padding: 8px 12px;
-  text-align: center;
 }
 
 .combo-detail-page :is(.overview-stats, .detail-classification) small {
@@ -681,17 +594,17 @@
   color: #146c43;
 }
 
+.combo-component-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(70px, 1fr));
+  gap: 6px;
+}
+
 .combo-detail-page .combo-detail-aside {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   min-width: 0;
   gap: 12px;
-}
-
-.combo-detail-page .inventory-total p {
-  color: #475569;
-  font-size: 0.9em;
-  line-height: 1.45;
 }
 
 .combo-detail-page .combo-detail-error {

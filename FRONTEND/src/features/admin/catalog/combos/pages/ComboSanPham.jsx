@@ -122,8 +122,8 @@ export default function ComboSanPham() {
           <span>NGƯNG KINH DOANH</span>
         </div>
       </section>
-      <div className="combo-toolbar">
-        <label className="combo-search">
+      <div className="combo-toolbar admin-toolbar">
+        <label className="combo-search admin-toolbar-search">
           <HiOutlineSearch />
           <input
             id="combo-search"

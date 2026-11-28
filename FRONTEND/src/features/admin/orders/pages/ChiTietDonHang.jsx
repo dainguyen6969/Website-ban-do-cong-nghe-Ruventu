@@ -61,6 +61,16 @@ import { FormDropdown } from '../../../../shared/components/ui/FilterDropdown';
 import { hasAdminPermission, hasSystemAdminPermission } from '../../../../auth/roleModel';
 import { useAdminPermissions } from '../../../../shared/components/ui/PermissionGate';
 import AdminPageAction from '../../../../shared/components/ui/AdminPageAction';
+import { Boxes, ClipboardList, CreditCard, History, ShieldCheck, Truck } from 'lucide-react';
+
+const detailGroups = [
+  ['overview', 'Tổng quan', ClipboardList, 'order-products order-promotions order-notes'],
+  ['payment', 'Thanh toán và hoàn tiền', CreditCard, 'order-payment'],
+  ['warehouse', 'Kho và nguồn hàng', Boxes, 'order-warehouse order-documents'],
+  ['delivery', 'Giao hàng', Truck, 'order-delivery'],
+  ['warranty', 'Thiết bị và bảo hành', ShieldCheck, 'order-warranty'],
+  ['history', 'Lịch sử', History, 'order-history'],
+];
 
 function OrderProductImage({ item }) {
   const [failedUrl, setFailedUrl] = useState(null);
@@ -266,6 +276,7 @@ function OrderDetailView({ orderId }) {
   const [isCancelOpen, setIsCancelOpen] = useState(false);
   const [cancelReason, setCancelReason] = useState('');
   const [dialog, setDialog] = useState(null);
+  const [detailGroup, setDetailGroup] = useState('overview');
 
   const [options, setOptions] = useState({
     warehouses: [],
@@ -1002,6 +1013,13 @@ function OrderDetailView({ orderId }) {
     !order.ngay_hoan_thanh &&
     deliveries.every((item) => ['CHO_GIAO', 'HUY_GIAO_HANG'].includes(item.trang_thai_giao_hang));
 
+  const hasWarranty =
+    counterDevices.length > 0 ||
+    (order.thiet_bi_da_giao || []).length > 0 ||
+    (order.thiet_bi_da_ban || []).length > 0 ||
+    order.can_xac_minh_lich_su === true;
+  const activeGroup = detailGroup === 'warranty' && !hasWarranty ? 'overview' : detailGroup;
+
   return (
     <section className="admin-order-detail" aria-busy={state.busy}>
       <header className="order-detail-hero">
@@ -1056,7 +1074,7 @@ function OrderDetailView({ orderId }) {
             isShipping &&
             (!activeDelivery || activeDelivery.trang_thai_giao_hang === 'CHO_GIAO') && (
               <div className="order-handover-action">
-                <AdminPageAction
+                <AdminPageAction compact
                   variant="operation"
                   icon="truck"
                   disabled={state.busy || !canStartDelivery}
@@ -1155,7 +1173,7 @@ function OrderDetailView({ orderId }) {
             ['CHO_DONG_GOI', 'CHO_LAY_HANG', 'DANG_GIAO_HANG'].includes(
               order.trang_thai_don_hang
             ) && (
-              <AdminPageAction variant="danger" icon="stop" disabled>
+              <AdminPageAction compact variant="danger" icon="stop" disabled>
                 ĐƠN ĐÃ XUẤT KHO - KHÔNG THỂ HỦY TRỰC TIẾP
               </AdminPageAction>
             )
@@ -1342,9 +1360,23 @@ function OrderDetailView({ orderId }) {
         </div>
       )}
 
+      <nav className="w-shell-tabs order-detail-tabs" aria-label="Các nhóm thông tin đơn hàng">
+        {detailGroups.filter(([key]) => key !== 'warranty' || hasWarranty).map(([key, title, Icon, controls]) => (
+          <button
+            type="button"
+            key={key}
+            aria-current={activeGroup === key ? 'page' : undefined}
+            aria-controls={controls}
+            onClick={() => setDetailGroup(key)}
+          >
+            <Icon size={16} aria-hidden="true" />
+            {title}
+          </button>
+        ))}
+      </nav>
       <div className="order-detail-content">
         <div className="order-detail-main">
-          <Panel title="SẢN PHẨM TRONG ĐƠN">
+          <Panel id="order-products" title="SẢN PHẨM TRONG ĐƠN" hidden={activeGroup !== 'overview'}>
             <div className="order-items-figma">
               <div
                 className="order-record-scroll"
@@ -1438,7 +1470,14 @@ function OrderDetailView({ orderId }) {
             </div>
           </Panel>
 
-          <Panel title="THANH TOÁN">
+          <Panel id="order-promotions" title="KHUYẾN MẠI / ƯU ĐÃI" hidden={activeGroup !== 'overview'}>
+            <OrderPromotionSummary order={order} showUsage />
+          </Panel>
+          <Panel id="order-notes" title="GHI CHÚ" hidden={activeGroup !== 'overview'}>
+            <p className="order-note">{order.ghi_chu || 'Không có ghi chú.'}</p>
+          </Panel>
+
+          <Panel id="order-payment" title="THANH TOÁN" hidden={activeGroup !== 'payment'}>
             <dl className="order-detail-kv">
               <Info text="PHƯƠNG THỨC">{label(order.phuong_thuc_thanh_toan)}</Info>
 
@@ -1599,22 +1638,7 @@ function OrderDetailView({ orderId }) {
             />
           </Panel>
 
-          <DocumentPanel
-            key={`order-${order.id}`}
-            mode="order"
-            id={order.id}
-            canWrite={canOperateOrder}
-            locked={
-              state.busy ||
-              Boolean(dialog) ||
-              isCancelOpen ||
-              Boolean(orderAttempt.current) ||
-              Boolean(cashAttempt.current)
-            }
-            onEditingChange={onDocumentEditing}
-          />
-
-          <Panel title="ĐÓNG GÓI VÀ XUẤT KHO">
+          <Panel id="order-warehouse" title="ĐÓNG GÓI VÀ XUẤT KHO" hidden={activeGroup !== 'warehouse'}>
             <div className="order-fulfillment-grid">
               <div>
                 <span>ĐÓNG GÓI</span>
@@ -1672,7 +1696,24 @@ function OrderDetailView({ orderId }) {
               </div>
             )}
           </Panel>
-          <Panel title="GIAO VẬN">
+          <div id="order-documents" hidden={activeGroup !== 'warehouse'}>
+            <DocumentPanel
+              key={`order-${order.id}`}
+              mode="order"
+              id={order.id}
+              canWrite={canOperateOrder}
+              locked={
+                state.busy ||
+                Boolean(dialog) ||
+                isCancelOpen ||
+                Boolean(orderAttempt.current) ||
+                Boolean(cashAttempt.current)
+              }
+              onEditingChange={onDocumentEditing}
+            />
+          </div>
+
+          <Panel id="order-delivery" title="GIAO VẬN" hidden={activeGroup !== 'delivery'}>
             {deliveries.length ? (
               deliveries.map((item) => (
                 <div key={item.id} className="order-delivery-item">
@@ -1778,11 +1819,8 @@ function OrderDetailView({ orderId }) {
             )}
           </Panel>
 
-          {(counterDevices.length > 0 ||
-            (order.thiet_bi_da_giao || []).length > 0 ||
-            (order.thiet_bi_da_ban || []).length > 0 ||
-            order.can_xac_minh_lich_su === true) && (
-            <Panel title="THIẾT BỊ VÀ BẢO HÀNH">
+          {hasWarranty && (
+            <Panel id="order-warranty" title="THIẾT BỊ VÀ BẢO HÀNH" hidden={activeGroup !== 'warranty'}>
               <div className="order-warranty">
                 {counterInspectionClosed && (
                   <p className="order-note">
@@ -1875,7 +1913,7 @@ function OrderDetailView({ orderId }) {
             </Panel>
           )}
 
-          <Panel title="LỊCH SỬ XỬ LÝ">
+          <Panel id="order-history" title="LỊCH SỬ XỬ LÝ" hidden={activeGroup !== 'history'}>
             {history.length ? (
               <ol className="order-timeline">
                 {history.map((event) => (
@@ -1946,12 +1984,6 @@ function OrderDetailView({ orderId }) {
                 <dd>{money(order.tong_thanh_toan)}</dd>
               </div>
             </dl>
-          </Panel>
-          <Panel title="KHUYẾN MẠI / ƯU ĐÃI">
-            <OrderPromotionSummary order={order} showUsage />
-          </Panel>
-          <Panel title="GHI CHÚ">
-            <p className="order-note">{order.ghi_chu || 'Không có ghi chú.'}</p>
           </Panel>
         </aside>
       </div>
@@ -2414,10 +2446,9 @@ function Action({
     </button>
   );
 }
-
-function Panel({ title, children }) {
+function Panel({ title, children, id, hidden }) {
   return (
-    <section className="order-detail-panel">
+    <section className="order-detail-panel" id={id} hidden={hidden}>
       <h2>
         <span />
         {title}

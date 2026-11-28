@@ -1,3 +1,4 @@
+import AdminHelp from '../../../../../shared/components/ui/AdminHelp';
 // Admin category list/detail/forms backed by the IntelliJ catalog API.
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -943,9 +944,10 @@ export default function DanhMucSanPham() {
     <main className="category-page admin-list-page">
       <div className="category-heading">
         <div>
-          <h1>DANH MỤC SẢN PHẨM</h1>
-
-          <p>Quản lý cấu trúc phân cấp danh mục và sản phẩm thuộc danh mục</p>
+          <div className="admin-heading-with-help">
+            <h1>DANH MỤC SẢN PHẨM</h1>
+            <AdminHelp>Quản lý cấu trúc phân cấp danh mục và sản phẩm thuộc danh mục</AdminHelp>
+          </div>
         </div>
 
         <AdminPageAction
@@ -1002,8 +1004,9 @@ export default function DanhMucSanPham() {
           </section>
 
           {/* Bộ lọc */}
-          <div className="category-list-filters">
+          <div className="category-list-filters admin-toolbar">
             <input
+              type="search"
               value={search}
               onChange={(event) => setSearch(event.target.value)}
               placeholder="Tìm tên danh mục / đường dẫn..."

@@ -4,6 +4,7 @@ import { LineChart, X } from 'lucide-react';
 import { cashbookService } from '../../../../shared/services/cashbookService';
 import { getEmployeePage } from '../../organization/api/employeeApi';
 import WebGL2LineChart from '../components/WebGL2LineChart';
+import AdminHelp from '../../../../shared/components/ui/AdminHelp';
 import {
   CashSourceFilters,
   CashSourceInfo,
@@ -418,8 +419,10 @@ export default function TongQuanQuy() {
       <div className="cb-header">
         <div className="cb-title-area">
           <div className="cb-breadcrumb">SỔ QUỸ TIỀN MẶT / TỔNG QUAN</div>
-          <h1>TỔNG QUAN QUỸ</h1>
-          <p>THEO DÕI NHANH TÌNH HÌNH THU CHI VÀ TỒN QUỸ CỦA CỬA HÀNG</p>
+          <div className="admin-heading-with-help">
+            <h1>TỔNG QUAN QUỸ</h1>
+            <AdminHelp>THEO DÕI NHANH TÌNH HÌNH THU CHI VÀ TỒN QUỸ CỦA CỬA HÀNG</AdminHelp>
+          </div>
         </div>
         <AdminPageAction variant="utility" icon="forward" onClick={handleOpenCashbook}>Xem sổ quỹ</AdminPageAction>
       </div>
@@ -442,7 +445,7 @@ export default function TongQuanQuy() {
       )}
 
       {/* Top Filter Bar */}
-      <div className="cb-filter-bar">
+      <div className="cb-filter-bar admin-toolbar">
         <div className="cb-filter-item">
           <label>TỪ NGÀY</label>
           <input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} />
@@ -516,11 +519,11 @@ export default function TongQuanQuy() {
             </FilterDropdown>
           </div>
         )}
-        <div className="cb-filter-actions">
-          <button className="cb-btn-outline" onClick={handleClearFilters}>
+        <div className="cb-filter-actions admin-toolbar-actions">
+          <button className="cb-btn-outline admin-toolbar-button" onClick={handleClearFilters}>
             XÓA BỘ LỌC
           </button>
-          <button className="cb-btn-primary" onClick={handleApplyFilters}>
+          <button className="cb-btn-primary admin-toolbar-button" onClick={handleApplyFilters}>
             ÁP DỤNG
           </button>
         </div>

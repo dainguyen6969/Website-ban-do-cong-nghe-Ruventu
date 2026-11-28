@@ -1,0 +1,161 @@
+.admin-app {
+  --admin-toolbar-height: 42px;
+  --admin-toolbar-gap: 10px;
+  --admin-toolbar-line: #dedede;
+  --admin-toolbar-focus: #8b8b8b;
+}
+
+.admin-app .admin-page-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px 20px;
+}
+
+.admin-app :is(.admin-toolbar, .admin-toolbar-actions) {
+  gap: var(--admin-toolbar-gap);
+  min-inline-size: 0;
+}
+
+.admin-app .admin-toolbar-actions {
+  flex-wrap: wrap;
+  block-size: auto;
+}
+
+.admin-toolbar-field {
+  display: grid;
+  gap: 5px;
+  min-inline-size: 0;
+}
+
+.admin-toolbar-field input {
+  min-inline-size: 0;
+  inline-size: 100%;
+}
+
+/* Share filter control height across page styles and keep pagination sizing independent. */
+@layer admin-controls {
+  .admin-app .admin-toolbar
+    :where(
+      .admin-toolbar-search,
+      .admin-toolbar-button,
+      .admin-page-action-btn,
+      .filter__dropdown,
+      input:not(.admin-toolbar-search input):is([type='text'], [type='search'], [type='number'], [type='date'])
+    ) {
+    box-sizing: border-box;
+    min-block-size: var(--admin-toolbar-height) !important;
+    block-size: auto !important;
+  }
+
+  .admin-app .admin-toolbar :where(
+    .admin-toolbar-search,
+    .admin-toolbar-outline,
+    .filter__dropdown:not(.filter__dropdown--selected-dark),
+    .admin-page-action-btn:not(:disabled):is([data-variant='utility'], [data-variant='secondary']),
+    .w-shell-button:not(:is(.w-shell-button--black, .w-shell-button--red))
+  ) {
+    border: 2px solid var(--admin-toolbar-line) !important;
+  }
+
+  .admin-app .admin-toolbar :where(
+    .admin-toolbar-outline,
+    .admin-page-action-btn:is([data-variant='utility'], [data-variant='secondary']),
+    .w-shell-button:not(:is(.w-shell-button--black, .w-shell-button--red))
+  ) {
+    font-weight: var(--admin-weight-bold, 700) !important;
+    text-transform: uppercase !important;
+  }
+
+  .admin-app .admin-toolbar .filter__dropdown {
+    font-weight: var(--admin-weight-semibold, 600) !important;
+  }
+
+  .admin-app .admin-toolbar .admin-toolbar-search:focus-within {
+    border-color: var(--admin-toolbar-focus) !important;
+    box-shadow: none !important;
+  }
+
+  .admin-app .admin-toolbar .admin-toolbar-search input:focus {
+    outline: none !important;
+    box-shadow: none !important;
+  }
+
+  .admin-app .admin-data-table .admin-table-view-action {
+    --warranty-button-font-size: calc(11px * var(--project-font-scale, 1));
+    --warranty-button-font-weight: var(--admin-weight-semibold, 600);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    box-sizing: border-box;
+    min-block-size: 32px !important;
+    block-size: auto !important;
+    padding: 4px 10px !important;
+    border: 2px solid #111 !important;
+    border-radius: 0;
+    background: #fff !important;
+    color: #111 !important;
+    font-size: var(--warranty-button-font-size);
+    font-weight: var(--warranty-button-font-weight);
+    line-height: 1.3;
+    text-decoration: none;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  .admin-app .admin-data-table .admin-table-view-action:hover:not(:disabled) {
+    background: #111 !important;
+    color: #fff !important;
+  }
+}
+
+.admin-app .admin-data-table .admin-table-view-action:focus-visible {
+  outline: 2px solid var(--color-brand-red, #e31e24);
+  outline-offset: 2px;
+}
+
+.admin-heading-with-help {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.admin-app .admin-help-trigger {
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 28px;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #656d78;
+  cursor: help;
+}
+
+.admin-app .admin-help-trigger:hover,
+.admin-app .admin-help-trigger:focus-visible {
+  color: #111;
+  background: #f0f0f0;
+}
+
+.admin-app .admin-help-trigger:focus-visible {
+  outline: 2px solid #111;
+  outline-offset: 1px;
+}
+
+.admin-help-tooltip {
+  position: fixed;
+  z-index: 1500;
+  box-sizing: border-box;
+  overflow: auto;
+  padding: 8px 12px;
+  color: #fff;
+  background: #171717;
+  box-shadow: 0 4px 14px #0003;
+  font-size: 0.8125rem;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}

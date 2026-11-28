@@ -1,3 +1,4 @@
+import AdminHelp from '../../../../shared/components/ui/AdminHelp';
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import './DanhSachLoaiPhieuThu.css';
@@ -133,14 +134,11 @@ return (
 
     {/* Tiêu đề từ main-test */}
     <div className="pt-header-main">
-      <h1>LOẠI PHIẾU THU</h1>
-      <p>
-        QUẢN LÝ CÁC NHÓM MỤC ĐÍCH DÙNG ĐỂ PHÂN LOẠI KHOẢN THU
-      </p>
+      <div className="admin-heading-with-help"><h1>LOẠI PHIẾU THU</h1><AdminHelp>QUẢN LÝ CÁC NHÓM MỤC ĐÍCH DÙNG ĐỂ PHÂN LOẠI KHOẢN THU</AdminHelp></div>
     </div>
 
     {/* Bộ lọc từ feat/responsive-capnhat */}
-    <div className="pt-filter-bar">
+    <div className="pt-filter-bar admin-toolbar">
       <input
         type="text"
         placeholder="TÌM MÃ LOẠI / TÊN LOẠI..."

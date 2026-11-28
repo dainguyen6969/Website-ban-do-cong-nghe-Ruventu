@@ -1,3 +1,4 @@
+import AdminHelp from '../../../../shared/components/ui/AdminHelp';
 import { useCallback, useEffect, useState } from 'react';
 import { useLocation, useNavigate, Link } from 'react-router-dom';
 import {
@@ -324,8 +325,10 @@ export default function NhaCungCap() {
           <section className="supplier-hero">
             <div>
               <Breadcrumb />
-              <h1>DANH SÁCH NHÀ CUNG CẤP</h1>
-              <p>QUẢN LÝ ĐỐI TÁC CUNG ỨNG VÀ LỊCH SỬ NHẬP HÀNG</p>
+              <div className="admin-heading-with-help">
+                <h1>DANH SÁCH NHÀ CUNG CẤP</h1>
+                <AdminHelp>QUẢN LÝ ĐỐI TÁC CUNG ỨNG VÀ LỊCH SỬ NHẬP HÀNG</AdminHelp>
+              </div>
             </div>
             <AdminPageAction
               variant="primary"
@@ -337,8 +340,8 @@ export default function NhaCungCap() {
             </AdminPageAction>
           </section>
           {toast && <SuccessToast message={toast} />}
-          <section className="supplier-toolbar">
-            <label className="supplier-search" htmlFor="supplier-search">
+          <section className="supplier-toolbar admin-toolbar">
+            <label className="supplier-search admin-toolbar-search" htmlFor="supplier-search">
               <HiOutlineSearch />
               <input
                 id="supplier-search"

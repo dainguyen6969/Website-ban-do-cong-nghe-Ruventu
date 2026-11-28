@@ -294,7 +294,7 @@ export default function SoQuy() {
       </div>
 
       {/* Filter Bar */}
-      <div className="cb-filter-bar">
+      <div className="cb-filter-bar admin-toolbar">
         <div className="cb-filter-item">
           <label>TỪ NGÀY *</label>
           <input
@@ -361,10 +361,10 @@ export default function SoQuy() {
           />
         </div>
 
-        <div className="cb-filter-actions admin-page-actions">
+        <div className="cb-filter-actions admin-page-actions admin-toolbar-actions">
           {hasActiveFilter && (
             <button
-              className="cb-btn-outline icon-btn btn-clear-filter"
+              className="cb-btn-outline icon-btn btn-clear-filter admin-toolbar-button"
               onClick={handleClearFilters}
             >
               <svg

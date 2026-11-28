@@ -1,3 +1,4 @@
+import AdminHelp from '../../../../shared/components/ui/AdminHelp';
 // Admin organization screen: NhanVien.
 import { useEffect, useState, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -140,14 +141,16 @@ export function DanhSachNhanVien() {
       <section className="employee-hero">
         <div>
           <p className="employee-crumb">NHÂN VIÊN / DANH SÁCH NHÂN VIÊN</p>
-          <h1>DANH SÁCH NHÂN VIÊN</h1>
-          <span>QUẢN LÝ TÀI KHOẢN NHÂN SỰ VÀ VAI TRÒ</span>
+          <div className="admin-heading-with-help">
+            <h1>DANH SÁCH NHÂN VIÊN</h1>
+            <AdminHelp>QUẢN LÝ TÀI KHOẢN NHÂN SỰ VÀ VAI TRÒ</AdminHelp>
+          </div>
         </div>
         <AdminPageAction variant="primary" icon="add" onClick={() => setShowCreate(true)}>THÊM NHÂN VIÊN</AdminPageAction>
       </section>
       <SuccessBanner message={success} />
-      <section className="employee-toolbar">
-        <label className="employee-search">
+      <section className="employee-toolbar admin-toolbar">
+        <label className="employee-search admin-toolbar-search">
           <HiOutlineSearch />
           <span className="sr-only">Tìm kiếm nhân viên</span>
           <input
