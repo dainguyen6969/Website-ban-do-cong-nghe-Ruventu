@@ -433,10 +433,11 @@ export default function WarrantyLookupPage() {
 
           <div className="banner-title-container">
             <div className="red-vertical-line" />
-            <h1 className="banner-title">TRA CỨU BẢO HÀNH</h1>
+            <div className="admin-heading-with-help">
+              <h1 className="banner-title">TRA CỨU BẢO HÀNH</h1>
+              <AdminHelp>Nhập thông tin đơn hàng, sản phẩm hoặc bảo hành để tra cứu.</AdminHelp>
+            </div>
           </div>
-
-          <AdminHelp>Nhập thông tin đơn hàng, sản phẩm hoặc bảo hành để tra cứu.</AdminHelp>
 
           <form className="search-form" onSubmit={search}>
             <div className="search-input-wrapper">

@@ -601,7 +601,10 @@ export default function TaoKhuyenMai() {
       <div className="create-header-bar">
         <div className="create-header-left">
           <div className="create-breadcrumb">KHUYẾN MẠI / TẠO KHUYẾN MẠI</div>
-          <div className="admin-heading-with-help"><h1 className="create-main-title">TẠO CHƯƠNG TRÌNH KHUYẾN MẠI</h1><AdminHelp>Cấu hình ưu đãi, điều kiện mua và hạn mức trước khi lưu.</AdminHelp></div>
+          <div className="admin-heading-with-help">
+            <h1 className="create-main-title">TẠO CHƯƠNG TRÌNH KHUYẾN MẠI</h1>
+            <AdminHelp>Cấu hình ưu đãi, điều kiện mua và hạn mức trước khi lưu.</AdminHelp>
+          </div>
         </div>
         <div className="create-header-right">
           <AdminPageAction
@@ -624,9 +627,12 @@ export default function TaoKhuyenMai() {
           </div>
           <div className="create-card-body">
             <div className="create-form-field">
-              <label>
-                MÃ CHƯƠNG TRÌNH <span>*</span>
-              </label>
+              <div className="admin-heading-with-help">
+                <label>
+                  MÃ CHƯƠNG TRÌNH <span>*</span>
+                </label>
+                <AdminHelp>Tự sinh chỉ gợi ý mã; tính duy nhất được kiểm tra khi lưu.</AdminHelp>
+              </div>
               <div className="create-input-with-btn">
                 <input
                   type="text"
@@ -647,7 +653,6 @@ export default function TaoKhuyenMai() {
                   TỰ SINH
                 </button>
               </div>
-              <AdminHelp>Tự sinh chỉ gợi ý mã; tính duy nhất được kiểm tra khi lưu.</AdminHelp>
               {errors.code && <div className="error-tip">{errors.code}</div>}
             </div>
 
@@ -731,9 +736,12 @@ export default function TaoKhuyenMai() {
 
                 {discountKind === 'AMOUNT' ? (
                   <div className="create-form-field" style={{ marginTop: '16px' }}>
-                    <label>
-                      GIÁ TRỊ GIẢM (đ) <span>*</span>
-                    </label>
+                    <div className="admin-heading-with-help">
+                      <label>
+                        GIÁ TRỊ GIẢM (đ) <span>*</span>
+                      </label>
+                      <AdminHelp>Giảm số tiền cố định. Với phạm vi phiên bản, mức giảm áp dụng cho mỗi đơn vị đủ điều kiện.</AdminHelp>
+                    </div>
                     <input
                       type="number"
                       placeholder="100000"
@@ -744,7 +752,6 @@ export default function TaoKhuyenMai() {
                       }}
                       className={errors.discountValue ? 'input-error' : ''}
                     />
-                    <AdminHelp>Giảm số tiền cố định. Với phạm vi phiên bản, mức giảm áp dụng cho mỗi đơn vị đủ điều kiện.</AdminHelp>
                     {errors.discountValue && (
                       <div className="error-tip">{errors.discountValue}</div>
                     )}
@@ -770,14 +777,16 @@ export default function TaoKhuyenMai() {
                       )}
                     </div>
                     <div className="create-form-field" style={{ marginTop: '12px' }}>
-                      <label>MỨC GIẢM TỐI ĐA (đ) - KHÔNG BẮT BUỘC</label>
+                      <div className="admin-heading-with-help">
+                        <label>MỨC GIẢM TỐI ĐA (đ) - KHÔNG BẮT BUỘC</label>
+                        <AdminHelp>Giảm phần trăm trên giá trị hàng đủ điều kiện, không vượt mức tối đa nếu đã cấu hình.</AdminHelp>
+                      </div>
                       <input
                         type="number"
                         placeholder="VD: 300000"
                         value={maxDiscount}
                         onChange={(e) => setMaxDiscount(e.target.value)}
                       />
-                      <AdminHelp>Giảm phần trăm trên giá trị hàng đủ điều kiện, không vượt mức tối đa nếu đã cấu hình.</AdminHelp>
                     </div>
                   </>
                 )}
@@ -859,9 +868,12 @@ export default function TaoKhuyenMai() {
           {/* Scope === 'DANH_MUC' (Only when CHIẾT KHẤU) */}
           {method === 'CHIẾT KHẤU' && scope === 'DANH_MUC' && (
             <div className="create-form-field" style={{ marginTop: '16px' }}>
-              <label>
-                DANH MỤC ÁP DỤNG <span>*</span>
-              </label>
+              <div className="admin-heading-with-help">
+                <label>
+                  DANH MỤC ÁP DỤNG <span>*</span>
+                </label>
+                <AdminHelp>Áp dụng cho danh mục đã chọn và các danh mục con. Không phải loại sản phẩm.</AdminHelp>
+              </div>
               <FormDropdown
                 value={selectedCategory}
                 onChange={(e) => {
@@ -887,7 +899,6 @@ export default function TaoKhuyenMai() {
                   </option>
                 ))}
               </FormDropdown>
-              <AdminHelp>Áp dụng cho danh mục đã chọn và các danh mục con. Không phải loại sản phẩm.</AdminHelp>
               {errors.category && <div className="error-tip">{errors.category}</div>}
             </div>
           )}
@@ -895,9 +906,12 @@ export default function TaoKhuyenMai() {
           {/* Scope === 'THUONG_HIEU' (Only when CHIẾT KHẤU) */}
           {method === 'CHIẾT KHẤU' && scope === 'THUONG_HIEU' && (
             <div className="create-form-field" style={{ marginTop: '16px' }}>
-              <label>
-                THƯƠNG HIỆU ÁP DỤNG <span>*</span>
-              </label>
+              <div className="admin-heading-with-help">
+                <label>
+                  THƯƠNG HIỆU ÁP DỤNG <span>*</span>
+                </label>
+                <AdminHelp>Chỉ hàng thuộc thương hiệu đã chọn được tính là hàng đủ điều kiện.</AdminHelp>
+              </div>
               <FormDropdown
                 value={selectedBrand}
                 onChange={(e) => {
@@ -913,7 +927,6 @@ export default function TaoKhuyenMai() {
                   </option>
                 ))}
               </FormDropdown>
-              <AdminHelp>Chỉ hàng thuộc thương hiệu đã chọn được tính là hàng đủ điều kiện.</AdminHelp>
               {errors.brand && <div className="error-tip">{errors.brand}</div>}
             </div>
           )}
@@ -947,7 +960,10 @@ export default function TaoKhuyenMai() {
           {method === 'CHIẾT KHẤU' && scope === 'PHIEN_BAN' && (
             <div className="variants-section-block">
               <div className="variants-section-title">PHIÊN BẢN ÁP DỤNG</div>
-              <label className="variants-select-label">CHỌN PHIÊN BẢN MUA *</label>
+              <div className="admin-heading-with-help">
+                <label className="variants-select-label">CHỌN PHIÊN BẢN MUA *</label>
+                <AdminHelp>Mỗi phiên bản giữ số lượng tối thiểu riêng. Không bắt buộc mọi phiên bản được chọn phải xuất hiện trong cùng đơn.</AdminHelp>
+              </div>
 
               <div className="selected-variants-list">
                 {selectedBuyVariantIds.map((vId) => {
@@ -973,7 +989,6 @@ export default function TaoKhuyenMai() {
                 </div>
               )}
 
-              <AdminHelp>Mỗi phiên bản giữ số lượng tối thiểu riêng. Không bắt buộc mọi phiên bản được chọn phải xuất hiện trong cùng đơn.</AdminHelp>
             </div>
           )}
 
@@ -983,8 +998,11 @@ export default function TaoKhuyenMai() {
               {/* A. SẢN PHẨM CẦN MUA */}
               <div className="sub-section-box">
                 <div className="sub-section-title">A. SẢN PHẨM CẦN MUA</div>
-                <div className="sub-section-label">
-                  CHỌN PHIÊN BẢN MUA <span>*</span>
+                <div className="admin-heading-with-help">
+                  <div className="sub-section-label">
+                    CHỌN PHIÊN BẢN MUA <span>*</span>
+                  </div>
+                  <AdminHelp>TẤT CẢ dòng mua và số lượng đã cấu hình phải được đáp ứng để nhận bộ quà.</AdminHelp>
                 </div>
 
                 <div className="selected-variants-list">
@@ -1011,14 +1029,16 @@ export default function TaoKhuyenMai() {
                   </div>
                 )}
 
-                <AdminHelp>TẤT CẢ dòng mua và số lượng đã cấu hình phải được đáp ứng để nhận bộ quà.</AdminHelp>
               </div>
 
               {/* B. SẢN PHẨM ĐƯỢC TẶNG */}
               <div className="sub-section-box">
                 <div className="sub-section-title">B. SẢN PHẨM ĐƯỢC TẶNG</div>
-                <div className="sub-section-label">
-                  CHỌN PHIÊN BẢN TẶNG <span>*</span>
+                <div className="admin-heading-with-help">
+                  <div className="sub-section-label">
+                    CHỌN PHIÊN BẢN TẶNG <span>*</span>
+                  </div>
+                  <AdminHelp>Nhận toàn bộ các dòng quà đã cấu hình.</AdminHelp>
                 </div>
 
                 <div className="selected-variants-list">
@@ -1045,7 +1065,6 @@ export default function TaoKhuyenMai() {
                   </div>
                 )}
 
-                <AdminHelp>Nhận toàn bộ các dòng quà đã cấu hình.</AdminHelp>
               </div>
             </>
           )}
@@ -1054,8 +1073,11 @@ export default function TaoKhuyenMai() {
           {method === 'TẶNG SẢN PHẨM' && scope === 'TOAN_DON' && (
             <div className="sub-section-box">
               <div className="sub-section-title">SẢN PHẨM ĐƯỢC TẶNG</div>
-              <div className="sub-section-label">
-                CHỌN PHIÊN BẢN TẶNG <span>*</span>
+              <div className="admin-heading-with-help">
+                <div className="sub-section-label">
+                  CHỌN PHIÊN BẢN TẶNG <span>*</span>
+                </div>
+                <AdminHelp>Nhận toàn bộ các dòng quà đã cấu hình.</AdminHelp>
               </div>
 
               <div className="selected-variants-list">
@@ -1082,7 +1104,6 @@ export default function TaoKhuyenMai() {
                 </div>
               )}
 
-              <AdminHelp>Nhận toàn bộ các dòng quà đã cấu hình.</AdminHelp>
             </div>
           )}
         </div>

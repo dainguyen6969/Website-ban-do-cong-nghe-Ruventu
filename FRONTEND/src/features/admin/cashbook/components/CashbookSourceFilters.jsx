@@ -86,7 +86,7 @@ export default function CashbookSourceFilters({
   return (
     <section className={`cb-source-filters ${isCollapsed ? "cb-source-filters--collapsed" : ""}`}>
       <div className="cb-source-filters__heading">
-        <button
+        <div className="admin-heading-with-help"><button
           type="button"
           className="cb-source-filters__toggle-btn"
           aria-expanded={!isCollapsed}
@@ -101,7 +101,7 @@ export default function CashbookSourceFilters({
             size={14}
             className={`cb-source-chevron ${isCollapsed ? "cb-source-chevron--collapsed" : ""}`}
           />
-        </button>
+        </button>{applyRequired && !isCollapsed && <AdminHelp>Chọn ÁP DỤNG để tải dữ liệu theo bộ lọc đã nhập.</AdminHelp>}</div>
 
         <div className="cb-source-filters__heading-actions">
           {hasFilterValue && (
@@ -159,9 +159,6 @@ export default function CashbookSourceFilters({
         </div>
       )}
 
-      {applyRequired && !isCollapsed && (
-        <AdminHelp>Chọn ÁP DỤNG để tải dữ liệu theo bộ lọc đã nhập.</AdminHelp>
-      )}
     </section>
   );
 }

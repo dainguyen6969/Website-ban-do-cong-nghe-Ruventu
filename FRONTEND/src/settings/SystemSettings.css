@@ -369,3 +369,13 @@
     grid-column: 2;
   }
 }
+
+.system-settings__help-heading {
+  margin-bottom: 8px;
+}
+.system-settings__help-heading h3 {
+  margin: 0;
+}
+.sales-settings__group > legend .admin-heading-with-help {
+  display: inline-flex;
+}

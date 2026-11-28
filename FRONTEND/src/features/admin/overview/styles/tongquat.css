@@ -757,3 +757,31 @@
 .tq-v6-subtitle + .tq-kpi-sub-grid {
   margin-top: 0;
 }
+
+.tq-card-header--with-help {
+  justify-content: flex-start;
+}
+.tq-card-header .admin-help-trigger {
+  color: #b9c0ca;
+}
+.tq-card-header .admin-help-trigger:hover,
+.tq-card-header .admin-help-trigger:focus-visible {
+  color: #111;
+  outline-color: #fff;
+}
+.tq-cash-report {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.tq-v6-help-heading {
+  margin: 12px 16px 0;
+  border-bottom: 1px solid #e1e4e8;
+}
+.tq-v6-help-heading .tq-v6-subtitle {
+  margin: 0;
+  padding-bottom: 0;
+  border: 0;
+}

@@ -298,8 +298,10 @@ function SerialModalDialog({
 
           {/* Right Column: Bulk paste & validation */}
           <div className="serial-modal-right">
-            <h3 className="serial-col-title">HOẶC DÁN DANH SÁCH SERIAL</h3>
-            <AdminHelp>Mỗi mã 1 dòng:</AdminHelp>
+            <div className="admin-heading-with-help">
+              <h3 className="serial-col-title">HOẶC DÁN DANH SÁCH SERIAL</h3>
+              <AdminHelp>Mỗi mã 1 dòng:</AdminHelp>
+            </div>
             <textarea
               className="serial-textarea"
               rows={4}

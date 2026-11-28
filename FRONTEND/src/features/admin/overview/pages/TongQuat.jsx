@@ -235,10 +235,13 @@ function Section({ title, note, to, resource, children, controls }) {
     </section>
   );
 }
-function Stat({ label, value, currency = false, note, to }) {
+function Stat({ label, value, currency = false, note, help, to }) {
   const content = (
     <>
-      <div className="tq-sub-label">{label}</div>
+      <div className="tq-sub-label admin-heading-with-help">
+        <span>{label}</span>
+        {help && !to && <AdminHelp>{help}</AdminHelp>}
+      </div>
       <div className="tq-sub-val">{currency ? money(value) : number(value)}</div>
       {note && <p className="tq-note">{note}</p>}
     </>
@@ -1274,12 +1277,10 @@ export default function TongQuat() {
       {canViewCashbook && (
         <section className="tq-card" aria-label="Sổ quỹ & thanh toán">
           <div className="tq-card-header">
-            <div>
-              <h2 className="tq-card-title">Sổ quỹ & thanh toán</h2>
-              <p className="tq-note">
-                Quỹ toàn cửa hàng · chỉ phiếu đã ghi nhận · ngày tiền là ngày ghi nhận
-              </p>
-            </div>
+            <div className="admin-heading-with-help">
+  <h2 className="tq-card-title">Sổ quỹ & thanh toán</h2>
+  <AdminHelp>Quỹ toàn cửa hàng · chỉ phiếu đã ghi nhận · ngày tiền là ngày ghi nhận</AdminHelp>
+</div>
             <DashboardLink className="tq-card-header-link" to={cashTo}>
               Xem Sổ quỹ →
             </DashboardLink>
@@ -1298,34 +1299,33 @@ export default function TongQuat() {
                   <Stat label="Số dư đầu kỳ" value={data.so_du_dau_ky} currency />
                   <Stat label="Tổng thu trong kỳ" value={data.tong_thu} currency />
                   <Stat label="Tổng chi trong kỳ" value={data.tong_chi} currency />
-                  <Stat label="Số dư cuối kỳ" value={data.ton_quy} currency />
+                  <Stat label="Số dư cuối kỳ" value={data.ton_quy} currency
+                  help="Số dư cuối kỳ bằng số dư đầu kỳ cộng thu trừ chi. Thu không đồng nghĩa doanh thu. COD chưa nộp chưa vào quỹ."
+                />
                 </div>
-                <p className="tq-note tq-scope">
-                  {date(data.bo_loc.tu_ngay)} – {date(data.bo_loc.den_ngay)} · Đầu kỳ + thu − chi =
-                  cuối kỳ. Thu không đồng nghĩa doanh thu; COD chưa nộp không vào quỹ.
-                </p>
-                <div className="tq-scope">
-                  <button
+                <div className="tq-scope tq-cash-report">
+                  <span>{date(data.bo_loc.tu_ngay)} – {date(data.bo_loc.den_ngay)}</span>
+                  <div className="admin-heading-with-help">
+                    <button
                     className="btn-black-outline admin-toolbar-button admin-toolbar-outline"
                     disabled={Boolean(exporting)}
                     onClick={() => exportFile('cash')}
                   >
                     {exporting === 'cash' ? 'Đang xuất…' : 'Xuất Excel Sổ quỹ theo bộ lọc riêng'}
                   </button>
+                    <AdminHelp>Excel Sổ quỹ xuất bốn số quỹ theo bộ lọc riêng. Excel Tổng quát dùng bộ lọc thời gian, kênh bán và số dư quỹ hiện tại.</AdminHelp>
+                  </div>
                 </div>
               </>
             )}
           </Content>
-          <div className="tq-card-header">
+          <div className="tq-card-header tq-card-header--with-help">
             <h3 className="tq-card-title">Thanh toán toàn cửa hàng</h3>
-          </div>
+          <AdminHelp>Phần này dùng khoảng ngày chung; bộ lọc riêng Sổ quỹ không áp dụng. Tiền đơn chưa thu/COD là hiện tại, theo kênh đang chọn.</AdminHelp>
+        </div>
           <Content resource={cashflow}>
             {(data) => (
               <>
-                <p className="tq-note tq-scope">
-                  Phần này dùng khoảng ngày chung; bộ lọc riêng Sổ quỹ không áp dụng. Tiền đơn chưa
-                  thu/COD là hiện tại, theo kênh đang chọn.
-                </p>
                 <div className="tq-kpi-sub-grid">
                   <Stat label="Số dư quỹ hiện tại" value={data.so_du_quy_hien_tai} currency />
                   <Stat
@@ -1345,13 +1345,13 @@ export default function TongQuat() {
                     label="Giá trị đơn chưa thanh toán"
                     value={data.don_hang_hien_tai.gia_tri_chua_thanh_toan}
                     currency
-                    note="Hiện tại · chưa phải tiền đã vào quỹ"
+                    help="Hiện tại · chưa phải tiền đã vào quỹ"
                   />
                   <Stat
                     label="COD đang vận chuyển"
                     value={data.don_hang_hien_tai.cod_dang_van_chuyen}
                     currency
-                    note="Hiện tại · chưa phải tiền đã vào quỹ"
+                    help="Hiện tại · chưa phải tiền đã vào quỹ"
                   />
                 </div>
 
@@ -1381,10 +1381,7 @@ export default function TongQuat() {
               </>
             )}
           </Content>
-          <p className="tq-note tq-scope">
-            Excel Tổng quát dùng bộ lọc thời gian/kênh và số dư quỹ hiện tại. Để xuất bốn số quỹ và
-            bộ lọc riêng, chọn Xuất Excel Sổ quỹ.
-          </p>
+
         </section>
       )}
       <div className="tq-2col-equal">
@@ -1594,11 +1591,10 @@ function DashboardCashBreakdown({ data = {}, from, to }) {
 
   return (
     <>
-      <h3 className="tq-v6-subtitle">Phân tích tiền hậu mãi trong kỳ</h3>
-
-      <p className="tq-note tq-scope">
-        Các khoản dưới đây đã nằm trong tổng thu/chi, không cộng thêm lần nữa.
-      </p>
+      <div className="admin-heading-with-help tq-v6-help-heading">
+        <h3 className="tq-v6-subtitle">Phân tích tiền hậu mãi trong kỳ</h3>
+        <AdminHelp>Các khoản dưới đây đã nằm trong tổng thu/chi, không cộng thêm lần nữa.</AdminHelp>
+      </div>
 
       <div className="tq-kpi-sub-grid">
         {Object.entries(fields).map(([key, label]) => (

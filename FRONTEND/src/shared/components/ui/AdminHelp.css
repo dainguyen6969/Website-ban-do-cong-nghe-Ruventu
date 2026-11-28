@@ -41,18 +41,3 @@
   line-height: 1.45;
   overflow-wrap: anywhere;
 }
-
-.role-module-copy.admin-heading-with-help {
-  flex-direction: row;
-  flex-wrap: wrap;
-  align-items: center;
-}
-
-.role-matrix-title .admin-help-trigger {
-  color: #b9c0ca;
-}
-
-.role-matrix-title .admin-help-trigger:hover,
-.role-matrix-title .admin-help-trigger:focus-visible {
-  color: #111;
-}

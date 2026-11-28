@@ -684,8 +684,10 @@ function SupplierCashbookPanel({ supplierId, orders = [], access }) {
             <HiOutlineTrendingDown />
           </div>
           <div className="supplier-stat-content">
-            <span className="supplier-stat-title">TỔNG TIỀN ĐÃ CHI</span>
-            <AdminHelp>Thanh toán tiền nhập hàng</AdminHelp>
+            <div className="admin-heading-with-help">
+              <span className="supplier-stat-title">TỔNG TIỀN ĐÃ CHI</span>
+              <AdminHelp>Thanh toán tiền nhập hàng</AdminHelp>
+            </div>
             <strong className="supplier-stat-value text-red">-{money(summary.tongChi)}</strong>
           </div>
         </div>
@@ -695,8 +697,10 @@ function SupplierCashbookPanel({ supplierId, orders = [], access }) {
             <HiOutlineTrendingUp />
           </div>
           <div className="supplier-stat-content">
-            <span className="supplier-stat-title">TỔNG TIỀN THU HOÀN</span>
-            <AdminHelp>Tiền NCC hoàn lại khi trả hàng</AdminHelp>
+            <div className="admin-heading-with-help">
+              <span className="supplier-stat-title">TỔNG TIỀN THU HOÀN</span>
+              <AdminHelp>Tiền NCC hoàn lại khi trả hàng</AdminHelp>
+            </div>
             <strong className="supplier-stat-value text-green">+{money(summary.tongThu)}</strong>
           </div>
         </div>
@@ -706,8 +710,10 @@ function SupplierCashbookPanel({ supplierId, orders = [], access }) {
             <HiOutlineScale />
           </div>
           <div className="supplier-stat-content">
-            <span className="supplier-stat-title">CHÊNH LỆCH THỰC CHI</span>
-            <AdminHelp>Tổng chi trừ thu hoàn</AdminHelp>
+            <div className="admin-heading-with-help">
+              <span className="supplier-stat-title">CHÊNH LỆCH THỰC CHI</span>
+              <AdminHelp>Tổng chi trừ thu hoàn</AdminHelp>
+            </div>
             <strong className="supplier-stat-value text-dark">
               {money(summary.tongChi - summary.tongThu)}
             </strong>

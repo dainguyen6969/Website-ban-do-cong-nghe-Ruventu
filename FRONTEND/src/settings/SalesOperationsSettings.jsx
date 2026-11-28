@@ -1,3 +1,4 @@
+import AdminHelp from '../shared/components/ui/AdminHelp';
 import { useEffect, useId, useState } from 'react';
 import { CalendarDays, Plus, X } from 'lucide-react';
 import { getSalesOperations, saveSalesOperations } from './settingsApi';
@@ -84,7 +85,12 @@ export default function SalesOperationsSettings() {
         <form onSubmit={save}>
           <fieldset className="sales-settings__sections" disabled={saving}>
             <fieldset className="sales-settings__group sales-settings__schedule">
-              <legend><CalendarDays size={15} aria-hidden="true" /> Lịch tiếp nhận đơn</legend>
+              <legend>
+                <span className="admin-heading-with-help">
+                  <CalendarDays size={15} aria-hidden="true" /> Lịch tiếp nhận đơn
+                  <AdminHelp>Đơn ngoài giờ vẫn được tiếp nhận. Khi tắt lịch, hạn xử lý tính liên tục.</AdminHelp>
+                </span>
+              </legend>
               <label className="sales-settings__check">
                 <input type="checkbox" checked={values.scheduleEnabled}
                   onChange={(event) => change('scheduleEnabled', event.target.checked)} />
@@ -136,7 +142,6 @@ export default function SalesOperationsSettings() {
                   ))}
                 </ul>
               )}
-              <p>Đơn ngoài giờ vẫn được tiếp nhận. Khi tắt lịch, hạn xử lý tính liên tục.</p>
             </fieldset>
             <fieldset className="sales-settings__group">
               <legend>Thời hạn xử lý đơn</legend>
@@ -158,9 +163,13 @@ export default function SalesOperationsSettings() {
               </label>
             </fieldset>
             <fieldset className="sales-settings__group">
-              <legend>Mốc đánh dấu đơn chờ lâu</legend>
+              <legend>
+                <span className="admin-heading-with-help">
+                  Mốc đánh dấu đơn chờ lâu
+                  <AdminHelp>Mốc này dùng để đánh dấu trong danh sách chờ.</AdminHelp>
+                </span>
+              </legend>
               {numberField('backorderLongWaitHours', 'Đánh dấu sau (giờ)', 1, 8760)}
-              <p>Mốc này dùng để đánh dấu trong danh sách chờ.</p>
             </fieldset>
           </fieldset>
           <button type="submit" className="system-settings__save" disabled={saving}>
