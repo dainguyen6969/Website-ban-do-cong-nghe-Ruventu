@@ -77,6 +77,39 @@
   gap: 10px;
 }
 
+.admin-order-detail .order-detail-tabs {
+  --w-red: var(--color-brand-red, #e31e24);
+  border-top: 0;
+  padding-inline: 24px;
+}
+
+.admin-order-detail .order-detail-tabs button {
+  min-height: 42px;
+  cursor: pointer;
+  color: #555;
+}
+
+.admin-order-detail .order-detail-tabs button[aria-current='page'] {
+  color: #fff;
+}
+
+.admin-order-detail .order-detail-tabs button:focus-visible {
+  outline: 2px solid var(--w-red);
+  outline-offset: -3px;
+}
+
+@media (max-width: 700px) {
+  .admin-order-detail .order-detail-tabs {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding-inline: 10px;
+  }
+
+  .admin-order-detail .order-detail-tabs button {
+    flex-shrink: 0;
+  }
+}
+
 .order-action {
   min-height: 38px;
   padding: 0 16px !important;
@@ -1108,8 +1141,7 @@
   align-self: flex-start;
 }
 
-.admin-order-detail .order-products-table .sale-history-warning,
-.admin-order-detail .order-detail-hero__actions .order-handover-warning {
+.admin-order-detail .order-products-table .sale-history-warning {
   position: absolute;
   width: 1px;
   height: 1px;
@@ -1119,6 +1151,11 @@
   clip-path: inset(50%);
   white-space: nowrap;
   border: 0;
+}
+
+.admin-order-detail .order-handover-warning {
+  color: #65521d;
+  line-height: 1.4;
 }
 
 .order-pending-operation {

@@ -1,3 +1,4 @@
+import AdminHelp from '../../../../shared/components/ui/AdminHelp';
 // Admin organization screen: VaiTro.
 import { useMemo, useRef, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -266,11 +267,12 @@ export default function VaiTro() {
   return (
     <main className="role-page" role="main">
       <section className="role-topbar">
-        <AdminPageAction icon="back" onClick={() => navigate('/admin/nhan-vien/danh-sach')}>QUAY LẠI</AdminPageAction>
+        <AdminPageAction variant="utility" icon="back" onClick={() => navigate('/admin/nhan-vien/danh-sach')}>QUAY LẠI</AdminPageAction>
         <h1>QUẢN LÝ VAI TRÒ &amp; PHÂN QUYỀN</h1>
         <div className="admin-page-actions">
           {editingRoleId && !isSystemRole && (
             <AdminPageAction
+              compact
               variant="danger"
               icon="delete"
               onClick={handleDelete}
@@ -337,10 +339,13 @@ export default function VaiTro() {
             </label>
           </section>
           <section className="role-presets">
-            <h2>
-              <span />
-              DANH SÁCH VAI TRÒ
-            </h2>
+            <div className="role-presets-heading">
+              <h2>
+                <span />
+                DANH SÁCH VAI TRÒ
+              </h2>
+              <AdminHelp>Nhấn vào một vai trò để sửa quyền, hoặc chọn Thêm vai trò mới.</AdminHelp>
+            </div>
             <button
               className={`role-preset ${selectedPreset === 'new' ? 'role-preset--active' : ''}`}
               onClick={handleAddNew}
@@ -363,7 +368,7 @@ export default function VaiTro() {
                 <HiOutlineChevronRight />
               </button>
             ))}
-            <p>Nhấn vào để sửa quyền, hoặc nhấn "Thêm vai trò mới".</p>
+
           </section>
           <section className="role-summary">
             <h2>TỔNG QUYỀN ĐÃ CẤP</h2>
@@ -391,13 +396,13 @@ export default function VaiTro() {
         </aside>
         <section className="role-matrix-panel">
           <div className="role-matrix-title">
-            <h2>
+            <h2 id="role-matrix-title">
               <span />
               MA TRẬN PHÂN QUYỀN
             </h2>
-            <p>— Nhấn tiêu đề cột hoặc tên module để chọn nhanh toàn bộ</p>
+            <AdminHelp>Nhấn tiêu đề cột hoặc tên module để chọn nhanh toàn bộ.</AdminHelp>
           </div>
-          <div className="role-matrix-scroll">
+          <div className="role-matrix-scroll" role="region" aria-labelledby="role-matrix-title" tabIndex={0}>
             <table className="role-matrix">
               <thead>
                 <tr>
@@ -475,7 +480,7 @@ export default function VaiTro() {
                                   />
                                   <div className="role-module-copy">
                                     <strong>{module.label}</strong>
-                                    <span>{module.description}</span>
+                                    {module.description && <AdminHelp>{module.description}</AdminHelp>}
                                   </div>
                                 </div>
                               </td>

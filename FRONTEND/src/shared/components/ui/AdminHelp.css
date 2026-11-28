@@ -1,0 +1,43 @@
+.admin-heading-with-help {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.admin-help-trigger {
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 28px;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #656d78;
+  cursor: help;
+}
+
+.admin-help-trigger:hover,
+.admin-help-trigger:focus-visible {
+  color: #111;
+  background: #f0f0f0;
+}
+
+.admin-help-trigger:focus-visible {
+  outline: 2px solid #111;
+  outline-offset: 1px;
+}
+
+.admin-help-tooltip {
+  position: fixed;
+  z-index: 1500;
+  box-sizing: border-box;
+  overflow: auto;
+  padding: 8px 12px;
+  color: #fff;
+  background: #171717;
+  box-shadow: 0 4px 14px #0003;
+  font-size: 0.8125rem;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}

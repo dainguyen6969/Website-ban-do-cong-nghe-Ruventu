@@ -146,8 +146,8 @@ export default function QuanLyPhienBan() {
           <strong>Toàn bộ phiên bản</strong>
         </nav>
 
-        <section className="admin-list-toolbar" aria-label="Tìm kiếm và lọc phiên bản">
-          <label className="admin-list-search">
+        <section className="admin-list-toolbar admin-toolbar" aria-label="Tìm kiếm và lọc phiên bản">
+          <label className="admin-list-search admin-toolbar-search">
             <HiOutlineSearch size={18} aria-hidden="true" />
             <span className="sr-only">Tìm phiên bản</span>
             <input

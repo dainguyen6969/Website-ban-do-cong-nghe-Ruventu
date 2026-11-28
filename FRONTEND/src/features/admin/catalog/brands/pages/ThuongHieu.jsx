@@ -1,3 +1,4 @@
+import AdminHelp from '../../../../../shared/components/ui/AdminHelp';
 // Admin brand list/detail/forms backed by the IntelliJ catalog API.
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -487,8 +488,7 @@ export default function ThuongHieu() {
     <main className="brand-page admin-list-page">
       <div className="brand-heading">
         <div>
-          <h1>THƯƠNG HIỆU</h1>
-          <p>Quản lý nhãn hàng và hãng sản xuất của sản phẩm</p>
+          <div className="admin-heading-with-help"><h1>THƯƠNG HIỆU</h1><AdminHelp>Quản lý nhãn hàng và hãng sản xuất của sản phẩm</AdminHelp></div>
         </div>
         <AdminPageAction
           variant="primary"
@@ -529,7 +529,7 @@ export default function ThuongHieu() {
               <span>TỔNG SẢN PHẨM</span>
             </div>
           </section>
-          <div className="brand-toolbar">
+          <div className="brand-toolbar admin-toolbar">
             <input
               value={search}
               onChange={(event) => {

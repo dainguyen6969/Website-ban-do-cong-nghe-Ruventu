@@ -1,3 +1,4 @@
+import AdminHelp from '../../../../shared/components/ui/AdminHelp';
 // Shared layout for admin order screens.
 import { Link, useLocation, useNavigate, Outlet } from 'react-router-dom';
 import '../../../../shared/components/layout/MainContent.css';
@@ -82,8 +83,10 @@ export default function OrderLayout() {
                 Danh sách đơn hàng
               </span>
             </nav>
-            <h1>DANH SÁCH ĐƠN HÀNG</h1>
-            <p>QUẢN LÝ TOÀN BỘ ĐƠN ONLINE VÀ TẠI QUẦY</p>
+            <div className="admin-heading-with-help">
+              <h1>DANH SÁCH ĐƠN HÀNG</h1>
+              <AdminHelp>QUẢN LÝ TOÀN BỘ ĐƠN ONLINE VÀ TẠI QUẦY</AdminHelp>
+            </div>
           </div>
           <div className="order-list-actions admin-page-actions" role="group" aria-label="Thao tác đơn hàng">
             <AdminPageAction as={Link} compact icon="list" to="/admin/don-hang/cho-hang-can-xu-ly">ĐƠN CHỜ HÀNG CẦN XỬ LÝ</AdminPageAction>

@@ -1,3 +1,4 @@
+import AdminHelp from '../../../../shared/components/ui/AdminHelp';
 // Admin customer screen: ChiTietKhachHang.
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
@@ -519,8 +520,10 @@ function CustomerCashbookPanel({ customerId, orders = [], canViewOrders }) {
             <HiOutlineTrendingUp />
           </div>
           <div className="customer-stat-content">
-            <span className="customer-stat-title">TỔNG TIỀN ĐÃ THU</span>
-            <span className="customer-stat-subtitle">Khách thanh toán mua hàng</span>
+            <div className="admin-heading-with-help">
+              <span className="customer-stat-title">TỔNG TIỀN ĐÃ THU</span>
+              <AdminHelp>Khách thanh toán mua hàng</AdminHelp>
+            </div>
             <strong className="customer-stat-value text-green">
               +{formatMoney(summary.tongThu)}
             </strong>
@@ -532,8 +535,10 @@ function CustomerCashbookPanel({ customerId, orders = [], canViewOrders }) {
             <HiOutlineTrendingDown />
           </div>
           <div className="customer-stat-content">
-            <span className="customer-stat-title">TỔNG TIỀN HOÀN TRẢ</span>
-            <span className="customer-stat-subtitle">Hoàn tiền trả hàng / bảo hành</span>
+            <div className="admin-heading-with-help">
+              <span className="customer-stat-title">TỔNG TIỀN HOÀN TRẢ</span>
+              <AdminHelp>Hoàn tiền trả hàng / bảo hành</AdminHelp>
+            </div>
             <strong className="customer-stat-value text-red">
               -{formatMoney(summary.tongChi)}
             </strong>
@@ -545,8 +550,10 @@ function CustomerCashbookPanel({ customerId, orders = [], canViewOrders }) {
             <HiOutlineScale />
           </div>
           <div className="customer-stat-content">
-            <span className="customer-stat-title">CHÊNH LỆCH THỰC THU</span>
-            <span className="customer-stat-subtitle">Doanh thu ròng từ khách</span>
+            <div className="admin-heading-with-help">
+              <span className="customer-stat-title">CHÊNH LỆCH THỰC THU</span>
+              <AdminHelp>Doanh thu ròng từ khách</AdminHelp>
+            </div>
             <strong className="customer-stat-value text-dark">
               {formatMoney(summary.tongThu - summary.tongChi)}
             </strong>

@@ -712,8 +712,10 @@ export default function DatHangOnline() {
           <nav>
             ĐƠN HÀNG <span>/</span> {editId ? 'CHỈNH SỬA ĐƠN HÀNG ONLINE' : 'TẠO ĐƠN CHỜ HÀNG'}
           </nav>
-          <h1>{editId ? 'CHỈNH SỬA ĐƠN HÀNG ONLINE' : 'TẠO ĐƠN CHỜ HÀNG'}</h1>
-          <p>LÊN ĐƠN THỦ CÔNG CHO KHÁCH HÀNG VÀ KIỂM TRA GIÁ / TỒN / KHUYẾN MẠI TRƯỚC KHI LƯU</p>
+          <div className="admin-heading-with-help">
+            <h1>{editId ? 'CHỈNH SỬA ĐƠN HÀNG ONLINE' : 'TẠO ĐƠN CHỜ HÀNG'}</h1>
+            <AdminHelp>Lên đơn thủ công cho khách hàng và kiểm tra giá, tồn kho và khuyến mại trước khi lưu.</AdminHelp>
+          </div>
         </div>
         <AdminPageAction
           variant="utility"
@@ -1406,3 +1408,4 @@ function SummaryLine({ label, value, red }) {
     </div>
   );
 }
+import AdminHelp from '../../../../shared/components/ui/AdminHelp';

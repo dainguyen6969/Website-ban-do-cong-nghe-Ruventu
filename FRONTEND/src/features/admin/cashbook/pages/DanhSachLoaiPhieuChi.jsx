@@ -1,3 +1,4 @@
+import AdminHelp from '../../../../shared/components/ui/AdminHelp';
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import './DanhSachLoaiPhieuThu.css'; // Reuse CSS
@@ -137,14 +138,11 @@ export default function DanhSachLoaiPhieuChi() {
 
     {/* Giữ tiêu đề từ main-test */}
     <div className="pt-header-main">
-      <h1>LOẠI PHIẾU CHI</h1>
-      <p>
-        QUẢN LÝ CÁC NHÓM MỤC ĐÍCH DÙNG ĐỂ PHÂN LOẠI KHOẢN TIỀN CHI
-      </p>
+      <div className="admin-heading-with-help"><h1>LOẠI PHIẾU CHI</h1><AdminHelp>QUẢN LÝ CÁC NHÓM MỤC ĐÍCH DÙNG ĐỂ PHÂN LOẠI KHOẢN TIỀN CHI</AdminHelp></div>
     </div>
 
     {/* Giữ FilterDropdown từ responsive */}
-    <div className="pt-filter-bar">
+    <div className="pt-filter-bar admin-toolbar">
       <input
         type="text"
         placeholder="TÌM MÃ LOẠI / TÊN LOẠI..."

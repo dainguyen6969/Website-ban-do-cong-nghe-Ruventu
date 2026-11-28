@@ -240,8 +240,8 @@ export default function DanhSachDonHang() {
           </p>
         )}
 
-        <div className="order-toolbar__primary">
-          <label className="order-search">
+        <div className="order-toolbar__primary admin-toolbar">
+          <label className="order-search admin-toolbar-search">
             <HiOutlineSearch size={17} />
             <input
               type="search"
@@ -276,7 +276,7 @@ export default function DanhSachDonHang() {
           </button>
         </div>
         {showAdvanced && (
-          <div className="order-toolbar__advanced">
+          <div className="order-toolbar__advanced admin-toolbar">
             {['trang_thai_dong_goi', 'trang_thai_xuat_kho'].map((field) => (
               <Advanced
                 key={field}
@@ -322,11 +322,11 @@ export default function DanhSachDonHang() {
                 }
               />
             </Advanced>
-            <div className="order-filter-actions">
-              <button type="button" className="order-filter-clear" onClick={clear}>
+            <div className="order-filter-actions admin-toolbar-actions">
+              <button type="button" className="order-filter-clear admin-toolbar-button" onClick={clear}>
                 XÓA
               </button>
-              <button type="button" className="order-filter-apply" onClick={apply}>
+              <button type="button" className="order-filter-apply admin-toolbar-button" onClick={apply}>
                 ÁP DỤNG
               </button>
             </div>

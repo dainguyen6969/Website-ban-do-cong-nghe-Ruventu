@@ -1,3 +1,4 @@
+import AdminHelp from '../../../../shared/components/ui/AdminHelp';
 import { useCallback, useEffect, useState } from 'react';
 import { useLocation, useNavigate, Link } from 'react-router-dom';
 import {
@@ -324,8 +325,10 @@ export default function NhaCungCap() {
           <section className="supplier-hero">
             <div>
               <Breadcrumb />
-              <h1>DANH SÁCH NHÀ CUNG CẤP</h1>
-              <p>QUẢN LÝ ĐỐI TÁC CUNG ỨNG VÀ LỊCH SỬ NHẬP HÀNG</p>
+              <div className="admin-heading-with-help">
+                <h1>DANH SÁCH NHÀ CUNG CẤP</h1>
+                <AdminHelp>QUẢN LÝ ĐỐI TÁC CUNG ỨNG VÀ LỊCH SỬ NHẬP HÀNG</AdminHelp>
+              </div>
             </div>
             <AdminPageAction
               variant="primary"
@@ -337,8 +340,8 @@ export default function NhaCungCap() {
             </AdminPageAction>
           </section>
           {toast && <SuccessToast message={toast} />}
-          <section className="supplier-toolbar">
-            <label className="supplier-search" htmlFor="supplier-search">
+          <section className="supplier-toolbar admin-toolbar">
+            <label className="supplier-search admin-toolbar-search" htmlFor="supplier-search">
               <HiOutlineSearch />
               <input
                 id="supplier-search"
@@ -681,8 +684,10 @@ function SupplierCashbookPanel({ supplierId, orders = [], access }) {
             <HiOutlineTrendingDown />
           </div>
           <div className="supplier-stat-content">
-            <span className="supplier-stat-title">TỔNG TIỀN ĐÃ CHI</span>
-            <span className="supplier-stat-subtitle">Thanh toán tiền nhập hàng</span>
+            <div className="admin-heading-with-help">
+              <span className="supplier-stat-title">TỔNG TIỀN ĐÃ CHI</span>
+              <AdminHelp>Thanh toán tiền nhập hàng</AdminHelp>
+            </div>
             <strong className="supplier-stat-value text-red">-{money(summary.tongChi)}</strong>
           </div>
         </div>
@@ -692,8 +697,10 @@ function SupplierCashbookPanel({ supplierId, orders = [], access }) {
             <HiOutlineTrendingUp />
           </div>
           <div className="supplier-stat-content">
-            <span className="supplier-stat-title">TỔNG TIỀN THU HOÀN</span>
-            <span className="supplier-stat-subtitle">Tiền NCC hoàn lại khi trả hàng</span>
+            <div className="admin-heading-with-help">
+              <span className="supplier-stat-title">TỔNG TIỀN THU HOÀN</span>
+              <AdminHelp>Tiền NCC hoàn lại khi trả hàng</AdminHelp>
+            </div>
             <strong className="supplier-stat-value text-green">+{money(summary.tongThu)}</strong>
           </div>
         </div>
@@ -703,8 +710,10 @@ function SupplierCashbookPanel({ supplierId, orders = [], access }) {
             <HiOutlineScale />
           </div>
           <div className="supplier-stat-content">
-            <span className="supplier-stat-title">CHÊNH LỆCH THỰC CHI</span>
-            <span className="supplier-stat-subtitle">Tổng chi trừ thu hoàn</span>
+            <div className="admin-heading-with-help">
+              <span className="supplier-stat-title">CHÊNH LỆCH THỰC CHI</span>
+              <AdminHelp>Tổng chi trừ thu hoàn</AdminHelp>
+            </div>
             <strong className="supplier-stat-value text-dark">
               {money(summary.tongChi - summary.tongThu)}
             </strong>

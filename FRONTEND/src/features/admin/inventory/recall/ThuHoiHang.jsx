@@ -772,8 +772,8 @@ export default function ThuHoiHang() {
 
         {!recallId && (
           <>
-            <section className="admin-list-toolbar" aria-label="Bộ lọc thu hồi hàng">
-              <label className="admin-list-search">
+            <section className="admin-list-toolbar admin-toolbar" aria-label="Bộ lọc thu hồi hàng">
+              <label className="admin-list-search admin-toolbar-search">
                 <HiOutlineSearch size={18} aria-hidden="true" />
                 <input
                   type="search"

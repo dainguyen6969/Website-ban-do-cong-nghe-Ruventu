@@ -1,3 +1,4 @@
+import AdminHelp from '../../../../shared/components/ui/AdminHelp';
 import { scaledFontSize } from '../../../../typography/projectFontSize.js';
 // Admin customer returns screen: KhachTraHang (UC-027 TH001-TH012)
 // Connected with Backend APIs: /api/v1/admin/returns
@@ -276,8 +277,10 @@ function ReturnList() {
             <Link to="/admin/don-hang/danh-sach-don-hang">ĐƠN HÀNG</Link> /{' '}
             <span>KHÁCH TRẢ HÀNG</span>
           </div>
-          <h1>KHÁCH TRẢ HÀNG</h1>
-          <p>Theo dõi phiếu, người liên hệ và quyền trả hàng từ dữ liệu hệ thống.</p>
+          <div className="admin-heading-with-help">
+            <h1>KHÁCH TRẢ HÀNG</h1>
+            <AdminHelp>Theo dõi phiếu, người liên hệ và quyền trả hàng từ dữ liệu hệ thống.</AdminHelp>
+          </div>
         </div>
         <AdminPageAction
           variant="primary"
@@ -291,9 +294,9 @@ function ReturnList() {
 
       {/* Filter Bar */}
       <section className="returns-filters">
-        <div className="returns-filters__inner">
+        <div className="returns-filters__inner admin-toolbar">
           {/* Search box */}
-          <label className="returns-search">
+          <label className="returns-search admin-toolbar-search">
             <HiOutlineSearch />
             <input
               value={query}
@@ -353,7 +356,7 @@ function ReturnList() {
           {/* Reset button */}
           <button
             type="button"
-            className="return-btn return-btn--outline"
+            className="return-btn return-btn--outline admin-toolbar-button admin-toolbar-outline"
             onClick={resetFilters}
             title="Xóa tất cả bộ lọc"
           >

@@ -1,3 +1,4 @@
+import AdminHelp from '../../../../shared/components/ui/AdminHelp';
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Check, X } from 'lucide-react';
@@ -287,8 +288,7 @@ export default function DanhSachKhuyenMai() {
       <div className="promo-list-header">
         <div className="promo-list-title-area">
           <div className="promo-breadcrumb">KHUYẾN MẠI / DANH SÁCH KHUYẾN MẠI</div>
-          <h1>DANH SÁCH KHUYẾN MẠI</h1>
-          <p>QUẢN LÝ CÁC CHƯƠNG TRÌNH ƯU ĐÃI ĐANG ĐƯỢC CẤU HÌNH</p>
+          <div className="admin-heading-with-help"><h1>DANH SÁCH KHUYẾN MẠI</h1><AdminHelp>QUẢN LÝ CÁC CHƯƠNG TRÌNH ƯU ĐÃI ĐANG ĐƯỢC CẤU HÌNH</AdminHelp></div>
         </div>
         <AdminPageAction
           variant="primary"
@@ -301,11 +301,10 @@ export default function DanhSachKhuyenMai() {
       </div>
 
       {/* Filter Bar (Image 1) */}
-      <div className="promo-filter-bar-container">
+      <div className="promo-filter-bar-container admin-toolbar">
         <div className="promo-filter-field promo-field-search">
           <label>TÌM CHƯƠNG TRÌNH</label>
-          <input
-            type="text"
+          <input className="admin-toolbar-search" type="search"
             placeholder="TÌM MÃ / TÊN..."
             value={searchQuery}
             onChange={(e) => {
@@ -346,7 +345,7 @@ export default function DanhSachKhuyenMai() {
           </FormDropdown>
         </div>
 
-        <div className="promo-filter-field promo-field-select">
+        <div className="promo-filter-field promo-field-select promo-field-status">
           <label>TRẠNG THÁI HIỂN THỊ</label>
           <FormDropdown
             value={statusFilter}
@@ -389,7 +388,7 @@ export default function DanhSachKhuyenMai() {
         </div>
 
         <div className="promo-filter-action">
-          <button type="button" className="btn-clear-filter-btn" onClick={handleClearFilters}>
+          <button type="button" className="btn-clear-filter-btn admin-toolbar-button admin-toolbar-outline" onClick={handleClearFilters}>
             XÓA BỘ LỌC
           </button>
         </div>

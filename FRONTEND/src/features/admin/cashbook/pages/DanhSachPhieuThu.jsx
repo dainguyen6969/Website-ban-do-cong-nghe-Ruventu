@@ -1,3 +1,4 @@
+import AdminHelp from '../../../../shared/components/ui/AdminHelp';
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 
 import { useNavigate, useLocation, Link } from 'react-router-dom';
@@ -178,11 +179,10 @@ export default function DanhSachPhieuThu() {
       </div>
 
       <div className="pt-header-main">
-        <h1>PHIẾU THU</h1>
-        <p>QUẢN LÝ CÁC KHOẢN TIỀN ĐÃ GHI NHẬN VÀO QUỸ</p>
+        <div className="admin-heading-with-help"><h1>PHIẾU THU</h1><AdminHelp>QUẢN LÝ CÁC KHOẢN TIỀN ĐÃ GHI NHẬN VÀO QUỸ</AdminHelp></div>
       </div>
 
-      <div className="pt-filter-bar">
+      <div className="pt-filter-bar admin-toolbar">
         <input
           type="text"
           placeholder="TÌM MÃ PHIẾU / NGƯỜI NỘP / CHỨNG TỪ..."

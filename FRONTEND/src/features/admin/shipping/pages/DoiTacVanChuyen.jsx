@@ -1,3 +1,4 @@
+import AdminHelp from '../../../../shared/components/ui/AdminHelp';
 import { useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate, Link } from 'react-router-dom';
 import { HiOutlineSearch, HiOutlineX } from 'react-icons/hi';
@@ -529,8 +530,10 @@ export default function DoiTacVanChuyen() {
           <section className="partner-hero">
             <div>
               <PartnerBreadcrumb />
-              <h1>ĐỐI TÁC VẬN CHUYỂN</h1>
-              <p>QUẢN LÝ ĐỐI TÁC GIAO HÀNG VÀ LỊCH SỬ PHIẾU GIAO</p>
+              <div className="admin-heading-with-help">
+                <h1>ĐỐI TÁC VẬN CHUYỂN</h1>
+                <AdminHelp>QUẢN LÝ ĐỐI TÁC GIAO HÀNG VÀ LỊCH SỬ PHIẾU GIAO</AdminHelp>
+              </div>
             </div>
 
             <AdminPageAction
@@ -545,8 +548,8 @@ export default function DoiTacVanChuyen() {
 
           {successMessage && <SuccessBanner message={successMessage} />}
 
-          <section className="partner-toolbar">
-            <label className="partner-search">
+          <section className="partner-toolbar admin-toolbar">
+            <label className="partner-search admin-toolbar-search">
               <HiOutlineSearch />
               <input
                 value={filters.keyword}

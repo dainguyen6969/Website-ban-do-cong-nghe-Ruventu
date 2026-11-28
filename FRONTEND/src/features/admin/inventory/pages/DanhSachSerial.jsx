@@ -173,8 +173,8 @@ export default function DanhSachSerial() {
           </p>
         )}
         {versionsError && <p role="alert">Không tải được bộ lọc phiên bản: {versionsError}</p>}
-        <section className="serial-toolbar" aria-label="Tìm kiếm và lọc serial">
-          <label className="serial-search">
+        <section className="serial-toolbar admin-toolbar" aria-label="Tìm kiếm và lọc serial">
+          <label className="serial-search admin-toolbar-search">
             <HiOutlineSearch size={18} aria-hidden="true" />
             <span className="sr-only">Tìm sản phẩm hoặc phiên bản</span>
 
@@ -186,7 +186,7 @@ export default function DanhSachSerial() {
             />
           </label>
 
-          <label className="serial-search serial-search--code">
+          <label className="serial-search serial-search--code admin-toolbar-search">
             <span className="sr-only">Lọc theo số serial</span>
 
             <input
@@ -230,7 +230,7 @@ export default function DanhSachSerial() {
             ))}
           </FilterDropdown>
 
-          <div className="serial-toolbar-actions admin-page-actions">
+          <div className="serial-toolbar-actions admin-page-actions admin-toolbar-actions">
             <AdminPageAction
               icon="return"
               onClick={() => navigate('/kho-hang/thu-hoi')}

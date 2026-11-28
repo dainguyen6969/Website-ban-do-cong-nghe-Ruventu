@@ -1,3 +1,4 @@
+import AdminHelp from '../../../../../shared/components/ui/AdminHelp';
 import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { HiOutlinePlus, HiOutlineSearch, HiOutlineX } from 'react-icons/hi';
@@ -1222,9 +1223,7 @@ export default function ThemSanPham() {
               <>
                 <FormCard title="Thuộc tính sản phẩm">
                   {isEditing ? (
-                    <p className="product-editor__hint">
-                      Nhấn “Thuộc tính” tại từng phiên bản để chỉnh tên và giá trị.
-                    </p>
+                    <AdminHelp>Nhấn “Thuộc tính” tại từng phiên bản để chỉnh tên và giá trị.</AdminHelp>
                   ) : (
                     <>
                       <div className="product-editor__table-wrap">
@@ -1340,9 +1339,7 @@ export default function ThemSanPham() {
                         <HiOutlinePlus /> THÊM THUỘC TÍNH KHÁC
                       </button>
 
-                      <p className="product-editor__hint">
-                        Nhấn Enter hoặc dấu phẩy để thêm giá trị. Thuộc tính dùng để sinh phiên bản.
-                      </p>
+                      <AdminHelp>Nhấn Enter hoặc dấu phẩy để thêm giá trị. Thuộc tính dùng để sinh phiên bản.</AdminHelp>
                     </>
                   )}
                 </FormCard>
@@ -1590,9 +1587,7 @@ export default function ThemSanPham() {
             ) : (
               <FormCard title="Sản phẩm thành phần">
                 {configurationLocked && (
-                  <p className="product-editor__hint">
-                    Cấu hình đã được sử dụng. Thành phần và số lượng được giữ cố định.
-                  </p>
+                  <AdminHelp>Cấu hình đã được sử dụng. Thành phần và số lượng được giữ cố định.</AdminHelp>
                 )}
 
                 <div className="product-editor__search">
@@ -1869,9 +1864,7 @@ export default function ThemSanPham() {
               {isCombo ? (
                 <>
                   <strong>Bảo hành theo từng linh kiện.</strong>
-                  <p className="product-editor__hint">
-                    Thời hạn được hiển thị tại từng linh kiện trong bảng thành phần.
-                  </p>
+                  <AdminHelp>Thời hạn được hiển thị tại từng linh kiện trong bảng thành phần.</AdminHelp>
                 </>
               ) : (
                 <label className="product-editor__field">
@@ -1905,7 +1898,7 @@ export default function ThemSanPham() {
                       <span>Tồn khởi tạo</span>
                       <strong className="product-editor__red">0</strong>
                     </div>
-                    <p className="product-editor__hint">Nhập hàng sau khi tạo sản phẩm.</p>
+                    <AdminHelp>Nhập hàng sau khi tạo sản phẩm.</AdminHelp>
                   </>
                 )}
               </FormCard>

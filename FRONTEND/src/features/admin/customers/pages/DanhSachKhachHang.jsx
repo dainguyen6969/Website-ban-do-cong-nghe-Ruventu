@@ -1,3 +1,4 @@
+import AdminHelp from '../../../../shared/components/ui/AdminHelp';
 // Admin customer screen: DanhSachKhachHang.
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
@@ -98,8 +99,10 @@ export default function DanhSachKhachHang() {
             <span>/</span>
             <strong>KHÁCH HÀNG</strong>
           </nav>
-          <h1>DANH SÁCH KHÁCH HÀNG</h1>
-          <p>QUẢN LÝ HỒ SƠ VÀ LỊCH SỬ MUA HÀNG KHÁCH HÀNG</p>
+          <div className="admin-heading-with-help">
+            <h1>DANH SÁCH KHÁCH HÀNG</h1>
+            <AdminHelp>QUẢN LÝ HỒ SƠ VÀ LỊCH SỬ MUA HÀNG KHÁCH HÀNG</AdminHelp>
+          </div>
         </div>
         <AdminPageAction
           variant="primary"
@@ -111,8 +114,8 @@ export default function DanhSachKhachHang() {
         </AdminPageAction>
       </section>
 
-      <section className="customer-toolbar" aria-label="Tìm kiếm và lọc khách hàng">
-        <label className="customer-search" htmlFor="customer-search-input">
+      <section className="customer-toolbar admin-toolbar" aria-label="Tìm kiếm và lọc khách hàng">
+        <label className="customer-search admin-toolbar-search" htmlFor="customer-search-input">
           <HiOutlineSearch size={18} />
           <input
             id="customer-search-input"

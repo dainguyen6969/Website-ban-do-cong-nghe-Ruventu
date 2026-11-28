@@ -46,13 +46,10 @@
 }
 
 .admin-app .admin-page-action-btn[data-variant='utility'] {
-  --warranty-button-font-weight: var(--admin-weight-semibold, 600);
   --action-ink: #252a31;
   --action-border: #8a949f;
   --action-border-width: 1px;
   --action-hover: #f4f5f7;
-
-  text-transform: none;
 }
 
 .admin-app .admin-page-action-btn[data-variant='primary'] {

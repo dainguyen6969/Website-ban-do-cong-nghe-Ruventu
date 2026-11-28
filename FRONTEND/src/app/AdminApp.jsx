@@ -15,6 +15,7 @@ import '../styles/index.css';
 import './App.css';
 import '../styles/responsive.css';
 import '../styles/adminTables.css';
+import '../styles/adminControls.css';
 import '../styles/adminLinks.css';
 
 const DanhSachDonHang = lazy(() => import('../features/admin/orders/pages/DanhSachDonHang'));

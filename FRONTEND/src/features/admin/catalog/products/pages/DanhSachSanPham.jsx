@@ -254,9 +254,9 @@ export default function DanhSachSanPham() {
 
   return (
     <main className="product-page admin-list-page" role="main">
-      {/* 2. Action button band */}
-      <div className="product-actions-band">
-        <div className="product-actions-band__content admin-page-actions">
+      <header className="product-page-heading admin-page-heading">
+        <div><div className="product-page-heading__section">SẢN PHẨM</div><h1>DANH SÁCH SẢN PHẨM</h1></div>
+        <div className="admin-page-actions">
           <AdminPageAction icon="upload" id="btn-import-excel"><span>NHẬP EXCEL</span></AdminPageAction>
           <AdminPageAction
             variant="primary"
@@ -268,34 +268,12 @@ export default function DanhSachSanPham() {
             <span>THÊM SẢN PHẨM</span>
           </AdminPageAction>
         </div>
-      </div>
-
-      {/* 3. Breadcrumb row (SẢN PHẨM › DANH SÁCH SẢN PHẨM) */}
-      <div className="product-breadcrumb-row">
-        <nav className="product-breadcrumb" aria-label="Breadcrumb nội dung">
-<Link
-  to="/admin/san-pham/danh-sach-san-pham"
-  className="product-breadcrumb__item product-breadcrumb__item--muted"
->
-  SẢN PHẨM
-</Link>
-          <span className="product-breadcrumb__sep" aria-hidden="true">
-            ›
-          </span>
-          <span className="product-breadcrumb__item product-breadcrumb__item--current">
-            DANH SÁCH SẢN PHẨM
-          </span>
-        </nav>
-      </div>
-
-      {/* 5. Full-width thin light-gray divider line between breadcrumb and search/filter row */}
-      <div className="product-breadcrumb-divider" aria-hidden="true" />
-
+      </header>
       {/* 4. Filter row: search input + "Bộ lọc" toggle button */}
-      <div className="product-filter-row">
+      <div className="product-filter-row admin-toolbar">
         <div className="product-filter-search-group">
           {/* Search input with thin light-gray border */}
-          <div className="product-search">
+          <div className="product-search admin-toolbar-search">
             <HiOutlineSearch size={16} className="product-search__icon" />
             <input
               type="text"

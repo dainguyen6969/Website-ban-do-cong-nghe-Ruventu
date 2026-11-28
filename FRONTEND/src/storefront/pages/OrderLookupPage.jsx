@@ -1,3 +1,4 @@
+import AdminHelp from '../../shared/components/ui/AdminHelp';
 import { label } from '../../features/admin/orders/api/orderApi.js';
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -235,12 +236,11 @@ const OrderLookupPage = () => {
 
           <div className="banner-title-container">
             <div className="red-vertical-line"></div>
-            <h1 className="banner-title">TRA CỨU ĐƠN HÀNG</h1>
+            <div className="admin-heading-with-help">
+              <h1 className="banner-title">TRA CỨU ĐƠN HÀNG</h1>
+              <AdminHelp>Nhập Mã đơn hàng hoặc Số điện thoại để kiểm tra trạng thái đơn hàng của bạn.</AdminHelp>
+            </div>
           </div>
-
-          <p className="banner-subtitle">
-            Nhập Mã đơn hàng hoặc Số điện thoại để kiểm tra trạng thái đơn hàng của bạn.
-          </p>
 
           <form className="search-form" onSubmit={handleSearch}>
             <div className="search-input-wrapper">
@@ -251,12 +251,13 @@ const OrderLookupPage = () => {
                 onChange={(e) => setSearchValue(e.target.value)}
               />
             </div>
-            <button type="submit" className="search-submit-btn">
-              TRA CỨU
-            </button>
+            <div className="admin-heading-with-help">
+              <button type="submit" className="search-submit-btn">
+                TRA CỨU
+              </button>
+              <AdminHelp>Thử nhập: 0901234567 • RUV-98237</AdminHelp>
+            </div>
           </form>
-
-          <p className="search-hint">Thử nhập: 0901234567 • RUV-98237</p>
         </div>
       </div>
 

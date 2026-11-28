@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import AdminHelp from '../../../../shared/components/ui/AdminHelp';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { Search, SlidersHorizontal, ArrowRight, RefreshCw } from 'lucide-react';
 import {
@@ -107,10 +108,10 @@ export default function DanhSachBaoHanh() {
     <div className="w-shell warranty-list admin-list-page">
       <header className="w-shell-hero">
         <div>
-          <div className="w-shell-title-row">
+          <div className="w-shell-title-row admin-heading-with-help">
             <h1>DANH SÁCH PHIẾU BẢO HÀNH</h1>
+            <AdminHelp>Tiếp nhận → Kiểm tra → Xử lý → Trả khách</AdminHelp>
           </div>
-          <p>Tiếp nhận → Kiểm tra → Xử lý → Trả khách</p>
         </div>
         {canCreateWarranty && (
           <AdminPageAction
@@ -128,8 +129,8 @@ export default function DanhSachBaoHanh() {
         </p>
       )}
       <section className="w-shell-toolbar" aria-label="Bộ lọc phiếu bảo hành">
-        <div className="w-shell-filter-primary">
-          <label className="w-shell-search">
+        <div className="w-shell-filter-primary admin-toolbar">
+          <label className="w-shell-search admin-toolbar-search">
             <Search size={16} aria-hidden="true" />
             <input
               aria-label="Tìm phiếu bảo hành"
@@ -168,7 +169,7 @@ export default function DanhSachBaoHanh() {
           </button>
           <button
             type="button"
-            className="w-shell-button"
+            className="w-shell-button admin-toolbar-button"
             onClick={() => {
               setFilters({ ...emptyFilters });
               setPage(1);
@@ -178,14 +179,14 @@ export default function DanhSachBaoHanh() {
           </button>
           <button
             type="button"
-            className="w-shell-button"
+            className="w-shell-button admin-toolbar-button"
             onClick={() => setReload((value) => value + 1)}
           >
             <RefreshCw size={14} /> Tải lại
           </button>
         </div>
         {advanced && (
-          <div className="w-shell-filter-advanced">
+          <div className="w-shell-filter-advanced admin-toolbar">
             <label className="w-shell-date">
               Từ ngày
               <input
@@ -328,7 +329,7 @@ export default function DanhSachBaoHanh() {
                       <td>
                         <button
                           type="button"
-                          className="w-shell-button"
+                          className="w-shell-button admin-toolbar-button"
                           aria-label={`Xem chi tiết ${item.id}`}
                           onClick={() => navigate(`/admin/bao-hanh/chi-tiet/${item.id}`)}
                         >

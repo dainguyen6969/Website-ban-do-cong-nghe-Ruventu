@@ -502,20 +502,20 @@ export default function ChiTietKhuyenMai() {
         </div>
 
         <div className="w-shell-actions admin-page-actions">
-          <AdminPageAction
+          <AdminPageAction compact
             icon="back"
             onClick={() => navigate('/admin/khuyen-mai/danh-sach-khuyen-mai')}
           >
             Danh sách
           </AdminPageAction>
-          <AdminPageAction
+          <AdminPageAction compact
             icon="reload"
             disabled={busy}
             onClick={() => setReloadTick((v) => v + 1)}
           >
             Tải lại
           </AdminPageAction>
-          <AdminPageAction
+          <AdminPageAction compact
             variant="operation"
             icon="edit"
             disabled={busy || !canEditPromotion}
@@ -531,7 +531,7 @@ export default function ChiTietKhuyenMai() {
           >
             {promo.savedStatus === 0 ? 'Khôi phục' : 'Tạm dừng'}
           </AdminPageAction>
-          <AdminPageAction
+          <AdminPageAction compact
             variant="danger"
             icon="delete"
             disabled={busy || !canDeletePromotion}

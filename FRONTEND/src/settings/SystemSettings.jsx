@@ -1,3 +1,4 @@
+import AdminHelp from '../shared/components/ui/AdminHelp';
 import { useEffect, useRef, useState } from 'react';
 import { FONT_OPTIONS } from '../typography/fontOptions';
 import FontSizeControl from '../typography/FontSizeControl';
@@ -96,11 +97,10 @@ export default function SystemSettings() {
         {status?.canManage && (
           <div className="system-settings__maintenance">
             <div>
-              <h3>Chế độ bảo trì</h3>
-              <p>
-                Khi bật, chỉ quản trị viên được đăng nhập. Tất cả thao tác tạo đơn và thanh toán đều
-                bị chặn.
-              </p>
+              <div className="admin-heading-with-help system-settings__help-heading">
+                <h3>Chế độ bảo trì</h3>
+                <AdminHelp>Khi bật, chỉ quản trị viên được đăng nhập. Tất cả thao tác tạo đơn và thanh toán đều bị chặn.</AdminHelp>
+              </div>
             </div>
             <button
               type="button"
@@ -118,11 +118,10 @@ export default function SystemSettings() {
         {status?.canManage && <SalesOperationsSettings />}
         {font && (
           <form onSubmit={saveFont} className="system-settings__typography">
-            <h3>Phông chữ và cỡ chữ</h3>
-            <p>
-              Phông chữ và cỡ chữ áp dụng chung cho mọi người trên cả trang quản trị và trang bán
-              hàng, kể cả khách chưa đăng nhập.
-            </p>
+            <div className="admin-heading-with-help system-settings__help-heading">
+              <h3>Phông chữ và cỡ chữ</h3>
+              <AdminHelp>Phông chữ và cỡ chữ áp dụng chung cho mọi người trên cả trang quản trị và trang bán hàng, kể cả khách chưa đăng nhập.</AdminHelp>
+            </div>
             <FontSizeControl
               value={font.fontSize}
               onChange={(fontSize) => {
