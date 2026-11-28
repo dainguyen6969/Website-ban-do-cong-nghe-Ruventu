@@ -16,6 +16,17 @@ public final class AdminOrderResponse {
 
   private AdminOrderResponse() {}
 
+  @JsonInclude(JsonInclude.Include.ALWAYS)
+  public record PackageSuggestion(
+      @JsonProperty("khoi_luong_g") BigDecimal khoiLuongG,
+      @JsonProperty("chieu_dai_cm") Integer chieuDaiCm,
+      @JsonProperty("chieu_rong_cm") Integer chieuRongCm,
+      @JsonProperty("chieu_cao_cm") BigDecimal chieuCaoCm,
+      @JsonProperty("can_nhap_tay") boolean canNhapTay,
+      @JsonProperty("ly_do") String lyDo) {}
+
+  public record GhnQuote(@JsonProperty("phi_tra_doi_tac_du_kien") int phiTraDoiTacDuKien) {}
+
   @Getter
   @Setter
   public static class ListItem {

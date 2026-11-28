@@ -2,6 +2,7 @@ package com.example.dantruventu.Entity;
 
 import com.example.dantruventu.Config.TrangThaiCoBanConverter;
 import com.example.dantruventu.Enum.TrangThaiCoBanEnum;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import java.math.BigDecimal;
@@ -46,6 +47,8 @@ public class PhienBanSanPham {
   @Column(name = "khoi_luong", precision = 10, scale = 2)
   private BigDecimal khoiLuong = BigDecimal.ZERO;
 
+  @Embedded private KichThuocDongGoi kichThuocDongGoi;
+
   @Builder.Default
   @Convert(converter = TrangThaiCoBanConverter.class)
   @ColumnDefault("1")
@@ -82,4 +85,21 @@ public class PhienBanSanPham {
 
   @OneToMany(mappedBy = "phienBan", fetch = FetchType.LAZY)
   private List<ChiTietDonHang> danhSachChiTietDonHang;
+
+  //noinspection JpaObjectClassSignatureInspection
+  @Embeddable
+  public record KichThuocDongGoi(
+      @Column(name = "chieu_dai_dong_goi_cm") @JsonProperty("dai_cm") Integer daiCm,
+      @Column(name = "chieu_rong_dong_goi_cm") @JsonProperty("rong_cm") Integer rongCm,
+      @Column(name = "chieu_cao_dong_goi_cm") @JsonProperty("cao_cm") Integer caoCm) {
+
+    public boolean hopLe() {
+      return daiCm != null
+          && daiCm > 0
+          && rongCm != null
+          && rongCm > 0
+          && caoCm != null
+          && caoCm > 0;
+    }
+  }
 }

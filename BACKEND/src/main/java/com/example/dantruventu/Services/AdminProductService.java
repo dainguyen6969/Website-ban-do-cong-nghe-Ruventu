@@ -188,6 +188,7 @@ public class AdminProductService {
                       .giaNhap(variant.getGiaNhap())
                       .giaVonBinhQuan(variant.getGiaVonBinhQuan())
                       .khoiLuong(variant.getKhoiLuong())
+                      .kichThuocDongGoi(variant.getKichThuocDongGoi())
                       .trangThai(variant.getTrangThai().getValue())
                       .coQuanLySerial(variant.getCoQuanLySerial())
                       .cheDoSerialBiKhoa(lockedModes.contains(variant.getId()))
@@ -437,6 +438,11 @@ public class AdminProductService {
     variant.setGiaBanLe(request.getGiaBanLe());
     variant.setGiaNhap(request.getGiaNhap());
     variant.setKhoiLuong(request.getKhoiLuong() == null ? BigDecimal.ZERO : request.getKhoiLuong());
+
+    if (request.isDaGuiKichThuocDongGoi()) {
+      variant.setKichThuocDongGoi(request.getKichThuocDongGoi());
+    }
+
     variant.setTrangThai(parseTrangThai(request.getTrangThai()));
     variant.setCoQuanLySerial(request.getCoQuanLySerial());
 

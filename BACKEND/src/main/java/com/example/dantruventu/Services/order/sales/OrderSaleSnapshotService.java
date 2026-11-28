@@ -242,6 +242,18 @@ public class OrderSaleSnapshotService {
     return result;
   }
 
+  public Optional<Map<Long, PhysicalItem>> physicalForPackageSuggestion(ChiTietDonHang line) {
+    try {
+      return Optional.of(physical(line));
+    } catch (AppException exception) {
+      if (exception.getErrorCode() != ErrorCode.CONFLICT
+          && exception.getErrorCode() != ErrorCode.INVALID_DATA) {
+        throw exception;
+      }
+      return Optional.empty();
+    }
+  }
+
   public List<ChiTietDonHang> saveLines(
       DonHang order, SalesCalculationService.Plan plan, AdminSalesRequest.Base request) {
 

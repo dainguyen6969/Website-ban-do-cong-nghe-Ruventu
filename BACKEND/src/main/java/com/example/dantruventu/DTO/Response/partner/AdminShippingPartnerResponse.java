@@ -28,6 +28,9 @@ public class AdminShippingPartnerResponse {
   @JsonProperty("loai_doi_tac")
   private LoaiDoiTacVanChuyenEnum loaiDoiTac;
 
+  @JsonProperty("nguoi_dung_id")
+  private Long nguoiDungId;
+
   private String email;
 
   @JsonProperty("dia_chi")

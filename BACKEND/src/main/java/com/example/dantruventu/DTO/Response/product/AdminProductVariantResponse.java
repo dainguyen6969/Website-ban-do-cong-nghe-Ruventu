@@ -1,6 +1,7 @@
 package com.example.dantruventu.DTO.Response.product;
 
 import com.example.dantruventu.DTO.catalog.CatalogFields;
+import com.example.dantruventu.Entity.PhienBanSanPham;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import java.math.BigDecimal;
 import java.util.List;
@@ -35,6 +36,9 @@ public class AdminProductVariantResponse {
 
   @JsonProperty("khoi_luong")
   private BigDecimal khoiLuong;
+
+  @JsonProperty("kich_thuoc_dong_goi")
+  private PhienBanSanPham.KichThuocDongGoi kichThuocDongGoi;
 
   @JsonProperty("co_quan_ly_serial")
   private Boolean coQuanLySerial;

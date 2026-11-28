@@ -66,7 +66,8 @@ public class AdminDeliveryService {
   @Value("${ruventu.shipping.time-zone:Asia/Ho_Chi_Minh}")
   private String shippingTimeZone;
 
-  public ListData getList(String keyword, String trangThai, Long partnerId, int page, int limit) {
+  public ListData getList(
+      String keyword, String trangThai, Long partnerId, int page, int limit, Long assignedUserId) {
 
     if (keyword != null && keyword.length() > 100) {
       throw invalid("Từ khóa tối đa 100 ký tự");
@@ -92,7 +93,7 @@ public class AdminDeliveryService {
 
     var result =
         deliveryRepository.findAll(
-            DeliverySpecification.build(keyword, status, partnerId),
+            DeliverySpecification.build(keyword, status, partnerId, assignedUserId),
             PageRequest.of(page, limit, Sort.by(Sort.Direction.DESC, "ngayTao", "id")));
 
     var pagination =
@@ -108,7 +109,7 @@ public class AdminDeliveryService {
     return new ListData(
         result.getContent().stream().map(entity -> mapper.toListItem(entity, zone)).toList(),
         pagination,
-        statusCounts(keyword, partnerId));
+        statusCounts(keyword, partnerId, assignedUserId));
   }
 
   public ReturnRequirements getReturnRequirements(Long id) {
@@ -180,13 +181,42 @@ public class AdminDeliveryService {
         existing.map(this::returnData).orElse(null));
   }
 
-  public Detail getDetail(Long id) {
+  private PhieuGiaoHang findDeliveryForView(Long id, Long assignedUserId) {
     validateId(id);
 
-    PhieuGiaoHang delivery =
+    var delivery =
         deliveryRepository
             .findById(id)
             .orElseThrow(() -> notFound("Phiếu giao hàng không tồn tại"));
+
+    if (assignedUserId != null) {
+      requireAssignedDeliveryPartner(delivery.getDoiTacVanChuyen(), assignedUserId);
+    }
+
+    return delivery;
+  }
+
+  public GhnTracking getGhnTracking(Long id, Long assignedUserId) {
+    var delivery = findDeliveryForView(id, assignedUserId);
+    if (delivery.getDoiTacVanChuyen().getLoaiDoiTac() != LoaiDoiTacVanChuyenEnum.GHN) {
+      throw invalid("Phiếu này dùng đối tác giao hàng khác GHN");
+    }
+
+    String tracking = delivery.getMaVanDon();
+    if (tracking == null || tracking.isBlank()) {
+      throw conflict("Phiếu GHN chưa có mã vận đơn");
+    }
+
+    return orderService.lookupGhnTracking(tracking.strip());
+  }
+
+  public Detail getDetail(Long id) {
+    return getDetail(id, null);
+  }
+
+  public Detail getDetail(Long id, Long assignedUserId) {
+
+    PhieuGiaoHang delivery = findDeliveryForView(id, assignedUserId);
 
     DonHang order = delivery.getDonHang();
 
@@ -272,6 +302,11 @@ public class AdminDeliveryService {
 
   @Transactional(isolation = Isolation.READ_COMMITTED)
   public Action changeStatus(Long id, AdminDeliveryStatusRequest request) {
+    return applyDeliveryStatus(id, request, null);
+  }
+
+  private Action applyDeliveryStatus(
+      Long id, AdminDeliveryStatusRequest request, Long assignedUserId) {
     TrangThaiGiaoHangEnum target = request.getTrangThaiGiaoHang();
 
     if (target != TrangThaiGiaoHangEnum.DA_NHAN_HANG
@@ -282,6 +317,16 @@ public class AdminDeliveryService {
     }
 
     PhieuGiaoHang delivery = lockDelivery(id);
+
+    if (assignedUserId != null) {
+      var partner =
+          partnerRepository
+              .findByIdForShare(delivery.getDoiTacVanChuyen().getId())
+              .orElseThrow(() -> notFound("Phiếu giao hàng không tồn tại"));
+      entityManager.refresh(partner);
+      requireAssignedDeliveryPartner(partner, assignedUserId);
+    }
+
     DonHang order = delivery.getDonHang();
     TrangThaiGiaoHangEnum source = delivery.getTrangThaiGiaoHang();
 
@@ -306,7 +351,12 @@ public class AdminDeliveryService {
 
       requirePackedAndExported(order);
       recallSafety.requireOrderClear(order.getId());
-      requireActivePartner(delivery.getDoiTacVanChuyen().getId());
+      var partner = requireActivePartner(delivery.getDoiTacVanChuyen().getId());
+      String tracking = delivery.getMaVanDon();
+      if (partner.getLoaiDoiTac() == LoaiDoiTacVanChuyenEnum.GHN
+          && (tracking == null || tracking.isBlank())) {
+        throw invalid("Nhập mã vận đơn GHN đã có trước khi xác nhận bàn giao");
+      }
 
       delivery.setTienThuHoCod(calculateCod(order));
       delivery.setTrangThaiGiaoHang(TrangThaiGiaoHangEnum.DA_NHAN_HANG);
@@ -989,17 +1039,40 @@ public class AdminDeliveryService {
     return value.setScale(2);
   }
 
-  @Transactional(isolation = Isolation.READ_COMMITTED)
-  public Action changeStatus(Long id, String idempotencyKey, AdminDeliveryStatusRequest request) {
+  private void requireAssignedDeliveryPartner(DoiTacVanChuyen partner, Long assignedUserId) {
+    NguoiDung assignee = partner.getNguoiDung();
+    if (assignee == null || !assignedUserId.equals(assignee.getId())) {
+      throw notFound("Phiếu giao hàng không tồn tại");
+    }
+  }
 
+  @Transactional(isolation = Isolation.READ_COMMITTED)
+  public Action changeStatus(
+      Long id, String idempotencyKey, AdminDeliveryStatusRequest request, Long assignedUserId) {
     validateId(id);
+
+    if (assignedUserId != null) {
+      TrangThaiGiaoHangEnum target = request.getTrangThaiGiaoHang();
+      if (target != TrangThaiGiaoHangEnum.DANG_GIAO
+          && target != TrangThaiGiaoHangEnum.GIAO_THANH_CONG
+          && target != TrangThaiGiaoHangEnum.GIAO_THAT_BAI) {
+        throw new AppException(
+            ErrorCode.FORBIDDEN, "Nhân viên chỉ được báo tiến độ và kết quả giao");
+      }
+
+      var delivery =
+          deliveryRepository
+              .findById(id)
+              .orElseThrow(() -> notFound("Phiếu giao hàng không tồn tại"));
+      requireAssignedDeliveryPartner(delivery.getDoiTacVanChuyen(), assignedUserId);
+    }
 
     return cashbookService.executeOnce(
         deliveryRequestKey("PGH-ST-", idempotencyKey),
         salesContext.actor(),
         List.of(id, request),
         Action.class,
-        () -> changeStatus(id, request));
+        () -> applyDeliveryStatus(id, request, assignedUserId));
   }
 
   @Transactional(isolation = Isolation.READ_COMMITTED)
@@ -1286,7 +1359,7 @@ public class AdminDeliveryService {
     }
   }
 
-  private Map<String, Long> statusCounts(String keyword, Long partnerId) {
+  private Map<String, Long> statusCounts(String keyword, Long partnerId, Long assignedUserId) {
     Map<String, Long> counts = new LinkedHashMap<>();
 
     for (TrangThaiGiaoHangEnum value : TrangThaiGiaoHangEnum.values()) {
@@ -1302,7 +1375,8 @@ public class AdminDeliveryService {
 
     // Giữ bộ lọc từ khóa và đối tác; thống kê tất cả trạng thái.
     var predicate =
-        DeliverySpecification.build(keyword, null, partnerId).toPredicate(root, query, cb);
+        DeliverySpecification.build(keyword, null, partnerId, assignedUserId)
+            .toPredicate(root, query, cb);
 
     if (predicate != null) {
       query.where(predicate);
