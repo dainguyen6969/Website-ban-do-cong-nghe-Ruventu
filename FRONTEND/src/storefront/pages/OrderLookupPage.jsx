@@ -1,3 +1,4 @@
+import AdminHelp from '../../shared/components/ui/AdminHelp';
 import { label } from '../../features/admin/orders/api/orderApi.js';
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -256,7 +257,7 @@ const OrderLookupPage = () => {
             </button>
           </form>
 
-          <p className="search-hint">Thử nhập: 0901234567 • RUV-98237</p>
+          <AdminHelp>Thử nhập: 0901234567 • RUV-98237</AdminHelp>
         </div>
       </div>
 

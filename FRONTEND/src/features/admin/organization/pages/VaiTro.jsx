@@ -1,3 +1,4 @@
+import AdminHelp from '../../../../shared/components/ui/AdminHelp';
 // Admin organization screen: VaiTro.
 import { useMemo, useRef, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -337,10 +338,10 @@ export default function VaiTro() {
             </label>
           </section>
           <section className="role-presets">
-            <h2>
+            <div className="admin-heading-with-help"><h2>
               <span />
               DANH SÁCH VAI TRÒ
-            </h2>
+            </h2><AdminHelp>Nhấn vào một vai trò để sửa quyền, hoặc chọn Thêm vai trò mới.</AdminHelp></div>
             <button
               className={`role-preset ${selectedPreset === 'new' ? 'role-preset--active' : ''}`}
               onClick={handleAddNew}
@@ -363,7 +364,7 @@ export default function VaiTro() {
                 <HiOutlineChevronRight />
               </button>
             ))}
-            <p>Nhấn vào để sửa quyền, hoặc nhấn "Thêm vai trò mới".</p>
+
           </section>
           <section className="role-summary">
             <h2>TỔNG QUYỀN ĐÃ CẤP</h2>
@@ -395,7 +396,7 @@ export default function VaiTro() {
               <span />
               MA TRẬN PHÂN QUYỀN
             </h2>
-            <p>— Nhấn tiêu đề cột hoặc tên module để chọn nhanh toàn bộ</p>
+            <AdminHelp>Nhấn tiêu đề cột hoặc tên module để chọn nhanh toàn bộ.</AdminHelp>
           </div>
           <div className="role-matrix-scroll">
             <table className="role-matrix">
@@ -473,9 +474,9 @@ export default function VaiTro() {
                                     onChange={() => toggleRow(module)}
                                     label={`Chọn module ${module.label}`}
                                   />
-                                  <div className="role-module-copy">
+                                  <div className="role-module-copy admin-heading-with-help">
                                     <strong>{module.label}</strong>
-                                    <span>{module.description}</span>
+                                    {module.description && <AdminHelp>{module.description}</AdminHelp>}
                                   </div>
                                 </div>
                               </td>

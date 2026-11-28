@@ -1,3 +1,4 @@
+import AdminHelp from '../../../../shared/components/ui/AdminHelp';
 import { useState } from "react";
 import { createCashbookSourceFilters } from "../api/cashbookFilterParams";
 import FilterDropdown from "../../../../shared/components/ui/FilterDropdown";
@@ -159,9 +160,7 @@ export default function CashbookSourceFilters({
       )}
 
       {applyRequired && !isCollapsed && (
-        <p className="cb-source-filters__hint">
-          Chọn ÁP DỤNG để tải dữ liệu theo bộ lọc đã nhập.
-        </p>
+        <AdminHelp>Chọn ÁP DỤNG để tải dữ liệu theo bộ lọc đã nhập.</AdminHelp>
       )}
     </section>
   );

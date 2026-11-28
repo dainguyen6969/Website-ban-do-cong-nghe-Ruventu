@@ -647,9 +647,7 @@ export default function TaoKhuyenMai() {
                   TỰ SINH
                 </button>
               </div>
-              <div className="field-hint">
-                Tự sinh chỉ gợi ý mã; tính duy nhất được kiểm tra khi lưu.
-              </div>
+              <AdminHelp>Tự sinh chỉ gợi ý mã; tính duy nhất được kiểm tra khi lưu.</AdminHelp>
               {errors.code && <div className="error-tip">{errors.code}</div>}
             </div>
 
@@ -746,10 +744,7 @@ export default function TaoKhuyenMai() {
                       }}
                       className={errors.discountValue ? 'input-error' : ''}
                     />
-                    <div className="field-hint">
-                      Giảm số tiền cố định. Với phạm vi phiên bản, mức giảm áp dụng cho mỗi đơn vị
-                      đủ điều kiện.
-                    </div>
+                    <AdminHelp>Giảm số tiền cố định. Với phạm vi phiên bản, mức giảm áp dụng cho mỗi đơn vị đủ điều kiện.</AdminHelp>
                     {errors.discountValue && (
                       <div className="error-tip">{errors.discountValue}</div>
                     )}
@@ -782,10 +777,7 @@ export default function TaoKhuyenMai() {
                         value={maxDiscount}
                         onChange={(e) => setMaxDiscount(e.target.value)}
                       />
-                      <div className="field-hint">
-                        Giảm phần trăm trên giá trị hàng đủ điều kiện, không vượt mức tối đa nếu đã
-                        cấu hình.
-                      </div>
+                      <AdminHelp>Giảm phần trăm trên giá trị hàng đủ điều kiện, không vượt mức tối đa nếu đã cấu hình.</AdminHelp>
                     </div>
                   </>
                 )}
@@ -895,9 +887,7 @@ export default function TaoKhuyenMai() {
                   </option>
                 ))}
               </FormDropdown>
-              <div className="field-hint">
-                Áp dụng cho danh mục đã chọn và các danh mục con. Không phải loại sản phẩm.
-              </div>
+              <AdminHelp>Áp dụng cho danh mục đã chọn và các danh mục con. Không phải loại sản phẩm.</AdminHelp>
               {errors.category && <div className="error-tip">{errors.category}</div>}
             </div>
           )}
@@ -923,9 +913,7 @@ export default function TaoKhuyenMai() {
                   </option>
                 ))}
               </FormDropdown>
-              <div className="field-hint">
-                Chỉ hàng thuộc thương hiệu đã chọn được tính là hàng đủ điều kiện.
-              </div>
+              <AdminHelp>Chỉ hàng thuộc thương hiệu đã chọn được tính là hàng đủ điều kiện.</AdminHelp>
               {errors.brand && <div className="error-tip">{errors.brand}</div>}
             </div>
           )}
@@ -985,10 +973,7 @@ export default function TaoKhuyenMai() {
                 </div>
               )}
 
-              <div className="variants-footer-footnote">
-                Mỗi phiên bản giữ số lượng tối thiểu riêng. Không bắt buộc mọi phiên bản được chọn
-                phải xuất hiện trong cùng đơn.
-              </div>
+              <AdminHelp>Mỗi phiên bản giữ số lượng tối thiểu riêng. Không bắt buộc mọi phiên bản được chọn phải xuất hiện trong cùng đơn.</AdminHelp>
             </div>
           )}
 
@@ -1026,9 +1011,7 @@ export default function TaoKhuyenMai() {
                   </div>
                 )}
 
-                <div className="sub-section-footnote">
-                  TẤT CẢ dòng mua và số lượng đã cấu hình phải được đáp ứng để nhận bộ quà.
-                </div>
+                <AdminHelp>TẤT CẢ dòng mua và số lượng đã cấu hình phải được đáp ứng để nhận bộ quà.</AdminHelp>
               </div>
 
               {/* B. SẢN PHẨM ĐƯỢC TẶNG */}
@@ -1062,7 +1045,7 @@ export default function TaoKhuyenMai() {
                   </div>
                 )}
 
-                <div className="sub-section-footnote">Nhận toàn bộ các dòng quà đã cấu hình.</div>
+                <AdminHelp>Nhận toàn bộ các dòng quà đã cấu hình.</AdminHelp>
               </div>
             </>
           )}
@@ -1099,7 +1082,7 @@ export default function TaoKhuyenMai() {
                 </div>
               )}
 
-              <div className="sub-section-footnote">Nhận toàn bộ các dòng quà đã cấu hình.</div>
+              <AdminHelp>Nhận toàn bộ các dòng quà đã cấu hình.</AdminHelp>
             </div>
           )}
         </div>

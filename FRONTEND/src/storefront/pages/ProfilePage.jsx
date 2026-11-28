@@ -1,3 +1,4 @@
+import AdminHelp from '../../shared/components/ui/AdminHelp';
 import React, { useEffect, useState } from "react";
 import { VIETNAM_LOCATIONS } from "../../data/vietnamLocations";
 import { useNavigate, useLocation } from "react-router-dom";
@@ -174,7 +175,7 @@ const ProfilePage = () => {
               />
               <Lock size={14} className="lock-icon" />
             </div>
-            <p className="helper-text">Xác minh OTP để thay đổi email.</p>
+            <AdminHelp>Xác minh OTP để thay đổi email.</AdminHelp>
           </div>
 
           <div className="form-group">
@@ -191,9 +192,7 @@ const ProfilePage = () => {
               />
               <Lock size={14} className="lock-icon" />
             </div>
-            <p className="helper-text">
-              Liên hệ hỗ trợ để thay đổi số điện thoại.
-            </p>
+            <AdminHelp>Liên hệ hỗ trợ để thay đổi số điện thoại.</AdminHelp>
           </div>
         </div>
       </div>
